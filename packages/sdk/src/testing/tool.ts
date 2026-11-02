@@ -120,7 +120,7 @@ export async function createTestTool<DB = any>(
   // One database for the test, shared by every person: the tables of the schema, empty.
   let db: Db | undefined;
   if (worker.manifest.resources.db) {
-    const d1 = createMemoryD1();
+    const d1 = await createMemoryD1();
     for (const statement of worker.schema ? createSchemaSql(worker.schema) : [])
       await d1.exec(statement);
     db = createDb(d1);

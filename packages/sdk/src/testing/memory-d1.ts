@@ -1,5 +1,17 @@
 import type { D1Like, D1Statement } from "@forgeron/runtime";
-import { DatabaseSync } from "node:sqlite";
+
+// The part of `node:sqlite` used here, typed locally and loaded when asked for: a tool that imports
+// `@forgeron/sdk/testing` does not need the types of Node in its own program.
+interface SqliteStatement {
+  all(...params: unknown[]): unknown[];
+  get(...params: unknown[]): unknown;
+}
+interface DatabaseSync {
+  prepare(sql: string): SqliteStatement;
+  exec(sql: string): void;
+  close(): void;
+}
+const SQLITE = "node:sqlite";
 
 // A D1 database in memory, for tests: SQLite from Node, with the surface of a D1 binding that the
 // runtime uses. A batch is atomic, as on D1: it runs in one transaction and rolls back on failure.
@@ -43,7 +55,10 @@ export interface MemoryD1 extends D1Like {
   close(): void;
 }
 
-export function createMemoryD1(): MemoryD1 {
+export async function createMemoryD1(): Promise<MemoryD1> {
+  const { DatabaseSync } = (await import(SQLITE)) as {
+    DatabaseSync: new (path: string) => DatabaseSync;
+  };
   const db = new DatabaseSync(":memory:");
   // D1 enforces foreign keys.
   db.exec("PRAGMA foreign_keys = ON");

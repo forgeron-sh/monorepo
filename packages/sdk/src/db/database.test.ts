@@ -35,7 +35,7 @@ afterAll(() => mf?.dispose());
 const targets: Array<
   [string, () => Promise<D1Like & { exec?: (sql: string) => Promise<unknown> }>]
 > = [
-  ["in-memory database", async () => createMemoryD1()],
+  ["in-memory database", () => createMemoryD1()],
   [
     "D1 on workerd",
     async () => {
