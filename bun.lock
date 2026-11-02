@@ -109,6 +109,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/runtime": "workspace:*",
         "zod": "4.6.7",
       },
       "devDependencies": {
