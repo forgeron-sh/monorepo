@@ -11,7 +11,7 @@
   "scripts": {
     "prepare": "git config --local core.hooksPath .git/hooks && lefthook install --force",
     "dev": "moon run :dev",
-    "check": "moon run :typecheck && bun run lint && bun run format:check && bun run test && bun run knip && bun run deps",
+    "check": "moon run :typecheck && bun run lint && bun run format:check && bun run test && bun run knip && bun run deps && bun run deps:selftest",
     "test": "vitest run",
     "build": "moon run :build",
     "lint": "oxlint",
@@ -19,6 +19,7 @@
     "format:check": "oxfmt --check .",
     "knip": "knip",
     "deps": "depcruise apps packages templates --config .dependency-cruiser.cjs",
+    "deps:selftest": "bun scripts/deps-selftest.ts",
     "typecheck": "moon run :typecheck",
     "deploy:staging": "bun run --filter '@forgeron/*' deploy:staging",
     "deploy:production": "bun run --filter '@forgeron/*' deploy:production"

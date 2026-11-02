@@ -23,11 +23,18 @@ module.exports = {
       to: { path: "^packages/(runtime|compiler|manifest)/" },
     },
     {
-      // Le runtime tourne dans workerd : ni Node, ni le compilateur.
+      // Le runtime tourne dans workerd : pas de module Node (`node:*`, `fs`…).
       name: "runtime-stays-on-workers",
       severity: "error",
       from: { path: "^packages/runtime/" },
-      to: { path: "^(node:|packages/compiler/)", dependencyTypesNot: ["type-only"] },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
+      // ... ni le compilateur (hors types).
+      name: "runtime-does-not-import-compiler",
+      severity: "error",
+      from: { path: "^packages/runtime/" },
+      to: { path: "^packages/compiler/", dependencyTypesNot: ["type-only"] },
     },
     {
       // Un tool n'embarque jamais d'outil de build ou de déploiement.
