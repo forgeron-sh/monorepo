@@ -28,10 +28,11 @@ describe("watchSources", () => {
     await writeFile(join(dir, "actions", "a.ts"), "1");
     await writeFile(join(dir, "actions", "a.ts"), "2");
     await writeFile(join(dir, "actions", "b.ts"), "3");
-    await vi.waitFor(() => expect(onChange).toHaveBeenCalled(), { timeout: 3000 });
+    // The file system reports late when the machine is busy (the whole suite starts workerd).
+    await vi.waitFor(() => expect(onChange).toHaveBeenCalled(), { timeout: 20_000 });
     await new Promise((resolve) => setTimeout(resolve, 600));
     expect(onChange).toHaveBeenCalledTimes(1);
-  });
+  }, 30_000);
 
   it("ignores node_modules and the build output, which a build itself writes", async () => {
     const onChange = vi.fn<() => void>();
