@@ -124,10 +124,16 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
           outgoing.end(JSON.stringify({ error: { code: "INTERNAL", message: String(error) } }));
         }
       });
-      await new Promise<void>((resolve, reject) => {
-        server.once("error", reject);
-        server.listen(options.port ?? ports.get(key) ?? 0, host, resolve);
-      });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          server.once("error", reject);
+          server.listen(options.port ?? ports.get(key) ?? 0, host, resolve);
+        });
+      } catch (error) {
+        // The port is taken: do not leave workerd running behind the failure.
+        await miniflare.dispose();
+        throw error;
+      }
       running.set(key, { miniflare, server });
 
       const { port } = server.address() as AddressInfo;

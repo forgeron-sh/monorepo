@@ -18,8 +18,7 @@
     },
     "apps/*": {},
     "apps/cli": {
-      "ignore": ["fixtures/**"],
-      "ignoreDependencies": ["@forgeron/sdk"]
+      "ignore": ["fixtures/**"]
     }
   }
 }
