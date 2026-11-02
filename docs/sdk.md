@@ -423,18 +423,19 @@ Names are identical in the schema, in the database and in queries (`snake_case` 
 
 ### Migrations
 
-- One file per migration, `db/migrations/NNNN_<name>.ts`, which exports `migration({ up, down, destructive?, after? })`. `up` and `down` receive a `Kysely<any>`: you write Kysely or raw `sql`.
-- `forgeron db generate` compares the schema with `meta/snapshot.json` (the state after the last migration), writes the migration, then updates the snapshot. The generated file can be reread and edited: data migrations are added there.
-- SQLite (D1) limitations are handled by the generator: when a change is not possible with `ALTER TABLE`, it writes a table rebuild (create, copy, rename) in a transaction.
+- One file per migration, `db/migrations/NNNN_<name>.ts`, which exports `migration({ up, down, destructive? })`. `up` and `down` are lists of SQL statements, or a function that writes them with a Kysely that only compiles (`db.insertInto(…)`, `db.schema.…`): data migrations are statements added to the generated file. A migration is a list, not code that runs between statements, so that it can be applied atomically on D1 (D-014).
+- `forgeron db generate [--name <name>]` compares the schema with `meta/snapshot.json` (the state after the last migration), writes the migration, then updates the snapshot. The generated file can be reread and edited. `forgeron build` fails if the schema moved since the last migration.
+- SQLite (D1) limitations are handled by the generator: it uses `ALTER TABLE` when SQLite allows it, otherwise it writes a table rebuild (create, copy, drop, rename) in the same migration. A table that other tables point at is not rebuilt automatically: dropping it would delete their rows, so the generator stops and the migration is written by hand.
 - Tracking is done in the `_forgeron_migrations` table (name, file fingerprint, date). An already applied migration whose file changes causes an error.
-- **Renaming or dropping** a column or a table produces a `destructive: true` migration. For a rename, the generator proposes two migrations: `expand` (add, copy over) then `contract` (drop), to be deployed separately (`after`).
+- **A rename is a drop and an add** (a `destructive: true` migration): the data of the old column does not follow. There is no `expand` then `contract` (D-014).
+- `down` is the diff the other way; what `up` dropped does not come back.
 
 ### At each deployment
 
 1. The version is built; pending migrations are listed.
 2. In **preview**, a fresh database is created per branch, migrated then filled according to `preview.data` (`seed` by default).
 3. In **pilot and production**, migrations are applied **before** traffic is switched. A `destructive` migration is refused without `--allow-destructive`.
-4. If a migration fails, the transaction is rolled back, the deployment stops, and the old version keeps serving.
+4. A migration and its record are applied in one batch: if it fails, it is rolled back, the deployment stops, and the old version keeps serving.
 5. Pilot and production share the same database: a pilot version cannot ship a migration that is incompatible with the current production version (checked at deployment).
 
 ### Seed

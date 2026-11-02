@@ -8,3 +8,26 @@ export type { Table } from "./table";
 export { schema } from "./schema";
 export type { Batch, BatchResult, Compilable, DB, Database, Schema } from "./schema";
 export { createSchemaSql } from "./ddl";
+export {
+  addColumnSql,
+  createIndexSql,
+  createTableSql,
+  createTriggerSql,
+  dropColumnSql,
+  dropIndexSql,
+  dropTriggerSql,
+  indexName,
+  quote,
+  tableExtrasSql,
+  triggerName,
+} from "./ddl";
+export { emptySnapshot, sameSnapshot, snapshotOf } from "./snapshot";
+export type { ColumnSnapshot, Snapshot, TableSnapshot } from "./snapshot";
+export { migration, resolveMigration } from "./migration";
+export type {
+  MigrationDefinition,
+  MigrationOptions,
+  MigrationStatement,
+  MigrationSteps,
+  ResolvedStatement,
+} from "./migration";

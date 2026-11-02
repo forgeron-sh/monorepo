@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "name": "things",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "name",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}

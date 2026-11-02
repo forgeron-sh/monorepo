@@ -1,4 +1,5 @@
 import { build } from "./commands/build";
+import { db } from "./commands/db";
 import { dev } from "./commands/dev";
 import { init } from "./commands/init";
 import { link } from "./commands/link";
@@ -11,6 +12,7 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   build,
   test,
   dev,
+  db,
 };
 
 const USAGE = `Usage: forgeron <command>
@@ -18,6 +20,7 @@ const USAGE = `Usage: forgeron <command>
   init [name]                          create a tool
   link --workspace <name>              link the tool to a workspace
   dev [--as <role>] [--port 8787]      run the tool locally
+  db generate [--name <name>]          write the migration for a change of db/schema.ts
   test [vitest args]                   build the tool, then run Vitest
   build                                build every tool under this folder`;
 

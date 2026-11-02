@@ -286,6 +286,91 @@ describe("forgeron test", () => {
   });
 });
 
+describe("forgeron db", () => {
+  // Copies of tools with a database, without their migrations, inside the repository.
+  const dbTool = async (name: string, from: string) => {
+    const dir = join(fixtures, `.work-${name}-${Date.now()}`);
+    dirs.push(dir);
+    await cp(from, dir, {
+      recursive: true,
+      filter: (src) => !src.includes(".forgeron") && !src.includes(join("db", "migrations")),
+    });
+    return dir;
+  };
+  const dbping = join(fixtures, "dbping");
+  const pipeline = fileURLToPath(
+    new URL("../../../packages/compiler/fixtures/db-tool", import.meta.url),
+  );
+
+  it("generate writes the first migration, and says to read it", async () => {
+    const dir = await dbTool("db-gen", dbping);
+    const c = capture(dir);
+    expect(await run(["db", "generate"], c.io)).toBe(0);
+    expect(c.logs[0]).toBe(`Wrote ${join("db", "migrations", "0001_init.ts")} (1 statement).`);
+    expect(c.logs.at(-1)).toContain("commit it with db/migrations/meta/snapshot.json");
+    await expect(stat(join(dir, "db", "migrations", "0001_init.ts"))).resolves.toBeDefined();
+  }, 60_000);
+
+  it("says when there is nothing to generate", async () => {
+    const dir = await dbTool("db-nothing", dbping);
+    await run(["db", "generate"], capture(dir).io);
+    const c = capture(dir);
+    expect(await run(["db", "generate"], c.io)).toBe(0);
+    expect(c.logs).toEqual([
+      "The schema has not changed since the last migration: nothing to generate.",
+    ]);
+  }, 60_000);
+
+  it("takes a name, and warns about a migration that drops data", async () => {
+    const dir = await dbTool("db-drop", dbping);
+    await run(["db", "generate"], capture(dir).io);
+    await writeFile(
+      join(dir, "db", "schema.ts"),
+      'import { schema, t, table } from "@forgeron/sdk/db";\n\nexport default schema({ things: table("things", { id: t.id() }) });\n',
+    );
+    const c = capture(dir);
+    expect(await run(["db", "generate", "--name", "drop_name"], c.io)).toBe(0);
+    expect(c.logs[0]).toContain("0002_drop_name.ts");
+    expect(c.logs[1]).toContain("marked destructive");
+  }, 60_000);
+
+  it("exits 1 with advice when the change cannot be written safely", async () => {
+    const dir = await dbTool("db-refused", pipeline);
+    await run(["db", "generate"], capture(dir).io);
+    const schema = join(dir, "db", "schema.ts");
+    await writeFile(
+      schema,
+      (await readFile(schema, "utf8")).replace(
+        "name: t.text().notNull(),",
+        "name: t.text().notNull().unique(),",
+      ),
+    );
+    const c = capture(dir);
+    expect(await run(["db", "generate"], c.io)).toBe(1);
+    expect(c.errors[0]).toContain("other tables point at it");
+  }, 60_000);
+
+  it("fails for a tool without a schema", async () => {
+    const dir = await work("db-noschema");
+    const c = capture(dir);
+    expect(await run(["db", "generate"], c.io)).toBe(1);
+    expect(c.errors[0]).toContain("no db/schema.ts");
+  }, 60_000);
+
+  it("exits 2 for a wrong use, and says what is not there yet", async () => {
+    const none = capture("/");
+    expect(await run(["db"], none.io)).toBe(2);
+    const unknown = capture("/");
+    expect(await run(["db", "frobnicate"], unknown.io)).toBe(2);
+    expect(unknown.errors[0]).toContain('unknown subcommand "frobnicate"');
+    const later = capture("/");
+    expect(await run(["db", "migrate"], later.io)).toBe(2);
+    expect(later.errors[0]).toContain("`forgeron dev` applies the migrations");
+    const stray = capture("/");
+    expect(await run(["db", "generate", "extra"], stray.io)).toBe(2);
+  });
+});
+
 describe("forgeron dev", () => {
   const mcp = async (url: string, method: string, params?: unknown) =>
     (

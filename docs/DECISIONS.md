@@ -26,6 +26,7 @@ Rules of the log:
 | D-011 | 02/11/2026 | All repository files are written in English                                                             | Active            |
 | D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                     | Active            |
 | D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                      | Active            |
+| D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract              | Active            |
 
 ---
 
@@ -162,3 +163,18 @@ Rules of the log:
 - **Rejected**: one resource per workspace with the tool as a scope. MCP clients send `resource=<the MCP server URL>` (RFC 8707) and the library accepts it only if it is a configured resource, exactly or by its query; and a scope would let one token cover several tools, against `sdk.md` §7. Redeploying the gateway on every tool creation: not needed.
 - **Not verified**: the Microsoft sign-in itself (FOR-82); a real Workers deployment (workerd is the same engine). The proof keeps the registry in KV for convenience; the platform registry is a D1 table (`ARCHITECTURE.md`), and KV's propagation delay is one more reason not to use it for this.
 - **Applied in**: `ARCHITECTURE.md`, "Open decisions"; `apps/gateway/src/identity/`.
+
+## D-014 — Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**:
+  1. A migration is `db/migrations/NNNN_<name>.ts`, `export default migration({ up, down, destructive? })`, where `up` and `down` are lists of SQL statements (or a function that writes them with a Kysely that only compiles). `forgeron build` resolves them and records them, with the fingerprint of their file, in `migrations.json`.
+  2. Hosting applies a migration and its row in `_forgeron_migrations` in **one batch**: applied and recorded, or neither (D-012). One migration at a time, in the order of their names; the first failure stops there. A file that changed after it was applied, a migration the build lacks, one numbered before an applied one, and a destructive one without `--allow-destructive` are refused before anything runs.
+  3. `forgeron db generate` compares `db/schema.ts` with `db/migrations/meta/snapshot.json`, writes the next migration and the new snapshot. `forgeron build` fails when the schema moved since the last migration (`sdk.md` §14).
+  4. **A rename is a hard rename**: the generator sees a column or a table that disappeared and another that appeared, and writes a drop and an add (marked `destructive`). It does not carry data across, and there is no `expand` then `contract`.
+- **Why**: Forgeron is not in production and has no user: nothing is worth the machinery that keeps data alive across a rename, and a rename the generator would have to guess from a schema diff is ambiguous anyway. D1 has no interactive transaction, so a migration written as code that runs between statements could not be atomic; a list of statements can.
+- **Table rebuilds**: SQLite cannot make some changes with `ALTER TABLE` (a new unique column, a changed type, nullability or default, a default that is the time). The generator then creates the new table, copies the rows over, drops the old, renames. **A table that other tables point at is not rebuilt**: measured on D1, dropping it deletes the rows of the tables that cascade from it, with no error, even with `PRAGMA defer_foreign_keys` (`packages/hosting/src/d1-atomicity.test.ts`). The generator refuses and says to write that migration by hand.
+- **Reversible**: `down` is the diff the other way. What `up` dropped does not come back (a dropped column returns empty).
+- **Rejected**: `expand`/`contract` migrations for renames and drops (FOR-114, cancelled); migration code that runs Kysely between statements (not atomic); a rebuild that silently deletes child rows.
+- **Not done**: `forgeron db migrate | status | rollback | seed | shell` (FOR-115): `forgeron dev` applies the migrations, and `revertMigrations` exists in `@forgeron/hosting` for the rollback command; applying them on a remote account (self-host).
+- **Applied in**: `sdk.md` §8; `@forgeron/sdk/db` (`migration`, snapshot), `@forgeron/compiler` (diff, generate, build), `@forgeron/hosting` (`applyMigrations`, `revertMigrations`, `Hosting.migrate`).

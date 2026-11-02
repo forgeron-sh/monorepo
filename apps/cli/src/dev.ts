@@ -2,6 +2,7 @@ import { buildTool } from "@forgeron/compiler";
 import type { Manifest } from "@forgeron/manifest";
 import { createLocalHosting } from "@forgeron/hosting/local";
 import { readFile } from "node:fs/promises";
+import type { BuildMigration } from "@forgeron/hosting";
 import { join } from "node:path";
 import { UsageError } from "./io";
 
@@ -24,21 +25,26 @@ export interface DevOptions {
 }
 
 async function builtFiles(outDir: string) {
-  const [worker, manifest, record] = await Promise.all([
+  const [worker, manifest, record, migrations] = await Promise.all([
     readFile(join(outDir, "worker.js"), "utf8"),
     readFile(join(outDir, "manifest.json"), "utf8"),
     readFile(join(outDir, "build.json"), "utf8"),
+    // Only a tool with a database has migrations.
+    readFile(join(outDir, "migrations.json"), "utf8").catch(() => undefined),
   ]);
   return {
     worker,
     manifest: JSON.parse(manifest) as Manifest,
     fingerprint: (JSON.parse(record) as { fingerprint: string }).fingerprint,
+    ...(migrations ? { migrations: JSON.parse(migrations) as BuildMigration[] } : {}),
   };
 }
 
 export async function startDev(dir: string, options: DevOptions = {}): Promise<DevSession> {
   const { role } = options;
   const hosting = createLocalHosting({
+    // The local database lives on disk: it is still there next time (.forgeron/local is ignored by git).
+    persist: join(dir, ".forgeron", "local"),
     ...(options.port === undefined ? {} : { port: options.port }),
     ...(role
       ? {
@@ -61,7 +67,10 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
     }
     const environment = { tool: build.manifest.name, name: "local" as const };
     const provisioned = await hosting.provision(environment, build.manifest);
-    const { url } = await hosting.activate(await hosting.upload(provisioned, build));
+    const uploaded = await hosting.upload(provisioned, build);
+    // Before traffic switches: if a migration fails, the previous build keeps serving.
+    await hosting.migrate(uploaded);
+    const { url } = await hosting.activate(uploaded);
     return { name: build.manifest.name, url };
   }
 
