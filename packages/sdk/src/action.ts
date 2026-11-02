@@ -41,8 +41,12 @@ export interface ActionDefinition<
 export function action<I extends z.ZodObject, O extends z.ZodType = z.ZodUnknown>(
   options: ActionOptions<I, O>,
 ): ActionDefinition<I, O> {
-  if (!options.description.trim()) throw new TypeError("An action needs a description.");
-  if (!options.access.trim()) throw new TypeError("An action needs an access level.");
+  if (typeof options.description !== "string" || !options.description.trim()) {
+    throw new TypeError("An action needs a description.");
+  }
+  if (typeof options.access !== "string" || !options.access.trim()) {
+    throw new TypeError("An action needs an access level.");
+  }
   const fields = Object.keys(options.input.shape);
   for (const arg of options.cli?.args ?? []) {
     if (!fields.includes(arg)) {

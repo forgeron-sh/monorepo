@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { rolldown } from "rolldown";
+import { checkResources } from "./check";
 import { discoverTools } from "./discover";
 import { fingerprintSources, sha256 } from "./fingerprint";
 import { loadTool, sourcesOf } from "./load";
@@ -61,6 +62,7 @@ export async function buildTool(folder: string): Promise<BuildResult> {
 
   const loaded = await loadTool(dir, scratch);
   const manifest = buildManifest(loaded, pkg.version);
+  await checkResources(dir, loaded.modules, manifest);
   const manifestFile = join(outDir, "manifest.json");
   await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
 
