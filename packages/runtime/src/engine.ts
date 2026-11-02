@@ -4,6 +4,7 @@ import type {
   ErrorCode,
   Failure,
   Fetch,
+  CallSource,
   Interface,
   Outcome,
   Platform,
@@ -76,7 +77,7 @@ interface ListedAction {
 export interface Engine {
   /** The actions this person may call through this interface. */
   list(user: User, via: Interface): ListedAction[];
-  invoke(user: User, via: Interface, name: string, rawInput: unknown): Promise<Outcome>;
+  invoke(user: User, via: CallSource, name: string, rawInput: unknown): Promise<Outcome>;
 }
 
 export function createEngine(options: RuntimeOptions): Engine {
@@ -105,11 +106,12 @@ export function createEngine(options: RuntimeOptions): Engine {
   const grants = (user: User): Set<string> =>
     new Set(user.roles.flatMap((role) => manifest.roles[role]?.grants ?? []));
 
-  const exposed = (name: string, via: Interface): RuntimeAction | undefined => {
+  // A call from a task or another tool does not go through an interface: it is not hidden by `interfaces`.
+  const exposed = (name: string, via: CallSource): RuntimeAction | undefined => {
     const entry = manifest.actions[name];
-    return entry && manifest.interfaces[via] && entry.interfaces.includes(via)
-      ? actions[name]
-      : undefined;
+    if (!entry) return undefined;
+    if (via === "job" || via === "tool") return actions[name];
+    return manifest.interfaces[via] && entry.interfaces.includes(via) ? actions[name] : undefined;
   };
 
   return {

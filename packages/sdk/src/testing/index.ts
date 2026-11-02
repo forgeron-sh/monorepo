@@ -1,2 +1,5 @@
-// forgeron/testing: createTestTool, mockFetch (docs/sdk.md §13).
-export {};
+// `@forgeron/sdk/testing`: `createTestTool` and `mockFetch` (docs/sdk.md section 13).
+export { createTestTool } from "./tool";
+export type { EmittedEvent, TestIdentity, TestTool, TestToolOptions } from "./tool";
+export { mockFetch, reply } from "./mock-fetch";
+export type { MockFetch, MockRequest, MockRoute } from "./mock-fetch";

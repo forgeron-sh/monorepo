@@ -529,3 +529,40 @@ describe("hiding an action from an interface", () => {
     expect(api.status).toBe(404);
   });
 });
+
+describe("invoke", () => {
+  const runtime = build();
+
+  it("runs an action for a person, whatever the interfaces of the tool", async () => {
+    // `admin.purge` is only on MCP, `tickets.list` is on every interface: neither is hidden.
+    const outcome = await runtime.invoke(people.admin!, "admin.purge");
+    expect(outcome).toEqual({ ok: true, result: { purged: true } });
+  });
+
+  it("still checks access and validation", async () => {
+    expect(
+      await runtime.invoke(people.reader!, "tickets.reply", { id: 1, message: "x" }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "FORBIDDEN" },
+    });
+    expect(await runtime.invoke(people.support!, "tickets.reply", { id: "x" })).toMatchObject({
+      ok: false,
+      error: { code: "INVALID" },
+    });
+  });
+
+  it("tells the action it was called by another tool, unless told otherwise", async () => {
+    const asTool = await runtime.invoke(people.reader!, "tickets.whoami");
+    expect(asTool).toMatchObject({ ok: true, result: { via: "tool" } });
+    const asMcp = await runtime.invoke(people.reader!, "tickets.whoami", {}, "mcp");
+    expect(asMcp).toMatchObject({ ok: true, result: { via: "mcp" } });
+  });
+
+  it("answers NOT_FOUND to an unknown action", async () => {
+    expect(await runtime.invoke(people.admin!, "nope")).toMatchObject({
+      ok: false,
+      error: { code: "NOT_FOUND" },
+    });
+  });
+});

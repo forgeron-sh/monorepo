@@ -3,7 +3,7 @@ import { handleCli } from "./cli";
 import { createEngine } from "./engine";
 import { errorResponse } from "./http";
 import { handleMcp } from "./mcp";
-import type { RuntimeOptions } from "./types";
+import type { CallSource, Outcome, RuntimeOptions, User } from "./types";
 
 export interface Runtime {
   /**
@@ -11,6 +11,11 @@ export interface Runtime {
    * `/mcp`, `/api/<action>`, `/cli`, and `/_f/call/<action>` for the views.
    */
   fetch(request: Request): Promise<Response>;
+  /**
+   * Runs an action for a person, as a call from another tool or a task: through access
+   * and validation, but not hidden by `interfaces`. This is what tests call.
+   */
+  invoke(user: User, action: string, input?: unknown, via?: CallSource): Promise<Outcome>;
 }
 
 /** Builds the Worker side of a tool: one action, four interfaces (sdk.md §7). */
@@ -20,6 +25,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   const notFound = () => errorResponse({ code: "NOT_FOUND", message: "Not found." });
 
   return {
+    invoke: (user, action, input, via = "tool") => engine.invoke(user, via, action, input),
     async fetch(request) {
       const user = await options.authenticate(request);
       if (!user) {

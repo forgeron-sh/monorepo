@@ -45,12 +45,15 @@ export interface Logger {
   error(message: string, data?: unknown): void;
 }
 
+/** Where a call comes from: an interface, a scheduled task or another tool. */
+export type CallSource = Interface | "job" | "tool";
+
 /** The `ctx` an action receives (`@forgeron/sdk` types it as `Context`). */
 export interface ActionContext {
   input: unknown;
   user: User;
   can(level: string): boolean;
-  interface: Interface;
+  interface: CallSource;
   emit(event: string, payload?: unknown): void | Promise<void>;
   secrets: Readonly<Record<string, string | undefined>>;
   userSecrets: Readonly<Record<string, string | undefined>>;

@@ -11,6 +11,9 @@
     "packages/compiler": {
       "ignore": ["fixtures/**"],
       "ignoreDependencies": ["@forgeron/runtime"]
+    },
+    "packages/sdk": {
+      "ignore": ["fixtures/**"]
     }
   }
 }

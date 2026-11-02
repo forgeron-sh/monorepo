@@ -4,6 +4,7 @@ export { toolName } from "./mcp";
 export { HTTP_STATUS } from "./types";
 export type {
   ActionContext,
+  CallSource,
   Environment,
   ErrorCode,
   Failure,
@@ -11,6 +12,7 @@ export type {
   FetchInit,
   FetchResponse,
   Logger,
+  Outcome,
   Platform,
   RuntimeAction,
   RuntimeOptions,

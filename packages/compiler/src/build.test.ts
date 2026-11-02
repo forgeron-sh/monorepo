@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createTestTool } from "@forgeron/sdk/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildAll, buildTool, discoverTools, fingerprintSources, type BuildResult } from "./index";
 
@@ -162,6 +163,21 @@ describe("buildTool", () => {
     });
     const { result: listed } = (await mcp.json()) as { result: { tools: Array<{ name: string }> } };
     expect(listed.tools.map((t) => t.name).sort()).toEqual(["hello_ping", "hello_tickets_greet"]);
+  });
+
+  it("builds a Worker that `createTestTool` can run, with the platform of a test", async () => {
+    const tool = await createTestTool({ dir: result.dir, as: { roles: ["support"] } });
+    expect(await tool.call("ping")).toEqual({ pong: true });
+    expect(await tool.call("tickets.greet", { name: "Ely", loud: true })).toEqual({
+      message: "HELLO, ELY!",
+    });
+    // `tickets.purge` needs "delete", which no role of the tool grants.
+    await expect(tool.call("tickets.purge", { id: "1" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await expect(tool.call("tickets.greet", { loud: true })).rejects.toMatchObject({
+      code: "INVALID",
+    });
   });
 
   it("refuses a call that carries no identity", async () => {
