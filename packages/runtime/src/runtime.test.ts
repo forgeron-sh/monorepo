@@ -58,6 +58,8 @@ const manifest: Manifest = {
     "tickets.crash": action("read", "GET", { properties: {} }),
     "tickets.fetch": action("read", "POST", { properties: { url: { type: "string" } } }),
     "tickets.whoami": action("read", "GET", { properties: {} }),
+    "tickets.throw": action("read", "POST", { properties: { code: { type: "string" } } }),
+    "tickets.ctx": action("read", "GET", { properties: {} }),
     "admin.purge": action("admin", "POST", { properties: {} }, { interfaces: ["mcp"] }),
   },
   views: {},
@@ -77,6 +79,8 @@ class ToolError extends Error {
     super(message);
   }
 }
+
+type LogFn = (message: string, data?: unknown) => void;
 
 const log = {
   info: vi.fn<(message: string, data?: unknown) => void>(),
@@ -127,6 +131,23 @@ const actions: Record<string, RuntimeAction> = {
       env: ctx.env,
       canWrite: ctx.can("write"),
     }),
+  },
+  "tickets.throw": {
+    input: z.object({ code: z.string() }),
+    run: (ctx) => {
+      throw new ToolError(
+        (ctx.input as { code: string }).code,
+        `It is ${(ctx.input as { code: string }).code}.`,
+      );
+    },
+  },
+  "tickets.ctx": {
+    input: z.object({}),
+    run: async (ctx) => {
+      ctx.log.info("hello", { a: 1 });
+      await ctx.emit("thing.done", { id: 1 });
+      return { now: ctx.now().toISOString() };
+    },
   },
   "admin.purge": { input: z.object({}), run: () => ({ purged: true }) },
 };
@@ -564,5 +585,110 @@ describe("invoke", () => {
       ok: false,
       error: { code: "NOT_FOUND" },
     });
+  });
+});
+
+describe("error codes", () => {
+  // sdk.md §6: the same code, whichever interface the caller used.
+  const table = [
+    ["INVALID", 400, 2],
+    ["FORBIDDEN", 403, 3],
+    ["NOT_FOUND", 404, 4],
+    ["CONFLICT", 409, 1],
+    ["RATE_LIMITED", 429, 1],
+    ["UPSTREAM", 502, 1],
+  ] as const;
+
+  it.each(table)("%s is HTTP %i over the API", async (code, status) => {
+    const response = await post("reader", "/api/tickets.throw", { code });
+    expect(response.status).toBe(status);
+    expect(await response.json()).toMatchObject({ error: { code, message: `It is ${code}.` } });
+  });
+
+  it.each(table)("%s is a tool error over MCP, not a protocol error", async (code) => {
+    const response = await post("reader", "/mcp", {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "odoo-gateway_tickets_throw", arguments: { code } },
+    });
+    const body = (await response.json()) as {
+      result: { isError: boolean; content: Array<{ text: string }> };
+    };
+    expect(response.status).toBe(200);
+    expect(body.result.isError).toBe(true);
+    expect(body.result.content[0]?.text).toBe(`${code}: It is ${code}.`);
+  });
+
+  it("tells the CLI which exit code each error code gets", async () => {
+    const body = (await (await call("reader", "/cli")).json()) as {
+      exitCodes: Record<string, number>;
+    };
+    expect(body.exitCodes).toEqual({
+      INVALID: 2,
+      FORBIDDEN: 3,
+      NOT_FOUND: 4,
+      CONFLICT: 1,
+      RATE_LIMITED: 1,
+      UPSTREAM: 1,
+      INTERNAL: 1,
+    });
+    for (const [code, , exit] of table) expect(body.exitCodes[code]).toBe(exit);
+  });
+
+  it("refuses with FORBIDDEN before running the action, whatever the interface", async () => {
+    const ran = vi.fn<() => void>();
+    const guarded = { ...actions, "tickets.reply": { ...actions["tickets.reply"]!, run: ran } };
+    const runtime = build({ actions: guarded });
+    const response = await runtime.fetch(
+      new Request("https://tool.test/api/tickets.reply", {
+        method: "POST",
+        headers: { authorization: "Bearer reader" },
+        body: JSON.stringify({ id: 1, message: "x" }),
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect(ran).not.toHaveBeenCalled();
+  });
+});
+
+describe("ctx members", () => {
+  it("emit, log and now come from the platform", async () => {
+    const emit = vi.fn<(event: string, payload?: unknown) => void>();
+    const info = vi.fn<(message: string, data?: unknown) => void>();
+    const runtime = build({
+      platform: {
+        log: { info, warn: vi.fn<LogFn>(), error: vi.fn<LogFn>() },
+        emit,
+        now: () => new Date("2026-10-20T07:00:00Z"),
+      },
+    });
+    const response = await runtime.fetch(
+      new Request("https://tool.test/api/tickets.ctx", {
+        headers: { authorization: "Bearer reader" },
+      }),
+    );
+    expect(await response.json()).toEqual({ now: "2026-10-20T07:00:00.000Z" });
+    expect(emit).toHaveBeenCalledWith("thing.done", { id: 1 });
+    expect(info).toHaveBeenCalledWith("hello", { a: 1 });
+  });
+
+  it("logs an outbound call it refused", async () => {
+    const warn = vi.fn<(message: string, data?: unknown) => void>();
+    const runtime = build({
+      platform: { log: { info: vi.fn<LogFn>(), warn, error: vi.fn<LogFn>() } },
+    });
+    const response = await runtime.fetch(
+      new Request("https://tool.test/api/tickets.fetch", {
+        method: "POST",
+        headers: { authorization: "Bearer reader" },
+        body: JSON.stringify({ url: "https://evil.example.com/x" }),
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect(warn).toHaveBeenCalledWith(
+      'Outbound calls to "evil.example.com" are not allowed by resources.network.',
+      { url: "https://evil.example.com/x" },
+    );
   });
 });

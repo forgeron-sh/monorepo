@@ -1,5 +1,5 @@
 import type { Engine } from "./engine";
-import type { Manifest, User } from "./types";
+import { EXIT_CODE, type Manifest, type User } from "./types";
 
 // `/cli`: the command manifest the `forgeron` binary fetches (sdk.md §5, §7). It is derived
 // from the manifest: the positional arguments of `cli.args`, one option per other input field.
@@ -70,6 +70,8 @@ export function handleCli(
     tool: manifest.name,
     version: manifest.version,
     ...(manifest.title ? { title: manifest.title } : {}),
+    // How the binary exits for each error code: the server is the one source of the table.
+    exitCodes: EXIT_CODE,
     commands,
   });
 }
