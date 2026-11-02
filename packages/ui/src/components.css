@@ -1,0 +1,179 @@
+/* Composants atomiques. Toutes les valeurs viennent de tokens/tokens.css. */
+
+:where(.fg-btn):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Button */
+.fg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-none);
+  border: 1px solid transparent;
+  font: 500 14px/20px var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
+}
+.fg-btn-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+.fg-btn-lg {
+  height: 40px;
+  padding: 0 var(--space-4);
+  font-size: 15px;
+}
+.fg-btn-primary {
+  background: var(--inverse);
+  color: var(--on-inverse);
+}
+.fg-btn-primary:hover {
+  opacity: 0.88;
+}
+.fg-btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.fg-btn-secondary:hover,
+.fg-btn-ghost:hover {
+  background: var(--surface-hover);
+}
+.fg-btn-ghost {
+  background: transparent;
+  color: var(--ink);
+}
+.fg-btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.fg-btn-danger:hover {
+  background: var(--danger-subtle);
+}
+.fg-btn:disabled {
+  cursor: not-allowed;
+  background: transparent;
+  color: var(--ink-faint);
+  border-color: var(--line);
+}
+.fg-btn-kbd {
+  font: 500 11px/16px var(--font-mono);
+  padding: 0 var(--space-1);
+  border: 1px solid currentColor;
+  opacity: 0.6;
+}
+
+/* Badge */
+.fg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-none);
+  font: 500 12px/16px var(--font-sans);
+  border: 1px solid var(--line);
+  color: var(--ink-muted);
+  background: transparent;
+  white-space: nowrap;
+}
+.fg-badge-mono {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+}
+.fg-badge-strong {
+  background: var(--inverse);
+  color: var(--on-inverse);
+  border-color: var(--inverse);
+}
+.fg-badge-success {
+  background: var(--success-subtle);
+  color: var(--success);
+  border-color: transparent;
+}
+.fg-badge-warning {
+  background: var(--warning-subtle);
+  color: var(--warning);
+  border-color: transparent;
+}
+.fg-badge-danger {
+  background: var(--danger-subtle);
+  color: var(--danger);
+  border-color: transparent;
+}
+.fg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  flex: none;
+}
+
+/* EnvTag : l'environnement s'exprime par la forme, pas par la teinte */
+.fg-env {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  font: 500 12px/16px var(--font-sans);
+  white-space: nowrap;
+}
+.fg-env-production {
+  background: var(--inverse);
+  color: var(--on-inverse);
+}
+.fg-env-pilot {
+  border: 1px solid var(--ink);
+  color: var(--ink);
+}
+.fg-env-preview {
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-muted);
+}
+.fg-env-mark {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: var(--radius-full);
+}
+.fg-env-production .fg-env-mark {
+  background: currentColor;
+}
+.fg-env-pilot .fg-env-mark {
+  border: 1.5px solid currentColor;
+}
+.fg-env-preview .fg-env-mark {
+  border: 1.5px dashed currentColor;
+}
+
+/* Label (surtitre) */
+.fg-label-eyebrow {
+  color: var(--ink-muted);
+}
+
+/* Logo */
+.fg-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+}
+.fg-logo-word {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}

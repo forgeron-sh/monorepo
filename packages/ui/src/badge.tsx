@@ -1,0 +1,47 @@
+import type { ReactNode } from "react";
+import { cx } from "./cx";
+
+export interface BadgeProps {
+  tone?: "neutral" | "strong" | "success" | "warning" | "danger";
+  /** Pastille avant le texte (états). */
+  dot?: boolean;
+  /** Police mono (identifiants : MCP, API, v1.4.0). */
+  mono?: boolean;
+  className?: string;
+  children: ReactNode;
+}
+
+/** Étiquette courte : interface, statut, rôle. */
+export function Badge({ tone = "neutral", dot, mono, className, children }: BadgeProps) {
+  return (
+    <span
+      className={cx(
+        "fg-badge",
+        tone !== "neutral" && `fg-badge-${tone}`,
+        mono && "fg-badge-mono",
+        className,
+      )}
+    >
+      {dot ? <span className="fg-dot" aria-hidden="true" /> : null}
+      {children}
+    </span>
+  );
+}
+
+const ENV_LABEL = { production: "Production", pilot: "Pilote", preview: "Preview" } as const;
+
+export interface EnvTagProps {
+  env: keyof typeof ENV_LABEL;
+  className?: string;
+  children?: ReactNode;
+}
+
+/** Environnement d'une version : la forme porte l'information, pas la teinte. */
+export function EnvTag({ env, className, children }: EnvTagProps) {
+  return (
+    <span className={cx("fg-env", `fg-env-${env}`, className)}>
+      <span className="fg-env-mark" aria-hidden="true" />
+      {children ?? ENV_LABEL[env]}
+    </span>
+  );
+}
