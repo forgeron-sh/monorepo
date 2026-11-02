@@ -186,14 +186,14 @@ CRM v1.4.0 requests:
 ```json
 // .forgeron/project.json
 {
-  "space": "acme",
+  "workspace": "acme",
   "tool": "crm",
   "endpoint": "https://acme.forgeron.app",
   "toolId": "tool_01J8ZK…"
 }
 ```
 
-- `project.json` contains **no secret**: it only says which workspace and which tool the folder is linked to. It is written by `forgeron init` or `forgeron link`.
+- `project.json` contains **no secret**: it only says which workspace (`workspace`, the `acme` of `acme.forgeron.app`) and which tool the folder is linked to. It is written by `forgeron init` or `forgeron link`.
 - A person's **credentials** are never in the project. `forgeron login` opens the browser (the workspace's SSO) and stores the token in the system keychain, or failing that in `~/.config/forgeron/credentials` (permissions 600).
 - `local/env` is only used by `forgeron dev` and by tests. Preview and production secrets are set with `forgeron secrets set`.
 - In CI, authentication goes through `FORGERON_TOKEN` (a deployment token created in the console).
