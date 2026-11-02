@@ -13,3 +13,4 @@ coverage/
 .claude/worktrees/
 .claude/settings.local.json
 tmp/
+packages/compiler/fixtures/**/.forgeron/

@@ -2,9 +2,15 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignore": ["assets/**"],
   "workspaces": {
-    ".": { "entry": ["scripts/*.ts"] },
+    ".": {
+      "entry": ["scripts/*.ts"]
+    },
     "apps/*": {},
     "packages/*": {},
-    "templates/*": {}
+    "templates/*": {},
+    "packages/compiler": {
+      "ignore": ["fixtures/**"],
+      "ignoreDependencies": ["@forgeron/runtime"]
+    }
   }
 }

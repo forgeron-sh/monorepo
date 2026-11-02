@@ -1,2 +1,4 @@
-// forgeron build: tool discovery, bundle, manifest, migrations. Node.
-export {};
+// forgeron build: tool discovery, bundle, manifest. Node.
+export { discoverTools } from "./discover";
+export { buildAll, buildTool, type BuildResult } from "./build";
+export { fingerprintSources } from "./fingerprint";
