@@ -56,6 +56,21 @@ export function buildManifest(loaded: LoadedTool, version: string): Manifest {
     jobs[name] = def.timezone ? { cron: def.cron, timezone: def.timezone } : { cron: def.cron };
   }
 
+  const events: Manifest["events"] = {};
+  for (const [name, def] of Object.entries(loaded.events)) {
+    if (def?.kind !== "event") {
+      throw new Error(
+        `events/${name}: the default export is not an event handler (use on() from @forgeron/sdk).`,
+      );
+    }
+    if (def.mode === "queue" && !config.resources?.queue) {
+      throw new Error(
+        `events/${name}: the handler of "${def.event}" runs in mode "queue", which needs resources.queue in forgeron.config.ts.`,
+      );
+    }
+    events[name] = { event: def.event, mode: def.mode };
+  }
+
   const manifest = {
     name: config.name,
     version,
@@ -66,6 +81,7 @@ export function buildManifest(loaded: LoadedTool, version: string): Manifest {
     actions,
     views: {},
     jobs,
+    events,
     resources: config.resources ?? {},
     uses: config.uses ?? {},
     preview: config.preview ?? { data: "seed" },

@@ -3,7 +3,7 @@ import { handleCli } from "./cli";
 import { createEngine } from "./engine";
 import { errorResponse } from "./http";
 import { handleMcp } from "./mcp";
-import type { CallSource, Outcome, RuntimeOptions, User } from "./types";
+import type { CallSource, Outcome, QueuedDelivery, RuntimeOptions, User } from "./types";
 
 export interface Runtime {
   /**
@@ -16,6 +16,15 @@ export interface Runtime {
    * and validation, but not hidden by `interfaces`. This is what tests call.
    */
   invoke(user: User, action: string, input?: unknown, via?: CallSource): Promise<Outcome>;
+  /** The queue consumer: runs a `queue` handler once; the platform retries when it throws. */
+  deliver(delivery: QueuedDelivery): Promise<void>;
+  /** Runs a scheduled task now (`forgeron jobs run`). */
+  runJob(name: string): Promise<void>;
+  /**
+   * The cron trigger: runs the tasks due at `now` (a task named in its own time zone, the
+   * workspace's by default) and returns their names. A failing task does not stop the others.
+   */
+  scheduled(now?: Date): Promise<string[]>;
 }
 
 /** Builds the Worker side of a tool: one action, four interfaces (sdk.md §7). */
@@ -26,6 +35,17 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
   return {
     invoke: (user, action, input, via = "tool") => engine.invoke(user, via, action, input),
+    deliver: (delivery) => engine.deliver(delivery),
+    runJob: (name) => engine.runJob(name),
+    async scheduled(now = new Date()) {
+      const due = engine.jobsDue(now);
+      for (const name of due) {
+        await engine.runJob(name).catch((error: unknown) => {
+          (options.platform?.log ?? console).error(`The task "${name}" failed.`, error);
+        });
+      }
+      return due;
+    },
     async fetch(request) {
       const user = await options.authenticate(request);
       if (!user) {

@@ -26,13 +26,19 @@ function workerEntry(
   runtimePath: string,
   manifestPath: string,
   actions: Array<{ name: string; file: string }>,
+  events: Array<{ name: string; file: string }>,
+  jobs: Array<{ name: string; file: string }>,
 ): string {
   const q = JSON.stringify;
   return [
     `import { createRuntime } from ${q(runtimePath)};`,
     `import manifest from ${q(manifestPath)};`,
     ...actions.map((a, i) => `import action${i} from ${q(a.file)};`),
+    ...events.map((e, i) => `import event${i} from ${q(e.file)};`),
+    ...jobs.map((j, i) => `import job${i} from ${q(j.file)};`),
     `const actions = { ${actions.map((a, i) => `${q(a.name)}: action${i}`).join(", ")} };`,
+    `const events = { ${events.map((e, i) => `${q(e.name)}: event${i}`).join(", ")} };`,
+    `const jobs = { ${jobs.map((j, i) => `${q(j.name)}: job${i}`).join(", ")} };`,
     `function gatewayIdentity(request) {`,
     `  const raw = request.headers.get("x-forgeron-user");`,
     `  if (!raw) return undefined;`,
@@ -40,11 +46,15 @@ function workerEntry(
     `}`,
     `// What the platform adds to \`ctx\` (secrets, fetch, clock…) comes in through \`options\`: tests use it too.`,
     `export function createTool(options = {}) {`,
-    `  return createRuntime({ manifest, actions, authenticate: gatewayIdentity, ...options });`,
+    `  return createRuntime({ manifest, actions, events, jobs, authenticate: gatewayIdentity, ...options });`,
     `}`,
     `export { manifest };`,
     `const runtime = createTool();`,
-    `export default { fetch: (request) => runtime.fetch(request) };`,
+    `export default {`,
+    `  fetch: (request) => runtime.fetch(request),`,
+    `  // Cloudflare cron triggers: the runtime decides which tasks are due, in their time zone.`,
+    `  scheduled: (controller, env, ctx) => ctx.waitUntil(runtime.scheduled(new Date(controller.scheduledTime))),`,
+    `};`,
   ].join("\n");
 }
 
@@ -66,10 +76,10 @@ export async function buildTool(folder: string): Promise<BuildResult> {
   const manifestFile = join(outDir, "manifest.json");
   await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
 
-  const { actions } = await sourcesOf(dir);
+  const { actions, events, jobs } = await sourcesOf(dir);
   const runtimePath = createRequire(import.meta.url).resolve("@forgeron/runtime");
   const input = join(scratch, "worker.ts");
-  await writeFile(input, workerEntry(runtimePath, manifestFile, actions));
+  await writeFile(input, workerEntry(runtimePath, manifestFile, actions, events, jobs));
   const bundle = await rolldown({ input, platform: "neutral", logLevel: "silent" });
   await bundle.write({ file: join(outDir, "worker.js"), format: "esm" });
   await bundle.close();

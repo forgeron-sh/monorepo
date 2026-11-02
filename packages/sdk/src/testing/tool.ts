@@ -49,7 +49,14 @@ export interface TestTool {
    * `/cli`. Paths are relative to the tool, as the gateway forwards them.
    */
   fetch(path: string, init?: RequestInit): Promise<Response>;
-  /** What actions emitted with `ctx.emit`, in order. */
+  /** Runs a scheduled task now, as the tool: `forgeron jobs run`. */
+  runJob(name: string): Promise<void>;
+  /**
+   * The cron trigger at `now`: runs the tasks due then, each in its own time zone, and returns
+   * their names. Freeze the clock with a date, as the trigger would carry one.
+   */
+  scheduled(now: Date): Promise<string[]>;
+  /** What actions, handlers and tasks emitted with `ctx.emit`, in order. */
   events: EmittedEvent[];
 }
 
@@ -133,6 +140,8 @@ export async function createTestTool(options: TestToolOptions = {}): Promise<Tes
     return {
       events,
       fetch: (path, init) => runtime.fetch(new Request(`https://tool.test${path}`, init)),
+      runJob: (name) => runtime.runJob(name),
+      scheduled: (now) => runtime.scheduled(now),
       as: (next) => make({ ...identity, ...next }),
       async call(action, input) {
         const outcome = await runtime.invoke(user, action, input);

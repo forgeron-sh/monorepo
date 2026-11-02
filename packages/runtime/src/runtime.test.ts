@@ -64,6 +64,7 @@ const manifest: Manifest = {
   },
   views: {},
   jobs: {},
+  events: {},
   resources: { network: { allow: ["*.odoo.com", "odoo.acme.fr"], why: "Odoo API" } },
   uses: {},
   preview: { data: "seed" },

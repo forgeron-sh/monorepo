@@ -135,6 +135,26 @@ describe("createTestTool", () => {
     });
   });
 
+  describe("scheduled tasks", () => {
+    it("runJob runs a task as the tool, and its events are recorded", async () => {
+      const tool = await create();
+      await tool.runJob("tick");
+      expect(tool.events).toEqual([{ event: "ticked", payload: { as: "tool:notes", via: "job" } }]);
+    });
+
+    it("scheduled runs what is due at that time, in the task's own time zone", async () => {
+      const tool = await create();
+      // 02:00 in Paris (CEST) is 00:00 UTC.
+      expect(await tool.scheduled(new Date("2026-10-20T00:00:00Z"))).toEqual(["tick"]);
+      expect(await tool.scheduled(new Date("2026-10-20T02:00:00Z"))).toEqual([]);
+      expect(tool.events).toHaveLength(1);
+    });
+
+    it("rejects an unknown task", async () => {
+      await expect((await create()).runJob("nope")).rejects.toThrow(/Unknown scheduled task/);
+    });
+  });
+
   describe("upstreams", () => {
     it("reaches the upstream through mockFetch and records the events", async () => {
       const fetch = mockFetch({ "POST https://api.example.com/notes": { id: 7, text: "x" } });

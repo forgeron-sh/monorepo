@@ -570,14 +570,14 @@ tool.as({ roles: ["support"] }).call(…);              // another identity
 
 Output in `.forgeron/build/`:
 
-| File                       | Content                                                                                                                |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `worker.js`                | The tool's Worker: actions, events, tasks, routing of the four interfaces                                              |
-| `manifest.json`            | Name, version, actions (names, descriptions, JSON schemas, access, CLI options), views, roles, resources, dependencies |
-| `changelog.json`           | The changelog entries of this version, structured                                                                      |
-| `migrations/`              | The compiled migrations, with their fingerprints                                                                       |
-| `views/`                   | The views, as static files                                                                                             |
-| `openapi.json`, `mcp.json` | Generated descriptions, published with the version                                                                     |
+| File                       | Content                                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `worker.js`                | The tool's Worker: actions, events, tasks, routing of the four interfaces                                                                                                |
+| `manifest.json`            | Name, version, actions (names, descriptions, JSON schemas, access, CLI options), views, scheduled tasks, event handlers (event and mode), roles, resources, dependencies |
+| `changelog.json`           | The changelog entries of this version, structured                                                                                                                        |
+| `migrations/`              | The compiled migrations, with their fingerprints                                                                                                                         |
+| `views/`                   | The views, as static files                                                                                                                                               |
+| `openapi.json`, `mcp.json` | Generated descriptions, published with the version                                                                                                                       |
 
 The build fails if: an action has no `access` or `description`, an action name is duplicated, the schema differs from the last snapshot without a migration, an import leaves the tool (except npm packages), a view cites a non-existent action, or code uses an undeclared resource (`ctx.db` without `resources.db`).
 
