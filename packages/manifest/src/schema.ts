@@ -83,7 +83,53 @@ export const ResourcesSchema = z.strictObject({
   network: z.strictObject({ allow: z.array(text), why: text }).optional(),
 });
 
-export const ManifestSchema = z.strictObject({
+/** Paths under /t/<tool> that belong to the platform (sdk.md §7). */
+export const RESERVED_VIEW_PATHS = ["/mcp", "/api", "/cli", "/play", "/_f"] as const;
+
+function isReserved(path: string): boolean {
+  return RESERVED_VIEW_PATHS.some(
+    (reserved) => path === reserved || path.startsWith(`${reserved}/`),
+  );
+}
+
+// Rules that span several keys, which a field schema cannot express.
+function checkInvariants(manifest: z.infer<typeof ManifestShape>, ctx: z.RefinementCtx): void {
+  const seen = new Map<string, string>();
+  for (const name of Object.keys(manifest.actions)) {
+    const key = name.toLowerCase();
+    const first = seen.get(key);
+    if (first === undefined) seen.set(key, name);
+    else {
+      ctx.addIssue({
+        code: "custom",
+        path: ["actions", name],
+        message: `Action "${name}" duplicates "${first}": action names are compared without case.`,
+      });
+    }
+  }
+
+  const paths = new Map<string, string>();
+  for (const [name, view] of Object.entries(manifest.views)) {
+    if (isReserved(view.path)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["views", name, "path"],
+        message: `View "${name}" uses the reserved path "${view.path}" (reserved: ${RESERVED_VIEW_PATHS.join(", ")}).`,
+      });
+    }
+    const first = paths.get(view.path);
+    if (first === undefined) paths.set(view.path, name);
+    else {
+      ctx.addIssue({
+        code: "custom",
+        path: ["views", name, "path"],
+        message: `View "${name}" uses the path "${view.path}", already used by "${first}".`,
+      });
+    }
+  }
+}
+
+const ManifestShape = z.strictObject({
   name: ToolNameSchema,
   version: z.string().regex(SEMVER),
   title: text.optional(),
@@ -102,6 +148,8 @@ export const ManifestSchema = z.strictObject({
   uses: z.record(ToolNameSchema, text),
   preview: z.strictObject({ data: z.enum(["seed", "empty", "snapshot"]) }),
 });
+
+export const ManifestSchema = ManifestShape.superRefine(checkInvariants);
 
 export type AccessLevel = z.infer<typeof AccessLevelSchema>;
 export type Interface = z.infer<typeof InterfaceSchema>;

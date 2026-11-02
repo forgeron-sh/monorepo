@@ -103,3 +103,61 @@ describe("views", () => {
     expect(ManifestSchema.safeParse({ ...crm, views }).success).toBe(false);
   });
 });
+
+describe("invariants", () => {
+  const view = (path: string) => ({ title: "View", path, access: "read" });
+  const messages = (input: unknown) => {
+    const result = ManifestSchema.safeParse(input);
+    return result.success ? [] : result.error.issues.map((issue) => issue.message);
+  };
+
+  it.each(["/mcp", "/api", "/cli", "/play", "/_f", "/api/openapi.json", "/play/x"])(
+    "rejects a view on the reserved path %s",
+    (path) => {
+      const [message] = messages({ ...crm, views: { pipeline: view(path) } });
+      expect(message).toContain("reserved path");
+      expect(message).toContain(path);
+    },
+  );
+
+  it.each(["/pipeline", "/apiary", "/play-area", "/mcp-tools", "/a/api"])(
+    "accepts a view on %s",
+    (path) => {
+      expect(ManifestSchema.safeParse({ ...crm, views: { pipeline: view(path) } }).success).toBe(
+        true,
+      );
+    },
+  );
+
+  it("rejects two views on the same path", () => {
+    const views = { pipeline: view("/pipeline"), funnel: view("/pipeline") };
+    expect(messages({ ...crm, views })).toEqual([
+      'View "funnel" uses the path "/pipeline", already used by "pipeline".',
+    ]);
+  });
+
+  it("rejects action names that differ only by case", () => {
+    const { "deals.move": action } = crm.actions;
+    const actions = { "deals.moveNow": action, "deals.movenow": action };
+    expect(messages({ ...crm, actions })).toEqual([
+      'Action "deals.movenow" duplicates "deals.moveNow": action names are compared without case.',
+    ]);
+  });
+
+  it("accepts distinct action names", () => {
+    const { "deals.move": action } = crm.actions;
+    const actions = { "deals.move": action, "deals.list": action, "contacts.list": action };
+    expect(ManifestSchema.safeParse({ ...crm, actions }).success).toBe(true);
+  });
+
+  it("points at the action that has no access level or description", () => {
+    const action = crm.actions["deals.move"]!;
+    const { access: _, ...noAccess } = action;
+    const { description: __, ...noDescription } = action;
+    for (const broken of [noAccess, noDescription]) {
+      const result = ManifestSchema.safeParse({ ...crm, actions: { "deals.move": broken } });
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.path.slice(0, 2)).toEqual(["actions", "deals.move"]);
+    }
+  });
+});
