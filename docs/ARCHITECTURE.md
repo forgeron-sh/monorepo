@@ -280,15 +280,15 @@ Self-host comes before cloud: it can be tested on an ordinary Workers Paid accou
 
 Decisions already made are in [`DECISIONS.md`](DECISIONS.md). Still open:
 
-| Decision                                                                     | Blocks                       | Known state                                                                                                     |
-| ---------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Per-action transaction (`sdk.md` §6, §9) with D1                             | step 4                       | D1 seems to offer only atomic batches, with no interactive transaction (to be verified); lead: `ctx.db.batch()` |
-| Self-host previews without redeploying the gateway for each branch           | step 5                       | leads: per-version preview URL (to be verified), HTTP access with an internal token                             |
-| Uploading a user Worker with its D1 on Workers for Platforms                 | step 6                       | documented (doc of 16/09/2026), not tried; purchase of Workers for Platforms required                           |
-| Dynamic OAuth resources (one token per tool without redeploying the gateway) | step 5                       | riskiest point according to the Toolbox POC: the library fixes resources at construction                        |
-| Staging domain (two-level certificate)                                       | first deployment             | see "Platform environments"                                                                                     |
-| Open source license                                                          | npm publishing, `LICENSE`    | absent from the repository until decided                                                                        |
-| GitHub organization and repository name                                      | badges, links, `SECURITY.md` | `OWNER/forgeron` in the meantime                                                                                |
-| Public npm name: `forgeron` or `@forgeron/sdk` + `@forgeron/cli`             | publishing, `sdk.md` §18     | lead: publish the CLI as `forgeron` to keep `npx forgeron`                                                      |
+| Decision                                                                     | Blocks                       | Known state                                                                                                                        |
+| ---------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Per-action transaction (`sdk.md` §6, §9) with D1                             | step 4                       | decided, D-012: one atomic `ctx.db.batch()`; no interactive transaction. To do: `sync` handlers joining the batch, remote D1 check |
+| Self-host previews without redeploying the gateway for each branch           | step 5                       | leads: per-version preview URL (to be verified), HTTP access with an internal token                                                |
+| Uploading a user Worker with its D1 on Workers for Platforms                 | step 6                       | documented (doc of 16/09/2026), not tried; purchase of Workers for Platforms required                                              |
+| Dynamic OAuth resources (one token per tool without redeploying the gateway) | step 5                       | riskiest point according to the Toolbox POC: the library fixes resources at construction                                           |
+| Staging domain (two-level certificate)                                       | first deployment             | see "Platform environments"                                                                                                        |
+| Open source license                                                          | npm publishing, `LICENSE`    | absent from the repository until decided                                                                                           |
+| GitHub organization and repository name                                      | badges, links, `SECURITY.md` | `OWNER/forgeron` in the meantime                                                                                                   |
+| Public npm name: `forgeron` or `@forgeron/sdk` + `@forgeron/cli`             | publishing, `sdk.md` §18     | lead: publish the CLI as `forgeron` to keep `npx forgeron`                                                                         |
 
 Decided in this change: repository files (README, CONTRIBUTING, docs) are written in English (D-011).
