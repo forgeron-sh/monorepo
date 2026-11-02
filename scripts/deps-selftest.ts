@@ -4,8 +4,11 @@
 // `bun run check` (dependency-cruiser says nothing when it analyzes no module: see D-002).
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { nodeImportsOf } from "./neutral";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const config = require("../.dependency-cruiser.cjs") as { forbidden: { name: string }[] };
@@ -141,5 +144,32 @@ for (const c of cases) {
   }
 }
 
+// The check of the SDK's neutral entry point (scripts/check-sdk-neutral.ts) has its own cases:
+// a bundle that imports a Node module must be reported, a clean one must not.
+{
+  const dir = mkdtempSync(join(tmpdir(), "forgeron-neutral-"));
+  try {
+    const offending = join(dir, "offending.ts");
+    const clean = join(dir, "clean.ts");
+    writeFileSync(
+      offending,
+      'import { readFileSync } from "node:fs";\nimport "path";\nexport const x = readFileSync;\n',
+    );
+    writeFileSync(clean, "export const x = 1;\n");
+    const found = await nodeImportsOf(offending);
+    const none = await nodeImportsOf(clean);
+    if (JSON.stringify(found) === JSON.stringify(["node:fs", "path"]) && none.length === 0) {
+      console.log("OK    sdk-neutral-entry");
+    } else {
+      failures++;
+      console.error(`FAIL  sdk-neutral-entry : ${JSON.stringify({ found, none })}`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 if (failures > 0) process.exit(1);
-console.log(`${cases.length} cases checked for ${declared.length} import rules.`);
+console.log(
+  `${cases.length} cases checked for ${declared.length} import rules, plus the neutral entry point.`,
+);
