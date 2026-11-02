@@ -9,6 +9,10 @@
     "./react": "./src/react/index.ts",
     "./testing": "./src/testing/index.ts"
   },
+  "dependencies": {
+    "@forgeron/manifest": "workspace:*",
+    "zod": "4.6.7"
+  },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*"
   }
