@@ -1,4 +1,6 @@
 import type { Manifest } from "@forgeron/manifest";
+import { cp, readFile, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import { buildTool } from "./index";
@@ -102,4 +104,33 @@ describe("findUndeclaredResources", () => {
     const source = "// ctx.db\n/* ctx.files */\nconst mctx = 1; mctx.db; ctx.input.db; ctx.now()";
     expect(findUndeclaredResources(source, manifest)).toEqual([]);
   });
+});
+
+describe("building twice", () => {
+  it("reads the new code the second time, not the module of the first build", async () => {
+    // A copy inside the repository, so that `@forgeron/sdk` still resolves.
+    const copy = fileURLToPath(new URL(`../fixtures/.work-${Date.now()}`, import.meta.url));
+    await cp(tool("declared-ok"), copy, {
+      recursive: true,
+      filter: (src) => !src.includes(".forgeron"),
+    });
+    try {
+      const manifest = async () =>
+        JSON.parse(await readFile(join(copy, ".forgeron", "build", "manifest.json"), "utf8")) as {
+          actions: Record<string, { description: string }>;
+        };
+      await buildTool(copy);
+      expect((await manifest()).actions.ping?.description).toBe("Uses what it declares.");
+
+      const file = join(copy, "actions", "ping.ts");
+      await writeFile(
+        file,
+        (await readFile(file, "utf8")).replace("Uses what it declares.", "Changed."),
+      );
+      await buildTool(copy);
+      expect((await manifest()).actions.ping?.description).toBe("Changed.");
+    } finally {
+      await rm(copy, { recursive: true, force: true });
+    }
+  }, 90_000);
 });

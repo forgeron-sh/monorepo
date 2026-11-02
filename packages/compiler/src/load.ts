@@ -1,5 +1,6 @@
 import { actionNameOfPath } from "@forgeron/manifest";
 import type { ActionDefinition, JobDefinition, ToolConfig } from "@forgeron/sdk";
+import { randomUUID } from "node:crypto";
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -118,7 +119,8 @@ export async function loadTool(dir: string, scratch: string): Promise<LoadedTool
 
   await mkdir(scratch, { recursive: true });
   const input = join(scratch, "load.ts");
-  const output = join(scratch, "load.mjs");
+  // A new file name each time: a module is cached by its path, and a rebuild must read the new code.
+  const output = join(scratch, `load-${randomUUID()}.mjs`);
   await writeFile(input, entry);
   const bundle = await rolldown({
     input,
@@ -134,8 +136,7 @@ export async function loadTool(dir: string, scratch: string): Promise<LoadedTool
   await bundle.close();
   const modules = chunks.flatMap((chunk) => (chunk.type === "chunk" ? chunk.moduleIds : []));
 
-  // A fresh URL each time: Node caches modules by URL.
-  const loaded = (await import(`${pathToFileURL(output).href}?t=${Date.now()}`)) as LoadedTool;
+  const loaded = (await import(pathToFileURL(output).href)) as LoadedTool;
   await rm(output, { force: true });
   const own = modules.filter(
     (id) =>

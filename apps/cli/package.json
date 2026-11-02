@@ -10,6 +10,9 @@
     "dev": "bun src/index.ts"
   },
   "dependencies": {
+    "@forgeron/compiler": "workspace:*",
+    "@forgeron/hosting": "workspace:*",
+    "@forgeron/manifest": "workspace:*",
     "@forgeron/sdk": "workspace:*"
   },
   "devDependencies": {

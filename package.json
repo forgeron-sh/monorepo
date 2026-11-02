@@ -23,7 +23,7 @@
     "typecheck": "moon run :typecheck",
     "deploy:staging": "bun run --filter '@forgeron/*' deploy:staging",
     "deploy:production": "bun run --filter '@forgeron/*' deploy:production",
-    "neutral": "bun scripts/check-sdk-neutral.ts",
+    "neutral": "bun scripts/check-neutral.ts",
     "tokens:check": "bun run --cwd packages/ui tokens:check"
   },
   "devDependencies": {
