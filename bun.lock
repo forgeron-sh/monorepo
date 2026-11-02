@@ -117,16 +117,16 @@
       "name": "@forgeron/template-crm",
       "version": "0.0.0",
     },
-    "templates/inventaire": {
-      "name": "@forgeron/template-inventaire",
+    "templates/dashboard": {
+      "name": "@forgeron/template-dashboard",
+      "version": "0.0.0",
+    },
+    "templates/inventory": {
+      "name": "@forgeron/template-inventory",
       "version": "0.0.0",
     },
     "templates/odoo-gateway": {
       "name": "@forgeron/template-odoo-gateway",
-      "version": "0.0.0",
-    },
-    "templates/pilotage": {
-      "name": "@forgeron/template-pilotage",
       "version": "0.0.0",
     },
   },
@@ -263,11 +263,11 @@
 
     "@forgeron/template-crm": ["@forgeron/template-crm@workspace:templates/crm"],
 
-    "@forgeron/template-inventaire": ["@forgeron/template-inventaire@workspace:templates/inventaire"],
+    "@forgeron/template-dashboard": ["@forgeron/template-dashboard@workspace:templates/dashboard"],
+
+    "@forgeron/template-inventory": ["@forgeron/template-inventory@workspace:templates/inventory"],
 
     "@forgeron/template-odoo-gateway": ["@forgeron/template-odoo-gateway@workspace:templates/odoo-gateway"],
-
-    "@forgeron/template-pilotage": ["@forgeron/template-pilotage@workspace:templates/pilotage"],
 
     "@forgeron/tsconfig": ["@forgeron/tsconfig@workspace:packages/tsconfig"],
 

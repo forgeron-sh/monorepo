@@ -1,27 +1,27 @@
 # Forgeron — documentation
 
-Ce dossier imagine le SDK Forgeron à partir de cas concrets. Chaque exemple part d'une **contrainte métier**, en déduit ce que le SDK doit offrir, puis montre le tool complet tel qu'un développeur l'écrirait. `sdk.md` consolide ensuite toutes les décisions en une seule spécification.
+This folder imagines the Forgeron SDK starting from concrete cases. Each example starts from a **business constraint**, derives what the SDK must offer, then shows the complete tool as a developer would write it. `sdk.md` then consolidates all the decisions into a single specification.
 
-> Statut : proposition de travail. Les noms d'API, de commandes et de fichiers sont à valider par l'équipe.
+> Status: working proposal. API, command and file names are to be validated by the team.
 
-## Les fichiers
+## Files
 
-- [`white-paper.md`](white-paper.md) — la vision, le produit, les cibles, le modèle économique, la feuille de route.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — le plan du monorepo qui construit Forgeron : apps, paquets, modèles, modes d'hébergement, outillage, livraison.
-- [`DECISIONS.md`](DECISIONS.md) — le journal des décisions, daté, avec ce qui a été écarté et pourquoi.
-- [`design-system.md`](design-system.md) — la charte : couleurs, typographie, logo, composants. Les fichiers (tokens, polices, logos) sont dans `../assets/`.
+- [`white-paper.md`](white-paper.md) — the vision, the product, the targets, the business model, the roadmap.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — the plan of the monorepo that builds Forgeron: apps, packages, templates, hosting modes, tooling, delivery.
+- [`DECISIONS.md`](DECISIONS.md) — the decision log, dated, with what was ruled out and why.
+- [`design-system.md`](design-system.md) — the guidelines: colors, typography, logo, components. The files (tokens, fonts, logos) are in `../assets/`.
 
-| Fichier                                                                | Contrainte de départ                                                      | Ce que l'exemple fait émerger                                                                                                                                                                      |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`exemples/01-crm.md`](exemples/01-crm.md)                             | Un CRM léger : contacts, sociétés, pistes, utilisable depuis Claude       | Schéma de base, migrations (structure et données), actions, rôles et accès, historique, vue React, tests                                                                                           |
-| [`exemples/02-passerelle-odoo.md`](exemples/02-passerelle-odoo.md)     | Interroger Odoo depuis Claude avec la clé d'API de chaque personne        | Tool sans base, secrets par personne, SSO Microsoft, appels sortants autorisés, cache, erreurs, interfaces partielles                                                                              |
-| [`exemples/03-centre-de-donnees.md`](exemples/03-centre-de-donnees.md) | Un référentiel de données métier alimenté par imports et synchronisations | Fichiers (R2), import CSV, tâches planifiées, connecteur Microsoft 365, colonnes JSON, migration destructive en deux temps                                                                         |
-| [`exemples/04-tableau-de-bord.md`](exemples/04-tableau-de-bord.md)     | Un tableau de bord commercial léger, au-dessus du CRM                     | Vues React, hooks de données, composition entre tools, accès par vue, paramètres d'URL                                                                                                             |
-| [`sdk.md`](sdk.md)                                                     | —                                                                         | La spécification consolidée : structure, config et ressources, CLI, runtime, base et migrations, interfaces, tests, build, déploiement, versioning et changelog, MCP d'administration, paquets npm |
+| File                                                         | Starting constraint                                         | What the example brings out                                                                                                                                                                     |
+| ------------------------------------------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`examples/01-crm.md`](examples/01-crm.md)                   | A light CRM: contacts, companies, leads, usable from Claude | Base schema, migrations (structure and data), actions, roles and access, history, React view, tests                                                                                             |
+| [`examples/02-odoo-gateway.md`](examples/02-odoo-gateway.md) | Query Odoo from Claude with each person's API key           | Tool without a database, per-person secrets, Microsoft SSO, allowed outbound calls, cache, errors, partial interfaces                                                                           |
+| [`examples/03-data-hub.md`](examples/03-data-hub.md)         | A business data repository fed by imports and syncs         | Files (R2), CSV import, scheduled jobs, Microsoft 365 connector, JSON columns, two-step destructive migration                                                                                   |
+| [`examples/04-dashboard.md`](examples/04-dashboard.md)       | A light sales dashboard, on top of the CRM                  | React views, data hooks, composition between tools, access by view, URL parameters                                                                                                              |
+| [`sdk.md`](sdk.md)                                           | —                                                           | The consolidated specification: structure, config and resources, CLI, runtime, database and migrations, interfaces, tests, build, deployment, versioning and changelog, admin MCP, npm packages |
 
-## Principes communs
+## Shared principles
 
-1. **Une forme imposée.** Tous les tools ont la même arborescence. Le nom d'une action vient de son chemin de fichier.
-2. **Une action, quatre interfaces.** MCP, API, CLI et Web sont générés depuis la même déclaration.
-3. **Ne pas réinventer.** Kysely pour le SQL, Zod pour les schémas, Vitest pour les tests, React pour les vues, Cloudflare pour l'exécution. Forgeron construit la forme, les migrations, le build, les permissions et le déploiement.
-4. **Sûr par défaut.** Aucune action sans niveau d'accès ; aucun secret dans le code ; aucun appel sortant non déclaré.
+1. **An enforced shape.** All tools have the same tree. An action's name comes from its file path.
+2. **One action, four interfaces.** MCP, API, CLI and Web are generated from the same declaration.
+3. **Don't reinvent.** Kysely for SQL, Zod for schemas, Vitest for tests, React for views, Cloudflare for execution. Forgeron builds the shape, the migrations, the build, the permissions and the deployment.
+4. **Safe by default.** No action without an access level; no secret in the code; no undeclared outbound call.

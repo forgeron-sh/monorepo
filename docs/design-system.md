@@ -1,75 +1,75 @@
 # Forgeron — design system
 
-Forgeron est la plateforme où les entreprises forgent, versionnent et hébergent leurs internal tools. Un tool s'écrit une fois avec le SDK (actions, permissions, données) et s'expose en quatre interfaces : MCP pour Claude, API, Web et CLI (chaque action devient une commande, ex. `forgeron odoo tickets list`). L'identité tient dans une enclume noir et blanc : le système est **monochrome**, la couleur est réservée aux états.
+Forgeron is the platform where companies forge, version and host their internal tools. A tool is written once with the SDK (actions, permissions, data) and exposed through four interfaces: MCP for Claude, API, Web and CLI (every action becomes a command, e.g. `forgeron odoo tickets list`). The identity lives in a black-and-white anvil: the system is **monochrome**, and color is reserved for states.
 
-## Principes
+## Principles
 
-1. **Noir et blanc d'abord.** L'accent de la marque, c'est `ink` lui-même : blanc sur `bg` noir en thème sombre, noir sur blanc en thème clair. Aucune teinte de marque : ni bleu, ni orange braise, ni dégradé.
-2. **La couleur est une information.** `success`, `warning` et `danger` n'apparaissent que pour un état (build, déploiement, erreur) et toujours avec un mot ou une icône.
-3. **Le trait, pas l'ombre.** On sépare par `line`. `shadow-pop` est réservé à ce qui flotte (menus, palette de commandes).
-4. **Zéro arrondi.** Comme l'enclume : tout est à angles vifs (`radius-none`), cartes, boutons et champs compris. Le rond n'existe qu'en découpe (le motif de l'enclume) ou en pastille d'état (`radius-full`).
-5. **Fait pour les développeurs.** Le code, les identifiants et les versions sont des citoyens de premier rang, en `code` / `code-inline`.
+1. **Black and white first.** The brand accent is `ink` itself: white on a black `bg` in the dark theme, black on white in the light theme. No brand hue: no blue, no ember orange, no gradient.
+2. **Color is information.** `success`, `warning` and `danger` appear only for a state (build, deployment, error) and always with a word or an icon.
+3. **Lines, not shadows.** We separate with `line`. `shadow-pop` is reserved for what floats (menus, command palette).
+4. **Zero rounding.** Like the anvil: everything has sharp corners (`radius-none`), cards, buttons and fields included. Round shapes exist only as cutouts (the anvil motif) or status dots (`radius-full`).
+5. **Made for developers.** Code, identifiers and versions are first-class citizens, set in `code` / `code-inline`.
 
-## Ton et contenu
+## Tone and content
 
-- Interface en français, vouvoiement. Phrases courtes, à l'indicatif ou à l'impératif.
-- Les termes que les développeurs utilisent restent en anglais : commit, branche, preview, build, MCP, API, SSO, SDK. On écrit « tool » ou « internal tool » pour l'objet, « outil » dans les phrases générales.
-- Vocabulaire fixe : **espace** (l'entreprise), **tool**, **action** (ce que le SDK définit, ex. `crm.contacts.update`), **interface** (MCP, API, Web, CLI), **version**, **environnement** (Production, Pilote, Preview), **accès**, **rôle**.
-- Le registre de la forge s'emploie avec parcimonie : le verbe « forger » dans les titres marketing (« Forgez vos outils. »), jamais dans les libellés d'action. Un bouton dit « Déployer », pas « Forger ».
-- Boutons : un verbe à l'infinitif sans point. Messages d'erreur : ce qui s'est passé, puis quoi faire (« Le build a échoué à l'étape test. Ouvrez les logs. »).
-- Pas d'emoji dans l'interface ni dans la documentation.
-- Exemples réels plutôt que lorem ipsum : un CRM, une fiche contact, une passerelle Odoo.
+- The interface is in English. Plain, direct tone. Short sentences, in the second person ("you").
+- Terms developers use stay as they are: commit, branch, preview, build, MCP, API, SSO, SDK. We write "tool" or "internal tool" for the object.
+- Fixed vocabulary: **workspace** (the company), **tool**, **action** (what the SDK defines, e.g. `crm.contacts.update`), **interface** (MCP, API, Web, CLI), **version**, **environment** (Production, Pilot, Preview), **access**, **role**.
+- The forge register is used sparingly: the verb "forge" appears only in marketing headlines ("Forge your tools."), never in action labels. A button says "Deploy", not "Forge".
+- Buttons: an imperative verb, no period. Error messages: what happened, then what to do ("The build failed at the test step. Open the logs.").
+- No emoji in the interface or in the documentation.
+- Real examples rather than lorem ipsum: a CRM, a contact record, an Odoo gateway.
 
-## Couleur
+## Color
 
-- Fond de page `bg` ; zones secondaires `surface` ; cartes et menus `surface-raised` avec bordure `line` ; code et terminal `surface-sunken`.
-- Texte `ink` ; texte secondaire et placeholders `ink-muted` ; `ink-faint` uniquement pour le désactivé et les numéros de ligne.
-- Éléments forts (bouton principal, case cochée, environnement Production, sélection) : fond `inverse`, texte `on-inverse`.
-- Contours de champs et de boutons secondaires : `line-strong` (≥ 3:1 dans les deux thèmes).
-- États : `success` / `success-subtle`, `warning` / `warning-subtle`, `danger` / `danger-subtle`, toujours avec un libellé. Ces couleurs ne servent jamais à décorer.
-- Le thème **Forge (sombre)** est le thème par défaut, celui du logo. Le thème **Atelier (clair)** en est l'exact négatif.
+- Page background `bg`; secondary areas `surface`; cards and menus `surface-raised` with a `line` border; code and terminal `surface-sunken`.
+- Text `ink`; secondary text and placeholders `ink-muted`; `ink-faint` only for disabled states and line numbers.
+- Strong elements (primary button, checked box, Production environment, selection): `inverse` background, `on-inverse` text.
+- Outlines of fields and secondary buttons: `line-strong` (≥ 3:1 in both themes).
+- States: `success` / `success-subtle`, `warning` / `warning-subtle`, `danger` / `danger-subtle`, always with a label. These colors are never used to decorate.
+- The **Forge (dark)** theme is the default theme, the logo's. The **Atelier (light)** theme is its exact negative.
 
-## Typographie
+## Typography
 
-- `display` (Inter Display SemiBold, interlettrage resserré) pour les titres d'écran et le marketing : `display-xl`, `display-l`, `title-1`. C'est la police du logotype.
-- `sans` (Inter) pour l'interface : `title-2`, `title-3`, `body` (14/22, la taille par défaut), `body-strong`, `small`, `caption`.
-- `mono` (JetBrains Mono, chargée depuis Google Fonts) pour `code`, `code-inline` et `eyebrow`. Tout ce qui se copie-colle (commande CLI, nom d'action, version, hash, URL MCP) est en mono.
-- Titres en casse de phrase (« Versions déployées »), jamais tout en capitales sauf `eyebrow`.
+- `display` (Inter Display SemiBold, tight letter-spacing) for screen titles and marketing: `display-xl`, `display-l`, `title-1`. It is the logotype's typeface.
+- `sans` (Inter) for the interface: `title-2`, `title-3`, `body` (14/22, the default size), `body-strong`, `small`, `caption`.
+- `mono` (JetBrains Mono, loaded from Google Fonts) for `code`, `code-inline` and `eyebrow`. Everything that gets copy-pasted (CLI command, action name, version, hash, MCP URL) is in mono.
+- Headings in sentence case ("Deployed versions"), never all caps except `eyebrow`.
 
-## Espacement, rayons, mise en page
+## Spacing, radii, layout
 
-- Grille de 4px : `space-1` (4) à `space-16` (64). Padding de carte `space-6`, écart entre champs `space-4`, entre sections `space-8`.
-- `radius-none` (0) partout : cartes, menus, blocs de code, dialogues, boutons, champs, badges, cases. Jamais de petit arrondi de 4 ou 6px. `radius-full` seulement pour les pastilles d'état.
-- Densité d'outil de développeur : contrôles de 32px, lignes de tableau de 44px, texte à 14px.
-- Application : barre latérale `surface` à gauche (espace, tools, réglages), contenu sur `bg`, largeur de lecture max. 1200px.
+- 4px grid: `space-1` (4) to `space-16` (64). Card padding `space-6`, gap between fields `space-4`, between sections `space-8`.
+- `radius-none` (0) everywhere: cards, menus, code blocks, dialogs, buttons, fields, badges, checkboxes. Never a slight 4 or 6px rounding. `radius-full` only for status dots.
+- Developer-tool density: 32px controls, 44px table rows, 14px text.
+- App: `surface` sidebar on the left (workspace, tools, settings), content on `bg`, max reading width 1200px.
 
-## États et interaction
+## States and interaction
 
-- Survol : `surface-hover`. Sélection active : `inverse`.
-- Focus clavier : anneau `focus` plein de 2px, décalé de 2px, sur tous les éléments interactifs (≥ 14:1 sur toutes les surfaces).
-- Désactivé : texte `ink-faint`, contour `line`, pas d'opacité globale.
-- Mouvement : transitions de 120 ms sur la couleur de fond et de bordure uniquement. Rien ne rebondit.
+- Hover: `surface-hover`. Active selection: `inverse`.
+- Keyboard focus: a solid 2px `focus` ring, offset by 2px, on all interactive elements (≥ 14:1 on all surfaces).
+- Disabled: `ink-faint` text, `line` outline, no global opacity.
+- Motion: 120 ms transitions on background and border color only. Nothing bounces.
 
-## Environnements et versions
+## Environments and versions
 
-Chaque push sur GitHub produit une version. Les environnements se distinguent par la **forme** (`EnvTag`), jamais par la couleur :
+Every push to GitHub produces a version. Environments are told apart by **shape** (`EnvTag`), never by color:
 
-- **Production** : plein `inverse`, pastille pleine.
-- **Pilote** : contour `ink`, pastille creuse — version ouverte à un groupe test.
-- **Preview** : contour pointillé, texte `ink-muted` — build de branche.
+- **Production**: solid `inverse` fill, filled dot.
+- **Pilot**: `ink` outline, hollow dot — a version opened to a test group.
+- **Preview**: dashed outline, `ink-muted` text — branch build.
 
-Les états du build (`En ligne`, `Build en cours`, `Échec`) passent par `Badge` avec `success`, `warning`, `danger`.
+Build states (`Live`, `Building`, `Failed`) go through `Badge` with `success`, `warning`, `danger`.
 
 ## Logo
 
-- Fichiers dans le groupe **Logos** : symbole (l'enclume), logo horizontal (symbole + « forgeron »), wordmark seul, en blanc ou en noir sans fond, et versions sur fond pour les avatars et icônes d'application.
-- Sur `bg` sombre : version **blanc** ; sur fond clair : version **noir**. Jamais d'autre couleur, jamais de contour, jamais de dégradé ni d'ombre.
-- Le logotype s'écrit en minuscules : « forgeron ». Dans un texte, le nom s'écrit « Forgeron ».
-- Avatar, favicon, icône d'application : `forgeron-symbole-plein-cadre-*` (symbole bord à bord) ou `forgeron-symbole-standard-*` (symbole avec marge).
-- Zone de protection et taille minimale : à définir.
+- Files in the **Logos** group: symbol (the anvil), horizontal logo (symbol + "forgeron"), wordmark alone, in white or black with no background, and on-background versions for avatars and app icons.
+- On a dark `bg`: the **white** version; on a light background: the **black** version. Never any other color, never an outline, never a gradient or a shadow.
+- The logotype is written in lowercase: "forgeron". In running text, the name is written "Forgeron".
+- Avatar, favicon, app icon: `forgeron-symbol-full-bleed-*` (edge-to-edge symbol) or `forgeron-symbol-standard-*` (symbol with margin).
+- Clear space and minimum size: to be defined.
 
-## Iconographie
+## Iconography
 
-- Pas encore de jeu d'icônes propre. En attendant : Lucide, trait 1.5px, 16px dans l'interface, en `ink` ou `ink-muted`, jamais coloré sauf pour un état.
-- Une icône d'état accompagne toujours son libellé ; aucune icône seule ne porte une information.
-- Le symbole de l'enclume n'est pas une icône d'interface : il ne sert qu'à la marque.
+- No dedicated icon set yet. In the meantime: Lucide, 1.5px stroke, 16px in the interface, in `ink` or `ink-muted`, never colored except for a state.
+- A status icon always comes with its label; no icon alone carries information.
+- The anvil symbol is not an interface icon: it is used only for the brand.

@@ -1,30 +1,30 @@
-# Exemple 1 — Un CRM léger
+# Example 1 — A lightweight CRM
 
-## La contrainte
+## The constraint
 
-Une équipe commerciale de quinze personnes abandonne les modules CRM de son ERP. Elle veut :
+A sales team of fifteen people is dropping the CRM modules of its ERP. It wants:
 
-- des **sociétés**, des **contacts** rattachés à une société, des **pistes** (deals) avec une étape et un montant ;
-- chercher et mettre à jour tout cela **depuis Claude** (« Quelles pistes Durand a-t-il en négociation ? », « Passe la piste Acme en gagnée ») ;
-- un **historique** des changements d'étape, pour savoir qui a fait quoi ;
-- un **pipeline** visuel pour la réunion du lundi ;
-- trois rôles : les commerciaux lisent et modifient, le support lit seulement, la direction peut aussi supprimer.
+- **companies**, **contacts** attached to a company, and **leads** (the `deals` table) with a stage and an amount;
+- to search and update all of this **from Claude** ("Which leads does Durand have in negotiation?", "Move the Acme lead to won");
+- a **history** of stage changes, to know who did what;
+- a visual **pipeline** for the Monday meeting;
+- three roles: sales can read and edit, support can only read, management can also delete.
 
-Six mois plus tard, la direction demandera d'ajouter une **devise** au montant des pistes, alors que la base contient déjà des données.
+Six months later, management will ask for a **currency** on the lead amount, while the database already contains data.
 
-## Ce que la contrainte exige du SDK
+## What the constraint requires of the SDK
 
-| Besoin                                                | Réponse du SDK                                                                                           |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Stocker des données relationnelles                    | Un schéma en TypeScript (`db/schema.ts`), une base D1 par environnement, des requêtes typées avec Kysely |
-| Faire évoluer la base sans perdre de données          | Des migrations générées depuis le schéma, éditables, versionnées et appliquées au déploiement            |
-| Exposer des opérations à Claude, à l'API, au terminal | Des actions dans `actions/`, une par fichier ; le chemin donne le nom                                    |
-| Distinguer lecture, écriture, suppression             | Un `access` obligatoire sur chaque action, et des rôles déclarés dans la config                          |
-| Garder un historique                                  | Des événements émis par les actions (`ctx.emit`) et un gestionnaire qui les écrit en base                |
-| Afficher un pipeline                                  | Une vue React dans `views/`, alimentée par les mêmes actions                                             |
-| Vérifier que tout marche                              | Vitest et un contexte de test fourni par `forgeron/testing`                                              |
+| Need                                               | SDK answer                                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Store relational data                              | A TypeScript schema (`db/schema.ts`), one D1 database per environment, typed queries with Kysely |
+| Evolve the database without losing data            | Migrations generated from the schema, editable, versioned and applied at deploy time             |
+| Expose operations to Claude, the API, the terminal | Actions in `actions/`, one per file; the path gives the name                                     |
+| Distinguish read, write, delete                    | A required `access` on every action, and roles declared in the config                            |
+| Keep a history                                     | Events emitted by actions (`ctx.emit`) and a handler that writes them to the database            |
+| Display a pipeline                                 | A React view in `views/`, fed by the same actions                                                |
+| Check that everything works                        | Vitest and a test context provided by `forgeron/testing`                                         |
 
-## L'arborescence
+## The file tree
 
 ```text
 crm/
@@ -35,7 +35,7 @@ crm/
 │   └── migrations/
 │       ├── 0001_init.ts
 │       ├── 0002_deals_currency.ts
-│       └── meta/snapshot.json        # généré, commité
+│       └── meta/snapshot.json        # generated, committed
 ├── actions/
 │   ├── companies/
 │   │   ├── list.ts                   # → companies.list
@@ -53,17 +53,17 @@ crm/
 │   └── pipeline.tsx
 ├── tests/
 │   └── deals.test.ts
-├── changes/                          # changements en attente de release
-├── CHANGELOG.md                      # généré par forgeron release
+├── changes/                          # changes pending release
+├── CHANGELOG.md                      # generated by forgeron release
 ├── .forgeron/
-│   ├── project.json                  # commité : espace, tool, URL
-│   ├── .gitignore                    # ignore local/ et generated/
-│   ├── local/                        # ignoré : base et secrets de dev
-│   └── generated/                    # ignoré : types générés
+│   ├── project.json                  # committed: workspace, tool, URL
+│   ├── .gitignore                    # ignores local/ and generated/
+│   ├── local/                        # ignored: dev database and secrets
+│   └── generated/                    # ignored: generated types
 └── package.json
 ```
 
-## La configuration
+## The configuration
 
 ```ts
 // forgeron.config.ts
@@ -72,33 +72,33 @@ import { defineConfig, database } from "forgeron";
 export default defineConfig({
   name: "crm",
   title: "CRM",
-  description: "Sociétés, contacts et pistes commerciales de l'équipe.",
+  description: "Companies, contacts and sales leads of the team.",
 
   interfaces: { mcp: true, api: true, cli: true, web: true },
 
-  // Niveaux d'accès utilisés par les actions. read, write, delete et admin existent toujours.
+  // Access levels used by actions. read, write, delete and admin always exist.
   roles: {
-    commercial: { label: "Commerciaux", grants: ["read", "write"] },
+    sales: { label: "Sales", grants: ["read", "write"] },
     support: { label: "Support", grants: ["read"] },
-    direction: { label: "Direction", grants: ["read", "write", "delete"] },
+    management: { label: "Management", grants: ["read", "write", "delete"] },
   },
 
   resources: {
-    db: database({ engine: "d1", why: "Sociétés, contacts, pistes et historique" }),
+    db: database({ engine: "d1", why: "Companies, contacts, leads and history" }),
   },
 });
 ```
 
-Les `grants` des rôles sont des **valeurs par défaut**. L'admin de l'espace peut les ajuster action par action dans la console, sans redéployer.
+The `grants` of roles are **defaults**. The workspace admin can adjust them action by action in the console, without redeploying.
 
-## Le schéma
+## The schema
 
 ```ts
 // db/schema.ts
 import { schema, table, t, index } from "forgeron/db";
 
 export const companies = table("companies", {
-  id: t.id(), // texte, généré (ULID)
+  id: t.id(), // text, generated (ULID)
   name: t.text().notNull(),
   domain: t.text().unique(),
   created_at: t.timestamp().defaultNow(),
@@ -126,7 +126,7 @@ export const deals = table(
     owner_email: t.text().notNull(),
     title: t.text().notNull(),
     stage: t.enum(["lead", "qualified", "proposal", "negotiation", "won", "lost"]).default("lead"),
-    amount: t.integer(), // en centimes
+    amount: t.integer(), // in cents
     updated_at: t.timestamp().defaultNow().onUpdateNow(),
   },
   (c) => [index(c.stage), index(c.owner_email)],
@@ -144,20 +144,20 @@ export const deal_events = table("deal_events", {
 export default schema({ companies, contacts, deals, deal_events });
 ```
 
-`forgeron dev` et `forgeron build` génèrent les types Kysely dans `.forgeron/generated/db.d.ts`. Dans une action, `ctx.db` est un `Kysely<DB>` entièrement typé : aucun ORM maison à apprendre.
+`forgeron dev` and `forgeron build` generate the Kysely types in `.forgeron/generated/db.d.ts`. In an action, `ctx.db` is a fully typed `Kysely<DB>`: no in-house ORM to learn.
 
-## Les migrations
+## Migrations
 
-### La première
+### The first one
 
 ```bash
 forgeron db generate --name init
 ```
 
-Forgeron compare le schéma au dernier instantané (`meta/snapshot.json`, vide au départ) et écrit :
+Forgeron compares the schema to the last snapshot (`meta/snapshot.json`, empty at first) and writes:
 
 ```ts
-// db/migrations/0001_init.ts — généré, puis relu et commité
+// db/migrations/0001_init.ts — generated, then reviewed and committed
 import { migration } from "forgeron/db";
 
 export default migration({
@@ -169,7 +169,7 @@ export default migration({
       .addColumn("domain", "text", (c) => c.unique())
       .addColumn("created_at", "text", (c) => c.notNull().defaultTo(db.fn.now()))
       .execute();
-    // … contacts, deals, deal_events, index
+    // … contacts, deals, deal_events, indexes
   },
   async down(db) {
     await db.schema.dropTable("deal_events").execute();
@@ -180,18 +180,18 @@ export default migration({
 });
 ```
 
-Le fichier généré est du **Kysely ordinaire** : on peut le lire, le corriger, y ajouter du SQL. Forgeron s'occupe de l'ordre, du suivi (table `_forgeron_migrations`) et de l'application.
+The generated file is **plain Kysely**: you can read it, fix it, add SQL to it. Forgeron takes care of ordering, tracking (the `_forgeron_migrations` table) and applying it.
 
-### Six mois plus tard : ajouter une devise
+### Six months later: adding a currency
 
-On modifie le schéma :
+Change the schema:
 
 ```ts
 amount: t.integer(),
 currency: t.enum(["EUR", "USD", "GBP"]).notNull().default("EUR"),
 ```
 
-Puis :
+Then:
 
 ```bash
 forgeron db generate --name deals_currency
@@ -208,7 +208,7 @@ export default migration({
       .addColumn("currency", "text", (c) => c.notNull().defaultTo("EUR"))
       .execute();
 
-    // Ajout manuel : migration de données. Les pistes de la filiale UK passent en GBP.
+    // Manual addition: data migration. Leads of the UK subsidiary switch to GBP.
     await db
       .updateTable("deals")
       .set({ currency: "GBP" })
@@ -225,27 +225,27 @@ export default migration({
 });
 ```
 
-Avant de déployer, on déclare le changement (`forgeron change`, impact `minor`) puis on publie la version (`forgeron release` → `1.5.0`). Ce qui se passe au déploiement :
+Before deploying, declare the change (`forgeron change`, impact `minor`), then publish the version (`forgeron release` → `1.5.0`). What happens at deploy time:
 
-1. `forgeron deploy --env preview` crée une base de preview **avec le schéma de production et les données de `db/seed.ts`**, jamais les données de production, puis applique `0002`.
-2. En production, la plateforme applique les migrations en attente **avant** de basculer le trafic sur la nouvelle version. Si une migration échoue, la version précédente continue de servir.
-3. `forgeron db status --env production` montre les migrations appliquées ; `forgeron db rollback --env production` exécute le `down` de la dernière.
+1. `forgeron deploy --env preview` creates a preview database **with the production schema and the data from `db/seed.ts`**, never production data, then applies `0002`.
+2. In production, the platform applies pending migrations **before** switching traffic to the new version. If a migration fails, the previous version keeps serving.
+3. `forgeron db status --env production` shows the applied migrations; `forgeron db rollback --env production` runs the `down` of the last one.
 
-Une suppression de colonne ou de table est marquée **destructive** par le générateur. Le déploiement en production la refuse sans `--allow-destructive` (voir l'exemple 3 pour la stratégie en deux temps).
+Dropping a column or table is flagged **destructive** by the generator. A production deploy refuses it without `--allow-destructive` (see [example 3](03-data-hub.md) for the two-step strategy).
 
-## Les actions
+## Actions
 
-### Chercher des contacts
+### Searching contacts
 
 ```ts
 // actions/contacts/search.ts
 import { action, z } from "forgeron";
 
 export default action({
-  description: "Cherche des contacts par nom, prénom, e-mail ou société.",
+  description: "Searches contacts by last name, first name, email or company.",
   access: "read",
   input: z.object({
-    query: z.string().min(2).describe("Texte à chercher"),
+    query: z.string().min(2).describe("Text to search for"),
     limit: z.number().int().max(50).default(10),
   }),
   cli: { args: ["query"] }, // forgeron crm contacts search "Durand"
@@ -275,14 +275,14 @@ export default action({
 });
 ```
 
-### Changer l'étape d'une piste
+### Changing a lead's stage
 
 ```ts
 // actions/deals/move.ts
 import { action, z, ToolError } from "forgeron";
 
 export default action({
-  description: "Passe une piste à une nouvelle étape du pipeline.",
+  description: "Moves a lead to a new pipeline stage.",
   access: "write",
   input: z.object({
     id: z.string(),
@@ -295,7 +295,7 @@ export default action({
       .selectAll()
       .where("id", "=", input.id)
       .executeTakeFirst();
-    if (!deal) throw new ToolError("NOT_FOUND", `Aucune piste ${input.id}.`);
+    if (!deal) throw new ToolError("NOT_FOUND", `No lead ${input.id}.`);
 
     await db.updateTable("deals").set({ stage: input.stage }).where("id", "=", input.id).execute();
 
@@ -310,14 +310,14 @@ export default action({
 });
 ```
 
-### Supprimer une piste
+### Deleting a lead
 
 ```ts
 // actions/deals/delete.ts
 export default action({
-  description: "Supprime définitivement une piste et son historique.",
+  description: "Permanently deletes a lead and its history.",
   access: "delete",
-  confirm: true, // MCP : marquée destructive ; CLI : demande confirmation
+  confirm: true, // MCP: flagged destructive; CLI: asks for confirmation
   input: z.object({ id: z.string() }),
   cli: { args: ["id"] },
   async run({ input, db }) {
@@ -327,7 +327,7 @@ export default action({
 });
 ```
 
-## L'historique par événement
+## History through events
 
 ```ts
 // events/deal-history.ts
@@ -346,9 +346,9 @@ export default on("deal.moved", async ({ payload, db }) => {
 });
 ```
 
-Les événements sont exécutés **dans la même transaction** que l'action par défaut (`on(…, { mode: "sync" })`), ou en file d'attente avec `mode: "queue"` pour les traitements lents (e-mail, synchronisation).
+By default, events run **in the same transaction** as the action (`on(…, { mode: "sync" })`), or in a queue with `mode: "queue"` for slow processing (email, synchronization).
 
-## La vue
+## The view
 
 ```tsx
 // views/pipeline.tsx
@@ -381,9 +381,9 @@ export default defineView({
 });
 ```
 
-La vue appelle les actions avec **les droits de la personne connectée** : un membre du support voit le pipeline mais ne peut rien déplacer (le bouton reste inactif, et le serveur refuse de toute façon).
+The view calls actions with **the signed-in person's permissions**: a support member sees the pipeline but cannot move anything (the button stays inactive, and the server refuses anyway).
 
-## Les tests
+## Tests
 
 ```ts
 // tests/deals.test.ts
@@ -391,10 +391,10 @@ import { describe, it, expect } from "vitest";
 import { createTestTool } from "forgeron/testing";
 
 describe("deals.move", () => {
-  it("enregistre l'historique", async () => {
+  it("records the history", async () => {
     const tool = await createTestTool({
       seed: true,
-      as: { email: "ely@acme.fr", roles: ["commercial"] },
+      as: { email: "ely@acme.fr", roles: ["sales"] },
     });
     const [deal] = await tool.call("deals.list", {});
     await tool.call("deals.move", { id: deal.id, stage: "won" });
@@ -403,30 +403,30 @@ describe("deals.move", () => {
     expect(events.at(-1)).toMatchObject({ to_stage: "won", by_email: "ely@acme.fr" });
   });
 
-  it("refuse le support", async () => {
+  it("rejects support", async () => {
     const tool = await createTestTool({ seed: true, as: { roles: ["support"] } });
     await expect(tool.call("deals.move", { id: "x", stage: "won" })).rejects.toThrow("FORBIDDEN");
   });
 });
 ```
 
-`createTestTool` démarre le tool sur le runtime local de Cloudflare, avec une base en mémoire, les migrations appliquées et, si demandé, le seed.
+`createTestTool` starts the tool on Cloudflare's local runtime, with an in-memory database, migrations applied and, if requested, the seed.
 
-## Ce que voient les utilisateurs
+## What users see
 
-| Interface    | Exemple                                                                              |
+| Interface    | Example                                                                              |
 | ------------ | ------------------------------------------------------------------------------------ |
-| Claude (MCP) | outil `crm_deals_move` — « Passe une piste à une nouvelle étape du pipeline. »       |
+| Claude (MCP) | tool `crm_deals_move` — "Moves a lead to a new pipeline stage."                      |
 | API          | `POST https://acme.forgeron.app/t/crm/api/deals.move` `{"id":"01J8…","stage":"won"}` |
 | CLI          | `forgeron crm deals move 01J8… won`                                                  |
 | Web          | `https://acme.forgeron.app/t/crm/pipeline`                                           |
 
-## Ce que l'exemple décide pour le SDK
+## What the example decides for the SDK
 
-- Le schéma est la **source de vérité** ; les migrations en sont dérivées, puis deviennent du code ordinaire.
-- Kysely est exposé tel quel (`ctx.db`) : Forgeron n'ajoute pas d'ORM.
-- Les noms sont identiques dans le schéma, en base et dans les requêtes (`snake_case` recommandé) : aucune conversion cachée entre le code et le SQL.
-- Le nom d'une action = son chemin dans `actions/`.
-- `access` est obligatoire ; `confirm: true` marque une action destructive dans les quatre interfaces.
-- Les événements découplent les effets de bord ; même transaction par défaut.
-- Les previews n'utilisent jamais les données de production par défaut.
+- The schema is the **source of truth**; migrations are derived from it, then become ordinary code.
+- Kysely is exposed as is (`ctx.db`): Forgeron adds no ORM.
+- Names are identical in the schema, in the database and in queries (`snake_case` recommended): no hidden conversion between code and SQL.
+- An action's name = its path in `actions/`.
+- `access` is required; `confirm: true` flags a destructive action across all four interfaces.
+- Events decouple side effects; same transaction by default.
+- Previews never use production data by default.

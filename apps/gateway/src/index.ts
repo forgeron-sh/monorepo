@@ -1,2 +1,2 @@
-// Worker public de la plateforme : répartition, identité, registre, MCP d'administration, déploiement.
+// Public Worker of the platform: dispatch, identity, registry, admin MCP, deployment.
 export {};

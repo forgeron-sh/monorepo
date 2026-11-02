@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Faille de sécurité
+  - name: Security vulnerability
     url: https://github.com/OWNER/forgeron/security/advisories/new
-    about: À signaler en privé, jamais dans une issue publique.
+    about: Report it privately, never in a public issue.

@@ -1,2 +1,2 @@
-// Interface de déploiement d'un tool et ses modes : cloud (Workers for Platforms), self-host (Workers classiques), local.
+// Deployment interface of a tool and its modes: cloud (Workers for Platforms), self-host (classic Workers), local.
 export {};

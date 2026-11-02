@@ -1,7 +1,7 @@
-// Vérifie que chaque règle d'import (.dependency-cruiser.cjs) refuse bien ce qu'elle doit refuser.
-// Pour chaque cas, écrit des fichiers temporaires fautifs, lance dependency-cruiser dessus, attend
-// la règle, puis supprime les fichiers. Une règle qui ne refuserait plus rien fait échouer
-// `bun run check` (dependency-cruiser ne dit rien quand il n'analyse aucun module : voir D-002).
+// Checks that each import rule (.dependency-cruiser.cjs) rejects what it should reject.
+// For each case, writes temporary offending files, runs dependency-cruiser on them, expects the
+// rule to fire, then deletes the files. A rule that no longer rejects anything fails
+// `bun run check` (dependency-cruiser says nothing when it analyzes no module: see D-002).
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -12,11 +12,11 @@ const config = require("../.dependency-cruiser.cjs") as { forbidden: { name: str
 
 interface Case {
   rule: string;
-  files: Record<string, string>; // chemin relatif à la racine → contenu
+  files: Record<string, string>; // path relative to the root → content
 }
 
-// Les cas écrivent aussi la cible de l'import : les paquets n'ont pas besoin d'exister encore, et
-// l'import relatif évite que no-unresolved refuse le cas avant la règle testée.
+// Cases also write the import target: packages do not need to exist yet, and the relative
+// import keeps no-unresolved from rejecting the case before the rule under test.
 const F = "__boundary_fixture";
 const STUB = "export {};\n";
 const cases: Case[] = [
@@ -86,21 +86,21 @@ const cases: Case[] = [
   },
 ];
 
-// Chaque règle déclarée doit avoir son cas, et inversement.
+// Every declared rule must have a case, and vice versa.
 const declared = config.forbidden.map((r) => r.name).sort();
 const covered = [...new Set(cases.map((c) => c.rule))].sort();
 if (JSON.stringify(declared) !== JSON.stringify(covered)) {
-  console.error("Règles sans cas de test, ou cas sans règle :", { declared, covered });
+  console.error("Rules without a test case, or cases without a rule:", { declared, covered });
   process.exit(1);
 }
 
-// Écrit les fichiers d'un cas, exécute `run`, puis supprime fichiers et dossiers créés.
-// Ne touche jamais un fichier existant : un cas qui viserait un vrai chemin du dépôt échoue d'abord.
+// Writes a case's files, runs `run`, then deletes the files and directories it created.
+// Never touches an existing file: a case that targets a real path in the repository fails first.
 function withFixtures<T>(files: Record<string, string>, run: (paths: string[]) => T): T {
   const paths = Object.keys(files);
   for (const path of paths) {
     if (existsSync(join(root, path))) {
-      throw new Error(`Le fichier de test ${path} existe déjà : choisir un autre chemin.`);
+      throw new Error(`The test file ${path} already exists: pick another path.`);
     }
   }
   const created: string[] = [];
@@ -136,10 +136,10 @@ for (const c of cases) {
   } else {
     failures++;
     console.error(
-      `ÉCHEC ${c.rule} (${Object.keys(c.files)[0]}) : violations obtenues ${JSON.stringify([...rules])}`,
+      `FAIL  ${c.rule} (${Object.keys(c.files)[0]}) : violations found ${JSON.stringify([...rules])}`,
     );
   }
 }
 
 if (failures > 0) process.exit(1);
-console.log(`${cases.length} cas vérifiés pour ${declared.length} règles d'import.`);
+console.log(`${cases.length} cases checked for ${declared.length} import rules.`);

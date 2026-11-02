@@ -1,2 +1,2 @@
-// forgeron build : découverte des tools, bundle, manifeste, migrations. Node.
+// forgeron build: tool discovery, bundle, manifest, migrations. Node.
 export {};

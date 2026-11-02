@@ -1,9 +1,9 @@
-# Modèle `odoo-gateway`
+# Template `odoo-gateway`
 
-Interroger Odoo depuis Claude avec la clé d'API de chaque personne.
+Query Odoo from Claude with each person's API key.
 
-Spécification : [`docs/exemples/02-passerelle-odoo.md`](../../docs/exemples/02-passerelle-odoo.md). Ce dossier suit la forme imposée d'un tool (`docs/sdk.md` §2) ; `forgeron.config.ts` sera ajouté avec le SDK.
+Specification: [`docs/examples/02-odoo-gateway.md`](../../docs/examples/02-odoo-gateway.md). This folder follows the mandatory shape of a tool (`docs/sdk.md` §2); `forgeron.config.ts` will be added with the SDK.
 
-- Version : portée par `package.json`, modifiée uniquement par `forgeron release` (D-007).
-- Sert de test d'intégration du SDK : il doit compiler, passer ses tests et se déployer en preview à chaque PR.
-- N'utilise que l'API publique (`@forgeron/sdk`, `@forgeron/ui`, connecteurs).
+- Version: carried by `package.json`, changed only by `forgeron release` (D-007).
+- Serves as an SDK integration test: it must compile, pass its tests and deploy to preview on every PR.
+- Only uses the public API (`@forgeron/sdk`, `@forgeron/ui`, connectors).

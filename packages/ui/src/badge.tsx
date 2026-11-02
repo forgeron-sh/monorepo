@@ -3,15 +3,15 @@ import { cx } from "./cx";
 
 export interface BadgeProps {
   tone?: "neutral" | "strong" | "success" | "warning" | "danger";
-  /** Pastille avant le texte (états). */
+  /** Dot before the text (states). */
   dot?: boolean;
-  /** Police mono (identifiants : MCP, API, v1.4.0). */
+  /** Mono font (identifiers: MCP, API, v1.4.0). */
   mono?: boolean;
   className?: string;
   children: ReactNode;
 }
 
-/** Étiquette courte : interface, statut, rôle. */
+/** Short tag: interface, status, role. */
 export function Badge({ tone = "neutral", dot, mono, className, children }: BadgeProps) {
   return (
     <span
@@ -28,7 +28,7 @@ export function Badge({ tone = "neutral", dot, mono, className, children }: Badg
   );
 }
 
-const ENV_LABEL = { production: "Production", pilot: "Pilote", preview: "Preview" } as const;
+const ENV_LABEL = { production: "Production", pilot: "Pilot", preview: "Preview" } as const;
 
 export interface EnvTagProps {
   env: keyof typeof ENV_LABEL;
@@ -36,7 +36,7 @@ export interface EnvTagProps {
   children?: ReactNode;
 }
 
-/** Environnement d'une version : la forme porte l'information, pas la teinte. */
+/** Environment of a version: shape carries the information, not the tint. */
 export function EnvTag({ env, className, children }: EnvTagProps) {
   return (
     <span className={cx("fg-env", `fg-env-${env}`, className)}>

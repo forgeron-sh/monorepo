@@ -11,7 +11,7 @@ FONT = "/usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf"
 WORD = "forgeron"
 TRACK = -0.035  # em
 
-# --- Symbole : enclume, grille 132 x 132 -----------------------------------
+# --- Symbol: anvil, 132 x 132 grid -----------------------------------
 S = 132.0
 r_r, cy_r = 29.0, 71.0
 cx_r = S - cy_r + r_r * math.sqrt(2)
@@ -23,7 +23,7 @@ def mark_path(x, y, size):
     k = size / S
     return f'<path transform="translate({x:.3f} {y:.3f}) scale({k:.6f})" d="{MARK}"/>'
 
-# --- Wordmark vectorisé ----------------------------------------------------
+# --- Vectorized wordmark ----------------------------------------------------
 tt = TTFont(FONT); gs = tt.getGlyphSet(); upem = tt["head"].unitsPerEm
 cap = tt["OS/2"].sCapHeight; xh = tt["OS/2"].sxHeight
 blob = hb.Blob.from_file_path(FONT); face = hb.Face(blob); font = hb.Font(face)
@@ -32,7 +32,7 @@ hb.shape(font, buf, {"kern": True, "liga": True})
 order = tt.getGlyphOrder()
 
 def word_path():
-    """Chemin en unités font (y vers le haut converti en y vers le bas), bbox."""
+    """Path in font units (y-up converted to y-down), bbox."""
     pen = SVGPathPen(gs); bp = BoundsPen(gs)
     x = 0; n = len(buf.glyph_infos)
     for i, (info, pos) in enumerate(zip(buf.glyph_infos, buf.glyph_positions)):
@@ -52,7 +52,7 @@ def word_metrics(size_px):
     k = size_px / upem
     return (WB[2] - WB[0]) * k, -WB[1] * k, WB[3] * k  # largeur, ascendante, descendante
 
-# --- Gabarits --------------------------------------------------------------
+# --- Templates --------------------------------------------------------------
 def svg(w, h, body, bg, fg, title):
     rect = f'<rect width="{w:g}" height="{h:g}" fill="{bg}"/>' if bg else ""
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:g}" height="{h:g}" '
@@ -64,15 +64,15 @@ def symbol(ratio, W=1024):
     return W, W, mark_path(o, o, size)
 
 def lockup(H=400):
-    m = H * 0.42                       # hauteur du symbole
-    fs = m * 0.72 * upem / cap         # hauteur de capitale ~72 % du symbole
+    m = H * 0.42                       # symbol height
+    fs = m * 0.72 * upem / cap         # cap height ~72% of the symbol
     k = fs / upem
     gap = m * 0.30
     ww, asc, desc = word_metrics(fs)
     pad = H * 0.29
     W = pad * 2 + m + gap + ww
     my = (H - m) / 2
-    baseline = H / 2 + cap * k / 2     # centrage optique sur la hauteur de capitale
+    baseline = H / 2 + cap * k / 2     # optical centering on cap height
     return W, H, mark_path(pad, my, m) + word_group(pad + m + gap, baseline, fs)
 
 def wordmark(H=400):
@@ -84,11 +84,11 @@ def wordmark(H=400):
     return W, H, word_group(pad, baseline, fs)
 
 def tight(kind):
-    """Sans fond, cadré au plus juste (transparent)."""
+    """No background, tightly cropped (transparent)."""
     if kind == "lockup":
         m = 132; fs = m * 0.72 * upem / cap; k = fs / upem; gap = m * 0.30
         ww, asc, desc = word_metrics(fs)
-        top = min(0, m / 2 - cap * k / 2 - asc + cap * k * 0)  # ascendante du f
+        top = min(0, m / 2 - cap * k / 2 - asc + cap * k * 0)  # ascender of the f
         baseline = m / 2 + cap * k / 2
         y0 = min(0, baseline - asc); y1 = max(m, baseline + desc)
         body = mark_path(0, -y0, m) + word_group(m + gap, baseline - y0, fs)
@@ -105,21 +105,21 @@ def save(path, w, h, body, bg, fg, title, png_w):
     cairosvg.svg2png(bytestring=s.encode(), write_to=full + ".png", output_width=png_w)
 
 if os.path.exists(OUT): shutil.rmtree(OUT)
-themes = {"sombre": (DARK, LIGHT), "clair": (LIGHT, DARK)}
+themes = {"dark": (DARK, LIGHT), "light": (LIGHT, DARK)}
 
-framings = {"01-aere": 133 / 499, "02-standard": 0.60, "03-plein-cadre": 0.96}
+framings = {"01-airy": 133 / 499, "02-standard": 0.60, "03-full-bleed": 0.96}
 for fname, ratio in framings.items():
     for t, (bg, fg) in themes.items():
         w, h, b = symbol(ratio)
-        save(f"1-symbole/{fname}/forgeron-symbole-{fname[3:]}-{t}", w, h, b, bg, fg, "Forgeron", 1024)
+        save(f"1-symbol/{fname}/forgeron-symbol-{fname[3:]}-{t}", w, h, b, bg, fg, "Forgeron", 1024)
 
 for t, (bg, fg) in themes.items():
     w, h, b = lockup(); save(f"2-logo-horizontal/forgeron-logo-{t}", w, h, b, bg, fg, "Forgeron", 2400)
     w, h, b = wordmark(); save(f"3-wordmark/forgeron-wordmark-{t}", w, h, b, bg, fg, "Forgeron", 2400)
 
-# Transparents (sans fond) pour intégration / dev
-for col, fg in {"blanc": LIGHT, "noir": DARK}.items():
-    save(f"4-transparent/forgeron-symbole-{col}", S, S, mark_path(0, 0, S), None, fg, "Forgeron", 1024)
+# Transparent (no background) for integration / dev
+for col, fg in {"white": LIGHT, "black": DARK}.items():
+    save(f"4-transparent/forgeron-symbol-{col}", S, S, mark_path(0, 0, S), None, fg, "Forgeron", 1024)
     w, h, b = tight("lockup"); save(f"4-transparent/forgeron-logo-{col}", w, h, b, None, fg, "Forgeron", 2400)
     w, h, b = tight("word"); save(f"4-transparent/forgeron-wordmark-{col}", w, h, b, None, fg, "Forgeron", 2400)
 print("ok")

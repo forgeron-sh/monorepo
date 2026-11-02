@@ -1,18 +1,18 @@
-## Quoi
+## What
 
-<!-- Ce que change la PR, en une ou deux phrases. -->
+<!-- What the PR changes, in one or two sentences. -->
 
-## Pourquoi
+## Why
 
-<!-- Le problème résolu ou le besoin couvert. Lier l'issue s'il y en a une : Closes #… -->
+<!-- The problem solved or the need covered. Link the issue if there is one: Closes #… -->
 
-## Comment tester
+## How to test
 
-<!-- Les étapes pour vérifier le changement. -->
+<!-- The steps to verify the change. -->
 
 ## Checklist
 
-- [ ] Le titre suit Conventional Commits (`feat(sdk): …`, `fix(gateway): …`)
-- [ ] `bun run check` passe en local
-- [ ] La doc (`docs/sdk.md`, `docs/ARCHITECTURE.md`) est à jour si l'API publique ou la structure change
-- [ ] Captures jointes si l'interface change
+- [ ] The title follows Conventional Commits (`feat(sdk): …`, `fix(gateway): …`)
+- [ ] `bun run check` passes locally
+- [ ] The docs (`docs/sdk.md`, `docs/ARCHITECTURE.md`) are up to date if the public API or the structure changes
+- [ ] Screenshots attached if the interface changes

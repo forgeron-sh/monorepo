@@ -1,27 +1,27 @@
-# Politique de sécurité
+# Security policy
 
-## Signaler une faille
+## Reporting a vulnerability
 
-**N'ouvrez pas d'issue publique pour une faille de sécurité.**
+**Do not open a public issue for a security vulnerability.**
 
-Utilisez le signalement privé de GitHub : onglet **Security** du dépôt, puis **Report a vulnerability**. Indiquez :
+Use GitHub's private reporting: the **Security** tab of the repository, then **Report a vulnerability**. Include:
 
-- la partie concernée (SDK, CLI, runtime, gateway, console, modèle) ;
-- les étapes pour reproduire ;
-- l'impact estimé ;
-- si possible, une piste de correction.
+- the affected part (SDK, CLI, runtime, gateway, console, template);
+- the steps to reproduce;
+- the estimated impact;
+- if possible, a suggested fix.
 
-Sont particulièrement attendus : contournement d'un niveau d'accès, fuite d'un secret ou d'un secret par personne, jeton accepté hors de son audience, sortie réseau non déclarée, accès d'une preview aux données de production.
+Particularly welcome: bypass of an access level, leak of a secret or of a per-person secret, token accepted outside its audience, undeclared network egress, a preview accessing production data.
 
-## La suite
+## What happens next
 
-1. Nous accusons réception.
-2. Nous confirmons la faille et évaluons sa gravité.
-3. Nous la corrigeons et publions une nouvelle version.
-4. Nous vous tenons informé et vous créditons si vous le souhaitez.
+1. We acknowledge receipt.
+2. We confirm the vulnerability and assess its severity.
+3. We fix it and publish a new version.
+4. We keep you informed and credit you if you wish.
 
-Merci de ne pas divulguer la faille avant la publication d'un correctif.
+Please do not disclose the vulnerability before a fix is published.
 
-## Versions maintenues
+## Supported versions
 
-Seule la dernière version reçoit les correctifs de sécurité.
+Only the latest version receives security fixes.

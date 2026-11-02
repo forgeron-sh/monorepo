@@ -6,7 +6,7 @@ export interface LabelProps {
   children: ReactNode;
 }
 
-/** Surtitre de section ou de bloc : mono, capitales, `ink-muted`. */
+/** Eyebrow for a section or block: mono, uppercase, `ink-muted`. */
 export function Label({ className, children }: LabelProps) {
   return <span className={cx("fg-label-eyebrow", "text-eyebrow", className)}>{children}</span>;
 }

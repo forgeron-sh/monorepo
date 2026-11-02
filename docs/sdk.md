@@ -1,79 +1,79 @@
-# Spécification du SDK Forgeron
+# Forgeron SDK specification
 
-> Statut : proposition de travail (v0), dérivée des exemples de `exemples/`. Tout nom d'API, de commande ou de fichier est à valider.
+> Status: working proposal (v0), derived from the examples in `examples/`. Every API, command and file name is to be validated.
 
-Ce document décrit comment on écrit, teste, construit et déploie un internal tool avec Forgeron. Il fixe une **forme unique** : un développeur qui ouvre n'importe quel tool Forgeron sait où trouver chaque chose.
+This document describes how to write, test, build and deploy an internal tool with Forgeron. It sets a **single shape**: a developer who opens any Forgeron tool knows where to find everything.
 
-## Sommaire
+## Contents
 
 1. [Concepts](#1-concepts)
-2. [Structure d'un tool](#2-structure-dun-tool)
+2. [Structure of a tool](#2-structure-of-a-tool)
 3. [`forgeron.config.ts`](#3-forgeronconfigts)
-4. [Le dossier `.forgeron`](#4-le-dossier-forgeron)
-5. [Le CLI](#5-le-cli)
-6. [Les actions](#6-les-actions)
-7. [Les quatre interfaces](#7-les-quatre-interfaces)
-8. [Base de données et migrations](#8-base-de-données-et-migrations)
-9. [Événements et tâches planifiées](#9-événements-et-tâches-planifiées)
-10. [Secrets, connecteurs, réseau, fichiers, cache](#10-secrets-connecteurs-réseau-fichiers-cache)
-11. [Les vues](#11-les-vues)
-12. [Composition entre tools](#12-composition-entre-tools)
+4. [The `.forgeron` folder](#4-the-forgeron-folder)
+5. [The CLI](#5-the-cli)
+6. [Actions](#6-actions)
+7. [The four interfaces](#7-the-four-interfaces)
+8. [Database and migrations](#8-database-and-migrations)
+9. [Events and scheduled tasks](#9-events-and-scheduled-tasks)
+10. [Secrets, connectors, network, files, cache](#10-secrets-connectors-network-files-cache)
+11. [Views](#11-views)
+12. [Composition between tools](#12-composition-between-tools)
 13. [Tests](#13-tests)
 14. [Build](#14-build)
-15. [Versions, environnements, déploiement](#15-versions-environnements-déploiement)
-16. [Versioning et changelog](#16-versioning-et-changelog)
-17. [Le MCP d'administration](#17-le-mcp-dadministration)
-18. [Les paquets npm](#18-les-paquets-npm)
-19. [Ce que Forgeron réutilise](#19-ce-que-forgeron-réutilise)
-20. [Questions ouvertes](#20-questions-ouvertes)
+15. [Versions, environments, deployment](#15-versions-environments-deployment)
+16. [Versioning and changelog](#16-versioning-and-changelog)
+17. [The admin MCP](#17-the-admin-mcp)
+18. [The npm packages](#18-the-npm-packages)
+19. [What Forgeron reuses](#19-what-forgeron-reuses)
+20. [Open questions](#20-open-questions)
 
 ---
 
 ## 1. Concepts
 
-| Concept            | Définition                                                                                                                                             |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Espace**         | L'entreprise sur Forgeron : ses membres, son SSO, ses tools, ses secrets. Une URL de base (`acme.forgeron.app`).                                       |
-| **Tool**           | Un dossier, un dépôt ou un sous-dossier de monorepo, qui déclare des données, des actions et éventuellement des vues.                                  |
-| **Action**         | Une opération nommée, typée, avec un niveau d'accès. L'unité exposée en MCP, API, CLI et Web.                                                          |
-| **Vue**            | Une page React servie par le tool, qui consomme ses actions.                                                                                           |
-| **Niveau d'accès** | Ce qu'une action exige : `read`, `write`, `delete`, `admin`, ou un niveau propre au tool (`import`).                                                   |
-| **Rôle**           | Un groupe de personnes et les niveaux qu'il accorde. Déclaré dans la config, ajustable dans la console.                                                |
-| **Build**          | Le résultat immuable de `forgeron build` pour un commit donné. Chaque push produit un build, identifié par son commit.                                 |
-| **Version**        | Le numéro semver d'un tool (`1.5.0`). Il ne change qu'avec `forgeron release` ; un build porte la version en cours plus son commit (`v1.5.0+a41f9e0`). |
-| **Release**        | Le passage à une nouvelle version : `forgeron release` lit `changes/`, écrit le changelog et crée le tag `<tool>@<version>`.                           |
-| **Environnement**  | Où tourne une version : `preview` (par branche), `pilot` (un groupe), `production`.                                                                    |
+| Concept          | Definition                                                                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Workspace**    | The company on Forgeron: its members, its SSO, its tools, its secrets. One base URL (`acme.forgeron.app`).                                              |
+| **Tool**         | A folder, a repository or a monorepo subfolder that declares data, actions and optionally views.                                                        |
+| **Action**       | A named, typed operation with an access level. The unit exposed through MCP, API, CLI and Web.                                                          |
+| **View**         | A React page served by the tool, which consumes its actions.                                                                                            |
+| **Access level** | What an action requires: `read`, `write`, `delete`, `admin`, or a level specific to the tool (`import`).                                                |
+| **Role**         | A group of people and the levels it grants. Declared in the config, adjustable in the console.                                                          |
+| **Build**        | The immutable result of `forgeron build` for a given commit. Every push produces a build, identified by its commit.                                     |
+| **Version**      | The semver number of a tool (`1.5.0`). It only changes with `forgeron release`; a build carries the current version plus its commit (`v1.5.0+a41f9e0`). |
+| **Release**      | The move to a new version: `forgeron release` reads `changes/`, writes the changelog and creates the `<tool>@<version>` tag.                            |
+| **Environment**  | Where a version runs: `preview` (per branch), `pilot` (a group), `production`.                                                                          |
 
-## 2. Structure d'un tool
+## 2. Structure of a tool
 
 ```text
-mon-tool/
-├── forgeron.config.ts     # obligatoire
-├── actions/               # obligatoire, au moins une action
-│   └── <groupe>/<verbe>.ts
-├── db/                    # si resources.db
+my-tool/
+├── forgeron.config.ts     # required
+├── actions/               # required, at least one action
+│   └── <group>/<verb>.ts
+├── db/                    # if resources.db
 │   ├── schema.ts
-│   ├── seed.ts            # optionnel : données de dev et de preview
+│   ├── seed.ts            # optional: dev and preview data
 │   └── migrations/
-│       ├── 0001_<nom>.ts
+│       ├── 0001_<name>.ts
 │       └── meta/snapshot.json
-├── events/                # optionnel : gestionnaires d'événements
-├── jobs/                  # optionnel : tâches planifiées
-├── views/                 # optionnel : pages React
-├── lib/                   # optionnel : code partagé, jamais exposé
+├── events/                # optional: event handlers
+├── jobs/                  # optional: scheduled tasks
+├── views/                 # optional: React pages
+├── lib/                   # optional: shared code, never exposed
 ├── tests/                 # Vitest
-├── changes/               # obligatoire : changements en attente de release (section 16)
-├── CHANGELOG.md           # obligatoire, généré par forgeron release
-├── .forgeron/             # voir section 4
-└── package.json           # porte la version du tool
+├── changes/               # required: changes awaiting release (section 16)
+├── CHANGELOG.md           # required, generated by forgeron release
+├── .forgeron/             # see section 4
+└── package.json           # carries the tool's version
 ```
 
-Règles :
+Rules:
 
-- Le **nom d'une action** est son chemin sous `actions/`, sans extension, avec des points : `actions/deals/move.ts` → `deals.move`. Profondeur maximale : deux niveaux (`groupe.verbe`). Verbes recommandés : `list`, `get`, `search`, `create`, `update`, `upsert`, `delete`, `move`, `import`.
-- Un fichier sous `actions/`, `events/`, `jobs/` ou `views/` exporte **un seul** objet par défaut (`action`, `on`, `schedule`, `defineView`).
-- Tout ce qui n'est pas dans ces dossiers n'est jamais exposé.
-- **Un tool = un `forgeron.config.ts`.** Dans un dépôt qui contient plusieurs tools, chaque dossier qui porte un `forgeron.config.ts` est un tool, à n'importe quelle profondeur (hors `node_modules`). Le CLI, l'action GitHub et la console les découvrent ainsi, sans autre déclaration. Deux tools d'un même dépôt ne peuvent pas avoir le même `name`.
+- The **name of an action** is its path under `actions/`, without extension, with dots: `actions/deals/move.ts` → `deals.move`. Maximum depth: two levels (`group.verb`). Recommended verbs: `list`, `get`, `search`, `create`, `update`, `upsert`, `delete`, `move`, `import`.
+- A file under `actions/`, `events/`, `jobs/` or `views/` exports **a single** default object (`action`, `on`, `schedule`, `defineView`).
+- Anything outside these folders is never exposed.
+- **One tool = one `forgeron.config.ts`.** In a repository that contains several tools, every folder that carries a `forgeron.config.ts` is a tool, at any depth (excluding `node_modules`). The CLI, the GitHub action and the console discover them this way, with no other declaration. Two tools in the same repository cannot have the same `name`.
 
 ## 3. `forgeron.config.ts`
 
@@ -81,106 +81,106 @@ Règles :
 import { defineConfig, database, bucket, kv, queue, connector } from "forgeron";
 
 export default defineConfig({
-  name: "crm", // identifiant, [a-z0-9-], unique dans l'espace
+  name: "crm", // identifier, [a-z0-9-], unique within the workspace
   title: "CRM",
-  description: "Sociétés, contacts et pistes.", // repris dans MCP, OpenAPI, l'aide du CLI
+  description: "Companies, contacts and leads.", // reused in MCP, OpenAPI, CLI help
   interfaces: { mcp: true, api: true, cli: true, web: true },
 
   roles: {
-    commercial: { label: "Commerciaux", grants: ["read", "write"] },
-    direction: { label: "Direction", grants: ["read", "write", "delete"] },
+    commercial: { label: "Sales", grants: ["read", "write"] },
+    direction: { label: "Management", grants: ["read", "write", "delete"] },
   },
 
-  // Tout ce que le tool demande à la plateforme. Rien d'autre n'est disponible à l'exécution.
+  // Everything the tool asks of the platform. Nothing else is available at runtime.
   resources: {
-    db: database({ engine: "d1", why: "Sociétés, contacts et pistes" }),
+    db: database({ engine: "d1", why: "Companies, contacts and leads" }),
     files: bucket({
       maxSize: "25MB",
       types: ["application/pdf", "image/*"],
-      why: "Pièces jointes des pistes",
+      why: "Lead attachments",
     }),
     cache: kv(),
-    queue: queue({ why: "Envoi des récapitulatifs" }),
-    secrets: { HUBSPOT_KEY: { why: "Import ponctuel depuis HubSpot" } },
+    queue: queue({ why: "Sending summaries" }),
+    secrets: { HUBSPOT_KEY: { why: "One-off import from HubSpot" } },
     userSecrets: {
-      ODOO_API_KEY: { label: "Clé d'API Odoo", help: "…", why: "Lire vos tickets Odoo" },
+      ODOO_API_KEY: { label: "Odoo API key", help: "…", why: "Read your Odoo tickets" },
     },
     connectors: {
       microsoft: connector("microsoft-365", {
         mode: "delegated",
         scopes: ["Mail.Send"],
-        why: "Envoyer un e-mail à un contact",
+        why: "Send an email to a contact",
       }),
     },
-    network: { allow: ["api.hubspot.com"], why: "API HubSpot" },
+    network: { allow: ["api.hubspot.com"], why: "HubSpot API" },
   },
 
   uses: { contacts: "^2.0.0" },
-  preview: { data: "seed" }, // "seed" (défaut) | "empty" | "snapshot"
+  preview: { data: "seed" }, // "seed" (default) | "empty" | "snapshot"
 });
 ```
 
-| Clé                    | Type                                 | Défaut                                                       | Rôle                                                                 |
-| ---------------------- | ------------------------------------ | ------------------------------------------------------------ | -------------------------------------------------------------------- |
-| `name`                 | `string`                             | — (obligatoire)                                              | Identifiant du tool, utilisé dans les URL, MCP et le CLI             |
-| `title`, `description` | `string`                             | —                                                            | Affichage et descriptions générées                                   |
-| `interfaces`           | `{ mcp, api, cli, web }` booléens    | tous `true` sauf `web` (vrai seulement s'il existe des vues) | Interfaces exposées                                                  |
-| `roles`                | `Record<string, { label?, grants }>` | `{}`                                                         | Rôles par défaut ; tout niveau cité dans `grants` existe             |
-| `resources`            | objet, voir ci-dessous               | `{}`                                                         | Les ressources demandées à la plateforme                             |
-| `uses`                 | `Record<tool, plage semver>`         | `{}`                                                         | Tools dont on appelle les actions (section 12)                       |
-| `preview.data`         | `"seed" \| "empty" \| "snapshot"`    | `"seed"`                                                     | Données d'une base de preview ; `snapshot` exige l'accord de l'admin |
+| Key                    | Type                                 | Default                                            | Role                                                                  |
+| ---------------------- | ------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------- |
+| `name`                 | `string`                             | — (required)                                       | Tool identifier, used in URLs, MCP and the CLI                        |
+| `title`, `description` | `string`                             | —                                                  | Display and generated descriptions                                    |
+| `interfaces`           | `{ mcp, api, cli, web }` booleans    | all `true` except `web` (true only if views exist) | Exposed interfaces                                                    |
+| `roles`                | `Record<string, { label?, grants }>` | `{}`                                               | Default roles; every level cited in `grants` exists                   |
+| `resources`            | object, see below                    | `{}`                                               | The resources requested from the platform                             |
+| `uses`                 | `Record<tool, semver range>`         | `{}`                                               | Tools whose actions are called (section 12)                           |
+| `preview.data`         | `"seed" \| "empty" \| "snapshot"`    | `"seed"`                                           | Data of a preview database; `snapshot` requires the admin's agreement |
 
-La version du tool n'est pas dans la config : elle vient de `package.json` et ne se modifie qu'avec `forgeron release` (section 16).
+The tool's version is not in the config: it comes from `package.json` and only changes with `forgeron release` (section 16).
 
-### Les ressources
+### Resources
 
-`resources` est la **liste exhaustive** de ce que le tool demande. C'est le même principe que les permissions d'une application mobile : ce qui n'est pas déclaré n'existe pas à l'exécution (`ctx.db` est absent sans `resources.db`, `ctx.fetch` refuse tout hôte non listé).
+`resources` is the **exhaustive list** of what the tool requests. The principle is the same as the permissions of a mobile application: what is not declared does not exist at runtime (`ctx.db` is absent without `resources.db`, `ctx.fetch` refuses any host that is not listed).
 
-| Ressource            | Déclaration                                  | Donne accès à              | Cloudflare                                                          |
-| -------------------- | -------------------------------------------- | -------------------------- | ------------------------------------------------------------------- |
-| Base de données      | `database({ engine: "d1" })`                 | `ctx.db`                   | D1, une base par tool et par environnement, branchée sur son Worker |
-| Fichiers             | `bucket({ maxSize, types })`                 | `ctx.files`                | R2, un préfixe par tool et environnement                            |
-| Cache                | `kv()`                                       | `ctx.cache`                | KV                                                                  |
-| File d'attente       | `queue()`                                    | événements `mode: "queue"` | Queues                                                              |
-| Secrets du tool      | `secrets: { NOM: { why } }`                  | `ctx.secrets`              | chiffrés par la plateforme                                          |
-| Secrets par personne | `userSecrets: { NOM: { label, help, why } }` | `ctx.userSecrets`          | chiffrés, par personne                                              |
-| Connecteurs          | `connector(type, { mode, scopes })`          | `ctx.connectors.<nom>`     | —                                                                   |
-| Réseau sortant       | `network: { allow: [...] }`                  | `ctx.fetch`                | filtrage par la plateforme                                          |
+| Resource           | Declaration                                   | Gives access to         | Cloudflare                                                     |
+| ------------------ | --------------------------------------------- | ----------------------- | -------------------------------------------------------------- |
+| Database           | `database({ engine: "d1" })`                  | `ctx.db`                | D1, one database per tool and environment, bound to its Worker |
+| Files              | `bucket({ maxSize, types })`                  | `ctx.files`             | R2, one prefix per tool and environment                        |
+| Cache              | `kv()`                                        | `ctx.cache`             | KV                                                             |
+| Queue              | `queue()`                                     | `mode: "queue"` events  | Queues                                                         |
+| Tool secrets       | `secrets: { NAME: { why } }`                  | `ctx.secrets`           | encrypted by the platform                                      |
+| Per-person secrets | `userSecrets: { NAME: { label, help, why } }` | `ctx.userSecrets`       | encrypted, per person                                          |
+| Connectors         | `connector(type, { mode, scopes })`           | `ctx.connectors.<name>` | —                                                              |
+| Outbound network   | `network: { allow: [...] }`                   | `ctx.fetch`             | filtering by the platform                                      |
 
-Les tâches planifiées (`jobs/`) et les vues (`views/`) ne se déclarent pas : elles sont **déduites** des dossiers et ajoutées automatiquement à la liste des ressources.
+Scheduled tasks (`jobs/`) and views (`views/`) are not declared: they are **inferred** from the folders and added automatically to the list of resources.
 
-Chaque ressource accepte un `why` : une phrase qui explique à l'admin pourquoi le tool en a besoin. Il est obligatoire pour les connecteurs, les secrets par personne et le réseau sortant.
+Every resource accepts a `why`: a sentence that explains to the admin why the tool needs it. It is required for connectors, per-person secrets and outbound network.
 
-#### Ce que voit l'admin à l'installation
+#### What the admin sees at installation
 
-`forgeron resources` affiche le récapitulatif en local ; la console et le MCP d'administration montrent le même écran avant l'installation :
+`forgeron resources` displays the summary locally; the console and the admin MCP show the same screen before installation:
 
 ```text
-CRM v1.4.0 demande :
-  Base de données (D1)            Sociétés, contacts et pistes
-  Stockage de fichiers (25 Mo)    Pièces jointes des pistes
-  Microsoft 365, au nom de chaque personne
-    · Mail.Send                   Envoyer un e-mail à un contact
-  Une clé d'API Odoo par personne Lire vos tickets Odoo
-  Appels sortants : api.hubspot.com
-  1 tâche planifiée : récapitulatif du lundi, 7 h
+CRM v1.4.0 requests:
+  Database (D1)                   Companies, contacts and leads
+  File storage (25 MB)            Lead attachments
+  Microsoft 365, on behalf of each person
+    · Mail.Send                   Send an email to a contact
+  One Odoo API key per person     Read your Odoo tickets
+  Outbound calls: api.hubspot.com
+  1 scheduled task: Monday summary, 7 am
 ```
 
-#### Quand une nouvelle version demande plus
+#### When a new version asks for more
 
-`forgeron build` compare les ressources à celles de la version en production. Une ressource **ajoutée ou élargie** (nouveau connecteur, scope supplémentaire, nouvel hôte, nouveau secret par personne) met la version **en attente d'approbation** : elle se déploie en preview, mais pas en pilote ni en production tant qu'un admin n'a pas accepté la demande, dans la console ou le MCP d'administration. Une ressource retirée ne demande rien.
+`forgeron build` compares the resources with those of the production version. A resource that is **added or broadened** (new connector, extra scope, new host, new per-person secret) puts the version **pending approval**: it deploys to preview, but not to pilot or production until an admin has accepted the request, in the console or the admin MCP. A removed resource asks for nothing.
 
-## 4. Le dossier `.forgeron`
+## 4. The `.forgeron` folder
 
 ```text
 .forgeron/
-├── project.json        # commité
-├── .gitignore          # commité, contient : local/  generated/  build/
-├── local/              # ignoré
-│   ├── env             # secrets de dev (format dotenv)
-│   └── dev.sqlite      # base locale de forgeron dev
-├── generated/          # ignoré : types Kysely, types des actions, types des tools utilisés
-└── build/              # ignoré : sortie de forgeron build
+├── project.json        # committed
+├── .gitignore          # committed, contains: local/  generated/  build/
+├── local/              # ignored
+│   ├── env             # dev secrets (dotenv format)
+│   └── dev.sqlite      # local database of forgeron dev
+├── generated/          # ignored: Kysely types, action types, types of the tools used
+└── build/              # ignored: output of forgeron build
 ```
 
 ```json
@@ -193,100 +193,100 @@ CRM v1.4.0 demande :
 }
 ```
 
-- `project.json` ne contient **aucun secret** : il dit seulement à quel espace et à quel tool le dossier est lié. Il est écrit par `forgeron init` ou `forgeron link`.
-- Les **identifiants de la personne** ne sont jamais dans le projet. `forgeron login` ouvre le navigateur (SSO de l'espace) et range le jeton dans le trousseau du système, ou à défaut dans `~/.config/forgeron/credentials` (droits 600).
-- `local/env` sert uniquement à `forgeron dev` et aux tests. Les secrets de preview et de production se posent avec `forgeron secrets set`.
-- En CI, l'authentification passe par `FORGERON_TOKEN` (jeton de déploiement créé dans la console).
+- `project.json` contains **no secret**: it only says which workspace and which tool the folder is linked to. It is written by `forgeron init` or `forgeron link`.
+- A person's **credentials** are never in the project. `forgeron login` opens the browser (the workspace's SSO) and stores the token in the system keychain, or failing that in `~/.config/forgeron/credentials` (permissions 600).
+- `local/env` is only used by `forgeron dev` and by tests. Preview and production secrets are set with `forgeron secrets set`.
+- In CI, authentication goes through `FORGERON_TOKEN` (a deployment token created in the console).
 
-## 5. Le CLI
+## 5. The CLI
 
-Le CLI s'installe avec le SDK (`npm i -D forgeron`) et s'utilise avec `npx forgeron` ou un alias global.
+The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forgeron` or a global alias.
 
-### Cycle de vie
+### Lifecycle
 
-| Commande                                                                                   | Ce qu'elle fait                                                                                                                                                        |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `forgeron login` · `logout` · `whoami`                                                     | Authentification de la personne sur un espace (navigateur, SSO)                                                                                                        |
-| `forgeron init [nom] [--template crm]`                                                     | Crée un tool, depuis zéro ou depuis un modèle du catalogue ; écrit `.forgeron/`                                                                                        |
-| `forgeron link`                                                                            | Lie un dossier existant à un tool de l'espace                                                                                                                          |
-| `forgeron dev [--as <rôle>] [--port 8787]`                                                 | Lance le tool en local sur le runtime Cloudflare : API, serveur MCP local (`/mcp`), vues, terrain de jeu ; recharge à chaud ; applique les migrations à la base locale |
-| `forgeron play [--template <nom>]`                                                         | Ouvre le terrain de jeu : liste des actions, formulaire généré, résultat, aperçu MCP / API / CLI ; avec `--template`, essaie un modèle sans l'installer                |
-| `forgeron test`                                                                            | Lance Vitest avec la configuration Forgeron (alias de `vitest`)                                                                                                        |
-| `forgeron build`                                                                           | Construit le Worker, le manifeste, les vues et les migrations dans `.forgeron/build/`                                                                                  |
-| `forgeron deploy [--env preview\|pilot\|production] [--group <nom>] [--allow-destructive]` | Construit, envoie une version, applique les migrations, bascule le trafic. Sans `--env` : preview de la branche courante                                               |
-| `forgeron versions`                                                                        | Liste les versions et leurs environnements                                                                                                                             |
-| `forgeron promote <version> --to <env>`                                                    | Promeut une version existante, sans rebuild                                                                                                                            |
-| `forgeron rollback [--env production]`                                                     | Revient à la version précédente de l'environnement                                                                                                                     |
-| `forgeron logs [--env] [--action <nom>] [--job <nom>] [--follow]`                          | Journal d'exécution                                                                                                                                                    |
-| `forgeron jobs run <nom> [--env]`                                                          | Exécute une tâche planifiée à la demande                                                                                                                               |
-| `forgeron resources [--diff production]`                                                   | Affiche les ressources demandées, ou ce qui change par rapport à un environnement                                                                                      |
+| Command                                                                                     | What it does                                                                                                                                             |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forgeron login` · `logout` · `whoami`                                                      | Authenticates the person on a workspace (browser, SSO)                                                                                                   |
+| `forgeron init [name] [--template crm]`                                                     | Creates a tool, from scratch or from a template in the catalog; writes `.forgeron/`                                                                      |
+| `forgeron link`                                                                             | Links an existing folder to a tool in the workspace                                                                                                      |
+| `forgeron dev [--as <role>] [--port 8787]`                                                  | Runs the tool locally on the Cloudflare runtime: API, local MCP server (`/mcp`), views, playground; hot reload; applies migrations to the local database |
+| `forgeron play [--template <name>]`                                                         | Opens the playground: list of actions, generated form, result, MCP / API / CLI preview; with `--template`, tries out a template without installing it    |
+| `forgeron test`                                                                             | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                          |
+| `forgeron build`                                                                            | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                    |
+| `forgeron deploy [--env preview\|pilot\|production] [--group <name>] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                          |
+| `forgeron versions`                                                                         | Lists versions and their environments                                                                                                                    |
+| `forgeron promote <version> --to <env>`                                                     | Promotes an existing version, without rebuilding                                                                                                         |
+| `forgeron rollback [--env production]`                                                      | Goes back to the environment's previous version                                                                                                          |
+| `forgeron logs [--env] [--action <name>] [--job <name>] [--follow]`                         | Execution log                                                                                                                                            |
+| `forgeron jobs run <name> [--env]`                                                          | Runs a scheduled task on demand                                                                                                                          |
+| `forgeron resources [--diff production]`                                                    | Shows the requested resources, or what changes compared with an environment                                                                              |
 
-### Versions et changelog
+### Versions and changelog
 
-| Commande                                      | Ce qu'elle fait                                                                                                                     |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `forgeron change`                             | Ajoute un changement dans `changes/` : type, impact semver, description (interactif ou `--type fixed --bump patch -m "…"`)          |
-| `forgeron change check`                       | Compare le manifeste à la dernière version publiée et vérifie que les changements déclarés couvrent ce qui a changé (utilisé en CI) |
-| `forgeron release`                            | Calcule la nouvelle version, écrit `CHANGELOG.md`, met à jour `package.json`, vide `changes/`, crée le tag git                      |
-| `forgeron changelog [<tool>] [--since 1.2.0]` | Affiche le changelog d'un tool, local ou publié                                                                                     |
+| Command                                       | What it does                                                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `forgeron change`                             | Adds a change to `changes/`: type, semver impact, description (interactive or `--type fixed --bump patch -m "…"`)          |
+| `forgeron change check`                       | Compares the manifest with the last published version and checks that the declared changes cover what changed (used in CI) |
+| `forgeron release`                            | Computes the new version, writes `CHANGELOG.md`, updates `package.json`, empties `changes/`, creates the git tag           |
+| `forgeron changelog [<tool>] [--since 1.2.0]` | Shows a tool's changelog, local or published                                                                               |
 
 ### Administration
 
-| Commande                                                            | Ce qu'elle fait                                                                                        |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `forgeron catalog search <texte>`                                   | Cherche dans le catalogue de modèles                                                                   |
-| `forgeron install <modèle> [--name]`                                | Installe un modèle dans l'espace, après affichage et approbation des ressources                        |
-| `forgeron tools`                                                    | Liste les tools de l'espace, leurs versions et environnements                                          |
-| `forgeron access grant <tool> <rôle> <personne\|groupe>` · `revoke` | Gère les accès                                                                                         |
-| `forgeron approve <tool> <version>`                                 | Approuve les nouvelles ressources demandées par une version                                            |
-| `forgeron mcp`                                                      | Lance le MCP d'administration en local (stdio), pour un espace self-host ou un client sans MCP distant |
+| Command                                                          | What it does                                                                                   |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `forgeron catalog search <text>`                                 | Searches the template catalog                                                                  |
+| `forgeron install <template> [--name]`                           | Installs a template in the workspace, after displaying and approving the resources             |
+| `forgeron tools`                                                 | Lists the workspace's tools, their versions and environments                                   |
+| `forgeron access grant <tool> <role> <person\|group>` · `revoke` | Manages access                                                                                 |
+| `forgeron approve <tool> <version>`                              | Approves the new resources requested by a version                                              |
+| `forgeron mcp`                                                   | Runs the admin MCP locally (stdio), for a self-hosted workspace or a client without remote MCP |
 
-### Base de données
+### Database
 
-| Commande                                               | Ce qu'elle fait                                                            |
-| ------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `forgeron db generate --name <nom> [--rename a.b:a.c]` | Compare `db/schema.ts` au dernier instantané et écrit la ou les migrations |
-| `forgeron db migrate [--env]`                          | Applique les migrations en attente (local par défaut)                      |
-| `forgeron db status [--env]`                           | Migrations appliquées et en attente                                        |
-| `forgeron db rollback [--env] [--steps 1]`             | Exécute le `down` des dernières migrations                                 |
-| `forgeron db seed`                                     | Exécute `db/seed.ts` sur la base locale                                    |
-| `forgeron db shell [--env]`                            | Console SQL ; lecture seule hors local, sauf `--write` et rôle `admin`     |
+| Command                                                 | What it does                                                                     |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `forgeron db generate --name <name> [--rename a.b:a.c]` | Compares `db/schema.ts` with the last snapshot and writes the migration(s)       |
+| `forgeron db migrate [--env]`                           | Applies pending migrations (local by default)                                    |
+| `forgeron db status [--env]`                            | Applied and pending migrations                                                   |
+| `forgeron db rollback [--env] [--steps 1]`              | Runs the `down` of the latest migrations                                         |
+| `forgeron db seed`                                      | Runs `db/seed.ts` on the local database                                          |
+| `forgeron db shell [--env]`                             | SQL console; read-only outside local, except with `--write` and the `admin` role |
 
-### Secrets et accès
+### Secrets and access
 
-| Commande                                         | Ce qu'elle fait                                                                                     |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `forgeron secrets set <NOM> [--env] [--user]`    | Pose un secret du tool, ou le sien avec `--user` ; la valeur est lue au clavier, jamais en argument |
-| `forgeron secrets list [--env]`                  | Noms des secrets posés, jamais les valeurs                                                          |
-| `forgeron token create --name ci --scope deploy` | Crée un jeton de déploiement pour la CI                                                             |
+| Command                                          | What it does                                                                                             |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `forgeron secrets set <NAME> [--env] [--user]`   | Sets a tool secret, or your own with `--user`; the value is read from the keyboard, never as an argument |
+| `forgeron secrets list [--env]`                  | Names of the secrets that are set, never the values                                                      |
+| `forgeron token create --name ci --scope deploy` | Creates a deployment token for CI                                                                        |
 
-### Les actions des tools, en commandes
+### Tool actions, as commands
 
-Chaque action d'un tool exposé en CLI devient une commande :
+Every action of a tool exposed through the CLI becomes a command:
 
 ```bash
-forgeron <tool> <groupe> <verbe> [arguments] [--options]
+forgeron <tool> <group> <verb> [arguments] [--options]
 forgeron crm contacts search "Durand" --limit 5
 forgeron odoo tickets list --mine --json
-forgeron inventaire equipments import ./parc.csv --no-dry-run
+forgeron inventory equipments import ./fleet.csv --no-dry-run
 ```
 
-- Les **arguments positionnels** sont déclarés par `cli.args` ; les autres champs de l'entrée deviennent des options en kebab-case (`checkBefore` → `--check-before`), les booléens acceptent `--x` / `--no-x`.
-- `--json` sort le résultat brut ; sinon le CLI l'affiche en tableau.
-- `--env` choisit l'environnement (production par défaut).
-- `forgeron <tool> --help` liste les actions avec leurs descriptions.
-- Codes de sortie : `0` succès, `1` erreur de l'action, `2` entrée invalide, `3` accès refusé, `4` introuvable.
+- **Positional arguments** are declared by `cli.args`; the other input fields become kebab-case options (`checkBefore` → `--check-before`), and booleans accept `--x` / `--no-x`.
+- `--json` outputs the raw result; otherwise the CLI displays it as a table.
+- `--env` chooses the environment (production by default).
+- `forgeron <tool> --help` lists the actions with their descriptions.
+- Exit codes: `0` success, `1` action error, `2` invalid input, `3` access denied, `4` not found.
 
-## 6. Les actions
+## 6. Actions
 
 ```ts
 import { action, z, ToolError } from "forgeron";
 
 export default action({
-  description: "Passe une piste à une nouvelle étape.",
+  description: "Moves a lead to a new stage.",
   access: "write",
   input: z.object({ id: z.string(), stage: z.enum(["won", "lost"]) }),
-  output: z.object({ id: z.string(), stage: z.string() }), // optionnel
+  output: z.object({ id: z.string(), stage: z.string() }), // optional
   confirm: false,
   cli: { args: ["id", "stage"] },
   http: { method: "POST" },
@@ -296,152 +296,152 @@ export default action({
 });
 ```
 
-| Option        | Type                                     | Défaut                                  | Rôle                                                                                            |
-| ------------- | ---------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `description` | `string`                                 | — (obligatoire)                         | Description pour Claude, OpenAPI, l'aide du CLI ; c'est elle qui fait choisir l'action à Claude |
-| `access`      | niveau d'accès                           | — (obligatoire)                         | Niveau exigé de la personne ; aucune action sans                                                |
-| `input`       | schéma Zod objet                         | — (obligatoire, `z.object({})` si rien) | Validation et typage de l'entrée ; source des schémas MCP, OpenAPI et options CLI               |
-| `output`      | schéma Zod                               | inféré                                  | Valide la sortie ; publié dans MCP (`outputSchema`) et OpenAPI                                  |
-| `confirm`     | `boolean`                                | `true` si `access: "delete"`            | Action destructive : annotation MCP, confirmation CLI, dialogue dans le terrain de jeu          |
-| `cli.args`    | `string[]`                               | `[]`                                    | Champs passés en arguments positionnels                                                         |
-| `http.method` | `"GET" \| "POST"`                        | `GET` si `access: "read"`, sinon `POST` | Méthode de la route d'API                                                                       |
-| `interfaces`  | sous-ensemble de la config               | celles du tool                          | Masquer une action d'une interface                                                              |
-| `rateLimit`   | `{ per: "user" \| "tool", max, window }` | aucun                                   | Limite d'appels                                                                                 |
+| Option        | Type                                     | Default                                 | Role                                                                                 |
+| ------------- | ---------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------ |
+| `description` | `string`                                 | — (required)                            | Description for Claude, OpenAPI, CLI help; it is what makes Claude choose the action |
+| `access`      | access level                             | — (required)                            | Level required of the person; no action without it                                   |
+| `input`       | Zod object schema                        | — (required, `z.object({})` if nothing) | Input validation and typing; source of the MCP and OpenAPI schemas and CLI options   |
+| `output`      | Zod schema                               | inferred                                | Validates the output; published in MCP (`outputSchema`) and OpenAPI                  |
+| `confirm`     | `boolean`                                | `true` if `access: "delete"`            | Destructive action: MCP annotation, CLI confirmation, dialog in the playground       |
+| `cli.args`    | `string[]`                               | `[]`                                    | Fields passed as positional arguments                                                |
+| `http.method` | `"GET" \| "POST"`                        | `GET` if `access: "read"`, else `POST`  | Method of the API route                                                              |
+| `interfaces`  | subset of the config                     | those of the tool                       | Hide an action from an interface                                                     |
+| `rateLimit`   | `{ per: "user" \| "tool", max, window }` | none                                    | Call limit                                                                           |
 
-### Le contexte `ctx`
+### The `ctx` context
 
-| Membre                 | Disponible si           | Description                                                                |
-| ---------------------- | ----------------------- | -------------------------------------------------------------------------- |
-| `input`                | toujours                | Entrée validée et typée                                                    |
-| `user`                 | toujours                | `{ id, email, name, roles }` de la personne (ou du tool dans une tâche)    |
-| `can(level)`           | toujours                | Vérifie un niveau d'accès supplémentaire dans le code                      |
-| `interface`            | toujours                | `"mcp" \| "api" \| "cli" \| "web" \| "job" \| "tool"` : d'où vient l'appel |
-| `db`                   | `resources.db`          | `Kysely<DB>` typé ; transaction par action                                 |
-| `emit(event, payload)` | toujours                | Émet un événement (section 9)                                              |
-| `secrets`              | `resources.secrets`     | Secrets du tool, en lecture                                                |
-| `userSecrets`          | `resources.userSecrets` | Secrets de la personne ; absents → collecte automatique                    |
-| `connectors.<nom>`     | `resources.connectors`  | Clients des services tiers                                                 |
-| `fetch`                | toujours                | `fetch` standard, filtré par `resources.network`                           |
-| `files`                | `resources.files`       | Stockage R2 (section 10)                                                   |
-| `cache`                | `resources.cache`       | Cache KV, portée `user` par défaut                                         |
-| `tools.<nom>`          | `uses`                  | Appels d'actions d'autres tools                                            |
-| `log`                  | toujours                | `log.info / warn / error(message, données)` vers le journal                |
-| `now()`                | toujours                | Horloge au fuseau de l'espace, figée dans les tests                        |
-| `env`                  | toujours                | `"local" \| "preview" \| "pilot" \| "production"`                          |
+| Member                 | Available if            | Description                                                                      |
+| ---------------------- | ----------------------- | -------------------------------------------------------------------------------- |
+| `input`                | always                  | Validated, typed input                                                           |
+| `user`                 | always                  | `{ id, email, name, roles }` of the person (or of the tool in a scheduled task)  |
+| `can(level)`           | always                  | Checks an additional access level in code                                        |
+| `interface`            | always                  | `"mcp" \| "api" \| "cli" \| "web" \| "job" \| "tool"`: where the call comes from |
+| `db`                   | `resources.db`          | Typed `Kysely<DB>`; one transaction per action                                   |
+| `emit(event, payload)` | always                  | Emits an event (section 9)                                                       |
+| `secrets`              | `resources.secrets`     | Tool secrets, read-only                                                          |
+| `userSecrets`          | `resources.userSecrets` | The person's secrets; if absent → automatic collection                           |
+| `connectors.<name>`    | `resources.connectors`  | Clients of third-party services                                                  |
+| `fetch`                | always                  | Standard `fetch`, filtered by `resources.network`                                |
+| `files`                | `resources.files`       | R2 storage (section 10)                                                          |
+| `cache`                | `resources.cache`       | KV cache, `user` scope by default                                                |
+| `tools.<name>`         | `uses`                  | Calls to actions of other tools                                                  |
+| `log`                  | always                  | `log.info / warn / error(message, data)` to the log                              |
+| `now()`                | always                  | Clock in the workspace's time zone, frozen in tests                              |
+| `env`                  | always                  | `"local" \| "preview" \| "pilot" \| "production"`                                |
 
-### Les erreurs
+### Errors
 
-| Code `ToolError`         | HTTP | MCP                               | CLI (sortie) | Quand                                                         |
-| ------------------------ | ---- | --------------------------------- | ------------ | ------------------------------------------------------------- |
-| `INVALID`                | 400  | erreur d'outil                    | 2            | Entrée correcte en forme mais refusée par la règle métier     |
-| `FORBIDDEN`              | 403  | erreur d'outil                    | 3            | Droits insuffisants (levé aussi automatiquement par `access`) |
-| `NOT_FOUND`              | 404  | erreur d'outil                    | 4            | Objet absent                                                  |
-| `CONFLICT`               | 409  | erreur d'outil                    | 1            | Doublon, version concurrente                                  |
-| `RATE_LIMITED`           | 429  | erreur d'outil                    | 1            | Limite dépassée                                               |
-| `UPSTREAM`               | 502  | erreur d'outil                    | 1            | Service tiers en erreur                                       |
-| _(exception non prévue)_ | 500  | erreur d'outil, message générique | 1            | Le détail reste dans le journal, jamais renvoyé à l'appelant  |
+| `ToolError` code         | HTTP | MCP                         | CLI (exit) | When                                                        |
+| ------------------------ | ---- | --------------------------- | ---------- | ----------------------------------------------------------- |
+| `INVALID`                | 400  | tool error                  | 2          | Input well-formed but rejected by the business rule         |
+| `FORBIDDEN`              | 403  | tool error                  | 3          | Insufficient rights (also raised automatically by `access`) |
+| `NOT_FOUND`              | 404  | tool error                  | 4          | Object missing                                              |
+| `CONFLICT`               | 409  | tool error                  | 1          | Duplicate, concurrent version                               |
+| `RATE_LIMITED`           | 429  | tool error                  | 1          | Limit exceeded                                              |
+| `UPSTREAM`               | 502  | tool error                  | 1          | Third-party service in error                                |
+| _(unexpected exception)_ | 500  | tool error, generic message | 1          | The detail stays in the log, never returned to the caller   |
 
-## 7. Les quatre interfaces
+## 7. The four interfaces
 
-|                   | MCP                                                   | API                                                   | CLI                                               | Web                                      |
-| ----------------- | ----------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------- | ---------------------------------------- |
-| Adresse           | `https://<espace>.forgeron.app/t/<tool>/mcp`          | `https://<espace>.forgeron.app/t/<tool>/api/<action>` | `forgeron <tool> …` (manifeste : `/t/<tool>/cli`) | `https://<espace>.forgeron.app/t/<tool>` |
-| Nom d'une action  | `<tool>_<groupe>_<verbe>` (`crm_deals_move`)          | `/t/crm/api/deals.move`                               | `forgeron crm deals move`                         | `useAction("deals.move")`                |
-| Authentification  | OAuth via le SSO de l'espace                          | jeton personnel ou session SSO                        | `forgeron login`                                  | session SSO                              |
-| Schéma            | `inputSchema` / `outputSchema` JSON Schema depuis Zod | OpenAPI 3.1 sur `/t/<tool>/api/openapi.json`          | options générées, `--help`                        | types TypeScript générés                 |
-| Destructif        | annotations `destructiveHint`, `readOnlyHint`         | —                                                     | confirmation interactive                          | dialogue de confirmation                 |
-| Secrets manquants | élicitation, sinon lien                               | `428` avec lien de saisie                             | invite dans le terminal                           | page de saisie                           |
+|                 | MCP                                                 | API                                                      | CLI                                             | Web                                         |
+| --------------- | --------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------- |
+| Address         | `https://<workspace>.forgeron.app/t/<tool>/mcp`     | `https://<workspace>.forgeron.app/t/<tool>/api/<action>` | `forgeron <tool> …` (manifest: `/t/<tool>/cli`) | `https://<workspace>.forgeron.app/t/<tool>` |
+| Action name     | `<tool>_<group>_<verb>` (`crm_deals_move`)          | `/t/crm/api/deals.move`                                  | `forgeron crm deals move`                       | `useAction("deals.move")`                   |
+| Authentication  | OAuth through the workspace's SSO                   | personal token or SSO session                            | `forgeron login`                                | SSO session                                 |
+| Schema          | JSON Schema `inputSchema` / `outputSchema` from Zod | OpenAPI 3.1 at `/t/<tool>/api/openapi.json`              | generated options, `--help`                     | generated TypeScript types                  |
+| Destructive     | `destructiveHint`, `readOnlyHint` annotations       | —                                                        | interactive confirmation                        | confirmation dialog                         |
+| Missing secrets | elicitation, otherwise a link                       | `428` with an input link                                 | prompt in the terminal                          | input page                                  |
 
-Toutes passent par la même **passerelle d'identité** : SSO, résolution des rôles, contrôle de `access`, journal. Aucune interface ne contourne une autre.
+All of them go through the same **identity gateway**: SSO, role resolution, `access` check, audit log. No interface bypasses another.
 
-### Les adresses
+### Addresses
 
-Un sous-domaine par entreprise, puis des chemins. Tout tient sur **un seul niveau de sous-domaine**, couvert par le certificat gratuit de Cloudflare (Universal SSL) : aucun module payant n'est nécessaire.
+One subdomain per company, then paths. Everything fits in **a single subdomain level**, covered by Cloudflare's free certificate (Universal SSL): no paid module is needed.
 
 ```text
-https://acme.forgeron.app/                       console de l'espace
-https://acme.forgeron.app/mcp                    MCP d'administration (section 17)
-https://acme.forgeron.app/t/crm                  interface web du tool (accueil, vues)
-https://acme.forgeron.app/t/crm/pipeline         une vue (path: "/pipeline")
-https://acme.forgeron.app/t/crm/mcp              serveur MCP du tool
-https://acme.forgeron.app/t/crm/api/deals.move   une action en API
-https://acme.forgeron.app/t/crm/api/openapi.json description OpenAPI
-https://acme.forgeron.app/t/crm/cli              manifeste des commandes CLI
-https://acme.forgeron.app/t/crm/play             terrain de jeu du tool
+https://acme.forgeron.app/                       workspace console
+https://acme.forgeron.app/mcp                    admin MCP (section 17)
+https://acme.forgeron.app/t/crm                  tool's web interface (home, views)
+https://acme.forgeron.app/t/crm/pipeline         a view (path: "/pipeline")
+https://acme.forgeron.app/t/crm/mcp              tool's MCP server
+https://acme.forgeron.app/t/crm/api/deals.move   an action through the API
+https://acme.forgeron.app/t/crm/api/openapi.json OpenAPI description
+https://acme.forgeron.app/t/crm/cli              CLI command manifest
+https://acme.forgeron.app/t/crm/play             tool's playground
 ```
 
-| Segment                                         | Règle                                                                                                                                                                        |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `<espace>`                                      | `[a-z0-9-]`, 3 à 40 caractères. Réservés : `www`, `app`, `api`, `docs`, `status`, `console`, `mcp`, `admin`, `auth`, `cdn`, `static`, `play`.                                |
-| `/t/<tool>`                                     | `name` du tool. `t` est le seul préfixe des tools ; les autres chemins de premier niveau (`/mcp`, `/settings`, `/auth`…) appartiennent à la plateforme.                      |
-| `/t/<tool>/mcp`, `/api`, `/cli`, `/play`, `/_f` | Réservés par la plateforme. Une vue ne peut pas utiliser ces chemins ; le build le refuse.                                                                                   |
-| `/t/<tool>@<branche>/…`                         | Une preview : même structure, sur la version de la branche (`/t/crm@feat-export/mcp`).                                                                                       |
-| Pilote                                          | **Même adresse que la production.** La passerelle sert la version pilote aux personnes du groupe pilote, la production aux autres. Personne n'a à changer d'URL dans Claude. |
+| Segment                                         | Rule                                                                                                                                                                       |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<workspace>`                                   | `[a-z0-9-]`, 3 to 40 characters. Reserved: `www`, `app`, `api`, `docs`, `status`, `console`, `mcp`, `admin`, `auth`, `cdn`, `static`, `play`.                              |
+| `/t/<tool>`                                     | The tool's `name`. `t` is the only prefix for tools; the other top-level paths (`/mcp`, `/settings`, `/auth`…) belong to the platform.                                     |
+| `/t/<tool>/mcp`, `/api`, `/cli`, `/play`, `/_f` | Reserved by the platform. A view cannot use these paths; the build refuses it.                                                                                             |
+| `/t/<tool>@<branch>/…`                          | A preview: same structure, on the branch's version (`/t/crm@feat-export/mcp`).                                                                                             |
+| Pilot                                           | **Same address as production.** The gateway serves the pilot version to the people in the pilot group and production to everyone else. Nobody has to change URL in Claude. |
 
-`/t/<tool>/cli` répond selon l'appelant. Le CLI y récupère, en JSON, le manifeste des commandes (actions, arguments, options), qu'il garde en cache et rafraîchit à chaque version ; l'exécution passe ensuite par `/t/<tool>/api`. Un navigateur y voit une page d'aide : installation, `forgeron login`, liste des commandes.
+`/t/<tool>/cli` answers depending on the caller. The CLI fetches the command manifest there, as JSON (actions, arguments, options), keeps it in cache and refreshes it at each version; execution then goes through `/t/<tool>/api`. A browser sees a help page there: installation, `forgeron login`, list of commands.
 
-### Routage sur Cloudflare
+### Routing on Cloudflare
 
-- Un enregistrement DNS joker proxifié `*.forgeron.app` et une route `*.forgeron.app/*` envoient tout au Worker de répartition.
-- Le répartiteur lit le sous-domaine (l'espace), puis le chemin (`/t/<tool>[@<branche>]/<interface>`), et transmet la requête au Worker du tool pour cet environnement : par un dispatch namespace (Workers for Platforms) dans le cloud Forgeron, par un service binding en self-host (`ARCHITECTURE.md`, « Modes d'hébergement »).
-- Plus tard, un client pourra brancher son propre domaine (`outils.acme.fr`) via Cloudflare for SaaS, avec la même structure de chemins.
+- A proxied wildcard DNS record `*.forgeron.app` and a `*.forgeron.app/*` route send everything to the dispatch Worker.
+- The dispatcher reads the subdomain (the workspace), then the path (`/t/<tool>[@<branch>]/<interface>`), and forwards the request to the tool's Worker for that environment: through a dispatch namespace (Workers for Platforms) in the Forgeron cloud, through a service binding in self-host (`ARCHITECTURE.md`, "Hosting modes").
+- Later, a customer will be able to plug in their own domain (`tools.acme.fr`) through Cloudflare for SaaS, with the same path structure.
 
-### L'isolation entre tools sur une même origine
+### Isolation between tools on the same origin
 
-Avec des chemins, tous les tools d'un espace partagent la même origine (`acme.forgeron.app`). Un cookie limité par `Path` n'est pas une frontière de sécurité : sans précaution, du JavaScript d'une vue du CRM pourrait appeler l'API de la passerelle Odoo avec la session de la personne. Forgeron isole donc explicitement :
+With paths, all the tools of a workspace share the same origin (`acme.forgeron.app`). A cookie limited by `Path` is not a security boundary: without precautions, JavaScript from a CRM view could call the Odoo gateway's API with the person's session. Forgeron therefore isolates explicitly:
 
-1. **Aucun code de développeur ne s'exécute à l'origine de l'espace.** `/mcp`, `/api` et `/cli` ne renvoient que du JSON. La console et le terrain de jeu sont du code Forgeron.
-2. **Les vues sont servies en bac à sable.** La réponse d'une vue porte `Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups allow-downloads` : le navigateur lui donne une origine opaque. Elle ne peut ni lire les cookies de l'espace, ni lire une autre page de l'espace, ni appeler une API avec la session.
-3. **Les vues appellent leur tool avec un jeton dédié.** Le runtime injecte dans la page un jeton court, limité au tool et à la personne (audience `acme/crm`). Les hooks de `forgeron/react` l'utilisent ; l'API de `/t/odoo` le refuse.
-4. **La session de l'espace est un cookie `HttpOnly`, `Secure`, `SameSite=Lax`**, réservé à la console et à la passerelle d'identité.
-5. **Les jetons MCP, API et CLI portent aussi une audience** (`acme/crm`) : un jeton obtenu pour un tool ne sert à rien sur un autre.
+1. **No developer code runs at the workspace origin.** `/mcp`, `/api` and `/cli` only return JSON. The console and the playground are Forgeron code.
+2. **Views are served sandboxed.** A view's response carries `Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups allow-downloads`: the browser gives it an opaque origin. It can neither read the workspace's cookies, nor read another page of the workspace, nor call an API with the session.
+3. **Views call their tool with a dedicated token.** The runtime injects into the page a short-lived token, limited to the tool and the person (audience `acme/crm`). The `forgeron/react` hooks use it; the `/t/odoo` API refuses it.
+4. **The workspace session is an `HttpOnly`, `Secure`, `SameSite=Lax` cookie**, reserved for the console and the identity gateway.
+5. **MCP, API and CLI tokens also carry an audience** (`acme/crm`): a token obtained for one tool is useless on another.
 
-Si le bac à sable gêne certaines vues (stockage local, téléchargements, bibliothèques qui exigent une vraie origine), le repli est une origine dédiée aux vues, par exemple `acme.forgeron-views.app/t/crm`, toujours sur un seul niveau de sous-domaine.
+If the sandbox gets in the way of some views (local storage, downloads, libraries that require a real origin), the fallback is an origin dedicated to views, for example `acme.forgeron-views.app/t/crm`, still on a single subdomain level.
 
-## 8. Base de données et migrations
+## 8. Database and migrations
 
-### Le schéma
+### The schema
 
-`db/schema.ts` est la source de vérité. Il utilise les constructeurs de `forgeron/db` :
+`db/schema.ts` is the source of truth. It uses the builders of `forgeron/db`:
 
-| Constructeur         | Colonne SQLite                   | Type TypeScript   |
-| -------------------- | -------------------------------- | ----------------- |
-| `t.id()`             | `TEXT PRIMARY KEY`, ULID généré  | `string`          |
-| `t.text()`           | `TEXT`                           | `string`          |
-| `t.integer()`        | `INTEGER`                        | `number`          |
-| `t.real()`           | `REAL`                           | `number`          |
-| `t.boolean()`        | `INTEGER` 0/1                    | `boolean`         |
-| `t.date()`           | `TEXT` ISO `AAAA-MM-JJ`          | `string`          |
-| `t.timestamp()`      | `TEXT` ISO 8601 UTC              | `string`          |
-| `t.enum([...])`      | `TEXT` + `CHECK`                 | union des valeurs |
-| `t.json(zodSchema?)` | `TEXT` JSON, validé à l'écriture | type du schéma    |
-| `t.ref(table)`       | `TEXT REFERENCES`                | `string`          |
+| Builder              | SQLite column                      | TypeScript type |
+| -------------------- | ---------------------------------- | --------------- |
+| `t.id()`             | `TEXT PRIMARY KEY`, generated ULID | `string`        |
+| `t.text()`           | `TEXT`                             | `string`        |
+| `t.integer()`        | `INTEGER`                          | `number`        |
+| `t.real()`           | `REAL`                             | `number`        |
+| `t.boolean()`        | `INTEGER` 0/1                      | `boolean`       |
+| `t.date()`           | `TEXT` ISO `YYYY-MM-DD`            | `string`        |
+| `t.timestamp()`      | `TEXT` ISO 8601 UTC                | `string`        |
+| `t.enum([...])`      | `TEXT` + `CHECK`                   | union of values |
+| `t.json(zodSchema?)` | `TEXT` JSON, validated on write    | schema type     |
+| `t.ref(table)`       | `TEXT REFERENCES`                  | `string`        |
 
-Modificateurs : `.notNull()`, `.unique()`, `.default(v)`, `.defaultNow()`, `.onUpdateNow()`, `.onDelete("cascade" | "set null" | "restrict")`. Index : `index(col)`, `index([a, b])`, `unique([a, b])`.
+Modifiers: `.notNull()`, `.unique()`, `.default(v)`, `.defaultNow()`, `.onUpdateNow()`, `.onDelete("cascade" | "set null" | "restrict")`. Indexes: `index(col)`, `index([a, b])`, `unique([a, b])`.
 
-Les noms sont identiques dans le schéma, en base et dans les requêtes (`snake_case` recommandé). Les types `Kysely<DB>` sont générés dans `.forgeron/generated/db.d.ts` par `forgeron dev`, `build` et `db generate`.
+Names are identical in the schema, in the database and in queries (`snake_case` recommended). The `Kysely<DB>` types are generated in `.forgeron/generated/db.d.ts` by `forgeron dev`, `build` and `db generate`.
 
-### Les migrations
+### Migrations
 
-- Un fichier par migration, `db/migrations/NNNN_<nom>.ts`, qui exporte `migration({ up, down, destructive?, after? })`. `up` et `down` reçoivent un `Kysely<any>` : on écrit du Kysely ou du `sql` brut.
-- `forgeron db generate` compare le schéma à `meta/snapshot.json` (l'état après la dernière migration), écrit la migration, puis met l'instantané à jour. Le fichier généré se relit et se modifie : on y ajoute les migrations de données.
-- Les limites de SQLite (D1) sont gérées par le générateur : quand une modification n'est pas possible en `ALTER TABLE`, il écrit une reconstruction de table (créer, copier, renommer) dans une transaction.
-- Le suivi se fait dans la table `_forgeron_migrations` (nom, empreinte du fichier, date). Une migration déjà appliquée dont le fichier change provoque une erreur.
-- **Renommer ou supprimer** une colonne ou une table produit une migration `destructive: true`. Pour un renommage, le générateur propose deux migrations : `expand` (ajouter, recopier) puis `contract` (supprimer), à déployer séparément (`after`).
+- One file per migration, `db/migrations/NNNN_<name>.ts`, which exports `migration({ up, down, destructive?, after? })`. `up` and `down` receive a `Kysely<any>`: you write Kysely or raw `sql`.
+- `forgeron db generate` compares the schema with `meta/snapshot.json` (the state after the last migration), writes the migration, then updates the snapshot. The generated file can be reread and edited: data migrations are added there.
+- SQLite (D1) limitations are handled by the generator: when a change is not possible with `ALTER TABLE`, it writes a table rebuild (create, copy, rename) in a transaction.
+- Tracking is done in the `_forgeron_migrations` table (name, file fingerprint, date). An already applied migration whose file changes causes an error.
+- **Renaming or dropping** a column or a table produces a `destructive: true` migration. For a rename, the generator proposes two migrations: `expand` (add, copy over) then `contract` (drop), to be deployed separately (`after`).
 
-### À chaque déploiement
+### At each deployment
 
-1. La version est construite ; les migrations en attente sont listées.
-2. En **preview**, une base neuve est créée par branche, migrée puis remplie selon `preview.data` (`seed` par défaut).
-3. En **pilote et production**, les migrations sont appliquées **avant** la bascule du trafic. Une migration `destructive` est refusée sans `--allow-destructive`.
-4. Si une migration échoue, la transaction est annulée, le déploiement s'arrête, l'ancienne version continue de servir.
-5. Pilote et production partagent la même base : une version pilote ne peut pas embarquer de migration incompatible avec la version de production en cours (vérifié au déploiement).
+1. The version is built; pending migrations are listed.
+2. In **preview**, a fresh database is created per branch, migrated then filled according to `preview.data` (`seed` by default).
+3. In **pilot and production**, migrations are applied **before** traffic is switched. A `destructive` migration is refused without `--allow-destructive`.
+4. If a migration fails, the transaction is rolled back, the deployment stops, and the old version keeps serving.
+5. Pilot and production share the same database: a pilot version cannot ship a migration that is incompatible with the current production version (checked at deployment).
 
 ### Seed
 
-`db/seed.ts` exporte `seed(async ({ db, faker? }) => { … })`. Il alimente la base locale (`forgeron db seed`), les tests (`createTestTool({ seed: true })`) et les previews.
+`db/seed.ts` exports `seed(async ({ db, faker? }) => { … })`. It feeds the local database (`forgeron db seed`), tests (`createTestTool({ seed: true })`) and previews.
 
-## 9. Événements et tâches planifiées
+## 9. Events and scheduled tasks
 
 ```ts
 // events/deal-history.ts
@@ -451,9 +451,9 @@ export default on("deal.moved", { mode: "sync" }, async ({ payload, db }) => {
 });
 ```
 
-- `mode: "sync"` (défaut) : exécuté dans la transaction de l'action ; une erreur annule l'action.
-- `mode: "queue"` : exécuté après validation de l'action, via une file Cloudflare Queues, avec trois nouvelles tentatives.
-- Les noms d'événements sont en `groupe.passé` (`deal.moved`, `contact.created`). Les payloads sont typés par `defineEvent("deal.moved", zodSchema)` dans `events/_types.ts`.
+- `mode: "sync"` (default): run inside the action's transaction; an error cancels the action.
+- `mode: "queue"`: run after the action is committed, through a Cloudflare Queues queue, with three retries.
+- Event names follow `group.past` (`deal.moved`, `contact.created`). Payloads are typed by `defineEvent("deal.moved", zodSchema)` in `events/_types.ts`.
 
 ```ts
 // jobs/sync.ts
@@ -463,18 +463,18 @@ export default schedule("0 2 * * *", { timezone: "Europe/Paris" }, async (ctx) =
 });
 ```
 
-- Expression cron standard, fuseau explicite (défaut : celui de l'espace).
-- Le contexte est celui du **tool** (`ctx.user.id = "tool:<nom>"`, `ctx.interface = "job"`), sans `userSecrets`.
-- Exécution manuelle : `forgeron jobs run <nom> [--env]`.
+- Standard cron expression, explicit time zone (default: the workspace's).
+- The context is that of the **tool** (`ctx.user.id = "tool:<name>"`, `ctx.interface = "job"`), without `userSecrets`.
+- Manual run: `forgeron jobs run <name> [--env]`.
 
-## 10. Secrets, connecteurs, réseau, fichiers, cache
+## 10. Secrets, connectors, network, files, cache
 
 **Secrets**
 
-- `resources.secrets` : posés par l'admin, par environnement, chiffrés. Lus avec `ctx.secrets.NOM`.
-- `resources.userSecrets` : propres à chaque personne et à chaque tool. Collectés par la plateforme à la première utilisation (élicitation MCP, invite CLI, page web). Ni le développeur ni l'admin ne peuvent les lire ; l'admin peut les révoquer.
+- `resources.secrets`: set by the admin, per environment, encrypted. Read with `ctx.secrets.NAME`.
+- `resources.userSecrets`: specific to each person and each tool. Collected by the platform on first use (MCP elicitation, CLI prompt, web page). Neither the developer nor the admin can read them; the admin can revoke them.
 
-**Connecteurs**
+**Connectors**
 
 ```ts
 resources: { connectors: {
@@ -482,18 +482,18 @@ resources: { connectors: {
 } }
 ```
 
-- `delegated` : agit au nom de la personne, avec son consentement OAuth géré par la plateforme.
-- `application` : agit au nom du tool (tâches planifiées), consentement donné une fois par l'admin.
-- `ctx.connectors.microsoft.graph` expose le client officiel quand il existe ; sinon un `fetch` déjà authentifié.
-- Catalogue initial proposé : `microsoft-365`, `google-workspace`, `odoo`, `slack`, `github`.
+- `delegated`: acts on behalf of the person, with their OAuth consent managed by the platform.
+- `application`: acts on behalf of the tool (scheduled tasks), consent given once by the admin.
+- `ctx.connectors.microsoft.graph` exposes the official client when one exists; otherwise an already authenticated `fetch`.
+- Proposed initial catalog: `microsoft-365`, `google-workspace`, `odoo`, `slack`, `github`.
 
-**Réseau** : `ctx.fetch` n'atteint que les hôtes de `resources.network.allow` (et ceux des connecteurs). Tout autre appel lève `FORBIDDEN` et apparaît au journal.
+**Network**: `ctx.fetch` only reaches the hosts in `resources.network.allow` (and those of the connectors). Any other call raises `FORBIDDEN` and appears in the log.
 
-**Fichiers** (`resources.files`) : `ctx.files.put(file, { prefix })`, `get(key)`, `text(file)`, `delete(key)`, `signedUrl(key, { expiresIn })`. Stockage R2, un espace de noms par tool et par environnement, jamais public.
+**Files** (`resources.files`): `ctx.files.put(file, { prefix })`, `get(key)`, `text(file)`, `delete(key)`, `signedUrl(key, { expiresIn })`. R2 storage, one namespace per tool and environment, never public.
 
-**Cache** : `ctx.cache.get / set / getOrSet(key, { ttl, scope }, fn) / delete`. `scope: "user"` par défaut ; `"tool"` pour des données de référence identiques pour tous.
+**Cache**: `ctx.cache.get / set / getOrSet(key, { ttl, scope }, fn) / delete`. `scope: "user"` by default; `"tool"` for reference data that is identical for everyone.
 
-## 11. Les vues
+## 11. Views
 
 ```tsx
 import { defineView, useAction, useMutation, useParams, useUser } from "forgeron/react";
@@ -509,20 +509,20 @@ export default defineView({
 });
 ```
 
-| API                                                       | Rôle                                                                        |
-| --------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `defineView({ title, path, access, params?, component })` | Déclare une page ; `access` contrôlé avant tout rendu                       |
-| `useAction(nom, input, { refresh? })`                     | Appelle une action de lecture ; `{ data, error, loading, refetch }`         |
-| `useMutation(nom)`                                        | Action d'écriture ; `{ run, loading, error }` ; invalide les lectures liées |
-| `useParams()`                                             | Paramètres d'URL validés par `params` ; `[valeurs, setValeurs]`             |
-| `useUser()`                                               | La personne connectée et ses rôles                                          |
-| `useCan(level)`                                           | Pour désactiver un bouton ; le serveur contrôle de toute façon              |
+| API                                                       | Role                                                               |
+| --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `defineView({ title, path, access, params?, component })` | Declares a page; `access` is checked before any rendering          |
+| `useAction(name, input, { refresh? })`                    | Calls a read action; `{ data, error, loading, refetch }`           |
+| `useMutation(name)`                                       | Write action; `{ run, loading, error }`; invalidates related reads |
+| `useParams()`                                             | URL parameters validated by `params`; `[values, setValues]`        |
+| `useUser()`                                               | The signed-in person and their roles                               |
+| `useCan(level)`                                           | To disable a button; the server checks anyway                      |
 
-- Les vues sont des composants React 18+, construites par `forgeron build` et servies par le Worker du tool, derrière le SSO.
-- `@forgeron/ui` fournit des composants alignés sur le design system Forgeron (noir et blanc, angles vifs) : `Page`, `Table`, `Board`, `Stat`, `BarChart`, `Select`, `Button`… Optionnel.
-- Une vue n'a pas d'accès direct à la base : elle passe par les actions, donc par les droits.
+- Views are React 18+ components, built by `forgeron build` and served by the tool's Worker, behind the SSO.
+- `@forgeron/ui` provides components aligned with the Forgeron design system (black and white, sharp corners): `Page`, `Table`, `Board`, `Stat`, `BarChart`, `Select`, `Button`… Optional.
+- A view has no direct access to the database: it goes through actions, and therefore through access rights.
 
-## 12. Composition entre tools
+## 12. Composition between tools
 
 ```ts
 // forgeron.config.ts
@@ -530,78 +530,78 @@ uses: {
   crm: "^1.4.0";
 }
 
-// dans une action
+// in an action
 const deals = await ctx.tools.crm.call("deals.list", { owner });
 ```
 
-- Les types des actions appelées sont générés depuis le manifeste publié du tool cible.
-- L'appel s'exécute **avec l'identité de la personne** ; dans une tâche planifiée, avec celle du tool, qui doit avoir reçu un rôle dans le tool cible.
-- Un déploiement est refusé si la version en production du tool cible ne satisfait pas la plage `uses`.
-- Les vues peuvent appeler directement les actions d'un tool déclaré dans `uses` : `useAction("crm.deals.list", …)`.
+- The types of the called actions are generated from the target tool's published manifest.
+- The call runs **with the person's identity**; in a scheduled task, with the tool's identity, which must have been given a role in the target tool.
+- A deployment is refused if the production version of the target tool does not satisfy the `uses` range.
+- Views can directly call the actions of a tool declared in `uses`: `useAction("crm.deals.list", …)`.
 
 ## 13. Tests
 
-Forgeron ne fournit pas de framework de test : on utilise **Vitest**. `forgeron/testing` ajoute un contexte.
+Forgeron does not provide a test framework: we use **Vitest**. `forgeron/testing` adds a context.
 
 ```ts
 import { createTestTool, mockFetch } from "forgeron/testing";
 
 const tool = await createTestTool({
-  seed: true,                                   // applique migrations + seed
+  seed: true,                                   // applies migrations + seed
   as: { email: "ely@acme.fr", roles: ["commercial"], userSecrets: { /* … */ } },
   secrets: { /* … */ },
-  fetch: mockFetch({ "GET https://api.exemple.com/x": { ok: true } }),
+  fetch: mockFetch({ "GET https://api.example.com/x": { ok: true } }),
   now: "2026-10-20T09:00:00+02:00",
-  tools: { crm: { "deals.list": async () => [] } },   // doublures des tools utilisés
+  tools: { crm: { "deals.list": async () => [] } },   // stubs of the tools used
 });
 
-await tool.call("deals.move", { id, stage: "won" });  // passe par access, validation, événements
-tool.db;                                              // Kysely sur la base de test
-tool.events;                                          // événements émis
-tool.as({ roles: ["support"] }).call(…);              // autre identité
+await tool.call("deals.move", { id, stage: "won" });  // goes through access, validation, events
+tool.db;                                              // Kysely on the test database
+tool.events;                                          // emitted events
+tool.as({ roles: ["support"] }).call(…);              // another identity
 ```
 
-- La base est une D1 en mémoire sur le runtime local de Cloudflare, migrée à chaque `createTestTool`.
-- `forgeron test` lance Vitest avec cette configuration ; la CI exécute `forgeron test` avant tout déploiement.
+- The database is an in-memory D1 on Cloudflare's local runtime, migrated on each `createTestTool`.
+- `forgeron test` runs Vitest with this configuration; CI runs `forgeron test` before any deployment.
 
 ## 14. Build
 
-`forgeron build` est propre à Forgeron ; il s'appuie en interne sur un bundler existant, sans que le développeur le configure.
+`forgeron build` is specific to Forgeron; internally it relies on an existing bundler, without the developer configuring it.
 
-Sortie dans `.forgeron/build/` :
+Output in `.forgeron/build/`:
 
-| Fichier                    | Contenu                                                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `worker.js`                | Le Worker du tool : actions, événements, tâches, routage des quatre interfaces                                     |
-| `manifest.json`            | Nom, version, actions (noms, descriptions, schémas JSON, accès, options CLI), vues, rôles, ressources, dépendances |
-| `changelog.json`           | Les entrées de changelog de cette version, structurées                                                             |
-| `migrations/`              | Les migrations compilées, avec leurs empreintes                                                                    |
-| `views/`                   | Les vues, en fichiers statiques                                                                                    |
-| `openapi.json`, `mcp.json` | Descriptions générées, publiées avec la version                                                                    |
+| File                       | Content                                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `worker.js`                | The tool's Worker: actions, events, tasks, routing of the four interfaces                                              |
+| `manifest.json`            | Name, version, actions (names, descriptions, JSON schemas, access, CLI options), views, roles, resources, dependencies |
+| `changelog.json`           | The changelog entries of this version, structured                                                                      |
+| `migrations/`              | The compiled migrations, with their fingerprints                                                                       |
+| `views/`                   | The views, as static files                                                                                             |
+| `openapi.json`, `mcp.json` | Generated descriptions, published with the version                                                                     |
 
-Le build échoue si : une action n'a pas `access` ou `description`, un nom d'action est en double, le schéma diffère du dernier instantané sans migration, un import sort du tool (sauf paquets npm), une vue cite une action inexistante, ou un code utilise une ressource non déclarée (`ctx.db` sans `resources.db`).
+The build fails if: an action has no `access` or `description`, an action name is duplicated, the schema differs from the last snapshot without a migration, an import leaves the tool (except npm packages), a view cites a non-existent action, or code uses an undeclared resource (`ctx.db` without `resources.db`).
 
-Le déploiement en pilote ou en production échoue en plus si la version n'a pas d'entrée de changelog, si l'impact déclaré est inférieur à l'impact détecté (section 16), ou si de nouvelles ressources attendent une approbation.
+Deployment to pilot or production additionally fails if the version has no changelog entry, if the declared impact is lower than the detected impact (section 16), or if new resources are awaiting approval.
 
-## 15. Versions, environnements, déploiement
+## 15. Versions, environments, deployment
 
-| Environnement | Créé par                                                          | Base                                 | Qui y accède                                  |
-| ------------- | ----------------------------------------------------------------- | ------------------------------------ | --------------------------------------------- |
-| `local`       | `forgeron dev`                                                    | `.forgeron/local/dev.sqlite`         | le développeur                                |
-| `preview`     | chaque push sur une branche, ou `forgeron deploy`                 | une base par branche, `preview.data` | les rôles `admin` et les développeurs du tool |
-| `pilot`       | `forgeron deploy --env pilot --group <groupe>` ou la console      | celle de production                  | un groupe de personnes choisi                 |
-| `production`  | promotion depuis la console ou `forgeron deploy --env production` | celle de production                  | les rôles du tool                             |
+| Environment  | Created by                                                       | Database                                | Who has access                              |
+| ------------ | ---------------------------------------------------------------- | --------------------------------------- | ------------------------------------------- |
+| `local`      | `forgeron dev`                                                   | `.forgeron/local/dev.sqlite`            | the developer                               |
+| `preview`    | each push to a branch, or `forgeron deploy`                      | one database per branch, `preview.data` | the `admin` roles and the tool's developers |
+| `pilot`      | `forgeron deploy --env pilot --group <group>` or the console     | that of production                      | a chosen group of people                    |
+| `production` | promotion from the console or `forgeron deploy --env production` | that of production                      | the tool's roles                            |
 
-- **Version** : voir section 16. Un build se promeut d'un environnement à l'autre sans être reconstruit.
-- **Retour arrière** : `forgeron rollback` remet la version précédente sur le trafic. Les migrations ne sont pas annulées automatiquement ; `forgeron db rollback` le fait explicitement.
-- **Journal** : chaque déploiement, promotion et retour arrière est tracé (qui, quand, quelle version).
+- **Version**: see section 16. A build is promoted from one environment to the next without being rebuilt.
+- **Rollback**: `forgeron rollback` puts the previous version back on traffic. Migrations are not rolled back automatically; `forgeron db rollback` does it explicitly.
+- **Audit log**: every deployment, promotion and rollback is recorded (who, when, which version).
 
-### Publier depuis GitHub
+### Publishing from GitHub
 
-Le build se fait **dans la CI du dépôt du tool**, pas sur la plateforme : Forgeron n'héberge pas de machines de build, et le même chemin sert en local, en CI et en self-host.
+The build happens **in the tool repository's CI**, not on the platform: Forgeron does not host build machines, and the same path serves locally, in CI and in self-host.
 
 ```yaml
-# .github/workflows/forgeron.yml, dans le dépôt du tool (généré par forgeron init)
+# .github/workflows/forgeron.yml, in the tool's repository (generated by forgeron init)
 on:
   push:
   pull_request:
@@ -611,50 +611,50 @@ jobs:
     permissions: { contents: read, id-token: write }
     steps:
       - uses: actions/checkout@v4
-      - uses: forgeron/deploy-action@v1 # nom à confirmer
+      - uses: forgeron/deploy-action@v1 # name to be confirmed
 ```
 
-L'action exécute, pour chaque tool du dépôt (section 2) :
+For each tool in the repository (section 2), the action runs:
 
-1. `forgeron test` ;
-2. `forgeron change check` ;
-3. `forgeron deploy` : build, envoi à la gateway, migrations, preview de la branche. Sur la branche par défaut, l'espace choisit si le build part en pilote, en production, ou reste en attente de promotion.
+1. `forgeron test`;
+2. `forgeron change check`;
+3. `forgeron deploy`: build, upload to the gateway, migrations, preview of the branch. On the default branch, the workspace chooses whether the build goes to pilot, to production, or waits for promotion.
 
-L'authentification passe par `FORGERON_TOKEN` (jeton de déploiement, section 4). À étudier : l'OIDC de GitHub Actions, pour qu'aucun secret ne soit stocké dans le dépôt.
+Authentication goes through `FORGERON_TOKEN` (deployment token, section 4). To be studied: GitHub Actions OIDC, so that no secret is stored in the repository.
 
-L'**application GitHub Forgeron** vient plus tard. Elle n'ajoute pas de build côté plateforme : elle installe l'action dans le dépôt, lie les tools découverts à l'espace et affiche l'état des déploiements dans les pull requests.
+The **Forgeron GitHub app** comes later. It adds no build on the platform side: it installs the action in the repository, links the discovered tools to the workspace and shows the deployment status in pull requests.
 
-## 16. Versioning et changelog
+## 16. Versioning and changelog
 
-Chaque tool a une version **semver** et un **changelog** obligatoires. Forgeron ne fait pas confiance à la déclaration seule : il compare le manifeste de la nouvelle version à celui de la dernière version publiée et vérifie que l'impact annoncé est au moins celui qu'il détecte.
+Every tool has a mandatory **semver** version and **changelog**. Forgeron does not trust the declaration alone: it compares the new version's manifest with that of the last published version and checks that the announced impact is at least the one it detects.
 
 ### Build, version, release
 
-Trois mots, trois choses, pour que « chaque push crée une version » et « la version ne change qu'avec `forgeron release` » ne se contredisent pas :
+Three words, three things, so that "every push creates a version" and "the version only changes with `forgeron release`" do not contradict each other:
 
-|                    | Créé par                              | Identifiant                                                                                                                         | Change quand         |
-| ------------------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| Build              | chaque push, ou `forgeron deploy`     | le commit (`a41f9e0`)                                                                                                               | à chaque commit      |
-| Version            | `forgeron release`                    | semver (`1.5.0`)                                                                                                                    | à chaque release     |
-| Ce qui est déployé | `forgeron deploy`, `forgeron promote` | `v1.5.0+a41f9e0` en pilote et production, `1.6.0-preview.<branche>.<n>` en preview (la version que produirait la prochaine release) | à chaque déploiement |
+|                  | Created by                            | Identifier                                                                                                                     | Changes when        |
+| ---------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| Build            | each push, or `forgeron deploy`       | the commit (`a41f9e0`)                                                                                                         | on every commit     |
+| Version          | `forgeron release`                    | semver (`1.5.0`)                                                                                                               | on every release    |
+| What is deployed | `forgeron deploy`, `forgeron promote` | `v1.5.0+a41f9e0` in pilot and production, `1.6.0-preview.<branch>.<n>` in preview (the version the next release would produce) | on every deployment |
 
-Un push sans release produit donc un nouveau build de la version en cours (`v1.5.0+b72c1d4`) : il se déploie en preview, mais pas en pilote ni en production si le manifeste a changé sans entrée dans `changes/` (voir plus bas).
+A push without a release therefore produces a new build of the current version (`v1.5.0+b72c1d4`): it deploys to preview, but not to pilot or production if the manifest changed without an entry in `changes/` (see below).
 
-### Où vit la version
+### Where the version lives
 
-- La version est dans `package.json` (`"version": "1.4.0"`), et seulement là. Elle ne change qu'avec `forgeron release`.
-- Une version publiée s'identifie par `v1.4.0+a41f9e0` (version + commit court). Une preview porte `1.5.0-preview.<branche>.<n>`.
-- `CHANGELOG.md`, à la racine du tool, est **généré** : on ne l'édite pas à la main.
+- The version is in `package.json` (`"version": "1.4.0"`), and only there. It only changes with `forgeron release`.
+- A published version is identified by `v1.4.0+a41f9e0` (version + short commit). A preview carries `1.5.0-preview.<branch>.<n>`.
+- `CHANGELOG.md`, at the root of the tool, is **generated**: it is not edited by hand.
 
-### Le dossier `changes/`
+### The `changes/` folder
 
-Chaque changement notable ajoute un petit fichier, comme le font les Changesets dans l'écosystème JavaScript :
+Every notable change adds a small file, as Changesets do in the JavaScript ecosystem:
 
 ```bash
 forgeron change
-# ? Type : added | changed | fixed | removed | security   → added
-# ? Impact : patch | minor | major                        → minor
-# ? Description : Export CSV des pistes (deals.export)
+# ? Type: added | changed | fixed | removed | security   → added
+# ? Impact: patch | minor | major                        → minor
+# ? Description: CSV export of leads (deals.export)
 ```
 
 ```markdown
@@ -666,172 +666,172 @@ type: added
 bump: minor
 ---
 
-Nouvelle action `deals.export` : export CSV des pistes filtrées.
+New `deals.export` action: CSV export of the filtered leads.
 ```
 
-Un fichier par changement plutôt qu'un fichier unique : deux branches ne se marchent jamais dessus, et chaque pull request porte sa propre entrée.
+One file per change rather than a single file: two branches never step on each other, and each pull request carries its own entry.
 
-### Ce que Forgeron détecte
+### What Forgeron detects
 
-`forgeron change check` (en CI) et `forgeron build` comparent les manifestes :
+`forgeron change check` (in CI) and `forgeron build` compare the manifests:
 
-| Changement détecté                                                                   | Impact minimal |
-| ------------------------------------------------------------------------------------ | -------------- |
-| Action supprimée ou renommée                                                         | `major`        |
-| Champ d'entrée obligatoire ajouté, type d'un champ restreint, champ de sortie retiré | `major`        |
-| Niveau d'accès d'une action relevé                                                   | `major`        |
-| Vue supprimée ou changement de `path`                                                | `major`        |
-| Migration `destructive`                                                              | `major`        |
-| Action ajoutée, champ d'entrée optionnel ajouté, champ de sortie ajouté              | `minor`        |
-| Nouvelle vue, nouvelle tâche, nouvelle ressource                                     | `minor`        |
-| Description modifiée, code interne, migration non destructive                        | `patch`        |
+| Detected change                                                       | Minimum impact |
+| --------------------------------------------------------------------- | -------------- |
+| Action removed or renamed                                             | `major`        |
+| Required input field added, field type narrowed, output field removed | `major`        |
+| Access level of an action raised                                      | `major`        |
+| View removed or `path` changed                                        | `major`        |
+| `destructive` migration                                               | `major`        |
+| Action added, optional input field added, output field added          | `minor`        |
+| New view, new scheduled task, new resource                            | `minor`        |
+| Description changed, internal code, non-destructive migration         | `patch`        |
 
-Si `changes/` est vide alors que le manifeste a changé, ou si l'impact déclaré est inférieur à l'impact détecté, le déploiement en pilote et en production est refusé. Les previews ne sont pas bloquées.
+If `changes/` is empty while the manifest changed, or if the declared impact is lower than the detected impact, deployment to pilot and production is refused. Previews are not blocked.
 
-Pour les autres tools, l'impact compte : un tool qui déclare `uses: { crm: "^1.4.0" }` ne reçoit jamais automatiquement une version `2.0.0` du CRM.
+For other tools, the impact matters: a tool that declares `uses: { crm: "^1.4.0" }` never automatically receives a `2.0.0` version of the CRM.
 
 ### `forgeron release`
 
-1. Lit `changes/`, calcule la nouvelle version (l'impact le plus fort l'emporte).
-2. Écrit l'entrée dans `CHANGELOG.md`, avec une partie rédigée (les fichiers de `changes/`) et une partie technique générée.
-3. Met à jour `package.json`, vide `changes/`, crée le commit et le tag `crm@1.5.0`.
+1. Reads `changes/`, computes the new version (the strongest impact wins).
+2. Writes the entry in `CHANGELOG.md`, with a written part (the files from `changes/`) and a generated technical part.
+3. Updates `package.json`, empties `changes/`, creates the commit and the `crm@1.5.0` tag.
 
 ```markdown
 ## 1.5.0 — 2026-10-20
 
-### Ajouts
+### Added
 
-- Nouvelle action `deals.export` : export CSV des pistes filtrées.
+- New `deals.export` action: CSV export of the filtered leads.
 
-### Corrections
+### Fixed
 
-- `contacts.search` ignore désormais les accents.
+- `contacts.search` now ignores accents.
 
-### Technique
+### Technical
 
-- Actions ajoutées : `deals.export`
-- Migrations : `0003_deals_export_index`
-- Ressources : aucune nouvelle
+- Actions added: `deals.export`
+- Migrations: `0003_deals_export_index`
+- Resources: no new ones
 ```
 
-### Où on lit le changelog
+### Where the changelog is read
 
-- **Console** : la page d'un tool montre la version de chaque environnement et « ce qu'elle contient » par rapport à la précédente.
-- **MCP d'administration** : `tool_changelog` (« Qu'est-ce qui a changé dans le CRM depuis la 1.3 ? »).
-- **CLI** : `forgeron changelog crm --since 1.3.0`.
-- **Build** : `changelog.json` est publié avec chaque version, pour que la console, le MCP et les tools dépendants le lisent sans parser du Markdown.
+- **Console**: a tool's page shows the version of each environment and "what it contains" compared with the previous one.
+- **Admin MCP**: `tool_changelog` ("What has changed in the CRM since 1.3?").
+- **CLI**: `forgeron changelog crm --since 1.3.0`.
+- **Build**: `changelog.json` is published with each version, so that the console, the MCP and dependent tools read it without parsing Markdown.
 
-## 17. Le MCP d'administration
+## 17. The admin MCP
 
-En plus du serveur MCP de chaque tool, l'espace expose **un serveur MCP Forgeron** pour l'administration. On l'ajoute une fois dans Claude et on gère tout l'espace en conversation : chercher un modèle, l'installer, regarder ses versions, donner des accès, voir qui utilise quoi.
+In addition to each tool's MCP server, the workspace exposes **a Forgeron MCP server** for administration. You add it once in Claude and manage the whole workspace in conversation: search for a template, install it, look at its versions, grant access, see who uses what.
 
-|                    | MCP d'un tool                         | MCP Forgeron                           |
-| ------------------ | ------------------------------------- | -------------------------------------- |
-| Adresse            | `https://acme.forgeron.app/t/crm/mcp` | `https://acme.forgeron.app/mcp`        |
-| Sert à             | Utiliser le tool (ses actions)        | Administrer l'espace et ses tools      |
-| Pour qui           | Les utilisateurs du tool              | Les développeurs et admins de l'espace |
-| Self-host ou local | —                                     | `forgeron mcp` (stdio)                 |
+|                    | A tool's MCP                          | Forgeron MCP                              |
+| ------------------ | ------------------------------------- | ----------------------------------------- |
+| Address            | `https://acme.forgeron.app/t/crm/mcp` | `https://acme.forgeron.app/mcp`           |
+| Used for           | Using the tool (its actions)          | Administering the workspace and its tools |
+| For whom           | The tool's users                      | The workspace's developers and admins     |
+| Self-host or local | —                                     | `forgeron mcp` (stdio)                    |
 
-### Les outils exposés
+### Exposed tools
 
-| Outil MCP                        | Ce qu'il fait                                                                               | Rôle minimal dans l'espace | Destructif |
-| -------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------- | ---------- |
-| `catalog_search`                 | Cherche un modèle dans le catalogue                                                         | membre                     |            |
-| `catalog_get`                    | Détail d'un modèle : actions, ressources demandées, changelog                               | membre                     |            |
-| `tools_list`                     | Les tools de l'espace, leurs versions par environnement                                     | membre                     |            |
-| `tool_get`                       | Détail d'un tool : interfaces, adresse MCP à ajouter dans Claude, ressources, propriétaires | membre                     |            |
-| `tool_changelog`                 | Changelog d'un tool, éventuellement depuis une version                                      | membre                     |            |
-| `tool_versions`                  | Versions et environnements, déploiements récents                                            | développeur                |            |
-| `tool_install_plan`              | Prépare l'installation d'un modèle : nom, ressources demandées, coût estimé si connu        | admin                      |            |
-| `tool_install`                   | Installe le plan préparé (identifiant du plan exigé)                                        | admin                      | oui        |
-| `tool_promote`                   | Promeut une version en pilote ou en production                                              | admin                      | oui        |
-| `tool_rollback`                  | Revient à la version précédente d'un environnement                                          | admin                      | oui        |
-| `resources_pending`              | Les versions qui attendent une approbation de ressources                                    | admin                      |            |
-| `resources_approve`              | Approuve les nouvelles ressources d'une version                                             | admin                      | oui        |
-| `access_list`                    | Qui a quel rôle sur un tool                                                                 | admin                      |            |
-| `access_grant` · `access_revoke` | Donne ou retire un rôle à une personne ou un groupe                                         | admin                      | oui        |
-| `usage_report`                   | Qui utilise quel tool, par interface, sur une période                                       | admin                      |            |
-| `logs_search`                    | Cherche dans le journal (appels, erreurs, déploiements)                                     | développeur                |            |
-| `secrets_status`                 | Les secrets posés ou manquants d'un tool, **jamais leurs valeurs**                          | développeur                |            |
-| `secret_request`                 | Envoie à un admin un lien pour saisir un secret                                             | développeur                |            |
+| MCP tool                         | What it does                                                                                | Minimum role in the workspace | Destructive |
+| -------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
+| `catalog_search`                 | Searches the catalog for a template                                                         | member                        |             |
+| `catalog_get`                    | Template detail: actions, requested resources, changelog                                    | member                        |             |
+| `tools_list`                     | The workspace's tools, their versions per environment                                       | member                        |             |
+| `tool_get`                       | Tool detail: interfaces, MCP address to add in Claude, resources, owners                    | member                        |             |
+| `tool_changelog`                 | A tool's changelog, optionally since a version                                              | member                        |             |
+| `tool_versions`                  | Versions and environments, recent deployments                                               | developer                     |             |
+| `tool_install_plan`              | Prepares the installation of a template: name, requested resources, estimated cost if known | admin                         |             |
+| `tool_install`                   | Installs the prepared plan (plan identifier required)                                       | admin                         | yes         |
+| `tool_promote`                   | Promotes a version to pilot or production                                                   | admin                         | yes         |
+| `tool_rollback`                  | Goes back to an environment's previous version                                              | admin                         | yes         |
+| `resources_pending`              | The versions awaiting a resource approval                                                   | admin                         |             |
+| `resources_approve`              | Approves a version's new resources                                                          | admin                         | yes         |
+| `access_list`                    | Who has which role on a tool                                                                | admin                         |             |
+| `access_grant` · `access_revoke` | Grants or removes a role for a person or a group                                            | admin                         | yes         |
+| `usage_report`                   | Who uses which tool, by interface, over a period                                            | admin                         |             |
+| `logs_search`                    | Searches the log (calls, errors, deployments)                                               | developer                     |             |
+| `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                            | developer                     |             |
+| `secret_request`                 | Sends an admin a link to enter a secret                                                     | developer                     |             |
 
-### Les garde-fous
+### Safeguards
 
-- **Les valeurs secrètes ne passent jamais par Claude.** Aucun outil ne lit ni n'écrit une valeur de secret ; `secret_request` produit un lien vers une page de saisie de la plateforme.
-- **Installer se fait en deux temps.** `tool_install_plan` renvoie le plan et les ressources demandées ; `tool_install` n'accepte que l'identifiant de ce plan. Une instruction glissée dans un document ne peut pas installer un tool d'une seule traite.
-- **Les outils destructifs** portent l'annotation MCP `destructiveHint` et exigent une confirmation.
-- **Pas d'élévation.** Le MCP agit avec les droits de la personne connectée : il ne peut pas donner un rôle plus élevé que le sien, ni approuver ce qu'elle ne pourrait pas approuver dans la console.
-- **Tout est journalisé**, avec la mention « via MCP Forgeron ».
+- **Secret values never go through Claude.** No tool reads or writes a secret value; `secret_request` produces a link to a platform input page.
+- **Installing takes two steps.** `tool_install_plan` returns the plan and the requested resources; `tool_install` only accepts that plan's identifier. An instruction slipped into a document cannot install a tool in one go.
+- **Destructive tools** carry the MCP `destructiveHint` annotation and require confirmation.
+- **No elevation.** The MCP acts with the rights of the signed-in person: it cannot grant a role higher than their own, nor approve what they could not approve in the console.
+- **Everything is logged**, with the mention "via Forgeron MCP".
 
-### Exemple
+### Example
 
-> « Installe-nous un CRM et donne l'accès aux commerciaux. »
+> "Install a CRM for us and give the sales team access."
 >
-> Claude appelle `catalog_search("crm")`, puis `tool_install_plan` : le modèle CRM demande une base de données, un stockage de fichiers et l'envoi d'e-mails Microsoft 365. Claude montre ce récapitulatif et demande confirmation. Après accord, `tool_install` crée le tool, puis `access_grant("crm", "commercial", "groupe:Commerciaux")`. Claude termine en donnant l'adresse MCP du CRM à ajouter.
+> Claude calls `catalog_search("crm")`, then `tool_install_plan`: the CRM template requests a database, file storage and the sending of Microsoft 365 emails. Claude shows this summary and asks for confirmation. Once approved, `tool_install` creates the tool, then `access_grant("crm", "commercial", "group:Sales")`. Claude finishes by giving the CRM's MCP address to add.
 
-## 18. Les paquets npm
+## 18. The npm packages
 
-Forgeron utilise **les deux** : le nom `forgeron` pour le point d'entrée unique, et l'organisation `@forgeron` pour tout ce qui est optionnel, lourd ou versionné à son propre rythme.
+Forgeron uses **both**: the `forgeron` name for the single entry point, and the `@forgeron` organization for everything that is optional, heavy or versioned at its own pace.
 
-### La règle
+### The rule
 
-- **Sous-chemin de `forgeron`** (`forgeron/db`) quand le module doit avoir **exactement la même version** que le runtime et le CLI, et n'ajoute pas de dépendance lourde. Un développeur installe un paquet, une version, et tout est cohérent.
-- **Paquet `@forgeron/…`** quand le module est **optionnel**, apporte des dépendances lourdes ou des peer dependencies (React), ou évolue à un autre rythme que le SDK.
+- **Subpath of `forgeron`** (`forgeron/db`) when the module must have **exactly the same version** as the runtime and the CLI, and adds no heavy dependency. A developer installs one package, one version, and everything is consistent.
+- **`@forgeron/…` package** when the module is **optional**, brings heavy dependencies or peer dependencies (React), or evolves at a different pace from the SDK.
 
-### La répartition
+### The breakdown
 
-| Paquet                                                          | Contenu                                                                                        | Pourquoi là                                                                                 |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `forgeron`                                                      | SDK (`defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`) et CLI (binaire `forgeron`) | Un seul `npm i -D forgeron`, un seul `npx forgeron`                                         |
-| `forgeron/db`                                                   | `schema`, `table`, `t`, `index`, `migration`, `sql`                                            | Lié au format des migrations et au runtime                                                  |
-| `forgeron/react`                                                | `defineView`, `useAction`, `useMutation`, `useParams`, `useUser`, `useCan`                     | Parle le protocole du runtime ; React en peer dependency optionnelle                        |
-| `forgeron/testing`                                              | `createTestTool`, `mockFetch`                                                                  | Doit simuler le runtime de la même version                                                  |
-| `@forgeron/ui`                                                  | Composants React du design system (`Page`, `Table`, `Board`, `BarChart`…)                      | Optionnel, lourd, versionné avec le design system ; utilisé aussi par le site et la console |
-| `@forgeron/connector-<nom>`                                     | Connecteurs : `microsoft-365`, `google-workspace`, `odoo`, `slack`…                            | Chaque connecteur embarque un client tiers ; on n'installe que ceux qu'on utilise           |
-| `@forgeron/template-<nom>`                                      | Modèles du catalogue (`crm`, `contacts`, `inventaire`, `odoo-gateway`)                         | Versionnés et publiés comme des paquets ; `forgeron init --template crm` les télécharge     |
-| `@forgeron/platform`                                            | La plateforme self-host : console, passerelle d'identité, MCP d'administration                 | Ne concerne que ceux qui hébergent Forgeron eux-mêmes                                       |
-| `@forgeron/runtime`, `@forgeron/compiler`, `@forgeron/manifest` | Implémentation interne, dépendances de `forgeron`                                              | Découpage du code ; jamais importés directement par un tool                                 |
-| `@forgeron/tsconfig`                                            | Configuration TypeScript partagée                                                              | Petit, optionnel                                                                            |
+| Package                                                         | Content                                                                                        | Why there                                                                                |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `forgeron`                                                      | SDK (`defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`) and CLI (`forgeron` binary) | A single `npm i -D forgeron`, a single `npx forgeron`                                    |
+| `forgeron/db`                                                   | `schema`, `table`, `t`, `index`, `migration`, `sql`                                            | Tied to the migration format and to the runtime                                          |
+| `forgeron/react`                                                | `defineView`, `useAction`, `useMutation`, `useParams`, `useUser`, `useCan`                     | Speaks the runtime protocol; React as an optional peer dependency                        |
+| `forgeron/testing`                                              | `createTestTool`, `mockFetch`                                                                  | Must simulate the runtime of the same version                                            |
+| `@forgeron/ui`                                                  | React components of the design system (`Page`, `Table`, `Board`, `BarChart`…)                  | Optional, heavy, versioned with the design system; also used by the site and the console |
+| `@forgeron/connector-<name>`                                    | Connectors: `microsoft-365`, `google-workspace`, `odoo`, `slack`…                              | Each connector bundles a third-party client; you only install the ones you use           |
+| `@forgeron/template-<name>`                                     | Catalog templates (`crm`, `contacts`, `inventory`, `odoo-gateway`)                             | Versioned and published as packages; `forgeron init --template crm` downloads them       |
+| `@forgeron/platform`                                            | The self-host platform: console, identity gateway, admin MCP                                   | Only concerns those who host Forgeron themselves                                         |
+| `@forgeron/runtime`, `@forgeron/compiler`, `@forgeron/manifest` | Internal implementation, dependencies of `forgeron`                                            | Code split; never imported directly by a tool                                            |
+| `@forgeron/tsconfig`                                            | Shared TypeScript configuration                                                                | Small, optional                                                                          |
 
-### `forgeron/ui` ou `@forgeron/ui` ?
+### `forgeron/ui` or `@forgeron/ui`?
 
-`@forgeron/ui`. Trois raisons :
+`@forgeron/ui`. Three reasons:
 
-1. Un tool sans vue (la passerelle Odoo) ne doit pas télécharger React et une bibliothèque de composants.
-2. Les composants suivent le design system, pas le runtime : une correction visuelle ne doit pas forcer une nouvelle version du SDK.
-3. Le site vitrine et la console utilisent les mêmes composants sans dépendre du SDK.
+1. A tool without a view (the Odoo gateway) must not download React and a component library.
+2. The components follow the design system, not the runtime: a visual fix must not force a new SDK version.
+3. The showcase site and the console use the same components without depending on the SDK.
 
-À l'inverse, `forgeron/react` reste un sous-chemin : ses hooks parlent le protocole du runtime et doivent avoir la même version que lui.
+Conversely, `forgeron/react` remains a subpath: its hooks speak the runtime protocol and must have the same version as it.
 
-### À réserver
+### To reserve
 
-- `forgeron` et l'organisation `@forgeron` (acquis).
-- `create-forgeron`, si l'on veut `npm create forgeron` en plus de `npx forgeron init`.
-- Les noms vides de l'organisation qui pourraient prêter à confusion : `@forgeron/sdk`, `@forgeron/cli`, `@forgeron/core`, publiés comme paquets vides qui renvoient vers `forgeron`.
+- `forgeron` and the `@forgeron` organization (acquired).
+- `create-forgeron`, if we want `npm create forgeron` in addition to `npx forgeron init`.
+- Empty names in the organization that could cause confusion: `@forgeron/sdk`, `@forgeron/cli`, `@forgeron/core`, published as empty packages that point to `forgeron`.
 
-## 19. Ce que Forgeron réutilise
+## 19. What Forgeron reuses
 
-| Besoin                 | Outil réutilisé                                                                    | Ce que Forgeron ajoute                                                                       |
-| ---------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Exécution              | Cloudflare Workers ; Workers for Platforms (cloud), Workers classiques (self-host) | Un Worker par tool et par version, le routage, la passerelle d'identité                      |
-| Base                   | Cloudflare D1                                                                      | Une base par tool et par environnement                                                       |
-| Requêtes               | Kysely                                                                             | Les types générés depuis le schéma                                                           |
-| Migrations             | Kysely (schema builder)                                                            | Le schéma, le générateur, le suivi, l'application au déploiement, la règle expand / contract |
-| Schémas                | Zod                                                                                | La conversion vers JSON Schema, OpenAPI et les options CLI                                   |
-| Fichiers, cache, files | R2, KV, Queues                                                                     | Les espaces de noms par tool et environnement, les portées                                   |
-| Tests                  | Vitest                                                                             | `forgeron/testing`                                                                           |
-| Dev local              | runtime local de Cloudflare (workerd, Miniflare)                                   | `forgeron dev`, le terrain de jeu                                                            |
-| Vues                   | React                                                                              | Les hooks, `@forgeron/ui`, le service derrière le SSO                                        |
-| Protocole IA           | MCP                                                                                | Le serveur MCP généré, l'OAuth, l'élicitation des secrets                                    |
+| Need                 | Tool reused                                                                     | What Forgeron adds                                                                             |
+| -------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Execution            | Cloudflare Workers; Workers for Platforms (cloud), standard Workers (self-host) | One Worker per tool and version, the routing, the identity gateway                             |
+| Database             | Cloudflare D1                                                                   | One database per tool and environment                                                          |
+| Queries              | Kysely                                                                          | Types generated from the schema                                                                |
+| Migrations           | Kysely (schema builder)                                                         | The schema, the generator, the tracking, application at deployment, the expand / contract rule |
+| Schemas              | Zod                                                                             | Conversion to JSON Schema, OpenAPI and CLI options                                             |
+| Files, cache, queues | R2, KV, Queues                                                                  | Namespaces per tool and environment, the scopes                                                |
+| Tests                | Vitest                                                                          | `forgeron/testing`                                                                             |
+| Local dev            | Cloudflare's local runtime (workerd, Miniflare)                                 | `forgeron dev`, the playground                                                                 |
+| Views                | React                                                                           | The hooks, `@forgeron/ui`, serving behind the SSO                                              |
+| AI protocol          | MCP                                                                             | The generated MCP server, OAuth, secret elicitation                                            |
 
-## 20. Questions ouvertes
+## 20. Open questions
 
-- Exécution : décidée (`DECISIONS.md`, D-009 et D-010). Un tool est un Worker ordinaire avec sa propre base D1 par environnement, en cloud (Workers for Platforms) comme en self-host (Workers classiques).
-- Transaction par action (§6, §9) : D1 ne semble proposer que des lots atomiques, sans transaction interactive (à vérifier). Faut-il remplacer la promesse par `ctx.db.batch()` ?
-- D1 suffit-il pour tous les tools, ou faut-il une option Postgres (Hyperdrive) dès le départ ?
-- Les vues : rendu côté client seulement, ou rendu serveur ?
-- Le bac à sable CSP (`sandbox`) convient-il aux vues React et à `@forgeron/ui` ? Sinon, passer à une origine dédiée aux vues.
-- Faut-il autoriser plus de deux niveaux dans les noms d'actions (`crm.deals.notes.add`) ?
-- Pilote et production partagent la base : faut-il imposer une compatibilité stricte des schémas, ou proposer une base séparée pour le pilote ?
-- Faut-il un rôle « propriétaire du tool » distinct des rôles d'espace, pour qu'un développeur administre son tool sans être admin de l'espace ?
-- Le changelog doit-il être visible des utilisateurs finaux (par exemple « nouveautés » dans Claude ou dans les vues), ou seulement des admins ?
+- Execution: decided (`DECISIONS.md`, D-009 and D-010). A tool is an ordinary Worker with its own D1 database per environment, in the cloud (Workers for Platforms) as in self-host (standard Workers).
+- Transaction per action (§6, §9): D1 seems to offer only atomic batches, without interactive transactions (to be verified). Should the promise be replaced by `ctx.db.batch()`?
+- Is D1 enough for all tools, or do we need a Postgres option (Hyperdrive) from the start?
+- Views: client-side rendering only, or server rendering?
+- Is the CSP sandbox (`sandbox`) suitable for React views and `@forgeron/ui`? If not, move to an origin dedicated to views.
+- Should more than two levels be allowed in action names (`crm.deals.notes.add`)?
+- Pilot and production share the database: should strict schema compatibility be enforced, or should a separate database be offered for the pilot?
+- Do we need a "tool owner" role distinct from the workspace roles, so that a developer can administer their tool without being a workspace admin?
+- Should the changelog be visible to end users (for example "what's new" in Claude or in views), or only to admins?

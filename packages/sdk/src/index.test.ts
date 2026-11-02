@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ACCESS_LEVELS } from "./index";
 
 describe("ACCESS_LEVELS", () => {
-  it("liste les niveaux standard", () => {
+  it("lists the standard levels", () => {
     expect(ACCESS_LEVELS).toEqual(["read", "write", "delete", "admin"]);
   });
 });

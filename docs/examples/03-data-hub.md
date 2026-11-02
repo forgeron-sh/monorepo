@@ -1,33 +1,33 @@
-# Exemple 3 — Un centre de données léger
+# Example 3 — A lightweight data hub
 
-## La contrainte
+## The constraint
 
-Une entreprise de services gère un parc d'**équipements** répartis sur plusieurs **sites**. Aujourd'hui, la liste vit dans un fichier Excel et une liste SharePoint. Elle veut un référentiel unique :
+A services company manages a fleet of **equipment** spread across several **sites**. Today, the list lives in an Excel file and a SharePoint list. It wants a single reference:
 
-- importer l'existant depuis un **CSV** ;
-- se **synchroniser chaque nuit** avec la liste SharePoint, tant que les deux coexistent ;
-- joindre des **fichiers** à un équipement (fiche technique PDF, photo) ;
-- stocker des **attributs libres** qui varient selon le type d'équipement ;
-- interroger le tout depuis Claude (« Quels équipements du site de Nantes ont leur contrôle en retard ? ») et l'exposer en API aux autres tools.
+- import the existing data from a **CSV**;
+- **sync every night** with the SharePoint list, as long as both coexist;
+- attach **files** to a piece of equipment (PDF datasheet, photo);
+- store **free-form attributes** that vary by equipment type;
+- query everything from Claude ("Which equipment at the Nantes site has an overdue check?") and expose it through the API to other tools.
 
-Plus tard, l'équipe voudra **renommer** la colonne `ref` en `sku`, sans interruption de service.
+Later, the team will want to **rename** the `ref` column to `sku`, without downtime.
 
-## Ce que la contrainte exige du SDK
+## What the constraint requires of the SDK
 
-| Besoin                     | Réponse du SDK                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------ |
-| Importer un CSV            | Une action qui reçoit un fichier (`z.file()`), et `ctx.files` pour le lire     |
-| Stocker des pièces jointes | `ctx.files` sur R2, avec des URL signées à durée limitée                       |
-| Synchroniser chaque nuit   | Une tâche planifiée dans `jobs/` (cron)                                        |
-| Lire SharePoint            | Un connecteur Microsoft 365 déclaré dans la config, `ctx.connectors.microsoft` |
-| Attributs libres           | Une colonne JSON typée par un schéma Zod (`t.json(schema)`)                    |
-| Renommer sans coupure      | Une migration en deux temps (expand / contract) guidée par le générateur       |
-| Gros volumes               | Pagination standard des actions de liste (`cursor`)                            |
+| Need                    | SDK answer                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| Import a CSV            | An action that receives a file (`z.file()`), and `ctx.files` to read it      |
+| Store attachments       | `ctx.files` on R2, with time-limited signed URLs                             |
+| Sync every night        | A scheduled job in `jobs/` (cron)                                            |
+| Read SharePoint         | A Microsoft 365 connector declared in the config, `ctx.connectors.microsoft` |
+| Free-form attributes    | A JSON column typed by a Zod schema (`t.json(schema)`)                       |
+| Rename without downtime | A two-step migration (expand / contract) guided by the generator             |
+| Large volumes           | Standard pagination of list actions (`cursor`)                               |
 
-## L'arborescence
+## The file tree
 
 ```text
-inventaire/
+inventory/
 ├── forgeron.config.ts
 ├── db/
 │   ├── schema.ts
@@ -47,44 +47,44 @@ inventaire/
 └── tests/
 ```
 
-## La configuration
+## The configuration
 
 ```ts
 // forgeron.config.ts
 import { defineConfig, database, bucket, connector } from "forgeron";
 
 export default defineConfig({
-  name: "inventaire",
-  title: "Inventaire des équipements",
+  name: "inventory",
+  title: "Equipment inventory",
   interfaces: { mcp: true, api: true, cli: true },
   resources: {
-    db: database({ engine: "d1", why: "Sites, équipements et pièces jointes" }),
+    db: database({ engine: "d1", why: "Sites, equipment and attachments" }),
     files: bucket({
       maxSize: "25MB",
       types: ["application/pdf", "image/*", "text/csv"],
-      why: "Fiches techniques, photos, imports",
+      why: "Datasheets, photos, imports",
     }),
     connectors: {
-      // Délégation au nom de l'application (tâche de nuit), pas d'une personne
+      // Delegation on behalf of the application (nightly job), not of a person
       microsoft: connector("microsoft-365", {
         mode: "application",
         scopes: ["Sites.Read.All"],
-        why: "Lire la liste SharePoint des équipements chaque nuit",
+        why: "Read the SharePoint equipment list every night",
       }),
     },
   },
 
   roles: {
-    technicien: { grants: ["read", "write"] },
-    lecteur: { grants: ["read"] },
-    admin: { grants: ["read", "write", "delete", "import"] }, // "import" : un niveau propre au tool
+    technician: { grants: ["read", "write"] },
+    reader: { grants: ["read"] },
+    admin: { grants: ["read", "write", "delete", "import"] }, // "import": a tool-specific level
   },
 });
 ```
 
-`import` est un niveau d'accès **propre au tool**. Il suffit de le citer dans un rôle pour qu'il existe ; la console l'affiche comme les autres.
+`import` is an access level **specific to the tool**. Citing it in a role is enough for it to exist; the console displays it like the others.
 
-## Le schéma
+## The schema
 
 ```ts
 // db/schema.ts
@@ -114,7 +114,7 @@ export const equipments = table(
     type: t.text().notNull(),
     next_check: t.date(),
     attributes: t.json(attributes).default({}),
-    external_id: t.text().unique(), // identifiant de la ligne SharePoint
+    external_id: t.text().unique(), // identifier of the SharePoint row
     updated_at: t.timestamp().defaultNow().onUpdateNow(),
   },
   (c) => [index(c.site_id), index(c.next_check)],
@@ -123,7 +123,7 @@ export const equipments = table(
 export const attachments = table("attachments", {
   id: t.id(),
   equipment_id: t.ref(equipments).onDelete("cascade").notNull(),
-  file_key: t.text().notNull(), // clé R2 gérée par ctx.files
+  file_key: t.text().notNull(), // R2 key managed by ctx.files
   name: t.text().notNull(),
   content_type: t.text().notNull(),
 });
@@ -131,11 +131,11 @@ export const attachments = table("attachments", {
 export default schema({ sites, equipments, attachments });
 ```
 
-`t.json(attributes)` stocke du JSON en SQLite et valide les écritures avec le schéma Zod. Les types générés pour Kysely reprennent la forme de l'objet.
+`t.json(attributes)` stores JSON in SQLite and validates writes with the Zod schema. The types generated for Kysely follow the shape of the object.
 
-## Les actions
+## Actions
 
-### Importer un CSV
+### Importing a CSV
 
 ```ts
 // actions/equipments/import.ts
@@ -144,10 +144,10 @@ import { parseCsv } from "forgeron/csv";
 
 export default action({
   description:
-    "Importe ou met à jour des équipements depuis un fichier CSV (colonnes : ref, type, site, next_check).",
+    "Imports or updates equipment from a CSV file (columns: ref, type, site, next_check).",
   access: "import",
   input: z.object({ file: z.file({ types: ["text/csv"] }), dryRun: z.boolean().default(true) }),
-  cli: { args: ["file"] }, // forgeron inventaire equipments import ./parc.csv --no-dry-run
+  cli: { args: ["file"] }, // forgeron inventory equipments import ./fleet.csv --no-dry-run
   async run({ input, db, files }) {
     const rows = parseCsv(await files.text(input.file));
     const sites = await db.selectFrom("sites").select(["id", "name"]).execute();
@@ -157,7 +157,7 @@ export default action({
     const values = rows.flatMap((r, i) => {
       const site = siteId.get(String(r.site).toLowerCase());
       if (!site) {
-        errors.push(`Ligne ${i + 2} : site inconnu « ${r.site} »`);
+        errors.push(`Row ${i + 2}: unknown site "${r.site}"`);
         return [];
       }
       return [{ ref: r.ref, type: r.type, site_id: site, next_check: r.next_check || null }];
@@ -186,14 +186,14 @@ export default action({
 });
 ```
 
-Le fichier arrive par la même action quelle que soit l'interface : en multipart sur l'API, comme chemin local sur le CLI, comme pièce jointe téléversée sur MCP. `dryRun` vaut `true` par défaut : Claude montre d'abord ce qui serait importé.
+The file reaches the same action whatever the interface: as multipart on the API, as a local path on the CLI, as an uploaded attachment on MCP. `dryRun` defaults to `true`: Claude first shows what would be imported.
 
-### Joindre un fichier
+### Attaching a file
 
 ```ts
 // actions/equipments/attach.ts
 export default action({
-  description: "Joint un fichier (PDF, photo) à un équipement.",
+  description: "Attaches a file (PDF, photo) to a piece of equipment.",
   access: "write",
   input: z.object({ id: z.string(), file: z.file({ types: ["application/pdf", "image/*"] }) }),
   async run({ input, db, files }) {
@@ -212,24 +212,20 @@ export default action({
 });
 ```
 
-### Lister avec pagination
+### Listing with pagination
 
 ```ts
 // actions/equipments/search.ts
 import { action, z, paginate } from "forgeron";
 
 export default action({
-  description: "Cherche des équipements par site, type ou date de contrôle.",
+  description: "Searches equipment by site, type or check date.",
   access: "read",
   input: z
     .object({
       city: z.string().optional(),
       type: z.string().optional(),
-      checkBefore: z
-        .string()
-        .date()
-        .optional()
-        .describe("Contrôle prévu avant cette date (AAAA-MM-JJ)"),
+      checkBefore: z.string().date().optional().describe("Check due before this date (YYYY-MM-DD)"),
     })
     .merge(paginate.input),
   async run({ input, db }) {
@@ -251,7 +247,7 @@ export default action({
 });
 ```
 
-## La tâche de nuit
+## The nightly job
 
 ```ts
 // jobs/sync-sharepoint.ts
@@ -262,37 +258,37 @@ export default schedule(
   { timezone: "Europe/Paris" },
   async ({ db, connectors, log }) => {
     const items = await connectors.microsoft.graph
-      .api("/sites/acme.sharepoint.com:/sites/parc:/lists/Equipements/items")
+      .api("/sites/acme.sharepoint.com:/sites/fleet:/lists/Equipments/items")
       .expand("fields")
       .getAll();
 
     for (const item of items) {
       await db
         .updateTable("equipments")
-        .set({ next_check: item.fields.ProchainControle ?? null })
+        .set({ next_check: item.fields.NextCheck ?? null })
         .where("external_id", "=", item.id)
         .execute();
     }
-    log.info("Synchronisation SharePoint", { items: items.length });
+    log.info("SharePoint sync", { items: items.length });
   },
 );
 ```
 
-Une tâche planifiée s'exécute avec l'identité **du tool**, pas d'une personne : elle n'a accès qu'aux connecteurs en mode `application`. Son exécution apparaît dans le journal et dans `forgeron logs --job sync-sharepoint`.
+A scheduled job runs with the identity **of the tool**, not of a person: it only has access to connectors in `application` mode. Its execution appears in the log and in `forgeron logs --job sync-sharepoint`.
 
-## Renommer une colonne sans coupure
+## Renaming a column without downtime
 
-Sur D1 (SQLite), un renommage est simple techniquement, mais la version en production lit encore `ref` pendant le déploiement de la nouvelle. Forgeron impose donc **deux migrations** quand le générateur détecte un renommage ou une suppression :
+On D1 (SQLite), a rename is technically simple, but the production version still reads `ref` while the new one is being deployed. Forgeron therefore requires **two migrations** when the generator detects a rename or a drop:
 
 ```bash
 forgeron db generate --name sku --rename equipments.ref:equipments.sku
 ```
 
 ```text
-Renommage détecté : equipments.ref → equipments.sku
-Stratégie en deux temps :
-  0002_sku_expand.ts    ajoute sku, recopie ref, garde les deux synchronisés
-  0003_sku_contract.ts  supprime ref (destructive, à déployer après)
+Rename detected: equipments.ref → equipments.sku
+Two-step strategy:
+  0002_sku_expand.ts    adds sku, copies ref, keeps both in sync
+  0003_sku_contract.ts  drops ref (destructive, to deploy afterwards)
 ```
 
 ```ts
@@ -322,7 +318,7 @@ export default migration({
 // db/migrations/0003_sku_contract.ts
 export default migration({
   destructive: true,
-  after: "0002_sku_expand", // jamais dans le même déploiement que 0002
+  after: "0002_sku_expand", // never in the same deployment as 0002
   async up(db) {
     await db.schema.alterTable("equipments").dropColumn("ref").execute();
   },
@@ -336,15 +332,15 @@ export default migration({
 });
 ```
 
-1. On déploie la version qui écrit dans `sku` et lit `sku` ; `0002` s'applique. L'ancienne version, encore active quelques instants, lit toujours `ref`, qui existe encore.
-2. Une fois la nouvelle version seule en production, on déploie `0003` avec `forgeron deploy --env production --allow-destructive`.
+1. Deploy the version that writes to `sku` and reads `sku`; `0002` applies. The old version, still active for a few moments, keeps reading `ref`, which still exists.
+2. Once the new version is alone in production, deploy `0003` with `forgeron deploy --env production --allow-destructive`.
 
-## Ce que l'exemple décide pour le SDK
+## What the example decides for the SDK
 
-- `z.file()` : un type d'entrée fichier unique, adapté à chaque interface.
-- `ctx.files` : stockage R2 avec préfixes et URL signées ; jamais d'URL publique par défaut.
-- `jobs/` + `schedule()` : tâches cron avec fuseau horaire, exécutées sous l'identité du tool.
-- Connecteurs en deux modes : `delegated` (au nom de la personne) et `application` (au nom du tool).
-- Niveaux d'accès personnalisés (`import`) déclarés simplement dans les rôles.
-- `paginate` : la forme standard des listes (`limit`, `cursor` → `items`, `nextCursor`).
-- Migrations destructives : marquées, séparées en deux temps, refusées en production sans accord explicite.
+- `z.file()`: a single file input type, adapted to each interface.
+- `ctx.files`: R2 storage with prefixes and signed URLs; never a public URL by default.
+- `jobs/` + `schedule()`: cron jobs with a time zone, run under the tool's identity.
+- Connectors in two modes: `delegated` (on behalf of the person) and `application` (on behalf of the tool).
+- Custom access levels (`import`) declared simply in roles.
+- `paginate`: the standard shape of lists (`limit`, `cursor` → `items`, `nextCursor`).
+- Destructive migrations: flagged, split into two steps, refused in production without explicit consent.

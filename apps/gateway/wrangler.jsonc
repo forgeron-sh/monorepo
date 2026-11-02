@@ -1,5 +1,5 @@
 {
-  // Squelette : bindings et routes à compléter avec le code (docs/ARCHITECTURE.md, « Modes d'hébergement »).
+  // Skeleton: bindings and routes to fill in with the code (docs/ARCHITECTURE.md, "Hosting modes").
   "name": "forgeron-gateway",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",

@@ -1,11 +1,11 @@
 interface CodeCardProps {
   title: string;
-  /** Texte à droite de l'en-tête (langage, contexte). */
+  /** Text on the right of the header (language, context). */
   meta?: string;
   lines: string[];
 }
 
-/** Bloc de code numéroté. Les imports et commentaires sont atténués. */
+/** Numbered code block. Imports and comments are muted. */
 export function CodeCard({ title, meta, lines }: CodeCardProps) {
   return (
     <div className="card sunken">

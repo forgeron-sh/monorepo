@@ -1,17 +1,17 @@
 # @forgeron/gateway
 
-Le seul Worker public de la plateforme.
+The only public Worker of the platform.
 
-## Contenu prévu
+## Planned contents
 
-- `dispatch/` : sous-domaine → espace, `/t/<tool>` → Worker du tool
-- `identity/` : SSO, OAuth 2.1 (MCP), jetons à audience
-- `registry/` : tools, builds, versions, environnements (D1)
-- `deploy/` : réception d'un build, appel de `@forgeron/hosting`
-- `admin-mcp/` : MCP d'administration (`sdk.md` §17)
-- `console-api/` : API de la console
-- `audit/` : journal
+- `dispatch/`: subdomain → workspace, `/t/<tool>` → the tool's Worker
+- `identity/`: SSO, OAuth 2.1 (MCP), audience-bound tokens
+- `registry/`: tools, builds, versions, environments (D1)
+- `deploy/`: receives a build, calls `@forgeron/hosting`
+- `admin-mcp/`: administration MCP (`sdk.md` §17)
+- `console-api/`: console API
+- `audit/`: log
 
 ## Notes
 
-Stack prévue : Hono, `workers-oauth-provider`, Kysely sur D1. Voir `docs/ARCHITECTURE.md`, « La plateforme ».
+Planned stack: Hono, `workers-oauth-provider`, Kysely on D1. See `docs/ARCHITECTURE.md`, "The platform".

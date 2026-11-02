@@ -1,17 +1,17 @@
-# Forgeron — consignes de dépôt
+# Forgeron — repository guidelines
 
-Monorepo du SDK, du CLI, du runtime, de la plateforme et des modèles Forgeron. Lire [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) avant de créer une app, un paquet ou un modèle ; [docs/sdk.md](docs/sdk.md) fait foi pour l'API publique.
+Monorepo for the Forgeron SDK, CLI, runtime, platform and templates. Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before creating an app, a package or a template; [docs/sdk.md](docs/sdk.md) is authoritative for the public API.
 
-## Commandes
+## Commands
 
-- Toolchain épinglée dans `.prototools` ; `proto use` une fois, puis `bun install`.
-- `bun run check` avant de pousser : types, lint, format, tests, knip, deps, auto-test des règles d'import.
-- Après un changement : `bun run format` (oxfmt, deux espaces, guillemets doubles, point-virgule).
+- Toolchain pinned in `.prototools`; run `proto use` once, then `bun install`.
+- `bun run check` before pushing: types, lint, format, tests, knip, deps, import-rule self-test.
+- After a change: `bun run format` (oxfmt, two spaces, double quotes, semicolons).
 
-## Règles
+## Rules
 
-- Commits Conventional Commits (commitlint). Pas de ligne de co-auteur.
-- Une nouvelle app, un nouveau paquet ou un nouveau modèle : un `moon.yml`, un `tsconfig.json` qui étend `@forgeron/tsconfig`, et l'entrée correspondante dans `docs/ARCHITECTURE.md`.
-- Respecter les règles de `.dependency-cruiser.cjs` : jamais d'import entre apps ; le runtime reste sans `node:*` ; les modèles n'utilisent que l'API publique.
-- Aucun secret réel dans le dépôt, les tests, les fixtures ou les logs. Les amonts (Odoo, Microsoft) sont simulés en test.
-- Versions épinglées exactement dans les `package.json` (pas de `^`).
+- Conventional Commits (commitlint). No co-author line.
+- A new app, package or template: a `moon.yml`, a `tsconfig.json` extending `@forgeron/tsconfig`, and the matching entry in `docs/ARCHITECTURE.md`.
+- Respect the rules in `.dependency-cruiser.cjs`: never import between apps; the runtime stays free of `node:*`; templates only use the public API.
+- No real secret in the repository, tests, fixtures or logs. Upstreams (Odoo, Microsoft) are simulated in tests.
+- Versions pinned exactly in `package.json` files (no `^`).

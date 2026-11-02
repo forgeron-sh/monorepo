@@ -1,219 +1,219 @@
 # Forgeron — White paper
 
-20 octobre 2026 · Ely Delva · Version de travail
+October 20, 2026 · Ely Delva · Working draft
 
-## Résumé
+## Summary
 
-Forgeron est une plateforme open source pour écrire, versionner, héberger et gouverner les internal tools d'une entreprise. Un développeur décrit un outil une fois avec le SDK — ses données, ses actions, ses droits — et Forgeron l'expose automatiquement en quatre interfaces : **MCP** pour Claude, **API**, **Web** et **CLI**.
+Forgeron is an open source platform to write, version, host and govern a company's internal tools. A developer describes a tool once with the SDK — its data, its actions, its permissions — and Forgeron automatically exposes it through four interfaces: **MCP** for Claude, **API**, **Web** and **CLI**.
 
-Le pari : demain, les équipes interagiront avec leurs outils métier d'abord à travers un assistant comme Claude. L'interface lourde d'un ERP perd alors sa valeur ; ce qui compte, ce sont des données fiables et des actions bien définies, avec les bons droits. Forgeron fournit exactement cette couche, en léger, sur Cloudflare Workers.
+The bet: tomorrow, teams will work with their business tools through an assistant like Claude first. The heavy interface of an ERP then loses its value; what matters is reliable data and well-defined actions, with the right permissions. Forgeron provides exactly that layer, lightweight, on Cloudflare Workers.
 
-Trois choses à retenir :
+Three things to remember:
 
-- **Une manière d'écrire les tools, pas seulement un SDK.** Forgeron impose une forme légère et unique : un fichier de configuration, des tables, des actions, des vues. Tous les tools se ressemblent, donc tous se maintiennent.
-- **Une plateforme de production.** Chaque push sur GitHub crée une version, déployée en preview, en pilote ou en production. Accès par rôle et par action, SSO d'entreprise, journal d'usage.
-- **Des outils prêts à l'emploi.** Un catalogue de modèles légers (CRM, fiches contact, centre de données, passerelles d'API comme Odoo) que l'entreprise lance tels quels ou forge à sa mesure.
+- **A way of writing tools, not just an SDK.** Forgeron enforces one light, single shape: a config file, tables, actions, views. All tools look alike, so all tools stay maintainable.
+- **A production platform.** Every push to GitHub creates a version, deployed to preview, pilot or production. Access by role and by action, enterprise SSO, usage log.
+- **Ready-to-use tools.** A catalog of light templates (CRM, contact records, data hub, API gateways like Odoo) that the company launches as they are or forges to fit.
 
-Forgeron se distribue en self-host (open source, sur le compte Cloudflare de l'entreprise) ou en cloud, avec un abonnement unique au siège.
+Forgeron is distributed as self-host (open source, on the company's own Cloudflare account) or as cloud, with a single per-seat subscription.
 
-## Le problème
+## The problem
 
-Les entreprises paient des suites logicielles géantes pour une fraction de ce qu'elles utilisent, et leurs vrais outils internes vivent ailleurs, sans cadre.
+Companies pay for giant software suites while using a fraction of them, and their real internal tools live elsewhere, with no framework.
 
-**1. Les ERP coûtent cher pour ce qu'ils apportent.** Une suite comme Odoo se paie au module et à l'utilisateur. Elle impose son interface, son modèle de données et ses intégrations. Pour un besoin simple — suivre des contacts, des pistes, des demandes — l'entreprise achète un système entier.
+**1. ERPs cost a lot for what they deliver.** A suite like Odoo is paid per module and per user. It imposes its interface, its data model and its integrations. For a simple need — tracking contacts, leads, requests — the company buys an entire system.
 
-**2. L'interface est en train de changer.** Les équipes commencent à travailler depuis Claude ou un autre assistant. Elles posent une question, demandent une action, et n'ouvrent plus l'application. À ce moment-là, peu importe qu'il y ait un ERP derrière : il faut seulement que les données et les actions répondent, de façon fiable et autorisée.
+**2. The interface is changing.** Teams are starting to work from Claude or another assistant. They ask a question, request an action, and no longer open the application. At that point, it doesn't matter whether there is an ERP behind it: the data and the actions just have to respond, reliably and with the right permissions.
 
-**3. Les internal tools faits maison ne sont pas industrialisés.** Chaque développeur interne écrit ses scripts, son petit serveur MCP, sa page d'admin, chacun à sa façon. Résultat :
+**3. Homemade internal tools are not industrialized.** Each internal developer writes their own scripts, their own small MCP server, their own admin page, each in their own way. The result:
 
-- pas de versions ni d'environnement de test ;
-- pas de gestion des accès cohérente, des clés d'API qui circulent ;
-- aucune visibilité sur qui utilise quoi ;
-- un outil qui meurt quand son auteur change de poste.
+- no versions and no test environment;
+- no consistent access management, with API keys circulating;
+- no visibility into who uses what;
+- a tool that dies when its author changes jobs.
 
-**4. Brancher un assistant IA sur les données de l'entreprise est encore artisanal.** L'exemple de la passerelle MCP Odoo construite en interne le montre : il faut une authentification SSO, un stockage des clés par personne, une passerelle vers l'API, un déploiement. C'est faisable, mais chaque équipe le réinvente.
+**4. Plugging an AI assistant into company data is still a craft job.** The in-house Odoo MCP gateway shows it: it takes SSO authentication, per-person key storage, a gateway to the API, a deployment. It's doable, but every team reinvents it.
 
-Aucun de ces problèmes n'est technique au sens difficile. Ce qui manque, c'est une **manière standard** d'écrire, de déployer et de gouverner ces outils.
+None of these problems is technically hard. What's missing is a **standard way** to write, deploy and govern these tools.
 
-## La vision
+## The vision
 
-Forgeron veut être **la dernière plateforme dont une entreprise a besoin pour ses internal tools** : l'endroit où on les forge, où ils tournent et où on décide qui y a accès.
+Forgeron aims to be **the last platform a company needs for its internal tools**: the place where they are forged, where they run, and where you decide who has access.
 
-Quatre convictions guident le produit :
+Four convictions guide the product:
 
-1. **Le backend d'abord, l'interface ensuite.** Le cœur d'un tool, ce sont ses données et ses actions. Une fois définies, elles sont servies partout : à Claude par MCP, à d'autres logiciels par API, à un humain par le terminal ou une page web. Le premier livrable de Forgeron est donc un backend ; les vues viennent en complément.
-2. **Claude est une interface souhaitable.** Parler à ses outils est plus rapide qu'apprendre un écran. Mais une conversation ne remplace pas tout : pour un pipeline commercial ou un tableau de bord, une vue légère en React, alimentée par les mêmes actions, garde sa place.
-3. **Léger et modulaire plutôt qu'intégré et lourd.** Un CRM léger, une fiche contact légère, un centre de données léger : chaque outil fait une chose, se modifie sans risque et coûte peu à faire tourner.
-4. **Une forme imposée, au service de la simplicité.** Forgeron ne laisse pas cent façons d'écrire un tool. Il en propose une, courte et lisible, que tous les développeurs de l'entreprise reconnaissent. C'est ce qui rend les outils maintenables, transmissibles et gouvernables.
+1. **Backend first, interface second.** The core of a tool is its data and its actions. Once defined, they are served everywhere: to Claude through MCP, to other software through the API, to a human through the terminal or a web page. Forgeron's first deliverable is therefore a backend; views come as a complement.
+2. **Claude is a desirable interface.** Talking to your tools is faster than learning a screen. But a conversation doesn't replace everything: for a sales pipeline or a dashboard, a light React view, fed by the same actions, keeps its place.
+3. **Light and modular rather than integrated and heavy.** A light CRM, a light contact record, a light data hub: each tool does one thing, changes without risk and costs little to run.
+4. **An enforced shape, in service of simplicity.** Forgeron doesn't leave a hundred ways to write a tool. It offers one, short and readable, that every developer in the company recognizes. That is what makes tools maintainable, transferable and governable.
 
-Le nom porte l'idée : les développeurs internes viennent **forger** leurs propres outils à partir de bases, de modèles et de briques qui existent déjà, au lieu de dépendre d'une suite qui décide pour eux.
+The name carries the idea: internal developers come to **forge** their own tools from bases, templates and building blocks that already exist, instead of depending on a suite that decides for them.
 
-## Le produit
+## The product
 
-Forgeron se compose de six briques. Les trois premières sont open source et suffisent à faire tourner un tool ; les trois suivantes donnent la valeur d'usage.
+Forgeron is made of six building blocks. The first three are open source and are enough to run a tool; the next three provide the value in use.
 
-| Brique                   | Ce que c'est                                                                                                                                                          | Pour qui                        |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| **SDK** (`forgeron`)     | Bibliothèque TypeScript pour déclarer un tool : config, tables, migrations, actions, permissions, vues, connecteurs, tâches planifiées                                | Développeur                     |
-| **CLI** (`forgeron …`)   | `init`, `dev`, `play`, `test`, `build`, `deploy`, `db`, `secrets`, `logs` — tout le cycle de vie depuis le terminal, et chaque action d'un tool appelable en commande | Développeur, utilisateur avancé |
-| **Runtime**              | La couche qui exécute un tool sur Cloudflare Workers et sert ses quatre interfaces (MCP, API, Web, CLI)                                                               | —                               |
-| **Console**              | Le tableau de bord de l'espace : tools, versions, environnements, accès par rôle et par action, SSO, secrets, journal d'usage                                         | Admin, responsable IT           |
-| **Catalogue de modèles** | Des tools prêts à lancer : CRM léger, fiches contact, centre de données, passerelle d'API (ex. Odoo) — lancés tels quels ou forkés                                    | Toute l'entreprise              |
-| **Connecteurs**          | Briques d'accès aux services courants (Microsoft 365, Google, Odoo, etc.) avec authentification déléguée                                                              | Développeur                     |
+| Block                  | What it is                                                                                                                                                          | For whom              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| **SDK** (`forgeron`)   | TypeScript library to declare a tool: config, tables, migrations, actions, permissions, views, connectors, scheduled jobs                                           | Developer             |
+| **CLI** (`forgeron …`) | `init`, `dev`, `play`, `test`, `build`, `deploy`, `db`, `secrets`, `logs` — the whole lifecycle from the terminal, and every action of a tool callable as a command | Developer, power user |
+| **Runtime**            | The layer that runs a tool on Cloudflare Workers and serves its four interfaces (MCP, API, Web, CLI)                                                                | —                     |
+| **Console**            | The workspace dashboard: tools, versions, environments, access by role and by action, SSO, secrets, usage log                                                       | Admin, IT lead        |
+| **Template catalog**   | Ready-to-launch tools: light CRM, contact records, data hub, API gateway (e.g. Odoo) — launched as they are or forked                                               | The whole company     |
+| **Connectors**         | Building blocks to reach common services (Microsoft 365, Google, Odoo, etc.) with delegated authentication                                                          | Developer             |
 
-### Le terrain de jeu : `forgeron play`
+### The playground: `forgeron play`
 
-Un espace pour essayer un tool sans écrire de client : la liste de ses actions, un formulaire généré pour chacune, le résultat, et l'aperçu de ce que Claude, l'API et le CLI en voient. En local, il s'ouvre avec `forgeron play` ; dans la console, il permet de découvrir les modèles du catalogue avant de les lancer.
+A space to try a tool without writing a client: the list of its actions, a generated form for each one, the result, and a preview of what Claude, the API and the CLI see of it. Locally, it opens with `forgeron play`; in the console, it lets you discover the catalog templates before launching them.
 
-### Ce que Forgeron ne réinvente pas
+### What Forgeron doesn't reinvent
 
-La règle : réutiliser l'existant chaque fois qu'il est bon, et ne construire que ce qui donne la forme Forgeron.
+The rule: reuse what already exists whenever it is good, and build only what gives the Forgeron shape.
 
-- **Réutilisé** : Cloudflare Workers et son écosystème (D1, R2, KV, Durable Objects), Kysely pour les requêtes SQL typées, Zod pour les schémas, Vitest pour les tests, React pour les vues, le protocole MCP.
-- **Construit par Forgeron** : la structure d'un tool, le système de migrations, le build (`forgeron build`), la génération des quatre interfaces à partir d'une même action, le modèle de permissions, le versioning et les environnements.
+- **Reused**: Cloudflare Workers and its ecosystem (D1, R2, KV, Durable Objects), Kysely for typed SQL queries, Zod for schemas, Vitest for tests, React for views, the MCP protocol.
+- **Built by Forgeron**: the structure of a tool, the migration system, the build (`forgeron build`), the generation of the four interfaces from a single action, the permission model, versioning and environments.
 
-## Comment ça marche
+## How it works
 
-Un tool Forgeron est un dossier au format fixe ; une action déclarée une fois devient un outil MCP, une route d'API, une commande CLI et une donnée disponible pour les vues.
+A Forgeron tool is a folder in a fixed format; an action declared once becomes an MCP tool, an API route, a CLI command and data available to views.
 
-### L'anatomie d'un tool
+### The anatomy of a tool
 
 ```text
 crm/
-├── forgeron.config.ts      # nom, interfaces, rôles, connecteurs
+├── forgeron.config.ts      # name, interfaces, roles, connectors
 ├── db/
-│   ├── schema.ts           # tables, en TypeScript
-│   └── migrations/         # générées par forgeron db generate
-├── actions/                # une action par fichier
-├── views/                  # pages React (optionnel)
+│   ├── schema.ts           # tables, in TypeScript
+│   └── migrations/         # generated by forgeron db generate
+├── actions/                # one action per file
+├── views/                  # React pages (optional)
 ├── tests/                  # Vitest
-└── .forgeron/              # lien vers l'espace (commité) + local (ignoré)
+└── .forgeron/              # link to the workspace (committed) + local (ignored)
 ```
 
-Le détail du SDK, avec des exemples complets (CRM, passerelle Odoo, fiches contact), est dans [`sdk.md`](sdk.md) et le dossier [`exemples/`](exemples/).
+The SDK details, with complete examples (CRM, Odoo gateway, contact records), are in [`sdk.md`](sdk.md) and the [`examples/`](examples/) folder.
 
-### Une action, quatre interfaces
+### One action, four interfaces
 
-| Interface | Ce que reçoit l'utilisateur                                          | Exemple pour `contacts.search`                     |
-| --------- | -------------------------------------------------------------------- | -------------------------------------------------- |
-| MCP       | Un outil que Claude peut appeler, décrit et typé                     | `crm_contacts_search`                              |
-| API       | Une route HTTP authentifiée, avec schéma OpenAPI                     | `POST acme.forgeron.app/t/crm/api/contacts.search` |
-| CLI       | Une commande, avec aide générée                                      | `forgeron crm contacts search "Durand"`            |
-| Web       | Un hook pour les vues React, et un formulaire dans le terrain de jeu | `useAction("contacts.search")`                     |
+| Interface | What the user gets                                   | Example for `contacts.search`                      |
+| --------- | ---------------------------------------------------- | -------------------------------------------------- |
+| MCP       | A tool Claude can call, described and typed          | `crm_contacts_search`                              |
+| API       | An authenticated HTTP route, with an OpenAPI schema  | `POST acme.forgeron.app/t/crm/api/contacts.search` |
+| CLI       | A command, with generated help                       | `forgeron crm contacts search "Durand"`            |
+| Web       | A hook for React views, and a form in the playground | `useAction("contacts.search")`                     |
 
-La description, le schéma d'entrée et le niveau d'accès de l'action servent aux quatre. Un changement dans le code se propage partout à la version suivante.
+The action's description, input schema and access level serve all four. A change in the code spreads everywhere in the next version.
 
-### Le cycle de vie
+### The lifecycle
 
-1. **Développer** en local avec `forgeron dev` : le tool tourne comme en production, base de données comprise, avec son serveur MCP local.
-2. **Pousser** sur GitHub : chaque push crée une version immuable, et chaque branche une preview.
-3. **Ouvrir en pilote** une version à un groupe précis, pour la tester en conditions réelles.
-4. **Promouvoir** en production depuis la console ou avec `forgeron deploy --env production`.
-5. **Revenir en arrière** en un clic si besoin : la version précédente est toujours disponible.
+1. **Develop** locally with `forgeron dev`: the tool runs as it does in production, database included, with its local MCP server.
+2. **Push** to GitHub: every push creates an immutable version, and every branch a preview.
+3. **Open as a pilot** a version to a specific group, to test it in real conditions.
+4. **Promote** to production from the console or with `forgeron deploy --env production`.
+5. **Roll back** in one click if needed: the previous version is always available.
 
-### Les accès
+### Access
 
-Chaque personne se connecte par le SSO de l'entreprise. L'admin attribue des rôles ; chaque action déclare un niveau d'accès (lecture, écriture, suppression ou un niveau propre au tool) ; la console fait la correspondance rôle × action. Le même contrôle s'applique quelle que soit l'interface : demander à Claude ne donne pas plus de droits qu'appeler l'API.
+Everyone signs in through the company SSO. The admin assigns roles; each action declares an access level (read, write, delete or a level specific to the tool); the console maps role × action. The same check applies whatever the interface: asking Claude gives no more rights than calling the API.
 
-## Architecture technique
+## Technical architecture
 
-Forgeron est une surcouche à Cloudflare Workers : la plateforme construit et versionne les tools, Cloudflare les exécute, et une passerelle d'identité contrôle chaque appel.
+Forgeron is a layer on top of Cloudflare Workers: the platform builds and versions the tools, Cloudflare runs them, and an identity gateway checks every call.
 
-![Architecture : du dépôt aux quatre interfaces](../assets/schemas/architecture.png)
+![Architecture: from the repository to the four interfaces](../assets/schemas/architecture.png)
 
-Les requêtes montent des interfaces vers le Worker ; le code descend du dépôt vers Cloudflare.
+Requests flow up from the interfaces to the Worker; code flows down from the repository to Cloudflare.
 
-### Les choix techniques
+### Technical choices
 
-| Couche                | Choix                                                                                              | Pourquoi                                                                    |
-| --------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Exécution             | Cloudflare Workers ; Workers for Platforms dans le cloud Forgeron, Workers classiques en self-host | Démarrage instantané, coût faible, isolation par tool                       |
-| Base de données       | Cloudflare D1 (SQLite), interrogée avec Kysely                                                     | SQL typé sans ORM lourd ; une base par tool et par environnement            |
-| Migrations            | Système propre à Forgeron, au-dessus de Kysely                                                     | Générées depuis le schéma, appliquées à chaque déploiement, réversibles     |
-| Fichiers, cache, état | R2, KV, Durable Objects                                                                            | Les briques natives de Cloudflare, exposées par le SDK                      |
-| Schémas               | Zod                                                                                                | Un seul schéma pour valider, typer et générer MCP, OpenAPI et l'aide du CLI |
-| Build                 | `forgeron build`, propre à Forgeron (moteur de bundling existant en dessous)                       | Une sortie unique : le Worker, le manifeste des actions, les vues           |
-| Tests                 | Vitest, avec un contexte de test fourni par le SDK                                                 | Ne pas réinventer ; base locale en mémoire                                  |
-| Dev local             | `forgeron dev`, sur le runtime local de Cloudflare                                                 | Le même comportement qu'en production                                       |
-| Vues                  | React, avec des hooks du SDK                                                                       | Les données arrivent avec les droits de la personne connectée               |
+| Layer               | Choice                                                                                         | Why                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Execution           | Cloudflare Workers; Workers for Platforms in the Forgeron cloud, standard Workers in self-host | Instant startup, low cost, isolation per tool                            |
+| Database            | Cloudflare D1 (SQLite), queried with Kysely                                                    | Typed SQL without a heavy ORM; one database per tool and per environment |
+| Migrations          | Forgeron's own system, on top of Kysely                                                        | Generated from the schema, applied on every deployment, reversible       |
+| Files, cache, state | R2, KV, Durable Objects                                                                        | Cloudflare's native building blocks, exposed by the SDK                  |
+| Schemas             | Zod                                                                                            | One schema to validate, type and generate MCP, OpenAPI and CLI help      |
+| Build               | `forgeron build`, Forgeron's own (an existing bundling engine underneath)                      | A single output: the Worker, the action manifest, the views              |
+| Tests               | Vitest, with a test context provided by the SDK                                                | Don't reinvent; in-memory local database                                 |
+| Local dev           | `forgeron dev`, on Cloudflare's local runtime                                                  | The same behavior as in production                                       |
+| Views               | React, with SDK hooks                                                                          | Data arrives with the signed-in person's permissions                     |
 
-## Sécurité et gouvernance
+## Security and governance
 
-Un internal tool manipule les données de l'entreprise : Forgeron fait de la sécurité une propriété de la forme, pas une option laissée à chaque développeur.
+An internal tool handles company data: Forgeron makes security a property of the shape, not an option left to each developer.
 
-- **Identité unique.** Connexion par le SSO de l'entreprise (Microsoft Entra ID, Google Workspace, SAML/OIDC) pour la console, les vues, l'API et le serveur MCP. Le CLI s'authentifie par `forgeron login`, via le navigateur.
-- **Permissions déclaratives.** Chaque action porte son niveau d'accès dans le code ; aucune action n'est exposée sans. La console règle la correspondance rôles × actions, sans redéployer.
-- **Secrets séparés du code.** Deux niveaux : les secrets du tool (`forgeron secrets set`), chiffrés côté plateforme, et les secrets par personne — par exemple la clé d'API Odoo de chaque collaborateur, saisie une fois à la connexion et jamais visible du développeur.
-- **Isolation.** Chaque tool et chaque version tournent dans leur propre Worker, avec leur propre base. Une preview n'a jamais accès aux données de production, sauf choix explicite.
-- **Journal d'usage.** Chaque appel d'action est tracé : qui, quand, par quelle interface (Claude, API, Web, CLI), avec quel résultat. L'admin voit qui utilise quel tool et peut révoquer un accès immédiatement.
-- **Pas de sécurité par le prompt.** Ce que Claude peut faire est borné par les droits de la personne connectée, côté serveur. Une instruction glissée dans une conversation ne peut pas élargir ces droits.
-- **Souveraineté.** En self-host, tout tourne sur le compte Cloudflare de l'entreprise : Forgeron n'a pas accès aux données.
+- **Single identity.** Sign-in through the company SSO (Microsoft Entra ID, Google Workspace, SAML/OIDC) for the console, the views, the API and the MCP server. The CLI authenticates with `forgeron login`, through the browser.
+- **Declarative permissions.** Each action carries its access level in the code; no action is exposed without one. The console sets the roles × actions mapping, without redeploying.
+- **Secrets separate from code.** Two levels: the tool's secrets (`forgeron secrets set`), encrypted on the platform side, and per-person secrets — for example each employee's Odoo API key, entered once at sign-in and never visible to the developer.
+- **Isolation.** Each tool and each version runs in its own Worker, with its own database. A preview never has access to production data, unless explicitly chosen.
+- **Usage log.** Every action call is traced: who, when, through which interface (Claude, API, Web, CLI), with what result. The admin sees who uses which tool and can revoke access immediately.
+- **No security by prompt.** What Claude can do is bounded by the signed-in person's permissions, server-side. An instruction slipped into a conversation cannot widen those permissions.
+- **Sovereignty.** In self-host, everything runs on the company's Cloudflare account: Forgeron has no access to the data.
 
-## À qui on s'adresse
+## Who it's for
 
-La cible première : les entreprises qui ont au moins un développeur en interne, utilisent déjà un assistant IA et trouvent leur ERP trop lourd pour leurs besoins.
+The primary target: companies that have at least one in-house developer, already use an AI assistant and find their ERP too heavy for their needs.
 
-### Les segments
+### Segments
 
-| Segment                                | Leur situation                                               | Ce que Forgeron leur apporte                                           |
-| -------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| PME et ETI avec une petite équipe tech | Un ERP coûteux, des besoins simples, un ou deux développeurs | Remplacer des modules par des tools légers, utilisables depuis Claude  |
-| Équipes IT et DSI                      | Des scripts et serveurs MCP faits maison, sans gouvernance   | Un cadre unique : versions, accès, SSO, journal                        |
-| Agences et intégrateurs                | Des outils sur mesure livrés à plusieurs clients             | Une base commune, déployable chez chaque client, en self-host ou cloud |
-| Startups et équipes produit            | Un back-office à construire vite                             | Des modèles prêts à forker et une stack complète dès le premier jour   |
+| Segment                                  | Their situation                                       | What Forgeron brings them                                       |
+| ---------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------- |
+| SMBs and mid-caps with a small tech team | An expensive ERP, simple needs, one or two developers | Replace modules with light tools, usable from Claude            |
+| IT teams and CIO offices                 | Homemade scripts and MCP servers, without governance  | A single framework: versions, access, SSO, log                  |
+| Agencies and integrators                 | Custom tools delivered to several clients             | A common base, deployable at each client, in self-host or cloud |
+| Startups and product teams               | A back office to build fast                           | Ready-to-fork templates and a complete stack from day one       |
 
-### Les personas
+### Personas
 
-- **Le développeur interne** forge et maintient les tools. Il veut une stack simple, un CLI qui fait tout, des tests et un déploiement en une commande.
-- **L'admin ou le responsable IT** gouverne. Il veut savoir qui accède à quoi, brancher le SSO une fois, révoquer un accès en un clic.
-- **L'utilisateur métier** — commercial, support, direction — ne voit pas Forgeron. Il parle à Claude, ouvre une vue, et ses outils répondent.
-- **Le décideur** — dirigeant, DAF — compare le coût d'un ERP au coût d'un abonnement unique et d'outils qui font exactement ce qu'il faut.
+- **The internal developer** forges and maintains the tools. They want a simple stack, a CLI that does everything, tests and a one-command deployment.
+- **The admin or IT lead** governs. They want to know who accesses what, plug in SSO once, revoke access in one click.
+- **The business user** — sales, support, management — doesn't see Forgeron. They talk to Claude, open a view, and their tools respond.
+- **The decision maker** — executive, CFO — compares the cost of an ERP with the cost of a single subscription and of tools that do exactly what's needed.
 
-## Modèle économique et open source
+## Business model and open source
 
-Forgeron est open source pour gagner la confiance des développeurs, et se rémunère sur l'hébergement et la gouvernance, avec un seul plan au siège.
+Forgeron is open source to earn developers' trust, and earns its revenue on hosting and governance, with a single plan per seat.
 
-|                   | Self-host                                         | Forgeron Cloud                                                                         |
-| ----------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Ce qui est inclus | SDK, CLI, runtime, modèles                        | Tout le self-host, plus la console hébergée, le SSO, les connecteurs gérés, le support |
-| Où ça tourne      | Le compte Cloudflare de l'entreprise              | Notre infrastructure, sur Cloudflare                                                   |
-| Coût              | Gratuit ; l'entreprise paie Cloudflare            | Un abonnement unique par siège et par mois : [PRIX À FIXER]                            |
-| Pour qui          | Équipes tech autonomes, exigences de souveraineté | Entreprises qui veulent que ça marche, sans opérer                                     |
+|                 | Self-host                                       | Forgeron Cloud                                                                     |
+| --------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------- |
+| What's included | SDK, CLI, runtime, templates                    | Everything in self-host, plus the hosted console, SSO, managed connectors, support |
+| Where it runs   | The company's Cloudflare account                | Our infrastructure, on Cloudflare                                                  |
+| Cost            | Free; the company pays Cloudflare               | A single subscription per seat per month: [PRICE TO BE SET]                        |
+| For whom        | Autonomous tech teams, sovereignty requirements | Companies that want it to just work, without operating it                          |
 
-Pourquoi un plan unique : la promesse est l'inverse de l'ERP au module. Un siège donne accès à tous les tools de l'espace, à tous les modèles et à toutes les interfaces. L'équipe a évoqué une piste autour de 20 € par personne et par mois ; elle reste à valider face aux coûts d'infrastructure et au marché.
+Why a single plan: the promise is the opposite of the per-module ERP. One seat gives access to all the tools in the workspace, all the templates and all the interfaces. The team has floated a figure of around €20 per person per month; it remains to be validated against infrastructure costs and the market.
 
-Revenus complémentaires possibles, à étudier : accompagnement à la création de tools sur mesure, modèles premium, support étendu pour le self-host.
+Possible additional revenue, to be studied: support for building custom tools, premium templates, extended support for self-host.
 
-**Licence** : à choisir. Une licence permissive (MIT, Apache 2.0) maximise l'adoption ; une licence de type AGPL ou source-available protège le cloud contre la revente par un tiers.
+**License**: to be chosen. A permissive license (MIT, Apache 2.0) maximizes adoption; an AGPL or source-available license protects the cloud against resale by a third party.
 
-## Positionnement
+## Positioning
 
-Forgeron se place entre l'ERP qu'on achète et le code qu'on écrit seul : du code, mais dans un cadre de production, pensé pour être utilisé depuis Claude.
+Forgeron sits between the ERP you buy and the code you write alone: code, but within a production framework, designed to be used from Claude.
 
-| Alternative                            | Ce qu'elle fait bien                   | Ce qui manque, et que Forgeron apporte                                             |
-| -------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
-| ERP et suites métier                   | Couverture fonctionnelle large         | Légèreté, coût, interface libre, accès natif depuis Claude                         |
-| Plateformes low-code d'outils internes | Construire vite des écrans             | Un backend d'abord, du vrai code versionné, MCP et CLI natifs, open source         |
-| Serveurs MCP faits maison              | Brancher vite un assistant sur une API | Versions, accès, SSO, secrets par personne, journal, déploiement                   |
-| Un Worker Cloudflare écrit à la main   | Performance et coût                    | Une forme standard, la base, les migrations, les quatre interfaces, la gouvernance |
+| Alternative                      | What it does well                     | What's missing, and what Forgeron brings                                    |
+| -------------------------------- | ------------------------------------- | --------------------------------------------------------------------------- |
+| ERPs and business suites         | Broad functional coverage             | Lightness, cost, a free interface, native access from Claude                |
+| Low-code internal tool platforms | Build screens fast                    | Backend first, real versioned code, native MCP and CLI, open source         |
+| Homemade MCP servers             | Plug an assistant into an API quickly | Versions, access, SSO, per-person secrets, log, deployment                  |
+| A hand-written Cloudflare Worker | Performance and cost                  | A standard shape, the database, migrations, the four interfaces, governance |
 
-Ce qui rend Forgeron défendable : la **forme imposée**. Plus une entreprise a de tools écrits de la même façon, plus le catalogue, les connecteurs et la console prennent de la valeur, et plus il devient simple d'en écrire un de plus.
+What makes Forgeron defensible is the **enforced shape**. The more tools a company has written the same way, the more valuable the catalog, the connectors and the console become, and the simpler it gets to write one more.
 
-## Feuille de route proposée
+## Proposed roadmap
 
-On commence par le socle développeur et on le prouve sur un cas réel, la passerelle MCP Odoo déjà construite en interne, avant d'ouvrir la plateforme à des clients.
+We start with the developer foundation and prove it on a real case, the Odoo MCP gateway already built in-house, before opening the platform to customers.
 
-![Feuille de route : 4 phases, 3 portes](../assets/schemas/feuille-de-route.png)
+![Roadmap: 4 phases, 3 gates](../assets/schemas/roadmap.png)
 
-Les dates restent à fixer ; chaque phase ne commence qu'une fois la porte précédente franchie.
+Dates are yet to be set; each phase starts only once the previous gate is passed.
 
-## Questions ouvertes
+## Open questions
 
-- [ ] Licence open source : permissive ou protectrice du cloud ?
-- [ ] Prix du siège, et seuil éventuel (nombre minimal de sièges, offre gratuite pour une petite équipe) ?
-- [x] Exécution : Workers for Platforms dans le cloud, Workers classiques en self-host, derrière une même interface (décidé le 22/10/2026, `DECISIONS.md` D-009).
-- [ ] Base de données : D1 par tool et par environnement est retenu (`DECISIONS.md` D-010) ; reste la question : D1 seul, ou option Postgres (via Hyperdrive) pour les entreprises qui en ont déjà un ?
-- [ ] Vues : rendu côté serveur ou application React servie statiquement ?
-- [ ] Quels connecteurs en premier : Microsoft 365, Google Workspace, Odoo ?
-- [ ] Quels modèles dans le catalogue de lancement, et qui les maintient ?
-- [ ] Nom de domaine, organisation GitHub et nom du paquet npm `forgeron` : disponibles ?
+- [ ] Open source license: permissive or cloud-protecting?
+- [ ] Seat price, and a possible threshold (minimum number of seats, free offer for a small team)?
+- [x] Execution: Workers for Platforms in the cloud, standard Workers in self-host, behind the same interface (decided 10/22/2026, `DECISIONS.md` D-009).
+- [ ] Database: D1 per tool and per environment is chosen (`DECISIONS.md` D-010); the remaining question: D1 only, or a Postgres option (via Hyperdrive) for companies that already have one?
+- [ ] Views: server-side rendering or a statically served React app?
+- [ ] Which connectors first: Microsoft 365, Google Workspace, Odoo?
+- [ ] Which templates in the launch catalog, and who maintains them?
+- [ ] Domain name, GitHub organization and `forgeron` npm package name: available?
