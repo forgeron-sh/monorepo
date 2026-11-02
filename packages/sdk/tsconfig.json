@@ -1,5 +1,5 @@
 {
   "extends": "@forgeron/tsconfig/base.json",
-  "compilerOptions": { "lib": ["ES2023", "WebWorker"] },
+  "compilerOptions": { "lib": ["ES2023", "WebWorker"], "types": ["node"] },
   "include": ["src"]
 }

@@ -56,6 +56,12 @@ export function buildManifest(loaded: LoadedTool, version: string): Manifest {
     jobs[name] = def.timezone ? { cron: def.cron, timezone: def.timezone } : { cron: def.cron };
   }
 
+  if (loaded.schema !== undefined && !config.resources?.db) {
+    throw new Error(
+      "db/schema.ts declares tables, but resources.db is not declared in forgeron.config.ts (add `db: database()`).",
+    );
+  }
+
   const events: Manifest["events"] = {};
   for (const [name, def] of Object.entries(loaded.events)) {
     if (def?.kind !== "event") {

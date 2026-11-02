@@ -1,7 +1,7 @@
 import { actionNameOfPath } from "@forgeron/manifest";
 import type { ActionDefinition, EventDefinition, JobDefinition, ToolConfig } from "@forgeron/sdk";
 import { randomUUID } from "node:crypto";
-import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { rolldown } from "rolldown";
@@ -15,6 +15,8 @@ export interface LoadedTool {
   actions: Record<string, ActionDefinition>;
   jobs: Record<string, JobDefinition>;
   events: Record<string, EventDefinition>;
+  /** The tool's `db/schema.ts`, if it has one. */
+  schema?: unknown;
   /** The source files of the tool that went into the bundle (not npm packages, not tests). */
   modules: string[];
   /** Turns a Zod schema of the tool into a JSON Schema, with the tool's own copy of Zod. */
@@ -53,6 +55,18 @@ function named(dir: string, kind: string, entries: Array<{ name: string; file: s
     seen.set(name, file);
   }
   return entries;
+}
+
+const SCHEMA_FILE = ["db", "schema.ts"] as const;
+
+export async function schemaFileOf(dir: string): Promise<string | undefined> {
+  const file = join(dir, ...SCHEMA_FILE);
+  try {
+    await access(file);
+    return file;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function sourcesOf(dir: string) {
@@ -107,6 +121,7 @@ function boundary(dir: string) {
 
 export async function loadTool(dir: string, scratch: string): Promise<LoadedTool> {
   const { actions, jobs, events } = await sourcesOf(dir);
+  const schemaFile = await schemaFileOf(dir);
   const q = JSON.stringify;
   // Each file is imported on its own so that a failure names the file, not the bundle.
   const guarded = (file: string) =>
@@ -122,6 +137,7 @@ export async function loadTool(dir: string, scratch: string): Promise<LoadedTool
     `export const actions = { ${actions.map((a) => `${q(a.name)}: ${guarded(a.file)}`).join(", ")} };`,
     `export const jobs = { ${jobs.map((j) => `${q(j.name)}: ${guarded(j.file)}`).join(", ")} };`,
     `export const events = { ${events.map((e) => `${q(e.name)}: ${guarded(e.file)}`).join(", ")} };`,
+    ...(schemaFile ? [`export const schema = ${guarded(schemaFile)};`] : []),
     `export const toJsonSchema = (schema, io) => z.toJSONSchema(schema, { io });`,
   ].join("\n");
 

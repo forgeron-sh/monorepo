@@ -137,6 +137,8 @@ export function createEngine(options: RuntimeOptions): Engine {
     now: () => new Date(),
     ...options.platform,
   };
+  // Only a tool that declared `resources.db` has one; the platform gives it, or says it did not.
+  const db = manifest.resources.db ? (platform.db ?? missing("db")) : undefined;
   const outbound = filteredFetch(
     platform.fetch,
     manifest.resources.network?.allow ?? [],
@@ -185,6 +187,7 @@ export function createEngine(options: RuntimeOptions): Engine {
       emit: emitter(user, queued, depth),
       secrets: platform.secrets,
       fetch: outbound,
+      db,
       log: platform.log,
       now: platform.now,
       env,
@@ -260,6 +263,7 @@ export function createEngine(options: RuntimeOptions): Engine {
         fetch: outbound,
         files: platform.files,
         cache: platform.cache,
+        db,
         tools: platform.tools,
         log: platform.log,
         now: platform.now,
@@ -322,6 +326,7 @@ export function createEngine(options: RuntimeOptions): Engine {
         fetch: outbound,
         files: platform.files,
         cache: platform.cache,
+        db,
         tools: platform.tools,
         log: platform.log,
         now: platform.now,

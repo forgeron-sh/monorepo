@@ -61,6 +61,8 @@ export interface ActionContext {
   fetch: Fetch;
   files: unknown;
   cache: unknown;
+  /** The tool's database: with `resources.db` only. A Kysely, plus `batch` (see `createDb`). */
+  db: unknown;
   tools: Readonly<Record<string, unknown>>;
   log: Logger;
   now(): Date;
@@ -81,6 +83,7 @@ export interface EventContext {
   emit: ActionContext["emit"];
   secrets: ActionContext["secrets"];
   fetch: Fetch;
+  db: unknown;
   log: Logger;
   now(): Date;
   env: Environment;
@@ -116,6 +119,8 @@ export interface Platform {
   fetch: Fetch;
   files: unknown;
   cache: unknown;
+  /** The database of the environment: `createDb(env.DB)` in a Worker. */
+  db?: unknown;
   tools: ActionContext["tools"];
   log: Logger;
   /** Sees every emitted event, before its handlers run (tests record them here). */

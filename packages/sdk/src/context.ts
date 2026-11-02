@@ -1,4 +1,5 @@
 import type { Interface } from "@forgeron/manifest";
+import type { Database, Schema } from "./db/schema";
 
 // The `ctx` of docs/sdk.md section 6. The types are always present: the build refuses code
 // that uses a resource the config does not declare, so no member is optional here.
@@ -68,11 +69,23 @@ export interface ToolClient {
   call(action: string, input?: unknown): Promise<unknown>;
 }
 
+/**
+ * Filled in by the file `forgeron build` generates (`.forgeron/generated/db.d.ts`), which gives
+ * `ctx.db` the types of the tool's schema: `interface Register { db: Database<typeof schema> }`.
+ */
+// oxlint-disable-next-line typescript/no-empty-object-type -- an interface, to be augmented
+export interface Register {}
+
+/** `ctx.db`: typed by the tool's schema once built, an untyped Kysely before. */
+export type ContextDb = Register extends { db: infer D } ? D : Database<Schema>;
+
 export interface Context<Input = unknown> {
   /** Validated, typed input. */
   input: Input;
   /** The person, or `tool:<name>` in a scheduled task. */
   user: User;
+  /** The tool's database, with `resources.db`: a Kysely typed by its schema, plus `batch`. */
+  db: ContextDb;
   /** Checks an additional access level in code. */
   can(level: string): boolean;
   interface: CallSource;

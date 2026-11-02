@@ -1,8 +1,13 @@
 import type { Manifest } from "@forgeron/manifest";
-import type { Runtime, RuntimeOptions } from "@forgeron/runtime";
+import { createDb, type Db, type Runtime, type RuntimeOptions } from "@forgeron/runtime";
+import type { Kysely } from "kysely";
+import type { Batch } from "../db/schema";
 import type { Environment, Fetch, ToolClient } from "../context";
+import { createSchemaSql } from "../db/ddl";
+import type { Schema } from "../db/schema";
 import { ToolError } from "../errors";
 import { memoryCache } from "./cache";
+import { createMemoryD1 } from "./memory-d1";
 
 // `createTestTool` runs the tool the way it will be deployed: it loads the Worker that
 // `forgeron build` wrote to `.forgeron/build/`, and gives it a test platform (docs/sdk.md §13).
@@ -36,7 +41,7 @@ export interface TestToolOptions {
   tools?: Record<string, Record<string, (input: unknown) => unknown>>;
 }
 
-export interface TestTool {
+export interface TestTool<DB = any> {
   /**
    * Calls an action through access, validation and the platform. Resolves with the result,
    * rejects with the `ToolError` the caller would get (or with the error an action threw).
@@ -56,6 +61,11 @@ export interface TestTool {
    * their names. Freeze the clock with a date, as the trigger would carry one.
    */
   scheduled(now: Date): Promise<string[]>;
+  /**
+   * The tool's database, for arranging and checking a test: a Kysely on the same in-memory
+   * database the actions use. Only for a tool that declares `resources.db`.
+   */
+  db: Kysely<DB> & Batch;
   /** What actions, handlers and tasks emitted with `ctx.emit`, in order. */
   events: EmittedEvent[];
 }
@@ -63,6 +73,8 @@ export interface TestTool {
 interface BuiltWorker {
   createTool(options?: Partial<RuntimeOptions>): Runtime;
   manifest: Manifest;
+  /** The tool's `db/schema.ts`, if it has one. */
+  schema?: Schema;
 }
 
 function currentDirectory(): string {
@@ -84,7 +96,9 @@ const noFetch: Fetch = async (url) => {
   throw new Error(`No upstream in this test: pass \`fetch: mockFetch({...})\` to reach "${url}".`);
 };
 
-export async function createTestTool(options: TestToolOptions = {}): Promise<TestTool> {
+export async function createTestTool<DB = any>(
+  options: TestToolOptions = {},
+): Promise<TestTool<DB>> {
   const worker = await loadWorker(options.dir ?? currentDirectory());
   const events: EmittedEvent[] = [];
   const cache = new Map<string, unknown>();
@@ -103,7 +117,16 @@ export async function createTestTool(options: TestToolOptions = {}): Promise<Tes
     ]),
   );
 
-  const make = (given: Partial<TestIdentity>): TestTool => {
+  // One database for the test, shared by every person: the tables of the schema, empty.
+  let db: Db | undefined;
+  if (worker.manifest.resources.db) {
+    const d1 = await createMemoryD1();
+    for (const statement of worker.schema ? createSchemaSql(worker.schema) : [])
+      await d1.exec(statement);
+    db = createDb(d1);
+  }
+
+  const make = (given: Partial<TestIdentity>): TestTool<DB> => {
     const identity: TestIdentity = {
       email: "test@example.com",
       roles: Object.keys(worker.manifest.roles),
@@ -126,6 +149,7 @@ export async function createTestTool(options: TestToolOptions = {}): Promise<Tes
         userSecrets: identity.userSecrets ?? {},
         fetch: options.fetch ?? noFetch,
         cache: memoryCache(user.id, cache),
+        ...(db ? { db } : {}),
         tools,
         emit: (event, payload) => void events.push({ event, payload }),
         now: () => (frozen ? new Date(frozen) : new Date()),
@@ -138,6 +162,7 @@ export async function createTestTool(options: TestToolOptions = {}): Promise<Tes
     });
 
     return {
+      db: db as unknown as TestTool<DB>["db"],
       events,
       fetch: (path, init) => runtime.fetch(new Request(`https://tool.test${path}`, init)),
       runJob: (name) => runtime.runJob(name),

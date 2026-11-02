@@ -7,6 +7,7 @@ import { startDev, type DevSession } from "./dev";
 
 const fixtures = fileURLToPath(new URL("../fixtures", import.meta.url));
 const greeter = join(fixtures, "greeter");
+const dbping = join(fixtures, "dbping");
 
 const sessions: DevSession[] = [];
 const dirs: string[] = [];
@@ -46,6 +47,12 @@ describe("forgeron dev", () => {
       arguments: { name: "Ely" },
     });
     expect(result.structuredContent).toEqual({ message: "Hello, Ely!", as: "dev" });
+  }, 60_000);
+
+  it("gives a tool with a database its D1 binding, in workerd", async () => {
+    const session = await dev(dbping);
+    const result = await rpc(session.url, "tools/call", { name: "dbping_db_ping", arguments: {} });
+    expect(result.structuredContent).toEqual({ one: 1 });
   }, 60_000);
 
   it("exposes the other interfaces too", async () => {
