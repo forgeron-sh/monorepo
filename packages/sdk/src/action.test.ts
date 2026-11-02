@@ -84,6 +84,14 @@ describe("action", () => {
     expect(() => action({ ...base, description: "x", access: "" })).toThrow(/access level/);
   });
 
+  it("refuses a missing description or access level, as plain JavaScript can omit them", () => {
+    const base = { input: z.object({}), run: () => null };
+    // @ts-expect-error `access` is required
+    expect(() => action({ ...base, description: "x" })).toThrow(/access level/);
+    // @ts-expect-error `description` is required
+    expect(() => action({ ...base, access: "read" })).toThrow(/description/);
+  });
+
   it("refuses a positional argument that is not an input field", () => {
     expect(() =>
       action({
