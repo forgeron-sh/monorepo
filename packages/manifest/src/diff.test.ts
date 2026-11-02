@@ -81,7 +81,11 @@ const cases: Array<[string, Mutation, ChangeKind, Impact]> = [
 
 describe("diffManifests", () => {
   it("reports no change for equal manifests", () => {
-    expect(diffManifests(crm, clone(crm))).toEqual({ changes: [], impact: "none" });
+    expect(diffManifests(crm, clone(crm))).toEqual({
+      changes: [],
+      impact: "none",
+      pendingApproval: false,
+    });
   });
 
   it("ignores the version", () => {
@@ -358,5 +362,85 @@ describe("maxImpact", () => {
     expect(maxImpact("none", "patch")).toBe("patch");
     expect(maxImpact("minor", "patch")).toBe("minor");
     expect(maxImpact("minor", "major")).toBe("major");
+  });
+});
+
+describe("pending approval", () => {
+  const flagged = (mutate: Mutation) => diff(mutate).changes.filter((c) => c.needsApproval);
+
+  it.each<[string, Mutation, string]>([
+    [
+      "a new connector",
+      (m) =>
+        (m.resources.connectors!.slack = {
+          type: "slack",
+          mode: "delegated",
+          scopes: ["chat:write"],
+          why: "Post a message",
+        }),
+      "resources.connectors.slack",
+    ],
+    [
+      "an extra scope",
+      (m) => m.resources.connectors!.microsoft!.scopes.push("Calendars.Read"),
+      "resources.connectors.microsoft",
+    ],
+    [
+      "a connector that switches mode",
+      (m) => (m.resources.connectors!.microsoft!.mode = "application"),
+      "resources.connectors.microsoft",
+    ],
+    ["a new host", (m) => m.resources.network!.allow.push("api.example.com"), "resources.network"],
+    [
+      "a new per-person secret",
+      (m) =>
+        (m.resources.userSecrets!.GITHUB_TOKEN = { label: "GitHub token", why: "Read issues" }),
+      "resources.userSecrets.GITHUB_TOKEN",
+    ],
+    [
+      "a new tool secret",
+      (m) => (m.resources.secrets!.SLACK_KEY = { why: "Notify" }),
+      "resources.secrets.SLACK_KEY",
+    ],
+    [
+      "a broader file store",
+      (m) => (m.resources.files!.types = ["application/pdf", "image/*", "text/csv"]),
+      "resources.files",
+    ],
+  ])("flags %s", (_, mutate, subject) => {
+    expect(flagged(mutate).map((c) => c.subject)).toEqual([subject]);
+    expect(diff(mutate).pendingApproval).toBe(true);
+  });
+
+  it("flags a resource the previous version did not have", () => {
+    const before = clone(crm);
+    delete before.resources.queue;
+    const result = diffManifests(before, crm);
+    expect(result.pendingApproval).toBe(true);
+    expect(result.changes[0]).toMatchObject({ subject: "resources.queue", needsApproval: true });
+  });
+
+  it.each<[string, Mutation]>([
+    ["a removed resource", (m) => delete m.resources.db],
+    ["a removed host", (m) => (m.resources.network!.allow = [])],
+    ["a removed scope", (m) => (m.resources.connectors!.microsoft!.scopes = [])],
+    ["a removed connector", (m) => delete m.resources.connectors!.microsoft],
+    ["a removed per-person secret", (m) => delete m.resources.userSecrets!.ODOO_API_KEY],
+    ["a reworded reason", (m) => (m.resources.db!.why = "Anything")],
+  ])("does not flag %s", (_, mutate) => {
+    const result = diff(mutate);
+    expect(result.changes.length).toBeGreaterThan(0);
+    expect(result.pendingApproval).toBe(false);
+    expect(flagged(mutate)).toEqual([]);
+  });
+
+  it("does not flag changes outside resources", () => {
+    const result = diff((m) => (m.actions["deals.list"] = move(m)));
+    expect(result.pendingApproval).toBe(false);
+  });
+
+  it("keeps the impact of the flagged changes", () => {
+    const result = diff((m) => m.resources.network!.allow.push("api.example.com"));
+    expect(result).toMatchObject({ impact: "minor", pendingApproval: true });
   });
 });

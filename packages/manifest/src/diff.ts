@@ -71,10 +71,14 @@ export interface Change {
   subject: string;
   impact: Exclude<Impact, "none">;
   detail?: string;
+  /** Set on a resource that is added or broadened: an admin must accept it (sdk.md §3). */
+  needsApproval?: true;
 }
 
 export interface ManifestDiff {
   changes: Change[];
+  /** True when at least one change needs approval before pilot or production. */
+  pendingApproval: boolean;
   /** The strongest impact among the changes; `none` when the manifests are equivalent. */
   impact: Impact;
 }
@@ -166,8 +170,14 @@ export function diffManifests(previous: Manifest, next: Manifest): ManifestDiff 
     },
   });
 
-  const impact = changes.reduce<Impact>((acc, change) => maxImpact(acc, change.impact), "none");
-  return { changes, impact };
+  // A removed or narrowed resource asks for nothing.
+  const flagged = changes.map((change) =>
+    change.kind === "resource.added" || change.kind === "resource.broadened"
+      ? { ...change, needsApproval: true as const }
+      : change,
+  );
+  const impact = flagged.reduce<Impact>((acc, change) => maxImpact(acc, change.impact), "none");
+  return { changes: flagged, impact, pendingApproval: flagged.some((c) => c.needsApproval) };
 }
 
 type Add = (kind: ChangeKind, subject: string, impact: Change["impact"], detail?: string) => void;
