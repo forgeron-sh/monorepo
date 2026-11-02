@@ -1,0 +1,47 @@
+import { handleCall } from "./api";
+import { handleCli } from "./cli";
+import { createEngine } from "./engine";
+import { errorResponse } from "./http";
+import { handleMcp } from "./mcp";
+import type { RuntimeOptions } from "./types";
+
+export interface Runtime {
+  /**
+   * Answers a request whose path is relative to the tool: the gateway strips `/t/<tool>`.
+   * `/mcp`, `/api/<action>`, `/cli`, and `/_f/call/<action>` for the views.
+   */
+  fetch(request: Request): Promise<Response>;
+}
+
+/** Builds the Worker side of a tool: one action, four interfaces (sdk.md §7). */
+export function createRuntime(options: RuntimeOptions): Runtime {
+  const { manifest } = options;
+  const engine = createEngine(options);
+  const notFound = () => errorResponse({ code: "NOT_FOUND", message: "Not found." });
+
+  return {
+    async fetch(request) {
+      const user = await options.authenticate(request);
+      if (!user) {
+        return errorResponse(
+          { code: "UNAUTHENTICATED", message: "Sign in to call this tool." },
+          401,
+        );
+      }
+      const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
+      const actionOf = (prefix: string) => decodeURIComponent(path.slice(prefix.length));
+
+      if (path === "/mcp" && manifest.interfaces.mcp)
+        return handleMcp(request, engine, manifest, user);
+      if (path === "/cli" && manifest.interfaces.cli)
+        return handleCli(request, engine, manifest, user);
+      if (path.startsWith("/api/") && manifest.interfaces.api) {
+        return handleCall(request, engine, manifest, user, "api", actionOf("/api/"));
+      }
+      if (path.startsWith("/_f/call/") && manifest.interfaces.web) {
+        return handleCall(request, engine, manifest, user, "web", actionOf("/_f/call/"));
+      }
+      return notFound();
+    },
+  };
+}
