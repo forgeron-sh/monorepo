@@ -2,6 +2,10 @@
 
 The `forgeron` binary.
 
+## Implemented
+
+- `forgeron dev [dir] [--port n]`: builds the tool, runs it in workerd (local hosting) and serves `/mcp`, `/api/<action>` and `/cli`; rebuilds when a source changes, keeping the URL, and keeps serving the previous build if the new one fails.
+
 ## Planned contents
 
 - Tool lifecycle: `init`, `link`, `dev`, `play`, `test`, `build`, `deploy`, `promote`, `rollback` (`sdk.md` §5)

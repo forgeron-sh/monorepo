@@ -5,7 +5,6 @@
     ".": {
       "entry": ["scripts/*.ts"]
     },
-    "apps/*": {},
     "packages/*": {},
     "templates/*": {
       "entry": ["forgeron.config.ts", "actions/**/*.ts", "jobs/**/*.ts", "events/**/*.ts"]
@@ -16,6 +15,11 @@
     },
     "packages/sdk": {
       "ignore": ["fixtures/**"]
+    },
+    "apps/*": {},
+    "apps/cli": {
+      "ignore": ["fixtures/**"],
+      "ignoreDependencies": ["@forgeron/sdk"]
     }
   }
 }
