@@ -2,5 +2,8 @@
   "name": "@forgeron/template-odoo-gateway",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@forgeron/sdk": "workspace:*"
+  }
 }

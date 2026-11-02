@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { rolldown } from "rolldown";
 import { discoverTools } from "./discover";
 import { fingerprintSources, sha256 } from "./fingerprint";
@@ -48,7 +48,8 @@ function workerEntry(
 }
 
 /** Turns a tool folder into `.forgeron/build/`: the Worker, the manifest and the build record. */
-export async function buildTool(dir: string): Promise<BuildResult> {
+export async function buildTool(folder: string): Promise<BuildResult> {
+  const dir = resolve(folder);
   const outDir = join(dir, ...BUILD_DIR);
   const scratch = join(outDir, ".tmp");
   await rm(outDir, { recursive: true, force: true });

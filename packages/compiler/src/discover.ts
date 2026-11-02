@@ -1,12 +1,12 @@
 import { readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 export const CONFIG_FILE = "forgeron.config.ts";
 
 const SKIPPED = new Set(["node_modules", ".git", ".forgeron"]);
 
 /**
- * Every folder that carries a `forgeron.config.ts`, at any depth, is a tool (D-006).
+ * Every folder (as an absolute path) that carries a `forgeron.config.ts`, at any depth, is a tool (D-006).
  * `node_modules`, `.git` and `.forgeron` (the build output) are not searched.
  */
 export async function discoverTools(root: string): Promise<string[]> {
@@ -18,6 +18,6 @@ export async function discoverTools(root: string): Promise<string[]> {
       if (entry.isDirectory() && !SKIPPED.has(entry.name)) await walk(join(dir, entry.name));
     }
   }
-  await walk(root);
+  await walk(resolve(root));
   return found.sort();
 }
