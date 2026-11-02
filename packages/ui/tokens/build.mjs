@@ -1,11 +1,15 @@
 // Generates tokens/tokens.css and copies the fonts from assets/design-system.
 // Source of truth: assets/design-system/tokens.json. Run: bun run tokens (in packages/ui).
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+// `--check` writes nothing and fails if the committed files differ from what would be generated.
+// `TOKENS_DIR` changes where the generated files live (tests use it).
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const source = join(here, "../../../assets/design-system");
+const out = process.env.TOKENS_DIR ?? here;
+const check = process.argv.includes("--check");
 const tokens = JSON.parse(readFileSync(join(source, "tokens.json"), "utf8"));
 
 const lines = (theme) =>
@@ -57,8 +61,34 @@ const css = [
   ...textClasses,
 ].join("\n\n");
 
-writeFileSync(join(here, "tokens.css"), `${css}\n`);
-mkdirSync(join(here, "fonts"), { recursive: true });
-for (const f of tokens.type.fonts) {
-  copyFileSync(join(source, f.file), join(here, "fonts", f.file.split("/").pop()));
+const stale = [];
+const same = (path, expected) =>
+  existsSync(path) &&
+  readFileSync(path).equals(Buffer.isBuffer(expected) ? expected : Buffer.from(expected));
+
+const cssFile = join(out, "tokens.css");
+if (check) {
+  if (!same(cssFile, `${css}\n`)) stale.push("tokens.css");
+} else {
+  mkdirSync(out, { recursive: true });
+  writeFileSync(cssFile, `${css}\n`);
 }
+
+if (!check) mkdirSync(join(out, "fonts"), { recursive: true });
+for (const f of tokens.type.fonts) {
+  const name = f.file.split("/").pop();
+  const from = readFileSync(join(source, f.file));
+  if (check) {
+    if (!same(join(out, "fonts", name), from)) stale.push(`fonts/${name}`);
+  } else {
+    copyFileSync(join(source, f.file), join(out, "fonts", name));
+  }
+}
+
+if (stale.length > 0) {
+  console.error(
+    `packages/ui/tokens is stale: ${stale.join(", ")}. Run \`bun run tokens\` in packages/ui and commit the result.`,
+  );
+  process.exit(1);
+}
+if (check) console.log("packages/ui/tokens is up to date with assets/design-system/tokens.json.");
