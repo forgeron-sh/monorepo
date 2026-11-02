@@ -27,6 +27,12 @@ describe("discoverTools", () => {
     expect(found.map((dir) => dir.slice(root.length + 1))).toEqual(["group/two", "one"]);
   });
 
+  it("accepts a relative root and answers with absolute paths", async () => {
+    const { relative } = await import("node:path");
+    const found = await discoverTools(relative(process.cwd(), join(root, "group")));
+    expect(found).toEqual([join(root, "group", "two")]);
+  });
+
   it("finds a tool at the root itself", async () => {
     expect(await discoverTools(join(root, "one"))).toEqual([join(root, "one")]);
   });

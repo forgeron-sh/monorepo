@@ -106,6 +106,35 @@ describe("createTestTool", () => {
     });
   });
 
+  describe("fetch", () => {
+    it("sends a request through the interfaces, as the person of the test", async () => {
+      const tool = await create({ as: { email: "ely@acme.fr", roles: ["reader"] } });
+      const response = await tool.fetch("/mcp", {
+        method: "POST",
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      });
+      const { result } = (await response.json()) as { result: { tools: Array<{ name: string }> } };
+      // A reader sees the read actions only.
+      expect(result.tools.map((t) => t.name)).toContain("notes_notes_info");
+      expect(result.tools.map((t) => t.name)).not.toContain("notes_notes_add");
+    });
+
+    it("follows `as`", async () => {
+      const tool = await create({ as: { roles: ["reader"] } });
+      const editor = tool.as({ roles: ["editor"] });
+      const list = async (t: typeof tool) => {
+        const response = await t.fetch("/mcp", {
+          method: "POST",
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+        });
+        const body = (await response.json()) as { result: { tools: Array<{ name: string }> } };
+        return body.result.tools.map((t) => t.name);
+      };
+      expect(await list(editor)).toContain("notes_notes_add");
+      expect(await list(tool)).not.toContain("notes_notes_add");
+    });
+  });
+
   describe("upstreams", () => {
     it("reaches the upstream through mockFetch and records the events", async () => {
       const fetch = mockFetch({ "POST https://api.example.com/notes": { id: 7, text: "x" } });

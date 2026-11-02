@@ -147,6 +147,9 @@
     "templates/odoo-gateway": {
       "name": "@forgeron/template-odoo-gateway",
       "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/sdk": "workspace:*",
+      },
     },
   },
   "packages": {

@@ -44,6 +44,11 @@ export interface TestTool {
   call(action: string, input?: unknown): Promise<unknown>;
   /** The same tool, called by another person. Emitted events and the cache are shared. */
   as(identity: Partial<TestIdentity>): TestTool;
+  /**
+   * Sends a request to the tool as this person, through its interfaces: `/mcp`, `/api/<action>`,
+   * `/cli`. Paths are relative to the tool, as the gateway forwards them.
+   */
+  fetch(path: string, init?: RequestInit): Promise<Response>;
   /** What actions emitted with `ctx.emit`, in order. */
   events: EmittedEvent[];
 }
@@ -108,6 +113,7 @@ export async function createTestTool(options: TestToolOptions = {}): Promise<Tes
     const thrown: unknown[] = [];
     const runtime = worker.createTool({
       env: options.env ?? "local",
+      authenticate: () => user,
       platform: {
         secrets: options.secrets ?? {},
         userSecrets: identity.userSecrets ?? {},
@@ -126,6 +132,7 @@ export async function createTestTool(options: TestToolOptions = {}): Promise<Tes
 
     return {
       events,
+      fetch: (path, init) => runtime.fetch(new Request(`https://tool.test${path}`, init)),
       as: (next) => make({ ...identity, ...next }),
       async call(action, input) {
         const outcome = await runtime.invoke(user, action, input);
