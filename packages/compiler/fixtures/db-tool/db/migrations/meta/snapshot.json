@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "name": "companies",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "name",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "created_at",
+          "kind": "timestamp",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "default": {
+            "kind": "now"
+          }
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "deals",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "company_id",
+          "kind": "ref",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "references": "companies",
+          "onDelete": "cascade"
+        },
+        {
+          "name": "title",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "stage",
+          "kind": "enum",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "values": ["lead", "won", "lost"],
+          "default": {
+            "kind": "value",
+            "value": "lead"
+          }
+        },
+        {
+          "name": "updated_at",
+          "kind": "timestamp",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": true,
+          "default": {
+            "kind": "now"
+          }
+        }
+      ],
+      "indexes": [
+        {
+          "columns": ["stage"],
+          "unique": false
+        }
+      ]
+    }
+  ]
+}

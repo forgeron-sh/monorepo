@@ -1,5 +1,6 @@
 import { actionNameOfPath } from "@forgeron/manifest";
 import type { ActionDefinition, EventDefinition, JobDefinition, ToolConfig } from "@forgeron/sdk";
+import type { MigrationDefinition } from "@forgeron/sdk/db";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -17,6 +18,8 @@ export interface LoadedTool {
   events: Record<string, EventDefinition>;
   /** The tool's `db/schema.ts`, if it has one. */
   schema?: unknown;
+  /** `db/migrations/NNNN_<name>.ts`, by name. */
+  migrations: Record<string, MigrationDefinition>;
   /** The source files of the tool that went into the bundle (not npm packages, not tests). */
   modules: string[];
   /** Turns a Zod schema of the tool into a JSON Schema, with the tool's own copy of Zod. */
@@ -73,6 +76,7 @@ export async function sourcesOf(dir: string) {
   const actionFiles = await files(join(dir, "actions"));
   const jobFiles = await files(join(dir, "jobs"));
   const eventFiles = await files(join(dir, "events"));
+  const migrationFiles = await files(join(dir, "db", "migrations"));
   return {
     actions: named(
       dir,
@@ -86,6 +90,11 @@ export async function sourcesOf(dir: string) {
       dir,
       "task",
       jobFiles.map((file) => ({ name: basename(file, extname(file)), file })),
+    ),
+    migrations: named(
+      dir,
+      "migration",
+      migrationFiles.map((file) => ({ name: basename(file, extname(file)), file })),
     ),
     events: named(
       dir,
@@ -120,7 +129,7 @@ function boundary(dir: string) {
 }
 
 export async function loadTool(dir: string, scratch: string): Promise<LoadedTool> {
-  const { actions, jobs, events } = await sourcesOf(dir);
+  const { actions, jobs, events, migrations } = await sourcesOf(dir);
   const schemaFile = await schemaFileOf(dir);
   const q = JSON.stringify;
   // Each file is imported on its own so that a failure names the file, not the bundle.
@@ -138,6 +147,7 @@ export async function loadTool(dir: string, scratch: string): Promise<LoadedTool
     `export const jobs = { ${jobs.map((j) => `${q(j.name)}: ${guarded(j.file)}`).join(", ")} };`,
     `export const events = { ${events.map((e) => `${q(e.name)}: ${guarded(e.file)}`).join(", ")} };`,
     ...(schemaFile ? [`export const schema = ${guarded(schemaFile)};`] : []),
+    `export const migrations = { ${migrations.map((m) => `${q(m.name)}: ${guarded(m.file)}`).join(", ")} };`,
     `export const toJsonSchema = (schema, io) => z.toJSONSchema(schema, { io });`,
   ].join("\n");
 

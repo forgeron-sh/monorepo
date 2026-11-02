@@ -5,8 +5,55 @@ import { rolldown } from "rolldown";
 import { checkResources } from "./check";
 import { discoverTools } from "./discover";
 import { fingerprintSources, sha256 } from "./fingerprint";
+import { resolveMigration, sameSnapshot, snapshotOf } from "@forgeron/sdk/db";
 import { loadTool, schemaFileOf, sourcesOf } from "./load";
+import { readSnapshot } from "./migrations/generate";
 import { buildManifest } from "./manifest";
+
+/** A migration as the build records it: its statements, resolved, and the fingerprint of its file. */
+interface BuiltMigration {
+  name: string;
+  fingerprint: string;
+  up: Array<{ sql: string; parameters: unknown[] }>;
+  down: Array<{ sql: string; parameters: unknown[] }>;
+  destructive: boolean;
+}
+
+const MIGRATION_NAME = /^(\d{4})_[a-z0-9_]+$/;
+
+async function builtMigrations(
+  dir: string,
+  migrations: Record<string, unknown>,
+): Promise<BuiltMigration[]> {
+  const names = Object.keys(migrations).sort();
+  const numbers = new Set<string>();
+  const built: BuiltMigration[] = [];
+  for (const name of names) {
+    const match = MIGRATION_NAME.exec(name);
+    if (!match) {
+      throw new Error(
+        `db/migrations/${name}.ts: a migration is named NNNN_<name>, like 0001_init.`,
+      );
+    }
+    if (numbers.has(match[1]!))
+      throw new Error(`Two migrations have the number ${match[1]}: renumber one.`);
+    numbers.add(match[1]!);
+    const definition = migrations[name] as Parameters<typeof resolveMigration>[0] | undefined;
+    if (definition?.kind !== "migration") {
+      throw new Error(
+        `db/migrations/${name}.ts: the default export is not a migration (use migration() from @forgeron/sdk/db).`,
+      );
+    }
+    const source = await readFile(join(dir, "db", "migrations", `${name}.ts`));
+    built.push({
+      name,
+      fingerprint: sha256(source),
+      ...resolveMigration(definition),
+      destructive: definition.destructive ?? false,
+    });
+  }
+  return built;
+}
 
 export interface BuildResult {
   /** The tool folder. */
@@ -29,6 +76,7 @@ function workerEntry(
   events: Array<{ name: string; file: string }>,
   jobs: Array<{ name: string; file: string }>,
   schemaFile: string | undefined,
+  migrationsFile: string | undefined,
 ): string {
   const q = JSON.stringify;
   return [
@@ -36,6 +84,7 @@ function workerEntry(
     `import manifest from ${q(manifestPath)};`,
     ...actions.map((a, i) => `import action${i} from ${q(a.file)};`),
     ...(schemaFile ? [`import schema from ${q(schemaFile)};`] : []),
+    ...(migrationsFile ? [`import migrations from ${q(migrationsFile)};`] : []),
     ...events.map((e, i) => `import event${i} from ${q(e.file)};`),
     ...jobs.map((j, i) => `import job${i} from ${q(j.file)};`),
     `const actions = { ${actions.map((a, i) => `${q(a.name)}: action${i}`).join(", ")} };`,
@@ -50,7 +99,7 @@ function workerEntry(
     `export function createTool(options = {}) {`,
     `  return createRuntime({ manifest, actions, events, jobs, authenticate: gatewayIdentity, ...options });`,
     `}`,
-    `export { manifest${schemaFile ? ", schema" : ""} };`,
+    `export { manifest${schemaFile ? ", schema" : ""}${migrationsFile ? ", migrations" : ""} };`,
     `// The Worker's bindings arrive with each call: the database of the environment is \`env.DB\`.`,
     `let runtime;`,
     `const runtimeFor = (env) => (runtime ??= createTool(env?.DB ? { platform: { db: createDb(env.DB) } } : {}));`,
@@ -101,12 +150,34 @@ export async function buildTool(folder: string): Promise<BuildResult> {
   const manifestFile = join(outDir, "manifest.json");
   await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
 
+  // The schema must not have moved since the last migration (sdk.md §14): `forgeron db generate` first.
+  if (loaded.schema !== undefined) {
+    const current = snapshotOf(loaded.schema as Parameters<typeof snapshotOf>[0]);
+    if (!sameSnapshot(await readSnapshot(dir), current)) {
+      throw new Error(
+        "db/schema.ts has changed since the last migration (db/migrations/meta/snapshot.json): run `forgeron db generate`.",
+      );
+    }
+  }
+  const migrations = await builtMigrations(dir, loaded.migrations);
+  const migrationsFile = join(outDir, "migrations.json");
+  if (migrations.length > 0)
+    await writeFile(migrationsFile, `${JSON.stringify(migrations, null, 2)}\n`);
+
   const { actions, events, jobs } = await sourcesOf(dir);
   const runtimePath = createRequire(import.meta.url).resolve("@forgeron/runtime");
   const input = join(scratch, "worker.ts");
   await writeFile(
     input,
-    workerEntry(runtimePath, manifestFile, actions, events, jobs, await schemaFileOf(dir)),
+    workerEntry(
+      runtimePath,
+      manifestFile,
+      actions,
+      events,
+      jobs,
+      await schemaFileOf(dir),
+      migrations.length > 0 ? migrationsFile : undefined,
+    ),
   );
   const bundle = await rolldown({ input, platform: "neutral", logLevel: "silent" });
   await bundle.write({ file: join(outDir, "worker.js"), format: "esm" });

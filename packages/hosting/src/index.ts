@@ -2,6 +2,7 @@
 // Neutral: plain data in and out, no Node API, so the gateway (a Worker) and the CLI can both use it.
 // The implementations are separate: `./local` here; cloud and self-host come later.
 import type { Manifest } from "@forgeron/manifest";
+import type { BuildMigration, MigrateOptions, MigrateResult } from "./migrate";
 
 export type EnvironmentName = "local" | "preview" | "pilot" | "production";
 
@@ -19,6 +20,8 @@ export interface Build {
   worker: string;
   /** The hash of the sources: the same code gives the same fingerprint. */
   fingerprint: string;
+  /** `db/migrations/`, in the order they apply. */
+  migrations?: BuildMigration[];
 }
 
 export type BindingKind = "d1" | "kv" | "r2" | "queue";
@@ -50,6 +53,8 @@ export interface Hosting {
   provision(environment: Environment, manifest: Manifest): Promise<Provisioned>;
   /** Sends a build's Worker with its bindings. */
   upload(provisioned: Provisioned, build: Build): Promise<Uploaded>;
+  /** Applies the build's pending migrations to the environment's database, before traffic switches. */
+  migrate(uploaded: Uploaded, options?: MigrateOptions): Promise<MigrateResult>;
   /** Makes the environment serve this build. */
   activate(uploaded: Uploaded): Promise<Activation>;
   /** Deletes the environment and its resources. */
@@ -70,3 +75,13 @@ export function bindingsOf(manifest: Manifest): Binding[] {
 export function environmentKey({ tool, name, branch }: Environment): string {
   return [tool, name, branch].filter(Boolean).join(":");
 }
+
+export { applyMigrations, migrationStatus, MigrationError, revertMigrations } from "./migrate";
+export type {
+  BuildMigration,
+  D1Database,
+  MigrateOptions,
+  MigrateResult,
+  MigrationErrorCode,
+  MigrationStatement,
+} from "./migrate";

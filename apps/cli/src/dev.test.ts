@@ -55,6 +55,84 @@ describe("forgeron dev", () => {
     expect(result.structuredContent).toEqual({ one: 1 });
   }, 60_000);
 
+  describe("with a database", () => {
+    // A copy inside the repository, so that `@forgeron/sdk` resolves; its local database is its own.
+    const copy = async (name: string) => {
+      const dir = join(fixtures, `.work-${name}-${Date.now()}`);
+      dirs.push(dir);
+      await cp(dbping, dir, { recursive: true, filter: (src) => !src.includes(".forgeron") });
+      return dir;
+    };
+    // An object comes back as structured content, an array as JSON text.
+    const call = async (url: string, tool: string, args: object = {}) => {
+      const result = (await rpc(url, "tools/call", { name: tool, arguments: args })) as {
+        structuredContent?: unknown;
+        isError?: boolean;
+        content?: Array<{ text: string }>;
+      };
+      const data = result.structuredContent ?? JSON.parse(result.content?.[0]?.text ?? "null");
+      return { ...result, data };
+    };
+
+    it("applies the migrations before serving: the tables are there", async () => {
+      const session = await dev(await copy("db-tables"));
+      expect(
+        (await call(session.url, "dbping_things_add", { name: "first" })).structuredContent,
+      ).toEqual({ name: "first" });
+      expect((await call(session.url, "dbping_things_list")).data).toEqual([{ name: "first" }]);
+    }, 90_000);
+
+    it("keeps the local database from one session to the next", async () => {
+      const dir = await copy("db-persist");
+      const first = await startDev(dir);
+      await call(first.url, "dbping_things_add", { name: "kept" });
+      await first.stop();
+
+      const second = await dev(dir);
+      expect((await call(second.url, "dbping_things_list")).data).toEqual([{ name: "kept" }]);
+    }, 120_000);
+
+    it("applies a migration added while running, and keeps the data", async () => {
+      const dir = await copy("db-reload");
+      const session = await dev(dir);
+      await call(session.url, "dbping_things_add", { name: "before" });
+
+      await writeFile(
+        join(dir, "db", "schema.ts"),
+        'import { schema, t, table } from "@forgeron/sdk/db";\n\nexport default schema({ things: table("things", { id: t.id(), name: t.text().notNull(), note: t.text() }) });\n',
+      );
+      const { generateMigration } = await import("@forgeron/compiler");
+      expect((await generateMigration(dir))?.name).toBe("0002_update");
+      await session.reload();
+
+      expect((await call(session.url, "dbping_things_list")).data).toEqual([{ name: "before" }]);
+    }, 120_000);
+
+    it("keeps serving the previous build when a migration fails, and its data", async () => {
+      const dir = await copy("db-fail");
+      const session = await dev(dir);
+      await call(session.url, "dbping_things_add", { name: "safe" });
+
+      await writeFile(
+        join(dir, "db", "migrations", "0002_broken.ts"),
+        'import { migration } from "@forgeron/sdk/db";\nexport default migration({ up: ["CREATE TABLE \\"ok\\" (\\"id\\" TEXT)", "INSERT INTO nope VALUES (1)"], down: [] });\n',
+      );
+      // Its snapshot matches the schema: only the migration is wrong.
+      await expect(session.reload()).rejects.toThrow(/0002_broken failed and was rolled back/);
+      expect((await call(session.url, "dbping_things_list")).data).toEqual([{ name: "safe" }]);
+    }, 120_000);
+
+    it("refuses a migration that was applied and then edited", async () => {
+      const dir = await copy("db-edited");
+      const session = await dev(dir);
+      const file = join(dir, "db", "migrations", "0001_init.ts");
+      await writeFile(file, `${await readFile(file, "utf8")}\n// edited after it was applied\n`);
+      await expect(session.reload()).rejects.toThrow(
+        /0001_init was applied and its file has changed/,
+      );
+    }, 120_000);
+  });
+
   it("exposes the other interfaces too", async () => {
     const session = await dev(greeter);
     expect(await (await fetch(`${session.url}/api/hello?name=Ely`)).json()).toMatchObject({

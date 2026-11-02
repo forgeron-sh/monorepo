@@ -136,3 +136,30 @@ describe("D1: what is not atomic", () => {
     expect(await count("deals WHERE id = 3 AND stage = 'lost'")).toBe(1);
   });
 });
+
+// Found while writing the migration generator (FOR-17, D-014): the usual way to change a SQLite
+// table (create the new one, copy, drop the old, rename) takes its child rows with it.
+describe("D1: rebuilding a table that others point at", () => {
+  it("deletes the rows of the tables that cascade from it, even with defer_foreign_keys", async () => {
+    await sql("exec", 'CREATE TABLE "parent" ("id" TEXT PRIMARY KEY NOT NULL, "name" TEXT)');
+    await sql(
+      "exec",
+      'CREATE TABLE "child" ("id" TEXT PRIMARY KEY NOT NULL, "parent_id" TEXT NOT NULL REFERENCES "parent"("id") ON DELETE CASCADE)',
+    );
+    await sql("run", "INSERT INTO parent VALUES ('p1', 'a'), ('p2', 'b')");
+    await sql("run", "INSERT INTO child VALUES ('c1', 'p1'), ('c2', 'p2')");
+    expect(await count("child")).toBe(2);
+
+    const rebuild = await batch(
+      "PRAGMA defer_foreign_keys = ON",
+      'CREATE TABLE "parent__new" ("id" TEXT PRIMARY KEY NOT NULL, "name" TEXT, "extra" TEXT)',
+      'INSERT INTO "parent__new" ("id", "name") SELECT "id", "name" FROM "parent"',
+      'DROP TABLE "parent"',
+      'ALTER TABLE "parent__new" RENAME TO "parent"',
+    );
+    // No error, the parent rows are all there… and the children are gone.
+    expect(rebuild.error).toBeUndefined();
+    expect(await count("parent")).toBe(2);
+    expect(await count("child")).toBe(0);
+  });
+});

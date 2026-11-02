@@ -2,6 +2,7 @@ import type { Manifest } from "@forgeron/manifest";
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { Miniflare } from "miniflare";
+import { applyMigrations, type D1Database } from "./migrate";
 import {
   bindingsOf,
   environmentKey,
@@ -29,6 +30,8 @@ export interface LocalHostingOptions {
   /** The port the environment answers on; free port by default. */
   port?: number;
   host?: string;
+  /** Where the databases, KV and R2 of the environment are kept on disk. In memory by default. */
+  persist?: string;
 }
 
 export interface LocalHosting extends Hosting {
@@ -47,7 +50,9 @@ const everyRole = (manifest: Manifest): LocalUser => ({
 
 interface Running {
   miniflare: Miniflare;
-  server: Server;
+  server?: Server;
+  /** Of the build being served: the server outlives a build. */
+  identity: string;
 }
 
 async function readBody(request: IncomingMessage): Promise<Buffer | undefined> {
@@ -58,8 +63,6 @@ async function readBody(request: IncomingMessage): Promise<Buffer | undefined> {
 
 export function createLocalHosting(options: LocalHostingOptions = {}): LocalHosting {
   const running = new Map<string, Running>();
-  // A new build keeps the URL of the one it replaces.
-  const ports = new Map<string, number>();
   const identityOf = options.identity ?? everyRole;
   const host = options.host ?? "127.0.0.1";
 
@@ -67,12 +70,43 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
     const current = running.get(key);
     if (!current) return;
     running.delete(key);
-    ports.set(key, (current.server.address() as AddressInfo).port);
-    await new Promise<void>((resolve) => {
-      current.server.close(() => resolve());
-      current.server.closeAllConnections();
-    });
+    const { server } = current;
+    if (server) {
+      await new Promise<void>((resolve) => {
+        server.close(() => resolve());
+        server.closeAllConnections();
+      });
+    }
     await current.miniflare.dispose();
+  }
+
+  const miniflareOptions = ({ provisioned, build }: Uploaded) => {
+    const named = (kind: string) =>
+      provisioned.bindings.filter((b) => b.kind === kind).map((b) => b.name);
+    return {
+      modules: [{ type: "ESModule" as const, path: "worker.js", contents: build.worker }],
+      compatibilityDate: COMPATIBILITY_DATE,
+      host: "127.0.0.1",
+      port: 0,
+      d1Databases: named("d1"),
+      kvNamespaces: named("kv"),
+      r2Buckets: named("r2"),
+      ...(options.persist ? { defaultPersistRoot: options.persist } : {}),
+    };
+  };
+
+  // The environment's workerd, with its databases: made once, and kept while builds replace one another.
+  async function open(key: string, uploaded: Uploaded): Promise<Running> {
+    const existing = running.get(key);
+    if (existing) return existing;
+    const miniflare = new Miniflare(miniflareOptions(uploaded));
+    await miniflare.ready;
+    const created: Running = {
+      miniflare,
+      identity: JSON.stringify(identityOf(uploaded.build.manifest)),
+    };
+    running.set(key, created);
+    return created;
   }
 
   return {
@@ -84,59 +118,62 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
       return { provisioned, build };
     },
 
-    async activate({ provisioned, build }: Uploaded): Promise<Activation> {
-      const key = environmentKey(provisioned.environment);
-      // A new build replaces the one that is running.
-      await stop(key);
-
-      const named = (kind: string) =>
-        provisioned.bindings.filter((b) => b.kind === kind).map((b) => b.name);
-      const miniflare = new Miniflare({
-        modules: [{ type: "ESModule", path: "worker.js", contents: build.worker }],
-        compatibilityDate: COMPATIBILITY_DATE,
-        host: "127.0.0.1",
-        port: 0,
-        d1Databases: named("d1"),
-        kvNamespaces: named("kv"),
-        r2Buckets: named("r2"),
+    // The database is migrated while the previous build, if any, keeps serving.
+    async migrate(uploaded, migrateOptions) {
+      if (!uploaded.provisioned.bindings.some((b) => b.kind === "d1")) return { applied: [] };
+      const current = await open(environmentKey(uploaded.provisioned.environment), uploaded);
+      const d1 = (await current.miniflare.getD1Database("DB")) as unknown as D1Database;
+      return applyMigrations(d1, uploaded.build.migrations ?? [], {
+        allowDestructive: true,
+        ...migrateOptions,
       });
-      await miniflare.ready;
+    },
 
-      const identity = JSON.stringify(identityOf(build.manifest));
-      const server = createServer(async (incoming, outgoing) => {
-        try {
-          const headers: Record<string, string> = {};
-          for (const [name, value] of Object.entries(incoming.headers)) {
-            if (value !== undefined)
-              headers[name] = Array.isArray(value) ? value.join(", ") : value;
+    async activate(uploaded: Uploaded): Promise<Activation> {
+      const key = environmentKey(uploaded.provisioned.environment);
+      const before = running.get(key);
+      const current = await open(key, uploaded);
+      // A new build replaces the worker that is running; its database stays.
+      if (before) await current.miniflare.setOptions(miniflareOptions(uploaded));
+      current.identity = JSON.stringify(identityOf(uploaded.build.manifest));
+
+      if (!current.server) {
+        const server = createServer(async (incoming, outgoing) => {
+          try {
+            const headers: Record<string, string> = {};
+            for (const [name, value] of Object.entries(incoming.headers)) {
+              if (value !== undefined)
+                headers[name] = Array.isArray(value) ? value.join(", ") : value;
+            }
+            // Whatever the caller sent, the identity is the developer's.
+            headers["x-forgeron-user"] = current.identity;
+            const body = await readBody(incoming);
+            const response = await current.miniflare.dispatchFetch(
+              `http://${incoming.headers.host ?? "localhost"}${incoming.url ?? "/"}`,
+              { method: incoming.method ?? "GET", headers, ...(body ? { body } : {}) },
+            );
+            outgoing.writeHead(response.status, Object.fromEntries(response.headers));
+            outgoing.end(Buffer.from(await response.arrayBuffer()));
+          } catch (error) {
+            outgoing.writeHead(500, { "content-type": "application/json" });
+            outgoing.end(JSON.stringify({ error: { code: "INTERNAL", message: String(error) } }));
           }
-          // Whatever the caller sent, the identity is the developer's.
-          headers["x-forgeron-user"] = identity;
-          const body = await readBody(incoming);
-          const response = await miniflare.dispatchFetch(
-            `http://${incoming.headers.host ?? "localhost"}${incoming.url ?? "/"}`,
-            { method: incoming.method ?? "GET", headers, ...(body ? { body } : {}) },
-          );
-          outgoing.writeHead(response.status, Object.fromEntries(response.headers));
-          outgoing.end(Buffer.from(await response.arrayBuffer()));
-        } catch (error) {
-          outgoing.writeHead(500, { "content-type": "application/json" });
-          outgoing.end(JSON.stringify({ error: { code: "INTERNAL", message: String(error) } }));
-        }
-      });
-      try {
-        await new Promise<void>((resolve, reject) => {
-          server.once("error", reject);
-          server.listen(options.port ?? ports.get(key) ?? 0, host, resolve);
         });
-      } catch (error) {
-        // The port is taken: do not leave workerd running behind the failure.
-        await miniflare.dispose();
-        throw error;
+        try {
+          await new Promise<void>((resolve, reject) => {
+            server.once("error", reject);
+            server.listen(options.port ?? 0, host, resolve);
+          });
+        } catch (error) {
+          // The port is taken: do not leave workerd running behind the failure.
+          running.delete(key);
+          await current.miniflare.dispose();
+          throw error;
+        }
+        current.server = server;
       }
-      running.set(key, { miniflare, server });
 
-      const { port } = server.address() as AddressInfo;
+      const { port } = current.server.address() as AddressInfo;
       return { url: `http://${host}:${port}` };
     },
 

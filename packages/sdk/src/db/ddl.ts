@@ -1,5 +1,7 @@
 import type { ColumnDef } from "./columns";
 import type { Schema } from "./schema";
+import { snapshotOf, type ColumnSnapshot, type TableSnapshot } from "./snapshot";
+import type { IndexDef } from "./table";
 
 // The SQL of a schema: what `createTestTool` runs on its in-memory database, and the base of the
 // migration generator. Each statement is on one line, as D1's `exec` needs.
@@ -47,29 +49,54 @@ function columnSql(name: string, def: ColumnDef): string {
   return parts.join(" ");
 }
 
+export const quote = q;
+
+/** `CREATE TABLE`, under another name if asked: a rebuild creates the new table beside the old. */
+export function createTableSql(table: TableSnapshot, name = table.name): string {
+  const columns = table.columns.map((column) => columnSql(column.name, column));
+  return `CREATE TABLE ${q(name)} (${columns.join(", ")})`;
+}
+
+/** `ALTER TABLE … ADD COLUMN`: only for a column SQLite lets be added (see the migration generator). */
+export const addColumnSql = (table: string, column: ColumnSnapshot) =>
+  `ALTER TABLE ${q(table)} ADD COLUMN ${columnSql(column.name, column)}`;
+
+export const dropColumnSql = (table: string, column: string) =>
+  `ALTER TABLE ${q(table)} DROP COLUMN ${q(column)}`;
+
+export const indexName = (table: string, index: IndexDef) =>
+  `${table}_${index.columns.join("_")}_${index.unique ? "unique" : "index"}`;
+
+export function createIndexSql(table: string, index: IndexDef): string {
+  return `CREATE ${index.unique ? "UNIQUE " : ""}INDEX ${q(indexName(table, index))} ON ${q(table)} (${index.columns.map(q).join(", ")})`;
+}
+
+export const dropIndexSql = (table: string, index: IndexDef) =>
+  `DROP INDEX ${q(indexName(table, index))}`;
+
+export const triggerName = (table: string, column: string) => `${table}_${column}_on_update`;
+
+/** The trigger of `onUpdateNow()`: it fires when an UPDATE leaves the column as it was. */
+export function createTriggerSql(table: string, column: string): string {
+  // SQLite does not run the trigger again for its own change.
+  return `CREATE TRIGGER ${q(triggerName(table, column))} AFTER UPDATE ON ${q(table)} FOR EACH ROW WHEN NEW.${q(column)} IS OLD.${q(column)} BEGIN UPDATE ${q(table)} SET ${q(column)} = ${NOW} WHERE rowid = NEW.rowid; END`;
+}
+
+export const dropTriggerSql = (table: string, column: string) =>
+  `DROP TRIGGER ${q(triggerName(table, column))}`;
+
+/** What a table needs besides its `CREATE TABLE`: its indexes, then its triggers. */
+export function tableExtrasSql(table: TableSnapshot): string[] {
+  return [
+    ...table.indexes.map((index) => createIndexSql(table.name, index)),
+    ...table.columns.filter((c) => c.onUpdateNow).map((c) => createTriggerSql(table.name, c.name)),
+  ];
+}
+
 /** `CREATE TABLE`, `CREATE INDEX` and the triggers of `onUpdateNow()`, for every table, in order. */
 export function createSchemaSql(schema: Schema): string[] {
-  const statements: string[] = [];
-  for (const table of Object.values(schema.tables)) {
-    const columns = Object.entries(table.columns).map(([name, column]) =>
-      columnSql(name, column.def),
-    );
-    statements.push(`CREATE TABLE ${q(table.name)} (${columns.join(", ")})`);
-
-    for (const declared of table.indexes) {
-      const name = `${table.name}_${declared.columns.join("_")}_${declared.unique ? "unique" : "index"}`;
-      statements.push(
-        `CREATE ${declared.unique ? "UNIQUE " : ""}INDEX ${q(name)} ON ${q(table.name)} (${declared.columns.map(q).join(", ")})`,
-      );
-    }
-
-    for (const [name, column] of Object.entries(table.columns)) {
-      if (!column.def.onUpdateNow) continue;
-      // Fires when an UPDATE leaves the column as it was: SQLite does not run it again for its own change.
-      statements.push(
-        `CREATE TRIGGER ${q(`${table.name}_${name}_on_update`)} AFTER UPDATE ON ${q(table.name)} FOR EACH ROW WHEN NEW.${q(name)} IS OLD.${q(name)} BEGIN UPDATE ${q(table.name)} SET ${q(name)} = ${NOW} WHERE rowid = NEW.rowid; END`,
-      );
-    }
-  }
-  return statements;
+  return snapshotOf(schema).tables.flatMap((table) => [
+    createTableSql(table),
+    ...tableExtrasSql(table),
+  ]);
 }
