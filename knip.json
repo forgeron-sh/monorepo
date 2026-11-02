@@ -19,6 +19,9 @@
     "apps/*": {},
     "apps/cli": {
       "ignore": ["fixtures/**"]
+    },
+    "apps/gateway": {
+      "ignoreDependencies": ["@cloudflare/workers-oauth-provider"]
     }
   }
 }
