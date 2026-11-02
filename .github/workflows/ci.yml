@@ -28,6 +28,8 @@ jobs:
       - run: bun run knip
       - run: bun run deps
       - run: bun run deps:selftest
+      - run: bun run neutral
+      - run: bun run tokens:check
 
   # The PR title becomes the squash message: it must follow Conventional Commits.
   pr-title:

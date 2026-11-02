@@ -6,6 +6,7 @@ export default defineConfig({
     include: [
       "apps/*/src/**/*.test.ts",
       "packages/*/src/**/*.test.ts",
+      "packages/ui/tokens/*.test.ts",
       "templates/*/tests/**/*.test.ts",
     ],
     passWithNoTests: true,

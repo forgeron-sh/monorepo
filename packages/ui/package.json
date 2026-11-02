@@ -9,7 +9,8 @@
     "./tokens.css": "./tokens/tokens.css"
   },
   "scripts": {
-    "tokens": "node tokens/build.mjs"
+    "tokens": "node tokens/build.mjs",
+    "tokens:check": "node tokens/build.mjs --check"
   },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*",

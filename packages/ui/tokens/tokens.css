@@ -53,7 +53,7 @@
   --warning-subtle: #33270f;
   --danger: #ff7a6b;
   --danger-subtle: #3a1b17;
-  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 8px 24px rgba(0,0,0,0.5);
   --font-display: "Inter Display", "Inter", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -90,7 +90,7 @@
   --warning-subtle: #fbf0dc;
   --danger: #c2361f;
   --danger-subtle: #fbe8e4;
-  --shadow-pop: 0 8px 24px rgba(28, 28, 28, 0.12);
+  --shadow-pop: 0 8px 24px rgba(28,28,28,0.12);
 }
 
 .text-display-xl {
