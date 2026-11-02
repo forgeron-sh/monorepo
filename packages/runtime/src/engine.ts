@@ -6,6 +6,7 @@ import type {
   Fetch,
   CallSource,
   Interface,
+  Logger,
   Outcome,
   Platform,
   RuntimeAction,
@@ -46,11 +47,13 @@ function hostAllowed(host: string, patterns: readonly string[]): boolean {
 }
 
 /** Outbound calls are forbidden by default: only `resources.network.allow` goes through. */
-function filteredFetch(base: Fetch, allow: readonly string[]): Fetch {
+function filteredFetch(base: Fetch, allow: readonly string[], log: Logger): Fetch {
   return (url, init) => {
     const host = new URL(url).hostname;
     if (!hostAllowed(host, allow)) {
-      throw new Forbidden(`Outbound calls to "${host}" are not allowed by resources.network.`);
+      const message = `Outbound calls to "${host}" are not allowed by resources.network.`;
+      log.warn(message, { url });
+      throw new Forbidden(message);
     }
     return base(url, init);
   };
@@ -101,7 +104,11 @@ export function createEngine(options: RuntimeOptions): Engine {
     now: () => new Date(),
     ...options.platform,
   };
-  const outbound = filteredFetch(platform.fetch, manifest.resources.network?.allow ?? []);
+  const outbound = filteredFetch(
+    platform.fetch,
+    manifest.resources.network?.allow ?? [],
+    platform.log,
+  );
 
   const grants = (user: User): Set<string> =>
     new Set(user.roles.flatMap((role) => manifest.roles[role]?.grants ?? []));

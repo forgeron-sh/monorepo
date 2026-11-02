@@ -130,4 +130,15 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
   INTERNAL: 500,
 };
 
+/** `forgeron <tool> …` exit codes (sdk.md §5): 0 is success, 1 any other failure of the action. */
+export const EXIT_CODE: Record<ErrorCode, number> = {
+  INVALID: 2,
+  FORBIDDEN: 3,
+  NOT_FOUND: 4,
+  CONFLICT: 1,
+  RATE_LIMITED: 1,
+  UPSTREAM: 1,
+  INTERNAL: 1,
+};
+
 export type { Interface, Manifest };
