@@ -1,0 +1,10 @@
+language: typescript
+
+tasks:
+  dev:
+    command: astro dev
+    preset: server
+  build:
+    command: astro build
+    inputs: ["src/**/*", "public/**/*", "astro.config.ts", "package.json"]
+    outputs: ["dist"]

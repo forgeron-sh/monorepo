@@ -1,0 +1,64 @@
+// Génère tokens/tokens.css et copie les polices depuis assets/design-system.
+// Source de vérité : assets/design-system/tokens.json. Lancer : bun run tokens (dans packages/ui).
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const source = join(here, "../../../assets/design-system");
+const tokens = JSON.parse(readFileSync(join(source, "tokens.json"), "utf8"));
+
+const lines = (theme) =>
+  tokens.color.tokens
+    .map((t) => `  --${t.name}: ${t.value[theme]};`)
+    .concat(tokens.shadow.tokens.map((t) => `  --${t.name}: ${t.value[theme]};`));
+
+const fontFaces = tokens.type.fonts.map((f) => {
+  const name = f.file.split("/").pop();
+  return [
+    "@font-face {",
+    `  font-family: "${f.family}";`,
+    `  font-weight: ${f.weight};`,
+    "  font-style: normal;",
+    "  font-display: swap;",
+    `  src: url("./fonts/${name}") format("woff2");`,
+    "}",
+  ].join("\n");
+});
+
+const textClasses = tokens.type.groups.flatMap((g) =>
+  g.styles.map((s) =>
+    [
+      `.text-${s.name} {`,
+      `  font-family: var(--font-${g.family});`,
+      `  font-size: ${s.fontSize};`,
+      `  line-height: ${s.lineHeight};`,
+      `  font-weight: ${s.fontWeight};`,
+      ...(s.letterSpacing ? [`  letter-spacing: ${s.letterSpacing};`] : []),
+      ...(s.name === "eyebrow" ? ["  text-transform: uppercase;"] : []),
+      "}",
+    ].join("\n"),
+  ),
+);
+
+const css = [
+  "/* Généré par tokens/build.mjs depuis assets/design-system/tokens.json. Ne pas modifier à la main. */",
+  ...fontFaces,
+  [
+    ":root {",
+    "  color-scheme: dark;",
+    ...lines("dark"),
+    ...Object.entries(tokens.type.families).map(([k, v]) => `  --font-${k}: ${v};`),
+    ...tokens.spacing.tokens.map((t) => `  --${t.name}: ${t.value};`),
+    ...tokens.radius.tokens.map((t) => `  --${t.name}: ${t.value};`),
+    "}",
+  ].join("\n"),
+  [':root[data-theme="light"] {', "  color-scheme: light;", ...lines("light"), "}"].join("\n"),
+  ...textClasses,
+].join("\n\n");
+
+writeFileSync(join(here, "tokens.css"), `${css}\n`);
+mkdirSync(join(here, "fonts"), { recursive: true });
+for (const f of tokens.type.fonts) {
+  copyFileSync(join(source, f.file), join(here, "fonts", f.file.split("/").pop()));
+}

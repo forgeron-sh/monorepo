@@ -1,0 +1,22 @@
+{
+  "name": "@forgeron/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css",
+    "./tokens.css": "./tokens/tokens.css"
+  },
+  "scripts": {
+    "tokens": "node tokens/build.mjs"
+  },
+  "devDependencies": {
+    "@forgeron/tsconfig": "workspace:*",
+    "@types/react": "19.3.0",
+    "react": "19.3.1"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  }
+}
