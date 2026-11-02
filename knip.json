@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignore": ["assets/**"],
   "workspaces": {
-    ".": {},
+    ".": { "entry": ["scripts/*.ts"] },
     "apps/*": {},
     "packages/*": {},
     "templates/*": {}

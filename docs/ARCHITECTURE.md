@@ -187,7 +187,7 @@ flowchart LR
 
 ## Règles de dépendance
 
-Contrôlées par `bun run deps` (dependency-cruiser, `.dependency-cruiser.cjs`) en CI :
+Contrôlées par `bun run deps` (dependency-cruiser, `.dependency-cruiser.cjs`) en CI. `bun run deps:selftest` écrit un import fautif par règle et vérifie qu'elle le refuse : une règle qui ne refuserait plus rien, ou un outil qui n'analyserait plus aucun module (voir D-002), fait échouer `bun run check`.
 
 - aucun cycle, aucun import non résolu ;
 - un paquet ou un modèle n'importe jamais une app ;
@@ -211,7 +211,7 @@ Repris de siages et du SDK Odoo (D-001), pour que tous nos dépôts se ressemble
 | oxlint · oxfmt        | Lint et formatage                                         | `.oxlintrc.json`, `.oxfmtrc.json`      |
 | Vitest                | Tests                                                     | `vitest.config.ts`                     |
 | knip                  | Code et dépendances inutilisés                            | `knip.json`                            |
-| dependency-cruiser    | Règles d'import                                           | `.dependency-cruiser.cjs`              |
+| dependency-cruiser    | Règles d'import et leur auto-test                         | `.dependency-cruiser.cjs`, `scripts/`  |
 | lefthook · commitlint | Hooks git, Conventional Commits                           | `lefthook.yml`, `commitlint.config.js` |
 | release-please        | Versions, tags, `CHANGELOG.md` du dépôt Forgeron          | `release-please-config.json`           |
 | tsdown · publint      | Build et contrôle des paquets publiés                     | à ajouter avec le premier paquet       |

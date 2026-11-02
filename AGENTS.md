@@ -5,7 +5,7 @@ Monorepo du SDK, du CLI, du runtime, de la plateforme et des modèles Forgeron. 
 ## Commandes
 
 - Toolchain épinglée dans `.prototools` ; `proto use` une fois, puis `bun install`.
-- `bun run check` avant de pousser : types, lint, format, tests, knip, deps.
+- `bun run check` avant de pousser : types, lint, format, tests, knip, deps, auto-test des règles d'import.
 - Après un changement : `bun run format` (oxfmt, deux espaces, guillemets doubles, point-virgule).
 
 ## Règles
