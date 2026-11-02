@@ -25,6 +25,7 @@ Rules of the log:
 | D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                       | Active            |
 | D-011 | 02/11/2026 | All repository files are written in English                                                             | Active            |
 | D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                     | Active            |
+| D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                      | Active            |
 
 ---
 
@@ -147,3 +148,17 @@ Rules of the log:
 - **Not verified**: a remote D1. The local database runs the same engine, and the documentation agrees, but the issue asked for a remote proof too and none was made (no Cloudflare account was connected). To repeat with a remote database before the first deployment.
 - **Rejected**: promising "one transaction per action" as `sdk.md` did; transactions through Durable Object storage (`state.storage.transaction()`), which would give up D-010 (a D1 bound directly to the Worker).
 - **Applied in**: `sdk.md` §6 (the `ctx.db` row), §9, §20; `ARCHITECTURE.md`, "Open decisions".
+
+## D-013 — The gateway builds its OAuth authorization server from the registry, and caches it
+
+- **Date**: 02/11/2026 · **Status**: Active
+- **Decision**: per workspace, the gateway's `OAuthAuthorizationServer` (`@cloudflare/workers-oauth-provider` 1.2.4, split roles) is built from the **registry**: its `resources` are the workspace's admin MCP (`https://<workspace>.forgeron.app/mcp`, always declared) and one `https://<workspace>.forgeron.app/t/<tool>/mcp` per tool. Each tool request goes through an `OAuthResourceServer` for that tool, whose `validateToken` is the authorization server's. The authorization server is **cached per isolate, keyed by workspace and registry version**, and rebuilt when the version moves. Creating or deleting a tool is a registry write and a version bump: no redeploy.
+- **What the gateway handles itself**:
+  - A tool that is not in the registry answers `404` before any token check: for a resource it does not declare, the library fails closed with a `503`.
+  - A workspace with no tool still declares the admin MCP, because the library refuses an empty list of resources.
+- **Why**: the library fixes its resources at construction, as the Toolbox POC found, but nothing stops us constructing it from data. Proof in `apps/gateway/src/identity/oauth-dynamic-resources.test.ts`, on the real library in workerd: a tool created while the Worker runs gets a valid token through the full authorization-code flow with PKCE; a token is good for its own tool only (a token for one tool gets `401` on another, and conversely); a provider built once rejects a tool created after it with `invalid_target`, which is the risk. The library's own documentation says the registry is fixed at construction and that `validateToken()` rejects a resource that is not listed.
+- **Cost, and why it is cached**: constructing the authorization server is quadratic in the number of resources. Measured once on workerd (Miniflare 4.20260730.0, 200 constructions each): 0.025 ms with 1 resource, 1.3 ms with 50, 103 ms with 500. Building it per request is fine for a few tools and not for hundreds, hence the cache. A workspace with several hundred tools needs another answer (patching the library, or sharding resources): revisit around 100 tools per workspace.
+- **Know**: authorizing the same client again for the same tool revokes the previous grant (documented library behavior), so a client that re-runs the flow invalidates its older token for that tool.
+- **Rejected**: one resource per workspace with the tool as a scope. MCP clients send `resource=<the MCP server URL>` (RFC 8707) and the library accepts it only if it is a configured resource, exactly or by its query; and a scope would let one token cover several tools, against `sdk.md` §7. Redeploying the gateway on every tool creation: not needed.
+- **Not verified**: the Microsoft sign-in itself (FOR-82); a real Workers deployment (workerd is the same engine). The proof keeps the registry in KV for convenience; the platform registry is a D1 table (`ARCHITECTURE.md`), and KV's propagation delay is one more reason not to use it for this.
+- **Applied in**: `ARCHITECTURE.md`, "Open decisions"; `apps/gateway/src/identity/`.
