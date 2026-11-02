@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Le merge de la PR de release avance `staging` jusqu'au commit taggé (fast-forward, sans force).
+  # Un push avec GITHUB_TOKEN ne déclenche pas deploy.yml : on l'appelle donc directement.
+  promote-staging:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # GITHUB_TOKEN ne peut pas pousser de changements dans .github/workflows : l'étape peut échouer sans bloquer le déploiement.
+      - name: Avancer staging
+        continue-on-error: true
+        run: git push origin "${GITHUB_SHA}:refs/heads/staging"
+
+  deploy-staging:
+    needs: [release-please, promote-staging]
+    if: needs.release-please.outputs.release_created == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+    secrets: inherit

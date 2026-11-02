@@ -1,0 +1,17 @@
+$schema: "https://moonrepo.dev/schemas/toolchains.json"
+
+javascript:
+  packageManager: bun
+  installDependencies: false
+  inferTasksFromScripts: false
+  syncPackageManagerField: false
+  syncProjectWorkspaceDependencies: false
+
+node:
+  version: "24.21.0"
+
+bun:
+  version: "1.4.3"
+
+typescript:
+  syncProjectReferences: false

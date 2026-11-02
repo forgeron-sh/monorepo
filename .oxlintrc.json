@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/.wrangler/**",
+    "**/.astro/**",
+    "**/.forgeron/**",
+    "**/generated/**",
+    "**/*.generated.ts",
+    "assets/**"
+  ],
+  "plugins": ["typescript", "react", "import", "vitest"],
+  "categories": { "correctness": "error" }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@forgeron/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./db": "./src/db/index.ts",
+    "./react": "./src/react/index.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "devDependencies": {
+    "@forgeron/tsconfig": "workspace:*"
+  }
+}

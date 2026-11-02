@@ -1,0 +1,7 @@
+{
+  // Squelette : bindings et routes à compléter avec le code (docs/ARCHITECTURE.md, « Modes d'hébergement »).
+  "name": "forgeron-gateway",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+}

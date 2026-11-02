@@ -1,0 +1,36 @@
+name: Deploy
+
+on:
+  push:
+    branches: [staging, production]
+  workflow_call:
+    inputs:
+      environment:
+        description: Environnement cible (staging ou production)
+        required: true
+        type: string
+
+# Environnement : branche poussée, ou paramètre quand le workflow est appelé par Release.
+
+# Un seul déploiement à la fois par environnement, sans annuler celui en cours.
+concurrency:
+  group: deploy-${{ inputs.environment || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment || github.ref_name }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # À ajouter avec apps/gateway : migrations D1 de la plateforme avant le déploiement.
+      - name: Build et déploiement
+        run: bun run deploy:${{ inputs.environment || github.ref_name }}

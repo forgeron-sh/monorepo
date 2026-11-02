@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "tabWidth": 2,
+  "printWidth": 100,
+  "singleQuote": false,
+  "semi": true,
+  "trailingComma": "all",
+  "ignorePatterns": [
+    "bun.lock",
+    "CHANGELOG.md",
+    "**/CHANGELOG.md",
+    "**/dist/**",
+    "**/.astro/**",
+    "**/.forgeron/**",
+    "**/generated/**",
+    "**/*.generated.ts",
+    "assets/design-system/components/**"
+  ]
+}

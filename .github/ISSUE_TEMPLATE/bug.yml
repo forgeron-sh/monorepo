@@ -1,0 +1,44 @@
+name: Bug
+description: Signaler un comportement inattendu
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Partie concernée
+      options: [SDK, CLI, Runtime, Console, Gateway, Modèle du catalogue, Site, Autre]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: forgeron 0.4.2, ou le commit
+  - type: textarea
+    id: description
+    attributes:
+      label: Ce qui se passe
+      description: Le comportement observé.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ce qui devrait se passer
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes pour reproduire
+      placeholder: |
+        1. forgeron init …
+        2. forgeron dev …
+        3. Voir…
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environnement
+      placeholder: OS, Node, local / preview / pilot / production

@@ -1,0 +1,13 @@
+name: Setup
+description: Installe bun, node et les dépendances du monorepo.
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.4.3
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24.21.0
+    - run: bun install --frozen-lockfile
+      shell: bash

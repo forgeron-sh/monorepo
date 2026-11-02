@@ -1,0 +1,40 @@
+{
+  "name": "forgeron-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "templates/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "prepare": "git config --local core.hooksPath .git/hooks && lefthook install --force",
+    "dev": "moon run :dev",
+    "check": "moon run :typecheck && bun run lint && bun run format:check && bun run test && bun run knip && bun run deps",
+    "test": "vitest run",
+    "build": "moon run :build",
+    "lint": "oxlint",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "knip": "knip",
+    "deps": "depcruise apps packages templates --config .dependency-cruiser.cjs",
+    "typecheck": "moon run :typecheck",
+    "deploy:staging": "bun run --filter '@forgeron/*' deploy:staging",
+    "deploy:production": "bun run --filter '@forgeron/*' deploy:production"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@forgeron/tsconfig": "workspace:*",
+    "@moonrepo/cli": "2.6.2",
+    "dependency-cruiser": "18.6.0",
+    "knip": "6.42.0",
+    "lefthook": "2.2.2",
+    "oxfmt": "0.73.0",
+    "oxlint": "1.88.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  },
+  "packageManager": "bun@1.4.3"
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.DS_Store
+.moon/cache/
+.moon/docker/
+.wrangler/
+.dev.vars
+.env*
+!.env.example
+.astro/
+.claude/worktrees/
+.claude/settings.local.json
+tmp/
