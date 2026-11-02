@@ -1,3 +1,4 @@
+import { actionNameOfPath } from "@forgeron/manifest";
 import type { ActionDefinition, JobDefinition, ToolConfig } from "@forgeron/sdk";
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -38,18 +39,6 @@ async function files(dir: string): Promise<string[]> {
   return found.sort();
 }
 
-/** `actions/deals/move.ts` is `deals.move`: the path under the folder, with dots (sdk.md §2). */
-function actionNameOf(folder: string, file: string): string {
-  const parts = relative(folder, file).split(/[\\/]/);
-  parts[parts.length - 1] = basename(parts[parts.length - 1]!, extname(file));
-  if (parts.length > 2) {
-    throw new Error(
-      `${relative(folder, file)}: an action is at most two levels deep (group.verb).`,
-    );
-  }
-  return parts.join(".");
-}
-
 function named(dir: string, kind: string, entries: Array<{ name: string; file: string }>) {
   const seen = new Map<string, string>();
   for (const { name, file } of entries) {
@@ -71,7 +60,10 @@ export async function sourcesOf(dir: string) {
     actions: named(
       dir,
       "action",
-      actionFiles.map((file) => ({ name: actionNameOf(join(dir, "actions"), file), file })),
+      actionFiles.map((file) => ({
+        name: actionNameOfPath(relative(join(dir, "actions"), file)),
+        file,
+      })),
     ),
     jobs: named(
       dir,

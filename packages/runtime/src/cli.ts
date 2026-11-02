@@ -1,3 +1,4 @@
+import { actionAddresses, optionFlag } from "@forgeron/manifest";
 import type { Engine } from "./engine";
 import { EXIT_CODE, type Manifest, type User } from "./types";
 
@@ -10,8 +11,6 @@ interface Property {
   default?: unknown;
 }
 
-const kebab = (name: string) => name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
-
 function optionType(property: Property): "string" | "number" | "integer" | "boolean" | "json" {
   const { type } = property;
   return type === "string" || type === "number" || type === "integer" || type === "boolean"
@@ -19,7 +18,7 @@ function optionType(property: Property): "string" | "number" | "integer" | "bool
     : "json";
 }
 
-function commandOf(name: string, entry: Manifest["actions"][string]) {
+function commandOf(tool: string, name: string, entry: Manifest["actions"][string]) {
   const properties = (entry.input.properties ?? {}) as Record<string, Property>;
   const required = new Set(Array.isArray(entry.input.required) ? entry.input.required : []);
   const describe = (field: string, property: Property) => ({
@@ -31,13 +30,14 @@ function commandOf(name: string, entry: Manifest["actions"][string]) {
   });
   return {
     action: name,
+    command: actionAddresses(tool, name).cli,
     path: name.split("."),
     description: entry.description,
     confirm: entry.confirm,
     args: entry.cli.args.map((field) => describe(field, properties[field] ?? {})),
     options: Object.entries(properties)
       .filter(([field]) => !entry.cli.args.includes(field))
-      .map(([field, property]) => ({ ...describe(field, property), flag: `--${kebab(field)}` })),
+      .map(([field, property]) => ({ ...describe(field, property), flag: optionFlag(field) })),
   };
 }
 
@@ -53,7 +53,9 @@ export function handleCli(
   if (request.method !== "GET") {
     return new Response(null, { status: 405, headers: { allow: "GET" } });
   }
-  const commands = engine.list(user, "cli").map(({ name, entry }) => commandOf(name, entry));
+  const commands = engine
+    .list(user, "cli")
+    .map(({ name, entry }) => commandOf(manifest.name, name, entry));
 
   if (request.headers.get("accept")?.includes("text/html")) {
     const items = commands
