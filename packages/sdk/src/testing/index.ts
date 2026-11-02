@@ -1,2 +1,2 @@
-// forgeron/testing : createTestTool, mockFetch (docs/sdk.md §13).
+// forgeron/testing: createTestTool, mockFetch (docs/sdk.md §13).
 export {};

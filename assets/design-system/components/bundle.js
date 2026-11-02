@@ -19,7 +19,7 @@
       p.dot ? h("span", { className: "fg-dot", "aria-hidden": "true" }) : null, p.children);
   }
 
-  var ENV_LABEL = { production: "Production", pilot: "Pilote", preview: "Preview" };
+  var ENV_LABEL = { production: "Production", pilot: "Pilot", preview: "Preview" };
   function EnvTag(p) {
     var env = p.env || "preview";
     return h("span", { className: cx("fg-env", "fg-env-" + env, p.className) },
@@ -53,7 +53,7 @@
     return h("div", { className: cx("fg-code", p.className) },
       h("div", { className: "fg-code-head" },
         h("span", null, p.title || p.lang || "terminal"),
-        h("button", { type: "button", className: "fg-code-copy", onClick: copy }, copied ? "Copié" : "Copier")),
+        h("button", { type: "button", className: "fg-code-copy", onClick: copy }, copied ? "Copied" : "Copy")),
       h("pre", null, lines.map(function (l, i) {
         var node;
         if (/^\$ /.test(l)) node = [h("span", { className: "fg-prompt", key: "p" }, "$ "), l.slice(2)];
@@ -79,10 +79,10 @@
   }
 
   var STATUS = {
-    live: { tone: "success", label: "En ligne" },
-    building: { tone: "warning", label: "Build en cours" },
-    failed: { tone: "danger", label: "Échec" },
-    superseded: { tone: "neutral", label: "Remplacée" }
+    live: { tone: "success", label: "Live" },
+    building: { tone: "warning", label: "Building" },
+    failed: { tone: "danger", label: "Failed" },
+    superseded: { tone: "neutral", label: "Superseded" }
   };
   function DeploymentList(p) {
     return h("div", { className: cx("fg-deploys", p.className), role: "list" },
@@ -114,7 +114,7 @@
           roles.map(function (r) {
             var on = !!(grants[a.name] && grants[a.name][r.id]);
             return h("td", { key: r.id }, h("input", { type: "checkbox", className: "fg-check", checked: on, disabled: !!r.locked,
-              "aria-label": a.name + " pour " + r.label, onChange: function () { toggle(a.name, r.id); } }));
+              "aria-label": a.name + " for " + r.label, onChange: function () { toggle(a.name, r.id); } }));
           }));
       })));
   }

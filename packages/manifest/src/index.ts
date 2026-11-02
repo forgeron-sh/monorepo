@@ -1,2 +1,2 @@
-// Schéma du manifeste d'un tool, comparaison de deux manifestes, impact semver minimal.
+// Tool manifest schema, diff of two manifests, minimal semver impact.
 export {};

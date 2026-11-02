@@ -1,14 +1,14 @@
 # @forgeron/compiler
 
-Construit un tool : `forgeron build` et `forgeron db generate`.
+Builds a tool: `forgeron build` and `forgeron db generate`.
 
-## Contenu prévu
+## Planned contents
 
-- Découverte des tools par `forgeron.config.ts` (`sdk.md` §2, D-006)
-- Bundle du Worker, vues, empreintes (`sdk.md` §14)
-- Génération et diff des migrations (`sdk.md` §8)
-- Écriture du manifeste (`@forgeron/manifest`)
+- Tool discovery through `forgeron.config.ts` (`sdk.md` §2, D-006)
+- Worker bundle, views, fingerprints (`sdk.md` §14)
+- Migration generation and diff (`sdk.md` §8)
+- Manifest output (`@forgeron/manifest`)
 
 ## Notes
 
-Node. Jamais importé par un tool ni par le runtime.
+Node. Never imported by a tool or by the runtime.

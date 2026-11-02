@@ -6,13 +6,13 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: Environnement cible (staging ou production)
+        description: Target environment (staging or production)
         required: true
         type: string
 
-# Environnement : branche poussée, ou paramètre quand le workflow est appelé par Release.
+# Environment: the pushed branch, or the input when the workflow is called by Release.
 
-# Un seul déploiement à la fois par environnement, sans annuler celui en cours.
+# One deployment at a time per environment, without cancelling the one in progress.
 concurrency:
   group: deploy-${{ inputs.environment || github.ref_name }}
   cancel-in-progress: false
@@ -31,6 +31,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      # À ajouter avec apps/gateway : migrations D1 de la plateforme avant le déploiement.
-      - name: Build et déploiement
+      # To add with apps/gateway: platform D1 migrations before the deployment.
+      - name: Build and deploy
         run: bun run deploy:${{ inputs.environment || github.ref_name }}

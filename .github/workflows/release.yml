@@ -25,8 +25,8 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # Le merge de la PR de release avance `staging` jusqu'au commit taggé (fast-forward, sans force).
-  # Un push avec GITHUB_TOKEN ne déclenche pas deploy.yml : on l'appelle donc directement.
+  # Merging the release PR advances `staging` to the tagged commit (fast-forward, no force).
+  # A push made with GITHUB_TOKEN does not trigger deploy.yml: we call it directly instead.
   promote-staging:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
@@ -36,8 +36,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # GITHUB_TOKEN ne peut pas pousser de changements dans .github/workflows : l'étape peut échouer sans bloquer le déploiement.
-      - name: Avancer staging
+      # GITHUB_TOKEN cannot push changes to .github/workflows: the step may fail without blocking the deployment.
+      - name: Advance staging
         continue-on-error: true
         run: git push origin "${GITHUB_SHA}:refs/heads/staging"
 

@@ -1,4 +1,4 @@
-/* Composants atomiques. Toutes les valeurs viennent de tokens/tokens.css. */
+/* Atomic components. All values come from tokens/tokens.css. */
 
 :where(.fg-btn):focus-visible {
   outline: 2px solid var(--focus);
@@ -121,7 +121,7 @@
   flex: none;
 }
 
-/* EnvTag : l'environnement s'exprime par la forme, pas par la teinte */
+/* EnvTag: the environment is expressed by shape, not by tint */
 .fg-env {
   display: inline-flex;
   align-items: center;
@@ -159,7 +159,7 @@
   border: 1.5px dashed currentColor;
 }
 
-/* Label (surtitre) */
+/* Label (eyebrow) */
 .fg-label-eyebrow {
   color: var(--ink-muted);
 }

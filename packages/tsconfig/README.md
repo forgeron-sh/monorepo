@@ -1,3 +1,3 @@
 # @forgeron/tsconfig
 
-Configuration TypeScript partagée : chaque app, paquet et modèle étend `@forgeron/tsconfig/base.json`.
+Shared TypeScript configuration: every app, package and template extends `@forgeron/tsconfig/base.json`.

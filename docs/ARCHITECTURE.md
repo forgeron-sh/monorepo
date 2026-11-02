@@ -1,293 +1,294 @@
-# Architecture du monorepo Forgeron
+# Forgeron monorepo architecture
 
-> Statut : proposition (22 octobre 2026), à valider par l'équipe. Elle découle de [`white-paper.md`](white-paper.md), de [`sdk.md`](sdk.md) et des enseignements du POC Toolbox. Les décisions et leurs raisons sont tenues dans [`DECISIONS.md`](DECISIONS.md) ; ce document en donne le résultat.
+> Status: proposal (October 22, 2026), to be validated by the team. It derives from [`white-paper.md`](white-paper.md), [`sdk.md`](sdk.md) and the lessons of the Toolbox POC. Decisions and their rationale are kept in [`DECISIONS.md`](DECISIONS.md); this document gives the outcome.
 
-Ce document décrit **le dépôt qui construit Forgeron** : le SDK, le CLI, le runtime, la plateforme et les modèles. Il ne décrit pas la forme d'un tool écrit avec Forgeron, qui est l'objet de `sdk.md`.
+This document describes **the repository that builds Forgeron**: the SDK, the CLI, the runtime, the platform and the templates. It does not describe the shape of a tool written with Forgeron, which is the subject of `sdk.md`.
 
-## Vue d'ensemble
+## Overview
 
 ```mermaid
 flowchart LR
-  subgraph Dev["Dépôt du tool"]
-    CI["Action GitHub<br/>forgeron test · change check · deploy"]
-    CLI["apps/cli<br/>binaire forgeron"]
+  subgraph Dev["Tool repository"]
+    CI["GitHub Action<br/>forgeron test · change check · deploy"]
+    CLI["apps/cli<br/>forgeron binary"]
   end
 
-  subgraph Platform["Plateforme (compte Forgeron ou compte du client)"]
-    GW["apps/gateway<br/>répartiteur · identité · OAuth<br/>MCP d'administration · API plateforme"]
-    CON["apps/console<br/>servie par la gateway"]
-    REG[("D1 plateforme<br/>registre, accès, journal")]
-    HOST["@forgeron/hosting<br/>cloud : Workers for Platforms<br/>self-host : Workers classiques"]
-    subgraph Tools["Un Worker par tool et par environnement"]
-      RT["@forgeron/runtime<br/>+ code du tool"]
-      RES[("D1 · KV · R2<br/>du tool")]
+  subgraph Platform["Platform (Forgeron account or customer account)"]
+    GW["apps/gateway<br/>dispatcher · identity · OAuth<br/>admin MCP · platform API"]
+    CON["apps/console<br/>served by the gateway"]
+    REG[("Platform D1<br/>registry, access, audit log")]
+    HOST["@forgeron/hosting<br/>cloud: Workers for Platforms<br/>self-host: classic Workers"]
+    subgraph Tools["One Worker per tool and per environment"]
+      RT["@forgeron/runtime<br/>+ tool code"]
+      RES[("Tool's<br/>D1 · KV · R2")]
     end
   end
 
   CI --> CLI
-  CLI -- "deploy (jeton)" --> GW
+  CLI -- "deploy (token)" --> GW
   GW --- REG
   GW --> HOST
-  HOST -- "API Cloudflare" --> Tools
-  GW -- "dispatch ou service binding" --> RT
+  HOST -- "Cloudflare API" --> Tools
+  GW -- "dispatch or service binding" --> RT
   RT --- RES
   GW -. assets .- CON
 ```
 
-Trois familles de code, trois rythmes :
+Three families of code, three rhythms:
 
-| Famille                  | Où                                          | Publiée                                             | Exécutée                                                     |
-| ------------------------ | ------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------ |
-| Ce qu'importe un tool    | `packages/`                                 | npm (`@forgeron/*`)                                 | neutre (SDK, hosting), Node (compilateur), workerd (runtime) |
-| Le CLI                   | `apps/cli`                                  | npm (binaire `forgeron`)                            | Node                                                         |
-| La plateforme            | `apps/gateway`, `apps/console`, `apps/site` | déployée (cloud) ; installée par le CLI (self-host) | Cloudflare Workers                                           |
-| Les modèles du catalogue | `templates/`                                | npm (`@forgeron/template-*`)                        | comme n'importe quel tool                                    |
+| Family              | Where                                       | Published                                          | Runs on                                                    |
+| ------------------- | ------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------- |
+| What a tool imports | `packages/`                                 | npm (`@forgeron/*`)                                | neutral (SDK, hosting), Node (compiler), workerd (runtime) |
+| The CLI             | `apps/cli`                                  | npm (`forgeron` binary)                            | Node                                                       |
+| The platform        | `apps/gateway`, `apps/console`, `apps/site` | deployed (cloud); installed by the CLI (self-host) | Cloudflare Workers                                         |
+| Catalog templates   | `templates/`                                | npm (`@forgeron/template-*`)                       | like any other tool                                        |
 
-## Arborescence
+## Directory tree
 
 ```text
 forgeron/
 ├── apps/
-│   ├── cli/                # Binaire `forgeron` : init, dev, play, build, deploy, db, secrets, commandes des tools
-│   ├── gateway/            # Worker public : répartition, identité, registre, MCP d'administration, API plateforme
-│   ├── console/            # Console de l'espace (React + Vite), servie en assets par la gateway
-│   └── site/               # Site vitrine forgeron.app (Astro, îlots React)
+│   ├── cli/                # `forgeron` binary: init, dev, play, build, deploy, db, secrets, tool commands
+│   ├── gateway/            # Public Worker: dispatch, identity, registry, admin MCP, platform API
+│   ├── console/            # Workspace console (React + Vite), served as assets by the gateway
+│   └── site/               # forgeron.app marketing site (Astro, React islands)
 ├── packages/
-│   ├── sdk/                # @forgeron/sdk : defineConfig, action, on, schedule ; sous-chemins db, react, testing
-│   ├── runtime/            # @forgeron/runtime : exécute un tool dans son Worker, sert MCP / API / CLI / Web
-│   ├── compiler/           # @forgeron/compiler : forgeron build, génération et diff des migrations
-│   ├── manifest/           # @forgeron/manifest : schéma du manifeste, diff de versions, impact semver
-│   ├── hosting/            # @forgeron/hosting : interface de déploiement, modes cloud, self-host et local
-│   ├── ui/                 # @forgeron/ui : composants et tokens du design system
-│   ├── connector-<nom>/    # @forgeron/connector-<nom> (plus tard : microsoft-365, odoo…)
+│   ├── sdk/                # @forgeron/sdk: defineConfig, action, on, schedule; subpaths db, react, testing
+│   ├── runtime/            # @forgeron/runtime: runs a tool in its Worker, serves MCP / API / CLI / Web
+│   ├── compiler/           # @forgeron/compiler: forgeron build, migration generation and diff
+│   ├── manifest/           # @forgeron/manifest: manifest schema, version diff, semver impact
+│   ├── hosting/            # @forgeron/hosting: deployment interface, cloud, self-host and local modes
+│   ├── ui/                 # @forgeron/ui: design system components and tokens
+│   ├── connector-<name>/   # @forgeron/connector-<name> (later: microsoft-365, odoo…)
 │   └── tsconfig/           # @forgeron/tsconfig
 ├── templates/
-│   ├── crm/                # docs/exemples/01-crm.md
-│   ├── odoo-gateway/       # docs/exemples/02-passerelle-odoo.md
-│   ├── inventaire/         # docs/exemples/03-centre-de-donnees.md
-│   └── pilotage/           # docs/exemples/04-tableau-de-bord.md
-├── assets/                 # logos, schémas, design system (source des tokens de @forgeron/ui)
-├── docs/                   # white paper, spécification du SDK, exemples, décisions, ce document
-└── .github/ · .moon/ · …   # outillage (voir « Outillage »)
+│   ├── crm/                # docs/examples/01-crm.md
+│   ├── odoo-gateway/       # docs/examples/02-odoo-gateway.md
+│   ├── inventory/          # docs/examples/03-data-hub.md
+│   └── dashboard/          # docs/examples/04-dashboard.md
+├── assets/                 # logos, diagrams, design system (source of the @forgeron/ui tokens)
+├── docs/                   # white paper, SDK specification, examples, decisions, this document
+└── .github/ · .moon/ · …   # tooling (see "Tooling")
 ```
 
-Chaque app, paquet et modèle a son `README.md`, qui dit son rôle, ce qu'il contient et les sections de la spec qu'il met en œuvre.
+Each app, package and template has its own `README.md`, which states its role, what it contains and the spec sections it implements.
 
-Les modèles sont dans le dépôt pour une raison précise : ce sont les **tests d'intégration du SDK**. Chaque exemple de `docs/exemples/` devient un modèle qui doit compiler, passer ses tests et se déployer en preview à chaque PR. Si une décision du SDK casse un exemple, la CI le voit.
+Templates live in the repository for a specific reason: they are the **SDK's integration tests**. Each example in `docs/examples/` becomes a template that must compile, pass its tests and deploy as a preview on every PR. If an SDK decision breaks an example, CI catches it.
 
-## Les paquets (`packages/`)
+## Packages (`packages/`)
 
-| Paquet                  | Contenu                                                                                                 | Plateforme                              | Dépend de               |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------- |
-| `@forgeron/sdk`         | `defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError` ; sous-chemins `/db`, `/react`, `/testing` | neutre (SDK), workerd (testing)         | `runtime`, `manifest`   |
-| `@forgeron/runtime`     | Routage des quatre interfaces, contrôle d'accès, contexte `ctx`, événements, tâches                     | **workerd uniquement**, aucun `node:*`  | `manifest`              |
-| `@forgeron/compiler`    | Découverte des tools, bundle du Worker, manifeste, vues, migrations, empreintes                         | Node                                    | `manifest`              |
-| `@forgeron/manifest`    | Schéma Zod du manifeste, comparaison de deux manifestes, impact minimal (`sdk.md` §16)                  | neutre                                  | `zod` seulement         |
-| `@forgeron/hosting`     | Interface de déploiement et ses trois modes (voir « Modes d'hébergement »)                              | neutre (appels HTTP à l'API Cloudflare) | `manifest`              |
-| `@forgeron/ui`          | Composants React alignés sur `design-system.md`, tokens issus de `assets/design-system/tokens.json`     | navigateur                              | `react` (peer)          |
-| `@forgeron/connector-*` | Un client tiers par connecteur                                                                          | workerd                                 | `@forgeron/sdk` (types) |
+| Package                 | Contents                                                                                           | Platform                                   | Depends on              |
+| ----------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------- |
+| `@forgeron/sdk`         | `defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`; subpaths `/db`, `/react`, `/testing` | neutral (SDK), workerd (testing)           | `runtime`, `manifest`   |
+| `@forgeron/runtime`     | Routing of the four interfaces, access control, `ctx` context, events, jobs                        | **workerd only**, no `node:*`              | `manifest`              |
+| `@forgeron/compiler`    | Tool discovery, Worker bundle, manifest, views, migrations, fingerprints                           | Node                                       | `manifest`              |
+| `@forgeron/manifest`    | Zod manifest schema, comparison of two manifests, minimum impact (`sdk.md` §16)                    | neutral                                    | `zod` only              |
+| `@forgeron/hosting`     | Deployment interface and its three modes (see "Hosting modes")                                     | neutral (HTTP calls to the Cloudflare API) | `manifest`              |
+| `@forgeron/ui`          | React components aligned with `design-system.md`, tokens from `assets/design-system/tokens.json`   | browser                                    | `react` (peer)          |
+| `@forgeron/connector-*` | One third-party client per connector                                                               | workerd                                    | `@forgeron/sdk` (types) |
 
-Points de conception :
+Design points:
 
-- **Le CLI est une app, pas un sous-module du SDK** (D-003). Un tool importe `@forgeron/sdk` ; le binaire `forgeron` dépend du SDK, du compilateur et de `hosting`, jamais l'inverse.
-- **`@forgeron/manifest` est la pièce centrale.** Le compilateur l'écrit ; la gateway le lit pour router et contrôler les accès ; `hosting` y lit les ressources à créer ; le CLI en tire ses commandes ; `forgeron change check` compare deux versions. Le figer tôt permet d'avancer en parallèle.
-- **Le runtime ignore le mode d'hébergement.** Un tool est un Worker ordinaire qui lit ses ressources dans `env`, en cloud comme en self-host ou en local.
-- **`@forgeron/hosting` est neutre** : il parle à l'API Cloudflare par `fetch`, ce qui permet de l'utiliser depuis la gateway (Worker) comme depuis le CLI (Node).
-- **Le build s'appuie sur un bundler existant** (Rolldown, déjà sous Vite 8 et tsdown), sans configuration côté développeur.
-- Les paquets publiés sont construits avec **tsdown** et vérifiés par **publint**, comme le SDK Odoo. Le point d'entrée neutre du SDK est contrôlé par un script qui refuse tout `node:*` dans le bundle.
+- **The CLI is an app, not a submodule of the SDK** (D-003). A tool imports `@forgeron/sdk`; the `forgeron` binary depends on the SDK, the compiler and `hosting`, never the other way around.
+- **`@forgeron/manifest` is the central piece.** The compiler writes it; the gateway reads it to route and check access; `hosting` reads the resources to create from it; the CLI derives its commands from it; `forgeron change check` compares two versions. Freezing it early allows work to proceed in parallel.
+- **The runtime is unaware of the hosting mode.** A tool is an ordinary Worker that reads its resources from `env`, in cloud, self-host or local mode alike.
+- **`@forgeron/hosting` is neutral**: it talks to the Cloudflare API through `fetch`, so it can be used from the gateway (a Worker) as well as from the CLI (Node).
+- **The build relies on an existing bundler** (Rolldown, already under Vite 8 and tsdown), with no configuration on the developer's side.
+- Published packages are built with **tsdown** and checked with **publint**, like the Odoo SDK. The SDK's neutral entry point is checked by a script that rejects any `node:*` in the bundle.
 
-## La plateforme (`apps/`)
+## The platform (`apps/`)
 
-| App       | Stack                                         | Hébergement                                      | Rôle                                                                                                                                                                    |
-| --------- | --------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cli`     | Node, `@forgeron/sdk`, `compiler`, `hosting`  | publié sur npm, exécuté sur le poste ou en CI    | Cycle de vie d'un tool (`sdk.md` §5), installation de la plateforme en self-host, appel des actions des tools                                                           |
-| `gateway` | Hono, `workers-oauth-provider`, Kysely sur D1 | Worker, route `*.<domaine>/*`                    | Répartiteur (espace → tool → environnement), identité (SSO, OAuth 2.1, jetons à audience), registre, journal, MCP d'administration, déploiement des tools via `hosting` |
-| `console` | React, Vite, `@forgeron/ui`                   | Assets de la gateway (même origine que l'espace) | Tools, versions, environnements, rôles × actions, secrets, approbation des ressources                                                                                   |
-| `site`    | Astro, îlots React                            | Worker + assets statiques                        | Site vitrine, documentation publique à terme                                                                                                                            |
+| App       | Stack                                        | Hosting                                         | Role                                                                                                                                                              |
+| --------- | -------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cli`     | Node, `@forgeron/sdk`, `compiler`, `hosting` | published on npm, run on a workstation or in CI | Tool lifecycle (`sdk.md` §5), platform installation in self-host, calling tool actions                                                                            |
+| `gateway` | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`                    | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
+| `console` | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)   | Tools, versions, environments, roles × actions, secrets, resource approval                                                                                        |
+| `site`    | Astro, React islands                         | Worker + static assets                          | Marketing site, public documentation eventually                                                                                                                   |
 
-`apps/cli` est la seule app publiée sur npm : elle s'exécute chez le développeur. Elle reste dans `apps/` parce que c'est un exécutable final, que rien n'importe.
+`apps/cli` is the only app published on npm: it runs on the developer's machine. It stays in `apps/` because it is a final executable that nothing imports.
 
-La gateway est le seul Worker public de la plateforme. Les Workers des tools n'ont aucune route : seule la gateway les appelle.
+The gateway is the only public Worker of the platform. Tool Workers have no route: only the gateway calls them.
 
-### Découpage interne de la gateway
+### Internal layout of the gateway
 
 ```text
 apps/gateway/src/
-├── index.ts            # Hono : montage des routes
-├── dispatch/           # sous-domaine → espace, /t/<tool>[@branche]/<interface> → Worker du tool
-├── identity/           # SSO, sessions, OAuth 2.1 (MCP), jetons à audience espace/tool
-├── registry/           # tools, builds, versions, environnements, approbations (D1)
-├── deploy/             # réception d'un build, appel de @forgeron/hosting, bascule du trafic
-├── admin-mcp/          # outils du MCP d'administration (sdk.md §17)
-├── console-api/        # API consommée par apps/console
-└── audit/              # journal d'usage et de déploiement
+├── index.ts            # Hono: route mounting
+├── dispatch/           # subdomain → workspace, /t/<tool>[@branch]/<interface> → tool Worker
+├── identity/           # SSO, sessions, OAuth 2.1 (MCP), workspace/tool audience tokens
+├── registry/           # tools, builds, versions, environments, approvals (D1)
+├── deploy/             # receiving a build, calling @forgeron/hosting, traffic switch
+├── admin-mcp/          # admin MCP tools (sdk.md §17)
+├── console-api/        # API consumed by apps/console
+└── audit/              # usage and deployment audit log
 ```
 
-Ces dossiers deviendront des paquets seulement si le besoin s'en fait sentir.
+These folders will become packages only if the need arises.
 
-## Modes d'hébergement
+## Hosting modes
 
-Décidé le 22/10/2026 (D-009). La même plateforme tourne dans deux contextes ; seule l'implémentation de `@forgeron/hosting` change.
+Decided on 22/10/2026 (D-009). The same platform runs in two contexts; only the implementation of `@forgeron/hosting` changes.
 
-|                    | Cloud Forgeron                                                           | Self-host                                                                                      | Local                                              |
-| ------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Pour qui           | Les clients qui paient l'hébergement tout inclus                         | Une équipe qui veut tout sur son propre compte Cloudflare                                      | Le développeur d'un tool                           |
-| Compte Cloudflare  | celui de Forgeron                                                        | celui du client                                                                                | aucun                                              |
-| Un tool, c'est     | un Worker utilisateur dans un dispatch namespace (Workers for Platforms) | un Worker classique, créé par l'API Cloudflare                                                 | un Worker local (workerd) lancé par `forgeron dev` |
-| Gateway → tool     | dispatch namespace                                                       | service binding, ajouté en redéployant la gateway par l'API quand un tool est créé ou supprimé | appel direct                                       |
-| Ressources du tool | D1, KV, R2 propres, déclarées à l'envoi du code                          | D1, KV, R2 propres, créées par l'API                                                           | D1, KV, R2 locales                                 |
-| Plan requis        | Workers Paid + Workers for Platforms (25 $ par mois)                     | Workers Paid                                                                                   | —                                                  |
-| Limite notable     | 1 000 scripts inclus, puis 0,02 $ par script                             | 500 Workers par compte                                                                         | —                                                  |
+|                    | Forgeron Cloud                                                | Self-host                                                                                           | Local                                              |
+| ------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Who it is for      | Customers who pay for all-inclusive hosting                   | A team that wants everything on its own Cloudflare account                                          | The tool developer                                 |
+| Cloudflare account | Forgeron's                                                    | the customer's                                                                                      | none                                               |
+| A tool is          | a user Worker in a dispatch namespace (Workers for Platforms) | a classic Worker, created through the Cloudflare API                                                | a local Worker (workerd) started by `forgeron dev` |
+| Gateway → tool     | dispatch namespace                                            | service binding, added by redeploying the gateway through the API when a tool is created or deleted | direct call                                        |
+| Tool resources     | Dedicated D1, KV, R2, declared when the code is uploaded      | Dedicated D1, KV, R2, created through the API                                                       | local D1, KV, R2                                   |
+| Required plan      | Workers Paid + Workers for Platforms ($25 per month)          | Workers Paid                                                                                        | —                                                  |
+| Notable limit      | 1,000 scripts included, then $0.02 per script                 | 500 Workers per account                                                                             | —                                                  |
 
-### L'interface `@forgeron/hosting`
+### The `@forgeron/hosting` interface
 
-Une seule interface, trois implémentations (`cloud`, `self-host`, `local`). Elle couvre :
+A single interface, three implementations (`cloud`, `self-host`, `local`). It covers:
 
-1. **provision** : créer les ressources demandées par le manifeste (une D1 par environnement, KV, R2) ;
-2. **upload** : envoyer le Worker d'un build avec ses bindings ;
-3. **migrate** : appliquer les migrations du build à la base de l'environnement ;
-4. **activate** : faire servir ce build à un environnement (production, pilote, preview) ;
-5. **teardown** : supprimer une preview ou un tool, avec ses ressources.
+1. **provision**: create the resources requested by the manifest (one D1 per environment, KV, R2);
+2. **upload**: send a build's Worker with its bindings;
+3. **migrate**: apply the build's migrations to the environment's database;
+4. **activate**: make an environment (production, pilot, preview) serve this build;
+5. **teardown**: delete a preview or a tool, along with its resources.
 
-La gateway appelle cette interface à la réception d'un build ; le CLI l'appelle pour `forgeron dev` (mode `local`) et pour installer la plateforme en self-host.
+The gateway calls this interface when it receives a build; the CLI calls it for `forgeron dev` (`local` mode) and to install the platform in self-host.
 
-### Nommage des Workers et des bases
+### Naming of Workers and databases
 
-Un nom stable par tool et par environnement, pour que publier une version ne change aucun lien :
+One stable name per tool and per environment, so that publishing a version changes no link:
 
 ```text
-<espace>--<tool>--production      <espace>--<tool>--pilot      <espace>--<tool>--pr-<n>
+<workspace>--<tool>--production      <workspace>--<tool>--pilot      <workspace>--<tool>--pr-<n>
 ```
 
-En self-host, la gateway n'est redéployée que lorsqu'un tool est créé ou supprimé, jamais à chaque version.
+In self-host, the gateway is redeployed only when a tool is created or deleted, never on every version.
 
-### Installer la plateforme en self-host
+### Installing the platform in self-host
 
-Proposition : `forgeron platform install`, depuis le CLI, avec un jeton API Cloudflare limité à Workers, D1, KV et R2. Il crée la D1 de la plateforme, déploie la gateway et la console sur le compte, et range le jeton dans les secrets de la gateway, qui s'en sert ensuite pour déployer les tools. Ce jeton est le secret le plus sensible de l'installation.
+Proposal: `forgeron platform install`, from the CLI, with a Cloudflare API token limited to Workers, D1, KV and R2. It creates the platform D1, deploys the gateway and the console to the account, and stores the token in the gateway's secrets, which it then uses to deploy tools. This token is the most sensitive secret of the installation.
 
-## Publication d'un tool
+## Publishing a tool
 
-Le build se fait dans la CI du dépôt du tool (D-004, `sdk.md` §15), pas sur la plateforme.
+The build happens in the CI of the tool's repository (D-004, `sdk.md` §15), not on the platform.
 
 ```mermaid
 flowchart LR
-  P[push] --> A["Action GitHub<br/>forgeron test · change check · deploy"]
-  A -->|"build + jeton"| D["gateway : deploy/"]
-  D --> R[("registre")]
+  P[push] --> A["GitHub Action<br/>forgeron test · change check · deploy"]
+  A -->|"build + token"| D["gateway: deploy/"]
+  D --> R[("registry")]
   D --> H["@forgeron/hosting<br/>provision · upload · migrate"]
-  H --> PV[preview de la branche]
-  PV -->|"forgeron release puis promote"| PR[pilote / production]
+  H --> PV[branch preview]
+  PV -->|"forgeron release then promote"| PR[pilot / production]
 ```
 
-- **Découverte** : chaque `forgeron.config.ts` du dépôt est un tool (D-006) ; l'action les traite tous.
-- **Ce que reçoit la gateway** : le contenu de `.forgeron/build/` (Worker, manifeste, migrations, vues, changelog), avec l'empreinte du code.
-- **Promotion** : `activate` sur l'environnement visé, sans rebuild.
-- **Nettoyage** : `teardown` de la preview quand sa branche est fusionnée ou supprimée. C'est indispensable en self-host (500 Workers par compte).
-- **Application GitHub** : plus tard, pour installer l'action et afficher les déploiements dans les PR. Elle ne construit rien.
+- **Discovery**: each `forgeron.config.ts` in the repository is a tool (D-006); the action processes them all.
+- **What the gateway receives**: the contents of `.forgeron/build/` (Worker, manifest, migrations, views, changelog), with the code fingerprint.
+- **Promotion**: `activate` on the target environment, without a rebuild.
+- **Cleanup**: `teardown` of the preview when its branch is merged or deleted. This is essential in self-host (500 Workers per account).
+- **GitHub app**: later, to install the action and show deployments in PRs. It builds nothing.
 
-## Règles de dépendance
+## Dependency rules
 
-Contrôlées par `bun run deps` (dependency-cruiser, `.dependency-cruiser.cjs`) en CI. `bun run deps:selftest` écrit un import fautif par règle et vérifie qu'elle le refuse : une règle qui ne refuserait plus rien, ou un outil qui n'analyserait plus aucun module (voir D-002), fait échouer `bun run check`.
+Checked by `bun run deps` (dependency-cruiser, `.dependency-cruiser.cjs`) in CI. `bun run deps:selftest` writes one faulty import per rule and checks that the rule rejects it: a rule that no longer rejects anything, or a tool that no longer analyzes any module (see D-002), makes `bun run check` fail.
 
-- aucun cycle, aucun import non résolu ;
-- un paquet ou un modèle n'importe jamais une app ;
-- une app n'importe jamais une autre app : le code partagé passe par `packages/` ;
-- un modèle n'utilise que l'API publique (`@forgeron/sdk`, `@forgeron/ui`, connecteurs) ;
-- `@forgeron/runtime` n'importe ni `node:*` ni le compilateur (hors types) ;
-- `@forgeron/sdk` n'importe ni le compilateur ni `hosting` (`sdk-stays-light`) : un tool n'embarque jamais d'outil de build ou de déploiement ;
-- `@forgeron/manifest` ne dépend d'aucun autre paquet du dépôt ;
-- `@forgeron/ui` n'importe pas le SDK.
+- no cycles, no unresolved imports;
+- a package or a template never imports an app;
+- an app never imports another app: shared code goes through `packages/`;
+- a template only uses the public API (`@forgeron/sdk`, `@forgeron/ui`, connectors);
+- `@forgeron/runtime` imports no `node:*` (`runtime-stays-on-workers`) and no compiler, types aside (`runtime-does-not-import-compiler`);
+- `@forgeron/sdk` imports neither the compiler nor `hosting` (`sdk-stays-light`): a tool never ships a build or deployment tool;
+- `@forgeron/manifest` depends on no other package of the repository;
+- `@forgeron/ui` does not import the SDK.
 
-## Outillage
+## Tooling
 
-Repris de siages et du SDK Odoo (D-001), pour que tous nos dépôts se ressemblent.
+Taken from siages and the Odoo SDK (D-001), so that all our repositories look alike.
 
-| Outil                 | Rôle                                                      | Fichier                                |
+| Tool                  | Role                                                      | File                                   |
 | --------------------- | --------------------------------------------------------- | -------------------------------------- |
-| proto                 | Épingle Node, Bun et moon                                 | `.prototools`                          |
-| Bun                   | Gestionnaire de paquets, workspaces                       | `package.json`                         |
-| moon                  | Tâches par projet (`moon.yml` dans chacun), cache         | `.moon/`                               |
-| TypeScript 6          | Typage (`tsc --noEmit` par projet) ; pas la 7, voir D-002 | `packages/tsconfig/base.json`          |
-| oxlint · oxfmt        | Lint et formatage                                         | `.oxlintrc.json`, `.oxfmtrc.json`      |
+| proto                 | Pins Node, Bun and moon                                   | `.prototools`                          |
+| Bun                   | Package manager, workspaces                               | `package.json`                         |
+| moon                  | Per-project tasks (`moon.yml` in each), cache             | `.moon/`                               |
+| TypeScript 6          | Typing (`tsc --noEmit` per project); not 7, see D-002     | `packages/tsconfig/base.json`          |
+| oxlint · oxfmt        | Lint and formatting                                       | `.oxlintrc.json`, `.oxfmtrc.json`      |
 | Vitest                | Tests                                                     | `vitest.config.ts`                     |
-| knip                  | Code et dépendances inutilisés                            | `knip.json`                            |
-| dependency-cruiser    | Règles d'import et leur auto-test                         | `.dependency-cruiser.cjs`, `scripts/`  |
-| lefthook · commitlint | Hooks git, Conventional Commits                           | `lefthook.yml`, `commitlint.config.js` |
-| release-please        | Versions, tags, `CHANGELOG.md` du dépôt Forgeron          | `release-please-config.json`           |
-| tsdown · publint      | Build et contrôle des paquets publiés                     | à ajouter avec le premier paquet       |
-| wrangler              | Dev local et déploiement des apps de la plateforme        | `wrangler.jsonc` par app               |
+| knip                  | Unused code and dependencies                              | `knip.json`                            |
+| dependency-cruiser    | Import rules and their self-test                          | `.dependency-cruiser.cjs`, `scripts/`  |
+| lefthook · commitlint | Git hooks, Conventional Commits                           | `lefthook.yml`, `commitlint.config.js` |
+| release-please        | Versions, tags, `CHANGELOG.md` of the Forgeron repository | `release-please-config.json`           |
+| tsdown · publint      | Build and checks of published packages                    | to be added with the first package     |
+| wrangler              | Local dev and deployment of the platform apps             | `wrangler.jsonc` per app               |
 
-## Environnements de la plateforme
+## Platform environments
 
-Ceux de Forgeron lui-même, à ne pas confondre avec les environnements d'un tool (`local`, `preview`, `pilot`, `production`, `sdk.md` §15).
+Those of Forgeron itself, not to be confused with a tool's environments (`local`, `preview`, `pilot`, `production`, `sdk.md` §15).
 
-| Environnement | Gateway                                              | Console               | Site                   |
-| ------------- | ---------------------------------------------------- | --------------------- | ---------------------- |
-| development   | `localhost:8787` (`*.localhost`)                     | `localhost:5174`      | `localhost:5173`       |
-| staging       | `*.staging.forgeron.app` à valider (voir ci-dessous) | servie par la gateway | `staging.forgeron.app` |
-| production    | `*.forgeron.app`                                     | servie par la gateway | `forgeron.app`         |
+| Environment | Gateway                                              | Console               | Site                   |
+| ----------- | ---------------------------------------------------- | --------------------- | ---------------------- |
+| development | `localhost:8787` (`*.localhost`)                     | `localhost:5174`      | `localhost:5173`       |
+| staging     | `*.staging.forgeron.app` to be validated (see below) | served by the gateway | `staging.forgeron.app` |
+| production  | `*.forgeron.app`                                     | served by the gateway | `forgeron.app`         |
 
-Le certificat universel de Cloudflare ne couvre qu'un niveau de sous-domaine : `acme.staging.forgeron.app` n'est pas couvert. Il faut soit un domaine distinct pour staging (par exemple `*.forgeron-staging.app`), soit un certificat avancé. **À trancher avant le premier déploiement.**
+Cloudflare's universal certificate covers only one level of subdomain: `acme.staging.forgeron.app` is not covered. Either a separate domain is needed for staging (for example `*.forgeron-staging.app`), or an advanced certificate. **To be decided before the first deployment.**
 
-En self-host, le domaine est celui du client ; la même règle d'un seul niveau de sous-domaine s'applique.
+In self-host, the domain is the customer's; the same single-subdomain-level rule applies.
 
-## Livraison du dépôt Forgeron
+## Delivering the Forgeron repository
 
 ### Versions
 
-| Composant release-please | Chemins                                                                  | Tag                     |
+| release-please component | Paths                                                                    | Tag                     |
 | ------------------------ | ------------------------------------------------------------------------ | ----------------------- |
-| `sdk` (versions liées)   | `packages/sdk`, `runtime`, `compiler`, `manifest`, `hosting`, `apps/cli` | `sdk-v0.4.0`            |
+| `sdk` (linked versions)  | `packages/sdk`, `runtime`, `compiler`, `manifest`, `hosting`, `apps/cli` | `sdk-v0.4.0`            |
 | `ui`                     | `packages/ui`                                                            | `ui-v0.2.0`             |
-| un par connecteur        | `packages/connector-<nom>`                                               | `connector-odoo-v0.1.0` |
+| one per connector        | `packages/connector-<name>`                                              | `connector-odoo-v0.1.0` |
 | `platform`               | `apps/gateway`, `apps/console`, `apps/site`                              | `platform-v0.3.0`       |
 
-Les modèles (`templates/`) ne passent pas par release-please : ce sont des tools, ils utilisent `forgeron release` (D-007) et leurs tags sont `crm@1.0.0`.
+Templates (`templates/`) do not go through release-please: they are tools, they use `forgeron release` (D-007) and their tags look like `crm@1.0.0`.
 
-Tant qu'aucun paquet n'est publié, la configuration reste celle de siages : une seule version pour tout le dépôt (`packages: { ".": {} }`). On passe au mode multi-composants (plugin `linked-versions` pour le groupe `sdk` : le CLI et le SDK d'une même version se comprennent toujours) avec la première publication npm.
+As long as no package is published, the configuration stays that of siages: a single version for the whole repository (`packages: { ".": {} }`). We switch to multi-component mode (`linked-versions` plugin for the `sdk` group: a CLI and an SDK of the same version always understand each other) with the first npm publication.
 
-La version suit les commits : `fix` → patch, `feat` → minor, `feat!` ou `BREAKING CHANGE` → major (minor tant qu'on est en `0.x`).
+The version follows the commits: `fix` → patch, `feat` → minor, `feat!` or `BREAKING CHANGE` → major (minor while in `0.x`).
 
-### Chaîne
+### Pipeline
 
 ```mermaid
 flowchart LR
   PR[Pull request] -->|CI| main
-  main -->|release-please| R[PR de release]
-  R -->|merge : tags| S[staging]
-  S -->|deploy.yml| CFS[Cloud Forgeron staging]
-  R -->|merge : tags| NPM["npm (SDK, CLI…), avec provenance"]
-  P[production] -->|deploy.yml| CFP[Cloud Forgeron production]
+  main -->|release-please| R[Release PR]
+  R -->|merge: tags| S[staging]
+  S -->|deploy.yml| CFS[Forgeron Cloud staging]
+  R -->|merge: tags| NPM["npm (SDK, CLI…), with provenance"]
+  P[production] -->|deploy.yml| CFP[Forgeron Cloud production]
 ```
 
-1. Chaque PR vers `main` passe la CI : lint, format, types, tests, knip, deps, titre de PR.
-2. Le merge de la PR de release crée les tags, avance `staging` et y déploie la plateforme cloud.
-3. La publication npm (à ajouter) part du même événement, en _trusted publishing_ depuis GitHub Actions. Les clients self-host installent la plateforme à partir de ces paquets, avec `forgeron platform install`.
-4. La production cloud se déploie en poussant la branche `production`.
+1. Every PR to `main` goes through CI: lint, format, types, tests, knip, deps, PR title.
+2. Merging the release PR creates the tags, advances `staging` and deploys the cloud platform there.
+3. npm publishing (to be added) starts from the same event, as _trusted publishing_ from GitHub Actions. Self-host customers install the platform from these packages, with `forgeron platform install`.
+4. Cloud production is deployed by pushing the `production` branch.
 
-## Ordre de construction proposé
+## Proposed build order
 
-1. **Socle** (fait) : outillage, CI, conventions, versioning, squelette des apps et paquets.
-2. **`@forgeron/manifest`** : schéma et diff, entièrement testables sans Cloudflare.
-3. **SDK + runtime + `forgeron dev`** (mode `local` de `hosting`) sur un tool sans base : le modèle `odoo-gateway`. Sortie : un MCP local qui fonctionne.
-4. **Base et migrations** (`@forgeron/sdk/db`, générateur) avec le modèle `crm`.
-5. **Gateway + `hosting` self-host** : identité, registre, déploiement en preview sur un compte Cloudflare classique.
-6. **`hosting` cloud** (Workers for Platforms), console, puis connecteurs et modèles suivants.
+1. **Foundation** (done): tooling, CI, conventions, versioning, skeleton of the apps and packages.
+2. **`@forgeron/manifest`**: schema and diff, fully testable without Cloudflare.
+3. **SDK + runtime + `forgeron dev`** (`local` mode of `hosting`) on a tool without a database: the `odoo-gateway` template. Output: a working local MCP.
+4. **Database and migrations** (`@forgeron/sdk/db`, generator) with the `crm` template.
+5. **Gateway + self-host `hosting`**: identity, registry, preview deployment on a regular Cloudflare account.
+6. **Cloud `hosting`** (Workers for Platforms), console, then the following connectors and templates.
 
-Le self-host passe avant le cloud : il se teste sur un compte Workers Paid ordinaire, sans acheter Workers for Platforms.
+Self-host comes before cloud: it can be tested on an ordinary Workers Paid account, without buying Workers for Platforms.
 
-## Décisions ouvertes
+## Open decisions
 
-Les décisions prises sont dans [`DECISIONS.md`](DECISIONS.md). Restent ouvertes :
+Decisions already made are in [`DECISIONS.md`](DECISIONS.md). Still open:
 
-| Décision                                                                   | Bloque                       | État connu                                                                                                         |
-| -------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Transaction par action (`sdk.md` §6, §9) avec D1                           | étape 4                      | D1 ne semble proposer que des lots atomiques, sans transaction interactive (à vérifier) ; piste : `ctx.db.batch()` |
-| Previews en self-host sans redéployer la gateway à chaque branche          | étape 5                      | pistes : URL de preview par version (à vérifier), accès HTTP avec jeton interne                                    |
-| Envoi d'un Worker utilisateur avec sa D1 sur Workers for Platforms         | étape 6                      | documenté (doc du 16/09/2026), non essayé ; achat de Workers for Platforms requis                                  |
-| Ressources OAuth dynamiques (un jeton par tool sans redéployer la gateway) | étape 5                      | point le plus risqué selon le POC Toolbox : la bibliothèque fixe les ressources à la construction                  |
-| Domaine de staging (certificat sur deux niveaux)                           | premier déploiement          | voir « Environnements »                                                                                            |
-| Licence open source                                                        | publication npm, `LICENSE`   | absent du dépôt tant que ce n'est pas tranché                                                                      |
-| Organisation GitHub et nom de dépôt                                        | badges, liens, `SECURITY.md` | `OWNER/forgeron` en attendant                                                                                      |
-| Nom npm public : `forgeron` ou `@forgeron/sdk` + `@forgeron/cli`           | publication, `sdk.md` §18    | piste : publier le CLI sous `forgeron` pour garder `npx forgeron`                                                  |
-| Langue des fichiers du dépôt (README, CONTRIBUTING)                        | —                            | français, comme la doc existante ; siages est en anglais                                                           |
+| Decision                                                                     | Blocks                       | Known state                                                                                                     |
+| ---------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Per-action transaction (`sdk.md` §6, §9) with D1                             | step 4                       | D1 seems to offer only atomic batches, with no interactive transaction (to be verified); lead: `ctx.db.batch()` |
+| Self-host previews without redeploying the gateway for each branch           | step 5                       | leads: per-version preview URL (to be verified), HTTP access with an internal token                             |
+| Uploading a user Worker with its D1 on Workers for Platforms                 | step 6                       | documented (doc of 16/09/2026), not tried; purchase of Workers for Platforms required                           |
+| Dynamic OAuth resources (one token per tool without redeploying the gateway) | step 5                       | riskiest point according to the Toolbox POC: the library fixes resources at construction                        |
+| Staging domain (two-level certificate)                                       | first deployment             | see "Platform environments"                                                                                     |
+| Open source license                                                          | npm publishing, `LICENSE`    | absent from the repository until decided                                                                        |
+| GitHub organization and repository name                                      | badges, links, `SECURITY.md` | `OWNER/forgeron` in the meantime                                                                                |
+| Public npm name: `forgeron` or `@forgeron/sdk` + `@forgeron/cli`             | publishing, `sdk.md` §18     | lead: publish the CLI as `forgeron` to keep `npx forgeron`                                                      |
+
+Decided in this change: repository files (README, CONTRIBUTING, docs) are written in English (D-011).

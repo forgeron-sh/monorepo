@@ -1,4 +1,4 @@
-/* Mise en page du site vitrine. Couleurs, polices et espacements viennent de @forgeron/ui (tokens). */
+/* Marketing site layout. Colors, fonts and spacing come from @forgeron/ui (tokens). */
 
 :root {
   --on-inverse-muted: color-mix(in srgb, var(--on-inverse) 62%, var(--inverse));
@@ -89,7 +89,7 @@ p {
   color: var(--ink-muted);
 }
 
-/* En-tête */
+/* Header */
 .site-header {
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 92%, transparent);
@@ -162,7 +162,7 @@ p {
   background: var(--surface-sunken);
 }
 
-/* Cadres et cartes */
+/* Frames and cards */
 .frame {
   position: relative;
   border: 1px dashed var(--line-strong);
@@ -233,7 +233,7 @@ a.card:hover {
   background: var(--surface-hover);
 }
 
-/* Onglets et exemple */
+/* Tabs and example */
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -323,7 +323,7 @@ a.card:hover {
   display: block;
 }
 
-/* Pourquoi */
+/* Why */
 .compare {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -362,7 +362,7 @@ a.card:hover {
   color: var(--on-inverse-muted);
 }
 
-/* Cases à cocher décoratives */
+/* Decorative checkboxes */
 .check {
   display: inline-grid;
   place-content: center;
@@ -437,7 +437,7 @@ a.card:hover {
   align-self: center;
 }
 
-/* Versions et accès */
+/* Versions and access */
 .two-col {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
@@ -502,7 +502,7 @@ a.card:hover {
   overflow-x: auto;
 }
 
-/* Modèles, hébergement */
+/* Templates, hosting */
 .head-row {
   display: flex;
   flex-wrap: wrap;
@@ -565,7 +565,7 @@ a.card:hover {
   letter-spacing: -0.035em;
 }
 
-/* Pied de page */
+/* Footer */
 .site-footer {
   border-top: 1px solid var(--line);
 }

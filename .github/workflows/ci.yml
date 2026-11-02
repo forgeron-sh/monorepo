@@ -29,7 +29,7 @@ jobs:
       - run: bun run deps
       - run: bun run deps:selftest
 
-  # Le titre de la PR devient le message du squash : il doit suivre Conventional Commits.
+  # The PR title becomes the squash message: it must follow Conventional Commits.
   pr-title:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -37,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - name: Vérifier le titre de la PR
+      - name: Check the PR title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: echo "$PR_TITLE" | bunx commitlint

@@ -1,6 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");
 
-/* Forgeron — composants. Toutes les valeurs viennent de tokens.json. */
+/* Forgeron — components. All values come from tokens.json. */
 .fg-root, .fg-root * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 22px; -webkit-font-smoothing: antialiased; }
 .fg-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-4); }
@@ -32,7 +32,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 .fg-badge-danger { background: var(--danger-subtle); color: var(--danger); border-color: transparent; }
 .fg-dot { width: 6px; height: 6px; border-radius: var(--radius-full); background: currentColor; flex: none; }
 
-/* EnvTag : l'environnement s'exprime par la forme, pas par la teinte */
+/* EnvTag: the environment is expressed by shape, not by tint */
 .fg-env { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 var(--space-2); border-radius: var(--radius-none); font: 500 12px/16px var(--font-sans); white-space: nowrap; }
 .fg-env-production { background: var(--inverse); color: var(--on-inverse); }
 .fg-env-pilot { border: 1px solid var(--ink); color: var(--ink); }

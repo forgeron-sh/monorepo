@@ -1,12 +1,12 @@
 # @forgeron/ui
 
-Les composants React du design system.
+The React components of the design system.
 
-## Contenu prévu
+## Planned content
 
-- Composants (`Page`, `Table`, `Board`, `Stat`, `BarChart`…, `sdk.md` §11)
-- Tokens issus de `assets/design-system/tokens.json`
+- Components (`Page`, `Table`, `Board`, `Stat`, `BarChart`…, `sdk.md` §11)
+- Tokens generated from `assets/design-system/tokens.json`
 
 ## Notes
 
-N'importe pas le SDK (règle `ui-does-not-import-sdk`). Charte : `docs/design-system.md`.
+Does not import the SDK (rule `ui-does-not-import-sdk`). Brand: `docs/design-system.md`.

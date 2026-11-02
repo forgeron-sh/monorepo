@@ -1,28 +1,28 @@
 <p align="center">
-  <img src="assets/logos/2-logo-horizontal/forgeron-logo-sombre.svg" alt="forgeron" width="240" />
+  <img src="assets/logos/2-logo-horizontal/forgeron-logo-dark.svg" alt="forgeron" width="240" />
 </p>
 
 <p align="center">
-  <strong>Forgez vos internal tools une fois, utilisez-les depuis Claude, l'API, le Web et le terminal.</strong>
+  <strong>Forge your internal tools once, use them from Claude, the API, the web and the terminal.</strong>
 </p>
 
 <p align="center">
   <a href="docs/white-paper.md">White paper</a> ·
   <a href="docs/sdk.md">SDK</a> ·
   <a href="docs/ARCHITECTURE.md">Architecture</a> ·
-  <a href="CONTRIBUTING.md">Contribuer</a> ·
-  <a href="SECURITY.md">Sécurité</a>
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="SECURITY.md">Security</a>
 </p>
 
 ---
 
 ## Forgeron
 
-Forgeron est une plateforme open source pour écrire, versionner, héberger et gouverner les internal tools d'une entreprise. Un développeur décrit un tool une fois avec le SDK (ses données, ses actions, ses droits) et Forgeron l'expose en quatre interfaces : **MCP** pour Claude, **API**, **Web** et **CLI**. Tout tourne sur Cloudflare Workers.
+Forgeron is an open source platform to write, version, host and govern a company's internal tools. A developer describes a tool once with the SDK (its data, its actions, its permissions) and Forgeron exposes it through four interfaces: **MCP** for Claude, **API**, **Web** and **CLI**. Everything runs on Cloudflare Workers.
 
-Statut : conception. La spécification est dans [`docs/`](docs/README.md), le plan du dépôt dans [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Status: design. The specification is in [`docs/`](docs/README.md) and the repository layout in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The docs are in English.
 
-## Démarrer
+## Getting started
 
 ```bash
 proto use
@@ -30,14 +30,14 @@ bun install
 bun run check
 ```
 
-Le guide complet (prérequis, conventions de commit, contrôles, déploiement, versioning) est dans [CONTRIBUTING.md](CONTRIBUTING.md).
+The full guide (prerequisites, commit conventions, checks, deployment, versioning) is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Contribuer
+## Contributing
 
-Les contributions passent par des pull requests vers `main`. Lisez d'abord le [guide de contribution](CONTRIBUTING.md) et le [code de conduite](CODE_OF_CONDUCT.md).
+Contributions go through pull requests to `main`. Read the [contributing guide](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md) first.
 
-Une faille de sécurité ? N'ouvrez pas d'issue publique : suivez la [politique de sécurité](SECURITY.md).
+Found a security issue? Do not open a public issue: follow the [security policy](SECURITY.md).
 
-## Licence
+## License
 
-À définir (voir les questions ouvertes du [white paper](docs/white-paper.md#questions-ouvertes)).
+To be decided (see the open questions in the [white paper](docs/white-paper.md#open-questions)).

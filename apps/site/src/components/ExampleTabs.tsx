@@ -3,7 +3,7 @@ import { useState } from "react";
 import { examples } from "../data/examples";
 import { CodeCard } from "./CodeCard";
 
-/** Exemples d'outils interchangeables. Rendu au build, hydraté côté client pour les onglets. */
+/** Swappable tool examples. Rendered at build time, hydrated on the client for the tabs. */
 export function ExampleTabs() {
   const [current, setCurrent] = useState(examples[0]?.id);
   const example = examples.find((e) => e.id === current) ?? examples[0];
@@ -11,7 +11,7 @@ export function ExampleTabs() {
 
   return (
     <div>
-      <div role="tablist" aria-label="Exemples d'outils" className="tabs">
+      <div role="tablist" aria-label="Tool examples" className="tabs">
         {examples.map((e) => (
           <button
             key={e.id}
@@ -19,7 +19,7 @@ export function ExampleTabs() {
             role="tab"
             id={`tab-${e.id}`}
             aria-selected={e.id === current}
-            aria-controls="exemple"
+            aria-controls="example"
             className={e.id === current ? "tab tab-on" : "tab"}
             onClick={() => setCurrent(e.id)}
           >
@@ -29,7 +29,7 @@ export function ExampleTabs() {
       </div>
       <div
         className="frame frame-pad"
-        id="exemple"
+        id="example"
         role="tabpanel"
         aria-labelledby={`tab-${example.id}`}
       >
@@ -43,7 +43,7 @@ export function ExampleTabs() {
           </div>
           <div className="example-side">
             <div className="card pad stack-3">
-              <Label>Actions exposées</Label>
+              <Label>Exposed actions</Label>
               {example.actions.map((a) => (
                 <div className="action-row" key={a.name}>
                   <span className="text-code-inline">{a.name}</span>
@@ -66,7 +66,7 @@ export function ExampleTabs() {
               <span className="text-code-inline">{example.version}</span>
               <EnvTag env="production" />
               <Badge tone="success" dot>
-                En ligne
+                Live
               </Badge>
             </div>
           </div>
@@ -74,7 +74,7 @@ export function ExampleTabs() {
         <div className="card sunken terminal">
           <div className="card-head text-code">
             <span>terminal</span>
-            <span>Chaque action devient une commande</span>
+            <span>Every action becomes a command</span>
           </div>
           <pre className="text-code term-body">
             <span className="muted">$ </span>

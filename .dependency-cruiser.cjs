@@ -1,4 +1,4 @@
-// Règles d'import entre apps, paquets et modèles. Voir docs/ARCHITECTURE.md, « Règles de dépendance ».
+// Import rules between apps, packages and templates. See docs/ARCHITECTURE.md, "Dependency rules".
 module.exports = {
   forbidden: [
     { name: "no-cycles", severity: "error", from: {}, to: { circular: true } },
@@ -16,28 +16,28 @@ module.exports = {
       to: { path: "^apps/([^/]+)/", pathNot: "^apps/$1/" },
     },
     {
-      // Un modèle est un tool comme un autre : il ne voit que l'API publique.
+      // A template is a tool like any other: it only sees the public API.
       name: "templates-use-public-sdk-only",
       severity: "error",
       from: { path: "^templates/" },
       to: { path: "^packages/(runtime|compiler|manifest)/" },
     },
     {
-      // Le runtime tourne dans workerd : pas de module Node (`node:*`, `fs`…).
+      // The runtime runs in workerd: no Node modules (`node:*`, `fs`…).
       name: "runtime-stays-on-workers",
       severity: "error",
       from: { path: "^packages/runtime/" },
       to: { dependencyTypes: ["core"] },
     },
     {
-      // ... ni le compilateur (hors types).
+      // ... nor the compiler (types excepted).
       name: "runtime-does-not-import-compiler",
       severity: "error",
       from: { path: "^packages/runtime/" },
       to: { path: "^packages/compiler/", dependencyTypesNot: ["type-only"] },
     },
     {
-      // Un tool n'embarque jamais d'outil de build ou de déploiement.
+      // A tool never ships build or deployment tooling.
       name: "sdk-stays-light",
       severity: "error",
       from: { path: "^packages/sdk/" },

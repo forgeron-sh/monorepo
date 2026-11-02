@@ -1,12 +1,12 @@
 # @forgeron/site
 
-Le site vitrine `forgeron.app`.
+The `forgeron.app` marketing site.
 
-## Contenu prévu
+## Planned content
 
-- Pages marketing
-- Documentation publique, à terme
+- Marketing pages
+- Public documentation, eventually
 
 ## Notes
 
-Stack prévue : Astro, îlots React, `@forgeron/ui`. Ton et charte : `docs/design-system.md`.
+Planned stack: Astro, React islands, `@forgeron/ui`. Voice and brand: `docs/design-system.md`.

@@ -1,2 +1,2 @@
-// Site vitrine forgeron.app.
+// The forgeron.app marketing site.
 export {};

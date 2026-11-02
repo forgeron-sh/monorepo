@@ -1,35 +1,35 @@
-# Code de conduite
+# Code of conduct
 
-Ce code est adapté du [Contributor Covenant](https://www.contributor-covenant.org/version/2/1/code_of_conduct/), version 2.1.
+This code is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/version/2/1/code_of_conduct/), version 2.1.
 
-## Notre engagement
+## Our pledge
 
-Nous voulons que participer à ce projet soit une expérience respectueuse et sans harcèlement pour tout le monde, quels que soient l'âge, le handicap, l'origine, l'identité ou l'expression de genre, le niveau d'expérience, la nationalité, l'apparence, la religion ou l'orientation sexuelle.
+We want participation in this project to be a respectful, harassment-free experience for everyone, regardless of age, disability, ethnicity, gender identity or expression, level of experience, nationality, appearance, religion or sexual orientation.
 
-## Comportements attendus
+## Expected behavior
 
-- Être bienveillant et respectueux.
-- Accepter les avis divergents et la critique constructive.
-- Critiquer le code, jamais la personne.
-- Assumer ses erreurs et en tirer des leçons.
-- Privilégier ce qui est le mieux pour le projet et l'équipe.
+- Be kind and respectful.
+- Accept differing opinions and constructive criticism.
+- Criticize the code, never the person.
+- Own your mistakes and learn from them.
+- Favor what is best for the project and the team.
 
-## Comportements inacceptables
+## Unacceptable behavior
 
-- Langage ou images à caractère sexuel, avances non sollicitées.
-- Insultes, moqueries, attaques personnelles ou politiques.
-- Harcèlement, public ou privé.
-- Publication d'informations privées d'autrui sans son accord.
-- Tout comportement raisonnablement considéré comme inapproprié dans un cadre professionnel.
+- Sexualized language or imagery, unwelcome advances.
+- Insults, mockery, personal or political attacks.
+- Harassment, public or private.
+- Publishing others' private information without their consent.
+- Any conduct that could reasonably be considered inappropriate in a professional setting.
 
-## Application
+## Enforcement
 
-Les mainteneurs font respecter ce code. Ils peuvent modifier ou supprimer tout commentaire, commit, issue ou contribution qui l'enfreint, et exclure temporairement ou définitivement toute personne du projet.
+Maintainers enforce this code. They may edit or remove any comment, commit, issue or contribution that violates it, and temporarily or permanently ban any person from the project.
 
-## Signalement
+## Reporting
 
-Signalez un comportement inacceptable en privé à un mainteneur du dépôt. Chaque signalement est examiné rapidement et en toute confidentialité.
+Report unacceptable behavior privately to a maintainer of the repository. Every report is reviewed promptly and in confidence.
 
-## Portée
+## Scope
 
-Ce code s'applique dans tous les espaces du projet (dépôt, issues, pull requests, discussions) et chaque fois qu'une personne représente publiquement le projet.
+This code applies in all project spaces (repository, issues, pull requests, discussions) and whenever a person publicly represents the project.

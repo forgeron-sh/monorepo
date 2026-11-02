@@ -1,5 +1,5 @@
 name: Setup
-description: Installe bun, node et les dépendances du monorepo.
+description: Installs bun, node and the monorepo dependencies.
 runs:
   using: composite
   steps:

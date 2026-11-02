@@ -1,12 +1,12 @@
 # @forgeron/manifest
 
-Le format du manifeste d'un tool, et la comparaison de deux versions.
+The format of a tool's manifest, and the comparison of two versions.
 
-## Contenu prévu
+## Planned contents
 
-- Schéma Zod du manifeste (`sdk.md` §14)
-- Diff de deux manifestes et impact minimal (`sdk.md` §16)
+- Zod manifest schema (`sdk.md` §14)
+- Diff of two manifests and minimal impact (`sdk.md` §16)
 
 ## Notes
 
-Ne dépend d'aucun autre paquet du dépôt (règle `manifest-is-a-leaf`). C'est la première pièce à construire.
+Depends on no other package in the repository (`manifest-is-a-leaf` rule). It is the first piece to build.

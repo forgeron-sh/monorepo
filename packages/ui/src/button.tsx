@@ -2,10 +2,10 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "reac
 import { cx } from "./cx";
 
 interface ButtonBase {
-  /** `primary` = plein en `inverse` (une seule action principale par vue). */
+  /** `primary` = filled in `inverse` (one primary action per view). */
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
-  /** Raccourci clavier affiché à droite, ex. "⌘K". */
+  /** Keyboard shortcut shown on the right, e.g. "⌘K". */
   kbd?: string;
   children?: ReactNode;
 }
@@ -16,7 +16,7 @@ export type ButtonProps = ButtonBase &
     | ({ href: string } & AnchorHTMLAttributes<HTMLAnchorElement>)
   );
 
-/** Bouton, ou lien mis en forme de bouton quand `href` est fourni. */
+/** Button, or a link styled as a button when `href` is provided. */
 export function Button({
   variant = "secondary",
   size = "md",

@@ -1,9 +1,9 @@
-# Modèle `crm`
+# Template `crm`
 
-Sociétés, contacts et pistes, utilisable depuis Claude.
+Companies, contacts and leads, usable from Claude.
 
-Spécification : [`docs/exemples/01-crm.md`](../../docs/exemples/01-crm.md). Ce dossier suit la forme imposée d'un tool (`docs/sdk.md` §2) ; `forgeron.config.ts` sera ajouté avec le SDK.
+Specification: [`docs/examples/01-crm.md`](../../docs/examples/01-crm.md). This folder follows the mandatory shape of a tool (`docs/sdk.md` §2); `forgeron.config.ts` will be added with the SDK.
 
-- Version : portée par `package.json`, modifiée uniquement par `forgeron release` (D-007).
-- Sert de test d'intégration du SDK : il doit compiler, passer ses tests et se déployer en preview à chaque PR.
-- N'utilise que l'API publique (`@forgeron/sdk`, `@forgeron/ui`, connecteurs).
+- Version: carried by `package.json`, changed only by `forgeron release` (D-007).
+- Serves as an SDK integration test: it must compile, pass its tests and deploy to preview on every PR.
+- Only uses the public API (`@forgeron/sdk`, `@forgeron/ui`, connectors).

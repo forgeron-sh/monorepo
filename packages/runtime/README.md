@@ -1,14 +1,14 @@
 # @forgeron/runtime
 
-Exécute un tool dans son Worker et sert ses quatre interfaces.
+Runs a tool in its Worker and serves its four interfaces.
 
-## Contenu prévu
+## Planned contents
 
-- Routage `/mcp`, `/api/<action>`, `/cli`, vues (`sdk.md` §7)
-- Contrôle de `access` et des rôles, jetons à audience
-- Construction de `ctx` à partir de `env` (`sdk.md` §6)
-- Événements et tâches planifiées (`sdk.md` §9)
+- Routing `/mcp`, `/api/<action>`, `/cli`, views (`sdk.md` §7)
+- Enforcement of `access` and roles, audience-bound tokens
+- Building `ctx` from `env` (`sdk.md` §6)
+- Events and scheduled jobs (`sdk.md` §9)
 
 ## Notes
 
-workerd uniquement : aucun `node:*`, aucun import du compilateur (règle `runtime-stays-on-workers`).
+workerd only: no `node:*`, no compiler import (`runtime-stays-on-workers` rule).

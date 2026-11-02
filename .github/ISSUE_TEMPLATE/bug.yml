@@ -1,44 +1,44 @@
 name: Bug
-description: Signaler un comportement inattendu
+description: Report unexpected behavior
 labels: [bug]
 body:
   - type: dropdown
     id: area
     attributes:
-      label: Partie concernée
-      options: [SDK, CLI, Runtime, Console, Gateway, Modèle du catalogue, Site, Autre]
+      label: Affected area
+      options: [SDK, CLI, Runtime, Console, Gateway, Catalog template, Site, Other]
     validations:
       required: true
   - type: input
     id: version
     attributes:
       label: Version
-      placeholder: forgeron 0.4.2, ou le commit
+      placeholder: forgeron 0.4.2, or the commit
   - type: textarea
     id: description
     attributes:
-      label: Ce qui se passe
-      description: Le comportement observé.
+      label: What happens
+      description: The observed behavior.
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: Ce qui devrait se passer
+      label: What should happen
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Étapes pour reproduire
+      label: Steps to reproduce
       placeholder: |
         1. forgeron init …
         2. forgeron dev …
-        3. Voir…
+        3. See…
     validations:
       required: true
   - type: input
     id: environment
     attributes:
-      label: Environnement
+      label: Environment
       placeholder: OS, Node, local / preview / pilot / production

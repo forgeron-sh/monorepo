@@ -18,14 +18,13 @@ export const examples: Example[] = [
     file: "tools/crm/forgeron.tool.ts",
     version: "crm · v1.4.0",
     interfaces: ["MCP", "API", "Web", "CLI"],
-    interfaceNote:
-      "Interrogeable depuis Claude, une API REST, le terminal et l'interface web du tool.",
+    interfaceNote: "Query it from Claude, a REST API, the terminal and the tool's web interface.",
     cli: 'forgeron crm contacts search "Durand"',
-    output: ["2 contacts trouvés", "→ --json pour une sortie exploitable dans vos scripts"],
+    output: ["2 contacts found", "→ --json for script-friendly output"],
     actions: [
-      { name: "contacts.search", access: "Lecture" },
-      { name: "contacts.update", access: "Écriture" },
-      { name: "deals.move", access: "Écriture" },
+      { name: "contacts.search", access: "Read" },
+      { name: "contacts.update", access: "Write" },
+      { name: "deals.move", access: "Write" },
     ],
     code: [
       'import { defineTool, action, z } from "forgeron";',
@@ -50,17 +49,17 @@ export const examples: Example[] = [
   },
   {
     id: "odoo",
-    label: "Passerelle Odoo",
+    label: "Odoo gateway",
     file: "tools/odoo/forgeron.tool.ts",
     version: "odoo · v0.3.1",
     interfaces: ["MCP", "CLI"],
     interfaceNote:
-      "Chaque personne se connecte avec Microsoft et utilise sa propre clé d'API Odoo, depuis Claude ou le terminal.",
+      "Each person signs in with Microsoft and uses their own Odoo API key, from Claude or the terminal.",
     cli: "forgeron odoo tickets list --mine",
-    output: ["Connecté via Microsoft SSO", "3 tickets ouverts"],
+    output: ["Signed in via Microsoft SSO", "3 open tickets"],
     actions: [
-      { name: "tickets.list", access: "Lecture" },
-      { name: "tickets.reply", access: "Écriture" },
+      { name: "tickets.list", access: "Read" },
+      { name: "tickets.reply", access: "Write" },
     ],
     code: [
       'import { defineTool, action } from "forgeron";',
@@ -81,16 +80,16 @@ export const examples: Example[] = [
   },
   {
     id: "contacts",
-    label: "Fiche contact",
+    label: "Contact record",
     file: "tools/contacts/forgeron.tool.ts",
     version: "contacts · v2.0.0",
     interfaces: ["MCP", "API", "CLI"],
-    interfaceNote: "Un annuaire partagé, consulté depuis Claude, le terminal ou vos autres outils.",
+    interfaceNote: "A shared directory, available from Claude, the terminal or your other tools.",
     cli: "forgeron contacts people get sophie@acme.fr",
-    output: ["1 fiche · mise à jour il y a 2 jours"],
+    output: ["1 record · updated 2 days ago"],
     actions: [
-      { name: "people.get", access: "Lecture" },
-      { name: "people.upsert", access: "Écriture" },
+      { name: "people.get", access: "Read" },
+      { name: "people.upsert", access: "Write" },
     ],
     code: [
       'import { defineTool, action, table, z } from "forgeron";',
@@ -110,15 +109,15 @@ export const examples: Example[] = [
   },
   {
     id: "dash",
-    label: "Tableau de bord",
+    label: "Dashboard",
     file: "tools/crm/views/pipeline.tsx",
     version: "crm · v1.4.0",
     interfaces: ["Web"],
     interfaceNote:
-      "Une page React légère ; les données arrivent avec les droits de la personne connectée.",
+      "A lightweight React page; data arrives with the signed-in person's permissions.",
     cli: "forgeron crm deals list --stage won --json",
-    output: ["La même action alimente la vue et le terminal"],
-    actions: [{ name: "deals.list", access: "Lecture" }],
+    output: ["The same action powers the view and the terminal"],
+    actions: [{ name: "deals.list", access: "Read" }],
     code: [
       'import { defineView, useAction } from "forgeron/react";',
       "",

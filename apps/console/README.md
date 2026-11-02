@@ -1,13 +1,13 @@
 # @forgeron/console
 
-La console d'un espace : tools, versions, accès, secrets.
+The console of a workspace: tools, versions, access, secrets.
 
-## Contenu prévu
+## Planned contents
 
-- Tools, versions et environnements
-- Rôles × actions, approbation des ressources
-- Secrets (saisie, jamais lecture)
+- Tools, versions and environments
+- Roles × actions, resource approval
+- Secrets (write-only, never read back)
 
 ## Notes
 
-Stack prévue : React, Vite, `@forgeron/ui`. Servie par la gateway, sur l'origine de l'espace.
+Planned stack: React, Vite, `@forgeron/ui`. Served by the gateway, on the workspace origin.

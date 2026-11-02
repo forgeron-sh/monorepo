@@ -8,31 +8,31 @@ import Header from "../components/Header.astro";
 import Base from "../layouts/Base.astro";
 
 const templates = [
-  { path: "templates/crm", name: "CRM léger", text: "Sociétés, contacts et pistes, utilisables depuis Claude." },
+  { path: "templates/crm", name: "Lightweight CRM", text: "Companies, contacts and leads, usable from Claude." },
   {
     path: "templates/odoo-gateway",
-    name: "Passerelle Odoo",
-    text: "Interrogez Odoo depuis Claude avec la clé d'API de chaque personne.",
+    name: "Odoo gateway",
+    text: "Query Odoo from Claude with each person's own API key.",
   },
   {
-    path: "templates/inventaire",
-    name: "Centre de données",
-    text: "Un référentiel de données métier, alimenté par imports et synchronisations.",
+    path: "templates/inventory",
+    name: "Data hub",
+    text: "A business data repository, fed by imports and syncs.",
   },
-  { path: "templates/pilotage", name: "Tableau de bord", text: "Un tableau de bord commercial léger, au-dessus du CRM." },
+  { path: "templates/dashboard", name: "Dashboard", text: "A lightweight sales dashboard on top of the CRM." },
 ];
 
 const deployments = [
-  { version: "v1.5.0-rc.2", message: "Export CSV des contacts", meta: "8dc01b2 · il y a 4 min", env: "preview", state: "warning" },
-  { version: "v1.4.1", message: "Fiche contact allégée", meta: "77c2d1a · hier", env: "pilot", state: "success" },
-  { version: "v1.4.0", message: "Action deals.move avec historique", meta: "a41f9e0 · lun.", env: "production", state: "success" },
+  { version: "v1.5.0-rc.2", message: "Contacts CSV export", meta: "8dc01b2 · 4 min ago", env: "preview", state: "warning" },
+  { version: "v1.4.1", message: "Slimmer contact record", meta: "77c2d1a · yesterday", env: "pilot", state: "success" },
+  { version: "v1.4.0", message: "deals.move action with history", meta: "a41f9e0 · Mon", env: "production", state: "success" },
 ] as const;
 
-const roles = ["Commerciaux", "Support", "Direction"];
+const roles = ["Sales", "Support", "Management"];
 const permissions = [
-  { name: "contacts.read", kind: "Lecture", grants: [true, true, true] },
-  { name: "contacts.update", kind: "Écriture", grants: [true, false, true] },
-  { name: "deals.delete", kind: "Suppression", grants: [false, false, true] },
+  { name: "contacts.read", kind: "Read", grants: [true, true, true] },
+  { name: "contacts.update", kind: "Write", grants: [true, false, true] },
+  { name: "deals.delete", kind: "Delete", grants: [false, false, true] },
 ];
 
 const viewCode = [
@@ -49,57 +49,57 @@ const viewCode = [
 ---
 
 <Base
-  title="Forgeron — forgez vos internal tools"
-  description="Forgez vos internal tools une fois, utilisez-les depuis Claude, l'API, le Web et le terminal."
+  title="Forgeron — forge your internal tools"
+  description="Forge your internal tools once. Use them from Claude, the API, the web and the terminal."
 >
   <Header />
 
   <main>
     <section id="top" class="wrap hero">
-      <Badge mono dot>Open source · Propulsé par Cloudflare Workers</Badge>
-      <h1>Forgez vos internal tools.</h1>
+      <Badge mono dot>Open source · Powered by Cloudflare Workers</Badge>
+      <h1>Forge your internal tools.</h1>
       <p>
-        Écrivez un outil une fois avec le SDK Forgeron. Il est versionné, déployé sur Cloudflare et exposé en MCP,
-        API, Web et CLI, derrière le SSO de votre entreprise.
+        Write a tool once with the Forgeron SDK. It's versioned, deployed on Cloudflare and exposed over MCP,
+        API, web and CLI, behind your company's SSO.
       </p>
       <div class="hero-actions">
-        <Button href="#commencer" variant="primary" size="lg">Commencer gratuitement</Button>
+        <Button href="#start" variant="primary" size="lg">Get started for free</Button>
         <span class="command text-code"><span class="muted">$</span>npx forgeron init</span>
       </div>
     </section>
 
-    <section id="produit" class="wrap" style="padding-bottom: 96px;">
+    <section id="product" class="wrap" style="padding-bottom: 96px;">
       <ExampleTabs client:visible />
     </section>
 
     <section class="wrap section stack-3" style="gap: 48px;">
       <div class="section-head center stack-3">
-        <Label>Pourquoi Forgeron</Label>
-        <h2 class="display-section">Vos équipes parlent à Claude. Elles n'ont plus besoin d'un ERP.</h2>
+        <Label>Why Forgeron</Label>
+        <h2 class="display-section">Your teams talk to Claude. They no longer need an ERP.</h2>
         <p class="lead">
-          Quand l'interface devient la conversation, ce qui compte, c'est que les données et les actions
-          fonctionnent. Pas la taille de la suite logicielle derrière.
+          When the interface becomes the conversation, what matters is that data and actions work.
+          Not the size of the software suite behind them.
         </p>
       </div>
       <Frame class="compare">
         <div>
-          <Label>Aujourd'hui</Label>
-          <h3 class="muted">Une suite géante, payée au module.</h3>
+          <Label>Today</Label>
+          <h3 class="muted">A giant suite, paid per module.</h3>
           <ul class="muted">
-            <li><span class="text-code-inline" aria-hidden="true">—</span>Des licences pour des modules que personne n'ouvre</li>
-            <li><span class="text-code-inline" aria-hidden="true">—</span>Une interface imposée, lourde à adapter</li>
-            <li><span class="text-code-inline" aria-hidden="true">—</span>Des intégrations sur mesure à chaque besoin</li>
-            <li><span class="text-code-inline" aria-hidden="true">—</span>Aucun accès propre depuis un assistant IA</li>
+            <li><span class="text-code-inline" aria-hidden="true">—</span>Licenses for modules nobody opens</li>
+            <li><span class="text-code-inline" aria-hidden="true">—</span>A fixed interface, heavy to adapt</li>
+            <li><span class="text-code-inline" aria-hidden="true">—</span>A custom integration for every need</li>
+            <li><span class="text-code-inline" aria-hidden="true">—</span>No clean access from an AI assistant</li>
           </ul>
         </div>
         <div class="invert">
-          <Label>Avec Forgeron</Label>
-          <h3>Des outils légers, forgés sur mesure.</h3>
+          <Label>With Forgeron</Label>
+          <h3>Light tools, forged to fit.</h3>
           <ul>
-            <li><span class="check check-inv" aria-hidden="true"></span>Seulement les outils dont vous avez besoin : CRM, fiches contact, données</li>
-            <li><span class="check check-inv" aria-hidden="true"></span>Utilisables depuis Claude, une API, le terminal ou une interface web</li>
-            <li><span class="check check-inv" aria-hidden="true"></span>Modifiables par vos développeurs, versionnés à chaque push</li>
-            <li><span class="check check-inv" aria-hidden="true"></span>Hébergés chez nous ou chez vous, en open source</li>
+            <li><span class="check check-inv" aria-hidden="true"></span>Only the tools you need: CRM, contact records, data</li>
+            <li><span class="check check-inv" aria-hidden="true"></span>Usable from Claude, an API, the terminal or a web interface</li>
+            <li><span class="check check-inv" aria-hidden="true"></span>Editable by your developers, versioned on every push</li>
+            <li><span class="check check-inv" aria-hidden="true"></span>Hosted by us or by you, open source</li>
           </ul>
         </div>
       </Frame>
@@ -107,40 +107,40 @@ const viewCode = [
 
     <section class="wrap section stack-3" style="gap: 40px;">
       <div class="section-head">
-        <Label>Comment ça marche</Label>
-        <h2 class="display-section">Du dépôt à la production, sans infrastructure à gérer.</h2>
+        <Label>How it works</Label>
+        <h2 class="display-section">From repo to production, with no infrastructure to manage.</h2>
         <p class="lead">
-          Forgeron se place au-dessus de Cloudflare Workers. Vous poussez votre code ; la plateforme le versionne,
-          applique les accès et le sert partout.
+          Forgeron sits on top of Cloudflare Workers. You push your code; the platform versions it,
+          applies access rules and serves it everywhere.
         </p>
       </div>
       <Frame class="flow">
         <div class="node" style="flex: 1 1 180px;">
           <Label>01 · Code</Label>
-          <strong>Votre dépôt GitHub</strong>
+          <strong>Your GitHub repo</strong>
           <span class="text-code-inline muted">forgeron.config.ts</span>
         </div>
         <div class="wire" aria-hidden="true"></div>
         <div class="node invert" style="flex: 1.4 1 240px;">
           <Label>02 · Forgeron</Label>
-          <strong>La plateforme</strong>
+          <strong>The platform</strong>
           <div class="row-wrap">
-            {["Versions", "Accès", "SSO", "Journal", "Connecteurs"].map((c) => <Badge mono>{c}</Badge>)}
+            {["Versions", "Access", "SSO", "Logs", "Connectors"].map((c) => <Badge mono>{c}</Badge>)}
           </div>
         </div>
         <div class="wire" aria-hidden="true"></div>
         <div class="node" style="flex: 1 1 180px;">
-          <Label>03 · Exécution</Label>
+          <Label>03 · Runtime</Label>
           <strong>Cloudflare Workers</strong>
-          <span class="text-small muted">Un worker par tool et par environnement</span>
+          <span class="text-small muted">One worker per tool and per environment</span>
         </div>
         <div class="wire" aria-hidden="true"></div>
         <div class="stack-3" style="flex: 1.2 1 220px; gap: var(--space-2);">
           {
             [
               ["Claude", "MCP"],
-              ["Vos applications", "API"],
-              ["Navigateur", "Web"],
+              ["Your apps", "API"],
+              ["Browser", "Web"],
               ["Terminal", "CLI"],
             ].map(([who, iface]) => (
               <div class="node sm">
@@ -157,10 +157,10 @@ const viewCode = [
       <div class="col">
         <div class="stack-3">
           <Label>Versions</Label>
-          <h2 class="display-block">Chaque push devient une version.</h2>
+          <h2 class="display-block">Every push becomes a version.</h2>
           <p class="muted">
-            Testez en preview, ouvrez en pilote à un groupe, puis passez en production. Revenir en arrière tient en
-            un clic.
+            Test in preview, open a pilot to a group, then go to production. Rolling back takes
+            one click.
           </p>
         </div>
         <div class="card">
@@ -174,9 +174,9 @@ const viewCode = [
                 </span>
                 <EnvTag env={d.env} />
                 {d.state === "warning" ? (
-                  <Badge tone="warning" dot>Build en cours</Badge>
+                  <Badge tone="warning" dot>Building</Badge>
                 ) : (
-                  <Badge tone="success" dot>En ligne</Badge>
+                  <Badge tone="success" dot>Live</Badge>
                 )}
               </div>
             ))
@@ -185,11 +185,11 @@ const viewCode = [
       </div>
       <div class="col">
         <div class="stack-3">
-          <Label>Accès</Label>
-          <h2 class="display-block">Qui peut faire quoi, action par action.</h2>
+          <Label>Access</Label>
+          <h2 class="display-block">Who can do what, action by action.</h2>
           <p class="muted">
-            Les permissions sont déclarées dans le SDK et réglées dans le tableau de bord. Connexion par le SSO de
-            l'entreprise, journal de qui utilise quel tool.
+            Permissions are declared in the SDK and set in the dashboard. Sign-in through your company
+            SSO, with a log of who uses which tool.
           </p>
         </div>
         <div class="card scroll-x">
@@ -213,7 +213,7 @@ const viewCode = [
                         <span
                           class={granted ? "check check-on" : "check"}
                           role="img"
-                          aria-label={granted ? "Autorisé" : "Refusé"}
+                          aria-label={granted ? "Allowed" : "Denied"}
                         />
                       </td>
                     ))}
@@ -226,18 +226,18 @@ const viewCode = [
       </div>
     </section>
 
-    <section id="modeles" class="wrap section stack-3" style="gap: 40px;">
+    <section id="templates" class="wrap section stack-3" style="gap: 40px;">
       <div class="head-row">
         <div class="section-head">
-          <Label>Modèles</Label>
-          <h2 class="display-section">Partez d'une base. Forgez le reste.</h2>
+          <Label>Templates</Label>
+          <h2 class="display-section">Start from a base. Forge the rest.</h2>
         </div>
-        <Button href="#modeles">Voir tous les modèles</Button>
+        <Button href="#templates">See all templates</Button>
       </div>
       <div class="grid-4">
         {
           templates.map((t) => (
-            <a href="#modeles" class="card">
+            <a href="#templates" class="card">
               <span class="text-code-inline muted">{t.path}</span>
               <span class="text-title-3">{t.name}</span>
               <span class="muted">{t.text}</span>
@@ -249,13 +249,13 @@ const viewCode = [
 
     <section id="sdk" class="wrap section split">
       <div class="stack-3" style="gap: 20px;">
-        <Label>Vues</Label>
+        <Label>Views</Label>
         <h2 class="display-section" style="font-size: clamp(32px, 4.5vw, 44px);">
-          Des tableaux de bord légers, en React.
+          Lightweight dashboards, in React.
         </h2>
         <p class="lead">
-          Quand une conversation ne suffit pas, écrivez une page React. Le SDK y injecte les données du tool, avec
-          les droits de la personne connectée.
+          When a conversation isn't enough, write a React page. The SDK injects the tool's data, with
+          the signed-in person's permissions.
         </p>
         <div class="row-wrap" style="gap: var(--space-2);">
           <Badge mono>useAction</Badge><Badge mono>useUser</Badge><Badge mono>defineView</Badge>
@@ -266,40 +266,40 @@ const viewCode = [
       </Frame>
     </section>
 
-    <section id="hebergement" class="wrap section stack-3" style="gap: 40px;">
+    <section id="hosting" class="wrap section stack-3" style="gap: 40px;">
       <div class="section-head center stack-3">
-        <Label>Hébergement</Label>
-        <h2 class="display-section">Chez nous ou chez vous.</h2>
+        <Label>Hosting</Label>
+        <h2 class="display-section">Ours or yours.</h2>
       </div>
       <div class="grid-2">
         <div class="card tile">
           <Label>Self-host</Label>
           <span class="display-block">Open source</span>
           <span class="muted">
-            Déployez Forgeron sur votre propre compte Cloudflare. Le SDK, la plateforme et les modèles sont ouverts.
+            Deploy Forgeron on your own Cloudflare account. The SDK, the platform and the templates are open.
           </span>
-          <Button href="#github" class="push">Voir sur GitHub</Button>
+          <Button href="#github" class="push">View on GitHub</Button>
         </div>
         <div class="card tile invert">
           <Label>Forgeron Cloud</Label>
           <span class="display-block">
-            [PRIX] € <span class="text-body muted" style="letter-spacing: 0;">/ siège / mois</span>
+            [PRICE] € <span class="text-body muted" style="letter-spacing: 0;">/ seat / month</span>
           </span>
           <span class="muted">
-            Un seul plan : tous les outils, les connecteurs, le SSO entreprise et les versions, hébergés pour vous.
+            One plan: all tools, connectors, enterprise SSO and versions, hosted for you.
           </span>
-          <Button href="#commencer" class="push on-invert">Commencer</Button>
+          <Button href="#start" class="push on-invert">Get started</Button>
         </div>
       </div>
     </section>
 
-    <section id="commencer" class="wrap" style="padding-top: 32px; padding-bottom: 96px;">
+    <section id="start" class="wrap" style="padding-top: 32px; padding-bottom: 96px;">
       <Frame class="cta">
         <Logo variant="symbol" size={56} />
-        <h2>Votre premier tool en cinq minutes.</h2>
+        <h2>Your first tool in five minutes.</h2>
         <div class="hero-actions">
-          <Button href="#commencer" variant="primary" size="lg">Commencer gratuitement</Button>
-          <Button href="#docs" size="lg">Lire la documentation</Button>
+          <Button href="#start" variant="primary" size="lg">Get started for free</Button>
+          <Button href="#docs" size="lg">Read the docs</Button>
         </div>
       </Frame>
     </section>

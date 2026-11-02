@@ -1,15 +1,15 @@
 # @forgeron/cli
 
-Le binaire `forgeron`.
+The `forgeron` binary.
 
-## Contenu prévu
+## Planned contents
 
-- Cycle de vie d'un tool : `init`, `link`, `dev`, `play`, `test`, `build`, `deploy`, `promote`, `rollback` (`sdk.md` §5)
-- Versions : `change`, `change check`, `release`, `changelog` (`sdk.md` §16)
-- Base, secrets, accès : `db`, `secrets`, `token`, `access` (`sdk.md` §5)
-- Installation de la plateforme en self-host : `platform install` (proposition, `docs/ARCHITECTURE.md`)
-- Les actions des tools en commandes : `forgeron <tool> <groupe> <verbe>`
+- Tool lifecycle: `init`, `link`, `dev`, `play`, `test`, `build`, `deploy`, `promote`, `rollback` (`sdk.md` §5)
+- Versions: `change`, `change check`, `release`, `changelog` (`sdk.md` §16)
+- Database, secrets, access: `db`, `secrets`, `token`, `access` (`sdk.md` §5)
+- Self-hosted platform installation: `platform install` (proposal, `docs/ARCHITECTURE.md`)
+- Tool actions as commands: `forgeron <tool> <group> <verb>`
 
 ## Notes
 
-Node. Dépend de `@forgeron/sdk`, `@forgeron/compiler` et `@forgeron/hosting` ; rien ne dépend de lui (D-003).
+Node. Depends on `@forgeron/sdk`, `@forgeron/compiler` and `@forgeron/hosting`; nothing depends on it (D-003).
