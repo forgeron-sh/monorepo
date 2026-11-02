@@ -1,4 +1,4 @@
-import type { Context, Environment, Fetch, Logger, User } from "./context";
+import type { Context, ContextDb, Environment, Fetch, Logger, User } from "./context";
 
 export type EventMode = "sync" | "queue";
 
@@ -9,6 +9,8 @@ export interface EventContext<Payload = unknown> {
   emit: Context["emit"];
   secrets: Context["secrets"];
   fetch: Fetch;
+  /** The tool's database, with `resources.db`. A handler's writes are not yet part of the action's batch (D-012). */
+  db: ContextDb;
   log: Logger;
   now(): Date;
   env: Environment;

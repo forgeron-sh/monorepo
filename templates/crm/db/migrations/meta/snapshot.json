@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "name": "companies",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "name",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "domain",
+          "kind": "text",
+          "notNull": false,
+          "unique": true,
+          "onUpdateNow": false
+        },
+        {
+          "name": "created_at",
+          "kind": "timestamp",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "default": {
+            "kind": "now"
+          }
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "contacts",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "company_id",
+          "kind": "ref",
+          "notNull": false,
+          "unique": false,
+          "onUpdateNow": false,
+          "references": "companies",
+          "onDelete": "set null"
+        },
+        {
+          "name": "first_name",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "last_name",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "email",
+          "kind": "text",
+          "notNull": false,
+          "unique": true,
+          "onUpdateNow": false
+        },
+        {
+          "name": "phone",
+          "kind": "text",
+          "notNull": false,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "created_at",
+          "kind": "timestamp",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "default": {
+            "kind": "now"
+          }
+        }
+      ],
+      "indexes": [
+        {
+          "columns": ["last_name"],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "deals",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "company_id",
+          "kind": "ref",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "references": "companies"
+        },
+        {
+          "name": "owner_email",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "title",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "stage",
+          "kind": "enum",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "values": ["lead", "qualified", "proposal", "negotiation", "won", "lost"],
+          "default": {
+            "kind": "value",
+            "value": "lead"
+          }
+        },
+        {
+          "name": "amount",
+          "kind": "integer",
+          "notNull": false,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "updated_at",
+          "kind": "timestamp",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": true,
+          "default": {
+            "kind": "now"
+          }
+        }
+      ],
+      "indexes": [
+        {
+          "columns": ["stage"],
+          "unique": false
+        },
+        {
+          "columns": ["owner_email"],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "deal_events",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "deal_id",
+          "kind": "ref",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "references": "deals",
+          "onDelete": "cascade"
+        },
+        {
+          "name": "from_stage",
+          "kind": "text",
+          "notNull": false,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "to_stage",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "by_email",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "at",
+          "kind": "timestamp",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "default": {
+            "kind": "now"
+          }
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}

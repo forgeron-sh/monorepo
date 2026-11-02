@@ -1,4 +1,5 @@
 import { createTestTool } from "@forgeron/sdk/testing";
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -81,6 +82,18 @@ describe("a tool with a database, built", () => {
     ).rejects.toThrow(/UNIQUE|PRIMARY/i);
     expect(await tool.call("deals.list", {})).toHaveLength(1);
   });
+});
+
+describe("a build run from the tool folder", () => {
+  it("does not mistake the bundler's virtual modules for files of the tool", () => {
+    // `moon run crm:typecheck` runs `build-tool .` from the tool folder: a relative id such as
+    // "\0rolldown/runtime.js" then looked like a file inside it.
+    const script = fileURLToPath(new URL("../../../scripts/build-tool.ts", import.meta.url));
+    const run = spawnSync("bun", [script, "."], { cwd: fixture("db-tool"), encoding: "utf8" });
+    expect(run.stderr).toBe("");
+    expect(run.stdout).toContain("pipeline@1.0.0 built");
+    expect(run.status).toBe(0);
+  }, 60_000);
 });
 
 describe("the build rules about the database", () => {

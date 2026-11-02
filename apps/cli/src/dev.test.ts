@@ -8,6 +8,7 @@ import { startDev, type DevSession } from "./dev";
 const fixtures = fileURLToPath(new URL("../fixtures", import.meta.url));
 const greeter = join(fixtures, "greeter");
 const dbping = join(fixtures, "dbping");
+const crm = fileURLToPath(new URL("../../../templates/crm", import.meta.url));
 
 const sessions: DevSession[] = [];
 const dirs: string[] = [];
@@ -132,6 +133,33 @@ describe("forgeron dev", () => {
       );
     }, 120_000);
   });
+
+  it("runs the crm template: companies, leads, and the history handler that writes in workerd", async () => {
+    // A copy inside the repository, so that `@forgeron/sdk` resolves; its own local database.
+    const dir = join(fixtures, `.work-crm-${Date.now()}`);
+    dirs.push(dir);
+    await cp(crm, dir, { recursive: true, filter: (src) => !src.includes(".forgeron") });
+    const session = await dev(dir);
+    const call = async (tool: string, args: object) =>
+      (await rpc(session.url, "tools/call", { name: tool, arguments: args })) as {
+        structuredContent?: Record<string, string>;
+        isError: boolean;
+        content: Array<{ text: string }>;
+      };
+
+    const company = await call("crm_companies_upsert", { name: "Acme", domain: "acme.fr" });
+    const deal = await call("crm_deals_create", {
+      company_id: company.structuredContent!.id,
+      title: "Renewal",
+    });
+    // The move emits deal.moved: its handler writes deal_events through ctx.db. If that failed, the move would.
+    const moved = await call("crm_deals_move", { id: deal.structuredContent!.id, stage: "won" });
+    expect(moved).toMatchObject({ isError: false, structuredContent: { stage: "won" } });
+    const list = JSON.parse(
+      (await call("crm_deals_list", { stage: "won" })).content[0]!.text,
+    ) as Array<{ title: string }>;
+    expect(list.map((d) => d.title)).toEqual(["Renewal"]);
+  }, 120_000);
 
   it("exposes the other interfaces too", async () => {
     const session = await dev(greeter);
