@@ -1,0 +1,54 @@
+import { build } from "./commands/build";
+import { dev } from "./commands/dev";
+import { init } from "./commands/init";
+import { link } from "./commands/link";
+import { test } from "./commands/test";
+import { UsageError, type Io } from "./io";
+
+const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
+  init,
+  link,
+  build,
+  test,
+  dev,
+};
+
+const USAGE = `Usage: forgeron <command>
+
+  init [name]                          create a tool
+  link --workspace <name>              link the tool to a workspace
+  dev [--as <role>] [--port 8787]      run the tool locally
+  test [vitest args]                   build the tool, then run Vitest
+  build                                build every tool under this folder`;
+
+/** Runs a command and returns the exit code: 0, 1 for a failure, 2 for a wrong use (sdk.md §5). */
+export async function run(argv: string[], io: Io): Promise<number> {
+  const [name, ...args] = argv;
+  if (name === "--version" || name === "-v") {
+    io.log("forgeron 0.0.0");
+    return 0;
+  }
+  const command = name ? COMMANDS[name] : undefined;
+  if (!command) {
+    io.error(name ? `forgeron: unknown command "${name}".\n\n${USAGE}` : USAGE);
+    return name ? 2 : 0;
+  }
+  try {
+    return await command(args, io);
+  } catch (error) {
+    if (error instanceof UsageError) {
+      io.error(error.message);
+      return 2;
+    }
+    // `parseArgs` rejects an unknown flag with its own error: that is a wrong use too.
+    if (
+      error instanceof TypeError &&
+      (error as { code?: string }).code?.startsWith("ERR_PARSE_ARGS")
+    ) {
+      io.error(error.message);
+      return 2;
+    }
+    io.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}

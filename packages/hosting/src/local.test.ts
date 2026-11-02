@@ -113,6 +113,20 @@ describe("local hosting", () => {
     expect(second.url).toBe(first.url);
   });
 
+  it("does not leave workerd running when the port is taken", async () => {
+    const first = await deploy("v1");
+    const port = Number(new URL(first.url).port);
+    const other = createLocalHosting({ port });
+    const env: Environment = { tool: "other", name: "local" };
+    const provisioned = await other.provision(env, manifest);
+    await expect(other.activate(await other.upload(provisioned, build("v2")))).rejects.toThrow(
+      /EADDRINUSE/,
+    );
+    await other.close();
+    // The first environment is untouched.
+    expect((await get(first.url)).version).toBe("v1");
+  });
+
   it("stops answering after teardown", async () => {
     const { url } = await deploy("v1");
     await hosting.teardown(environment);

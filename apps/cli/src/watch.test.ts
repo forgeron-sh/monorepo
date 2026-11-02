@@ -12,6 +12,8 @@ beforeEach(async () => {
   await mkdir(join(dir, "actions"), { recursive: true });
   await mkdir(join(dir, "node_modules", "x"), { recursive: true });
   await mkdir(join(dir, ".forgeron", "build"), { recursive: true });
+  // The file system may still be reporting the folders just made: let it settle before watching.
+  await new Promise((resolve) => setTimeout(resolve, 300));
 });
 afterEach(async () => {
   stop?.();
