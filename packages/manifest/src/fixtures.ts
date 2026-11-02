@@ -34,6 +34,10 @@ export const crm: Manifest = {
   jobs: {
     "monday-summary": { cron: "0 7 * * 1", timezone: "Europe/Paris" },
   },
+  events: {
+    "deal-history": { event: "deal.moved", mode: "sync" },
+    "send-summary": { event: "deal.moved", mode: "queue" },
+  },
   resources: {
     db: { engine: "d1", why: "Companies, contacts and leads" },
     files: { maxSize: "25MB", types: ["application/pdf", "image/*"], why: "Lead attachments" },
@@ -65,6 +69,7 @@ export const minimal: Manifest = {
   actions: {},
   views: {},
   jobs: {},
+  events: {},
   resources: {},
   uses: {},
   preview: { data: "seed" },

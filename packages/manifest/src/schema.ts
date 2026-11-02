@@ -58,6 +58,15 @@ export const JobSchema = z.strictObject({
   description: text.optional(),
 });
 
+/** `group.past`, like `deal.moved` (sdk.md §9). */
+export const EventNameSchema = z.string().regex(/^[a-z][a-zA-Z0-9]*\.[a-z][a-zA-Z0-9]*$/);
+
+/** A handler of an event: `sync` runs inside the action, `queue` after it succeeded. */
+export const EventHandlerSchema = z.strictObject({
+  event: EventNameSchema,
+  mode: z.enum(["sync", "queue"]),
+});
+
 export const RoleSchema = z.strictObject({
   label: text.optional(),
   grants: z.array(AccessLevelSchema),
@@ -144,6 +153,7 @@ const ManifestShape = z.strictObject({
   actions: z.record(ActionNameSchema, ActionSchema),
   views: z.record(z.string(), ViewSchema),
   jobs: z.record(z.string(), JobSchema),
+  events: z.record(z.string(), EventHandlerSchema),
   resources: ResourcesSchema,
   uses: z.record(ToolNameSchema, text),
   preview: z.strictObject({ data: z.enum(["seed", "empty", "snapshot"]) }),
@@ -156,6 +166,7 @@ export type Interface = z.infer<typeof InterfaceSchema>;
 export type Action = z.infer<typeof ActionSchema>;
 export type View = z.infer<typeof ViewSchema>;
 export type Job = z.infer<typeof JobSchema>;
+export type EventHandler = z.infer<typeof EventHandlerSchema>;
 export type Role = z.infer<typeof RoleSchema>;
 export type Connector = z.infer<typeof ConnectorSchema>;
 export type Resources = z.infer<typeof ResourcesSchema>;

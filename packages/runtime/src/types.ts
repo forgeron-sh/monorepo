@@ -74,6 +74,39 @@ export interface RuntimeAction {
   run(ctx: ActionContext): unknown;
 }
 
+/** What an event handler receives (sdk.md §9). */
+export interface EventContext {
+  payload: unknown;
+  user: User;
+  emit: ActionContext["emit"];
+  secrets: ActionContext["secrets"];
+  fetch: Fetch;
+  log: Logger;
+  now(): Date;
+  env: Environment;
+}
+
+/** A handler of the tool, as the runtime runs it: what `@forgeron/sdk`'s `on()` returns fits. */
+export interface RuntimeEvent {
+  event: string;
+  mode: "sync" | "queue";
+  handler(ctx: EventContext): unknown;
+}
+
+/** A scheduled task: what `schedule()` returns fits. Its context is the tool's own. */
+export interface RuntimeJob {
+  handler(ctx: ActionContext): unknown;
+}
+
+/** A `queue` handler waiting to run: sent through the queue, delivered back to the runtime. */
+export interface QueuedDelivery {
+  /** The name of the handler (its file under `events/`). */
+  handler: string;
+  event: string;
+  payload: unknown;
+  user: User;
+}
+
 /** What the platform provides to `ctx`; each part has a safe default. */
 export interface Platform {
   secrets: ActionContext["secrets"];
@@ -85,7 +118,13 @@ export interface Platform {
   cache: unknown;
   tools: ActionContext["tools"];
   log: Logger;
+  /** Sees every emitted event, before its handlers run (tests record them here). */
   emit: ActionContext["emit"];
+  /**
+   * Puts a `queue` delivery on the platform's queue (Cloudflare Queues), which hands it back to
+   * `Runtime.deliver` with its own retries. Without it, the runtime delivers in process.
+   */
+  enqueue?: (delivery: QueuedDelivery) => void | Promise<void>;
   now(): Date;
 }
 
@@ -93,6 +132,12 @@ export interface RuntimeOptions {
   manifest: Manifest;
   /** One implementation per action of the manifest, by action name. */
   actions: Record<string, RuntimeAction>;
+  /** One implementation per handler of the manifest, by name. */
+  events?: Record<string, RuntimeEvent>;
+  /** One implementation per scheduled task of the manifest, by name. */
+  jobs?: Record<string, RuntimeJob>;
+  /** The time zone of tasks that name none: the workspace's. UTC by default. */
+  timeZone?: string;
   /**
    * Who is calling. Identity and tokens belong to the gateway: the runtime only
    * receives the person it resolved, or `undefined` for an anonymous call.

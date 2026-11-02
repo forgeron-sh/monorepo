@@ -29,7 +29,8 @@ export const manifest = {
     "notes.leak": action("read", "GET"),
   },
   views: {},
-  jobs: {},
+  jobs: { tick: { cron: "0 2 * * *", timezone: "Europe/Paris" } },
+  events: {},
   resources: { network: { allow: ["api.example.com"], why: "Notes API" } },
   uses: {},
   preview: { data: "seed" },
@@ -94,6 +95,10 @@ const actions = {
   },
 };
 
+const jobs = {
+  tick: { handler: (ctx) => ctx.emit("ticked", { as: ctx.user.id, via: ctx.interface }) },
+};
+
 export function createTool(options = {}) {
-  return createRuntime({ manifest, actions, authenticate: () => undefined, ...options });
+  return createRuntime({ manifest, actions, jobs, authenticate: () => undefined, ...options });
 }

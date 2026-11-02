@@ -34,6 +34,9 @@ describe("watchSources", () => {
   it("ignores node_modules and the build output, which a build itself writes", async () => {
     const onChange = vi.fn<() => void>();
     stop = watchSources(dir, onChange, 50);
+    // Late reports of the folders made in the setup are not what is tested: wait, then count from here.
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    onChange.mockClear();
     await writeFile(join(dir, "node_modules", "x", "i.js"), "1");
     await writeFile(join(dir, ".forgeron", "build", "worker.js"), "1");
     await new Promise((resolve) => setTimeout(resolve, 400));
@@ -43,6 +46,8 @@ describe("watchSources", () => {
   it("stops calling back once stopped", async () => {
     const onChange = vi.fn<() => void>();
     stop = watchSources(dir, onChange, 50);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    onChange.mockClear();
     stop();
     await writeFile(join(dir, "actions", "a.ts"), "1");
     await new Promise((resolve) => setTimeout(resolve, 400));

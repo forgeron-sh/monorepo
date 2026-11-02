@@ -1,4 +1,5 @@
 import type { Manifest } from "@forgeron/manifest";
+import { matchesCron, parseCron, zoneFormatter } from "./cron";
 import type {
   ActionContext,
   ErrorCode,
@@ -9,6 +10,7 @@ import type {
   Logger,
   Outcome,
   Platform,
+  QueuedDelivery,
   RuntimeAction,
   RuntimeOptions,
   User,
@@ -81,14 +83,45 @@ export interface Engine {
   /** The actions this person may call through this interface. */
   list(user: User, via: Interface): ListedAction[];
   invoke(user: User, via: CallSource, name: string, rawInput: unknown): Promise<Outcome>;
+  /** Runs a `queue` handler that the platform's queue handed back. Throws on failure, to be retried. */
+  deliver(delivery: QueuedDelivery): Promise<void>;
+  /** Runs a scheduled task now, as the tool. */
+  runJob(name: string): Promise<void>;
+  /** The tasks whose cron expression matches this minute, in their time zone. */
+  jobsDue(now: Date): string[];
 }
+
+// A `queue` handler is retried three times after its first failure (sdk.md §9).
+const RETRIES = 3;
+// A handler that emits what leads back to itself would never end.
+const MAX_DEPTH = 8;
 
 export function createEngine(options: RuntimeOptions): Engine {
   const { manifest, actions } = options;
+  const events = options.events ?? {};
+  const jobs = options.jobs ?? {};
   for (const name of Object.keys(manifest.actions)) {
     if (!actions[name])
       throw new Error(`The manifest declares "${name}" but no code implements it.`);
   }
+  for (const name of Object.keys(manifest.events)) {
+    if (!events[name])
+      throw new Error(
+        `The manifest declares the event handler "${name}" but no code implements it.`,
+      );
+  }
+  for (const name of Object.keys(manifest.jobs)) {
+    if (!jobs[name])
+      throw new Error(`The manifest declares the task "${name}" but no code implements it.`);
+  }
+
+  // Parsed once, so that a bad expression or time zone fails at startup, not at the first tick.
+  const defaultZone = options.timeZone ?? "UTC";
+  const schedules = Object.entries(manifest.jobs).map(([name, job]) => ({
+    name,
+    cron: parseCron(job.cron),
+    zone: zoneFormatter(job.timezone ?? defaultZone),
+  }));
 
   const env = options.env ?? "local";
   const platform: Platform = {
@@ -121,6 +154,75 @@ export function createEngine(options: RuntimeOptions): Engine {
     return manifest.interfaces[via] && entry.interfaces.includes(via) ? actions[name] : undefined;
   };
 
+  const handlersOf = (event: string) =>
+    Object.entries(manifest.events).filter(([, handler]) => handler.event === event);
+
+  // `ctx.emit`: `sync` handlers run now, inside the caller, and an error of theirs is the caller's
+  // error; `queue` handlers wait in `queued` until the caller has succeeded.
+  function emitter(user: User, queued: QueuedDelivery[], depth: number): ActionContext["emit"] {
+    return async (event, payload) => {
+      if (depth >= MAX_DEPTH) {
+        throw new Error(
+          `"${event}" is emitted ${MAX_DEPTH} levels deep: a handler leads back to itself.`,
+        );
+      }
+      await platform.emit(event, payload);
+      for (const [name, handler] of handlersOf(event)) {
+        if (handler.mode === "queue") queued.push({ handler: name, event, payload, user });
+        else await runHandler({ handler: name, event, payload, user }, queued, depth + 1);
+      }
+    };
+  }
+
+  async function runHandler(
+    { handler, payload, user }: QueuedDelivery,
+    queued: QueuedDelivery[],
+    depth: number,
+  ): Promise<void> {
+    await events[handler]!.handler({
+      payload,
+      user,
+      emit: emitter(user, queued, depth),
+      secrets: platform.secrets,
+      fetch: outbound,
+      log: platform.log,
+      now: platform.now,
+      env,
+    });
+  }
+
+  // After the caller succeeded: hand each `queue` delivery to the platform's queue, or run it here,
+  // with its retries, when there is none.
+  async function dispatch(queued: QueuedDelivery[]): Promise<void> {
+    for (const delivery of queued.splice(0)) {
+      try {
+        if (platform.enqueue) {
+          await platform.enqueue(delivery);
+          continue;
+        }
+        for (let attempt = 0; ; attempt++) {
+          const next: QueuedDelivery[] = [];
+          try {
+            await runHandler(delivery, next, 1);
+            await dispatch(next);
+            break;
+          } catch (error) {
+            if (attempt >= RETRIES) throw error;
+            platform.log.warn(
+              `"${delivery.handler}" failed, retry ${attempt + 1} of ${RETRIES}.`,
+              String(error),
+            );
+          }
+        }
+      } catch (error) {
+        platform.log.error(
+          `The handler "${delivery.handler}" of "${delivery.event}" failed.`,
+          error,
+        );
+      }
+    }
+  }
+
   return {
     list(user, via) {
       const allowed = grants(user);
@@ -145,12 +247,13 @@ export function createEngine(options: RuntimeOptions): Engine {
         return failure("INVALID", "The input is not valid.", parsed.error?.issues);
       }
 
+      const queued: QueuedDelivery[] = [];
       const ctx: ActionContext = {
         input: parsed.data,
         user,
         can: (level) => allowed.has(level),
         interface: via,
-        emit: platform.emit,
+        emit: emitter(user, queued, 0),
         secrets: platform.secrets,
         userSecrets: platform.userSecrets,
         connectors: platform.connectors,
@@ -165,14 +268,20 @@ export function createEngine(options: RuntimeOptions): Engine {
 
       try {
         const result = await impl.run(ctx);
-        if (!impl.output) return { ok: true, result };
-        const checked = impl.output.safeParse(result);
-        if (checked.success) return { ok: true, result: checked.data };
-        platform.log.error(
-          `The output of "${name}" does not match its schema.`,
-          checked.error?.issues,
-        );
-        return failure("INTERNAL", "Internal error.");
+        if (impl.output) {
+          const checked = impl.output.safeParse(result);
+          if (!checked.success) {
+            platform.log.error(
+              `The output of "${name}" does not match its schema.`,
+              checked.error?.issues,
+            );
+            return failure("INTERNAL", "Internal error.");
+          }
+          await dispatch(queued);
+          return { ok: true, result: checked.data };
+        }
+        await dispatch(queued);
+        return { ok: true, result };
       } catch (error) {
         const known = toolFailure(error);
         if (known) return { ok: false, error: known };
@@ -180,6 +289,49 @@ export function createEngine(options: RuntimeOptions): Engine {
         platform.log.error(`"${name}" failed.`, error);
         return failure("INTERNAL", "Internal error.");
       }
+    },
+
+    async deliver(delivery) {
+      if (!events[delivery.handler])
+        throw new Error(`Unknown event handler "${delivery.handler}".`);
+      const next: QueuedDelivery[] = [];
+      await runHandler(delivery, next, 1);
+      await dispatch(next);
+    },
+
+    async runJob(name) {
+      const job = jobs[name];
+      if (!job) throw new Error(`Unknown scheduled task "${name}".`);
+      // The task acts as the tool: no person, so no access level and no per-person secret.
+      const user: User = {
+        id: `tool:${manifest.name}`,
+        email: "",
+        name: `tool:${manifest.name}`,
+        roles: [],
+      };
+      const queued: QueuedDelivery[] = [];
+      await job.handler({
+        input: undefined,
+        user,
+        can: () => false,
+        interface: "job",
+        emit: emitter(user, queued, 0),
+        secrets: platform.secrets,
+        userSecrets: {},
+        connectors: platform.connectors,
+        fetch: outbound,
+        files: platform.files,
+        cache: platform.cache,
+        tools: platform.tools,
+        log: platform.log,
+        now: platform.now,
+        env,
+      });
+      await dispatch(queued);
+    },
+
+    jobsDue(now) {
+      return schedules.filter((s) => matchesCron(s.cron, now, s.zone)).map((s) => s.name);
     },
   };
 }

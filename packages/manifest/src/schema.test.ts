@@ -97,6 +97,34 @@ describe("resources", () => {
   });
 });
 
+describe("event handlers", () => {
+  const withEvents = (events: unknown) => ManifestSchema.safeParse({ ...crm, events }).success;
+
+  it("accepts a sync and a queue handler", () => {
+    expect(
+      withEvents({
+        a: { event: "deal.moved", mode: "sync" },
+        b: { event: "deal.moved", mode: "queue" },
+      }),
+    ).toBe(true);
+  });
+
+  it.each([
+    ["an event name that is not group.past", { a: { event: "moved", mode: "sync" } }],
+    ["an event name with a capital group", { a: { event: "Deal.moved", mode: "sync" } }],
+    ["an unknown mode", { a: { event: "deal.moved", mode: "async" } }],
+    ["a missing mode", { a: { event: "deal.moved" } }],
+    ["an unknown key", { a: { event: "deal.moved", mode: "sync", retries: 5 } }],
+  ])("rejects %s", (_, events) => {
+    expect(withEvents(events)).toBe(false);
+  });
+
+  it("requires the events key, like the other resolved ones", () => {
+    const { events: _, ...without } = crm;
+    expect(ManifestSchema.safeParse(without).success).toBe(false);
+  });
+});
+
 describe("views", () => {
   it("rejects a path that does not start with a slash", () => {
     const views = { pipeline: { title: "Pipeline", path: "pipeline", access: "read" } };

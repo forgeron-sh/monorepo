@@ -365,6 +365,26 @@ describe("maxImpact", () => {
   });
 });
 
+describe("event handlers", () => {
+  it("a handler added or removed is a minor", () => {
+    const added = diff((m) => (m.events.audit = { event: "deal.won", mode: "sync" }));
+    expect(added.changes).toEqual([
+      { kind: "event.added", subject: "events.audit", impact: "minor" },
+    ]);
+    const removed = diff((m) => delete m.events["send-summary"]);
+    expect(removed.changes).toEqual([
+      { kind: "event.removed", subject: "events.send-summary", impact: "minor" },
+    ]);
+  });
+
+  it("a handler that changes event or mode is a minor", () => {
+    const mode = diff((m) => (m.events["deal-history"]!.mode = "queue"));
+    expect(mode.changes[0]).toMatchObject({ kind: "event.changed", impact: "minor" });
+    const event = diff((m) => (m.events["deal-history"]!.event = "deal.lost"));
+    expect(event.changes[0]).toMatchObject({ kind: "event.changed", impact: "minor" });
+  });
+});
+
 describe("pending approval", () => {
   const flagged = (mutate: Mutation) => diff(mutate).changes.filter((c) => c.needsApproval);
 

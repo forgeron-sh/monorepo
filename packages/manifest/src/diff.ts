@@ -56,6 +56,9 @@ export type ChangeKind =
   | "job.added"
   | "job.removed"
   | "job.changed"
+  | "event.added"
+  | "event.removed"
+  | "event.changed"
   | "resource.added"
   | "resource.removed"
   | "resource.broadened"
@@ -157,6 +160,16 @@ export function diffManifests(previous: Manifest, next: Manifest): ManifestDiff 
     both: (name, before, after) => {
       if (before.cron !== after.cron || before.timezone !== after.timezone) {
         add("job.changed", `jobs.${name}`, "minor");
+      }
+    },
+  });
+  // A handler reacts to what actions emit: another one, or none, changes what a version does.
+  diffKeyed(previous.events, next.events, {
+    added: (name) => add("event.added", `events.${name}`, "minor"),
+    removed: (name) => add("event.removed", `events.${name}`, "minor"),
+    both: (name, before, after) => {
+      if (before.event !== after.event || before.mode !== after.mode) {
+        add("event.changed", `events.${name}`, "minor");
       }
     },
   });
