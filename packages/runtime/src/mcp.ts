@@ -1,3 +1,4 @@
+import { actionAddresses } from "@forgeron/manifest";
 import type { Engine } from "./engine";
 import type { Manifest, User } from "./types";
 
@@ -22,9 +23,7 @@ const rpcError = (id: Id, code: number, message: string) => ({
   error: { code, message },
 });
 
-export function toolName(tool: string, action: string): string {
-  return `${tool}_${action.replaceAll(".", "_")}`;
-}
+export const toolName = (tool: string, action: string): string => actionAddresses(tool, action).mcp;
 
 async function handleMessage(
   message: RpcRequest,

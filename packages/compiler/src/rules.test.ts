@@ -29,6 +29,14 @@ describe("an action name declared twice", () => {
   }, 60_000);
 });
 
+describe("an action nested more than two levels", () => {
+  it("is refused, naming the file", async () => {
+    await expect(buildTool(tool("too-deep"))).rejects.toThrow(
+      /a\/b\/c\.ts: an action is at most two levels deep \(group\.verb\)\./,
+    );
+  }, 60_000);
+});
+
 describe("an import that leaves the tool", () => {
   it("is refused, naming the file and the import", async () => {
     await expect(buildTool(tool("outside-import"))).rejects.toThrow(

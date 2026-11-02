@@ -483,6 +483,7 @@ describe("CLI", () => {
   it("turns cli.args into arguments and the other fields into options", async () => {
     const reply = (await commands("support")).find((c) => c.action === "tickets.reply");
     expect(reply).toMatchObject({
+      command: "forgeron odoo-gateway tickets reply",
       path: ["tickets", "reply"],
       confirm: true,
       args: [
