@@ -6,7 +6,11 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "dependencies": {
+    "@forgeron/manifest": "workspace:*"
+  },
   "devDependencies": {
-    "@forgeron/tsconfig": "workspace:*"
+    "@forgeron/tsconfig": "workspace:*",
+    "zod": "4.6.7"
   }
 }
