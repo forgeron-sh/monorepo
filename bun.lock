@@ -14,6 +14,7 @@
         "lefthook": "2.2.2",
         "oxfmt": "0.73.0",
         "oxlint": "1.88.0",
+        "rolldown": "1.2.16",
         "typescript": "6.0.3",
         "vitest": "5.0.5",
       },
