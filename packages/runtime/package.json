@@ -7,7 +7,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@forgeron/manifest": "workspace:*"
+    "@forgeron/manifest": "workspace:*",
+    "kysely": "0.29.8"
   },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*",

@@ -22,6 +22,7 @@ export { bucket, connector, database, defineConfig, kv, queue } from "./config";
 export type { ToolConfig } from "./config";
 export type {
   Cache,
+  ContextDb,
   CacheOptions,
   CallSource,
   Context,
@@ -31,6 +32,7 @@ export type {
   FetchResponse,
   Files,
   Logger,
+  Register,
   ToolClient,
   User,
 } from "./context";
