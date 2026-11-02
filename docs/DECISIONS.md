@@ -24,6 +24,7 @@ Rules of the log:
 | D-009 | 22/10/2026 | Two hosting modes behind a single interface: Workers for Platforms (cloud), classic Workers (self-host) | Active            |
 | D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                       | Active            |
 | D-011 | 02/11/2026 | All repository files are written in English                                                             | Active            |
+| D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                     | Active            |
 
 ---
 
@@ -133,3 +134,16 @@ Rules of the log:
 - **Why**: Forgeron targets an international open source audience; English is also the language of siages and of the tooling we use, so contributors and tools share the same language.
 - **Rejected**: French, the language of the existing documentation before this change.
 - **Applied in**: all docs, READMEs, UI copy, comments.
+
+## D-012 — An action is atomic through one D1 batch, not through a transaction
+
+- **Date**: 02/11/2026 · **Status**: Active
+- **Decision**: the atomicity of an action is **one `ctx.db.batch([...])`**: every write of the action goes in a single batch, which D1 runs as one SQL transaction and rolls back entirely when a statement fails, across tables. There is no interactive transaction (`BEGIN`, `SAVEPOINT` are refused), so an action cannot read, decide in code, then write inside one transaction.
+- **What follows**:
+  - A statement of a batch can read what an earlier one wrote (`INSERT … SELECT`, `SELECT`), but code cannot branch between statements.
+  - A read made before the batch is not isolated from concurrent writes. A write that depends on what was read carries its guard in the SQL (`UPDATE … WHERE version = ?`) and checks `changes`; no row changed means `CONFLICT`.
+  - `sync` events (`sdk.md` §9) cannot run their own SQL "inside the action's transaction". A handler that writes has to contribute statements to the action's batch, which the runtime flushes once; this is designed with `@forgeron/sdk/db` (FOR-16). Until then, "an error cancels the action" is true of what the action and its handlers have not written yet.
+- **Why**: measured on the local D1 of Miniflare 4.20260730.0 (`packages/hosting/src/d1-atomicity.test.ts`): a failing batch leaves 0 rows of the ones before it, with a not-null and a foreign-key failure; the same statements sent one by one leave the first write behind; `BEGIN TRANSACTION`, `SAVEPOINT` and `BEGIN; …; COMMIT;` through `exec` are all refused with "please use the state.storage.transaction() …". The Cloudflare D1 documentation (D1 Worker Binding API, last updated 22/06/2026) says batched statements are SQL transactions and that a failure aborts or rolls back the entire sequence; it does not mention interactive transactions.
+- **Not verified**: a remote D1. The local database runs the same engine, and the documentation agrees, but the issue asked for a remote proof too and none was made (no Cloudflare account was connected). To repeat with a remote database before the first deployment.
+- **Rejected**: promising "one transaction per action" as `sdk.md` did; transactions through Durable Object storage (`state.storage.transaction()`), which would give up D-010 (a D1 bound directly to the Worker).
+- **Applied in**: `sdk.md` §6 (the `ctx.db` row), §9, §20; `ARCHITECTURE.md`, "Open decisions".

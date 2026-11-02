@@ -316,7 +316,7 @@ export default action({
 | `user`                 | always                  | `{ id, email, name, roles }` of the person (or of the tool in a scheduled task)  |
 | `can(level)`           | always                  | Checks an additional access level in code                                        |
 | `interface`            | always                  | `"mcp" \| "api" \| "cli" \| "web" \| "job" \| "tool"`: where the call comes from |
-| `db`                   | `resources.db`          | Typed `Kysely<DB>`; one transaction per action                                   |
+| `db`                   | `resources.db`          | Typed `Kysely<DB>`; the writes of an action are atomic in one `batch` (D-012)    |
 | `emit(event, payload)` | always                  | Emits an event (section 9)                                                       |
 | `secrets`              | `resources.secrets`     | Tool secrets, read-only                                                          |
 | `userSecrets`          | `resources.userSecrets` | The person's secrets; if absent → automatic collection                           |
@@ -451,7 +451,7 @@ export default on("deal.moved", { mode: "sync" }, async ({ payload, db }) => {
 });
 ```
 
-- `mode: "sync"` (default): run inside the action's transaction; an error cancels the action.
+- `mode: "sync"` (default): run inside the action; an error cancels the action. What a handler writes joins the action's batch (D-012).
 - `mode: "queue"`: run after the action is committed, through a Cloudflare Queues queue, with three retries.
 - Event names follow `group.past` (`deal.moved`, `contact.created`). Payloads are typed by `defineEvent("deal.moved", zodSchema)` in `events/_types.ts`.
 
@@ -827,7 +827,7 @@ Conversely, `forgeron/react` remains a subpath: its hooks speak the runtime prot
 ## 20. Open questions
 
 - Execution: decided (`DECISIONS.md`, D-009 and D-010). A tool is an ordinary Worker with its own D1 database per environment, in the cloud (Workers for Platforms) as in self-host (standard Workers).
-- Transaction per action (§6, §9): D1 seems to offer only atomic batches, without interactive transactions (to be verified). Should the promise be replaced by `ctx.db.batch()`?
+- Transaction per action (§6, §9): decided, D-012. D1 has atomic batches and no interactive transaction, so an action is atomic through one `ctx.db.batch()`. Still to do: the design of a `sync` handler's writes joining that batch (with `@forgeron/sdk/db`), and a check on a remote D1.
 - Is D1 enough for all tools, or do we need a Postgres option (Hyperdrive) from the start?
 - Views: client-side rendering only, or server rendering?
 - Is the CSP sandbox (`sandbox`) suitable for React views and `@forgeron/ui`? If not, move to an origin dedicated to views.
