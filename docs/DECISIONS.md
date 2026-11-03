@@ -31,6 +31,7 @@ Rules of the log:
 | D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                | Active            |
 | D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host | Active            |
 | D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                          | Active            |
+| D-019 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                       | Active            |
 
 ---
 
@@ -219,3 +220,11 @@ Rules of the log:
 - **Not verified**: everything here is tested against a simulated API built from the documentation. Whether a user Worker with its own D1 can be uploaded and called in a real namespace is FOR-36, which has not been run; the delete endpoint of a script is assumed to mirror the upload one. If Workers for Platforms has a version and deployment split after all, `upload` should send a version, as self-host does.
 - **Not done**: a queue resource (refused with a 501, as in self-host); the gateway side, which reaches the script through the namespace binding (D-017); custom limits and an outbound Worker.
 - **Applied in**: `packages/hosting/src/cloud/`, `packages/hosting/src/resources.ts` (shared with self-host), `multipart` upload in `self-host/cloudflare.ts`.
+
+## D-019 — Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: the gateway signs a person in through the workspace's OIDC provider (authorization code with PKCE `S256`, `state`, `nonce`); Microsoft Entra ID and Google Workspace are OIDC providers. The ID token is accepted only if it is RS256, signed by a key of the provider's JWKS, from the expected issuer, for the client, unexpired, with the expected nonce; the discovery document must name the issuer that was asked. The provider's identity is then mapped to a person of the workspace (`resolvePerson`); a non-member is refused with no session. The session is `__Host-fg_session`: `HttpOnly; Secure; SameSite=Lax; Path=/`, no `Domain`, HMAC-signed, bound to its workspace, with a required lifetime (no default). It is not a tool token: tools take audience tokens (D-015).
+- **Why**: `sdk.md` §7, Isolation point 4. `__Host-` stops a sibling subdomain from setting the cookie; binding the session to a workspace stops it from working in another.
+- **Not done**: SAML; the per-workspace provider configuration and the person table (the hooks `providerFor` and `resolvePerson` are not backed by the registry); wiring `/auth` into the Worker; session lifetime values; revocation. Proven against a simulated provider only: no real Entra or Google sign-in was tried.
+- **Applied in**: `apps/gateway/src/identity/` (`oidc.ts`, `session.ts`, `auth.ts`, `sealed.ts`).
