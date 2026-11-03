@@ -59,7 +59,7 @@ forgeron/
 │   ├── manifest/           # @forgeron/manifest: manifest schema, version diff, semver impact
 │   ├── hosting/            # @forgeron/hosting: deployment interface, cloud, self-host and local modes
 │   ├── ui/                 # @forgeron/ui: design system components and tokens
-│   ├── connector-<name>/   # @forgeron/connector-<name> (later: microsoft-365, odoo…)
+│   ├── connector-odoo/     # @forgeron/connector-odoo: Odoo connector (later: microsoft-365…)
 │   └── tsconfig/           # @forgeron/tsconfig
 ├── templates/
 │   ├── crm/                # docs/examples/01-crm.md
