@@ -1,8 +1,23 @@
 {
   "name": "@forgeron/template-crm",
   "version": "0.0.0",
-  "private": true,
+  "files": [
+    "forgeron.config.ts",
+    "actions",
+    "db",
+    "events",
+    "jobs",
+    "lib",
+    "views",
+    "tests",
+    "changes",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@forgeron/sdk": "workspace:*"
   }
