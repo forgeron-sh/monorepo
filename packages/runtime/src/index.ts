@@ -23,6 +23,7 @@ export type {
   RuntimeOptions,
   Schema,
   User,
+  ViewBootstrap,
 } from "./types";
 export { createDb } from "./db";
 export type { BatchResult, Compilable, D1Like, D1Statement, Db } from "./db";

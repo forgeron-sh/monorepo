@@ -1,0 +1,156 @@
+import type { Manifest } from "@forgeron/manifest";
+import type { ViewBootstrap } from "@forgeron/runtime";
+import type { Person } from "../identity/authenticate";
+import { issueToken } from "../identity/tokens";
+
+// Serves a tool's views (sdk.md §7, "Isolation between tools on the same origin"). Every tool of a
+// workspace shares one origin, so a view's response carries a CSP `sandbox`: the browser gives the
+// page an opaque origin, with no cookies, no access to another page and no session to call an API with.
+// The page calls its own tool with a short-lived token instead, bound to `<workspace>/<tool>`.
+
+/** Without `allow-same-origin`: that is what makes the origin opaque. */
+export const VIEW_CSP = "sandbox allow-scripts allow-forms allow-popups allow-downloads";
+
+/** How long the token injected into a page lives. */
+export const VIEW_TOKEN_TTL_SECONDS = 15 * 60;
+
+interface ViewAsset {
+  body: string | ArrayBuffer | ReadableStream;
+  contentType: string;
+}
+
+/** Where the built `views/` of a tool's version are read from. */
+export interface ViewAssets {
+  read(file: string): Promise<ViewAsset | undefined>;
+}
+
+export interface ServeViewOptions {
+  /** The gateway's signing secret. */
+  secret: string;
+  now: Date;
+  workspace: string;
+  tool: string;
+  /** Where the tool is mounted on the workspace origin; `/t/<tool>` by default. */
+  base?: string;
+  manifest: Pick<Manifest, "views" | "roles">;
+  /** Who is signed in, from the session; `undefined` if nobody. Not needed for the static files. */
+  person: Person | undefined;
+  assets: ViewAssets;
+}
+
+const ASSET_PREFIX = "/_f/views/";
+
+function secured(response: Response, extra: Record<string, string> = {}): Response {
+  const headers = new Headers(response.headers);
+  headers.set("content-security-policy", VIEW_CSP);
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("referrer-policy", "no-referrer");
+  for (const [name, value] of Object.entries(extra)) headers.set(name, value);
+  return new Response(response.body, { status: response.status, headers });
+}
+
+const problem = (status: number, code: string, message: string, extra?: Record<string, string>) =>
+  secured(Response.json({ error: { code, message } }, { status }), extra);
+
+// `<` is escaped so that no value can close the script element that carries the JSON.
+const jsonForHtml = (value: unknown) => JSON.stringify(value).replaceAll("<", "\\u003c");
+
+const escapeAttribute = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
+
+function pageOf(bootstrap: ViewBootstrap, title: string, entry: string): string {
+  return [
+    "<!doctype html>",
+    '<html lang="en">',
+    '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    `<title>${title.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</title>`,
+    '<div id="root"></div>',
+    `<script id="forgeron-bootstrap" type="application/json">${jsonForHtml(bootstrap)}</script>`,
+    `<script type="module" src="${escapeAttribute(`${bootstrap.base}/_f/${entry}`)}"></script>`,
+  ].join("\n");
+}
+
+/**
+ * Answers a request for a view of the tool, `request` being addressed to the tool (the dispatcher
+ * strips `/t/<tool>`); `undefined` when the path is not one of its views, for the tool to answer.
+ *
+ * - `GET <view path>`: the page, once the person holds the view's access level, with the token.
+ * - `GET /_f/views/<file>`: a built file. It is public static code: a sandboxed page loads its
+ *   scripts without cookies, so it cannot be asked to authenticate them.
+ */
+export async function serveView(
+  request: Request,
+  options: ServeViewOptions,
+): Promise<Response | undefined> {
+  const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
+  const base = options.base ?? `/t/${options.tool}`;
+
+  if (path.startsWith(ASSET_PREFIX)) {
+    if (request.method !== "GET") {
+      return problem(405, "METHOD_NOT_ALLOWED", "Use GET.", { allow: "GET" });
+    }
+    let file: string;
+    try {
+      file = decodeURIComponent(path.slice("/_f/".length));
+    } catch {
+      return problem(404, "NOT_FOUND", "Not found.");
+    }
+    const segments = file.split("/");
+    if (
+      segments.some((part) => part === "" || part === "." || part === ".." || part.includes("\\"))
+    ) {
+      return problem(404, "NOT_FOUND", "Not found.");
+    }
+    const asset = await options.assets.read(file);
+    if (!asset) return problem(404, "NOT_FOUND", "Not found.");
+    return secured(new Response(asset.body), {
+      "content-type": asset.contentType,
+      // The page has an opaque origin: its module requests are cross-origin ones.
+      "access-control-allow-origin": "*",
+      "cache-control": "public, max-age=31536000, immutable",
+    });
+  }
+
+  const found = Object.entries(options.manifest.views).find(([, view]) => view.path === path);
+  if (!found) return undefined;
+  const [name, view] = found;
+
+  if (request.method !== "GET") {
+    return problem(405, "METHOD_NOT_ALLOWED", "Use GET.", { allow: "GET" });
+  }
+  const { person } = options;
+  if (!person) return problem(401, "UNAUTHENTICATED", "Sign in to open this page.");
+  const grants = new Set(
+    person.roles.flatMap((role) => options.manifest.roles[role]?.grants ?? []),
+  );
+  // Before anything is rendered, or a token issued.
+  if (!grants.has(view.access)) {
+    return problem(403, "FORBIDDEN", `This page needs the "${view.access}" access level.`);
+  }
+  if (!view.entry) return problem(404, "NOT_FOUND", "This view was not built.");
+
+  const token = await issueToken({
+    secret: options.secret,
+    person: person.id,
+    workspace: options.workspace,
+    tool: options.tool,
+    ttlSeconds: VIEW_TOKEN_TTL_SECONDS,
+    now: options.now,
+  });
+  const bootstrap: ViewBootstrap = {
+    workspace: options.workspace,
+    tool: options.tool,
+    view: name,
+    base,
+    token,
+    expiresAt: Math.floor(options.now.getTime() / 1000) + VIEW_TOKEN_TTL_SECONDS,
+    user: person,
+    grants: [...grants].sort(),
+  };
+  return secured(
+    new Response(pageOf(bootstrap, view.title, view.entry), {
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    }),
+  );
+}

@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@cloudflare/workers-oauth-provider": "1.2.4"
+    "@cloudflare/workers-oauth-provider": "1.2.4",
+    "@forgeron/manifest": "workspace:*"
   },
   "devDependencies": {
     "@forgeron/runtime": "workspace:*",
+    "@forgeron/sdk": "workspace:*",
     "@forgeron/tsconfig": "workspace:*",
     "@types/node": "24.19.2",
     "miniflare": "4.20260730.0"
