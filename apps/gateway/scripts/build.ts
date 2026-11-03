@@ -1,5 +1,5 @@
 // Builds the gateway into one ES module: `bun run --cwd apps/gateway build` writes `dist/worker.js`,
-// the file `forgeron platform install --gateway` uploads (docs/DECISIONS.md, D-027).
+// the file `forgeron platform install --gateway` uploads (docs/DECISIONS.md, D-028).
 import { rolldown } from "rolldown";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

@@ -141,6 +141,69 @@ export async function platform(
       "The wrangler token is a short-lived session token and is not stored. Create an API token limited to Workers, D1, KV and R2, then either run the install again with GATEWAY_CLOUDFLARE_API_TOKEN set, or set the secret CLOUDFLARE_API_TOKEN on the gateway Worker yourself (for example with `wrangler secret put`). Tools cannot be deployed before that.",
     );
   }
+
+  // 4. DNS and route: a proxied wildcard record, then `*.<domain>/*` to the gateway.
+  await attachRoute(client, values.domain, worker, io);
   io.log("The console is not deployed: no console build exists yet.");
   return 0;
+}
+
+interface Zone {
+  id: string;
+  name: string;
+}
+
+// Zone, proxied wildcard record and route, each created only when missing so that a second run
+// changes nothing. Cloudflare needs a proxied record for a route to be reached; with no origin the
+// record is the documented placeholder `AAAA 100::` (Workers best practices, "Routes").
+async function attachRoute(client: CloudflareClient, domain: string, worker: string, io: Io) {
+  const zones = await client.requestRoot<Zone[]>(
+    "GET",
+    `/zones?name=${encodeURIComponent(domain)}&account.id=${encodeURIComponent(client.accountId)}`,
+  );
+  const zone = zones.find((z) => z.name === domain);
+  if (!zone) {
+    throw new UsageError(
+      `The zone "${domain}" is not on this Cloudflare account (or the token cannot read zones). Add the domain to the account first, or pass the --domain of a zone it holds.`,
+    );
+  }
+  const wildcard = `*.${domain}`;
+  const records = await client.requestRoot<Array<{ name: string; proxied?: boolean }>>(
+    "GET",
+    `/zones/${zone.id}/dns_records?name=${encodeURIComponent(wildcard)}`,
+  );
+  if (records.length > 0) {
+    io.log(
+      `Found the DNS record "${wildcard}"${records[0]!.proxied ? "" : " (not proxied: routes need a proxied record)"}.`,
+    );
+  } else {
+    await client.requestRoot("POST", `/zones/${zone.id}/dns_records`, {
+      type: "AAAA",
+      name: wildcard,
+      content: "100::",
+      proxied: true,
+      comment: "Forgeron gateway (placeholder origin: the Worker route answers)",
+    });
+    io.log(`Created the proxied DNS record "${wildcard}".`);
+  }
+  const pattern = `${wildcard}/*`;
+  const routes = await client.requestRoot<Array<{ id: string; pattern: string; script?: string }>>(
+    "GET",
+    `/zones/${zone.id}/workers/routes`,
+  );
+  const route = routes.find((r) => r.pattern === pattern);
+  if (route && route.script !== worker) {
+    throw new UsageError(
+      `The route "${pattern}" already points to "${route.script ?? "no Worker"}", not "${worker}". Remove or change it, then run the install again.`,
+    );
+  }
+  if (route) {
+    io.log(`Found the route "${pattern}" to "${worker}".`);
+  } else {
+    await client.requestRoot("POST", `/zones/${zone.id}/workers/routes`, {
+      pattern,
+      script: worker,
+    });
+    io.log(`Created the route "${pattern}" to "${worker}".`);
+  }
 }

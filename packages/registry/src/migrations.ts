@@ -196,4 +196,25 @@ export const platformMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "seats"`)],
   },
+  {
+    // Members (D-027): the people of a workspace, who they are at the identity provider (`subject`)
+    // and their roles. The roles are a JSON array of names, resolved at each call (D-015).
+    name: "0008_members",
+    fingerprint: "members-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "members" (
+  "workspace" TEXT NOT NULL,
+  "id" TEXT NOT NULL,
+  "subject" TEXT NOT NULL,
+  "email" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "roles" TEXT NOT NULL,
+  "created_at" TEXT NOT NULL,
+  PRIMARY KEY ("workspace", "id"),
+  UNIQUE ("workspace", "subject")
+)`),
+    ],
+    down: [st(`DROP TABLE "members"`)],
+  },
 ];

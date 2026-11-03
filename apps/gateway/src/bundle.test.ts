@@ -8,7 +8,7 @@ import { Miniflare } from "miniflare";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildGateway } from "../scripts/build";
 
-// `bun run --cwd apps/gateway build` (D-027): the bundle is one ES module that workerd loads with
+// `bun run --cwd apps/gateway build` (D-028): the bundle is one ES module that workerd loads with
 // the compatibility settings `platform install` uploads it with, and it answers requests.
 
 // The workerd pinned with Miniflare 4.20260730.0 refuses a date after 2026-08-06 ("the newest date

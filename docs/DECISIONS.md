@@ -38,6 +38,7 @@ Rules of the log:
 | D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                                         | Active            |
 | D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                                       | Active            |
 | D-025 | 03/11/2026 | `forgeron login` signs in through the browser on a loopback address with PKCE and stores the token in the keychain or a 600 file | Active            |
+| D-027 | 03/11/2026 | Members live in the registry; sign-in admits the configured administrator and allowed email domains, nobody else                 | Active            |
 
 ---
 
@@ -303,7 +304,17 @@ Rules of the log:
 - **Not changed**: the token handling (never an argument, never printed), the permissions the gateway needs, and the default behaviour without `--auth`. Not verified against a real wrangler: the exact output of `wrangler auth token` is assumed to be the token alone on one line (anything else is refused).
 - **Applied in**: FOR-117.
 
-## D-027 — The gateway is built with Rolldown into `apps/gateway/dist/worker.js`; the compatibility settings are named once in `@forgeron/hosting`
+## D-027 — Members live in the registry; sign-in admits the configured administrator and allowed email domains, nobody else
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: the people of a workspace are rows of a `members` table in the platform D1 (`workspace`, `id`, identity-provider `subject`, `email`, `name`, `roles` as JSON), unique per `(workspace, subject)`. At sign-in (`resolvePerson`, D-019) a known `subject` is that member; otherwise an email equal to `ADMIN_EMAIL` becomes a member with the role `admin`, an email whose domain is in `MEMBER_EMAIL_DOMAINS` becomes a member with no role, and anyone else is refused (`403`, no session). One resolver, `createCaller`, turns a session cookie or an audience-bound token issued for the workspace into the member and their roles, read at each call; it serves the console API, the dispatcher's `identify` (seats) and `canPreview` (administrators and developers), and `/deploy-tokens`. A deployment token resolves to nobody. `POST /auth/token {tool, days}` issues a personal token to a signed-in session only (not to another token), 1 to 30 days, for a tool that exists; the lifetime bound is a starting value.
+- **Why**: D-019 left `providerFor` and `resolvePerson` unbacked, and roles had no source. The identity provider of a self-hosted install is the company's own, so its issuer and client come from bindings (FOR-120) and a domain allowlist is the simplest admission rule that fails closed.
+- **Know**: the email is matched as the provider states it; `oidc.ts` does not check `email_verified`, so a provider that lets people claim unverified emails would admit them. One provider and one admin email for all workspaces of a gateway, which is right for self-host and wrong for a multi-tenant cloud.
+- **Rejected**: first person to sign in becomes admin (anyone who reaches the sign-in page of a new workspace would); roles as a claim of the provider (a provider-specific mapping).
+- **Not done**: `inPilot` (no pilot group data exists, so pilot is served to nobody); listing, removing or re-roling members; `/auth/cli`, `/auth/cli/token` (D-025 asks for a person's CLI token, but D-015 tokens are bound to one tool, so what audience a CLI token has needs a decision); revocation; `/mcp`, `/api`, `/cli` (FOR-107); preview URLs returned by `POST /deploy` do not carry `@<branch>`.
+- **Applied in**: `packages/registry` (`0008_members`), `apps/gateway/src/gateway.ts`, `identity/caller.ts`, `identity/issue.ts`; `docs/self-host.md`.
+
+## D-028 — The gateway is built with Rolldown into `apps/gateway/dist/worker.js`; the compatibility settings are named once in `@forgeron/hosting`
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: `bun run --cwd apps/gateway build` (`apps/gateway/scripts/build.ts`) bundles `src/worker.ts` with Rolldown (`platform: "neutral"`, conditions `workerd`, `worker`, `browser`, `node:*` left external) into one ES module, `dist/worker.js`. `worker.ts` re-exports only the default handler: workerd treats each named export of the main module as an entrypoint and refuses `DEPLOY_SCOPE` (a string) at startup. The compatibility date and flags are `GATEWAY_COMPATIBILITY_DATE` and `GATEWAY_COMPATIBILITY_FLAGS` in `packages/hosting/src/gateway-runtime.ts`; the build is independent of them, `forgeron platform install` reads them, and a test checks that `wrangler.jsonc` (kept for `wrangler dev`) states the same.
