@@ -11,11 +11,9 @@ const templates = readdirSync(join(root, "templates"), { withFileTypes: true })
   .sort();
 
 const workflow = readFileSync(join(root, ".github/workflows/templates-preview.yml"), "utf8");
-const listed =
-  /template:\s*\[([^\]]*)\]/
-    .exec(workflow)?.[1]
-    ?.split(",")
-    .map((t) => t.trim()) ?? [];
+const listed = [...workflow.matchAll(/template:\s*([a-z0-9-]+)\s*,\s*secret:\s*\w+/g)].map(
+  (m) => m[1]!,
+);
 
 const problems: string[] = [];
 for (const name of templates) {

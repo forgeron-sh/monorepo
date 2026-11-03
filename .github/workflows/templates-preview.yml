@@ -22,15 +22,18 @@ jobs:
       fail-fast: false
       matrix:
         # Every folder of templates/ is listed here: `bun run templates:check` refuses the others.
-        template: [crm, dashboard, inventory, odoo-gateway]
+        include:
+          - { template: crm, secret: FORGERON_TOKEN_CRM }
+          - { template: dashboard, secret: FORGERON_TOKEN_DASHBOARD }
+          - { template: inventory, secret: FORGERON_TOKEN_INVENTORY }
+          - { template: odoo-gateway, secret: FORGERON_TOKEN_ODOO_GATEWAY }
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      # A deployment token is bound to one tool: the secret of each template is FORGERON_TOKEN_<NAME>
-      # (upper case, `-` as `_`). Without the secret (a fork, a repository not connected to a
-      # workspace yet) the template is tested and checked, not deployed.
+      # A deployment token is bound to one tool: each template has its own secret, named in the
+      # matrix. Without it (a fork, no workspace yet) the template is tested and checked only.
       - name: Link the template to the workspace
         if: ${{ vars.FORGERON_WORKSPACE != '' }}
         working-directory: templates/${{ matrix.template }}
@@ -42,4 +45,4 @@ jobs:
         with:
           working-directory: templates/${{ matrix.template }}
           command: bun ${{ github.workspace }}/apps/cli/src/index.ts
-          token: ${{ vars.FORGERON_WORKSPACE != '' && secrets[format('FORGERON_TOKEN_{0}', replace(upper(matrix.template), '-', '_'))] || '' }}
+          token: ${{ vars.FORGERON_WORKSPACE != '' && secrets[matrix.secret] || '' }}
