@@ -187,7 +187,7 @@ export interface Member {
   roles: string[];
 }
 
-/** An invitation to join a workspace with these roles, accepted by signing in with the email (D-048). */
+/** An invitation to join a workspace with these roles, accepted by signing in with the email (D-049). */
 export interface Invitation {
   workspace: string;
   email: string;
@@ -197,7 +197,7 @@ export interface Invitation {
   expiresAt: string;
 }
 
-/** Who joins a workspace by email domain, and with which role (D-048). */
+/** Who joins a workspace by email domain, and with which role (D-049). */
 export interface MembershipSettings {
   domains: string[];
   /** The role a person joining by domain gets; none when `undefined`. Never `admin`. */
@@ -686,7 +686,7 @@ ORDER BY "user_id", "connector"`,
       ).map(toMember);
     },
 
-    // ---- members, invitations and allowed domains (D-048). Every change writes its audit line in
+    // ---- members, invitations and allowed domains (D-049). Every change writes its audit line in
     // the same batch (kind `access`, subject `member:<what>`).
     /** The member with this email (compared case-insensitively), whoever their provider is. */
     async findMemberByEmail(workspace: string, email: string): Promise<Member | undefined> {

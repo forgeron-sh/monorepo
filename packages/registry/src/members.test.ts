@@ -30,7 +30,7 @@ const audit = async () =>
       .results as Array<{ subject: string; actor: string }>
   ).map((r) => `${r.subject}:${r.actor}`);
 
-describe("members, invitations and domains (D-048)", () => {
+describe("members, invitations and domains (D-049)", () => {
   it("joins a member by email and audits it; two sign-ins at once make one member", async () => {
     const [a, b] = await Promise.all([
       registry.joinMember({

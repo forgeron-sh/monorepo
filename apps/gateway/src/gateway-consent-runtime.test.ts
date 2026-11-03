@@ -27,7 +27,7 @@ let toolId = "";
 const seen: Array<Headers> = [];
 let admin = "";
 let ana = "";
-let refreshAnswer: "ok" | "revoked" | "down" = "ok";
+let refreshAnswer: "ok" | "revoked" | "down" | "5xx" = "ok";
 let issued = 0;
 
 const client = {
@@ -43,6 +43,7 @@ const provider = (async (url: string, init?: RequestInit) => {
   if (form.get("grant_type") === "refresh_token") {
     if (form.get("refresh_token") !== "rt-secret") return Response.json({}, { status: 400 });
     if (refreshAnswer === "down") throw new Error("network down");
+    if (refreshAnswer === "5xx") return new Response("<html>bad gateway</html>", { status: 502 });
     if (refreshAnswer === "revoked")
       return Response.json({ error: "invalid_grant" }, { status: 400 });
     return Response.json({ access_token: `at-${++issued}`, expires_in: 3600 });
@@ -223,7 +224,23 @@ describe("the tool's call carries the caller's own consent", () => {
     refreshAnswer = "ok";
   });
 
+  it("a 5xx from the token endpoint is a retryable 502 and the consent is kept", async () => {
+    refreshAnswer = "5xx";
+    const response = await gatewayFor(provider)(
+      at("/t/mail/api/send", { headers: { cookie: ana } }),
+    );
+    expect(response.status).toBe(502);
+    expect(response.headers.get("retry-after")).toBe("30");
+    expect(await response.json()).toMatchObject({ error: { code: "UPSTREAM", retryable: true } });
+    refreshAnswer = "ok";
+    // The provider is back: the same consent still gives a token, no new consent needed.
+    const again = await callTool(ana);
+    expect(again.links).toBeNull();
+    expect(again.tokens).toMatchObject({ microsoft: expect.stringMatching(/^at-/) });
+  });
+
   it("a revoked refresh token sends the person back to consent", async () => {
+    clock = new Date(clock.getTime() + 90 * 60_000);
     refreshAnswer = "revoked";
     const revoked = await callTool(ana);
     expect(revoked.tokens).toBeNull();
@@ -252,6 +269,8 @@ describe("the tool's call carries the caller's own consent", () => {
     expect(revoked.status).toBe(204);
     expect((await callTool(ana)).tokens).toBeNull();
     expect(await auditOf("connector-consent:%")).toEqual([
+      expect.objectContaining({ subject: "connector-consent:microsoft-365:grant" }),
+      expect.objectContaining({ subject: "connector-consent:microsoft-365:grant" }),
       expect.objectContaining({ subject: "connector-consent:microsoft-365:revoke" }),
     ]);
   });

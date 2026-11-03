@@ -48,13 +48,18 @@ export async function connectorHeaders(
           continue;
         }
       }
-      // The provider could not be reached: asking the person to consent again would not help.
+      // The provider could not be reached or failed to answer (5xx, network, not OAuth): the consent
+      // is kept, and asking the person to consent again would not help. The caller may retry.
       return {
         refuse: Response.json(
           {
-            error: { code: "UPSTREAM", message: `The consent for ${name} could not be refreshed.` },
+            error: {
+              code: "UPSTREAM",
+              message: `The consent for ${name} could not be refreshed: try again later.`,
+              retryable: true,
+            },
           },
-          { status: 502 },
+          { status: 502, headers: { "retry-after": "30" } },
         ),
       };
     }

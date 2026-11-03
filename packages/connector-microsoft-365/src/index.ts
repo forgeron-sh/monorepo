@@ -94,3 +94,6 @@ export const microsoft365 = defineConnector<Microsoft365Client>({
   scopes: MICROSOFT_365_SCOPES,
   client: (fetch) => ({ graph: graph(fetch) }),
 });
+
+/** The definition `forgeron build` bundles: the same as `microsoft365` (D-048). @alias */
+export default microsoft365;

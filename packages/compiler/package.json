@@ -13,6 +13,8 @@
     "rolldown": "1.2.16"
   },
   "devDependencies": {
+    "@forgeron/connector-google-workspace": "workspace:*",
+    "@forgeron/connector-microsoft-365": "workspace:*",
     "@forgeron/tsconfig": "workspace:*",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",

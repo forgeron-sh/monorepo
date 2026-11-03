@@ -93,7 +93,7 @@ export interface MembershipPolicy {
   adminEmail?: string;
   /** Anyone signing in with an email of one of these domains becomes a member, with no role. */
   memberDomains: string[];
-  /** The role a person joining by domain gets (D-048); none when `undefined`. */
+  /** The role a person joining by domain gets (D-049); none when `undefined`. */
   defaultRole?: string;
   /**
    * The role each group of the provider grants (D-041). A person in one of these groups is
@@ -111,7 +111,7 @@ export function membership(registry: Registry, policy: MembershipPolicy) {
     const known = await registry.findMemberBySubject(workspace, identity.subject);
     if (known) return known;
     const email = identity.email.toLowerCase();
-    // The same person who came by email first (D-048): one member, not two.
+    // The same person who came by email first (D-049): one member, not two.
     const sameEmail = await registry.findMemberByEmail(workspace, email);
     if (sameEmail) return sameEmail;
     const fromGroups = [

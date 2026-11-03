@@ -92,7 +92,7 @@ export interface GatewayEnv {
   /** Comma-separated email domains whose people become members at sign-in, with no role (D-027). */
   MEMBER_EMAIL_DOMAINS?: string;
   /**
-   * How people sign in, comma-separated: `email` (D-048, needs `SEND_EMAIL` and `MAIL_FROM`) and/or
+   * How people sign in, comma-separated: `email` (D-049, needs `SEND_EMAIL` and `MAIL_FROM`) and/or
    * `oidc`. Unset: OIDC alone, as before. The sign-in page offers them in that order: the OIDC
    * button first, then the email form.
    */
@@ -298,13 +298,13 @@ export function createGateway(
       ? cloudflareMailSender(env.SEND_EMAIL, env.MAIL_FROM)
       : undefined);
   const emailOn = methods.includes("email") && mailer !== undefined;
-  // OIDC stays on when nothing is stated (a gateway installed before D-048), or when it is named.
+  // OIDC stays on when nothing is stated (a gateway installed before D-049), or when it is named.
   const oidcOn = methods.length === 0 || methods.includes("oidc");
   const installDomains = (env.MEMBER_EMAIL_DOMAINS ?? "")
     .split(",")
     .map((d) => d.trim().toLowerCase())
     .filter(Boolean);
-  /** Who may join by themselves: what an admin saved, else what the install stated (D-048). */
+  /** Who may join by themselves: what an admin saved, else what the install stated (D-049). */
   const policyOf = async (registry: Registry, workspace: string) => {
     const saved = await registry.getMembershipSettings(workspace);
     return {

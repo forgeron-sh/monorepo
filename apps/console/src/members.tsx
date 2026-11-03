@@ -1,7 +1,7 @@
 import { Badge, Button, Table, type TableColumn } from "@forgeron/ui";
 import { useEffect, useState } from "react";
 
-// The people of the workspace and how they get in (D-048): who is a member and with which roles,
+// The people of the workspace and how they get in (D-049): who is a member and with which roles,
 // who is invited, and which email domains join by themselves. The platform refuses anyone but an
 // admin and audits every change; this screen only draws what it answers.
 

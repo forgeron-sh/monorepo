@@ -510,7 +510,7 @@ describe("forgeron platform install", () => {
       expect(cf.calls).toHaveLength(0);
     });
 
-    it("sets up the sign-in by email: the methods, the sender and the send_email binding (D-048)", async () => {
+    it("sets up the sign-in by email: the methods, the sender and the send_email binding (D-049)", async () => {
       const cf = fakeCloudflare();
       await platform(
         install([

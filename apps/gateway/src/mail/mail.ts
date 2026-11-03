@@ -1,4 +1,4 @@
-// Sending mail (D-048). The gateway only needs to send a short message to one address, so the
+// Sending mail (D-049). The gateway only needs to send a short message to one address, so the
 // interface is that and nothing more; what carries it is chosen where the gateway is built.
 
 export interface MailMessage {

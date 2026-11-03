@@ -18,7 +18,7 @@ export interface IdentityFlags {
   clientId?: string;
   adminEmail?: string;
   memberDomains?: string;
-  /** `email`, `oidc` or `email,oidc` (D-048). Without it: the OIDC provider alone, as before. */
+  /** `email`, `oidc` or `email,oidc` (D-049). Without it: the OIDC provider alone, as before. */
   signIn?: string;
   /** The address sign-in mail comes from, on a domain onboarded to Cloudflare Email Sending. */
   mailFrom?: string;

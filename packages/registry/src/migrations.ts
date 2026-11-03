@@ -367,7 +367,7 @@ export const platformMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "connector_clients"`), st(`DROP TABLE "identity_providers"`)],
   },
   {
-    // Sign-in by email (D-048): the one-time codes (stored hashed, never in the clear), the pending
+    // Sign-in by email (D-049): the one-time codes (stored hashed, never in the clear), the pending
     // invitations, and the workspace's allowed email domains with the role their people join with.
     name: "0016_email_sign_in",
     fingerprint: "email-sign-in-v1",

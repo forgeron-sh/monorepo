@@ -31,3 +31,6 @@ export const googleWorkspace = defineConnector({
   modes: ["delegated", "application"],
   scopes: googleWorkspaceScopes,
 });
+
+/** The definition `forgeron build` bundles: the same as `googleWorkspace` (D-048). @alias */
+export default googleWorkspace;

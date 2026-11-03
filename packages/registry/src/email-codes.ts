@@ -1,4 +1,4 @@
-// The one-time codes of the sign-in by email (D-048), kept in the platform D1. A code is stored as
+// The one-time codes of the sign-in by email (D-049), kept in the platform D1. A code is stored as
 // a hash only. Each row is one request: it counts for the rate limits whether or not a mail was
 // sent, so that the limits cannot tell an address that may sign in from one that may not.
 import type { D1Database } from "@forgeron/hosting";

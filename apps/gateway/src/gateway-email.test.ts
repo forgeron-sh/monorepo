@@ -8,7 +8,7 @@ import { simulatedProvider } from "./simulated-idp";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// Sign-in by email (D-048) against the gateway handler, with a simulated mail sender and an
+// Sign-in by email (D-049) against the gateway handler, with a simulated mail sender and an
 // in-memory platform D1: the code in the mail is the only way in, and every refusal looks alike.
 
 const ORIGIN = "https://acme.forgeron.app";

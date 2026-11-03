@@ -5,7 +5,7 @@ import { safeNext } from "./auth";
 import { seal, toBase64Url, unseal } from "./sealed";
 import { cookieOf, openSession } from "./session";
 
-// Passwordless sign-in by email (D-048), beside the OpenID Connect provider:
+// Passwordless sign-in by email (D-049), beside the OpenID Connect provider:
 //   GET  /auth/login           the sign-in page (email form; the OIDC button first when both are on)
 //   POST /auth/email/request   an address in, the same answer out whether or not it may sign in
 //   GET  /auth/email/verify    the form for the code

@@ -495,7 +495,7 @@ resources: { connectors: {
   - `client?(fetch, session)`: the official client, built on the authenticated `fetch`.
   - `ctx.connectors.<name>` always has `fetch` (the `authorization` header is added by the platform's token for the mode), `mode` and `scopes`, plus the official client's members when one exists.
   - `createConnectorClient(definition, declaration, session)` builds it from a `ConnectorSession` (`token()` and the platform `fetch`); the platform supplies the session, consent storage is not part of the interface.
-  - At run time a `delegated` connector uses the caller's own consent: the gateway hands the call their access token (refreshed when needed; the refresh token stays at the gateway), and a person who has not consented gets a `428 SECRET_REQUIRED` with the consent link (URL elicitation over MCP), as for a per-person secret (D-046).
+  - At run time a `delegated` connector uses the caller's own consent: the gateway hands the call their access token (refreshed when needed; the refresh token stays at the gateway), and a person who has not consented gets a `428 SECRET_REQUIRED` with the consent link (URL elicitation over MCP), as for a per-person secret (D-046). `forgeron build` bundles the package of each connector the tool declares (its default export), so `ctx.connectors.<name>` exists in the deployed tool; a provider that fails to answer (5xx) keeps the consent and is a retryable `502`, and grants and withdrawals are audited (D-048).
   - In tests, `mockConnector(definition, { fetch: mockFetch({...}) })` from `@forgeron/sdk/testing` gives a fake, passed to `createTestTool({ connectors: { microsoft: ... } })`.
 - Proposed initial catalog: `microsoft-365`, `google-workspace`, `odoo`, `slack`, `github`.
 

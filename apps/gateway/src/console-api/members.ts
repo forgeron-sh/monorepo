@@ -1,6 +1,6 @@
 import { RegistryError, type Invitation, type Member, type Registry } from "@forgeron/registry";
 
-// The people of the workspace and how they get in (D-048), for admins:
+// The people of the workspace and how they get in (D-049), for admins:
 //   GET    /api/members                    { members, invitations, settings }
 //   PATCH  /api/members/<id>               { roles }                 change a member's roles
 //   DELETE /api/members/<id>               remove a member
