@@ -40,7 +40,7 @@ export async function token(args: string[], io: Io): Promise<number> {
       "This tool is not linked to a workspace: run `forgeron link --workspace <name>` first.",
     );
   }
-  const credentials = await readCredentials();
+  const credentials = await readCredentials(process.env, io.keychain);
   if (!credentials) {
     throw new UsageError("Not signed in: run `forgeron login` first.");
   }

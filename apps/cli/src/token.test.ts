@@ -88,6 +88,19 @@ describe("forgeron token create", () => {
     expect(logs.at(-1)).toBe("fgt.example.token");
   });
 
+  it("reads the person's token from the system keychain when the file has none", async () => {
+    answer = { status: 201, body: { token: "fgt.example.token", expiresAt: "x" } };
+    const { io } = await setup({ credentials: "" });
+    const stored = new Map([["forgeron", "keychain-token"]]);
+    io.keychain = {
+      get: async (account) => stored.get(account),
+      set: async (account, secret) => void stored.set(account, secret),
+      delete: async (account) => void stored.delete(account),
+    };
+    expect(await run(create, io)).toBe(0);
+    expect(requests[0]?.authorization).toBe("Bearer keychain-token");
+  });
+
   it("passes the lifetime asked with --days", async () => {
     answer = { status: 201, body: { token: "t", expiresAt: "x" } };
     const { io } = await setup();
