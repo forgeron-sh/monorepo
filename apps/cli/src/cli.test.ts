@@ -550,6 +550,33 @@ describe("forgeron play", () => {
     await expect(fetch(url)).rejects.toThrow(/fetch failed/);
   }, 90_000);
 
+  it("serves what the page reads to show the MCP, API and CLI of an action", async () => {
+    const { c, url, done } = await open(["--port", "0"], await work("play-preview"));
+    const page = await (await fetch(url)).text();
+    expect(page).toContain("What each interface sees");
+
+    const list = (await (
+      await fetch(`${url}/mcp`, {
+        method: "POST",
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      })
+    ).json()) as { result: { tools: Array<{ name: string; description: string }> } };
+    expect(list.result.tools[0]).toMatchObject({
+      name: "greeter_hello",
+      description: "Says hello.",
+    });
+
+    const cli = (await (
+      await fetch(`${url}/cli`, { headers: { accept: "application/json" } })
+    ).json()) as {
+      commands: Array<{ command: string; options: Array<{ flag: string }> }>;
+    };
+    expect(cli.commands[0]).toMatchObject({ command: "forgeron greeter hello" });
+    expect(cli.commands[0]!.options.map((o) => o.flag)).toEqual(["--name"]);
+    c.stop();
+    await done;
+  }, 90_000);
+
   it("refuses a port that is not a port", async () => {
     const c = capture(await empty());
     expect(await run(["play", "--port", "abc"], c.io)).toBe(2);
