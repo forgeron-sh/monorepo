@@ -1,15 +1,20 @@
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { extname, isAbsolute, join, normalize, relative, sep } from "node:path";
-import { DOC_IMAGE_TYPES, type Docs } from "@forgeron/manifest";
+import {
+  DOC_IMAGE_TYPES,
+  MAX_FILE,
+  MAX_ICON,
+  MAX_TOTAL,
+  svgProblem,
+  type Docs,
+} from "@forgeron/manifest";
 import { sha256 } from "./fingerprint";
 
 // The tool's documentation for the catalog (docs/console-ux.md, D-056): `README.md` and the images it
 // references with a relative path, plus the config's `icon`. What is collected is what a member of the
 // workspace will be served, so each file is checked here, and a refusal names the file.
 
-export const MAX_FILE = 1024 * 1024;
-export const MAX_TOTAL = 5 * 1024 * 1024;
-export const MAX_ICON = 128 * 1024;
+export { MAX_FILE, MAX_TOTAL, MAX_ICON, svgProblem };
 const README = "README.md";
 
 export interface CollectedAsset {
@@ -49,25 +54,6 @@ const SIGNATURES: Record<string, (bytes: Uint8Array) => boolean> = {
   gif: (b) => [0x47, 0x49, 0x46, 0x38].every((v, i) => b[i] === v),
   webp: (b) => [0x52, 0x49, 0x46, 0x46].every((v, i) => b[i] === v) && b[8] === 0x57,
 };
-
-/** Why an SVG is refused, or `undefined`: scripts, event handlers and anything fetched are out. */
-export function svgProblem(svg: string): string | undefined {
-  if (/<\s*script\b/i.test(svg)) return "it holds a <script>";
-  if (/<\s*(foreignObject|iframe|embed|object|animate|set)\b/i.test(svg)) {
-    return "it holds an element that can run or load code (foreignObject, iframe, embed, object, animate, set)";
-  }
-  if (/\son[a-z]+\s*=/i.test(svg)) return "it holds an event handler (an on… attribute)";
-  if (/javascript\s*:/i.test(svg)) return "it holds a javascript: address";
-  if (/<!\s*(ENTITY|DOCTYPE)/i.test(svg)) return "it declares a DOCTYPE or an entity";
-  if (/@import/i.test(svg)) return "it imports a stylesheet";
-  for (const m of svg.matchAll(/\b(?:xlink:)?href\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
-    if (!(m[1] ?? m[2] ?? "").trim().startsWith("#")) return "it references an external address";
-  }
-  for (const m of svg.matchAll(/url\(\s*(['"]?)([^)]*)\1\s*\)/gi)) {
-    if (!m[2]!.trim().startsWith("#")) return "it references an external address";
-  }
-  return undefined;
-}
 
 /** `docs/a.png` from `./docs/a.png`, `docs/b/../a.png` or `docs%20x.png`; never an address outside `dir`. */
 function normalized(file: string, reference: string): string {

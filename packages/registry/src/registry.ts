@@ -1,7 +1,7 @@
 // The typed access layer over the platform D1. Plain SQL on the small D1 surface that `hosting`
 // already defines, so the gateway, a script and a test all use it. Every write is one statement or
 // one batch (D-012).
-import type { D1Database, EnvironmentName } from "@forgeron/hosting";
+import type { BuildDocs, D1Database, EnvironmentName } from "@forgeron/hosting";
 import { viewSubject, type Manifest } from "@forgeron/manifest";
 import type { SecretBox } from "./secret-box";
 
@@ -158,7 +158,8 @@ export type RegistryErrorCode =
   | "PENDING_APPROVAL"
   | "NO_MANIFEST"
   | "LAST_ADMIN"
-  | "INVALID";
+  | "INVALID"
+  | "INVALID_DOCS";
 
 export class RegistryError extends Error {
   override name = "RegistryError";
@@ -307,6 +308,25 @@ const toMember = (r: Row): Member => ({
   roles: json(r.roles) as string[],
 });
 
+// The README and the images of a version are chunked like the gateway's code (D-056).
+const DOC_CHUNK = 20_000;
+const DOC_BATCH = 100;
+/** The README is stored among the files of a build under this path, with this type. */
+export const README_PATH = "README.md";
+const README_TYPE = "text/markdown";
+
+export interface DocFile {
+  path: string;
+  hash: string;
+  type: string;
+  size: number;
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   const now = () => (options.now?.() ?? new Date()).toISOString();
   const newId = options.newId ?? (() => crypto.randomUUID());
@@ -320,6 +340,16 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     ).results ?? []) as Row[];
   const first = async (sql: string, ...values: unknown[]) => (await all(sql, ...values))[0];
   const write = (sql: string, ...values: unknown[]) => d1.batch([d1.prepare(sql).bind(...values)]);
+
+  /** The content stored under a hash, whole. */
+  const docBlob = async (toolId: string, hash: string): Promise<string | undefined> => {
+    const rows = await all(
+      `SELECT "content" FROM "docs_blobs" WHERE "tool_id" = ? AND "hash" = ? ORDER BY "part"`,
+      toolId,
+      hash,
+    );
+    return rows.length ? rows.map((r) => String(r.content)).join("") : undefined;
+  };
 
   /** The columns of the matrix and the level each one is checked against: actions, then views. */
   const matrixSubjects = (manifest: Manifest): Record<string, string> => ({
@@ -1134,6 +1164,96 @@ ORDER BY "user_id", "connector"`,
         now(),
       );
       return toBuild((await first(`SELECT * FROM "builds" WHERE "id" = ?`, id))!);
+    },
+    /**
+     * Stores the README and the images of a build (D-056). The content goes first, once per hash and
+     * in batches; the list of the build's files goes last, so a build with a list has all its content.
+     * The same build stored twice is the same.
+     */
+    async storeDocs(toolId: string, buildId: string, docs: BuildDocs): Promise<void> {
+      const files: Array<{ path: string; type: string; size: number; hash: string; text: string }> =
+        [];
+      if (docs.readme !== undefined) {
+        files.push({
+          path: README_PATH,
+          type: README_TYPE,
+          size: new TextEncoder().encode(docs.readme).length,
+          hash: await sha256Hex(new TextEncoder().encode(docs.readme)),
+          text: docs.readme,
+        });
+      }
+      for (const a of docs.assets) {
+        files.push({ path: a.path, type: a.type, size: a.size, hash: a.hash, text: a.base64 });
+      }
+      const known = new Set(
+        (await all(`SELECT DISTINCT "hash" FROM "docs_blobs" WHERE "tool_id" = ?`, toolId)).map(
+          (r) => String(r.hash),
+        ),
+      );
+      const insert = d1.prepare(
+        `INSERT OR IGNORE INTO "docs_blobs" ("tool_id", "hash", "part", "content") VALUES (?, ?, ?, ?)`,
+      );
+      const statements = [];
+      for (const file of files) {
+        if (known.has(file.hash)) continue;
+        known.add(file.hash);
+        // An empty file still gets one row.
+        const parts = Math.max(1, Math.ceil(file.text.length / DOC_CHUNK));
+        for (let part = 0; part < parts; part++) {
+          statements.push(
+            insert.bind(
+              toolId,
+              file.hash,
+              part,
+              file.text.slice(part * DOC_CHUNK, (part + 1) * DOC_CHUNK),
+            ),
+          );
+        }
+      }
+      for (let i = 0; i < statements.length; i += DOC_BATCH) {
+        await d1.batch(statements.slice(i, i + DOC_BATCH));
+      }
+      const list = d1.prepare(
+        `INSERT OR REPLACE INTO "build_docs" ("build_id", "path", "hash", "type", "size") VALUES (?, ?, ?, ?, ?)`,
+      );
+      await d1.batch([
+        d1.prepare(`DELETE FROM "build_docs" WHERE "build_id" = ?`).bind(buildId),
+        ...files.map((f) => list.bind(buildId, f.path, f.hash, f.type, f.size)),
+      ]);
+    },
+    /** The files of a build's documentation, without their content. */
+    async docsOf(buildId: string): Promise<DocFile[]> {
+      return (
+        await all(
+          `SELECT "path", "hash", "type", "size" FROM "build_docs" WHERE "build_id" = ? ORDER BY "path"`,
+          buildId,
+        )
+      ).map((r) => ({
+        path: String(r.path),
+        hash: String(r.hash),
+        type: String(r.type),
+        size: Number(r.size),
+      }));
+    },
+    /** The README of a build, or `undefined` if it has none. */
+    async readmeOf(toolId: string, buildId: string): Promise<string | undefined> {
+      const file = (await this.docsOf(buildId)).find((f) => f.path === README_PATH);
+      if (!file) return undefined;
+      return (await docBlob(toolId, file.hash)) ?? undefined;
+    },
+    /** One image of a build, as bytes; `undefined` if the build has no such file (the README is not one). */
+    async assetOf(
+      toolId: string,
+      buildId: string,
+      path: string,
+    ): Promise<(DocFile & { bytes: Uint8Array }) | undefined> {
+      const file = (await this.docsOf(buildId)).find(
+        (f) => f.path === path && f.path !== README_PATH,
+      );
+      if (!file) return undefined;
+      const base64 = await docBlob(toolId, file.hash);
+      if (base64 === undefined) return undefined;
+      return { ...file, bytes: Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)) };
     },
     async getBuild(id: string): Promise<BuildRecord | undefined> {
       const row = await first(`SELECT * FROM "builds" WHERE "id" = ?`, id);
