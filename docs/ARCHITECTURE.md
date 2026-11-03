@@ -61,7 +61,8 @@ forgeron/
 │   ├── registry/           # @forgeron/registry: platform D1 schema (migrations) and typed access layer
 │   ├── ui/                 # @forgeron/ui: design system components and tokens
 │   ├── connector-google-workspace/  # @forgeron/connector-google-workspace
-│   ├── connector-<name>/   # @forgeron/connector-<name> (later: microsoft-365, odoo…)
+│   ├── connector-microsoft-365/ # @forgeron/connector-microsoft-365: Microsoft Graph connector
+│   ├── connector-<name>/   # @forgeron/connector-<name> (later: slack, github…)
 │   └── tsconfig/           # @forgeron/tsconfig
 ├── templates/
 │   ├── crm/                # docs/examples/01-crm.md
