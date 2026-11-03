@@ -1,24 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchRoute, pathOf, toolPath } from "./router";
 import { expiry, ago } from "./format";
-
-describe("matchRoute", () => {
-  it("knows the screens, with or without a trailing slash", () => {
-    expect(matchRoute("/")).toEqual({ id: "overview" });
-    expect(matchRoute("/members/")).toEqual({ id: "members" });
-    for (const id of ["tools", "approvals", "audit", "settings"] as const) {
-      expect(matchRoute(pathOf(id))).toEqual({ id });
-    }
-  });
-  it("reads a tool's name, encoded or not", () => {
-    expect(matchRoute("/tools/crm")).toEqual({ id: "tool", tool: "crm" });
-    expect(matchRoute(toolPath("a b"))).toEqual({ id: "tool", tool: "a b" });
-  });
-  it("answers not-found for anything else", () => {
-    expect(matchRoute("/nope")).toEqual({ id: "not-found" });
-    expect(matchRoute("/tools/a/b")).toEqual({ id: "not-found" });
-  });
-});
 
 describe("format", () => {
   const now = new Date("2026-11-03T12:00:00Z");

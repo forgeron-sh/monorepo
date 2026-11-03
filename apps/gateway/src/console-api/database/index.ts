@@ -1,4 +1,4 @@
-// The database explorer of the console, read only (docs/console-ux.md, D-056):
+// The database explorer of the console, read only (docs/console-ux.md, D-057):
 //   GET /api/tools/<tool>/db/environments            -> { environments: [{ name, branch?, version? }] }
 //   GET /api/tools/<tool>/db/tables                  -> { tables: [{ name, rows, columns }], hidden }
 //   GET /api/tools/<tool>/db/schema                  -> { tables: [definition with rows] } (tables and relations)

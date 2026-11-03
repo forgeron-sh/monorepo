@@ -425,7 +425,7 @@ Names are identical in the schema, in the database and in queries (`snake_case` 
 
 ### Personal data
 
-`.personal()` tags a column as personal data: `email: t.text().personal()`. The tag is written in the table's SQL (`/* personal */` after the column), so the console's database explorer finds it in the database itself and masks the column by default: its values are never read for the page, never in an export, and the column cannot be sorted or filtered on (D-056). A column whose name says it (`email`, `phone`, `first_name`, `last_name`, `address`, `birth…`, `iban`, `ip`, `password`, `token`, `secret`…) is masked as well when it is not tagged. Tagging a column that already exists is a column change: `forgeron db generate` rebuilds the table.
+`.personal()` tags a column as personal data: `email: t.text().personal()`. The tag is written in the table's SQL (`/* personal */` after the column), so the console's database explorer finds it in the database itself and masks the column by default: its values are never read for the page, never in an export, and the column cannot be sorted or filtered on (D-057). A column whose name says it (`email`, `phone`, `first_name`, `last_name`, `address`, `birth…`, `iban`, `ip`, `password`, `token`, `secret`…) is masked as well when it is not tagged. Tagging a column that already exists is a column change: `forgeron db generate` rebuilds the table.
 
 ### Migrations
 

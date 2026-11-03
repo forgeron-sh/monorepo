@@ -1,19 +1,16 @@
-import { AppShell, Badge, Button, Logo, Nav, Notice, Sidebar, type NavItem } from "@forgeron/ui";
-import { useEffect, useState } from "react";
-import { ApprovalsPage } from "./approvals-page";
+import { Button, Logo, Notice } from "@forgeron/ui";
+import { createElement, lazy, Suspense, useEffect, type ComponentType } from "react";
 import { ApiError, type Api } from "./api";
-import { AuditPage } from "./audit-page";
-import { MembersPage } from "./members";
-import { Overview } from "./overview";
 import { loadPendingApprovals } from "./pending-approvals";
-import { pathOf, routeClick, useRoute, type Route } from "./router";
-import { SettingsPage } from "./settings";
+import { routeClick, useRoute } from "./router";
+import { canSee } from "./shell/access";
+import { AppLayout } from "./shell/app-layout";
+import { matchRoute, routes, type LazyPage, type PageProps } from "./shell/routes";
 import { Loading } from "./states";
-import { ToolPage, ToolsPage } from "./tools-page";
 import { useLoad } from "./use-load";
 import { loadWorkspace, type WorkspaceInfo } from "./workspace";
 
-// The console: a sidebar and the screen of the current path. Atelier (light) follows the system's
+// The console: the layout and the screen the route table gives for the current path. Atelier (light) follows the system's
 // colour scheme; Forge (dark) is the default (docs/design-system.md).
 
 /** Puts `data-theme` on the page from `prefers-color-scheme`, and keeps it there. */
@@ -40,7 +37,7 @@ export interface AppProps {
 export function App({ api, now = () => new Date() }: AppProps) {
   useTheme();
   const workspace = useLoad(() => loadWorkspace(api.fetchJson), [api]);
-  const [route, go] = useRoute();
+  const [pathname, go] = useRoute();
 
   if (workspace.loading) {
     return (
@@ -74,176 +71,80 @@ export function App({ api, now = () => new Date() }: AppProps) {
       </div>
     );
   }
-  return <Shell ws={workspace.data} api={api} now={now} route={route} go={go} />;
+  return <Shell ws={workspace.data} api={api} now={now} pathname={pathname} go={go} />;
 }
+
+// A lazy component per route, made once at load: `lazy` must not be called while rendering.
+const screens = new Map<LazyPage, ComponentType<PageProps>>(
+  routes.map((route) => [route.page, lazy(route.page)]),
+);
 
 function Shell({
   ws,
   api,
   now,
-  route,
+  pathname,
   go,
 }: {
   ws: WorkspaceInfo;
   api: Api;
   now: () => Date;
-  route: Route;
+  pathname: string;
   go: (href: string) => void;
 }) {
-  // The phone menu is open for the screen it was opened on: moving to another one closes it.
-  const screen = `${route.id}/${route.tool ?? ""}`;
-  const [openOn, setOpenOn] = useState<string>();
-  const menuOpen = openOn === screen;
-  // Escape closes it too.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenOn(undefined);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [menuOpen]);
-
+  const match = matchRoute(pathname);
   const admin = ws.person.admin;
   const pending = useLoad(
     () => (admin ? loadPendingApprovals(api.fetchJson) : Promise.resolve([])),
     [api, admin],
   );
   const waiting = pending.data?.length ?? 0;
-  const here = route.id === "tool" ? "tools" : route.id;
-  const items: NavItem[] = [
-    { id: "overview", label: "Overview", href: pathOf("overview") },
-    { id: "tools", label: "Tools", href: pathOf("tools") },
-    ...(admin
-      ? [
-          { id: "members", label: "Members", href: pathOf("members") },
-          {
-            id: "approvals",
-            label: "Approvals",
-            href: pathOf("approvals"),
-            ...(waiting > 0 ? { badge: waiting } : {}),
-          },
-          { id: "audit", label: "Audit log", href: pathOf("audit") },
-          { id: "settings", label: "Settings", href: pathOf("settings") },
-        ]
-      : []),
-  ].map((item) => ({ ...item, current: item.id === here }));
 
-  const sidebar = (
-    <Sidebar
-      header={
-        <div className="fc-brand">
-          <Logo size={20} />
-          <div className="fc-workspace">
-            <span className="fc-caption" style={{ margin: 0 }}>
-              Workspace
-            </span>
-            <span className="fc-workspace-name" title={ws.workspace}>
-              {ws.workspace}
-            </span>
-          </div>
-        </div>
-      }
-      footer={
-        <div className="fc-person">
-          <span className="fc-person-email" title={ws.person.email}>
-            {ws.person.email}
-          </span>
-          <span className="fc-person-roles">
-            {ws.person.roles.length ? (
-              ws.person.roles.map((r) => (
-                <Badge key={r} tone={r === "admin" ? "strong" : "neutral"}>
-                  {r}
-                </Badge>
-              ))
-            ) : (
-              <Badge>no role</Badge>
-            )}
-          </span>
-          <div>
-            <Button size="sm" href="/auth/logout">
-              Sign out
-            </Button>
-          </div>
-        </div>
-      }
-    >
-      <Nav label="Console" items={items} onNavigate={(href) => go(href)} />
-    </Sidebar>
-  );
+  // The tab title follows the screen.
+  useEffect(() => {
+    document.title = match
+      ? `${match.route.title} · ${ws.workspace}`
+      : `Not found · ${ws.workspace}`;
+  }, [match, ws.workspace]);
 
   return (
-    <AppShell
-      sidebar={sidebar}
-      topbar={<Logo size={18} />}
-      menuOpen={menuOpen}
-      onMenuToggle={() => setOpenOn(menuOpen ? undefined : screen)}
-    >
-      <Screen ws={ws} api={api} now={now} route={route} go={go} onDecided={pending.reload} />
-    </AppShell>
+    <AppLayout ws={ws} pathname={pathname} go={go} badges={{ "/approvals": waiting }}>
+      {!match ? (
+        <NotFound go={go} />
+      ) : !canSee(match.route.access, ws.person) ? (
+        <NotAdmin go={go} />
+      ) : (
+        <Suspense fallback={<Loading label={`Loading ${match.route.title}`} />}>
+          <RouteScreen
+            load={match.route.page}
+            props={{ ws, api, now, go, params: match.params, refreshPending: pending.reload }}
+          />
+        </Suspense>
+      )}
+    </AppLayout>
   );
 }
 
-function Screen({
-  ws,
-  api,
-  now,
-  route,
-  go,
-  onDecided,
-}: {
-  ws: WorkspaceInfo;
-  api: Api;
-  now: () => Date;
-  route: Route;
-  go: (href: string) => void;
-  onDecided: () => void;
-}) {
-  switch (route.id) {
-    case "overview":
-      return <Overview ws={ws} fetchJson={api.fetchJson} go={go} />;
-    case "tools":
-      return <ToolsPage api={api} go={go} />;
-    case "tool":
-      return (
-        <ToolPage
-          name={route.tool!}
-          api={api}
-          admin={ws.person.admin}
-          developer={ws.person.roles.includes("developer")}
-        />
-      );
-    case "members":
-      return ws.person.admin ? (
-        <MembersPage api={api} selfId={ws.person.id} now={now} />
-      ) : (
-        <NotAdmin go={go} />
-      );
-    case "approvals":
-      return ws.person.admin ? (
-        <ApprovalsPage api={api} onDecided={onDecided} />
-      ) : (
-        <NotAdmin go={go} />
-      );
-    case "audit":
-      return <AuditPage api={api} admin={ws.person.admin} now={now} />;
-    case "settings":
-      return <SettingsPage api={api} ws={ws} />;
-    case "not-found":
-      return (
-        <main className="fg-page">
-          <Notice
-            tone="warning"
-            title="This page does not exist."
-            action={
-              <Button size="sm" href={pathOf("overview")} onClick={routeClick(go)}>
-                Open the overview
-              </Button>
-            }
-          >
-            The address may be mistyped, or the page may have moved.
-          </Notice>
-        </main>
-      );
-  }
+function RouteScreen({ load, props }: { load: LazyPage; props: PageProps }) {
+  return createElement(screens.get(load)!, props);
+}
+
+function NotFound({ go }: { go: (href: string) => void }) {
+  return (
+    <main className="fg-page">
+      <Notice
+        tone="warning"
+        title="This page does not exist."
+        action={
+          <Button size="sm" href="/" onClick={routeClick(go)}>
+            Open the home page
+          </Button>
+        }
+      >
+        The address may be mistyped, or the page may have moved.
+      </Notice>
+    </main>
+  );
 }
 
 function NotAdmin({ go }: { go: (href: string) => void }) {
@@ -253,8 +154,8 @@ function NotAdmin({ go }: { go: (href: string) => void }) {
         tone="info"
         title="This page is for admins."
         action={
-          <Button size="sm" href={pathOf("overview")} onClick={routeClick(go)}>
-            Open the overview
+          <Button size="sm" href="/" onClick={routeClick(go)}>
+            Open the home page
           </Button>
         }
       >
