@@ -22,9 +22,9 @@ export interface BadgeProps {
 }
 export declare function Badge(props: BadgeProps): JSX.Element;
 
-/** Environment of a version. Default label: Production, Pilot, Preview. */
+/** Environment of a version. Default label: Production, Preview. */
 export interface EnvTagProps {
-  env: "production" | "pilot" | "preview";
+  env: "production" | "preview";
   children?: React.ReactNode;
   className?: string;
 }
@@ -56,7 +56,7 @@ export interface ToolCardProps {
   description?: string;
   /** Deployed version, e.g. "v1.4.0". */
   version?: string;
-  env?: "production" | "pilot" | "preview";
+  env?: "production" | "preview";
   interfaces?: Array<"mcp" | "api" | "web" | "cli">;
   /** Footer line, e.g. "42 users". */
   meta?: string;
@@ -70,7 +70,7 @@ export interface Deployment {
   commit: string;
   author: string;
   time: string;
-  env?: "production" | "pilot" | "preview";
+  env?: "production" | "preview";
   status: "live" | "building" | "failed" | "superseded";
 }
 /** Version history of a tool, most recent on top. */

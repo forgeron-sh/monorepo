@@ -20,7 +20,7 @@ import {
 
 export interface Diff {
   statements: string[];
-  /** Drops or rewrites data: a pilot or production deployment refuses it without `--allow-destructive`. */
+  /** Drops or rewrites data: a production deployment refuses it without `--allow-destructive`. */
   destructive: boolean;
 }
 

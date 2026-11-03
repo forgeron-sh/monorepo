@@ -27,7 +27,7 @@ export interface MigrationOptions {
   up: MigrationSteps;
   /** Undoes `up`. Data that `up` dropped does not come back. */
   down: MigrationSteps;
-  /** Drops or rewrites data: refused in pilot and production without `--allow-destructive`. */
+  /** Drops or rewrites data: refused in production without `--allow-destructive`. */
   destructive?: boolean;
 }
 

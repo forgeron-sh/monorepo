@@ -152,7 +152,7 @@ A single interface, three implementations (`cloud`, `self-host`, `local`). It co
 1. **provision**: create the resources requested by the manifest (one D1 per environment, KV, R2);
 2. **upload**: send a build's Worker with its bindings;
 3. **migrate**: apply the build's migrations to the environment's database;
-4. **activate**: make an environment (production, pilot, preview) serve this build;
+4. **activate**: make an environment (production, preview) serve this build;
 5. **teardown**: delete a preview or a tool, along with its resources.
 
 The gateway calls this interface when it receives a build; the CLI calls it for `forgeron dev` (`local` mode) and to install the platform in self-host.
@@ -162,7 +162,7 @@ The gateway calls this interface when it receives a build; the CLI calls it for 
 One stable name per tool and per environment, so that publishing a version changes no link:
 
 ```text
-<workspace>--<tool>--production      <workspace>--<tool>--pilot      <workspace>--<tool>--pr-<n>
+<workspace>--<tool>--production      <workspace>--<tool>--pr-<n>
 ```
 
 In self-host, the gateway is redeployed only when a tool is created or deleted, never on every version.
@@ -182,7 +182,7 @@ flowchart LR
   D --> R[("registry")]
   D --> H["@forgeron/hosting<br/>provision · upload · migrate"]
   H --> PV[branch preview]
-  PV -->|"forgeron release then promote"| PR[pilot / production]
+  PV -->|"forgeron release then promote"| PR[production]
 ```
 
 - **Discovery**: each `forgeron.config.ts` in the repository is a tool (D-006); the action processes them all.
@@ -225,7 +225,7 @@ Taken from siages and the Odoo SDK (D-001), so that all our repositories look al
 
 ## Platform environments
 
-Those of Forgeron itself, not to be confused with a tool's environments (`local`, `preview`, `pilot`, `production`, `sdk.md` §15).
+Those of Forgeron itself, not to be confused with a tool's environments (`local`, `preview`, `production`, `sdk.md` §15).
 
 | Environment | Gateway                                              | Console               | Site                   |
 | ----------- | ---------------------------------------------------- | --------------------- | ---------------------- |

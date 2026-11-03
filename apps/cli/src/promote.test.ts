@@ -91,20 +91,16 @@ describe("forgeron promote", () => {
     expect(logs.join("\n")).toContain("Migrations applied: 0002");
   });
 
-  it("prefers FORGERON_TOKEN and passes the group and --allow-destructive", async () => {
-    answer = { status: 200, body: { version: "1.1.0", group: "early" } };
-    const { io, logs } = await setup({ env: "fgt.ci" });
-    expect(
-      await run(
-        ["promote", "1.1.0", "--to", "pilot", "--group", "early", "--allow-destructive"],
-        io,
-      ),
-    ).toBe(0);
+  it("prefers FORGERON_TOKEN and passes --allow-destructive", async () => {
+    answer = { status: 200, body: { version: "1.1.0" } };
+    const { io } = await setup({ env: "fgt.ci" });
+    expect(await run(["promote", "1.1.0", "--to", "production", "--allow-destructive"], io)).toBe(
+      0,
+    );
     expect(requests[0]).toMatchObject({
       authorization: "Bearer fgt.ci",
-      body: { to: "pilot", group: "early", allowDestructive: true },
+      body: { to: "production", allowDestructive: true },
     });
-    expect(logs.join("\n")).toContain('group "early"');
   });
 
   it("prints the gateway's reason and exits 1 when it refuses", async () => {
@@ -119,11 +115,12 @@ describe("forgeron promote", () => {
     expect(errors).toEqual(["production takes a version with a changelog entry."]);
   });
 
-  it("is a wrong use without a version, a target, or with a group outside the pilot", async () => {
+  it("is a wrong use without a version, a target, or for the pilot or a group", async () => {
     const { io } = await setup();
     expect(await run(["promote", "--to", "production"], io)).toBe(2);
     expect(await run(["promote", "1.1.0"], io)).toBe(2);
     expect(await run(["promote", "1.1.0", "--to", "staging"], io)).toBe(2);
+    expect(await run(["promote", "1.1.0", "--to", "pilot"], io)).toBe(2);
     expect(await run(["promote", "1.1.0", "--to", "production", "--group", "x"], io)).toBe(2);
     expect(await run(["promote", "1.1.0", "--to", "preview"], io)).toBe(2);
     expect(requests).toEqual([]);
@@ -155,8 +152,8 @@ describe("forgeron rollback", () => {
   it("rolls back the environment it is given", async () => {
     answer = { status: 200, body: { version: "1.0.0" } };
     const { io } = await setup();
-    expect(await run(["rollback", "--env", "pilot"], io)).toBe(0);
-    expect(requests[0]!.body).toEqual({ tool: "crm", environment: "pilot" });
+    expect(await run(["rollback", "--env", "preview", "--branch", "feat"], io)).toBe(0);
+    expect(requests[0]!.body).toEqual({ tool: "crm", environment: "preview", branch: "feat" });
   });
 
   it("prints the gateway's reason when there is nothing to go back to", async () => {
@@ -177,14 +174,15 @@ describe("forgeron rollback", () => {
   it("is a wrong use for an unknown environment or a preview without a branch", async () => {
     const { io } = await setup();
     expect(await run(["rollback", "--env", "staging"], io)).toBe(2);
+    expect(await run(["rollback", "--env", "pilot"], io)).toBe(2);
     expect(await run(["rollback", "--env", "preview"], io)).toBe(2);
   });
 });
 
-describe("forgeron deploy --group", () => {
-  it("is for the pilot", async () => {
-    const { io, errors } = await setup({ env: "fgt.ci" });
+describe("forgeron deploy", () => {
+  it("has no pilot and no group", async () => {
+    const { io } = await setup({ env: "fgt.ci" });
+    expect(await run(["deploy", "--env", "pilot"], io)).toBe(2);
     expect(await run(["deploy", "--env", "production", "--group", "early"], io)).toBe(2);
-    expect(errors[0]).toContain("pilot");
   });
 });

@@ -14,7 +14,7 @@ Forgeron is the platform where companies forge, version and host their internal 
 
 - The interface is in English. Plain, direct tone. Short sentences, in the second person ("you").
 - Terms developers use stay as they are: commit, branch, preview, build, MCP, API, SSO, SDK. We write "tool" or "internal tool" for the object.
-- Fixed vocabulary: **workspace** (the company), **tool**, **action** (what the SDK defines, e.g. `crm.contacts.update`), **interface** (MCP, API, Web, CLI), **version**, **environment** (Production, Pilot, Preview), **access**, **role**.
+- Fixed vocabulary: **workspace** (the company), **tool**, **action** (what the SDK defines, e.g. `crm.contacts.update`), **interface** (MCP, API, Web, CLI), **version**, **environment** (Production, Preview), **access**, **role**.
 - The forge register is used sparingly: the verb "forge" appears only in marketing headlines ("Forge your tools."), never in action labels. A button says "Deploy", not "Forge".
 - Buttons: an imperative verb, no period. Error messages: what happened, then what to do ("The build failed at the test step. Open the logs.").
 - No emoji in the interface or in the documentation.
@@ -55,7 +55,6 @@ Forgeron is the platform where companies forge, version and host their internal 
 Every push to GitHub produces a version. Environments are told apart by **shape** (`EnvTag`), never by color:
 
 - **Production**: solid `inverse` fill, filled dot.
-- **Pilot**: `ink` outline, hollow dot — a version opened to a test group.
 - **Preview**: dashed outline, `ink-muted` text — branch build.
 
 Build states (`Live`, `Building`, `Failed`) go through `Badge` with `success`, `warning`, `danger`.

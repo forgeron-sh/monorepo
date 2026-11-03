@@ -78,7 +78,7 @@ describe("members, invitations and domains (D-049)", () => {
     expect(await audit()).toContain(`member:roles:${bob.id}`);
   });
 
-  it("removing a member also drops their group places", async () => {
+  it("removing a member removes them", async () => {
     const ada = await registry.joinMember({
       workspace: "acme",
       email: "ada@acme.fr",
@@ -91,9 +91,7 @@ describe("members, invitations and domains (D-049)", () => {
       roles: [],
       via: "domain",
     });
-    await registry.setGroupMembers("acme", "early", [bob.id]);
     await registry.removeMember("acme", bob.id, ada.id);
-    expect(await registry.listGroups("acme")).toEqual([]);
     expect(await registry.findMember("acme", bob.id)).toBeUndefined();
   });
 

@@ -37,7 +37,7 @@ export interface Changelog {
   declared: Impact;
   /** The impact found by comparing with the last release; `none` without one or without change. */
   detected: Impact;
-  /** A resource is awaiting approval before pilot or production. */
+  /** A resource is awaiting approval before production. */
   pendingApproval: boolean;
 }
 

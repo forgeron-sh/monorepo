@@ -90,25 +90,26 @@ const post = (path: string, body: unknown, token?: string) =>
     body: JSON.stringify(body),
   });
 
-/** 1.0.0 on production; 1.1.0 then 1.2.0 on pilot. */
+/** 1.0.0 on production; 1.1.0 then 1.2.0 on the preview of a branch. */
 async function seed() {
   const tool = await registry.createTool({ workspace: "acme", name: "crm" });
   const { hosting } = fakeHosting();
-  const dep = (environment: "pilot" | "production", fp: string, version: string) =>
+  const dep = (environment: "preview" | "production", fp: string, version: string) =>
     deployBuild(registry, hosting, {
       tool,
       environment,
+      ...(environment === "preview" ? { branch: "feat" } : {}),
       build: build(fp),
       version,
       actor: "ci",
     });
   await dep("production", "fp1", "1.0.0");
-  await dep("pilot", "fp2", "1.1.0");
-  await dep("pilot", "fp3", "1.2.0");
+  await dep("preview", "fp2", "1.1.0");
+  await dep("preview", "fp3", "1.2.0");
   return tool;
 }
 
-const historyOf = async (name: "pilot" | "production") => {
+const historyOf = async (name: "preview" | "production") => {
   const tool = (await registry.findTool("acme", "crm"))!;
   const env = (await registry.listEnvironments(tool.id)).find((e) => e.name === name)!;
   const versions = await registry.listVersions(tool.id);
@@ -142,18 +143,17 @@ describe("POST /promote", () => {
     ]);
   });
 
-  it("lets an administrator promote, recorded under their email, and sets the pilot group", async () => {
+  it("lets an administrator promote, recorded under their email", async () => {
     await seed();
     const response = await handlePromote(
-      post("/promote", { tool: "crm", version: "1.0.0", to: "pilot", group: "early" }),
+      post("/promote", { tool: "crm", version: "1.2.0", to: "production" }),
       context(fakeHosting().hosting, person(["admin"])),
     );
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ group: "early" });
-    expect((await historyOf("pilot")).at(-1)).toEqual({
+    expect((await historyOf("production")).at(-1)).toEqual({
       actor: "ada@acme.test",
       kind: "promote",
-      version: "1.0.0",
+      version: "1.2.0",
     });
   });
 
@@ -235,13 +235,9 @@ describe("POST /promote", () => {
       (await handlePromote(post("/promote", { version: "1.0.0", to: "staging" }, token), ctx))
         .status,
     ).toBe(400);
+    // There is no pilot environment, and no group to promote to.
     expect(
-      (
-        await handlePromote(
-          post("/promote", { version: "1.0.0", to: "production", group: "early" }, token),
-          ctx,
-        )
-      ).status,
+      (await handlePromote(post("/promote", { version: "1.0.0", to: "pilot" }, token), ctx)).status,
     ).toBe(400);
     expect(
       (await handlePromote(new Request("https://acme.forgeron.app/promote"), ctx)).status,
@@ -252,19 +248,33 @@ describe("POST /promote", () => {
 describe("POST /rollback", () => {
   it("puts the previous version back, applies no migration and audits it", async () => {
     await seed();
+    const promoted = await handlePromote(
+      post("/promote", { version: "1.1.0", to: "production" }, await deployToken()),
+      context(fakeHosting().hosting),
+    );
+    expect(promoted.status).toBe(200);
     const { hosting, calls } = fakeHosting();
     const response = await handleRollback(
-      post("/rollback", { environment: "pilot" }, await deployToken()),
+      post("/rollback", { environment: "production" }, await deployToken()),
       context(hosting),
     );
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ version: "1.1.0", environment: "pilot" });
+    expect(await response.json()).toMatchObject({ version: "1.0.0", environment: "production" });
     expect(calls).not.toContain("migrate");
-    expect(await historyOf("pilot")).toEqual([
-      { actor: "ci", kind: "deploy", version: "1.1.0" },
-      { actor: "ci", kind: "deploy", version: "1.2.0" },
-      { actor: "deploy:ci", kind: "rollback", version: "1.1.0" },
+    expect(await historyOf("production")).toEqual([
+      { actor: "ci", kind: "deploy", version: "1.0.0" },
+      { actor: "deploy:ci", kind: "promote", version: "1.1.0" },
+      { actor: "deploy:ci", kind: "rollback", version: "1.0.0" },
     ]);
+  });
+
+  it("refuses the pilot, which no longer exists", async () => {
+    await seed();
+    const response = await handleRollback(
+      post("/rollback", { environment: "pilot" }, await deployToken()),
+      context(fakeHosting().hosting),
+    );
+    expect(response.status).toBe(400);
   });
 
   it("answers 409 when the environment has no earlier version", async () => {
@@ -279,7 +289,7 @@ describe("POST /rollback", () => {
 
   it("is for administrators and deployment tokens only", async () => {
     await seed();
-    const body = { tool: "crm", environment: "pilot" };
+    const body = { tool: "crm", environment: "production" };
     const ctx = (who?: Person) => context(fakeHosting().hosting, who);
     expect((await handleRollback(post("/rollback", body), ctx())).status).toBe(401);
     expect((await handleRollback(post("/rollback", body), ctx(person([])))).status).toBe(403);

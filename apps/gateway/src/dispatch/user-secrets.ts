@@ -85,7 +85,7 @@ export async function forwardIdentity(
   tool: string,
   request: Request,
   context: UserSecretsContext,
-  environment: "preview" | "pilot" | "production" = "production",
+  environment: "preview" | "production" = "production",
 ): Promise<Forwarding | undefined> {
   const who = await context.identify(request);
   if (!who) return undefined;

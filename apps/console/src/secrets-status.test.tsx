@@ -17,7 +17,7 @@ describe("loadSecretsStatus", () => {
       "crm",
     );
     expect(rows).toEqual([
-      { name: "ODOO_KEY", environments: { preview: "missing", pilot: "set", production: "set" } },
+      { name: "ODOO_KEY", environments: { preview: "missing", production: "set" } },
     ]);
     expect(JSON.stringify(rows)).not.toContain("must-not-survive");
   });
@@ -36,14 +36,15 @@ describe("SecretsStatus", () => {
         rows={[
           {
             name: "ODOO_KEY",
-            environments: { preview: "missing", pilot: "set", production: "set" },
+            environments: { preview: "missing", production: "set" },
           },
         ]}
       />,
     );
     expect(out).toContain("ODOO_KEY");
     expect(out).toContain("Preview");
-    expect(out.match(/>set</g)).toHaveLength(2);
+    expect(out).not.toContain("Pilot");
+    expect(out.match(/>set</g)).toHaveLength(1);
     expect(out.match(/>missing</g)).toHaveLength(1);
   });
 

@@ -14,14 +14,14 @@ export interface ConnectorTokensContext {
   /** The consent exchange, with the OAuth clients of these connector types loaded. */
   consent(types: string[]): Promise<Consent>;
   /** Where a person gives consent for a connector of a tool, in an environment. */
-  consentUrl(tool: string, environment: "preview" | "pilot" | "production", name: string): string;
+  consentUrl(tool: string, environment: "preview" | "production", name: string): string;
 }
 
 export async function connectorHeaders(
   tool: { id: string; name: string },
   manifest: Manifest,
   person: { id: string },
-  environment: "preview" | "pilot" | "production",
+  environment: "preview" | "production",
   context: ConnectorTokensContext,
 ): Promise<Forwarding> {
   const delegated = Object.entries(manifest.resources.connectors ?? {}).filter(

@@ -9,7 +9,7 @@ import { promptUserSecrets } from "./user-secrets";
 // in the shell history or the process list. `list` shows names only. The platform encrypts at rest.
 // Credentials: the token comes from `FORGERON_TOKEN`, the address from `.forgeron/project.json`.
 
-const ENVIRONMENTS = ["preview", "pilot", "production"];
+const ENVIRONMENTS = ["preview", "production"];
 const USAGE =
   "Usage: forgeron secrets set <NAME> [--env <env>] | forgeron secrets list [--env <env>]";
 

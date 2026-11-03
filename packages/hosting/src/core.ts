@@ -4,7 +4,7 @@
 import type { Manifest } from "@forgeron/manifest";
 import type { BuildMigration, D1Database, MigrateOptions, MigrateResult } from "./migrate";
 
-export type EnvironmentName = "local" | "preview" | "pilot" | "production";
+export type EnvironmentName = "local" | "preview" | "production";
 
 /** One deployment target: a tool in an environment (a preview also has its branch). */
 export interface Environment {
@@ -22,7 +22,7 @@ export interface Build {
   fingerprint: string;
   /** `db/migrations/`, in the order they apply. */
   migrations?: BuildMigration[];
-  /** `changelog.json`: what pilot and production check before accepting the build (sdk.md §16). */
+  /** `changelog.json`: what production checks before accepting the build (sdk.md §16). */
   changelog?: BuildChangelog;
 }
 
@@ -105,11 +105,11 @@ export class ChangelogRefusal extends Error {
 }
 
 /**
- * Pilot and production take a build only if the changelog covers the change; a preview is never
+ * Production takes a build only if the changelog covers the change; a preview is never
  * blocked (sdk.md §14, §16). A host calls it before it uploads.
  */
 export function assertDeployable(environment: Environment, build: Build): void {
-  if (environment.name !== "pilot" && environment.name !== "production") return;
+  if (environment.name !== "production") return;
   const { changelog } = build;
   if (!changelog || changelog.entries.length === 0) {
     throw new ChangelogRefusal(

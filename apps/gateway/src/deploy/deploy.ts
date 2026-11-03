@@ -17,7 +17,7 @@ import { issueToken, verifyToken } from "../identity/tokens";
 export const DEPLOY_SCOPE = "deploy";
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,39}$/;
-const ENVIRONMENTS: RegisteredEnvironment[] = ["preview", "pilot", "production"];
+const ENVIRONMENTS: RegisteredEnvironment[] = ["preview", "production"];
 const DAY = 24 * 60 * 60;
 const MAX_DAYS = 365;
 
@@ -141,7 +141,7 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
 
   const body = await bodyOf(request);
   if (!body) return fail(400, "INVALID", "The body must be a JSON object.");
-  const { environment, branch, version, build, allowDestructive, group } = body;
+  const { environment, branch, version, build, allowDestructive } = body;
   if (!ENVIRONMENTS.includes(environment as RegisteredEnvironment)) {
     return fail(400, "INVALID", `environment: one of ${ENVIRONMENTS.join(", ")}.`);
   }
@@ -150,12 +150,6 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   }
   if (typeof version !== "string" || version === "") {
     return fail(400, "INVALID", "version: the number to publish.");
-  }
-  if (group !== undefined && (typeof group !== "string" || !NAME.test(group))) {
-    return fail(400, "INVALID", "group: a name of a-z, 0-9 and '-', up to 40 characters.");
-  }
-  if (group !== undefined && environment !== "pilot") {
-    return fail(400, "INVALID", "group: only the pilot has a group.");
   }
   const uploaded = build as Partial<Build> | null;
   const manifestName = (uploaded?.manifest as { name?: unknown } | undefined)?.name;
@@ -185,7 +179,6 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
       ...(seed ? { seed } : {}),
       build: uploaded as Build,
       version,
-      ...(typeof group === "string" ? { group } : {}),
       ...(allowDestructive === true ? { allowDestructive: true } : {}),
     });
     return json(200, {

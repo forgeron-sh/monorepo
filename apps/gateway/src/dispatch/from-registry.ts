@@ -5,7 +5,7 @@ import type { Registry, ToolEntry } from "./dispatch";
 export interface FromRegistryOptions {
   /**
    * The Worker that serves an environment. The default is the name self-host gives it
-   * (`workerName` of `@forgeron/hosting`: `<workspace>--<tool>--production|pilot`, and for a
+   * (`workerName` of `@forgeron/hosting`: `<workspace>--<tool>--production`, and for a
    * preview `<workspace>--<tool>--preview-<branch>-<hash>`; docs/ARCHITECTURE.md, "Naming of Workers
    * and databases"), so the gateway reaches the Worker that was deployed. Cloud hosting names its
    * own Workers: pass its naming here.
@@ -45,9 +45,6 @@ export function dispatchRegistry(
           if (environment.branch) entry.previews[environment.branch] = worker;
         } else {
           entry[environment.name] = worker;
-          if (environment.name === "pilot" && environment.pilotGroup) {
-            entry.pilotGroup = environment.pilotGroup;
-          }
         }
       }
       return entry;

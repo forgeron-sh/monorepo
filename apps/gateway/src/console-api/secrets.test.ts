@@ -56,8 +56,10 @@ describe("secrets API", () => {
 
   it("keeps environments apart", async () => {
     await call("PUT", `${base}/A`, { value: "x" });
-    const pilot = await call("GET", "/api/tools/crm/environments/pilot/secrets");
-    expect(await pilot!.json()).toEqual({ secrets: [] });
+    const preview = await call("GET", "/api/tools/crm/environments/preview/secrets");
+    expect(await preview!.json()).toEqual({ secrets: [] });
+    // There is no pilot environment: its address is not a route.
+    expect(await call("GET", "/api/tools/crm/environments/pilot/secrets")).toBeUndefined();
   });
 
   it("refuses anonymous callers and non-admins", async () => {
@@ -72,7 +74,9 @@ describe("secrets API", () => {
   });
 
   it("refuses an unknown tool, a bad body and a wrong method", async () => {
-    expect((await call("GET", "/api/tools/nope/environments/pilot/secrets"))?.status).toBe(404);
+    expect((await call("GET", "/api/tools/nope/environments/production/secrets"))?.status).toBe(
+      404,
+    );
     expect((await call("PUT", `${base}/A`, { value: "" }))?.status).toBe(400);
     expect((await call("PUT", `${base}/A`, {}))?.status).toBe(400);
     expect((await call("DELETE", `${base}/A`))?.status).toBe(405);

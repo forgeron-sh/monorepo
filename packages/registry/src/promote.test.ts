@@ -62,16 +62,15 @@ function fakeHosting() {
 
 const deployTo = (
   hosting: Hosting,
-  environment: "pilot" | "production" | "preview",
+  environment: "production" | "preview",
   fingerprint: string,
   version: string,
-  extra: { group?: string; branch?: string; changelog?: false } = {},
+  extra: { branch?: string; changelog?: false } = {},
 ) =>
   deployBuild(registry, hosting, {
     tool,
     environment,
     ...(extra.branch ? { branch: extra.branch } : {}),
-    ...(extra.group ? { group: extra.group } : {}),
     build: build(fingerprint, extra.changelog === false ? { changelog: undefined } : {}),
     version,
     actor: "ely",
@@ -80,7 +79,7 @@ const deployTo = (
 describe("promoteVersion", () => {
   it("puts an existing version on another environment from the recorded code, without a rebuild", async () => {
     const { hosting, uploaded } = fakeHosting();
-    await deployTo(hosting, "pilot", "fp1", "1.0.0", { group: "beta" });
+    await deployTo(hosting, "preview", "fp1", "1.0.0", { branch: "a" });
     const promoted = await promoteVersion(registry, hosting, {
       tool,
       version: "1.0.0",
@@ -89,7 +88,7 @@ describe("promoteVersion", () => {
     });
 
     expect(uploaded.map((u) => [u.environment, u.build.fingerprint, u.build.worker])).toEqual([
-      ["pilot", "fp1", "// fp1"],
+      ["preview", "fp1", "// fp1"],
       ["production", "fp1", "// fp1"],
     ]);
     expect(uploaded[1]!.build.migrations).toHaveLength(1);
@@ -99,7 +98,7 @@ describe("promoteVersion", () => {
 
   it("is recorded in the audit log with who did it", async () => {
     const { hosting } = fakeHosting();
-    await deployTo(hosting, "pilot", "fp1", "1.0.0");
+    await deployTo(hosting, "preview", "fp1", "1.0.0", { branch: "a" });
     const { environment } = await promoteVersion(registry, hosting, {
       tool,
       version: "1.0.0",
@@ -109,8 +108,10 @@ describe("promoteVersion", () => {
     expect((await registry.history(environment.id)).map((h) => [h.kind, h.actor])).toEqual([
       ["promote", "sam"],
     ]);
-    const [pilot] = (await registry.listEnvironments(tool.id)).filter((e) => e.name === "pilot");
-    expect((await registry.history(pilot!.id)).map((h) => [h.kind, h.actor])).toEqual([
+    const [preview] = (await registry.listEnvironments(tool.id)).filter(
+      (e) => e.name === "preview",
+    );
+    expect((await registry.history(preview!.id)).map((h) => [h.kind, h.actor])).toEqual([
       ["deploy", "ely"],
     ]);
   });
@@ -140,19 +141,6 @@ describe("promoteVersion", () => {
       (e) => e.name === "production",
     );
     expect(production?.versionId).toBeUndefined();
-  });
-
-  it("sets the pilot group", async () => {
-    const { hosting } = fakeHosting();
-    await deployTo(hosting, "production", "fp1", "1.0.0");
-    const { environment } = await promoteVersion(registry, hosting, {
-      tool,
-      version: "1.0.0",
-      to: "pilot",
-      group: "beta",
-      actor: "sam",
-    });
-    expect(environment.pilotGroup).toBe("beta");
   });
 });
 
@@ -185,29 +173,5 @@ describe("rollbackEnvironment", () => {
     await expect(
       rollbackEnvironment(registry, hosting, { tool, environment: "production", actor: "sam" }),
     ).rejects.toMatchObject({ code: "NO_PREVIOUS" });
-  });
-});
-
-describe("the pilot group at the production address", () => {
-  it("gets the pilot version; everyone else gets production", async () => {
-    const { hosting } = fakeHosting();
-    const prod = await deployTo(hosting, "production", "fp1", "1.0.0");
-    const pilot = await deployTo(hosting, "pilot", "fp2", "1.1.0", { group: "beta" });
-
-    expect((await registry.servedFor(tool.id, ["beta"]))?.versionId).toBe(pilot.version.id);
-    expect((await registry.servedFor(tool.id, ["beta", "ops"]))?.name).toBe("pilot");
-    expect((await registry.servedFor(tool.id, ["ops"]))?.versionId).toBe(prod.version.id);
-    expect((await registry.servedFor(tool.id, []))?.name).toBe("production");
-
-    await registry.setPilotGroup(pilot.environment.id, undefined);
-    expect((await registry.servedFor(tool.id, ["beta"]))?.name).toBe("production");
-  });
-
-  it("serves production when the pilot has no version yet", async () => {
-    const { hosting } = fakeHosting();
-    await deployTo(hosting, "production", "fp1", "1.0.0");
-    const pilot = await registry.ensureEnvironment(tool.id, "pilot");
-    await registry.setPilotGroup(pilot.id, "beta");
-    expect((await registry.servedFor(tool.id, ["beta"]))?.name).toBe("production");
   });
 });

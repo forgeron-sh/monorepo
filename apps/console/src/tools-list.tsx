@@ -6,7 +6,6 @@ import { Badge, Table, type TableColumn } from "@forgeron/ui";
 export interface ToolRow {
   name: string;
   production: string | null;
-  pilot: string | null;
   previews: Array<{ branch: string; version: string }>;
 }
 
@@ -18,7 +17,6 @@ export async function loadTools(fetchJson: (path: string) => Promise<unknown>): 
   return (body.tools ?? []).map((tool) => ({
     name: String(tool.name),
     production: text(tool.production),
-    pilot: text(tool.pilot),
     previews: Array.isArray(tool.previews)
       ? tool.previews.map((p: { branch?: unknown; version?: unknown }) => ({
           branch: String(p.branch),
@@ -43,7 +41,6 @@ const columns: Array<TableColumn<ToolRow>> = [
             <Badge key={p.branch} tone="strong">{`${p.branch} ${p.version}`}</Badge>
           )),
   },
-  { key: "pilot", header: "Pilot", render: (row) => version(row.pilot) },
   { key: "production", header: "Production", render: (row) => version(row.production) },
 ];
 

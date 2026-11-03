@@ -7,7 +7,7 @@ import { RegistryError } from "@forgeron/registry";
 // Only an admin may call them. A value goes in and never comes out: the answers carry names.
 
 const ROUTE =
-  /^\/api\/tools\/([a-z0-9-]+)\/environments\/(preview|pilot|production)\/secrets(?:\/([A-Z][A-Z0-9_]*))?$/;
+  /^\/api\/tools\/([a-z0-9-]+)\/environments\/(preview|production)\/secrets(?:\/([A-Z][A-Z0-9_]*))?$/;
 const MAX_VALUE = 16 * 1024;
 
 export interface SecretsApiOptions {
@@ -34,7 +34,7 @@ export async function handleSecrets(
   const [, toolName, environment, name] = match as unknown as [
     string,
     string,
-    "preview" | "pilot" | "production",
+    "preview" | "production",
     string | undefined,
   ];
 

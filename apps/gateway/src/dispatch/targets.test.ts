@@ -97,10 +97,8 @@ describe("the gateway reaches the tool Workers in cloud and in self-host", () =>
       manifest: { name: "crm" },
     });
     const version = await registry.publishVersion(tool.id, build.id, "1.0.0");
-    for (const environment of ["production", "pilot"] as const) {
-      const slot = await registry.ensureEnvironment(tool.id, environment);
-      await registry.activate(slot.id, version.id, { actor: "test" });
-    }
+    const slot = await registry.ensureEnvironment(tool.id, "production");
+    await registry.activate(slot.id, version.id, { actor: "test" });
   });
   afterAll(() => memory.close());
 
@@ -134,7 +132,6 @@ describe("the gateway reaches the tool Workers in cloud and in self-host", () =>
     expect(
       await call({
         TOOL_ACME__CRM__PRODUCTION: worker("acme--crm--production"),
-        TOOL_ACME__CRM__PILOT: worker("acme--crm--pilot"),
         TOOL_GLOBEX__CRM__PRODUCTION: worker("globex--crm--production"),
       }),
     ).toEqual({

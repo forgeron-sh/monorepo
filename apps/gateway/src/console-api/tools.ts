@@ -7,8 +7,6 @@ import type { RegisteredEnvironment, Registry } from "@forgeron/registry";
 export interface ToolListing {
   name: string;
   production: string | null;
-  /** The version the pilot group gets at the production address. */
-  pilot: string | null;
   /** One entry per branch with a preview. */
   previews: Array<{ branch: string; version: string }>;
 }
@@ -17,13 +15,12 @@ export async function listTools(registry: Registry, workspace: string): Promise<
   const listing: ToolListing[] = [];
   for (const tool of await registry.listTools(workspace)) {
     const versions = new Map((await registry.listVersions(tool.id)).map((v) => [v.id, v.version]));
-    const entry: ToolListing = { name: tool.name, production: null, pilot: null, previews: [] };
+    const entry: ToolListing = { name: tool.name, production: null, previews: [] };
     for (const environment of await registry.listEnvironments(tool.id)) {
       const version = environment.versionId ? versions.get(environment.versionId) : undefined;
       if (version === undefined) continue; // created, nothing activated yet
       const name: RegisteredEnvironment = environment.name;
       if (name === "production") entry.production = version;
-      else if (name === "pilot") entry.pilot = version;
       else if (environment.branch) entry.previews.push({ branch: environment.branch, version });
     }
     listing.push(entry);

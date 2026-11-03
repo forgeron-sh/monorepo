@@ -26,7 +26,6 @@ describe("loadTools", () => {
       {
         name: "crm",
         production: "1.0.0",
-        pilot: null,
         previews: [{ branch: "feat", version: "1.1.0" }],
       },
     ]);
@@ -41,26 +40,17 @@ describe("ToolsList", () => {
           {
             name: "crm",
             production: "1.0.0",
-            pilot: "1.1.0",
             previews: [{ branch: "feat", version: "1.2.0" }],
           },
-          { name: "odoo", production: null, pilot: null, previews: [] },
+          { name: "odoo", production: null, previews: [] },
         ]}
       />,
     );
-    for (const text of [
-      "crm",
-      "1.0.0",
-      "1.1.0",
-      "feat 1.2.0",
-      "odoo",
-      "Preview",
-      "Pilot",
-      "Production",
-    ]) {
+    for (const text of ["crm", "1.0.0", "feat 1.2.0", "odoo", "Preview", "Production"]) {
       expect(out).toContain(text);
     }
-    expect(out.match(/not deployed/g)).toHaveLength(3);
+    expect(out.match(/not deployed/g)).toHaveLength(2);
+    expect(out).not.toContain("Pilot");
   });
 
   it("says when there is no tool", () => {

@@ -6,8 +6,8 @@ import { UsageError, type Io } from "../io";
 import { readProject } from "../project";
 
 const USAGE =
-  "Usage: forgeron deploy [--env preview|pilot|production] [--group <name>] [--branch <name>] [--allow-destructive]";
-const ENVIRONMENTS = ["preview", "pilot", "production"];
+  "Usage: forgeron deploy [--env preview|production] [--branch <name>] [--allow-destructive]";
+const ENVIRONMENTS = ["preview", "production"];
 
 const exists = async (path: string) => {
   try {
@@ -17,7 +17,7 @@ const exists = async (path: string) => {
   }
 };
 
-/** `1.5.0+a41f9e0` on pilot and production; a preview adds its branch (docs/sdk.md §16). */
+/** `1.5.0+a41f9e0` on production; a preview adds its branch (docs/sdk.md §16). */
 function versionOf(version: string, fingerprint: string, env: string, branch: string | undefined) {
   const build = fingerprint.slice(0, 7);
   if (env !== "preview") return `${version}+${build}`;
@@ -37,7 +37,6 @@ export async function deploy(args: string[], io: Io): Promise<number> {
     options: {
       env: { type: "string" },
       branch: { type: "string" },
-      group: { type: "string" },
       "allow-destructive": { type: "boolean" },
     },
   });
@@ -45,9 +44,6 @@ export async function deploy(args: string[], io: Io): Promise<number> {
   const env = values.env ?? "preview";
   if (!ENVIRONMENTS.includes(env)) {
     throw new UsageError(`--env ${env}: one of ${ENVIRONMENTS.join(", ")}.`);
-  }
-  if (values.group && env !== "pilot") {
-    throw new UsageError("--group is for the pilot: only the pilot has a group.");
   }
   const branch = values.branch ?? process.env.GITHUB_HEAD_REF ?? process.env.GITHUB_REF_NAME;
   if (env === "preview" && !branch) {
@@ -84,7 +80,6 @@ export async function deploy(args: string[], io: Io): Promise<number> {
       environment: env,
       ...(env === "preview" ? { branch } : {}),
       version,
-      ...(values.group ? { group: values.group } : {}),
       ...(values["allow-destructive"] ? { allowDestructive: true } : {}),
       build: {
         manifest: JSON.parse(manifest),

@@ -24,7 +24,7 @@ const templates = [
 
 const deployments = [
   { version: "v1.5.0-rc.2", message: "Contacts CSV export", meta: "8dc01b2 · 4 min ago", env: "preview", state: "warning" },
-  { version: "v1.4.1", message: "Slimmer contact record", meta: "77c2d1a · yesterday", env: "pilot", state: "success" },
+  { version: "v1.4.1", message: "Slimmer contact record", meta: "77c2d1a · yesterday", env: "production", state: "success" },
   { version: "v1.4.0", message: "deals.move action with history", meta: "a41f9e0 · Mon", env: "production", state: "success" },
 ] as const;
 
@@ -159,7 +159,7 @@ const viewCode = [
           <Label>Versions</Label>
           <h2 class="display-block">Every push becomes a version.</h2>
           <p class="muted">
-            Test in preview, open a pilot to a group, then go to production. Rolling back takes
+            Test in preview, then promote it to production. Rolling back takes
             one click.
           </p>
         </div>

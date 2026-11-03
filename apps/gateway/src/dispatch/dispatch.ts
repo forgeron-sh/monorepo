@@ -2,15 +2,12 @@
 // workspace, `/t/<tool>[@<branch>]/<rest>` is a tool in an environment. A request reaches the Worker
 // of that tool through a binding the gateway holds, or it is refused. Tool Workers have no public
 // route: the only way to them is `targets`, so nothing here fetches a URL for a tool.
-// Identity is not here: whether the caller is in the pilot group or may see a preview is asked
-// of the hooks `inPilot` and `canPreview`, which fail closed when absent.
+// Identity is not here: whether the caller may see a preview is asked of the hook
+// `canPreview`, which fails closed when absent.
 
 /** What the registry knows of a tool: the Worker of each environment (`<workspace>--<tool>--…`). */
 export interface ToolEntry {
   production?: string;
-  pilot?: string;
-  /** The group that gets the pilot version at the production address (D-036). */
-  pilotGroup?: string;
   /** By branch. */
   previews: Record<string, string>;
 }
@@ -30,7 +27,7 @@ export interface Caller {
   tool: string;
   request: Request;
   /** The environment the call is served from, once it is known (set when the request is forwarded). */
-  environment?: "preview" | "pilot" | "production";
+  environment?: "preview" | "production";
 }
 
 /** What the gateway adds to the request it hands a tool, or the answer that stops it (D-035). */
@@ -51,8 +48,6 @@ export interface DispatcherOptions {
   registry: Registry;
   /** The Worker of that name, or `undefined` if the gateway has no binding to it. */
   targets(worker: string): Target | undefined;
-  /** Is this caller in the tool's pilot group? Without it, nobody gets pilot. */
-  inPilot?(caller: Caller & { group?: string }): boolean | Promise<boolean>;
   /**
    * The person behind an authenticated call (a valid token or session), or `undefined` for an
    * anonymous one. With `recordSeat`, it is what counts the workspace's seats (D-024).
@@ -132,7 +127,7 @@ export function createDispatcher(options: DispatcherOptions) {
 
     const caller: Caller = { workspace, tool: path.tool, request };
     let worker: string | undefined;
-    let environment: "preview" | "pilot" | "production" = "production";
+    let environment: "preview" | "production" = "production";
     if (path.branch !== undefined) {
       environment = "preview";
       worker = entry.previews[path.branch];
@@ -141,15 +136,7 @@ export function createDispatcher(options: DispatcherOptions) {
         return refuse(403, "FORBIDDEN", "You cannot see this preview.");
       }
     } else {
-      // Pilot has the address of production: the pilot version for the pilot group, else production.
-      const inPilot =
-        entry.pilot &&
-        (await options.inPilot?.({
-          ...caller,
-          ...(entry.pilotGroup ? { group: entry.pilotGroup } : {}),
-        }));
-      worker = inPilot ? entry.pilot : entry.production;
-      if (inPilot) environment = "pilot";
+      worker = entry.production;
       if (!worker) return refuse(404, "NOT_FOUND", "Not found.");
     }
 

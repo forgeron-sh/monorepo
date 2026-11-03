@@ -65,7 +65,7 @@ export function ApprovalsPage({ api, onDecided }: { api: Api; onDecided?: () => 
           title={`${approve ? "Approve" : "Reject"} ${asking.version.tool} ${asking.version.version}?`}
           description={
             approve
-              ? "This version may then reach pilot and production with the access it asks for."
+              ? "This version may then reach production with the access it asks for."
               : "This version stays on preview. You can still decide again by deploying a new version."
           }
           onClose={() => !busy && setAsking(undefined)}

@@ -16,6 +16,6 @@ The registry of the platform D1 (docs/ARCHITECTURE.md, "The platform"): tools, b
 | `tools`        | a tool of a workspace, unique by (`workspace`, `name`)                                          |
 | `builds`       | what CI sent: a fingerprint, the manifest and the changelog; one per fingerprint                |
 | `versions`     | a build published under a version number of the tool                                            |
-| `environments` | a tool in `preview` (with its `branch`), `pilot` or `production`, and the version it serves     |
+| `environments` | a tool in `preview` (with its `branch`) or `production`, and the version it serves              |
 | `approvals`    | a resource a version asks for, `pending`, `approved` or `rejected` by someone                   |
 | `secrets`      | a tool secret of an environment, AES-256-GCM encrypted, bound to its tool, environment and name |

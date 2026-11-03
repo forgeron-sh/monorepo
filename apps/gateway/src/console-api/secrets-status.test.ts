@@ -37,7 +37,7 @@ beforeEach(async () => {
     manifest: { name: "crm", resources: { secrets: { ODOO_KEY: {} } } },
   });
   await registry.publishVersion(tool.id, build.id, "1.0.0");
-  await registry.setSecret(tool.id, "pilot", "ODOO_KEY", "test-only-value");
+  await registry.setSecret(tool.id, "preview", "ODOO_KEY", "test-only-value");
 });
 afterEach(() => memory.close());
 
@@ -49,7 +49,7 @@ describe("secrets status API", () => {
       secrets: [
         {
           name: "ODOO_KEY",
-          environments: { preview: "missing", pilot: "set", production: "missing" },
+          environments: { preview: "set", production: "missing" },
         },
       ],
     });

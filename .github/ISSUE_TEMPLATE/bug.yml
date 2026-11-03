@@ -41,4 +41,4 @@ body:
     id: environment
     attributes:
       label: Environment
-      placeholder: OS, Node, local / preview / pilot / production
+      placeholder: OS, Node, local / preview / production

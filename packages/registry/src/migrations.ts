@@ -71,7 +71,7 @@ export const platformMigrations: BuildMigration[] = [
   },
   {
     // What promotion and rollback need: the build's code (to put it on another environment without
-    // rebuilding), the pilot group, and the history of what each environment served and who put it there.
+    // rebuilding), and the history of what each environment served and who put it there.
     name: "0002_deployments",
     fingerprint: "deployments-v1",
     destructive: false,
@@ -461,5 +461,89 @@ export const platformMigrations: BuildMigration[] = [
 )`),
     ],
     down: [st(`DROP TABLE "gateway_assets"`)],
+  },
+  {
+    // The pilot environment is gone (D-055): a version goes from a preview to production. An
+    // installed platform keeps no trace of it: the pilot environments and what they held (secrets,
+    // connections, deployments, per-person secrets), the pilot group of each environment and the
+    // groups themselves. SQLite cannot change a CHECK or drop a column that a table needs: the tables
+    // that name the environments are rebuilt without 'pilot'. `deployments` is copied aside because
+    // dropping `environments` cascades into it. The Worker of a pilot is not deleted here (a
+    // migration only reaches the database) nor by `platform install`: once its environment row is
+    // gone the install no longer carries its `TOOL_*_PILOT` binding over, so the Worker is
+    // unreachable and stays on the account until someone deletes it.
+    name: "0019_remove_pilot",
+    // Not flagged destructive: the flag guards the data of a tool (D-014); this deletes the rows of a
+    // retired feature in the platform's own database, and `platform install` must be able to apply it.
+    fingerprint: "remove-pilot-v1",
+    destructive: false,
+    up: [
+      st(`DROP TABLE "group_members"`),
+      st(`DELETE FROM "secrets" WHERE "environment" = 'pilot'`),
+      st(`DELETE FROM "connections" WHERE "environment" = 'pilot'`),
+      st(`CREATE TABLE "secrets_next" (
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "environment" TEXT NOT NULL CHECK ("environment" IN ('preview', 'production')),
+  "name" TEXT NOT NULL,
+  "iv" TEXT NOT NULL,
+  "ciphertext" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("tool_id", "environment", "name")
+)`),
+      st(`INSERT INTO "secrets_next" SELECT * FROM "secrets"`),
+      st(`DROP TABLE "secrets"`),
+      st(`ALTER TABLE "secrets_next" RENAME TO "secrets"`),
+      st(`CREATE TABLE "connections_next" (
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "environment" TEXT NOT NULL CHECK ("environment" IN ('preview', 'production')),
+  "user_id" TEXT NOT NULL,
+  "connector" TEXT NOT NULL,
+  "scopes" TEXT NOT NULL,
+  "expires_at" TEXT,
+  "iv" TEXT NOT NULL,
+  "ciphertext" TEXT NOT NULL,
+  "created_at" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("tool_id", "environment", "user_id", "connector")
+)`),
+      st(`INSERT INTO "connections_next" SELECT * FROM "connections"`),
+      st(`DROP TABLE "connections"`),
+      st(`ALTER TABLE "connections_next" RENAME TO "connections"`),
+      st(
+        `CREATE TABLE "deployments_keep" AS SELECT d.* FROM "deployments" d JOIN "environments" e ON e."id" = d."environment_id" WHERE e."name" <> 'pilot'`,
+      ),
+      st(`DROP TABLE "deployments"`),
+      st(`CREATE TABLE "environments_next" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "name" TEXT NOT NULL CHECK ("name" IN ('preview', 'production')),
+  "branch" TEXT NOT NULL DEFAULT '',
+  "version_id" TEXT REFERENCES "versions" ("id") ON DELETE SET NULL,
+  "url" TEXT,
+  "activated_at" TEXT,
+  "created_at" TEXT NOT NULL,
+  UNIQUE ("tool_id", "name", "branch")
+)`),
+      st(
+        `INSERT INTO "environments_next" SELECT "id", "tool_id", "name", "branch", "version_id", "url", "activated_at", "created_at" FROM "environments" WHERE "name" <> 'pilot'`,
+      ),
+      st(`DROP TABLE "environments"`),
+      st(`ALTER TABLE "environments_next" RENAME TO "environments"`),
+      st(`CREATE INDEX "environments_by_tool" ON "environments" ("tool_id")`),
+      st(`CREATE TABLE "deployments" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "environment_id" TEXT NOT NULL REFERENCES "environments" ("id") ON DELETE CASCADE,
+  "version_id" TEXT NOT NULL REFERENCES "versions" ("id") ON DELETE CASCADE,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('deploy', 'promote', 'rollback')),
+  "actor" TEXT NOT NULL,
+  "created_at" TEXT NOT NULL
+)`),
+      st(`INSERT INTO "deployments" SELECT * FROM "deployments_keep"`),
+      st(`DROP TABLE "deployments_keep"`),
+      st(`CREATE INDEX "deployments_by_environment" ON "deployments" ("environment_id")`),
+    ],
+    // Nothing to put back: the pilot data is deleted.
+    down: [],
   },
 ];
