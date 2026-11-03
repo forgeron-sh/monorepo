@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { resolveCloudflareCredential } from "./cloudflare-auth";
+import { identitySettings, KEYS, settingBindings, type IdentityFlags } from "./gateway-identity";
 import { readAssets, uploadAssets } from "./console-assets";
 
 // `forgeron platform install` (docs/ARCHITECTURE.md, "Installing the platform in self-host"):
@@ -23,7 +24,7 @@ import { readAssets, uploadAssets } from "./console-assets";
 // is only ever an API token; see D-026.
 
 const USAGE =
-  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--name forgeron] [--auth token|wrangler]";
+  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--name forgeron] [--auth token|wrangler]";
 
 interface Named {
   uuid?: string;
@@ -55,6 +56,10 @@ export async function platform(
       domain: { type: "string" },
       gateway: { type: "string" },
       console: { type: "string" },
+      "oidc-issuer": { type: "string" },
+      "oidc-client-id": { type: "string" },
+      "admin-email": { type: "string" },
+      "member-email-domains": { type: "string" },
       name: { type: "string", default: "forgeron" },
       auth: { type: "string", default: "token" },
     },
@@ -77,6 +82,15 @@ export async function platform(
     throw new UsageError(`Cannot read the gateway bundle ${values.gateway}.`);
   }
 
+  const flags: IdentityFlags = {
+    ...(values["oidc-issuer"] !== undefined ? { issuer: values["oidc-issuer"] } : {}),
+    ...(values["oidc-client-id"] !== undefined ? { clientId: values["oidc-client-id"] } : {}),
+    ...(values["admin-email"] !== undefined ? { adminEmail: values["admin-email"] } : {}),
+    ...(values["member-email-domains"] !== undefined
+      ? { memberDomains: values["member-email-domains"] }
+      : {}),
+  };
+  const settings = identitySettings(flags, process.env);
   const assets = values.console ? await readAssets(resolve(io.cwd, values.console)) : undefined;
 
   const client: CloudflareClient = createCloudflareClient({
@@ -103,17 +117,17 @@ export async function platform(
 
   // 3. The gateway Worker, with the D1 and, as a secret, the token it will deploy tools with.
   const worker = `${name}-gateway`;
+  let existed = true;
   try {
     await client.request("GET", `/workers/workers/${worker}`);
   } catch (error) {
     if ((error as { status?: number }).status !== 404) throw error;
     await client.request("POST", "/workers/workers", { name: worker });
+    existed = false;
   }
   const assetsJwt = assets ? await uploadAssets(client, worker, assets) : undefined;
-  const version = await client.request<{ id: string }>(
-    "POST",
-    `/workers/workers/${worker}/versions`,
-    {
+  const upload = (lost: ReadonlySet<string>) =>
+    client.request<{ id: string }>("POST", `/workers/workers/${worker}/versions`, {
       main_module: "worker.js",
       compatibility_date: GATEWAY_COMPATIBILITY_DATE,
       compatibility_flags: [...GATEWAY_COMPATIBILITY_FLAGS],
@@ -141,9 +155,22 @@ export async function platform(
         ...(gatewayToken
           ? [{ type: "secret_text", name: "CLOUDFLARE_API_TOKEN", text: gatewayToken }]
           : []),
+        ...settingBindings(settings, existed, lost),
       ],
-    },
-  );
+    });
+  // Keys and identity settings of an earlier version are kept (`inherit`); when Cloudflare cannot
+  // supply one (error 10057 names it), a key is generated and an optional setting is left out.
+  let version: { id: string };
+  let regenerated = new Set<string>();
+  try {
+    version = await upload(new Set());
+  } catch (error) {
+    const message = (error as Error).message;
+    const lost = new Set(settings.map((s) => s.name).filter((n) => message.includes(n)));
+    if (!existed || (error as { status?: number }).status !== 400 || lost.size === 0) throw error;
+    regenerated = lost;
+    version = await upload(lost);
+  }
   await client.request("POST", `/workers/scripts/${worker}/deployments`, {
     strategy: "percentage",
     versions: [{ percentage: 100, version_id: version.id }],
@@ -156,6 +183,20 @@ export async function platform(
       "The wrangler token is a short-lived session token and is not stored. Create an API token limited to Workers, D1, KV and R2, then either run the install again with GATEWAY_CLOUDFLARE_API_TOKEN set, or set the secret CLOUDFLARE_API_TOKEN on the gateway Worker yourself (for example with `wrangler secret put`). Tools cannot be deployed before that.",
     );
   }
+
+  const created = KEYS.filter((k) => !existed || regenerated.has(k));
+  io.log(
+    created.length
+      ? `Generated the gateway keys ${created.join(", ")} (stored as secrets, not shown).`
+      : "Kept the gateway's existing keys AUTH_SECRET and SECRETS_KEY.",
+  );
+  io.log(
+    settings.some((s) => s.given)
+      ? "Sign-in is configured with your OIDC provider."
+      : existed
+        ? "No identity flag given: the OIDC settings of the previous version are kept, if there were any."
+        : "Sign-in is NOT configured: run the install again with --oidc-issuer and --oidc-client-id (docs/self-host.md).",
+  );
 
   // 4. DNS and route: a proxied wildcard record, then `*.<domain>/*` to the gateway.
   await attachRoute(client, values.domain, worker, io);

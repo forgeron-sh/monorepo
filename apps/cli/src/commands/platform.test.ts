@@ -26,6 +26,7 @@ function fakeCloudflare(expected = TOKEN, zones: Array<{ id: string; name: strin
   const calls: Calls[] = [];
   const databases = new Map<string, string>();
   const workers = new Set<string>();
+  const versions: Array<Array<{ type: string; name: string; text?: string }>> = [];
   const stored = new Set<string>();
   const uploaded: Record<string, string>[] = [];
   const records: Array<{ id: string; name: string; proxied: boolean }> = [];
@@ -111,11 +112,32 @@ function fakeCloudflare(expected = TOKEN, zones: Array<{ id: string; name: strin
       workers.add(String(body?.name));
       return ok({ name: body?.name });
     }
-    if (method === "POST" && /\/versions$/.test(path)) return ok({ id: "version-1" });
+    if (method === "POST" && /\/versions$/.test(path)) {
+      // `inherit` copies a binding from the latest earlier version, else error 10057 (one per name).
+      const previous = versions.at(-1) ?? [];
+      const wanted = (body!.bindings as Array<{ type: string; name: string }>) ?? [];
+      const missing = wanted.filter(
+        (b) => b.type === "inherit" && !previous.some((p) => p.name === b.name),
+      );
+      if (missing.length) {
+        return Response.json(
+          {
+            success: false,
+            errors: missing.map((b) => ({ code: 10057, message: `cannot inherit ${b.name}` })),
+            result: null,
+          },
+          { status: 400 },
+        );
+      }
+      versions.push(
+        wanted.map((b) => (b.type === "inherit" ? previous.find((p) => p.name === b.name)! : b)),
+      );
+      return ok({ id: `version-${versions.length}` });
+    }
     if (method === "POST" && /\/deployments$/.test(path)) return ok({ id: "deployment-1" });
     return missing();
   };
-  return { fetcher, calls, databases, records, routes, uploaded };
+  return { fetcher, calls, databases, records, routes, uploaded, versions };
 }
 
 let dir: string;
@@ -141,6 +163,7 @@ beforeEach(async () => {
 afterEach(async () => {
   delete process.env.CLOUDFLARE_API_TOKEN;
   delete process.env.GATEWAY_CLOUDFLARE_API_TOKEN;
+  delete process.env.OIDC_CLIENT_SECRET;
   await rm(dir, { recursive: true, force: true });
 });
 
@@ -281,6 +304,151 @@ describe("forgeron platform install", () => {
         platform(install(["--console", "empty"]), io, { fetch: cf.fetcher }),
       ).rejects.toThrow(/no index.html/);
       expect(cf.calls).toHaveLength(0);
+    });
+  });
+
+  describe("identity and keys", () => {
+    const OIDC = [
+      "--oidc-issuer",
+      "https://login.example.test",
+      "--oidc-client-id",
+      "client-1",
+      "--admin-email",
+      "admin@example.test",
+    ];
+    const latest = (cf: ReturnType<typeof fakeCloudflare>) => cf.versions.at(-1)!;
+    const named = (cf: ReturnType<typeof fakeCloudflare>, n: string) =>
+      latest(cf).find((b) => b.name === n);
+
+    it("generates AUTH_SECRET and SECRETS_KEY (32 random bytes, base64, different), never printed", async () => {
+      const cf = fakeCloudflare();
+      await platform(install(OIDC), io, { fetch: cf.fetcher });
+      const auth = named(cf, "AUTH_SECRET")!;
+      const box = named(cf, "SECRETS_KEY")!;
+      for (const key of [auth, box]) {
+        expect(key.type).toBe("secret_text");
+        expect(Buffer.from(key.text!, "base64")).toHaveLength(32);
+      }
+      expect(auth.text).not.toBe(box.text);
+      const output = [...logs, ...errors].join("\n");
+      expect(output).not.toContain(auth.text!);
+      expect(output).not.toContain(box.text!);
+      expect(output).toContain("Generated the gateway keys AUTH_SECRET, SECRETS_KEY");
+    });
+
+    it("stores the OIDC settings; the client secret comes from the environment only", async () => {
+      process.env.OIDC_CLIENT_SECRET = "test-oidc-secret-not-real";
+      const cf = fakeCloudflare();
+      await platform(install([...OIDC, "--member-email-domains", "Example.test, other.test"]), io, {
+        fetch: cf.fetcher,
+      });
+      expect(named(cf, "OIDC_ISSUER")).toEqual({
+        type: "plain_text",
+        name: "OIDC_ISSUER",
+        text: "https://login.example.test",
+      });
+      expect(named(cf, "OIDC_CLIENT_ID")?.text).toBe("client-1");
+      expect(named(cf, "ADMIN_EMAIL")?.text).toBe("admin@example.test");
+      expect(named(cf, "MEMBER_EMAIL_DOMAINS")?.text).toBe("example.test,other.test");
+      expect(named(cf, "OIDC_CLIENT_SECRET")).toMatchObject({
+        type: "secret_text",
+        text: "test-oidc-secret-not-real",
+      });
+      expect([...logs, ...errors].join("\n")).not.toContain("test-oidc-secret-not-real");
+      delete process.env.OIDC_CLIENT_SECRET;
+    });
+
+    it("keeps the existing keys and identity settings on a second run", async () => {
+      const cf = fakeCloudflare();
+      await platform(install(OIDC), io, { fetch: cf.fetcher });
+      const first = [named(cf, "AUTH_SECRET"), named(cf, "SECRETS_KEY"), named(cf, "ADMIN_EMAIL")];
+      logs.length = 0;
+      await platform(install(), io, { fetch: cf.fetcher });
+      expect([
+        named(cf, "AUTH_SECRET"),
+        named(cf, "SECRETS_KEY"),
+        named(cf, "ADMIN_EMAIL"),
+      ]).toEqual(first);
+      expect(named(cf, "OIDC_ISSUER")?.text).toBe("https://login.example.test");
+      expect(logs.join("\n")).toContain("Kept the gateway's existing keys");
+      const raw = cf.calls.filter((c) => c.path.endsWith("/versions")).at(-1)!.body!;
+      expect(JSON.stringify(raw.bindings)).toContain('{"type":"inherit","name":"AUTH_SECRET"}');
+      expect(JSON.stringify(raw)).not.toContain(first[0]!.text!);
+    });
+
+    it("generates only the key a previous version lacks, and keeps the other", async () => {
+      const cf = fakeCloudflare();
+      await platform(install(OIDC), io, { fetch: cf.fetcher });
+      const auth = named(cf, "AUTH_SECRET")!;
+      // An earlier install that predates SECRETS_KEY.
+      cf.versions[cf.versions.length - 1] = latest(cf).filter((b) => b.name !== "SECRETS_KEY");
+      logs.length = 0;
+      await platform(install(), io, { fetch: cf.fetcher });
+      expect(named(cf, "AUTH_SECRET")).toEqual(auth);
+      expect(Buffer.from(named(cf, "SECRETS_KEY")!.text!, "base64")).toHaveLength(32);
+      expect(logs.join("\n")).toContain("Generated the gateway keys SECRETS_KEY");
+    });
+
+    it("refuses an identity provider that is incomplete or badly shaped, before calling Cloudflare", async () => {
+      const cf = fakeCloudflare();
+      const bad: Array<[string[], RegExp]> = [
+        [["--oidc-issuer", "https://login.example.test"], /together/],
+        [["--oidc-client-id", "c"], /together/],
+        [
+          [
+            "--oidc-issuer",
+            "http://login.example.test",
+            "--oidc-client-id",
+            "c",
+            "--admin-email",
+            "a@b.co",
+          ],
+          /https/,
+        ],
+        [
+          ["--oidc-issuer", "not a url", "--oidc-client-id", "c", "--admin-email", "a@b.co"],
+          /must be a URL/,
+        ],
+        [
+          ["--oidc-issuer", "https://x.test", "--oidc-client-id", "a b", "--admin-email", "a@b.co"],
+          /client-id/,
+        ],
+        [
+          ["--oidc-issuer", "https://x.test", "--oidc-client-id", "c", "--admin-email", "nope"],
+          /email/,
+        ],
+        [["--oidc-issuer", "https://x.test", "--oidc-client-id", "c"], /Nobody could sign in/],
+        [
+          [
+            "--oidc-issuer",
+            "https://x.test",
+            "--oidc-client-id",
+            "c",
+            "--member-email-domains",
+            "a b",
+          ],
+          /domains/,
+        ],
+      ];
+      for (const [extra, message] of bad) {
+        await expect(platform(install(extra), io, { fetch: cf.fetcher })).rejects.toThrow(message);
+      }
+      process.env.OIDC_CLIENT_SECRET = "has space";
+      await expect(platform(install(OIDC), io, { fetch: cf.fetcher })).rejects.toThrow(
+        /OIDC_CLIENT_SECRET/,
+      );
+      delete process.env.OIDC_CLIENT_SECRET;
+      process.env.OIDC_CLIENT_SECRET = "secret-without-provider";
+      await expect(platform(install(), io, { fetch: cf.fetcher })).rejects.toThrow(/together/);
+      delete process.env.OIDC_CLIENT_SECRET;
+      expect(cf.calls).toHaveLength(0);
+    });
+
+    it("says sign-in is not configured when no identity flag is given on a first install", async () => {
+      const cf = fakeCloudflare();
+      await platform(install(), io, { fetch: cf.fetcher });
+      expect(logs.join("\n")).toContain("Sign-in is NOT configured");
+      expect(named(cf, "OIDC_ISSUER")).toBeUndefined();
     });
   });
 
