@@ -1,7 +1,18 @@
 // The playground page: one self-contained document, with no dependency and no build step.
-// It reads the manifest from `/_play/manifest` and calls the tool through the same origin.
+// It reads the manifest from `manifestUrl` and calls the tool through the same origin, below `base`.
 
-export const PLAYGROUND_HTML = `<!doctype html>
+export interface PlaygroundOptions {
+  /** Where the tool is mounted on the origin: `""` locally, `/t/crm` on the platform. */
+  base: string;
+  /** Where the page reads the manifest it lists the actions from. */
+  manifestUrl: string;
+}
+
+// The two values are JSON in a script: `<` is escaped so that neither can close the element.
+const literal = (value: string) => JSON.stringify(value).replaceAll("<", "\\u003c");
+
+export function playgroundHtml(options: PlaygroundOptions): string {
+  return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -31,6 +42,8 @@ export const PLAYGROUND_HTML = `<!doctype html>
 <nav id="actions" aria-label="Actions"></nav>
 <main id="main"><p>Pick an action.</p></main>
 <script>
+const BASE = ${literal(options.base)};
+const MANIFEST_URL = ${literal(options.manifestUrl)};
 const el = (tag, props = {}, ...children) => {
   const node = Object.assign(document.createElement(tag), props);
   node.append(...children);
@@ -113,7 +126,7 @@ const show = (name) => {
     const get = action.http.method === "GET";
     const query = get ? "?" + new URLSearchParams(Object.entries(body).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)])) : "";
     result.textContent = "…";
-    const response = await fetch("/api/" + name + query, get ? {} : { method: "POST", body: JSON.stringify(body) });
+    const response = await fetch(BASE + "/api/" + name + query, get ? {} : { method: "POST", body: JSON.stringify(body) });
     const text = await response.text();
     let shown = text;
     try { shown = JSON.stringify(JSON.parse(text), null, 2); } catch {}
@@ -155,10 +168,10 @@ const preview = (name, action) => {
 const mcpName = (name) => manifest.name + "_" + name.replaceAll(".", "_");
 
 const load = async () => {
-  const m = await (await fetch("/_play/manifest")).json();
-  const list = await (await fetch("/mcp", { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) })).json();
+  const m = await (await fetch(MANIFEST_URL)).json();
+  const list = await (await fetch(BASE + "/mcp", { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) })).json();
   mcpTools = (list.result && list.result.tools) || [];
-  const cli = await fetch("/cli", { headers: { accept: "application/json" } });
+  const cli = await fetch(BASE + "/cli", { headers: { accept: "application/json" } });
   cliCommands = cli.ok ? (await cli.json()).commands : [];
   return m;
 };
@@ -178,3 +191,4 @@ load().then((m) => {
 </body>
 </html>
 `;
+}

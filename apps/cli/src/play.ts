@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { startDev, type DevOptions, type DevSession } from "./dev";
-import { PLAYGROUND_HTML } from "./play-page";
+import { playgroundHtml } from "@forgeron/playground";
 
 // `forgeron play`: the tool runs as in `forgeron dev`, and a playground is served in front of it.
 // The playground is the CLI's own page; every other request goes to the tool, so the page calls
@@ -37,7 +37,7 @@ export async function startPlay(dir: string, options: PlayOptions = {}): Promise
       const path = new URL(incoming.url ?? "/", "http://playground").pathname;
       if (path === "/" && incoming.method === "GET") {
         outgoing.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-        outgoing.end(PLAYGROUND_HTML);
+        outgoing.end(playgroundHtml({ base: "", manifestUrl: "/_play/manifest" }));
         return;
       }
       if (path === "/_play/manifest") {

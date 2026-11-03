@@ -1,0 +1,4 @@
+{
+  "extends": "@forgeron/tsconfig/base.json",
+  "include": ["src"]
+}
