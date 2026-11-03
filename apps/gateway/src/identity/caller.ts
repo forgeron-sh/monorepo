@@ -93,6 +93,11 @@ export interface MembershipPolicy {
   adminEmail?: string;
   /** Anyone signing in with an email of one of these domains becomes a member, with no role. */
   memberDomains: string[];
+  /**
+   * The role each group of the provider grants (D-041). A person in one of these groups is
+   * admitted; roles are set at the first sign-in only, and read from the registry afterwards.
+   */
+  groupRoles?: Record<string, string>;
 }
 
 /**
@@ -104,12 +109,24 @@ export function membership(registry: Registry, policy: MembershipPolicy) {
     const known = await registry.findMemberBySubject(workspace, identity.subject);
     if (known) return known;
     const email = identity.email.toLowerCase();
-    const roles =
+    const fromGroups = [
+      ...new Set(
+        identity.groups.flatMap((group) => {
+          const role = policy.groupRoles?.[group];
+          return role ? [role] : [];
+        }),
+      ),
+    ];
+    const base =
       policy.adminEmail && email === policy.adminEmail.toLowerCase()
         ? ["admin"]
         : policy.memberDomains.includes(email.split("@")[1] ?? "")
           ? []
           : undefined;
+    const roles =
+      base === undefined && fromGroups.length === 0
+        ? undefined
+        : [...new Set([...(base ?? []), ...fromGroups])];
     if (!roles) return undefined;
     return registry.addMember({
       workspace,

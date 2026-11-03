@@ -1,8 +1,8 @@
 import { fromBase64Url, toBase64Url } from "./sealed";
 
 // OpenID Connect, authorization code with PKCE. Microsoft Entra ID and Google Workspace are OIDC
-// providers, as is any OIDC identity provider; SAML is not covered here. `fetch` is injected, so
-// the flow is proven against a simulated provider.
+// providers, as is any OIDC identity provider (their presets are in `presets.ts`); SAML is not
+// covered (D-041). `fetch` is injected, so the flow is proven against a simulated provider.
 
 export interface OidcProvider {
   /** The provider's issuer URL: it serves `/.well-known/openid-configuration`. */
@@ -11,6 +11,14 @@ export interface OidcProvider {
   clientSecret?: string;
   redirectUri: string;
   scopes?: string[];
+  /** Entra ID: the only directory (`tid` claim) whose people may sign in. */
+  tenant?: string;
+  /** Google Workspace: the only domain (`hd` claim) whose people may sign in. */
+  hostedDomain?: string;
+  /** The claim that holds the email; `email` by default. */
+  emailClaim?: string;
+  /** The claim that holds the groups (an array of strings); none by default. */
+  groupsClaim?: string;
 }
 
 export type OidcFetch = (url: string, init?: RequestInit) => Promise<Response>;
@@ -34,6 +42,8 @@ export interface Identity {
   subject: string;
   email: string;
   name: string;
+  /** The groups the provider states, if a groups claim is configured. */
+  groups: string[];
 }
 
 export class OidcError extends Error {
@@ -85,6 +95,8 @@ export async function startLogin(
     code_challenge: challenge,
     code_challenge_method: "S256",
   }).toString();
+  // A hint for the provider's account chooser; the `hd` claim is what is enforced, at the callback.
+  if (provider.hostedDomain) url.searchParams.set("hd", provider.hostedDomain);
   return { url: url.toString(), login };
 }
 
@@ -145,13 +157,26 @@ async function verifyIdToken(
     throw new OidcError("The ID token has expired.");
   }
   if (claims.nonce !== expected.nonce) throw new OidcError("The ID token's nonce does not match.");
-  if (typeof claims.sub !== "string" || typeof claims.email !== "string") {
+  if (provider.tenant && claims.tid !== provider.tenant) {
+    throw new OidcError("The ID token is from another directory.");
+  }
+  if (provider.hostedDomain && claims.hd !== provider.hostedDomain) {
+    throw new OidcError("The ID token is from another domain.");
+  }
+  // An email the provider does not vouch for would let anyone claim a colleague's address.
+  if (claims.email_verified === false || claims.email_verified === "false") {
+    throw new OidcError("The provider has not verified the email.");
+  }
+  const email = claims[provider.emailClaim ?? "email"];
+  if (typeof claims.sub !== "string" || typeof email !== "string" || !email.includes("@")) {
     throw new OidcError("The ID token has no subject or email.");
   }
+  const groups = provider.groupsClaim ? claims[provider.groupsClaim] : undefined;
   return {
     subject: claims.sub,
-    email: claims.email,
-    name: typeof claims.name === "string" ? claims.name : claims.email,
+    email,
+    name: typeof claims.name === "string" ? claims.name : email,
+    groups: Array.isArray(groups) ? groups.filter((g): g is string => typeof g === "string") : [],
   };
 }
 

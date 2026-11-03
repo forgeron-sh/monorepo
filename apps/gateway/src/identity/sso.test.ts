@@ -106,7 +106,12 @@ describe("OpenID Connect against a simulated provider", () => {
       query: new URLSearchParams(idp.signIn(url)),
       login,
     });
-    expect(identity).toEqual({ subject: "idp-user-1", email: "ely@acme.fr", name: "Ely" });
+    expect(identity).toEqual({
+      subject: "idp-user-1",
+      email: "ely@acme.fr",
+      name: "Ely",
+      groups: [],
+    });
   });
 
   const failing: [string, Record<string, unknown>, string][] = [

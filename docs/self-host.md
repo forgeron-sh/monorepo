@@ -112,5 +112,6 @@ What the gateway serves at a workspace origin once these are set: `/auth/login`,
 - **Key rotation** is not done: the install never replaces an existing `AUTH_SECRET` or `SECRETS_KEY`.
 - **Binding limits** (D-032): two tools deployed at the same moment can lose one binding (deploy the tool again); the console assets are kept with `keep_assets`, which Cloudflare documents for the upload endpoints and which was not tried on the versions endpoint; nothing was tried on a real account.
 - `/mcp`, `/api` and `/cli` of a workspace answer `404` (admin MCP, FOR-107). A CLI token lives 30 days and cannot be revoked before; `forgeron login` was proven against the gateway handler with a simulated provider only, not on a real deployment.
+- The sign-in provider can also be saved in the platform (an admin, `PUT /console-api/api/identity-provider`): Microsoft Entra ID (`kind: entra`, `tenant`), Google Workspace (`kind: google`, `hostedDomain`) or any OIDC issuer (`kind: oidc`, `issuer`), with `clientId`, an optional `clientSecret` and optional `groupRoles`; it wins over the `OIDC_*` bindings (D-041). SAML is not supported.
 - Members are added only at sign-in, by the two rules of D-027; there is no way to list, remove or change the roles of a member.
 - The gateway bundle is not published as a package.
