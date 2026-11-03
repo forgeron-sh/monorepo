@@ -243,14 +243,14 @@ The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forge
 
 ### Database
 
-| Command                                                 | What it does                                                                     |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `forgeron db generate --name <name> [--rename a.b:a.c]` | Compares `db/schema.ts` with the last snapshot and writes the migration(s)       |
-| `forgeron db migrate [--env]`                           | Applies pending migrations (local by default)                                    |
-| `forgeron db status [--env]`                            | Applied and pending migrations                                                   |
-| `forgeron db rollback [--env] [--steps 1]`              | Runs the `down` of the latest migrations                                         |
-| `forgeron db seed`                                      | Runs `db/seed.ts` on the local database                                          |
-| `forgeron db shell [--env]`                             | SQL console; read-only outside local, except with `--write` and the `admin` role |
+| Command                                       | What it does                                                                     |
+| --------------------------------------------- | -------------------------------------------------------------------------------- |
+| `forgeron db generate [--name <name>]`        | Compares `db/schema.ts` with the last snapshot and writes the migration(s)       |
+| `forgeron db migrate [--env]`                 | Applies pending migrations (local by default)                                    |
+| `forgeron db status [--env]`                  | Applied and pending migrations                                                   |
+| `forgeron db rollback [--env] [--steps 1]`    | Runs the `down` of the latest migrations                                         |
+| `forgeron db seed`                            | Runs `db/seed.ts` on the local database                                          |
+| `forgeron db shell [--env] --sql <statement>` | SQL console; read-only outside local, except with `--write` and the `admin` role |
 
 ### Secrets and access
 
@@ -440,7 +440,7 @@ Names are identical in the schema, in the database and in queries (`snake_case` 
 
 ### Seed
 
-`db/seed.ts` exports `seed(async ({ db, faker? }) => { … })`. It feeds the local database (`forgeron db seed`), tests (`createTestTool({ seed: true })`) and previews.
+`db/seed.ts` has `export default seed(async ({ db }) => { … })` (`seed` comes from `@forgeron/sdk/db`). No fake-data library is bundled: import the one you like. It feeds the local database (`forgeron db seed`), tests (`createTestTool({ seed: true })`) and previews.
 
 ## 9. Events and scheduled tasks
 

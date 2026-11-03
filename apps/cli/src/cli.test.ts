@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { run } from "./cli";
+import { checkShell } from "./commands/db";
 import type { Io } from "./io";
 
 const fixtures = fileURLToPath(new URL("../fixtures", import.meta.url));
@@ -363,11 +364,95 @@ describe("forgeron db", () => {
     const unknown = capture("/");
     expect(await run(["db", "frobnicate"], unknown.io)).toBe(2);
     expect(unknown.errors[0]).toContain('unknown subcommand "frobnicate"');
-    const later = capture("/");
-    expect(await run(["db", "migrate"], later.io)).toBe(2);
-    expect(later.errors[0]).toContain("`forgeron dev` applies the migrations");
+    const remote = capture("/");
+    expect(await run(["db", "migrate", "--env", "production"], remote.io)).toBe(2);
+    expect(remote.errors[0]).toContain("needs the platform");
     const stray = capture("/");
     expect(await run(["db", "generate", "extra"], stray.io)).toBe(2);
+  });
+
+  describe("on the local database", () => {
+    const prepared = async (name: string) => {
+      const dir = await dbTool(name, dbping);
+      await run(["db", "generate"], capture(dir).io);
+      return dir;
+    };
+    const sql = async (dir: string, statement: string) => {
+      const c = capture(dir);
+      expect(await run(["db", "shell", "--sql", statement], c.io)).toBe(0);
+      return JSON.parse(c.logs[0]!) as unknown[];
+    };
+
+    it("migrates, says what is applied, and rolls back", async () => {
+      const dir = await prepared("db-migrate");
+      const before = capture(dir);
+      expect(await run(["db", "status"], before.io)).toBe(0);
+      expect(before.logs).toEqual(["pending  0001_init"]);
+
+      const up = capture(dir);
+      expect(await run(["db", "migrate"], up.io)).toBe(0);
+      expect(up.logs).toEqual(["Applied 0001_init."]);
+      const again = capture(dir);
+      await run(["db", "migrate"], again.io);
+      expect(again.logs).toEqual(["Nothing to apply."]);
+      const after = capture(dir);
+      await run(["db", "status"], after.io);
+      expect(after.logs).toEqual(["applied  0001_init"]);
+
+      const down = capture(dir);
+      expect(await run(["db", "rollback"], down.io)).toBe(0);
+      expect(down.logs).toEqual(["Reverted 0001_init."]);
+      const none = capture(dir);
+      await run(["db", "rollback"], none.io);
+      expect(none.logs).toEqual(["Nothing to revert."]);
+    }, 60_000);
+
+    it("refuses a number of steps that is not one", async () => {
+      const c = capture(await prepared("db-steps"));
+      expect(await run(["db", "rollback", "--steps", "0"], c.io)).toBe(2);
+    }, 60_000);
+
+    it("seeds the database after migrating it, and the shell reads it", async () => {
+      const dir = await prepared("db-seed");
+      const c = capture(dir);
+      expect(await run(["db", "seed"], c.io)).toBe(0);
+      expect(c.logs).toEqual(["Seeded the local database."]);
+      expect(await sql(dir, "SELECT name FROM things")).toEqual([{ name: "seeded" }]);
+      await sql(dir, "DELETE FROM things");
+      expect(await sql(dir, "SELECT name FROM things")).toEqual([]);
+    }, 60_000);
+
+    it("says so when the tool has no seed", async () => {
+      const dir = await prepared("db-noseed");
+      await rm(join(dir, "db", "seed.ts"));
+      const c = capture(dir);
+      expect(await run(["db", "seed"], c.io)).toBe(1);
+      expect(c.errors[0]).toContain("no db/seed.ts");
+    }, 60_000);
+  });
+
+  describe("the shell outside local", () => {
+    it("is read-only unless --write and the admin role", () => {
+      const read = { write: false, role: undefined };
+      expect(() => checkShell("pilot", "SELECT 1", read)).not.toThrow();
+      expect(() => checkShell("pilot", "DELETE FROM things", read)).toThrow("read-only");
+      expect(() => checkShell("pilot", "SELECT 1; DROP TABLE things", read)).toThrow("read-only");
+      expect(() =>
+        checkShell("pilot", "DELETE FROM things", { write: true, role: "reader" }),
+      ).toThrow("admin role");
+      expect(() =>
+        checkShell("pilot", "DELETE FROM things", { write: true, role: "admin" }),
+      ).not.toThrow();
+      expect(() => checkShell("local", "DELETE FROM things", read)).not.toThrow();
+    });
+
+    it("exits 2 on a write without --write, before reaching any environment", async () => {
+      const c = capture("/");
+      expect(
+        await run(["db", "shell", "--env", "pilot", "--sql", "DELETE FROM things"], c.io),
+      ).toBe(2);
+      expect(c.errors[0]).toContain("read-only");
+    });
   });
 });
 

@@ -186,3 +186,26 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
     },
   };
 }
+
+/** The local database of a tool, outside any running environment: what `forgeron db` works on. */
+export async function openLocalDatabase(
+  persist: string,
+): Promise<{ d1: D1Database; close(): Promise<void> }> {
+  const miniflare = new Miniflare({
+    modules: [
+      {
+        type: "ESModule",
+        path: "worker.js",
+        contents: "export default { fetch() { return new Response(); } };",
+      },
+    ],
+    compatibilityDate: COMPATIBILITY_DATE,
+    d1Databases: ["DB"],
+    defaultPersistRoot: persist,
+  });
+  await miniflare.ready;
+  return {
+    d1: (await miniflare.getD1Database("DB")) as unknown as D1Database,
+    close: () => miniflare.dispose(),
+  };
+}

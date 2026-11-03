@@ -24,6 +24,8 @@ export {
 export { emptySnapshot, sameSnapshot, snapshotOf } from "./snapshot";
 export type { ColumnSnapshot, Snapshot, TableSnapshot } from "./snapshot";
 export { migration, resolveMigration } from "./migration";
+export { seed } from "./seed";
+export type { SeedContext, SeedDefinition } from "./seed";
 export type {
   MigrationDefinition,
   MigrationOptions,
