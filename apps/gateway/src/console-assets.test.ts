@@ -1,11 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Miniflare } from "miniflare";
-import { rolldown } from "rolldown";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { buildGateway } from "../scripts/build";
 
 // FOR-122: the console, built by `apps/console`, loads its entry page from the gateway, in workerd,
 // the way `forgeron platform install` deploys them: the gateway bundle with the build as assets.
@@ -19,25 +19,13 @@ let mf: Miniflare;
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "forgeron-console-"));
   const dist = join(dir, "dist");
-  const build = spawnSync("bun", ["run", "build", "--", "--outDir", dist], {
+  const build = spawnSync("bunx", ["vite", "build", "--outDir", dist], {
     cwd: join(here, "..", "..", "console"),
     encoding: "utf8",
   });
   if (build.status !== 0) throw new Error(`console build failed:\n${build.stdout}${build.stderr}`);
 
-  // workerd treats each named export of the main module as an entrypoint: the default handler only.
-  const entry = join(dir, "entry.ts");
-  await writeFile(entry, `export { default } from ${JSON.stringify(join(here, "index.ts"))};`);
-  const bundle = await rolldown({
-    input: entry,
-    platform: "neutral",
-    external: /^node:/,
-    resolve: { conditionNames: ["workerd", "worker", "browser", "import", "default"] },
-    logLevel: "silent",
-  });
-  const worker = join(dir, "worker.js");
-  await bundle.write({ file: worker, format: "esm", codeSplitting: false });
-  await bundle.close();
+  const worker = await buildGateway(join(dir, "worker.js"));
 
   mf = new Miniflare({
     modules: true,

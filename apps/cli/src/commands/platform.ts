@@ -1,4 +1,10 @@
-import { createCloudflareClient, createRestD1, type CloudflareClient } from "@forgeron/hosting";
+import {
+  createCloudflareClient,
+  createRestD1,
+  GATEWAY_COMPATIBILITY_DATE,
+  GATEWAY_COMPATIBILITY_FLAGS,
+  type CloudflareClient,
+} from "@forgeron/hosting";
 import { migratePlatform } from "@forgeron/registry";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -18,7 +24,6 @@ import { readAssets, uploadAssets } from "./console-assets";
 
 const USAGE =
   "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--name forgeron] [--auth token|wrangler]";
-const COMPATIBILITY_DATE = "2026-10-01";
 
 interface Named {
   uuid?: string;
@@ -110,8 +115,8 @@ export async function platform(
     `/workers/workers/${worker}/versions`,
     {
       main_module: "worker.js",
-      compatibility_date: COMPATIBILITY_DATE,
-      compatibility_flags: ["nodejs_compat"],
+      compatibility_date: GATEWAY_COMPATIBILITY_DATE,
+      compatibility_flags: [...GATEWAY_COMPATIBILITY_FLAGS],
       modules: [
         {
           name: "worker.js",
