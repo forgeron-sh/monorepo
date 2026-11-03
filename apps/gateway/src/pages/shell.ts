@@ -1,11 +1,13 @@
 import { stylesheet } from "./css";
+import { LOGO_PATHS, LOGO_RATIO, LOGO_VIEWBOX } from "./logo";
 
 // The page shell of every HTML page the gateway serves (docs/design-system.md): the logo, one
 // content card, the footer, and the notice blocks. Server-rendered, one stylesheet inlined from
 // the design tokens, no script, no font or image download: the CSP below allows nothing else.
 
-/** The anvil of assets/logos (viewBox 132), the same path as `packages/ui`. */
-const ANVIL = "M0 0H132L81.506 50.494A29 29 0 0 0 102.012 100H132V132H0V100A33 33 0 0 0 0 34Z";
+/** The horizontal logo at this height, in `currentColor`. */
+const logo = (height: number) =>
+  `<svg width="${Math.round(height * LOGO_RATIO)}" height="${height}" viewBox="${LOGO_VIEWBOX}" role="img" aria-label="Forgeron" focusable="false"><g fill="currentColor">${LOGO_PATHS}</g></svg>`;
 
 /** The policy of the sign-in pages (D-049). Not loosened for any page of the shell. */
 const PAGE_CSP =
@@ -30,24 +32,25 @@ export interface PageOptions {
   head?: string;
 }
 
-const symbol = (size: number) =>
-  `<svg width="${size}" height="${size}" viewBox="0 0 132 132" aria-hidden="true" focusable="false"><path fill="currentColor" d="${ANVIL}"/></svg>`;
-
 /** A complete document. `body` is trusted markup: build it with `escape` and the helpers below. */
 function renderPage(options: PageOptions, body: string): string {
-  const where = options.workspace ? `<span class="where">${escape(options.workspace)}</span>` : "";
+  const where = options.workspace
+    ? `<span class="badge mono">${escape(options.workspace)}</span>`
+    : "";
   return (
     `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
     `<meta name="viewport" content="width=device-width,initial-scale=1">` +
     `<meta name="color-scheme" content="dark light"><meta name="robots" content="noindex">` +
     `<title>${escape(options.title)} · Forgeron</title>${options.head ?? ""}` +
     `<style>${stylesheet()}</style></head><body>` +
-    `<svg class="anvil" viewBox="0 0 132 132" aria-hidden="true" focusable="false"><path fill="currentColor" d="${ANVIL}"/></svg>` +
-    `<header class="bar"><span class="brand" role="img" aria-label="Forgeron">${symbol(22)}<span aria-hidden="true">forgeron</span></span>${where}</header>` +
-    `<main><div class="card">` +
-    (options.eyebrow ? `<p class="eyebrow">${escape(options.eyebrow)}</p>` : "") +
-    `<h1>${escape(options.title)}</h1>${body}</div></main>` +
-    `<footer><span>Forgeron</span>${options.workspace ? `<span>${escape(options.workspace)}</span>` : ""}</footer>` +
+    `<header class="site-header"><div class="wrap"><span class="brand">${logo(22)}</span>${where}</div></header>` +
+    `<main><div class="frame"><span class="h tl"></span><span class="h tr"></span><span class="h bl"></span><span class="h br"></span>` +
+    `<div class="frame-pad"><div class="card">` +
+    (options.eyebrow
+      ? `<div class="card-head"><span class="eyebrow">${escape(options.eyebrow)}</span></div>`
+      : "") +
+    `<div class="pad"><h1>${escape(options.title)}</h1>${body}</div></div></div></div></main>` +
+    `<footer class="site-footer"><div class="wrap"><div class="foot-brand">${logo(20)}<span class="small muted">The last platform you'll need for your internal tools.</span></div></div></footer>` +
     `</body></html>`
   );
 }
