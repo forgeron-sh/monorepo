@@ -32,7 +32,9 @@ import { handleGroups } from "./console-api/groups";
 import { createAuth } from "./identity/auth";
 import { createCaller, membership } from "./identity/caller";
 import { handleCliAuthorize, handleCliToken } from "./identity/cli";
-import { handleIssueToken } from "./identity/issue";
+import { handleIssueToken, handleRevokeToken } from "./identity/issue";
+import { handleRevocations } from "./console-api/revocations";
+import { forwardIdentity, handleUserSecrets } from "./dispatch/user-secrets";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget, type DispatchNamespace } from "./dispatch/targets";
 
@@ -58,6 +60,11 @@ export interface GatewayEnv {
    * base64. Secret. Without it nobody can sign in and every call is anonymous.
    */
   AUTH_SECRET?: string;
+  /**
+   * Rotation (D-035): the keys `AUTH_SECRET` replaced, comma-separated. Tokens they signed stay good
+   * until they expire (30 days at most); drop them after that. Secret.
+   */
+  AUTH_SECRET_PREVIOUS?: string;
   /** Encrypts tool secrets and connection tokens at rest: 32 random bytes, base64. Secret. */
   SECRETS_KEY?: string;
   /** The identity provider's issuer URL (OIDC, D-019). Without these three, `/auth` answers 404. */
@@ -93,7 +100,7 @@ const notFound = () =>
  * `/auth/…`, `/whoami`, `/deploy`, `/promote`, `/rollback` and `/deploy-tokens` are the platform's, `/console-api/…` is the
  * console's API, and every other path is the console itself. One resolver (`createCaller`) turns a
  * session cookie or an audience-bound token into the person for all of them. The pilot version
- * goes to the members of the pilot group at the production address (D-034).
+ * goes to the members of the pilot group at the production address (D-036).
  */
 export function createGateway(
   env: GatewayEnv,
@@ -110,6 +117,10 @@ export function createGateway(
 ) {
   const now = options.now ?? (() => new Date());
   const secret = env.AUTH_SECRET;
+  const previousSecrets = (env.AUTH_SECRET_PREVIOUS ?? "")
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
 
   // The registry encrypts with `SECRETS_KEY` when it is bound, which is asynchronous: built once.
   let built: Promise<Registry> | undefined;
@@ -123,7 +134,7 @@ export function createGateway(
 
   const parts = async () => {
     const registry = await getRegistry();
-    const caller = secret ? createCaller({ registry, secret, now }) : undefined;
+    const caller = secret ? createCaller({ registry, secret, previousSecrets, now }) : undefined;
     const identify =
       options.identify ??
       (caller
@@ -141,7 +152,7 @@ export function createGateway(
               registry.recordSeat(workspace, personId),
           }
         : {}),
-      // Pilot has the address of production: its group's members get it (D-034). Anonymous, or a
+      // Pilot has the address of production: its group's members get it (D-036). Anonymous, or a
       // pilot with no group, nobody.
       ...(identify
         ? {
@@ -152,19 +163,6 @@ export function createGateway(
             },
           }
         : {}),
-      // The runtime of the tool checks access from this: the roles and the console's overrides,
-      // read at each call, so a change of the matrix applies at once on every interface.
-      ...(caller
-        ? {
-            user: async (c: { workspace: string; tool: string; request: Request }) => {
-              const person = await caller.resolve(c.request, c.workspace);
-              if (!person) return undefined;
-              const tool = await registry.findTool(c.workspace, c.tool);
-              const access = tool ? await registry.accessFor(tool.id, person.roles) : {};
-              return { ...person, access };
-            },
-          }
-        : {}),
       // A preview is for the workspace's administrators and developers (sdk.md §7).
       ...(caller
         ? {
@@ -172,6 +170,17 @@ export function createGateway(
               const roles = (await caller.resolve(c.request, c.workspace))?.roles ?? [];
               return roles.includes("admin") || roles.includes("developer");
             },
+          }
+        : {}),
+      // The person and their own per-person secrets go to the tool; a token for another tool stops here.
+      ...(caller
+        ? {
+            forward: (c: { workspace: string; tool: string; request: Request }) =>
+              forwardIdentity(c.tool, c.request, {
+                registry,
+                workspace: c.workspace,
+                identify: (r) => caller.identify(r, c.workspace),
+              }),
           }
         : {}),
       targets: (worker) =>
@@ -214,6 +223,16 @@ export function createGateway(
     const url = new URL(request.url);
     const workspace = workspaceOf(url.host, env.BASE_DOMAIN);
     const { registry, caller, dispatch } = await parts();
+    // Per-person secrets are typed at the gateway, never at the tool (D-036).
+    const secretsOf = workspace ? /^\/t\/([a-z0-9-]+)\/secrets\/?$/.exec(url.pathname) : null;
+    if (workspace && secretsOf && secret && caller) {
+      return handleUserSecrets(request, secretsOf[1]!, {
+        registry,
+        workspace,
+        // A CLI token may enter secrets: the route is the platform's own.
+        identify: (r) => caller.identify(r, workspace, true),
+      });
+    }
     if (!workspace || url.pathname === "/t" || url.pathname.startsWith("/t/")) {
       return dispatch(request);
     }
@@ -247,6 +266,14 @@ export function createGateway(
           return url.pathname === "/auth/cli"
             ? handleCliAuthorize(request, cli)
             : handleCliToken(request, cli);
+        }
+        if (url.pathname === "/auth/token/revoke") {
+          return handleRevokeToken(request, {
+            workspace,
+            registry,
+            now,
+            person: (r) => caller.resolve(r, workspace, true),
+          });
         }
         if (url.pathname === "/auth/token") {
           return handleIssueToken(request, {
@@ -324,6 +351,11 @@ export function createGateway(
             }
           : undefined;
       return (
+        (await handleRevocations(forwarded, {
+          registry,
+          workspace,
+          caller: identity,
+        })) ??
         (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
         (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??

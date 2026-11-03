@@ -36,8 +36,29 @@ describe("tokens", () => {
         aud: "acme/crm",
         iat: now.getTime() / 1000,
         exp: now.getTime() / 1000 + 600,
+        jti: expect.any(String),
       },
     });
+  });
+
+  it("have an id of their own, and no two share one", async () => {
+    const [a, b] = await Promise.all([issue("crm"), issue("crm")]);
+    const idOf = async (t: string) => {
+      const check = await verifyToken(t, { secret, now });
+      return check.ok ? check.claims.jti : undefined;
+    };
+    expect(await idOf(a)).not.toBe(await idOf(b));
+  });
+
+  it("verify under a previous key after a rotation, never sign with it", async () => {
+    const token = await issue("crm");
+    expect(await verifyToken(token, { secret: "the-new-key", now })).toEqual({
+      ok: false,
+      reason: "signature",
+    });
+    expect(
+      await verifyToken(token, { secret: "the-new-key", previousSecrets: [secret], now }),
+    ).toMatchObject({ ok: true });
   });
 
   it("are refused for any other tool or workspace", async () => {

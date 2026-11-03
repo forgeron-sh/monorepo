@@ -1,7 +1,7 @@
 import type { Registry } from "@forgeron/registry";
 import { RegistryError } from "@forgeron/registry";
 
-// The roles × actions matrix of a tool, for the console (docs/sdk.md section 3, D-035):
+// The roles × actions matrix of a tool, for the console (docs/sdk.md section 3, D-039):
 //   GET /api/tools/<tool>/access-matrix  -> { roles, actions, cells: { role: { action: { default, override?, allowed } } } }
 //   PUT /api/tools/<tool>/access-matrix  body { role, action, allowed: true | false | null }
 // `null` gives the cell back to the manifest's levels. Only an admin may call them, and a change

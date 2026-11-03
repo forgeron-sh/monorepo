@@ -1,8 +1,9 @@
 import { createTestTool } from "@forgeron/sdk/testing";
+import { createMemoryD1 } from "@forgeron/sdk/testing/d1";
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { buildTool, type BuildResult } from "./index";
 
@@ -82,6 +83,88 @@ describe("a tool with a database, built", () => {
     ).rejects.toThrow(/UNIQUE|PRIMARY/i);
     expect(await tool.call("deals.list", {})).toHaveLength(1);
   });
+});
+
+describe("the seed of a built tool in a new preview", () => {
+  type Worker = { default: { fetch(request: Request, env: unknown): Promise<Response> } };
+  const SCHEMA =
+    "CREATE TABLE companies (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at TEXT); " +
+    "CREATE TABLE deals (id TEXT PRIMARY KEY, company_id TEXT, title TEXT, stage TEXT, updated_at TEXT); " +
+    'CREATE TABLE "_forgeron_seed" ("status" TEXT NOT NULL, "detail" TEXT)';
+  const user = JSON.stringify({ id: "u1", email: "a@b.c", name: "A", roles: ["sales"] });
+  const call = (worker: Worker, env: unknown) =>
+    worker.default.fetch(
+      new Request("https://tool.test/api/deals.list", { headers: { "x-forgeron-user": user } }),
+      env,
+    );
+  let loads = 0;
+  // Each import is a new instance of the module: the state of an isolate is its own.
+  const load = async () => {
+    const built = await buildTool(fixture("db-tool"));
+    return (await import(
+      `${pathToFileURL(join(built.outDir, "worker.js")).href}?isolate=${++loads}`
+    )) as Worker;
+  };
+  const withDb = async (status: string | undefined, run: (db: any) => Promise<void>) => {
+    const db: any = await createMemoryD1();
+    try {
+      for (const sql of SCHEMA.split("; ")) await db.prepare(sql).all();
+      if (status)
+        await db.prepare(`INSERT INTO "_forgeron_seed" (status) VALUES (?)`).bind(status).all();
+      await run(db);
+    } finally {
+      db.close();
+    }
+  };
+  const names = async (db: any) =>
+    ((await db.prepare("SELECT name FROM companies").all()).results as { name: string }[]).map(
+      (r) => r.name,
+    );
+  const status = async (db: any) =>
+    (await db.prepare(`SELECT status, detail FROM "_forgeron_seed"`).all()).results[0];
+
+  it("runs on the first request, once, and then marks the seed done", async () => {
+    const worker = await load();
+    await withDb("pending", async (db) => {
+      expect((await call(worker, { DB: db })).status).toBe(200);
+      expect((await call(worker, { DB: db })).status).toBe(200);
+      expect(await names(db)).toEqual(["Seeded Co"]);
+      expect((await status(db)).status).toBe("done");
+    });
+  }, 60_000);
+
+  it("does nothing without a marker, or once the seed is done", async () => {
+    await withDb(undefined, async (db) => {
+      await call(await load(), { DB: db });
+      expect(await names(db)).toEqual([]);
+    });
+    await withDb("done", async (db) => {
+      await call(await load(), { DB: db });
+      expect(await names(db)).toEqual([]);
+    });
+  }, 60_000);
+
+  it("lets two concurrent first requests seed once", async () => {
+    await withDb("pending", async (db) => {
+      const worker = await load();
+      await Promise.all([call(worker, { DB: db }), call(worker, { DB: db })]);
+      expect(await names(db)).toEqual(["Seeded Co"]);
+    });
+  }, 60_000);
+
+  it("answers with the reason, and does not retry on half filled data, when the seed fails", async () => {
+    await withDb("pending", async (db) => {
+      await db.prepare("DROP TABLE companies").all();
+      const worker = await load();
+      const failed = await call(worker, { DB: db });
+      expect(failed.status).toBe(500);
+      expect(await failed.json()).toMatchObject({ error: { code: "SEED_FAILED" } });
+      expect((await status(db)).status).toBe("failed");
+      // Another isolate sees `failed` and answers the same, without running the seed again.
+      const again = await call(await load(), { DB: db });
+      expect(again.status).toBe(500);
+    });
+  }, 60_000);
 });
 
 describe("a build run from the tool folder", () => {

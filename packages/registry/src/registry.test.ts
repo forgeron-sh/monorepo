@@ -337,3 +337,51 @@ describe("seats", () => {
     expect(Object.keys(rows[0]!).sort()).toEqual(["month", "person_id", "workspace"]);
   });
 });
+
+describe("token revocation", () => {
+  it("voids one token by its id, and all of a person's tokens up to now", async () => {
+    const exp = new Date(Date.UTC(2026, 11, 1));
+    const iat = Math.floor(Date.UTC(2026, 10, 3, 11, 0, 0) / 1000);
+    expect(await registry.isTokenRevoked("acme", "p1", "a", iat)).toBe(false);
+    await registry.revokeToken("acme", "p1", "a", exp);
+    expect(await registry.isTokenRevoked("acme", "p1", "a", iat)).toBe(true);
+    expect(await registry.isTokenRevoked("acme", "p1", "b", iat)).toBe(false);
+    expect(await registry.isTokenRevoked("acme", "p2", "a", iat)).toBe(false);
+    expect(await registry.isTokenRevoked("other", "p1", "a", iat)).toBe(false);
+
+    await registry.revokePersonTokens("acme", "p1", 30 * 86_400);
+    expect(await registry.isTokenRevoked("acme", "p1", "b", iat)).toBe(true);
+    expect(await registry.isTokenRevoked("acme", "p1", undefined, iat)).toBe(true);
+    // A token issued well after the revocation is good.
+    expect(
+      await registry.isTokenRevoked("acme", "p1", "c", Math.floor(Date.UTC(2026, 10, 4) / 1000)),
+    ).toBe(false);
+    expect(await registry.isTokenRevoked("acme", "p2", "b", iat)).toBe(false);
+  });
+});
+
+describe("per-person secrets", () => {
+  it("keeps one value per person and tool, encrypted, and revokes by person or name", async () => {
+    const { tool } = await seed();
+    await registry.setUserSecret({ toolId: tool.id, person: "p1", name: "KEY", value: "v-one" });
+    await registry.setUserSecret({ toolId: tool.id, person: "p1", name: "KEY", value: "v-two" });
+    await registry.setUserSecret({ toolId: tool.id, person: "p1", name: "OTHER", value: "x" });
+    await registry.setUserSecret({ toolId: tool.id, person: "p2", name: "KEY", value: "v-p2" });
+
+    expect(await registry.readUserSecrets(tool.id, "p1")).toEqual({ KEY: "v-two", OTHER: "x" });
+    expect(await registry.readUserSecrets(tool.id, "p2")).toEqual({ KEY: "v-p2" });
+    expect(await registry.readUserSecrets(tool.id, "p3")).toEqual({});
+    const raw = JSON.stringify((await d1.prepare(`SELECT * FROM "user_secrets"`).all()).results);
+    expect(raw).not.toContain("v-two");
+    expect(await registry.userSecretHolders(tool.id)).toEqual([
+      { person: "p1", names: ["KEY", "OTHER"] },
+      { person: "p2", names: ["KEY"] },
+    ]);
+
+    expect(await registry.revokeUserSecrets(tool.id, "p1", "KEY")).toBe(1);
+    expect(await registry.readUserSecrets(tool.id, "p1")).toEqual({ OTHER: "x" });
+    expect(await registry.revokeUserSecrets(tool.id, "p1")).toBe(1);
+    expect(await registry.revokeUserSecrets(tool.id, "p1")).toBe(0);
+    expect(await registry.readUserSecrets(tool.id, "p2")).toEqual({ KEY: "v-p2" });
+  });
+});
