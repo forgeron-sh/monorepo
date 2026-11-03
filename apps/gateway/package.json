@@ -5,7 +5,9 @@
   "type": "module",
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "1.2.4",
-    "@forgeron/manifest": "workspace:*"
+    "@forgeron/hosting": "workspace:*",
+    "@forgeron/manifest": "workspace:*",
+    "@forgeron/registry": "workspace:*"
   },
   "devDependencies": {
     "@forgeron/runtime": "workspace:*",
