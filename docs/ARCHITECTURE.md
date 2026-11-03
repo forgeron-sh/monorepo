@@ -169,7 +169,7 @@ In self-host, the gateway is redeployed only when a tool is created or deleted, 
 
 ### Installing the platform in self-host
 
-Proposal: `forgeron platform install`, from the CLI, with a Cloudflare API token limited to Workers, D1, KV and R2. It creates the platform D1, deploys the gateway and the console to the account, and stores the token in the gateway's secrets, which it then uses to deploy tools. This token is the most sensitive secret of the installation.
+`forgeron platform install` (CLI, step-by-step guide in [`self-host.md`](self-host.md)) takes a Cloudflare API token limited to Workers, D1, KV and R2 from `CLOUDFLARE_API_TOKEN`. It creates the platform D1 and migrates it, deploys the gateway Worker to the account and stores the token as the gateway's secret binding, never printing it. The console is not deployed yet (no build exists). This token is the most sensitive secret of the installation.
 
 ## Publishing a tool
 
