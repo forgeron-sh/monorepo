@@ -46,9 +46,12 @@ export function createHttpRuntime(
   const send = options.fetch ?? ((url, init) => fetch(url, init));
   const now = options.now ?? (() => new Date());
   const grants = new Set(bootstrap.grants);
+  const callable = new Set(bootstrap.callable ?? []);
   return {
     user: bootstrap.user,
     can: (level) => grants.has(level),
+    // A page without `callable` predates the matrix for views: nothing is known, so nothing is shown as allowed.
+    canCall: (action) => callable.has(action),
     params: options.params,
     async call(action, input) {
       if (now().getTime() / 1000 >= bootstrap.expiresAt) {

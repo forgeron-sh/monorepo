@@ -3,10 +3,12 @@ import { RegistryError } from "@forgeron/registry";
 
 // The roles × actions matrix of a tool, for the console (docs/sdk.md section 3, D-039):
 //   GET /api/tools/<tool>/access-matrix  -> { roles, actions, cells: { role: { action: { default, override?, allowed } } } }
-//   PUT /api/tools/<tool>/access-matrix  body { role, action, allowed: true | false | null }
-// `null` gives the cell back to the manifest's levels. Only an admin may call them, and a change
+//   PUT /api/tools/<tool>/access-matrix  body { changes: [{ role, action, allowed: true | false | null }] }
+// `action` is an action name or `view:<name>`; `null` gives the cell back to the manifest's levels.
+// The changes are applied together, in one batch with their audit lines: all or none (D-044). Only an admin may call them, and a change
 // is written to the audit log by the registry. It takes effect on the next call, on every interface.
 
+const MAX_CHANGES = 500;
 const ROUTE = /^\/api\/tools\/([a-z0-9-]+)\/access-matrix$/;
 
 export interface AccessMatrixApiOptions {
@@ -46,27 +48,36 @@ export async function handleAccessMatrix(
   try {
     if (request.method === "GET") return json(200, await options.registry.accessMatrix(tool.id));
 
-    let body: { role?: unknown; action?: unknown; allowed?: unknown };
+    let body: { changes?: unknown };
     try {
       body = (await request.json()) as typeof body;
     } catch {
       return json(400, { error: "INVALID", message: "The body is not JSON." });
     }
-    if (
-      typeof body.role !== "string" ||
-      typeof body.action !== "string" ||
-      (typeof body.allowed !== "boolean" && body.allowed !== null)
-    ) {
+    const changes = Array.isArray(body.changes) ? body.changes : undefined;
+    const valid =
+      changes !== undefined &&
+      changes.length > 0 &&
+      changes.length <= MAX_CHANGES &&
+      changes.every(
+        (c: { role?: unknown; action?: unknown; allowed?: unknown }) =>
+          typeof c?.role === "string" &&
+          typeof c.action === "string" &&
+          (typeof c.allowed === "boolean" || c.allowed === null),
+      );
+    if (!valid) {
       return json(400, {
         error: "INVALID",
-        message: "`role` and `action` are strings, `allowed` is true, false or null.",
+        message: `\`changes\` is 1 to ${MAX_CHANGES} of { role, action, allowed: true, false or null }.`,
       });
     }
-    await options.registry.setRoleAccess(
+    await options.registry.setRoleAccessMany(
       tool.id,
-      body.role,
-      body.action,
-      body.allowed ?? undefined,
+      (changes as Array<{ role: string; action: string; allowed: boolean | null }>).map((c) => ({
+        role: c.role,
+        action: c.action,
+        allowed: c.allowed ?? undefined,
+      })),
       caller.id,
     );
     return json(200, await options.registry.accessMatrix(tool.id));

@@ -527,6 +527,7 @@ export default defineView({
 | `useParams()`                                             | URL parameters validated by `params`; `[values, setValues]`        |
 | `useUser()`                                               | The signed-in person and their roles                               |
 | `useCan(level)`                                           | To disable a button; the server checks anyway                      |
+| `useCanCall(action)`                                      | Same, for an action, with the console's roles × actions matrix     |
 
 - Views are React 18+ components, built by `forgeron build` and served by the tool's Worker, behind the SSO.
 - `@forgeron/ui` provides components aligned with the Forgeron design system (black and white, sharp corners): `Page`, `Table`, `Board`, `Stat`, `BarChart`, `Select`, `Button`… Optional.
@@ -805,7 +806,7 @@ Forgeron uses **both**: the `forgeron` name for the single entry point, and the 
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `forgeron`                                                      | SDK (`defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`) and CLI (`forgeron` binary) | A single `npm i -D forgeron`, a single `npx forgeron`                                    |
 | `forgeron/db`                                                   | `schema`, `table`, `t`, `index`, `migration`, `sql`                                            | Tied to the migration format and to the runtime                                          |
-| `forgeron/react`                                                | `defineView`, `useAction`, `useMutation`, `useParams`, `useUser`, `useCan`                     | Speaks the runtime protocol; React as an optional peer dependency                        |
+| `forgeron/react`                                                | `defineView`, `useAction`, `useMutation`, `useParams`, `useUser`, `useCan`, `useCanCall`       | Speaks the runtime protocol; React as an optional peer dependency                        |
 | `forgeron/testing`                                              | `createTestTool`, `mockFetch`                                                                  | Must simulate the runtime of the same version                                            |
 | `@forgeron/ui`                                                  | React components of the design system (`Page`, `Table`, `Board`, `BarChart`…)                  | Optional, heavy, versioned with the design system; also used by the site and the console |
 | `@forgeron/connector-<name>`                                    | Connectors: `microsoft-365`, `google-workspace`, `odoo`, `slack`…                              | Each connector bundles a third-party client; you only install the ones you use           |

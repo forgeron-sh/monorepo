@@ -11,43 +11,45 @@ Rules of the log:
 
 ## Index
 
-| No.   | Date       | Decision                                                                                                                         | Status            |
-| ----- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| D-001 | 22/10/2026 | Adopt the tooling and conventions of siages                                                                                      | Active            |
-| D-002 | 22/10/2026 | TypeScript 6, not 7                                                                                                              | Active            |
-| D-003 | 22/10/2026 | The CLI is an app (`apps/cli`), the SDK a package (`packages/sdk`)                                                               | Active            |
-| D-004 | 22/10/2026 | A tool is built in the CI of its repository                                                                                      | Active            |
-| D-005 | 22/10/2026 | Build, version and release are three distinct notions                                                                            | Active            |
-| D-006 | 22/10/2026 | One `forgeron.config.ts` = one tool                                                                                              | Active            |
-| D-007 | 22/10/2026 | Catalog templates use `forgeron release`                                                                                         | Active            |
-| D-008 | 22/10/2026 | Run tools with Dynamic Workers                                                                                                   | Replaced by D-009 |
-| D-009 | 22/10/2026 | Two hosting modes behind a single interface: Workers for Platforms (cloud), classic Workers (self-host)                          | Active            |
-| D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                                                | Active            |
-| D-011 | 02/11/2026 | All repository files are written in English                                                                                      | Active            |
-| D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                                              | Active            |
-| D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                                               | Active            |
-| D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract                                       | Active            |
-| D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime                               | Active            |
-| D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                                   | Active            |
-| D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host                    | Active            |
-| D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                                             | Active            |
-| D-019 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                                          | Active            |
-| D-020 | 03/11/2026 | Views are a statically served React app that calls actions, not server-rendered pages                                            | Active            |
-| D-021 | 03/11/2026 | Pilot and production share one database, with a strict compatibility check at deployment                                         | Active            |
-| D-022 | 03/11/2026 | D1 only for now; a Postgres option through Hyperdrive is not offered                                                             | Active            |
-| D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                                         | Active            |
-| D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                                       | Active            |
-| D-025 | 03/11/2026 | `forgeron login` signs in through the browser on a loopback address with PKCE and stores the token in the keychain or a 600 file | Active            |
-| D-027 | 03/11/2026 | Members live in the registry; sign-in admits the configured administrator and allowed email domains, nobody else                 | Active            |
-| D-029 | 03/11/2026 | In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding                 | Active            |
-| D-031 | 03/11/2026 | `forgeron login` gets a CLI token scoped `cli` for the platform, one-time PKCE code, 30 days                                     | Active            |
-| D-032 | 03/11/2026 | The gateway keeps its own code in the platform D1, and `platform install` carries the tool bindings over                         | Active            |
-| D-033 | 03/11/2026 | `promote` and `rollback` are `POST /promote` and `POST /rollback` on the gateway, for a workspace admin or a deployment token    | Active            |
-| D-034 | 03/11/2026 | The pilot group is a named set of members in the registry, edited through the console API; the pilot version is served to it     | Active            |
-| D-035 | 03/11/2026 | Tokens carry an id, are revoked from a list checked at each call, and the signing key rotates with an overlap                    | Active            |
-| D-036 | 03/11/2026 | Per-person secrets are sealed in the platform D1, typed at the gateway, and handed to a call as the caller's own only            | Active            |
-| D-039 | 03/11/2026 | The roles × actions matrix is a set of overrides in the platform D1, forwarded to the tool at each call in `x-forgeron-user`     | Active            |
-| D-040 | 03/11/2026 | The matrix is edited by admins only, cell by cell, and every edit is audited                                                     | Active            |
+| No.   | Date       | Decision                                                                                                                             | Status            |
+| ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
+| D-001 | 22/10/2026 | Adopt the tooling and conventions of siages                                                                                          | Active            |
+| D-002 | 22/10/2026 | TypeScript 6, not 7                                                                                                                  | Active            |
+| D-003 | 22/10/2026 | The CLI is an app (`apps/cli`), the SDK a package (`packages/sdk`)                                                                   | Active            |
+| D-004 | 22/10/2026 | A tool is built in the CI of its repository                                                                                          | Active            |
+| D-005 | 22/10/2026 | Build, version and release are three distinct notions                                                                                | Active            |
+| D-006 | 22/10/2026 | One `forgeron.config.ts` = one tool                                                                                                  | Active            |
+| D-007 | 22/10/2026 | Catalog templates use `forgeron release`                                                                                             | Active            |
+| D-008 | 22/10/2026 | Run tools with Dynamic Workers                                                                                                       | Replaced by D-009 |
+| D-009 | 22/10/2026 | Two hosting modes behind a single interface: Workers for Platforms (cloud), classic Workers (self-host)                              | Active            |
+| D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                                                    | Active            |
+| D-011 | 02/11/2026 | All repository files are written in English                                                                                          | Active            |
+| D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                                                  | Active            |
+| D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                                                   | Active            |
+| D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract                                           | Active            |
+| D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime                                   | Active            |
+| D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                                       | Active            |
+| D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host                        | Active            |
+| D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                                                 | Active            |
+| D-019 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                                              | Active            |
+| D-020 | 03/11/2026 | Views are a statically served React app that calls actions, not server-rendered pages                                                | Active            |
+| D-021 | 03/11/2026 | Pilot and production share one database, with a strict compatibility check at deployment                                             | Active            |
+| D-022 | 03/11/2026 | D1 only for now; a Postgres option through Hyperdrive is not offered                                                                 | Active            |
+| D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                                             | Active            |
+| D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                                           | Active            |
+| D-025 | 03/11/2026 | `forgeron login` signs in through the browser on a loopback address with PKCE and stores the token in the keychain or a 600 file     | Active            |
+| D-027 | 03/11/2026 | Members live in the registry; sign-in admits the configured administrator and allowed email domains, nobody else                     | Active            |
+| D-029 | 03/11/2026 | In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding                     | Active            |
+| D-031 | 03/11/2026 | `forgeron login` gets a CLI token scoped `cli` for the platform, one-time PKCE code, 30 days                                         | Active            |
+| D-032 | 03/11/2026 | The gateway keeps its own code in the platform D1, and `platform install` carries the tool bindings over                             | Active            |
+| D-033 | 03/11/2026 | `promote` and `rollback` are `POST /promote` and `POST /rollback` on the gateway, for a workspace admin or a deployment token        | Active            |
+| D-034 | 03/11/2026 | The pilot group is a named set of members in the registry, edited through the console API; the pilot version is served to it         | Active            |
+| D-035 | 03/11/2026 | Tokens carry an id, are revoked from a list checked at each call, and the signing key rotates with an overlap                        | Active            |
+| D-036 | 03/11/2026 | Per-person secrets are sealed in the platform D1, typed at the gateway, and handed to a call as the caller's own only                | Active            |
+| D-039 | 03/11/2026 | The roles × actions matrix is a set of overrides in the platform D1, forwarded to the tool at each call in `x-forgeron-user`         | Active            |
+| D-040 | 03/11/2026 | The matrix is edited by admins only, cell by cell, and every edit is audited                                                         | Active            |
+| D-043 | 03/11/2026 | Views and the playground honour the matrix: a view is a column `view:<name>`, one shared rule `mayAccess`, `useCanCall` for controls | Active            |
+| D-044 | 03/11/2026 | The console saves the matrix in one request, applied with its audit lines in a single D1 batch                                       | Active            |
 
 ---
 
@@ -435,7 +437,7 @@ Rules of the log:
 - **Decision**: the roles × actions matrix of a tool is the manifest's access levels (default) plus one `role_access` row per cell an admin set (`0006_role_access`); no version is involved. At each call the gateway (`forwardIdentity`, through the dispatcher's `forward` hook) resolves the caller, reads `registry.accessFor(tool, roles)` (the overrides of the caller's own roles) and sends `{ id, email, name, roles, access }` in `x-forgeron-user`; the runtime's one check (`mayCall`) gives an override priority over the levels, on MCP, API, CLI and Web alike. Nothing is cached, so an edit applies to the next call. The dispatcher always deletes `x-forgeron-user` from what the client sent (D-035's `INTERNAL_HEADERS`). The roles and actions of the matrix are those of the version production serves (else the latest): the console cannot add a role or an action, only move who may call.
 - **Why**: the check stays in the runtime where FOR-90 put it, so no interface can skip it, and the override is read where the roles already are. A header the client could set would have let anyone choose their identity.
 - **Rejected**: copying the matrix into each tool's environment (needs a deployment per edit); a per-interface check in the gateway (four copies to keep equal); caching the overrides in the gateway (a stale grant after a revoke).
-- **Not done**: views still check the access levels only (the gateway's view access is not built); an override of a role or action that a later version removes stays in the table and is ignored.
+- **Not done**: views were left to a later change (done in D-043); an override of a role or action that a later version removes stays in the table and is ignored.
 - **Applied in**: FOR-43; `apps/gateway/src/dispatch/user-secrets.ts` (`forwardIdentity`); `packages/runtime` (`mayCall`).
 
 ## D-040 — The matrix is edited by admins only, cell by cell, and every edit is audited
@@ -444,5 +446,22 @@ Rules of the log:
 - **Decision**: `GET` and `PUT /console-api/api/tools/<tool>/access-matrix` are for the workspace's `admin` role (D-023). `PUT` takes `{ role, action, allowed }`, `allowed` being `true`, `false`, or `null` to give the cell back to the manifest's levels; it answers with the matrix. The registry writes the edit and an audit line (`kind: "access"`, subject `role:action`, detail `{ role, action, from, to }`, the admin as actor) in one batch (migration `0014_audit_access`, which rebuilds `audit_log` because SQLite cannot change a CHECK). The console drafts flips on the screen, marks each cell whose applied value differs from the manifest's default, and sends the drafted cells on Save, a cell back at its default as `null`.
 - **Why**: a refused-by-default governance surface must not be writable by developers (D-023); the audit line and the write cannot disagree when they share a batch.
 - **Rejected**: a whole-matrix replace (two admins editing different cells would overwrite each other); keeping an override equal to the default (it would hide a later change of the manifest's level).
-- **Not done**: Save sends the cells one by one, so a failure part-way leaves the earlier ones applied (the screen reloads and shows what applies); the admin MCP has no matrix tool.
+- **Not done**: the admin MCP has no matrix tool. (Cell-by-cell Save and the single-cell body are replaced by D-044; views are in the matrix by D-043.)
 - **Applied in**: FOR-43; `apps/gateway/src/console-api/access-matrix.ts`, `apps/console/src/access-matrix.tsx`, `packages/registry` (`0014_audit_access`).
+
+## D-043 — Views and the playground honour the matrix: a view is a column `view:<name>`, one shared rule, `useCanCall` for controls
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: the one access rule is `mayAccess` in `@forgeron/manifest` (a role may use a subject if the matrix says so, else if one of its levels is the subject's; the person may if one of their roles may); the runtime's `mayCall`, `serveView` and the playground's action list all call it. A view is a column of the matrix keyed `view:<name>` (an action name has no colon, so the keys cannot collide), checked against the view's `access` level; `accessMatrix` returns `views` and `subjects` (the columns, actions first) and `setRoleAccess` accepts a `view:<name>` the manifest declares. `serveView` and `servePlayground` take the overrides (`access`, from `registry.accessFor`). The bootstrap of a view page carries `callable`, the actions the person may call with the matrix applied; `useCanCall(action)` reads it, because `useCan(level)` cannot say what an override of one action does. `useCan(level)` stays what it was: levels only.
+- **Why**: FOR-43 asks for the same check on every interface; a view was the one place that read levels alone. An action-level override cannot be expressed through a level, so the page needs the answer per action, computed where the overrides are.
+- **Rejected**: one `can()` that takes a level or an action name (ambiguous); client-side evaluation of overrides (the page would need the manifest and the matrix); a separate table for views (a second place to edit and audit).
+- **Not done**: `serveView` is not yet called by the gateway (views are served by the tool's Worker, FOR-56): when it is, it must pass `registry.accessFor(tool, person.roles)`; an override left behind by a view a later version removes is ignored, as for actions.
+- **Applied in**: FOR-43; `packages/manifest/src/access.ts`, `apps/gateway/src/views/serve.ts`, `playground/serve.ts`, `packages/registry`, `packages/sdk/src/react`.
+
+## D-044 — The console saves the matrix in one request, applied with its audit lines in a single D1 batch
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `PUT /console-api/api/tools/<tool>/access-matrix` takes `{ changes: [{ role, action, allowed: true | false | null }] }` (1 to 500 cells; the single-cell body of D-040 is replaced) and answers with the matrix. `registry.setRoleAccessMany` checks every cell against the manifest first, then writes the cells and one audit line per cell in one `d1.batch`: a bad cell changes nothing. A cell named twice counts once, the last. The console sends the whole draft in one request.
+- **Why**: a request that fails part-way left some cells applied (D-040's "not done"); D1 batches are transactions, so the audit lines and the writes cannot disagree.
+- **Rejected**: keeping the single-cell body next to the batch one (two shapes to keep right, and nothing else calls it).
+- **Applied in**: FOR-43; `apps/gateway/src/console-api/access-matrix.ts`, `packages/registry` (`setRoleAccessMany`), `apps/console/src/access-matrix.tsx`.

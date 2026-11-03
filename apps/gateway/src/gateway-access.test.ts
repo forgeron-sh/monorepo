@@ -16,6 +16,7 @@ const manifest = {
   name: "crm",
   roles: { viewer: { grants: ["read"] }, sales: { grants: ["read", "write"] } },
   actions: { "deals.list": { access: "read" }, "deals.move": { access: "write" } },
+  views: { board: { title: "Board", path: "/board", access: "write" } },
   resources: {},
 };
 
@@ -83,7 +84,7 @@ const put = (cookie: string, body: unknown) =>
   at("/console-api/api/tools/crm/access-matrix", {
     method: "PUT",
     headers: { cookie, "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ changes: Array.isArray(body) ? body : [body] }),
   });
 
 describe("the access matrix through the gateway", () => {
@@ -121,6 +122,47 @@ describe("the access matrix through the gateway", () => {
     expect(
       (await gateway(put(admin, { role: "ghost", action: "deals.move", allowed: true }))).status,
     ).toBe(404);
+  });
+
+  it("applies several cells together, and none when one is wrong", async () => {
+    const gateway = gatewayFor();
+    const admin = await signInAs("ely@acme.fr");
+    const bad = await gateway(
+      put(admin, [
+        { role: "sales", action: "deals.list", allowed: false },
+        { role: "sales", action: "ghost", allowed: true },
+      ]),
+    );
+    expect(bad.status).toBe(404);
+    expect(await registry.roleAccess(toolId)).toEqual({});
+
+    const both = await gateway(
+      put(admin, [
+        { role: "sales", action: "deals.list", allowed: false },
+        { role: "viewer", action: "view:board", allowed: true },
+      ]),
+    );
+    expect(both.status).toBe(200);
+    const matrix = (await both.json()) as { views: string[]; cells: Record<string, any> };
+    expect(matrix.views).toEqual(["board"]);
+    expect(matrix.cells.viewer["view:board"]).toEqual({
+      default: false,
+      override: true,
+      allowed: true,
+    });
+    expect(await registry.roleAccess(toolId)).toEqual({
+      sales: { "deals.list": false },
+      viewer: { "view:board": true },
+    });
+    expect((await gateway(put(admin, []))).status).toBe(400);
+    // Give both back, so the next tests start from the manifest's levels.
+    await gateway(
+      put(admin, [
+        { role: "sales", action: "deals.list", allowed: null },
+        { role: "viewer", action: "view:board", allowed: null },
+      ]),
+    );
+    expect(await registry.roleAccess(toolId)).toEqual({});
   });
 
   it("applies a change to the next call of a person with the role, and nobody else", async () => {
@@ -168,10 +210,16 @@ describe("the access matrix through the gateway", () => {
 
   it("writes each edit in the audit log", async () => {
     const log = await registry.listAudit(toolId, { kind: "access" });
-    expect(log.map((e) => e.detail)).toEqual([
+    expect(log.filter((e) => e.subject === "viewer:deals.move").map((e) => e.detail)).toEqual([
       { role: "viewer", action: "deals.move", from: true, to: false },
       { role: "viewer", action: "deals.move", from: false, to: true },
     ]);
+    // The batch of two cells left two lines, and the one that failed left none.
+    expect(log.filter((e) => e.subject === "viewer:view:board").map((e) => e.detail)).toEqual([
+      { role: "viewer", action: "view:board", from: true, to: false },
+      { role: "viewer", action: "view:board", from: false, to: true },
+    ]);
+    expect(log.some((e) => e.subject.includes("ghost"))).toBe(false);
     expect(log[0]!.actor).not.toBe("");
   });
 });

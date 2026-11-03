@@ -35,6 +35,25 @@ describe("loadAccessMatrix", () => {
     expect(JSON.stringify(matrix)).not.toContain("must-not-survive");
   });
 
+  it("shows the views as columns after the actions", async () => {
+    const matrix = await loadAccessMatrix(
+      async () => ({
+        roles: ["a"],
+        actions: ["x"],
+        views: ["board"],
+        subjects: ["x", "view:board"],
+        cells: {
+          a: {
+            x: { allowed: true, default: true },
+            "view:board": { allowed: false, default: false },
+          },
+        },
+      }),
+      "t",
+    );
+    expect(matrix.actions).toEqual(["x", "view:board"]);
+  });
+
   it("treats a missing cell as refused", async () => {
     const matrix = await loadAccessMatrix(async () => ({ roles: ["a"], actions: ["x"] }), "t");
     expect(matrix.cells.a!.x).toEqual({ allowed: false, default: false, changed: false });
@@ -97,15 +116,22 @@ describe("editing", () => {
     expect(back.cells.viewer!.b!.changed).toBe(false);
   });
 
-  it("sends a cell back at its default as null, any other as its value", async () => {
+  it("sends the drafted cells in one request, a cell back at its default as null", async () => {
     const sent: unknown[] = [];
     await saveAccessMatrix(async (path, body) => void sent.push([path, body]), "crm", matrix, [
       { role: "viewer", action: "a", allowed: true },
       { role: "viewer", action: "b", allowed: false },
     ]);
     expect(sent).toEqual([
-      ["/api/tools/crm/access-matrix", { role: "viewer", action: "a", allowed: true }],
-      ["/api/tools/crm/access-matrix", { role: "viewer", action: "b", allowed: null }],
+      [
+        "/api/tools/crm/access-matrix",
+        {
+          changes: [
+            { role: "viewer", action: "a", allowed: true },
+            { role: "viewer", action: "b", allowed: null },
+          ],
+        },
+      ],
     ]);
   });
 });

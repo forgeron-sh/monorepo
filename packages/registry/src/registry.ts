@@ -2,7 +2,7 @@
 // already defines, so the gateway, a script and a test all use it. Every write is one statement or
 // one batch (D-012).
 import type { D1Database, EnvironmentName } from "@forgeron/hosting";
-import type { Manifest } from "@forgeron/manifest";
+import { viewSubject, type Manifest } from "@forgeron/manifest";
 import type { SecretBox } from "./secret-box";
 
 export type RegisteredEnvironment = Exclude<EnvironmentName, "local">;
@@ -75,6 +75,10 @@ export interface AccessCell {
 export interface AccessMatrix {
   roles: string[];
   actions: string[];
+  /** The views of the tool; their cells are keyed `view:<name>` (D-043). */
+  views: string[];
+  /** The key of each column in `cells`: the actions, then `view:<name>` for each view. */
+  subjects: string[];
   cells: Record<string, Record<string, AccessCell>>;
 }
 
@@ -285,6 +289,14 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     ).results ?? []) as Row[];
   const first = async (sql: string, ...values: unknown[]) => (await all(sql, ...values))[0];
   const write = (sql: string, ...values: unknown[]) => d1.batch([d1.prepare(sql).bind(...values)]);
+
+  /** The columns of the matrix and the level each one is checked against: actions, then views. */
+  const matrixSubjects = (manifest: Manifest): Record<string, string> => ({
+    ...Object.fromEntries(Object.entries(manifest.actions).map(([name, a]) => [name, a.access])),
+    ...Object.fromEntries(
+      Object.entries(manifest.views ?? {}).map(([name, v]) => [viewSubject(name), v.access]),
+    ),
+  });
 
   const auditStatement = (entry: AuditEntry, at: string) =>
     d1
@@ -1247,26 +1259,32 @@ ORDER BY "user_id", "connector"`,
     async accessMatrix(toolId: string): Promise<AccessMatrix> {
       const manifest = await this.currentManifest(toolId);
       const overrides = await this.roleAccess(toolId);
+      const levels = matrixSubjects(manifest);
       const roles = Object.keys(manifest.roles);
-      const actions = Object.keys(manifest.actions);
       const cells: AccessMatrix["cells"] = {};
       for (const role of roles) {
         cells[role] = {};
-        for (const action of actions) {
-          const fallback = manifest.roles[role]!.grants.includes(manifest.actions[action]!.access);
-          const override = overrides[role]?.[action];
-          cells[role]![action] = {
+        for (const [subject, level] of Object.entries(levels)) {
+          const fallback = manifest.roles[role]!.grants.includes(level);
+          const override = overrides[role]?.[subject];
+          cells[role]![subject] = {
             default: fallback,
             ...(override === undefined ? {} : { override }),
             allowed: override ?? fallback,
           };
         }
       }
-      return { roles, actions, cells };
+      return {
+        roles,
+        actions: Object.keys(manifest.actions),
+        views: Object.keys(manifest.views ?? {}),
+        subjects: Object.keys(levels),
+        cells,
+      };
     },
     /**
      * Sets a cell, effective at once for every interface; `undefined` gives it back to the levels.
-     * The role and the action must exist in the tool.
+     * The role and the action (or `view:<name>`) must exist in the tool.
      */
     async setRoleAccess(
       toolId: string,
@@ -1275,43 +1293,59 @@ ORDER BY "user_id", "connector"`,
       allowed: boolean | undefined,
       actor: string,
     ): Promise<void> {
+      await this.setRoleAccessMany(toolId, [{ role, action, allowed }], actor);
+    },
+    /**
+     * Sets several cells in one D1 batch with their audit lines: all or none. Every cell is
+     * checked first, so a bad one changes nothing. Cells named twice: the last one wins.
+     */
+    async setRoleAccessMany(
+      toolId: string,
+      changes: ReadonlyArray<{ role: string; action: string; allowed: boolean | undefined }>,
+      actor: string,
+    ): Promise<void> {
       const manifest = await this.currentManifest(toolId);
-      if (!manifest.roles[role])
-        throw new RegistryError("NOT_FOUND", `The tool has no role ${role}.`);
-      if (!manifest.actions[action]) {
-        throw new RegistryError("NOT_FOUND", `The tool has no action ${action}.`);
+      const before = (await this.accessMatrix(toolId)).cells;
+      const last = new Map<string, (typeof changes)[number]>();
+      for (const change of changes) {
+        if (!manifest.roles[change.role]) {
+          throw new RegistryError("NOT_FOUND", `The tool has no role ${change.role}.`);
+        }
+        if (!(change.action in matrixSubjects(manifest))) {
+          throw new RegistryError("NOT_FOUND", `The tool has no action ${change.action}.`);
+        }
+        last.set(`${change.role}\u0000${change.action}`, change);
       }
-      const before = (await this.accessMatrix(toolId)).cells[role]![action]!;
-      const audit = auditStatement(
-        {
-          toolId,
-          actor,
-          kind: "access",
-          subject: `${role}:${action}`,
-          detail: { role, action, from: before.allowed, to: allowed ?? before.default },
-        },
-        now(),
-      );
-      if (allowed === undefined) {
-        await d1.batch([
-          d1
-            .prepare(
-              `DELETE FROM "role_access" WHERE "tool_id" = ? AND "role" = ? AND "action" = ?`,
-            )
-            .bind(toolId, role, action),
-          audit,
-        ]);
-        return;
-      }
-      await d1.batch([
-        d1
-          .prepare(
-            `INSERT INTO "role_access" ("tool_id", "role", "action", "allowed", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
+      const at = now();
+      const statements = [];
+      for (const { role, action, allowed } of last.values()) {
+        const cell = before[role]![action]!;
+        statements.push(
+          allowed === undefined
+            ? d1
+                .prepare(
+                  `DELETE FROM "role_access" WHERE "tool_id" = ? AND "role" = ? AND "action" = ?`,
+                )
+                .bind(toolId, role, action)
+            : d1
+                .prepare(
+                  `INSERT INTO "role_access" ("tool_id", "role", "action", "allowed", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
          ON CONFLICT ("tool_id", "role", "action") DO UPDATE SET "allowed" = excluded."allowed", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
-          )
-          .bind(toolId, role, action, allowed ? 1 : 0, actor, now()),
-        audit,
-      ]);
+                )
+                .bind(toolId, role, action, allowed ? 1 : 0, actor, at),
+          auditStatement(
+            {
+              toolId,
+              actor,
+              kind: "access",
+              subject: `${role}:${action}`,
+              detail: { role, action, from: cell.allowed, to: allowed ?? cell.default },
+            },
+            at,
+          ),
+        );
+      }
+      if (statements.length > 0) await d1.batch(statements);
     },
     /**
      * What the gateway forwards with a person (`access` of the runtime's `User`): the overrides of

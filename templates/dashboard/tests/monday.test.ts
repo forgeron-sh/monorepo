@@ -8,6 +8,7 @@ function runtime(search: Record<string, string>, levels: string[]): ViewRuntime 
   return {
     user: { id: "u", email: "mia@acme.fr", name: "Mia", roles: ["management"] },
     can: (level) => levels.includes(level),
+    canCall: () => true,
     call: async () => null,
     params: { get: () => search, set: () => {}, subscribe: () => () => {} },
   };

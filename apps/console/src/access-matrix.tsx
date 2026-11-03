@@ -27,10 +27,12 @@ export async function loadAccessMatrix(
   const body = (await fetchJson(`/api/tools/${tool}/access-matrix`)) as {
     roles?: unknown[];
     actions?: unknown[];
+    /** The columns: the actions, then `view:<name>` for each view. */
+    subjects?: unknown[];
     cells?: Record<string, Record<string, { allowed?: unknown; default?: unknown }>>;
   };
   const roles = (body.roles ?? []).map(String);
-  const actions = (body.actions ?? []).map(String);
+  const actions = (body.subjects ?? body.actions ?? []).map(String);
   const cells: AccessMatrixData["cells"] = {};
   for (const role of roles) {
     cells[role] = Object.fromEntries(
@@ -104,8 +106,8 @@ export interface CellChange {
 }
 
 /**
- * Sends the drafted cells one by one. A cell back at its default is sent as `null` so that the
- * platform drops the override instead of storing one equal to the default.
+ * Sends the drafted cells in one request: the platform applies them all or none. A cell back at
+ * its default is sent as `null` so that the override is dropped instead of stored equal to it.
  */
 export async function saveAccessMatrix(
   sendJson: (path: string, body: unknown) => Promise<unknown>,
@@ -113,14 +115,13 @@ export async function saveAccessMatrix(
   matrix: AccessMatrixData,
   changes: CellChange[],
 ): Promise<void> {
-  for (const { role, action, allowed } of changes) {
-    const fallback = matrix.cells[role]?.[action]?.default;
-    await sendJson(`/api/tools/${tool}/access-matrix`, {
+  await sendJson(`/api/tools/${tool}/access-matrix`, {
+    changes: changes.map(({ role, action, allowed }) => ({
       role,
       action,
-      allowed: allowed === fallback ? null : allowed,
-    });
-  }
+      allowed: allowed === matrix.cells[role]?.[action]?.default ? null : allowed,
+    })),
+  });
 }
 
 /** Applies the drafted flips on top of a loaded matrix. */
