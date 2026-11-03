@@ -7,6 +7,14 @@ import {
   type OidcFetch,
   type OidcProvider,
 } from "./oidc";
+import {
+  completeSamlLogin,
+  samlMetadata,
+  startSamlLogin,
+  type SamlLogin,
+  type SamlProvider,
+  type SamlRequests,
+} from "./saml";
 import { seal, unseal } from "./sealed";
 import { closeSession, cookieOf, openSession } from "./session";
 
@@ -15,6 +23,10 @@ import { closeSession, cookieOf, openSession } from "./session";
 
 const STATE_COOKIE = "__Host-fg_login";
 const STATE_PREFIX = "fgl";
+// SAML answers with a cross-site POST, which a `SameSite=Lax` cookie does not travel with: the
+// short-lived state cookie of a SAML sign-in is `SameSite=None` (the session cookie stays Lax).
+const SAML_COOKIE = "__Host-fg_saml";
+const SAML_PREFIX = "fgm";
 // The time the person has to sign in at the provider.
 const STATE_SECONDS = 600;
 
@@ -31,6 +43,9 @@ export interface AuthOptions {
     workspace: string,
     identity: Identity,
   ): { id: string } | undefined | Promise<{ id: string } | undefined>;
+  /** The workspace's SAML provider (D-049), if it has one: it wins over `providerFor`. */
+  samlFor?(workspace: string): SamlProvider | undefined | Promise<SamlProvider | undefined>;
+  samlRequests?: SamlRequests;
   fetch: OidcFetch;
   now(): Date;
   /** How long a session lives. No default: the platform decides. */
@@ -47,7 +62,33 @@ const safeNext = (next: unknown): string | undefined =>
 const stateCookie = (value: string, maxAge: number) =>
   `${STATE_COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 
+const samlCookie = (value: string, maxAge: number) =>
+  `${SAML_COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}`;
+
 export function createAuth(options: AuthOptions) {
+  // A person of the workspace gets a session, or is refused.
+  async function openFor(
+    workspace: string,
+    identity: Identity,
+    next: unknown,
+    clear: string,
+    // 303 after a POST (the browser then follows with a GET), 302 after the OIDC redirect.
+    status: 302 | 303,
+  ): Promise<Response> {
+    const person = await options.resolvePerson(workspace, identity);
+    if (!person) return json(403, "FORBIDDEN", "You are not a member of this workspace.");
+    const headers = new Headers({ location: safeNext(next) ?? "/" });
+    headers.append(
+      "set-cookie",
+      await openSession(
+        { person: person.id, workspace },
+        { secret: options.secret, ttlSeconds: options.sessionTtlSeconds, now: options.now() },
+      ),
+    );
+    headers.append("set-cookie", clear);
+    return new Response(null, { status, headers });
+  }
+
   return async function auth(request: Request): Promise<Response | undefined> {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/auth/")) return undefined;
@@ -59,6 +100,70 @@ export function createAuth(options: AuthOptions) {
         status: 302,
         headers: { location: "/", "set-cookie": closeSession() },
       });
+    }
+    const saml = options.samlFor ? await options.samlFor(workspace) : undefined;
+    if (saml && options.samlRequests) {
+      const requests = options.samlRequests;
+      if (url.pathname === "/auth/saml/metadata" && request.method === "GET") {
+        return new Response(samlMetadata(saml), {
+          headers: { "content-type": "application/samlmetadata+xml" },
+        });
+      }
+      if (url.pathname === "/auth/login") {
+        const now = options.now();
+        const { url: target, login } = await startSamlLogin({
+          provider: saml,
+          workspace,
+          requests,
+          now,
+          seconds: STATE_SECONDS,
+        });
+        const next = safeNext(url.searchParams.get("next"));
+        const sealed = await seal(
+          SAML_PREFIX,
+          {
+            ...login,
+            ws: workspace,
+            exp: Math.floor(now.getTime() / 1000) + STATE_SECONDS,
+            ...(next ? { next } : {}),
+          },
+          options.secret,
+        );
+        return new Response(null, {
+          status: 302,
+          headers: { location: target, "set-cookie": samlCookie(sealed, STATE_SECONDS) },
+        });
+      }
+      if (url.pathname === "/auth/saml/acs" && request.method === "POST") {
+        const kept = cookieOf(request, SAML_COOKIE);
+        const claims = kept ? await unseal(SAML_PREFIX, kept, options.secret) : undefined;
+        const expired =
+          typeof claims?.exp !== "number" || options.now().getTime() / 1000 >= claims.exp;
+        if (!claims || expired || claims.ws !== workspace) {
+          return json(400, "INVALID", "The sign-in did not start here, or took too long.");
+        }
+        let identity: Identity;
+        try {
+          const body = await request.text();
+          if (body.length > 800_000) throw new Error("The response is too large.");
+          identity = await completeSamlLogin({
+            provider: saml,
+            workspace,
+            requests,
+            now: options.now(),
+            form: new URLSearchParams(body),
+            login: claims as unknown as SamlLogin,
+          });
+        } catch (error) {
+          return json(
+            401,
+            "UNAUTHENTICATED",
+            error instanceof Error ? error.message : "Sign-in failed.",
+          );
+        }
+        return openFor(workspace, identity, claims.next, samlCookie("", 0), 303);
+      }
+      if (url.pathname.startsWith("/auth/saml/")) return json(404, "NOT_FOUND", "Not found.");
     }
     const provider = await options.providerFor(workspace);
     if (!provider) return json(404, "NOT_FOUND", "This workspace has no sign-in configured.");
@@ -102,18 +207,7 @@ export function createAuth(options: AuthOptions) {
           error instanceof Error ? error.message : "Sign-in failed.",
         );
       }
-      const person = await options.resolvePerson(workspace, identity);
-      if (!person) return json(403, "FORBIDDEN", "You are not a member of this workspace.");
-      const headers = new Headers({ location: safeNext(claims.next) ?? "/" });
-      headers.append(
-        "set-cookie",
-        await openSession(
-          { person: person.id, workspace },
-          { secret: options.secret, ttlSeconds: options.sessionTtlSeconds, now: options.now() },
-        ),
-      );
-      headers.append("set-cookie", stateCookie("", 0));
-      return new Response(null, { status: 302, headers });
+      return openFor(workspace, identity, claims.next, stateCookie("", 0), 302);
     }
     return json(404, "NOT_FOUND", "Not found.");
   };

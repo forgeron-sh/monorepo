@@ -3,6 +3,7 @@ import {
   loadGatewayCode,
   createConsent,
   createIdentityConfig,
+  createSamlRequests,
   createRegistry,
   createSecretBox,
   type IdentityConfig,
@@ -38,6 +39,7 @@ import { handleGroups } from "./console-api/groups";
 import { createAuth } from "./identity/auth";
 import { createCaller, membership } from "./identity/caller";
 import { providerFromConfig } from "./identity/presets";
+import type { SamlProvider } from "./identity/saml";
 import { handleCliAuthorize, handleCliToken } from "./identity/cli";
 import { handleIssueToken, handleRevokeToken } from "./identity/issue";
 import { handleRevocations } from "./console-api/revocations";
@@ -266,6 +268,26 @@ export function createGateway(
     return createSelfHostHosting({ ...common, ...(gateway ? { gateway } : {}) });
   };
 
+  // The SAML provider an admin saved (D-049); it wins over any OIDC provider, saved or from bindings.
+  const samlOf = async (
+    workspace: string,
+    config: IdentityConfig,
+  ): Promise<SamlProvider | undefined> => {
+    const saved = await config.getSamlProvider(workspace);
+    if (!saved) return undefined;
+    const origin = `https://${workspace}.${env.BASE_DOMAIN}`;
+    return {
+      idpEntityId: saved.idpEntityId,
+      ssoUrl: saved.ssoUrl,
+      certificates: saved.certificates,
+      spEntityId: `${origin}/auth/saml/metadata`,
+      acsUrl: `${origin}/auth/saml/acs`,
+      ...(saved.emailAttribute ? { emailAttribute: saved.emailAttribute } : {}),
+      ...(saved.groupsAttribute ? { groupsAttribute: saved.groupsAttribute } : {}),
+      ...(saved.nameAttribute ? { nameAttribute: saved.nameAttribute } : {}),
+    };
+  };
+
   const providerOf = async (workspace: string, config: IdentityConfig) => {
     const redirectUri = `https://${workspace}.${env.BASE_DOMAIN}/auth/callback`;
     const saved = await config.getIdentityProvider(workspace, env.SECRETS_KEY !== undefined);
@@ -305,6 +327,8 @@ export function createGateway(
           baseDomain: env.BASE_DOMAIN,
           secret,
           providerFor: (ws) => providerOf(ws, config),
+          samlFor: (ws) => samlOf(ws, config),
+          samlRequests: createSamlRequests(env.DB),
           resolvePerson: async (ws, identity) =>
             membership(registry, {
               ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
@@ -312,7 +336,10 @@ export function createGateway(
                 .split(",")
                 .map((d) => d.trim().toLowerCase())
                 .filter(Boolean),
-              groupRoles: (await config.getIdentityProvider(ws))?.groupRoles ?? {},
+              groupRoles:
+                (await config.getIdentityProvider(ws))?.groupRoles ??
+                (await config.getSamlProvider(ws))?.groupRoles ??
+                {},
             })(ws, identity),
           fetch: options.fetch ?? fetch,
           now,

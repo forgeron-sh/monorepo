@@ -1,4 +1,9 @@
-import type { IdentityProviderConfig, IdentityProviderInput } from "@forgeron/registry";
+import type {
+  IdentityProviderConfig,
+  IdentityProviderInput,
+  SamlProviderInput,
+} from "@forgeron/registry";
+import { importCertificate } from "./saml-cert";
 import type { OidcProvider } from "./oidc";
 
 // Microsoft Entra ID and Google Workspace are OIDC providers (D-019): a preset only fixes the
@@ -94,6 +99,66 @@ export function parseIdentityProviderInput(
     const claim = str(b[key], 64);
     if (!claim) return { message: `\`${key}\` must be a claim name.` };
     input[key] = claim;
+  }
+  if (b.groupRoles !== undefined) {
+    const entries =
+      typeof b.groupRoles === "object" && b.groupRoles !== null
+        ? Object.entries(b.groupRoles)
+        : undefined;
+    if (!entries || entries.length > 100)
+      return { message: "`groupRoles` must map groups to roles." };
+    const roles: Record<string, string> = {};
+    for (const [group, role] of entries) {
+      if (!group || group.length > 256 || typeof role !== "string" || !ROLE.test(role)) {
+        return { message: "`groupRoles` must map a group to a role name." };
+      }
+      roles[group] = role;
+    }
+    input.groupRoles = roles;
+  }
+  return { input };
+}
+
+const https = (value: unknown, max = 1024): string | undefined =>
+  typeof value === "string" && value.length <= max && /^https:\/\/[^\s/]+(\/[^\s]*)?$/.test(value)
+    ? value
+    : undefined;
+
+/**
+ * Checks the body of `PUT /api/identity-provider` with `kind: "saml"` (D-049). Every certificate is
+ * parsed now, so a bad one is refused when saved, not at the first sign-in.
+ */
+export async function parseSamlProviderInput(
+  body: unknown,
+): Promise<{ input: SamlProviderInput } | { message: string }> {
+  const b = (typeof body === "object" && body !== null ? body : {}) as Record<string, unknown>;
+  const idpEntityId = str(b.idpEntityId, 512);
+  if (!idpEntityId) return { message: "`idpEntityId` is the identity provider's entity id." };
+  const ssoUrl = https(b.ssoUrl, 2048);
+  if (!ssoUrl) return { message: "`ssoUrl` must be an https URL." };
+  const list = b.certificates;
+  if (!Array.isArray(list) || list.length < 1 || list.length > 5) {
+    return { message: "`certificates` must hold one to five PEM certificates." };
+  }
+  const certificates: string[] = [];
+  for (const entry of list) {
+    const pem = str(entry, 16_384);
+    if (!pem) return { message: "`certificates` must hold PEM certificates." };
+    try {
+      await importCertificate(pem);
+    } catch (error) {
+      return {
+        message: `A certificate is not usable: ${error instanceof Error ? error.message : "invalid"}`,
+      };
+    }
+    certificates.push(pem);
+  }
+  const input: SamlProviderInput = { idpEntityId, ssoUrl, certificates };
+  for (const key of ["emailAttribute", "groupsAttribute", "nameAttribute"] as const) {
+    if (b[key] === undefined) continue;
+    const attribute = str(b[key], 256);
+    if (!attribute) return { message: `\`${key}\` must be an attribute name.` };
+    input[key] = attribute;
   }
   if (b.groupRoles !== undefined) {
     const entries =
