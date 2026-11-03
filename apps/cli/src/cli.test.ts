@@ -141,7 +141,31 @@ describe("forgeron init", () => {
       if (out.status !== 0) throw new Error(out.stderr.toString());
       tarball = new Uint8Array(readFileSync(join(packed, readdirSync(packed)[0] as string)));
       server = createServer((req, res) => {
-        if (req.url?.endsWith("%2Ftemplate-crm/latest")) {
+        if (req.url?.startsWith("/-/v1/search")) {
+          res.end(
+            JSON.stringify({
+              objects: [
+                {
+                  package: {
+                    name: "@forgeron/template-crm",
+                    version: "0.0.0",
+                    description: "Sales CRM",
+                  },
+                },
+                {
+                  package: {
+                    name: "@forgeron/template-stock",
+                    version: "1.2.0",
+                    description: "Inventory",
+                  },
+                },
+                {
+                  package: { name: "@forgeron/sdk", version: "0.0.0", description: "crm helpers" },
+                },
+              ],
+            }),
+          );
+        } else if (req.url?.endsWith("%2Ftemplate-crm/latest")) {
           res.end(JSON.stringify({ version: "0.0.0", dist: { tarball: `${registry}/crm.tgz` } }));
         } else if (req.url === "/crm.tgz") {
           res.end(tarball);
@@ -176,6 +200,47 @@ describe("forgeron init", () => {
         tool: "sales",
       });
       expect(c.logs.join("\n")).toContain("from template crm@0.0.0");
+    });
+
+    it("searches the catalog by name and description, templates only", async () => {
+      const c = capture(await empty());
+      expect(await run(["catalog", "search", "crm"], c.io)).toBe(0);
+      expect(c.logs).toEqual(["crm  0.0.0  Sales CRM"]);
+      const d = capture(await empty());
+      expect(await run(["catalog", "search", "inventory"], d.io)).toBe(0);
+      expect(d.logs).toEqual(["stock  1.2.0  Inventory"]);
+      const e = capture(await empty());
+      expect(await run(["catalog", "search", "zzz"], e.io)).toBe(0);
+      expect(e.logs).toEqual(['No template matches "zzz".']);
+    });
+
+    it("shows the resources and installs only once approved", async () => {
+      const root = await empty();
+      const refused = capture(root);
+      refused.io.confirm = async () => false;
+      expect(await run(["install", "crm", "--name", "sales"], refused.io)).toBe(1);
+      expect(refused.logs[0]).toContain("requests:");
+      expect(refused.logs.join("\n")).toContain("Database (D1)");
+      expect(refused.errors[0]).toContain("Not approved");
+      await expect(stat(join(root, "sales", "package.json"))).rejects.toThrow("ENOENT");
+
+      const noTerminal = capture(root);
+      expect(await run(["install", "crm", "--name", "sales"], noTerminal.io)).toBe(1);
+      expect(noTerminal.errors[0]).toContain("pass --yes");
+
+      const approved = capture(root);
+      approved.io.confirm = async () => true;
+      expect(await run(["install", "crm", "--name", "sales"], approved.io)).toBe(0);
+      const config = await readFile(join(root, "sales", "forgeron.config.ts"), "utf8");
+      expect(config).toContain('name: "sales"');
+      await expect(stat(join(root, "sales", ".forgeron/build"))).rejects.toThrow("ENOENT");
+    });
+
+    it("installs with --yes under the template's name by default", async () => {
+      const root = await empty();
+      const c = capture(root);
+      expect(await run(["install", "crm", "--yes"], c.io)).toBe(0);
+      await expect(stat(join(root, "crm", "package.json"))).resolves.toBeTruthy();
     });
 
     it("says when the template is not published", async () => {

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createInterface } from "node:readline/promises";
 
 /** What a command needs of the outside world: tests give their own. */
 export interface Io {
@@ -7,6 +8,8 @@ export interface Io {
   error(message: string): void;
   /** Runs a program with the terminal attached and resolves with its exit code. */
   exec(command: string, args: string[], cwd: string): Promise<number>;
+  /** Asks a yes/no question on the terminal; absent when nobody can answer (then `--yes` is needed). */
+  confirm?(question: string): Promise<boolean>;
   /** Resolves when the person asks a long-running command to stop (Ctrl-C). */
   stopped: Promise<void>;
 }
@@ -27,6 +30,15 @@ export function terminal(): Io {
         child.once("error", reject);
         child.once("exit", (code) => resolve(code ?? 1));
       }),
+    confirm: async (question) => {
+      if (!process.stdin.isTTY) return false;
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      try {
+        return /^y(es)?$/i.test((await rl.question(`${question} [y/N] `)).trim());
+      } finally {
+        rl.close();
+      }
+    },
     stopped: new Promise((resolve) => process.once("SIGINT", () => resolve())),
   };
 }

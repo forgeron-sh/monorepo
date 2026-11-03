@@ -12,7 +12,8 @@
     "tests",
     "changes",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    ".forgeron/build/manifest.json"
   ],
   "type": "module",
   "publishConfig": {
