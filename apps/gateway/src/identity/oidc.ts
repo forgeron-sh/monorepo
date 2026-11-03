@@ -15,7 +15,7 @@ export interface OidcProvider {
 
 export type OidcFetch = (url: string, init?: RequestInit) => Promise<Response>;
 
-export interface Discovery {
+interface Discovery {
   issuer: string;
   authorization_endpoint: string;
   token_endpoint: string;
@@ -49,7 +49,7 @@ async function getJson(fetcher: OidcFetch, url: string): Promise<unknown> {
   return response.json();
 }
 
-export async function discover(provider: OidcProvider, fetcher: OidcFetch): Promise<Discovery> {
+async function discover(provider: OidcProvider, fetcher: OidcFetch): Promise<Discovery> {
   const base = provider.issuer.replace(/\/+$/, "");
   const found = (await getJson(
     fetcher,
