@@ -8,4 +8,12 @@
   //   "dispatch_namespaces": [{ "binding": "DISPATCHER", "namespace": "<namespace>" }],
   // Self-host: one service binding per tool Worker, named TOOL_<WORKER> (acme--crm--production is
   // TOOL_ACME__CRM__PRODUCTION), added by redeploying the gateway when a tool is created or deleted.
+  // The console (apps/console, `vite build`) is served as assets at the workspace origin. The Worker
+  // runs first: `/t/<tool>`, `/console-api` and the assets are told apart in `createGateway`.
+  "assets": {
+    "directory": "../console/dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application",
+  },
 }
