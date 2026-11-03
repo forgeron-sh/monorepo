@@ -30,7 +30,7 @@ export interface Caller {
 }
 
 /** The identity a tool Worker reads from `x-forgeron-user`. */
-export interface ForwardedUser {
+interface ForwardedUser {
   id: string;
   email: string;
   name: string;
