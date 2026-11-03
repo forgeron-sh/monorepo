@@ -16,6 +16,7 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@astrojs/check": "0.9.12",
     "@forgeron/tsconfig": "workspace:*",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0"

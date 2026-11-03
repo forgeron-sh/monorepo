@@ -24,6 +24,9 @@
       "ignore": ["fixtures/**"]
     },
     "apps/*": {},
+    "apps/site": {
+      "ignoreDependencies": ["@astrojs/check"]
+    },
     "apps/cli": {
       "ignore": ["fixtures/**"]
     },
