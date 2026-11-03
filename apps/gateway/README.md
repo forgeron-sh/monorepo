@@ -10,7 +10,7 @@ The only public Worker of the platform.
 - `deploy/`: receives a build from CI (`POST /deploy`, authenticated by `FORGERON_TOKEN`), calls `@forgeron/hosting`; issues deployment tokens (`POST /deploy-tokens`, administrators)
 - `admin-mcp/`: administration MCP (`sdk.md` §17)
 - `console-api/`: console API
-- `audit/`: log (deployments are recorded in the registry's `audit_log`: who, when, which version)
+- `audit/`: log (deployments are recorded in the registry's `deployments` history: who, when, which version)
 
 ## Notes
 

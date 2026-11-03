@@ -57,6 +57,21 @@ const build = (name = "crm", fingerprint = "fp1"): Build => ({
   changelog: { entries: [{}], declared: "patch", detected: "patch" },
 });
 
+/** The audit log of a tool's environment: who put which version there, and when. */
+async function historyOf(environment: string, branch?: string) {
+  const tool = (await registry.findTool("acme", "crm"))!;
+  const target = (await registry.listEnvironments(tool.id)).find(
+    (e) => e.name === environment && e.branch === branch,
+  )!;
+  const versions = await registry.listVersions(tool.id);
+  return (await registry.history(target.id)).map((d) => ({
+    actor: d.actor,
+    kind: d.kind,
+    at: d.createdAt,
+    version: versions.find((v) => v.id === d.versionId)?.version,
+  }));
+}
+
 const deploymentToken = (tool = "crm", workspace = "acme", ttlSeconds = 600) =>
   issueToken({
     secret,
@@ -113,31 +128,21 @@ describe("POST /deploy", () => {
 
   it("records who deployed which version, and when", async () => {
     await handleDeploy(post("/deploy", upload(), await deploymentToken()), context());
-    const tool = (await registry.findTool("acme", "crm"))!;
-    expect(await registry.listAudit(tool.id)).toEqual([
-      {
-        id: expect.any(String),
-        at: now.toISOString(),
-        actor: "deploy:ci",
-        action: "deploy",
-        toolId: tool.id,
-        environment: "production",
-        version: "1.0.0",
-      },
+    expect(await historyOf("production")).toEqual([
+      { actor: "deploy:ci", kind: "deploy", at: now.toISOString(), version: "1.0.0" },
     ]);
   });
 
-  it("records a failed deployment too, and says why", async () => {
+  it("answers with the reason when the deployment fails, and records nothing", async () => {
     const response = await handleDeploy(
       post("/deploy", upload(), await deploymentToken()),
       context(fakeHosting(true).hosting),
     );
     expect(response.status).toBe(500);
-    expect(await response.json()).toMatchObject({ error: { code: "DEPLOY_FAILED" } });
-    const tool = (await registry.findTool("acme", "crm"))!;
-    expect(await registry.listAudit(tool.id)).toMatchObject([
-      { action: "deploy.failed", version: "1.0.0", detail: "migration failed" },
-    ]);
+    expect(await response.json()).toMatchObject({
+      error: { code: "DEPLOY_FAILED", message: "migration failed" },
+    });
+    expect(await historyOf("production")).toEqual([]);
   });
 
   it("refuses a missing token, a malformed one, an expired one and a forged one", async () => {
@@ -207,9 +212,8 @@ describe("POST /deploy", () => {
       context(),
     );
     expect(response.status).toBe(200);
-    const tool = (await registry.findTool("acme", "crm"))!;
-    expect(await registry.listAudit(tool.id)).toMatchObject([
-      { environment: "preview", branch: "feat/a" },
+    expect(await historyOf("preview", "feat/a")).toMatchObject([
+      { actor: "deploy:ci", version: "0.0.1-a" },
     ]);
   });
 });
@@ -245,11 +249,7 @@ describe("POST /deploy-tokens", () => {
       hosting: fakeHosting().hosting,
     });
     expect(deployed.status).toBe(200);
-    expect(
-      (await registry.listAudit((await registry.findTool("acme", "crm"))!.id))[0],
-    ).toMatchObject({
-      actor: "deploy:ci",
-    });
+    expect(await historyOf("production")).toMatchObject([{ actor: "deploy:ci" }]);
   });
 
   it("is for administrators only", async () => {

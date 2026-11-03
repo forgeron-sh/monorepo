@@ -110,10 +110,22 @@ export interface QueuedDelivery {
   user: User;
 }
 
+/**
+ * Where the platform keeps per-person secrets (`resources.userSecrets`), encrypted. The runtime
+ * reads a person's own values for `ctx.userSecrets` and writes what that person submitted; it has
+ * no way to read another person's, and nothing here lets a developer or an admin read one back.
+ */
+export interface UserSecretStore {
+  read(user: User): Promise<Readonly<Record<string, string>>>;
+  write(user: User, name: string, value: string): Promise<void>;
+}
+
 /** What the platform provides to `ctx`; each part has a safe default. */
 export interface Platform {
   secrets: ActionContext["secrets"];
   userSecrets: ActionContext["userSecrets"];
+  /** When set, `ctx.userSecrets` is the caller's own, and a missing one is collected on first use. */
+  userSecretStore?: UserSecretStore;
   connectors: ActionContext["connectors"];
   /** The unfiltered `fetch`; the runtime only lets through the hosts of `resources.network`. */
   fetch: Fetch;
@@ -182,6 +194,8 @@ export interface RuntimeOptions {
    * another tool is useless here.
    */
   audience?: string;
+  /** The public address of the tool (`https://acme.forgeron.app/t/crm`): the base of the input link. */
+  baseUrl?: string;
   env?: Environment;
   platform?: Partial<Platform>;
 }
@@ -192,6 +206,7 @@ export type ErrorCode =
   | "NOT_FOUND"
   | "CONFLICT"
   | "RATE_LIMITED"
+  | "SECRET_REQUIRED"
   | "UPSTREAM"
   | "INTERNAL";
 
@@ -210,6 +225,7 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
   NOT_FOUND: 404,
   CONFLICT: 409,
   RATE_LIMITED: 429,
+  SECRET_REQUIRED: 428,
   UPSTREAM: 502,
   INTERNAL: 500,
 };
@@ -221,6 +237,7 @@ export const EXIT_CODE: Record<ErrorCode, number> = {
   NOT_FOUND: 4,
   CONFLICT: 1,
   RATE_LIMITED: 1,
+  SECRET_REQUIRED: 1,
   UPSTREAM: 1,
   INTERNAL: 1,
 };

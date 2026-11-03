@@ -1,7 +1,7 @@
 // Receiving a build from CI (sdk.md §4 and §15): `POST /deploy`, authenticated by a deployment
 // token (`FORGERON_TOKEN`), and `POST /deploy-tokens`, where an administrator issues one. The
-// platform builds nothing: the body is the build CI already made. Every attempt is written to the
-// audit log (who, when, which version), a failed one too.
+// platform builds nothing: the body is the build CI already made. Each deployment lands in the
+// environment's history (who, when, which version) through `deployBuild`.
 import type { Build, Hosting } from "@forgeron/hosting";
 import { deployBuild, type Registry, type RegisteredEnvironment } from "@forgeron/registry";
 import { audienceOf, parseAudience } from "../identity/audience";
@@ -158,23 +158,16 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   const tool =
     (await registry.findTool(context.workspace, audience.tool)) ??
     (await registry.createTool({ workspace: context.workspace, name: audience.tool }));
-  const target = {
-    actor: check.claims.sub,
-    toolId: tool.id,
-    environment: environment as string,
-    ...(typeof branch === "string" && branch ? { branch } : {}),
-    version,
-  };
   try {
     const deployed = await deployBuild(registry, context.hosting, {
       tool,
       environment: environment as RegisteredEnvironment,
-      ...(target.branch ? { branch: target.branch } : {}),
+      ...(typeof branch === "string" && branch ? { branch } : {}),
+      actor: check.claims.sub,
       build: uploaded as Build,
       version,
       ...(allowDestructive === true ? { allowDestructive: true } : {}),
     });
-    await registry.recordAudit({ ...target, action: "deploy" });
     return json(200, {
       tool: tool.name,
       version: deployed.version.version,
@@ -184,7 +177,6 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await registry.recordAudit({ ...target, action: "deploy.failed", detail: message });
     return fail(500, "DEPLOY_FAILED", message);
   }
 }

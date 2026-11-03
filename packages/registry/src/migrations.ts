@@ -70,23 +70,31 @@ export const platformMigrations: BuildMigration[] = [
     ],
   },
   {
-    name: "0002_audit",
-    fingerprint: "audit-v1",
+    // What promotion and rollback need: the build's code (to put it on another environment without
+    // rebuilding), the pilot group, and the history of what each environment served and who put it there.
+    name: "0002_deployments",
+    fingerprint: "deployments-v1",
     destructive: false,
     up: [
-      st(`CREATE TABLE "audit_log" (
+      st(`ALTER TABLE "builds" ADD COLUMN "worker" TEXT`),
+      st(`ALTER TABLE "builds" ADD COLUMN "migrations" TEXT`),
+      st(`ALTER TABLE "environments" ADD COLUMN "pilot_group" TEXT`),
+      st(`CREATE TABLE "deployments" (
   "id" TEXT PRIMARY KEY NOT NULL,
-  "at" TEXT NOT NULL,
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "environment_id" TEXT NOT NULL REFERENCES "environments" ("id") ON DELETE CASCADE,
+  "version_id" TEXT NOT NULL REFERENCES "versions" ("id") ON DELETE CASCADE,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('deploy', 'promote', 'rollback')),
   "actor" TEXT NOT NULL,
-  "action" TEXT NOT NULL,
-  "tool_id" TEXT REFERENCES "tools" ("id") ON DELETE SET NULL,
-  "environment" TEXT,
-  "branch" TEXT,
-  "version" TEXT,
-  "detail" TEXT
+  "created_at" TEXT NOT NULL
 )`),
-      st(`CREATE INDEX "audit_by_tool" ON "audit_log" ("tool_id", "at")`),
+      st(`CREATE INDEX "deployments_by_environment" ON "deployments" ("environment_id")`),
     ],
-    down: [st(`DROP TABLE "audit_log"`)],
+    down: [
+      st(`DROP TABLE "deployments"`),
+      st(`ALTER TABLE "environments" DROP COLUMN "pilot_group"`),
+      st(`ALTER TABLE "builds" DROP COLUMN "migrations"`),
+      st(`ALTER TABLE "builds" DROP COLUMN "worker"`),
+    ],
   },
 ];
