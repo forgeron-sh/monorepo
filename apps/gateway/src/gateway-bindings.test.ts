@@ -1,5 +1,5 @@
 import type { D1Database } from "@forgeron/hosting";
-import { migratePlatform, saveGatewayCode } from "@forgeron/registry";
+import { migratePlatform, saveGatewayAssets, saveGatewayCode } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { gatewayBindingsOf, type GatewayEnv } from "./gateway";
@@ -26,6 +26,9 @@ beforeEach(async () => {
   memory = await createMemoryD1();
   await migratePlatform(memory as unknown as D1Database);
   await saveGatewayCode(memory as unknown as D1Database, code);
+  await saveGatewayAssets(memory as unknown as D1Database, [
+    { path: "/index.html", hash: "a".repeat(32), size: 2, base64: "aGk=", type: "text/html" },
+  ]);
   requests = [];
   vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
     const path = new URL(String(input)).pathname.replace(/^\/client\/v4\/accounts\/[^/]+/, "");
@@ -34,7 +37,13 @@ beforeEach(async () => {
       path,
       body: JSON.parse(String(init?.body ?? "{}")),
     });
-    return Response.json({ success: true, errors: [], result: { id: "version-9" } });
+    return Response.json({
+      success: true,
+      errors: [],
+      result: path.endsWith("/assets-upload-session")
+        ? { jwt: "session-jwt", buckets: [] }
+        : { id: "version-9" },
+    });
   });
 });
 afterEach(() => {
@@ -47,6 +56,7 @@ const versionUpload = () =>
     bindings: Array<Record<string, string>>;
     modules: Array<{ content_base64: string }>;
     keep_assets?: boolean;
+    assets?: { jwt: string; config: unknown };
   };
 
 describe("the gateway binding its tools", () => {
@@ -55,7 +65,9 @@ describe("the gateway binding its tools", () => {
       env({ ASSETS: { fetch() {} }, TOOL_ACME__HR__PRODUCTION: {} }),
     )!;
     expect(await bindings.bind("acme--crm--production")).toBe(true);
-    expect(requests[0]!.path).toBe("/workers/workers/forgeron-gateway/versions");
+    expect(requests.find((r) => r.path.endsWith("/versions"))!.path).toBe(
+      "/workers/workers/forgeron-gateway/versions",
+    );
     const sent = versionUpload();
     expect(sent.bindings).toContainEqual({ type: "inherit", name: "AUTH_SECRET" });
     expect(sent.bindings).toContainEqual({ type: "inherit", name: "DB" });
@@ -67,7 +79,15 @@ describe("the gateway binding its tools", () => {
     });
     expect(JSON.stringify(sent)).not.toContain("test-token");
     expect(atob(sent.modules[0]!.content_base64)).toBe(code);
-    expect(sent.keep_assets).toBe(true);
+    expect(sent).not.toHaveProperty("keep_assets");
+    expect(sent.assets).toEqual({
+      jwt: "session-jwt",
+      config: { not_found_handling: "single-page-application", run_worker_first: true },
+    });
+    expect(sent.bindings).toContainEqual({ type: "assets", name: "ASSETS" });
+    expect(requests.find((r) => r.path.endsWith("/assets-upload-session"))!.body).toEqual({
+      manifest: { "/index.html": { hash: "a".repeat(32), size: 2 } },
+    });
     expect(requests.at(-1)).toMatchObject({
       method: "POST",
       path: "/workers/scripts/forgeron-gateway/deployments",
@@ -88,9 +108,18 @@ describe("the gateway binding its tools", () => {
     expect(sent.bindings).toContainEqual({ type: "inherit", name: "DB" });
   });
 
-  it("does not keep assets when the gateway serves none", async () => {
+  it("sends no assets when the gateway serves none", async () => {
     await gatewayBindingsOf(env())!.bind("acme--crm--production");
-    expect(versionUpload()).not.toHaveProperty("keep_assets");
+    expect(versionUpload()).not.toHaveProperty("assets");
+    expect(requests.some((r) => r.path.includes("assets"))).toBe(false);
+  });
+
+  it("fails clearly, uploading nothing, when it serves assets but none are stored", async () => {
+    await (memory as unknown as D1Database).prepare(`DELETE FROM "gateway_assets"`).all();
+    await expect(
+      gatewayBindingsOf(env({ ASSETS: { fetch() {} } }))!.bind("acme--crm--production"),
+    ).rejects.toThrow(/platform install` again/);
+    expect(requests).toEqual([]);
   });
 
   it("is off without its own name or an account to call", () => {

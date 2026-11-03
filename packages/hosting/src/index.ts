@@ -10,12 +10,15 @@ export {
   CloudflareError,
   createCloudflareClient,
   createRestD1,
+  GATEWAY_ASSETS_CONFIG,
+  uploadAssets,
   createGatewayBindings,
   createSelfHostHosting,
   serviceBindingName,
   workerName,
 } from "./self-host";
 export type {
+  Asset,
   CloudflareClient,
   CloudflareOptions,
   GatewayBindings,

@@ -1,5 +1,6 @@
 import type { D1Database } from "@forgeron/hosting";
 import {
+  loadGatewayAssets,
   loadGatewayCode,
   createConsent,
   createEmailCodes,
@@ -669,7 +670,20 @@ export function gatewayBindingsOf(env: GatewayEnv): GatewayBindings | undefined 
       },
       compatibilityDate: GATEWAY_COMPATIBILITY_DATE,
       compatibilityFlags: GATEWAY_COMPATIBILITY_FLAGS,
-      keepAssets: env.ASSETS !== undefined,
+      // The console is served as assets (D-052): they are uploaded again with each new version.
+      ...(env.ASSETS === undefined
+        ? {}
+        : {
+            assets: async () => {
+              const assets = await loadGatewayAssets(env.DB);
+              if (assets === undefined) {
+                throw new Error(
+                  "The platform D1 holds no console assets: run `forgeron platform install` again.",
+                );
+              }
+              return assets;
+            },
+          }),
     },
   );
 }
