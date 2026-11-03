@@ -1,0 +1,16 @@
+{
+  "name": "@forgeron/connector-google-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@forgeron/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@forgeron/tsconfig": "workspace:*",
+    "@types/node": "24.19.2"
+  }
+}

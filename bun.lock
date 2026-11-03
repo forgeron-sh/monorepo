@@ -88,6 +88,17 @@
         "react": "19.3.1",
       },
     },
+    "packages/connector-google-workspace": {
+      "name": "@forgeron/connector-google-workspace",
+      "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/node": "24.19.2",
+      },
+    },
     "packages/hosting": {
       "name": "@forgeron/hosting",
       "version": "0.0.0",
@@ -343,6 +354,8 @@
     "@forgeron/cli": ["@forgeron/cli@workspace:apps/cli"],
 
     "@forgeron/compiler": ["@forgeron/compiler@workspace:packages/compiler"],
+
+    "@forgeron/connector-google-workspace": ["@forgeron/connector-google-workspace@workspace:packages/connector-google-workspace"],
 
     "@forgeron/console": ["@forgeron/console@workspace:apps/console"],
 
