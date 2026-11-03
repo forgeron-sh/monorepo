@@ -20,8 +20,22 @@ export type {
 } from "./events";
 export { bucket, connector, database, defineConfig, kv, queue } from "./config";
 export type { ToolConfig } from "./config";
+export {
+  checkConnectorDeclaration,
+  connectorHosts,
+  createConnectorClient,
+  defineConnector,
+} from "./connectors";
+export type {
+  ConnectorClient,
+  ConnectorDeclaration,
+  ConnectorDefinition,
+  ConnectorMode,
+  ConnectorSession,
+} from "./connectors";
 export type {
   Cache,
+  ContextConnectors,
   ContextDb,
   CacheOptions,
   CallSource,

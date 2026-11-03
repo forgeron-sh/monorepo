@@ -487,6 +487,13 @@ resources: { connectors: {
 - `delegated`: acts on behalf of the person, with their OAuth consent managed by the platform.
 - `application`: acts on behalf of the tool (scheduled tasks), consent given once by the admin.
 - `ctx.connectors.microsoft.graph` exposes the official client when one exists; otherwise an already authenticated `fetch`.
+- Every connector package (`@forgeron/connector-<name>`) implements one interface, `defineConnector({ type, hosts, modes, scopes, client? })` from `@forgeron/sdk`:
+  - `hosts`: the only hosts the connector reaches (exact or `*.` wildcard, or a function of the session when the host depends on the instance, as with Odoo). The connector's `fetch` raises `FORBIDDEN` for any other host, and these hosts are allowed on top of `resources.network.allow`.
+  - `modes` and `scopes`: what the upstream supports. `checkConnectorDeclaration` reports a declaration with another type, an unsupported mode or an unknown scope.
+  - `client?(fetch, session)`: the official client, built on the authenticated `fetch`.
+  - `ctx.connectors.<name>` always has `fetch` (the `authorization` header is added by the platform's token for the mode), `mode` and `scopes`, plus the official client's members when one exists.
+  - `createConnectorClient(definition, declaration, session)` builds it from a `ConnectorSession` (`token()` and the platform `fetch`); the platform supplies the session, consent storage is not part of the interface.
+  - In tests, `mockConnector(definition, { fetch: mockFetch({...}) })` from `@forgeron/sdk/testing` gives a fake, passed to `createTestTool({ connectors: { microsoft: ... } })`.
 - Proposed initial catalog: `microsoft-365`, `google-workspace`, `odoo`, `slack`, `github`.
 
 **Network**: `ctx.fetch` only reaches the hosts in `resources.network.allow` (and those of the connectors). Any other call raises `FORBIDDEN` and appears in the log.
