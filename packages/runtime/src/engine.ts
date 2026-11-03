@@ -74,8 +74,6 @@ const failure = (code: ErrorCode, message: string, details?: unknown): Outcome =
   error: details === undefined ? { code, message } : { code, message, details },
 });
 
-const isInterface = (via: CallSource): via is Interface => via !== "job" && via !== "tool";
-
 interface ListedAction {
   name: string;
   entry: Manifest["actions"][string];
@@ -252,31 +250,6 @@ export function createEngine(options: RuntimeOptions): Engine {
         return failure("INVALID", "The input is not valid.", parsed.error?.issues);
       }
 
-      // Per-person secrets, first use: the caller's own values, or the list of what is missing.
-      let userSecrets = platform.userSecrets;
-      const declared = Object.entries(manifest.resources.userSecrets ?? {});
-      if (platform.userSecretStore && declared.length > 0 && isInterface(via)) {
-        const own = await platform.userSecretStore.read(user);
-        const missingOnes = declared.filter(([secret]) => !own[secret]);
-        if (missingOnes.length > 0) {
-          const inputUrl = `${(options.baseUrl ?? "").replace(/\/+$/, "")}/secrets`;
-          return failure(
-            "SECRET_REQUIRED",
-            `Your ${missingOnes.map(([, s]) => s.label).join(", ")} is needed first: enter it at ${inputUrl}`,
-            {
-              inputUrl,
-              missing: missingOnes.map(([secret, s]) => ({
-                name: secret,
-                label: s.label,
-                ...(s.help ? { help: s.help } : {}),
-                why: s.why,
-              })),
-            },
-          );
-        }
-        userSecrets = Object.fromEntries(declared.map(([secret]) => [secret, own[secret]]));
-      }
-
       const queued: QueuedDelivery[] = [];
       const ctx: ActionContext = {
         input: parsed.data,
@@ -285,7 +258,7 @@ export function createEngine(options: RuntimeOptions): Engine {
         interface: via,
         emit: emitter(user, queued, 0),
         secrets: platform.secrets,
-        userSecrets,
+        userSecrets: platform.userSecrets,
         connectors: platform.connectors,
         fetch: outbound,
         files: platform.files,

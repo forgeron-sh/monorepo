@@ -632,7 +632,6 @@ describe("error codes", () => {
       NOT_FOUND: 4,
       CONFLICT: 1,
       RATE_LIMITED: 1,
-      SECRET_REQUIRED: 1,
       UPSTREAM: 1,
       INTERNAL: 1,
     });
