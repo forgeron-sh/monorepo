@@ -13,6 +13,14 @@ export class FakeCloudflare {
   readonly databases = new Map<string, { name: string; d1?: D1Database }>();
   readonly namespaces = new Map<string, string>();
   readonly buckets = new Set<string>();
+  /** The user Workers of dispatch namespaces, by `<namespace>/<script>`. */
+  readonly scripts = new Map<
+    string,
+    {
+      metadata: { bindings: Record<string, unknown>[] } & Record<string, unknown>;
+      modules: Record<string, string>;
+    }
+  >();
   private counter = 0;
 
   /** Gives each database the D1 behind it, by name, as it is created. */
@@ -24,9 +32,12 @@ export class FakeCloudflare {
     const url = new URL(String(input));
     const method = init?.method ?? "GET";
     const path = url.pathname.replace(/^\/client\/v4\/accounts\/[^/]+/, "");
-    const body = init?.body
-      ? (JSON.parse(String(init.body)) as Record<string, unknown>)
-      : undefined;
+    const body =
+      init?.body instanceof FormData
+        ? await this.parts(init.body)
+        : init?.body
+          ? (JSON.parse(String(init.body)) as Record<string, unknown>)
+          : undefined;
     this.calls.push(`${method} ${path}`);
     try {
       return this.ok(await this.route(method, path, url.searchParams, body));
@@ -35,6 +46,17 @@ export class FakeCloudflare {
       return this.fail(400, String(error));
     }
   };
+
+  /** A multipart upload: the `metadata` part as JSON, every other part as the text of a module. */
+  private async parts(form: FormData): Promise<Record<string, unknown>> {
+    const out: Record<string, unknown> = { modules: {} };
+    for (const [name, value] of form.entries()) {
+      const text = typeof value === "string" ? value : await value.text();
+      if (name === "metadata") out.metadata = JSON.parse(text);
+      else (out.modules as Record<string, string>)[name] = text;
+    }
+    return out;
+  }
 
   private ok(result: unknown) {
     return Response.json({ success: true, errors: [], result });
@@ -125,6 +147,27 @@ export class FakeCloudflare {
         throw this.fail(400, "unknown version");
       worker.deployed = versions[0]!.version_id;
       return { id: this.id("deployment") };
+    }
+    if ((m = path.match(/^\/workers\/dispatch\/namespaces\/([^/]+)\/scripts\/([^/]+)$/))) {
+      const key = `${decodeURIComponent(m[1]!)}/${decodeURIComponent(m[2]!)}`;
+      if (method === "PUT") {
+        const upload = body as unknown as {
+          metadata?: { main_module?: string; bindings?: Record<string, unknown>[] };
+          modules: Record<string, string>;
+        };
+        if (!upload.metadata?.main_module || !(upload.metadata.main_module in upload.modules)) {
+          throw this.fail(400, "the metadata part must name a main_module that is uploaded");
+        }
+        this.scripts.set(key, {
+          metadata: { bindings: [], ...upload.metadata },
+          modules: upload.modules,
+        });
+        return { id: key };
+      }
+      if (method === "DELETE") {
+        if (!this.scripts.delete(key)) throw this.fail(404, "no such script");
+        return {};
+      }
     }
     throw this.fail(404, `no route ${method} ${path}`);
   }

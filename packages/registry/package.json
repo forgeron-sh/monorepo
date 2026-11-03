@@ -10,7 +10,8 @@
     "migrate": "bun scripts/migrate.ts"
   },
   "dependencies": {
-    "@forgeron/hosting": "workspace:*"
+    "@forgeron/hosting": "workspace:*",
+    "@forgeron/manifest": "workspace:*"
   },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*",

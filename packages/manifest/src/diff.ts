@@ -345,6 +345,24 @@ function withoutWhy<T extends { why?: string | undefined }>(value: T): Omit<T, "
 
 // A resource that is added or broadened is a `minor`; a removed or narrowed one is not
 // worth more than a `patch`. The approval workflow is a separate concern (sdk.md §3).
+/**
+ * The changes between two sets of resources alone, the part an admin must accept (sdk.md §3):
+ * what a version asks for that the previous one did not.
+ */
+export function diffResourceChanges(previous: Resources, next: Resources): Change[] {
+  const changes: Change[] = [];
+  diffResources(previous, next, (kind, subject, impact, detail) => {
+    changes.push(
+      detail === undefined ? { kind, subject, impact } : { kind, subject, impact, detail },
+    );
+  });
+  return changes.map((change) =>
+    change.kind === "resource.added" || change.kind === "resource.broadened"
+      ? { ...change, needsApproval: true as const }
+      : change,
+  );
+}
+
 function diffResources(previous: Resources, next: Resources, add: Add): void {
   for (const key of ["db", "files", "cache", "queue"] as const) {
     const before = previous[key];
