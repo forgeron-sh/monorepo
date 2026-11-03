@@ -5,6 +5,9 @@ export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  /** What the message carries, for a sender that does not send mail (`consoleMailSender`). */
+  code?: string;
+  invitation?: { roles: string[] };
 }
 
 export interface MailSender {
@@ -21,6 +24,28 @@ export function cloudflareMailSender(binding: SendEmailBinding, from: string): M
   return {
     async send(message) {
       await binding.send({ from, to: message.to, subject: message.subject, text: message.text });
+    },
+  };
+}
+
+/**
+ * Test installs (D-051): no mail goes out; one structured line per code or invitation goes to the
+ * Worker's logs. Anyone who can read the logs can sign in as an allowed address.
+ */
+export function consoleMailSender(log: (line: string) => void = console.log): MailSender {
+  return {
+    async send(message) {
+      if (message.code !== undefined) {
+        log(JSON.stringify({ event: "sign-in code", address: message.to, code: message.code }));
+      } else if (message.invitation) {
+        log(
+          JSON.stringify({
+            event: "invitation",
+            address: message.to,
+            roles: message.invitation.roles,
+          }),
+        );
+      }
     },
   };
 }

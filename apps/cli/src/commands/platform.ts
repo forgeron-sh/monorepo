@@ -26,7 +26,7 @@ import { readAssets, uploadAssets } from "./console-assets";
 // is only ever an API token; see D-026.
 
 const USAGE =
-  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--sign-in email[,oidc] --mail-from <address>] [--name forgeron] [--auth token|wrangler]";
+  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--sign-in email[,oidc] [--mail-from <address> | --mail console]] [--name forgeron] [--auth token|wrangler]";
 
 interface Named {
   uuid?: string;
@@ -64,6 +64,7 @@ export async function platform(
       "member-email-domains": { type: "string" },
       "sign-in": { type: "string" },
       "mail-from": { type: "string" },
+      mail: { type: "string" },
       name: { type: "string", default: "forgeron" },
       auth: { type: "string", default: "token" },
     },
@@ -91,11 +92,15 @@ export async function platform(
     ...(values["oidc-client-id"] !== undefined ? { clientId: values["oidc-client-id"] } : {}),
     ...(values["admin-email"] !== undefined ? { adminEmail: values["admin-email"] } : {}),
     ...(values["sign-in"] !== undefined ? { signIn: values["sign-in"] } : {}),
+    ...(values.mail !== undefined ? { mail: values.mail } : {}),
     ...(values["mail-from"] !== undefined ? { mailFrom: values["mail-from"] } : {}),
     ...(values["member-email-domains"] !== undefined
       ? { memberDomains: values["member-email-domains"] }
       : {}),
   };
+  if (flags.mail === "console" && /(^|\.)forgeron\.app$/.test(values.domain)) {
+    throw new UsageError("--mail console is for test installs: not on the forgeron.app cloud.");
+  }
   const settings = identitySettings(flags, process.env);
   const assets = values.console ? await readAssets(resolve(io.cwd, values.console)) : undefined;
 
@@ -217,15 +222,17 @@ export async function platform(
       : "Kept the gateway's existing keys AUTH_SECRET and SECRETS_KEY.",
   );
   io.log(
-    settings.some((s) => s.name === "SEND_EMAIL" && s.given)
-      ? settings.some((s) => s.name === "OIDC_ISSUER" && s.given)
-        ? "Sign-in is configured by email code and with your OIDC provider (the sender domain must be onboarded to Cloudflare Email Sending)."
-        : "Sign-in is configured by email code (the sender domain must be onboarded to Cloudflare Email Sending)."
-      : settings.some((s) => s.given)
-        ? "Sign-in is configured with your OIDC provider."
-        : existed
-          ? "No identity flag given: the sign-in settings of the previous version are kept, if there were any."
-          : "Sign-in is NOT configured: run the install again with --oidc-issuer and --oidc-client-id, or --sign-in email (docs/self-host.md).",
+    settings.some((s) => s.name === "MAIL_MODE" && s.given)
+      ? "Sign-in is configured by email code in TEST mode: the codes are written to the gateway's logs, not mailed (anyone who reads the logs can sign in)."
+      : settings.some((s) => s.name === "SEND_EMAIL" && s.given)
+        ? settings.some((s) => s.name === "OIDC_ISSUER" && s.given)
+          ? "Sign-in is configured by email code and with your OIDC provider (the sender domain must be onboarded to Cloudflare Email Sending)."
+          : "Sign-in is configured by email code (the sender domain must be onboarded to Cloudflare Email Sending)."
+        : settings.some((s) => s.given)
+          ? "Sign-in is configured with your OIDC provider."
+          : existed
+            ? "No identity flag given: the sign-in settings of the previous version are kept, if there were any."
+            : "Sign-in is NOT configured: run the install again with --oidc-issuer and --oidc-client-id, or --sign-in email (docs/self-host.md).",
   );
 
   // 4. DNS and route: a proxied wildcard record, then `*.<domain>/*` to the gateway.

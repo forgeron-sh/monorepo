@@ -57,6 +57,7 @@ Rules of the log:
 | D-048 | 03/11/2026 | The build bundles the connector packages a tool declares; only an explicit OAuth refusal revokes a consent; grants are audited       | Active            |
 | D-049 | 03/11/2026 | The gateway signs people in by email code beside OIDC; members, invitations and email domains are managed in the console             | Active            |
 | D-050 | 03/11/2026 | SAML sign-in is verified by a small XML-DSig verifier on Web Crypto, trusting only the element a pinned signature covers             | Active            |
+| D-051 | 03/11/2026 | A console mail mode writes the sign-in codes to the Worker's logs for test installs; opt-in, never on the cloud                      | Active            |
 
 ---
 
@@ -564,3 +565,13 @@ Rules of the log:
 - **Know**: the tests sign real assertions with Web Crypto, RSA and EC, with documents written directly in canonical form, so the digest and the signature do not depend on the gateway's own canonicalizer; the canonicalizer is also tested alone. The tests are the evidence the verifier is correct; they do not replace a review by someone who writes SAML for a living. A person's NameID that changes at the provider (transient, or a rename) is a new member. `emailAttribute` is the name the IdP sends (Entra: `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress`; Okta and others: whatever the admin set). The groups of an Entra SAML assertion are group ids unless configured otherwise.
 - **Not done / not verified**: no real SAML identity provider (Entra ID, Okta, ADFS, Google, Keycloak) was tried: the attribute names, signing algorithms, whether the IdP signs the Response, the Assertion or both, and whether it accepts an unsigned AuthnRequest and the HTTP-Redirect binding with a fresh `RelayState` come from the specification and from documentation, not from a live tenant; an ECDSA-signing IdP is rare and was proven against the simulation only; no single logout; no signed or encrypted requests; no metadata refresh or import; the console has no screen for it; the clock skew and the 10-minute request lifetime are starting values.
 - **Applied in**: FOR-124; `apps/gateway/src/identity/saml*.ts`, `auth.ts`, `presets.ts`, `console-api/identity.ts`, `simulated-saml-idp.ts`; `packages/registry` (`0016_saml`, `identity-config.ts`, `saml-requests.ts`).
+
+## D-051 — A console mail mode writes the sign-in codes to the Worker's logs for test installs; opt-in, never on the cloud
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `platform install --sign-in email --mail console` stores `MAIL_MODE=console`; no `send_email` binding and no `MAIL_FROM` are created or required (`--mail-from` with it is refused). The gateway then uses `consoleMailSender`: one `console.log` line of JSON per code (`{"event":"sign-in code","address":…,"code":…}`) and one per invitation (`{"event":"invitation","address":…,"roles":[…]}`), read with `wrangler tail` or the dashboard logs. Everything else of D-049 stands: the line is written only for an address that is a member, invited, `ADMIN_EMAIL` or of an allowed domain (a stranger gets the same HTTP answer and no line), the code is still stored hashed, single use and rate limited, and `ADMIN_EMAIL` signs in with the logged code. The default stays real mail. The sign-in pages carry one line saying it is test mode.
+- **Guard**: the gateway refuses the mode, with an error in the logs and email sign-in off, when it serves the cloud (`DISPATCHER` bound, or `BASE_DOMAIN` is `forgeron.app` or under it); the install refuses `--mail console` for such a domain. Self-host is allowed.
+- **Why**: a first install on a zone without Email Sending, or without the Workers Paid plan, still needs the administrator to get in.
+- **Know**: anyone who can read the Worker's logs (account members, log sinks) can sign in as any allowed address, administrators included; the code is the only secret logged. Logs may be retained by a sink after the code has expired.
+- **Not verified**: no real `wrangler tail` or dashboard log was read.
+- **Applied in**: `apps/gateway/src/mail/mail.ts`, `gateway.ts`; `apps/cli/src/commands/gateway-identity.ts`, `platform.ts`; `docs/self-host.md`.
