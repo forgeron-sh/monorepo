@@ -8,3 +8,8 @@ tasks:
     command: astro build
     inputs: ["src/**/*", "public/**/*", "astro.config.ts", "package.json"]
     outputs: ["dist"]
+
+  # `tsc` does not read `.astro` files: `astro-check` (from @astrojs/check) type-checks them along with the TypeScript.
+  typecheck:
+    command: astro-check
+    inputs: ["src/**/*", "public/**/*", "tsconfig.json", "astro.config.ts", "package.json"]
