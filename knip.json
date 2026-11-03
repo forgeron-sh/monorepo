@@ -7,7 +7,14 @@
     },
     "packages/*": {},
     "templates/*": {
-      "entry": ["forgeron.config.ts", "actions/**/*.ts", "jobs/**/*.ts", "events/**/*.ts"]
+      "entry": [
+        "forgeron.config.ts",
+        "db/schema.ts",
+        "db/migrations/*.ts",
+        "actions/**/*.ts",
+        "jobs/**/*.ts",
+        "events/**/*.ts"
+      ]
     },
     "packages/compiler": {
       "ignore": ["fixtures/**"],

@@ -153,6 +153,9 @@
     "templates/crm": {
       "name": "@forgeron/template-crm",
       "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/sdk": "workspace:*",
+      },
     },
     "templates/dashboard": {
       "name": "@forgeron/template-dashboard",

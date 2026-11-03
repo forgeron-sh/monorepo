@@ -173,7 +173,10 @@ export async function loadTool(dir: string, scratch: string): Promise<LoadedTool
   const loaded = (await import(pathToFileURL(output).href)) as LoadedTool;
   await rm(output, { force: true });
   const own = modules.filter(
+    // Virtual modules of the bundler (`\0rolldown/runtime.js`) are not files, whatever the current directory.
     (id) =>
+      isAbsolute(id) &&
+      !id.includes("\0") &&
       inside(dir, id) &&
       SOURCE.test(id) &&
       !id.includes(`${sep}node_modules${sep}`) &&
