@@ -3,7 +3,7 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "../index";
 import { ViewClient, type ViewRuntime } from "./client";
-import { useCan, useParams, useUser, ViewHost, defineView } from "./index";
+import { useCan, useCanCall, useParams, useUser, ViewHost, defineView } from "./index";
 
 function runtimeOf(
   overrides: Partial<ViewRuntime> & { search?: Record<string, string> } = {},
@@ -13,6 +13,7 @@ function runtimeOf(
   return {
     user: { id: "u1", email: "a@b.c", name: "Ada", roles: ["read"] },
     can: (level) => level === "read",
+    canCall: (action) => action === "deals.list",
     call: vi.fn<Call>(async () => null),
     params: {
       get: () => state.search,
@@ -77,6 +78,15 @@ describe("ViewHost", () => {
     const view = defineView({ title: "A", path: "/a", access: "read", component: probe() });
     expect(renderToString(createElement(ViewHost, { view, runtime: runtimeOf() }))).toContain(
       "Ada:true:false",
+    );
+  });
+
+  it("tells whether an action may be called, as the runtime's matrix says", () => {
+    const Component = () =>
+      createElement("p", null, `${useCanCall("deals.list")}:${useCanCall("deals.move")}`);
+    const view = defineView({ title: "A", path: "/a", access: "read", component: Component });
+    expect(renderToString(createElement(ViewHost, { view, runtime: runtimeOf() }))).toContain(
+      "true:false",
     );
   });
 

@@ -1,4 +1,4 @@
-import type { Manifest } from "@forgeron/manifest";
+import { mayAccess, viewSubject, type AccessOverrides, type Manifest } from "@forgeron/manifest";
 import type { ViewBootstrap } from "@forgeron/runtime";
 import type { Person } from "../identity/authenticate";
 import { issueToken } from "../identity/tokens";
@@ -32,7 +32,12 @@ export interface ServeViewOptions {
   tool: string;
   /** Where the tool is mounted on the workspace origin; `/t/<tool>` by default. */
   base?: string;
-  manifest: Pick<Manifest, "views" | "roles">;
+  manifest: Pick<Manifest, "views" | "roles"> & {
+    /** Only the level of each action is read. */
+    actions?: Record<string, { access: string }>;
+  };
+  /** The console's overrides of the matrix for the person's roles (`registry.accessFor`). */
+  access?: AccessOverrides;
   /** Who is signed in, from the session; `undefined` if nobody. Not needed for the static files. */
   person: Person | undefined;
   assets: ViewAssets;
@@ -124,8 +129,10 @@ export async function serveView(
   const grants = new Set(
     person.roles.flatMap((role) => options.manifest.roles[role]?.grants ?? []),
   );
-  // Before anything is rendered, or a token issued.
-  if (!grants.has(view.access)) {
+  const who = { roles: person.roles, access: options.access };
+  // Before anything is rendered, or a token issued: the same rule as an action's, with the
+  // matrix's overrides (D-043).
+  if (!mayAccess(who, options.manifest.roles, viewSubject(name), view.access)) {
     return problem(403, "FORBIDDEN", `This page needs the "${view.access}" access level.`);
   }
   if (!view.entry) return problem(404, "NOT_FOUND", "This view was not built.");
@@ -147,6 +154,11 @@ export async function serveView(
     expiresAt: Math.floor(options.now.getTime() / 1000) + VIEW_TOKEN_TTL_SECONDS,
     user: person,
     grants: [...grants].sort(),
+    // The actions the person may call, matrix included: what `useCanCall` reads to disable controls.
+    callable: Object.entries(options.manifest.actions ?? {})
+      .filter(([action, entry]) => mayAccess(who, options.manifest.roles, action, entry.access))
+      .map(([action]) => action)
+      .sort(),
   };
   return secured(
     new Response(pageOf(bootstrap, view.title, view.entry), {

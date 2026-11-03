@@ -13,6 +13,8 @@ export interface ViewRuntime {
   user: User;
   /** Whether the person holds an access level; only used to disable controls. */
   can(level: string): boolean;
+  /** Whether the person may call an action, the console's matrix included; to disable controls. */
+  canCall(action: string): boolean;
   /** Calls an action of the tool and resolves with its output. */
   call(action: string, input: unknown): Promise<unknown>;
   params: ViewParamsStore;

@@ -18,6 +18,10 @@ const view = (path: string, access: string, entry?: string) => ({
 });
 const manifest = {
   roles: { reader: { grants: ["read"] }, boss: { grants: ["read", "admin"] } },
+  actions: {
+    "deals.list": { access: "read" },
+    "deals.delete": { access: "admin" },
+  },
   views: {
     pipeline: view("/pipeline", "read", "views/pipeline.js"),
     settings: view("/settings", "admin", "views/settings.js"),
@@ -31,7 +35,14 @@ const assets: ViewAssets = {
     file in files ? { body: files[file]!, contentType: "text/javascript" } : undefined,
 };
 
-const serve = (path: string, options: { person?: Person | null; method?: string } = {}) =>
+const serveAny = (
+  path: string,
+  options: {
+    person?: Person | null;
+    method?: string;
+    access?: Record<string, Record<string, boolean>>;
+  } = {},
+) =>
   serveView(new Request(`https://acme.forgeron.app${path}`, { method: options.method }), {
     secret,
     now,
@@ -40,6 +51,7 @@ const serve = (path: string, options: { person?: Person | null; method?: string 
     manifest,
     person: options.person === null ? undefined : (options.person ?? ely),
     assets,
+    ...(options.access ? { access: options.access } : {}),
   });
 
 const bootstrapOf = async (response: Response): Promise<ViewBootstrap> => {
@@ -47,6 +59,36 @@ const bootstrapOf = async (response: Response): Promise<ViewBootstrap> => {
   const json = /<script id="forgeron-bootstrap" type="application\/json">(.*)<\/script>/.exec(html);
   return JSON.parse(json![1]!) as ViewBootstrap;
 };
+
+describe("serveView and the roles × actions matrix", () => {
+  const serve = async (...args: Parameters<typeof serveAny>) => (await serveAny(...args))!;
+
+  it("opens a view to a role the console granted, and shuts one it refused", async () => {
+    const granted = await serve("/settings", { access: { reader: { "view:settings": true } } });
+    expect(granted.status).toBe(200);
+    const refused = await serve("/pipeline", { access: { reader: { "view:pipeline": false } } });
+    expect(refused.status).toBe(403);
+    // An override of another role, or of an action of the same name, changes nothing.
+    expect((await serve("/settings", { access: { boss: { "view:settings": true } } })).status).toBe(
+      403,
+    );
+    expect((await serve("/settings", { access: { reader: { settings: true } } })).status).toBe(403);
+  });
+
+  it("tells the page which actions the person may call, overrides included", async () => {
+    expect((await bootstrapOf(await serve("/pipeline"))).callable).toEqual(["deals.list"]);
+    const wider = await serve("/pipeline", { access: { reader: { "deals.delete": true } } });
+    const widerBootstrap = await bootstrapOf(wider);
+    expect(widerBootstrap.callable).toEqual(["deals.delete", "deals.list"]);
+    const narrower = await serve("/pipeline", { access: { reader: { "deals.list": false } } });
+    expect((await bootstrapOf(narrower)).callable).toEqual([]);
+    // What the page's runtime answers is what the bootstrap says.
+    const runtime = createHttpRuntime(widerBootstrap, { params: createMemoryParams() });
+    expect([runtime.canCall("deals.delete"), runtime.canCall("deals.list")]).toEqual([true, true]);
+  });
+});
+
+const serve = serveAny;
 
 describe("serveView", () => {
   it("carries the sandbox CSP on every response it makes", async () => {
