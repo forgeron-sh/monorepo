@@ -133,6 +133,26 @@ export interface Platform {
   now(): Date;
 }
 
+/**
+ * What the gateway injects into a view's page: who is looking, and the short-lived token the
+ * view calls its tool with (sdk.md §7, Isolation point 3). `@forgeron/sdk/react` reads it.
+ */
+export interface ViewBootstrap {
+  workspace: string;
+  tool: string;
+  /** The name of the view in the manifest. */
+  view: string;
+  /** Where the tool lives on the workspace origin, like `/t/crm`. */
+  base: string;
+  /** Signed, bound to `<workspace>/<tool>` and to the person; refused by any other tool. */
+  token: string;
+  /** When the token stops working, in seconds since the epoch. */
+  expiresAt: number;
+  user: User;
+  /** The access levels the person holds: it only serves to disable controls. */
+  grants: string[];
+}
+
 /** A person the gateway resolved from a token, with the audience the token was issued for (`acme/crm`). */
 export interface Authenticated {
   user: User;
