@@ -217,4 +217,17 @@ export const platformMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "members"`)],
   },
+  {
+    // The one-time codes of `forgeron login` (D-028): a code is spent by recording its id here.
+    name: "0009_cli_codes",
+    fingerprint: "cli-codes-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "cli_codes" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "expires_at" TEXT NOT NULL
+)`),
+    ],
+    down: [st(`DROP TABLE "cli_codes"`)],
+  },
 ];

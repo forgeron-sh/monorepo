@@ -78,7 +78,7 @@ Running it again is safe: the D1 and the Worker are reused, and a new version of
 
 ## Bindings the gateway reads
 
-This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `forgeron platform install` sets `DB`, `BASE_DOMAIN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `ASSETS`, `AUTH_SECRET`, `SECRETS_KEY` and, when you give the flags of step 2, the `OIDC_*`, `ADMIN_EMAIL` and `MEMBER_EMAIL_DOMAINS` settings (D-030).
+This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `forgeron platform install` sets `DB`, `BASE_DOMAIN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `ASSETS`, `AUTH_SECRET`, `SECRETS_KEY` and, when you give the flags of step 2, the `OIDC_*`, `ADMIN_EMAIL` and `MEMBER_EMAIL_DOMAINS` settings (D-031).
 
 | Binding                 | Kind                 | Meaning                                                                                                                                                                                                                                                                            |
 | ----------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -100,7 +100,7 @@ This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `
 
 Register this redirect URI at the identity provider, for each workspace: `https://<workspace>.<BASE_DOMAIN>/auth/callback`.
 
-What the gateway serves at a workspace origin once these are set: `/auth/login`, `/auth/callback`, `/auth/logout`, `POST /auth/token` (a signed-in person's token for one tool, 1 to 30 days), `GET /whoami`, `POST /deploy-tokens` (administrators), `POST /deploy` (a deployment token), `/console-api/*`, `/t/<tool>`.
+What the gateway serves at a workspace origin once these are set: `/auth/login`, `/auth/callback`, `/auth/logout`, `POST /auth/token` (a signed-in person's token for one tool, 1 to 30 days), `GET /auth/cli` and `POST /auth/cli/token` (`forgeron login`), `GET /whoami`, `POST /deploy-tokens` (administrators), `POST /deploy` (a deployment token), `/console-api/*`, `/t/<tool>`.
 
 ## What is not done yet
 
@@ -108,6 +108,6 @@ What the gateway serves at a workspace origin once these are set: `/auth/login`,
 - **Tools are not reachable until they are bound.** The gateway reaches each tool's Worker through a service binding (`TOOL_<WORKER>`), added when a tool is created and removed when it is deleted (D-029). The hosting side exists (`createGatewayBindings`); the gateway does not use it yet, so this installation still adds none.
 - **Key rotation** is not done: the install never replaces an existing `AUTH_SECRET` or `SECRETS_KEY`.
 - **Re-running the install does not carry the `TOOL_<WORKER>` service bindings** of tools already bound: the new gateway version lists only the bindings above. Run it before creating tools, or expect to bind them again.
-- `/mcp`, `/api` and `/cli` of a workspace answer `404` (admin MCP, FOR-107). `forgeron login` cannot sign in yet: the gateway has no `/auth/cli` and `/auth/cli/token`.
+- `/mcp`, `/api` and `/cli` of a workspace answer `404` (admin MCP, FOR-107). A CLI token lives 30 days and cannot be revoked before; `forgeron login` was proven against the gateway handler with a simulated provider only, not on a real deployment.
 - Members are added only at sign-in, by the two rules of D-027; there is no way to list, remove or change the roles of a member.
 - The gateway bundle is not published as a package.

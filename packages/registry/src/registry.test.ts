@@ -295,6 +295,15 @@ describe("members", () => {
   });
 });
 
+describe("one-time codes", () => {
+  it("spends a code once", async () => {
+    const until = new Date(Date.now() + 60_000);
+    expect(await registry.spendCode("c1", until)).toBe(true);
+    expect(await registry.spendCode("c1", until)).toBe(false);
+    expect(await registry.spendCode("c2", until)).toBe(true);
+  });
+});
+
 describe("seats", () => {
   it("counts a person once per workspace and month, whatever their calls", async () => {
     await registry.recordSeat("acme", "p1");

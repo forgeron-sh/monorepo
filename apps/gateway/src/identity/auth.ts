@@ -40,6 +40,10 @@ export interface AuthOptions {
 const json = (status: number, code: string, message: string) =>
   Response.json({ error: { code, message } }, { status });
 
+// Where a sign-in may send the person back to: the CLI's own page, nowhere else.
+const safeNext = (next: unknown): string | undefined =>
+  typeof next === "string" && /^\/auth\/cli\?[^\s]*$/.test(next) ? next : undefined;
+
 const stateCookie = (value: string, maxAge: number) =>
   `${STATE_COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 
@@ -62,7 +66,12 @@ export function createAuth(options: AuthOptions) {
     if (url.pathname === "/auth/login") {
       const { url: target, login } = await startLogin(provider, options.fetch);
       const exp = Math.floor(options.now().getTime() / 1000) + STATE_SECONDS;
-      const sealed = await seal(STATE_PREFIX, { ...login, ws: workspace, exp }, options.secret);
+      const next = safeNext(url.searchParams.get("next"));
+      const sealed = await seal(
+        STATE_PREFIX,
+        { ...login, ws: workspace, exp, ...(next ? { next } : {}) },
+        options.secret,
+      );
       return new Response(null, {
         status: 302,
         headers: { location: target, "set-cookie": stateCookie(sealed, STATE_SECONDS) },
@@ -95,7 +104,7 @@ export function createAuth(options: AuthOptions) {
       }
       const person = await options.resolvePerson(workspace, identity);
       if (!person) return json(403, "FORBIDDEN", "You are not a member of this workspace.");
-      const headers = new Headers({ location: "/" });
+      const headers = new Headers({ location: safeNext(claims.next) ?? "/" });
       headers.append(
         "set-cookie",
         await openSession(
