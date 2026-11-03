@@ -26,6 +26,30 @@ function versionOf(version: string, fingerprint: string, env: string, branch: st
 }
 
 /**
+ * The commit being deployed, for the console's list of branches: the sha CI gives (`GITHUB_SHA`) or
+ * the checkout's, with its subject and author. Best effort: no git, no commit, the deploy goes on.
+ */
+async function commitOf(io: Io) {
+  try {
+    const out = io.capture
+      ? await io.capture("git", ["log", "-1", "--format=%H%x1f%s%x1f%an"], io.cwd)
+      : undefined;
+    const [sha, message, author] = out?.code === 0 ? out.stdout.trim().split("\x1f") : [];
+    const found = process.env.GITHUB_SHA || sha;
+    if (!found || !/^[0-9a-f]{7,64}$/i.test(found)) return undefined;
+    // The message and author are the checkout's, which is the commit only when it is the sha.
+    const same = !sha || found === sha;
+    return {
+      sha: found,
+      ...(same && message ? { message } : {}),
+      ...(same && author ? { author } : {}),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * `forgeron deploy`: builds the tool, uploads the build to the workspace's gateway with
  * `FORGERON_TOKEN`, and prints where it is served. Without `--env` it is a preview of the branch
  * (`--branch`, or the one GitHub gives CI). The platform builds nothing: this is the build.
@@ -72,6 +96,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
   const migrations = await read("migrations.json");
   const changelog = await read("changelog.json");
   const version = versionOf(built.version, built.fingerprint, env, branch);
+  const commit = await commitOf(io);
 
   const response = await fetch(new URL("/deploy", project.endpoint), {
     method: "POST",
@@ -80,6 +105,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
       environment: env,
       ...(env === "preview" ? { branch } : {}),
       version,
+      ...(commit ? { commit } : {}),
       ...(values["allow-destructive"] ? { allowDestructive: true } : {}),
       build: {
         manifest: JSON.parse(manifest),

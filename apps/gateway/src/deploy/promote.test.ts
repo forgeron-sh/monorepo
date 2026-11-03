@@ -157,6 +157,35 @@ describe("POST /promote", () => {
     });
   });
 
+  it("keeps the reason of a promotion and of a rollback in the audit line, and bounds it", async () => {
+    await seed();
+    const admin = person(["admin"]);
+    const { hosting } = fakeHosting();
+    const promoted = await handlePromote(
+      post("/promote", { tool: "crm", version: "1.2.0", to: "production", reason: " Ship it " }),
+      context(hosting, admin),
+    );
+    expect(promoted.status).toBe(200);
+    const rolled = await handleRollback(
+      post("/rollback", { tool: "crm", environment: "production", reason: "Export is broken" }),
+      context(hosting, admin),
+    );
+    expect(rolled.status).toBe(200);
+    const tool = (await registry.findTool("acme", "crm"))!;
+    const lines = await registry.listAudit(tool.id, { limit: 2 });
+    expect(lines.map((l) => [l.kind, (l.detail as { reason?: string }).reason])).toEqual([
+      ["rollback", "Export is broken"],
+      ["promotion", "Ship it"],
+    ]);
+    for (const reason of [3, "x".repeat(501)]) {
+      const refused = await handlePromote(
+        post("/promote", { tool: "crm", version: "1.2.0", to: "production", reason }),
+        context(hosting, admin),
+      );
+      expect(refused.status).toBe(400);
+    }
+  });
+
   it("refuses anonymous callers, developers, other tools' tokens and other workspaces' tokens", async () => {
     await seed();
     const { hosting, calls } = fakeHosting();

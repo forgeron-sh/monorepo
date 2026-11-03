@@ -49,6 +49,13 @@ export interface EnvironmentRecord {
 
 export type DeploymentKind = "deploy" | "promote" | "rollback";
 
+/** The commit a deployment was built from, as CI reports it. */
+export interface DeploymentCommit {
+  sha: string;
+  message?: string;
+  author?: string;
+}
+
 /** One line of the audit log: who put which version on which environment, and when. */
 export interface DeploymentRecord {
   id: string;
@@ -57,6 +64,8 @@ export interface DeploymentRecord {
   versionId: string;
   kind: DeploymentKind;
   actor: string;
+  /** Only a deployment from CI knows it. */
+  commit?: DeploymentCommit;
   createdAt: string;
 }
 
@@ -275,6 +284,15 @@ const toDeployment = (r: Row): DeploymentRecord => ({
   versionId: String(r.version_id),
   kind: r.kind as DeploymentKind,
   actor: String(r.actor),
+  ...(text(r.commit_sha)
+    ? {
+        commit: {
+          sha: text(r.commit_sha)!,
+          ...(text(r.commit_message) ? { message: text(r.commit_message)! } : {}),
+          ...(text(r.commit_author) ? { author: text(r.commit_author)! } : {}),
+        },
+      }
+    : {}),
   createdAt: String(r.created_at),
 });
 const toApproval = (r: Row): Approval => ({
@@ -1227,7 +1245,15 @@ ORDER BY "user_id", "connector"`,
     async activate(
       environmentId: string,
       versionId: string,
-      options: { actor: string; via?: string; kind?: DeploymentKind; url?: string },
+      options: {
+        actor: string;
+        via?: string;
+        kind?: DeploymentKind;
+        url?: string;
+        commit?: DeploymentCommit;
+        /** Why a person promoted or rolled back: written in the audit line. */
+        reason?: string;
+      },
     ): Promise<EnvironmentRecord> {
       const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
       if (!env) throw new RegistryError("NOT_FOUND", `There is no environment ${environmentId}.`);
@@ -1245,7 +1271,7 @@ ORDER BY "user_id", "connector"`,
           .bind(versionId, options.url ?? null, at, environmentId),
         d1
           .prepare(
-            `INSERT INTO "deployments" ("id", "tool_id", "environment_id", "version_id", "kind", "actor", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO "deployments" ("id", "tool_id", "environment_id", "version_id", "kind", "actor", "commit_sha", "commit_message", "commit_author", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             newId(),
@@ -1254,6 +1280,9 @@ ORDER BY "user_id", "connector"`,
             versionId,
             options.kind ?? "deploy",
             options.actor,
+            options.commit?.sha ?? null,
+            options.commit?.message ?? null,
+            options.commit?.author ?? null,
             at,
           ),
         auditStatement(
@@ -1267,6 +1296,7 @@ ORDER BY "user_id", "connector"`,
             detail: {
               environment: String(env.name),
               ...(env.branch ? { branch: String(env.branch) } : {}),
+              ...(options.reason ? { reason: options.reason } : {}),
             },
           },
           at,
@@ -1282,6 +1312,16 @@ ORDER BY "user_id", "connector"`,
         await all(
           `SELECT * FROM "deployments" WHERE "environment_id" = ? ORDER BY "rowid"`,
           environmentId,
+        )
+      ).map(toDeployment);
+    },
+    /** Every deployment of a tool, newest first: the history the console shows. */
+    async listDeployments(toolId: string, limit = 200): Promise<DeploymentRecord[]> {
+      return (
+        await all(
+          `SELECT * FROM "deployments" WHERE "tool_id" = ? ORDER BY "rowid" DESC LIMIT ?`,
+          toolId,
+          limit,
         )
       ).map(toDeployment);
     },

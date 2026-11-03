@@ -52,6 +52,7 @@ export type {
   BuildRecord,
   ConnectionInfo,
   ConnectionTokens,
+  DeploymentCommit,
   DeploymentKind,
   DeploymentRecord,
   EnvironmentRecord,

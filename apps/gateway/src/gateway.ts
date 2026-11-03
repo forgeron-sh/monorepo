@@ -32,6 +32,7 @@ import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleApprovals } from "./console-api/approvals";
 import { handleAudit } from "./console-api/audit";
+import { handleToolPages } from "./console-api/tool-pages";
 import { handleTools } from "./console-api/tools";
 import { handleWorkspace } from "./console-api/workspace";
 import {
@@ -507,7 +508,14 @@ export function createGateway(
           );
         }
         if (url.pathname === "/deploy") {
-          return handleDeploy(request, { workspace, secret, now, registry, hosting });
+          return handleDeploy(request, {
+            workspace,
+            secret,
+            now,
+            registry,
+            hosting,
+            authenticate: (r) => caller.resolve(r, workspace, true),
+          });
         }
         const promotion = {
           workspace,
@@ -582,6 +590,14 @@ export function createGateway(
         (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleToolPages(forwarded, {
+          registry,
+          workspace,
+          caller: async () => {
+            const person = await identity();
+            return person ? { admin: person.admin, developer: person.developer } : undefined;
+          },
+        })) ??
         (await handleWorkspace(forwarded, {
           registry,
           workspace,

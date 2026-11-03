@@ -9,7 +9,7 @@ import { loadPendingApprovals } from "./pending-approvals";
 import { pathOf, routeClick, useRoute, type Route } from "./router";
 import { SettingsPage } from "./settings";
 import { Loading } from "./states";
-import { ToolPage, ToolsPage } from "./tools-page";
+import { ToolPage, ToolsPage } from "./features/tools";
 import { useLoad } from "./use-load";
 import { loadWorkspace, type WorkspaceInfo } from "./workspace";
 
@@ -201,9 +201,9 @@ function Screen({
     case "overview":
       return <Overview ws={ws} fetchJson={api.fetchJson} go={go} />;
     case "tools":
-      return <ToolsPage api={api} go={go} />;
+      return <ToolsPage api={api} go={go} workspace={ws.workspace} now={now} />;
     case "tool":
-      return <ToolPage name={route.tool!} api={api} admin={ws.person.admin} />;
+      return <ToolPage name={route.tool!} api={api} admin={ws.person.admin} now={now} />;
     case "members":
       return ws.person.admin ? (
         <MembersPage api={api} selfId={ws.person.id} now={now} />
