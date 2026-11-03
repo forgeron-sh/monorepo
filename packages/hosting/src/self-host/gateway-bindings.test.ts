@@ -7,9 +7,12 @@ import {
   createGatewayBindings,
   createSelfHostHosting,
   deploy,
+  GATEWAY_ASSETS_CONFIG,
+  uploadAssets,
   serviceBindingName,
   type Build,
   type D1Database,
+  type Asset,
   type Environment,
   type GatewayBindings,
 } from "../index";
@@ -195,5 +198,104 @@ describe("without a gateway", () => {
     });
     await deploy(alone, production, build("v1"));
     expect(gatewayUploads()).toHaveLength(0);
+  });
+});
+
+describe("a gateway that serves the console as assets", () => {
+  const files: Asset[] = [
+    { path: "/index.html", hash: "a".repeat(32), size: 2, base64: "aGk=", type: "text/html" },
+    { path: "/app.js", hash: "b".repeat(32), size: 3, base64: "MQ==", type: "text/javascript" },
+  ];
+  let client: ReturnType<typeof createCloudflareClient>;
+  let withAssets: GatewayBindings;
+  let stored: Asset[] | undefined;
+
+  beforeEach(async () => {
+    client = createCloudflareClient({ accountId: "acct", apiToken: "t", fetch: cloud.fetch });
+    stored = files;
+    // `platform install` sends the console with the gateway's first version.
+    const jwt = await uploadAssets(client, GATEWAY, files);
+    const first = await client.request<{ id: string }>(
+      "POST",
+      `/workers/workers/${GATEWAY}/versions`,
+      {
+        main_module: "worker.js",
+        modules: [{ name: "worker.js", content_base64: "" }],
+        assets: { jwt, config: GATEWAY_ASSETS_CONFIG },
+        bindings: [
+          { type: "assets", name: "ASSETS" },
+          { type: "d1", name: "DB", id: "db-1" },
+        ],
+      },
+    );
+    await client.request("POST", `/workers/scripts/${GATEWAY}/deployments`, {
+      strategy: "percentage",
+      versions: [{ percentage: 100, version_id: first.id }],
+    });
+    known = ["ASSETS", "DB"];
+    cloud.calls.length = 0;
+    withAssets = createGatewayBindings(client, {
+      worker: GATEWAY,
+      bindings: () => known,
+      code: () => "export default {}",
+      compatibilityDate: "2026-10-01",
+      assets: () => stored,
+    });
+  });
+
+  it("uploads the assets with the new version, never keep_assets", async () => {
+    expect(await withAssets.bind(tool)).toBe(true);
+    const upload = cloud.uploads.at(-1)!;
+    expect(upload).not.toHaveProperty("keep_assets");
+    expect(upload.assets).toMatchObject({ config: GATEWAY_ASSETS_CONFIG });
+    expect(upload.bindings).toContainEqual({ type: "assets", name: "ASSETS" });
+    expect(upload.bindings).not.toContainEqual({ type: "inherit", name: "ASSETS" });
+    expect(upload.bindings).toContainEqual({ type: "inherit", name: "DB" });
+    expect(cloud.workers.get(GATEWAY)!.deployed).toBe(gatewayVersions().at(-1)!.id);
+  });
+
+  it("fills the buckets Cloudflare asks for when it no longer holds the files", async () => {
+    cloud.storedAssets.clear();
+    await withAssets.bind(tool);
+    expect(cloud.calls).toContain("POST /workers/assets/upload");
+    expect(cloud.storedAssets.size).toBe(2);
+  });
+
+  it("only registers the manifest when Cloudflare already holds the files", async () => {
+    await withAssets.bind(tool);
+    expect(cloud.calls).not.toContain("POST /workers/assets/upload");
+  });
+
+  it("uploads nothing when the assets cannot be loaded", async () => {
+    stored = undefined;
+    withAssets = createGatewayBindings(client, {
+      worker: GATEWAY,
+      bindings: () => known,
+      code: () => "export default {}",
+      compatibilityDate: "2026-10-01",
+      assets: () => {
+        throw new Error("run platform install again");
+      },
+    });
+    await expect(withAssets.bind(tool)).rejects.toThrow(/platform install/);
+    expect(gatewayUploads()).toHaveLength(0);
+  });
+
+  it("is refused by the simulated Cloudflare as by the real one without an assets jwt", async () => {
+    const without = createGatewayBindings(client, {
+      worker: GATEWAY,
+      bindings: () => known.filter((n) => n !== "ASSETS"),
+      code: () => "export default {}",
+      compatibilityDate: "2026-10-01",
+    });
+    await expect(without.bind(tool)).rejects.toThrow(/assets\.jwt/);
+    await expect(
+      client.request("POST", `/workers/workers/${GATEWAY}/versions`, {
+        main_module: "worker.js",
+        modules: [{ name: "worker.js", content_base64: "" }],
+        keep_assets: true,
+        bindings: [],
+      }),
+    ).rejects.toThrow(/Assets cannot be inherited between versions using keep_assets/);
   });
 });
