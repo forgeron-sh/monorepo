@@ -2,7 +2,7 @@
 // Neutral: plain data in and out, no Node API, so the gateway (a Worker) and the CLI can both use it.
 // The implementations are separate: `./local` here, `./self-host` through the Cloudflare API; cloud comes later.
 import type { Manifest } from "@forgeron/manifest";
-import type { BuildMigration, MigrateOptions, MigrateResult } from "./migrate";
+import type { BuildMigration, D1Database, MigrateOptions, MigrateResult } from "./migrate";
 
 export type EnvironmentName = "local" | "preview" | "pilot" | "production";
 
@@ -46,6 +46,8 @@ export interface Binding {
   kind: BindingKind;
   /** Where the host made the resource (a database id, a namespace id, a bucket name), once provisioned. */
   id?: string;
+  /** The host created it in this very `provision`: nothing was there before (a new branch's database). */
+  fresh?: boolean;
 }
 
 export interface Provisioned {
@@ -76,6 +78,8 @@ export interface Hosting {
   activate(uploaded: Uploaded): Promise<Activation>;
   /** Deletes the environment and its resources. */
   teardown(environment: Environment): Promise<void>;
+  /** The environment's database, to fill it (a preview's seed). Absent when the host cannot reach it. */
+  database?(provisioned: Provisioned): D1Database | undefined;
 }
 
 /** The bindings a tool's resources become: one D1, KV, R2 or queue per declared resource. */
