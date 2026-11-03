@@ -20,7 +20,7 @@ const refuse = (status: number, code: string, message: string) =>
   Response.json({ error: { code, message } }, { status });
 
 /** The audience check of every route a tool gets: a token for another tool is refused (D-015). */
-export const wrongAudience = (workspace: string, tool: string, audience: string | undefined) =>
+const wrongAudience = (workspace: string, tool: string, audience: string | undefined) =>
   audience !== undefined && audience !== `${workspace}/${tool}`
     ? refuse(403, "FORBIDDEN", `This token was not issued for "${workspace}/${tool}".`)
     : undefined;
