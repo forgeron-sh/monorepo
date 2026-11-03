@@ -1,1 +1,11 @@
 language: typescript
+
+tasks:
+  build:
+    command: vite build
+    inputs:
+      - "index.html"
+      - "src/**/*"
+      - "vite.config.ts"
+    outputs:
+      - "dist"
