@@ -9,6 +9,7 @@ import { resolveMigration, sameSnapshot, snapshotOf } from "@forgeron/sdk/db";
 import { loadTool, schemaFileOf, seedFileOf, sourcesOf } from "./load";
 import { readSnapshot } from "./migrations/generate";
 import { buildManifest } from "./manifest";
+import { changelogOf } from "./changelog";
 
 /** A migration as the build records it: its statements, resolved, and the fingerprint of its file. */
 interface BuiltMigration {
@@ -165,6 +166,12 @@ export async function buildTool(folder: string): Promise<BuildResult> {
   const migrationsFile = join(outDir, "migrations.json");
   if (migrations.length > 0)
     await writeFile(migrationsFile, `${JSON.stringify(migrations, null, 2)}\n`);
+
+  // The changelog of this version, structured, for the console, the MCP and dependent tools (sdk.md §16).
+  await writeFile(
+    join(outDir, "changelog.json"),
+    `${JSON.stringify(await changelogOf(dir, manifest, migrations), null, 2)}\n`,
+  );
 
   const { actions, events, jobs } = await sourcesOf(dir);
   const runtimePath = createRequire(import.meta.url).resolve("@forgeron/runtime");

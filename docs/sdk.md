@@ -175,6 +175,7 @@ CRM v1.4.0 requests:
 ```text
 .forgeron/
 ├── project.json        # committed
+├── released.json       # committed, written by forgeron release: the manifest to compare with
 ├── .gitignore          # committed, contains: local/  generated/  build/
 ├── local/              # ignored
 │   ├── env             # dev secrets (dotenv format)
@@ -223,12 +224,12 @@ The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forge
 
 ### Versions and changelog
 
-| Command                                       | What it does                                                                                                               |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `forgeron change`                             | Adds a change to `changes/`: type, semver impact, description (interactive or `--type fixed --bump patch -m "…"`)          |
-| `forgeron change check`                       | Compares the manifest with the last published version and checks that the declared changes cover what changed (used in CI) |
-| `forgeron release`                            | Computes the new version, writes `CHANGELOG.md`, updates `package.json`, empties `changes/`, creates the git tag           |
-| `forgeron changelog [<tool>] [--since 1.2.0]` | Shows a tool's changelog, local or published                                                                               |
+| Command                                       | What it does                                                                                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `forgeron change`                             | Adds a change to `changes/`: type, semver impact, description (`--type fixed --bump patch -m "…"`; no interactive prompt yet)                    |
+| `forgeron change check`                       | Compares the manifest with the last published version and checks that the declared changes cover what changed (used in CI)                       |
+| `forgeron release`                            | Computes the new version, writes `CHANGELOG.md`, updates `package.json`, empties `changes/`, creates the git commit and tag (`--no-git` to skip) |
+| `forgeron changelog [<tool>] [--since 1.2.0]` | Shows a tool's changelog, local or published                                                                                                     |
 
 ### Administration
 
@@ -690,6 +691,12 @@ One file per change rather than a single file: two branches never step on each o
 If `changes/` is empty while the manifest changed, or if the declared impact is lower than the detected impact, deployment to pilot and production is refused. Previews are not blocked.
 
 For other tools, the impact matters: a tool that declares `uses: { crm: "^1.4.0" }` never automatically receives a `2.0.0` version of the CRM.
+
+### The baseline
+
+`forgeron release` also writes `.forgeron/released.json` (committed): the manifest and the migrations of the version it released. `forgeron change check` and `forgeron build` compare with it, until the platform can serve the last published manifest. Before the first release there is no baseline and nothing is detected. A new migration marked `destructive` counts as `major`.
+
+`changelog.json` holds the pending entries, or those of the last release when none is pending, with `declared` (the strongest bump), `detected` and `pendingApproval`. A host calls `assertDeployable` (`@forgeron/hosting`) before taking a build to pilot or production.
 
 ### `forgeron release`
 
