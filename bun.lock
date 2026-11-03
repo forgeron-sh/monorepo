@@ -29,6 +29,7 @@
         "@forgeron/compiler": "workspace:*",
         "@forgeron/hosting": "workspace:*",
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/playground": "workspace:*",
         "@forgeron/sdk": "workspace:*",
       },
       "devDependencies": {
@@ -50,6 +51,7 @@
         "@cloudflare/workers-oauth-provider": "1.2.4",
         "@forgeron/hosting": "workspace:*",
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/playground": "workspace:*",
         "@forgeron/registry": "workspace:*",
       },
       "devDependencies": {
@@ -132,6 +134,13 @@
       "dependencies": {
         "zod": "4.6.7",
       },
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+      },
+    },
+    "packages/playground": {
+      "name": "@forgeron/playground",
+      "version": "0.0.0",
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
       },
@@ -403,6 +412,8 @@
     "@forgeron/hosting": ["@forgeron/hosting@workspace:packages/hosting"],
 
     "@forgeron/manifest": ["@forgeron/manifest@workspace:packages/manifest"],
+
+    "@forgeron/playground": ["@forgeron/playground@workspace:packages/playground"],
 
     "@forgeron/registry": ["@forgeron/registry@workspace:packages/registry"],
 
