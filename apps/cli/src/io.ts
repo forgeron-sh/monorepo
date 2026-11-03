@@ -9,6 +9,8 @@ export interface Io {
   error(message: string): void;
   /** Runs a program with the terminal attached and resolves with its exit code. */
   exec(command: string, args: string[], cwd: string): Promise<number>;
+  /** Runs a program and resolves with its exit code and standard output (standard error stays on the terminal); rejects when it cannot start; absent when a program's output cannot be read. */
+  capture?(command: string, args: string[], cwd: string): Promise<{ code: number; stdout: string }>;
   /** Asks a yes/no question on the terminal; absent when nobody can answer (then `--yes` is needed). */
   confirm?(question: string): Promise<boolean>;
   /** Reads a value from the keyboard without echoing it (or from piped input); never an argument. */
@@ -41,6 +43,15 @@ export function terminal(): Io {
         const child = spawn(command, args, { cwd, stdio: "inherit" });
         child.once("error", reject);
         child.once("exit", (code) => resolve(code ?? 1));
+      }),
+    capture: (command, args, cwd) =>
+      new Promise((resolve, reject) => {
+        const child = spawn(command, args, { cwd, stdio: ["ignore", "pipe", "inherit"] });
+        let stdout = "";
+        child.stdout.setEncoding("utf8");
+        child.stdout.on("data", (chunk) => (stdout += chunk));
+        child.once("error", reject);
+        child.once("close", (code) => resolve({ code: code ?? 1, stdout }));
       }),
     confirm: async (question) => {
       if (!process.stdin.isTTY) return false;

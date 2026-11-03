@@ -292,3 +292,13 @@ Rules of the log:
 - **Why**: `sdk.md` §4: a person's credentials are never in the project. The loopback redirect with PKCE is the usual way a CLI signs in through a browser, and keeps the token out of the browser's history and the command line.
 - **Not done**: the gateway side of `/auth/cli`, `/auth/cli/token` and `/whoami` does not exist (these paths are what the CLI asks for, simulated in the tests); the OS keychain adapters (macOS, Linux, Windows) are not written, so the file is used everywhere today; no real sign-in was tried.
 - **Applied in**: `apps/cli/src/commands/login.ts`, `apps/cli/src/credentials.ts`, `apps/cli/src/io.ts`.
+
+## D-026 — `--auth wrangler` installs with the wrangler session token and never stores it in the gateway
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `forgeron platform install --auth <token|wrangler|oauth>` resolves the Cloudflare credential through a provider (`apps/cli/src/commands/cloudflare-auth.ts`). `token` (default) reads `CLOUDFLARE_API_TOKEN`. `wrangler` runs `wrangler auth token` (no shell, through `io.capture`) and uses its output for the installation's Cloudflare calls only. `oauth` is reserved and refused with exit 2.
+- **Gateway secret**: the gateway's `CLOUDFLARE_API_TOKEN` binding is a durable credential it uses to deploy tools without the person present. A wrangler OAuth token is the person's short-lived session token (refreshed by wrangler), so it is never stored. With `--auth wrangler` the binding is set from `GATEWAY_CLOUDFLARE_API_TOKEN` (an API token limited to Workers, D1, KV and R2) when that variable is set; otherwise it is skipped, and the command says so and how to set it afterwards.
+- **Why**: nobody has to create a token by hand for the installation, and the installation stays honest: a session token that expires would leave a gateway that silently cannot deploy.
+- **Rejected**: storing the wrangler token (expires); making `GATEWAY_CLOUDFLARE_API_TOKEN` mandatory (blocks the installation for a binding that can be set later); a Forgeron-owned Cloudflare OAuth client (out of scope: not evaluated; whether refresh tokens are issued to self-managed clients is not verified).
+- **Not changed**: the token handling (never an argument, never printed), the permissions the gateway needs, and the default behaviour without `--auth`. Not verified against a real wrangler: the exact output of `wrangler auth token` is assumed to be the token alone on one line (anything else is refused).
+- **Applied in**: FOR-117.
