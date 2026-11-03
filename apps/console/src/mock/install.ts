@@ -1,7 +1,10 @@
 // A gateway in memory, for the local harness (`VITE_MOCK=1`, the `console-harness` preview): every
 // console route answers from a small state that the writes change. Names, addresses and values are
 // made up; there is no secret in it. Pick a scenario with `?mock=`:
-//   ready (default) · fresh (nothing done yet) · member (not an admin) · signedout · error · slow
+//   ready (default) · fresh (nothing done yet) · member (not an admin) · empty (no tool in the catalog)
+//   · signedout · error · slow
+
+import { mockCatalogRoute } from "../features/portal/mock";
 
 type Json = Record<string, any>;
 const DAY = 24 * 60 * 60 * 1000;
@@ -209,6 +212,10 @@ export async function installMock(): Promise<void> {
       });
     }
     if (path === "/api/tools") return reply(200, { tools: state.tools });
+    if (path.startsWith("/api/catalog")) {
+      const answer = scenario === "empty" ? { tools: [] } : mockCatalogRoute(path, admin);
+      return answer ? reply(200, answer) : reply(404, { error: "NOT_FOUND" });
+    }
     const needAdmin = [
       "/api/members",
       "/api/invitations",
