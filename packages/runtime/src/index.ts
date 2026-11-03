@@ -3,6 +3,7 @@ export { createRuntime, type Runtime } from "./runtime";
 export { toolName } from "./mcp";
 export { EXIT_CODE, HTTP_STATUS } from "./types";
 export type {
+  UserSecretStore,
   ActionContext,
   Authenticated,
   CallSource,

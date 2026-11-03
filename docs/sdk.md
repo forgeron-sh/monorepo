@@ -339,6 +339,7 @@ export default action({
 | `NOT_FOUND`              | 404  | tool error                  | 4          | Object missing                                              |
 | `CONFLICT`               | 409  | tool error                  | 1          | Duplicate, concurrent version                               |
 | `RATE_LIMITED`           | 429  | tool error                  | 1          | Limit exceeded                                              |
+| `SECRET_REQUIRED`        | 428  | tool error with a link      | 1          | A per-person secret is missing (raised by the platform)     |
 | `UPSTREAM`               | 502  | tool error                  | 1          | Third-party service in error                                |
 | _(unexpected exception)_ | 500  | tool error, generic message | 1          | The detail stays in the log, never returned to the caller   |
 
