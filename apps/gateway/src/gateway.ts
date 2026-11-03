@@ -41,7 +41,12 @@ import { handlePromote, handleRollback } from "./deploy/promote";
 import { handleGroups } from "./console-api/groups";
 import { createAuth } from "./identity/auth";
 import { createEmailAuth } from "./identity/email-auth";
-import { cloudflareMailSender, type MailSender, type SendEmailBinding } from "./mail/mail";
+import {
+  cloudflareMailSender,
+  consoleMailSender,
+  type MailSender,
+  type SendEmailBinding,
+} from "./mail/mail";
 import { createCaller, membership } from "./identity/caller";
 import { providerFromConfig } from "./identity/presets";
 import type { SamlProvider } from "./identity/saml";
@@ -103,6 +108,11 @@ export interface GatewayEnv {
   SEND_EMAIL?: SendEmailBinding;
   /** The address the sign-in mail comes from: an address of a domain onboarded to Email Sending. */
   MAIL_FROM?: string;
+  /**
+   * `console` (D-051): the codes are written to the Worker's logs instead of being mailed, for test
+   * installs. Opt-in; refused on the cloud (`DISPATCHER`, or a `forgeron.app` base domain).
+   */
+  MAIL_MODE?: string;
   /** The Cloudflare account the gateway deploys tools to (`POST /deploy`). */
   CLOUDFLARE_ACCOUNT_ID?: string;
   /** Secret. Limited to Workers, D1, KV and R2; deploys tools without the person present. */
@@ -316,11 +326,22 @@ export function createGateway(
     .split(",")
     .map((m) => m.trim().toLowerCase())
     .filter(Boolean);
+  // Console mail is for test installs: never where the gateway serves the cloud.
+  const production =
+    env.DISPATCHER !== undefined ||
+    env.BASE_DOMAIN === "forgeron.app" ||
+    env.BASE_DOMAIN.endsWith(".forgeron.app");
+  const consoleMail = env.MAIL_MODE === "console" && !production;
+  if (env.MAIL_MODE === "console" && production) {
+    console.error("MAIL_MODE=console is refused on a production domain: sign-in by email is off.");
+  }
   const mailer =
     options.mail ??
-    (env.SEND_EMAIL && env.MAIL_FROM
-      ? cloudflareMailSender(env.SEND_EMAIL, env.MAIL_FROM)
-      : undefined);
+    (consoleMail
+      ? consoleMailSender()
+      : env.SEND_EMAIL && env.MAIL_FROM
+        ? cloudflareMailSender(env.SEND_EMAIL, env.MAIL_FROM)
+        : undefined);
   const emailOn = methods.includes("email") && mailer !== undefined;
   // OIDC stays on when nothing is stated (a gateway installed before D-049), or when it is named.
   const oidcOn = methods.length === 0 || methods.includes("oidc");
@@ -388,6 +409,12 @@ export function createGateway(
               (await providerOf(ws, config)) !== undefined,
             now,
             sessionTtlSeconds: options.sessionTtlSeconds ?? 8 * 60 * 60,
+            ...(consoleMail
+              ? {
+                  notice:
+                    "Test mode: codes are written to the Worker's logs, so anyone who can read them can sign in as an allowed address.",
+                }
+              : {}),
             ...(options.defer ? { defer: options.defer } : {}),
           });
           const answered = await emailAuth(request);
@@ -537,6 +564,7 @@ export function createGateway(
                   await mailer.send({
                     to: invitation.email,
                     subject: `You are invited to ${workspace}`,
+                    invitation: { roles: invitation.roles },
                     text: `You are invited to join ${workspace}${invitation.roles.length ? ` as ${invitation.roles.join(", ")}` : ""}.\n\nSign in with this email address at https://${workspace}.${env.BASE_DOMAIN}/auth/login to accept. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
                   });
                   return true;

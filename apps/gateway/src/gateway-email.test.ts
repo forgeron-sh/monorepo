@@ -585,3 +585,94 @@ describe("beside OpenID Connect", () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe("console mail mode (D-051)", () => {
+  const consoleEnv = { MAIL_MODE: "console" } as Partial<GatewayEnv>;
+  const gw = (over: Partial<GatewayEnv>, lines: string[]) => {
+    const log = vi
+      .spyOn(console, "log")
+      .mockImplementation((line: string) => void lines.push(line));
+    return { gateway: createGateway({ ...env, ...over }, { now: () => clock }), log };
+  };
+
+  it("logs the code for the first administrator, who signs in with it; the answer is the same for a stranger", async () => {
+    const lines: string[] = [];
+    const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "fabriks.cc" }, lines);
+    const origin = "https://acme.fabriks.cc";
+    const ask = (email: string) =>
+      g(new Request(`${origin}/auth/email/request`, form({ email }, { origin })));
+    const known = await ask("root@acme.fr");
+    const stranger = await ask("stranger@elsewhere.test");
+    expect(await stranger.text()).toBe(await known.text());
+    // One line, for the allowed address only.
+    expect(lines).toHaveLength(1);
+    const entry = JSON.parse(lines[0]!) as { event: string; address: string; code: string };
+    expect(entry).toMatchObject({ event: "sign-in code", address: "root@acme.fr" });
+    expect(entry.code).toMatch(/^\d{8}$/);
+    expect(lines.join("")).not.toContain("stranger");
+    const done = await g(
+      new Request(
+        `${origin}/auth/email/verify`,
+        form({ code: entry.code }, { origin, cookie: cookiesOf(known) }),
+      ),
+    );
+    expect(done.status).toBe(303);
+    log.mockRestore();
+  });
+
+  it("says on the sign-in page that it is for tests", async () => {
+    const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "fabriks.cc" }, []);
+    const page = await (await g(new Request("https://acme.fabriks.cc/auth/login"))).text();
+    expect(page).toContain("Test mode");
+    log.mockRestore();
+  });
+
+  it("logs an invitation (address and roles), never a code", async () => {
+    const lines: string[] = [];
+    const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "fabriks.cc" }, lines);
+    const origin = "https://acme.fabriks.cc";
+    const asked = await g(
+      new Request(`${origin}/auth/email/request`, form({ email: "root@acme.fr" }, { origin })),
+    );
+    const entry = JSON.parse(lines[0]!) as { code: string };
+    const done = await g(
+      new Request(
+        `${origin}/auth/email/verify`,
+        form({ code: entry.code }, { origin, cookie: cookiesOf(asked) }),
+      ),
+    );
+    lines.length = 0;
+    const invited = await g(
+      new Request(
+        `${origin}/console-api/api/invitations`,
+        json("POST", { email: "new@x.test", roles: ["developer"] }, cookiesOf(done)),
+      ),
+    );
+    expect(invited.status).toBe(201);
+    expect(lines.map((l) => JSON.parse(l))).toEqual([
+      { event: "invitation", address: "new@x.test", roles: ["developer"] },
+    ]);
+    log.mockRestore();
+  });
+
+  it("is refused on the cloud: no email sign-in at all, and an error in the logs", async () => {
+    const lines: string[] = [];
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { gateway: g, log } = gw(consoleEnv, lines);
+    const response = await g(
+      new Request(`${ORIGIN}/auth/email/request`, form({ email: "root@acme.fr" })),
+    );
+    expect(response.status).toBe(404);
+    expect(lines).toEqual([]);
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+    log.mockRestore();
+  });
+
+  it("without MAIL_MODE and without a sender, email sign-in stays off", async () => {
+    const response = await createGateway(env, { now: () => clock })(
+      new Request(`${ORIGIN}/auth/email/request`, form({ email: "root@acme.fr" })),
+    );
+    expect(response.status).toBe(404);
+  });
+});

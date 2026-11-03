@@ -535,6 +535,44 @@ describe("forgeron platform install", () => {
       expect(logs.join("\n")).toContain("by email code");
     });
 
+    it("sets up the console mail mode: no sender, no binding (D-051)", async () => {
+      const cf = fakeCloudflare();
+      await platform(
+        install(["--sign-in", "email", "--mail", "console", "--admin-email", "admin@example.test"]),
+        io,
+        { fetch: cf.fetcher },
+      );
+      expect(named(cf, "MAIL_MODE")).toMatchObject({ type: "plain_text", text: "console" });
+      expect(named(cf, "SEND_EMAIL")).toBeUndefined();
+      expect(named(cf, "MAIL_FROM")).toBeUndefined();
+      expect(logs.join("\n")).toContain("TEST mode");
+    });
+
+    it("refuses console mail where it makes no sense, before calling Cloudflare", async () => {
+      const cf = fakeCloudflare();
+      const bad: Array<[string[], RegExp]> = [
+        [["--sign-in", "email", "--mail", "sms", "--admin-email", "a@b.co"], /--mail is/],
+        [
+          [
+            "--sign-in",
+            "email",
+            "--mail",
+            "console",
+            "--mail-from",
+            "a@b.co",
+            "--admin-email",
+            "a@b.co",
+          ],
+          /drop --mail-from/,
+        ],
+        [[...OIDC, "--mail", "console"], /for --sign-in email/],
+      ];
+      for (const [extra, message] of bad) {
+        await expect(platform(install(extra), io, { fetch: cf.fetcher })).rejects.toThrow(message);
+      }
+      expect(cf.calls).toHaveLength(0);
+    });
+
     it("sets both sign-ins side by side", async () => {
       const cf = fakeCloudflare();
       await platform(

@@ -22,6 +22,8 @@ export interface IdentityFlags {
   signIn?: string;
   /** The address sign-in mail comes from, on a domain onboarded to Cloudflare Email Sending. */
   mailFrom?: string;
+  /** `console` writes the codes to the gateway's logs (test installs); `cloudflare` (default) mails them. */
+  mail?: string;
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -66,6 +68,7 @@ export function identitySettings(flags: IdentityFlags, env: NodeJS.ProcessEnv): 
     "MEMBER_EMAIL_DOMAINS",
     "SIGN_IN_METHODS",
     "MAIL_FROM",
+    "MAIL_MODE",
     "SEND_EMAIL",
   ];
   if (!stated) {
@@ -82,7 +85,15 @@ export function identitySettings(flags: IdentityFlags, env: NodeJS.ProcessEnv): 
   }
   const withEmail = methods?.includes("email") ?? false;
   const withOidc = methods ? methods.includes("oidc") : true;
-  if (withEmail && (!flags.mailFrom || !EMAIL.test(flags.mailFrom))) {
+  if (flags.mail !== undefined && flags.mail !== "console" && flags.mail !== "cloudflare") {
+    throw new UsageError("--mail is console or cloudflare.");
+  }
+  const consoleMail = flags.mail === "console";
+  if (consoleMail && !withEmail) throw new UsageError("--mail console is for --sign-in email.");
+  if (consoleMail && flags.mailFrom !== undefined) {
+    throw new UsageError("--mail console sends no mail: drop --mail-from.");
+  }
+  if (withEmail && !consoleMail && (!flags.mailFrom || !EMAIL.test(flags.mailFrom))) {
     throw new UsageError(
       "--sign-in email needs --mail-from <address>, on a domain onboarded to Cloudflare Email Sending.",
     );
@@ -143,7 +154,8 @@ export function identitySettings(flags: IdentityFlags, env: NodeJS.ProcessEnv): 
   return [
     ...settings,
     ...(methods ? [plain("SIGN_IN_METHODS", methods.join(","))] : []),
-    ...(withEmail
+    ...(consoleMail ? [plain("MAIL_MODE", "console")] : []),
+    ...(withEmail && !consoleMail
       ? [
           plain("MAIL_FROM", flags.mailFrom!),
           // The binding of Cloudflare Email Sending the gateway sends the codes through.

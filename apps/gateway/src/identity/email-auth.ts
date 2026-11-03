@@ -46,6 +46,8 @@ export interface EmailAuthOptions {
   oidcAvailable(workspace: string): Promise<boolean>;
   now(): Date;
   sessionTtlSeconds: number;
+  /** A line shown on the sign-in pages (the console mail mode says it is for tests). */
+  notice?: string;
   /**
    * Runs the sending of a mail after the answer has gone (`ctx.waitUntil`), so that an address that
    * gets a mail does not take longer to answer than one that does not. Without it the mail is
@@ -132,6 +134,7 @@ const groups = (code: string) => `${code.slice(0, CODE_DIGITS / 2)} ${code.slice
 
 export function createEmailAuth(options: EmailAuthOptions) {
   const { registry, codes, secret } = options;
+  const notice = options.notice ? `<p class="or">${escape(options.notice)}</p>` : "";
 
   /** Who this address would be, without making them a member. */
   async function admission(workspace: string, email: string): Promise<Admission | undefined> {
@@ -173,7 +176,7 @@ export function createEmailAuth(options: EmailAuthOptions) {
       const choose = oidc
         ? `<a class="button" href="/auth/login?method=oidc${next ? `&amp;next=${encodeURIComponent(next).replaceAll("&", "%26")}` : ""}">Continue with your company account</a><p class="or">or</p>`
         : "";
-      return page(200, "Sign in", `${choose}${emailForm(next)}`);
+      return page(200, "Sign in", `${choose}${emailForm(next)}${notice}`);
     }
 
     if (path !== "/auth/email/request" && path !== "/auth/email/verify") return undefined;
@@ -232,6 +235,7 @@ export function createEmailAuth(options: EmailAuthOptions) {
           .send({
             to: email,
             subject: "Your sign-in code",
+            code,
             text: `Your code to sign in to ${workspace} is ${groups(code)}.\n\nIt works once, for ${CODE_SECONDS / 60} minutes, in the browser where you asked for it. If you did not ask for it, ignore this message: nobody can sign in without it.`,
           })
           // The answer must not tell a failed send from no send: log it, without the address.
@@ -245,7 +249,7 @@ export function createEmailAuth(options: EmailAuthOptions) {
       return page(
         200,
         "Enter your code",
-        `<p>If this address can sign in, a code is on its way. It is valid for ${CODE_SECONDS / 60} minutes.</p>${codeForm()}`,
+        `<p>If this address can sign in, a code is on its way. It is valid for ${CODE_SECONDS / 60} minutes.</p>${codeForm()}${notice}`,
         {
           "set-cookie": cookie(
             await seal(PREFIX, { rid: id, ws: workspace, exp, ...(next ? { next } : {}) }, secret),
