@@ -14,10 +14,10 @@ import { sha256 } from "./fingerprint";
 // references with a relative path, plus the config's `icon`. What is collected is what a member of the
 // workspace will be served, so each file is checked here, and a refusal names the file.
 
-export { MAX_FILE, MAX_TOTAL, MAX_ICON, svgProblem };
+export { MAX_FILE, svgProblem };
 const README = "README.md";
 
-export interface CollectedAsset {
+interface CollectedAsset {
   path: string;
   type: string;
   size: number;

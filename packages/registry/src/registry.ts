@@ -312,7 +312,7 @@ const toMember = (r: Row): Member => ({
 const DOC_CHUNK = 20_000;
 const DOC_BATCH = 100;
 /** The README is stored among the files of a build under this path, with this type. */
-export const README_PATH = "README.md";
+const README_PATH = "README.md";
 const README_TYPE = "text/markdown";
 
 export interface DocFile {
