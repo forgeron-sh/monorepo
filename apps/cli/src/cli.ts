@@ -8,6 +8,7 @@ import { install } from "./commands/install";
 import { link } from "./commands/link";
 import { play } from "./commands/play";
 import { test } from "./commands/test";
+import { token } from "./commands/token";
 import { UsageError, type Io } from "./io";
 
 const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
@@ -22,6 +23,7 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   db,
   change,
   release,
+  token,
 };
 
 const USAGE = `Usage: forgeron <command>
@@ -36,6 +38,7 @@ const USAGE = `Usage: forgeron <command>
                                        the database: migrations, seed, SQL (forgeron db for details)
   change --type <t> --bump <b> -m ".."  add a change to changes/ (change check: CI)
   release [--no-git]                   next version, CHANGELOG.md, tag
+  token create --name <n> --scope deploy  create a deployment token for CI (FORGERON_TOKEN)
   test [vitest args]                   build the tool, then run Vitest
   build                                build every tool under this folder`;
 

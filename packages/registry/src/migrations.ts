@@ -69,4 +69,24 @@ export const platformMigrations: BuildMigration[] = [
       st(`DROP TABLE "tools"`),
     ],
   },
+  {
+    name: "0002_audit",
+    fingerprint: "audit-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "audit_log" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "at" TEXT NOT NULL,
+  "actor" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "tool_id" TEXT REFERENCES "tools" ("id") ON DELETE SET NULL,
+  "environment" TEXT,
+  "branch" TEXT,
+  "version" TEXT,
+  "detail" TEXT
+)`),
+      st(`CREATE INDEX "audit_by_tool" ON "audit_log" ("tool_id", "at")`),
+    ],
+    down: [st(`DROP TABLE "audit_log"`)],
+  },
 ];

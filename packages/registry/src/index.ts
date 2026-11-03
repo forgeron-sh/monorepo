@@ -9,6 +9,7 @@ export type { DeployBuildInput, DeployedBuild } from "./deploy";
 export { createRegistry, RegistryError } from "./registry";
 export type {
   Approval,
+  AuditEntry,
   ApprovalStatus,
   BuildRecord,
   EnvironmentRecord,

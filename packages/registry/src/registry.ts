@@ -54,6 +54,20 @@ export interface Approval {
   decidedAt?: string;
 }
 
+export interface AuditEntry {
+  id: string;
+  at: string;
+  /** Who: a person's id, or `deploy:<token name>` for a deployment token. */
+  actor: string;
+  /** `deploy`, `deploy.failed`… */
+  action: string;
+  toolId?: string;
+  environment?: string;
+  branch?: string;
+  version?: string;
+  detail?: string;
+}
+
 export type RegistryErrorCode =
   | "NOT_FOUND"
   | "ALREADY_EXISTS"
@@ -112,6 +126,17 @@ const toEnvironment = (r: Row): EnvironmentRecord => ({
   ...(text(r.url) ? { url: text(r.url) } : {}),
   ...(text(r.activated_at) ? { activatedAt: text(r.activated_at) } : {}),
   createdAt: String(r.created_at),
+});
+const toAudit = (r: Row): AuditEntry => ({
+  id: String(r.id),
+  at: String(r.at),
+  actor: String(r.actor),
+  action: String(r.action),
+  ...(text(r.tool_id) ? { toolId: text(r.tool_id) } : {}),
+  ...(text(r.environment) ? { environment: text(r.environment) } : {}),
+  ...(text(r.branch) ? { branch: text(r.branch) } : {}),
+  ...(text(r.version) ? { version: text(r.version) } : {}),
+  ...(text(r.detail) ? { detail: text(r.detail) } : {}),
 });
 const toApproval = (r: Row): Approval => ({
   id: String(r.id),
@@ -383,6 +408,30 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
             toolId,
           );
       return rows.map(toApproval);
+    },
+    // ---- audit log
+    /** Appends what happened: who did it, when (now), and to which version of which tool. */
+    async recordAudit(input: Omit<AuditEntry, "id" | "at">): Promise<AuditEntry> {
+      const id = newId();
+      await write(
+        `INSERT INTO "audit_log" ("id", "at", "actor", "action", "tool_id", "environment", "branch", "version", "detail") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id,
+        now(),
+        input.actor,
+        input.action,
+        input.toolId ?? null,
+        input.environment ?? null,
+        input.branch ?? null,
+        input.version ?? null,
+        input.detail ?? null,
+      );
+      return toAudit((await first(`SELECT * FROM "audit_log" WHERE "id" = ?`, id))!);
+    },
+    /** The entries of a tool, oldest first. */
+    async listAudit(toolId: string): Promise<AuditEntry[]> {
+      return (
+        await all(`SELECT * FROM "audit_log" WHERE "tool_id" = ? ORDER BY "at", "rowid"`, toolId)
+      ).map(toAudit);
     },
     /** The resources of this version that are not approved yet: what blocks an activation. */
     async unapproved(versionId: string): Promise<Approval[]> {
