@@ -523,6 +523,10 @@ export default defineView({
 - Views are React 18+ components, built by `forgeron build` and served by the tool's Worker, behind the SSO.
 - `@forgeron/ui` provides components aligned with the Forgeron design system (black and white, sharp corners): `Page`, `Table`, `Board`, `Stat`, `BarChart`, `Select`, `Button`… Optional.
 - A view has no direct access to the database: it goes through actions, and therefore through access rights.
+- `defineView` refuses a `path` that does not start with `/` or that falls under a path the platform reserves (`/mcp`, `/api`, `/cli`, `/play`, `/_f`).
+- Reads are shared: two components calling `useAction` with the same name and input use one request. `refresh` is a polling period in milliseconds.
+- `useMutation` invalidates the reads of the same group: `deals.move` re-reads `deals.*`; an action without a dot invalidates every read. `run` rejects on failure, and the error is also exposed as `error`.
+- `useParams` returns the values parsed by `params`; the setter merges a partial update, validates it, then writes the URL. Values are strings in the URL, so use `z.coerce` for numbers.
 
 ## 12. Composition between tools
 
