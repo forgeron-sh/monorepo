@@ -46,6 +46,8 @@ Rules of the log:
 | D-034 | 03/11/2026 | The pilot group is a named set of members in the registry, edited through the console API; the pilot version is served to it     | Active            |
 | D-035 | 03/11/2026 | Tokens carry an id, are revoked from a list checked at each call, and the signing key rotates with an overlap                    | Active            |
 | D-036 | 03/11/2026 | Per-person secrets are sealed in the platform D1, typed at the gateway, and handed to a call as the caller's own only            | Active            |
+| D-039 | 03/11/2026 | The roles × actions matrix is a set of overrides in the platform D1, forwarded to the tool at each call in `x-forgeron-user`     | Active            |
+| D-040 | 03/11/2026 | The matrix is edited by admins only, cell by cell, and every edit is audited                                                     | Active            |
 
 ---
 
@@ -426,3 +428,21 @@ Rules of the log:
 - **Rejected**: an internal `/__forgeron/seed` route the gateway calls (unreachable in self-host in the same request, and a path to protect); the gateway evaluating the seed (no `eval` in Workers); seeding from the CLI (the CLI has no access to the remote database for a tool deployed by the gateway). `snapshot` copies production data into a preview: it needs a data-protection decision (sdk.md §3 requires the admin's agreement) before any code.
 - **Not done / not verified**: the preview is seeded at its first request, not at deploy; a seed that fails half way leaves the preview unusable until it is replaced; two isolates racing on the first request: the loser may answer before the seed finishes; the marker contract is split between `packages/hosting/src/seed-marker.ts` and the generated Worker entry; `meta.changes` on `.all()` of a real D1 was read in the documentation, not tried; nothing was tried on a real account. Cloud mode against Workers for Platforms: the upload endpoint `PUT /workers/dispatch/namespaces/<ns>/scripts/<name>` with a `metadata` part (`main_module`, `bindings` of type `d1` / `kv_namespace` / `r2_bucket`) and namespace creation `POST /workers/dispatch/namespaces` are confirmed by the Cloudflare documentation (WfP "Bindings", updated 31/10/2026; "Infrastructure as code"), read 03/11/2026. Not confirmed: that a user Worker can be uploaded with its own D1 on a real WfP account (FOR-36 stays a spike), the `keep_bindings` behaviour on a re-upload (the upload always sends every binding), and the queue binding (refused: 501).
 - **Applied in**: FOR-46, FOR-69.
+
+## D-039 — The matrix is a set of overrides in the platform D1, forwarded to the tool at each call in `x-forgeron-user`
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: the roles × actions matrix of a tool is the manifest's access levels (default) plus one `role_access` row per cell an admin set (`0006_role_access`); no version is involved. At each call the gateway (`forwardIdentity`, through the dispatcher's `forward` hook) resolves the caller, reads `registry.accessFor(tool, roles)` (the overrides of the caller's own roles) and sends `{ id, email, name, roles, access }` in `x-forgeron-user`; the runtime's one check (`mayCall`) gives an override priority over the levels, on MCP, API, CLI and Web alike. Nothing is cached, so an edit applies to the next call. The dispatcher always deletes `x-forgeron-user` from what the client sent (D-035's `INTERNAL_HEADERS`). The roles and actions of the matrix are those of the version production serves (else the latest): the console cannot add a role or an action, only move who may call.
+- **Why**: the check stays in the runtime where FOR-90 put it, so no interface can skip it, and the override is read where the roles already are. A header the client could set would have let anyone choose their identity.
+- **Rejected**: copying the matrix into each tool's environment (needs a deployment per edit); a per-interface check in the gateway (four copies to keep equal); caching the overrides in the gateway (a stale grant after a revoke).
+- **Not done**: views still check the access levels only (the gateway's view access is not built); an override of a role or action that a later version removes stays in the table and is ignored.
+- **Applied in**: FOR-43; `apps/gateway/src/dispatch/user-secrets.ts` (`forwardIdentity`); `packages/runtime` (`mayCall`).
+
+## D-040 — The matrix is edited by admins only, cell by cell, and every edit is audited
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `GET` and `PUT /console-api/api/tools/<tool>/access-matrix` are for the workspace's `admin` role (D-023). `PUT` takes `{ role, action, allowed }`, `allowed` being `true`, `false`, or `null` to give the cell back to the manifest's levels; it answers with the matrix. The registry writes the edit and an audit line (`kind: "access"`, subject `role:action`, detail `{ role, action, from, to }`, the admin as actor) in one batch (migration `0014_audit_access`, which rebuilds `audit_log` because SQLite cannot change a CHECK). The console drafts flips on the screen, marks each cell whose applied value differs from the manifest's default, and sends the drafted cells on Save, a cell back at its default as `null`.
+- **Why**: a refused-by-default governance surface must not be writable by developers (D-023); the audit line and the write cannot disagree when they share a batch.
+- **Rejected**: a whole-matrix replace (two admins editing different cells would overwrite each other); keeping an override equal to the default (it would hide a later change of the manifest's level).
+- **Not done**: Save sends the cells one by one, so a failure part-way leaves the earlier ones applied (the screen reloads and shows what applies); the admin MCP has no matrix tool.
+- **Applied in**: FOR-43; `apps/gateway/src/console-api/access-matrix.ts`, `apps/console/src/access-matrix.tsx`, `packages/registry` (`0014_audit_access`).

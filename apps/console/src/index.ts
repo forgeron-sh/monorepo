@@ -10,6 +10,11 @@ export {
 } from "./pending-approvals";
 export {
   AccessMatrix,
+  AccessMatrixEditor,
+  saveAccessMatrix,
+  withDraft,
+  type AccessMatrixEditorProps,
+  type CellChange,
   loadAccessMatrix,
   type AccessCell,
   type AccessMatrixData,

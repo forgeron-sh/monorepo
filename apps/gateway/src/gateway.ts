@@ -15,6 +15,7 @@ import {
   type GatewayBindings,
   type Hosting,
 } from "@forgeron/hosting";
+import { handleAccessMatrix } from "./console-api/access-matrix";
 import { handleConnections } from "./console-api/connections";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
@@ -343,7 +344,11 @@ export function createGateway(
       const who = secret && caller ? await caller.resolve(request, workspace, true) : undefined;
       const identity = async () =>
         who
-          ? { admin: who.roles.includes("admin"), developer: who.roles.includes("developer") }
+          ? {
+              id: who.id,
+              admin: who.roles.includes("admin"),
+              developer: who.roles.includes("developer"),
+            }
           : undefined;
       return (
         (await handleRevocations(forwarded, {
@@ -352,6 +357,7 @@ export function createGateway(
           caller: identity,
         })) ??
         (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
         (await handleGroups(forwarded, { registry, workspace, caller: identity })) ??

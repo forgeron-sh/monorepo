@@ -124,6 +124,30 @@ describe("the roles × actions matrix", () => {
     expect(await registry.accessFor(tool.id, [])).toEqual({});
   });
 
+  it("writes each change in the audit log, with what it was and what it became", async () => {
+    await publish("fp1", "1.0.0", "a");
+    await registry.setRoleAccess(tool.id, "viewer", "deals.move", true, "admin-1");
+    await registry.setRoleAccess(tool.id, "viewer", "deals.move", undefined, "admin-2");
+    const log = await registry.listAudit(tool.id, { kind: "access" });
+    expect(log.map((e) => [e.actor, e.subject, e.detail])).toEqual([
+      [
+        "admin-2",
+        "viewer:deals.move",
+        { role: "viewer", action: "deals.move", from: true, to: false },
+      ],
+      [
+        "admin-1",
+        "viewer:deals.move",
+        { role: "viewer", action: "deals.move", from: false, to: true },
+      ],
+    ]);
+  });
+
+  it("keeps the older audit lines when the log learns the access kind", async () => {
+    await publish("fp1", "1.0.0", "a");
+    expect((await registry.listAudit(tool.id, { kind: "deployment" })).length).toBeGreaterThan(0);
+  });
+
   it("is dropped with the tool", async () => {
     await publish("fp1", "1.0.0", "a");
     await registry.setRoleAccess(tool.id, "viewer", "deals.move", true, "admin-1");
