@@ -1,0 +1,54 @@
+import { parseArgs } from "node:util";
+import { UsageError, type Io } from "../io";
+import { readProject } from "../project";
+
+const USAGE = "Usage: forgeron preview close [--branch <name>]";
+
+/**
+ * `forgeron preview close`: tears down the preview of a branch (a merged or closed pull request)
+ * with `FORGERON_TOKEN`. The branch is `--branch`, or the one GitHub gives CI: on a pull request
+ * `GITHUB_HEAD_REF`, the same name `forgeron deploy` used. A branch with no preview is not an error.
+ */
+export async function preview(args: string[], io: Io): Promise<number> {
+  const [action, ...rest] = args;
+  if (action !== "close") throw new UsageError(USAGE);
+  const { values, positionals } = parseArgs({
+    args: rest,
+    allowPositionals: true,
+    options: { branch: { type: "string" } },
+  });
+  if (positionals.length > 0) throw new UsageError(USAGE);
+  const branch = values.branch ?? process.env.GITHUB_HEAD_REF ?? process.env.GITHUB_REF_NAME;
+  if (!branch) throw new UsageError("Which preview? Pass --branch <name>.");
+  const token = process.env.FORGERON_TOKEN;
+  if (!token) {
+    throw new UsageError(
+      "FORGERON_TOKEN is not set: create a deployment token with `forgeron token create`.",
+    );
+  }
+  const project = await readProject(io.cwd);
+  if (!project?.endpoint) {
+    throw new UsageError(
+      "This tool is not linked to a workspace: run `forgeron link --workspace <name>` first.",
+    );
+  }
+
+  const response = await fetch(new URL("/deploy", project.endpoint), {
+    method: "DELETE",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify({ branch }),
+  });
+  const body = (await response.json().catch(() => undefined)) as
+    | { closed?: boolean; error?: { message?: string } }
+    | undefined;
+  if (!response.ok) {
+    io.error(body?.error?.message ?? `The workspace answered ${response.status}.`);
+    return 1;
+  }
+  io.log(
+    body?.closed
+      ? `Closed the preview of ${project.tool} for ${branch}.`
+      : `${project.tool} had no preview for ${branch}.`,
+  );
+  return 0;
+}

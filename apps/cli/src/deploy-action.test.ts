@@ -92,6 +92,43 @@ describe("the deploy action", () => {
     expect(result.stdout).toContain("FORGERON_TOKEN is not set");
   });
 
+  it("hands the address of every deployed tool to the action's output", async () => {
+    const ctx = await repository(["crm", "dash"]);
+    await writeFile(
+      ctx.fake,
+      `#!/usr/bin/env bash\n[ "$1" = deploy ] && echo "Deployed $(basename "$PWD")@1.0.0-preview.x+abc1234 to preview: https://acme.test/t/$(basename "$PWD")@x"\nexit 0\n`,
+    );
+    const output = join(ctx.root, "github-output");
+    const result = runScript(ctx, { FORGERON_TOKEN: "t", GITHUB_OUTPUT: output });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Deployed crm@");
+    expect(await readFile(output, "utf8")).toBe(
+      [
+        "urls<<FORGERON_URLS_EOF",
+        "crm https://acme.test/t/crm@x",
+        "dash https://acme.test/t/dash@x",
+        "FORGERON_URLS_EOF",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("closes the previews instead of deploying when asked, and does nothing without a token", async () => {
+    const ctx = await repository(["crm"]);
+    expect(runScript(ctx, { FORGERON_TOKEN: "t", FORGERON_CLOSE: "true" }).status).toBe(0);
+    expect(await calls(ctx.log)).toEqual(["crm preview close token=t"]);
+    const none = runScript(ctx, { FORGERON_CLOSE: "true" });
+    expect(none.status).toBe(0);
+    expect(none.stdout).toContain("was not closed");
+    expect(await calls(ctx.log)).toEqual(["crm preview close token=t"]);
+  });
+
+  it("fails when a deploy fails, even with its output piped to the address collector", async () => {
+    const ctx = await repository(["crm"]);
+    const result = runScript(ctx, { FORGERON_TOKEN: "t", FAIL_ON: "deploy" });
+    expect(result.status).not.toBe(0);
+  });
+
   it("fails when there is no tool", async () => {
     const ctx = await repository([]);
     const result = runScript(ctx, { FORGERON_TOKEN: "t" });
