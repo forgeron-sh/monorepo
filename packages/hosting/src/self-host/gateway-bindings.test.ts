@@ -17,7 +17,7 @@ import { FakeCloudflare } from "./fake-cloudflare";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// D-028: the gateway holds a `TOOL_<WORKER>` binding per tool Worker, added and removed by
+// D-029: the gateway holds a `TOOL_<WORKER>` binding per tool Worker, added and removed by
 // uploading a new gateway version that inherits every other binding.
 
 const GATEWAY = "forgeron-gateway";

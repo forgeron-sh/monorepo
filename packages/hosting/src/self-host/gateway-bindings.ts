@@ -1,6 +1,6 @@
 // Self-host: the gateway reaches a tool's Worker through a service binding `TOOL_<WORKER>` (D-017),
 // so creating or deleting a tool Worker means giving the gateway a new version with that binding
-// added or removed (D-028). Neutral: `fetch` only.
+// added or removed (D-029). Neutral: `fetch` only.
 //
 // Cloudflare documentation, Workers API (beta `versions`): a version is an immutable snapshot of
 // the code *and* of its bindings, so a version that lists only the new binding would drop `DB`, the

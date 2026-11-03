@@ -27,7 +27,7 @@ export interface SelfHostOptions extends CloudflareOptions {
   compatibilityDate?: string;
   /**
    * Gives the gateway a service binding to each tool Worker once it serves, and takes it away
-   * before the Worker is deleted (D-028). Without it, binding the tools is somebody else's job.
+   * before the Worker is deleted (D-029). Without it, binding the tools is somebody else's job.
    */
   gateway?: GatewayBindings;
 }

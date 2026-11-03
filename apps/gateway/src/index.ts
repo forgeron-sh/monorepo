@@ -1,5 +1,6 @@
 // Public Worker of the platform: dispatch, identity, registry, admin MCP, deployment.
-// Mounted so far: dispatch of `/t/<tool>…` (FOR-22). The other paths answer 404 until their parts exist.
+// Mounted: dispatch of `/t/<tool>…`, sign-in (`/auth/*`), `/whoami`, `/deploy`, `/deploy-tokens` and the console API.
+// Not mounted, answering 404: `/mcp`, `/api` and `/cli` of the workspace (admin MCP, platform API).
 import { createGateway, type GatewayEnv } from "./gateway";
 
 export { DEPLOY_SCOPE, handleCreateDeployToken, handleDeploy } from "./deploy/deploy";

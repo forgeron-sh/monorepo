@@ -32,6 +32,7 @@
       "ignore": ["fixtures/**"]
     },
     "apps/gateway": {
+      "entry": ["src/index.ts", "src/worker.ts"],
       "ignoreDependencies": ["@cloudflare/workers-oauth-provider"]
     }
   }

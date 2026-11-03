@@ -38,7 +38,8 @@ Rules of the log:
 | D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                                         | Active            |
 | D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                                       | Active            |
 | D-025 | 03/11/2026 | `forgeron login` signs in through the browser on a loopback address with PKCE and stores the token in the keychain or a 600 file | Active            |
-| D-028 | 03/11/2026 | In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding                 | Active            |
+| D-027 | 03/11/2026 | Members live in the registry; sign-in admits the configured administrator and allowed email domains, nobody else                 | Active            |
+| D-029 | 03/11/2026 | In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding                 | Active            |
 
 ---
 
@@ -216,7 +217,7 @@ Rules of the log:
 - **Decision**: the dispatcher asks for a Worker by name (`<workspace>--<tool>--production|pilot|pr-<n>`); `createGateway` finds it in the mode it runs in. With a `DISPATCHER` binding (a dispatch namespace, cloud), it calls `DISPATCHER.get(name)`; a script that no longer exists makes the Fetcher throw "Worker not found", which answers 502 like a missing binding. Without it (self-host), the Worker is the service binding named `TOOL_<NAME IN UPPER CASE, - → _>`: `acme--crm--production` is `TOOL_ACME__CRM__PRODUCTION`. Only a value that can `fetch` is taken for a tool, and no other binding (`DB`, `BASE_DOMAIN`) can match a name that starts with `TOOL_`.
 - **Why**: `sdk.md` §7, "Routing on Cloudflare"; D-009. Worker names are `[a-z0-9-]`, so the binding name is one to one with the Worker name, and the existing check that a Worker belongs to the workspace and the tool still holds in both modes.
 - **Rejected**: one binding name per tool in the registry (state to keep in sync with the gateway's configuration); falling back from the namespace to a binding (two ways in for one Worker).
-- **Not done**: the `dispatch_namespaces` entry of `wrangler.jsonc` (the namespace name is the account's, left as a comment); redeploying the gateway with a new binding when a tool is created in self-host (hosting; see D-028 for the hosting side); custom domains.
+- **Not done**: the `dispatch_namespaces` entry of `wrangler.jsonc` (the namespace name is the account's, left as a comment); redeploying the gateway with a new binding when a tool is created in self-host (hosting; see D-029 for the hosting side); custom domains.
 - **Applied in**: `apps/gateway/src/dispatch/targets.ts`, `apps/gateway/src/gateway.ts`.
 
 ## D-018 — In cloud mode the script is sent at `activate`, after the migration, not at `upload`
@@ -304,7 +305,29 @@ Rules of the log:
 - **Not changed**: the token handling (never an argument, never printed), the permissions the gateway needs, and the default behaviour without `--auth`. Not verified against a real wrangler: the exact output of `wrangler auth token` is assumed to be the token alone on one line (anything else is refused).
 - **Applied in**: FOR-117.
 
-## D-028 — In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding
+## D-027 — Members live in the registry; sign-in admits the configured administrator and allowed email domains, nobody else
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: the people of a workspace are rows of a `members` table in the platform D1 (`workspace`, `id`, identity-provider `subject`, `email`, `name`, `roles` as JSON), unique per `(workspace, subject)`. At sign-in (`resolvePerson`, D-019) a known `subject` is that member; otherwise an email equal to `ADMIN_EMAIL` becomes a member with the role `admin`, an email whose domain is in `MEMBER_EMAIL_DOMAINS` becomes a member with no role, and anyone else is refused (`403`, no session). One resolver, `createCaller`, turns a session cookie or an audience-bound token issued for the workspace into the member and their roles, read at each call; it serves the console API, the dispatcher's `identify` (seats) and `canPreview` (administrators and developers), and `/deploy-tokens`. A deployment token resolves to nobody. `POST /auth/token {tool, days}` issues a personal token to a signed-in session only (not to another token), 1 to 30 days, for a tool that exists; the lifetime bound is a starting value.
+- **Why**: D-019 left `providerFor` and `resolvePerson` unbacked, and roles had no source. The identity provider of a self-hosted install is the company's own, so its issuer and client come from bindings (FOR-120) and a domain allowlist is the simplest admission rule that fails closed.
+- **Know**: the email is matched as the provider states it; `oidc.ts` does not check `email_verified`, so a provider that lets people claim unverified emails would admit them. One provider and one admin email for all workspaces of a gateway, which is right for self-host and wrong for a multi-tenant cloud.
+- **Rejected**: first person to sign in becomes admin (anyone who reaches the sign-in page of a new workspace would); roles as a claim of the provider (a provider-specific mapping).
+- **Not done**: `inPilot` (no pilot group data exists, so pilot is served to nobody); listing, removing or re-roling members; `/auth/cli`, `/auth/cli/token` (D-025 asks for a person's CLI token, but D-015 tokens are bound to one tool, so what audience a CLI token has needs a decision); revocation; `/mcp`, `/api`, `/cli` (FOR-107); preview URLs returned by `POST /deploy` do not carry `@<branch>`.
+- **Applied in**: `packages/registry` (`0008_members`), `apps/gateway/src/gateway.ts`, `identity/caller.ts`, `identity/issue.ts`; `docs/self-host.md`.
+
+## D-028 — The gateway is built with Rolldown into `apps/gateway/dist/worker.js`; the compatibility settings are named once in `@forgeron/hosting`
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `bun run --cwd apps/gateway build` (`apps/gateway/scripts/build.ts`) bundles `src/worker.ts` with Rolldown (`platform: "neutral"`, conditions `workerd`, `worker`, `browser`, `node:*` left external) into one ES module, `dist/worker.js`. `worker.ts` re-exports only the default handler: workerd treats each named export of the main module as an entrypoint and refuses `DEPLOY_SCOPE` (a string) at startup. The compatibility date and flags are `GATEWAY_COMPATIBILITY_DATE` and `GATEWAY_COMPATIBILITY_FLAGS` in `packages/hosting/src/gateway-runtime.ts`; the build is independent of them, `forgeron platform install` reads them, and a test checks that `wrangler.jsonc` (kept for `wrangler dev`) states the same.
+- **Compared** (measured 03/11/2026 on this repository, `wrangler` 4.157.0 fetched with `bunx`, not a dependency):
+  - `wrangler deploy --dry-run --outdir`: works with the same entry (bundle 866 KB unminified, no `node:*` import) once `assets.directory` exists, since the dry run fails while `apps/console/dist` is missing and no console build exists. It adds a large tool to the repository and a second place that decides how the bundle is made.
+  - Rolldown: already pinned (`rolldown` 1.2.16, used by `@forgeron/compiler` for tools, D-006), no new dependency, no assets requirement; 243 KB, no `node:*` import in the bundle.
+- **Why Rolldown**: `docs/ARCHITECTURE.md` already chooses it; the gateway's bundle needs nothing wrangler adds (no assets, no bindings, the install sets those).
+- **Rejected**: wrangler as the build (a dependency and an assets directory for a file the install uploads by itself).
+- **Not verified**: the bundle runs in Miniflare (workerd of `miniflare` 4.20260730.0), which refuses a compatibility date after 2026-08-06, so the test loads it with that date, the older of the two; a real Cloudflare account was not tried. The bundle is not minified.
+- **Applied in**: FOR-121.
+
+## D-029 — In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: `createSelfHostHosting` takes an optional `gateway` (`createGatewayBindings`, `packages/hosting/src/self-host/gateway-bindings.ts`). After `activate` has deployed a tool Worker it calls `bind(worker)`; `teardown` calls `unbind(worker)` before it deletes the Worker (a service binding to a Worker that is gone cannot be deployed). Each uploads a new gateway version through `POST /workers/workers/<gateway>/versions` and deploys it at 100%. The version lists every binding the gateway has now as `{ type: "inherit", name }`, plus the new `{ type: "service", name: "TOOL_<WORKER>", service: "<worker>" }` (or minus the removed one). A Worker already bound, or an unbinding of a Worker that is not, uploads nothing.

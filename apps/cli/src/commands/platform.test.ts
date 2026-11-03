@@ -10,6 +10,8 @@ const TOKEN = "test-token-not-a-real-secret";
 const SESSION = "test-session-token-not-a-real-secret";
 const GATEWAY = "test-gateway-token-not-a-real-secret";
 
+const ZONE = { id: "zone-1", name: "forgeron.example.test" };
+
 interface Calls {
   method: string;
   path: string;
@@ -17,10 +19,12 @@ interface Calls {
 }
 
 /** A simulated Cloudflare account: only the routes the install calls. */
-function fakeCloudflare(expected = TOKEN) {
+function fakeCloudflare(expected = TOKEN, zones: Array<{ id: string; name: string }> = [ZONE]) {
   const calls: Calls[] = [];
   const databases = new Map<string, string>();
   const workers = new Set<string>();
+  const records: Array<{ id: string; name: string; proxied: boolean }> = [];
+  const routes: Array<{ id: string; pattern: string; script: string }> = [];
   const ok = (result: unknown) => Response.json({ success: true, errors: [], result });
   const missing = () =>
     Response.json(
@@ -30,13 +34,29 @@ function fakeCloudflare(expected = TOKEN) {
   const fetcher: typeof fetch = async (input, init) => {
     const url = new URL(String(input));
     const method = init?.method ?? "GET";
-    const path = url.pathname.replace(/^\/client\/v4\/accounts\/[^/]+/, "");
+    const path = url.pathname.replace(/^\/client\/v4(\/accounts\/[^/]+)?/, "");
     const body = init?.body
       ? (JSON.parse(String(init.body)) as Record<string, unknown>)
       : undefined;
     calls.push({ method, path, ...(body ? { body } : {}) });
     expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${expected}`);
     let m: RegExpMatchArray | null;
+    if (method === "GET" && path === "/zones") {
+      // Only the zones of the account in the query, like Cloudflare's `account.id` filter.
+      if (url.searchParams.get("account.id") !== "acc-1") return ok([]);
+      return ok(zones.filter((z) => z.name === url.searchParams.get("name")));
+    }
+    if ((m = path.match(/^\/zones\/([^/]+)\/dns_records$/))) {
+      if (method === "GET")
+        return ok(records.filter((r) => r.name === url.searchParams.get("name")));
+      records.push({ id: "rec-1", name: String(body?.name), proxied: body?.proxied === true });
+      return ok(records.at(-1));
+    }
+    if ((m = path.match(/^\/zones\/([^/]+)\/workers\/routes$/))) {
+      if (method === "GET") return ok(routes);
+      routes.push({ id: "route-1", pattern: String(body?.pattern), script: String(body?.script) });
+      return ok(routes.at(-1));
+    }
     if (method === "GET" && path === "/d1/database") {
       return ok([...databases].map(([uuid, name]) => ({ uuid, name })));
     }
@@ -62,7 +82,7 @@ function fakeCloudflare(expected = TOKEN) {
     if (method === "POST" && /\/deployments$/.test(path)) return ok({ id: "deployment-1" });
     return missing();
   };
-  return { fetcher, calls, databases };
+  return { fetcher, calls, databases, records, routes };
 }
 
 let dir: string;
@@ -127,6 +147,36 @@ describe("forgeron platform install", () => {
     });
     expect(cf.calls.some((c) => c.path === "/workers/scripts/forgeron-gateway/deployments")).toBe(
       true,
+    );
+  });
+
+  it("attaches a proxied wildcard record and the route to the gateway, and changes nothing on a second run", async () => {
+    const cf = fakeCloudflare();
+    await platform(install(), io, { fetch: cf.fetcher });
+    expect(cf.records).toEqual([{ id: "rec-1", name: "*.forgeron.example.test", proxied: true }]);
+    expect(cf.routes).toEqual([
+      { id: "route-1", pattern: "*.forgeron.example.test/*", script: "forgeron-gateway" },
+    ]);
+    const writes = cf.calls.filter((c) => c.method === "POST" && c.path.startsWith("/zones/"));
+    expect(writes).toHaveLength(2);
+    await platform(install(), io, { fetch: cf.fetcher });
+    expect(
+      cf.calls.filter((c) => c.method === "POST" && c.path.startsWith("/zones/")),
+    ).toHaveLength(2);
+    expect(logs.join("\n")).toContain('Found the route "*.forgeron.example.test/*"');
+  });
+
+  it("fails with a usage error when the zone is not on the account, or the route points elsewhere", async () => {
+    await expect(
+      platform(install(), io, { fetch: fakeCloudflare(TOKEN, []).fetcher }),
+    ).rejects.toMatchObject({
+      name: "UsageError",
+      message: expect.stringContaining("not on this Cloudflare account"),
+    });
+    const cf = fakeCloudflare();
+    cf.routes.push({ id: "r", pattern: "*.forgeron.example.test/*", script: "other" });
+    await expect(platform(install(), io, { fetch: cf.fetcher })).rejects.toThrow(
+      /already points to "other"/,
     );
   });
 
