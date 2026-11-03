@@ -1,14 +1,19 @@
 import { createTestTool } from "@forgeron/sdk/testing";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { run } from "./cli";
 import { checkShell } from "./commands/db";
 import type { Io } from "./io";
 
 const fixtures = fileURLToPath(new URL("../fixtures", import.meta.url));
+const here = fileURLToPath(new URL(".", import.meta.url));
 
 interface Captured {
   io: Io;
@@ -124,10 +129,60 @@ describe("forgeron init", () => {
     expect(c.errors[0]).toContain("is not a tool name");
   });
 
-  it("says the template catalog is not there yet", async () => {
-    const c = capture(await empty());
-    expect(await run(["init", "x", "--template", "crm"], c.io)).toBe(2);
-    expect(c.errors[0]).toContain("template catalog is not available yet");
+  describe("--template", () => {
+    let server: Server;
+    let registry = "";
+    const packed = mkdtempSync(join(tmpdir(), "forgeron-pack-"));
+    let tarball = new Uint8Array();
+
+    beforeAll(async () => {
+      const crm = join(here, "../../../templates/crm");
+      const out = spawnSync("bun", ["pm", "pack", "--destination", packed], { cwd: crm });
+      if (out.status !== 0) throw new Error(out.stderr.toString());
+      tarball = new Uint8Array(readFileSync(join(packed, readdirSync(packed)[0] as string)));
+      server = createServer((req, res) => {
+        if (req.url?.endsWith("%2Ftemplate-crm/latest")) {
+          res.end(JSON.stringify({ version: "0.0.0", dist: { tarball: `${registry}/crm.tgz` } }));
+        } else if (req.url === "/crm.tgz") {
+          res.end(tarball);
+        } else {
+          res.statusCode = 404;
+          res.end("{}");
+        }
+      });
+      await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+      registry = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      process.env.FORGERON_REGISTRY = registry;
+    });
+    afterAll(async () => {
+      delete process.env.FORGERON_REGISTRY;
+      await new Promise((done) => server.close(done));
+      rmSync(packed, { recursive: true, force: true });
+    });
+
+    it("creates the tool from the published package", async () => {
+      const root = await empty();
+      const c = capture(root);
+      expect(await run(["init", "sales", "--template", "crm"], c.io)).toBe(0);
+      const dir = join(root, "sales");
+      const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8"));
+      expect(pkg).toMatchObject({ name: "sales", version: "0.1.0", private: true });
+      expect(pkg.dependencies["@forgeron/sdk"]).toBe("0.0.0");
+      expect(await readFile(join(dir, "forgeron.config.ts"), "utf8")).toContain('name: "sales"');
+      await expect(readFile(join(dir, "actions/deals/create.ts"), "utf8")).resolves.toContain(
+        "action(",
+      );
+      expect(JSON.parse(await readFile(join(dir, ".forgeron/project.json"), "utf8"))).toEqual({
+        tool: "sales",
+      });
+      expect(c.logs.join("\n")).toContain("from template crm@0.0.0");
+    });
+
+    it("says when the template is not published", async () => {
+      const c = capture(await empty());
+      expect(await run(["init", "x", "--template", "nope"], c.io)).toBe(2);
+      expect(c.errors[0]).toContain("No template named");
+    });
   });
 
   it("creates a tool that builds and whose own test passes", async () => {

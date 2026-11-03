@@ -4,6 +4,7 @@ import { basename, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { writeProject } from "../project";
+import { fetchTemplate } from "../template";
 
 // `forgeron init [name] [--template crm]`: a tool of one action, with its test and its `.forgeron/`.
 
@@ -16,11 +17,6 @@ export async function init(args: string[], io: Io): Promise<number> {
     allowPositionals: true,
     options: { template: { type: "string" } },
   });
-  if (values.template) {
-    throw new UsageError(
-      `--template ${values.template}: the template catalog is not available yet; \`forgeron init\` creates a tool from scratch.`,
-    );
-  }
   if (positionals.length > 1) throw new UsageError("Usage: forgeron init [name]");
 
   const dir = positionals[0] ? resolve(io.cwd, positionals[0]) : io.cwd;
@@ -35,6 +31,50 @@ export async function init(args: string[], io: Io): Promise<number> {
   await mkdir(dir, { recursive: true });
   if ((await readdir(dir)).length > 0) {
     throw new UsageError(`${dir} is not empty: \`forgeron init\` does not overwrite a folder.`);
+  }
+
+  if (values.template) {
+    const template = await fetchTemplate(values.template);
+    for (const [path, content] of template.files) {
+      if (path === "package.json") continue;
+      await mkdir(join(dir, path, ".."), { recursive: true });
+      // The tool carries the name chosen here, not the template's.
+      const body =
+        path === "forgeron.config.ts"
+          ? new TextEncoder().encode(
+              new TextDecoder()
+                .decode(content)
+                .replace(`name: "${values.template}"`, `name: "${name}"`),
+            )
+          : content;
+      await writeFile(join(dir, path), body);
+    }
+    const pkg = JSON.parse(
+      new TextDecoder().decode(template.files.get("package.json") ?? new Uint8Array()) || "{}",
+    ) as { dependencies?: Record<string, string> };
+    await writeFile(
+      join(dir, "package.json"),
+      `${JSON.stringify(
+        {
+          name,
+          version: "0.1.0",
+          private: true,
+          type: "module",
+          scripts: { build: "forgeron build", dev: "forgeron dev", test: "forgeron test" },
+          dependencies: pkg.dependencies ?? { "@forgeron/sdk": SDK_VERSION },
+          devDependencies: { vitest: VITEST_VERSION },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    await mkdir(join(dir, ".forgeron"), { recursive: true });
+    await writeFile(join(dir, ".forgeron/.gitignore"), "local/\ngenerated/\nbuild/\n");
+    await writeProject(dir, { tool: name });
+    io.log(`Created ${name} in ${dir} from template ${values.template}@${template.version}`);
+    io.log("  forgeron dev     run it locally");
+    io.log("  forgeron test    build it and run its tests");
+    return 0;
   }
 
   const files: Record<string, string> = {
