@@ -57,10 +57,38 @@ The command does, in order:
 
 Running it again is safe: the D1 and the Worker are reused, and a new version of the gateway is deployed.
 
+## Bindings the gateway reads
+
+This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). It is the input of FOR-120 (the install command generating and storing them). `forgeron platform install` sets only the first four today.
+
+| Binding                 | Kind                 | Meaning                                                                                                                                                                                                                                                                            |
+| ----------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB`                    | D1                   | The platform D1. Required.                                                                                                                                                                                                                                                         |
+| `BASE_DOMAIN`           | var                  | The base domain (`forgeron.app`); a workspace is the one label in front of it. Required.                                                                                                                                                                                           |
+| `CLOUDFLARE_ACCOUNT_ID` | var                  | The account `POST /deploy` deploys tools to. Without it and the token, `/deploy` answers `501`.                                                                                                                                                                                    |
+| `CLOUDFLARE_API_TOKEN`  | **secret**           | Limited to Workers, D1, KV and R2. Deploys tools without the person present.                                                                                                                                                                                                       |
+| `AUTH_SECRET`           | **secret**           | Signs sessions, sign-in state and every token (HMAC-SHA256). Random, at least 32 bytes, base64. Without it identity is off: `/auth`, `/whoami`, `/deploy` and `/deploy-tokens` answer `404` and every console call is `401`. Changing it signs everyone out and voids every token. |
+| `SECRETS_KEY`           | **secret**           | Encrypts tool secrets and connection tokens at rest (AES-256-GCM): 32 random bytes, base64. Without it the secret routes refuse to run. Changing it makes stored secrets unreadable.                                                                                               |
+| `OIDC_ISSUER`           | var                  | The identity provider's issuer URL (any OIDC provider, D-019).                                                                                                                                                                                                                     |
+| `OIDC_CLIENT_ID`        | var                  | The client id registered at the provider.                                                                                                                                                                                                                                          |
+| `OIDC_CLIENT_SECRET`    | **secret**, optional | The client secret; omit it for a public client (PKCE alone).                                                                                                                                                                                                                       |
+| `ADMIN_EMAIL`           | var                  | The email that becomes the administrator of a workspace when it first signs in (D-027).                                                                                                                                                                                            |
+| `MEMBER_EMAIL_DOMAINS`  | var, optional        | Comma-separated email domains whose people become members, with no role, when they first sign in (D-027). Without it only `ADMIN_EMAIL` can sign in.                                                                                                                               |
+| `DISPATCHER`            | dispatch namespace   | Forgeron Cloud only: the namespace tool Workers are uploaded to.                                                                                                                                                                                                                   |
+| `DISPATCH_NAMESPACE`    | var                  | Forgeron Cloud only: the name of that namespace, for `POST /deploy`.                                                                                                                                                                                                               |
+| `TOOL_<WORKER>`         | service binding      | Self-host: one per tool Worker (D-017).                                                                                                                                                                                                                                            |
+| `ASSETS`                | assets               | The built console, when there is one.                                                                                                                                                                                                                                              |
+
+Register this redirect URI at the identity provider, for each workspace: `https://<workspace>.<BASE_DOMAIN>/auth/callback`.
+
+What the gateway serves at a workspace origin once these are set: `/auth/login`, `/auth/callback`, `/auth/logout`, `POST /auth/token` (a signed-in person's token for one tool, 1 to 30 days), `GET /whoami`, `POST /deploy-tokens` (administrators), `POST /deploy` (a deployment token), `/console-api/*`, `/t/<tool>`.
+
 ## What is not done yet
 
 - **The console is not deployed.** There is no console build yet; the command says so when it finishes.
 - **No route or custom domain is attached** to the gateway Worker, and DNS is yours to set up.
 - **Tools are not reachable until they are bound.** The gateway reaches each tool's Worker through a service binding, added when a tool is created or deleted; this installation does not add any.
-- Several settings the gateway needs for identity (single sign-on, token signing) and the key that encrypts tool secrets are not part of this command yet.
+- The identity settings and the two keys listed above (`AUTH_SECRET`, `SECRETS_KEY`, `OIDC_*`, `ADMIN_EMAIL`) are not part of this command yet (FOR-120): set them on the gateway Worker yourself for now.
+- `/mcp`, `/api` and `/cli` of a workspace answer `404` (admin MCP, FOR-107). `forgeron login` cannot sign in yet: the gateway has no `/auth/cli` and `/auth/cli/token`.
+- Members are added only at sign-in, by the two rules of D-027; there is no way to list, remove or change the roles of a member.
 - The gateway bundle is not published as a package.

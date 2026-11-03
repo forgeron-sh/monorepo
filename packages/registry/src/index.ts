@@ -40,6 +40,7 @@ export type {
   DeploymentKind,
   DeploymentRecord,
   EnvironmentRecord,
+  Member,
   Registry,
   RegistryErrorCode,
   RegistryOptions,

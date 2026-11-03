@@ -171,6 +171,16 @@ const DEPLOYMENT_AUDIT: Record<DeploymentKind, AuditKind> = {
   rollback: "rollback",
 };
 
+/** A person of a workspace; `subject` is their id at the identity provider. */
+export interface Member {
+  workspace: string;
+  id: string;
+  subject: string;
+  email: string;
+  name: string;
+  roles: string[];
+}
+
 export interface RegistryOptions {
   now?: () => Date;
   newId?: () => string;
@@ -251,6 +261,15 @@ const toApproval = (r: Row): Approval => ({
   requestedAt: String(r.requested_at),
   ...(text(r.decided_by) ? { decidedBy: text(r.decided_by) } : {}),
   ...(text(r.decided_at) ? { decidedAt: text(r.decided_at) } : {}),
+});
+
+const toMember = (r: Row): Member => ({
+  workspace: String(r.workspace),
+  id: String(r.id),
+  subject: String(r.subject),
+  email: String(r.email),
+  name: String(r.name),
+  roles: json(r.roles) as string[],
 });
 
 export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
@@ -571,6 +590,45 @@ ORDER BY "user_id", "connector"`,
         month,
       );
       return Number(row?.seats ?? 0);
+    },
+
+    // ---- members (D-027): the people of a workspace and their roles
+    async findMember(workspace: string, id: string): Promise<Member | undefined> {
+      const row = await first(
+        `SELECT * FROM "members" WHERE "workspace" = ? AND "id" = ?`,
+        workspace,
+        id,
+      );
+      return row ? toMember(row) : undefined;
+    },
+    /** Who the identity provider's `subject` is in this workspace, if they are a member. */
+    async findMemberBySubject(workspace: string, subject: string): Promise<Member | undefined> {
+      const row = await first(
+        `SELECT * FROM "members" WHERE "workspace" = ? AND "subject" = ?`,
+        workspace,
+        subject,
+      );
+      return row ? toMember(row) : undefined;
+    },
+    async addMember(input: {
+      workspace: string;
+      subject: string;
+      email: string;
+      name: string;
+      roles: string[];
+    }): Promise<Member> {
+      const member: Member = { ...input, id: newId() };
+      await write(
+        `INSERT INTO "members" ("workspace", "id", "subject", "email", "name", "roles", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        member.workspace,
+        member.id,
+        member.subject,
+        member.email,
+        member.name,
+        JSON.stringify(member.roles),
+        now(),
+      );
+      return member;
     },
 
     // ---- builds
