@@ -1,1 +1,17 @@
 language: typescript
+
+tasks:
+  # `ctx.db` is typed by a file the build writes: build first.
+  typecheck:
+    script: bun ../../scripts/build-tool.ts . && tsc --noEmit
+    inputs:
+      - "forgeron.config.ts"
+      - "db/**/*"
+      - "actions/**/*"
+      - "events/**/*"
+      - "jobs/**/*"
+      - "lib/**/*"
+      - "tests/**/*"
+      - "tsconfig.json"
+      - "/packages/sdk/src/**/*"
+      - "/packages/compiler/src/**/*"
