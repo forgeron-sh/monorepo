@@ -1,8 +1,9 @@
 import type { Manifest } from "@forgeron/manifest";
 import { ArchitectureDiagram, EmptyState } from "@forgeron/ui";
-import type { Api, FetchJson } from "../../api";
+import type { FetchJson } from "../../api";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
+import type { ToolTabProps } from "../tools/tabs";
 
 // The Architecture tab of a tool's page: a diagram drawn from the manifest of the version the
 // platform serves (`GET /api/tools/<tool>/manifest`, for developers and admins).
@@ -26,7 +27,7 @@ export async function loadManifest(fetchJson: FetchJson, tool: string): Promise<
   return body.manifest;
 }
 
-export function ArchitectureTab({ tool, api }: { tool: string; api: Api }) {
+export default function ArchitectureTab({ tool, api }: ToolTabProps) {
   const manifest = useLoad(() => loadManifest(api.fetchJson, tool), [api, tool]);
   if (manifest.loading) return <Loading label="Loading the architecture" />;
   if (manifest.error && !manifest.data) {

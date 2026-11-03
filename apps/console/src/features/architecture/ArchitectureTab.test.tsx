@@ -1,12 +1,16 @@
 // @vitest-environment jsdom
 import { crm } from "@forgeron/ui/architecture-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { toolTabs, type ToolTabProps } from "../tools/tabs";
+import "./routes";
 import { ApiError } from "../../api";
 import { cleanup, flush, mount } from "../../test-utils";
-import { ArchitectureTab, loadManifest } from "./ArchitectureTab";
-import { architectureTab, registerArchitectureTab, type ToolTabRegistration } from "./register";
+import ArchitectureTab, { loadManifest } from "./ArchitectureTab";
 
 afterEach(cleanup);
+
+const ws = {} as ToolTabProps["ws"];
+const now = () => new Date("2026-11-04T10:00:00Z");
 
 const api = (fetchJson: (path: string) => Promise<unknown>) => ({
   fetchJson,
@@ -35,7 +39,7 @@ describe("loadManifest", () => {
 describe("ArchitectureTab", () => {
   it("draws the diagram of the manifest", async () => {
     const container = await mount(
-      <ArchitectureTab tool="crm" api={api(async () => ({ manifest: crm }))} />,
+      <ArchitectureTab tool="crm" ws={ws} now={now} api={api(async () => ({ manifest: crm }))} />,
     );
     expect(container.querySelector("svg")?.getAttribute("aria-label")).toBe("Architecture of CRM");
     expect(container.textContent).toContain("deals");
@@ -46,7 +50,9 @@ describe("ArchitectureTab", () => {
       .fn<(path: string) => Promise<unknown>>()
       .mockRejectedValueOnce(new ApiError("/api/tools/crm/manifest: 403", 403))
       .mockResolvedValue({ manifest: crm });
-    const container = await mount(<ArchitectureTab tool="crm" api={api(fetchJson)} />);
+    const container = await mount(
+      <ArchitectureTab tool="crm" ws={ws} now={now} api={api(fetchJson)} />,
+    );
     expect(container.textContent).toContain("The architecture could not be loaded.");
     const retry = [...container.querySelectorAll("button")].find(
       (b) => b.textContent === "Try again",
@@ -58,15 +64,11 @@ describe("ArchitectureTab", () => {
   });
 });
 
-describe("registerArchitectureTab", () => {
-  it("hands the registry one admin-only tab", () => {
-    const register = vi.fn<(tab: ToolTabRegistration) => void>();
-    registerArchitectureTab(register);
-    expect(register).toHaveBeenCalledWith(architectureTab);
-    expect(architectureTab).toMatchObject({
-      id: "architecture",
-      title: "Architecture",
-      adminOnly: true,
-    });
+describe("the tool page tabs", () => {
+  it("has the Architecture tab for admins, loading the component, and not for members", async () => {
+    expect(toolTabs(false).some((t) => t.id === "architecture")).toBe(false);
+    const tab = toolTabs(true).find((t) => t.id === "architecture")!;
+    expect(tab.title).toBe("Architecture");
+    expect((await tab.load()).default).toBe(ArchitectureTab);
   });
 });
