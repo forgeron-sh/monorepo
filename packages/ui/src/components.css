@@ -181,7 +181,7 @@
 /* Page */
 .fg-page {
   display: block;
-  max-width: 1120px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: var(--space-8) var(--space-6);
   color: var(--ink);
@@ -397,4 +397,500 @@
   cursor: not-allowed;
   color: var(--ink-faint);
   border-color: var(--line);
+}
+
+/* Focus: one solid 2px ring on everything interactive that is not a button */
+:where(
+  .fg-nav-link,
+  .fg-tab,
+  .fg-input,
+  .fg-check-input,
+  .fg-copy-text,
+  .fg-skip,
+  .fg-shell-main
+):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.fg-shell-main:focus-visible {
+  outline: none;
+}
+.fg-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* AppShell, Sidebar, Nav */
+.fg-shell {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  min-height: 100vh;
+  color: var(--ink);
+  font: 400 14px/22px var(--font-sans);
+}
+.fg-shell-side {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+.fg-shell-main {
+  min-width: 0;
+}
+.fg-topbar,
+.fg-shell-scrim {
+  display: none;
+}
+.fg-skip {
+  position: absolute;
+  left: var(--space-2);
+  top: -64px;
+  z-index: 30;
+  padding: var(--space-2) var(--space-3);
+  background: var(--inverse);
+  color: var(--on-inverse);
+  font-weight: 500;
+}
+.fg-skip:focus {
+  top: var(--space-2);
+}
+.fg-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.fg-sidebar-head {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+.fg-sidebar-body {
+  flex: 1;
+  padding: var(--space-3) var(--space-2);
+}
+.fg-sidebar-foot {
+  padding: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+.fg-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  color: var(--ink-muted);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
+}
+.fg-nav-link:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+.fg-nav-link[aria-current="page"] {
+  background: var(--inverse);
+  color: var(--on-inverse);
+}
+.fg-nav-badge {
+  min-width: 20px;
+  padding: 0 6px;
+  font: 500 11.5px/18px var(--font-mono);
+  text-align: center;
+  border: 1px solid currentColor;
+}
+
+@media (max-width: 800px) {
+  .fg-shell {
+    display: block;
+  }
+  .fg-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    height: 48px;
+    padding: 0 var(--space-3);
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+  }
+  .fg-shell-side {
+    position: fixed;
+    top: 48px;
+    bottom: 0;
+    left: 0;
+    z-index: 25;
+    width: min(280px, 86vw);
+    height: auto;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 0.12s,
+      visibility 0.12s;
+  }
+  .fg-shell-open .fg-shell-side {
+    transform: none;
+    visibility: visible;
+  }
+  .fg-shell-scrim {
+    display: block;
+    position: fixed;
+    inset: 48px 0 0;
+    z-index: 24;
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Notice */
+.fg-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+.fg-notice-mark {
+  flex: none;
+  font: 500 11px/22px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.fg-notice-body {
+  flex: 1;
+  min-width: 0;
+}
+.fg-notice-title {
+  margin: 0;
+  font-weight: 600;
+}
+.fg-notice-text {
+  color: var(--ink-muted);
+}
+.fg-notice-title + .fg-notice-text {
+  margin-top: 2px;
+}
+.fg-notice-action {
+  flex: none;
+}
+.fg-notice-info {
+  border-left-color: var(--line-strong);
+}
+.fg-notice-success {
+  border-left-color: var(--success);
+  background: var(--success-subtle);
+}
+.fg-notice-success .fg-notice-mark {
+  color: var(--success);
+}
+.fg-notice-warning {
+  border-left-color: var(--warning);
+  background: var(--warning-subtle);
+}
+.fg-notice-warning .fg-notice-mark {
+  color: var(--warning);
+}
+.fg-notice-danger {
+  border-left-color: var(--danger);
+  background: var(--danger-subtle);
+}
+.fg-notice-danger .fg-notice-mark {
+  color: var(--danger);
+}
+
+/* EmptyState */
+.fg-empty {
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  background: var(--surface);
+}
+.fg-empty-title {
+  margin: 0;
+  font: 600 15px/22px var(--font-sans);
+}
+.fg-empty-text {
+  max-width: 44ch;
+  margin: var(--space-1) auto 0;
+  color: var(--ink-muted);
+}
+.fg-empty-action {
+  margin-top: var(--space-4);
+}
+
+/* Spinner */
+.fg-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+}
+.fg-spinner-mark {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--ink);
+  animation: fg-spin 0.9s linear infinite;
+}
+@keyframes fg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-spinner-mark {
+    animation-duration: 3s;
+  }
+}
+
+/* Field, Input, Checkbox */
+.fg-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.fg-field-label {
+  font: 500 13px/20px var(--font-sans);
+  color: var(--ink);
+}
+.fg-field-hint,
+.fg-field-error {
+  margin: 0;
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-field-hint {
+  color: var(--ink-muted);
+}
+.fg-field-error {
+  color: var(--danger);
+}
+.fg-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-none);
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+  transition: border-color 0.12s;
+}
+.fg-input::placeholder {
+  color: var(--ink-muted);
+}
+.fg-input:hover {
+  border-color: var(--ink-muted);
+}
+.fg-input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.fg-input:disabled {
+  cursor: not-allowed;
+  color: var(--ink-faint);
+  border-color: var(--line);
+  background: var(--surface);
+}
+.fg-input-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.fg-textarea {
+  height: auto;
+  min-height: 88px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+}
+.fg-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  cursor: pointer;
+}
+.fg-check-input {
+  appearance: none;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border-radius: var(--radius-none);
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+}
+.fg-check-input:checked {
+  background: var(--inverse);
+  border-color: var(--inverse);
+}
+.fg-check-input:checked::after {
+  content: "";
+  width: 8px;
+  height: 4px;
+  margin-top: -2px;
+  border-left: 2px solid var(--on-inverse);
+  border-bottom: 2px solid var(--on-inverse);
+  transform: rotate(-45deg);
+}
+.fg-check-input:disabled {
+  cursor: not-allowed;
+  border-color: var(--line);
+}
+
+/* Dialog */
+.fg-dialog-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh var(--space-4) var(--space-4);
+  background: rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+}
+.fg-dialog {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  padding: var(--space-6);
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  font: 400 14px/22px var(--font-sans);
+}
+.fg-dialog:focus {
+  outline: none;
+}
+.fg-dialog-title {
+  margin: 0;
+  font: 600 20px/28px var(--font-display);
+  letter-spacing: -0.01em;
+}
+.fg-dialog-desc {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+}
+.fg-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+.fg-dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+/* CopyBlock: the reference CodeBlock (assets/design-system/components) */
+.fg-copy {
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.fg-copy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border-bottom: 1px solid var(--line);
+  font: 500 12px/16px var(--font-mono);
+  color: var(--ink-muted);
+}
+.fg-copy-btn {
+  height: 24px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 500 12px/16px var(--font-sans);
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
+}
+.fg-copy-btn:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.fg-copy-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.fg-copy-pre {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow-x: auto;
+}
+.fg-copy-text {
+  display: block;
+  white-space: pre;
+  font: 400 13px/20px var(--font-mono);
+  color: var(--ink);
+}
+.fg-copy-prefix {
+  color: var(--ink-muted);
+  user-select: none;
+}
+
+/* Tabs */
+.fg-tablist {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.fg-tab {
+  height: 36px;
+  padding: 0 var(--space-3);
+  margin-bottom: -1px;
+  background: transparent;
+  color: var(--ink-muted);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font: 500 14px/20px var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
+}
+.fg-tab:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+.fg-tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+.fg-tabpanel {
+  padding-top: var(--space-6);
 }

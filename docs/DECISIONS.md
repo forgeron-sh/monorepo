@@ -11,53 +11,54 @@ Rules of the log:
 
 ## Index
 
-| No.   | Date       | Decision                                                                                                                             | Status            |
-| ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
-| D-001 | 22/10/2026 | Adopt the tooling and conventions of siages                                                                                          | Active            |
-| D-002 | 22/10/2026 | TypeScript 6, not 7                                                                                                                  | Active            |
-| D-003 | 22/10/2026 | The CLI is an app (`apps/cli`), the SDK a package (`packages/sdk`)                                                                   | Active            |
-| D-004 | 22/10/2026 | A tool is built in the CI of its repository                                                                                          | Active            |
-| D-005 | 22/10/2026 | Build, version and release are three distinct notions                                                                                | Active            |
-| D-006 | 22/10/2026 | One `forgeron.config.ts` = one tool                                                                                                  | Active            |
-| D-007 | 22/10/2026 | Catalog templates use `forgeron release`                                                                                             | Active            |
-| D-008 | 22/10/2026 | Run tools with Dynamic Workers                                                                                                       | Replaced by D-009 |
-| D-009 | 22/10/2026 | Two hosting modes behind a single interface: Workers for Platforms (cloud), classic Workers (self-host)                              | Active            |
-| D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                                                    | Active            |
-| D-011 | 02/11/2026 | All repository files are written in English                                                                                          | Active            |
-| D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                                                  | Active            |
-| D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                                                   | Active            |
-| D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract                                           | Active            |
-| D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime                                   | Active            |
-| D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                                       | Active            |
-| D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host                        | Active            |
-| D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                                                 | Active            |
-| D-019 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                                              | Active            |
-| D-020 | 03/11/2026 | Views are a statically served React app that calls actions, not server-rendered pages                                                | Active            |
-| D-021 | 03/11/2026 | Pilot and production share one database, with a strict compatibility check at deployment                                             | Active            |
-| D-022 | 03/11/2026 | D1 only for now; a Postgres option through Hyperdrive is not offered                                                                 | Active            |
-| D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                                             | Active            |
-| D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                                           | Active            |
-| D-025 | 03/11/2026 | `forgeron login` signs in through the browser on a loopback address with PKCE and stores the token in the keychain or a 600 file     | Active            |
-| D-027 | 03/11/2026 | Members live in the registry; sign-in admits the configured administrator and allowed email domains, nobody else                     | Active            |
-| D-029 | 03/11/2026 | In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding                     | Active            |
-| D-031 | 03/11/2026 | `forgeron login` gets a CLI token scoped `cli` for the platform, one-time PKCE code, 30 days                                         | Active            |
-| D-032 | 03/11/2026 | The gateway keeps its own code in the platform D1, and `platform install` carries the tool bindings over                             | Active            |
-| D-033 | 03/11/2026 | `promote` and `rollback` are `POST /promote` and `POST /rollback` on the gateway, for a workspace admin or a deployment token        | Active            |
-| D-034 | 03/11/2026 | The pilot group is a named set of members in the registry, edited through the console API; the pilot version is served to it         | Active            |
-| D-035 | 03/11/2026 | Tokens carry an id, are revoked from a list checked at each call, and the signing key rotates with an overlap                        | Active            |
-| D-036 | 03/11/2026 | Per-person secrets are sealed in the platform D1, typed at the gateway, and handed to a call as the caller's own only                | Active            |
-| D-039 | 03/11/2026 | The roles × actions matrix is a set of overrides in the platform D1, forwarded to the tool at each call in `x-forgeron-user`         | Active            |
-| D-040 | 03/11/2026 | The matrix is edited by admins only, cell by cell, and every edit is audited                                                         | Active            |
-| D-041 | 03/11/2026 | Sign-in presets for Entra ID and Google live in the platform D1 and the console API; SAML is deferred; consent is self-service       | Active            |
-| D-044 | 03/11/2026 | The keychain is the macOS `security` tool or Linux `secret-tool`, fed on standard input; Windows uses the 600 file                   | Active            |
-| D-045 | 03/11/2026 | Each template deploys as a preview per pull request, announced by a comment, closed through `DELETE /deploy`                         | Active            |
-| D-043 | 03/11/2026 | Views and the playground honour the matrix: a view is a column `view:<name>`, one shared rule `mayAccess`, `useCanCall` for controls | Active            |
-| D-047 | 03/11/2026 | The console saves the matrix in one request, applied with its audit lines in a single D1 batch                                       | Active            |
-| D-046 | 03/11/2026 | A delegated connector gets the caller's own access token from the gateway, or the consent link as a 428                              | Active            |
-| D-048 | 03/11/2026 | The build bundles the connector packages a tool declares; only an explicit OAuth refusal revokes a consent; grants are audited       | Active            |
-| D-049 | 03/11/2026 | The gateway signs people in by email code beside OIDC; members, invitations and email domains are managed in the console             | Active            |
-| D-050 | 03/11/2026 | SAML sign-in is verified by a small XML-DSig verifier on Web Crypto, trusting only the element a pinned signature covers             | Active            |
-| D-051 | 03/11/2026 | A console mail mode writes the sign-in codes to the Worker's logs for test installs; opt-in, never on the cloud                      | Active            |
+| No.   | Date       | Decision                                                                                                                                          | Status            |
+| ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| D-001 | 22/10/2026 | Adopt the tooling and conventions of siages                                                                                                       | Active            |
+| D-002 | 22/10/2026 | TypeScript 6, not 7                                                                                                                               | Active            |
+| D-003 | 22/10/2026 | The CLI is an app (`apps/cli`), the SDK a package (`packages/sdk`)                                                                                | Active            |
+| D-004 | 22/10/2026 | A tool is built in the CI of its repository                                                                                                       | Active            |
+| D-005 | 22/10/2026 | Build, version and release are three distinct notions                                                                                             | Active            |
+| D-006 | 22/10/2026 | One `forgeron.config.ts` = one tool                                                                                                               | Active            |
+| D-007 | 22/10/2026 | Catalog templates use `forgeron release`                                                                                                          | Active            |
+| D-008 | 22/10/2026 | Run tools with Dynamic Workers                                                                                                                    | Replaced by D-009 |
+| D-009 | 22/10/2026 | Two hosting modes behind a single interface: Workers for Platforms (cloud), classic Workers (self-host)                                           | Active            |
+| D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                                                                 | Active            |
+| D-011 | 02/11/2026 | All repository files are written in English                                                                                                       | Active            |
+| D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                                                               | Active            |
+| D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                                                                | Active            |
+| D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract                                                        | Active            |
+| D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime                                                | Active            |
+| D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                                                    | Active            |
+| D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host                                     | Active            |
+| D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                                                              | Active            |
+| D-019 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                                                           | Active            |
+| D-020 | 03/11/2026 | Views are a statically served React app that calls actions, not server-rendered pages                                                             | Active            |
+| D-021 | 03/11/2026 | Pilot and production share one database, with a strict compatibility check at deployment                                                          | Active            |
+| D-022 | 03/11/2026 | D1 only for now; a Postgres option through Hyperdrive is not offered                                                                              | Active            |
+| D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                                                          | Active            |
+| D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                                                        | Active            |
+| D-025 | 03/11/2026 | `forgeron login` signs in through the browser on a loopback address with PKCE and stores the token in the keychain or a 600 file                  | Active            |
+| D-027 | 03/11/2026 | Members live in the registry; sign-in admits the configured administrator and allowed email domains, nobody else                                  | Active            |
+| D-029 | 03/11/2026 | In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding                                  | Active            |
+| D-031 | 03/11/2026 | `forgeron login` gets a CLI token scoped `cli` for the platform, one-time PKCE code, 30 days                                                      | Active            |
+| D-032 | 03/11/2026 | The gateway keeps its own code in the platform D1, and `platform install` carries the tool bindings over                                          | Active            |
+| D-033 | 03/11/2026 | `promote` and `rollback` are `POST /promote` and `POST /rollback` on the gateway, for a workspace admin or a deployment token                     | Active            |
+| D-034 | 03/11/2026 | The pilot group is a named set of members in the registry, edited through the console API; the pilot version is served to it                      | Active            |
+| D-035 | 03/11/2026 | Tokens carry an id, are revoked from a list checked at each call, and the signing key rotates with an overlap                                     | Active            |
+| D-036 | 03/11/2026 | Per-person secrets are sealed in the platform D1, typed at the gateway, and handed to a call as the caller's own only                             | Active            |
+| D-039 | 03/11/2026 | The roles × actions matrix is a set of overrides in the platform D1, forwarded to the tool at each call in `x-forgeron-user`                      | Active            |
+| D-040 | 03/11/2026 | The matrix is edited by admins only, cell by cell, and every edit is audited                                                                      | Active            |
+| D-041 | 03/11/2026 | Sign-in presets for Entra ID and Google live in the platform D1 and the console API; SAML is deferred; consent is self-service                    | Active            |
+| D-044 | 03/11/2026 | The keychain is the macOS `security` tool or Linux `secret-tool`, fed on standard input; Windows uses the 600 file                                | Active            |
+| D-045 | 03/11/2026 | Each template deploys as a preview per pull request, announced by a comment, closed through `DELETE /deploy`                                      | Active            |
+| D-043 | 03/11/2026 | Views and the playground honour the matrix: a view is a column `view:<name>`, one shared rule `mayAccess`, `useCanCall` for controls              | Active            |
+| D-047 | 03/11/2026 | The console saves the matrix in one request, applied with its audit lines in a single D1 batch                                                    | Active            |
+| D-046 | 03/11/2026 | A delegated connector gets the caller's own access token from the gateway, or the consent link as a 428                                           | Active            |
+| D-048 | 03/11/2026 | The build bundles the connector packages a tool declares; only an explicit OAuth refusal revokes a consent; grants are audited                    | Active            |
+| D-049 | 03/11/2026 | The gateway signs people in by email code beside OIDC; members, invitations and email domains are managed in the console                          | Active            |
+| D-050 | 03/11/2026 | SAML sign-in is verified by a small XML-DSig verifier on Web Crypto, trusting only the element a pinned signature covers                          | Active            |
+| D-051 | 03/11/2026 | A console mail mode writes the sign-in codes to the Worker's logs for test installs; opt-in, never on the cloud                                   | Active            |
+| D-054 | 03/11/2026 | The console is an application: a sidebar shell, path routing with the History API, screens for the first run, members, settings and the audit log | Active            |
 
 ---
 
@@ -602,3 +603,21 @@ Rules of the log:
 - **Know**: `?reason=expired` is served, but nothing sends a browser there yet: the console has to link to it when a request answers 401. A person who opens the invitation link while signed in as another member still gets the landing. The mail's link is plain text in a text mail: a mail client may not make it clickable, and it carries no secret.
 - **Not verified**: rendered in the Claude desktop app's browser pane only (dark, light and phone width, as static files); not in Safari, Firefox or a screen reader; the meta refresh to the loopback address was proven against the gateway's markup, not in a browser against a real `forgeron login`; the brand fonts show only where they are installed.
 - **Applied in**: FOR-128; `apps/gateway/src/pages/` (`logo.ts` from `assets/logos`), `identity/email-auth.ts`, `identity/cli.ts`, `identity/invitation.ts`, `identity/origin.ts`, `identity/auth.ts`, `consent/consent.ts`, `dispatch/user-secrets.ts`, `index.ts`; `packages/runtime/src/secrets.ts`; `docs/self-host.md`.
+
+## D-054 — The console is an application: a sidebar shell, path routing with the History API, and screens for the first run, members, settings and the audit log
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**:
+  1. `apps/console` draws a shell (`@forgeron/ui` `AppShell`, `Sidebar`, `Nav`): the workspace and the signed-in person with sign-out in the `surface` sidebar, content on `bg`, a skip link, and at 800px or less the sidebar collapses behind a menu button. Forge (dark) is the default; Atelier (light) is `data-theme="light"` set from `prefers-color-scheme` and kept in step with it. There is no manual toggle.
+  2. **Routing is the History API and one table** (`router.ts`): `/`, `/tools`, `/tools/<name>`, `/members`, `/approvals`, `/audit`, `/settings`. No router dependency: seven paths do not justify one. The gateway answers any path that is not a file with the console (`not_found_handling: single-page-application`), so a deep link or a reload lands in the app. A plain click on a link routes in the page and moves focus to the content; a modified click is the browser's. The tool pages (FOR-130) replace `ToolPage` and take the `/tools/<name>` route.
+  3. **Admin-only screens are hidden from a member**, not greyed: Members, Approvals, Audit log and Settings are in the sidebar of an admin only; a member who types the address gets "This page is for admins". The platform still refuses every call (403); the screen says so first and does not ask.
+  4. **Three small JSON routes** were added to the console API because no screen could be drawn without them: `GET /api/workspace` (the person, the endpoint, and counts: members, pending invitations, tools, tools with a version on an environment, whether any action was ever called; for admins also which sign-in methods are on and the mail mode), `GET /api/approvals` with `POST /api/approvals/<id>` (the console called `/api/tools/<tool>/approvals`, which never existed; deciding is admin-only and audited by the registry, once), and `GET /api/audit` (the latest lines of the tools, newest first, `detail` not sent, the actor as an email when it is a member).
+  5. **The first-run checklist is computed, not stored**: signed in (always true once the page loads), team invited (a second member or a pending invitation), first tool deployed (a version on any environment), first call made (an `action` line in the audit log of any tool). It is true after a reload and for every member. Each step that is not done shows its exact CLI commands in a copy block.
+  6. **Settings** edits the one single sign-on provider (OIDC, Entra ID or Google; or SAML 2.0): saving one replaces the other, and the form says so. A client secret goes in and never comes back (empty keeps the saved one); a save carries the saved `groupRoles` along, which the form does not edit, so it does not drop them. Email sign-in and the mail mode (D-049, D-051) are the install's: shown with a warning for `console`, changed by installing again.
+  7. **A local harness** (`bun run --cwd apps/console harness`, the `console-harness` preview) runs the console on an in-memory gateway (`src/mock/install.ts`, `VITE_MOCK=1`; `?mock=fresh|member|signedout|error|slow`). It is dead code in a build: `import.meta.env.VITE_MOCK` is replaced by `undefined` and the module is not emitted.
+  8. **Same product as the landing page**: the console reuses `@forgeron/ui` as `apps/site` does (the same `Logo` anvil, tokens, 48px grid on `bg`), and `CopyBlock` and `Input` follow the reference `CodeBlock` and `Input` of `assets/design-system/components` (title bar with a bordered Copy button, `$` prompt in `ink-muted`, field on `bg`).
+- **Why**: the first real install showed a console with no navigation and no way to know what to do first. The checklist answers that from data the platform already holds.
+- **Rejected**: `react-router` (a dependency for seven paths); hash routing (the gateway already falls back to the console, and paths are what people share); a stored "onboarding done" flag (it can disagree with the workspace); a theme toggle (the system's scheme is the person's choice, and a stored one is state to explain).
+- **Know**: the audit log lists the lines tied to a tool (actions, deployments, approvals, access); changes of members, invitations and the sign-in provider have no tool and are not in it yet. `ToolsList` still shows versions as badges; `EnvTag` shapes come with the tool pages.
+- **Not verified**: no real workspace was used: every screen was seen against the harness only. The copy blocks hold commands as `docs/sdk.md` and the CLI state them; `forgeron deploy --env preview --branch <name>` keeps `<name>` for the person to replace.
+- **Applied in**: FOR-129; `apps/console/src`, `packages/ui/src` (`shell`, `feedback`, `form`, `dialog`, `copy-block`, `tabs`), `apps/gateway/src/console-api/workspace.ts`, `approvals.ts`, `audit.ts`.

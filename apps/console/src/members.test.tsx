@@ -1,18 +1,38 @@
 // @vitest-environment jsdom
-import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loadMembers, Members, MembersEditor, parseList, type MembershipView } from "./members";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  knownRoles,
+  loadMembers,
+  Members,
+  MembersPage,
+  parseList,
+  type MembershipView,
+} from "./members";
+import {
+  button,
+  cleanup,
+  click,
+  fakeApi,
+  field,
+  mount,
+  NOW,
+  refusal,
+  submit,
+  type,
+} from "./test-utils";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+afterEach(cleanup);
 
 const served = {
   members: [
     { id: "m1", email: "ada@acme.fr", name: "ada", roles: ["admin"], secret: "dropped" },
     { id: "m2", email: "bob@acme.fr", name: "bob", roles: [] },
   ],
-  invitations: [{ email: "eve@acme.fr", roles: ["developer"], expiresAt: "2026-11-17T10:00:00Z" }],
+  invitations: [
+    { email: "eve@acme.fr", roles: ["developer"], expiresAt: "2026-11-17T10:00:00Z" },
+    { email: "old@acme.fr", roles: [], expiresAt: "2026-11-01T10:00:00Z" },
+  ],
   settings: { domains: ["acme.fr"], defaultRole: "viewer", source: "console" },
 };
 
@@ -30,119 +50,202 @@ describe("loadMembers", () => {
   it("parses roles and domains typed as a list", () => {
     expect(parseList(" developer, viewer  admin,, ")).toEqual(["developer", "viewer", "admin"]);
   });
+
+  it("offers the base roles and every role people already hold", async () => {
+    const view = await loadMembers(async () => served);
+    expect(knownRoles(view)).toEqual(["admin", "developer", "viewer"]);
+  });
 });
 
 describe("Members", () => {
   const view: MembershipView = {
-    members: [{ id: "m1", email: "ada@acme.fr", name: "ada", roles: [] }],
+    members: [
+      { id: "m1", email: "ada@acme.fr", name: "ada", roles: ["admin"] },
+      { id: "m2", email: "bob@acme.fr", name: "bob", roles: [] },
+    ],
     invitations: [
       { email: "eve@acme.fr", roles: ["developer"], expiresAt: "2026-11-17T10:00:00Z" },
+      { email: "old@acme.fr", roles: [], expiresAt: "2026-11-01T10:00:00Z" },
     ],
     domains: [],
     defaultRole: "",
     source: "install",
   };
-  it("lists members and invitations, with buttons only when it is given the handlers", () => {
-    const plain = renderToStaticMarkup(<Members view={view} />);
-    expect(plain).toContain("ada@acme.fr");
-    expect(plain).toContain("no role");
-    expect(plain).toContain("eve@acme.fr");
-    expect(plain).not.toContain("Remove");
-    const editable = renderToStaticMarkup(
-      <Members view={view} onEditRoles={() => {}} onRemove={() => {}} onWithdraw={() => {}} />,
+  it("draws roles and status, and the expiry of each invitation", () => {
+    const out = renderToStaticMarkup(<Members view={view} selfId="m1" now={NOW} />);
+    expect(out).toContain("You");
+    expect(out).toContain("Active");
+    expect(out).toContain("No role");
+    expect(out).toContain("Pending");
+    expect(out).toContain("Expires in 13 days");
+    expect(out).toContain("Expired");
+    expect(out).not.toContain("Remove");
+  });
+  it("draws buttons only when it is given the handlers", () => {
+    const out = renderToStaticMarkup(
+      <Members
+        view={view}
+        now={NOW}
+        onEditRoles={() => {}}
+        onRemove={() => {}}
+        onWithdraw={() => {}}
+      />,
     );
-    expect(editable).toContain("Remove");
-    expect(editable).toContain("Withdraw");
+    expect(out).toContain("Change roles");
+    expect(out).toContain("Remove");
+    expect(out).toContain("Withdraw");
+  });
+  it("says what to do when nobody is invited", () => {
+    const out = renderToStaticMarkup(
+      <Members view={{ ...view, invitations: [] }} now={NOW} onInvite={() => {}} />,
+    );
+    expect(out).toContain("No pending invitation");
+    expect(out).toContain("Invite people");
   });
 });
 
-describe("MembersEditor", () => {
-  let container: HTMLDivElement;
-  let root: Root;
-  beforeEach(() => {
-    container = document.createElement("div");
-    document.body.append(container);
-    root = createRoot(container);
-  });
-  afterEach(() => {
-    act(() => root.unmount());
-    container.remove();
-  });
-  const flush = () => act(async () => {});
+describe("MembersPage", () => {
+  const open = (routes: Record<string, unknown> = {}) => {
+    const fake = fakeApi({ "/api/members": served, ...routes });
+    return { ...fake, shown: mount(<MembersPage api={fake.api} selfId="m1" now={() => NOW} />) };
+  };
 
-  it("invites, saves the domains and removes, each as one request, then reloads", async () => {
-    const sent: Array<[string, unknown, string | undefined]> = [];
-    const fetchJson = vi.fn<() => Promise<unknown>>(async () => served);
-    const sendJson = vi.fn<(path: string, body: unknown, method?: string) => Promise<unknown>>(
-      async (path, body, method) => {
-        sent.push([path, body, method]);
-        return undefined;
+  it("shows a spinner, then the people", async () => {
+    const { shown } = open();
+    const page = await shown;
+    expect(page.textContent).toContain("ada@acme.fr");
+    expect(page.textContent).toContain("Who joins by themselves");
+  });
+
+  it("says what happened when the members cannot be loaded, and offers to try again", async () => {
+    const { api } = fakeApi({
+      "/api/members": () => {
+        throw refusal(500);
       },
-    );
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    await act(async () =>
-      root.render(<MembersEditor fetchJson={fetchJson} sendJson={sendJson as never} />),
-    );
-    await flush();
-    expect(container.textContent).toContain("ada@acme.fr");
-
-    const set = (input: HTMLInputElement, value: string) =>
-      act(async () => {
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(
-          input,
-          value,
-        );
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-      });
-    const inputs = [...container.querySelectorAll("input")] as HTMLInputElement[];
-    await set(inputs[0]!, "new@acme.fr");
-    await set(inputs[1]!, "developer");
-    const forms = [...container.querySelectorAll("form")];
-    await act(async () =>
-      forms[0]!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
-    );
-    await flush();
-    expect(sent.at(-1)).toEqual([
-      "/api/invitations",
-      { email: "new@acme.fr", roles: ["developer"] },
-      "POST",
-    ]);
-
-    await act(async () =>
-      forms[1]!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
-    );
-    await flush();
-    expect(sent.at(-1)).toEqual([
-      "/api/membership-settings",
-      { domains: ["acme.fr"], defaultRole: "viewer" },
-      "PUT",
-    ]);
-
-    const remove = [...container.querySelectorAll("button")].find(
-      (b) => b.textContent === "Remove",
-    )!;
-    await act(async () => remove.click());
-    await flush();
-    expect(sent.at(-1)).toEqual(["/api/members/m1", undefined, "DELETE"]);
-    expect(fetchJson.mock.calls.length).toBeGreaterThan(1);
+    });
+    const page = await mount(<MembersPage api={api} now={() => NOW} />);
+    expect(page.querySelector("[role=alert]")?.textContent).toContain("could not be loaded");
+    expect(button(page, "Try again")).toBeTruthy();
   });
 
-  it("shows what the platform said when it refuses a change", async () => {
-    const sendJson = vi.fn<() => Promise<unknown>>(async () => {
-      throw new Error("/api/members/m1: 409 A workspace needs at least one administrator.");
-    });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    await act(async () =>
-      root.render(<MembersEditor fetchJson={async () => served} sendJson={sendJson as never} />),
+  it("invites with the chosen roles and tells it was sent", async () => {
+    const { sent, shown } = open({ "POST /api/invitations": { notified: true } });
+    const page = await shown;
+    await click(button(page, "Invite people"));
+    const dialog = document.querySelector("[role=dialog]")!;
+    await type(field(dialog, "Email address"), "new@acme.fr");
+    await click(
+      [...dialog.querySelectorAll("label")]
+        .find((l) => l.textContent === "developer")!
+        .querySelector("input"),
     );
-    await flush();
-    const remove = [...container.querySelectorAll("button")].find(
-      (b) => b.textContent === "Remove",
-    )!;
-    await act(async () => remove.click());
-    await flush();
-    expect(container.querySelector("[role=alert]")?.textContent).toContain(
-      "at least one administrator",
+    await type(field(dialog, "Other roles"), "viewer");
+    await click(button(dialog, "Send invitation"));
+    expect(sent.at(-1)).toEqual({
+      path: "/api/invitations",
+      body: { email: "new@acme.fr", roles: ["developer", "viewer"] },
+      method: "POST",
+    });
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    expect(page.textContent).toContain("Invitation sent to new@acme.fr.");
+  });
+
+  it("refuses an address that is not one before asking the platform", async () => {
+    const { sent, shown } = open();
+    const page = await shown;
+    await click(button(page, "Invite people"));
+    const dialog = document.querySelector("[role=dialog]")!;
+    await type(field(dialog, "Email address"), "nobody");
+    await click(button(dialog, "Send invitation"));
+    expect(dialog.textContent).toContain("This is not an email address");
+    expect(sent).toEqual([]);
+  });
+
+  it("warns when the invitation is saved but the mail could not be sent", async () => {
+    const { shown } = open({ "POST /api/invitations": { notified: false } });
+    const page = await shown;
+    await click(button(page, "Invite people"));
+    const dialog = document.querySelector("[role=dialog]")!;
+    await type(field(dialog, "Email address"), "new@acme.fr");
+    await click(button(dialog, "Send invitation"));
+    expect(page.querySelector("[role=alert]")?.textContent).toContain("could not be sent");
+  });
+
+  it("changes roles from the checkboxes", async () => {
+    const { sent, shown } = open({ "PATCH /api/members/m2": {} });
+    const page = await shown;
+    await click(button(page.querySelectorAll("tbody tr")[1] as HTMLElement, "Change roles"));
+    const dialog = document.querySelector("[role=dialog]")!;
+    await click(
+      [...dialog.querySelectorAll("label")]
+        .find((l) => l.textContent === "developer")!
+        .querySelector("input"),
+    );
+    await click(button(dialog, "Save roles"));
+    expect(sent.at(-1)).toEqual({
+      path: "/api/members/m2",
+      body: { roles: ["developer"] },
+      method: "PATCH",
+    });
+  });
+
+  it("asks before removing, and shows why the platform refused", async () => {
+    const { sent, shown } = open({
+      "DELETE /api/members/m1": () => {
+        throw refusal(
+          409,
+          "The last administrator cannot be removed. Make someone else an admin first.",
+        );
+      },
+    });
+    const page = await shown;
+    await click(button(page.querySelectorAll("tbody tr")[0] as HTMLElement, "Remove"));
+    const dialog = document.querySelector("[role=dialog]")!;
+    expect(dialog.textContent).toContain("Their sessions stop at once");
+    expect(sent).toEqual([]);
+    await click(button(dialog, "Remove member"));
+    expect(sent.at(-1)).toEqual({ path: "/api/members/m1", body: undefined, method: "DELETE" });
+    expect(dialog.querySelector("[role=alert]")?.textContent).toContain("last administrator");
+    // The dialog stays open, so the person can cancel.
+    await click(button(dialog, "Cancel"));
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+  });
+
+  it("withdraws an invitation in one click", async () => {
+    const { sent, shown } = open({ "DELETE /api/invitations/eve%40acme.fr": undefined });
+    const page = await shown;
+    await click(button(page.querySelectorAll("tbody tr")[2] as HTMLElement, "Withdraw"));
+    expect(sent.at(-1)).toEqual({
+      path: "/api/invitations/eve%40acme.fr",
+      body: undefined,
+      method: "DELETE",
+    });
+    expect(page.textContent).toContain("Invitation to eve@acme.fr withdrawn.");
+  });
+
+  it("saves the domains and the default role", async () => {
+    const { sent, shown } = open({ "PUT /api/membership-settings": {} });
+    const page = await shown;
+    await type(field(page, "Email domains"), "acme.fr, acme.com");
+    await submit(page.querySelectorAll("form")[0]);
+    expect(sent.at(-1)).toEqual({
+      path: "/api/membership-settings",
+      body: { domains: ["acme.fr", "acme.com"], defaultRole: "viewer" },
+      method: "PUT",
+    });
+    expect(page.textContent).toContain("Saved.");
+  });
+
+  it("explains a refused domain change in the form", async () => {
+    const { shown } = open({
+      "PUT /api/membership-settings": () => {
+        throw refusal(400, "`domains` is a list of domains.");
+      },
+    });
+    const page = await shown;
+    await submit(page.querySelectorAll("form")[0]);
+    expect(page.querySelector("form [role=alert]")?.textContent).toContain(
+      "`domains` is a list of domains.",
     );
   });
 });

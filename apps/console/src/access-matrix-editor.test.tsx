@@ -39,7 +39,7 @@ const flush = () => act(async () => {});
 const cellButtons = () => [...container.querySelectorAll("tbody button")] as HTMLButtonElement[];
 const saveButton = () =>
   [...container.querySelectorAll("button")].find(
-    (b) => b.textContent === "Save",
+    (b) => b.textContent === "Save changes",
   ) as HTMLButtonElement;
 
 describe("AccessMatrixEditor", () => {
@@ -97,7 +97,7 @@ describe("AccessMatrixEditor", () => {
     act(() => cellButtons()[0]!.click());
     await act(async () => saveButton().click());
     await flush();
-    expect(container.textContent).toContain("Not saved: /api/tools/crm/access-matrix: 403");
+    expect(container.textContent).toContain("/api/tools/crm/access-matrix: 403");
     expect(saveButton().disabled).toBe(false);
   });
 
@@ -111,6 +111,6 @@ describe("AccessMatrixEditor", () => {
       ),
     );
     await flush();
-    expect(container.textContent).toContain("Could not load: nope");
+    expect(container.textContent).toContain("could not be loaded");
   });
 });

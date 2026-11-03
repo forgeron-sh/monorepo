@@ -30,7 +30,10 @@ import { handleIdentity } from "./console-api/identity";
 import { handleMembers } from "./console-api/members";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
+import { handleApprovals } from "./console-api/approvals";
+import { handleAudit } from "./console-api/audit";
 import { handleTools } from "./console-api/tools";
+import { handleWorkspace } from "./console-api/workspace";
 import {
   createDispatcher,
   workspaceOf,
@@ -592,6 +595,26 @@ export function createGateway(
         (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleWorkspace(forwarded, {
+          registry,
+          workspace,
+          endpoint: `https://${workspace}.${env.BASE_DOMAIN}`,
+          baseDomain: env.BASE_DOMAIN,
+          caller: async () => who,
+          signIn: async () => ({
+            email: { enabled: emailOn, mail: consoleMail ? "console" : mailer ? "email" : "off" },
+            oidc: {
+              enabled: oidcOn,
+              configured: (await providerOf(workspace, config)) !== undefined,
+            },
+            saml: {
+              enabled: oidcOn || methods.includes("saml"),
+              configured: (await samlOf(workspace, config)) !== undefined,
+            },
+          }),
+        })) ??
+        (await handleApprovals(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleAudit(forwarded, { registry, workspace, caller: identity })) ??
         (await handleGroups(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecrets(forwarded, { registry, workspace, caller: identity })) ??
         notFound(request)

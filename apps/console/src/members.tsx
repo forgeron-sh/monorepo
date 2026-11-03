@@ -1,5 +1,21 @@
-import { Badge, Button, Table, type TableColumn } from "@forgeron/ui";
-import { useEffect, useState } from "react";
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Dialog,
+  EmptyState,
+  Field,
+  Input,
+  Notice,
+  Page,
+  Table,
+  type TableColumn,
+} from "@forgeron/ui";
+import { useState } from "react";
+import { explain, type Api, type SendJson } from "./api";
+import { expiry } from "./format";
+import { Loading, LoadError } from "./states";
+import { useLoad } from "./use-load";
 
 // The people of the workspace and how they get in (D-049): who is a member and with which roles,
 // who is invited, and which email domains join by themselves. The platform refuses anyone but an
@@ -27,11 +43,7 @@ export interface MembershipView {
   source: string;
 }
 
-type Send = (
-  path: string,
-  body: unknown,
-  method?: "PUT" | "POST" | "PATCH" | "DELETE",
-) => Promise<unknown>;
+type Send = SendJson;
 
 const strings = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
@@ -82,23 +94,70 @@ const saveDomains = (send: Send, domains: string[], defaultRole: string) =>
 
 export interface MembersProps {
   view: MembershipView;
+  /** Whose row is "you": the caller's own id. */
+  selfId?: string;
+  now: Date;
   /** Called with a member to edit or remove; the screen only draws the buttons when given. */
   onEditRoles?: (member: MemberRow) => void;
   onRemove?: (member: MemberRow) => void;
   onWithdraw?: (invitation: InvitationRow) => void;
+  onInvite?: () => void;
 }
 
-export function Members({ view, onEditRoles, onRemove, onWithdraw }: MembersProps) {
+export function Members({
+  view,
+  selfId,
+  now,
+  onEditRoles,
+  onRemove,
+  onWithdraw,
+  onInvite,
+}: MembersProps) {
   const members: Array<TableColumn<MemberRow>> = [
-    { key: "email", header: "Email", mono: true },
+    {
+      key: "email",
+      header: "Member",
+      render: (m) => (
+        <span>
+          <span className="fc-mono">{m.email}</span>
+          {m.id === selfId ? (
+            <>
+              {" "}
+              <Badge>You</Badge>
+            </>
+          ) : null}
+        </span>
+      ),
+    },
     {
       key: "roles",
       header: "Roles",
+      render: (m) => (
+        <span className="fc-badges">
+          {m.roles.length ? (
+            m.roles.map((r) => (
+              <Badge key={r} tone={r === "admin" ? "strong" : "neutral"}>
+                {r}
+              </Badge>
+            ))
+          ) : (
+            <span className="fc-muted">None</span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
       render: (m) =>
         m.roles.length ? (
-          m.roles.map((r) => <Badge key={r}>{r}</Badge>)
+          <Badge tone="success" dot>
+            Active
+          </Badge>
         ) : (
-          <Badge tone="neutral">no role</Badge>
+          <Badge tone="warning" dot>
+            No role
+          </Badge>
         ),
     },
     ...(onEditRoles || onRemove
@@ -107,7 +166,7 @@ export function Members({ view, onEditRoles, onRemove, onWithdraw }: MembersProp
             key: "actions",
             header: "",
             render: (m: MemberRow) => (
-              <>
+              <div className="fc-cell-actions">
                 {onEditRoles ? (
                   <Button variant="ghost" size="sm" onClick={() => onEditRoles(m)}>
                     Change roles
@@ -118,7 +177,7 @@ export function Members({ view, onEditRoles, onRemove, onWithdraw }: MembersProp
                     Remove
                   </Button>
                 ) : null}
-              </>
+              </div>
             ),
           },
         ]
@@ -126,17 +185,45 @@ export function Members({ view, onEditRoles, onRemove, onWithdraw }: MembersProp
   ];
   const invitations: Array<TableColumn<InvitationRow>> = [
     { key: "email", header: "Invited", mono: true },
-    { key: "roles", header: "Roles", render: (i) => i.roles.join(", ") || "no role" },
-    { key: "expiresAt", header: "Until", render: (i) => i.expiresAt.slice(0, 10) },
+    {
+      key: "roles",
+      header: "Roles",
+      render: (i) => (
+        <span className="fc-badges">
+          {i.roles.length ? (
+            i.roles.map((r) => <Badge key={r}>{r}</Badge>)
+          ) : (
+            <span className="fc-muted">None</span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: "expiresAt",
+      header: "Status",
+      render: (i) => {
+        const left = expiry(i.expiresAt, now);
+        return (
+          <span className="fc-badges">
+            <Badge tone={left.expired ? "danger" : "warning"} dot>
+              {left.expired ? "Expired" : "Pending"}
+            </Badge>
+            {left.expired ? null : <span className="fc-muted">{left.text}</span>}
+          </span>
+        );
+      },
+    },
     ...(onWithdraw
       ? [
           {
             key: "actions",
             header: "",
             render: (i: InvitationRow) => (
-              <Button variant="ghost" size="sm" onClick={() => onWithdraw(i)}>
-                Withdraw
-              </Button>
+              <div className="fc-cell-actions">
+                <Button variant="ghost" size="sm" onClick={() => onWithdraw(i)}>
+                  Withdraw
+                </Button>
+              </div>
             ),
           },
         ]
@@ -144,129 +231,447 @@ export function Members({ view, onEditRoles, onRemove, onWithdraw }: MembersProp
   ];
   return (
     <>
-      <Table columns={members} rows={view.members} rowKey={(m) => m.id} empty="No member yet." />
-      <h3>Invitations</h3>
-      <Table
-        columns={invitations}
-        rows={view.invitations}
-        rowKey={(i) => i.email}
-        empty="No pending invitation."
-      />
+      <section className="fc-section" aria-labelledby="members-title">
+        <div className="fc-section-head">
+          <h2 id="members-title" className="fc-section-title">
+            Current members
+          </h2>
+        </div>
+        <Table columns={members} rows={view.members} rowKey={(m) => m.id} empty="No member yet." />
+      </section>
+      <section className="fc-section" aria-labelledby="invitations-title">
+        <div className="fc-section-head">
+          <h2 id="invitations-title" className="fc-section-title">
+            Pending invitations
+          </h2>
+        </div>
+        {view.invitations.length === 0 ? (
+          <EmptyState
+            title="No pending invitation"
+            description="Invite someone by email. They join the first time they sign in with that address."
+            action={
+              onInvite ? (
+                <Button variant="primary" onClick={onInvite}>
+                  Invite people
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <Table columns={invitations} rows={view.invitations} rowKey={(i) => i.email} />
+        )}
+      </section>
     </>
   );
 }
 
-/** The members screen with its forms: for an admin (the platform refuses anyone else). */
-export function MembersEditor({
-  fetchJson,
-  sendJson,
+/** Roles every workspace has; the ones its people already hold come on top. */
+const BASE_ROLES = ["admin", "developer"];
+export const knownRoles = (view: MembershipView): string[] => [
+  ...new Set([
+    ...BASE_ROLES,
+    ...view.members.flatMap((m) => m.roles),
+    ...view.invitations.flatMap((i) => i.roles),
+    ...(view.defaultRole ? [view.defaultRole] : []),
+  ]),
+];
+
+/** A checkbox per known role, and a field for the others. */
+function RolePicker({
+  known,
+  value,
+  extra,
+  onChange,
+  onExtra,
 }: {
-  fetchJson: (path: string) => Promise<unknown>;
-  sendJson: Send;
+  known: string[];
+  value: string[];
+  extra: string;
+  onChange: (roles: string[]) => void;
+  onExtra: (text: string) => void;
 }) {
-  const [view, setView] = useState<MembershipView>();
-  const [error, setError] = useState<string>();
-  const [reload, setReload] = useState(0);
-  const [email, setEmail] = useState("");
-  const [roles, setRoles] = useState("");
-  const [domains, setDomains] = useState("");
-  const [defaultRole, setDefaultRole] = useState("");
-
-  useEffect(() => {
-    let live = true;
-    loadMembers(fetchJson).then(
-      (loaded) => {
-        if (!live) return;
-        setView(loaded);
-        setDomains(loaded.domains.join(", "));
-        setDefaultRole(loaded.defaultRole);
-      },
-      (e: unknown) => live && setError(e instanceof Error ? e.message : "Could not load."),
-    );
-    return () => {
-      live = false;
-    };
-  }, [fetchJson, reload]);
-
-  const run = async (work: () => Promise<unknown>) => {
-    setError(undefined);
-    try {
-      await work();
-      setReload((n) => n + 1);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "The change was refused.");
-    }
-  };
-
-  if (!view) return error ? <p role="alert">{error}</p> : <p>Loading…</p>;
   return (
     <>
-      {error ? <p role="alert">{error}</p> : null}
-      <Members
-        view={view}
-        onEditRoles={(m) => {
-          const next = window.prompt(`Roles of ${m.email} (comma-separated)`, m.roles.join(", "));
-          if (next !== null) void run(() => changeRoles(sendJson, m.id, parseList(next)));
-        }}
-        onRemove={(m) => {
-          if (window.confirm(`Remove ${m.email}? Their sessions stop at once.`)) {
-            void run(() => removeMember(sendJson, m.id));
-          }
-        }}
-        onWithdraw={(i) => void run(() => withdrawInvitation(sendJson, i.email))}
-      />
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void run(async () => {
-            await inviteMember(sendJson, email.trim(), parseList(roles));
-            setEmail("");
-            setRoles("");
-          });
-        }}
-      >
-        <h3>Invite</h3>
-        <label>
-          Email{" "}
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>{" "}
-        <label>
-          Roles{" "}
-          <input value={roles} onChange={(e) => setRoles(e.target.value)} placeholder="developer" />
-        </label>{" "}
-        <Button type="submit" variant="primary">
-          Invite
-        </Button>
-      </form>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void run(() => saveDomains(sendJson, parseList(domains), defaultRole.trim()));
-        }}
-      >
-        <h3>Who joins by themselves</h3>
-        <p>
-          People with an email at one of these domains join the workspace when they sign in
-          {view.source === "install" ? " (set at install; saving here replaces them)" : ""}.
-        </p>
-        <label>
-          Domains{" "}
-          <input
-            value={domains}
-            onChange={(e) => setDomains(e.target.value)}
-            placeholder="acme.fr"
+      <fieldset className="fc-fieldset">
+        <legend className="fc-legend">Roles</legend>
+        <div className="fc-roles">
+          {known.map((role) => (
+            <Checkbox
+              key={role}
+              label={role}
+              checked={value.includes(role)}
+              onChange={(e) =>
+                onChange(e.target.checked ? [...value, role] : value.filter((r) => r !== role))
+              }
+            />
+          ))}
+        </div>
+      </fieldset>
+      <Field label="Other roles" hint="Role names from your tools, separated by commas.">
+        {(control) => (
+          <Input
+            {...control}
+            mono
+            value={extra}
+            onChange={(e) => onExtra(e.target.value)}
+            placeholder="viewer"
           />
-        </label>{" "}
-        <label>
-          Role{" "}
-          <input
-            value={defaultRole}
-            onChange={(e) => setDefaultRole(e.target.value)}
-            placeholder="none"
-          />
-        </label>{" "}
-        <Button type="submit">Save</Button>
-      </form>
+        )}
+      </Field>
     </>
+  );
+}
+
+type Asking =
+  | { kind: "invite" }
+  | { kind: "roles"; member: MemberRow }
+  | { kind: "remove"; member: MemberRow };
+
+/** The members screen: the lists, the invite and role dialogs, and who joins by themselves. For an admin. */
+export function MembersPage({ api, selfId, now }: { api: Api; selfId?: string; now: () => Date }) {
+  const loaded = useLoad(() => loadMembers(api.fetchJson), [api]);
+  const [asking, setAsking] = useState<Asking>();
+  const [notice, setNotice] = useState<{ tone: "success" | "warning" | "danger"; text: string }>();
+
+  const run = async (work: () => Promise<unknown>, done: string) => {
+    setNotice(undefined);
+    try {
+      await work();
+      setNotice({ tone: "success", text: done });
+    } catch (e) {
+      setNotice({ tone: "danger", text: explain(e, "The change was not saved. Try again.") });
+    }
+    loaded.reload();
+  };
+
+  const view = loaded.data;
+  return (
+    <Page
+      title="Members"
+      description="Who can sign in to this workspace, and with which roles."
+      actions={
+        view ? (
+          <Button variant="primary" onClick={() => setAsking({ kind: "invite" })}>
+            Invite people
+          </Button>
+        ) : undefined
+      }
+    >
+      {notice ? (
+        <div style={{ marginBottom: "var(--space-4)" }}>
+          <Notice tone={notice.tone}>{notice.text}</Notice>
+        </div>
+      ) : null}
+      {loaded.loading ? (
+        <Loading label="Loading members" />
+      ) : loaded.error && !view ? (
+        <LoadError what="The members" error={loaded.error} onRetry={loaded.reload} />
+      ) : view ? (
+        <>
+          <Members
+            view={view}
+            {...(selfId ? { selfId } : {})}
+            now={now()}
+            onInvite={() => setAsking({ kind: "invite" })}
+            onEditRoles={(member) => setAsking({ kind: "roles", member })}
+            onRemove={(member) => setAsking({ kind: "remove", member })}
+            onWithdraw={(i) =>
+              void run(
+                () => withdrawInvitation(api.sendJson, i.email),
+                `Invitation to ${i.email} withdrawn.`,
+              )
+            }
+          />
+          <DomainsForm
+            key={view.domains.join(",") + view.defaultRole}
+            view={view}
+            api={api}
+            onSaved={loaded.reload}
+          />
+          {asking?.kind === "invite" ? (
+            <InviteDialog
+              known={knownRoles(view)}
+              onClose={() => setAsking(undefined)}
+              send={async (email, roles) => {
+                const answer = (await inviteMember(api.sendJson, email, roles)) as
+                  | { notified?: boolean }
+                  | undefined;
+                setAsking(undefined);
+                setNotice(
+                  answer?.notified === false
+                    ? {
+                        tone: "warning",
+                        text: `${email} is invited, but the email could not be sent. Tell them to sign in at the workspace address.`,
+                      }
+                    : { tone: "success", text: `Invitation sent to ${email}.` },
+                );
+                loaded.reload();
+              }}
+            />
+          ) : null}
+          {asking?.kind === "roles" ? (
+            <RolesDialog
+              member={asking.member}
+              known={knownRoles(view)}
+              onClose={() => setAsking(undefined)}
+              send={async (roles) => {
+                await changeRoles(api.sendJson, asking.member.id, roles);
+                setAsking(undefined);
+                setNotice({ tone: "success", text: `Roles of ${asking.member.email} saved.` });
+                loaded.reload();
+              }}
+            />
+          ) : null}
+          {asking?.kind === "remove" ? (
+            <RemoveDialog
+              member={asking.member}
+              onClose={() => setAsking(undefined)}
+              send={async () => {
+                await removeMember(api.sendJson, asking.member.id);
+                setAsking(undefined);
+                setNotice({ tone: "success", text: `${asking.member.email} removed.` });
+                loaded.reload();
+              }}
+            />
+          ) : null}
+        </>
+      ) : null}
+    </Page>
+  );
+}
+
+/** What a dialog's confirm button does: runs it, keeps the dialog open with the reason when it fails. */
+function useSubmit(send: () => Promise<unknown>) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const submit = async () => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await send();
+    } catch (e) {
+      setError(explain(e, "The change was not saved. Try again."));
+    }
+    setBusy(false);
+  };
+  return { busy, error, submit };
+}
+
+function InviteDialog({
+  known,
+  onClose,
+  send,
+}: {
+  known: string[];
+  onClose: () => void;
+  send: (email: string, roles: string[]) => Promise<unknown>;
+}) {
+  const [email, setEmail] = useState("");
+  const [roles, setRoles] = useState<string[]>([]);
+  const [extra, setExtra] = useState("");
+  const [bad, setBad] = useState<string>();
+  const { busy, error, submit } = useSubmit(() =>
+    send(email.trim(), [...new Set([...roles, ...parseList(extra)])]),
+  );
+  return (
+    <Dialog
+      title="Invite people"
+      description="They get an email and join the first time they sign in with that address."
+      onClose={() => !busy && onClose()}
+      footer={
+        <>
+          <Button onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            disabled={busy}
+            onClick={() => {
+              if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+                setBad("This is not an email address. Check it and try again.");
+                return;
+              }
+              setBad(undefined);
+              void submit();
+            }}
+          >
+            Send invitation
+          </Button>
+        </>
+      }
+    >
+      <Field label="Email address" {...(bad ? { error: bad } : {})}>
+        {(control) => (
+          <Input
+            {...control}
+            type="email"
+            data-autofocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="ada@acme.fr"
+          />
+        )}
+      </Field>
+      <RolePicker
+        known={known}
+        value={roles}
+        extra={extra}
+        onChange={setRoles}
+        onExtra={setExtra}
+      />
+      {error ? <Notice tone="danger">{error}</Notice> : null}
+    </Dialog>
+  );
+}
+
+function RolesDialog({
+  member,
+  known,
+  onClose,
+  send,
+}: {
+  member: MemberRow;
+  known: string[];
+  onClose: () => void;
+  send: (roles: string[]) => Promise<unknown>;
+}) {
+  const [roles, setRoles] = useState(member.roles.filter((r) => known.includes(r)));
+  const [extra, setExtra] = useState("");
+  const { busy, error, submit } = useSubmit(() =>
+    send([...new Set([...roles, ...parseList(extra)])]),
+  );
+  return (
+    <Dialog
+      title={`Change roles of ${member.email}`}
+      description="Roles are read at every call: the change applies at once."
+      onClose={() => !busy && onClose()}
+      footer={
+        <>
+          <Button onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="primary" disabled={busy} onClick={() => void submit()}>
+            Save roles
+          </Button>
+        </>
+      }
+    >
+      <RolePicker
+        known={known}
+        value={roles}
+        extra={extra}
+        onChange={setRoles}
+        onExtra={setExtra}
+      />
+      {error ? <Notice tone="danger">{error}</Notice> : null}
+    </Dialog>
+  );
+}
+
+function RemoveDialog({
+  member,
+  onClose,
+  send,
+}: {
+  member: MemberRow;
+  onClose: () => void;
+  send: () => Promise<unknown>;
+}) {
+  const { busy, error, submit } = useSubmit(send);
+  return (
+    <Dialog
+      title={`Remove ${member.email}?`}
+      description="Their sessions stop at once. They can come back only if you invite them again, or if their email domain joins by itself."
+      onClose={() => !busy && onClose()}
+      footer={
+        <>
+          <Button onClick={onClose} disabled={busy} data-autofocus>
+            Cancel
+          </Button>
+          <Button variant="danger" disabled={busy} onClick={() => void submit()}>
+            Remove member
+          </Button>
+        </>
+      }
+    >
+      {error ? <Notice tone="danger">{error}</Notice> : null}
+    </Dialog>
+  );
+}
+
+function DomainsForm({
+  view,
+  api,
+  onSaved,
+}: {
+  view: MembershipView;
+  api: Api;
+  onSaved: () => void;
+}) {
+  const [domains, setDomains] = useState(view.domains.join(", "));
+  const [defaultRole, setDefaultRole] = useState(view.defaultRole);
+  const [saved, setSaved] = useState(false);
+  const { busy, error, submit } = useSubmit(async () => {
+    await saveDomains(api.sendJson, parseList(domains), defaultRole.trim());
+    setSaved(true);
+    onSaved();
+  });
+  return (
+    <section className="fc-section" aria-labelledby="domains-title">
+      <div className="fc-section-head">
+        <h2 id="domains-title" className="fc-section-title">
+          Who joins by themselves
+        </h2>
+      </div>
+      <p className="fc-section-hint">
+        People with an email at one of these domains join the workspace when they sign in
+        {view.source === "install"
+          ? ". These come from the install; saving here replaces them"
+          : ""}
+        .
+      </p>
+      <form
+        className="fc-panel fc-stack"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setSaved(false);
+          void submit();
+        }}
+      >
+        <div className="fc-row">
+          <Field label="Email domains" hint="Separated by commas. Leave empty to turn it off.">
+            {(control) => (
+              <Input
+                {...control}
+                mono
+                value={domains}
+                onChange={(e) => setDomains(e.target.value)}
+                placeholder="acme.fr"
+              />
+            )}
+          </Field>
+          <Field label="Default role" hint="Given to people who join this way. Never admin.">
+            {(control) => (
+              <Input
+                {...control}
+                mono
+                value={defaultRole}
+                onChange={(e) => setDefaultRole(e.target.value)}
+                placeholder="none"
+              />
+            )}
+          </Field>
+        </div>
+        {error ? <Notice tone="danger">{error}</Notice> : null}
+        {saved && !error ? (
+          <Notice tone="success">Saved. It applies from the next sign-in.</Notice>
+        ) : null}
+        <div className="fc-form-actions">
+          <Button type="submit" variant="primary" disabled={busy}>
+            Save domains
+          </Button>
+        </div>
+      </form>
+    </section>
   );
 }

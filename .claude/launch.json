@@ -6,6 +6,12 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "apps/site", "dev"],
       "port": 5173
+    },
+    {
+      "name": "console-harness",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/console", "harness"],
+      "port": 5174
     }
   ]
 }

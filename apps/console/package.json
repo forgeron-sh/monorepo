@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "harness": "VITE_MOCK=1 vite --port 5174 --strictPort"
   },
   "dependencies": {
     "@forgeron/ui": "workspace:*",
