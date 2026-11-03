@@ -11,6 +11,7 @@ import { checkViewActions } from "./views";
 import { readSnapshot } from "./migrations/generate";
 import { buildManifest } from "./manifest";
 import { changelogOf } from "./changelog";
+import { collectDocs, docsEntry } from "./docs";
 
 /** A migration as the build records it: its statements, resolved, and the fingerprint of its file. */
 interface BuiltMigration {
@@ -267,7 +268,16 @@ export async function buildTool(folder: string): Promise<BuildResult> {
     throw new Error(`${dir}/package.json has no version: it carries the tool's version.`);
 
   const loaded = await loadTool(dir, scratch);
-  const manifest = buildManifest(loaded, pkg.version);
+  // The README and its images go to the catalog (D-056): the manifest keeps their hashes, `docs.json`
+  // the content, which `forgeron deploy` sends with the build.
+  const docs = await collectDocs(dir, loaded.config.icon);
+  const docsFile = join(outDir, "docs.json");
+  const docsEntries = docsEntry(docs);
+  const manifest = buildManifest(loaded, pkg.version, {
+    ...(docsEntries ? { docs: docsEntries } : {}),
+    ...(docs.icon ? { icon: docs.icon } : {}),
+  });
+  if (docsEntries) await writeFile(docsFile, `${JSON.stringify(docs)}\n`);
   await checkResources(dir, loaded.modules, manifest);
   await checkViewActions(dir, loaded.modules, manifest);
   const manifestFile = join(outDir, "manifest.json");
@@ -325,6 +335,7 @@ export async function buildTool(folder: string): Promise<BuildResult> {
   const files = {
     "worker.js": sha256(await readFile(join(outDir, "worker.js"))),
     "manifest.json": sha256(await readFile(manifestFile)),
+    ...(docsEntries ? { "docs.json": sha256(await readFile(docsFile)) } : {}),
     ...viewFiles,
   };
   await writeFile(

@@ -162,10 +162,12 @@ export const DocAssetSchema = z.strictObject({
 
 /** The README and the images it references, as collected at build. Never the content. */
 export const DocsSchema = z.strictObject({
-  readme: z.strictObject({
-    size: z.number().int().nonnegative(),
-    hash: z.string().regex(/^[0-9a-f]{64}$/),
-  }),
+  readme: z
+    .strictObject({
+      size: z.number().int().nonnegative(),
+      hash: z.string().regex(/^[0-9a-f]{64}$/),
+    })
+    .optional(),
   assets: z.array(DocAssetSchema),
 });
 
