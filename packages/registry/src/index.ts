@@ -32,6 +32,7 @@ export type {
   IdentityProviderInput,
   IdentityProviderKind,
 } from "./identity-config";
+export { createEmailCodes, type EmailCodes } from "./email-codes";
 export { loadGatewayCode, saveGatewayCode } from "./gateway-code";
 export { createSecretBox, type SealedSecret, type SecretBox } from "./secret-box";
 export type {
@@ -50,7 +51,10 @@ export type {
   DeploymentKind,
   DeploymentRecord,
   EnvironmentRecord,
+  Invitation,
+  JoinVia,
   Member,
+  MembershipSettings,
   Registry,
   RegistryErrorCode,
   RegistryOptions,

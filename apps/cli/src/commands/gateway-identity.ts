@@ -18,6 +18,10 @@ export interface IdentityFlags {
   clientId?: string;
   adminEmail?: string;
   memberDomains?: string;
+  /** `email`, `oidc` or `email,oidc` (D-048). Without it: the OIDC provider alone, as before. */
+  signIn?: string;
+  /** The address sign-in mail comes from, on a domain onboarded to Cloudflare Email Sending. */
+  mailFrom?: string;
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -60,31 +64,57 @@ export function identitySettings(flags: IdentityFlags, env: NodeJS.ProcessEnv): 
     "OIDC_CLIENT_SECRET",
     "ADMIN_EMAIL",
     "MEMBER_EMAIL_DOMAINS",
+    "SIGN_IN_METHODS",
+    "MAIL_FROM",
+    "SEND_EMAIL",
   ];
   if (!stated) {
     // Nothing stated: a re-run keeps what the gateway already has instead of silently dropping it.
     return [...settings, ...optional.map((name) => ({ name, keep: true }))];
   }
 
-  if (!flags.issuer || !flags.clientId) {
+  const methods =
+    flags.signIn === undefined
+      ? undefined
+      : [...new Set(flags.signIn.split(",").map((m) => m.trim().toLowerCase()))];
+  if (methods && (methods.some((m) => m !== "email" && m !== "oidc") || methods.length === 0)) {
+    throw new UsageError("--sign-in is email, oidc, or email,oidc.");
+  }
+  const withEmail = methods?.includes("email") ?? false;
+  const withOidc = methods ? methods.includes("oidc") : true;
+  if (withEmail && (!flags.mailFrom || !EMAIL.test(flags.mailFrom))) {
     throw new UsageError(
-      "Sign-in needs --oidc-issuer and --oidc-client-id together (the client secret, if any, in OIDC_CLIENT_SECRET).",
+      "--sign-in email needs --mail-from <address>, on a domain onboarded to Cloudflare Email Sending.",
     );
   }
-  let issuer: URL;
-  try {
-    issuer = new URL(flags.issuer);
-  } catch {
-    throw new UsageError("--oidc-issuer must be a URL, such as https://login.example.com.");
+  if (!withEmail && flags.mailFrom !== undefined) {
+    throw new UsageError("--mail-from is for --sign-in email.");
   }
-  if (issuer.protocol !== "https:" || issuer.search || issuer.hash) {
-    throw new UsageError("--oidc-issuer must be an https URL with no query or fragment.");
-  }
-  if (!/^\S+$/.test(flags.clientId)) {
-    throw new UsageError("--oidc-client-id must not be empty or contain spaces.");
-  }
-  if (secret !== undefined && !/^\S+$/.test(secret)) {
-    throw new UsageError("OIDC_CLIENT_SECRET must not be empty or contain spaces.");
+  if (withOidc) {
+    if (!flags.issuer || !flags.clientId) {
+      throw new UsageError(
+        "Sign-in needs --oidc-issuer and --oidc-client-id together (the client secret, if any, in OIDC_CLIENT_SECRET).",
+      );
+    }
+    let issuer: URL;
+    try {
+      issuer = new URL(flags.issuer);
+    } catch {
+      throw new UsageError("--oidc-issuer must be a URL, such as https://login.example.com.");
+    }
+    if (issuer.protocol !== "https:" || issuer.search || issuer.hash) {
+      throw new UsageError("--oidc-issuer must be an https URL with no query or fragment.");
+    }
+    if (!/^\S+$/.test(flags.clientId)) {
+      throw new UsageError("--oidc-client-id must not be empty or contain spaces.");
+    }
+    if (secret !== undefined && !/^\S+$/.test(secret)) {
+      throw new UsageError("OIDC_CLIENT_SECRET must not be empty or contain spaces.");
+    }
+  } else if (flags.issuer !== undefined || flags.clientId !== undefined || secret !== undefined) {
+    throw new UsageError(
+      "--oidc-issuer, --oidc-client-id and OIDC_CLIENT_SECRET are for --sign-in oidc.",
+    );
   }
   const domains = (flags.memberDomains ?? "")
     .split(",")
@@ -112,8 +142,17 @@ export function identitySettings(flags: IdentityFlags, env: NodeJS.ProcessEnv): 
   });
   return [
     ...settings,
-    plain("OIDC_ISSUER", flags.issuer),
-    plain("OIDC_CLIENT_ID", flags.clientId),
+    ...(methods ? [plain("SIGN_IN_METHODS", methods.join(","))] : []),
+    ...(withEmail
+      ? [
+          plain("MAIL_FROM", flags.mailFrom!),
+          // The binding of Cloudflare Email Sending the gateway sends the codes through.
+          { name: "SEND_EMAIL", keep: false, given: { type: "send_email", name: "SEND_EMAIL" } },
+        ]
+      : []),
+    ...(withOidc
+      ? [plain("OIDC_ISSUER", flags.issuer!), plain("OIDC_CLIENT_ID", flags.clientId!)]
+      : []),
     ...(secret === undefined
       ? []
       : [

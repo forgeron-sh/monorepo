@@ -158,7 +158,9 @@ export type RegistryErrorCode =
   | "NO_PREVIOUS"
   | "NO_SECRET_KEY"
   | "PENDING_APPROVAL"
-  | "NO_MANIFEST";
+  | "NO_MANIFEST"
+  | "LAST_ADMIN"
+  | "INVALID";
 
 export class RegistryError extends Error {
   override name = "RegistryError";
@@ -184,6 +186,29 @@ export interface Member {
   name: string;
   roles: string[];
 }
+
+/** An invitation to join a workspace with these roles, accepted by signing in with the email (D-048). */
+export interface Invitation {
+  workspace: string;
+  email: string;
+  roles: string[];
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** Who joins a workspace by email domain, and with which role (D-048). */
+export interface MembershipSettings {
+  domains: string[];
+  /** The role a person joining by domain gets; none when `undefined`. Never `admin`. */
+  defaultRole?: string;
+}
+
+/** How a person came to be a member through the sign-in by email. */
+export type JoinVia = "invitation" | "admin-email" | "domain";
+
+const ROLE = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/;
+const DOMAIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 
 export interface RegistryOptions {
   now?: () => Date;
@@ -265,6 +290,15 @@ const toApproval = (r: Row): Approval => ({
   requestedAt: String(r.requested_at),
   ...(text(r.decided_by) ? { decidedBy: text(r.decided_by) } : {}),
   ...(text(r.decided_at) ? { decidedAt: text(r.decided_at) } : {}),
+});
+
+const toInvitation = (r: Row): Invitation => ({
+  workspace: String(r.workspace),
+  email: String(r.email),
+  roles: json(r.roles) as string[],
+  invitedBy: String(r.invited_by),
+  createdAt: String(r.created_at),
+  expiresAt: String(r.expires_at),
 });
 
 const toMember = (r: Row): Member => ({
@@ -650,6 +684,287 @@ ORDER BY "user_id", "connector"`,
       return (
         await all(`SELECT * FROM "members" WHERE "workspace" = ? ORDER BY "email"`, workspace)
       ).map(toMember);
+    },
+
+    // ---- members, invitations and allowed domains (D-048). Every change writes its audit line in
+    // the same batch (kind `access`, subject `member:<what>`).
+    /** The member with this email (compared case-insensitively), whoever their provider is. */
+    async findMemberByEmail(workspace: string, email: string): Promise<Member | undefined> {
+      const row = await first(
+        `SELECT * FROM "members" WHERE "workspace" = ? AND lower("email") = ?`,
+        workspace,
+        email.toLowerCase(),
+      );
+      return row ? toMember(row) : undefined;
+    },
+    /** Replaces a member's roles. The last administrator cannot lose the role. */
+    async setMemberRoles(
+      workspace: string,
+      id: string,
+      roles: readonly string[],
+      actor: string,
+    ): Promise<Member> {
+      const clean = [...new Set(roles)];
+      if (clean.some((r) => !ROLE.test(r))) {
+        throw new RegistryError("INVALID", "A role is a name of letters, digits, - and _.");
+      }
+      const member = await this.findMember(workspace, id);
+      if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
+      if (member.roles.includes("admin") && !clean.includes("admin")) {
+        await this.requireOtherAdmin(workspace, id);
+      }
+      await d1.batch([
+        d1
+          .prepare(`UPDATE "members" SET "roles" = ? WHERE "workspace" = ? AND "id" = ?`)
+          .bind(JSON.stringify(clean), workspace, id),
+        auditStatement(
+          {
+            actor,
+            interface: "api",
+            kind: "access",
+            subject: "member:roles",
+            detail: { workspace, member: id, email: member.email, from: member.roles, to: clean },
+          },
+          now(),
+        ),
+      ]);
+      return { ...member, roles: clean };
+    },
+    /** Removes a member (and their group places). Their sessions and tokens stop working at once. */
+    async removeMember(workspace: string, id: string, actor: string): Promise<void> {
+      const member = await this.findMember(workspace, id);
+      if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
+      if (member.roles.includes("admin")) await this.requireOtherAdmin(workspace, id);
+      await d1.batch([
+        d1
+          .prepare(`DELETE FROM "group_members" WHERE "workspace" = ? AND "member_id" = ?`)
+          .bind(workspace, id),
+        d1.prepare(`DELETE FROM "members" WHERE "workspace" = ? AND "id" = ?`).bind(workspace, id),
+        auditStatement(
+          {
+            actor,
+            interface: "api",
+            kind: "access",
+            subject: "member:remove",
+            detail: { workspace, member: id, email: member.email, roles: member.roles },
+          },
+          now(),
+        ),
+      ]);
+    },
+    async requireOtherAdmin(workspace: string, except: string): Promise<void> {
+      const others = (await this.listMembers(workspace)).filter(
+        (m) => m.id !== except && m.roles.includes("admin"),
+      );
+      if (others.length === 0) {
+        throw new RegistryError("LAST_ADMIN", "A workspace needs at least one administrator.");
+      }
+    },
+
+    /** Invites an email with roles; inviting it again replaces the invitation and its expiry. */
+    async inviteMember(
+      workspace: string,
+      input: { email: string; roles: readonly string[]; invitedBy: string; expiresAt: Date },
+    ): Promise<Invitation> {
+      const email = input.email.trim().toLowerCase();
+      const roles = [...new Set(input.roles)];
+      if (roles.some((r) => !ROLE.test(r))) {
+        throw new RegistryError("INVALID", "A role is a name of letters, digits, - and _.");
+      }
+      if (await this.findMemberByEmail(workspace, email)) {
+        throw new RegistryError("ALREADY_EXISTS", `${email} is already a member.`);
+      }
+      const at = now();
+      const invitation: Invitation = {
+        workspace,
+        email,
+        roles,
+        invitedBy: input.invitedBy,
+        createdAt: at,
+        expiresAt: input.expiresAt.toISOString(),
+      };
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "invitations" ("workspace", "email", "roles", "invited_by", "created_at", "expires_at") VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT ("workspace", "email") DO UPDATE SET "roles" = excluded."roles", "invited_by" = excluded."invited_by", "created_at" = excluded."created_at", "expires_at" = excluded."expires_at"`,
+          )
+          .bind(workspace, email, JSON.stringify(roles), input.invitedBy, at, invitation.expiresAt),
+        auditStatement(
+          {
+            actor: input.invitedBy,
+            interface: "api",
+            kind: "access",
+            subject: "member:invite",
+            detail: { workspace, email, roles },
+          },
+          at,
+        ),
+      ]);
+      return invitation;
+    },
+    /** The invitation of this email, unless it has expired. */
+    async findInvitation(workspace: string, email: string): Promise<Invitation | undefined> {
+      const row = await first(
+        `SELECT * FROM "invitations" WHERE "workspace" = ? AND "email" = ? AND "expires_at" > ?`,
+        workspace,
+        email.toLowerCase(),
+        now(),
+      );
+      return row ? toInvitation(row) : undefined;
+    },
+    async listInvitations(workspace: string): Promise<Invitation[]> {
+      return (
+        await all(
+          `SELECT * FROM "invitations" WHERE "workspace" = ? AND "expires_at" > ? ORDER BY "email"`,
+          workspace,
+          now(),
+        )
+      ).map(toInvitation);
+    },
+    async revokeInvitation(workspace: string, email: string, actor: string): Promise<boolean> {
+      const lower = email.toLowerCase();
+      if (
+        !(await first(
+          `SELECT 1 FROM "invitations" WHERE "workspace" = ? AND "email" = ?`,
+          workspace,
+          lower,
+        ))
+      ) {
+        return false;
+      }
+      await d1.batch([
+        d1
+          .prepare(`DELETE FROM "invitations" WHERE "workspace" = ? AND "email" = ?`)
+          .bind(workspace, lower),
+        auditStatement(
+          {
+            actor,
+            interface: "api",
+            kind: "access",
+            subject: "member:revoke-invitation",
+            detail: { workspace, email: lower },
+          },
+          now(),
+        ),
+      ]);
+      return true;
+    },
+
+    /**
+     * Makes the person who proved an email a member (subject `email:<address>`), in one batch with
+     * its audit line and, for an invitation, the invitation's removal. Two sign-ins at once make
+     * one member: the loser of the race gets the winner's row.
+     */
+    async joinMember(input: {
+      workspace: string;
+      email: string;
+      roles: readonly string[];
+      via: JoinVia;
+      /** A provider's own id for the person; `email:<address>` when they came by email alone. */
+      subject?: string;
+      name?: string;
+    }): Promise<Member> {
+      const email = input.email.toLowerCase();
+      const member: Member = {
+        workspace: input.workspace,
+        id: newId(),
+        subject: input.subject ?? `email:${email}`,
+        email,
+        name: input.name ?? email.split("@")[0] ?? email,
+        roles: [...input.roles],
+      };
+      const at = now();
+      try {
+        await d1.batch([
+          d1
+            .prepare(
+              `INSERT INTO "members" ("workspace", "id", "subject", "email", "name", "roles", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            )
+            .bind(
+              member.workspace,
+              member.id,
+              member.subject,
+              member.email,
+              member.name,
+              JSON.stringify(member.roles),
+              at,
+            ),
+          ...(input.via === "invitation"
+            ? [
+                d1
+                  .prepare(`DELETE FROM "invitations" WHERE "workspace" = ? AND "email" = ?`)
+                  .bind(input.workspace, email),
+              ]
+            : []),
+          auditStatement(
+            {
+              actor: member.id,
+              interface: "web",
+              kind: "access",
+              subject: "member:join",
+              detail: { workspace: input.workspace, email, roles: member.roles, via: input.via },
+            },
+            at,
+          ),
+        ]);
+      } catch (error) {
+        const winner = await this.findMemberByEmail(input.workspace, email);
+        if (winner && /UNIQUE|constraint/i.test(String(error))) return winner;
+        throw error;
+      }
+      return member;
+    },
+
+    /** The email domains whose people join by themselves, if an admin saved them (else the install's). */
+    async getMembershipSettings(workspace: string): Promise<MembershipSettings | undefined> {
+      const row = await first(
+        `SELECT * FROM "membership_settings" WHERE "workspace" = ?`,
+        workspace,
+      );
+      if (!row) return undefined;
+      const defaultRole = text(row.default_role);
+      return {
+        domains: json(row.domains) as string[],
+        ...(defaultRole ? { defaultRole } : {}),
+      };
+    },
+    /** Saves the allowed domains and default role as a whole; `admin` is never a default role. */
+    async setMembershipSettings(
+      workspace: string,
+      settings: MembershipSettings,
+      actor: string,
+    ): Promise<MembershipSettings> {
+      const domains = [...new Set(settings.domains.map((d) => d.trim().toLowerCase()))];
+      if (domains.some((d) => !DOMAIN.test(d))) {
+        throw new RegistryError("INVALID", "Domains look like acme.fr (no @, no spaces).");
+      }
+      if (settings.defaultRole !== undefined) {
+        if (!ROLE.test(settings.defaultRole) || settings.defaultRole === "admin") {
+          throw new RegistryError("INVALID", "The default role is a role name other than admin.");
+        }
+      }
+      const before = await this.getMembershipSettings(workspace);
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "membership_settings" ("workspace", "domains", "default_role", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT ("workspace") DO UPDATE SET "domains" = excluded."domains", "default_role" = excluded."default_role", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+          )
+          .bind(workspace, JSON.stringify(domains), settings.defaultRole ?? null, actor, at),
+        auditStatement(
+          {
+            actor,
+            interface: "api",
+            kind: "access",
+            subject: "member:domains",
+            detail: { workspace, from: before ?? null, to: { ...settings, domains } },
+          },
+          at,
+        ),
+      ]);
+      return { domains, ...(settings.defaultRole ? { defaultRole: settings.defaultRole } : {}) };
     },
 
     // ---- groups (D-035): who gets the pilot version at the production address

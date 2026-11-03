@@ -130,7 +130,9 @@ describe("the gateway, with the platform D1", () => {
   });
 
   it("is the Worker's fetch handler", async () => {
-    const response = await worker.fetch(new Request("https://acme.forgeron.app/t/crm/mcp"), env());
+    const response = await worker.fetch(new Request("https://acme.forgeron.app/t/crm/mcp"), env(), {
+      waitUntil: () => {},
+    });
     expect(response.status).toBe(200);
   });
 
