@@ -12,6 +12,12 @@ This guide describes `forgeron platform install` as it is implemented today. Whe
   bun run --cwd apps/gateway build   # writes apps/gateway/dist/worker.js
   ```
 
+- The console's build, the files of the console that the gateway serves (Vite):
+
+  ```bash
+  bun run --cwd apps/console build   # writes apps/console/dist
+  ```
+
 - The account id of the Cloudflare account (the id shown in the dashboard).
 
 ## 1. Create the API token
@@ -46,10 +52,11 @@ What this does **not** change: that token is short-lived, so it is **not** store
 
 ```bash
 export CLOUDFLARE_API_TOKEN=...   # the token from step 1
-forgeron platform install --account <account-id> --domain <base-domain> --gateway apps/gateway/dist/worker.js [--name forgeron]
+forgeron platform install --account <account-id> --domain <base-domain> --gateway apps/gateway/dist/worker.js --console apps/console/dist [--name forgeron]
 ```
 
 - `--domain`: the base domain the gateway serves (`BASE_DOMAIN`), as in `forgeron.app` for the cloud.
+- `--console`: the console's build directory. Its files are uploaded as the static assets of the gateway Worker, served at `https://<workspace>.<domain>/`. Without it the gateway is deployed without the console, and the command says so.
 - `--name`: prefix of the created resources, `forgeron` by default.
 
 The command does, in order:
@@ -59,7 +66,8 @@ The command does, in order:
 3. **Gateway.** Creates the Worker `<name>-gateway` if needed, uploads your bundle as a version with these bindings, then deploys that version to all traffic:
    - `DB`: the platform D1;
    - `BASE_DOMAIN` and `CLOUDFLARE_ACCOUNT_ID`: plain values;
-   - `CLOUDFLARE_API_TOKEN`: the token, as a secret.
+   - `CLOUDFLARE_API_TOKEN`: the token, as a secret;
+   - `ASSETS`: the console's files, when `--console` is given. They are uploaded first, through the Workers direct-upload API (a manifest of path, hash and size; only the files Cloudflare does not hold yet are sent), and the version carries the completion token. The gateway runs first for every request and falls back to the console's `index.html` for a path that is not a file (`run_worker_first`, `not_found_handling: single-page-application`). `.vite/` (Vite's own manifest) is not uploaded.
 4. **DNS and route.** Looks up the zone of `--domain` on the account (a usage error if it is not there), then creates, or reuses, the proxied wildcard record `*.<domain>` and the route `*.<domain>/*` to `<name>-gateway`. The record is `AAAA 100::`, the placeholder Cloudflare documents for a proxied record with no origin; the route is what answers. A route that already exists for that pattern but points to another Worker stops the command instead of being overwritten. Certificates are not handled: the zone's own certificate coverage applies (a wildcard needs a certificate that covers `*.<domain>`).
 
 Running it again is safe: the D1 and the Worker are reused, and a new version of the gateway is deployed.
@@ -92,7 +100,6 @@ What the gateway serves at a workspace origin once these are set: `/auth/login`,
 
 ## What is not done yet
 
-- **The console is not deployed.** There is no console build yet; the command says so when it finishes.
 - **Custom customer domains** (Cloudflare for SaaS, FOR-78) are not attached.
 - **Tools are not reachable until they are bound.** The gateway reaches each tool's Worker through a service binding (`TOOL_<WORKER>`), added when a tool is created and removed when it is deleted (D-029). The hosting side exists (`createGatewayBindings`); the gateway does not use it yet, so this installation still adds none.
 - The identity settings and the two keys listed above (`AUTH_SECRET`, `SECRETS_KEY`, `OIDC_*`, `ADMIN_EMAIL`) are not part of this command yet (FOR-120): set them on the gateway Worker yourself for now.

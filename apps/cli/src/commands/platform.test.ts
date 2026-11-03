@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,6 +10,9 @@ const TOKEN = "test-token-not-a-real-secret";
 const SESSION = "test-session-token-not-a-real-secret";
 const GATEWAY = "test-gateway-token-not-a-real-secret";
 
+// Throwaway JWTs of the simulated asset upload: they protect nothing.
+const UPLOAD_JWT = "test-upload-jwt";
+const COMPLETION_JWT = "test-completion-jwt";
 const ZONE = { id: "zone-1", name: "forgeron.example.test" };
 
 interface Calls {
@@ -23,6 +26,8 @@ function fakeCloudflare(expected = TOKEN, zones: Array<{ id: string; name: strin
   const calls: Calls[] = [];
   const databases = new Map<string, string>();
   const workers = new Set<string>();
+  const stored = new Set<string>();
+  const uploaded: Record<string, string>[] = [];
   const records: Array<{ id: string; name: string; proxied: boolean }> = [];
   const routes: Array<{ id: string; pattern: string; script: string }> = [];
   const ok = (result: unknown) => Response.json({ success: true, errors: [], result });
@@ -35,12 +40,40 @@ function fakeCloudflare(expected = TOKEN, zones: Array<{ id: string; name: strin
     const url = new URL(String(input));
     const method = init?.method ?? "GET";
     const path = url.pathname.replace(/^\/client\/v4(\/accounts\/[^/]+)?/, "");
-    const body = init?.body
-      ? (JSON.parse(String(init.body)) as Record<string, unknown>)
-      : undefined;
+    const body =
+      init?.body && typeof init.body === "string"
+        ? (JSON.parse(String(init.body)) as Record<string, unknown>)
+        : undefined;
     calls.push({ method, path, ...(body ? { body } : {}) });
-    expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${expected}`);
+    // The asset upload is the one call Cloudflare authorises with the session's JWT, not the API token.
+    expect(new Headers(init?.headers).get("authorization")).toBe(
+      path === "/workers/assets/upload" ? `Bearer ${UPLOAD_JWT}` : `Bearer ${expected}`,
+    );
     let m: RegExpMatchArray | null;
+    if (method === "POST" && /^\/workers\/scripts\/[^/]+\/assets-upload-session$/.test(path)) {
+      // Like Cloudflare: only the files it does not hold yet are asked for.
+      const wanted = Object.values(body!.manifest as Record<string, { hash: string }>)
+        .map((f) => f.hash)
+        .filter((h) => !stored.has(h));
+      return ok({
+        jwt: wanted.length ? UPLOAD_JWT : COMPLETION_JWT,
+        buckets: wanted.length ? [wanted] : [],
+      });
+    }
+    if (method === "POST" && path === "/workers/assets/upload") {
+      if (url.searchParams.get("base64") !== "true") return missing();
+      const form = init!.body as FormData;
+      const part: Record<string, string> = {};
+      for (const [hash, file] of form.entries()) {
+        stored.add(hash);
+        part[hash] = `${(file as Blob).type}:${await (file as Blob).text()}`;
+      }
+      uploaded.push(part);
+      return Response.json(
+        { success: true, errors: [], result: { jwt: COMPLETION_JWT } },
+        { status: 201 },
+      );
+    }
     if (method === "GET" && path === "/zones") {
       // Only the zones of the account in the query, like Cloudflare's `account.id` filter.
       if (url.searchParams.get("account.id") !== "acc-1") return ok([]);
@@ -82,7 +115,7 @@ function fakeCloudflare(expected = TOKEN, zones: Array<{ id: string; name: strin
     if (method === "POST" && /\/deployments$/.test(path)) return ok({ id: "deployment-1" });
     return missing();
   };
-  return { fetcher, calls, databases, records, routes };
+  return { fetcher, calls, databases, records, routes, uploaded };
 }
 
 let dir: string;
@@ -178,6 +211,77 @@ describe("forgeron platform install", () => {
     await expect(platform(install(), io, { fetch: cf.fetcher })).rejects.toThrow(
       /already points to "other"/,
     );
+  });
+
+  describe("--console", () => {
+    beforeEach(async () => {
+      await mkdir(join(dir, "dist", "assets"), { recursive: true });
+      await mkdir(join(dir, "dist", ".vite"));
+      await writeFile(
+        join(dir, "dist", "index.html"),
+        "<!doctype html><title>Forgeron console</title>",
+      );
+      await writeFile(join(dir, "dist", "assets", "app.js"), "console.log(1);");
+      await writeFile(join(dir, "dist", ".vite", "manifest.json"), "{}");
+    });
+    const versionOf = (cf: ReturnType<typeof fakeCloudflare>) =>
+      cf.calls.find((c) => c.path.endsWith("/versions"))!.body!;
+
+    it("uploads the build as assets, then deploys the gateway version with the completion token", async () => {
+      const cf = fakeCloudflare();
+      expect(await platform(install(["--console", "dist"]), io, { fetch: cf.fetcher })).toBe(0);
+      const session = cf.calls.find((c) => c.path.endsWith("/assets-upload-session"))!;
+      expect(session.path).toBe("/workers/scripts/forgeron-gateway/assets-upload-session");
+      expect(Object.keys(session.body!.manifest as object)).toEqual([
+        "/assets/app.js",
+        "/index.html",
+      ]);
+      expect(cf.uploaded).toHaveLength(1);
+      expect(Object.values(cf.uploaded[0]!).sort()).toEqual([
+        `text/html:${btoa("<!doctype html><title>Forgeron console</title>")}`,
+        `text/javascript:${btoa("console.log(1);")}`,
+      ]);
+      const version = versionOf(cf);
+      expect(version.assets).toEqual({
+        jwt: COMPLETION_JWT,
+        config: { not_found_handling: "single-page-application", run_worker_first: true },
+      });
+      expect(version.bindings).toContainEqual({ type: "assets", name: "ASSETS" });
+      expect(cf.calls.findIndex((c) => c.path.endsWith("/versions"))).toBeGreaterThan(
+        cf.calls.findIndex((c) => c.path === "/workers/assets/upload"),
+      );
+      expect(logs.join("\n")).toContain("Deployed the console (2 files)");
+      expect(logs.join("\n")).not.toContain("not deployed");
+      expect(JSON.stringify(cf.calls)).not.toContain(".vite");
+    });
+
+    it("uploads nothing a second time: Cloudflare already holds the files", async () => {
+      const cf = fakeCloudflare();
+      await platform(install(["--console", "dist"]), io, { fetch: cf.fetcher });
+      await platform(install(["--console", "dist"]), io, { fetch: cf.fetcher });
+      expect(cf.uploaded).toHaveLength(1);
+      expect((versionOf(cf).assets as { jwt: string }).jwt).toBe(COMPLETION_JWT);
+    });
+
+    it("says the console is not deployed without --console, and sends no assets", async () => {
+      const cf = fakeCloudflare();
+      await platform(install(), io, { fetch: cf.fetcher });
+      expect(logs.join("\n")).toContain("The console is not deployed");
+      expect(cf.calls.some((c) => c.path.includes("assets"))).toBe(false);
+      expect(versionOf(cf).assets).toBeUndefined();
+    });
+
+    it("refuses a missing or empty build directory before calling Cloudflare", async () => {
+      const cf = fakeCloudflare();
+      await expect(
+        platform(install(["--console", "nope"]), io, { fetch: cf.fetcher }),
+      ).rejects.toThrow(/Cannot read the console build/);
+      await mkdir(join(dir, "empty"));
+      await expect(
+        platform(install(["--console", "empty"]), io, { fetch: cf.fetcher }),
+      ).rejects.toThrow(/no index.html/);
+      expect(cf.calls).toHaveLength(0);
+    });
   });
 
   it("never prints the token", async () => {

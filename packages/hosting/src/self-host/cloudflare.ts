@@ -29,7 +29,7 @@ export interface CloudflareClient {
   /** `path` is under `/accounts/<id>`. Returns the `result` of the envelope. */
   request<T>(method: string, path: string, body?: unknown): Promise<T>;
   /** Like `request`, with a multipart body: the upload of a Worker. */
-  form<T>(method: string, path: string, body: FormData): Promise<T>;
+  form<T>(method: string, path: string, body: FormData, bearer?: string): Promise<T>;
   /** Like `request`, with `path` under the API root (`/zones/<id>/...`), for what is not account-scoped. */
   requestRoot<T>(method: string, path: string, body?: unknown): Promise<T>;
 }
@@ -43,13 +43,14 @@ export function createCloudflareClient(options: CloudflareOptions): CloudflareCl
     body: string | FormData | undefined,
     json: boolean,
     root = false,
+    bearer = options.apiToken,
   ): Promise<T> {
     const response = await doFetch(
       `${base}${root ? "" : `/accounts/${options.accountId}`}${path}`,
       {
         method,
         headers: {
-          authorization: `Bearer ${options.apiToken}`,
+          authorization: `Bearer ${bearer}`,
           // A multipart body gets its boundary from `fetch`: no content type of ours.
           ...(body !== undefined && json ? { "content-type": "application/json" } : {}),
         },
@@ -70,7 +71,8 @@ export function createCloudflareClient(options: CloudflareOptions): CloudflareCl
     accountId: options.accountId,
     request: <T>(method: string, path: string, body?: unknown) =>
       send<T>(method, path, body === undefined ? undefined : JSON.stringify(body), true),
-    form: <T>(method: string, path: string, body: FormData) => send<T>(method, path, body, false),
+    form: <T>(method: string, path: string, body: FormData, bearer?: string) =>
+      send<T>(method, path, body, false, false, bearer),
     requestRoot: <T>(method: string, path: string, body?: unknown) =>
       send<T>(method, path, body === undefined ? undefined : JSON.stringify(body), true, true),
   };

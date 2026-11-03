@@ -11,6 +11,7 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { resolveCloudflareCredential } from "./cloudflare-auth";
+import { readAssets, uploadAssets } from "./console-assets";
 
 // `forgeron platform install` (docs/ARCHITECTURE.md, "Installing the platform in self-host"):
 // creates the platform D1 and migrates it, then deploys the gateway Worker on the customer's
@@ -22,7 +23,7 @@ import { resolveCloudflareCredential } from "./cloudflare-auth";
 // is only ever an API token; see D-026.
 
 const USAGE =
-  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--name forgeron] [--auth token|wrangler]";
+  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--name forgeron] [--auth token|wrangler]";
 
 interface Named {
   uuid?: string;
@@ -53,6 +54,7 @@ export async function platform(
       account: { type: "string" },
       domain: { type: "string" },
       gateway: { type: "string" },
+      console: { type: "string" },
       name: { type: "string", default: "forgeron" },
       auth: { type: "string", default: "token" },
     },
@@ -74,6 +76,8 @@ export async function platform(
   } catch {
     throw new UsageError(`Cannot read the gateway bundle ${values.gateway}.`);
   }
+
+  const assets = values.console ? await readAssets(resolve(io.cwd, values.console)) : undefined;
 
   const client: CloudflareClient = createCloudflareClient({
     accountId: values.account,
@@ -105,6 +109,7 @@ export async function platform(
     if ((error as { status?: number }).status !== 404) throw error;
     await client.request("POST", "/workers/workers", { name: worker });
   }
+  const assetsJwt = assets ? await uploadAssets(client, worker, assets) : undefined;
   const version = await client.request<{ id: string }>(
     "POST",
     `/workers/workers/${worker}/versions`,
@@ -119,7 +124,17 @@ export async function platform(
           content_base64: base64(code),
         },
       ],
+      // The console, served by the gateway at the workspace origin (apps/gateway/wrangler.jsonc).
+      ...(assetsJwt
+        ? {
+            assets: {
+              jwt: assetsJwt,
+              config: { not_found_handling: "single-page-application", run_worker_first: true },
+            },
+          }
+        : {}),
       bindings: [
+        ...(assetsJwt ? [{ type: "assets", name: "ASSETS" }] : []),
         { type: "d1", name: "DB", id: databaseId },
         { type: "plain_text", name: "BASE_DOMAIN", text: values.domain },
         { type: "plain_text", name: "CLOUDFLARE_ACCOUNT_ID", text: values.account },
@@ -144,7 +159,11 @@ export async function platform(
 
   // 4. DNS and route: a proxied wildcard record, then `*.<domain>/*` to the gateway.
   await attachRoute(client, values.domain, worker, io);
-  io.log("The console is not deployed: no console build exists yet.");
+  io.log(
+    assets
+      ? `Deployed the console (${assets.length} files) as assets of the gateway.`
+      : "The console is not deployed: pass --console <dir> (the build of apps/console) to deploy it.",
+  );
   return 0;
 }
 
