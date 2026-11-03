@@ -14,7 +14,8 @@
         "db/seed.ts",
         "actions/**/*.ts",
         "jobs/**/*.ts",
-        "events/**/*.ts"
+        "events/**/*.ts",
+        "views/**/*.tsx"
       ]
     },
     "packages/compiler": {

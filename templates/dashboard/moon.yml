@@ -1,1 +1,15 @@
 language: typescript
+
+tasks:
+  typecheck:
+    script: bun ../../scripts/build-tool.ts . && tsc --noEmit
+    inputs:
+      - "forgeron.config.ts"
+      - "actions/**/*"
+      - "lib/**/*"
+      - "views/**/*"
+      - "tests/**/*"
+      - "tsconfig.json"
+      - "/packages/sdk/src/**/*"
+      - "/packages/compiler/src/**/*"
+      - "/packages/ui/src/**/*"
