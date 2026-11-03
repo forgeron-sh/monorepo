@@ -86,6 +86,16 @@
         "@types/node": "24.19.2",
       },
     },
+    "packages/connector-microsoft-365": {
+      "name": "@forgeron/connector-microsoft-365",
+      "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/sdk": "workspace:*",
+      },
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+      },
+    },
     "packages/hosting": {
       "name": "@forgeron/hosting",
       "version": "0.0.0",
@@ -341,6 +351,8 @@
     "@forgeron/cli": ["@forgeron/cli@workspace:apps/cli"],
 
     "@forgeron/compiler": ["@forgeron/compiler@workspace:packages/compiler"],
+
+    "@forgeron/connector-microsoft-365": ["@forgeron/connector-microsoft-365@workspace:packages/connector-microsoft-365"],
 
     "@forgeron/console": ["@forgeron/console@workspace:apps/console"],
 
