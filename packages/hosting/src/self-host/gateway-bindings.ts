@@ -24,6 +24,11 @@ export interface GatewayBindingsOptions {
   code(): string | Promise<string>;
   compatibilityDate: string;
   compatibilityFlags?: readonly string[];
+  /**
+   * The gateway serves the console as assets: the new version keeps them (`keep_assets`, Cloudflare
+   * documentation, "Direct Upload": reuse the assets of the previous version without a new JWT).
+   */
+  keepAssets?: boolean;
 }
 
 export interface GatewayBindings {
@@ -52,6 +57,7 @@ export function createGatewayBindings(
         main_module: "worker.js",
         compatibility_date: options.compatibilityDate,
         compatibility_flags: [...(options.compatibilityFlags ?? [])],
+        ...(options.keepAssets ? { keep_assets: true } : {}),
         modules: [
           {
             name: "worker.js",

@@ -23,6 +23,7 @@ export type {
   ConsentTarget,
   OAuthProvider,
 } from "./consent";
+export { loadGatewayCode, saveGatewayCode } from "./gateway-code";
 export { createSecretBox, type SealedSecret, type SecretBox } from "./secret-box";
 export type {
   AccessCell,
