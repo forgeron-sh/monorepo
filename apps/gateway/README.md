@@ -9,7 +9,7 @@ The only public Worker of the platform.
 - `registry/`: tools, builds, versions, environments (D1)
 - `deploy/`: receives a build from CI (`POST /deploy`, authenticated by `FORGERON_TOKEN`), calls `@forgeron/hosting`; issues deployment tokens (`POST /deploy-tokens`, administrators)
 - `admin-mcp/`: administration MCP (`sdk.md` §17)
-- `console-api/`: console API
+- `console-api/`: console API (`secrets.ts`: `PUT`/`GET /api/tools/<tool>/environments/<env>/secrets`, admin only, names out and values in)
 - `audit/`: log (deployments are recorded in the registry's `deployments` history: who, when, which version)
 
 ## Notes

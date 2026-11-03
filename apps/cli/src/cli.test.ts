@@ -250,6 +250,96 @@ describe("forgeron init", () => {
     });
   });
 
+  describe("secrets", () => {
+    let server: Server;
+    let endpoint = "";
+    const requests: Array<{ method: string; url: string; auth?: string; body: string }> = [];
+    let status = 200;
+
+    beforeAll(async () => {
+      server = createServer((req, res) => {
+        let body = "";
+        req.on("data", (c) => (body += c));
+        req.on("end", () => {
+          requests.push({
+            method: req.method ?? "",
+            url: req.url ?? "",
+            auth: req.headers.authorization,
+            body,
+          });
+          res.statusCode = status === 200 && req.method === "PUT" ? 204 : status;
+          res.setHeader("content-type", "application/json");
+          res.end(req.method === "GET" ? JSON.stringify({ secrets: ["A_KEY", "B_KEY"] }) : "");
+        });
+      });
+      await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+      endpoint = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    });
+    afterAll(async () => {
+      delete process.env.FORGERON_TOKEN;
+      await new Promise((done) => server.close(done));
+    });
+
+    const linked = async () => {
+      const dir = await empty();
+      await mkdir(join(dir, ".forgeron"), { recursive: true });
+      await writeFile(
+        join(dir, ".forgeron/project.json"),
+        JSON.stringify({ tool: "crm", workspace: "acme", endpoint }),
+      );
+      requests.length = 0;
+      status = 200;
+      process.env.FORGERON_TOKEN = "test-token-not-real";
+      return capture(dir);
+    };
+
+    it("reads the value from the keyboard and sends it in the body only", async () => {
+      const c = await linked();
+      const readSecret = vi.fn<NonNullable<Io["readSecret"]>>(async () => "typed-value");
+      c.io.readSecret = readSecret;
+      expect(await run(["secrets", "set", "ODOO_KEY", "--env", "pilot"], c.io)).toBe(0);
+      expect(readSecret).toHaveBeenCalledOnce();
+      expect(requests).toEqual([
+        {
+          method: "PUT",
+          url: "/api/tools/crm/environments/pilot/secrets/ODOO_KEY",
+          auth: "Bearer test-token-not-real",
+          body: JSON.stringify({ value: "typed-value" }),
+        },
+      ]);
+      expect(c.logs.join("\n")).not.toContain("typed-value");
+    });
+
+    it("refuses a value passed as an argument", async () => {
+      const c = await linked();
+      expect(await run(["secrets", "set", "ODOO_KEY", "oops"], c.io)).toBe(2);
+      expect(requests).toEqual([]);
+    });
+
+    it("lists names, production by default", async () => {
+      const c = await linked();
+      expect(await run(["secrets", "list"], c.io)).toBe(0);
+      expect(c.logs).toEqual(["A_KEY", "B_KEY"]);
+      expect(requests[0]?.url).toBe("/api/tools/crm/environments/production/secrets");
+    });
+
+    it("explains a refused token and a missing link or token", async () => {
+      const c = await linked();
+      status = 403;
+      expect(await run(["secrets", "list"], c.io)).toBe(1);
+      expect(c.errors[0]).toContain("admin");
+      delete process.env.FORGERON_TOKEN;
+      expect(await run(["secrets", "list"], c.io)).toBe(2);
+      expect(await run(["secrets", "list"], capture(await empty()).io)).toBe(2);
+    });
+
+    it("refuses an unknown environment and a bad name", async () => {
+      const c = await linked();
+      expect(await run(["secrets", "list", "--env", "dev"], c.io)).toBe(2);
+      expect(await run(["secrets", "set", "lower"], c.io)).toBe(2);
+    });
+  });
+
   it("creates a tool that builds and whose own test passes", async () => {
     // Inside the repository, so that `@forgeron/sdk` resolves.
     const root = join(fixtures, `.work-init-${Date.now()}`);
