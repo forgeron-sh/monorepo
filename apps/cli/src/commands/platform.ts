@@ -4,17 +4,19 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
+import { resolveCloudflareCredential } from "./cloudflare-auth";
 
 // `forgeron platform install` (docs/ARCHITECTURE.md, "Installing the platform in self-host"):
 // creates the platform D1 and migrates it, then deploys the gateway Worker on the customer's
 // Cloudflare account with the D1 and the API token bound as a secret.
 //
-// The token is read from `CLOUDFLARE_API_TOKEN` only (never an argument, which would land in the
-// shell history), is sent to Cloudflare as a secret binding of the gateway, and is never printed.
-// It is the most sensitive secret of the installation: limit it to Workers, D1, KV and R2.
+// The credential comes from `--auth` (cloudflare-auth.ts): `token` (default) reads
+// `CLOUDFLARE_API_TOKEN`, `wrangler` takes the token of the wrangler session. It is never an
+// argument (it would land in the shell history) and never printed. The gateway's secret binding
+// is only ever an API token; see D-026.
 
 const USAGE =
-  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--name forgeron]";
+  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--name forgeron] [--auth token|wrangler]";
 const COMPATIBILITY_DATE = "2026-10-01";
 
 interface Named {
@@ -47,6 +49,7 @@ export async function platform(
       domain: { type: "string" },
       gateway: { type: "string" },
       name: { type: "string", default: "forgeron" },
+      auth: { type: "string", default: "token" },
     },
   });
   if (positionals.length > 0 || !values.account || !values.domain || !values.gateway) {
@@ -56,12 +59,10 @@ export async function platform(
   if (!/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(name)) {
     throw new UsageError(`"${name}" is not a usable name: 3 to 40 characters among a-z, 0-9, "-".`);
   }
-  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
-  if (!apiToken) {
-    throw new UsageError(
-      "Set CLOUDFLARE_API_TOKEN to a token limited to Workers, D1, KV and R2 (it is never an argument).",
-    );
-  }
+  const { installToken: apiToken, gatewayToken } = await resolveCloudflareCredential(
+    values.auth as string,
+    io,
+  );
   let code: string;
   try {
     code = await readFile(resolve(io.cwd, values.gateway), "utf8");
@@ -117,7 +118,9 @@ export async function platform(
         { type: "d1", name: "DB", id: databaseId },
         { type: "plain_text", name: "BASE_DOMAIN", text: values.domain },
         { type: "plain_text", name: "CLOUDFLARE_ACCOUNT_ID", text: values.account },
-        { type: "secret_text", name: "CLOUDFLARE_API_TOKEN", text: apiToken },
+        ...(gatewayToken
+          ? [{ type: "secret_text", name: "CLOUDFLARE_API_TOKEN", text: gatewayToken }]
+          : []),
       ],
     },
   );
@@ -125,7 +128,14 @@ export async function platform(
     strategy: "percentage",
     versions: [{ percentage: 100, version_id: version.id }],
   });
-  io.log(`Deployed the gateway "${worker}" (the API token is stored as its secret).`);
+  if (gatewayToken) {
+    io.log(`Deployed the gateway "${worker}" (the API token is stored as its secret).`);
+  } else {
+    io.log(`Deployed the gateway "${worker}" WITHOUT a CLOUDFLARE_API_TOKEN secret.`);
+    io.log(
+      "The wrangler token is a short-lived session token and is not stored. Create an API token limited to Workers, D1, KV and R2, then either run the install again with GATEWAY_CLOUDFLARE_API_TOKEN set, or set the secret CLOUDFLARE_API_TOKEN on the gateway Worker yourself (for example with `wrangler secret put`). Tools cannot be deployed before that.",
+    );
+  }
   io.log("The console is not deployed: no console build exists yet.");
   return 0;
 }

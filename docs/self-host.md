@@ -30,6 +30,12 @@ How Forgeron handles it:
 
 Keep it out of the repository and out of logs. Rotate it by creating a new token, running the install again, then revoking the old one.
 
+### Alternative: use your wrangler login (`--auth wrangler`)
+
+If you would rather not create a token for the installation, sign in with `wrangler login` and add `--auth wrangler`. The command runs `wrangler auth token` and uses the session token it prints for the installation's calls only (D-026). It is never printed, never an argument.
+
+What this does **not** change: that token is short-lived, so it is **not** stored in the gateway. The gateway still needs an API token (limited as above) to deploy tools later. Either export it as `GATEWAY_CLOUDFLARE_API_TOKEN` when you run the command, or the command skips the binding and tells you; set the secret `CLOUDFLARE_API_TOKEN` on the gateway Worker yourself (for example with `wrangler secret put`). Tools cannot be deployed before that. Without `--auth`, nothing changes; `--auth oauth` is reserved and refused. If wrangler is missing or not signed in, the command asks you to run `wrangler login`.
+
 ## 2. Run the installation
 
 ```bash

@@ -35,7 +35,14 @@ function capture(cwd: string): Captured {
   const stopped = new Promise<void>((resolve) => (stop = resolve));
   const exec = vi.fn<Io["exec"]>(async () => 0);
   return {
-    io: { cwd, log: (m) => void logs.push(m), error: (m) => void errors.push(m), exec, stopped },
+    io: {
+      cwd,
+      log: (m) => void logs.push(m),
+      error: (m) => void errors.push(m),
+      exec,
+      capture: async () => ({ code: 0, stdout: "" }),
+      stopped,
+    },
     logs,
     errors,
     stop,

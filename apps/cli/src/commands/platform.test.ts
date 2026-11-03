@@ -7,6 +7,8 @@ import { platform } from "./platform";
 
 // A throwaway value: it protects nothing and is not a secret.
 const TOKEN = "test-token-not-a-real-secret";
+const SESSION = "test-session-token-not-a-real-secret";
+const GATEWAY = "test-gateway-token-not-a-real-secret";
 
 interface Calls {
   method: string;
@@ -15,7 +17,7 @@ interface Calls {
 }
 
 /** A simulated Cloudflare account: only the routes the install calls. */
-function fakeCloudflare() {
+function fakeCloudflare(expected = TOKEN) {
   const calls: Calls[] = [];
   const databases = new Map<string, string>();
   const workers = new Set<string>();
@@ -33,7 +35,7 @@ function fakeCloudflare() {
       ? (JSON.parse(String(init.body)) as Record<string, unknown>)
       : undefined;
     calls.push({ method, path, ...(body ? { body } : {}) });
-    expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${TOKEN}`);
+    expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${expected}`);
     let m: RegExpMatchArray | null;
     if (method === "GET" && path === "/d1/database") {
       return ok([...databases].map(([uuid, name]) => ({ uuid, name })));
@@ -78,12 +80,14 @@ beforeEach(async () => {
     log: (m) => void logs.push(m),
     error: (m) => void errors.push(m),
     exec: vi.fn<Io["exec"]>(async () => 0),
+    capture: vi.fn<NonNullable<Io["capture"]>>(async () => ({ code: 0, stdout: `${SESSION}\n` })),
     stopped: new Promise(() => {}),
   };
   process.env.CLOUDFLARE_API_TOKEN = TOKEN;
 });
 afterEach(async () => {
   delete process.env.CLOUDFLARE_API_TOKEN;
+  delete process.env.GATEWAY_CLOUDFLARE_API_TOKEN;
   await rm(dir, { recursive: true, force: true });
 });
 
@@ -157,5 +161,78 @@ describe("forgeron platform install", () => {
       ),
     ).rejects.toThrow(/Cannot read the gateway bundle/);
     await expect(platform(["uninstall"], io)).rejects.toThrow(/Usage/);
+  });
+
+  describe("--auth wrangler", () => {
+    const secretOf = (cf: ReturnType<typeof fakeCloudflare>) =>
+      (
+        cf.calls.find((c) => c.path.endsWith("/versions"))!.body!.bindings as Array<
+          Record<string, string>
+        >
+      ).find((b) => b.name === "CLOUDFLARE_API_TOKEN");
+
+    it("calls Cloudflare with the wrangler token, run without a shell, and does not store it", async () => {
+      delete process.env.CLOUDFLARE_API_TOKEN;
+      const cf = fakeCloudflare(SESSION);
+      expect(await platform(install(["--auth", "wrangler"]), io, { fetch: cf.fetcher })).toBe(0);
+      expect(io.capture).toHaveBeenCalledWith("wrangler", ["auth", "token"], dir);
+      expect(secretOf(cf)).toBeUndefined();
+      expect(JSON.stringify(cf.calls)).not.toContain(SESSION);
+      const output = logs.join("\n");
+      expect(output).toContain("WITHOUT a CLOUDFLARE_API_TOKEN secret");
+      expect(output).not.toContain(SESSION);
+    });
+
+    it("stores GATEWAY_CLOUDFLARE_API_TOKEN as the gateway's secret when given", async () => {
+      process.env.GATEWAY_CLOUDFLARE_API_TOKEN = GATEWAY;
+      const cf = fakeCloudflare(SESSION);
+      await platform(install(["--auth", "wrangler"]), io, { fetch: cf.fetcher });
+      expect(secretOf(cf)).toEqual({
+        type: "secret_text",
+        name: "CLOUDFLARE_API_TOKEN",
+        text: GATEWAY,
+      });
+      expect(JSON.stringify(cf.calls)).not.toContain(SESSION);
+      expect([...logs, ...errors].join("\n")).not.toContain(GATEWAY);
+    });
+
+    it("tells the person to run wrangler login when wrangler is missing, fails or prints nothing usable", async () => {
+      for (const capture of [
+        async () => {
+          throw new Error(`spawn wrangler ENOENT ${SESSION}`);
+        },
+        async () => ({ code: 1, stdout: SESSION }),
+        async () => ({ code: 0, stdout: "" }),
+        async () => ({ code: 0, stdout: `${SESSION}\nother` }),
+      ]) {
+        io.capture = capture;
+        const failure = await platform(install(["--auth", "wrangler"]), io, {
+          fetch: fakeCloudflare(SESSION).fetcher,
+        }).then(
+          () => new Error("did not fail"),
+          (e: unknown) => e as Error,
+        );
+        expect(failure.name).toBe("UsageError");
+        expect(failure.message).toContain("wrangler login");
+        expect(failure.message).not.toContain(SESSION);
+      }
+    });
+  });
+
+  it("refuses oauth without any effect, and an unknown --auth with the supported names", async () => {
+    const cf = fakeCloudflare();
+    await expect(platform(install(["--auth", "oauth"]), io, { fetch: cf.fetcher })).rejects.toThrow(
+      /planned, not available/,
+    );
+    await expect(platform(install(["--auth", "nope"]), io, { fetch: cf.fetcher })).rejects.toThrow(
+      /token, wrangler, oauth/,
+    );
+    expect(cf.calls).toHaveLength(0);
+    expect(io.capture).not.toHaveBeenCalled();
+  });
+
+  it("does not look at wrangler without --auth", async () => {
+    await platform(install(), io, { fetch: fakeCloudflare().fetcher });
+    expect(io.capture).not.toHaveBeenCalled();
   });
 });
