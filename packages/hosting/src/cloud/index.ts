@@ -19,6 +19,7 @@ import { cloudflareResources } from "../resources";
 import {
   createCloudflareClient,
   CloudflareError,
+  type CloudflareClient,
   type CloudflareOptions,
 } from "../self-host/cloudflare";
 import { createRestD1 } from "../self-host/d1-rest";
@@ -35,6 +36,25 @@ export interface CloudOptions extends CloudflareOptions {
 }
 
 const COMPATIBILITY_DATE = "2026-07-01";
+
+/**
+ * Creates the dispatch namespace the tool Workers are uploaded to, if the account has none of that
+ * name (`POST /workers/dispatch/namespaces` `{ name }`; Cloudflare documentation, Workers for
+ * Platforms "Get started" and "Infrastructure as code", read 2026-11-03). Returns whether it was created.
+ */
+export async function ensureDispatchNamespace(
+  client: CloudflareClient,
+  name: string,
+): Promise<boolean> {
+  try {
+    await client.request("GET", `/workers/dispatch/namespaces/${encodeURIComponent(name)}`);
+    return false;
+  } catch (error) {
+    if (!(error instanceof CloudflareError) || error.status !== 404) throw error;
+  }
+  await client.request("POST", "/workers/dispatch/namespaces", { name });
+  return true;
+}
 
 export function createCloudHosting(options: CloudOptions): Hosting {
   const client = createCloudflareClient(options);
