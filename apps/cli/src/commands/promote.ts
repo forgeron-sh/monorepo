@@ -14,8 +14,8 @@ const ENVIRONMENTS = ["preview", "pilot", "production"];
  * token, CI) if set, else the token `forgeron login` stored. The gateway accepts a deployment
  * token of the tool, or an administrator.
  */
-async function credentialsOf(): Promise<string> {
-  const token = process.env.FORGERON_TOKEN || (await readCredentials());
+async function credentialsOf(io: Io): Promise<string> {
+  const token = process.env.FORGERON_TOKEN || (await readCredentials(process.env, io.keychain));
   if (!token) {
     throw new UsageError(
       "Not signed in: run `forgeron login` (an administrator), or set FORGERON_TOKEN.",
@@ -81,7 +81,7 @@ export async function promote(args: string[], io: Io): Promise<number> {
     throw new UsageError("A preview is tied to a branch: pass --branch <name>.");
   }
   const { project, endpoint } = await endpointOf(io);
-  const token = await credentialsOf();
+  const token = await credentialsOf(io);
 
   const { ok, status, answer } = await call(endpoint, "/promote", token, {
     tool: project.tool,
@@ -123,7 +123,7 @@ export async function rollback(args: string[], io: Io): Promise<number> {
     throw new UsageError("A preview is tied to a branch: pass --branch <name>.");
   }
   const { project, endpoint } = await endpointOf(io);
-  const token = await credentialsOf();
+  const token = await credentialsOf(io);
 
   const { ok, status, answer } = await call(endpoint, "/rollback", token, {
     tool: project.tool,
