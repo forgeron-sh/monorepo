@@ -1,5 +1,6 @@
 import { actionNameOfPath } from "@forgeron/manifest";
 import type { ActionDefinition, EventDefinition, JobDefinition, ToolConfig } from "@forgeron/sdk";
+import type { ViewDefinition } from "@forgeron/sdk/react";
 import type { MigrationDefinition, SeedDefinition } from "@forgeron/sdk/db";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readdir, rm, writeFile } from "node:fs/promises";
@@ -16,6 +17,8 @@ export interface LoadedTool {
   actions: Record<string, ActionDefinition>;
   jobs: Record<string, JobDefinition>;
   events: Record<string, EventDefinition>;
+  /** `views/<name>.tsx`, by name (the path under `views/`, without extension). */
+  views: Record<string, ViewDefinition>;
   /** The tool's `db/schema.ts`, if it has one. */
   schema?: unknown;
   /** The tool's `db/seed.ts`, if it has one. */
@@ -90,7 +93,19 @@ export async function sourcesOf(dir: string) {
   const jobFiles = await files(join(dir, "jobs"));
   const eventFiles = await files(join(dir, "events"));
   const migrationFiles = await files(join(dir, "db", "migrations"));
+  const viewFiles = await files(join(dir, "views"));
   return {
+    views: named(
+      dir,
+      "view",
+      viewFiles.map((file) => ({
+        name: relative(join(dir, "views"), file)
+          .slice(0, -extname(file).length)
+          .split(sep)
+          .join("/"),
+        file,
+      })),
+    ),
     actions: named(
       dir,
       "action",
@@ -123,7 +138,7 @@ const inside = (dir: string, path: string) => {
 };
 
 /** A tool imports its own files and npm packages: nothing else (sdk.md §14). */
-function boundary(dir: string) {
+export function boundary(dir: string) {
   return {
     name: "forgeron-boundary",
     resolveId(source: string, importer?: string) {
@@ -142,7 +157,7 @@ function boundary(dir: string) {
 }
 
 export async function loadTool(dir: string, scratch: string): Promise<LoadedTool> {
-  const { actions, jobs, events, migrations } = await sourcesOf(dir);
+  const { actions, jobs, events, migrations, views } = await sourcesOf(dir);
   const schemaFile = await schemaFileOf(dir);
   const seedFile = await seedFileOf(dir);
   const q = JSON.stringify;
@@ -160,6 +175,7 @@ export async function loadTool(dir: string, scratch: string): Promise<LoadedTool
     `export const actions = { ${actions.map((a) => `${q(a.name)}: ${guarded(a.file)}`).join(", ")} };`,
     `export const jobs = { ${jobs.map((j) => `${q(j.name)}: ${guarded(j.file)}`).join(", ")} };`,
     `export const events = { ${events.map((e) => `${q(e.name)}: ${guarded(e.file)}`).join(", ")} };`,
+    `export const views = { ${views.map((v) => `${q(v.name)}: ${guarded(v.file)}`).join(", ")} };`,
     ...(schemaFile ? [`export const schema = ${guarded(schemaFile)};`] : []),
     ...(seedFile ? [`export const seed = ${guarded(seedFile)};`] : []),
     `export const migrations = { ${migrations.map((m) => `${q(m.name)}: ${guarded(m.file)}`).join(", ")} };`,

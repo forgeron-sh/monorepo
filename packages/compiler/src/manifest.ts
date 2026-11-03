@@ -14,6 +14,9 @@ function jsonSchema(loaded: LoadedTool, schema: unknown, io: "input" | "output",
   }
 }
 
+/** Where the build writes a view, relative to `.forgeron/build/`. */
+const viewEntryOf = (name: string) => `views/${name}.js`;
+
 export function buildManifest(loaded: LoadedTool, version: string): Manifest {
   const { config } = loaded;
   // An `interfaces` object lists what is exposed; left out, everything but the web is.
@@ -90,6 +93,32 @@ export function buildManifest(loaded: LoadedTool, version: string): Manifest {
     events[name] = { event: def.event, mode: def.mode };
   }
 
+  const views: Manifest["views"] = {};
+  for (const [name, def] of Object.entries(loaded.views)) {
+    const where = `views/${name}`;
+    if (def?.kind !== "view") {
+      throw new Error(
+        `${where}: the default export is not a view (use defineView() from @forgeron/sdk/react).`,
+      );
+    }
+    views[name] = {
+      title: def.title,
+      path: def.path,
+      access: def.access,
+      ...(def.params
+        ? {
+            params: jsonSchema(
+              loaded,
+              def.params,
+              "input",
+              where,
+            ) as Manifest["actions"][string]["input"],
+          }
+        : {}),
+      entry: viewEntryOf(name),
+    };
+  }
+
   const manifest = {
     name: config.name,
     version,
@@ -98,7 +127,7 @@ export function buildManifest(loaded: LoadedTool, version: string): Manifest {
     interfaces,
     roles: config.roles ?? {},
     actions,
-    views: {},
+    views,
     jobs,
     events,
     resources: config.resources ?? {},
