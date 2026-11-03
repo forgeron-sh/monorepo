@@ -212,3 +212,38 @@ describe("a token for one tool is refused by every other tool", () => {
     expect((await get()).status).toBe(401);
   });
 });
+
+describe("scoped tokens", () => {
+  const scoped = () =>
+    issueToken({
+      secret,
+      person: "deploy:ci",
+      workspace: "acme",
+      tool: "crm",
+      ttlSeconds: 600,
+      now,
+      scope: "deploy",
+    });
+
+  it("are accepted only where their scope is asked for", async () => {
+    expect(await verifyToken(await scoped(), { secret, now, scope: "deploy" })).toMatchObject({
+      ok: true,
+      claims: { sub: "deploy:ci", scp: "deploy" },
+    });
+    expect(await verifyToken(await scoped(), { secret, now })).toEqual({
+      ok: false,
+      reason: "scope",
+    });
+    expect(await verifyToken(await scoped(), { secret, now, scope: "other" })).toEqual({
+      ok: false,
+      reason: "scope",
+    });
+  });
+
+  it("are not a person's token, and a person's token is not a deployment token", async () => {
+    expect(await verifyToken(await issue("crm"), { secret, now, scope: "deploy" })).toEqual({
+      ok: false,
+      reason: "scope",
+    });
+  });
+});
