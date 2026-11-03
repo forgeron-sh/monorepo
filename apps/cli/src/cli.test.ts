@@ -1,7 +1,7 @@
 import { createTestTool } from "@forgeron/sdk/testing";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -247,6 +247,33 @@ describe("forgeron init", () => {
       const c = capture(await empty());
       expect(await run(["init", "x", "--template", "nope"], c.io)).toBe(2);
       expect(c.errors[0]).toContain("No template named");
+    });
+
+    it("plays a template from a scratch copy and installs nothing", async () => {
+      const root = await empty();
+      const c = capture(root);
+      const done = run(["play", "--template", "crm", "--no-open", "--port", "0"], c.io);
+      await vi.waitFor(() => expect(c.logs.join("\n")).toContain("Playground of"), {
+        timeout: 60_000,
+      });
+      expect(c.logs[0]).toContain("Template crm@0.0.0");
+      const url = /Playground of \S+: (\S+)/.exec(c.logs.join("\n"))![1]!;
+      const manifest = (await (await fetch(`${url}/_play/manifest`)).json()) as {
+        actions: Record<string, unknown>;
+      };
+      expect(Object.keys(manifest.actions).length).toBeGreaterThan(0);
+      expect(await readdir(root)).toEqual([]);
+      c.stop();
+      expect(await done).toBe(0);
+      expect(await readdir(root)).toEqual([]);
+    }, 120_000);
+
+    it("exits 4 when the template to play does not exist", async () => {
+      const root = await empty();
+      const c = capture(root);
+      expect(await run(["play", "--template", "nope"], c.io)).toBe(4);
+      expect(c.errors[0]).toContain('No template named "nope"');
+      expect(await readdir(root)).toEqual([]);
     });
   });
 

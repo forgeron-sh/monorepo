@@ -11,25 +11,27 @@ Rules of the log:
 
 ## Index
 
-| No.   | Date       | Decision                                                                                                | Status            |
-| ----- | ---------- | ------------------------------------------------------------------------------------------------------- | ----------------- |
-| D-001 | 22/10/2026 | Adopt the tooling and conventions of siages                                                             | Active            |
-| D-002 | 22/10/2026 | TypeScript 6, not 7                                                                                     | Active            |
-| D-003 | 22/10/2026 | The CLI is an app (`apps/cli`), the SDK a package (`packages/sdk`)                                      | Active            |
-| D-004 | 22/10/2026 | A tool is built in the CI of its repository                                                             | Active            |
-| D-005 | 22/10/2026 | Build, version and release are three distinct notions                                                   | Active            |
-| D-006 | 22/10/2026 | One `forgeron.config.ts` = one tool                                                                     | Active            |
-| D-007 | 22/10/2026 | Catalog templates use `forgeron release`                                                                | Active            |
-| D-008 | 22/10/2026 | Run tools with Dynamic Workers                                                                          | Replaced by D-009 |
-| D-009 | 22/10/2026 | Two hosting modes behind a single interface: Workers for Platforms (cloud), classic Workers (self-host) | Active            |
-| D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                       | Active            |
-| D-011 | 02/11/2026 | All repository files are written in English                                                             | Active            |
-| D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                     | Active            |
-| D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                      | Active            |
-| D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract              | Active            |
-| D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime      | Active            |
-| D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                          | Active            |
-| D-017 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                 | Active            |
+| No.   | Date       | Decision                                                                                                      | Status            |
+| ----- | ---------- | ------------------------------------------------------------------------------------------------------------- | ----------------- |
+| D-001 | 22/10/2026 | Adopt the tooling and conventions of siages                                                                   | Active            |
+| D-002 | 22/10/2026 | TypeScript 6, not 7                                                                                           | Active            |
+| D-003 | 22/10/2026 | The CLI is an app (`apps/cli`), the SDK a package (`packages/sdk`)                                            | Active            |
+| D-004 | 22/10/2026 | A tool is built in the CI of its repository                                                                   | Active            |
+| D-005 | 22/10/2026 | Build, version and release are three distinct notions                                                         | Active            |
+| D-006 | 22/10/2026 | One `forgeron.config.ts` = one tool                                                                           | Active            |
+| D-007 | 22/10/2026 | Catalog templates use `forgeron release`                                                                      | Active            |
+| D-008 | 22/10/2026 | Run tools with Dynamic Workers                                                                                | Replaced by D-009 |
+| D-009 | 22/10/2026 | Two hosting modes behind a single interface: Workers for Platforms (cloud), classic Workers (self-host)       | Active            |
+| D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                             | Active            |
+| D-011 | 02/11/2026 | All repository files are written in English                                                                   | Active            |
+| D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                           | Active            |
+| D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                            | Active            |
+| D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract                    | Active            |
+| D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime            | Active            |
+| D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                | Active            |
+| D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host | Active            |
+| D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                          | Active            |
+| D-019 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                       | Active            |
 
 ---
 
@@ -201,7 +203,25 @@ Rules of the log:
 - **Not done**: refreshing a token before it expires (the hooks fail with "reload the page"); the browser script that mounts a view with `createHttpRuntime` (a wrapper generated by the build); reading the built files from the tool's version in the registry (`ViewAssets` is the seam); the dedicated views origin, the fallback if the sandbox gets in the way; wiring `serveView` into the dispatcher.
 - **Applied in**: `apps/gateway/src/views/serve.ts`; `packages/sdk/src/react/http.ts`; `packages/runtime` (`ViewBootstrap`).
 
-## D-017 — Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie
+## D-017 — The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: the dispatcher asks for a Worker by name (`<workspace>--<tool>--production|pilot|pr-<n>`); `createGateway` finds it in the mode it runs in. With a `DISPATCHER` binding (a dispatch namespace, cloud), it calls `DISPATCHER.get(name)`; a script that no longer exists makes the Fetcher throw "Worker not found", which answers 502 like a missing binding. Without it (self-host), the Worker is the service binding named `TOOL_<NAME IN UPPER CASE, - → _>`: `acme--crm--production` is `TOOL_ACME__CRM__PRODUCTION`. Only a value that can `fetch` is taken for a tool, and no other binding (`DB`, `BASE_DOMAIN`) can match a name that starts with `TOOL_`.
+- **Why**: `sdk.md` §7, "Routing on Cloudflare"; D-009. Worker names are `[a-z0-9-]`, so the binding name is one to one with the Worker name, and the existing check that a Worker belongs to the workspace and the tool still holds in both modes.
+- **Rejected**: one binding name per tool in the registry (state to keep in sync with the gateway's configuration); falling back from the namespace to a binding (two ways in for one Worker).
+- **Not done**: the `dispatch_namespaces` entry of `wrangler.jsonc` (the namespace name is the account's, left as a comment); redeploying the gateway with a new binding when a tool is created in self-host (hosting); custom domains.
+- **Applied in**: `apps/gateway/src/dispatch/targets.ts`, `apps/gateway/src/gateway.ts`.
+
+## D-018 — In cloud mode the script is sent at `activate`, after the migration, not at `upload`
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `createCloudHosting` provisions the tool's D1, KV and R2 (same names as self-host: `<worker>--db|cache|files`), keeps the build at `upload` without sending anything, runs `migrate`, and sends the script at `activate`: `PUT /workers/dispatch/namespaces/<namespace>/scripts/<worker>`, multipart, a `metadata` part (`main_module`, `compatibility_date`, the `bindings` of the resources) and the module. `teardown` deletes the script, then the resources by name.
+- **Why**: the Cloudflare documentation describes the upload to a namespace as an upload that serves at once (first uploads are deployed synchronously, changelog of 2025-02-20) and does not describe a version that waits for a deployment, as classic Workers have (used by self-host). Sending the script last keeps `sdk.md` §8, point 4: a failed migration leaves the previous script serving.
+- **Not verified**: everything here is tested against a simulated API built from the documentation. Whether a user Worker with its own D1 can be uploaded and called in a real namespace is FOR-36, which has not been run; the delete endpoint of a script is assumed to mirror the upload one. If Workers for Platforms has a version and deployment split after all, `upload` should send a version, as self-host does.
+- **Not done**: a queue resource (refused with a 501, as in self-host); the gateway side, which reaches the script through the namespace binding (D-017); custom limits and an outbound Worker.
+- **Applied in**: `packages/hosting/src/cloud/`, `packages/hosting/src/resources.ts` (shared with self-host), `multipart` upload in `self-host/cloudflare.ts`.
+
+## D-019 — Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: the gateway signs a person in through the workspace's OIDC provider (authorization code with PKCE `S256`, `state`, `nonce`); Microsoft Entra ID and Google Workspace are OIDC providers. The ID token is accepted only if it is RS256, signed by a key of the provider's JWKS, from the expected issuer, for the client, unexpired, with the expected nonce; the discovery document must name the issuer that was asked. The provider's identity is then mapped to a person of the workspace (`resolvePerson`); a non-member is refused with no session. The session is `__Host-fg_session`: `HttpOnly; Secure; SameSite=Lax; Path=/`, no `Domain`, HMAC-signed, bound to its workspace, with a required lifetime (no default). It is not a tool token: tools take audience tokens (D-015).

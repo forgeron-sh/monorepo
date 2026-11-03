@@ -61,6 +61,35 @@ export interface DeploymentRecord {
   createdAt: string;
 }
 
+export type AuditKind = "action" | "deployment" | "promotion" | "rollback" | "approval";
+export type AuditResult = "ok" | "denied" | "error";
+export type AuditInterface = "mcp" | "api" | "cli" | "web";
+
+/** What the admin MCP writes in `via`: its calls are the person's, made through Forgeron's MCP. */
+export const VIA_FORGERON_MCP = "Forgeron MCP";
+
+export interface AuditEntry {
+  toolId?: string;
+  /** Who: a person's id. */
+  actor: string;
+  /** Through which interface an action was called. */
+  interface?: AuditInterface;
+  /** `VIA_FORGERON_MCP` for the admin MCP. */
+  via?: string;
+  kind: AuditKind;
+  /** The action called, the resource approved, the version deployed. */
+  subject: string;
+  versionId?: string;
+  result?: AuditResult;
+  detail?: unknown;
+}
+
+export interface AuditRecord extends Omit<AuditEntry, "result"> {
+  id: string;
+  at: string;
+  result: AuditResult;
+}
+
 export interface Approval {
   id: string;
   toolId: string;
@@ -81,6 +110,23 @@ export interface SecretStatus {
   environments: Record<RegisteredEnvironment, SecretState>;
 }
 
+/** The tokens of one person's consent. Sealed in the database, never returned to a person. */
+export interface ConnectionTokens {
+  accessToken: string;
+  refreshToken?: string;
+}
+
+/** What is known about a consent without its tokens: what the person and the admin may see. */
+export interface ConnectionInfo {
+  userId: string;
+  connector: string;
+  scopes: string[];
+  /** When the access token expires, if the provider said. */
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type RegistryErrorCode =
   | "NOT_FOUND"
   | "ALREADY_EXISTS"
@@ -89,7 +135,8 @@ export type RegistryErrorCode =
   | "WRONG_TOOL"
   | "NO_ARTIFACT"
   | "NO_PREVIOUS"
-  | "NO_SECRET_KEY";
+  | "NO_SECRET_KEY"
+  | "PENDING_APPROVAL";
 
 export class RegistryError extends Error {
   override name = "RegistryError";
@@ -99,6 +146,12 @@ export class RegistryError extends Error {
     this.code = code;
   }
 }
+
+const DEPLOYMENT_AUDIT: Record<DeploymentKind, AuditKind> = {
+  deploy: "deployment",
+  promote: "promotion",
+  rollback: "rollback",
+};
 
 export interface RegistryOptions {
   now?: () => Date;
@@ -148,6 +201,19 @@ const toEnvironment = (r: Row): EnvironmentRecord => ({
   ...(text(r.pilot_group) ? { pilotGroup: text(r.pilot_group) } : {}),
   createdAt: String(r.created_at),
 });
+const toAudit = (r: Row): AuditRecord => ({
+  id: String(r.id),
+  at: String(r.at),
+  ...(text(r.tool_id) ? { toolId: text(r.tool_id) } : {}),
+  actor: String(r.actor),
+  ...(text(r.interface) ? { interface: text(r.interface) as AuditInterface } : {}),
+  ...(text(r.via) ? { via: text(r.via) } : {}),
+  kind: r.kind as AuditKind,
+  subject: String(r.subject),
+  ...(text(r.version_id) ? { versionId: text(r.version_id) } : {}),
+  result: r.result as AuditResult,
+  ...(text(r.detail) !== undefined ? { detail: json(r.detail) } : {}),
+});
 const toDeployment = (r: Row): DeploymentRecord => ({
   id: String(r.id),
   toolId: String(r.tool_id),
@@ -183,6 +249,25 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   const first = async (sql: string, ...values: unknown[]) => (await all(sql, ...values))[0];
   const write = (sql: string, ...values: unknown[]) => d1.batch([d1.prepare(sql).bind(...values)]);
 
+  const auditStatement = (entry: AuditEntry, at: string) =>
+    d1
+      .prepare(
+        `INSERT INTO "audit_log" ("id", "at", "tool_id", "actor", "interface", "via", "kind", "subject", "version_id", "result", "detail") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        newId(),
+        at,
+        entry.toolId ?? null,
+        entry.actor,
+        entry.interface ?? null,
+        entry.via ?? null,
+        entry.kind,
+        entry.subject,
+        entry.versionId ?? null,
+        entry.result ?? "ok",
+        entry.detail === undefined ? null : JSON.stringify(entry.detail),
+      );
+
   async function requireTool(id: string): Promise<Tool> {
     const row = await first(`SELECT * FROM "tools" WHERE "id" = ?`, id);
     if (!row) throw new RegistryError("NOT_FOUND", `There is no tool ${id}.`);
@@ -200,6 +285,13 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   };
   const slot = (toolId: string, environment: string, name: string) =>
     `${toolId}/${environment}/${name}`;
+
+  const connectionSlot = (c: {
+    toolId: string;
+    environment: string;
+    userId: string;
+    connector: string;
+  }) => `connection/${c.toolId}/${c.environment}/${c.userId}/${c.connector}`;
 
   return {
     // ---- tools
@@ -334,6 +426,111 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
       return out;
     },
 
+    // ---- connections (a person's OAuth consent for a delegated connector, tokens sealed)
+    /** Keeps or replaces a person's consent. The tokens are encrypted before the database. */
+    async saveConnection(input: {
+      toolId: string;
+      environment: RegisteredEnvironment;
+      userId: string;
+      connector: string;
+      scopes: string[];
+      tokens: ConnectionTokens;
+      expiresAt?: string;
+    }): Promise<void> {
+      await requireTool(input.toolId);
+      const sealed = await secretBox().seal(connectionSlot(input), JSON.stringify(input.tokens));
+      const at = now();
+      await write(
+        `INSERT INTO "connections" ("tool_id", "environment", "user_id", "connector", "scopes", "expires_at", "iv", "ciphertext", "created_at", "updated_at")
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT ("tool_id", "environment", "user_id", "connector")
+DO UPDATE SET "scopes" = excluded."scopes", "expires_at" = excluded."expires_at", "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updated_at" = excluded."updated_at"`,
+        input.toolId,
+        input.environment,
+        input.userId,
+        input.connector,
+        JSON.stringify(input.scopes),
+        input.expiresAt ?? null,
+        sealed.iv,
+        sealed.ciphertext,
+        at,
+        at,
+      );
+    },
+    /** The consents of a tool's environment, for the admin: who consented to what, never a token. */
+    async listConnections(
+      toolId: string,
+      environment: RegisteredEnvironment,
+      filter: { userId?: string } = {},
+    ): Promise<ConnectionInfo[]> {
+      const rows = await all(
+        `SELECT "user_id", "connector", "scopes", "expires_at", "created_at", "updated_at" FROM "connections"
+WHERE "tool_id" = ? AND "environment" = ? ${filter.userId === undefined ? "" : 'AND "user_id" = ?'}
+ORDER BY "user_id", "connector"`,
+        toolId,
+        environment,
+        ...(filter.userId === undefined ? [] : [filter.userId]),
+      );
+      return rows.map((r) => ({
+        userId: String(r.user_id),
+        connector: String(r.connector),
+        scopes: JSON.parse(String(r.scopes)) as string[],
+        ...(text(r.expires_at) ? { expiresAt: text(r.expires_at) } : {}),
+        createdAt: String(r.created_at),
+        updatedAt: String(r.updated_at),
+      }));
+    },
+    /** The admin revokes a person's consent (or the person withdraws it). True if there was one. */
+    async revokeConnection(input: {
+      toolId: string;
+      environment: RegisteredEnvironment;
+      userId: string;
+      connector: string;
+    }): Promise<boolean> {
+      const existed = await first(
+        `SELECT 1 AS found FROM "connections" WHERE "tool_id" = ? AND "environment" = ? AND "user_id" = ? AND "connector" = ?`,
+        input.toolId,
+        input.environment,
+        input.userId,
+        input.connector,
+      );
+      await write(
+        `DELETE FROM "connections" WHERE "tool_id" = ? AND "environment" = ? AND "user_id" = ? AND "connector" = ?`,
+        input.toolId,
+        input.environment,
+        input.userId,
+        input.connector,
+      );
+      return existed !== undefined;
+    },
+    /** The decrypted tokens, for the connector's session at run time: never for a person or the admin. */
+    async readConnection(input: {
+      toolId: string;
+      environment: RegisteredEnvironment;
+      userId: string;
+      connector: string;
+    }): Promise<(ConnectionTokens & { expiresAt?: string; scopes: string[] }) | undefined> {
+      const row = await first(
+        `SELECT "scopes", "expires_at", "iv", "ciphertext" FROM "connections" WHERE "tool_id" = ? AND "environment" = ? AND "user_id" = ? AND "connector" = ?`,
+        input.toolId,
+        input.environment,
+        input.userId,
+        input.connector,
+      );
+      if (!row) return undefined;
+      const tokens = JSON.parse(
+        await secretBox().open(connectionSlot(input), {
+          iv: String(row.iv),
+          ciphertext: String(row.ciphertext),
+        }),
+      ) as ConnectionTokens;
+      return {
+        ...tokens,
+        scopes: JSON.parse(String(row.scopes)) as string[],
+        ...(text(row.expires_at) ? { expiresAt: text(row.expires_at) } : {}),
+      };
+    },
+
     // ---- builds
     /** Records what CI sent. The same fingerprint gives back the build already recorded. */
     async recordBuild(
@@ -459,7 +656,7 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
     async activate(
       environmentId: string,
       versionId: string,
-      options: { actor: string; kind?: DeploymentKind; url?: string },
+      options: { actor: string; via?: string; kind?: DeploymentKind; url?: string },
     ): Promise<EnvironmentRecord> {
       const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
       if (!env) throw new RegistryError("NOT_FOUND", `There is no environment ${environmentId}.`);
@@ -488,6 +685,21 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
             options.actor,
             at,
           ),
+        auditStatement(
+          {
+            toolId: version.toolId,
+            actor: options.actor,
+            ...(options.via ? { via: options.via } : {}),
+            kind: DEPLOYMENT_AUDIT[options.kind ?? "deploy"],
+            subject: `${String(env.name)}:${version.version}`,
+            versionId,
+            detail: {
+              environment: String(env.name),
+              ...(env.branch ? { branch: String(env.branch) } : {}),
+            },
+          },
+          at,
+        ),
       ]);
       return toEnvironment(
         (await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId))!,
@@ -586,6 +798,7 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
       id: string,
       decision: Exclude<ApprovalStatus, "pending">,
       decidedBy: string,
+      via?: string,
     ): Promise<Approval> {
       const row = await first(`SELECT * FROM "approvals" WHERE "id" = ?`, id);
       if (!row) throw new RegistryError("NOT_FOUND", `There is no approval ${id}.`);
@@ -595,13 +808,26 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
           `The approval ${id} is already ${String(row.status)}.`,
         );
       }
-      await write(
-        `UPDATE "approvals" SET "status" = ?, "decided_by" = ?, "decided_at" = ? WHERE "id" = ? AND "status" = 'pending'`,
-        decision,
-        decidedBy,
-        now(),
-        id,
-      );
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `UPDATE "approvals" SET "status" = ?, "decided_by" = ?, "decided_at" = ? WHERE "id" = ? AND "status" = 'pending'`,
+          )
+          .bind(decision, decidedBy, at, id),
+        auditStatement(
+          {
+            toolId: String(row.tool_id),
+            actor: decidedBy,
+            ...(via ? { via } : {}),
+            kind: "approval",
+            subject: String(row.resource),
+            versionId: String(row.version_id),
+            detail: { decision, kind: String(row.kind) },
+          },
+          at,
+        ),
+      ]);
       return toApproval((await first(`SELECT * FROM "approvals" WHERE "id" = ?`, id))!);
     },
     async listApprovals(toolId: string, status?: ApprovalStatus): Promise<Approval[]> {
@@ -616,6 +842,66 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
             toolId,
           );
       return rows.map(toApproval);
+    },
+    /** The versions of a tool that wait for an admin, with what they ask for. */
+    async pendingVersions(
+      toolId: string,
+    ): Promise<{ version: VersionRecord; approvals: Approval[] }[]> {
+      const pending = await this.listApprovals(toolId, "pending");
+      const byVersion = new Map<string, Approval[]>();
+      for (const approval of pending) {
+        byVersion.set(approval.versionId, [...(byVersion.get(approval.versionId) ?? []), approval]);
+      }
+      const out: { version: VersionRecord; approvals: Approval[] }[] = [];
+      for (const [versionId, approvals] of byVersion) {
+        const version = await this.getVersion(versionId);
+        if (version) out.push({ version, approvals });
+      }
+      return out;
+    },
+
+    // ---- audit log
+    /** Writes one line of the audit log. */
+    async recordAudit(entry: AuditEntry): Promise<void> {
+      await d1.batch([auditStatement(entry, now())]);
+    },
+    /** An action call: who, when, through which interface, with what result. */
+    async recordActionCall(call: {
+      toolId: string;
+      actor: string;
+      interface: AuditInterface;
+      action: string;
+      result: AuditResult;
+      via?: string;
+    }): Promise<void> {
+      await this.recordAudit({
+        toolId: call.toolId,
+        actor: call.actor,
+        interface: call.interface,
+        ...(call.via ? { via: call.via } : {}),
+        kind: "action",
+        subject: call.action,
+        result: call.result,
+      });
+    },
+    /** Newest first. */
+    async listAudit(
+      toolId: string,
+      filter: { kind?: AuditKind; limit?: number } = {},
+    ): Promise<AuditRecord[]> {
+      const rows = filter.kind
+        ? await all(
+            `SELECT * FROM "audit_log" WHERE "tool_id" = ? AND "kind" = ? ORDER BY "rowid" DESC LIMIT ?`,
+            toolId,
+            filter.kind,
+            filter.limit ?? 100,
+          )
+        : await all(
+            `SELECT * FROM "audit_log" WHERE "tool_id" = ? ORDER BY "rowid" DESC LIMIT ?`,
+            toolId,
+            filter.limit ?? 100,
+          );
+      return rows.map(toAudit);
     },
     /** The resources of this version that are not approved yet: what blocks an activation. */
     async unapproved(versionId: string): Promise<Approval[]> {
