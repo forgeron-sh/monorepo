@@ -248,4 +248,33 @@ describe("secrets", () => {
   it("rejects a key that is not 32 bytes", async () => {
     await expect(createSecretBox(btoa("short"))).rejects.toThrow(/32 bytes/);
   });
+
+  it("reports declared secrets as set or missing per environment, with no value", async () => {
+    const tool = await registry.createTool({ workspace: "acme", name: "hub" });
+    const build = await registry.recordBuild(tool.id, {
+      fingerprint: "fp-secrets",
+      manifest: { name: "hub", resources: { secrets: { ODOO_KEY: {}, API_KEY: {} } } },
+    });
+    await registry.publishVersion(tool.id, build.id, "1.0.0");
+    await registry.setSecret(tool.id, "production", "ODOO_KEY", "test-only-value");
+    await registry.setSecret(tool.id, "pilot", "UNDECLARED", "x");
+
+    const status = await registry.secretsStatus(tool.id);
+    expect(status).toEqual([
+      {
+        name: "API_KEY",
+        environments: { preview: "missing", pilot: "missing", production: "missing" },
+      },
+      {
+        name: "ODOO_KEY",
+        environments: { preview: "missing", pilot: "missing", production: "set" },
+      },
+    ]);
+    expect(JSON.stringify(status)).not.toContain("test-only-value");
+  });
+
+  it("has no declared secret before a first version", async () => {
+    const { tool } = await seed();
+    expect(await registry.secretsStatus(tool.id)).toEqual([]);
+  });
 });

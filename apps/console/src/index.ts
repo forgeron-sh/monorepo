@@ -1,2 +1,2 @@
 // Workspace console, served as assets by the gateway.
-export {};
+export { loadSecretsStatus, SecretsStatus, type SecretStatusRow } from "./secrets-status";

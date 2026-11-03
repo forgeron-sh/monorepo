@@ -6,7 +6,7 @@ The console of a workspace: tools, versions, access, secrets.
 
 - Tools, versions and environments
 - Roles × actions, resource approval
-- Secrets (write-only, never read back)
+- Secrets: status per environment, set or missing (`secrets-status.tsx`); values are never read back
 
 ## Notes
 
