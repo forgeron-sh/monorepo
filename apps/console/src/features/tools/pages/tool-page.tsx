@@ -1,6 +1,6 @@
 import { Button, Notice, Page, Tabs } from "@forgeron/ui";
 import { createElement, lazy, Suspense, useMemo, useState, type ComponentType } from "react";
-import type { Api } from "../../../api";
+import type { PageProps } from "../../../shell/page-props";
 import { pathOf } from "../../../router";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
@@ -27,17 +27,8 @@ function askedTab(): string | null {
   return new URLSearchParams(window.location.search).get("tab");
 }
 
-export default function ToolPage({
-  name,
-  api,
-  admin,
-  now = () => new Date(),
-}: {
-  name: string;
-  api: Api;
-  admin: boolean;
-  now?: () => Date;
-}) {
+export default function ToolPage({ name, api, ws, now }: PageProps & { name: string }) {
+  const admin = ws.person.admin;
   const tools = useLoad(() => loadTools(api.fetchJson), [api]);
   const tabs = useMemo(() => toolTabs(admin), [admin]);
   const [asked, setAsked] = useState(askedTab);
@@ -104,7 +95,7 @@ export default function ToolPage({
               key: current.id,
               tool: tool.name,
               api,
-              admin,
+              ws,
               now,
             })}
           </Suspense>

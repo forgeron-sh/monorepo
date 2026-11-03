@@ -9,7 +9,7 @@ import {
   type TableColumn,
 } from "@forgeron/ui";
 import { useMemo, useState } from "react";
-import type { Api } from "../../../api";
+import type { PageProps } from "../../../shell/page-props";
 import { ago } from "../../../format";
 import { pathOf, routeClick, toolPath } from "../../../router";
 import { Loading, LoadError } from "../../../states";
@@ -50,18 +50,8 @@ function State({ tool }: { tool: ToolRow }) {
 const previews = (tool: ToolRow) =>
   `${tool.previews.length} ${tool.previews.length === 1 ? "preview" : "previews"}`;
 
-export default function ToolsPage({
-  api,
-  go,
-  workspace,
-  now = () => new Date(),
-}: {
-  api: Api;
-  go: (href: string) => void;
-  /** Named in the first commands of the empty state. */
-  workspace?: string;
-  now?: () => Date;
-}) {
+export default function ToolsPage({ api, go, ws, now }: PageProps) {
+  const workspace = ws.workspace;
   const tools = useLoad(() => loadTools(api.fetchJson), [api]);
   const [view, setView] = useState<View>(savedView);
   const [query, setQuery] = useState("");
@@ -143,7 +133,7 @@ export default function ToolsPage({
               <CopyBlock label="Create a tool" value="forgeron init" prefix="$" />
               <CopyBlock
                 label="Link it to this workspace"
-                value={`forgeron link --workspace ${workspace ?? "<workspace>"}`}
+                value={`forgeron link --workspace ${workspace}`}
                 prefix="$"
               />
               <CopyBlock

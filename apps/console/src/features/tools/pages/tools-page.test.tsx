@@ -2,16 +2,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../api";
 import { button, cleanup, click, mount, type } from "../../../test-utils";
-import { NOW, toolsApi, tools } from "../test-helpers";
+import { pageProps, toolsApi, tools } from "../test-helpers";
 import ToolsPage from "./tools-page";
 
 afterEach(cleanup);
 beforeEach(() => window.localStorage.clear());
 
 const page = (routes: Record<string, unknown>, go = vi.fn<(href: string) => void>()) =>
-  mount(<ToolsPage api={toolsApi(routes).api} go={go} workspace="demo" now={() => NOW} />).then(
-    (container) => ({ container, go }),
-  );
+  mount(<ToolsPage {...pageProps(toolsApi(routes).api, { go })} />).then((container) => ({
+    container,
+    go,
+  }));
 
 describe("the tools list", () => {
   it("shows each tool with its summary, production version, previews and last deployment", async () => {

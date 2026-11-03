@@ -19,7 +19,8 @@ type Action =
 
 const host = (url: string) => url.replace(/^https?:\/\//, "");
 
-export default function BranchesTab({ tool, api, admin, now }: ToolTabProps) {
+export default function BranchesTab({ tool, api, ws, now }: ToolTabProps) {
+  const admin = ws.person.admin;
   const branches = useLoad(() => loadBranches(api.fetchJson, tool), [api, tool]);
   // The changelog is for the dialogs: its failure does not stop the list.
   const versions = useLoad(() => loadVersions(api.fetchJson, tool), [api, tool]);

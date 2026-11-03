@@ -1,18 +1,25 @@
-import type { ComponentType } from "react";
+import { createElement } from "react";
+import type { RouteDef } from "../../shell/routes";
+import "./register";
 
-// The tools' routes, for the route table of the shell (`apps/console/src/shell/routes.ts`, FOR-134):
-// a path, a title, who may see it and a lazy page. Until the table takes them, `app.tsx` draws them.
-
-export interface ToolsRoute {
-  /** `:tool` is the tool's name. */
-  path: string;
-  title: string;
-  /** `false`: members see it as well. */
-  admin: boolean;
-  page: () => Promise<{ default: ComponentType<any> }>;
-}
-
-export const toolsRoutes: ToolsRoute[] = [
-  { path: "/tools", title: "Tools", admin: false, page: () => import("./pages/tools-page") },
-  { path: "/tools/:tool", title: "Tool", admin: false, page: () => import("./pages/tool-page") },
+// The tools' routes, collected by the shell's route table. Importing `./register` here puts this
+// feature's tabs in the tab registry as soon as the table is built.
+const routes: RouteDef[] = [
+  {
+    path: "/tools",
+    title: "Tools",
+    access: "everyone",
+    nav: { group: "main", label: "Tools", shortcut: "t" },
+    page: () => import("./pages/tools-page"),
+  },
+  {
+    path: "/tools/:name",
+    title: "Tool",
+    access: "everyone",
+    page: async () => {
+      const { default: ToolPage } = await import("./pages/tool-page");
+      return { default: (p) => createElement(ToolPage, { ...p, name: p.params.name! }) };
+    },
+  },
 ];
+export default routes;

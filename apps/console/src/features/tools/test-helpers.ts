@@ -1,4 +1,6 @@
 import type { Api } from "../../api";
+import type { PageProps } from "../../shell/page-props";
+import type { WorkspaceInfo } from "../../workspace";
 import { fakeApi } from "../../test-utils";
 
 /** `fakeApi` plus the platform routes (`/promote`, `/rollback`, `/deploy`), recorded the same way. */
@@ -121,3 +123,31 @@ export const versions = {
     },
   ],
 };
+
+export const ws = (admin = true): WorkspaceInfo => ({
+  workspace: "demo",
+  endpoint: "https://demo.test",
+  person: { id: "m1", email: "ada@acme.test", name: "Ada", roles: admin ? ["admin"] : [], admin },
+  setup: { members: 1, invitations: 0, tools: 3, deployed: 2, called: false },
+});
+
+/** What the shell hands a page. */
+export const pageProps = (
+  api: Api,
+  options: { admin?: boolean; go?: (href: string) => void } = {},
+): PageProps => ({
+  ws: ws(options.admin ?? true),
+  api,
+  now: () => NOW,
+  go: options.go ?? (() => {}),
+  params: {},
+  refreshPending: () => {},
+});
+
+/** What the shell hands a tab. */
+export const tabProps = (api: Api, tool = "crm", admin = true) => ({
+  tool,
+  api,
+  ws: ws(admin),
+  now: () => NOW,
+});

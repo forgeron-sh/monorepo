@@ -2,12 +2,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { ApiError } from "../../../api";
 import { cleanup, mount } from "../../../test-utils";
-import { NOW, toolsApi, versions } from "../test-helpers";
+import { tabProps, toolsApi, versions } from "../test-helpers";
 import VersionsTab from "./versions-tab";
 
 afterEach(cleanup);
 const open = (routes: Record<string, unknown>) =>
-  mount(<VersionsTab tool="crm" api={toolsApi(routes).api} admin now={() => NOW} />);
+  mount(<VersionsTab {...tabProps(toolsApi(routes).api)} />);
 
 describe("the versions", () => {
   it("shows each version with where it is served, its changelog and what changed from the one before", async () => {

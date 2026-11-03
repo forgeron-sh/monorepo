@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { act } from "react";
 import { ApiError } from "../../../api";
 import { button, cleanup, click, mount, refusal, type } from "../../../test-utils";
-import { branches, NOW, toolsApi, versions } from "../test-helpers";
+import { branches, tabProps, toolsApi, versions } from "../test-helpers";
 import BranchesTab from "./branches-tab";
 
 afterEach(cleanup);
@@ -14,7 +14,7 @@ const routes = {
 };
 const show = (r: Record<string, unknown> = routes, p: Record<string, unknown> = {}) => {
   const fake = toolsApi(r, p);
-  return mount(<BranchesTab tool="crm" api={fake.api} admin now={() => NOW} />).then((page) => ({
+  return mount(<BranchesTab {...tabProps(fake.api)} />).then((page) => ({
     page,
     ...fake,
   }));
@@ -160,9 +160,7 @@ describe("the branches", () => {
     expect(button(page, "Roll back")).toBeUndefined();
     await cleanup();
     const fake = toolsApi(routes);
-    const member = await mount(
-      <BranchesTab tool="crm" api={fake.api} admin={false} now={() => NOW} />,
-    );
+    const member = await mount(<BranchesTab {...tabProps(fake.api, "crm", false)} />);
     expect(member.querySelector('[aria-label="Actions for feat-export"]')).toBeNull();
   });
 
