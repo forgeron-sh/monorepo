@@ -18,7 +18,7 @@ export interface CatalogTool {
   roles: Array<{ name: string; label: string }>;
 }
 
-export interface ToolAsset {
+interface ToolAsset {
   path: string;
   type: string;
   size: number;

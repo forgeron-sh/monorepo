@@ -134,7 +134,7 @@ describe("App", () => {
     expect(page.textContent).toContain("The console could not load");
     up = true;
     await click([...page.querySelectorAll("button")].find((b) => b.textContent === "Try again"));
-    await vi.waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Overview"));
+    await vi.waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Home"));
   });
 
   it("opens the menu on a phone and closes it when moving or pressing Escape", async () => {
