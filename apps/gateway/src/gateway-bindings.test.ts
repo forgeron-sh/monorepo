@@ -4,7 +4,7 @@ import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { gatewayBindingsOf, type GatewayEnv } from "./gateway";
 
-// D-031: the deploy path binds a tool Worker to the gateway by uploading a new version of the
+// D-032: the deploy path binds a tool Worker to the gateway by uploading a new version of the
 // gateway itself, from the code `platform install` stored in the platform D1.
 
 let memory: MemoryD1;

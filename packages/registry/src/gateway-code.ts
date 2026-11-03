@@ -1,4 +1,4 @@
-// The gateway's own module, kept in the platform D1 (D-031): a new version of a Worker cannot be
+// The gateway's own module, kept in the platform D1 (D-032): a new version of a Worker cannot be
 // uploaded without its code, and the gateway needs one to add or remove a tool's service binding.
 import type { D1Database } from "@forgeron/hosting";
 

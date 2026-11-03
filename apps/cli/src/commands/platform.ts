@@ -117,7 +117,7 @@ export async function platform(
   const platformD1 = createRestD1(client, databaseId);
   const { applied } = await migratePlatform(platformD1);
   io.log(applied.length ? `Applied: ${applied.join(", ")}` : "The platform D1 is up to date.");
-  // The gateway uploads a new version of itself when a tool is bound (D-031): it keeps its code here.
+  // The gateway uploads a new version of itself when a tool is bound (D-032): it keeps its code here.
   await saveGatewayCode(platformD1, code);
 
   // 3. The gateway Worker, with the D1 and, as a secret, the token it will deploy tools with.
@@ -160,7 +160,7 @@ export async function platform(
         { type: "d1", name: "DB", id: databaseId },
         { type: "plain_text", name: "BASE_DOMAIN", text: values.domain },
         { type: "plain_text", name: "CLOUDFLARE_ACCOUNT_ID", text: values.account },
-        // The gateway's own name, to upload new versions of itself (D-031).
+        // The gateway's own name, to upload new versions of itself (D-032).
         { type: "plain_text", name: "GATEWAY_WORKER", text: worker },
         ...(gatewayToken
           ? [{ type: "secret_text", name: "CLOUDFLARE_API_TOKEN", text: gatewayToken }]

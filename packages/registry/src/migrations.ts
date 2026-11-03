@@ -218,10 +218,23 @@ export const platformMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "members"`)],
   },
   {
-    // The gateway's own `worker.js` (D-031): `forgeron platform install` stores it here so that the
+    // The one-time codes of `forgeron login` (D-028): a code is spent by recording its id here.
+    name: "0009_cli_codes",
+    fingerprint: "cli-codes-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "cli_codes" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "expires_at" TEXT NOT NULL
+)`),
+    ],
+    down: [st(`DROP TABLE "cli_codes"`)],
+  },
+  {
+    // The gateway's own `worker.js` (D-032): `forgeron platform install` stores it here so that the
     // running gateway can upload a new version of itself when a tool is bound. Chunks: a D1
     // statement is limited in size.
-    name: "0009_gateway_code",
+    name: "0010_gateway_code",
     fingerprint: "gateway-code-v1",
     destructive: false,
     up: [

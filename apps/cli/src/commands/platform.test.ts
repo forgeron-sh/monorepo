@@ -389,7 +389,7 @@ describe("forgeron platform install", () => {
       expect(JSON.stringify(raw)).not.toContain(first[0]!.text!);
     });
 
-    describe("tool bindings (D-031)", () => {
+    describe("tool bindings (D-032)", () => {
       const crm = { workspace: "acme", tool: "crm", environment: "production", branch: "" };
 
       it("stores the gateway code in the platform D1 and tells the gateway its own name", async () => {

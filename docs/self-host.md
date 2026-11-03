@@ -64,7 +64,7 @@ forgeron platform install --account <account-id> --domain <base-domain> --gatewa
 The command does, in order:
 
 1. **Platform D1.** Creates a D1 database named `<name>-platform`, or reuses the one that has this name.
-2. **Schema.** Applies the registry migrations to it (tools, builds, versions, environments, approvals, deployments, secrets). Already applied migrations are skipped. Then stores your `worker.js` in it: the gateway needs its own code to upload a new version of itself when a tool is bound (D-031).
+2. **Schema.** Applies the registry migrations to it (tools, builds, versions, environments, approvals, deployments, secrets). Already applied migrations are skipped. Then stores your `worker.js` in it: the gateway needs its own code to upload a new version of itself when a tool is bound (D-032).
 3. **Gateway.** Creates the Worker `<name>-gateway` if needed, uploads your bundle as a version with these bindings, then deploys that version to all traffic:
    - `DB`: the platform D1;
    - `BASE_DOMAIN` and `CLOUDFLARE_ACCOUNT_ID`: plain values; `GATEWAY_WORKER`: the gateway's own name, plain;
@@ -78,11 +78,11 @@ Running it again is safe: the D1 and the Worker are reused, and a new version of
 
 ## How tools get bound
 
-When a tool is deployed (`POST /deploy`) the gateway uploads a new version of itself, with every binding it holds carried over (`inherit`, no value sent) plus `TOOL_<WORKER>`, then deploys it; deleting an environment removes the binding first (D-029, D-031). A Worker already bound uploads nothing. This needs `GATEWAY_WORKER`, the account id and the API token on the gateway, and the code stored by the install: a gateway installed before this change must run `platform install` once more.
+When a tool is deployed (`POST /deploy`) the gateway uploads a new version of itself, with every binding it holds carried over (`inherit`, no value sent) plus `TOOL_<WORKER>`, then deploys it; deleting an environment removes the binding first (D-029, D-032). A Worker already bound uploads nothing. This needs `GATEWAY_WORKER`, the account id and the API token on the gateway, and the code stored by the install: a gateway installed before this change must run `platform install` once more.
 
 ## Bindings the gateway reads
 
-This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `forgeron platform install` sets `DB`, `BASE_DOMAIN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `ASSETS`, `AUTH_SECRET`, `SECRETS_KEY` and, when you give the flags of step 2, the `OIDC_*`, `ADMIN_EMAIL` and `MEMBER_EMAIL_DOMAINS` settings (D-030).
+This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `forgeron platform install` sets `DB`, `BASE_DOMAIN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `ASSETS`, `AUTH_SECRET`, `SECRETS_KEY` and, when you give the flags of step 2, the `OIDC_*`, `ADMIN_EMAIL` and `MEMBER_EMAIL_DOMAINS` settings (D-031).
 
 | Binding                 | Kind                 | Meaning                                                                                                                                                                                                                                                                            |
 | ----------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -104,13 +104,13 @@ This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `
 
 Register this redirect URI at the identity provider, for each workspace: `https://<workspace>.<BASE_DOMAIN>/auth/callback`.
 
-What the gateway serves at a workspace origin once these are set: `/auth/login`, `/auth/callback`, `/auth/logout`, `POST /auth/token` (a signed-in person's token for one tool, 1 to 30 days), `GET /whoami`, `POST /deploy-tokens` (administrators), `POST /deploy` (a deployment token), `/console-api/*`, `/t/<tool>`.
+What the gateway serves at a workspace origin once these are set: `/auth/login`, `/auth/callback`, `/auth/logout`, `POST /auth/token` (a signed-in person's token for one tool, 1 to 30 days), `GET /auth/cli` and `POST /auth/cli/token` (`forgeron login`), `GET /whoami`, `POST /deploy-tokens` (administrators), `POST /deploy` (a deployment token), `/console-api/*`, `/t/<tool>`.
 
 ## What is not done yet
 
 - **Custom customer domains** (Cloudflare for SaaS, FOR-78) are not attached.
 - **Key rotation** is not done: the install never replaces an existing `AUTH_SECRET` or `SECRETS_KEY`.
-- **Binding limits** (D-031): two tools deployed at the same moment can lose one binding (deploy the tool again); the console assets are kept with `keep_assets`, which Cloudflare documents for the upload endpoints and which was not tried on the versions endpoint; nothing was tried on a real account.
-- `/mcp`, `/api` and `/cli` of a workspace answer `404` (admin MCP, FOR-107). `forgeron login` cannot sign in yet: the gateway has no `/auth/cli` and `/auth/cli/token`.
+- **Binding limits** (D-032): two tools deployed at the same moment can lose one binding (deploy the tool again); the console assets are kept with `keep_assets`, which Cloudflare documents for the upload endpoints and which was not tried on the versions endpoint; nothing was tried on a real account.
+- `/mcp`, `/api` and `/cli` of a workspace answer `404` (admin MCP, FOR-107). A CLI token lives 30 days and cannot be revoked before; `forgeron login` was proven against the gateway handler with a simulated provider only, not on a real deployment.
 - Members are added only at sign-in, by the two rules of D-027; there is no way to list, remove or change the roles of a member.
 - The gateway bundle is not published as a package.

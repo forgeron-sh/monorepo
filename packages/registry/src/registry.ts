@@ -631,6 +631,26 @@ ORDER BY "user_id", "connector"`,
       return member;
     },
 
+    // ---- one-time codes (D-028)
+    /**
+     * Spends a one-time code: `true` the first time, `false` if it was already spent. Spent codes
+     * past their expiry are forgotten.
+     */
+    async spendCode(id: string, expiresAt: Date): Promise<boolean> {
+      try {
+        await d1.batch([
+          d1.prepare(`DELETE FROM "cli_codes" WHERE "expires_at" < ?`).bind(now()),
+          d1
+            .prepare(`INSERT INTO "cli_codes" ("id", "expires_at") VALUES (?, ?)`)
+            .bind(id, expiresAt.toISOString()),
+        ]);
+        return true;
+      } catch (error) {
+        if (/UNIQUE|constraint/i.test(String(error))) return false;
+        throw error;
+      }
+    },
+
     // ---- builds
     /** Records what CI sent. The same fingerprint gives back the build already recorded. */
     async recordBuild(

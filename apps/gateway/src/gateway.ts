@@ -23,6 +23,7 @@ import { createDispatcher, workspaceOf, type DispatcherOptions } from "./dispatc
 import { handleCreateDeployToken, handleDeploy } from "./deploy/deploy";
 import { createAuth } from "./identity/auth";
 import { createCaller, membership } from "./identity/caller";
+import { handleCliAuthorize, handleCliToken } from "./identity/cli";
 import { handleIssueToken } from "./identity/issue";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget, type DispatchNamespace } from "./dispatch/targets";
@@ -106,10 +107,11 @@ export function createGateway(
   let built: Promise<Registry> | undefined;
   const getRegistry = () =>
     (built ??= (async () =>
-      createRegistry(
-        env.DB,
-        env.SECRETS_KEY ? { secrets: await createSecretBox(env.SECRETS_KEY) } : {},
-      ))());
+      createRegistry(env.DB, {
+        // One clock for the registry and the gateway: the expiry of a one-time code depends on it.
+        now,
+        ...(env.SECRETS_KEY ? { secrets: await createSecretBox(env.SECRETS_KEY) } : {}),
+      }))());
 
   const parts = async () => {
     const registry = await getRegistry();
@@ -202,6 +204,18 @@ export function createGateway(
           now,
           sessionTtlSeconds: options.sessionTtlSeconds ?? 8 * 60 * 60,
         });
+        if (url.pathname === "/auth/cli" || url.pathname === "/auth/cli/token") {
+          const cli = {
+            workspace,
+            secret,
+            registry,
+            now,
+            session: (r: Request) => caller.session(r, workspace),
+          };
+          return url.pathname === "/auth/cli"
+            ? handleCliAuthorize(request, cli)
+            : handleCliToken(request, cli);
+        }
         if (url.pathname === "/auth/token") {
           return handleIssueToken(request, {
             workspace,
@@ -214,9 +228,9 @@ export function createGateway(
         return (await auth(request)) ?? notFound();
       }
       if (url.pathname === "/whoami") {
-        const person = await caller.resolve(request, workspace);
+        const person = await caller.resolve(request, workspace, true);
         return person
-          ? Response.json(person, { headers: { "cache-control": "no-store" } })
+          ? Response.json({ ...person, workspace }, { headers: { "cache-control": "no-store" } })
           : Response.json(
               { error: { code: "UNAUTHENTICATED", message: "Not signed in." } },
               { status: 401 },
@@ -227,7 +241,7 @@ export function createGateway(
           workspace,
           secret,
           now,
-          authenticate: (r) => caller.resolve(r, workspace),
+          authenticate: (r) => caller.resolve(r, workspace, true),
         });
       }
       if (url.pathname === "/deploy") {
@@ -251,7 +265,7 @@ export function createGateway(
       const inner = new URL(url);
       inner.pathname = url.pathname.slice(CONSOLE_API.length);
       const forwarded = new Request(inner, request);
-      const who = secret && caller ? await caller.resolve(request, workspace) : undefined;
+      const who = secret && caller ? await caller.resolve(request, workspace, true) : undefined;
       const identity = async () =>
         who
           ? { admin: who.roles.includes("admin"), developer: who.roles.includes("developer") }
@@ -290,7 +304,7 @@ export function createGateway(
 
 /**
  * Self-host: how the gateway adds and removes the `TOOL_<WORKER>` bindings of its own Worker
- * (D-029, D-031). It needs to know its own name (`GATEWAY_WORKER`, set by `platform install`) and
+ * (D-029, D-032). It needs to know its own name (`GATEWAY_WORKER`, set by `platform install`) and
  * holds its code in the platform D1; without either, nothing is bound, as before.
  */
 export function gatewayBindingsOf(env: GatewayEnv): GatewayBindings | undefined {
