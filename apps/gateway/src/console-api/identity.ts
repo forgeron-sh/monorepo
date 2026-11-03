@@ -1,4 +1,4 @@
-import type { IdentityConfig } from "@forgeron/registry";
+import type { AuditEntry, IdentityConfig } from "@forgeron/registry";
 import { parseIdentityProviderInput } from "../identity/presets";
 
 // The sign-in configuration of a workspace, edited by an admin in the console (D-041):
@@ -15,6 +15,8 @@ export interface IdentityApiOptions {
   /** Whether the gateway can seal a secret (`SECRETS_KEY` is bound). */
   canKeepSecrets: boolean;
   caller(request: Request): Promise<{ admin: boolean; id: string } | undefined>;
+  /** A change of the sign-in or of a connector's OAuth client is audited (D-046); never a secret. */
+  audit(entry: AuditEntry): Promise<void>;
 }
 
 const json = (status: number, body: unknown) =>
@@ -48,15 +50,27 @@ export async function handleIdentity(
   if (!caller) return json(401, { error: "UNAUTHENTICATED" });
   if (!caller.admin) return json(403, { error: "FORBIDDEN", message: "This is for admins." });
   const { config, workspace } = options;
+  const audited = (subject: string, detail: Record<string, unknown> = {}) =>
+    options
+      .audit({
+        actor: caller.id,
+        interface: "api",
+        kind: "access",
+        subject,
+        detail: { workspace, ...detail },
+      })
+      .catch(() => undefined);
 
   if (path === "/api/identity-provider") {
     if (request.method === "GET") {
       return json(200, { provider: (await config.getIdentityProvider(workspace)) ?? null });
     }
     if (request.method === "DELETE") {
-      return (await config.deleteIdentityProvider(workspace))
-        ? new Response(null, { status: 204 })
-        : json(404, { error: "NOT_FOUND", message: "No provider is configured." });
+      if (!(await config.deleteIdentityProvider(workspace))) {
+        return json(404, { error: "NOT_FOUND", message: "No provider is configured." });
+      }
+      await audited("identity-provider:delete");
+      return new Response(null, { status: 204 });
     }
     if (request.method === "PUT") {
       const parsed = parseIdentityProviderInput(await readBody(request));
@@ -65,6 +79,10 @@ export async function handleIdentity(
         return json(501, { error: "NOT_CONFIGURED", message: "The gateway has no secret key." });
       }
       await config.setIdentityProvider(workspace, parsed.input, caller.id);
+      await audited("identity-provider:set", {
+        kind: parsed.input.kind,
+        secretChanged: parsed.input.clientSecret !== undefined,
+      });
       return json(200, { provider: await config.getIdentityProvider(workspace) });
     }
     return json(405, { error: "METHOD_NOT_ALLOWED" });
@@ -76,9 +94,11 @@ export async function handleIdentity(
   }
   if (connector === undefined) return json(405, { error: "METHOD_NOT_ALLOWED" });
   if (request.method === "DELETE") {
-    return (await config.deleteConnectorClient(workspace, connector))
-      ? new Response(null, { status: 204 })
-      : json(404, { error: "NOT_FOUND", message: `No OAuth client for ${connector}.` });
+    if (!(await config.deleteConnectorClient(workspace, connector))) {
+      return json(404, { error: "NOT_FOUND", message: `No OAuth client for ${connector}.` });
+    }
+    await audited(`connector-client:${connector}:delete`);
+    return new Response(null, { status: 204 });
   }
   if (request.method === "PUT") {
     const b = ((await readBody(request)) ?? {}) as Record<string, unknown>;
@@ -115,6 +135,9 @@ export async function handleIdentity(
         message: "A new OAuth client needs its `clientSecret`.",
       });
     }
+    await audited(`connector-client:${connector}:set`, {
+      secretChanged: clientSecret !== undefined,
+    });
     return json(result === "created" ? 201 : 200, { connector });
   }
   return json(405, { error: "METHOD_NOT_ALLOWED" });

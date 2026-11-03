@@ -2,6 +2,7 @@ import type { Manifest } from "@forgeron/manifest";
 import type { Registry } from "@forgeron/registry";
 import { handleSecretsInput, type UserSecretStore } from "@forgeron/runtime";
 import type { Person } from "../identity/authenticate";
+import { connectorHeaders, type ConnectorTokensContext } from "./connector-tokens";
 import type { Forwarding } from "./dispatch";
 
 // Per-person secrets at the gateway (D-036). The tool's own code never receives the form or the
@@ -14,6 +15,8 @@ export interface UserSecretsContext {
   workspace: string;
   /** The person and the audience of their token, if any (a session has none). */
   identify(request: Request): Promise<{ person: Person; audience?: string } | undefined>;
+  /** Delegated connectors (D-046): without it a tool's connectors get no token. */
+  connectors?: Pick<ConnectorTokensContext, "consent" | "consentUrl">;
 }
 
 const refuse = (status: number, code: string, message: string) =>
@@ -79,6 +82,7 @@ export async function forwardIdentity(
   tool: string,
   request: Request,
   context: UserSecretsContext,
+  environment: "preview" | "pilot" | "production" = "production",
 ): Promise<Forwarding | undefined> {
   const who = await context.identify(request);
   if (!who) return undefined;
@@ -106,6 +110,23 @@ export async function forwardIdentity(
       // No platform key bound: the tool then sees none, and asks for them (428).
     }
     if (Object.keys(own).length > 0) headers["x-forgeron-user-secrets"] = JSON.stringify(own);
+    if (context.connectors) {
+      let manifest: Manifest | undefined;
+      try {
+        manifest = await context.registry.currentManifest(record.id);
+      } catch {
+        // No published version: no connector either.
+      }
+      if (manifest) {
+        const connectors = await connectorHeaders(record, manifest, who.person, environment, {
+          registry: context.registry,
+          workspace: context.workspace,
+          ...context.connectors,
+        });
+        if ("refuse" in connectors) return connectors;
+        Object.assign(headers, connectors.headers);
+      }
+    }
   }
   return { headers };
 }

@@ -126,6 +126,26 @@ export interface UserSecretStore {
   write(user: User, name: string, value: string): Promise<void>;
 }
 
+/**
+ * What the platform lends the runtime for delegated connectors (D-046): the access token of the
+ * caller's own consent, for each connector they gave one for, and where to give it for the others.
+ * There is no refresh token here: the platform keeps it and refreshes before handing a token over.
+ */
+export interface ConnectorSessions {
+  /** The caller's access tokens by connector name; a connector without consent is absent. */
+  tokens(user: User): Promise<Readonly<Record<string, string>>>;
+  /** Where the person gives their consent for the connector `name`, or `undefined` if unknown. */
+  consentUrl(name: string): string | undefined;
+}
+
+/** What a connector's session is given: the same shape as the SDK's `ConnectorSession`. */
+export interface ConnectorSessionInput {
+  mode: "delegated" | "application";
+  scopes: readonly string[];
+  token(): Promise<string>;
+  fetch: Fetch;
+}
+
 /** What the platform provides to `ctx`; each part has a safe default. */
 export interface Platform {
   secrets: ActionContext["secrets"];
@@ -133,6 +153,13 @@ export interface Platform {
   /** When set, `ctx.userSecrets` is the caller's own, and a missing one is collected on first use. */
   userSecretStore?: UserSecretStore;
   connectors: ActionContext["connectors"];
+  /** When set, a delegated connector gets the caller's own token, and a missing consent is asked for on first use. */
+  connectorSessions?: ConnectorSessions;
+  /**
+   * Builds `ctx.connectors.<name>` from a session (`createConnectorClient` of `@forgeron/sdk`, with
+   * the connector package's definition). Without it a connector is not exposed to the action.
+   */
+  connectorClient?: (name: string, session: ConnectorSessionInput) => unknown;
   /** The unfiltered `fetch`; the runtime only lets through the hosts of `resources.network`. */
   fetch: Fetch;
   files: unknown;

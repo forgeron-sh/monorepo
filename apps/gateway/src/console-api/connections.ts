@@ -1,4 +1,4 @@
-import type { Registry } from "@forgeron/registry";
+import type { AuditEntry, Registry } from "@forgeron/registry";
 
 // The connections routes of the platform API (docs/sdk.md section 10, delegated connectors):
 //   GET    /api/tools/<tool>/environments/<env>/connections                      -> who consented
@@ -13,7 +13,9 @@ export interface ConnectionsApiOptions {
   /** The workspace the request was dispatched to. */
   workspace: string;
   /** The caller, resolved by identity: `undefined` is anonymous. */
-  caller(request: Request): Promise<{ admin: boolean } | undefined>;
+  caller(request: Request): Promise<{ admin: boolean; id?: string } | undefined>;
+  /** Records an admin's revocation (D-046). Defaults to the registry's audit log. */
+  audit?(entry: AuditEntry): Promise<void>;
 }
 
 const json = (status: number, body: unknown) =>
@@ -61,6 +63,16 @@ export async function handleConnections(
       userId,
       connector,
     });
+    if (revoked) {
+      await (options.audit ?? ((e) => options.registry.recordAudit(e)))({
+        toolId: tool.id,
+        actor: caller.id ?? "admin",
+        interface: "api",
+        kind: "access",
+        subject: `connector-consent:${connector}:revoke`,
+        detail: { environment, person: userId },
+      }).catch(() => undefined);
+    }
     return revoked
       ? new Response(null, { status: 204 })
       : json(404, { error: "NOT_FOUND", message: "That person has no such consent." });

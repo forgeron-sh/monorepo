@@ -281,6 +281,56 @@ export function createEngine(options: RuntimeOptions): Engine {
         userSecrets = Object.fromEntries(declared.map(([secret]) => [secret, own[secret]]));
       }
 
+      // Delegated connectors, first use: the caller's own token, or the link to give consent.
+      let connectors = platform.connectors;
+      const delegated = Object.entries(manifest.resources.connectors ?? {}).filter(
+        ([, c]) => c.mode === "delegated",
+      );
+      if (platform.connectorSessions && delegated.length > 0 && isInterface(via)) {
+        const tokens = await platform.connectorSessions.tokens(user);
+        const missingOnes = delegated.filter(([name]) => !tokens[name]);
+        if (missingOnes.length > 0) {
+          const links = missingOnes.map(([name, c]) => ({
+            name,
+            type: c.type,
+            url: platform.connectorSessions!.consentUrl(name),
+            why: c.why,
+          }));
+          const inputUrl = links.find((l) => l.url)?.url;
+          return failure(
+            "SECRET_REQUIRED",
+            `Your consent for ${missingOnes.map(([name]) => name).join(", ")} is needed first${inputUrl ? `: give it at ${inputUrl}` : "."}`,
+            {
+              consent: true,
+              ...(inputUrl ? { inputUrl } : {}),
+              missing: links.map((l) => ({
+                name: l.name,
+                label: `${l.type} access`,
+                ...(l.url ? { url: l.url } : {}),
+                why: l.why,
+              })),
+            },
+          );
+        }
+        if (platform.connectorClient) {
+          const build = platform.connectorClient;
+          connectors = {
+            ...connectors,
+            ...Object.fromEntries(
+              delegated.map(([name, c]) => [
+                name,
+                build(name, {
+                  mode: "delegated",
+                  scopes: c.scopes,
+                  token: async () => tokens[name]!,
+                  fetch: platform.fetch,
+                }),
+              ]),
+            ),
+          };
+        }
+      }
+
       const queued: QueuedDelivery[] = [];
       const ctx: ActionContext = {
         input: parsed.data,
@@ -290,7 +340,7 @@ export function createEngine(options: RuntimeOptions): Engine {
         emit: emitter(user, queued, 0),
         secrets: platform.secrets,
         userSecrets,
-        connectors: platform.connectors,
+        connectors,
         fetch: outbound,
         files: platform.files,
         cache: platform.cache,

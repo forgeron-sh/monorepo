@@ -29,13 +29,21 @@ export interface Caller {
   workspace: string;
   tool: string;
   request: Request;
+  /** The environment the call is served from, once it is known (set when the request is forwarded). */
+  environment?: "preview" | "pilot" | "production";
 }
 
 /** What the gateway adds to the request it hands a tool, or the answer that stops it (D-035). */
 export type Forwarding = { headers: Record<string, string> } | { refuse: Response };
 
 /** The headers only the gateway may set: whatever the caller sent under these names is dropped. */
-const INTERNAL_HEADERS = ["x-forgeron-user", "x-forgeron-user-secrets", "x-forgeron-base-url"];
+const INTERNAL_HEADERS = [
+  "x-forgeron-user",
+  "x-forgeron-user-secrets",
+  "x-forgeron-base-url",
+  "x-forgeron-connector-tokens",
+  "x-forgeron-connector-consent",
+];
 
 export interface DispatcherOptions {
   /** `forgeron.app`: the workspace is the one label in front of it. */
@@ -124,7 +132,9 @@ export function createDispatcher(options: DispatcherOptions) {
 
     const caller: Caller = { workspace, tool: path.tool, request };
     let worker: string | undefined;
+    let environment: "preview" | "pilot" | "production" = "production";
     if (path.branch !== undefined) {
+      environment = "preview";
       worker = entry.previews[path.branch];
       if (!worker) return refuse(404, "NOT_FOUND", "Not found.");
       if (!(await options.canPreview?.({ ...caller, branch: path.branch }))) {
@@ -139,6 +149,7 @@ export function createDispatcher(options: DispatcherOptions) {
           ...(entry.pilotGroup ? { group: entry.pilotGroup } : {}),
         }));
       worker = inPilot ? entry.pilot : entry.production;
+      if (inPilot) environment = "pilot";
       if (!worker) return refuse(404, "NOT_FOUND", "Not found.");
     }
 
@@ -159,7 +170,7 @@ export function createDispatcher(options: DispatcherOptions) {
       }
     }
 
-    const forwarding = await options.forward?.(caller);
+    const forwarding = await options.forward?.({ ...caller, environment });
     if (forwarding && "refuse" in forwarding) return forwarding.refuse;
 
     const forwarded = new URL(url);

@@ -179,11 +179,12 @@ ON CONFLICT ("workspace") DO UPDATE SET "kind" = excluded."kind", "issuer" = exc
     /** With secrets, for the consent exchange only. */
     async connectorClientsWithSecrets(
       workspace: string,
+      /** Only these connector types: a call decrypts what it needs, not every client. */
+      only?: string[],
     ): Promise<Array<ConnectorClientConfig & { clientSecret: string }>> {
-      const found = await rows(
-        `SELECT * FROM "connector_clients" WHERE "workspace" = ?`,
-        workspace,
-      );
+      const found = (
+        await rows(`SELECT * FROM "connector_clients" WHERE "workspace" = ?`, workspace)
+      ).filter((r) => only === undefined || only.includes(String(r.connector)));
       return Promise.all(
         found.map(async (r) => ({
           ...toClient(r),
