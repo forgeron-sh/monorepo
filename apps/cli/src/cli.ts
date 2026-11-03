@@ -7,6 +7,7 @@ import { dev } from "./commands/dev";
 import { init } from "./commands/init";
 import { install } from "./commands/install";
 import { link } from "./commands/link";
+import { login, logout, whoami } from "./commands/login";
 import { play } from "./commands/play";
 import { secrets } from "./commands/secrets";
 import { test } from "./commands/test";
@@ -18,6 +19,9 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   catalog,
   install,
   link,
+  login,
+  logout,
+  whoami,
   build,
   test,
   dev,
@@ -36,6 +40,8 @@ const USAGE = `Usage: forgeron <command>
   catalog search <text>                search the template catalog
   install <template> [--name <tool>]   show the requested resources, then install after approval
   link --workspace <name>              link the tool to a workspace
+  login [--workspace <name>]           sign in through the workspace SSO in the browser
+  logout | whoami                      forget the stored token | show who it is
   dev [--as <role>] [--port 8787]      run the tool locally
   play [--template <name>] [--as <role>] [--port 8788]
                                        open the playground of the tool, or of a template without installing it

@@ -11,32 +11,33 @@ Rules of the log:
 
 ## Index
 
-| No.   | Date       | Decision                                                                                                      | Status            |
-| ----- | ---------- | ------------------------------------------------------------------------------------------------------------- | ----------------- |
-| D-001 | 22/10/2026 | Adopt the tooling and conventions of siages                                                                   | Active            |
-| D-002 | 22/10/2026 | TypeScript 6, not 7                                                                                           | Active            |
-| D-003 | 22/10/2026 | The CLI is an app (`apps/cli`), the SDK a package (`packages/sdk`)                                            | Active            |
-| D-004 | 22/10/2026 | A tool is built in the CI of its repository                                                                   | Active            |
-| D-005 | 22/10/2026 | Build, version and release are three distinct notions                                                         | Active            |
-| D-006 | 22/10/2026 | One `forgeron.config.ts` = one tool                                                                           | Active            |
-| D-007 | 22/10/2026 | Catalog templates use `forgeron release`                                                                      | Active            |
-| D-008 | 22/10/2026 | Run tools with Dynamic Workers                                                                                | Replaced by D-009 |
-| D-009 | 22/10/2026 | Two hosting modes behind a single interface: Workers for Platforms (cloud), classic Workers (self-host)       | Active            |
-| D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                             | Active            |
-| D-011 | 02/11/2026 | All repository files are written in English                                                                   | Active            |
-| D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                           | Active            |
-| D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                            | Active            |
-| D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract                    | Active            |
-| D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime            | Active            |
-| D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                | Active            |
-| D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host | Active            |
-| D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                          | Active            |
-| D-019 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                       | Active            |
-| D-020 | 03/11/2026 | Views are a statically served React app that calls actions, not server-rendered pages                         | Active            |
-| D-021 | 03/11/2026 | Pilot and production share one database, with a strict compatibility check at deployment                      | Active            |
-| D-022 | 03/11/2026 | D1 only for now; a Postgres option through Hyperdrive is not offered                                          | Active            |
-| D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                      | Active            |
-| D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                    | Active            |
+| No.   | Date       | Decision                                                                                                                         | Status            |
+| ----- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| D-001 | 22/10/2026 | Adopt the tooling and conventions of siages                                                                                      | Active            |
+| D-002 | 22/10/2026 | TypeScript 6, not 7                                                                                                              | Active            |
+| D-003 | 22/10/2026 | The CLI is an app (`apps/cli`), the SDK a package (`packages/sdk`)                                                               | Active            |
+| D-004 | 22/10/2026 | A tool is built in the CI of its repository                                                                                      | Active            |
+| D-005 | 22/10/2026 | Build, version and release are three distinct notions                                                                            | Active            |
+| D-006 | 22/10/2026 | One `forgeron.config.ts` = one tool                                                                                              | Active            |
+| D-007 | 22/10/2026 | Catalog templates use `forgeron release`                                                                                         | Active            |
+| D-008 | 22/10/2026 | Run tools with Dynamic Workers                                                                                                   | Replaced by D-009 |
+| D-009 | 22/10/2026 | Two hosting modes behind a single interface: Workers for Platforms (cloud), classic Workers (self-host)                          | Active            |
+| D-010 | 22/10/2026 | One D1 database per tool and per environment, bound directly to the tool's Worker                                                | Active            |
+| D-011 | 02/11/2026 | All repository files are written in English                                                                                      | Active            |
+| D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                                              | Active            |
+| D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                                               | Active            |
+| D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract                                       | Active            |
+| D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime                               | Active            |
+| D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                                   | Active            |
+| D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host                    | Active            |
+| D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                                             | Active            |
+| D-019 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                                          | Active            |
+| D-020 | 03/11/2026 | Views are a statically served React app that calls actions, not server-rendered pages                                            | Active            |
+| D-021 | 03/11/2026 | Pilot and production share one database, with a strict compatibility check at deployment                                         | Active            |
+| D-022 | 03/11/2026 | D1 only for now; a Postgres option through Hyperdrive is not offered                                                             | Active            |
+| D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                                         | Active            |
+| D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                                       | Active            |
+| D-025 | 03/11/2026 | `forgeron login` signs in through the browser on a loopback address with PKCE and stores the token in the keychain or a 600 file | Active            |
 
 ---
 
@@ -282,3 +283,12 @@ Rules of the log:
 - **Not decided**: price and threshold (FOR-37), invoicing and payment.
 - **Decided by**: delegated on 03/11/2026; this is a product definition and the most likely one to change.
 - **Applied in**: FOR-83.
+
+## D-025 — `forgeron login` signs in through the browser on a loopback address with PKCE
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `forgeron login` starts a one-shot server on `127.0.0.1` (a random port, only `/callback`), opens `<endpoint>/auth/cli?redirect_uri&state&code_challenge&code_challenge_method=S256` in the browser (the URL is printed too), and waits for the workspace to send the person back with a one-time `code` and the same `state`. It then trades the code with the PKCE verifier at `POST <endpoint>/auth/cli/token` for the person's token, stores it, and never puts a token in a URL. A `state` that is not its own, or a refusal, stores nothing. `whoami` asks `GET <endpoint>/whoami`; `logout` forgets the token from the keychain and the file.
+- **Storage**: the system keychain through a `Keychain` interface (`io.keychain`), else `~/.config/forgeron/credentials` created `600` in a `700` folder (an older, wider file is narrowed). A keychain that refuses falls back to the file; a token in the keychain removes the file.
+- **Why**: `sdk.md` §4: a person's credentials are never in the project. The loopback redirect with PKCE is the usual way a CLI signs in through a browser, and keeps the token out of the browser's history and the command line.
+- **Not done**: the gateway side of `/auth/cli`, `/auth/cli/token` and `/whoami` does not exist (these paths are what the CLI asks for, simulated in the tests); the OS keychain adapters (macOS, Linux, Windows) are not written, so the file is used everywhere today; no real sign-in was tried.
+- **Applied in**: `apps/cli/src/commands/login.ts`, `apps/cli/src/credentials.ts`, `apps/cli/src/io.ts`.
