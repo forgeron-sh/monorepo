@@ -1,12 +1,14 @@
+import { workerName } from "@forgeron/hosting";
 import type { EnvironmentRecord, Registry as PlatformRegistry } from "@forgeron/registry";
 import type { Registry, ToolEntry } from "./dispatch";
 
 export interface FromRegistryOptions {
   /**
-   * The Worker that serves an environment. The default names production and pilot
-   * `<workspace>--<tool>--production|pilot` (docs/ARCHITECTURE.md, "Naming of Workers and
-   * databases"). A preview's name is `…--pr-<n>` there, and the platform D1 does not record `<n>`:
-   * until it does, a preview has no default and cannot be routed, so pass the name here.
+   * The Worker that serves an environment. The default is the name self-host gives it
+   * (`workerName` of `@forgeron/hosting`: `<workspace>--<tool>--production|pilot`, and for a
+   * preview `<workspace>--<tool>--preview-<branch>-<hash>`; docs/ARCHITECTURE.md, "Naming of Workers
+   * and databases"), so the gateway reaches the Worker that was deployed. Cloud hosting names its
+   * own Workers: pass its naming here.
    */
   workerNameOf?(
     tool: { workspace: string; name: string },
@@ -15,9 +17,11 @@ export interface FromRegistryOptions {
 }
 
 const defaultName: NonNullable<FromRegistryOptions["workerNameOf"]> = (tool, environment) =>
-  environment.name === "production" || environment.name === "pilot"
-    ? `${tool.workspace}--${tool.name}--${environment.name}`
-    : undefined;
+  workerName(tool.workspace, {
+    tool: tool.name,
+    name: environment.name,
+    ...(environment.branch ? { branch: environment.branch } : {}),
+  });
 
 /**
  * The dispatcher's view of the platform D1: only an environment that serves a version (activated)
