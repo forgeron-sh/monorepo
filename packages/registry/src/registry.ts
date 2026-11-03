@@ -323,6 +323,9 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   const slot = (toolId: string, environment: string, name: string) =>
     `${toolId}/${environment}/${name}`;
 
+  const userSlot = (toolId: string, person: string, name: string) =>
+    `user/${toolId}/${person}/${name}`;
+
   const connectionSlot = (c: {
     toolId: string;
     environment: string;
@@ -649,6 +652,129 @@ ORDER BY "user_id", "connector"`,
         if (/UNIQUE|constraint/i.test(String(error))) return false;
         throw error;
       }
+    },
+
+    // ---- token revocation (D-033)
+    /** Voids one token, named by its `jti`, until `expiresAt` (its own expiry). */
+    async revokeToken(workspace: string, person: string, jti: string, expiresAt: Date) {
+      await d1.batch([
+        d1.prepare(`DELETE FROM "token_revocations" WHERE "expires_at" < ?`).bind(now()),
+        d1
+          .prepare(
+            `INSERT INTO "token_revocations" ("id", "workspace", "person", "jti", "at", "expires_at") VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            newId(),
+            workspace,
+            person,
+            jti,
+            Math.floor(Date.parse(now()) / 1000),
+            expiresAt.toISOString(),
+          ),
+      ]);
+    },
+    /**
+     * Voids every token of a person issued up to now, those of the same second included: when in
+     * doubt the token is refused. `lifetime` is the longest a token can live.
+     */
+    async revokePersonTokens(workspace: string, person: string, lifetimeSeconds: number) {
+      await d1.batch([
+        d1.prepare(`DELETE FROM "token_revocations" WHERE "expires_at" < ?`).bind(now()),
+        d1
+          .prepare(
+            `INSERT INTO "token_revocations" ("id", "workspace", "person", "jti", "at", "expires_at") VALUES (?, ?, ?, NULL, ?, ?)`,
+          )
+          .bind(
+            newId(),
+            workspace,
+            person,
+            Math.floor(Date.parse(now()) / 1000),
+            new Date(Date.parse(now()) + lifetimeSeconds * 1000).toISOString(),
+          ),
+      ]);
+    },
+    /** Is this token void? `issuedAt` is the token's `iat`, in seconds; `jti` is absent on old tokens. */
+    async isTokenRevoked(
+      workspace: string,
+      person: string,
+      jti: string | undefined,
+      issuedAt: number,
+    ): Promise<boolean> {
+      const row = await first(
+        `SELECT 1 AS "hit" FROM "token_revocations" WHERE "workspace" = ? AND "person" = ? AND (("jti" IS NULL AND "at" >= ?) OR "jti" = ?) LIMIT 1`,
+        workspace,
+        person,
+        issuedAt,
+        jti ?? "",
+      );
+      return row !== undefined;
+    },
+
+    // ---- per-person secrets (resources.userSecrets: typed by each person, sealed, D-034)
+    /** Sets or replaces the secret of one person for one tool. Encrypted before the database. */
+    async setUserSecret(input: { toolId: string; person: string; name: string; value: string }) {
+      const sealed = await secretBox().seal(
+        userSlot(input.toolId, input.person, input.name),
+        input.value,
+      );
+      await write(
+        `INSERT INTO "user_secrets" ("tool_id", "person", "name", "iv", "ciphertext", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT ("tool_id", "person", "name") DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updated_at" = excluded."updated_at"`,
+        input.toolId,
+        input.person,
+        input.name,
+        sealed.iv,
+        sealed.ciphertext,
+        now(),
+      );
+    },
+    /**
+     * The decrypted secrets of ONE person for one tool. Only the gateway calls this, to hand a person
+     * their own to the tool they call: no route of the platform returns what it gives back.
+     */
+    async readUserSecrets(toolId: string, person: string): Promise<Record<string, string>> {
+      const box = secretBox();
+      const out: Record<string, string> = {};
+      for (const r of await all(
+        `SELECT "name", "iv", "ciphertext" FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ?`,
+        toolId,
+        person,
+      )) {
+        const name = String(r.name);
+        out[name] = await box.open(userSlot(toolId, person, name), {
+          iv: String(r.iv),
+          ciphertext: String(r.ciphertext),
+        });
+      }
+      return out;
+    },
+    /** Who holds which per-person secrets of a tool: names only, for the admin to revoke from. */
+    async userSecretHolders(toolId: string): Promise<Array<{ person: string; names: string[] }>> {
+      const by = new Map<string, string[]>();
+      for (const r of await all(
+        `SELECT "person", "name" FROM "user_secrets" WHERE "tool_id" = ? ORDER BY "person", "name"`,
+        toolId,
+      )) {
+        by.set(String(r.person), [...(by.get(String(r.person)) ?? []), String(r.name)]);
+      }
+      return [...by].map(([person, names]) => ({ person, names }));
+    },
+    /** The admin's revocation: one secret of one person, or all of that person's, for a tool. */
+    async revokeUserSecrets(toolId: string, person: string, name?: string): Promise<number> {
+      const found = await all(
+        name === undefined
+          ? `SELECT 1 FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ?`
+          : `SELECT 1 FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ? AND "name" = ?`,
+        ...(name === undefined ? [toolId, person] : [toolId, person, name]),
+      );
+      if (found.length === 0) return 0;
+      await write(
+        name === undefined
+          ? `DELETE FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ?`
+          : `DELETE FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ? AND "name" = ?`,
+        ...(name === undefined ? [toolId, person] : [toolId, person, name]),
+      );
+      return found.length;
     },
 
     // ---- builds
