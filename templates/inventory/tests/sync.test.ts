@@ -84,9 +84,14 @@ describe("jobs/sync-sharepoint", () => {
   it("records the run with what it matched", async () => {
     const { tool } = await withFleet();
     await tool.runJob("sync-sharepoint");
-    expect(await tool.call("sync-runs.list", { limit: 1 })).toMatchObject([
-      { source: "sharepoint", items: 3, updated: 2, by_email: expect.any(String) },
-    ]);
+    // The import of the fleet and this run can share a millisecond: do not rely on their order.
+    const runs = (await tool.call("sync-runs.list", {})) as Array<{ source: string }>;
+    expect(runs.map((r) => r.source).sort()).toEqual(["csv", "sharepoint"]);
+    expect(runs.find((r) => r.source === "sharepoint")).toMatchObject({
+      items: 3,
+      updated: 2,
+      by_email: expect.any(String),
+    });
     expect(tool.events.at(-1)).toMatchObject({ event: "inventory.synced" });
   });
 
