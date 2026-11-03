@@ -245,4 +245,41 @@ export const platformMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "gateway_code"`)],
   },
+  {
+    // The workspace's sign-in provider and the OAuth clients of its delegated connectors (D-033).
+    // Client secrets are sealed (iv + ciphertext), never stored in the clear.
+    name: "0011_identity_config",
+    fingerprint: "identity-config-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "identity_providers" (
+  "workspace" TEXT NOT NULL PRIMARY KEY,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('oidc', 'entra', 'google')),
+  "issuer" TEXT,
+  "client_id" TEXT NOT NULL,
+  "tenant" TEXT,
+  "hosted_domain" TEXT,
+  "email_claim" TEXT,
+  "groups_claim" TEXT,
+  "group_roles" TEXT NOT NULL,
+  "iv" TEXT,
+  "ciphertext" TEXT,
+  "updated_by" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL
+)`),
+      st(`CREATE TABLE "connector_clients" (
+  "workspace" TEXT NOT NULL,
+  "connector" TEXT NOT NULL,
+  "authorize_url" TEXT NOT NULL,
+  "token_url" TEXT NOT NULL,
+  "client_id" TEXT NOT NULL,
+  "iv" TEXT,
+  "ciphertext" TEXT,
+  "updated_by" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("workspace", "connector")
+)`),
+    ],
+    down: [st(`DROP TABLE "connector_clients"`), st(`DROP TABLE "identity_providers"`)],
+  },
 ];

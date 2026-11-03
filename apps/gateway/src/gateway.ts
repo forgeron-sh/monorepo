@@ -1,9 +1,13 @@
 import type { D1Database } from "@forgeron/hosting";
 import {
   loadGatewayCode,
+  createConsent,
+  createIdentityConfig,
   createRegistry,
   createSecretBox,
+  type IdentityConfig,
   type Registry,
+  type SecretBox,
 } from "@forgeron/registry";
 import {
   createCloudflareClient,
@@ -15,7 +19,9 @@ import {
   type GatewayBindings,
   type Hosting,
 } from "@forgeron/hosting";
+import { handleConsent } from "./consent/consent";
 import { handleConnections } from "./console-api/connections";
+import { handleIdentity } from "./console-api/identity";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleTools } from "./console-api/tools";
@@ -23,6 +29,7 @@ import { createDispatcher, workspaceOf, type DispatcherOptions } from "./dispatc
 import { handleCreateDeployToken, handleDeploy } from "./deploy/deploy";
 import { createAuth } from "./identity/auth";
 import { createCaller, membership } from "./identity/caller";
+import { providerFromConfig } from "./identity/presets";
 import { handleCliAuthorize, handleCliToken } from "./identity/cli";
 import { handleIssueToken } from "./identity/issue";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
@@ -52,7 +59,10 @@ export interface GatewayEnv {
   AUTH_SECRET?: string;
   /** Encrypts tool secrets and connection tokens at rest: 32 random bytes, base64. Secret. */
   SECRETS_KEY?: string;
-  /** The identity provider's issuer URL (OIDC, D-019). Without these three, `/auth` answers 404. */
+  /**
+   * The identity provider's issuer URL (OIDC, D-019). A provider an admin saved in the platform
+   * (`/console-api/api/identity-provider`, D-033) wins over these; with neither, `/auth` answers 404.
+   */
   OIDC_ISSUER?: string;
   OIDC_CLIENT_ID?: string;
   /** Secret. Optional: a public client uses PKCE alone. */
@@ -104,14 +114,18 @@ export function createGateway(
   const secret = env.AUTH_SECRET;
 
   // The registry encrypts with `SECRETS_KEY` when it is bound, which is asynchronous: built once.
-  let built: Promise<Registry> | undefined;
-  const getRegistry = () =>
-    (built ??= (async () =>
-      createRegistry(env.DB, {
+  let built: Promise<{ registry: Registry; config: IdentityConfig; box?: SecretBox }> | undefined;
+  const getBuilt = () =>
+    (built ??= (async () => {
+      const box = env.SECRETS_KEY ? await createSecretBox(env.SECRETS_KEY) : undefined;
+      return {
         // One clock for the registry and the gateway: the expiry of a one-time code depends on it.
-        now,
-        ...(env.SECRETS_KEY ? { secrets: await createSecretBox(env.SECRETS_KEY) } : {}),
-      }))());
+        registry: createRegistry(env.DB, { now, ...(box ? { secrets: box } : {}) }),
+        config: createIdentityConfig(env.DB, { now, ...(box ? { secrets: box } : {}) }),
+        ...(box ? { box } : {}),
+      };
+    })());
+  const getRegistry = async () => (await getBuilt()).registry;
 
   const parts = async () => {
     const registry = await getRegistry();
@@ -168,20 +182,25 @@ export function createGateway(
     return createSelfHostHosting({ ...common, ...(gateway ? { gateway } : {}) });
   };
 
-  const providerOf = (workspace: string) =>
-    env.OIDC_ISSUER && env.OIDC_CLIENT_ID
+  const providerOf = async (workspace: string, config: IdentityConfig) => {
+    const redirectUri = `https://${workspace}.${env.BASE_DOMAIN}/auth/callback`;
+    const saved = await config.getIdentityProvider(workspace, env.SECRETS_KEY !== undefined);
+    if (saved) return providerFromConfig(saved, redirectUri);
+    return env.OIDC_ISSUER && env.OIDC_CLIENT_ID
       ? {
           issuer: env.OIDC_ISSUER,
           clientId: env.OIDC_CLIENT_ID,
           ...(env.OIDC_CLIENT_SECRET ? { clientSecret: env.OIDC_CLIENT_SECRET } : {}),
-          redirectUri: `https://${workspace}.${env.BASE_DOMAIN}/auth/callback`,
+          redirectUri,
         }
       : undefined;
+  };
 
   return async function handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const workspace = workspaceOf(url.host, env.BASE_DOMAIN);
     const { registry, caller, dispatch } = await parts();
+    const { config, box } = await getBuilt();
     if (!workspace || url.pathname === "/t" || url.pathname.startsWith("/t/")) {
       return dispatch(request);
     }
@@ -192,14 +211,16 @@ export function createGateway(
         const auth = createAuth({
           baseDomain: env.BASE_DOMAIN,
           secret,
-          providerFor: providerOf,
-          resolvePerson: membership(registry, {
-            ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
-            memberDomains: (env.MEMBER_EMAIL_DOMAINS ?? "")
-              .split(",")
-              .map((d) => d.trim().toLowerCase())
-              .filter(Boolean),
-          }),
+          providerFor: (ws) => providerOf(ws, config),
+          resolvePerson: async (ws, identity) =>
+            membership(registry, {
+              ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
+              memberDomains: (env.MEMBER_EMAIL_DOMAINS ?? "")
+                .split(",")
+                .map((d) => d.trim().toLowerCase())
+                .filter(Boolean),
+              groupRoles: (await config.getIdentityProvider(ws))?.groupRoles ?? {},
+            })(ws, identity),
           fetch: options.fetch ?? fetch,
           now,
           sessionTtlSeconds: options.sessionTtlSeconds ?? 8 * 60 * 60,
@@ -268,9 +289,45 @@ export function createGateway(
       const who = secret && caller ? await caller.resolve(request, workspace, true) : undefined;
       const identity = async () =>
         who
-          ? { admin: who.roles.includes("admin"), developer: who.roles.includes("developer") }
+          ? {
+              id: who.id,
+              admin: who.roles.includes("admin"),
+              developer: who.roles.includes("developer"),
+            }
+          : undefined;
+      // A person's OAuth consent for a delegated connector (sdk.md §10): the OAuth clients are the
+      // workspace's, set by an admin; tokens are sealed and never leave the registry.
+      const consent =
+        box && /\/consent(\/|$)/.test(inner.pathname)
+          ? createConsent({
+              registry,
+              box,
+              providers: Object.fromEntries(
+                (await config.connectorClientsWithSecrets(workspace)).map((c) => [
+                  c.connector,
+                  {
+                    authorizeUrl: c.authorizeUrl,
+                    tokenUrl: c.tokenUrl,
+                    clientId: c.clientId,
+                    clientSecret: c.clientSecret,
+                    redirectUri: `https://${workspace}.${env.BASE_DOMAIN}${CONSOLE_API}/api/consent/callback`,
+                  },
+                ]),
+              ),
+              fetch: async (u, init) => (options.fetch ?? fetch)(u, init),
+              now,
+            })
           : undefined;
       return (
+        (await handleIdentity(forwarded, {
+          config,
+          workspace,
+          canKeepSecrets: box !== undefined,
+          caller: identity,
+        })) ??
+        (consent
+          ? await handleConsent(forwarded, { registry, consent, workspace, caller: identity })
+          : undefined) ??
         (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
