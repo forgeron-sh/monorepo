@@ -7,6 +7,7 @@ import { dev } from "./commands/dev";
 import { init } from "./commands/init";
 import { install } from "./commands/install";
 import { link } from "./commands/link";
+import { platform } from "./commands/platform";
 import { play } from "./commands/play";
 import { secrets } from "./commands/secrets";
 import { test } from "./commands/test";
@@ -22,6 +23,7 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   test,
   dev,
   play,
+  platform,
   db,
   change,
   release,
@@ -38,6 +40,8 @@ const USAGE = `Usage: forgeron <command>
   link --workspace <name>              link the tool to a workspace
   dev [--as <role>] [--port 8787]      run the tool locally
   play [--as <role>] [--port 8788]     open the playground of the tool
+  platform install --account <id> --domain <d> --gateway <worker.js>
+                                       install the platform on your Cloudflare account (self-host)
   db generate|migrate|status|rollback|seed|shell
                                        the database: migrations, seed, SQL (forgeron db for details)
   change --type <t> --bump <b> -m ".."  add a change to changes/ (change check: CI)

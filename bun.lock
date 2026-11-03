@@ -30,6 +30,7 @@
         "@forgeron/hosting": "workspace:*",
         "@forgeron/manifest": "workspace:*",
         "@forgeron/playground": "workspace:*",
+        "@forgeron/registry": "workspace:*",
         "@forgeron/sdk": "workspace:*",
       },
       "devDependencies": {
