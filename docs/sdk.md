@@ -339,6 +339,7 @@ export default action({
 | `NOT_FOUND`              | 404  | tool error                  | 4          | Object missing                                              |
 | `CONFLICT`               | 409  | tool error                  | 1          | Duplicate, concurrent version                               |
 | `RATE_LIMITED`           | 429  | tool error                  | 1          | Limit exceeded                                              |
+| `SECRET_REQUIRED`        | 428  | tool error with a link      | 1          | A per-person secret is missing (raised by the platform)     |
 | `UPSTREAM`               | 502  | tool error                  | 1          | Third-party service in error                                |
 | _(unexpected exception)_ | 500  | tool error, generic message | 1          | The detail stays in the log, never returned to the caller   |
 
@@ -530,6 +531,7 @@ export default defineView({
 - Views are React 18+ components, built by `forgeron build` and served by the tool's Worker, behind the SSO.
 - `@forgeron/ui` provides components aligned with the Forgeron design system (black and white, sharp corners): `Page`, `Table`, `Board`, `Stat`, `BarChart`, `Select`, `Button`… Optional.
 - A view has no direct access to the database: it goes through actions, and therefore through access rights.
+- A page is served with the sandbox CSP and a token of 15 minutes, bound to its tool and its person; `createHttpRuntime` makes the hooks call `/_f/call/<action>` with it. After 15 minutes the hooks fail and the page must be reloaded.
 - `defineView` refuses a `path` that does not start with `/` or that falls under a path the platform reserves (`/mcp`, `/api`, `/cli`, `/play`, `/_f`).
 - Reads are shared: two components calling `useAction` with the same name and input use one request. `refresh` is a polling period in milliseconds.
 - `useMutation` invalidates the reads of the same group: `deals.move` re-reads `deals.*`; an action without a dot invalidates every read. `run` rejects on failure, and the error is also exposed as `error`.

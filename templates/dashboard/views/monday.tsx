@@ -24,7 +24,7 @@ const params = z.object({ owner: z.string().email().optional() }); // ?owner=…
 export default defineView({
   title: "Monday meeting",
   path: "/monday",
-  access: "read",
+  access: "management", // the role of the people who hold the Monday meeting
   params,
 
   component() {

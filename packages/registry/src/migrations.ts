@@ -70,7 +70,35 @@ export const platformMigrations: BuildMigration[] = [
     ],
   },
   {
-    name: "0002_secrets",
+    // What promotion and rollback need: the build's code (to put it on another environment without
+    // rebuilding), the pilot group, and the history of what each environment served and who put it there.
+    name: "0002_deployments",
+    fingerprint: "deployments-v1",
+    destructive: false,
+    up: [
+      st(`ALTER TABLE "builds" ADD COLUMN "worker" TEXT`),
+      st(`ALTER TABLE "builds" ADD COLUMN "migrations" TEXT`),
+      st(`ALTER TABLE "environments" ADD COLUMN "pilot_group" TEXT`),
+      st(`CREATE TABLE "deployments" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "environment_id" TEXT NOT NULL REFERENCES "environments" ("id") ON DELETE CASCADE,
+  "version_id" TEXT NOT NULL REFERENCES "versions" ("id") ON DELETE CASCADE,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('deploy', 'promote', 'rollback')),
+  "actor" TEXT NOT NULL,
+  "created_at" TEXT NOT NULL
+)`),
+      st(`CREATE INDEX "deployments_by_environment" ON "deployments" ("environment_id")`),
+    ],
+    down: [
+      st(`DROP TABLE "deployments"`),
+      st(`ALTER TABLE "environments" DROP COLUMN "pilot_group"`),
+      st(`ALTER TABLE "builds" DROP COLUMN "migrations"`),
+      st(`ALTER TABLE "builds" DROP COLUMN "worker"`),
+    ],
+  },
+  {
+    name: "0003_secrets",
     fingerprint: "secrets-v1",
     destructive: false,
     up: [

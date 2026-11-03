@@ -3,6 +3,7 @@ export { createRuntime, type Runtime } from "./runtime";
 export { toolName } from "./mcp";
 export { EXIT_CODE, HTTP_STATUS } from "./types";
 export type {
+  UserSecretStore,
   ActionContext,
   Authenticated,
   CallSource,
@@ -23,6 +24,7 @@ export type {
   RuntimeOptions,
   Schema,
   User,
+  ViewBootstrap,
 } from "./types";
 export { createDb } from "./db";
 export type { BatchResult, Compilable, D1Like, D1Statement, Db } from "./db";
