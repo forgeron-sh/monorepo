@@ -162,9 +162,28 @@ export const platformMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "audit_log"`)],
   },
   {
-    // Seats (D-023): a person is counted once per workspace and calendar month (UTC) when they made
+    // The roles × actions matrix of a tool, as an admin edits it in the console (docs/sdk.md §3):
+    // one row per cell that differs from what the manifest's levels say. No version involved.
+    name: "0006_role_access",
+    fingerprint: "role-access-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "role_access" (
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "role" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "allowed" INTEGER NOT NULL CHECK ("allowed" IN (0, 1)),
+  "updated_by" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("tool_id", "role", "action")
+)`),
+    ],
+    down: [st(`DROP TABLE "role_access"`)],
+  },
+  {
+    // Seats (D-024): a person is counted once per workspace and calendar month (UTC) when they made
     // an authenticated call. Only the workspace, the person's id and the month are kept.
-    name: "0005_seats",
+    name: "0007_seats",
     fingerprint: "seats-v1",
     destructive: false,
     up: [

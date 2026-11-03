@@ -39,7 +39,7 @@ export interface DispatcherOptions {
   inPilot?(caller: Caller): boolean | Promise<boolean>;
   /**
    * The person behind an authenticated call (a valid token or session), or `undefined` for an
-   * anonymous one. With `recordSeat`, it is what counts the workspace's seats (D-023).
+   * anonymous one. With `recordSeat`, it is what counts the workspace's seats (D-024).
    */
   identify?(caller: Caller): string | undefined | Promise<string | undefined>;
   /** Counts a person's seat in a workspace. A failure never blocks the call. */

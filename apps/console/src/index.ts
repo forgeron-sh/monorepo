@@ -8,3 +8,10 @@ export {
   type PendingVersion,
   type RequestedResource,
 } from "./pending-approvals";
+export {
+  AccessMatrix,
+  loadAccessMatrix,
+  type AccessCell,
+  type AccessMatrixData,
+  type AccessMatrixProps,
+} from "./access-matrix";
