@@ -107,8 +107,48 @@ function workerEntry(
     `// The Worker's bindings arrive with each call: the database of the environment is \`env.DB\`.`,
     `let runtime;`,
     `const runtimeFor = (env) => (runtime ??= createTool(env?.DB ? { platform: { db: createDb(env.DB) } } : {}));`,
+    // A new preview's database is left a \`_forgeron_seed\` marker by the host (D-033): the first
+    // request claims it and runs \`db/seed.ts\` here, where the code and the database are. A seed that
+    // fails leaves the preview answering with the reason: it may have half filled the database.
+    ...(seedFile
+      ? [
+          `let seeding;`,
+          `async function seedPending(env) {`,
+          `  const read = await env.DB.prepare('SELECT status, detail FROM "_forgeron_seed"').all().catch(() => undefined);`,
+          `  const row = read?.results?.[0];`,
+          `  if (!row || row.status === "done") return undefined;`,
+          `  if (row.status === "failed") return row.detail;`,
+          `  const claim = await env.DB.prepare('UPDATE "_forgeron_seed" SET status = ? WHERE status = ?').bind("running", "pending").all();`,
+          `  if (!claim.meta?.changes) return undefined;`,
+          `  try {`,
+          `    await seed.run({ db: createDb(env.DB) });`,
+          `    await env.DB.prepare('UPDATE "_forgeron_seed" SET status = ?').bind("done").all();`,
+          `  } catch (error) {`,
+          `    const detail = error instanceof Error ? error.message : String(error);`,
+          `    await env.DB.prepare('UPDATE "_forgeron_seed" SET status = ?, detail = ?').bind("failed", detail).all();`,
+          `    return detail;`,
+          `  }`,
+          `  return undefined;`,
+          `}`,
+          `const seedFailure = async (env) => {`,
+          `  if (!env?.DB) return undefined;`,
+          `  seeding ??= seedPending(env).then((detail) => { if (!detail) seeding = Promise.resolve(undefined); return detail; });`,
+          `  return seeding;`,
+          `};`,
+        ]
+      : []),
     `export default {`,
-    `  fetch: (request, env) => runtimeFor(env).fetch(request),`,
+    ...(seedFile
+      ? [
+          `  fetch: async (request, env) => {`,
+          `    const failure = await seedFailure(env);`,
+          `    if (failure) {`,
+          `      return Response.json({ error: { code: "SEED_FAILED", message: \`The seed of this preview failed: \${failure}. Remove the preview and deploy the branch again.\` } }, { status: 500 });`,
+          `    }`,
+          `    return runtimeFor(env).fetch(request);`,
+          `  },`,
+        ]
+      : [`  fetch: (request, env) => runtimeFor(env).fetch(request),`]),
     `  // Cloudflare cron triggers: the runtime decides which tasks are due, in their time zone.`,
     `  scheduled: (controller, env, ctx) => ctx.waitUntil(runtimeFor(env).scheduled(new Date(controller.scheduledTime))),`,
     `};`,

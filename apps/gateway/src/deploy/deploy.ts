@@ -3,7 +3,12 @@
 // platform builds nothing: the body is the build CI already made. Each deployment lands in the
 // environment's history (who, when, which version) through `deployBuild`.
 import type { Build, DeployOptions, Hosting } from "@forgeron/hosting";
-import { deployBuild, type Registry, type RegisteredEnvironment } from "@forgeron/registry";
+import {
+  closePreview,
+  deployBuild,
+  type Registry,
+  type RegisteredEnvironment,
+} from "@forgeron/registry";
 import { audienceOf, parseAudience } from "../identity/audience";
 import type { Person } from "../identity/authenticate";
 import { issueToken, verifyToken } from "../identity/tokens";
@@ -117,7 +122,8 @@ export interface DeployContext {
  * for `crm` cannot deploy another tool, nor a build whose manifest names another.
  */
 export async function handleDeploy(request: Request, context: DeployContext): Promise<Response> {
-  if (request.method !== "POST") return fail(405, "METHOD_NOT_ALLOWED", "Use POST.");
+  if (request.method === "DELETE") return handleClosePreview(request, context);
+  if (request.method !== "POST") return fail(405, "METHOD_NOT_ALLOWED", "Use POST or DELETE.");
   const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
   if (!token) return fail(401, "UNAUTHENTICATED", "Send the deployment token as FORGERON_TOKEN.");
   const check = await verifyToken(token, {
@@ -186,4 +192,40 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
     const message = error instanceof Error ? error.message : String(error);
     return fail(500, "DEPLOY_FAILED", message);
   }
+}
+
+/**
+ * `DELETE /deploy` `{ branch }`, with the deployment token of the tool: the branch was merged or
+ * deleted, so its preview goes with its Worker, its database and everything it owns (CI calls it).
+ * Removing a preview that is already gone succeeds.
+ */
+async function handleClosePreview(request: Request, context: DeployContext): Promise<Response> {
+  const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
+  if (!token) return fail(401, "UNAUTHENTICATED", "Send the deployment token as FORGERON_TOKEN.");
+  const check = await verifyToken(token, {
+    secret: context.secret,
+    now: context.now(),
+    scope: DEPLOY_SCOPE,
+  });
+  if (!check.ok) {
+    return fail(401, "UNAUTHENTICATED", `This is not a valid deployment token (${check.reason}).`);
+  }
+  const audience = parseAudience(check.claims.aud);
+  if (!audience || audience.workspace !== context.workspace) {
+    return fail(403, "FORBIDDEN", "This token was not issued for this workspace.");
+  }
+  const body = await bodyOf(request);
+  const branch = body?.branch;
+  if (typeof branch !== "string" || branch === "") {
+    return fail(400, "INVALID", "branch: the branch whose preview to remove.");
+  }
+  // The tool is the token's, never the body's.
+  const tool = await context.registry.findTool(context.workspace, audience.tool);
+  if (!tool) return json(200, { tool: audience.tool, branch, removed: false });
+  try {
+    await closePreview(context.registry, context.hosting, tool, branch);
+  } catch (error) {
+    return fail(500, "DEPLOY_FAILED", error instanceof Error ? error.message : String(error));
+  }
+  return json(200, { tool: tool.name, branch, removed: true });
 }

@@ -5,6 +5,9 @@ import {
   ChangelogRefusal,
   createCloudHosting,
   deploy,
+  ensureDispatchNamespace,
+  createCloudflareClient,
+  seedStatus,
   MigrationError,
   restore,
   teardownPreview,
@@ -192,5 +195,62 @@ describe("tearing down a preview in the cloud", () => {
     await teardownPreview(hosting, "crm", "feat/export");
     expect([...cloudflare.scripts.keys()]).toEqual([SCRIPT]);
     expect(cloudflare.databases.size).toBe(1);
+  });
+});
+
+describe("a preview's database in the cloud", () => {
+  const branch = { tool: "crm", name: "preview", branch: "feat/export" } as const;
+  const bareBuild = (data?: "seed" | "empty") =>
+    build("p1", [migration("0001", "CREATE TABLE a (id INTEGER)")], {
+      manifest: {
+        resources: { db: { engine: "d1" } },
+        ...(data ? { preview: { data } } : {}),
+      } as unknown as Manifest,
+    });
+  const count = async () =>
+    ((await d1.prepare("SELECT COUNT(*) AS n FROM a").all()).results as { n: number }[])[0]!.n;
+
+  it("is created for the branch, migrated, and filled by the seed handed to deploy", async () => {
+    const result = await deploy(hosting, branch, bareBuild(), {
+      seed: async (db) => void (await db.batch([db.prepare("INSERT INTO a (id) VALUES (1)")])),
+    });
+    expect(result.database).toEqual({ fresh: true, data: "seed", seeded: true });
+    expect([...cloudflare.databases.values()][0]!.name).toContain("preview-feat-export");
+    expect(await count()).toBe(1);
+  });
+
+  it("is left to the Worker to seed when nobody here can, and only once", async () => {
+    const first = await deploy(hosting, branch, bareBuild());
+    expect(first.database).toEqual({ fresh: true, data: "seed", seeded: false, pending: true });
+    expect(await seedStatus(d1)).toBe("pending");
+    const again = await deploy(hosting, branch, bareBuild());
+    expect(again.database).toEqual({ fresh: false, seeded: false });
+  });
+
+  it("stays empty with preview.data: empty", async () => {
+    const result = await deploy(hosting, branch, bareBuild("empty"));
+    expect(result.database).toEqual({ fresh: true, data: "empty", seeded: false });
+    expect(await seedStatus(d1)).toBeUndefined();
+  });
+
+  it("is removed with the preview, and the next deployment of the branch starts fresh", async () => {
+    await deploy(hosting, branch, bareBuild());
+    await teardownPreview(hosting, "crm", "feat/export");
+    expect(cloudflare.databases.size).toBe(0);
+    const again = await deploy(hosting, branch, bareBuild());
+    expect(again.database).toMatchObject({ fresh: true });
+  });
+});
+
+describe("the dispatch namespace", () => {
+  it("is created once, and left alone when it exists", async () => {
+    const client = createCloudflareClient({
+      accountId: "acct",
+      apiToken: "test-token",
+      fetch: cloudflare.fetch,
+    });
+    expect(await ensureDispatchNamespace(client, "forgeron-tools")).toBe(true);
+    expect(await ensureDispatchNamespace(client, "forgeron-tools")).toBe(false);
+    expect([...cloudflare.dispatchNamespaces]).toEqual(["forgeron-tools"]);
   });
 });

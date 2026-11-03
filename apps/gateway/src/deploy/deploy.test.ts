@@ -244,6 +244,57 @@ describe("a preview's seed", () => {
   });
 });
 
+describe("DELETE /deploy", () => {
+  const remove = (body: unknown, token?: string) =>
+    new Request("https://acme.forgeron.app/deploy", {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  const context = (hosting: Hosting) => ({
+    workspace: "acme",
+    secret,
+    now: () => now,
+    registry,
+    hosting,
+  });
+
+  it("removes the preview of a merged or deleted branch, with what it owns", async () => {
+    const { hosting } = fakeHosting();
+    const torn: unknown[] = [];
+    hosting.teardown = async (environment) => void torn.push(environment);
+    const token = await deploymentToken();
+    await handleDeploy(
+      post("/deploy", upload({ environment: "preview", branch: "feat/a" }), token),
+      context(hosting),
+    );
+    const response = await handleDeploy(remove({ branch: "feat/a" }, token), context(hosting));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ tool: "crm", branch: "feat/a", removed: true });
+    expect(torn).toEqual([{ tool: "crm", name: "preview", branch: "feat/a" }]);
+    const tool = (await registry.findTool("acme", "crm"))!;
+    expect((await registry.listEnvironments(tool.id)).some((e) => e.name === "preview")).toBe(
+      false,
+    );
+  });
+
+  it("succeeds for a tool the workspace does not know, and refuses without a valid token or a branch", async () => {
+    const { hosting } = fakeHosting();
+    const ok = await handleDeploy(
+      remove({ branch: "x" }, await deploymentToken("ghost")),
+      context(hosting),
+    );
+    expect(await ok.json()).toMatchObject({ removed: false });
+    expect((await handleDeploy(remove({ branch: "x" }), context(hosting))).status).toBe(401);
+    expect((await handleDeploy(remove({}, await deploymentToken()), context(hosting))).status).toBe(
+      400,
+    );
+  });
+});
+
 describe("POST /deploy-tokens", () => {
   const admin = { id: "u1", email: "ada@acme.fr", name: "Ada", roles: ["admin"] };
   const member = { ...admin, id: "u2", roles: ["management"] };
