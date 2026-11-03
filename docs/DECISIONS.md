@@ -27,6 +27,7 @@ Rules of the log:
 | D-012 | 02/11/2026 | An action is atomic through one D1 batch, not through a transaction                                     | Active            |
 | D-013 | 02/11/2026 | The gateway builds its OAuth authorization server from the registry, and caches it                      | Active            |
 | D-014 | 03/11/2026 | Migrations are SQL applied in one batch; a rename is a hard rename; no expand and contract              | Active            |
+| D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime      | Active            |
 
 ---
 
@@ -178,3 +179,13 @@ Rules of the log:
 - **Rejected**: `expand`/`contract` migrations for renames and drops (FOR-114, cancelled); migration code that runs Kysely between statements (not atomic); a rebuild that silently deletes child rows.
 - **Not done**: `forgeron db migrate | status | rollback | seed | shell` (FOR-115): `forgeron dev` applies the migrations, and `revertMigrations` exists in `@forgeron/hosting` for the rollback command; applying them on a remote account (self-host).
 - **Applied in**: `sdk.md` §8; `@forgeron/sdk/db` (`migration`, snapshot), `@forgeron/compiler` (diff, generate, build), `@forgeron/hosting` (`applyMigrations`, `revertMigrations`, `Hosting.migrate`).
+
+## D-015 — API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: a token for the API or the CLI is `fgt.<claims>.<signature>`: claims `{ sub, aud, iat, exp }` as base64url JSON, signature HMAC-SHA256 of `fgt.<claims>` under a gateway secret, through Web Crypto. `aud` is `<workspace>/<tool>` (`acme/crm`). Roles are not in the token: the gateway resolves them at each call. The tool's runtime refuses a token whose audience is not its own (`audience` option, `403 FORBIDDEN`); the signature is checked before anything in the token is read. MCP tokens are the OAuth tokens of D-013, whose audience is the tool's resource URL.
+- **Lifetime**: `issueToken` takes a required `ttlSeconds` and has no default. The values (personal API token, `forgeron login`) belong to the flows that issue them and are not decided here.
+- **Why**: `sdk.md` §7, Isolation point 5: all tools of a workspace share one origin, so a token for one tool must be useless on another. A signed token needs no lookup; a per-call role resolution keeps a role change effective at once.
+- **Rejected**: roles inside the token (stale until expiry); one token per workspace with the tool as a scope (one token could cover several tools).
+- **Not done**: revocation (a signed token is good until `exp`); the secret's storage and rotation; the endpoints that issue tokens (SSO sign-in, FOR-82); view tokens (out of scope of FOR-38).
+- **Applied in**: `apps/gateway/src/identity/` (`audience.ts`, `tokens.ts`, `authenticate.ts`); `packages/runtime` (`audience`, `Authenticated`).

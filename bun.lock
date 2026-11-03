@@ -50,6 +50,7 @@
         "@cloudflare/workers-oauth-provider": "1.2.4",
       },
       "devDependencies": {
+        "@forgeron/runtime": "workspace:*",
         "@forgeron/tsconfig": "workspace:*",
         "@types/node": "24.19.2",
         "miniflare": "4.20260730.0",
