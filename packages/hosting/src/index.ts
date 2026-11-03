@@ -12,6 +12,8 @@ export {
   workerName,
 } from "./self-host";
 export type { CloudflareClient, CloudflareOptions, SelfHostOptions } from "./self-host";
+export { createCloudHosting } from "./cloud";
+export type { CloudOptions } from "./cloud";
 export { applyMigrations, migrationStatus, MigrationError, revertMigrations } from "./migrate";
 export type {
   BuildMigration,

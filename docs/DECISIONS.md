@@ -30,6 +30,7 @@ Rules of the log:
 | D-015 | 03/11/2026 | API and CLI tokens are signed, carry a `<workspace>/<tool>` audience, and have no default lifetime            | Active            |
 | D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                | Active            |
 | D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host | Active            |
+| D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                          | Active            |
 
 ---
 
@@ -209,3 +210,12 @@ Rules of the log:
 - **Rejected**: one binding name per tool in the registry (state to keep in sync with the gateway's configuration); falling back from the namespace to a binding (two ways in for one Worker).
 - **Not done**: the `dispatch_namespaces` entry of `wrangler.jsonc` (the namespace name is the account's, left as a comment); redeploying the gateway with a new binding when a tool is created in self-host (hosting); custom domains.
 - **Applied in**: `apps/gateway/src/dispatch/targets.ts`, `apps/gateway/src/gateway.ts`.
+
+## D-018 — In cloud mode the script is sent at `activate`, after the migration, not at `upload`
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `createCloudHosting` provisions the tool's D1, KV and R2 (same names as self-host: `<worker>--db|cache|files`), keeps the build at `upload` without sending anything, runs `migrate`, and sends the script at `activate`: `PUT /workers/dispatch/namespaces/<namespace>/scripts/<worker>`, multipart, a `metadata` part (`main_module`, `compatibility_date`, the `bindings` of the resources) and the module. `teardown` deletes the script, then the resources by name.
+- **Why**: the Cloudflare documentation describes the upload to a namespace as an upload that serves at once (first uploads are deployed synchronously, changelog of 2025-02-20) and does not describe a version that waits for a deployment, as classic Workers have (used by self-host). Sending the script last keeps `sdk.md` §8, point 4: a failed migration leaves the previous script serving.
+- **Not verified**: everything here is tested against a simulated API built from the documentation. Whether a user Worker with its own D1 can be uploaded and called in a real namespace is FOR-36, which has not been run; the delete endpoint of a script is assumed to mirror the upload one. If Workers for Platforms has a version and deployment split after all, `upload` should send a version, as self-host does.
+- **Not done**: a queue resource (refused with a 501, as in self-host); the gateway side, which reaches the script through the namespace binding (D-017); custom limits and an outbound Worker.
+- **Applied in**: `packages/hosting/src/cloud/`, `packages/hosting/src/resources.ts` (shared with self-host), `multipart` upload in `self-host/cloudflare.ts`.

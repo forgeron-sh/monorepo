@@ -7,13 +7,13 @@
 import {
   bindingsOf,
   type Activation,
-  type Binding,
   type Environment,
   type Hosting,
   type Provisioned,
   type Uploaded,
 } from "../core";
 import { applyMigrations } from "../migrate";
+import { cloudflareResources } from "../resources";
 import { createCloudflareClient, CloudflareError, type CloudflareOptions } from "./cloudflare";
 import { createRestD1 } from "./d1-rest";
 import { workerName } from "./names";
@@ -35,82 +35,16 @@ const base64 = (text: string) => {
   return btoa(binary);
 };
 
-interface Named {
-  id?: string;
-  uuid?: string;
-  name?: string;
-  title?: string;
-}
-
 export function createSelfHostHosting(options: SelfHostOptions): Hosting {
   const client = createCloudflareClient(options);
   const nameOf = (environment: Environment) => workerName(options.workspace, environment);
-  // The resource of a binding is named after the Worker: `<worker>--db`, `--cache`, `--files`.
-  const resourceName = (environment: Environment, binding: Binding) =>
-    `${nameOf(environment)}--${binding.name.toLowerCase()}`;
-
-  const found = async <T>(path: string, pick: (r: T) => Named[], name: string, key: keyof Named) =>
-    pick(await client.request<T>("GET", path)).find((r) => r[key] === name);
-
-  async function ensureD1(name: string): Promise<{ id: string; fresh: boolean }> {
-    const existing = await found<Named[]>(
-      `/d1/database?name=${encodeURIComponent(name)}`,
-      (r) => r,
-      name,
-      "name",
-    );
-    if (existing?.uuid) return { id: existing.uuid, fresh: false };
-    return {
-      id: (await client.request<Named>("POST", "/d1/database", { name })).uuid!,
-      fresh: true,
-    };
-  }
-
-  async function ensureKv(title: string): Promise<string> {
-    const existing = await found<Named[]>(
-      "/storage/kv/namespaces?per_page=100",
-      (r) => r,
-      title,
-      "title",
-    );
-    if (existing?.id) return existing.id;
-    return (await client.request<Named>("POST", "/storage/kv/namespaces", { title })).id!;
-  }
-
-  async function ensureR2(name: string): Promise<string> {
-    const existing = await found<{ buckets: Named[] }>(
-      "/r2/buckets",
-      (r) => r.buckets,
-      name,
-      "name",
-    );
-    if (!existing) await client.request("POST", "/r2/buckets", { name });
-    return name;
-  }
-
-  async function dropIfFound(path: string, id: string | undefined) {
-    if (id) await client.request("DELETE", `${path}/${id}`);
-  }
+  const resources = cloudflareResources(client, "self-host");
 
   return {
     async provision(environment, manifest): Promise<Provisioned> {
-      const bindings: Binding[] = [];
-      for (const binding of bindingsOf(manifest)) {
-        const name = resourceName(environment, binding);
-        if (binding.kind === "d1") {
-          const { id, fresh } = await ensureD1(name);
-          bindings.push({ ...binding, id, fresh });
-        } else if (binding.kind === "kv") bindings.push({ ...binding, id: await ensureKv(name) });
-        else if (binding.kind === "r2") bindings.push({ ...binding, id: await ensureR2(name) });
-        else {
-          throw new CloudflareError(
-            `The ${binding.kind} resource ${binding.name} cannot be provisioned in self-host yet.`,
-            501,
-          );
-        }
-      }
-      // The Worker exists before its first version: a Worker is a resource of its own.
       const worker = nameOf(environment);
+      const bindings = await resources.provision(worker, bindingsOf(manifest));
+      // The Worker exists before its first version: a Worker is a resource of its own.
       try {
         await client.request("GET", `/workers/workers/${worker}`);
       } catch (error) {
@@ -135,13 +69,7 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
               content_base64: base64(build.worker),
             },
           ],
-          bindings: provisioned.bindings.map((b) =>
-            b.kind === "d1"
-              ? { type: "d1", name: b.name, id: b.id }
-              : b.kind === "kv"
-                ? { type: "kv_namespace", name: b.name, namespace_id: b.id }
-                : { type: "r2_bucket", name: b.name, bucket_name: b.id },
-          ),
+          bindings: resources.metadata(provisioned.bindings),
         },
       );
       return { provisioned, build, versionId: version.id };
@@ -180,28 +108,7 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
       } catch (error) {
         if (!(error instanceof CloudflareError) || error.status !== 404) throw error;
       }
-      const resource = (suffix: string) => `${worker}--${suffix}`;
-      const d1 = await found<Named[]>(
-        `/d1/database?name=${encodeURIComponent(resource("db"))}`,
-        (r) => r,
-        resource("db"),
-        "name",
-      );
-      await dropIfFound("/d1/database", d1?.uuid);
-      const kv = await found<Named[]>(
-        "/storage/kv/namespaces?per_page=100",
-        (r) => r,
-        resource("cache"),
-        "title",
-      );
-      await dropIfFound("/storage/kv/namespaces", kv?.id);
-      const r2 = await found<{ buckets: Named[] }>(
-        "/r2/buckets",
-        (r) => r.buckets,
-        resource("files"),
-        "name",
-      );
-      await dropIfFound("/r2/buckets", r2?.name);
+      await resources.teardown(worker);
     },
   };
 }
