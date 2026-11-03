@@ -150,6 +150,13 @@ export function createEngine(options: RuntimeOptions): Engine {
   const grants = (user: User): Set<string> =>
     new Set(user.roles.flatMap((role) => manifest.roles[role]?.grants ?? []));
 
+  // The one access check, for every interface: a role may call an action if the console says so,
+  // else if one of its levels is the action's. The person may if one of their roles may.
+  const mayCall = (user: User, name: string, level: string): boolean =>
+    user.roles.some(
+      (role) => user.access?.[role]?.[name] ?? (manifest.roles[role]?.grants ?? []).includes(level),
+    );
+
   // A call from a task or another tool does not go through an interface: it is not hidden by `interfaces`.
   const exposed = (name: string, via: CallSource): RuntimeAction | undefined => {
     const entry = manifest.actions[name];
@@ -230,9 +237,8 @@ export function createEngine(options: RuntimeOptions): Engine {
 
   return {
     list(user, via) {
-      const allowed = grants(user);
       return Object.entries(manifest.actions)
-        .filter(([name, entry]) => exposed(name, via) && allowed.has(entry.access))
+        .filter(([name, entry]) => exposed(name, via) && mayCall(user, name, entry.access))
         .map(([name, entry]) => ({ name, entry }));
     },
 
@@ -243,7 +249,7 @@ export function createEngine(options: RuntimeOptions): Engine {
 
       // Before anything else, so that a refused person learns nothing about the input.
       const allowed = grants(user);
-      if (!allowed.has(entry.access)) {
+      if (!mayCall(user, name, entry.access)) {
         return failure("FORBIDDEN", `The access level "${entry.access}" is required.`);
       }
 

@@ -25,6 +25,8 @@ export type {
 } from "./consent";
 export { createSecretBox, type SealedSecret, type SecretBox } from "./secret-box";
 export type {
+  AccessCell,
+  AccessMatrix,
   Approval,
   AuditEntry,
   AuditInterface,
