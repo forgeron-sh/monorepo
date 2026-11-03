@@ -31,10 +31,17 @@ const tools = new Map(
   ]),
 );
 
+// What a dispatch namespace does for a script it does not hold: `fetch` throws.
+const missing = (worker: string) => ({
+  fetch: (): Response => {
+    throw new Error(`Worker not found: ${worker}`);
+  },
+});
+
 const env = (): GatewayEnv => ({
   DB: d1,
   BASE_DOMAIN: "forgeron.app",
-  TOOLS: { get: (worker) => tools.get(worker) },
+  DISPATCHER: { get: (worker) => tools.get(worker) ?? missing(worker) },
 });
 
 async function publish(workspace: string, name: string, deployed: [string, string?][]) {
@@ -122,7 +129,7 @@ describe("the gateway, with the platform D1", () => {
   });
 
   it("answers 502 for a deployed tool the gateway holds no binding to", async () => {
-    const response = await createGateway({ ...env(), TOOLS: { get: () => undefined } })(
+    const response = await createGateway({ ...env(), DISPATCHER: { get: missing } })(
       new Request("https://acme.forgeron.app/t/crm/mcp"),
     );
     expect(response.status).toBe(502);
@@ -131,5 +138,66 @@ describe("the gateway, with the platform D1", () => {
   it("is the Worker's fetch handler", async () => {
     const response = await worker.fetch(new Request("https://acme.forgeron.app/t/crm/mcp"), env());
     expect(response.status).toBe(200);
+  });
+
+  describe("the console at the workspace origin", () => {
+    const seen: string[] = [];
+    const ASSETS = {
+      fetch: (request: Request) => {
+        seen.push(new URL(request.url).pathname);
+        return new Response("<!doctype html><title>Forgeron console</title>", {
+          headers: { "content-type": "text/html" },
+        });
+      },
+    };
+    const consoleGateway = () => createGateway({ ...env(), ASSETS });
+
+    it("returns the console on `/` with a locked-down policy", async () => {
+      const response = await consoleGateway()(new Request("https://acme.forgeron.app/"));
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain("Forgeron console");
+      expect(response.headers.get("content-security-policy")).toContain("script-src 'self'");
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    });
+
+    it("serves nothing but the console's assets, and never a tool's path", async () => {
+      seen.length = 0;
+      reached.length = 0;
+      const gateway = consoleGateway();
+      await gateway(new Request("https://acme.forgeron.app/assets/index.js"));
+      await gateway(new Request("https://acme.forgeron.app/t/crm/api/deals.move"));
+      expect(seen).toEqual(["/assets/index.js"]);
+      expect(reached).toEqual(["acme--crm--production"]);
+      for (const path of ["/mcp", "/api/tools", "/cli"]) {
+        expect((await gateway(new Request(`https://acme.forgeron.app${path}`))).status).toBe(404);
+      }
+      expect(seen).toEqual(["/assets/index.js"]);
+    });
+
+    it("refuses to write to the console, and does not serve a reserved or foreign host", async () => {
+      const gateway = consoleGateway();
+      expect(
+        (await gateway(new Request("https://acme.forgeron.app/", { method: "POST" }))).status,
+      ).toBe(405);
+      expect((await gateway(new Request("https://console.forgeron.app/"))).status).toBe(404);
+      expect((await gateway(new Request("https://example.com/"))).status).toBe(404);
+    });
+
+    it("answers 404 without the console build", async () => {
+      expect((await get("https://acme.forgeron.app/")).status).toBe(404);
+    });
+
+    it("mounts the console's API on the same origin, closed while identity is missing", async () => {
+      const gateway = consoleGateway();
+      const status = await gateway(
+        new Request("https://acme.forgeron.app/console-api/api/tools/crm/secrets-status"),
+      );
+      expect(status.status).toBe(401);
+      const tools = await gateway(new Request("https://acme.forgeron.app/console-api/api/tools"));
+      expect(tools.status).toBe(401);
+      const unknown = await gateway(new Request("https://acme.forgeron.app/console-api/nothing"));
+      expect(unknown.status).toBe(404);
+      expect(seen).not.toContain("/console-api/nothing");
+    });
   });
 });

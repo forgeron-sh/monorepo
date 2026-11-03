@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline/promises";
+import type { Keychain } from "./credentials";
 
 /** What a command needs of the outside world: tests give their own. */
 export interface Io {
@@ -12,6 +13,10 @@ export interface Io {
   confirm?(question: string): Promise<boolean>;
   /** Reads a value from the keyboard without echoing it (or from piped input); never an argument. */
   readSecret?(prompt: string): Promise<string>;
+  /** The system keychain, when the platform has an adapter: without it credentials go to the file. */
+  keychain?: Keychain;
+  /** Opens a URL in the person's browser; absent when there is none (the URL is printed anyway). */
+  openUrl?(url: string): Promise<void>;
   /** Resolves when the person asks a long-running command to stop (Ctrl-C). */
   stopped: Promise<void>;
 }
@@ -19,6 +24,11 @@ export interface Io {
 /** The command was used wrongly: exit code 2 (sdk.md §5). */
 export class UsageError extends Error {
   override name = "UsageError";
+}
+
+/** What was asked for does not exist: exit code 4 (sdk.md §5). */
+export class NotFoundError extends Error {
+  override name = "NotFoundError";
 }
 
 export function terminal(): Io {
@@ -42,8 +52,27 @@ export function terminal(): Io {
       }
     },
     readSecret: readHidden,
+    openUrl: openInBrowser,
     stopped: new Promise((resolve) => process.once("SIGINT", () => resolve())),
   };
+}
+
+/** The browser of the platform, started without a shell so the URL is never interpreted. */
+function openInBrowser(url: string): Promise<void> {
+  const [command, ...args] =
+    process.platform === "darwin"
+      ? ["open", url]
+      : process.platform === "win32"
+        ? ["rundll32", "url.dll,FileProtocolHandler", url]
+        : ["xdg-open", url];
+  return new Promise((resolve, reject) => {
+    const child = spawn(command!, args, { stdio: "ignore", detached: true });
+    child.once("error", reject);
+    child.once("spawn", () => {
+      child.unref();
+      resolve();
+    });
+  });
 }
 
 /** A line typed without echo on a terminal; the whole input when it is piped. */

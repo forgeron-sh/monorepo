@@ -218,6 +218,37 @@ describe("POST /deploy", () => {
   });
 });
 
+describe("a preview's seed", () => {
+  it("is run on the new database of the branch, with the seed of the build's tool", async () => {
+    const db = { name: "the branch's database" } as unknown as D1Database;
+    const { hosting } = fakeHosting();
+    const base = hosting.provision;
+    hosting.provision = async (environment, manifest) => ({
+      ...(await base(environment, manifest)),
+      bindings: [{ name: "DB", kind: "d1", id: "db-1", fresh: true }],
+    });
+    hosting.database = () => db;
+    const seeded: unknown[] = [];
+    const response = await handleDeploy(
+      post(
+        "/deploy",
+        upload({ environment: "preview", branch: "feat/a", version: "0.0.1-a" }),
+        await deploymentToken(),
+      ),
+      {
+        workspace: "acme",
+        secret,
+        now: () => now,
+        registry,
+        hosting,
+        seed: (build) => async (received) => void seeded.push([build.fingerprint, received]),
+      },
+    );
+    expect(response.status).toBe(200);
+    expect(seeded).toEqual([["fp1", db]]);
+  });
+});
+
 describe("POST /deploy-tokens", () => {
   const admin = { id: "u1", email: "ada@acme.fr", name: "Ada", roles: ["admin"] };
   const member = { ...admin, id: "u2", roles: ["management"] };

@@ -278,3 +278,37 @@ describe("secrets", () => {
     expect(await registry.secretsStatus(tool.id)).toEqual([]);
   });
 });
+
+describe("seats", () => {
+  it("counts a person once per workspace and month, whatever their calls", async () => {
+    await registry.recordSeat("acme", "p1");
+    await registry.recordSeat("acme", "p1");
+    await registry.recordSeat("acme", "p2");
+    await registry.recordSeat("globex", "p1");
+    expect(await registry.countSeats("acme")).toBe(2);
+    expect(await registry.countSeats("globex")).toBe(1);
+    expect(await registry.countSeats("nobody")).toBe(0);
+  });
+
+  it("counts by calendar month, in UTC", async () => {
+    let at = new Date(Date.UTC(2026, 9, 31, 23, 59, 0));
+    const monthly = createRegistry(d1, { now: () => at });
+    await monthly.recordSeat("acme", "p1");
+    at = new Date(Date.UTC(2026, 10, 1, 0, 0, 0));
+    await monthly.recordSeat("acme", "p1");
+    await monthly.recordSeat("acme", "p2");
+    expect(await monthly.countSeats("acme", "2026-10")).toBe(1);
+    expect(await monthly.countSeats("acme")).toBe(2);
+  });
+
+  it("does not count a tool acting on its own behalf, and keeps nothing else", async () => {
+    await registry.recordSeat("acme", "tool:crm");
+    await registry.recordSeat("acme", "");
+    await registry.recordSeat("acme", "p1");
+    expect(await registry.countSeats("acme")).toBe(1);
+    const rows = (await d1.prepare(`SELECT * FROM "seats"`).all()).results as Array<
+      Record<string, unknown>
+    >;
+    expect(Object.keys(rows[0]!).sort()).toEqual(["month", "person_id", "workspace"]);
+  });
+});
