@@ -5,6 +5,7 @@ import { platformMigrations } from "./migrations";
 
 export { platformMigrations } from "./migrations";
 export { createRegistry, RegistryError } from "./registry";
+export { createSecretBox, type SealedSecret, type SecretBox } from "./secret-box";
 export type {
   Approval,
   ApprovalStatus,

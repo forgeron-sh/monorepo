@@ -69,4 +69,21 @@ export const platformMigrations: BuildMigration[] = [
       st(`DROP TABLE "tools"`),
     ],
   },
+  {
+    name: "0002_secrets",
+    fingerprint: "secrets-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "secrets" (
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "environment" TEXT NOT NULL CHECK ("environment" IN ('preview', 'pilot', 'production')),
+  "name" TEXT NOT NULL,
+  "iv" TEXT NOT NULL,
+  "ciphertext" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("tool_id", "environment", "name")
+)`),
+    ],
+    down: [st(`DROP TABLE "secrets"`)],
+  },
 ];

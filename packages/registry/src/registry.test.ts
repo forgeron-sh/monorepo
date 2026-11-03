@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { D1Database } from "@forgeron/hosting";
 import {
   createRegistry,
+  createSecretBox,
   migratePlatform,
   platformMigrations,
   RegistryError,
@@ -11,6 +12,9 @@ import {
 
 // A Miniflare per test is slow when the machine is busy.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
+
+// A throwaway key made of zeros: it protects nothing and is not a secret.
+const TEST_KEY = btoa(String.fromCharCode(...new Uint8Array(32)));
 
 let mf: Miniflare;
 let d1: D1Database;
@@ -26,7 +30,10 @@ beforeEach(async () => {
   });
   d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
   await migratePlatform(d1);
-  registry = createRegistry(d1, { now: () => new Date(Date.UTC(2026, 10, 3, 12, 0, tick++)) });
+  registry = createRegistry(d1, {
+    secrets: await createSecretBox(TEST_KEY),
+    now: () => new Date(Date.UTC(2026, 10, 3, 12, 0, tick++)),
+  });
 });
 afterEach(() => mf.dispose());
 
@@ -190,5 +197,51 @@ describe("approvals", () => {
     expect(await registry.unapproved(version.id)).toHaveLength(1);
     expect((await registry.listApprovals(tool.id, "approved")).map((a) => a.id)).toEqual([db.id]);
     expect(await registry.listApprovals(tool.id)).toHaveLength(2);
+  });
+});
+
+describe("secrets", () => {
+  it("keeps values encrypted at rest and gives them back to the runtime", async () => {
+    const { tool } = await seed();
+    await registry.setSecret(tool.id, "production", "ODOO_KEY", "sk-test-value");
+    await registry.setSecret(tool.id, "production", "ODOO_KEY", "sk-test-value-2");
+    const raw = (await d1.prepare(`SELECT * FROM "secrets"`).all()).results as Array<
+      Record<string, string>
+    >;
+    expect(raw).toHaveLength(1);
+    expect(JSON.stringify(raw)).not.toContain("sk-test-value");
+    expect(await registry.readSecrets(tool.id, "production")).toEqual({
+      ODOO_KEY: "sk-test-value-2",
+    });
+    expect(await registry.readSecrets(tool.id, "pilot")).toEqual({});
+  });
+
+  it("lists names only, per environment, and deletes", async () => {
+    const { tool } = await seed();
+    await registry.setSecret(tool.id, "pilot", "B", "x");
+    await registry.setSecret(tool.id, "pilot", "A", "y");
+    await registry.setSecret(tool.id, "production", "C", "z");
+    expect(await registry.secretNames(tool.id, "pilot")).toEqual(["A", "B"]);
+    await registry.deleteSecret(tool.id, "pilot", "A");
+    expect(await registry.secretNames(tool.id, "pilot")).toEqual(["B"]);
+  });
+
+  it("does not open a ciphertext moved to another slot", async () => {
+    const { tool } = await seed();
+    await registry.setSecret(tool.id, "pilot", "A", "x");
+    await d1.batch([d1.prepare(`UPDATE "secrets" SET "name" = 'B'`)]);
+    await expect(registry.readSecrets(tool.id, "pilot")).rejects.toThrow(
+      /operation failed|decrypt|cipher/i,
+    );
+  });
+
+  it("refuses to keep secrets without a key", async () => {
+    const { tool } = await seed();
+    const keyless = createRegistry(d1);
+    expect(await code(keyless.setSecret(tool.id, "pilot", "A", "x"))).toBe("NO_SECRET_KEY");
+  });
+
+  it("rejects a key that is not 32 bytes", async () => {
+    await expect(createSecretBox(btoa("short"))).rejects.toThrow(/32 bytes/);
   });
 });

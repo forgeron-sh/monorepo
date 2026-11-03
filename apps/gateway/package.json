@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@cloudflare/workers-oauth-provider": "1.2.4"
+    "@cloudflare/workers-oauth-provider": "1.2.4",
+    "@forgeron/registry": "workspace:*"
   },
   "devDependencies": {
+    "@forgeron/hosting": "workspace:*",
     "@forgeron/runtime": "workspace:*",
     "@forgeron/tsconfig": "workspace:*",
     "@types/node": "24.19.2",
