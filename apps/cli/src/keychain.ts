@@ -14,7 +14,7 @@ export type Runner = (
 const SERVICE = "forgeron";
 
 /** The real runner: no shell, standard error discarded (it may repeat what was sent). */
-export const spawnRunner: Runner = (command, args, input) =>
+const spawnRunner: Runner = (command, args, input) =>
   new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: ["pipe", "pipe", "ignore"] });
     let stdout = "";
