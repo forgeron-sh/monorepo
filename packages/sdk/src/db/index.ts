@@ -17,6 +17,7 @@ export {
   dropIndexSql,
   dropTriggerSql,
   indexName,
+  PERSONAL_MARKER,
   quote,
   tableExtrasSql,
   triggerName,

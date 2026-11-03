@@ -32,6 +32,7 @@ import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleApprovals } from "./console-api/approvals";
 import { handleAudit } from "./console-api/audit";
+import { handleDatabase } from "./console-api/database";
 import { handleTools } from "./console-api/tools";
 import { handleWorkspace } from "./console-api/workspace";
 import {
@@ -582,6 +583,12 @@ export function createGateway(
         (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleDatabase(forwarded, {
+          registry,
+          workspace,
+          hosting: hostingOf,
+          caller: identity,
+        })) ??
         (await handleWorkspace(forwarded, {
           registry,
           workspace,

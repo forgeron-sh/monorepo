@@ -207,3 +207,11 @@ describe("createSchemaSql()", () => {
     expect(createSchemaSql(quoted)[0]).toContain(`DEFAULT 'it''s'`);
   });
 });
+
+describe("personal data columns", () => {
+  it("writes the tag in the table's SQL, where the database explorer reads it", () => {
+    const people = table("people", { id: t.id(), notes: t.text().personal(), label: t.text() });
+    const [create] = createSchemaSql(schema({ people }));
+    expect(create).toContain(`"notes" TEXT /* personal */, "label" TEXT)`);
+  });
+});

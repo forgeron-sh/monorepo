@@ -78,6 +78,18 @@ export function cloudflareResources(client: CloudflareClient, mode: string) {
       return provisioned;
     },
 
+    /** The id of the D1 a Worker owns (`<worker>--db`), looked up by name; `undefined` when there is none. */
+    async findD1(worker: string): Promise<string | undefined> {
+      const name = `${worker}--db`;
+      const existing = await found<Named[]>(
+        `/d1/database?name=${encodeURIComponent(name)}`,
+        (r) => r,
+        name,
+        "name",
+      );
+      return existing?.uuid;
+    },
+
     /** The `bindings` of a Worker's upload metadata. */
     metadata(bindings: Binding[]): Record<string, unknown>[] {
       return bindings.map((b) =>

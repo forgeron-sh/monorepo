@@ -3,6 +3,8 @@
 // made up; there is no secret in it. Pick a scenario with `?mock=`:
 //   ready (default) · fresh (nothing done yet) · member (not an admin) · signedout · error · slow
 
+import { mockDatabase } from "./database";
+
 type Json = Record<string, any>;
 const DAY = 24 * 60 * 60 * 1000;
 const iso = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString();
@@ -291,6 +293,11 @@ export async function installMock(): Promise<void> {
       return reply(200, { id: decision[1], status: body.decision });
     }
     if (path === "/api/audit") return reply(200, { entries: state.audit });
+    const db = mockDatabase(path, url.searchParams);
+    if (db)
+      return db.csv !== undefined
+        ? new Response(db.csv, { status: 200, headers: { "content-type": "text/csv" } })
+        : reply(db.status, db.body);
     const tool = /^\/api\/tools\/([\w-]+)\/(access-matrix|secrets-status)$/.exec(path);
     if (tool?.[2] === "access-matrix")
       return method === "GET" ? reply(200, matrix(tool[1]!)) : reply(204);

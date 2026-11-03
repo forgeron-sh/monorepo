@@ -1,6 +1,7 @@
 import { Button, CopyBlock, EmptyState, Notice, Page, Tabs } from "@forgeron/ui";
 import { useState } from "react";
 import { AccessMatrixEditor } from "./access-matrix";
+import { DatabaseTab } from "./features/database";
 import type { Api } from "./api";
 import { AdminOnly, Loading, LoadError } from "./states";
 import { loadSecretsStatus, SecretsStatus } from "./secrets-status";
@@ -42,7 +43,17 @@ export function ToolsPage({ api, go }: { api: Api; go: (href: string) => void })
   );
 }
 
-export function ToolPage({ name, api, admin }: { name: string; api: Api; admin: boolean }) {
+export function ToolPage({
+  name,
+  api,
+  admin,
+  developer = false,
+}: {
+  name: string;
+  api: Api;
+  admin: boolean;
+  developer?: boolean;
+}) {
   const [tab, setTab] = useState("access");
   const tools = useLoad(() => loadTools(api.fetchJson), [api]);
   const known = tools.data?.some((t) => t.name === name);
@@ -70,6 +81,7 @@ export function ToolPage({ name, api, admin }: { name: string; api: Api; admin: 
           tabs={[
             { id: "access", label: "Access" },
             { id: "secrets", label: "Secrets" },
+            ...(admin || developer ? [{ id: "database", label: "Database" }] : []),
           ]}
           value={tab}
           onChange={setTab}
@@ -80,6 +92,8 @@ export function ToolPage({ name, api, admin }: { name: string; api: Api; admin: 
             ) : (
               <AdminOnly what="The access matrix" />
             )
+          ) : tab === "database" ? (
+            <DatabaseTab tool={name} api={api} />
           ) : (
             <ToolSecrets name={name} api={api} />
           )}

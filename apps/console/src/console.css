@@ -322,3 +322,212 @@ code {
     margin-bottom: var(--space-2);
   }
 }
+
+/* Database explorer */
+.fc-db {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+.fc-db-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.fc-db-main {
+  min-width: 0;
+}
+.fc-db-tables {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  max-height: 60vh;
+  overflow: auto;
+}
+.fc-db-table {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-mono);
+  text-align: start;
+  cursor: pointer;
+}
+.fc-db-table:hover {
+  background: var(--surface-hover);
+}
+.fc-db-table:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.fc-db-table[aria-current="true"] {
+  background: var(--inverse);
+  color: var(--on-inverse);
+}
+.fc-db-table-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fc-db-count {
+  font: 400 12px/16px var(--font-mono);
+  opacity: 0.7;
+}
+.fc-db-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.fc-db-filter,
+.fc-db-filter-actions,
+.fc-db-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fc-db-filter .fg-select {
+  width: auto;
+  min-width: 140px;
+}
+.fc-db-filter .fg-input {
+  width: 220px;
+  max-width: 100%;
+}
+.fc-db-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.fc-db-h {
+  margin: 0 0 var(--space-2);
+  font: 600 14px/22px var(--font-sans);
+}
+.fc-db-status {
+  margin: 0;
+  min-height: 20px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.fc-db-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 30;
+  display: flex;
+  width: min(420px, 100%);
+}
+.fc-db-drawer > * {
+  width: 100%;
+}
+.fc-db-fields {
+  margin: 0;
+}
+.fc-db-field {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.fc-db-field dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+}
+.fc-db-field dd {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.fc-db-field-name {
+  font: 500 13px/18px var(--font-mono);
+}
+.fc-db-field-type {
+  font: 400 11px/14px var(--font-mono);
+  color: var(--ink-muted);
+}
+.fc-db-null,
+.fc-db-masked {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+.fc-db-relations {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-1);
+}
+.fc-db-relation-note {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.fc-db-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+.fc-db-card {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+}
+.fc-db-card-title {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  font: 600 14px/20px var(--font-mono);
+}
+.fc-db-card-cols {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+}
+.fc-db-card-cols li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fc-db-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.fc-db-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.fc-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .fc-db {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

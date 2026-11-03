@@ -203,7 +203,14 @@ function Screen({
     case "tools":
       return <ToolsPage api={api} go={go} />;
     case "tool":
-      return <ToolPage name={route.tool!} api={api} admin={ws.person.admin} />;
+      return (
+        <ToolPage
+          name={route.tool!}
+          api={api}
+          admin={ws.person.admin}
+          developer={ws.person.roles.includes("developer")}
+        />
+      );
     case "members":
       return ws.person.admin ? (
         <MembersPage api={api} selfId={ws.person.id} now={now} />
