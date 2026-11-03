@@ -262,4 +262,42 @@ export const platformMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "group_members"`)],
   },
+  {
+    // Revoked tokens (D-035): one row per revoked token (`jti`), or, with no `jti`, every token of the
+    // person issued up to `at` (seconds). A row is forgotten once no token it covers can be valid.
+    name: "0012_token_revocations",
+    fingerprint: "token-revocations-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "token_revocations" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "workspace" TEXT NOT NULL,
+  "person" TEXT NOT NULL,
+  "jti" TEXT,
+  "at" INTEGER NOT NULL,
+  "expires_at" TEXT NOT NULL
+)`),
+      st(`CREATE INDEX "token_revocations_person" ON "token_revocations" ("workspace", "person")`),
+    ],
+    down: [st(`DROP TABLE "token_revocations"`)],
+  },
+  {
+    // Per-person secrets (D-036): one per tool, person and name, sealed with the platform key. The
+    // value is read back only by the gateway, to hand the caller's own to the tool they call.
+    name: "0013_user_secrets",
+    fingerprint: "user-secrets-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "user_secrets" (
+  "tool_id" TEXT NOT NULL,
+  "person" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "iv" TEXT NOT NULL,
+  "ciphertext" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("tool_id", "person", "name")
+)`),
+    ],
+    down: [st(`DROP TABLE "user_secrets"`)],
+  },
 ];

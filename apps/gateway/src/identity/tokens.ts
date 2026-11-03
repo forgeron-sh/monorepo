@@ -16,6 +16,8 @@ interface TokenClaims {
   iat: number;
   /** Expires at, seconds since the epoch. */
   exp: number;
+  /** The token's own id, what a revocation names. Absent on tokens issued before D-035. */
+  jti?: string;
   /** What the token may do besides being a person's: absent on API and CLI tokens (`deploy`…). */
   scp?: string;
 }
@@ -47,6 +49,8 @@ const keyOf = (secret: string) =>
     "verify",
   ]);
 
+export type { TokenClaims };
+
 export interface IssueOptions {
   secret: string;
   person: string;
@@ -55,6 +59,8 @@ export interface IssueOptions {
   /** How long the token lives. No default: each flow that issues tokens decides. */
   ttlSeconds: number;
   now: Date;
+  /** The token's id, for a revocation to name; a random one by default. */
+  jti?: string;
   /** A token with a scope is only accepted where that scope is asked for, and nowhere else. */
   scope?: string;
 }
@@ -67,6 +73,7 @@ export async function issueToken(options: IssueOptions): Promise<string> {
     aud: audienceOf(options.workspace, options.tool),
     iat,
     exp: iat + options.ttlSeconds,
+    jti: options.jti ?? crypto.randomUUID(),
     ...(options.scope === undefined ? {} : { scp: options.scope }),
   };
   const body = `${PREFIX}.${toBase64Url(encoder.encode(JSON.stringify(claims)))}`;
@@ -87,6 +94,7 @@ const isClaims = (value: unknown): value is TokenClaims => {
     typeof claims.aud === "string" &&
     Number.isFinite(claims.iat) &&
     Number.isFinite(claims.exp) &&
+    (claims.jti === undefined || typeof claims.jti === "string") &&
     (claims.scp === undefined || typeof claims.scp === "string")
   );
 };
@@ -98,7 +106,17 @@ const isClaims = (value: unknown): value is TokenClaims => {
  */
 export async function verifyToken(
   token: string,
-  options: { secret: string; now: Date; audience?: string; scope?: string },
+  options: {
+    secret: string;
+    /**
+     * Keys the gateway signed with before a rotation (D-035): a token they signed is still good
+     * until its `exp`, and nothing new is signed with them.
+     */
+    previousSecrets?: string[];
+    now: Date;
+    audience?: string;
+    scope?: string;
+  },
 ): Promise<TokenCheck> {
   const parts = token.split(".");
   const [prefix, payload, signature] = parts;
@@ -108,12 +126,16 @@ export async function verifyToken(
   const signed = fromBase64Url(signature);
   const raw = fromBase64Url(payload);
   if (!signed || !raw) return { ok: false, reason: "malformed" };
-  const valid = await crypto.subtle.verify(
-    "HMAC",
-    await keyOf(options.secret),
-    signed,
-    encoder.encode(`${prefix}.${payload}`),
-  );
+  let valid = false;
+  for (const secret of [options.secret, ...(options.previousSecrets ?? [])]) {
+    valid = await crypto.subtle.verify(
+      "HMAC",
+      await keyOf(secret),
+      signed,
+      encoder.encode(`${prefix}.${payload}`),
+    );
+    if (valid) break;
+  }
   if (!valid) return { ok: false, reason: "signature" };
   let claims: unknown;
   try {
