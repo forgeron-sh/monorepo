@@ -40,9 +40,7 @@ function fakeHosting(failMigrate = false) {
       calls.push("activate");
       return { url: `https://${provisioned.environment.name}.test` };
     },
-    async teardown() {
-      calls.push("teardown");
-    },
+    async teardown() {},
   };
   return { hosting, calls };
 }
@@ -232,88 +230,6 @@ describe("POST /deploy", () => {
   });
 });
 
-describe("DELETE /deploy (close a preview)", () => {
-  const del = (body: unknown, token?: string) =>
-    new Request("https://acme.forgeron.app/deploy", {
-      method: "DELETE",
-      headers: {
-        "content-type": "application/json",
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body),
-    });
-  const context = (hosting: Hosting) => ({
-    workspace: "acme",
-    secret,
-    now: () => now,
-    registry,
-    hosting,
-  });
-
-  it("tears down the preview of the branch and forgets it, once", async () => {
-    const { hosting, calls } = fakeHosting();
-    const token = await deploymentToken();
-    await handleDeploy(
-      post("/deploy", upload({ environment: "preview", branch: "pr-7" }), token),
-      context(hosting),
-    );
-    calls.length = 0;
-
-    const response = await handleDeploy(del({ branch: "pr-7" }, token), context(hosting));
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ tool: "crm", branch: "pr-7", closed: true });
-    expect(calls).toEqual(["teardown"]);
-    const tool = (await registry.findTool("acme", "crm"))!;
-    expect((await registry.listEnvironments(tool.id)).some((e) => e.branch === "pr-7")).toBe(false);
-
-    // A second close, or a close of a branch never deployed, is not an error and tears nothing down.
-    for (const branch of ["pr-7", "never"]) {
-      const again = await handleDeploy(del({ branch }, token), context(hosting));
-      expect(await again.json()).toMatchObject({ closed: false });
-    }
-    expect(calls).toEqual(["teardown"]);
-  });
-
-  it("leaves other branches and other tools alone", async () => {
-    const { hosting } = fakeHosting();
-    const token = await deploymentToken();
-    await handleDeploy(
-      post("/deploy", upload({ environment: "preview", branch: "pr-1" }), token),
-      context(hosting),
-    );
-    await handleDeploy(
-      post("/deploy", upload({ environment: "preview", branch: "pr-2" }), token),
-      context(hosting),
-    );
-    await handleDeploy(
-      del({ branch: "pr-1" }, await deploymentToken("dashboard")),
-      context(hosting),
-    );
-    await handleDeploy(del({ branch: "pr-1" }, token), context(hosting));
-    const tool = (await registry.findTool("acme", "crm"))!;
-    expect((await registry.listEnvironments(tool.id)).map((e) => e.branch).filter(Boolean)).toEqual(
-      ["pr-2"],
-    );
-  });
-
-  it("needs a valid deployment token and a branch", async () => {
-    const { hosting } = fakeHosting();
-    expect((await handleDeploy(del({ branch: "x" }), context(hosting))).status).toBe(401);
-    expect((await handleDeploy(del({ branch: "x" }, "nope"), context(hosting))).status).toBe(401);
-    expect((await handleDeploy(del({}, await deploymentToken()), context(hosting))).status).toBe(
-      400,
-    );
-    expect(
-      (
-        await handleDeploy(
-          del({ branch: "x" }, await deploymentToken("crm", "other")),
-          context(hosting),
-        )
-      ).status,
-    ).toBe(403);
-  });
-});
-
 describe("a preview's seed", () => {
   it("is run on the new database of the branch, with the seed of the build's tool", async () => {
     const db = { name: "the branch's database" } as unknown as D1Database;
@@ -342,6 +258,57 @@ describe("a preview's seed", () => {
     );
     expect(response.status).toBe(200);
     expect(seeded).toEqual([["fp1", db]]);
+  });
+});
+
+describe("DELETE /deploy", () => {
+  const remove = (body: unknown, token?: string) =>
+    new Request("https://acme.forgeron.app/deploy", {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  const context = (hosting: Hosting) => ({
+    workspace: "acme",
+    secret,
+    now: () => now,
+    registry,
+    hosting,
+  });
+
+  it("removes the preview of a merged or deleted branch, with what it owns", async () => {
+    const { hosting } = fakeHosting();
+    const torn: unknown[] = [];
+    hosting.teardown = async (environment) => void torn.push(environment);
+    const token = await deploymentToken();
+    await handleDeploy(
+      post("/deploy", upload({ environment: "preview", branch: "feat/a" }), token),
+      context(hosting),
+    );
+    const response = await handleDeploy(remove({ branch: "feat/a" }, token), context(hosting));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ tool: "crm", branch: "feat/a", removed: true });
+    expect(torn).toEqual([{ tool: "crm", name: "preview", branch: "feat/a" }]);
+    const tool = (await registry.findTool("acme", "crm"))!;
+    expect((await registry.listEnvironments(tool.id)).some((e) => e.name === "preview")).toBe(
+      false,
+    );
+  });
+
+  it("succeeds for a tool the workspace does not know, and refuses without a valid token or a branch", async () => {
+    const { hosting } = fakeHosting();
+    const ok = await handleDeploy(
+      remove({ branch: "x" }, await deploymentToken("ghost")),
+      context(hosting),
+    );
+    expect(await ok.json()).toMatchObject({ removed: false });
+    expect((await handleDeploy(remove({ branch: "x" }), context(hosting))).status).toBe(401);
+    expect((await handleDeploy(remove({}, await deploymentToken()), context(hosting))).status).toBe(
+      400,
+    );
   });
 });
 

@@ -3,7 +3,7 @@ name: Templates preview
 # Templates are the SDK's integration tests (docs/ARCHITECTURE.md): on every pull request each one
 # is tested, checked and deployed as a preview of the branch, through the same action a tool
 # repository uses. A template that breaks fails the pull request. The preview is announced in a
-# comment of the pull request and torn down when the pull request is closed or merged (D-040).
+# comment of the pull request and torn down when the pull request is closed or merged (D-045).
 #
 # Needs a workspace: the repository variable FORGERON_WORKSPACE and one secret per template (named
 # in the matrices below, created with `forgeron token create`). Without them (forks, or before the

@@ -13,6 +13,7 @@ export class FakeCloudflare {
   readonly databases = new Map<string, { name: string; d1?: D1Database }>();
   readonly namespaces = new Map<string, string>();
   readonly buckets = new Set<string>();
+  readonly dispatchNamespaces = new Set<string>();
   /** The version uploads as the client sent them, `inherit` bindings unresolved. */
   readonly uploads: Version["body"][] = [];
   /** The user Workers of dispatch namespaces, by `<namespace>/<script>`. */
@@ -162,6 +163,16 @@ export class FakeCloudflare {
         throw this.fail(400, "unknown version");
       worker.deployed = versions[0]!.version_id;
       return { id: this.id("deployment") };
+    }
+    if (method === "POST" && path === "/workers/dispatch/namespaces") {
+      this.dispatchNamespaces.add(String(body?.name));
+      return { namespace_name: body?.name };
+    }
+    if ((m = path.match(/^\/workers\/dispatch\/namespaces\/([^/]+)$/)) && method === "GET") {
+      if (!this.dispatchNamespaces.has(decodeURIComponent(m[1]!))) {
+        throw this.fail(404, "no such namespace");
+      }
+      return { namespace_name: decodeURIComponent(m[1]!) };
     }
     if ((m = path.match(/^\/workers\/dispatch\/namespaces\/([^/]+)\/scripts\/([^/]+)$/))) {
       const key = `${decodeURIComponent(m[1]!)}/${decodeURIComponent(m[2]!)}`;

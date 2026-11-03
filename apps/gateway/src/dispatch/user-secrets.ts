@@ -84,16 +84,20 @@ export async function forwardIdentity(
   if (!who) return undefined;
   const refused = wrongAudience(context.workspace, tool, who.audience);
   if (refused) return { refuse: refused };
+  const record = await context.registry.findTool(context.workspace, tool);
+  // The console's overrides of the roles × actions matrix for the person's roles, read at each call
+  // so an edit applies at once on every interface (D-039).
+  const access = record ? await context.registry.accessFor(record.id, who.person.roles) : {};
   const headers: Record<string, string> = {
     "x-forgeron-user": JSON.stringify({
       id: who.person.id,
       email: who.person.email,
       name: who.person.name,
       roles: who.person.roles,
+      access,
     }),
     "x-forgeron-base-url": `${new URL(request.url).origin}/t/${tool}`,
   };
-  const record = await context.registry.findTool(context.workspace, tool);
   if (record) {
     let own: Record<string, string> = {};
     try {

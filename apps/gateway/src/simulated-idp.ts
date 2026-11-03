@@ -6,7 +6,13 @@ import { toBase64Url } from "./identity/sealed";
 export const ISSUER = "https://idp.example.test";
 const enc = new TextEncoder();
 
-export async function simulatedProvider(email: string, now: Date) {
+export async function simulatedProvider(
+  email: string,
+  now: Date,
+  /** Entra ID and Google have their own issuer; `claims` adds to (or replaces) the ID token's. */
+  options: { issuer?: string; claims?: Record<string, unknown> } = {},
+) {
+  const issuer = (options.issuer ?? ISSUER).replace(/\/+$/, "");
   const pair = await crypto.subtle.generateKey(
     {
       name: "RSASSA-PKCS1-v1_5",
@@ -30,16 +36,16 @@ export async function simulatedProvider(email: string, now: Date) {
   };
   const fetcher = (async (input: string, init?: RequestInit): Promise<Response> => {
     const url = new URL(input);
-    if (url.pathname === "/.well-known/openid-configuration") {
+    if (url.pathname.endsWith("/.well-known/openid-configuration")) {
       return Response.json({
-        issuer: ISSUER,
-        authorization_endpoint: `${ISSUER}/authorize`,
-        token_endpoint: `${ISSUER}/token`,
-        jwks_uri: `${ISSUER}/jwks`,
+        issuer,
+        authorization_endpoint: `${issuer}/authorize`,
+        token_endpoint: `${issuer}/token`,
+        jwks_uri: `${issuer}/jwks`,
       });
     }
-    if (url.pathname === "/jwks") return Response.json({ keys: [jwk] });
-    if (url.pathname === "/token") {
+    if (url.pathname.endsWith("/jwks")) return Response.json({ keys: [jwk] });
+    if (url.pathname.endsWith("/token")) {
       const form = new URLSearchParams(String(init?.body));
       const issued = codes.get(form.get("code") ?? "");
       const verified = createHash("sha256")
@@ -50,13 +56,14 @@ export async function simulatedProvider(email: string, now: Date) {
       }
       return Response.json({
         id_token: await sign({
-          iss: ISSUER,
+          iss: issuer,
           aud: "forgeron",
           sub: `idp-${email}`,
           email,
           name: "Someone",
           exp: Math.floor(now.getTime() / 1000) + 300,
           nonce: issued.nonce,
+          ...options.claims,
         }),
       });
     }

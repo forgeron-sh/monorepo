@@ -78,7 +78,7 @@ export interface AccessMatrix {
   cells: Record<string, Record<string, AccessCell>>;
 }
 
-export type AuditKind = "action" | "deployment" | "promotion" | "rollback" | "approval";
+export type AuditKind = "action" | "deployment" | "promotion" | "rollback" | "approval" | "access";
 export type AuditResult = "ok" | "denied" | "error";
 export type AuditInterface = "mcp" | "api" | "cli" | "web";
 
@@ -1281,25 +1281,37 @@ ORDER BY "user_id", "connector"`,
       if (!manifest.actions[action]) {
         throw new RegistryError("NOT_FOUND", `The tool has no action ${action}.`);
       }
-      if (allowed === undefined) {
-        await write(
-          `DELETE FROM "role_access" WHERE "tool_id" = ? AND "role" = ? AND "action" = ?`,
+      const before = (await this.accessMatrix(toolId)).cells[role]![action]!;
+      const audit = auditStatement(
+        {
           toolId,
-          role,
-          action,
-        );
-        return;
-      }
-      await write(
-        `INSERT INTO "role_access" ("tool_id", "role", "action", "allowed", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
-         ON CONFLICT ("tool_id", "role", "action") DO UPDATE SET "allowed" = excluded."allowed", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
-        toolId,
-        role,
-        action,
-        allowed ? 1 : 0,
-        actor,
+          actor,
+          kind: "access",
+          subject: `${role}:${action}`,
+          detail: { role, action, from: before.allowed, to: allowed ?? before.default },
+        },
         now(),
       );
+      if (allowed === undefined) {
+        await d1.batch([
+          d1
+            .prepare(
+              `DELETE FROM "role_access" WHERE "tool_id" = ? AND "role" = ? AND "action" = ?`,
+            )
+            .bind(toolId, role, action),
+          audit,
+        ]);
+        return;
+      }
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "role_access" ("tool_id", "role", "action", "allowed", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT ("tool_id", "role", "action") DO UPDATE SET "allowed" = excluded."allowed", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+          )
+          .bind(toolId, role, action, allowed ? 1 : 0, actor, now()),
+        audit,
+      ]);
     },
     /**
      * What the gateway forwards with a person (`access` of the runtime's `User`): the overrides of

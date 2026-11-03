@@ -3,6 +3,7 @@
 // The implementations are separate: `./local` here, `./self-host` through the Cloudflare API; cloud comes later.
 export * from "./core";
 export { GATEWAY_COMPATIBILITY_DATE, GATEWAY_COMPATIBILITY_FLAGS } from "./gateway-runtime";
+export { markSeedPending, seedStatus } from "./seed-marker";
 export { deploy, PreviewDataError, restore, teardownPreview } from "./deploy";
 export type { DeployOptions, Deployment, PreviewData } from "./deploy";
 export {
@@ -21,7 +22,7 @@ export type {
   GatewayBindingsOptions,
   SelfHostOptions,
 } from "./self-host";
-export { createCloudHosting } from "./cloud";
+export { createCloudHosting, ensureDispatchNamespace } from "./cloud";
 export type { CloudOptions } from "./cloud";
 export { applyMigrations, migrationStatus, MigrationError, revertMigrations } from "./migrate";
 export type {

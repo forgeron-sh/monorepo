@@ -300,4 +300,70 @@ export const platformMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "user_secrets"`)],
   },
+  {
+    // The matrix edits (D-039) are audited: `access` joins the kinds of the audit log. SQLite cannot
+    // change a CHECK, so the table is rebuilt with its rows.
+    name: "0014_audit_access",
+    fingerprint: "audit-access-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "audit_log_next" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "at" TEXT NOT NULL,
+  "tool_id" TEXT,
+  "actor" TEXT NOT NULL,
+  "interface" TEXT,
+  "via" TEXT,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('action', 'deployment', 'promotion', 'rollback', 'approval', 'access')),
+  "subject" TEXT NOT NULL,
+  "version_id" TEXT,
+  "result" TEXT NOT NULL CHECK ("result" IN ('ok', 'denied', 'error')),
+  "detail" TEXT
+)`),
+      st(
+        `INSERT INTO "audit_log_next" SELECT "id", "at", "tool_id", "actor", "interface", "via", "kind", "subject", "version_id", "result", "detail" FROM "audit_log" ORDER BY "rowid"`,
+      ),
+      st(`DROP TABLE "audit_log"`),
+      st(`ALTER TABLE "audit_log_next" RENAME TO "audit_log"`),
+      st(`CREATE INDEX "audit_log_by_tool" ON "audit_log" ("tool_id", "at")`),
+    ],
+    down: [],
+  },
+  {
+    // The workspace's sign-in provider and the OAuth clients of its delegated connectors (D-041).
+    // Client secrets are sealed (iv + ciphertext), never stored in the clear.
+    name: "0015_identity_config",
+    fingerprint: "identity-config-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "identity_providers" (
+  "workspace" TEXT NOT NULL PRIMARY KEY,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('oidc', 'entra', 'google')),
+  "issuer" TEXT,
+  "client_id" TEXT NOT NULL,
+  "tenant" TEXT,
+  "hosted_domain" TEXT,
+  "email_claim" TEXT,
+  "groups_claim" TEXT,
+  "group_roles" TEXT NOT NULL,
+  "iv" TEXT,
+  "ciphertext" TEXT,
+  "updated_by" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL
+)`),
+      st(`CREATE TABLE "connector_clients" (
+  "workspace" TEXT NOT NULL,
+  "connector" TEXT NOT NULL,
+  "authorize_url" TEXT NOT NULL,
+  "token_url" TEXT NOT NULL,
+  "client_id" TEXT NOT NULL,
+  "iv" TEXT,
+  "ciphertext" TEXT,
+  "updated_by" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("workspace", "connector")
+)`),
+    ],
+    down: [st(`DROP TABLE "connector_clients"`), st(`DROP TABLE "identity_providers"`)],
+  },
 ];

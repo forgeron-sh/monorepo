@@ -117,44 +117,13 @@ export interface DeployContext {
 }
 
 /**
- * `DELETE /deploy` `{ branch }`: the preview of that branch of the token's tool is torn down and
- * forgotten (a merged or closed pull request). A branch with no preview is not an error: the
- * answer says `closed: false`, so a second close, or a close of a branch never deployed, is fine.
- */
-async function closeBranchPreview(
-  request: Request,
-  context: DeployContext,
-  toolName: string,
-): Promise<Response> {
-  const body = await bodyOf(request);
-  const branch = body?.branch;
-  if (typeof branch !== "string" || branch === "") {
-    return fail(400, "INVALID", "branch: the branch whose preview to close.");
-  }
-  const { registry } = context;
-  const tool = await registry.findTool(context.workspace, toolName);
-  if (!tool) return json(200, { tool: toolName, branch, closed: false });
-  const existed = (await registry.listEnvironments(tool.id)).some(
-    (e) => e.name === "preview" && e.branch === branch,
-  );
-  if (!existed) return json(200, { tool: toolName, branch, closed: false });
-  try {
-    await closePreview(registry, context.hosting, tool, branch);
-  } catch (error) {
-    return fail(500, "CLOSE_FAILED", error instanceof Error ? error.message : String(error));
-  }
-  return json(200, { tool: toolName, branch, closed: true });
-}
-
-/**
  * `POST /deploy` `{ environment, branch?, version, build, allowDestructive? }`, with
  * `Authorization: Bearer $FORGERON_TOKEN`. The tool is the token's, never the body's: a token
  * for `crm` cannot deploy another tool, nor a build whose manifest names another.
  */
 export async function handleDeploy(request: Request, context: DeployContext): Promise<Response> {
-  if (request.method !== "POST" && request.method !== "DELETE") {
-    return fail(405, "METHOD_NOT_ALLOWED", "Use POST (deploy) or DELETE (close a preview).");
-  }
+  if (request.method === "DELETE") return handleClosePreview(request, context);
+  if (request.method !== "POST") return fail(405, "METHOD_NOT_ALLOWED", "Use POST or DELETE.");
   const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
   if (!token) return fail(401, "UNAUTHENTICATED", "Send the deployment token as FORGERON_TOKEN.");
   const check = await verifyToken(token, {
@@ -169,7 +138,6 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   if (!audience || audience.workspace !== context.workspace) {
     return fail(403, "FORBIDDEN", "This token was not issued for this workspace.");
   }
-  if (request.method === "DELETE") return closeBranchPreview(request, context, audience.tool);
 
   const body = await bodyOf(request);
   if (!body) return fail(400, "INVALID", "The body must be a JSON object.");
@@ -231,4 +199,40 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
     const message = error instanceof Error ? error.message : String(error);
     return fail(500, "DEPLOY_FAILED", message);
   }
+}
+
+/**
+ * `DELETE /deploy` `{ branch }`, with the deployment token of the tool: the branch was merged or
+ * deleted, so its preview goes with its Worker, its database and everything it owns (CI calls it).
+ * Removing a preview that is already gone succeeds.
+ */
+async function handleClosePreview(request: Request, context: DeployContext): Promise<Response> {
+  const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
+  if (!token) return fail(401, "UNAUTHENTICATED", "Send the deployment token as FORGERON_TOKEN.");
+  const check = await verifyToken(token, {
+    secret: context.secret,
+    now: context.now(),
+    scope: DEPLOY_SCOPE,
+  });
+  if (!check.ok) {
+    return fail(401, "UNAUTHENTICATED", `This is not a valid deployment token (${check.reason}).`);
+  }
+  const audience = parseAudience(check.claims.aud);
+  if (!audience || audience.workspace !== context.workspace) {
+    return fail(403, "FORBIDDEN", "This token was not issued for this workspace.");
+  }
+  const body = await bodyOf(request);
+  const branch = body?.branch;
+  if (typeof branch !== "string" || branch === "") {
+    return fail(400, "INVALID", "branch: the branch whose preview to remove.");
+  }
+  // The tool is the token's, never the body's.
+  const tool = await context.registry.findTool(context.workspace, audience.tool);
+  if (!tool) return json(200, { tool: audience.tool, branch, removed: false });
+  try {
+    await closePreview(context.registry, context.hosting, tool, branch);
+  } catch (error) {
+    return fail(500, "DEPLOY_FAILED", error instanceof Error ? error.message : String(error));
+  }
+  return json(200, { tool: tool.name, branch, removed: true });
 }

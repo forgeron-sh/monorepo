@@ -12,6 +12,7 @@ import {
   type Uploaded,
 } from "./core";
 import type { D1Database, MigrateOptions } from "./migrate";
+import { markSeedPending } from "./seed-marker";
 
 /** What a preview's new database holds after a deployment (`preview.data`, sdk.md §3). */
 export type PreviewData = "seed" | "empty" | "snapshot";
@@ -23,7 +24,8 @@ export class PreviewDataError extends Error {
 export interface DeployOptions {
   /**
    * Fills the new database of a preview with the tool's seed (`db/seed.ts`). Whoever deploys has
-   * the seed: the host only knows the database. Without it, `preview.data: seed` leaves it empty.
+   * the seed: the host only knows the database. Without it, the seed is left to the preview's
+   * Worker (`seed-marker.ts`).
    */
   seed?: (db: D1Database) => void | Promise<void>;
   /** Pilot and production refuse a destructive migration unless told (`--allow-destructive`). */
@@ -33,7 +35,13 @@ export interface DeployOptions {
 
 export interface Deployment {
   /** Whether the environment's database was created by this deployment, and how it was filled. */
-  database?: { fresh: boolean; data?: PreviewData; seeded: boolean };
+  database?: {
+    fresh: boolean;
+    data?: PreviewData;
+    seeded: boolean;
+    /** The seed is left to the preview's Worker, which runs it on its first request (D-038). */
+    pending?: boolean;
+  };
   uploaded: Uploaded;
   /** The migrations this deployment applied. */
   applied: string[];
@@ -80,7 +88,12 @@ async function fillPreview(
     throw new PreviewDataError("preview.data: snapshot is not implemented yet: use seed or empty.");
   }
   const db = hosting.database?.(provisioned);
-  if (data === "empty" || !options.seed || !db) return { fresh, data, seeded: false };
+  if (data === "empty" || !db) return { fresh, data, seeded: false };
+  if (!options.seed) {
+    // Nobody here can run the seed (the gateway does not evaluate a tool's code): the Worker does.
+    await markSeedPending(db);
+    return { fresh, data, seeded: false, pending: true };
+  }
   try {
     await options.seed(db);
   } catch (error) {
