@@ -79,6 +79,11 @@ export interface Register {}
 /** `ctx.db`: typed by the tool's schema once built, an untyped Kysely before. */
 export type ContextDb = Register extends { db: infer D } ? D : Database<Schema>;
 
+/** `ctx.connectors`: typed by the tool's connectors once built, untyped before. */
+export type ContextConnectors = Register extends { connectors: infer C }
+  ? Readonly<C>
+  : Readonly<Record<string, unknown>>;
+
 export interface Context<Input = unknown> {
   /** Validated, typed input. */
   input: Input;
@@ -92,7 +97,8 @@ export interface Context<Input = unknown> {
   emit(event: string, payload?: unknown): void | Promise<void>;
   secrets: Readonly<Record<string, string | undefined>>;
   userSecrets: Readonly<Record<string, string | undefined>>;
-  connectors: Readonly<Record<string, unknown>>;
+  /** One entry per `resources.connectors`: the official client when there is one, and `fetch`. */
+  connectors: ContextConnectors;
   fetch: Fetch;
   files: Files;
   cache: Cache;

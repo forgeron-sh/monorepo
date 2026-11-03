@@ -35,6 +35,8 @@ export interface TestToolOptions {
   secrets?: Record<string, string>;
   /** Upstreams: `mockFetch({...})`. The tool's `resources.network` still filters the hosts. */
   fetch?: Fetch;
+  /** Fakes of `ctx.connectors.<name>`: `mockConnector(definition, { fetch })`. */
+  connectors?: Record<string, unknown>;
   /** Fills the database with `db/seed.ts` before the test starts. */
   seed?: boolean;
   /** Freezes `ctx.now()`. */
@@ -158,6 +160,7 @@ export async function createTestTool<DB = any>(
       platform: {
         secrets: options.secrets ?? {},
         userSecrets: identity.userSecrets ?? {},
+        connectors: options.connectors ?? {},
         fetch: options.fetch ?? noFetch,
         cache: memoryCache(user.id, cache),
         ...(db ? { db } : {}),
