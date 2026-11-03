@@ -2,6 +2,7 @@
 // already defines, so the gateway, a script and a test all use it. Every write is one statement or
 // one batch (D-012).
 import type { D1Database, EnvironmentName } from "@forgeron/hosting";
+import type { Manifest } from "@forgeron/manifest";
 import type { SecretBox } from "./secret-box";
 
 export type RegisteredEnvironment = Exclude<EnvironmentName, "local">;
@@ -59,6 +60,22 @@ export interface DeploymentRecord {
   kind: DeploymentKind;
   actor: string;
   createdAt: string;
+}
+
+export interface AccessCell {
+  /** What the role's levels say for this action. */
+  default: boolean;
+  /** What an admin set in the console, if anything. */
+  override?: boolean;
+  /** What applies: the override, else the default. */
+  allowed: boolean;
+}
+
+/** The matrix of a tool: for each role, for each action, whether it may call it. */
+export interface AccessMatrix {
+  roles: string[];
+  actions: string[];
+  cells: Record<string, Record<string, AccessCell>>;
 }
 
 export type AuditKind = "action" | "deployment" | "promotion" | "rollback" | "approval";
@@ -136,7 +153,8 @@ export type RegistryErrorCode =
   | "NO_ARTIFACT"
   | "NO_PREVIOUS"
   | "NO_SECRET_KEY"
-  | "PENDING_APPROVAL";
+  | "PENDING_APPROVAL"
+  | "NO_MANIFEST";
 
 export class RegistryError extends Error {
   override name = "RegistryError";
@@ -903,6 +921,102 @@ ORDER BY "user_id", "connector"`,
           );
       return rows.map(toAudit);
     },
+    // ---- roles × actions matrix
+    /**
+     * The manifest the matrix is read from: the version production serves, else the latest one
+     * published. The roles and actions are those of the code; the matrix only moves who may call.
+     */
+    async currentManifest(toolId: string): Promise<Manifest> {
+      const production = (await this.listEnvironments(toolId)).find((e) => e.name === "production");
+      const served = production?.versionId
+        ? await this.getVersion(production.versionId)
+        : undefined;
+      const version = served ?? (await this.listVersions(toolId)).at(-1);
+      const build = version ? await this.getBuild(version.buildId) : undefined;
+      if (!build) throw new RegistryError("NO_MANIFEST", "The tool has no version yet.");
+      return build.manifest as Manifest;
+    },
+    /** What an admin set, per role and action. */
+    async roleAccess(toolId: string): Promise<Record<string, Record<string, boolean>>> {
+      const out: Record<string, Record<string, boolean>> = {};
+      for (const row of await all(
+        `SELECT "role", "action", "allowed" FROM "role_access" WHERE "tool_id" = ? ORDER BY "role", "action"`,
+        toolId,
+      )) {
+        (out[String(row.role)] ??= {})[String(row.action)] = Number(row.allowed) === 1;
+      }
+      return out;
+    },
+    /** The matrix to show: each cell with what the levels say, what was set, and what applies. */
+    async accessMatrix(toolId: string): Promise<AccessMatrix> {
+      const manifest = await this.currentManifest(toolId);
+      const overrides = await this.roleAccess(toolId);
+      const roles = Object.keys(manifest.roles);
+      const actions = Object.keys(manifest.actions);
+      const cells: AccessMatrix["cells"] = {};
+      for (const role of roles) {
+        cells[role] = {};
+        for (const action of actions) {
+          const fallback = manifest.roles[role]!.grants.includes(manifest.actions[action]!.access);
+          const override = overrides[role]?.[action];
+          cells[role]![action] = {
+            default: fallback,
+            ...(override === undefined ? {} : { override }),
+            allowed: override ?? fallback,
+          };
+        }
+      }
+      return { roles, actions, cells };
+    },
+    /**
+     * Sets a cell, effective at once for every interface; `undefined` gives it back to the levels.
+     * The role and the action must exist in the tool.
+     */
+    async setRoleAccess(
+      toolId: string,
+      role: string,
+      action: string,
+      allowed: boolean | undefined,
+      actor: string,
+    ): Promise<void> {
+      const manifest = await this.currentManifest(toolId);
+      if (!manifest.roles[role])
+        throw new RegistryError("NOT_FOUND", `The tool has no role ${role}.`);
+      if (!manifest.actions[action]) {
+        throw new RegistryError("NOT_FOUND", `The tool has no action ${action}.`);
+      }
+      if (allowed === undefined) {
+        await write(
+          `DELETE FROM "role_access" WHERE "tool_id" = ? AND "role" = ? AND "action" = ?`,
+          toolId,
+          role,
+          action,
+        );
+        return;
+      }
+      await write(
+        `INSERT INTO "role_access" ("tool_id", "role", "action", "allowed", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT ("tool_id", "role", "action") DO UPDATE SET "allowed" = excluded."allowed", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+        toolId,
+        role,
+        action,
+        allowed ? 1 : 0,
+        actor,
+        now(),
+      );
+    },
+    /**
+     * What the gateway forwards with a person (`access` of the runtime's `User`): the overrides of
+     * the roles they hold, and no others.
+     */
+    async accessFor(
+      toolId: string,
+      roles: readonly string[],
+    ): Promise<Record<string, Record<string, boolean>>> {
+      const all = await this.roleAccess(toolId);
+      return Object.fromEntries(Object.entries(all).filter(([role]) => roles.includes(role)));
+    },
+
     /** The resources of this version that are not approved yet: what blocks an activation. */
     async unapproved(versionId: string): Promise<Approval[]> {
       return (
