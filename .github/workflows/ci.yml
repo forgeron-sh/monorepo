@@ -13,7 +13,28 @@ permissions:
   contents: read
 
 jobs:
-  check:
+  # Independent jobs run side by side; `check` stays the one status that gates a merge.
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - run: bun run typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - run: bun run test
+
+  static:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -23,14 +44,24 @@ jobs:
       - uses: ./.github/actions/setup
       - run: bun run lint
       - run: bun run format:check
-      - run: bun run typecheck
-      - run: bun run test
       - run: bun run knip
       - run: bun run deps
       - run: bun run deps:selftest
       - run: bun run neutral
       - run: bun run templates:check
       - run: bun run tokens:check
+
+  check:
+    if: always()
+    needs: [typecheck, test, static]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: All the jobs passed
+        run: |
+          test "${{ needs.typecheck.result }}" = success
+          test "${{ needs.test.result }}" = success
+          test "${{ needs.static.result }}" = success
 
   # The PR title becomes the squash message: it must follow Conventional Commits.
   pr-title:

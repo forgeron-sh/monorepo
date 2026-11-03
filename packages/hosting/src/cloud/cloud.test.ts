@@ -1,5 +1,5 @@
 import type { Manifest } from "@forgeron/manifest";
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ChangelogRefusal,
@@ -15,7 +15,6 @@ import {
 } from "../index";
 import { FakeCloudflare } from "../self-host/fake-cloudflare";
 
-// A Miniflare per test is slow when the machine is busy.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 const st = (sql: string) => ({ sql, parameters: [] });
@@ -44,19 +43,14 @@ const build = (
 const production: Environment = { tool: "crm", name: "production" };
 const SCRIPT = "forgeron-tools/acme--crm--production";
 
-let mf: Miniflare;
+let memory: MemoryD1;
 let cloudflare: FakeCloudflare;
 let hosting: ReturnType<typeof createCloudHosting>;
 let d1: D1Database;
 
 beforeEach(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: ["DB"],
-  });
-  d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+  memory = await createMemoryD1();
+  d1 = memory as unknown as D1Database;
   cloudflare = new FakeCloudflare(() => d1);
   hosting = createCloudHosting({
     accountId: "acct",
@@ -67,7 +61,7 @@ beforeEach(async () => {
     url: (name) => `https://acme.forgeron.test/${name}`,
   });
 });
-afterEach(() => mf.dispose());
+afterEach(() => memory.close());
 
 const tables = async () =>
   (

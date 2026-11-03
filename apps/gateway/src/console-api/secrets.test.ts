@@ -5,7 +5,7 @@ import {
   type Registry,
 } from "@forgeron/registry";
 import type { D1Database } from "@forgeron/hosting";
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handleSecrets } from "./secrets";
 
@@ -14,7 +14,7 @@ vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 // A throwaway key made of zeros: it protects nothing and is not a secret.
 const KEY = btoa(String.fromCharCode(...new Uint8Array(32)));
 
-let mf: Miniflare;
+let memory: MemoryD1;
 let registry: Registry;
 let admin = true;
 let anonymous = false;
@@ -35,18 +35,13 @@ const call = (method: string, path: string, body?: unknown) =>
 beforeEach(async () => {
   admin = true;
   anonymous = false;
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: ["DB"],
-  });
-  const d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+  memory = await createMemoryD1();
+  const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   registry = createRegistry(d1, { secrets: await createSecretBox(KEY) });
   await registry.createTool({ workspace: "acme", name: "crm" });
 });
-afterEach(() => mf.dispose());
+afterEach(() => memory.close());
 
 const base = "/api/tools/crm/environments/production/secrets";
 

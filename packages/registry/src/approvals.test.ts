@@ -1,5 +1,5 @@
 import type { Build, D1Database, Hosting } from "@forgeron/hosting";
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   approveVersion,
@@ -16,22 +16,17 @@ import {
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-let mf: Miniflare;
+let memory: MemoryD1;
 let registry: Registry;
 let tool: Tool;
 beforeEach(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: ["DB"],
-  });
-  const d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+  memory = await createMemoryD1();
+  const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   registry = createRegistry(d1);
   tool = await registry.createTool({ workspace: "acme", name: "crm" });
 });
-afterEach(() => mf.dispose());
+afterEach(() => memory.close());
 
 // Only `resources` matters to the approval; the diff reads the rest as absent.
 const manifestOf = (resources: object) =>

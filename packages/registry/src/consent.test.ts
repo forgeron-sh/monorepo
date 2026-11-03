@@ -1,4 +1,4 @@
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { D1Database } from "@forgeron/hosting";
 import {
@@ -45,7 +45,7 @@ function simulatedProvider() {
   return { fetch, calls, refuse: () => (refuseRefresh = true) };
 }
 
-let mf: Miniflare;
+let memory: MemoryD1;
 let d1: D1Database;
 let registry: Registry;
 let consent: Consent;
@@ -62,13 +62,8 @@ const target = () => ({
 
 beforeEach(async () => {
   clock = Date.UTC(2026, 10, 3, 12, 0, 0);
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: ["DB"],
-  });
-  d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+  memory = await createMemoryD1();
+  d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   const box = await createSecretBox(TEST_KEY);
   const now = () => new Date(clock);
@@ -91,7 +86,7 @@ beforeEach(async () => {
     },
   });
 });
-afterEach(() => mf.dispose());
+afterEach(() => memory.close());
 
 async function consentAs(scopes = ["Mail.Send"]) {
   const { url } = await consent.start({ ...target(), scopes });

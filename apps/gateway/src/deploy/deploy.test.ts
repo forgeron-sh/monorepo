@@ -1,6 +1,6 @@
 import type { Build, D1Database, Hosting } from "@forgeron/hosting";
 import { createRegistry, migratePlatform, type Registry } from "@forgeron/registry";
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { issueToken } from "../identity/tokens";
 import { handleCreateDeployToken, handleDeploy } from "./deploy";
@@ -10,20 +10,15 @@ vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 const secret = "test-secret-not-a-real-one";
 const now = new Date("2026-11-03T10:00:00Z");
 
-let mf: Miniflare;
+let memory: MemoryD1;
 let registry: Registry;
 beforeEach(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: ["DB"],
-  });
-  const d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+  memory = await createMemoryD1();
+  const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   registry = createRegistry(d1, { now: () => now });
 });
-afterEach(() => mf.dispose());
+afterEach(() => memory.close());
 
 function fakeHosting(failMigrate = false) {
   const calls: string[] = [];

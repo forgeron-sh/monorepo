@@ -12,6 +12,7 @@
     "miniflare": "4.20260730.0"
   },
   "devDependencies": {
+    "@forgeron/sdk": "workspace:*",
     "@forgeron/tsconfig": "workspace:*",
     "@types/node": "24.19.2"
   }

@@ -1,4 +1,4 @@
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { D1Database } from "@forgeron/hosting";
 import {
@@ -10,32 +10,26 @@ import {
   type Registry,
 } from "./index";
 
-// A Miniflare per test is slow when the machine is busy.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 // A throwaway key made of zeros: it protects nothing and is not a secret.
 const TEST_KEY = btoa(String.fromCharCode(...new Uint8Array(32)));
 
-let mf: Miniflare;
+let memory: MemoryD1;
 let d1: D1Database;
 let registry: Registry;
 let tick = 0;
 
 beforeEach(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: ["DB"],
-  });
-  d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+  memory = await createMemoryD1();
+  d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   registry = createRegistry(d1, {
     secrets: await createSecretBox(TEST_KEY),
     now: () => new Date(Date.UTC(2026, 10, 3, 12, 0, tick++)),
   });
 });
-afterEach(() => mf.dispose());
+afterEach(() => memory.close());
 
 const code = async (promise: Promise<unknown>) =>
   promise.then(
