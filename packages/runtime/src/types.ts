@@ -7,6 +7,12 @@ export interface User {
   email: string;
   name: string;
   roles: string[];
+  /**
+   * What an admin changed in the console, for this person's roles: per role, per action,
+   * `true` to allow and `false` to refuse, whatever the role's levels say. The gateway adds it
+   * with the roles, so the change reaches every interface with no new version (docs/sdk.md §3).
+   */
+  access?: Record<string, Record<string, boolean>>;
 }
 
 interface Issue {

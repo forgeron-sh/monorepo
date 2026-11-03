@@ -1,7 +1,9 @@
 import type { D1Database } from "@forgeron/hosting";
 import { createRegistry } from "@forgeron/registry";
+import { handleConnections } from "./console-api/connections";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
+import { handleTools } from "./console-api/tools";
 import { createDispatcher, workspaceOf } from "./dispatch/dispatch";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget, type DispatchNamespace } from "./dispatch/targets";
@@ -64,7 +66,9 @@ export function createGateway(env: GatewayEnv, options: FromRegistryOptions = {}
       const forwarded = new Request(inner, request);
       const caller = async () => undefined;
       return (
+        (await handleConnections(forwarded, { registry, workspace, caller })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller })) ??
+        (await handleTools(forwarded, { registry, workspace, caller })) ??
         (await handleSecrets(forwarded, { registry, workspace, caller })) ??
         notFound()
       );

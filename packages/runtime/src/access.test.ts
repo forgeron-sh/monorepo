@@ -90,6 +90,16 @@ const people: Record<string, User> = {
   support: user(["support"]),
   admin: user(["admin"]),
   nobody: user([]),
+  // What an admin set in the console, forwarded with the roles (no new version).
+  readerMayReply: { ...user(["reader"]), access: { reader: { "tickets.reply": true } } },
+  supportMayNotReply: { ...user(["support"]), access: { support: { "tickets.reply": false } } },
+  // The override of a role the person does not hold changes nothing for them.
+  readerOtherRole: { ...user(["reader"]), access: { support: { "tickets.reply": true } } },
+  // One role refused by the console, another that may by level: the person may.
+  twoRoles: {
+    ...user(["reader", "support"]),
+    access: { support: { "tickets.reply": false }, reader: { "tickets.reply": true } },
+  },
 };
 const bearer = (request: Request) => request.headers.get("authorization")?.slice(7);
 
@@ -145,6 +155,50 @@ async function attempt(as: string, via: "mcp" | "api" | "web", name: string): Pr
   expect(ran).toBe(status === 200);
   return ran;
 }
+
+describe("the roles × actions matrix set in the console", () => {
+  it("allows a role an action its levels do not give, on every interface", async () => {
+    for (const via of ["mcp", "api", "web"] as const) {
+      expect(await attempt("readerMayReply", via, "tickets.reply")).toBe(true);
+      // Only that cell changed: the same role still cannot do what it was never given.
+      expect(await attempt("readerMayReply", via, "tickets.crash")).toBe(true);
+    }
+  });
+
+  it("refuses a role an action its levels give, on every interface", async () => {
+    for (const via of ["mcp", "api", "web"] as const) {
+      expect(await attempt("supportMayNotReply", via, "tickets.reply")).toBe(false);
+      expect(await attempt("supportMayNotReply", via, "tickets.list")).toBe(true);
+    }
+  });
+
+  it("ignores the override of a role the person does not hold", async () => {
+    expect(await attempt("readerOtherRole", "api", "tickets.reply")).toBe(false);
+  });
+
+  it("lets the person do what any of their roles may", async () => {
+    expect(await attempt("twoRoles", "api", "tickets.reply")).toBe(true);
+  });
+
+  it("lists on MCP only the actions the matrix allows", async () => {
+    const names = async (as: string) => {
+      const response = await runtime.fetch(
+        new Request("https://tool.test/mcp", {
+          method: "POST",
+          headers: headers(as),
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+        }),
+      );
+      const body = (await response.json()) as { result: { tools: { name: string }[] } };
+      return body.result.tools.map((t) => t.name);
+    };
+    expect(await names("readerMayReply")).toContain(toolName(manifest.name, "tickets.reply"));
+    expect(await names("reader")).not.toContain(toolName(manifest.name, "tickets.reply"));
+    expect(await names("supportMayNotReply")).not.toContain(
+      toolName(manifest.name, "tickets.reply"),
+    );
+  });
+});
 
 describe("access on every interface", () => {
   const exposedOn = (via: "mcp" | "api" | "web") =>

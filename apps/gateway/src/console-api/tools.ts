@@ -1,0 +1,57 @@
+import type { RegisteredEnvironment, Registry } from "@forgeron/registry";
+
+// `GET /api/tools`: the workspace's tools and the version each environment serves (docs/sdk.md
+// sections 15 and 17). `listTools` is the one source: the console's route answers with it and the
+// admin MCP's `tools_list` is to answer with the same call, so the two cannot disagree.
+
+export interface ToolListing {
+  name: string;
+  production: string | null;
+  /** The version the pilot group gets at the production address. */
+  pilot: string | null;
+  /** One entry per branch with a preview. */
+  previews: Array<{ branch: string; version: string }>;
+}
+
+export async function listTools(registry: Registry, workspace: string): Promise<ToolListing[]> {
+  const listing: ToolListing[] = [];
+  for (const tool of await registry.listTools(workspace)) {
+    const versions = new Map((await registry.listVersions(tool.id)).map((v) => [v.id, v.version]));
+    const entry: ToolListing = { name: tool.name, production: null, pilot: null, previews: [] };
+    for (const environment of await registry.listEnvironments(tool.id)) {
+      const version = environment.versionId ? versions.get(environment.versionId) : undefined;
+      if (version === undefined) continue; // created, nothing activated yet
+      const name: RegisteredEnvironment = environment.name;
+      if (name === "production") entry.production = version;
+      else if (name === "pilot") entry.pilot = version;
+      else if (environment.branch) entry.previews.push({ branch: environment.branch, version });
+    }
+    listing.push(entry);
+  }
+  return listing.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export interface ToolsApiOptions {
+  registry: Registry;
+  /** The workspace the request was dispatched to. */
+  workspace: string;
+  /** The caller, resolved by identity: `undefined` is anonymous. Any member of the workspace may list. */
+  caller(request: Request): Promise<object | undefined>;
+}
+
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json", "cache-control": "no-store" },
+  });
+
+/** Answers `GET /api/tools`, or `undefined` when the request is for another route. */
+export async function handleTools(
+  request: Request,
+  options: ToolsApiOptions,
+): Promise<Response | undefined> {
+  if (new URL(request.url).pathname !== "/api/tools") return undefined;
+  if (request.method !== "GET") return json(405, { error: "METHOD_NOT_ALLOWED" });
+  if (!(await options.caller(request))) return json(401, { error: "UNAUTHENTICATED" });
+  return json(200, { tools: await listTools(options.registry, options.workspace) });
+}
