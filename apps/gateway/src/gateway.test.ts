@@ -109,15 +109,17 @@ describe("the gateway, with the platform D1", () => {
     );
   });
 
-  it("does not route a preview until the platform records its Worker, and then still needs identity", async () => {
-    // No default name for a preview: it is not routable.
-    expect((await get("https://acme.forgeron.app/t/crm@feat-export/mcp")).status).toBe(404);
-    // Given a name, it is routable, but nobody may see it without identity (fails closed).
+  it("routes a preview to the Worker self-host names, and still needs identity", async () => {
+    // The default name is the one self-host gives a preview: routable, but nobody may see it
+    // without identity (fails closed), and the Worker is not reached.
+    reached.length = 0;
+    expect((await get("https://acme.forgeron.app/t/crm@feat-export/mcp")).status).toBe(403);
+    expect(reached).toEqual([]);
+    // A hosting that names its Workers otherwise passes its own naming.
     const named = createGateway(env(), {
       workerNameOf: (tool, environment) =>
         environment.name === "preview" ? `${tool.workspace}--${tool.name}--pr-12` : undefined,
     });
-    reached.length = 0;
     expect((await get("https://acme.forgeron.app/t/crm@feat-export/mcp", named)).status).toBe(403);
     expect(reached).toEqual([]);
   });
