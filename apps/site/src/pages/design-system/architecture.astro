@@ -1,0 +1,55 @@
+---
+import { ArchitecturePreview } from "../../components/ArchitecturePreview";
+import Base from "../../layouts/Base.astro";
+---
+
+<Base
+  title="Architecture diagram — Forgeron design system"
+  description="The architecture diagram of a tool, drawn from its manifest."
+>
+  <main class="arch-page">
+    <h1>Architecture diagram</h1>
+    <p>
+      Drawn from a tool's manifest: interfaces on the left, action groups with their access level in
+      the middle, resources on the right, then roles, events, scheduled tasks and the tools it uses.
+      Below: the manifests of the four templates.
+    </p>
+    <ArchitecturePreview client:load />
+  </main>
+</Base>
+
+<style>
+  .arch-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-8) 16px var(--space-16);
+    color: var(--ink);
+  }
+  .arch-page h1 {
+    font: 600 32px/40px var(--font-display);
+    margin: 0 0 var(--space-2);
+  }
+  .arch-page p {
+    color: var(--ink-muted);
+    max-width: 64ch;
+    margin: 0 0 var(--space-6);
+  }
+  :global(.arch-controls) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+  }
+  :global(.arch-panel) {
+    border: 1px solid var(--line);
+    background: var(--bg);
+    padding: var(--space-6);
+  }
+  @media (max-width: 640px) {
+    :global(.arch-panel) {
+      padding: var(--space-3);
+    }
+  }
+</style>
