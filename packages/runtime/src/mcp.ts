@@ -11,7 +11,7 @@ const SUPPORTED_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-0
 // typed in the browser and never crosses the MCP client. The runtime answers over plain JSON with
 // no session, so it cannot ask in the middle of a call: it answers the call with this error, and
 // a client that knows it opens the URL and calls again. The earlier versions get the link in the
-// text of the tool error (D-034).
+// text of the tool error (D-036).
 const URL_ELICITATION_REQUIRED = -32042;
 const URL_ELICITATION_VERSION = "2025-11-25";
 

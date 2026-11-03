@@ -41,6 +41,9 @@ export function dispatchRegistry(
           if (environment.branch) entry.previews[environment.branch] = worker;
         } else {
           entry[environment.name] = worker;
+          if (environment.name === "pilot" && environment.pilotGroup) {
+            entry.pilotGroup = environment.pilotGroup;
+          }
         }
       }
       return entry;

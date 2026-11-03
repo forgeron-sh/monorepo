@@ -16,7 +16,7 @@ interface TokenClaims {
   iat: number;
   /** Expires at, seconds since the epoch. */
   exp: number;
-  /** The token's own id, what a revocation names. Absent on tokens issued before D-033. */
+  /** The token's own id, what a revocation names. Absent on tokens issued before D-035. */
   jti?: string;
   /** What the token may do besides being a person's: absent on API and CLI tokens (`deploy`…). */
   scp?: string;
@@ -109,7 +109,7 @@ export async function verifyToken(
   options: {
     secret: string;
     /**
-     * Keys the gateway signed with before a rotation (D-033): a token they signed is still good
+     * Keys the gateway signed with before a rotation (D-035): a token they signed is still good
      * until its `exp`, and nothing new is signed with them.
      */
     previousSecrets?: string[];

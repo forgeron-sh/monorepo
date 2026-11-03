@@ -14,7 +14,7 @@ import { issueToken } from "./identity/tokens";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// Tokens and per-person secrets through the whole gateway (D-033, D-034): the tool is the real
+// Tokens and per-person secrets through the whole gateway (D-035, D-036): the tool is the real
 // runtime, built the way the compiler's Worker entry builds it, behind the dispatcher; the people
 // and the keys are test values.
 

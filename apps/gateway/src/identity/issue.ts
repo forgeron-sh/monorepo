@@ -75,7 +75,7 @@ export interface RevokeContext {
 }
 
 /**
- * `POST /auth/token/revoke` `{ id }` or `{ all: true }` (D-033): a person voids one of their own
+ * `POST /auth/token/revoke` `{ id }` or `{ all: true }` (D-035): a person voids one of their own
  * tokens, named by the `id` that came with it, or every token they hold (those of `forgeron login`
  * included). Takes effect at once: the gateway checks the list at each call.
  */

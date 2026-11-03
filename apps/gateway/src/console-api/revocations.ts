@@ -1,7 +1,7 @@
 import type { Registry } from "@forgeron/registry";
 import { LONGEST_TOKEN_SECONDS } from "../identity/issue";
 
-// The admin's revocations (D-033, D-034), on the console API:
+// The admin's revocations (D-035, D-036), on the console API:
 //   POST   /api/people/<id>/tokens/revoke                 every token of a person, at once
 //   GET    /api/tools/<tool>/user-secrets                 who holds which per-person secrets: names only
 //   DELETE /api/tools/<tool>/user-secrets/<id>[/<NAME>]   one secret of a person, or all of theirs

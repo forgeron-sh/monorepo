@@ -6,7 +6,7 @@ import { UsageError, type Io } from "../io";
 import { readProject } from "../project";
 
 const USAGE =
-  "Usage: forgeron deploy [--env preview|pilot|production] [--branch <name>] [--allow-destructive]";
+  "Usage: forgeron deploy [--env preview|pilot|production] [--group <name>] [--branch <name>] [--allow-destructive]";
 const ENVIRONMENTS = ["preview", "pilot", "production"];
 
 const exists = async (path: string) => {
@@ -37,6 +37,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
     options: {
       env: { type: "string" },
       branch: { type: "string" },
+      group: { type: "string" },
       "allow-destructive": { type: "boolean" },
     },
   });
@@ -44,6 +45,9 @@ export async function deploy(args: string[], io: Io): Promise<number> {
   const env = values.env ?? "preview";
   if (!ENVIRONMENTS.includes(env)) {
     throw new UsageError(`--env ${env}: one of ${ENVIRONMENTS.join(", ")}.`);
+  }
+  if (values.group && env !== "pilot") {
+    throw new UsageError("--group is for the pilot: only the pilot has a group.");
   }
   const branch = values.branch ?? process.env.GITHUB_HEAD_REF ?? process.env.GITHUB_REF_NAME;
   if (env === "preview" && !branch) {
@@ -80,6 +84,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
       environment: env,
       ...(env === "preview" ? { branch } : {}),
       version,
+      ...(values.group ? { group: values.group } : {}),
       ...(values["allow-destructive"] ? { allowDestructive: true } : {}),
       build: {
         manifest: JSON.parse(manifest),

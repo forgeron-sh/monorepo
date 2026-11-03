@@ -634,6 +634,74 @@ ORDER BY "user_id", "connector"`,
       return member;
     },
 
+    async listMembers(workspace: string): Promise<Member[]> {
+      return (
+        await all(`SELECT * FROM "members" WHERE "workspace" = ? ORDER BY "email"`, workspace)
+      ).map(toMember);
+    },
+
+    // ---- groups (D-035): who gets the pilot version at the production address
+    /** The groups of a workspace with their members, by name. */
+    async listGroups(workspace: string): Promise<Array<{ name: string; members: Member[] }>> {
+      const rows = await all(
+        `SELECT g."group_name" AS "group_name", m.* FROM "group_members" g JOIN "members" m ON m."workspace" = g."workspace" AND m."id" = g."member_id" WHERE g."workspace" = ? ORDER BY g."group_name", m."email"`,
+        workspace,
+      );
+      const groups = new Map<string, Member[]>();
+      for (const row of rows) {
+        const name = String(row.group_name);
+        groups.set(name, [...(groups.get(name) ?? []), toMember(row)]);
+      }
+      return [...groups].map(([name, members]) => ({ name, members }));
+    },
+    /** Replaces the members of a group; an empty list empties it. Every id must be a member. */
+    async setGroupMembers(
+      workspace: string,
+      group: string,
+      memberIds: readonly string[],
+    ): Promise<Member[]> {
+      const ids = [...new Set(memberIds)];
+      const members: Member[] = [];
+      for (const id of ids) {
+        const member = await this.findMember(workspace, id);
+        if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
+        members.push(member);
+      }
+      await d1.batch([
+        d1
+          .prepare(`DELETE FROM "group_members" WHERE "workspace" = ? AND "group_name" = ?`)
+          .bind(workspace, group),
+        ...ids.map((id) =>
+          d1
+            .prepare(
+              `INSERT INTO "group_members" ("workspace", "group_name", "member_id") VALUES (?, ?, ?)`,
+            )
+            .bind(workspace, group, id),
+        ),
+      ]);
+      return members;
+    },
+    async isGroupMember(workspace: string, group: string, memberId: string): Promise<boolean> {
+      return (
+        (await first(
+          `SELECT 1 AS "x" FROM "group_members" WHERE "workspace" = ? AND "group_name" = ? AND "member_id" = ?`,
+          workspace,
+          group,
+          memberId,
+        )) !== undefined
+      );
+    },
+    /** The groups a member belongs to. */
+    async groupsOf(workspace: string, memberId: string): Promise<string[]> {
+      return (
+        await all(
+          `SELECT "group_name" FROM "group_members" WHERE "workspace" = ? AND "member_id" = ? ORDER BY "group_name"`,
+          workspace,
+          memberId,
+        )
+      ).map((r) => String(r.group_name));
+    },
+
     // ---- one-time codes (D-028)
     /**
      * Spends a one-time code: `true` the first time, `false` if it was already spent. Spent codes
@@ -654,7 +722,7 @@ ORDER BY "user_id", "connector"`,
       }
     },
 
-    // ---- token revocation (D-033)
+    // ---- token revocation (D-035)
     /** Voids one token, named by its `jti`, until `expiresAt` (its own expiry). */
     async revokeToken(workspace: string, person: string, jti: string, expiresAt: Date) {
       await d1.batch([
@@ -710,7 +778,7 @@ ORDER BY "user_id", "connector"`,
       return row !== undefined;
     },
 
-    // ---- per-person secrets (resources.userSecrets: typed by each person, sealed, D-034)
+    // ---- per-person secrets (resources.userSecrets: typed by each person, sealed, D-036)
     /** Sets or replaces the secret of one person for one tool. Encrypted before the database. */
     async setUserSecret(input: { toolId: string; person: string; name: string; value: string }) {
       const sealed = await secretBox().seal(

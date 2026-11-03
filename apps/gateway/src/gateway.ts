@@ -19,8 +19,15 @@ import { handleConnections } from "./console-api/connections";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleTools } from "./console-api/tools";
-import { createDispatcher, workspaceOf, type DispatcherOptions } from "./dispatch/dispatch";
+import {
+  createDispatcher,
+  workspaceOf,
+  type Caller,
+  type DispatcherOptions,
+} from "./dispatch/dispatch";
 import { handleCreateDeployToken, handleDeploy } from "./deploy/deploy";
+import { handlePromote, handleRollback } from "./deploy/promote";
+import { handleGroups } from "./console-api/groups";
 import { createAuth } from "./identity/auth";
 import { createCaller, membership } from "./identity/caller";
 import { handleCliAuthorize, handleCliToken } from "./identity/cli";
@@ -53,7 +60,7 @@ export interface GatewayEnv {
    */
   AUTH_SECRET?: string;
   /**
-   * Rotation (D-033): the keys `AUTH_SECRET` replaced, comma-separated. Tokens they signed stay good
+   * Rotation (D-035): the keys `AUTH_SECRET` replaced, comma-separated. Tokens they signed stay good
    * until they expire (30 days at most); drop them after that. Secret.
    */
   AUTH_SECRET_PREVIOUS?: string;
@@ -89,10 +96,10 @@ const notFound = () =>
 
 /**
  * The gateway's request handler. On a workspace origin: `/t/<tool>…` is dispatched to the tool,
- * `/auth/…`, `/whoami`, `/deploy` and `/deploy-tokens` are the platform's, `/console-api/…` is the
+ * `/auth/…`, `/whoami`, `/deploy`, `/promote`, `/rollback` and `/deploy-tokens` are the platform's, `/console-api/…` is the
  * console's API, and every other path is the console itself. One resolver (`createCaller`) turns a
- * session cookie or an audience-bound token into the person for all of them. Nobody is in a pilot
- * group yet (no group data exists), so pilot is served to no one.
+ * session cookie or an audience-bound token into the person for all of them. The pilot version
+ * goes to the members of the pilot group at the production address (D-036).
  */
 export function createGateway(
   env: GatewayEnv,
@@ -142,6 +149,17 @@ export function createGateway(
             identify,
             recordSeat: (workspace: string, personId: string) =>
               registry.recordSeat(workspace, personId),
+          }
+        : {}),
+      // Pilot has the address of production: its group's members get it (D-036). Anonymous, or a
+      // pilot with no group, nobody.
+      ...(identify
+        ? {
+            inPilot: async (c: Caller & { group?: string }) => {
+              if (!c.group) return false;
+              const person = await identify(c);
+              return person ? registry.isGroupMember(c.workspace, c.group, person) : false;
+            },
           }
         : {}),
       // A preview is for the workspace's administrators and developers (sdk.md §7).
@@ -204,7 +222,7 @@ export function createGateway(
     const url = new URL(request.url);
     const workspace = workspaceOf(url.host, env.BASE_DOMAIN);
     const { registry, caller, dispatch } = await parts();
-    // Per-person secrets are typed at the gateway, never at the tool (D-034).
+    // Per-person secrets are typed at the gateway, never at the tool (D-036).
     const secretsOf = workspace ? /^\/t\/([a-z0-9-]+)\/secrets\/?$/.exec(url.pathname) : null;
     if (workspace && secretsOf && secret && caller) {
       return handleUserSecrets(request, secretsOf[1]!, {
@@ -284,7 +302,11 @@ export function createGateway(
           authenticate: (r) => caller.resolve(r, workspace, true),
         });
       }
-      if (url.pathname === "/deploy") {
+      if (
+        url.pathname === "/deploy" ||
+        url.pathname === "/promote" ||
+        url.pathname === "/rollback"
+      ) {
         const hosting = hostingOf(workspace);
         if (!hosting) {
           return Response.json(
@@ -297,7 +319,20 @@ export function createGateway(
             { status: 501 },
           );
         }
-        return handleDeploy(request, { workspace, secret, now, registry, hosting });
+        if (url.pathname === "/deploy") {
+          return handleDeploy(request, { workspace, secret, now, registry, hosting });
+        }
+        const promotion = {
+          workspace,
+          secret,
+          now,
+          registry,
+          hosting,
+          authenticate: (r: Request) => caller.resolve(r, workspace, true),
+        };
+        return url.pathname === "/promote"
+          ? handlePromote(request, promotion)
+          : handleRollback(request, promotion);
       }
     }
 
@@ -319,6 +354,7 @@ export function createGateway(
         (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleGroups(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecrets(forwarded, { registry, workspace, caller: identity })) ??
         notFound()
       );

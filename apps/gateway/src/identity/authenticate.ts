@@ -10,9 +10,9 @@ export interface Person {
 
 export interface AuthenticatorOptions {
   secret: string;
-  /** Keys tokens were signed with before a rotation (D-033). */
+  /** Keys tokens were signed with before a rotation (D-035). */
   previousSecrets?: string[];
-  /** Is this token void (D-033)? Without it nothing is revoked. */
+  /** Is this token void (D-035)? Without it nothing is revoked. */
   revoked?(claims: TokenClaims): boolean | Promise<boolean>;
   /** Resolves the person and their roles in the workspace; `undefined` if they no longer exist. */
   resolvePerson(id: string): Person | undefined | Promise<Person | undefined>;

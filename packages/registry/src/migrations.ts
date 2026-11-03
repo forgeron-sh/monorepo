@@ -246,9 +246,26 @@ export const platformMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "gateway_code"`)],
   },
   {
-    // Revoked tokens (D-033): one row per revoked token (`jti`), or, with no `jti`, every token of the
+    // Pilot groups (D-034): a group is a name in a workspace and the members it holds. The pilot
+    // environment of a tool names the group that gets its version at the production address.
+    name: "0011_group_members",
+    fingerprint: "group-members-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "group_members" (
+  "workspace" TEXT NOT NULL,
+  "group_name" TEXT NOT NULL,
+  "member_id" TEXT NOT NULL,
+  PRIMARY KEY ("workspace", "group_name", "member_id"),
+  FOREIGN KEY ("workspace", "member_id") REFERENCES "members" ("workspace", "id") ON DELETE CASCADE
+)`),
+    ],
+    down: [st(`DROP TABLE "group_members"`)],
+  },
+  {
+    // Revoked tokens (D-035): one row per revoked token (`jti`), or, with no `jti`, every token of the
     // person issued up to `at` (seconds). A row is forgotten once no token it covers can be valid.
-    name: "0011_token_revocations",
+    name: "0012_token_revocations",
     fingerprint: "token-revocations-v1",
     destructive: false,
     up: [
@@ -265,9 +282,9 @@ export const platformMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "token_revocations"`)],
   },
   {
-    // Per-person secrets (D-034): one per tool, person and name, sealed with the platform key. The
+    // Per-person secrets (D-036): one per tool, person and name, sealed with the platform key. The
     // value is read back only by the gateway, to hand the caller's own to the tool they call.
-    name: "0012_user_secrets",
+    name: "0013_user_secrets",
     fingerprint: "user-secrets-v1",
     destructive: false,
     up: [

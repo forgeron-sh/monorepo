@@ -1,6 +1,6 @@
 import type { Io } from "../io";
 
-// A person's own secrets (`resources.userSecrets`, sdk.md §10, D-034). The CLI types them in the
+// A person's own secrets (`resources.userSecrets`, sdk.md §10, D-036). The CLI types them in the
 // terminal, hidden, and sends them to the gateway at `/t/<tool>/secrets`: the value is never an
 // argument, never printed, and the gateway keeps it sealed for that person and tool only.
 

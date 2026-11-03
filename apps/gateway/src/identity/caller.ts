@@ -22,7 +22,7 @@ const toPerson = (member: Member): Person => ({
 export interface CallerOptions {
   registry: Registry;
   secret: string;
-  /** Keys tokens were signed with before a rotation (`AUTH_SECRET_PREVIOUS`, D-033). */
+  /** Keys tokens were signed with before a rotation (`AUTH_SECRET_PREVIOUS`, D-035). */
   previousSecrets?: string[];
   now(): Date;
 }
@@ -42,7 +42,7 @@ export function createCaller(options: CallerOptions) {
   return {
     /**
      * The person behind a request to this workspace, by session cookie, else by Bearer token, with
-     * the audience the token was issued for. A revoked token is nobody (D-033).
+     * the audience the token was issued for. A revoked token is nobody (D-035).
      */
     async identify(
       request: Request,

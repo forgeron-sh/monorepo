@@ -4,7 +4,7 @@ import { handleSecretsInput, type UserSecretStore } from "@forgeron/runtime";
 import type { Person } from "../identity/authenticate";
 import type { Forwarding } from "./dispatch";
 
-// Per-person secrets at the gateway (D-034). The tool's own code never receives the form or the
+// Per-person secrets at the gateway (D-036). The tool's own code never receives the form or the
 // stored value of anyone: the gateway keeps them sealed in the platform D1, serves
 // `/t/<tool>/secrets`, and hands a call only the caller's own values, in a header the tool's
 // runtime reads and a caller cannot set (the dispatcher drops it).
