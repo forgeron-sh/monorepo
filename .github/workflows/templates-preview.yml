@@ -1,0 +1,45 @@
+name: Templates preview
+
+# Templates are the SDK's integration tests (docs/ARCHITECTURE.md): on every pull request each one
+# is tested, checked and deployed as a preview of the branch, through the same action a tool
+# repository uses. A template that breaks fails the pull request.
+
+on:
+  pull_request:
+
+concurrency:
+  group: templates-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  template:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every folder of templates/ is listed here: `bun run templates:check` refuses the others.
+        template: [crm, dashboard, inventory, odoo-gateway]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      # A deployment token is bound to one tool: the secret of each template is FORGERON_TOKEN_<NAME>
+      # (upper case, `-` as `_`). Without the secret (a fork, a repository not connected to a
+      # workspace yet) the template is tested and checked, not deployed.
+      - name: Link the template to the workspace
+        if: ${{ vars.FORGERON_WORKSPACE != '' }}
+        working-directory: templates/${{ matrix.template }}
+        run: |
+          mkdir -p .forgeron
+          [ -f .forgeron/project.json ] || echo '{"tool":"${{ matrix.template }}"}' > .forgeron/project.json
+          bun ${{ github.workspace }}/apps/cli/src/index.ts link --workspace "${{ vars.FORGERON_WORKSPACE }}"
+      - uses: ./.github/actions/deploy
+        with:
+          working-directory: templates/${{ matrix.template }}
+          command: bun ${{ github.workspace }}/apps/cli/src/index.ts
+          token: ${{ vars.FORGERON_WORKSPACE != '' && secrets[format('FORGERON_TOKEN_{0}', replace(upper(matrix.template), '-', '_'))] || '' }}

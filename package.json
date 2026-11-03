@@ -11,7 +11,7 @@
   "scripts": {
     "prepare": "git config --local core.hooksPath .git/hooks && lefthook install --force",
     "dev": "moon run :dev",
-    "check": "moon run :typecheck && bun run lint && bun run format:check && bun run test && bun run knip && bun run deps && bun run deps:selftest && bun run neutral && bun run tokens:check",
+    "check": "moon run :typecheck && bun run lint && bun run format:check && bun run test && bun run knip && bun run deps && bun run deps:selftest && bun run neutral && bun run templates:check && bun run tokens:check",
     "test": "vitest run",
     "build": "moon run :build",
     "lint": "oxlint",
@@ -24,6 +24,7 @@
     "deploy:staging": "bun run --filter '@forgeron/*' deploy:staging",
     "deploy:production": "bun run --filter '@forgeron/*' deploy:production",
     "neutral": "bun scripts/check-neutral.ts",
+    "templates:check": "bun scripts/check-templates.ts",
     "tokens:check": "bun run --cwd packages/ui tokens:check"
   },
   "devDependencies": {
