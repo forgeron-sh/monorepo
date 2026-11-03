@@ -366,4 +366,51 @@ export const platformMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "connector_clients"`), st(`DROP TABLE "identity_providers"`)],
   },
+  {
+    // Sign-in by email (D-049): the one-time codes (stored hashed, never in the clear), the pending
+    // invitations, and the workspace's allowed email domains with the role their people join with.
+    name: "0016_email_sign_in",
+    fingerprint: "email-sign-in-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "email_codes" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "workspace" TEXT NOT NULL,
+  "email" TEXT NOT NULL,
+  "code_hash" TEXT NOT NULL,
+  "ip_hash" TEXT NOT NULL,
+  "attempts" INTEGER NOT NULL DEFAULT 0,
+  "created_at" TEXT NOT NULL,
+  "expires_at" TEXT NOT NULL,
+  "used_at" TEXT
+)`),
+      st(
+        `CREATE INDEX "email_codes_by_email" ON "email_codes" ("workspace", "email", "created_at")`,
+      ),
+      st(
+        `CREATE INDEX "email_codes_by_ip" ON "email_codes" ("workspace", "ip_hash", "created_at")`,
+      ),
+      st(`CREATE TABLE "invitations" (
+  "workspace" TEXT NOT NULL,
+  "email" TEXT NOT NULL,
+  "roles" TEXT NOT NULL,
+  "invited_by" TEXT NOT NULL,
+  "created_at" TEXT NOT NULL,
+  "expires_at" TEXT NOT NULL,
+  PRIMARY KEY ("workspace", "email")
+)`),
+      st(`CREATE TABLE "membership_settings" (
+  "workspace" TEXT NOT NULL PRIMARY KEY,
+  "domains" TEXT NOT NULL,
+  "default_role" TEXT,
+  "updated_by" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL
+)`),
+    ],
+    down: [
+      st(`DROP TABLE "membership_settings"`),
+      st(`DROP TABLE "invitations"`),
+      st(`DROP TABLE "email_codes"`),
+    ],
+  },
 ];

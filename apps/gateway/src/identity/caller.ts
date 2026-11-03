@@ -93,6 +93,8 @@ export interface MembershipPolicy {
   adminEmail?: string;
   /** Anyone signing in with an email of one of these domains becomes a member, with no role. */
   memberDomains: string[];
+  /** The role a person joining by domain gets (D-049); none when `undefined`. */
+  defaultRole?: string;
   /**
    * The role each group of the provider grants (D-041). A person in one of these groups is
    * admitted; roles are set at the first sign-in only, and read from the registry afterwards.
@@ -109,6 +111,9 @@ export function membership(registry: Registry, policy: MembershipPolicy) {
     const known = await registry.findMemberBySubject(workspace, identity.subject);
     if (known) return known;
     const email = identity.email.toLowerCase();
+    // The same person who came by email first (D-049): one member, not two.
+    const sameEmail = await registry.findMemberByEmail(workspace, email);
+    if (sameEmail) return sameEmail;
     const fromGroups = [
       ...new Set(
         identity.groups.flatMap((group) => {
@@ -117,17 +122,32 @@ export function membership(registry: Registry, policy: MembershipPolicy) {
         }),
       ),
     ];
-    const base =
-      policy.adminEmail && email === policy.adminEmail.toLowerCase()
+    const invitation = await registry.findInvitation(workspace, email);
+    const base = invitation
+      ? invitation.roles
+      : policy.adminEmail && email === policy.adminEmail.toLowerCase()
         ? ["admin"]
         : policy.memberDomains.includes(email.split("@")[1] ?? "")
-          ? []
+          ? policy.defaultRole
+            ? [policy.defaultRole]
+            : []
           : undefined;
     const roles =
       base === undefined && fromGroups.length === 0
         ? undefined
         : [...new Set([...(base ?? []), ...fromGroups])];
     if (!roles) return undefined;
+    // An invitation is accepted by signing in with its email, whichever way the provider is.
+    if (invitation) {
+      return registry.joinMember({
+        workspace,
+        email: identity.email,
+        roles,
+        via: "invitation",
+        subject: identity.subject,
+        name: identity.name,
+      });
+    }
     return registry.addMember({
       workspace,
       subject: identity.subject,

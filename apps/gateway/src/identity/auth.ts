@@ -41,7 +41,7 @@ const json = (status: number, code: string, message: string) =>
   Response.json({ error: { code, message } }, { status });
 
 // Where a sign-in may send the person back to: the CLI's own page, nowhere else.
-const safeNext = (next: unknown): string | undefined =>
+export const safeNext = (next: unknown): string | undefined =>
   typeof next === "string" && /^\/auth\/cli\?[^\s]*$/.test(next) ? next : undefined;
 
 const stateCookie = (value: string, maxAge: number) =>
