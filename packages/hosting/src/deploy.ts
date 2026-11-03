@@ -39,7 +39,7 @@ export interface Deployment {
     fresh: boolean;
     data?: PreviewData;
     seeded: boolean;
-    /** The seed is left to the preview's Worker, which runs it on its first request (D-035). */
+    /** The seed is left to the preview's Worker, which runs it on its first request (D-038). */
     pending?: boolean;
   };
   uploaded: Uploaded;

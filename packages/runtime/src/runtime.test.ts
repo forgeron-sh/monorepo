@@ -353,7 +353,7 @@ describe("MCP", () => {
         params: { protocolVersion: "1999-01-01" },
       }),
     );
-    expect(init.protocolVersion).toBe("2025-06-18");
+    expect(init.protocolVersion).toBe("2025-11-25");
   });
 
   it("names tools <tool>_<group>_<verb>", () => {

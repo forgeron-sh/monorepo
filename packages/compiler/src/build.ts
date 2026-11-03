@@ -107,7 +107,7 @@ function workerEntry(
     `// The Worker's bindings arrive with each call: the database of the environment is \`env.DB\`.`,
     `let runtime;`,
     `const runtimeFor = (env) => (runtime ??= createTool(env?.DB ? { platform: { db: createDb(env.DB) } } : {}));`,
-    // A new preview's database is left a \`_forgeron_seed\` marker by the host (D-035): the first
+    // A new preview's database is left a \`_forgeron_seed\` marker by the host (D-038): the first
     // request claims it and runs \`db/seed.ts\` here, where the code and the database are. A seed that
     // fails leaves the preview answering with the reason: it may have half filled the database.
     ...(seedFile
@@ -137,6 +137,21 @@ function workerEntry(
           `};`,
         ]
       : []),
+    `// Per-person secrets: the gateway keeps them and hands a call the caller's own in a header only it can set,`,
+    `// so a tool declaring some gets a runtime per request, whose store holds that person's values alone.`,
+    `const declaresUserSecrets = Object.keys(manifest.resources?.userSecrets ?? {}).length > 0;`,
+    `function ownSecrets(request) {`,
+    `  try { return JSON.parse(request.headers.get("x-forgeron-user-secrets") ?? "{}"); } catch { return {}; }`,
+    `}`,
+    `const runtimeOf = (request, env) => {`,
+    `  if (!declaresUserSecrets) return runtimeFor(env);`,
+    `  const own = ownSecrets(request);`,
+    `  const store = { read: async () => own, write: async () => { throw new Error("Per-person secrets are entered at the gateway."); } };`,
+    `  return createTool({`,
+    `    baseUrl: request.headers.get("x-forgeron-base-url") ?? "",`,
+    `    platform: { userSecretStore: store, ...(env?.DB ? { db: createDb(env.DB) } : {}) },`,
+    `  });`,
+    `};`,
     `export default {`,
     ...(seedFile
       ? [
@@ -145,10 +160,10 @@ function workerEntry(
           `    if (failure) {`,
           `      return Response.json({ error: { code: "SEED_FAILED", message: \`The seed of this preview failed: \${failure}. Remove the preview and deploy the branch again.\` } }, { status: 500 });`,
           `    }`,
-          `    return runtimeFor(env).fetch(request);`,
+          `    return runtimeOf(request, env).fetch(request);`,
           `  },`,
         ]
-      : [`  fetch: (request, env) => runtimeFor(env).fetch(request),`]),
+      : [`  fetch: (request, env) => runtimeOf(request, env).fetch(request),`]),
     `  // Cloudflare cron triggers: the runtime decides which tasks are due, in their time zone.`,
     `  scheduled: (controller, env, ctx) => ctx.waitUntil(runtimeFor(env).scheduled(new Date(controller.scheduledTime))),`,
     `};`,

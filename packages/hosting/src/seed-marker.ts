@@ -1,4 +1,4 @@
-// How a new preview gets its seed when the deployer cannot run it (D-035). The gateway is a Worker:
+// How a new preview gets its seed when the deployer cannot run it (D-038). The gateway is a Worker:
 // it does not evaluate a tool's `db/seed.ts`, and in self-host it only reaches a new tool Worker
 // after it has redeployed itself with the binding. So `deploy` leaves a marker in the new database,
 // and the tool's own Worker, which holds the seed and the database, claims it on its first request
