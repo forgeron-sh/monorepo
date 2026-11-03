@@ -17,7 +17,7 @@ import { loadWorkspace, type WorkspaceInfo } from "./workspace";
 // colour scheme; Forge (dark) is the default (docs/design-system.md).
 
 /** Puts `data-theme` on the page from `prefers-color-scheme`, and keeps it there. */
-export function useTheme() {
+function useTheme() {
   useEffect(() => {
     const query = window.matchMedia?.("(prefers-color-scheme: light)");
     if (!query) return;

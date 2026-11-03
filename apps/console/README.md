@@ -2,11 +2,20 @@
 
 The console of a workspace: tools, versions, access, secrets.
 
-## Planned contents
+## Screens
 
-- Tools, versions and environments
-- Roles × actions, resource approval
-- Secrets: status per environment, set or missing (`secrets-status.tsx`); values are never read back
+A sidebar shell with path routing (`router.ts`, D-053); members of the workspace only see the first two.
+
+- Overview: first-run checklist computed from `/api/workspace`, with the CLI commands to copy, and the workspace endpoint
+- Tools: versions per environment; one tool's access matrix (roles × actions) and secrets status (set or missing; values are never read back)
+- Members: roles, status, invitations with expiry, change roles, remove, allowed domains and default role
+- Approvals: versions that ask for more, approve or reject
+- Audit log: the latest lines of the tools' audit log
+- Settings: sign-in methods (email, OIDC, SAML), mail mode, install information
+
+## Local harness
+
+`bun run --cwd apps/console harness` serves the console on port 5174 against an in-memory gateway (`src/mock/install.ts`). `?mock=fresh`, `member`, `signedout`, `error` and `slow` pick a scenario. It is never part of a build.
 
 ## Notes
 

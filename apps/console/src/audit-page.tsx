@@ -33,7 +33,7 @@ export async function loadAudit(fetchJson: FetchJson): Promise<AuditRow[]> {
   }));
 }
 
-export function AuditTable({ rows, now }: { rows: ReadonlyArray<AuditRow>; now: Date }) {
+function AuditTable({ rows, now }: { rows: ReadonlyArray<AuditRow>; now: Date }) {
   const columns: Array<TableColumn<AuditRow>> = [
     {
       key: "at",
