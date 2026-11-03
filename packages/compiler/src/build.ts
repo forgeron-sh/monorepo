@@ -107,7 +107,7 @@ function workerEntry(
     `// The Worker's bindings arrive with each call: the database of the environment is \`env.DB\`.`,
     `let runtime;`,
     `const runtimeFor = (env) => (runtime ??= createTool(env?.DB ? { platform: { db: createDb(env.DB) } } : {}));`,
-    // A new preview's database is left a \`_forgeron_seed\` marker by the host (D-033): the first
+    // A new preview's database is left a \`_forgeron_seed\` marker by the host (D-035): the first
     // request claims it and runs \`db/seed.ts\` here, where the code and the database are. A seed that
     // fails leaves the preview answering with the reason: it may have half filled the database.
     ...(seedFile

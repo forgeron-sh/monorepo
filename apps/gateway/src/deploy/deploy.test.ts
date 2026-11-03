@@ -104,6 +104,23 @@ describe("POST /deploy", () => {
     hosting,
   });
 
+  it("sets the pilot group, and refuses a group outside the pilot", async () => {
+    const token = await deploymentToken();
+    const piloted = await handleDeploy(
+      post("/deploy", upload({ environment: "pilot", group: "early" }), token),
+      context(),
+    );
+    expect(piloted.status).toBe(200);
+    const tool = (await registry.findTool("acme", "crm"))!;
+    const pilot = (await registry.listEnvironments(tool.id)).find((e) => e.name === "pilot");
+    expect(pilot?.pilotGroup).toBe("early");
+    const refused = await handleDeploy(
+      post("/deploy", upload({ version: "1.0.1", group: "early" }), token),
+      context(),
+    );
+    expect(refused.status).toBe(400);
+  });
+
   it("deploys the uploaded build for a valid FORGERON_TOKEN and answers where it is served", async () => {
     const { hosting, calls } = fakeHosting();
     const response = await handleDeploy(
