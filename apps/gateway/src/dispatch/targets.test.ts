@@ -1,6 +1,6 @@
 import { createRegistry, migratePlatform } from "@forgeron/registry";
 import type { D1Database } from "@forgeron/hosting";
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createGateway } from "../gateway";
 import {
@@ -83,17 +83,12 @@ describe("namespaceTarget", () => {
 
 // The same platform, in the two hosting modes: only the way to the tool Workers changes.
 describe("the gateway reaches the tool Workers in cloud and in self-host", () => {
-  let mf: Miniflare;
+  let memory: MemoryD1;
   let d1: D1Database;
 
   beforeAll(async () => {
-    mf = new Miniflare({
-      modules: true,
-      script: "export default { fetch() { return new Response('') } }",
-      compatibilityDate: "2026-07-01",
-      d1Databases: ["DB"],
-    });
-    d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+    memory = await createMemoryD1();
+    d1 = memory as unknown as D1Database;
     await migratePlatform(d1);
     const registry = createRegistry(d1);
     const tool = await registry.createTool({ workspace: "acme", name: "crm" });
@@ -107,7 +102,7 @@ describe("the gateway reaches the tool Workers in cloud and in self-host", () =>
       await registry.activate(slot.id, version.id, { actor: "test" });
     }
   });
-  afterAll(() => mf.dispose());
+  afterAll(() => memory.close());
 
   const worker = (name: string) => ({
     fetch: (request: Request) =>

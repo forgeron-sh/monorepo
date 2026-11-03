@@ -1,14 +1,13 @@
 import type { D1Database } from "@forgeron/hosting";
 import { createRegistry, migratePlatform, type Registry } from "@forgeron/registry";
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createGateway, type GatewayEnv } from "./gateway";
 import worker from "./index";
 
-// Miniflare is slow when the machine is busy.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-let mf: Miniflare;
+let memory: MemoryD1;
 let d1: D1Database;
 let registry: Registry;
 const reached: string[] = [];
@@ -59,13 +58,8 @@ async function publish(workspace: string, name: string, deployed: [string, strin
 }
 
 beforeAll(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: ["DB"],
-  });
-  d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+  memory = await createMemoryD1();
+  d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   registry = createRegistry(d1);
   await publish("acme", "crm", [["production"], ["pilot"], ["preview", "feat-export"]]);
@@ -75,7 +69,7 @@ beforeAll(async () => {
   const draft = await registry.createTool({ workspace: "acme", name: "draft" });
   await registry.ensureEnvironment(draft.id, "production");
 });
-afterAll(() => mf.dispose());
+afterAll(() => memory.close());
 
 const get = async (url: string, gateway = createGateway(env())) => {
   const response = await gateway(new Request(url));

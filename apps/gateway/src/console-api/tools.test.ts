@@ -1,12 +1,12 @@
 import { createRegistry, migratePlatform, type Registry } from "@forgeron/registry";
 import type { D1Database } from "@forgeron/hosting";
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { handleTools, listTools } from "./tools";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-let mf: Miniflare;
+let memory: MemoryD1;
 let registry: Registry;
 let caller: object | undefined = {};
 
@@ -35,13 +35,8 @@ async function deploy(
 }
 
 beforeAll(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: ["DB"],
-  });
-  const d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+  memory = await createMemoryD1();
+  const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   registry = createRegistry(d1);
   await deploy("acme", "crm", {
@@ -53,7 +48,7 @@ beforeAll(async () => {
   await registry.createTool({ workspace: "acme", name: "draft" });
   await deploy("globex", "crm", { "9.0.0": ["production"] });
 });
-afterAll(() => mf.dispose());
+afterAll(() => memory.close());
 
 describe("the tools of a workspace", () => {
   it("lists each tool with its version per environment, from this workspace only", async () => {

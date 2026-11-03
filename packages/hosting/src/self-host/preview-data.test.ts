@@ -1,6 +1,6 @@
 import type { Manifest } from "@forgeron/manifest";
-import { Miniflare } from "miniflare";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createMemoryD1 } from "@forgeron/sdk/testing/d1";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createSelfHostHosting,
   deploy,
@@ -36,23 +36,16 @@ const build = (data?: "seed" | "empty" | "snapshot"): Build => ({
 const preview = (branch: string): Environment => ({ tool: "crm", name: "preview", branch });
 
 // One D1 per database the fake account creates: a branch never sees another's data.
-let mf: Miniflare;
 let cloud: FakeCloudflare;
 let hosting: ReturnType<typeof createSelfHostHosting>;
 const databases = new Map<string, D1Database>();
 
 beforeEach(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: { A: "a", B: "b", PROD: "prod" },
-  });
   databases.clear();
   const spare = ["A", "B", "PROD"];
   const backing = new Map<string, D1Database>();
   for (const binding of spare) {
-    backing.set(binding, (await mf.getD1Database(binding)) as unknown as D1Database);
+    backing.set(binding, (await createMemoryD1()) as unknown as D1Database);
   }
   let next = 0;
   cloud = new FakeCloudflare((name) => {
@@ -68,7 +61,6 @@ beforeEach(async () => {
     url: (name) => `https://${name}.example.test`,
   });
 });
-afterEach(() => mf.dispose());
 
 const fill = async (db: D1Database) =>
   void (await db.batch([db.prepare("INSERT INTO a (id) VALUES (1)")]));

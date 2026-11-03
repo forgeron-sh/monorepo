@@ -7,7 +7,7 @@ import {
   type Registry,
 } from "@forgeron/registry";
 import type { D1Database } from "@forgeron/hosting";
-import { Miniflare } from "miniflare";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handleConnections } from "../console-api/connections";
 import { handleConsent } from "./consent";
@@ -17,7 +17,7 @@ vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 // A throwaway key made of zeros: it protects nothing and is not a secret.
 const KEY = btoa(String.fromCharCode(...new Uint8Array(32)));
 
-let mf: Miniflare;
+let memory: MemoryD1;
 let registry: Registry;
 let consent: Consent;
 let person: { id: string } | undefined;
@@ -31,13 +31,8 @@ const connectors = {
 beforeEach(async () => {
   person = { id: "ada@example.test" };
   admin = { admin: true };
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    compatibilityDate: "2026-07-01",
-    d1Databases: ["DB"],
-  });
-  const d1 = (await mf.getD1Database("DB")) as unknown as D1Database;
+  memory = await createMemoryD1();
+  const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   const box = await createSecretBox(KEY);
   registry = createRegistry(d1, { secrets: box });
@@ -71,7 +66,7 @@ beforeEach(async () => {
     }),
   });
 });
-afterEach(() => mf.dispose());
+afterEach(() => memory.close());
 
 const base = "/api/tools/mail/environments/production";
 const consentCall = (path: string) =>
