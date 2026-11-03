@@ -4,6 +4,7 @@ import { basename, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { writeProject } from "../project";
+import { WORKFLOW, WORKFLOW_PATH } from "../workflow";
 import { fetchTemplate, SDK_VERSION, VITEST_VERSION, writeTemplate } from "../template";
 
 // `forgeron init [name] [--template crm]`: a tool of one action, with its test and its `.forgeron/`.
@@ -80,6 +81,7 @@ it("answers pong", async () => {
 `,
     "changes/.gitkeep": "",
     ".forgeron/.gitignore": "local/\ngenerated/\nbuild/\n",
+    [WORKFLOW_PATH]: WORKFLOW,
   };
   for (const [path, content] of Object.entries(files)) {
     await mkdir(join(dir, path, ".."), { recursive: true });
