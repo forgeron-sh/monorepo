@@ -64,7 +64,7 @@ Rules of the log:
 - **Why**: no build infrastructure to host (a bundler runs under Node, not in a Worker); the same path locally, in CI and in self-host.
 - **Rejected**: a platform-side build on every push (build machines to operate).
 - **Still open**: replacing `FORGERON_TOKEN` with GitHub Actions OIDC; name of the action.
-- **Applied in**: `sdk.md` §15 ("Publishing from GitHub"), `ARCHITECTURE.md` ("Publishing a tool").
+- **Applied in**: `sdk.md` §15 ("Publishing from GitHub"), `ARCHITECTURE.md` ("Publishing a tool"), `.github/actions/deploy` (the action, until its name is confirmed), `forgeron deploy` and the workflow written by `forgeron init` (`apps/cli`).
 
 ## D-005 — Build, version and release are three distinct notions
 

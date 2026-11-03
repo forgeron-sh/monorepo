@@ -1,0 +1,40 @@
+name: Forgeron deploy
+description: >-
+  For every tool of the repository, runs forgeron test, forgeron change check and forgeron deploy.
+  The build happens here, in the repository's CI: the platform builds nothing (D-004).
+  The published name of this action is still to be confirmed (docs/sdk.md §15).
+inputs:
+  token:
+    description: Deployment token (FORGERON_TOKEN). Without it the tools are tested and checked, not deployed.
+    required: false
+    default: ""
+  environment:
+    description: Environment to deploy to (preview, pilot or production).
+    required: false
+    default: preview
+  args:
+    description: Extra arguments for forgeron deploy, such as --allow-destructive.
+    required: false
+    default: ""
+  command:
+    description: The command line of the Forgeron CLI.
+    required: false
+    default: npx forgeron
+  working-directory:
+    description: Where to look for tools (folders with a forgeron.config.ts).
+    required: false
+    default: "."
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24.21.0
+    - run: bash "$GITHUB_ACTION_PATH/run.sh" "$ROOT"
+      shell: bash
+      env:
+        ROOT: ${{ inputs.working-directory }}
+        FORGERON_TOKEN: ${{ inputs.token }}
+        FORGERON_ENV: ${{ inputs.environment }}
+        FORGERON_ARGS: ${{ inputs.args }}
+        FORGERON_CMD: ${{ inputs.command }}

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { UsageError } from "./io";
 import { writeProject } from "./project";
+import { WORKFLOW, WORKFLOW_PATH } from "./workflow";
 
 export const SDK_VERSION = "0.0.0";
 export const VITEST_VERSION = "5.0.5";
@@ -157,5 +158,7 @@ export async function writeTemplate(
   );
   await mkdir(join(dir, ".forgeron"), { recursive: true });
   await writeFile(join(dir, ".forgeron/.gitignore"), "local/\ngenerated/\nbuild/\n");
+  await mkdir(join(dir, WORKFLOW_PATH, ".."), { recursive: true });
+  await writeFile(join(dir, WORKFLOW_PATH), WORKFLOW);
   await writeProject(dir, { tool: name });
 }

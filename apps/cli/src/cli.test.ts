@@ -78,8 +78,8 @@ describe("forgeron", () => {
 
   it("exits 2 on an unknown command, and on an unknown flag", async () => {
     const c = capture("/");
-    expect(await run(["deploy"], c.io)).toBe(2);
-    expect(c.errors[0]).toContain('unknown command "deploy"');
+    expect(await run(["frobnicate"], c.io)).toBe(2);
+    expect(c.errors[0]).toContain('unknown command "frobnicate"');
     const d = capture("/");
     expect(await run(["build", "--nope"], d.io)).toBe(2);
   });
