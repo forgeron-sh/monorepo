@@ -4,4 +4,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
+  // Forgeron Cloud: the dispatch namespace the tool Workers are uploaded to (name to fill in):
+  //   "dispatch_namespaces": [{ "binding": "DISPATCHER", "namespace": "<namespace>" }],
+  // Self-host: one service binding per tool Worker, named TOOL_<WORKER> (acme--crm--production is
+  // TOOL_ACME__CRM__PRODUCTION), added by redeploying the gateway when a tool is created or deleted.
 }

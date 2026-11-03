@@ -14,6 +14,15 @@ export {
 } from "./deploy";
 export type { DeployBuildInput, DeployedBuild, PromoteInput, RollbackInput } from "./deploy";
 export { createRegistry, RegistryError, VIA_FORGERON_MCP } from "./registry";
+export { ConsentError, createConsent } from "./consent";
+export type {
+  Consent,
+  ConsentErrorCode,
+  ConsentFetch,
+  ConsentOptions,
+  ConsentTarget,
+  OAuthProvider,
+} from "./consent";
 export { createSecretBox, type SealedSecret, type SecretBox } from "./secret-box";
 export type {
   Approval,
@@ -24,6 +33,8 @@ export type {
   AuditResult,
   ApprovalStatus,
   BuildRecord,
+  ConnectionInfo,
+  ConnectionTokens,
   DeploymentKind,
   DeploymentRecord,
   EnvironmentRecord,

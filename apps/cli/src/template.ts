@@ -19,6 +19,11 @@ export interface TemplatePackage {
   files: Map<string, Uint8Array>;
 }
 
+/** The registry has no such template. `init` and `install` treat it as a wrong use; `play` as not found. */
+export class TemplateNotFoundError extends UsageError {
+  override name = "TemplateNotFoundError";
+}
+
 export async function fetchTemplate(
   name: string,
   registry = process.env.FORGERON_REGISTRY ?? DEFAULT_REGISTRY,
@@ -46,7 +51,7 @@ async function get(url: string, name: string): Promise<Response> {
     );
   }
   if (response.status === 404) {
-    throw new UsageError(
+    throw new TemplateNotFoundError(
       `No template named "${name}": @forgeron/template-${name} is not published.`,
     );
   }

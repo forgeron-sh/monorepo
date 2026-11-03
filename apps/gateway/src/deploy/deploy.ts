@@ -2,7 +2,7 @@
 // token (`FORGERON_TOKEN`), and `POST /deploy-tokens`, where an administrator issues one. The
 // platform builds nothing: the body is the build CI already made. Each deployment lands in the
 // environment's history (who, when, which version) through `deployBuild`.
-import type { Build, Hosting } from "@forgeron/hosting";
+import type { Build, DeployOptions, Hosting } from "@forgeron/hosting";
 import { deployBuild, type Registry, type RegisteredEnvironment } from "@forgeron/registry";
 import { audienceOf, parseAudience } from "../identity/audience";
 import type { Person } from "../identity/authenticate";
@@ -104,6 +104,11 @@ export interface DeployContext {
   now(): Date;
   registry: Registry;
   hosting: Hosting;
+  /**
+   * Fills the new database of a preview with the tool's seed. The gateway cannot run the tool's
+   * code itself, so whoever assembles it says how (`preview.data: seed` leaves it empty without).
+   */
+  seed?: (build: Build) => DeployOptions["seed"];
 }
 
 /**
@@ -158,12 +163,14 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   const tool =
     (await registry.findTool(context.workspace, audience.tool)) ??
     (await registry.createTool({ workspace: context.workspace, name: audience.tool }));
+  const seed = context.seed?.(uploaded as Build);
   try {
     const deployed = await deployBuild(registry, context.hosting, {
       tool,
       environment: environment as RegisteredEnvironment,
       ...(typeof branch === "string" && branch ? { branch } : {}),
       actor: check.claims.sub,
+      ...(seed ? { seed } : {}),
       build: uploaded as Build,
       version,
       ...(allowDestructive === true ? { allowDestructive: true } : {}),

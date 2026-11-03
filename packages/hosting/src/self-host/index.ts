@@ -52,15 +52,18 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
   const found = async <T>(path: string, pick: (r: T) => Named[], name: string, key: keyof Named) =>
     pick(await client.request<T>("GET", path)).find((r) => r[key] === name);
 
-  async function ensureD1(name: string): Promise<string> {
+  async function ensureD1(name: string): Promise<{ id: string; fresh: boolean }> {
     const existing = await found<Named[]>(
       `/d1/database?name=${encodeURIComponent(name)}`,
       (r) => r,
       name,
       "name",
     );
-    if (existing?.uuid) return existing.uuid;
-    return (await client.request<Named>("POST", "/d1/database", { name })).uuid!;
+    if (existing?.uuid) return { id: existing.uuid, fresh: false };
+    return {
+      id: (await client.request<Named>("POST", "/d1/database", { name })).uuid!,
+      fresh: true,
+    };
   }
 
   async function ensureKv(title: string): Promise<string> {
@@ -94,8 +97,10 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
       const bindings: Binding[] = [];
       for (const binding of bindingsOf(manifest)) {
         const name = resourceName(environment, binding);
-        if (binding.kind === "d1") bindings.push({ ...binding, id: await ensureD1(name) });
-        else if (binding.kind === "kv") bindings.push({ ...binding, id: await ensureKv(name) });
+        if (binding.kind === "d1") {
+          const { id, fresh } = await ensureD1(name);
+          bindings.push({ ...binding, id, fresh });
+        } else if (binding.kind === "kv") bindings.push({ ...binding, id: await ensureKv(name) });
         else if (binding.kind === "r2") bindings.push({ ...binding, id: await ensureR2(name) });
         else {
           throw new CloudflareError(
@@ -150,6 +155,11 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
         uploaded.build.migrations ?? [],
         migrateOptions,
       );
+    },
+
+    database(provisioned) {
+      const db = provisioned.bindings.find((b) => b.kind === "d1");
+      return db?.id ? createRestD1(client, db.id) : undefined;
     },
 
     async activate(uploaded): Promise<Activation> {

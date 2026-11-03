@@ -11,7 +11,7 @@ import { play } from "./commands/play";
 import { secrets } from "./commands/secrets";
 import { test } from "./commands/test";
 import { token } from "./commands/token";
-import { UsageError, type Io } from "./io";
+import { NotFoundError, UsageError, type Io } from "./io";
 
 const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   init,
@@ -37,7 +37,8 @@ const USAGE = `Usage: forgeron <command>
   install <template> [--name <tool>]   show the requested resources, then install after approval
   link --workspace <name>              link the tool to a workspace
   dev [--as <role>] [--port 8787]      run the tool locally
-  play [--as <role>] [--port 8788]     open the playground of the tool
+  play [--template <name>] [--as <role>] [--port 8788]
+                                       open the playground of the tool, or of a template without installing it
   db generate|migrate|status|rollback|seed|shell
                                        the database: migrations, seed, SQL (forgeron db for details)
   change --type <t> --bump <b> -m ".."  add a change to changes/ (change check: CI)
@@ -49,7 +50,7 @@ const USAGE = `Usage: forgeron <command>
   test [vitest args]                   build the tool, then run Vitest
   build                                build every tool under this folder`;
 
-/** Runs a command and returns the exit code: 0, 1 for a failure, 2 for a wrong use (sdk.md §5). */
+/** Runs a command and returns the exit code: 0, 1 for a failure, 2 for a wrong use, 4 for something not found (sdk.md §5). */
 export async function run(argv: string[], io: Io): Promise<number> {
   const [name, ...args] = argv;
   if (name === "--version" || name === "-v") {
@@ -67,6 +68,10 @@ export async function run(argv: string[], io: Io): Promise<number> {
     if (error instanceof UsageError) {
       io.error(error.message);
       return 2;
+    }
+    if (error instanceof NotFoundError) {
+      io.error(error.message);
+      return 4;
     }
     // `parseArgs` rejects an unknown flag with its own error: that is a wrong use too.
     if (

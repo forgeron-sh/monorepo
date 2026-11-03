@@ -1,7 +1,8 @@
 import type { D1Database } from "@forgeron/hosting";
 import { createRegistry } from "@forgeron/registry";
-import { createDispatcher, type Target } from "./dispatch/dispatch";
+import { createDispatcher } from "./dispatch/dispatch";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
+import { namespaceTarget, serviceBindingTarget, type DispatchNamespace } from "./dispatch/targets";
 
 /** What the gateway Worker is given by its configuration (bindings to fill in `wrangler.jsonc`). */
 export interface GatewayEnv {
@@ -10,10 +11,13 @@ export interface GatewayEnv {
   /** `forgeron.app`. */
   BASE_DOMAIN: string;
   /**
-   * The tool Workers: a dispatch namespace (cloud) or the service bindings of self-host, reached
-   * by the Worker's name. The gateway holds the only way to them.
+   * Forgeron Cloud: the dispatch namespace the tool Workers are uploaded to (`dispatch_namespaces`
+   * in `wrangler.jsonc`). Self-host has none and holds one service binding per Worker instead
+   * (`TOOL_<WORKER>`, see `serviceBindingOf`): the gateway holds the only way to a tool.
    */
-  TOOLS: { get(worker: string): Target | undefined };
+  DISPATCHER?: DispatchNamespace;
+  /** The service bindings of self-host, and whatever else the Worker is given. */
+  [binding: string]: unknown;
 }
 
 /**
@@ -25,6 +29,7 @@ export function createGateway(env: GatewayEnv, options: FromRegistryOptions = {}
   return createDispatcher({
     baseDomain: env.BASE_DOMAIN,
     registry: dispatchRegistry(createRegistry(env.DB), options),
-    targets: (worker) => env.TOOLS.get(worker),
+    targets: (worker) =>
+      env.DISPATCHER ? namespaceTarget(env.DISPATCHER, worker) : serviceBindingTarget(env, worker),
   });
 }

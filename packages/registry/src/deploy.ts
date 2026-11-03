@@ -9,6 +9,7 @@ import {
   teardownPreview,
   type Build,
   type BuildMigration,
+  type DeployOptions,
   type Deployment,
   type Hosting,
 } from "@forgeron/hosting";
@@ -34,6 +35,8 @@ export interface DeployBuildInput {
   /** Pilot only: the group that gets this version at the production address. */
   group?: string;
   allowDestructive?: boolean;
+  /** Fills a preview's new database (`preview.data: seed`): see `DeployOptions.seed`. */
+  seed?: DeployOptions["seed"];
   /** Who deploys: written in the audit log. */
   actor: string;
 }
@@ -126,12 +129,10 @@ export async function deployBuild(
   const version = await registry.publishVersion(tool.id, recorded.id, input.version);
   await requestApprovals(registry, tool, version, build.manifest);
   await assertApproved(registry, input.environment, version);
-  const deployment = await deploy(
-    hosting,
-    target(tool, input.environment, input.branch),
-    build,
-    input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive },
-  );
+  const deployment = await deploy(hosting, target(tool, input.environment, input.branch), build, {
+    ...(input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive }),
+    ...(input.seed ? { seed: input.seed } : {}),
+  });
   let environment = await registry.activate(slot.id, version.id, {
     actor: input.actor,
     url: deployment.activation.url,

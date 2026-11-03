@@ -31,10 +31,17 @@ const tools = new Map(
   ]),
 );
 
+// What a dispatch namespace does for a script it does not hold: `fetch` throws.
+const missing = (worker: string) => ({
+  fetch: (): Response => {
+    throw new Error(`Worker not found: ${worker}`);
+  },
+});
+
 const env = (): GatewayEnv => ({
   DB: d1,
   BASE_DOMAIN: "forgeron.app",
-  TOOLS: { get: (worker) => tools.get(worker) },
+  DISPATCHER: { get: (worker) => tools.get(worker) ?? missing(worker) },
 });
 
 async function publish(workspace: string, name: string, deployed: [string, string?][]) {
@@ -122,7 +129,7 @@ describe("the gateway, with the platform D1", () => {
   });
 
   it("answers 502 for a deployed tool the gateway holds no binding to", async () => {
-    const response = await createGateway({ ...env(), TOOLS: { get: () => undefined } })(
+    const response = await createGateway({ ...env(), DISPATCHER: { get: missing } })(
       new Request("https://acme.forgeron.app/t/crm/mcp"),
     );
     expect(response.status).toBe(502);
