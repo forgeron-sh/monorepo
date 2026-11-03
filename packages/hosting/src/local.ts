@@ -11,7 +11,7 @@ import {
   type Hosting,
   type Provisioned,
   type Uploaded,
-} from "./index";
+} from "./core";
 
 // The `local` mode: a tool runs in workerd, through Miniflare, on the developer's machine.
 // The gateway does not exist here, so this host plays its part: it forwards requests to the Worker

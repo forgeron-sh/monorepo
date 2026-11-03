@@ -3,6 +3,7 @@ import { handleCli } from "./cli";
 import { createEngine } from "./engine";
 import { errorResponse } from "./http";
 import { handleMcp } from "./mcp";
+import { handleSecretsInput } from "./secrets";
 import type { CallSource, Outcome, QueuedDelivery, RuntimeOptions, User } from "./types";
 
 export interface Runtime {
@@ -67,6 +68,10 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
       const actionOf = (prefix: string) => decodeURIComponent(path.slice(prefix.length));
 
+      const store = options.platform?.userSecretStore;
+      if (path === "/secrets" && store) {
+        return handleSecretsInput(request, manifest, user, store, options.baseUrl ?? "");
+      }
       if (path === "/mcp" && manifest.interfaces.mcp)
         return handleMcp(request, engine, manifest, user);
       if (path === "/cli" && manifest.interfaces.cli)

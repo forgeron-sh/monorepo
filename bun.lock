@@ -55,11 +55,13 @@
       "version": "0.0.0",
       "dependencies": {
         "@cloudflare/workers-oauth-provider": "1.2.4",
+        "@forgeron/hosting": "workspace:*",
+        "@forgeron/manifest": "workspace:*",
         "@forgeron/registry": "workspace:*",
       },
       "devDependencies": {
-        "@forgeron/hosting": "workspace:*",
         "@forgeron/runtime": "workspace:*",
+        "@forgeron/sdk": "workspace:*",
         "@forgeron/tsconfig": "workspace:*",
         "@types/node": "24.19.2",
         "miniflare": "4.20260730.0",

@@ -81,7 +81,7 @@ describe("tools", () => {
   it("deleting a tool deletes everything under it", async () => {
     const { tool, version } = await seed();
     const env = await registry.ensureEnvironment(tool.id, "production");
-    await registry.activate(env.id, version.id);
+    await registry.activate(env.id, version.id, { actor: "ely" });
     await registry.requestApproval(version.id, { resource: "DB", kind: "d1" });
     await registry.deleteTool(tool.id);
     for (const table of ["builds", "versions", "environments", "approvals"]) {
@@ -141,8 +141,8 @@ describe("environments", () => {
     const second = await registry.publishVersion(tool.id, build.id, "1.1.0");
     const env = await registry.ensureEnvironment(tool.id, "pilot");
     expect(env.versionId).toBeUndefined();
-    await registry.activate(env.id, version.id, "https://pilot.example");
-    const switched = await registry.activate(env.id, second.id);
+    await registry.activate(env.id, version.id, { actor: "ely", url: "https://pilot.example" });
+    const switched = await registry.activate(env.id, second.id, { actor: "ely" });
     expect(switched.versionId).toBe(second.id);
     expect(switched.url).toBeUndefined();
     expect(switched.activatedAt).toBeDefined();
@@ -152,10 +152,14 @@ describe("environments", () => {
     const { tool, version } = await seed();
     const other = await registry.createTool({ workspace: "acme", name: "assets" });
     const otherEnv = await registry.ensureEnvironment(other.id, "production");
-    expect(await code(registry.activate(otherEnv.id, version.id))).toBe("WRONG_TOOL");
-    expect(await code(registry.activate("missing", version.id))).toBe("NOT_FOUND");
+    expect(await code(registry.activate(otherEnv.id, version.id, { actor: "ely" }))).toBe(
+      "WRONG_TOOL",
+    );
+    expect(await code(registry.activate("missing", version.id, { actor: "ely" }))).toBe(
+      "NOT_FOUND",
+    );
     const env = await registry.ensureEnvironment(tool.id, "production");
-    await registry.activate(env.id, version.id);
+    await registry.activate(env.id, version.id, { actor: "ely" });
     await d1.batch([d1.prepare(`DELETE FROM "versions" WHERE "id" = ?`).bind(version.id)]);
     expect((await registry.listEnvironments(tool.id))[0]?.versionId).toBeUndefined();
   });

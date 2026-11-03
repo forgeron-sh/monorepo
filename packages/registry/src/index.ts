@@ -4,12 +4,16 @@ import { applyMigrations, type D1Database, type MigrateOptions } from "@forgeron
 import { platformMigrations } from "./migrations";
 
 export { platformMigrations } from "./migrations";
+export { closePreview, deployBuild, promoteVersion, rollbackEnvironment } from "./deploy";
+export type { DeployBuildInput, DeployedBuild, PromoteInput, RollbackInput } from "./deploy";
 export { createRegistry, RegistryError } from "./registry";
 export { createSecretBox, type SealedSecret, type SecretBox } from "./secret-box";
 export type {
   Approval,
   ApprovalStatus,
   BuildRecord,
+  DeploymentKind,
+  DeploymentRecord,
   EnvironmentRecord,
   Registry,
   RegistryErrorCode,

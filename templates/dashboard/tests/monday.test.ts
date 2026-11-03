@@ -12,12 +12,12 @@ function runtime(search: Record<string, string>, levels: string[]): ViewRuntime 
     params: { get: () => search, set: () => {}, subscribe: () => () => {} },
   };
 }
-const render = (search: Record<string, string>, levels = ["read"]) =>
+const render = (search: Record<string, string>, levels = ["read", "management"]) =>
   renderToString(createElement(ViewHost, { view: monday, runtime: runtime(search, levels) }));
 
 describe("views/monday.tsx", () => {
-  it("is served at /monday for the read level", () => {
-    expect(monday).toMatchObject({ path: "/monday", access: "read" });
+  it("is served at /monday for the management level", () => {
+    expect(monday).toMatchObject({ path: "/monday", access: "management" });
   });
 
   it("renders the page with its figures while they load", () => {
@@ -33,8 +33,9 @@ describe("views/monday.tsx", () => {
     expect(render({ owner: "ely@acme.fr" })).toMatch(/<select[^>]*>/);
   });
 
-  it("refuses a person without the read level, and a filter that is not an email", () => {
+  it("refuses a person without the management level (read is not enough), and a filter that is not an email", () => {
     expect(render({}, [])).toContain("Access denied");
+    expect(render({}, ["read"])).toContain("Access denied");
     expect(render({ owner: "not-an-email" })).toContain("Invalid parameters");
   });
 });
