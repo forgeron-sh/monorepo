@@ -34,3 +34,11 @@ export function workerName(workspace: string, environment: Environment): string 
   const hash = shortHash(name);
   return `${name.slice(0, MAX - 7).replace(/-+$/, "")}-${hash}`;
 }
+
+/**
+ * The name of the service binding the gateway holds for a Worker: `acme--crm--production` is
+ * `TOOL_ACME__CRM__PRODUCTION`. Worker names are `[a-z0-9-]`, so the mapping is one to one and no
+ * other binding of the gateway (`DB`, `BASE_DOMAIN`…) can be taken for a tool (D-017).
+ */
+export const serviceBindingName = (worker: string): string =>
+  `TOOL_${worker.toUpperCase().replaceAll("-", "_")}`;

@@ -61,6 +61,6 @@ Running it again is safe: the D1 and the Worker are reused, and a new version of
 
 - **The console is not deployed.** There is no console build yet; the command says so when it finishes.
 - **No route or custom domain is attached** to the gateway Worker, and DNS is yours to set up.
-- **Tools are not reachable until they are bound.** The gateway reaches each tool's Worker through a service binding, added when a tool is created or deleted; this installation does not add any.
+- **Tools are not reachable until they are bound.** The gateway reaches each tool's Worker through a service binding (`TOOL_<WORKER>`), added when a tool is created and removed when it is deleted (D-028). The hosting side exists (`createGatewayBindings`); the gateway does not use it yet, so this installation still adds none.
 - Several settings the gateway needs for identity (single sign-on, token signing) and the key that encrypts tool secrets are not part of this command yet.
 - The gateway bundle is not published as a package.

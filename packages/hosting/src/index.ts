@@ -8,10 +8,18 @@ export {
   CloudflareError,
   createCloudflareClient,
   createRestD1,
+  createGatewayBindings,
   createSelfHostHosting,
+  serviceBindingName,
   workerName,
 } from "./self-host";
-export type { CloudflareClient, CloudflareOptions, SelfHostOptions } from "./self-host";
+export type {
+  CloudflareClient,
+  CloudflareOptions,
+  GatewayBindings,
+  GatewayBindingsOptions,
+  SelfHostOptions,
+} from "./self-host";
 export { createCloudHosting } from "./cloud";
 export type { CloudOptions } from "./cloud";
 export { applyMigrations, migrationStatus, MigrationError, revertMigrations } from "./migrate";
