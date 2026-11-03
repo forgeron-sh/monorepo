@@ -136,6 +136,61 @@ describe("consent routes", () => {
   });
 });
 
+describe("consent audit", () => {
+  const lines = async () =>
+    (await registry.listAudit((await registry.findTool("acme", "mail"))!.id, { kind: "access" }))
+      .map((l) => ({ actor: l.actor, subject: l.subject, detail: l.detail }))
+      .reverse();
+
+  it("writes one line when a person gives their consent and one when they withdraw it", async () => {
+    await consentFlow();
+    expect(await lines()).toHaveLength(1);
+    const withdraw = await handleConsent(
+      new Request(`https://acme.forgeron.test${base}/consent/microsoft`, { method: "DELETE" }),
+      { registry, consent, workspace: "acme", caller: async () => person },
+    );
+    expect(withdraw?.status).toBe(204);
+    const written = await lines();
+    expect(written).toEqual([
+      {
+        actor: "ada@example.test",
+        subject: "connector-consent:microsoft-365:grant",
+        detail: { environment: "production" },
+      },
+      {
+        actor: "ada@example.test",
+        subject: "connector-consent:microsoft-365:withdraw",
+        detail: { environment: "production", connector: "microsoft" },
+      },
+    ]);
+    expect(JSON.stringify(written)).not.toMatch(/access-1|refresh-1/);
+  });
+
+  it("writes nothing for a withdrawal that finds no consent, and never blocks on the audit", async () => {
+    const response = await handleConsent(
+      new Request(`https://acme.forgeron.test${base}/consent/microsoft`, { method: "DELETE" }),
+      { registry, consent, workspace: "acme", caller: async () => person },
+    );
+    expect(response?.status).toBe(404);
+    expect(await lines()).toEqual([]);
+    const start = await consentCall(`${base}/consent/microsoft`);
+    const state = new URL(start!.headers.get("location")!).searchParams.get("state")!;
+    const done = await handleConsent(
+      new Request(
+        `https://acme.forgeron.test/api/consent/callback?state=${encodeURIComponent(state)}&code=code-ok`,
+      ),
+      {
+        registry,
+        consent,
+        workspace: "acme",
+        caller: async () => person,
+        audit: async () => Promise.reject(new Error("audit is down")),
+      },
+    );
+    expect(done?.status).toBe(200);
+  });
+});
+
 describe("connections routes", () => {
   it("lets the admin revoke a person's consent, once", async () => {
     await consentFlow();

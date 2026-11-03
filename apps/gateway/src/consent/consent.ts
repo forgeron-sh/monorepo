@@ -1,4 +1,4 @@
-import { ConsentError, type Consent, type Registry } from "@forgeron/registry";
+import { ConsentError, type AuditEntry, type Consent, type Registry } from "@forgeron/registry";
 
 // The consent routes of a delegated connector (docs/sdk.md section 10). Any signed-in person may
 // call them, for themselves:
@@ -18,6 +18,8 @@ const CALLBACK = "/api/consent/callback";
 export interface ConsentRoutesOptions {
   registry: Registry;
   consent: Consent;
+  /** Records a grant or a withdrawal (D-048). Defaults to the registry's audit log. */
+  audit?(entry: AuditEntry): Promise<void>;
   /** The workspace the request was dispatched to. */
   workspace: string;
   /** The signed-in person: `undefined` is anonymous. */
@@ -46,6 +48,19 @@ async function declaredConnector(
   return (
     build?.manifest as { resources?: { connectors?: Record<string, DeclaredConnector> } } | null
   )?.resources?.connectors?.[name];
+}
+
+// One `access` line per grant and per withdrawal: who, which tool, environment and connector type;
+// never a token. An audit failure never blocks the person.
+async function audit(
+  options: ConsentRoutesOptions,
+  entry: { toolId: string; actor: string; subject: string; detail: Record<string, unknown> },
+): Promise<void> {
+  await (options.audit ?? ((e) => options.registry.recordAudit(e)))({
+    ...entry,
+    interface: "api",
+    kind: "access",
+  }).catch(() => undefined);
 }
 
 /** Answers a consent route, or `undefined` when the request is for another route. */
@@ -93,6 +108,14 @@ export async function handleConsent(
       userId: caller.id,
       connector: declared.type,
     });
+    if (revoked) {
+      await audit(options, {
+        toolId: tool.id,
+        actor: caller.id,
+        subject: `connector-consent:${declared.type}:withdraw`,
+        detail: { environment, connector: name },
+      });
+    }
     return revoked
       ? new Response(null, { status: 204 })
       : json(404, { error: "NOT_FOUND", message: "You have not consented to that." });
@@ -106,6 +129,12 @@ export async function handleConsent(
         return json(400, { error: "INVALID", message: "`state` and `code` are required." });
       }
       const done = await options.consent.complete({ state, code, userId: caller.id });
+      await audit(options, {
+        toolId: done.toolId,
+        actor: caller.id,
+        subject: `connector-consent:${done.connector}:grant`,
+        detail: { environment: done.environment },
+      });
       return json(200, { connected: true, connector: done.connector });
     }
 
@@ -143,6 +172,20 @@ export async function handleConsent(
     });
   } catch (error) {
     if (error instanceof ConsentError) {
+      // The provider failed to answer: nothing was lost, the person can try again.
+      if (error.code === "PROVIDER_UNAVAILABLE") {
+        return new Response(
+          JSON.stringify({ error: error.code, message: error.message, retryable: true }),
+          {
+            status: 502,
+            headers: {
+              "content-type": "application/json",
+              "cache-control": "no-store",
+              "retry-after": "30",
+            },
+          },
+        );
+      }
       const status = error.code === "UNKNOWN_CONNECTOR" ? 404 : 400;
       return json(status, { error: error.code, message: error.message });
     }
