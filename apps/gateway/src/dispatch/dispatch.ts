@@ -29,6 +29,16 @@ export interface Caller {
   request: Request;
 }
 
+/** The identity a tool Worker reads from `x-forgeron-user`. */
+export interface ForwardedUser {
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
+  /** The console's overrides of the roles × actions matrix, for the person's roles. */
+  access?: Record<string, Record<string, boolean>>;
+}
+
 export interface DispatcherOptions {
   /** `forgeron.app`: the workspace is the one label in front of it. */
   baseDomain: string;
@@ -44,6 +54,12 @@ export interface DispatcherOptions {
   identify?(caller: Caller): string | undefined | Promise<string | undefined>;
   /** Counts a person's seat in a workspace. A failure never blocks the call. */
   recordSeat?(workspace: string, personId: string): void | Promise<void>;
+  /**
+   * What the tool is told of the caller, serialised in `x-forgeron-user` (the runtime's `User`):
+   * the person, their roles and the matrix overrides that apply to them. `undefined` is anonymous.
+   * The header is always removed from what the client sent: only this hook can set it.
+   */
+  user?(caller: Caller): ForwardedUser | undefined | Promise<ForwardedUser | undefined>;
   /** May this caller see a branch preview? Without it, nobody does. */
   canPreview?(caller: Caller & { branch: string }): boolean | Promise<boolean>;
 }
@@ -141,6 +157,11 @@ export function createDispatcher(options: DispatcherOptions) {
 
     const forwarded = new URL(url);
     forwarded.pathname = path.rest;
-    return target.fetch(new Request(forwarded, request));
+    const headers = new Headers(request.headers);
+    headers.delete("x-forgeron-user");
+    // A failure here fails closed: the call goes through as anonymous, never with the client's header.
+    const user = await Promise.resolve(options.user?.(caller)).catch(() => undefined);
+    if (user) headers.set("x-forgeron-user", JSON.stringify(user));
+    return target.fetch(new Request(forwarded, new Request(request, { headers })));
   };
 }

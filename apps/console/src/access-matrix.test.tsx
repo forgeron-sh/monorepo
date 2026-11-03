@@ -1,6 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AccessMatrix, loadAccessMatrix, type AccessMatrixData } from "./access-matrix";
+import {
+  AccessMatrix,
+  loadAccessMatrix,
+  saveAccessMatrix,
+  withDraft,
+  type AccessMatrixData,
+} from "./access-matrix";
 
 describe("loadAccessMatrix", () => {
   it("asks for the tool and keeps what the screen draws", async () => {
@@ -23,15 +29,15 @@ describe("loadAccessMatrix", () => {
     );
     expect(paths).toEqual(["/api/tools/crm/access-matrix"]);
     expect(matrix.cells.sales).toEqual({
-      "deals.move": { allowed: true, changed: false },
-      "deals.delete": { allowed: true, changed: true },
+      "deals.move": { allowed: true, default: true, changed: false },
+      "deals.delete": { allowed: true, default: false, changed: true },
     });
     expect(JSON.stringify(matrix)).not.toContain("must-not-survive");
   });
 
   it("treats a missing cell as refused", async () => {
     const matrix = await loadAccessMatrix(async () => ({ roles: ["a"], actions: ["x"] }), "t");
-    expect(matrix.cells.a!.x).toEqual({ allowed: false, changed: false });
+    expect(matrix.cells.a!.x).toEqual({ allowed: false, default: false, changed: false });
   });
 });
 
@@ -40,8 +46,8 @@ describe("AccessMatrix", () => {
     roles: ["sales", "viewer"],
     actions: ["deals.move"],
     cells: {
-      sales: { "deals.move": { allowed: true, changed: false } },
-      viewer: { "deals.move": { allowed: true, changed: true } },
+      sales: { "deals.move": { allowed: true, default: true, changed: false } },
+      viewer: { "deals.move": { allowed: true, default: false, changed: true } },
     },
   };
 
@@ -49,7 +55,7 @@ describe("AccessMatrix", () => {
     const out = renderToStaticMarkup(<AccessMatrix matrix={matrix} />);
     expect(out).toContain("sales");
     expect(out).toContain("deals.move");
-    expect(out).toContain("(changed)");
+    expect(out).toContain("(default: refused)");
     expect(out.match(/allowed/g)).toHaveLength(2);
     expect(out).not.toContain("<button");
   });
@@ -63,5 +69,43 @@ describe("AccessMatrix", () => {
     expect(
       renderToStaticMarkup(<AccessMatrix matrix={{ roles: [], actions: [], cells: {} }} />),
     ).toContain("declares no role");
+  });
+});
+
+describe("editing", () => {
+  const matrix: AccessMatrixData = {
+    roles: ["viewer"],
+    actions: ["a", "b"],
+    cells: {
+      viewer: {
+        a: { allowed: false, default: false, changed: false },
+        b: { allowed: true, default: false, changed: true },
+      },
+    },
+  };
+
+  it("shows a drafted flip as differing from the default, and a flip back as not", () => {
+    const flipped = withDraft(
+      matrix,
+      new Map([["viewer\u0000a", { role: "viewer", action: "a", allowed: true }]]),
+    );
+    expect(flipped.cells.viewer!.a).toEqual({ allowed: true, default: false, changed: true });
+    const back = withDraft(
+      matrix,
+      new Map([["viewer\u0000b", { role: "viewer", action: "b", allowed: false }]]),
+    );
+    expect(back.cells.viewer!.b!.changed).toBe(false);
+  });
+
+  it("sends a cell back at its default as null, any other as its value", async () => {
+    const sent: unknown[] = [];
+    await saveAccessMatrix(async (path, body) => void sent.push([path, body]), "crm", matrix, [
+      { role: "viewer", action: "a", allowed: true },
+      { role: "viewer", action: "b", allowed: false },
+    ]);
+    expect(sent).toEqual([
+      ["/api/tools/crm/access-matrix", { role: "viewer", action: "a", allowed: true }],
+      ["/api/tools/crm/access-matrix", { role: "viewer", action: "b", allowed: null }],
+    ]);
   });
 });

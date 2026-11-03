@@ -367,3 +367,21 @@ Rules of the log:
 - **Rejected**: reading the script back from Cloudflare (format unverified); storing the code in a secret or plain binding (size limit); an install that drops the tool bindings (tools unreachable after each install).
 - **Not done / not verified**: the assets are kept with `keep_assets: true`, documented for the upload endpoints ("Direct Upload"), not tried on the beta versions endpoint, and their routing config (`not_found_handling`, `run_worker_first`) may not survive it; `Object.keys(env)` is the list of bindings (workerd's `env` enumerates them, not checked); two tool deployments at the same moment can lose a binding; a gateway installed before this change has no stored code until the install is run again; nothing was tried on a real account.
 - **Applied in**: FOR-119.
+
+## D-033 — The matrix is a set of overrides in the platform D1, forwarded to the tool at each call in `x-forgeron-user`
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: the roles × actions matrix of a tool is the manifest's access levels (default) plus one `role_access` row per cell an admin set (`0006_role_access`); no version is involved. At each call the gateway (the dispatcher's `user` hook) resolves the caller, reads `registry.accessFor(tool, roles)` (the overrides of the caller's own roles) and sends `{ id, email, name, roles, access }` in `x-forgeron-user`; the runtime's one check (`mayCall`) gives an override priority over the levels, on MCP, API, CLI and Web alike. Nothing is cached, so an edit applies to the next call. The dispatcher always deletes `x-forgeron-user` from what the client sent, and a failure of the hook sends the call anonymous. The roles and actions of the matrix are those of the version production serves (else the latest): the console cannot add a role or an action, only move who may call.
+- **Why**: the check stays in the runtime where FOR-90 put it, so no interface can skip it, and the override is read where the roles already are. A header the client could set would have let anyone choose their identity.
+- **Rejected**: copying the matrix into each tool's environment (needs a deployment per edit); a per-interface check in the gateway (four copies to keep equal); caching the overrides in the gateway (a stale grant after a revoke).
+- **Not done**: views still check the access levels only (the gateway's view access is not built); an override of a role or action that a later version removes stays in the table and is ignored.
+- **Applied in**: FOR-43; `apps/gateway/src/dispatch/dispatch.ts`, `gateway.ts`; `packages/runtime` (`mayCall`).
+
+## D-034 — The matrix is edited by admins only, cell by cell, and every edit is audited
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `GET` and `PUT /console-api/api/tools/<tool>/access-matrix` are for the workspace's `admin` role (D-023). `PUT` takes `{ role, action, allowed }`, `allowed` being `true`, `false`, or `null` to give the cell back to the manifest's levels; it answers with the matrix. The registry writes the edit and an audit line (`kind: "access"`, subject `role:action`, detail `{ role, action, from, to }`, the admin as actor) in one batch (migration `0011_audit_access`, which rebuilds `audit_log` because SQLite cannot change a CHECK). The console drafts flips on the screen, marks each cell whose applied value differs from the manifest's default, and sends the drafted cells on Save, a cell back at its default as `null`.
+- **Why**: a refused-by-default governance surface must not be writable by developers (D-023); the audit line and the write cannot disagree when they share a batch.
+- **Rejected**: a whole-matrix replace (two admins editing different cells would overwrite each other); keeping an override equal to the default (it would hide a later change of the manifest's level).
+- **Not done**: the screen is not mounted in the console shell (`main.tsx` has no tool navigation yet); Save sends the cells one by one, so a failure part-way leaves the earlier ones applied (the screen reloads and shows what applies); the admin MCP has no matrix tool.
+- **Applied in**: FOR-43; `apps/gateway/src/console-api/access-matrix.ts`, `apps/console/src/access-matrix.tsx`, `packages/registry` (`0011_audit_access`).

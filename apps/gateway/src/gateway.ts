@@ -15,6 +15,7 @@ import {
   type GatewayBindings,
   type Hosting,
 } from "@forgeron/hosting";
+import { handleAccessMatrix } from "./console-api/access-matrix";
 import { handleConnections } from "./console-api/connections";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
@@ -131,6 +132,19 @@ export function createGateway(
             identify,
             recordSeat: (workspace: string, personId: string) =>
               registry.recordSeat(workspace, personId),
+          }
+        : {}),
+      // The runtime of the tool checks access from this: the roles and the console's overrides,
+      // read at each call, so a change of the matrix applies at once on every interface.
+      ...(caller
+        ? {
+            user: async (c: { workspace: string; tool: string; request: Request }) => {
+              const person = await caller.resolve(c.request, c.workspace);
+              if (!person) return undefined;
+              const tool = await registry.findTool(c.workspace, c.tool);
+              const access = tool ? await registry.accessFor(tool.id, person.roles) : {};
+              return { ...person, access };
+            },
           }
         : {}),
       // A preview is for the workspace's administrators and developers (sdk.md §7).
@@ -268,10 +282,15 @@ export function createGateway(
       const who = secret && caller ? await caller.resolve(request, workspace, true) : undefined;
       const identity = async () =>
         who
-          ? { admin: who.roles.includes("admin"), developer: who.roles.includes("developer") }
+          ? {
+              id: who.id,
+              admin: who.roles.includes("admin"),
+              developer: who.roles.includes("developer"),
+            }
           : undefined;
       return (
         (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecrets(forwarded, { registry, workspace, caller: identity })) ??
