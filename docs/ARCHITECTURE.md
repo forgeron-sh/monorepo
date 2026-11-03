@@ -59,6 +59,7 @@ forgeron/
 │   ├── manifest/           # @forgeron/manifest: manifest schema, version diff, semver impact
 │   ├── hosting/            # @forgeron/hosting: deployment interface, cloud, self-host and local modes
 │   ├── ui/                 # @forgeron/ui: design system components and tokens
+│   ├── connector-google-workspace/  # @forgeron/connector-google-workspace
 │   ├── connector-<name>/   # @forgeron/connector-<name> (later: microsoft-365, odoo…)
 │   └── tsconfig/           # @forgeron/tsconfig
 ├── templates/
