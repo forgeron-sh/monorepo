@@ -48,3 +48,15 @@ export async function deploy(
 export async function teardownPreview(hosting: Hosting, tool: string, branch: string) {
   await hosting.teardown({ tool, name: "preview", branch });
 }
+
+/**
+ * Puts an earlier build back on traffic: provision, upload, activate, **without migrating**. An
+ * earlier build has fewer migrations than the database, and none is rolled back implicitly
+ * (`forgeron db rollback` does that, explicitly).
+ */
+export async function restore(hosting: Hosting, environment: Environment, build: Build) {
+  const provisioned = await hosting.provision(environment, build.manifest);
+  const uploaded = await hosting.upload(provisioned, build);
+  const activation = await hosting.activate(uploaded);
+  return { uploaded, activation };
+}

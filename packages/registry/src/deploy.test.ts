@@ -64,6 +64,7 @@ describe("deployBuild", () => {
       environment: "production",
       build: build("fp1"),
       version: "1.0.0",
+      actor: "ely",
     });
     expect(calls).toEqual(["provision", "upload", "migrate", "activate"]);
     expect(result.environment).toMatchObject({
@@ -80,6 +81,7 @@ describe("deployBuild", () => {
       environment: "production",
       build: build("fp1"),
       version: "1.0.0",
+      actor: "ely",
     });
     await expect(
       deployBuild(registry, fakeHosting(true).hosting, {
@@ -87,6 +89,7 @@ describe("deployBuild", () => {
         environment: "production",
         build: build("fp2"),
         version: "1.1.0",
+        actor: "ely",
       }),
     ).rejects.toThrow("migration failed");
     const [environment] = await registry.listEnvironments(tool.id);
@@ -102,6 +105,7 @@ describe("deployBuild", () => {
       branch: "feat/a",
       build: build("fp1"),
       version: "0.0.1-a",
+      actor: "ely",
     });
     await closePreview(registry, hosting, tool, "feat/a");
     expect(calls.at(-1)).toBe("teardown feat/a");

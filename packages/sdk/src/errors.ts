@@ -5,6 +5,7 @@ export const TOOL_ERROR_CODES = [
   "NOT_FOUND",
   "CONFLICT",
   "RATE_LIMITED",
+  "SECRET_REQUIRED",
   "UPSTREAM",
 ] as const;
 

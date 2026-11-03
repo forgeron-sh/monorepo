@@ -1,19 +1,24 @@
-// Receiving a build: record it, deploy it through `hosting`, and record what the environment now
-// serves. The registry is written only for what happened: a build that fails to deploy stays
-// recorded (CI can retry), but the environment keeps pointing at its previous version.
+// Receiving a build, promoting a version, rolling an environment back: each is recorded in the
+// audit log (who, when, which version). The registry is written only for what happened: a build
+// that fails to deploy stays recorded (CI can retry), but the environment keeps pointing at its
+// previous version.
 import {
   deploy,
+  restore,
   teardownPreview,
   type Build,
+  type BuildMigration,
   type Deployment,
   type Hosting,
 } from "@forgeron/hosting";
-import type {
-  EnvironmentRecord,
-  Registry,
-  RegisteredEnvironment,
-  Tool,
-  VersionRecord,
+import {
+  RegistryError,
+  type BuildRecord,
+  type EnvironmentRecord,
+  type Registry,
+  type RegisteredEnvironment,
+  type Tool,
+  type VersionRecord,
 } from "./registry";
 
 export interface DeployBuildInput {
@@ -24,12 +29,39 @@ export interface DeployBuildInput {
   build: Build;
   /** The number the version is published under. */
   version: string;
+  /** Pilot only: the group that gets this version at the production address. */
+  group?: string;
   allowDestructive?: boolean;
+  /** Who deploys: written in the audit log. */
+  actor: string;
 }
 
 export interface DeployedBuild extends Deployment {
   version: VersionRecord;
   environment: EnvironmentRecord;
+}
+
+const target = (tool: Tool, name: RegisteredEnvironment, branch?: string) => ({
+  tool: tool.name,
+  name,
+  ...(branch ? { branch } : {}),
+});
+
+/** A recorded build, as a host takes it. A build recorded without its code cannot be redeployed. */
+function buildOf(record: BuildRecord): Build {
+  if (record.worker === undefined) {
+    throw new RegistryError(
+      "NO_ARTIFACT",
+      `The build ${record.fingerprint} was recorded without its code: deploy it again from CI.`,
+    );
+  }
+  return {
+    manifest: record.manifest as Build["manifest"],
+    worker: record.worker,
+    fingerprint: record.fingerprint,
+    ...(record.migrations ? { migrations: record.migrations as BuildMigration[] } : {}),
+    ...(record.changelog ? { changelog: record.changelog as NonNullable<Build["changelog"]> } : {}),
+  };
 }
 
 export async function deployBuild(
@@ -38,25 +70,115 @@ export async function deployBuild(
   input: DeployBuildInput,
 ): Promise<DeployedBuild> {
   const { tool, build } = input;
-  const target = await registry.ensureEnvironment(tool.id, input.environment, input.branch);
+  const slot = await registry.ensureEnvironment(tool.id, input.environment, input.branch);
   const recorded = await registry.recordBuild(tool.id, {
     fingerprint: build.fingerprint,
     manifest: build.manifest,
+    worker: build.worker,
+    ...(build.migrations ? { migrations: build.migrations } : {}),
     ...(build.changelog ? { changelog: build.changelog } : {}),
   });
   const version = await registry.publishVersion(tool.id, recorded.id, input.version);
   const deployment = await deploy(
     hosting,
-    {
-      tool: tool.name,
-      name: input.environment,
-      ...(input.branch ? { branch: input.branch } : {}),
-    },
+    target(tool, input.environment, input.branch),
     build,
     input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive },
   );
-  const environment = await registry.activate(target.id, version.id, deployment.activation.url);
+  let environment = await registry.activate(slot.id, version.id, {
+    actor: input.actor,
+    url: deployment.activation.url,
+  });
+  if (input.environment === "pilot" && input.group) {
+    environment = await registry.setPilotGroup(slot.id, input.group);
+  }
   return { ...deployment, version, environment };
+}
+
+export interface PromoteInput {
+  tool: Tool;
+  /** The version number, as published. */
+  version: string;
+  to: RegisteredEnvironment;
+  branch?: string;
+  group?: string;
+  allowDestructive?: boolean;
+  actor: string;
+}
+
+/**
+ * Puts an existing version on another environment, from the code recorded with its build: no
+ * rebuild. The target takes it under the same rules as a deployment (changelog, destructive
+ * migrations).
+ */
+export async function promoteVersion(
+  registry: Registry,
+  hosting: Hosting,
+  input: PromoteInput,
+): Promise<DeployedBuild> {
+  const { tool } = input;
+  const version = await registry.findVersion(tool.id, input.version);
+  if (!version) {
+    throw new RegistryError("NOT_FOUND", `The tool ${tool.name} has no version ${input.version}.`);
+  }
+  const record = await registry.getBuild(version.buildId);
+  if (!record) throw new RegistryError("NOT_FOUND", `There is no build ${version.buildId}.`);
+  const slot = await registry.ensureEnvironment(tool.id, input.to, input.branch);
+  const deployment = await deploy(
+    hosting,
+    target(tool, input.to, input.branch),
+    buildOf(record),
+    input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive },
+  );
+  let environment = await registry.activate(slot.id, version.id, {
+    actor: input.actor,
+    kind: "promote",
+    url: deployment.activation.url,
+  });
+  if (input.to === "pilot" && input.group) {
+    environment = await registry.setPilotGroup(slot.id, input.group);
+  }
+  return { ...deployment, version, environment };
+}
+
+export interface RollbackInput {
+  tool: Tool;
+  environment: RegisteredEnvironment;
+  branch?: string;
+  actor: string;
+}
+
+/**
+ * Puts the version the environment served before the current one back on traffic. No migration is
+ * rolled back or applied (`forgeron db rollback` is explicit).
+ */
+export async function rollbackEnvironment(
+  registry: Registry,
+  hosting: Hosting,
+  input: RollbackInput,
+): Promise<{ version: VersionRecord; environment: EnvironmentRecord }> {
+  const { tool } = input;
+  const slot = await registry.ensureEnvironment(tool.id, input.environment, input.branch);
+  const previous = await registry.previousVersion(slot.id);
+  if (!previous) {
+    throw new RegistryError(
+      "NO_PREVIOUS",
+      `The ${input.environment} environment has no earlier version.`,
+    );
+  }
+  const record = await registry.getBuild(previous.buildId);
+  if (!record) throw new RegistryError("NOT_FOUND", `There is no build ${previous.buildId}.`);
+  const { activation } = await restore(
+    hosting,
+    target(tool, input.environment, input.branch),
+    buildOf(record),
+  );
+  const environment = await registry.activate(slot.id, previous.id, {
+    actor: input.actor,
+    kind: "rollback",
+    url: activation.url,
+  });
+  return { version: previous, environment };
 }
 
 /** A merged or deleted branch: the preview is torn down, then forgotten. */
