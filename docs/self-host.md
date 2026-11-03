@@ -128,7 +128,7 @@ This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `
 
 Register this redirect URI at the identity provider, for each workspace: `https://<workspace>.<BASE_DOMAIN>/auth/callback`.
 
-What the gateway serves at a workspace origin once these are set: `/auth/login`, `/auth/callback`, `/auth/logout`, `/auth/saml/metadata` and `POST /auth/saml/acs` (SAML), `POST /auth/token` (a signed-in person's token for one tool, 1 to 30 days), `GET /auth/cli` and `POST /auth/cli/token` (`forgeron login`), `GET /whoami`, `POST /deploy-tokens` (administrators), `POST /deploy` (a deployment token), `POST /promote` and `POST /rollback` (an administrator or a deployment token, D-033), `/console-api/*` (with `/api/groups` for the pilot group, D-034), `/t/<tool>`.
+What the gateway serves at a workspace origin once these are set: `/auth/login`, `/auth/callback`, `/auth/logout`, `/auth/saml/metadata` and `POST /auth/saml/acs` (SAML), `POST /auth/token` (a signed-in person's token for one tool, 1 to 30 days), `GET` and `POST /auth/cli` (the page that asks the person to authorize `forgeron login`, D-053) and `POST /auth/cli/token` (`forgeron login`), `GET /auth/invite/<id>` (the page an invitation mail links to), `GET /whoami`, `POST /deploy-tokens` (administrators), `POST /deploy` (a deployment token), `POST /promote` and `POST /rollback` (an administrator or a deployment token, D-033), `/console-api/*` (with `/api/groups` for the pilot group, D-034), `/t/<tool>`.
 
 ## What is not done yet
 

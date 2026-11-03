@@ -280,7 +280,17 @@ describe("per-person secrets on first use", () => {
 
     // The page is the input page of the web; the CLI posts to the same route with its own token.
     const page = await call("/t/crm/secrets", token);
-    expect(await page.text()).toContain("Odoo API key");
+    const html = await page.text();
+    expect(html).toContain("Odoo API key");
+    // In the shell: a title, one heading, a labelled password field, no script, the CSP of the pages.
+    expect(html).toContain("<title>Your secrets · Forgeron</title>");
+    expect(html).toContain("<h1>Your secrets</h1>");
+    expect(html).toMatch(/<label for="secret-0">Odoo API key/);
+    expect(html).toContain('type="password"');
+    expect(html).not.toContain("<script");
+    expect(page.headers.get("content-security-policy")).toBe(
+      "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+    );
     expect(
       (await call("/t/crm/secrets", await cliToken(ben), json({ ODOO_API_KEY: "ben-test-value" })))
         .status,

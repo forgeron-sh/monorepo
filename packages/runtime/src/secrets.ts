@@ -10,9 +10,22 @@ import type { Manifest, User, UserSecretStore } from "./types";
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-const page = (body: string, status = 200) =>
+/** A page of the secrets flow, for a host to dress (the gateway puts it in its page shell). */
+export interface SecretsPage {
+  title: string;
+  /** Small line above the heading: the tool's name. */
+  eyebrow: string;
+  /** Markup built with the classes of the gateway's shell; every dynamic value is escaped. */
+  body: string;
+  status: number;
+}
+
+/** Turns a page into a response. The default is a bare document: a tool served without a gateway. */
+export type SecretsRenderer = (page: SecretsPage) => Response;
+
+const bare: SecretsRenderer = ({ title, eyebrow, body, status }) =>
   new Response(
-    `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Your secrets</title>${body}`,
+    `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(title)}</title><p>${escapeHtml(eyebrow)}</p><h1>${escapeHtml(title)}</h1>${body}`,
     {
       status,
       headers: {
@@ -30,6 +43,7 @@ export async function handleSecretsInput(
   user: User,
   store: UserSecretStore,
   baseUrl: string,
+  render: SecretsRenderer = bare,
 ): Promise<Response> {
   const declared = Object.entries(manifest.resources.userSecrets ?? {});
   const action = `${baseUrl.replace(/\/+$/, "")}/secrets`;
@@ -37,14 +51,21 @@ export async function handleSecretsInput(
   if (request.method === "GET") {
     const own = await store.read(user);
     const fields = declared
-      .map(
-        ([name, secret]) =>
-          `<p><label>${escapeHtml(secret.label)}<br><input type="password" name="${escapeHtml(name)}" autocomplete="off" placeholder="${own[name] ? "set; enter a new value to replace it" : ""}"></label><br><small>${escapeHtml(secret.help ?? "")} ${escapeHtml(secret.why)}</small></p>`,
-      )
+      .map(([name, secret], i) => {
+        const set = Boolean(own[name]);
+        const help = [secret.help, secret.why].filter(Boolean).join(" ");
+        return `<div class="secret"><label for="secret-${i}">${escapeHtml(secret.label)}${set ? ` <span class="tag-set">Set</span>` : ""}</label><input id="secret-${i}" type="password" name="${escapeHtml(name)}" autocomplete="off" spellcheck="false" placeholder="${set ? "Enter a new value to replace it" : ""}"><span class="hint">${escapeHtml(help)}</span></div>`;
+      })
       .join("");
-    return page(
-      `<h1>${escapeHtml(manifest.title ?? manifest.name)}: your secrets</h1><form method="post" action="${escapeHtml(action)}">${fields || "<p>This tool asks for no personal secret.</p>"}<button>Save</button></form>`,
-    );
+    const body = fields
+      ? `<p class="lead">Only you can use these values, and a value is never shown again. Leave a field empty to keep what is set.</p><form method="post" action="${escapeHtml(action)}" class="stack">${fields}<button type="submit" class="btn primary">Save secrets</button></form>`
+      : `<p>This tool asks for no personal secret.</p>`;
+    return render({
+      title: "Your secrets",
+      eyebrow: manifest.title ?? manifest.name,
+      body,
+      status: 200,
+    });
   }
   if (request.method !== "POST") {
     return new Response(null, { status: 405, headers: { allow: "GET, POST" } });
@@ -87,7 +108,11 @@ export async function handleSecretsInput(
   if (request.headers.get("content-type")?.includes("application/json")) {
     return Response.json({ saved });
   }
-  return page(
-    `<h1>Saved</h1><p>${saved.length} secret(s) saved. You can go back to your work.</p>`,
-  );
+  const count = saved.length === 1 ? "1 secret" : `${saved.length} secrets`;
+  return render({
+    title: "Secrets saved",
+    eyebrow: manifest.title ?? manifest.name,
+    body: `<p class="notice success" role="status"><span class="tag">Done</span><span>${saved.length === 0 ? "Nothing was changed: every field was empty." : `${count} saved.`} You can go back to your work.</span></p>`,
+    status: 200,
+  });
 }

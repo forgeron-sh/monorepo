@@ -70,14 +70,46 @@ async function browser(url: string, email: string) {
       headers: { cookie: cookiesOf(login) },
     }),
   );
-  if (callback.status !== 302) return { status: callback.status };
+  if (callback.status !== 302) return { status: callback.status, location: undefined };
   // Back to /auth/cli, now with the session.
   const back = await gateway(
     new Request(new URL(callback.headers.get("location")!, ENDPOINT), {
       headers: { cookie: cookiesOf(callback) },
     }),
   );
-  return { status: back.status, location: back.headers.get("location")! };
+  // The page asks first: nothing reaches the loopback address until Authorize is pressed.
+  expect(back.status).toBe(200);
+  expect(back.headers.get("location")).toBeNull();
+  return answer(gateway, back, cookiesOf(callback), ENDPOINT);
+}
+
+const decode = (text: string) =>
+  text.replaceAll("&amp;", "&").replaceAll("&quot;", '"').replaceAll("&#39;", "'");
+
+/** Presses a button of the CLI confirmation page: what the page hands back to the CLI. */
+async function answer(
+  gateway: (request: Request) => Promise<Response>,
+  confirmation: Response,
+  cookie: string,
+  origin: string,
+  decision: "allow" | "deny" = "allow",
+) {
+  const html = await confirmation.text();
+  const fields = new URLSearchParams(
+    [...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map(
+      (m): [string, string] => [decode(m[1]!), decode(m[2]!)],
+    ),
+  );
+  fields.set("decision", decision);
+  const posted = await gateway(
+    new Request(`${origin}/auth/cli`, {
+      method: "POST",
+      headers: { cookie, origin, "content-type": "application/x-www-form-urlencoded" },
+      body: fields,
+    }),
+  );
+  const refresh = /http-equiv="refresh" content="0;url=([^"]+)"/.exec(await posted.clone().text());
+  return { status: posted.status, location: refresh ? decode(refresh[1]!) : undefined };
 }
 
 const exchange = (body: unknown) =>
@@ -93,7 +125,7 @@ describe("forgeron login against the gateway", () => {
   it("signs the CLI in: browser, loopback code, PKCE exchange, then whoami", async () => {
     const { verifier, challenge } = pkce();
     const landed = await browser(authorizeUrl(challenge, "st1"), "ely@acme.fr");
-    expect(landed.status).toBe(302);
+    expect(landed.status).toBe(200);
     const back = new URL(landed.location!);
     expect(`${back.origin}${back.pathname}`).toBe(REDIRECT);
     expect(back.searchParams.get("state")).toBe("st1");

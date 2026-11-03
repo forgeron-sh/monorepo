@@ -42,6 +42,8 @@ import { handlePromote, handleRollback } from "./deploy/promote";
 import { handleGroups } from "./console-api/groups";
 import { createAuth } from "./identity/auth";
 import { createEmailAuth } from "./identity/email-auth";
+import { invitationId, invitationLink } from "./identity/invitation";
+import { negotiated } from "./pages/errors";
 import {
   cloudflareMailSender,
   consoleMailSender,
@@ -130,8 +132,13 @@ const CONSOLE_API = "/console-api";
 const CONSOLE_CSP =
   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
-const notFound = () =>
-  Response.json({ error: { code: "NOT_FOUND", message: "Not found." } }, { status: 404 });
+/** A page of the shell for a browser, the JSON error for any other client. */
+const notFound = (request: Request) =>
+  negotiated(
+    request,
+    404,
+    Response.json({ error: { code: "NOT_FOUND", message: "Not found." } }, { status: 404 }),
+  );
 
 /**
  * The gateway's request handler. On a workspace origin: `/t/<tool>…` is dispatched to the tool,
@@ -473,7 +480,7 @@ export function createGateway(
             session: (r) => caller.session(r, workspace),
           });
         }
-        return (await auth(request)) ?? notFound();
+        return (await auth(request)) ?? notFound(request);
       }
       if (url.pathname === "/whoami") {
         const person = await caller.resolve(request, workspace, true);
@@ -566,7 +573,7 @@ export function createGateway(
                     to: invitation.email,
                     subject: `You are invited to ${workspace}`,
                     invitation: { roles: invitation.roles },
-                    text: `You are invited to join ${workspace}${invitation.roles.length ? ` as ${invitation.roles.join(", ")}` : ""}.\n\nSign in with this email address at https://${workspace}.${env.BASE_DOMAIN}/auth/login to accept. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
+                    text: `You are invited to join ${workspace}${invitation.roles.length ? ` as ${invitation.roles.join(", ")}` : ""}.\n\nOpen ${invitationLink(`https://${workspace}.${env.BASE_DOMAIN}`, await invitationId(secret!, invitation))} to accept, then sign in with this email address. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
                   });
                   return true;
                 },
@@ -587,12 +594,12 @@ export function createGateway(
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
         (await handleGroups(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecrets(forwarded, { registry, workspace, caller: identity })) ??
-        notFound()
+        notFound(request)
       );
     }
 
     // The workspace's own API paths belong to parts of the gateway that do not exist yet: never the console.
-    if (/^\/(mcp|api|cli)(\/|$)/.test(url.pathname)) return notFound();
+    if (/^\/(mcp|api|cli)(\/|$)/.test(url.pathname)) return notFound(request);
 
     if (request.method !== "GET" && request.method !== "HEAD") {
       return Response.json(
@@ -600,7 +607,7 @@ export function createGateway(
         { status: 405, headers: { allow: "GET, HEAD" } },
       );
     }
-    if (!env.ASSETS) return notFound();
+    if (!env.ASSETS) return notFound(request);
     const asset = await env.ASSETS.fetch(request);
     const headers = new Headers(asset.headers);
     headers.set("content-security-policy", CONSOLE_CSP);
