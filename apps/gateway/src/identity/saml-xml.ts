@@ -1,5 +1,5 @@
 // A small, strict XML reader and the exclusive canonicalization (xml-exc-c14n, no comments) that an
-// XML signature is computed over (D-049). It exists only for SAML: no DOCTYPE, no entity other than the
+// XML signature is computed over (D-050). It exists only for SAML: no DOCTYPE, no entity other than the
 // five predefined ones and character references, no processing instruction inside an element, bounded
 // size and depth. Anything else is refused, never skipped. No DOM, no `node:*`: it runs in a Worker.
 

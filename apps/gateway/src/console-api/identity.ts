@@ -80,7 +80,7 @@ export async function handleIdentity(
     if (request.method === "PUT") {
       const body = await readBody(request);
       if ((body as { kind?: unknown } | undefined)?.kind === "saml") {
-        // SAML (D-049): public certificates only, no secret to keep. Saving it replaces an OIDC provider.
+        // SAML (D-050): public certificates only, no secret to keep. Saving it replaces an OIDC provider.
         const saml = await parseSamlProviderInput(body);
         if ("message" in saml) return json(400, { error: "INVALID", message: saml.message });
         await config.setSamlProvider(workspace, saml.input, caller.id);

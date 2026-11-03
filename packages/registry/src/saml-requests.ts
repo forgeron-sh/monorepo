@@ -1,4 +1,4 @@
-// The short-lived ids of SAML sign-in, in the platform D1 (D-049): a request id is recorded when the
+// The short-lived ids of SAML sign-in, in the platform D1 (D-050): a request id is recorded when the
 // person is sent to the identity provider and used once when the response comes back; an assertion id
 // is recorded when accepted, so the same assertion cannot sign anyone in twice. Each is one statement,
 // so two simultaneous responses cannot both win. Expired rows are purged when a sign-in starts.

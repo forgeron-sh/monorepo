@@ -510,6 +510,62 @@ describe("forgeron platform install", () => {
       expect(cf.calls).toHaveLength(0);
     });
 
+    it("sets up the sign-in by email: the methods, the sender and the send_email binding (D-049)", async () => {
+      const cf = fakeCloudflare();
+      await platform(
+        install([
+          "--sign-in",
+          "email",
+          "--mail-from",
+          "login@fabriks.example",
+          "--admin-email",
+          "admin@example.test",
+        ]),
+        io,
+        { fetch: cf.fetcher },
+      );
+      expect(named(cf, "SIGN_IN_METHODS")).toMatchObject({ type: "plain_text", text: "email" });
+      expect(named(cf, "MAIL_FROM")).toMatchObject({
+        type: "plain_text",
+        text: "login@fabriks.example",
+      });
+      expect(named(cf, "SEND_EMAIL")).toEqual({ type: "send_email", name: "SEND_EMAIL" });
+      expect(named(cf, "ADMIN_EMAIL")).toBeDefined();
+      expect(named(cf, "OIDC_ISSUER")).toBeUndefined();
+      expect(logs.join("\n")).toContain("by email code");
+    });
+
+    it("sets both sign-ins side by side", async () => {
+      const cf = fakeCloudflare();
+      await platform(
+        install([...OIDC, "--sign-in", "oidc,email", "--mail-from", "login@fabriks.example"]),
+        io,
+        { fetch: cf.fetcher },
+      );
+      expect(named(cf, "SIGN_IN_METHODS")?.text).toBe("oidc,email");
+      expect(named(cf, "OIDC_ISSUER")).toBeDefined();
+      expect(named(cf, "SEND_EMAIL")).toBeDefined();
+    });
+
+    it("refuses a sign-in by email that is incomplete, before calling Cloudflare", async () => {
+      const cf = fakeCloudflare();
+      const bad: Array<[string[], RegExp]> = [
+        [["--sign-in", "email", "--admin-email", "a@b.co"], /--mail-from/],
+        [["--sign-in", "email", "--mail-from", "nope", "--admin-email", "a@b.co"], /--mail-from/],
+        [["--sign-in", "sms", "--admin-email", "a@b.co"], /--sign-in is/],
+        [["--sign-in", "email", "--mail-from", "a@b.co"], /Nobody could sign in/],
+        [["--sign-in", "oidc", "--mail-from", "a@b.co", "--admin-email", "a@b.co"], /--mail-from/],
+        [
+          ["--sign-in", "email", "--mail-from", "a@b.co", "--oidc-issuer", "https://x.test"],
+          /are for --sign-in oidc/,
+        ],
+      ];
+      for (const [extra, message] of bad) {
+        await expect(platform(install(extra), io, { fetch: cf.fetcher })).rejects.toThrow(message);
+      }
+      expect(cf.calls).toHaveLength(0);
+    });
+
     it("says sign-in is not configured when no identity flag is given on a first install", async () => {
       const cf = fakeCloudflare();
       await platform(install(), io, { fetch: cf.fetcher });

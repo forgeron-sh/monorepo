@@ -7,5 +7,7 @@ export { DEPLOY_SCOPE, handleCreateDeployToken, handleDeploy } from "./deploy/de
 export type { DeployContext, TokenIssuerContext } from "./deploy/deploy";
 
 export default {
-  fetch: (request: Request, env: GatewayEnv) => createGateway(env)(request),
+  // The sign-in mail goes out after the answer (`waitUntil`), so the answer does not say whether one was sent.
+  fetch: (request: Request, env: GatewayEnv, ctx: { waitUntil(work: Promise<unknown>): void }) =>
+    createGateway(env, { defer: (work) => ctx.waitUntil(work) })(request),
 };

@@ -11,7 +11,7 @@ import {
 } from "./saml-xml";
 
 // SAML 2.0 Web SSO, service-provider initiated: an HTTP-Redirect AuthnRequest, an HTTP-POST response
-// to the assertion consumer service (D-049). The response is trusted only through a signature made by
+// to the assertion consumer service (D-050). The response is trusted only through a signature made by
 // a certificate the administrator pinned, and only the data read from the element that signature
 // covers. Web Crypto only: it runs in a Worker.
 

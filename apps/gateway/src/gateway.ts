@@ -2,10 +2,12 @@ import type { D1Database } from "@forgeron/hosting";
 import {
   loadGatewayCode,
   createConsent,
+  createEmailCodes,
   createIdentityConfig,
   createSamlRequests,
   createRegistry,
   createSecretBox,
+  type EmailCodes,
   type IdentityConfig,
   type Registry,
   type SecretBox,
@@ -24,6 +26,7 @@ import { handleConsent } from "./consent/consent";
 import { handleAccessMatrix } from "./console-api/access-matrix";
 import { handleConnections } from "./console-api/connections";
 import { handleIdentity } from "./console-api/identity";
+import { handleMembers } from "./console-api/members";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleTools } from "./console-api/tools";
@@ -37,6 +40,8 @@ import { handleCreateDeployToken, handleDeploy } from "./deploy/deploy";
 import { handlePromote, handleRollback } from "./deploy/promote";
 import { handleGroups } from "./console-api/groups";
 import { createAuth } from "./identity/auth";
+import { createEmailAuth } from "./identity/email-auth";
+import { cloudflareMailSender, type MailSender, type SendEmailBinding } from "./mail/mail";
 import { createCaller, membership } from "./identity/caller";
 import { providerFromConfig } from "./identity/presets";
 import type { SamlProvider } from "./identity/saml";
@@ -88,6 +93,16 @@ export interface GatewayEnv {
   ADMIN_EMAIL?: string;
   /** Comma-separated email domains whose people become members at sign-in, with no role (D-027). */
   MEMBER_EMAIL_DOMAINS?: string;
+  /**
+   * How people sign in, comma-separated: `email` (D-049, needs `SEND_EMAIL` and `MAIL_FROM`) and/or
+   * `oidc`. Unset: OIDC alone, as before. The sign-in page offers them in that order: the OIDC
+   * button first, then the email form.
+   */
+  SIGN_IN_METHODS?: string;
+  /** The `send_email` binding of Cloudflare Email Service that carries the sign-in codes. */
+  SEND_EMAIL?: SendEmailBinding;
+  /** The address the sign-in mail comes from: an address of a domain onboarded to Email Sending. */
+  MAIL_FROM?: string;
   /** The Cloudflare account the gateway deploys tools to (`POST /deploy`). */
   CLOUDFLARE_ACCOUNT_ID?: string;
   /** Secret. Limited to Workers, D1, KV and R2; deploys tools without the person present. */
@@ -125,6 +140,10 @@ export function createGateway(
     sessionTtlSeconds?: number;
     /** Where `POST /deploy` sends a build; by default the Cloudflare API with the bindings. */
     hosting?: (workspace: string) => Hosting | undefined;
+    /** Sends the sign-in mail; by default Cloudflare Email Sending through `SEND_EMAIL`. */
+    mail?: MailSender;
+    /** Runs work after the answer (`ctx.waitUntil`); without it the work is awaited. */
+    defer?: (work: Promise<unknown>) => void;
   } = {},
 ) {
   const now = options.now ?? (() => new Date());
@@ -135,7 +154,9 @@ export function createGateway(
     .filter(Boolean);
 
   // The registry encrypts with `SECRETS_KEY` when it is bound, which is asynchronous: built once.
-  let built: Promise<{ registry: Registry; config: IdentityConfig; box?: SecretBox }> | undefined;
+  let built:
+    | Promise<{ registry: Registry; config: IdentityConfig; codes: EmailCodes; box?: SecretBox }>
+    | undefined;
   const getBuilt = () =>
     (built ??= (async () => {
       const box = env.SECRETS_KEY ? await createSecretBox(env.SECRETS_KEY) : undefined;
@@ -143,12 +164,13 @@ export function createGateway(
         // One clock for the registry and the gateway: the expiry of a one-time code depends on it.
         registry: createRegistry(env.DB, { now, ...(box ? { secrets: box } : {}) }),
         config: createIdentityConfig(env.DB, { now, ...(box ? { secrets: box } : {}) }),
+        codes: createEmailCodes(env.DB, { now }),
         ...(box ? { box } : {}),
       };
     })());
 
   const parts = async () => {
-    const { registry, config, box } = await getBuilt();
+    const { registry, config, box, codes } = await getBuilt();
     // The consent exchange for a workspace, with the OAuth clients it is given (sdk.md §10).
     const consentFor = (
       workspace: string,
@@ -247,7 +269,7 @@ export function createGateway(
           ? namespaceTarget(env.DISPATCHER, worker)
           : serviceBindingTarget(env, worker),
     });
-    return { registry, config, box, consentFor, caller, dispatch };
+    return { registry, config, box, codes, consentFor, caller, dispatch };
   };
 
   const hostingOf = (workspace: string): Hosting | undefined => {
@@ -268,11 +290,13 @@ export function createGateway(
     return createSelfHostHosting({ ...common, ...(gateway ? { gateway } : {}) });
   };
 
-  // The SAML provider an admin saved (D-049); it wins over any OIDC provider, saved or from bindings.
+  // The SAML provider an admin saved (D-050); it wins over any OIDC provider, saved or from bindings.
   const samlOf = async (
     workspace: string,
     config: IdentityConfig,
   ): Promise<SamlProvider | undefined> => {
+    // Single sign-on is on when OIDC is (nothing stated, or `oidc` named) or when `saml` is named.
+    if (!oidcOn && !methods.includes("saml")) return undefined;
     const saved = await config.getSamlProvider(workspace);
     if (!saved) return undefined;
     const origin = `https://${workspace}.${env.BASE_DOMAIN}`;
@@ -288,7 +312,34 @@ export function createGateway(
     };
   };
 
+  const methods = (env.SIGN_IN_METHODS ?? "")
+    .split(",")
+    .map((m) => m.trim().toLowerCase())
+    .filter(Boolean);
+  const mailer =
+    options.mail ??
+    (env.SEND_EMAIL && env.MAIL_FROM
+      ? cloudflareMailSender(env.SEND_EMAIL, env.MAIL_FROM)
+      : undefined);
+  const emailOn = methods.includes("email") && mailer !== undefined;
+  // OIDC stays on when nothing is stated (a gateway installed before D-049), or when it is named.
+  const oidcOn = methods.length === 0 || methods.includes("oidc");
+  const installDomains = (env.MEMBER_EMAIL_DOMAINS ?? "")
+    .split(",")
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+  /** Who may join by themselves: what an admin saved, else what the install stated (D-049). */
+  const policyOf = async (registry: Registry, workspace: string) => {
+    const saved = await registry.getMembershipSettings(workspace);
+    return {
+      ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
+      domains: saved?.domains ?? installDomains,
+      ...(saved?.defaultRole ? { defaultRole: saved.defaultRole } : {}),
+    };
+  };
+
   const providerOf = async (workspace: string, config: IdentityConfig) => {
+    if (!oidcOn) return undefined;
     const redirectUri = `https://${workspace}.${env.BASE_DOMAIN}/auth/callback`;
     const saved = await config.getIdentityProvider(workspace, env.SECRETS_KEY !== undefined);
     if (saved) return providerFromConfig(saved, redirectUri);
@@ -305,7 +356,7 @@ export function createGateway(
   return async function handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const workspace = workspaceOf(url.host, env.BASE_DOMAIN);
-    const { registry, config, box, consentFor, caller, dispatch } = await parts();
+    const { registry, config, box, codes, consentFor, caller, dispatch } = await parts();
     // Per-person secrets are typed at the gateway, never at the tool (D-036).
     const secretsOf = workspace ? /^\/t\/([a-z0-9-]+)\/secrets\/?$/.exec(url.pathname) : null;
     if (workspace && secretsOf && secret && caller) {
@@ -323,6 +374,25 @@ export function createGateway(
     // The platform's own paths. Without `AUTH_SECRET` identity is off and they fail closed.
     if (secret && caller) {
       if (url.pathname.startsWith("/auth/")) {
+        if (emailOn && mailer) {
+          const emailAuth = createEmailAuth({
+            baseDomain: env.BASE_DOMAIN,
+            secret,
+            registry,
+            codes,
+            mail: mailer,
+            policy: (ws) => policyOf(registry, ws),
+            // The "company account" button leads to `/auth/login?method=oidc`: SAML answers it too.
+            oidcAvailable: async (ws) =>
+              (await samlOf(ws, config)) !== undefined ||
+              (await providerOf(ws, config)) !== undefined,
+            now,
+            sessionTtlSeconds: options.sessionTtlSeconds ?? 8 * 60 * 60,
+            ...(options.defer ? { defer: options.defer } : {}),
+          });
+          const answered = await emailAuth(request);
+          if (answered) return answered;
+        }
         const auth = createAuth({
           baseDomain: env.BASE_DOMAIN,
           secret,
@@ -330,17 +400,18 @@ export function createGateway(
           samlFor: (ws) => samlOf(ws, config),
           samlRequests: createSamlRequests(env.DB),
           resolvePerson: async (ws, identity) =>
-            membership(registry, {
-              ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
-              memberDomains: (env.MEMBER_EMAIL_DOMAINS ?? "")
-                .split(",")
-                .map((d) => d.trim().toLowerCase())
-                .filter(Boolean),
-              groupRoles:
-                (await config.getIdentityProvider(ws))?.groupRoles ??
-                (await config.getSamlProvider(ws))?.groupRoles ??
-                {},
-            })(ws, identity),
+            (async () => {
+              const policy = await policyOf(registry, ws);
+              return membership(registry, {
+                ...(policy.adminEmail ? { adminEmail: policy.adminEmail } : {}),
+                memberDomains: policy.domains,
+                ...(policy.defaultRole ? { defaultRole: policy.defaultRole } : {}),
+                groupRoles:
+                  (await config.getIdentityProvider(ws))?.groupRoles ??
+                  (await config.getSamlProvider(ws))?.groupRoles ??
+                  {},
+              })(ws, identity);
+            })(),
           fetch: options.fetch ?? fetch,
           now,
           sessionTtlSeconds: options.sessionTtlSeconds ?? 8 * 60 * 60,
@@ -453,6 +524,25 @@ export function createGateway(
           canKeepSecrets: box !== undefined,
           caller: identity,
           audit: (entry) => registry.recordAudit(entry),
+        })) ??
+        (await handleMembers(forwarded, {
+          registry,
+          workspace,
+          installDomains,
+          caller: identity,
+          now,
+          ...(mailer
+            ? {
+                notify: async (invitation) => {
+                  await mailer.send({
+                    to: invitation.email,
+                    subject: `You are invited to ${workspace}`,
+                    text: `You are invited to join ${workspace}${invitation.roles.length ? ` as ${invitation.roles.join(", ")}` : ""}.\n\nSign in with this email address at https://${workspace}.${env.BASE_DOMAIN}/auth/login to accept. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
+                  });
+                  return true;
+                },
+              }
+            : {}),
         })) ??
         (consent
           ? await handleConsent(forwarded, { registry, consent, workspace, caller: identity })

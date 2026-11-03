@@ -38,7 +38,7 @@ export interface IdentityProviderInput {
   groupRoles?: Record<string, string>;
 }
 
-/** A workspace's SAML provider (D-049): there is no secret, the certificates are public. */
+/** A workspace's SAML provider (D-050): there is no secret, the certificates are public. */
 export interface SamlProviderConfig {
   idpEntityId: string;
   ssoUrl: string;

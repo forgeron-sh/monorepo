@@ -125,7 +125,7 @@ const https = (value: unknown, max = 1024): string | undefined =>
     : undefined;
 
 /**
- * Checks the body of `PUT /api/identity-provider` with `kind: "saml"` (D-049). Every certificate is
+ * Checks the body of `PUT /api/identity-provider` with `kind: "saml"` (D-050). Every certificate is
  * parsed now, so a bad one is refused when saved, not at the first sign-in.
  */
 export async function parseSamlProviderInput(

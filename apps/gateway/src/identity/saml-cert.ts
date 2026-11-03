@@ -1,5 +1,5 @@
 // The public key of a pinned X.509 certificate, read with a minimal DER reader and imported through
-// Web Crypto (D-049). The certificate is only a container for the key: its own signature, issuer and
+// Web Crypto (D-050). The certificate is only a container for the key: its own signature, issuer and
 // validity are not checked, because trust comes from the administrator pinning it, and an identity
 // provider often keeps signing with a certificate after its stated expiry.
 

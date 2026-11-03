@@ -2,7 +2,7 @@ import { importCertificate, type PinnedKey } from "./saml-cert";
 import { attribute, canonicalize, childrenNamed, textOf, type XmlElement } from "./saml-xml";
 import { fromBase64Url } from "./sealed";
 
-// XML signature verification for SAML (D-049), written for exactly what SAML uses and nothing more:
+// XML signature verification for SAML (D-050), written for exactly what SAML uses and nothing more:
 //  - the key is a certificate the administrator pinned; `KeyInfo` in the message is never read;
 //  - one `Reference`, `URI="#<ID of the element the Signature is a child of>"`, enveloped-signature
 //    then exclusive C14N, SHA-256 digest; RSA-SHA256 or ECDSA-SHA256 signature over exclusive C14N

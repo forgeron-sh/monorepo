@@ -43,7 +43,7 @@ export interface AuthOptions {
     workspace: string,
     identity: Identity,
   ): { id: string } | undefined | Promise<{ id: string } | undefined>;
-  /** The workspace's SAML provider (D-049), if it has one: it wins over `providerFor`. */
+  /** The workspace's SAML provider (D-050), if it has one: it wins over `providerFor`. */
   samlFor?(workspace: string): SamlProvider | undefined | Promise<SamlProvider | undefined>;
   samlRequests?: SamlRequests;
   fetch: OidcFetch;
@@ -56,7 +56,7 @@ const json = (status: number, code: string, message: string) =>
   Response.json({ error: { code, message } }, { status });
 
 // Where a sign-in may send the person back to: the CLI's own page, nowhere else.
-const safeNext = (next: unknown): string | undefined =>
+export const safeNext = (next: unknown): string | undefined =>
   typeof next === "string" && /^\/auth\/cli\?[^\s]*$/.test(next) ? next : undefined;
 
 const stateCookie = (value: string, maxAge: number) =>

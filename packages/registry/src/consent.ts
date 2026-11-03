@@ -43,7 +43,8 @@ export type ConsentErrorCode =
   | "CONSENT_REQUIRED"
   | "UNKNOWN_CONNECTOR"
   | "INVALID_STATE"
-  | "PROVIDER_REFUSED";
+  | "PROVIDER_REFUSED"
+  | "PROVIDER_UNAVAILABLE";
 
 export class ConsentError extends Error {
   override name = "ConsentError";
@@ -73,7 +74,13 @@ interface TokenReply {
   access_token?: string;
   refresh_token?: string;
   expires_in?: number;
+  error?: string;
 }
+
+// The answers of a token endpoint that say the person's consent or the platform's client no longer
+// holds (RFC 6749 section 5.2). Only these revoke a consent (D-048): a 5xx, a dropped connection,
+// an answer that is not OAuth (an HTML error page) or any other error says nothing about it.
+const REFUSALS = new Set(["invalid_grant", "invalid_client", "unauthorized_client"]);
 
 export function createConsent(options: ConsentOptions) {
   const now = () => (options.now?.() ?? new Date()).getTime();
@@ -95,11 +102,20 @@ export function createConsent(options: ConsentOptions) {
         client_secret: p.clientSecret,
       }).toString(),
     });
-    const body = (await response.json()) as TokenReply;
-    if (!response.ok || !body.access_token) {
-      throw new ConsentError("PROVIDER_REFUSED", `The provider answered ${response.status}.`);
+    const body = (await response.json().catch(() => undefined)) as TokenReply | undefined;
+    if (response.ok && body?.access_token) return body;
+    if (
+      response.status >= 400 &&
+      response.status < 500 &&
+      body?.error &&
+      REFUSALS.has(body.error)
+    ) {
+      throw new ConsentError("PROVIDER_REFUSED", `The provider refused: ${body.error}.`);
     }
-    return body;
+    throw new ConsentError(
+      "PROVIDER_UNAVAILABLE",
+      `The provider answered ${response.status} without a usable reply: try again later.`,
+    );
   }
 
   const expiry = (reply: TokenReply) =>
@@ -180,8 +196,10 @@ export function createConsent(options: ConsentOptions) {
 
     /**
      * The access token for a person's call, refreshed when it is about to expire. Throws
-     * `CONSENT_REQUIRED` when the person has not consented, has been revoked, or the provider no
-     * longer honors the refresh token: the caller then sends them through `start`.
+     * `CONSENT_REQUIRED` when the person has not consented, has been revoked, or the provider
+     * explicitly refuses the refresh token (`invalid_grant`…): the caller then sends them through
+     * `start`. A provider that fails to answer (5xx, network, not OAuth) throws a retryable
+     * `PROVIDER_UNAVAILABLE` and the consent is kept.
      */
     async accessToken(target: ConsentTarget): Promise<string> {
       const connection = await options.registry.readConnection(target);

@@ -1,4 +1,4 @@
-// A simulated SAML identity provider for the tests (D-049): a real RSA or EC key, a hand-built X.509
+// A simulated SAML identity provider for the tests (D-050): a real RSA or EC key, a hand-built X.509
 // certificate, and responses signed with Web Crypto. The documents are written directly in their
 // canonical form (sorted attributes, expanded empty elements, namespaces declared where first used),
 // so the digest and the signature are computed WITHOUT the gateway's own canonicalizer: the tests

@@ -1,5 +1,5 @@
 import type { D1Database } from "@forgeron/hosting";
-import { createIdentityConfig, migratePlatform } from "@forgeron/registry";
+import { createIdentityConfig, createRegistry, migratePlatform } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createGateway, type GatewayEnv } from "./gateway";
@@ -204,6 +204,22 @@ describe("SAML sign-in", () => {
       ),
     );
     expect(response.status).toBe(401);
+  });
+});
+
+describe("the member policy of the workspace", () => {
+  it("applies to SAML sign-ins: saved domains and the default role replace the install's", async () => {
+    await createRegistry(env.DB).setMembershipSettings(
+      "acme",
+      { domains: ["partner.test"], defaultRole: "viewer" },
+      "root",
+    );
+    // acme.fr was the install's domain: the saved policy replaces it.
+    expect((await signIn("late@acme.fr")).response.status).toBe(403);
+    const joined = await signIn("pat@partner.test");
+    expect(joined.response.status).toBe(303);
+    const me = await gateway()(at("/whoami", { headers: { cookie: joined.session } }));
+    expect(await me.json()).toMatchObject({ email: "pat@partner.test", roles: ["viewer"] });
   });
 });
 
