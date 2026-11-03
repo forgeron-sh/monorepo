@@ -4,9 +4,16 @@ import { applyMigrations, type D1Database, type MigrateOptions } from "@forgeron
 import { platformMigrations } from "./migrations";
 
 export { platformMigrations } from "./migrations";
-export { closePreview, deployBuild, promoteVersion, rollbackEnvironment } from "./deploy";
+export {
+  approveVersion,
+  closePreview,
+  deployBuild,
+  promoteVersion,
+  rejectVersion,
+  rollbackEnvironment,
+} from "./deploy";
 export type { DeployBuildInput, DeployedBuild, PromoteInput, RollbackInput } from "./deploy";
-export { createRegistry, RegistryError } from "./registry";
+export { createRegistry, RegistryError, VIA_FORGERON_MCP } from "./registry";
 export { ConsentError, createConsent } from "./consent";
 export type {
   Consent,
@@ -19,6 +26,11 @@ export type {
 export { createSecretBox, type SealedSecret, type SecretBox } from "./secret-box";
 export type {
   Approval,
+  AuditEntry,
+  AuditInterface,
+  AuditKind,
+  AuditRecord,
+  AuditResult,
   ApprovalStatus,
   BuildRecord,
   ConnectionInfo,
