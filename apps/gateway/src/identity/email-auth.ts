@@ -80,7 +80,9 @@ const page = (status: number, title: string, body: string, headers: Record<strin
         "content-type": "text/html; charset=utf-8",
         "content-security-policy": CSP,
         "cache-control": "no-store",
-        "referrer-policy": "no-referrer",
+        // Not `no-referrer`: with it a browser sends `Origin: null` on this page's own form posts
+        // (Fetch, "append a request Origin header"), and the origin check below would refuse them.
+        "referrer-policy": "same-origin",
         "x-content-type-options": "nosniff",
         ...headers,
       },
@@ -187,7 +189,11 @@ export function createEmailAuth(options: EmailAuthOptions) {
     if (method !== "POST") return page(405, "Not allowed", "", { allow: "POST" });
     // A form post comes from this very page: a request from another origin is refused outright, so a
     // third-party page cannot sign a person in to someone else's account or burn their tries.
-    if (request.headers.get("origin") !== url.origin) {
+    const origin = request.headers.get("origin");
+    // `Sec-Fetch-Site` is set by the browser, never by a page: it covers a browser that sends no or a
+    // null origin on a same-origin form post.
+    const sameSite = request.headers.get("sec-fetch-site") === "same-origin";
+    if (origin !== url.origin && !(sameSite && (origin === null || origin === "null"))) {
       return page(403, "Not allowed", "<p>This request did not come from the sign-in page.</p>");
     }
     const form = await request.formData().catch(() => undefined);

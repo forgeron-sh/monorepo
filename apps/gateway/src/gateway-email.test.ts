@@ -280,6 +280,24 @@ describe("abuse", () => {
     expect((await verify(code, cookiesOf(asked))).status).toBe(303);
   });
 
+  it("accepts a same-origin form post that carries a null origin, and nothing cross-site", async () => {
+    const post = (headers: Record<string, string>) => {
+      const init = form({ email: "root@acme.fr" });
+      delete (init.headers as Record<string, string>).origin;
+      Object.assign(init.headers, headers);
+      return gateway()(new Request(`${ORIGIN}/auth/email/request`, init));
+    };
+    expect((await post({ origin: "null", "sec-fetch-site": "same-origin" })).status).toBe(200);
+    expect((await post({ "sec-fetch-site": "same-origin" })).status).toBe(200);
+    expect((await post({ origin: "null", "sec-fetch-site": "cross-site" })).status).toBe(403);
+    expect((await post({ origin: "null" })).status).toBe(403);
+  });
+
+  it("keeps the sign-in page's referrer policy at same-origin so browsers send the origin", async () => {
+    const page = await gateway()(new Request(`${ORIGIN}/auth/login`));
+    expect(page.headers.get("referrer-policy")).toBe("same-origin");
+  });
+
   it("does not follow a next that is not the CLI's own page", async () => {
     for (const next of ["https://evil.test/", "//evil.test", "/console", "/auth/cli\n"]) {
       const asked = await requestCode("root@acme.fr", { ip: "192.0.2.10", next });
