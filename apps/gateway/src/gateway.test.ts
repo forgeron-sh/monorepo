@@ -193,6 +193,8 @@ describe("the gateway, with the platform D1", () => {
         new Request("https://acme.forgeron.app/console-api/api/tools/crm/secrets-status"),
       );
       expect(status.status).toBe(401);
+      const tools = await gateway(new Request("https://acme.forgeron.app/console-api/api/tools"));
+      expect(tools.status).toBe(401);
       const unknown = await gateway(new Request("https://acme.forgeron.app/console-api/nothing"));
       expect(unknown.status).toBe(404);
       expect(seen).not.toContain("/console-api/nothing");
