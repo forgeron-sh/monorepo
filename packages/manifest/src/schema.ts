@@ -140,11 +140,43 @@ function checkInvariants(manifest: z.infer<typeof ManifestShape>, ctx: z.Refinem
   }
 }
 
+/** The types an image of a tool's README may have (D-056). SVG is accepted only without script. */
+export const DOC_IMAGE_TYPES = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+} as const;
+
+/** One file of the tool's documentation: the content is stored by the platform, the manifest has its hash. */
+export const DocAssetSchema = z.strictObject({
+  /** Relative to the tool folder, `/`-separated, without `..`: `docs/screenshot.png`. */
+  path: z.string().min(1).max(200),
+  type: z.enum(Object.values(DOC_IMAGE_TYPES) as [string, ...string[]]),
+  size: z.number().int().nonnegative(),
+  /** SHA-256, hex. */
+  hash: z.string().regex(/^[0-9a-f]{64}$/),
+});
+
+/** The README and the images it references, as collected at build. Never the content. */
+export const DocsSchema = z.strictObject({
+  readme: z.strictObject({
+    size: z.number().int().nonnegative(),
+    hash: z.string().regex(/^[0-9a-f]{64}$/),
+  }),
+  assets: z.array(DocAssetSchema),
+});
+
 const ManifestShape = z.strictObject({
   name: ToolNameSchema,
   version: z.string().regex(SEMVER),
   title: text.optional(),
   description: text.optional(),
+  /** The path, in `docs.assets`, of the tool's icon. */
+  icon: z.string().optional(),
+  docs: DocsSchema.optional(),
   interfaces: z.strictObject({
     mcp: z.boolean(),
     api: z.boolean(),
@@ -172,4 +204,5 @@ export type EventHandler = z.infer<typeof EventHandlerSchema>;
 export type Role = z.infer<typeof RoleSchema>;
 export type Connector = z.infer<typeof ConnectorSchema>;
 export type Resources = z.infer<typeof ResourcesSchema>;
+export type Docs = z.infer<typeof DocsSchema>;
 export type Manifest = z.infer<typeof ManifestSchema>;

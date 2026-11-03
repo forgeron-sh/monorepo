@@ -143,6 +143,57 @@ For admins and members alike. The pattern of an app directory:
   stored with the version. Rendering never executes anything: no raw HTML, no scripts, images only from
   the bundle.
 
+### Catalog API
+
+Typed in `@forgeron/manifest` (`catalog.ts`: zod schemas and types; the console imports the types). All
+routes are under `/console-api`, answer JSON with `cache-control: no-store`, and are for **any signed-in
+member** (anonymous: `401`). A tool nobody may use is listed too.
+
+| Route                                   | Answer                                                |
+| --------------------------------------- | ----------------------------------------------------- |
+| `GET /api/catalog`                      | `{ tools: CatalogTool[] }`, sorted by name            |
+| `GET /api/catalog/<tool>`               | a `ToolCard`; `404` for an unknown tool               |
+| `GET /api/catalog/<tool>/assets/<path>` | an image of the bundle (`path` as in `assets[].path`) |
+
+`CatalogTool`: `{ name, title, summary, icon, productionVersion, interfaces: { mcp, api, cli, web },
+access, roles }`.
+
+- `title` is the config's `title` or the name; `summary` is the config's `description` or `""`.
+- `icon` is a URL or `null`; `productionVersion` is `null` before the first production deployment.
+- `access` is `granted` when the person's roles (after the admin's matrix overrides) may call at least one
+  action, else `requestable`: the card says which `roles` to ask an admin for. `roles` lists the roles of
+  the tool that may call at least one action, `{ name, label }`.
+
+`ToolCard` is a `CatalogTool` plus:
+
+| Field                 | Content                                                                                        |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| `readme`              | The README, markdown source (a JSON string), or `null`. The client renders it without raw HTML |
+| `assets`              | `{ path, type, size, url }[]`: the images the README references, and the icon                  |
+| `connect`             | `{ mcp: { url } \| null, api: { baseUrl } \| null, cli: { command } \| null }`                 |
+| `requiredSecrets`     | `{ name, why }[]`: set by an admin, informative                                                |
+| `requiredUserSecrets` | `{ name, label, why }[]`: what the person is asked for                                         |
+| `connectors`          | `{ name, type, mode }[]`                                                                       |
+| `yourAccess`          | `{ action, allowed }[]`, one per action                                                        |
+| `lastRelease`         | `{ version, date, changelog } \| null`: the latest published version                           |
+
+Rendering the README: markdown only; raw HTML is dropped, links open with `rel="noopener noreferrer"`,
+an image whose address is not one of `assets[].url` is not shown.
+
+**Images** are served by the console API (not under `/t/<tool>`, which belongs to the tool), from the
+stored bundle, so only a signed-in member reads them. The `url` of an asset ends with `?v=<sha256>`: the
+answer is `cache-control: private, max-age=31536000, immutable`, `x-content-type-options: nosniff`, a
+`content-type` from the allow list (png, jpeg, webp, gif, svg), and
+`content-security-policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`. A path with `..`, a
+backslash or a NUL, or not in the bundle, is `404`.
+
+**At build**, `forgeron build` reads `README.md` of the tool folder and the images it references with a
+relative path (`![](docs/a.png)`, `<img src="docs/a.png">`), plus the `icon` of the config. A file is
+refused, with a build error naming it, when it is outside the tool folder (`..`, a symlink that leaves it),
+over 1 MB, of another type, or an SVG holding a script, an event handler or an external reference; the
+total is limited to 5 MB. The manifest keeps the hashes (`docs`), the platform stores the content with the
+version.
+
 ## Code organisation
 
 - `apps/console/src/shell`: the shell, the route table, the settings layout. One route table
