@@ -37,6 +37,13 @@ export interface DispatcherOptions {
   targets(worker: string): Target | undefined;
   /** Is this caller in the tool's pilot group? Without it, nobody gets pilot. */
   inPilot?(caller: Caller): boolean | Promise<boolean>;
+  /**
+   * The person behind an authenticated call (a valid token or session), or `undefined` for an
+   * anonymous one. With `recordSeat`, it is what counts the workspace's seats (D-023).
+   */
+  identify?(caller: Caller): string | undefined | Promise<string | undefined>;
+  /** Counts a person's seat in a workspace. A failure never blocks the call. */
+  recordSeat?(workspace: string, personId: string): void | Promise<void>;
   /** May this caller see a branch preview? Without it, nobody does. */
   canPreview?(caller: Caller & { branch: string }): boolean | Promise<boolean>;
 }
@@ -121,6 +128,16 @@ export function createDispatcher(options: DispatcherOptions) {
     }
     const target = options.targets(worker);
     if (!target) return refuse(502, "UPSTREAM", "The tool is not reachable.");
+
+    // An authenticated call that reaches a tool is a seat of the workspace for the month.
+    if (options.identify && options.recordSeat) {
+      try {
+        const person = await options.identify(caller);
+        if (person) await options.recordSeat(workspace, person);
+      } catch {
+        // Counting must never stop a person from working.
+      }
+    }
 
     const forwarded = new URL(url);
     forwarded.pathname = path.rest;

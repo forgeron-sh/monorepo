@@ -161,4 +161,20 @@ export const platformMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "audit_log"`)],
   },
+  {
+    // Seats (D-023): a person is counted once per workspace and calendar month (UTC) when they made
+    // an authenticated call. Only the workspace, the person's id and the month are kept.
+    name: "0005_seats",
+    fingerprint: "seats-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "seats" (
+  "workspace" TEXT NOT NULL,
+  "person_id" TEXT NOT NULL,
+  "month" TEXT NOT NULL,
+  PRIMARY KEY ("workspace", "month", "person_id")
+)`),
+    ],
+    down: [st(`DROP TABLE "seats"`)],
+  },
 ];
