@@ -1,5 +1,7 @@
 import { Button, CopyBlock, EmptyState, Notice, Page, Tabs } from "@forgeron/ui";
 import { useState } from "react";
+import ToolOverview from "./features/portal/tool-card";
+import type { WorkspaceInfo } from "./workspace";
 import { AccessMatrixEditor } from "./access-matrix";
 import type { Api } from "./api";
 import { AdminOnly, Loading, LoadError } from "./states";
@@ -42,8 +44,19 @@ export function ToolsPage({ api, go }: { api: Api; go: (href: string) => void })
   );
 }
 
-export function ToolPage({ name, api, admin }: { name: string; api: Api; admin: boolean }) {
-  const [tab, setTab] = useState("access");
+/** `ws` present: the tool card (Overview) comes first; the shell passes it. */
+export function ToolPage({
+  name,
+  api,
+  admin,
+  ws,
+}: {
+  name: string;
+  api: Api;
+  admin: boolean;
+  ws?: WorkspaceInfo;
+}) {
+  const [tab, setTab] = useState(ws ? "overview" : "access");
   const tools = useLoad(() => loadTools(api.fetchJson), [api]);
   const known = tools.data?.some((t) => t.name === name);
   return (
@@ -68,13 +81,16 @@ export function ToolPage({ name, api, admin }: { name: string; api: Api; admin: 
         <Tabs
           label="Tool sections"
           tabs={[
+            ...(ws ? [{ id: "overview", label: "Overview" }] : []),
             { id: "access", label: "Access" },
             { id: "secrets", label: "Secrets" },
           ]}
           value={tab}
           onChange={setTab}
         >
-          {tab === "access" ? (
+          {tab === "overview" && ws ? (
+            <ToolOverview tool={name} ws={ws} api={api} />
+          ) : tab === "access" ? (
             admin ? (
               <AccessMatrixEditor tool={name} fetchJson={api.fetchJson} sendJson={api.sendJson} />
             ) : (
