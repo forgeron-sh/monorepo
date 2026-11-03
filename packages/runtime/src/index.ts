@@ -4,6 +4,8 @@ export { toolName } from "./mcp";
 export { handleSecretsInput } from "./secrets";
 export { EXIT_CODE, HTTP_STATUS } from "./types";
 export type {
+  ConnectorSessionInput,
+  ConnectorSessions,
   UserSecretStore,
   ActionContext,
   Authenticated,

@@ -144,10 +144,33 @@ export function createGateway(
         ...(box ? { box } : {}),
       };
     })());
-  const getRegistry = async () => (await getBuilt()).registry;
 
   const parts = async () => {
-    const registry = await getRegistry();
+    const { registry, config, box } = await getBuilt();
+    // The consent exchange for a workspace, with the OAuth clients it is given (sdk.md §10).
+    const consentFor = (
+      workspace: string,
+      clients: Awaited<ReturnType<IdentityConfig["connectorClientsWithSecrets"]>>,
+      sealer: SecretBox,
+    ) =>
+      createConsent({
+        registry,
+        box: sealer,
+        providers: Object.fromEntries(
+          clients.map((c) => [
+            c.connector,
+            {
+              authorizeUrl: c.authorizeUrl,
+              tokenUrl: c.tokenUrl,
+              clientId: c.clientId,
+              clientSecret: c.clientSecret,
+              redirectUri: `https://${workspace}.${env.BASE_DOMAIN}${CONSOLE_API}/api/consent/callback`,
+            },
+          ]),
+        ),
+        fetch: async (u, init) => (options.fetch ?? fetch)(u, init),
+        now,
+      });
     const caller = secret ? createCaller({ registry, secret, previousSecrets, now }) : undefined;
     const identify =
       options.identify ??
@@ -189,12 +212,32 @@ export function createGateway(
       // The person and their own per-person secrets go to the tool; a token for another tool stops here.
       ...(caller
         ? {
-            forward: (c: { workspace: string; tool: string; request: Request }) =>
-              forwardIdentity(c.tool, c.request, {
-                registry,
-                workspace: c.workspace,
-                identify: (r) => caller.identify(r, c.workspace),
-              }),
+            forward: (c: Caller) =>
+              forwardIdentity(
+                c.tool,
+                c.request,
+                {
+                  registry,
+                  workspace: c.workspace,
+                  identify: (r) => caller.identify(r, c.workspace),
+                  ...(box
+                    ? {
+                        // Delegated connectors (D-046): the OAuth clients of the types the tool declares.
+                        connectors: {
+                          consent: async (types: string[]) =>
+                            consentFor(
+                              c.workspace,
+                              await config.connectorClientsWithSecrets(c.workspace, types),
+                              box,
+                            ),
+                          consentUrl: (tool: string, environment: string, name: string) =>
+                            `https://${c.workspace}.${env.BASE_DOMAIN}${CONSOLE_API}/api/tools/${tool}/environments/${environment}/consent/${name}`,
+                        },
+                      }
+                    : {}),
+                },
+                c.environment,
+              ),
           }
         : {}),
       targets: (worker) =>
@@ -202,7 +245,7 @@ export function createGateway(
           ? namespaceTarget(env.DISPATCHER, worker)
           : serviceBindingTarget(env, worker),
     });
-    return { registry, caller, dispatch };
+    return { registry, config, box, consentFor, caller, dispatch };
   };
 
   const hostingOf = (workspace: string): Hosting | undefined => {
@@ -240,8 +283,7 @@ export function createGateway(
   return async function handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const workspace = workspaceOf(url.host, env.BASE_DOMAIN);
-    const { registry, caller, dispatch } = await parts();
-    const { config, box } = await getBuilt();
+    const { registry, config, box, consentFor, caller, dispatch } = await parts();
     // Per-person secrets are typed at the gateway, never at the tool (D-036).
     const secretsOf = workspace ? /^\/t\/([a-z0-9-]+)\/secrets\/?$/.exec(url.pathname) : null;
     if (workspace && secretsOf && secret && caller) {
@@ -375,24 +417,7 @@ export function createGateway(
       // workspace's, set by an admin; tokens are sealed and never leave the registry.
       const consent =
         box && /\/consent(\/|$)/.test(inner.pathname)
-          ? createConsent({
-              registry,
-              box,
-              providers: Object.fromEntries(
-                (await config.connectorClientsWithSecrets(workspace)).map((c) => [
-                  c.connector,
-                  {
-                    authorizeUrl: c.authorizeUrl,
-                    tokenUrl: c.tokenUrl,
-                    clientId: c.clientId,
-                    clientSecret: c.clientSecret,
-                    redirectUri: `https://${workspace}.${env.BASE_DOMAIN}${CONSOLE_API}/api/consent/callback`,
-                  },
-                ]),
-              ),
-              fetch: async (u, init) => (options.fetch ?? fetch)(u, init),
-              now,
-            })
+          ? consentFor(workspace, await config.connectorClientsWithSecrets(workspace), box)
           : undefined;
       return (
         (await handleIdentity(forwarded, {
@@ -400,6 +425,7 @@ export function createGateway(
           workspace,
           canKeepSecrets: box !== undefined,
           caller: identity,
+          audit: (entry) => registry.recordAudit(entry),
         })) ??
         (consent
           ? await handleConsent(forwarded, { registry, consent, workspace, caller: identity })
