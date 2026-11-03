@@ -47,12 +47,22 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       return due;
     },
     async fetch(request) {
-      const user = await options.authenticate(request);
+      const identity = await options.authenticate(request);
+      const user = identity && "user" in identity ? identity.user : identity;
       if (!user) {
         return errorResponse(
           { code: "UNAUTHENTICATED", message: "Sign in to call this tool." },
           401,
         );
+      }
+      if (options.audience !== undefined) {
+        const audience = identity && "user" in identity ? identity.audience : undefined;
+        if (audience !== options.audience) {
+          return errorResponse({
+            code: "FORBIDDEN",
+            message: `This token was not issued for "${options.audience}".`,
+          });
+        }
       }
       const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
       const actionOf = (prefix: string) => decodeURIComponent(path.slice(prefix.length));

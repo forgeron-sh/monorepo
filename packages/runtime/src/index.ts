@@ -4,6 +4,7 @@ export { toolName } from "./mcp";
 export { EXIT_CODE, HTTP_STATUS } from "./types";
 export type {
   ActionContext,
+  Authenticated,
   CallSource,
   Environment,
   ErrorCode,

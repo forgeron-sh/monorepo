@@ -133,6 +133,12 @@ export interface Platform {
   now(): Date;
 }
 
+/** A person the gateway resolved from a token, with the audience the token was issued for (`acme/crm`). */
+export interface Authenticated {
+  user: User;
+  audience: string;
+}
+
 export interface RuntimeOptions {
   manifest: Manifest;
   /** One implementation per action of the manifest, by action name. */
@@ -147,7 +153,15 @@ export interface RuntimeOptions {
    * Who is calling. Identity and tokens belong to the gateway: the runtime only
    * receives the person it resolved, or `undefined` for an anonymous call.
    */
-  authenticate(request: Request): User | undefined | Promise<User | undefined>;
+  authenticate(
+    request: Request,
+  ): User | Authenticated | undefined | Promise<User | Authenticated | undefined>;
+  /**
+   * The audience of this tool, `<workspace>/<tool>` (`acme/crm`; sdk.md §7, Isolation point 5).
+   * When set, a call is refused unless `authenticate` returns the audience; a token issued for
+   * another tool is useless here.
+   */
+  audience?: string;
   env?: Environment;
   platform?: Partial<Platform>;
 }
