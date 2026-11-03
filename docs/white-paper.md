@@ -119,9 +119,43 @@ Everyone signs in through the company SSO. The admin assigns roles; each action 
 
 Forgeron is a layer on top of Cloudflare Workers: the platform builds and versions the tools, Cloudflare runs them, and an identity gateway checks every call.
 
-![Architecture: from the repository to the four interfaces](../assets/schemas/architecture.png)
+```mermaid
+flowchart TB
+  subgraph Dev["Developer side"]
+    GH["GitHub repository"]
+    CLI["forgeron CLI"]
+  end
 
-Requests flow up from the interfaces to the Worker; code flows down from the repository to Cloudflare.
+  subgraph Platform["Forgeron platform"]
+    direction LR
+    Build["Build<br/>forgeron build"] --> Ver["Versions<br/>preview · pilot · production"]
+    Con["Console<br/>access · SSO · secrets · log"]
+  end
+
+  subgraph CF["Cloudflare"]
+    direction LR
+    W["Tool Worker<br/>one per tool and environment<br/>private, no public route"]
+    D1[("D1<br/>SQL database")]
+    R2[("R2<br/>files")]
+    KV[("KV<br/>cache")]
+    W --> D1
+    W --- R2
+    W --- KV
+  end
+
+  GW["Gateway, the only public Worker<br/>company SSO and per-action access"]
+
+  GH & CLI -- "git push · forgeron deploy" --> Platform
+  Platform -- "deploys a version" --> CF
+  GW -- "dispatch or service binding" --> W
+
+  Claude["Claude<br/>MCP"] --> GW
+  Apps["Your applications<br/>API"] --> GW
+  Browser["Browser<br/>Web · React views"] --> GW
+  Term["Terminal<br/>CLI"] --> GW
+```
+
+Requests flow from the interfaces through the gateway to the tool Worker; code flows down from the repository to Cloudflare. The detailed diagram of the repository and the platform is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ### Technical choices
 
@@ -203,9 +237,19 @@ What makes Forgeron defensible is the **enforced shape**. The more tools a compa
 
 We start with the developer foundation and prove it on a real case, the Odoo MCP gateway already built in-house, before opening the platform to customers.
 
-![Roadmap: 4 phases, 3 gates](../assets/schemas/roadmap.png)
+```mermaid
+flowchart LR
+  P1["<b>Phase 1 · Foundation</b><br/>manifest, SDK and CLI<br/>dev, build, test<br/>MCP and API<br/>D1 and migrations<br/>gateway with company SSO<br/>self-host deployment"]
+  G1{{"Gate 1<br/>Odoo gateway rewritten with Forgeron,<br/>in internal production"}}
+  P2["<b>Phase 2 · Platform</b><br/>console<br/>preview, pilot, production<br/>access by role and action<br/>per-person secrets<br/>usage log · playground"]
+  G2{{"Gate 2<br/>First pilot customer<br/>in production"}}
+  P3["<b>Phase 3 · Catalog</b><br/>CRM, contact records<br/>data hub, dashboard<br/>Microsoft 365, Google<br/>and Odoo connectors"]
+  G3{{"Gate 3<br/>Public launch of the<br/>open source repository"}}
+  P4["<b>Phase 4 · Views and cloud</b><br/>React views<br/>Forgeron Cloud<br/>per-seat subscription<br/>support"]
+  P1 --> G1 --> P2 --> G2 --> P3 --> G3 --> P4
+```
 
-Dates are yet to be set; each phase starts only once the previous gate is passed.
+Dates are yet to be set; each phase starts only once the previous gate is passed. Identity (company SSO) belongs to phase 1, because gate 1 needs the gateway to sign people in; what comes later, in phase 2, is the per-action access by role and the console that manages it. Phase 1 is steps 1 to 5 of the build order in [`ARCHITECTURE.md`](ARCHITECTURE.md#proposed-build-order).
 
 ## Open questions
 
