@@ -80,10 +80,14 @@ function workerEntry(
   schemaFile: string | undefined,
   migrationsFile: string | undefined,
   seedFile: string | undefined,
+  connectors: Array<{ name: string; file: string }>,
+  sdkPath: string,
 ): string {
   const q = JSON.stringify;
   return [
     `import { createDb, createRuntime } from ${q(runtimePath)};`,
+    ...(connectors.length > 0 ? [`import { createConnectorClient } from ${q(sdkPath)};`] : []),
+    ...connectors.map((c, i) => `import connector${i} from ${q(c.file)};`),
     `import manifest from ${q(manifestPath)};`,
     ...actions.map((a, i) => `import action${i} from ${q(a.file)};`),
     ...(schemaFile ? [`import schema from ${q(schemaFile)};`] : []),
@@ -91,6 +95,7 @@ function workerEntry(
     ...(seedFile ? [`import seed from ${q(seedFile)};`] : []),
     ...events.map((e, i) => `import event${i} from ${q(e.file)};`),
     ...jobs.map((j, i) => `import job${i} from ${q(j.file)};`),
+    `const connectorDefinitions = { ${connectors.map((c, i) => `${q(c.name)}: connector${i}`).join(", ")} };`,
     `const actions = { ${actions.map((a, i) => `${q(a.name)}: action${i}`).join(", ")} };`,
     `const events = { ${events.map((e, i) => `${q(e.name)}: event${i}`).join(", ")} };`,
     `const jobs = { ${jobs.map((j, i) => `${q(j.name)}: job${i}`).join(", ")} };`,
@@ -100,8 +105,11 @@ function workerEntry(
     `  try { return JSON.parse(raw); } catch { return undefined; }`,
     `}`,
     `// What the platform adds to \`ctx\` (secrets, fetch, clock…) comes in through \`options\`: tests use it too.`,
+    `// A connector's client is built from the package the tool installed (D-048) and the session of the call.`,
+    `const connectorClient = (name, session) => createConnectorClient(connectorDefinitions[name], manifest.resources.connectors[name], session);`,
     `export function createTool(options = {}) {`,
-    `  return createRuntime({ manifest, actions, events, jobs, authenticate: gatewayIdentity, ...options });`,
+    `  const platform = { ...(${connectors.length > 0 ? "true" : "false"} ? { connectorClient } : {}), ...options.platform };`,
+    `  return createRuntime({ manifest, actions, events, jobs, authenticate: gatewayIdentity, ...options, platform });`,
     `}`,
     `export { manifest${schemaFile ? ", schema" : ""}${migrationsFile ? ", migrations" : ""}${seedFile ? ", seed" : ""} };`,
     `// The Worker's bindings arrive with each call: the database of the environment is \`env.DB\`.`,
@@ -226,6 +234,26 @@ async function buildViews(
   return hashes;
 }
 
+// A tool that declares `connector("<type>", ...)` installs `@forgeron/connector-<type>`, whose default
+// export is its `defineConnector(...)` definition: the build bundles it so `ctx.connectors.<name>`
+// is built in the deployed Worker. A declared connector whose package is missing is a build error.
+function connectorPackages(
+  dir: string,
+  manifest: { resources?: { connectors?: Record<string, { type: string }> } },
+): Array<{ name: string; file: string }> {
+  const require = createRequire(join(dir, "package.json"));
+  return Object.entries(manifest.resources?.connectors ?? {}).map(([name, { type }]) => {
+    const pkg = `@forgeron/connector-${type}`;
+    try {
+      return { name, file: require.resolve(pkg) };
+    } catch {
+      throw new Error(
+        `The connector "${name}" is of type "${type}", but ${pkg} is not installed: add it to the tool's dependencies.`,
+      );
+    }
+  });
+}
+
 /** Turns a tool folder into `.forgeron/build/`: the Worker, the manifest and the build record. */
 export async function buildTool(folder: string): Promise<BuildResult> {
   const dir = resolve(folder);
@@ -267,6 +295,8 @@ export async function buildTool(folder: string): Promise<BuildResult> {
 
   const { actions, events, jobs, views } = await sourcesOf(dir);
   const runtimePath = createRequire(import.meta.url).resolve("@forgeron/runtime");
+  const sdkPath = createRequire(import.meta.url).resolve("@forgeron/sdk");
+  const connectors = connectorPackages(dir, manifest);
   const input = join(scratch, "worker.ts");
   await writeFile(
     input,
@@ -279,6 +309,8 @@ export async function buildTool(folder: string): Promise<BuildResult> {
       await schemaFileOf(dir),
       migrations.length > 0 ? migrationsFile : undefined,
       await seedFileOf(dir),
+      connectors,
+      sdkPath,
     ),
   );
   const bundle = await rolldown({ input, platform: "neutral", logLevel: "silent" });

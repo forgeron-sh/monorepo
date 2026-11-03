@@ -19,7 +19,11 @@
       ]
     },
     "packages/compiler": {
-      "ignore": ["fixtures/**"]
+      "ignore": ["fixtures/**"],
+      "ignoreDependencies": [
+        "@forgeron/connector-google-workspace",
+        "@forgeron/connector-microsoft-365"
+      ]
     },
     "packages/sdk": {
       "ignore": ["fixtures/**"]

@@ -22,9 +22,30 @@ function simulatedProvider() {
   const calls: URLSearchParams[] = [];
   let issued = 0;
   let refuseRefresh = false;
+  // How the token endpoint misbehaves on a refresh, when it does.
+  let outage: "5xx" | "network" | "html" | "client" | "request" | undefined;
   const fetch: ConsentFetch = async (_url, init) => {
     const form = new URLSearchParams(init.body);
     calls.push(form);
+    if (form.get("grant_type") === "refresh_token" && outage === "network") {
+      throw new TypeError("fetch failed");
+    }
+    if (form.get("grant_type") === "refresh_token" && outage === "5xx") {
+      return { ok: false, status: 503, json: async () => ({ error: "temporarily_unavailable" }) };
+    }
+    if (form.get("grant_type") === "refresh_token" && outage === "html") {
+      return {
+        ok: false,
+        status: 502,
+        json: async () => Promise.reject(new SyntaxError("<html>")),
+      };
+    }
+    if (form.get("grant_type") === "refresh_token" && outage === "request") {
+      return { ok: false, status: 400, json: async () => ({ error: "invalid_request" }) };
+    }
+    if (form.get("grant_type") === "refresh_token" && outage === "client") {
+      return { ok: false, status: 401, json: async () => ({ error: "invalid_client" }) };
+    }
     if (form.get("grant_type") === "refresh_token" && refuseRefresh) {
       return { ok: false, status: 400, json: async () => ({ error: "invalid_grant" }) };
     }
@@ -42,7 +63,12 @@ function simulatedProvider() {
       }),
     };
   };
-  return { fetch, calls, refuse: () => (refuseRefresh = true) };
+  return {
+    fetch,
+    calls,
+    refuse: () => (refuseRefresh = true),
+    outage: (kind: typeof outage) => (outage = kind),
+  };
 }
 
 let memory: MemoryD1;
@@ -167,6 +193,36 @@ describe("consent", () => {
   it("asks for consent again when the provider refuses the refresh", async () => {
     await consentAs();
     idp.refuse();
+    clock += 3_600_000;
+    expect(await codeOf(consent.accessToken(target()))).toBe("CONSENT_REQUIRED");
+    expect(await registry.listConnections(toolId, "production")).toEqual([]);
+  });
+
+  it.each(["5xx", "html", "request"] as const)(
+    "keeps the consent and says to retry when the token endpoint fails (%s)",
+    async (kind) => {
+      await consentAs();
+      idp.outage(kind);
+      clock += 3_600_000;
+      expect(await codeOf(consent.accessToken(target()))).toBe("PROVIDER_UNAVAILABLE");
+      expect(await registry.listConnections(toolId, "production")).toHaveLength(1);
+      // The provider is back: the same consent still works.
+      idp.outage(undefined);
+      expect(await consent.accessToken(target())).toBe("access-2");
+    },
+  );
+
+  it("keeps the consent when the token endpoint cannot be reached", async () => {
+    await consentAs();
+    idp.outage("network");
+    clock += 3_600_000;
+    await expect(consent.accessToken(target())).rejects.toBeInstanceOf(TypeError);
+    expect(await registry.listConnections(toolId, "production")).toHaveLength(1);
+  });
+
+  it("revokes the consent when the token endpoint refuses the client", async () => {
+    await consentAs();
+    idp.outage("client");
     clock += 3_600_000;
     expect(await codeOf(consent.accessToken(target()))).toBe("CONSENT_REQUIRED");
     expect(await registry.listConnections(toolId, "production")).toEqual([]);
