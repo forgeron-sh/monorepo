@@ -14,11 +14,11 @@ flowchart LR
   end
 
   subgraph Platform["Platform (Forgeron account or customer account)"]
-    GW["apps/gateway<br/>dispatcher · identity · OAuth<br/>admin MCP · platform API"]
+    GW["apps/gateway, the only public Worker<br/>dispatcher · identity · OAuth<br/>admin MCP · platform API"]
     CON["apps/console<br/>served by the gateway"]
     REG[("Platform D1<br/>registry, access, audit log")]
     HOST["@forgeron/hosting<br/>cloud: Workers for Platforms<br/>self-host: classic Workers"]
-    subgraph Tools["One Worker per tool and per environment"]
+    subgraph Tools["One private Worker per tool and per environment"]
       RT["@forgeron/runtime<br/>+ tool code"]
       RES[("Tool's<br/>D1 · KV · R2")]
     end
@@ -70,7 +70,7 @@ forgeron/
 │   ├── odoo-gateway/       # docs/examples/02-odoo-gateway.md
 │   ├── inventory/          # docs/examples/03-data-hub.md
 │   └── dashboard/          # docs/examples/04-dashboard.md
-├── assets/                 # logos, diagrams, design system (source of the @forgeron/ui tokens)
+├── assets/                 # logos, previews, design system (source of the @forgeron/ui tokens)
 ├── docs/                   # white paper, SDK specification, examples, decisions, this document
 └── .github/ · .moon/ · …   # tooling (see "Tooling")
 ```
@@ -277,10 +277,14 @@ flowchart LR
 2. **`@forgeron/manifest`**: schema and diff, fully testable without Cloudflare.
 3. **SDK + runtime + `forgeron dev`** (`local` mode of `hosting`) on a tool without a database: the `odoo-gateway` template. Output: a working local MCP.
 4. **Database and migrations** (`@forgeron/sdk/db`, generator) with the `crm` template.
-5. **Gateway + self-host `hosting`**: identity, registry, preview deployment on a regular Cloudflare account.
-6. **Cloud `hosting`** (Workers for Platforms), console, then the following connectors and templates.
+5. **Gateway + self-host `hosting`**: dispatch, identity (company SSO through OIDC, sessions, audience tokens), registry, preview deployment on a regular Cloudflare account. **Gate 1** (Odoo gateway in internal production) needs this step.
+6. **Platform**: console, environments and promotion, per-action access by role, per-person secrets, usage log (gate 2: first pilot customer).
+7. **Catalog and connectors**: templates, Microsoft 365, Google Workspace, Odoo (gate 3: public launch).
+8. **Cloud `hosting`** (Workers for Platforms), React views, subscription and support.
 
 Self-host comes before cloud: it can be tested on an ordinary Workers Paid account, without buying Workers for Platforms.
+
+The white paper's roadmap groups these steps into four phases: phase 1 is steps 1 to 5, phase 2 is step 6, phase 3 is step 7, phase 4 is step 8. The Linear projects follow the same order.
 
 ## Open decisions
 
@@ -290,7 +294,7 @@ Decisions already made are in [`DECISIONS.md`](DECISIONS.md). Still open:
 | ---------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Per-action transaction (`sdk.md` §6, §9) with D1                             | step 4                       | decided, D-012: one atomic `ctx.db.batch()`; no interactive transaction. To do: `sync` handlers joining the batch, remote D1 check |
 | Self-host previews without redeploying the gateway for each branch           | step 5                       | leads: per-version preview URL (to be verified), HTTP access with an internal token                                                |
-| Uploading a user Worker with its D1 on Workers for Platforms                 | step 6                       | documented (doc of 16/09/2026), not tried; purchase of Workers for Platforms required                                              |
+| Uploading a user Worker with its D1 on Workers for Platforms                 | step 8                       | documented (doc of 16/09/2026), not tried; purchase of Workers for Platforms required                                              |
 | Dynamic OAuth resources (one token per tool without redeploying the gateway) | step 5                       | decided, D-013: build the authorization server from the registry, cached by registry version; watch the cost above ~100 tools      |
 | Staging domain (two-level certificate)                                       | first deployment             | see "Platform environments"                                                                                                        |
 | Open source license                                                          | npm publishing, `LICENSE`    | absent from the repository until decided                                                                                           |
