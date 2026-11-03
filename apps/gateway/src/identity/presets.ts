@@ -8,8 +8,8 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
 const ROLE = /^[a-z][a-z0-9-]{0,39}$/;
 
-export const GOOGLE_ISSUER = "https://accounts.google.com";
-export const entraIssuer = (tenant: string) => `https://login.microsoftonline.com/${tenant}/v2.0`;
+const GOOGLE_ISSUER = "https://accounts.google.com";
+const entraIssuer = (tenant: string) => `https://login.microsoftonline.com/${tenant}/v2.0`;
 
 /** The OIDC provider a stored configuration stands for. */
 export function providerFromConfig(
