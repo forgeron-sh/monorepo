@@ -1,10 +1,12 @@
 import { Badge, Button, Table, type TableColumn } from "@forgeron/ui";
 
-// The versions that wait for an admin: what each asks for, and a way to approve it (docs/sdk.md
+// The versions that wait for an admin: what each asks for, and a way to decide (docs/sdk.md
 // section 3, "When a new version asks for more"). A version that is not approved reaches preview,
 // not pilot or production.
 
 export interface RequestedResource {
+  /** The request to decide. */
+  id: string;
   /** `resources.network`, `resources.connectors.hubspot`. */
   resource: string;
   kind: "added" | "broadened";
@@ -12,27 +14,29 @@ export interface RequestedResource {
 
 export interface PendingVersion {
   id: string;
+  tool: string;
   version: string;
   requests: RequestedResource[];
 }
 
 /**
- * Asks the platform for the pending versions of a tool. Only what the screen shows is kept; a
- * change that is neither an addition nor a broadening is not a request and is dropped.
+ * Asks the platform for the versions that wait, across the workspace's tools. Only what the screen
+ * shows is kept; a change that is neither an addition nor a broadening is not a request and is dropped.
  */
 export async function loadPendingApprovals(
   fetchJson: (path: string) => Promise<unknown>,
-  tool: string,
 ): Promise<PendingVersion[]> {
-  const body = (await fetchJson(`/api/tools/${tool}/approvals`)) as {
+  const body = (await fetchJson("/api/approvals")) as {
     versions?: Array<{
       id?: unknown;
+      tool?: unknown;
       version?: unknown;
-      approvals?: Array<{ resource?: unknown; kind?: unknown }>;
+      approvals?: Array<{ id?: unknown; resource?: unknown; kind?: unknown }>;
     }>;
   };
   return (body.versions ?? []).map((entry) => ({
     id: String(entry.id),
+    tool: String(entry.tool),
     version: String(entry.version),
     requests: (entry.approvals ?? []).flatMap((a) => {
       const kind =
@@ -41,25 +45,40 @@ export async function loadPendingApprovals(
           : a.kind === "resource.broadened"
             ? "broadened"
             : undefined;
-      return kind ? [{ resource: String(a.resource), kind } as RequestedResource] : [];
+      return kind
+        ? [{ id: String(a.id), resource: String(a.resource), kind } as RequestedResource]
+        : [];
     }),
   }));
 }
 
-export interface PendingApprovalsProps {
-  versions: ReadonlyArray<PendingVersion>;
-  /** Called with the version to approve; the screen only draws the button when it is given. */
-  onApprove?: (version: PendingVersion) => void;
+/** Decides each request of a version, one after the other: the first refusal stops the rest. */
+export async function decideVersion(
+  sendJson: (path: string, body: unknown, method: "POST") => Promise<unknown>,
+  version: PendingVersion,
+  decision: "approved" | "rejected",
+): Promise<void> {
+  for (const request of version.requests) {
+    await sendJson(`/api/approvals/${request.id}`, { decision }, "POST");
+  }
 }
 
-export function PendingApprovals({ versions, onApprove }: PendingApprovalsProps) {
+export interface PendingApprovalsProps {
+  versions: ReadonlyArray<PendingVersion>;
+  /** Called with the version to approve or reject; the screen only draws the buttons when given. */
+  onApprove?: (version: PendingVersion) => void;
+  onReject?: (version: PendingVersion) => void;
+}
+
+export function PendingApprovals({ versions, onApprove, onReject }: PendingApprovalsProps) {
   const columns: Array<TableColumn<PendingVersion>> = [
+    { key: "tool", header: "Tool", mono: true },
     { key: "version", header: "Version", mono: true },
     {
       key: "requests",
       header: "Asks for",
       render: (row) => (
-        <ul>
+        <ul className="fc-badges" style={{ margin: 0, padding: 0, listStyle: "none" }}>
           {row.requests.map((request) => (
             <li key={request.resource}>
               <code>{request.resource}</code>{" "}
@@ -69,15 +88,24 @@ export function PendingApprovals({ versions, onApprove }: PendingApprovalsProps)
         </ul>
       ),
     },
-    ...(onApprove
+    ...(onApprove || onReject
       ? [
           {
-            key: "approve",
+            key: "decide",
             header: "",
             render: (row: PendingVersion) => (
-              <Button variant="primary" size="sm" onClick={() => onApprove(row)}>
-                Approve
-              </Button>
+              <div className="fc-cell-actions">
+                {onReject ? (
+                  <Button variant="ghost" size="sm" onClick={() => onReject(row)}>
+                    Reject
+                  </Button>
+                ) : null}
+                {onApprove ? (
+                  <Button variant="primary" size="sm" onClick={() => onApprove(row)}>
+                    Approve
+                  </Button>
+                ) : null}
+              </div>
             ),
           },
         ]

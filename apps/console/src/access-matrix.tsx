@@ -1,5 +1,6 @@
-import { Badge, Button, Table, type TableColumn } from "@forgeron/ui";
+import { Badge, Button, Notice, Table, type TableColumn } from "@forgeron/ui";
 import { useEffect, useState } from "react";
+import { Loading } from "./states";
 
 // Which roles may call which actions of a tool, and a way to change it without a new version
 // (docs/sdk.md section 3). A cell shows what applies; one that differs from what the manifest's
@@ -176,10 +177,18 @@ export function AccessMatrixEditor({ tool, fetchJson, sendJson }: AccessMatrixEd
     };
   }, [tool, fetchJson, reload]);
 
-  if (!loaded) return <p>{status === "error" ? `Could not load: ${error}` : "Loading…"}</p>;
+  if (!loaded) {
+    return status === "error" ? (
+      <Notice tone="danger" title="The access matrix could not be loaded.">
+        {error ?? "Check your connection, then reload the page."}
+      </Notice>
+    ) : (
+      <Loading label="Loading the access matrix" />
+    );
+  }
   const shown = withDraft(loaded, draft);
   return (
-    <div>
+    <div className="fc-stack">
       <AccessMatrix
         matrix={shown}
         onToggle={(change) => {
@@ -193,24 +202,32 @@ export function AccessMatrixEditor({ tool, fetchJson, sendJson }: AccessMatrixEd
           setStatus("idle");
         }}
       />
-      <Button
-        disabled={draft.size === 0 || status === "saving"}
-        onClick={async () => {
-          setStatus("saving");
-          try {
-            await saveAccessMatrix(sendJson, tool, loaded, [...draft.values()]);
-            setReload((n) => n + 1);
-            setStatus("saved");
-          } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
-            setStatus("error");
-          }
-        }}
-      >
-        Save
-      </Button>
-      {status === "saved" ? <p>Saved. It applies to the next call, on every interface.</p> : null}
-      {status === "error" ? <p>Not saved: {error}</p> : null}
+      <div>
+        <Button
+          disabled={draft.size === 0 || status === "saving"}
+          onClick={async () => {
+            setStatus("saving");
+            try {
+              await saveAccessMatrix(sendJson, tool, loaded, [...draft.values()]);
+              setReload((n) => n + 1);
+              setStatus("saved");
+            } catch (e) {
+              setError(e instanceof Error ? e.message : String(e));
+              setStatus("error");
+            }
+          }}
+        >
+          Save changes
+        </Button>
+      </div>
+      {status === "saved" ? (
+        <Notice tone="success">Saved. It applies to the next call, on every interface.</Notice>
+      ) : null}
+      {status === "error" ? (
+        <Notice tone="danger" title="The matrix was not saved.">
+          {error} Try again.
+        </Notice>
+      ) : null}
     </div>
   );
 }

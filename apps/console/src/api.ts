@@ -2,11 +2,49 @@
 export const CONSOLE_API = "/console-api";
 
 /** A failed call: the status, and what the platform said if it said anything. */
-async function failure(path: string, response: Response): Promise<Error> {
+export class ApiError extends Error {
+  override name = "ApiError";
+  constructor(
+    message: string,
+    readonly status: number,
+    /** What the platform said, when it said something: fit to show a person. */
+    readonly detail?: string,
+  ) {
+    super(message);
+  }
+}
+
+async function failure(path: string, response: Response): Promise<ApiError> {
   const body = (await response.json().catch(() => undefined)) as { message?: unknown } | undefined;
-  return new Error(
-    `${path}: ${response.status}${typeof body?.message === "string" ? ` ${body.message}` : ""}`,
+  const detail = typeof body?.message === "string" ? body.message : undefined;
+  return new ApiError(
+    `${path}: ${response.status}${detail ? ` ${detail}` : ""}`,
+    response.status,
+    detail,
   );
+}
+
+export type FetchJson = (path: string) => Promise<unknown>;
+export type SendJson = (
+  path: string,
+  body: unknown,
+  method?: "PUT" | "POST" | "PATCH" | "DELETE",
+) => Promise<unknown>;
+
+/** What a screen needs of the platform; tests and the local harness hand in their own. */
+export interface Api {
+  fetchJson: FetchJson;
+  sendJson: SendJson;
+}
+
+/** What to tell a person about a failed call: what the platform said, else what to do. */
+export function explain(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) {
+    if (error.status === 403) return "You are not allowed to do this. Ask an admin.";
+    if (error.status === 401) return "Your session ended. Sign in again.";
+    if (error.detail) return error.detail;
+  }
+  return fallback;
 }
 
 export async function fetchJson(path: string): Promise<unknown> {

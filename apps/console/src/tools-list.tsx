@@ -47,12 +47,20 @@ const columns: Array<TableColumn<ToolRow>> = [
   { key: "production", header: "Production", render: (row) => version(row.production) },
 ];
 
-export function ToolsList({ rows }: { rows: ReadonlyArray<ToolRow> }) {
+export function ToolsList({
+  rows,
+  onOpen,
+}: {
+  rows: ReadonlyArray<ToolRow>;
+  /** Makes a row a button that opens the tool. */
+  onOpen?: (row: ToolRow) => void;
+}) {
   return (
     <Table
       columns={columns}
       rows={rows}
       rowKey={(row) => row.name}
+      {...(onOpen ? { onRowClick: onOpen } : {})}
       empty="No tool installed yet."
     />
   );
