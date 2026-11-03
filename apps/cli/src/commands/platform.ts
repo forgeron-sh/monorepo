@@ -1,20 +1,22 @@
 import {
   createCloudflareClient,
   createRestD1,
+  GATEWAY_ASSETS_CONFIG,
   GATEWAY_COMPATIBILITY_DATE,
   GATEWAY_COMPATIBILITY_FLAGS,
   serviceBindingName,
+  uploadAssets,
   workerName,
   type CloudflareClient,
 } from "@forgeron/hosting";
-import { migratePlatform, saveGatewayCode } from "@forgeron/registry";
+import { migratePlatform, saveGatewayAssets, saveGatewayCode } from "@forgeron/registry";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { resolveCloudflareCredential } from "./cloudflare-auth";
 import { identitySettings, KEYS, settingBindings, type IdentityFlags } from "./gateway-identity";
-import { readAssets, uploadAssets } from "./console-assets";
+import { readAssets } from "./console-assets";
 
 // `forgeron platform install` (docs/ARCHITECTURE.md, "Installing the platform in self-host"):
 // creates the platform D1 and migrates it, then deploys the gateway Worker on the customer's
@@ -128,6 +130,8 @@ export async function platform(
   io.log(applied.length ? `Applied: ${applied.join(", ")}` : "The platform D1 is up to date.");
   // The gateway uploads a new version of itself when a tool is bound (D-032): it keeps its code here.
   await saveGatewayCode(platformD1, code);
+  // Cloudflare does not carry the console over to a new version: the gateway uploads it again, from here.
+  if (assets) await saveGatewayAssets(platformD1, assets);
 
   // 3. The gateway Worker, with the D1 and, as a secret, the token it will deploy tools with.
   const worker = `${name}-gateway`;
@@ -160,7 +164,7 @@ export async function platform(
         ? {
             assets: {
               jwt: assetsJwt,
-              config: { not_found_handling: "single-page-application", run_worker_first: true },
+              config: GATEWAY_ASSETS_CONFIG,
             },
           }
         : {}),

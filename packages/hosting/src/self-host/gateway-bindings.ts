@@ -9,6 +9,7 @@
 // no value is sent, and an `inherit` that cannot be resolved fails the upload (error 10057) instead
 // of silently losing the binding. Without `version_id` the copy comes from the most recently
 // uploaded version, which is not always the deployed one; this code uploads and deploys together.
+import { GATEWAY_ASSETS_CONFIG, uploadAssets, type Asset } from "./assets";
 import type { CloudflareClient } from "./cloudflare";
 import { serviceBindingName } from "./names";
 
@@ -25,10 +26,12 @@ export interface GatewayBindingsOptions {
   compatibilityDate: string;
   compatibilityFlags?: readonly string[];
   /**
-   * The gateway serves the console as assets: the new version keeps them (`keep_assets`, Cloudflare
-   * documentation, "Direct Upload": reuse the assets of the previous version without a new JWT).
+   * The gateway serves the console as assets. Cloudflare does not let a version inherit the assets
+   * of an earlier one (`keep_assets` is refused), so each version uploads them again: this returns
+   * the files `platform install` stored, or `undefined` when the gateway serves none. It throws
+   * when it cannot say (nothing stored).
    */
-  keepAssets?: boolean;
+  assets?(): readonly Asset[] | undefined | Promise<readonly Asset[] | undefined>;
 }
 
 export interface GatewayBindings {
@@ -50,6 +53,10 @@ export function createGatewayBindings(
 ): GatewayBindings {
   // Uploads the gateway with exactly `names` carried over, plus `added`, then deploys it.
   async function redeploy(names: readonly string[], added: Record<string, unknown>[]) {
+    const assets = await options.assets?.();
+    // The files are already on Cloudflare: it answers with no bucket to fill and the session token
+    // completes the upload. The Worker's own `ASSETS` binding is declared, not inherited.
+    const jwt = assets ? await uploadAssets(client, options.worker, assets) : undefined;
     const version = await client.request<{ id: string }>(
       "POST",
       `/workers/workers/${options.worker}/versions`,
@@ -57,7 +64,7 @@ export function createGatewayBindings(
         main_module: "worker.js",
         compatibility_date: options.compatibilityDate,
         compatibility_flags: [...(options.compatibilityFlags ?? [])],
-        ...(options.keepAssets ? { keep_assets: true } : {}),
+        ...(jwt ? { assets: { jwt, config: GATEWAY_ASSETS_CONFIG } } : {}),
         modules: [
           {
             name: "worker.js",
@@ -65,7 +72,13 @@ export function createGatewayBindings(
             content_base64: base64(await options.code()),
           },
         ],
-        bindings: [...names.map((name) => ({ type: "inherit", name })), ...added],
+        bindings: [
+          ...(jwt ? [{ type: "assets", name: "ASSETS" }] : []),
+          ...names
+            .filter((name) => !jwt || name !== "ASSETS")
+            .map((name) => ({ type: "inherit", name })),
+          ...added,
+        ],
       },
     );
     await client.request("POST", `/workers/scripts/${options.worker}/deployments`, {
