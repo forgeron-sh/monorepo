@@ -9,6 +9,7 @@ describe("ToolError", () => {
       "NOT_FOUND",
       "CONFLICT",
       "RATE_LIMITED",
+      "SECRET_REQUIRED",
       "UPSTREAM",
     ]);
   });
