@@ -18,24 +18,18 @@ interface QueryResult {
 
 export function createRestD1(client: CloudflareClient, databaseId: string): D1Database {
   const path = `/d1/database/${databaseId}/query`;
-  const prepare = (sql: string): Statement => {
-    const statement: Statement = {
-      sql,
-      params: [],
-      bind(...values) {
-        statement.params = values;
-        return statement;
-      },
-      async all() {
-        const [first] = await client.request<QueryResult[]>("POST", path, {
-          sql,
-          params: statement.params,
-        });
-        return { results: first?.results ?? [] };
-      },
-    };
-    return statement;
-  };
+  // `bind` returns a new statement, as D1 does: one prepared statement is bound several times in a
+  // batch (the registry's `saveGatewayCode`), and each binding must keep its own values.
+  const make = (sql: string, params: unknown[]): Statement => ({
+    sql,
+    params,
+    bind: (...values) => make(sql, values),
+    async all() {
+      const [first] = await client.request<QueryResult[]>("POST", path, { sql, params });
+      return { results: first?.results ?? [] };
+    },
+  });
+  const prepare = (sql: string): Statement => make(sql, []);
   return {
     prepare,
     async batch(statements) {
