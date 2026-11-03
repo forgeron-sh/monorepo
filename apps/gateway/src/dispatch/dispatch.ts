@@ -9,6 +9,8 @@
 export interface ToolEntry {
   production?: string;
   pilot?: string;
+  /** The group that gets the pilot version at the production address (D-034). */
+  pilotGroup?: string;
   /** By branch. */
   previews: Record<string, string>;
 }
@@ -46,7 +48,7 @@ export interface DispatcherOptions {
   /** The Worker of that name, or `undefined` if the gateway has no binding to it. */
   targets(worker: string): Target | undefined;
   /** Is this caller in the tool's pilot group? Without it, nobody gets pilot. */
-  inPilot?(caller: Caller): boolean | Promise<boolean>;
+  inPilot?(caller: Caller & { group?: string }): boolean | Promise<boolean>;
   /**
    * The person behind an authenticated call (a valid token or session), or `undefined` for an
    * anonymous one. With `recordSeat`, it is what counts the workspace's seats (D-024).
@@ -134,7 +136,13 @@ export function createDispatcher(options: DispatcherOptions) {
       }
     } else {
       // Pilot has the address of production: the pilot version for the pilot group, else production.
-      worker = entry.pilot && (await options.inPilot?.(caller)) ? entry.pilot : entry.production;
+      const inPilot =
+        entry.pilot &&
+        (await options.inPilot?.({
+          ...caller,
+          ...(entry.pilotGroup ? { group: entry.pilotGroup } : {}),
+        }));
+      worker = inPilot ? entry.pilot : entry.production;
       if (!worker) return refuse(404, "NOT_FOUND", "Not found.");
     }
 

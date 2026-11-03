@@ -246,9 +246,26 @@ export const platformMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "gateway_code"`)],
   },
   {
-    // The matrix edits (D-033) are audited: `access` joins the kinds of the audit log. SQLite cannot
+    // Pilot groups (D-034): a group is a name in a workspace and the members it holds. The pilot
+    // environment of a tool names the group that gets its version at the production address.
+    name: "0011_group_members",
+    fingerprint: "group-members-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "group_members" (
+  "workspace" TEXT NOT NULL,
+  "group_name" TEXT NOT NULL,
+  "member_id" TEXT NOT NULL,
+  PRIMARY KEY ("workspace", "group_name", "member_id"),
+  FOREIGN KEY ("workspace", "member_id") REFERENCES "members" ("workspace", "id") ON DELETE CASCADE
+)`),
+    ],
+    down: [st(`DROP TABLE "group_members"`)],
+  },
+  {
+    // The matrix edits (D-035) are audited: `access` joins the kinds of the audit log. SQLite cannot
     // change a CHECK, so the table is rebuilt with its rows.
-    name: "0011_audit_access",
+    name: "0012_audit_access",
     fingerprint: "audit-access-v1",
     destructive: false,
     up: [

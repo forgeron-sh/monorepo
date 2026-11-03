@@ -7,7 +7,7 @@ import { ISSUER, simulatedProvider } from "./simulated-idp";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// The roles × actions matrix through the gateway (FOR-43, D-033): the admin edits it on the console
+// The roles × actions matrix through the gateway (FOR-43, D-035): the admin edits it on the console
 // API, the next call to the tool carries the overrides in `x-forgeron-user`, a client cannot write
 // that header, and every edit is in the audit log.
 
