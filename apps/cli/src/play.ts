@@ -48,7 +48,10 @@ export async function startPlay(dir: string, options: PlayOptions = {}): Promise
       const body = await readBody(incoming);
       const response = await fetch(`${dev.url}${incoming.url ?? "/"}`, {
         method: incoming.method ?? "GET",
-        headers: { "content-type": incoming.headers["content-type"] ?? "application/json" },
+        headers: {
+          "content-type": incoming.headers["content-type"] ?? "application/json",
+          ...(incoming.headers.accept ? { accept: incoming.headers.accept } : {}),
+        },
         ...(body ? { body } : {}),
       });
       outgoing.writeHead(response.status, Object.fromEntries(response.headers));

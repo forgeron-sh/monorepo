@@ -22,6 +22,9 @@ export const PLAYGROUND_HTML = `<!doctype html>
   .run { margin-top: 1rem; padding: .5rem 1.2rem; font: inherit; cursor: pointer; }
   pre { background: #8882; padding: 1rem; border-radius: 6px; overflow: auto; white-space: pre-wrap; }
   .error { color: #c0392b; }
+  h2 { font-size: 1rem; margin: 2rem 0 .5rem; }
+  details { margin: .5rem 0; }
+  summary { cursor: pointer; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -34,6 +37,9 @@ const el = (tag, props = {}, ...children) => {
   return node;
 };
 let manifest;
+let mcpTools = [];
+let cliCommands = [];
+const json = (value) => JSON.stringify(value, null, 2);
 const actionsNav = document.getElementById("actions");
 const main = document.getElementById("main");
 
@@ -120,10 +126,43 @@ const show = (name) => {
     el("p", {}, el("small", {}, "access: " + action.access + (action.confirm ? " · asks for confirmation" : ""))),
     form,
     result,
+    el("h2", {}, "What each interface sees"),
+    preview(name, action),
   );
 };
 
-fetch("/_play/manifest").then((r) => r.json()).then((m) => {
+// What Claude, the API and the CLI are given of the action, as the running tool reports it.
+const preview = (name, action) => {
+  const part = (title, ...lines) => el("details", {}, el("summary", {}, title), el("pre", {}, lines.join("\\n")));
+  const mcp = mcpTools.find((t) => t.name === mcpName(name));
+  const cli = cliCommands.find((c) => c.action === name);
+  const api = action.http.method + " /api/" + name;
+  return el(
+    "div",
+    {},
+    part("MCP", mcp ? mcp.name + "\\n" + (mcp.description || "") + "\\n\\n" + json(mcp.inputSchema) : "Not exposed to this identity."),
+    part("API", action.interfaces.includes("api") ? api + "\\n\\n" + json(action.input) : "Not exposed."),
+    part(
+      "CLI",
+      cli
+        ? [cli.command + cli.args.map((a) => " <" + a.name + ">").join("")]
+            .concat(cli.options.map((o) => "  " + o.flag + " (" + o.type + (o.required ? ", required" : "") + ")" + (o.description ? " " + o.description : "")))
+            .join("\\n")
+        : "Not exposed to this identity.",
+    ),
+  );
+};
+const mcpName = (name) => manifest.name + "_" + name.replaceAll(".", "_");
+
+const load = async () => {
+  const m = await (await fetch("/_play/manifest")).json();
+  const list = await (await fetch("/mcp", { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) })).json();
+  mcpTools = (list.result && list.result.tools) || [];
+  const cli = await fetch("/cli", { headers: { accept: "application/json" } });
+  cliCommands = cli.ok ? (await cli.json()).commands : [];
+  return m;
+};
+load().then((m) => {
   manifest = m;
   document.title = (m.title || m.name) + " · Forgeron playground";
   const names = Object.keys(m.actions).filter((n) => m.actions[n].interfaces.includes("api"));
