@@ -138,7 +138,7 @@ export async function loadToolCard(fetchJson: FetchJson, name: string): Promise<
 export const imagesOf = (card: ToolCardData): Record<string, string> =>
   Object.fromEntries(card.assets.map((a) => [a.path, a.url]));
 
-export const INTERFACE_LABELS: ReadonlyArray<["mcp" | "api" | "cli" | "web", string]> = [
+const INTERFACE_LABELS: ReadonlyArray<["mcp" | "api" | "cli" | "web", string]> = [
   ["mcp", "MCP"],
   ["api", "API"],
   ["cli", "CLI"],
