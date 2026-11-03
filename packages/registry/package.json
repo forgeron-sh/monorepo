@@ -1,0 +1,20 @@
+{
+  "name": "@forgeron/registry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "migrate": "bun scripts/migrate.ts"
+  },
+  "dependencies": {
+    "@forgeron/hosting": "workspace:*"
+  },
+  "devDependencies": {
+    "@forgeron/tsconfig": "workspace:*",
+    "@types/node": "24.19.2",
+    "miniflare": "4.20260730.0"
+  }
+}

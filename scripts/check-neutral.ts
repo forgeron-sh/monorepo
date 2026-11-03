@@ -2,7 +2,11 @@
 // `@forgeron/hosting` runs in the gateway (a Worker) as well as in the CLI.
 import { nodeImportsOf } from "./neutral";
 
-const ENTRIES = ["packages/sdk/src/index.ts", "packages/hosting/src/index.ts"];
+const ENTRIES = [
+  "packages/sdk/src/index.ts",
+  "packages/hosting/src/index.ts",
+  "packages/registry/src/index.ts",
+];
 
 let failed = false;
 for (const entry of ENTRIES) {

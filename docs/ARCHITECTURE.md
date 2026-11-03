@@ -58,6 +58,7 @@ forgeron/
 │   ├── compiler/           # @forgeron/compiler: forgeron build, migration generation and diff
 │   ├── manifest/           # @forgeron/manifest: manifest schema, version diff, semver impact
 │   ├── hosting/            # @forgeron/hosting: deployment interface, cloud, self-host and local modes
+│   ├── registry/           # @forgeron/registry: platform D1 schema (migrations) and typed access layer
 │   ├── ui/                 # @forgeron/ui: design system components and tokens
 │   ├── connector-<name>/   # @forgeron/connector-<name> (later: microsoft-365, odoo…)
 │   └── tsconfig/           # @forgeron/tsconfig
@@ -84,6 +85,7 @@ Templates live in the repository for a specific reason: they are the **SDK's int
 | `@forgeron/compiler`    | Tool discovery, Worker bundle, manifest, views, migrations, fingerprints                           | Node                                       | `manifest`              |
 | `@forgeron/manifest`    | Zod manifest schema, comparison of two manifests, minimum impact (`sdk.md` §16)                    | neutral                                    | `zod` only              |
 | `@forgeron/hosting`     | Deployment interface and its three modes (see "Hosting modes")                                     | neutral (HTTP calls to the Cloudflare API) | `manifest`              |
+| `@forgeron/registry`    | Platform D1: schema migrations and typed access (tools, builds, versions, environments, approvals) | neutral                                    | `hosting`               |
 | `@forgeron/ui`          | React components aligned with `design-system.md`, tokens from `assets/design-system/tokens.json`   | browser                                    | `react` (peer)          |
 | `@forgeron/connector-*` | One third-party client per connector                                                               | workerd                                    | `@forgeron/sdk` (types) |
 
@@ -116,7 +118,7 @@ apps/gateway/src/
 ├── index.ts            # Hono: route mounting
 ├── dispatch/           # subdomain → workspace, /t/<tool>[@branch]/<interface> → tool Worker
 ├── identity/           # SSO, sessions, OAuth 2.1 (MCP), workspace/tool audience tokens
-├── registry/           # tools, builds, versions, environments, approvals (D1)
+├── registry/           # uses @forgeron/registry: tools, builds, versions, environments, approvals (D1)
 ├── deploy/             # receiving a build, calling @forgeron/hosting, traffic switch
 ├── admin-mcp/          # admin MCP tools (sdk.md §17)
 ├── console-api/        # API consumed by apps/console
