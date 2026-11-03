@@ -313,3 +313,15 @@ Rules of the log:
 - **Rejected**: first person to sign in becomes admin (anyone who reaches the sign-in page of a new workspace would); roles as a claim of the provider (a provider-specific mapping).
 - **Not done**: `inPilot` (no pilot group data exists, so pilot is served to nobody); listing, removing or re-roling members; `/auth/cli`, `/auth/cli/token` (D-025 asks for a person's CLI token, but D-015 tokens are bound to one tool, so what audience a CLI token has needs a decision); revocation; `/mcp`, `/api`, `/cli` (FOR-107); preview URLs returned by `POST /deploy` do not carry `@<branch>`.
 - **Applied in**: `packages/registry` (`0008_members`), `apps/gateway/src/gateway.ts`, `identity/caller.ts`, `identity/issue.ts`; `docs/self-host.md`.
+
+## D-028 — The gateway is built with Rolldown into `apps/gateway/dist/worker.js`; the compatibility settings are named once in `@forgeron/hosting`
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `bun run --cwd apps/gateway build` (`apps/gateway/scripts/build.ts`) bundles `src/worker.ts` with Rolldown (`platform: "neutral"`, conditions `workerd`, `worker`, `browser`, `node:*` left external) into one ES module, `dist/worker.js`. `worker.ts` re-exports only the default handler: workerd treats each named export of the main module as an entrypoint and refuses `DEPLOY_SCOPE` (a string) at startup. The compatibility date and flags are `GATEWAY_COMPATIBILITY_DATE` and `GATEWAY_COMPATIBILITY_FLAGS` in `packages/hosting/src/gateway-runtime.ts`; the build is independent of them, `forgeron platform install` reads them, and a test checks that `wrangler.jsonc` (kept for `wrangler dev`) states the same.
+- **Compared** (measured 03/11/2026 on this repository, `wrangler` 4.157.0 fetched with `bunx`, not a dependency):
+  - `wrangler deploy --dry-run --outdir`: works with the same entry (bundle 866 KB unminified, no `node:*` import) once `assets.directory` exists, since the dry run fails while `apps/console/dist` is missing and no console build exists. It adds a large tool to the repository and a second place that decides how the bundle is made.
+  - Rolldown: already pinned (`rolldown` 1.2.16, used by `@forgeron/compiler` for tools, D-006), no new dependency, no assets requirement; 243 KB, no `node:*` import in the bundle.
+- **Why Rolldown**: `docs/ARCHITECTURE.md` already chooses it; the gateway's bundle needs nothing wrangler adds (no assets, no bindings, the install sets those).
+- **Rejected**: wrangler as the build (a dependency and an assets directory for a file the install uploads by itself).
+- **Not verified**: the bundle runs in Miniflare (workerd of `miniflare` 4.20260730.0), which refuses a compatibility date after 2026-08-06, so the test loads it with that date, the older of the two; a real Cloudflare account was not tried. The bundle is not minified.
+- **Applied in**: FOR-121.

@@ -6,7 +6,12 @@ This guide describes `forgeron platform install` as it is implemented today. Whe
 
 - A Cloudflare account on the **Workers Paid** plan (D-009).
 - The `forgeron` CLI.
-- The gateway Worker as one bundled ES module file (`worker.js`). Publishing it with the platform packages is not done yet, so for now you build it from `apps/gateway` in this repository.
+- The gateway Worker as one bundled ES module file (`worker.js`). Publishing it with the platform packages is not done yet, so you build it in this repository (after `bun install`):
+
+  ```bash
+  bun run --cwd apps/gateway build   # writes apps/gateway/dist/worker.js
+  ```
+
 - The account id of the Cloudflare account (the id shown in the dashboard).
 
 ## 1. Create the API token
@@ -41,7 +46,7 @@ What this does **not** change: that token is short-lived, so it is **not** store
 
 ```bash
 export CLOUDFLARE_API_TOKEN=...   # the token from step 1
-forgeron platform install --account <account-id> --domain <base-domain> --gateway ./worker.js [--name forgeron]
+forgeron platform install --account <account-id> --domain <base-domain> --gateway apps/gateway/dist/worker.js [--name forgeron]
 ```
 
 - `--domain`: the base domain the gateway serves (`BASE_DOMAIN`), as in `forgeron.app` for the cloud.
