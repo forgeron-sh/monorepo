@@ -21,6 +21,11 @@ export class UsageError extends Error {
   override name = "UsageError";
 }
 
+/** What was asked for does not exist: exit code 4 (sdk.md §5). */
+export class NotFoundError extends Error {
+  override name = "NotFoundError";
+}
+
 export function terminal(): Io {
   return {
     cwd: process.cwd(),
