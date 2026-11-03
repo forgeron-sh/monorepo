@@ -1,0 +1,216 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "name": "sites",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "name",
+          "kind": "text",
+          "notNull": true,
+          "unique": true,
+          "onUpdateNow": false
+        },
+        {
+          "name": "city",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "equipments",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "site_id",
+          "kind": "ref",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "references": "sites"
+        },
+        {
+          "name": "ref",
+          "kind": "text",
+          "notNull": true,
+          "unique": true,
+          "onUpdateNow": false
+        },
+        {
+          "name": "type",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "next_check",
+          "kind": "date",
+          "notNull": false,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "attributes",
+          "kind": "json",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "default": {
+            "kind": "value",
+            "value": "{}"
+          }
+        },
+        {
+          "name": "external_id",
+          "kind": "text",
+          "notNull": false,
+          "unique": true,
+          "onUpdateNow": false
+        },
+        {
+          "name": "updated_at",
+          "kind": "timestamp",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": true,
+          "default": {
+            "kind": "now"
+          }
+        }
+      ],
+      "indexes": [
+        {
+          "columns": ["site_id"],
+          "unique": false
+        },
+        {
+          "columns": ["next_check"],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "attachments",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "equipment_id",
+          "kind": "ref",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "references": "equipments",
+          "onDelete": "cascade"
+        },
+        {
+          "name": "file_key",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "name",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "content_type",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "created_at",
+          "kind": "timestamp",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "default": {
+            "kind": "now"
+          }
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "sync_runs",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "id",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "source",
+          "kind": "enum",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "values": ["csv", "sharepoint"]
+        },
+        {
+          "name": "items",
+          "kind": "integer",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "updated",
+          "kind": "integer",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "by_email",
+          "kind": "text",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false
+        },
+        {
+          "name": "at",
+          "kind": "timestamp",
+          "notNull": true,
+          "unique": false,
+          "onUpdateNow": false,
+          "default": {
+            "kind": "now"
+          }
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}

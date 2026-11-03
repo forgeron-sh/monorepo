@@ -165,6 +165,9 @@
     "templates/inventory": {
       "name": "@forgeron/template-inventory",
       "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/sdk": "workspace:*",
+      },
     },
     "templates/odoo-gateway": {
       "name": "@forgeron/template-odoo-gateway",
