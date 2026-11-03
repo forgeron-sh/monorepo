@@ -41,6 +41,7 @@ Rules of the log:
 | D-027 | 03/11/2026 | Members live in the registry; sign-in admits the configured administrator and allowed email domains, nobody else                 | Active            |
 | D-029 | 03/11/2026 | In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding                 | Active            |
 | D-031 | 03/11/2026 | `forgeron login` gets a CLI token scoped `cli` for the platform, one-time PKCE code, 30 days                                     | Active            |
+| D-032 | 03/11/2026 | The gateway keeps its own code in the platform D1, and `platform install` carries the tool bindings over                         | Active            |
 
 ---
 
@@ -357,3 +358,12 @@ Rules of the log:
 - **Rejected**: stateless codes (replayable inside their 60 seconds); a token without audience (D-015); letting a CLI token call tools (the CLI would then hold the person's reach over every tool).
 - **Not done**: revocation (30 days to its expiry); a real browser and a real provider were not tried; the CLI cannot yet use the token to call tools or deploy beyond what the platform routes accept.
 - **Applied in**: `apps/gateway/src/identity/cli.ts`, `caller.ts`, `auth.ts` (`next`); `packages/registry` (`0009_cli_codes`, `spendCode`).
+
+## D-032 — The gateway keeps its own code in the platform D1, and `platform install` carries the tool bindings over
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: (1) `platform install` stores `worker.js` in the platform D1 (`gateway_code`, migration 0010, in chunks) and sets the plain binding `GATEWAY_WORKER` (the gateway's own name). The gateway's self-host hosting (`gatewayBindingsOf`, `apps/gateway/src/gateway.ts`) builds `createGatewayBindings` (D-029) from them: on `POST /deploy` it uploads a new version of itself from that code, `inherit`ing every key of its own `env`, adds the `TOOL_<WORKER>` service binding and deploys it; `teardown` removes it; a Worker already in `env` uploads nothing. (2) A re-run of the install reads the registry's `environments`, derives each `TOOL_<WORKER>` and sends it as `inherit`; if Cloudflare answers 10057 for one (an environment registered but never bound) the install retries without it and names it.
+- **Why**: a version cannot be uploaded without code, and the Cloudflare documentation read on 03/11/2026 gives no way to read the bindings of a version back; the code of the deployed script is reachable at `GET .../workers/scripts/<name>/content/v2` (path confirmed in the API reference, response format and version served not), so the code is kept where the gateway can read it with certainty. The registry already holds the list of environments, so it is the list of bindings to keep.
+- **Rejected**: reading the script back from Cloudflare (format unverified); storing the code in a secret or plain binding (size limit); an install that drops the tool bindings (tools unreachable after each install).
+- **Not done / not verified**: the assets are kept with `keep_assets: true`, documented for the upload endpoints ("Direct Upload"), not tried on the beta versions endpoint, and their routing config (`not_found_handling`, `run_worker_first`) may not survive it; `Object.keys(env)` is the list of bindings (workerd's `env` enumerates them, not checked); two tool deployments at the same moment can lose a binding; a gateway installed before this change has no stored code until the install is run again; nothing was tried on a real account.
+- **Applied in**: FOR-119.

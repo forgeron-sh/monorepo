@@ -1,6 +1,20 @@
 import type { D1Database } from "@forgeron/hosting";
-import { createRegistry, createSecretBox, type Registry } from "@forgeron/registry";
-import { createCloudHosting, createSelfHostHosting, type Hosting } from "@forgeron/hosting";
+import {
+  loadGatewayCode,
+  createRegistry,
+  createSecretBox,
+  type Registry,
+} from "@forgeron/registry";
+import {
+  createCloudflareClient,
+  createCloudHosting,
+  createGatewayBindings,
+  createSelfHostHosting,
+  GATEWAY_COMPATIBILITY_DATE,
+  GATEWAY_COMPATIBILITY_FLAGS,
+  type GatewayBindings,
+  type Hosting,
+} from "@forgeron/hosting";
 import { handleConnections } from "./console-api/connections";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
@@ -147,9 +161,11 @@ export function createGateway(
       url: (worker: string) =>
         `https://${workspace}.${env.BASE_DOMAIN}/t/${worker.split("--")[1] ?? ""}`,
     };
-    return env.DISPATCHER && env.DISPATCH_NAMESPACE
-      ? createCloudHosting({ ...common, namespace: env.DISPATCH_NAMESPACE })
-      : createSelfHostHosting(common);
+    if (env.DISPATCHER && env.DISPATCH_NAMESPACE) {
+      return createCloudHosting({ ...common, namespace: env.DISPATCH_NAMESPACE });
+    }
+    const gateway = gatewayBindingsOf(env);
+    return createSelfHostHosting({ ...common, ...(gateway ? { gateway } : {}) });
   };
 
   const providerOf = (workspace: string) =>
@@ -284,4 +300,42 @@ export function createGateway(
       headers,
     });
   };
+}
+
+/**
+ * Self-host: how the gateway adds and removes the `TOOL_<WORKER>` bindings of its own Worker
+ * (D-029, D-032). It needs to know its own name (`GATEWAY_WORKER`, set by `platform install`) and
+ * holds its code in the platform D1; without either, nothing is bound, as before.
+ */
+export function gatewayBindingsOf(env: GatewayEnv): GatewayBindings | undefined {
+  if (
+    typeof env.GATEWAY_WORKER !== "string" ||
+    !env.CLOUDFLARE_ACCOUNT_ID ||
+    !env.CLOUDFLARE_API_TOKEN
+  ) {
+    return undefined;
+  }
+  return createGatewayBindings(
+    createCloudflareClient({
+      accountId: env.CLOUDFLARE_ACCOUNT_ID,
+      apiToken: env.CLOUDFLARE_API_TOKEN,
+    }),
+    {
+      worker: env.GATEWAY_WORKER,
+      // Everything the gateway holds now: carried over to the new version (`inherit`).
+      bindings: () => Object.keys(env),
+      code: async () => {
+        const code = await loadGatewayCode(env.DB);
+        if (code === undefined) {
+          throw new Error(
+            "The platform D1 holds no gateway code: run `forgeron platform install` again.",
+          );
+        }
+        return code;
+      },
+      compatibilityDate: GATEWAY_COMPATIBILITY_DATE,
+      compatibilityFlags: GATEWAY_COMPATIBILITY_FLAGS,
+      keepAssets: env.ASSETS !== undefined,
+    },
+  );
 }

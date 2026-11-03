@@ -3,9 +3,11 @@ import {
   createRestD1,
   GATEWAY_COMPATIBILITY_DATE,
   GATEWAY_COMPATIBILITY_FLAGS,
+  serviceBindingName,
+  workerName,
   type CloudflareClient,
 } from "@forgeron/hosting";
-import { migratePlatform } from "@forgeron/registry";
+import { migratePlatform, saveGatewayCode } from "@forgeron/registry";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -112,8 +114,11 @@ export async function platform(
   io.log(`${found ? "Found" : "Created"} the platform D1 "${database}".`);
 
   // 2. Its schema.
-  const { applied } = await migratePlatform(createRestD1(client, databaseId));
+  const platformD1 = createRestD1(client, databaseId);
+  const { applied } = await migratePlatform(platformD1);
   io.log(applied.length ? `Applied: ${applied.join(", ")}` : "The platform D1 is up to date.");
+  // The gateway uploads a new version of itself when a tool is bound (D-032): it keeps its code here.
+  await saveGatewayCode(platformD1, code);
 
   // 3. The gateway Worker, with the D1 and, as a secret, the token it will deploy tools with.
   const worker = `${name}-gateway`;
@@ -126,6 +131,9 @@ export async function platform(
     existed = false;
   }
   const assetsJwt = assets ? await uploadAssets(client, worker, assets) : undefined;
+  // The tool Workers already bound to the gateway: the registry knows each environment, so it
+  // knows the `TOOL_<WORKER>` bindings of the version being replaced; each is carried over.
+  const bound = existed ? await toolBindings(platformD1) : [];
   const upload = (lost: ReadonlySet<string>) =>
     client.request<{ id: string }>("POST", `/workers/workers/${worker}/versions`, {
       main_module: "worker.js",
@@ -152,10 +160,13 @@ export async function platform(
         { type: "d1", name: "DB", id: databaseId },
         { type: "plain_text", name: "BASE_DOMAIN", text: values.domain },
         { type: "plain_text", name: "CLOUDFLARE_ACCOUNT_ID", text: values.account },
+        // The gateway's own name, to upload new versions of itself (D-032).
+        { type: "plain_text", name: "GATEWAY_WORKER", text: worker },
         ...(gatewayToken
           ? [{ type: "secret_text", name: "CLOUDFLARE_API_TOKEN", text: gatewayToken }]
           : []),
         ...settingBindings(settings, existed, lost),
+        ...bound.filter((n) => !lost.has(n)).map((n) => ({ type: "inherit", name: n })),
       ],
     });
   // Keys and identity settings of an earlier version are kept (`inherit`); when Cloudflare cannot
@@ -166,7 +177,9 @@ export async function platform(
     version = await upload(new Set());
   } catch (error) {
     const message = (error as Error).message;
-    const lost = new Set(settings.map((s) => s.name).filter((n) => message.includes(n)));
+    const lost = new Set(
+      [...settings.map((s) => s.name), ...bound].filter((n) => message.includes(n)),
+    );
     if (!existed || (error as { status?: number }).status !== 400 || lost.size === 0) throw error;
     regenerated = lost;
     version = await upload(lost);
@@ -182,6 +195,15 @@ export async function platform(
     io.log(
       "The wrangler token is a short-lived session token and is not stored. Create an API token limited to Workers, D1, KV and R2, then either run the install again with GATEWAY_CLOUDFLARE_API_TOKEN set, or set the secret CLOUDFLARE_API_TOKEN on the gateway Worker yourself (for example with `wrangler secret put`). Tools cannot be deployed before that.",
     );
+  }
+
+  const dropped = bound.filter((n) => regenerated.has(n));
+  if (dropped.length) {
+    io.log(
+      `Cloudflare could not carry over ${dropped.join(", ")}: those tools are not bound until they are deployed again.`,
+    );
+  } else if (bound.length) {
+    io.log(`Kept the ${bound.length} tool binding(s) of the gateway.`);
   }
 
   const created = KEYS.filter((k) => !existed || regenerated.has(k));
@@ -206,6 +228,31 @@ export async function platform(
       : "The console is not deployed: pass --console <dir> (the build of apps/console) to deploy it.",
   );
   return 0;
+}
+
+/** `TOOL_<WORKER>` of every environment the registry holds: those a tool deployment bound. */
+async function toolBindings(d1: ReturnType<typeof createRestD1>): Promise<string[]> {
+  const { results } = await d1
+    .prepare(
+      `SELECT t."workspace" AS workspace, t."name" AS tool, e."name" AS environment, e."branch" AS branch FROM "environments" e JOIN "tools" t ON t."id" = e."tool_id"`,
+    )
+    .all();
+  return (
+    (results ?? []) as Array<{
+      workspace: string;
+      tool: string;
+      environment: string;
+      branch: string;
+    }>
+  ).map((row) =>
+    serviceBindingName(
+      workerName(row.workspace, {
+        tool: row.tool,
+        name: row.environment as "preview" | "pilot" | "production",
+        ...(row.branch ? { branch: row.branch } : {}),
+      }),
+    ),
+  );
 }
 
 interface Zone {

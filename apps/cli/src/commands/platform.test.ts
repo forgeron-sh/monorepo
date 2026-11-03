@@ -22,7 +22,17 @@ interface Calls {
 }
 
 /** A simulated Cloudflare account: only the routes the install calls. */
-function fakeCloudflare(expected = TOKEN, zones: Array<{ id: string; name: string }> = [ZONE]) {
+function fakeCloudflare(
+  expected = TOKEN,
+  zones: Array<{ id: string; name: string }> = [ZONE],
+  /** The environments the registry holds (what a tool deployment registered). */
+  environments: Array<{
+    workspace: string;
+    tool: string;
+    environment: string;
+    branch: string;
+  }> = [],
+) {
   const calls: Calls[] = [];
   const databases = new Map<string, string>();
   const workers = new Set<string>();
@@ -99,6 +109,9 @@ function fakeCloudflare(expected = TOKEN, zones: Array<{ id: string; name: strin
       return ok({ uuid: "db-1", name: body?.name });
     }
     if (method === "POST" && /^\/d1\/database\/[^/]+\/query$/.test(path)) {
+      if (typeof body?.sql === "string" && body.sql.includes('FROM "environments"')) {
+        return ok([{ results: environments }]);
+      }
       return ok(
         Array.isArray(body?.batch)
           ? (body.batch as unknown[]).map(() => ({ results: [] }))
@@ -374,6 +387,59 @@ describe("forgeron platform install", () => {
       const raw = cf.calls.filter((c) => c.path.endsWith("/versions")).at(-1)!.body!;
       expect(JSON.stringify(raw.bindings)).toContain('{"type":"inherit","name":"AUTH_SECRET"}');
       expect(JSON.stringify(raw)).not.toContain(first[0]!.text!);
+    });
+
+    describe("tool bindings (D-032)", () => {
+      const crm = { workspace: "acme", tool: "crm", environment: "production", branch: "" };
+
+      it("stores the gateway code in the platform D1 and tells the gateway its own name", async () => {
+        const cf = fakeCloudflare();
+        await platform(install(), io, { fetch: cf.fetcher });
+        const stored = cf.calls
+          .filter((c) => c.path.endsWith("/query") && Array.isArray(c.body?.batch))
+          .flatMap((c) => c.body!.batch as Array<{ sql: string; params: unknown[] }>)
+          .filter((s) => s.sql.includes('INSERT INTO "gateway_code"'));
+        expect(stored.map((s) => s.params[1]).join("")).toBe(
+          "export default { fetch: () => new Response('ok') };",
+        );
+        expect(named(cf, "GATEWAY_WORKER")).toEqual({
+          type: "plain_text",
+          name: "GATEWAY_WORKER",
+          text: "forgeron-gateway",
+        });
+      });
+
+      it("carries over the TOOL_<WORKER> bindings of the tools already bound, without sending them", async () => {
+        const cf = fakeCloudflare(TOKEN, [ZONE], [crm]);
+        await platform(install(), io, { fetch: cf.fetcher });
+        // The gateway as a tool deployment left it: the Worker bound.
+        cf.versions[cf.versions.length - 1]!.push({
+          type: "service",
+          name: "TOOL_ACME__CRM__PRODUCTION",
+          service: "acme--crm--production",
+        } as never);
+        await platform(install(), io, { fetch: cf.fetcher });
+        const upload = cf.calls.filter((c) => c.path.endsWith("/versions")).at(-1)!.body!;
+        expect(upload.bindings).toContainEqual({
+          type: "inherit",
+          name: "TOOL_ACME__CRM__PRODUCTION",
+        });
+        expect(latest(cf).map((b) => b.name)).toContain("TOOL_ACME__CRM__PRODUCTION");
+        expect(latest(cf).find((b) => b.name === "TOOL_ACME__CRM__PRODUCTION")).toMatchObject({
+          type: "service",
+          service: "acme--crm--production",
+        });
+      });
+
+      it("installs anyway when a registered tool has no binding to carry over, and says so", async () => {
+        const cf = fakeCloudflare(TOKEN, [ZONE], [crm]);
+        await platform(install(), io, { fetch: cf.fetcher });
+        logs.length = 0;
+        expect(await platform(install(), io, { fetch: cf.fetcher })).toBe(0);
+        expect(latest(cf).some((b) => b.name === "TOOL_ACME__CRM__PRODUCTION")).toBe(false);
+        expect(logs.join("\n")).toContain("TOOL_ACME__CRM__PRODUCTION");
+        expect(logs.join("\n")).toContain("not bound until they are deployed again");
+      });
     });
 
     it("generates only the key a previous version lacks, and keeps the other", async () => {
