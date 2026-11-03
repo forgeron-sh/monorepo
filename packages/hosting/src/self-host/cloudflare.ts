@@ -30,6 +30,8 @@ export interface CloudflareClient {
   request<T>(method: string, path: string, body?: unknown): Promise<T>;
   /** Like `request`, with a multipart body: the upload of a Worker. */
   form<T>(method: string, path: string, body: FormData): Promise<T>;
+  /** Like `request`, with `path` under the API root (`/zones/<id>/...`), for what is not account-scoped. */
+  requestRoot<T>(method: string, path: string, body?: unknown): Promise<T>;
 }
 
 export function createCloudflareClient(options: CloudflareOptions): CloudflareClient {
@@ -40,16 +42,20 @@ export function createCloudflareClient(options: CloudflareOptions): CloudflareCl
     path: string,
     body: string | FormData | undefined,
     json: boolean,
+    root = false,
   ): Promise<T> {
-    const response = await doFetch(`${base}/accounts/${options.accountId}${path}`, {
-      method,
-      headers: {
-        authorization: `Bearer ${options.apiToken}`,
-        // A multipart body gets its boundary from `fetch`: no content type of ours.
-        ...(body !== undefined && json ? { "content-type": "application/json" } : {}),
+    const response = await doFetch(
+      `${base}${root ? "" : `/accounts/${options.accountId}`}${path}`,
+      {
+        method,
+        headers: {
+          authorization: `Bearer ${options.apiToken}`,
+          // A multipart body gets its boundary from `fetch`: no content type of ours.
+          ...(body !== undefined && json ? { "content-type": "application/json" } : {}),
+        },
+        ...(body === undefined ? {} : { body }),
       },
-      ...(body === undefined ? {} : { body }),
-    });
+    );
     const envelope = (await response.json().catch(() => undefined)) as Envelope<T> | undefined;
     if (!response.ok || !envelope?.success) {
       const detail = envelope?.errors?.map((e) => e.message).join("; ") || response.statusText;
@@ -65,5 +71,7 @@ export function createCloudflareClient(options: CloudflareOptions): CloudflareCl
     request: <T>(method: string, path: string, body?: unknown) =>
       send<T>(method, path, body === undefined ? undefined : JSON.stringify(body), true),
     form: <T>(method: string, path: string, body: FormData) => send<T>(method, path, body, false),
+    requestRoot: <T>(method: string, path: string, body?: unknown) =>
+      send<T>(method, path, body === undefined ? undefined : JSON.stringify(body), true, true),
   };
 }

@@ -17,6 +17,7 @@ In the Cloudflare dashboard, create an API token whose permissions are limited t
 - D1
 - Workers KV storage
 - R2 storage
+- Zone > Zone > Read, Zone > DNS > Edit and Zone > Workers Routes > Edit (Cloudflare lists them as `Zone Read`, `DNS Write` and `Workers Routes Write`), scoped to the zone of `--domain`
 
 Give it nothing else. Scope it to the single account you install on.
 
@@ -54,13 +55,14 @@ The command does, in order:
    - `DB`: the platform D1;
    - `BASE_DOMAIN` and `CLOUDFLARE_ACCOUNT_ID`: plain values;
    - `CLOUDFLARE_API_TOKEN`: the token, as a secret.
+4. **DNS and route.** Looks up the zone of `--domain` on the account (a usage error if it is not there), then creates, or reuses, the proxied wildcard record `*.<domain>` and the route `*.<domain>/*` to `<name>-gateway`. The record is `AAAA 100::`, the placeholder Cloudflare documents for a proxied record with no origin; the route is what answers. A route that already exists for that pattern but points to another Worker stops the command instead of being overwritten. Certificates are not handled: the zone's own certificate coverage applies (a wildcard needs a certificate that covers `*.<domain>`).
 
 Running it again is safe: the D1 and the Worker are reused, and a new version of the gateway is deployed.
 
 ## What is not done yet
 
 - **The console is not deployed.** There is no console build yet; the command says so when it finishes.
-- **No route or custom domain is attached** to the gateway Worker, and DNS is yours to set up.
+- **Custom customer domains** (Cloudflare for SaaS, FOR-78) are not attached.
 - **Tools are not reachable until they are bound.** The gateway reaches each tool's Worker through a service binding, added when a tool is created or deleted; this installation does not add any.
 - Several settings the gateway needs for identity (single sign-on, token signing) and the key that encrypts tool secrets are not part of this command yet.
 - The gateway bundle is not published as a package.
