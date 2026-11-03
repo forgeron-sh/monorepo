@@ -1,4 +1,5 @@
 {
+  // The compatibility date and flags are named once in @forgeron/hosting (gateway-runtime.ts); a test keeps them equal.
   // Skeleton: bindings and routes to fill in with the code (docs/ARCHITECTURE.md, "Hosting modes").
   "name": "forgeron-gateway",
   "main": "src/index.ts",
