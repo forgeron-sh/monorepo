@@ -9,6 +9,9 @@ import { parseAudience } from "./audience";
 // audience-bound token (issued for this workspace) gives the person and their roles; anything
 // else, a deployment token included, gives nobody. Roles are read now, never frozen in the credential.
 
+/** The scope of a CLI token (D-028): good on the platform's routes, refused by every tool. */
+export const CLI_SCOPE = "cli";
+
 const toPerson = (member: Member): Person => ({
   id: member.id,
   email: member.email,
@@ -30,14 +33,22 @@ export function createCaller(options: CallerOptions) {
 
   return {
     /** The person behind a request to this workspace, by session cookie, else by Bearer token. */
-    async resolve(request: Request, workspace: string): Promise<Person | undefined> {
+    async resolve(
+      request: Request,
+      workspace: string,
+      /** Also accept a CLI token (`forgeron login`): for the platform's own routes only. */
+      platform = false,
+    ): Promise<Person | undefined> {
       const now = options.now();
       const session = await readSession(request, { secret: options.secret, workspace, now });
       if (session) return personOf(workspace, session.person);
 
       const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
       if (!token) return undefined;
-      const check = await verifyToken(token, { secret: options.secret, now });
+      let check = await verifyToken(token, { secret: options.secret, now });
+      if (!check.ok && platform) {
+        check = await verifyToken(token, { secret: options.secret, now, scope: CLI_SCOPE });
+      }
       if (!check.ok || parseAudience(check.claims.aud)?.workspace !== workspace) return undefined;
       return personOf(workspace, check.claims.sub);
     },
