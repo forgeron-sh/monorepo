@@ -4,6 +4,8 @@ import { applyMigrations, type D1Database, type MigrateOptions } from "@forgeron
 import { platformMigrations } from "./migrations";
 
 export { platformMigrations } from "./migrations";
+export { closePreview, deployBuild } from "./deploy";
+export type { DeployBuildInput, DeployedBuild } from "./deploy";
 export { createRegistry, RegistryError } from "./registry";
 export type {
   Approval,
