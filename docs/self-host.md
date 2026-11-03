@@ -94,7 +94,7 @@ What the gateway serves at a workspace origin once these are set: `/auth/login`,
 
 - **The console is not deployed.** There is no console build yet; the command says so when it finishes.
 - **Custom customer domains** (Cloudflare for SaaS, FOR-78) are not attached.
-- **Tools are not reachable until they are bound.** The gateway reaches each tool's Worker through a service binding, added when a tool is created or deleted; this installation does not add any.
+- **Tools are not reachable until they are bound.** The gateway reaches each tool's Worker through a service binding (`TOOL_<WORKER>`), added when a tool is created and removed when it is deleted (D-029). The hosting side exists (`createGatewayBindings`); the gateway does not use it yet, so this installation still adds none.
 - The identity settings and the two keys listed above (`AUTH_SECRET`, `SECRETS_KEY`, `OIDC_*`, `ADMIN_EMAIL`) are not part of this command yet (FOR-120): set them on the gateway Worker yourself for now.
 - `/mcp`, `/api` and `/cli` of a workspace answer `404` (admin MCP, FOR-107). `forgeron login` cannot sign in yet: the gateway has no `/auth/cli` and `/auth/cli/token`.
 - Members are added only at sign-in, by the two rules of D-027; there is no way to list, remove or change the roles of a member.

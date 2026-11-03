@@ -1,3 +1,4 @@
+import { serviceBindingName } from "@forgeron/hosting";
 import type { Target } from "./dispatch";
 
 // How the gateway holds the Workers of the tools (docs/ARCHITECTURE.md, "Hosting modes"). The
@@ -36,13 +37,8 @@ export function namespaceTarget(namespace: DispatchNamespace, worker: string): T
   };
 }
 
-/**
- * The name of the service binding of a Worker: `acme--crm--production` is `TOOL_ACME__CRM__PRODUCTION`.
- * Worker names are `[a-z0-9-]`, so the mapping is one to one, and no other binding of the gateway
- * (`DB`, `BASE_DOMAIN`…) can ever be taken for a tool.
- */
-export const serviceBindingOf = (worker: string): string =>
-  `TOOL_${worker.toUpperCase().replaceAll("-", "_")}`;
+/** The name of the service binding of a Worker, `TOOL_ACME__CRM__PRODUCTION` (defined in hosting, which adds it). */
+export const serviceBindingOf = serviceBindingName;
 
 const isTarget = (value: unknown): value is Target =>
   typeof value === "object" &&

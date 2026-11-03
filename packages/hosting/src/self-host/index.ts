@@ -16,6 +16,7 @@ import { applyMigrations } from "../migrate";
 import { cloudflareResources } from "../resources";
 import { createCloudflareClient, CloudflareError, type CloudflareOptions } from "./cloudflare";
 import { createRestD1 } from "./d1-rest";
+import type { GatewayBindings } from "./gateway-bindings";
 import { workerName } from "./names";
 
 export interface SelfHostOptions extends CloudflareOptions {
@@ -24,6 +25,11 @@ export interface SelfHostOptions extends CloudflareOptions {
   /** Where an environment answers, from the name of its Worker (workers.dev, a route, a custom domain). */
   url(workerName: string): string;
   compatibilityDate?: string;
+  /**
+   * Gives the gateway a service binding to each tool Worker once it serves, and takes it away
+   * before the Worker is deleted (D-029). Without it, binding the tools is somebody else's job.
+   */
+  gateway?: GatewayBindings;
 }
 
 const COMPATIBILITY_DATE = "2026-07-01";
@@ -96,6 +102,7 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
         strategy: "percentage",
         versions: [{ percentage: 100, version_id: uploaded.versionId }],
       });
+      await options.gateway?.bind(worker);
       return { url: options.url(worker) };
     },
 
@@ -103,6 +110,8 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
     // memory of the ids, and a half-removed environment can be removed again.
     async teardown(environment): Promise<void> {
       const worker = nameOf(environment);
+      // The gateway lets go first: a service binding to a Worker that is gone cannot be deployed.
+      await options.gateway?.unbind(worker);
       try {
         await client.request("DELETE", `/workers/workers/${worker}`);
       } catch (error) {
@@ -116,4 +125,6 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
 export { CloudflareError, createCloudflareClient } from "./cloudflare";
 export type { CloudflareClient, CloudflareOptions } from "./cloudflare";
 export { createRestD1 } from "./d1-rest";
-export { workerName } from "./names";
+export { createGatewayBindings } from "./gateway-bindings";
+export type { GatewayBindings, GatewayBindingsOptions } from "./gateway-bindings";
+export { serviceBindingName, workerName } from "./names";

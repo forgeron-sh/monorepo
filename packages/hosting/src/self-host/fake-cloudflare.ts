@@ -13,6 +13,8 @@ export class FakeCloudflare {
   readonly databases = new Map<string, { name: string; d1?: D1Database }>();
   readonly namespaces = new Map<string, string>();
   readonly buckets = new Set<string>();
+  /** The version uploads as the client sent them, `inherit` bindings unresolved. */
+  readonly uploads: Version["body"][] = [];
   /** The user Workers of dispatch namespaces, by `<namespace>/<script>`. */
   readonly scripts = new Map<
     string,
@@ -137,7 +139,20 @@ export class FakeCloudflare {
       const worker = this.workers.get(m[1]!);
       if (!worker) throw this.fail(404, "no such worker");
       const id = this.id("version");
-      worker.versions.push({ id, body: body as Version["body"] });
+      const upload = body as Version["body"];
+      // `inherit` copies a binding, secret value included, from the most recently uploaded version
+      // (Cloudflare docs: that is not always the deployed one); one that cannot be resolved is error 10057.
+      const previous = worker.versions.at(-1);
+      const bindings = (upload.bindings ?? []).map((binding) => {
+        if (binding.type !== "inherit") return binding;
+        const copied = previous?.body.bindings.find((b) => b.name === binding.name);
+        if (!copied) {
+          throw this.fail(400, `10057: cannot inherit the binding ${String(binding.name)}`);
+        }
+        return copied;
+      });
+      worker.versions.push({ id, body: { ...upload, bindings } });
+      this.uploads.push(upload);
       return { id };
     }
     if ((m = path.match(/^\/workers\/scripts\/([^/]+)\/deployments$/)) && method === "POST") {
