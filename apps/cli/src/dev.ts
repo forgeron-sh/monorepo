@@ -11,6 +11,8 @@ import { UsageError } from "./io";
 
 export interface DevSession {
   name: string;
+  /** The manifest of the build being served. */
+  manifest(): Manifest;
   /** Where the tool answers: `<url>/mcp`, `<url>/api/<action>`, `<url>/cli`. */
   url: string;
   /** Builds again and replaces the running build. */
@@ -58,6 +60,8 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
       : {}),
   });
 
+  let current: Manifest | undefined;
+
   async function deploy(): Promise<{ name: string; url: string }> {
     const { outDir } = await buildTool(dir);
     const build = await builtFiles(outDir);
@@ -65,6 +69,7 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
       const known = Object.keys(build.manifest.roles).join(", ") || "none";
       throw new UsageError(`--as ${role}: the tool has no such role (roles: ${known}).`);
     }
+    current = build.manifest;
     const environment = { tool: build.manifest.name, name: "local" as const };
     const provisioned = await hosting.provision(environment, build.manifest);
     const uploaded = await hosting.upload(provisioned, build);
@@ -77,6 +82,7 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
   const { name, url } = await deploy();
   return {
     name,
+    manifest: () => current!,
     url,
     reload: async () => void (await deploy()),
     stop: () => hosting.close(),

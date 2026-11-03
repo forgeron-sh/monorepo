@@ -521,6 +521,52 @@ describe("forgeron dev", () => {
   }, 120_000);
 });
 
+describe("forgeron play", () => {
+  const open = async (args: string[], dir: string) => {
+    const c = capture(dir);
+    const done = run(["play", "--no-open", ...args], c.io);
+    await vi.waitFor(() => expect(c.logs.join("\n")).toContain("Playground of"), {
+      timeout: 30_000,
+    });
+    const url = /Playground of \S+: (\S+)/.exec(c.logs[0]!)![1]!;
+    return { c, url, done };
+  };
+
+  it("serves the playground, the manifest and the tool's API on one address", async () => {
+    const { c, url, done } = await open(["--port", "0"], await work("play"));
+    const page = await fetch(url);
+    expect(page.headers.get("content-type")).toContain("text/html");
+    expect(await page.text()).toContain("Forgeron playground");
+
+    const manifest = (await (await fetch(`${url}/_play/manifest`)).json()) as {
+      actions: Record<string, { input: unknown }>;
+    };
+    expect(Object.keys(manifest.actions)).toEqual(["hello"]);
+
+    const called = await fetch(`${url}/api/hello?name=Ely`);
+    expect(await called.json()).toEqual({ message: "Hello, Ely!", as: "dev" });
+    c.stop();
+    expect(await done).toBe(0);
+    await expect(fetch(url)).rejects.toThrow(/fetch failed/);
+  }, 90_000);
+
+  it("refuses a port that is not a port", async () => {
+    const c = capture(await empty());
+    expect(await run(["play", "--port", "abc"], c.io)).toBe(2);
+    expect(c.errors[0]).toContain("not a port number");
+  });
+
+  it("says when the port is taken", async () => {
+    const first = await open(["--port", "0"], await work("play-port"));
+    const port = new URL(first.url).port;
+    const other = capture(await work("play-port-2"));
+    expect(await run(["play", "--no-open", "--port", port], other.io)).toBe(2);
+    expect(other.errors[0]).toContain(`Port ${port} is already in use`);
+    first.c.stop();
+    await first.done;
+  }, 120_000);
+});
+
 describe("forgeron change and release", () => {
   const helloTool = async (name: string) => {
     const dir = join(fixtures, `.work-${name}-${Date.now()}`);
