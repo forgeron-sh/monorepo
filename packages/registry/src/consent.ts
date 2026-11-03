@@ -131,7 +131,12 @@ export function createConsent(options: ConsentOptions) {
     },
 
     /** The person is back from the provider: swaps the code for tokens and keeps them. */
-    async complete(input: { state: string; code: string }): Promise<ConsentTarget> {
+    /** `userId`, when given, must be the person the state was issued to (the one now signed in). */
+    async complete(input: {
+      state: string;
+      code: string;
+      userId?: string;
+    }): Promise<ConsentTarget> {
       const [iv, ciphertext] = input.state.split(".");
       let payload: StatePayload;
       try {
@@ -143,6 +148,9 @@ export function createConsent(options: ConsentOptions) {
       }
       if (payload.expires < now()) {
         throw new ConsentError("INVALID_STATE", "The consent request has expired.");
+      }
+      if (input.userId !== undefined && input.userId !== payload.userId) {
+        throw new ConsentError("INVALID_STATE", "The consent was requested by someone else.");
       }
       const p = provider(payload.connector);
       const reply = await token(p, {
