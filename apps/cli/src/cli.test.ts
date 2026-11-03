@@ -520,3 +520,59 @@ describe("forgeron dev", () => {
     await first.done;
   }, 120_000);
 });
+
+describe("forgeron change and release", () => {
+  const helloTool = async (name: string) => {
+    const dir = join(fixtures, `.work-${name}-${Date.now()}`);
+    dirs.push(dir);
+    await cp(join(fixtures, "greeter"), dir, {
+      recursive: true,
+      filter: (src) => !src.includes(".forgeron"),
+    });
+    return dir;
+  };
+
+  it("adds a change, checks it, and releases with a commit and a tag", async () => {
+    const dir = await helloTool("change");
+    const add = capture(dir);
+    expect(
+      await run(
+        ["change", "--type", "added", "--bump", "minor", "-m", "Greets in French."],
+        add.io,
+      ),
+    ).toBe(0);
+    expect(add.logs[0]).toMatch(/^Wrote changes\/\d{4}-\d{2}-\d{2}-greets-in-french\.md\.$/);
+
+    const check = capture(dir);
+    expect(await run(["change", "check"], check.io)).toBe(0);
+    expect(check.logs).toEqual(["No change to declare."]);
+
+    const rel = capture(dir);
+    expect(await run(["release"], rel.io)).toBe(0);
+    const tag = `greeter@${JSON.parse(await readFile(join(dir, "package.json"), "utf8")).version}`;
+    expect(rel.logs.at(-1)).toBe(`Committed and tagged ${tag}.`);
+    expect(rel.exec.mock.calls.map(([, args]) => args[0])).toEqual(["add", "commit", "tag"]);
+    expect(rel.exec.mock.calls.at(-1)?.[1]).toEqual(["tag", tag]);
+  }, 120_000);
+
+  it("releases without git on request, and says when there is nothing to release", async () => {
+    const dir = await helloTool("release-nogit");
+    const nothing = capture(dir);
+    expect(await run(["release"], nothing.io)).toBe(1);
+    expect(nothing.errors[0]).toContain("nothing to release");
+    await run(["change", "--type", "fixed", "--bump", "patch", "-m", "A fix."], capture(dir).io);
+    const c = capture(dir);
+    expect(await run(["release", "--no-git"], c.io)).toBe(0);
+    expect(c.exec).not.toHaveBeenCalled();
+  }, 120_000);
+
+  it("exits 2 for a wrong use", async () => {
+    const missing = capture("/");
+    expect(await run(["change", "--type", "added"], missing.io)).toBe(2);
+    const type = capture("/");
+    expect(await run(["change", "--type", "new", "--bump", "minor", "-m", "x"], type.io)).toBe(2);
+    expect(type.errors[0]).toContain("--type new");
+    const bump = capture("/");
+    expect(await run(["change", "--type", "added", "--bump", "tiny", "-m", "x"], bump.io)).toBe(2);
+  });
+});

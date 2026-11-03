@@ -1,4 +1,5 @@
 import { build } from "./commands/build";
+import { change, release } from "./commands/change";
 import { db } from "./commands/db";
 import { dev } from "./commands/dev";
 import { init } from "./commands/init";
@@ -13,6 +14,8 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   test,
   dev,
   db,
+  change,
+  release,
 };
 
 const USAGE = `Usage: forgeron <command>
@@ -22,6 +25,8 @@ const USAGE = `Usage: forgeron <command>
   dev [--as <role>] [--port 8787]      run the tool locally
   db generate|migrate|status|rollback|seed|shell
                                        the database: migrations, seed, SQL (forgeron db for details)
+  change --type <t> --bump <b> -m ".."  add a change to changes/ (change check: CI)
+  release [--no-git]                   next version, CHANGELOG.md, tag
   test [vitest args]                   build the tool, then run Vitest
   build                                build every tool under this folder`;
 

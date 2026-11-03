@@ -47,10 +47,11 @@ describe("buildTool", () => {
     result = await buildTool(fixture("hello"));
   }, 60_000);
 
-  it("writes the Worker, the manifest and the build record, and nothing else", async () => {
+  it("writes the Worker, the manifest, the changelog and the build record, and nothing else", async () => {
     const { readdir } = await import("node:fs/promises");
     expect((await readdir(result.outDir)).sort()).toEqual([
       "build.json",
+      "changelog.json",
       "manifest.json",
       "worker.js",
     ]);

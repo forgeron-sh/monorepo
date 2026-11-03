@@ -22,6 +22,19 @@ export interface Build {
   fingerprint: string;
   /** `db/migrations/`, in the order they apply. */
   migrations?: BuildMigration[];
+  /** `changelog.json`: what pilot and production check before accepting the build (sdk.md §16). */
+  changelog?: BuildChangelog;
+}
+
+export type Impact = "none" | "patch" | "minor" | "major";
+
+export interface BuildChangelog {
+  /** The entries of this version. */
+  entries: readonly unknown[];
+  /** The strongest impact the entries declare. */
+  declared: Impact;
+  /** The impact found by comparing the manifest with the last release. */
+  detected: Impact;
 }
 
 export type BindingKind = "d1" | "kv" | "r2" | "queue";
@@ -70,6 +83,38 @@ export function bindingsOf(manifest: Manifest): Binding[] {
   if (resources.files) bindings.push({ name: "FILES", kind: "r2" });
   if (resources.queue) bindings.push({ name: "QUEUE", kind: "queue" });
   return bindings;
+}
+
+const RANK: Record<Impact, number> = { none: 0, patch: 1, minor: 2, major: 3 };
+
+export class ChangelogRefusal extends Error {
+  override name = "ChangelogRefusal";
+  readonly code: "NO_ENTRY" | "IMPACT_TOO_LOW";
+  constructor(code: ChangelogRefusal["code"], message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/**
+ * Pilot and production take a build only if the changelog covers the change; a preview is never
+ * blocked (sdk.md §14, §16). A host calls it before it uploads.
+ */
+export function assertDeployable(environment: Environment, build: Build): void {
+  if (environment.name !== "pilot" && environment.name !== "production") return;
+  const { changelog } = build;
+  if (!changelog || changelog.entries.length === 0) {
+    throw new ChangelogRefusal(
+      "NO_ENTRY",
+      `${environment.name} takes a version with a changelog entry: run \`forgeron change\`, then \`forgeron release\`.`,
+    );
+  }
+  if (RANK[changelog.declared] < RANK[changelog.detected]) {
+    throw new ChangelogRefusal(
+      "IMPACT_TOO_LOW",
+      `The changelog declares ${changelog.declared}, but the manifest changed by ${changelog.detected}: declare ${changelog.detected} or more.`,
+    );
+  }
 }
 
 export function environmentKey({ tool, name, branch }: Environment): string {
