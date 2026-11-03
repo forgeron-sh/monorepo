@@ -1,4 +1,5 @@
 import { workspaceOf } from "../dispatch/dispatch";
+import { negotiated } from "../pages/errors";
 import {
   completeLogin,
   startLogin,
@@ -55,6 +56,19 @@ export interface AuthOptions {
 const json = (status: number, code: string, message: string) =>
   Response.json({ error: { code, message } }, { status });
 
+/** The JSON error of an API client, a page of the shell for a browser. */
+const failure = (
+  request: Request,
+  status: number,
+  code: string,
+  message: string,
+  workspace?: string,
+) =>
+  negotiated(request, status, json(status, code, message), {
+    detail: message,
+    ...(workspace ? { workspace } : {}),
+  });
+
 // Where a sign-in may send the person back to: the CLI's own page, nowhere else.
 export const safeNext = (next: unknown): string | undefined =>
   typeof next === "string" && /^\/auth\/cli\?[^\s]*$/.test(next) ? next : undefined;
@@ -68,6 +82,7 @@ const samlCookie = (value: string, maxAge: number) =>
 export function createAuth(options: AuthOptions) {
   // A person of the workspace gets a session, or is refused.
   async function openFor(
+    request: Request,
     workspace: string,
     identity: Identity,
     next: unknown,
@@ -76,7 +91,14 @@ export function createAuth(options: AuthOptions) {
     status: 302 | 303,
   ): Promise<Response> {
     const person = await options.resolvePerson(workspace, identity);
-    if (!person) return json(403, "FORBIDDEN", "You are not a member of this workspace.");
+    if (!person)
+      return failure(
+        request,
+        403,
+        "FORBIDDEN",
+        "You are not a member of this workspace.",
+        workspace,
+      );
     const headers = new Headers({ location: safeNext(next) ?? "/" });
     headers.append(
       "set-cookie",
@@ -93,12 +115,12 @@ export function createAuth(options: AuthOptions) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/auth/")) return undefined;
     const workspace = workspaceOf(url.host, options.baseDomain);
-    if (!workspace) return json(404, "NOT_FOUND", "Not found.");
+    if (!workspace) return failure(request, 404, "NOT_FOUND", "Not found.");
 
     if (url.pathname === "/auth/logout") {
       return new Response(null, {
         status: 302,
-        headers: { location: "/", "set-cookie": closeSession() },
+        headers: { location: "/auth/login?reason=signed-out", "set-cookie": closeSession() },
       });
     }
     const saml = options.samlFor ? await options.samlFor(workspace) : undefined;
@@ -140,7 +162,12 @@ export function createAuth(options: AuthOptions) {
         const expired =
           typeof claims?.exp !== "number" || options.now().getTime() / 1000 >= claims.exp;
         if (!claims || expired || claims.ws !== workspace) {
-          return json(400, "INVALID", "The sign-in did not start here, or took too long.");
+          return failure(
+            request,
+            400,
+            "INVALID",
+            "The sign-in did not start here, or took too long.",
+          );
         }
         let identity: Identity;
         try {
@@ -155,18 +182,21 @@ export function createAuth(options: AuthOptions) {
             login: claims as unknown as SamlLogin,
           });
         } catch (error) {
-          return json(
+          return failure(
+            request,
             401,
             "UNAUTHENTICATED",
             error instanceof Error ? error.message : "Sign-in failed.",
           );
         }
-        return openFor(workspace, identity, claims.next, samlCookie("", 0), 303);
+        return openFor(request, workspace, identity, claims.next, samlCookie("", 0), 303);
       }
-      if (url.pathname.startsWith("/auth/saml/")) return json(404, "NOT_FOUND", "Not found.");
+      if (url.pathname.startsWith("/auth/saml/"))
+        return failure(request, 404, "NOT_FOUND", "Not found.");
     }
     const provider = await options.providerFor(workspace);
-    if (!provider) return json(404, "NOT_FOUND", "This workspace has no sign-in configured.");
+    if (!provider)
+      return failure(request, 404, "NOT_FOUND", "This workspace has no sign-in configured.");
 
     if (url.pathname === "/auth/login") {
       const { url: target, login } = await startLogin(provider, options.fetch);
@@ -189,7 +219,12 @@ export function createAuth(options: AuthOptions) {
       const expired =
         typeof claims?.exp !== "number" || options.now().getTime() / 1000 >= claims.exp;
       if (!claims || expired || claims.ws !== workspace) {
-        return json(400, "INVALID", "The sign-in did not start here, or took too long.");
+        return failure(
+          request,
+          400,
+          "INVALID",
+          "The sign-in did not start here, or took too long.",
+        );
       }
       let identity: Identity;
       try {
@@ -201,14 +236,15 @@ export function createAuth(options: AuthOptions) {
           login: claims as unknown as LoginState,
         });
       } catch (error) {
-        return json(
+        return failure(
+          request,
           401,
           "UNAUTHENTICATED",
           error instanceof Error ? error.message : "Sign-in failed.",
         );
       }
-      return openFor(workspace, identity, claims.next, stateCookie("", 0), 302);
+      return openFor(request, workspace, identity, claims.next, stateCookie("", 0), 302);
     }
-    return json(404, "NOT_FOUND", "Not found.");
+    return failure(request, 404, "NOT_FOUND", "Not found.");
   };
 }

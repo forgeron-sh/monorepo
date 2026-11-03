@@ -1,7 +1,11 @@
 import type { EmailCodes, Member, Registry } from "@forgeron/registry";
 import { workspaceOf } from "../dispatch/dispatch";
 import type { MailSender } from "../mail/mail";
+import { errorPage } from "../pages/errors";
+import { reasonOf, signInPages } from "../pages/sign-in";
 import { safeNext } from "./auth";
+import { findInvitationById } from "./invitation";
+import { sameOriginPost } from "./origin";
 import { seal, toBase64Url, unseal } from "./sealed";
 import { cookieOf, openSession } from "./session";
 
@@ -62,42 +66,6 @@ type Admission =
   | { kind: "admin-email"; roles: string[] }
   | { kind: "domain"; roles: string[] };
 
-const CSP =
-  "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'";
-
-const escape = (text: string) =>
-  text.replace(
-    /[&<>"']/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
-  );
-
-const page = (status: number, title: string, body: string, headers: Record<string, string> = {}) =>
-  new Response(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(title)}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:24rem;margin:4rem auto;padding:0 1rem}input,button{font:inherit;padding:.5rem;width:100%;box-sizing:border-box;margin:.25rem 0}button{cursor:pointer}.or{text-align:center;color:#666;margin:1rem 0}.error{color:#b00020}a.button{display:block;text-align:center;padding:.5rem;border:1px solid #888;border-radius:4px;text-decoration:none;color:inherit}</style></head><body><h1>${escape(title)}</h1>${body}</body></html>`,
-    {
-      status,
-      headers: {
-        "content-type": "text/html; charset=utf-8",
-        "content-security-policy": CSP,
-        "cache-control": "no-store",
-        // Not `no-referrer`: with it a browser sends `Origin: null` on this page's own form posts
-        // (Fetch, "append a request Origin header"), and the origin check below would refuse them.
-        "referrer-policy": "same-origin",
-        "x-content-type-options": "nosniff",
-        ...headers,
-      },
-    },
-  );
-
-const hidden = (next: string | undefined) =>
-  next ? `<input type="hidden" name="next" value="${escape(next)}">` : "";
-
-const emailForm = (next: string | undefined, message?: string) =>
-  `${message ? `<p class="error" role="alert">${escape(message)}</p>` : ""}<form method="post" action="/auth/email/request">${hidden(next)}<label>Email<input name="email" type="email" autocomplete="email" required autofocus></label><button type="submit">Send me a code</button></form>`;
-
-const codeForm = (message?: string) =>
-  `${message ? `<p class="error" role="alert">${escape(message)}</p>` : ""}<form method="post" action="/auth/email/verify"><label>Code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 \\-]*" required autofocus></label><button type="submit">Sign in</button></form><p><a href="/auth/login">Use another address</a></p>`;
-
 const cookie = (value: string, maxAge: number) =>
   `${COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
 
@@ -136,7 +104,6 @@ const groups = (code: string) => `${code.slice(0, CODE_DIGITS / 2)} ${code.slice
 
 export function createEmailAuth(options: EmailAuthOptions) {
   const { registry, codes, secret } = options;
-  const notice = options.notice ? `<p class="or">${escape(options.notice)}</p>` : "";
 
   /** Who this address would be, without making them a member. */
   async function admission(workspace: string, email: string): Promise<Admission | undefined> {
@@ -164,40 +131,74 @@ export function createEmailAuth(options: EmailAuthOptions) {
   return async function emailAuth(request: Request): Promise<Response | undefined> {
     const url = new URL(request.url);
     const path = url.pathname;
-    if (path !== "/auth/login" && !path.startsWith("/auth/email/")) return undefined;
+    const invite = /^\/auth\/invite\/([^/]+)$/.exec(path);
+    if (path !== "/auth/login" && !path.startsWith("/auth/email/") && !invite) return undefined;
     const workspace = workspaceOf(url.host, options.baseDomain);
     if (!workspace) return undefined;
     const method = request.method;
+    const pages = signInPages(workspace, {
+      codeMinutes: CODE_SECONDS / 60,
+      digits: CODE_DIGITS,
+      ...(options.notice ? { testNotice: options.notice } : {}),
+    });
+
+    if (invite) {
+      if (method !== "GET") return errorPage(405, { workspace, headers: { allow: "GET" } });
+      // The id opens this page and nothing else: the code mailed to the address is still the way in.
+      const found = await findInvitationById(registry, secret, workspace, invite[1]!);
+      if (!found) return pages.invitationInvalid();
+      return pages.invitation({
+        inviter: found.inviter,
+        roles: found.invitation.roles,
+        email: found.invitation.email,
+        expiresAt: found.invitation.expiresAt,
+        next: undefined,
+      });
+    }
 
     if (path === "/auth/login") {
       // The OIDC provider keeps its own start (`?method=oidc`) and the old behaviour when it is alone.
       if (url.searchParams.get("method") === "oidc") return undefined;
       const oidc = await options.oidcAvailable(workspace);
-      if (method !== "GET") return page(405, "Not allowed", "", { allow: "GET" });
+      if (method !== "GET") return errorPage(405, { workspace, headers: { allow: "GET" } });
       const next = safeNext(url.searchParams.get("next"));
-      const choose = oidc
-        ? `<a class="button" href="/auth/login?method=oidc${next ? `&amp;next=${encodeURIComponent(next).replaceAll("&", "%26")}` : ""}">Continue with your company account</a><p class="or">or</p>`
-        : "";
-      return page(200, "Sign in", `${choose}${emailForm(next)}${notice}`);
+      const reason = reasonOf(url.searchParams.get("reason"));
+      return pages.login({
+        next,
+        ...(oidc
+          ? {
+              companyHref: `/auth/login?method=oidc${next ? `&next=${encodeURIComponent(next).replaceAll("&", "%26")}` : ""}`,
+            }
+          : {}),
+        ...(reason ? { reason } : {}),
+      });
     }
 
     if (path !== "/auth/email/request" && path !== "/auth/email/verify") return undefined;
 
     if (method === "GET" && path === "/auth/email/verify") {
-      return page(200, "Enter your code", codeForm());
+      // The address typed on the previous step travels in the sealed cookie, for the resend link.
+      const kept = cookieOf(request, COOKIE);
+      const claims = kept ? await unseal(PREFIX, kept, secret) : undefined;
+      const mine = claims && claims.ws === workspace;
+      return pages.code({
+        email: mine && typeof claims.em === "string" ? claims.em : undefined,
+        next: mine
+          ? safeNext(typeof claims.next === "string" ? claims.next : undefined)
+          : undefined,
+      });
     }
-    if (method !== "POST") return page(405, "Not allowed", "", { allow: "POST" });
+    if (method !== "POST") return errorPage(405, { workspace, headers: { allow: "POST" } });
     // A form post comes from this very page: a request from another origin is refused outright, so a
     // third-party page cannot sign a person in to someone else's account or burn their tries.
-    const origin = request.headers.get("origin");
-    // `Sec-Fetch-Site` is set by the browser, never by a page: it covers a browser that sends no or a
-    // null origin on a same-origin form post.
-    const sameSite = request.headers.get("sec-fetch-site") === "same-origin";
-    if (origin !== url.origin && !(sameSite && (origin === null || origin === "null"))) {
-      return page(403, "Not allowed", "<p>This request did not come from the sign-in page.</p>");
-    }
+    if (!sameOriginPost(request)) return pages.refused();
     const form = await request.formData().catch(() => undefined);
-    if (!form) return page(400, "Sign in", emailForm(undefined, "That request was not valid."));
+    if (!form)
+      return pages.login({
+        next: undefined,
+        message: "That request was not valid. Try again.",
+        status: 400,
+      });
     const field = (name: string) => {
       const value = form.get(name);
       return typeof value === "string" ? value : "";
@@ -207,7 +208,11 @@ export function createEmailAuth(options: EmailAuthOptions) {
       const next = safeNext(field("next"));
       const email = field("email").trim().toLowerCase();
       if (email.length > 254 || !EMAIL.test(email)) {
-        return page(400, "Sign in", emailForm(next, "Enter a valid email address."));
+        return pages.login({
+          next,
+          message: "That is not an email address. Enter one like name@company.com.",
+          status: 400,
+        });
       }
       const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
       const ipHash = await hmacHex(secret, `ip:${workspace}:${ip}`);
@@ -216,14 +221,7 @@ export function createEmailAuth(options: EmailAuthOptions) {
         codes.countRecent(workspace, { email }, WINDOW_SECONDS),
         codes.countRecent(workspace, { ipHash }, WINDOW_SECONDS),
       ]);
-      if (byEmail >= PER_EMAIL || byIp >= PER_IP) {
-        return page(
-          429,
-          "Too many requests",
-          "<p>Too many codes were asked for. Try again in an hour.</p>",
-          { "retry-after": String(WINDOW_SECONDS) },
-        );
-      }
+      if (byEmail >= PER_EMAIL || byIp >= PER_IP) return pages.tooMany(WINDOW_SECONDS);
       const found = await admission(workspace, email);
       const id = toBase64Url(crypto.getRandomValues(new Uint8Array(16)));
       const code = newCode();
@@ -252,24 +250,42 @@ export function createEmailAuth(options: EmailAuthOptions) {
         else await sending;
       }
       const exp = Math.floor(options.now().getTime() / 1000) + CODE_SECONDS;
-      return page(
-        200,
-        "Enter your code",
-        `<p>If this address can sign in, a code is on its way. It is valid for ${CODE_SECONDS / 60} minutes.</p>${codeForm()}${notice}`,
-        {
+      return pages.code({
+        email,
+        next,
+        sent: true,
+        headers: {
           "set-cookie": cookie(
-            await seal(PREFIX, { rid: id, ws: workspace, exp, ...(next ? { next } : {}) }, secret),
+            await seal(
+              PREFIX,
+              { rid: id, ws: workspace, em: email, exp, ...(next ? { next } : {}) },
+              secret,
+            ),
             CODE_SECONDS,
           ),
         },
-      );
+      });
     }
 
     // POST /auth/email/verify
-    const refuse = () =>
-      page(400, "Enter your code", codeForm("This code is not valid, or it has expired."));
     const kept = cookieOf(request, COOKIE);
     const claims = kept ? await unseal(PREFIX, kept, secret) : undefined;
+    const again = {
+      email: typeof claims?.em === "string" ? claims.em : undefined,
+      next: safeNext(typeof claims?.next === "string" ? claims.next : undefined),
+      status: 400,
+    };
+    // The same words whether the code was wrong, spent or never asked for here.
+    const wrong = () =>
+      pages.code({
+        ...again,
+        message: "That code is not correct. Check the email and try again, or send a new code.",
+      });
+    const gone = () =>
+      pages.code({
+        ...again,
+        message: "This code expired or is no longer valid. Send a new code.",
+      });
     if (
       !claims ||
       claims.ws !== workspace ||
@@ -277,18 +293,23 @@ export function createEmailAuth(options: EmailAuthOptions) {
       typeof claims.exp !== "number" ||
       options.now().getTime() / 1000 >= claims.exp
     ) {
-      return refuse();
+      return gone();
     }
     const code = field("code").replace(/[\s-]/g, "");
-    if (!new RegExp(`^[0-9]{${CODE_DIGITS}}$`).test(code)) return refuse();
+    if (!new RegExp(`^[0-9]{${CODE_DIGITS}}$`).test(code)) {
+      return pages.code({
+        ...again,
+        message: `Enter the ${CODE_DIGITS}-digit code from the email.`,
+      });
+    }
     const row = await codes.attempt(claims.rid, workspace, MAX_ATTEMPTS);
-    if (!row) return refuse();
+    if (!row) return gone();
     const given = await hmacHex(secret, `code:${claims.rid}:${code}`);
-    if (!sameText(given, row.codeHash)) return refuse();
+    if (!sameText(given, row.codeHash)) return wrong();
     // Single use: only the caller that spends it gets in.
-    if (!(await codes.spend(claims.rid))) return refuse();
+    if (!(await codes.spend(claims.rid))) return gone();
     const found = await admission(workspace, row.email);
-    if (!found) return refuse();
+    if (!found) return wrong();
     const member = await admit(workspace, row.email, found);
 
     // A new session every time: whatever cookie the browser held is not reused (no fixation).
