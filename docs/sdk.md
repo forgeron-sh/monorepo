@@ -583,16 +583,16 @@ tool.as({ roles: ["support"] }).call(…);              // another identity
 
 Output in `.forgeron/build/`:
 
-| File                       | Content                                                                                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `worker.js`                | The tool's Worker: actions, events, tasks, routing of the four interfaces                                                                                                |
-| `manifest.json`            | Name, version, actions (names, descriptions, JSON schemas, access, CLI options), views, scheduled tasks, event handlers (event and mode), roles, resources, dependencies |
-| `changelog.json`           | The changelog entries of this version, structured                                                                                                                        |
-| `migrations/`              | The compiled migrations, with their fingerprints                                                                                                                         |
-| `views/`                   | The views, as static files                                                                                                                                               |
-| `openapi.json`, `mcp.json` | Generated descriptions, published with the version                                                                                                                       |
+| File                       | Content                                                                                                                                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `worker.js`                | The tool's Worker: actions, events, tasks, routing of the four interfaces                                                                                                                                               |
+| `manifest.json`            | Name, version, actions (names, descriptions, JSON schemas, access, CLI options), views, scheduled tasks, event handlers (event and mode), roles, resources, dependencies                                                |
+| `changelog.json`           | The changelog entries of this version, structured                                                                                                                                                                       |
+| `migrations/`              | The compiled migrations, with their fingerprints                                                                                                                                                                        |
+| `views/`                   | The views, as static files: one ES module per view (`views/pipeline.js`, whose default export is the `defineView` object), plus the chunks they share; each is listed in `manifest.json` under `views` with its `entry` |
+| `openapi.json`, `mcp.json` | Generated descriptions, published with the version                                                                                                                                                                      |
 
-The build fails if: an action has no `access` or `description`, an action name is duplicated, the schema differs from the last snapshot without a migration, an import leaves the tool (except npm packages), a view cites a non-existent action, or code uses an undeclared resource (`ctx.db` without `resources.db`).
+The build fails if: an action has no `access` or `description`, an action name is duplicated, the schema differs from the last snapshot without a migration, an import leaves the tool (except npm packages), a view cites a non-existent action (read from the literal names given to `useAction` and `useMutation`; a name held in a variable is not checked), a view path is reserved by the platform or shared with another view, or code uses an undeclared resource (`ctx.db` without `resources.db`).
 
 Deployment to pilot or production additionally fails if the version has no changelog entry, if the declared impact is lower than the detected impact (section 16), or if new resources are awaiting approval.
 

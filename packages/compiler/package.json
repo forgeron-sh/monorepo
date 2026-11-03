@@ -14,6 +14,8 @@
   },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*",
-    "@types/node": "24.19.2"
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "react": "19.3.1"
   }
 }

@@ -6,7 +6,8 @@ import { checkResources } from "./check";
 import { discoverTools } from "./discover";
 import { fingerprintSources, sha256 } from "./fingerprint";
 import { resolveMigration, sameSnapshot, snapshotOf } from "@forgeron/sdk/db";
-import { loadTool, schemaFileOf, seedFileOf, sourcesOf } from "./load";
+import { boundary, loadTool, schemaFileOf, seedFileOf, sourcesOf } from "./load";
+import { checkViewActions } from "./views";
 import { readSnapshot } from "./migrations/generate";
 import { buildManifest } from "./manifest";
 import { changelogOf } from "./changelog";
@@ -135,6 +136,36 @@ declare module "@forgeron/sdk" {
   );
 }
 
+// The views run in the browser: one module per view (its default export is the `defineView`
+// object), plus the chunks they share. Serving them, with the CSP and the token, is not the build's job.
+async function buildViews(
+  dir: string,
+  outDir: string,
+  views: Array<{ name: string; file: string }>,
+): Promise<Record<string, string>> {
+  if (views.length === 0) return {};
+  const bundle = await rolldown({
+    input: Object.fromEntries(views.map((v) => [v.name, v.file])),
+    platform: "browser",
+    logLevel: "silent",
+    plugins: [boundary(dir)],
+    transform: { jsx: "react-jsx", define: { "process.env.NODE_ENV": '"production"' } },
+  });
+  const { output } = await bundle.write({
+    dir: join(outDir, "views"),
+    format: "esm",
+    entryFileNames: "[name].js",
+    chunkFileNames: "chunks/[name]-[hash].js",
+  });
+  await bundle.close();
+  const hashes: Record<string, string> = {};
+  for (const chunk of output) {
+    const name = `views/${chunk.fileName}`;
+    hashes[name] = sha256(await readFile(join(outDir, name)));
+  }
+  return hashes;
+}
+
 /** Turns a tool folder into `.forgeron/build/`: the Worker, the manifest and the build record. */
 export async function buildTool(folder: string): Promise<BuildResult> {
   const dir = resolve(folder);
@@ -150,6 +181,7 @@ export async function buildTool(folder: string): Promise<BuildResult> {
   const loaded = await loadTool(dir, scratch);
   const manifest = buildManifest(loaded, pkg.version);
   await checkResources(dir, loaded.modules, manifest);
+  await checkViewActions(dir, loaded.modules, manifest);
   const manifestFile = join(outDir, "manifest.json");
   await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
 
@@ -173,7 +205,7 @@ export async function buildTool(folder: string): Promise<BuildResult> {
     `${JSON.stringify(await changelogOf(dir, manifest, migrations), null, 2)}\n`,
   );
 
-  const { actions, events, jobs } = await sourcesOf(dir);
+  const { actions, events, jobs, views } = await sourcesOf(dir);
   const runtimePath = createRequire(import.meta.url).resolve("@forgeron/runtime");
   const input = join(scratch, "worker.ts");
   await writeFile(
@@ -192,6 +224,7 @@ export async function buildTool(folder: string): Promise<BuildResult> {
   const bundle = await rolldown({ input, platform: "neutral", logLevel: "silent" });
   await bundle.write({ file: join(outDir, "worker.js"), format: "esm" });
   await bundle.close();
+  const viewFiles = await buildViews(dir, outDir, views);
   await rm(scratch, { recursive: true, force: true });
 
   await writeGeneratedTypes(dir, loaded.schema !== undefined);
@@ -200,6 +233,7 @@ export async function buildTool(folder: string): Promise<BuildResult> {
   const files = {
     "worker.js": sha256(await readFile(join(outDir, "worker.js"))),
     "manifest.json": sha256(await readFile(manifestFile)),
+    ...viewFiles,
   };
   await writeFile(
     join(outDir, "build.json"),

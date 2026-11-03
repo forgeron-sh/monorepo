@@ -50,6 +50,8 @@ export const ViewSchema = z.strictObject({
   path: z.string().regex(/^\/\S*$/),
   access: AccessLevelSchema,
   params: JsonObjectSchema.optional(),
+  /** The built module, relative to the build folder (`views/pipeline.js`). */
+  entry: z.string().optional(),
 });
 
 export const JobSchema = z.strictObject({
