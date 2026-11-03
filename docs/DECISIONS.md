@@ -32,7 +32,12 @@ Rules of the log:
 | D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host                    | Active            |
 | D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                                             | Active            |
 | D-019 | 03/11/2026 | Workspace sign-in is OpenID Connect with PKCE; the session is a signed `__Host-` cookie                                          | Active            |
-| D-020 | 03/11/2026 | `forgeron login` signs in through the browser on a loopback address with PKCE and stores the token in the keychain or a 600 file | Active            |
+| D-020 | 03/11/2026 | Views are a statically served React app that calls actions, not server-rendered pages                                            | Active            |
+| D-021 | 03/11/2026 | Pilot and production share one database, with a strict compatibility check at deployment                                         | Active            |
+| D-022 | 03/11/2026 | D1 only for now; a Postgres option through Hyperdrive is not offered                                                             | Active            |
+| D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                                         | Active            |
+| D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                                       | Active            |
+| D-025 | 03/11/2026 | `forgeron login` signs in through the browser on a loopback address with PKCE and stores the token in the keychain or a 600 file | Active            |
 
 ---
 
@@ -230,7 +235,56 @@ Rules of the log:
 - **Not done**: SAML; the per-workspace provider configuration and the person table (the hooks `providerFor` and `resolvePerson` are not backed by the registry); wiring `/auth` into the Worker; session lifetime values; revocation. Proven against a simulated provider only: no real Entra or Google sign-in was tried.
 - **Applied in**: `apps/gateway/src/identity/` (`oidc.ts`, `session.ts`, `auth.ts`, `sealed.ts`).
 
-## D-020 — `forgeron login` signs in through the browser on a loopback address with PKCE
+## D-020 — Views are a statically served React app that calls actions, not server-rendered pages
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: a view is built into static files (`views/`, one ES module per view, `sdk.md` §14) and served by the gateway; it reads and writes through the hooks of `@forgeron/sdk/react`, which call `POST <base>/_f/call/<action>`. No server-side rendering.
+- **Why**: this is what the code already does (FOR-52, FOR-56, FOR-59, D-016); the hook model (`useAction`, `useMutation`) is a client model, and a view then holds no more rights than the person's token (`sdk.md` §7, Isolation).
+- **Rejected**: server-side rendering (a second rendering path, and developer code running on the workspace origin, against Isolation point 1).
+- **Decided by**: the user delegated open decisions to the assistant on 03/11/2026 ("prend les décisions"); revisable.
+- **Applied in**: FOR-35 closed; `sdk.md` §11, §14.
+
+## D-021 — Pilot and production share one database, with a strict compatibility check at deployment
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: the pilot and production environments of a tool use the same D1 database. A version served to the pilot cannot ship a migration that is incompatible with the version currently in production; the check happens at deployment (`sdk.md` §8, point 5).
+- **Why**: it is the current design, and the only one under which the pilot group sees real data, which is the point of a pilot. A separate pilot database would test against data that is not the real one.
+- **Rejected**: a separate pilot database (kept as a possible later option if tools need destructive pilots; trade-offs were never specified).
+- **Not done**: the compatibility check itself is not implemented (FOR-48 explicitly leaves it out).
+- **Decided by**: delegated on 03/11/2026; revisable.
+- **Applied in**: FOR-58 closed; `sdk.md` §8, §20.
+
+## D-022 — D1 only for now; a Postgres option through Hyperdrive is not offered
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: the only database engine is D1 (`resources.db.engine` is the literal `d1`). A Postgres option through Hyperdrive is not offered in the first versions.
+- **Why**: D-010, D-012 (atomic batch) and D-014 (migrations as SQL batches) are all written for D1; a second path doubles the migration, test and seed surface for a need no customer has expressed.
+- **Rejected**: D1 and Postgres from the start.
+- **Revisit when**: a customer brings an existing Postgres and the SDK database API is not yet frozen (the deadline given by the ticket).
+- **Decided by**: delegated on 03/11/2026; revisable.
+- **Applied in**: FOR-15 closed.
+
+## D-023 — No tool owner role: workspace roles only
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: there is no "tool owner" role distinct from the workspace roles. Administering a tool (deployment tokens, approvals, secrets) requires the workspace's `admin` level. A developer who must administer a tool is given that level.
+- **Why**: a second role axis changes role resolution and the minimum-role rules of the admin MCP (FOR-90, FOR-107) for a need that is not shown; the workspace roles are already enforced identically on every interface.
+- **Rejected**: a per-tool owner role (more rules to prove on every interface).
+- **Revisit when**: a developer must administer their tool without workspace admin rights.
+- **Decided by**: delegated on 03/11/2026; revisable.
+- **Applied in**: FOR-100 closed.
+
+## D-024 — A seat is a person who made an authenticated call in the workspace during a calendar month
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: a seat is counted per workspace and per calendar month (UTC): a person is counted once if at least one authenticated call, through any interface (MCP, API, CLI, web), reached a tool of the workspace that month. Jobs and calls made by a tool on its own behalf do not count. The store keeps only the workspace, the person's identifier and the month, nothing the identity layer does not already hold.
+- **Why**: the plan is "one seat gives access to all the tools" (white paper); counting activity rather than invitations means a person with access but no use is not billed. It needs no data beyond identity.
+- **Rejected**: counting every member of the workspace (bills inactive accounts); counting per day or per tool (the plan is per seat, not per tool).
+- **Not decided**: price and threshold (FOR-37), invoicing and payment.
+- **Decided by**: delegated on 03/11/2026; this is a product definition and the most likely one to change.
+- **Applied in**: FOR-83.
+
+## D-025 — `forgeron login` signs in through the browser on a loopback address with PKCE
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: `forgeron login` starts a one-shot server on `127.0.0.1` (a random port, only `/callback`), opens `<endpoint>/auth/cli?redirect_uri&state&code_challenge&code_challenge_method=S256` in the browser (the URL is printed too), and waits for the workspace to send the person back with a one-time `code` and the same `state`. It then trades the code with the PKCE verifier at `POST <endpoint>/auth/cli/token` for the person's token, stores it, and never puts a token in a URL. A `state` that is not its own, or a refusal, stores nothing. `whoami` asks `GET <endpoint>/whoami`; `logout` forgets the token from the keychain and the file.
