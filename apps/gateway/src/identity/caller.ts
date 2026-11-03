@@ -70,7 +70,7 @@ export interface MembershipPolicy {
   /** Anyone signing in with an email of one of these domains becomes a member, with no role. */
   memberDomains: string[];
   /**
-   * The role each group of the provider grants (D-033). A person in one of these groups is
+   * The role each group of the provider grants (D-035). A person in one of these groups is
    * admitted; roles are set at the first sign-in only, and read from the registry afterwards.
    */
   groupRoles?: Record<string, string>;

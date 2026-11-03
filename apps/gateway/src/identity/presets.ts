@@ -2,7 +2,7 @@ import type { IdentityProviderConfig, IdentityProviderInput } from "@forgeron/re
 import type { OidcProvider } from "./oidc";
 
 // Microsoft Entra ID and Google Workspace are OIDC providers (D-019): a preset only fixes the
-// issuer, the restriction that keeps other organisations out, and where the claims are (D-033).
+// issuer, the restriction that keeps other organisations out, and where the claims are (D-035).
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;

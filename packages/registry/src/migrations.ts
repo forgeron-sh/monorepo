@@ -246,9 +246,26 @@ export const platformMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "gateway_code"`)],
   },
   {
-    // The workspace's sign-in provider and the OAuth clients of its delegated connectors (D-033).
+    // Pilot groups (D-034): a group is a name in a workspace and the members it holds. The pilot
+    // environment of a tool names the group that gets its version at the production address.
+    name: "0011_group_members",
+    fingerprint: "group-members-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "group_members" (
+  "workspace" TEXT NOT NULL,
+  "group_name" TEXT NOT NULL,
+  "member_id" TEXT NOT NULL,
+  PRIMARY KEY ("workspace", "group_name", "member_id"),
+  FOREIGN KEY ("workspace", "member_id") REFERENCES "members" ("workspace", "id") ON DELETE CASCADE
+)`),
+    ],
+    down: [st(`DROP TABLE "group_members"`)],
+  },
+  {
+    // The workspace's sign-in provider and the OAuth clients of its delegated connectors (D-035).
     // Client secrets are sealed (iv + ciphertext), never stored in the clear.
-    name: "0011_identity_config",
+    name: "0013_identity_config",
     fingerprint: "identity-config-v1",
     destructive: false,
     up: [
