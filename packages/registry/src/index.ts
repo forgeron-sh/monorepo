@@ -23,6 +23,15 @@ export type {
   ConsentTarget,
   OAuthProvider,
 } from "./consent";
+export { createIdentityConfig } from "./identity-config";
+export type {
+  ConnectorClientConfig,
+  ConnectorClientInput,
+  IdentityConfig,
+  IdentityProviderConfig,
+  IdentityProviderInput,
+  IdentityProviderKind,
+} from "./identity-config";
 export { loadGatewayCode, saveGatewayCode } from "./gateway-code";
 export { createSecretBox, type SealedSecret, type SecretBox } from "./secret-box";
 export type {
