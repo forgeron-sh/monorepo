@@ -22,7 +22,15 @@ const toPerson = (member: Member): Person => ({
 export interface CallerOptions {
   registry: Registry;
   secret: string;
+  /** Keys tokens were signed with before a rotation (`AUTH_SECRET_PREVIOUS`, D-035). */
+  previousSecrets?: string[];
   now(): Date;
+}
+
+/** Who a request is, and for which tool when a token says so (a session has no audience). */
+export interface Resolved {
+  person: Person;
+  audience?: string;
 }
 
 export function createCaller(options: CallerOptions) {
@@ -32,25 +40,41 @@ export function createCaller(options: CallerOptions) {
   };
 
   return {
-    /** The person behind a request to this workspace, by session cookie, else by Bearer token. */
-    async resolve(
+    /**
+     * The person behind a request to this workspace, by session cookie, else by Bearer token, with
+     * the audience the token was issued for. A revoked token is nobody (D-035).
+     */
+    async identify(
       request: Request,
       workspace: string,
       /** Also accept a CLI token (`forgeron login`): for the platform's own routes only. */
       platform = false,
-    ): Promise<Person | undefined> {
+    ): Promise<Resolved | undefined> {
       const now = options.now();
       const session = await readSession(request, { secret: options.secret, workspace, now });
-      if (session) return personOf(workspace, session.person);
+      if (session) {
+        const person = await personOf(workspace, session.person);
+        return person ? { person } : undefined;
+      }
 
       const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
       if (!token) return undefined;
-      let check = await verifyToken(token, { secret: options.secret, now });
-      if (!check.ok && platform) {
-        check = await verifyToken(token, { secret: options.secret, now, scope: CLI_SCOPE });
-      }
+      const keys = {
+        secret: options.secret,
+        ...(options.previousSecrets ? { previousSecrets: options.previousSecrets } : {}),
+        now,
+      };
+      let check = await verifyToken(token, keys);
+      if (!check.ok && platform) check = await verifyToken(token, { ...keys, scope: CLI_SCOPE });
       if (!check.ok || parseAudience(check.claims.aud)?.workspace !== workspace) return undefined;
-      return personOf(workspace, check.claims.sub);
+      const { sub, jti, iat, aud } = check.claims;
+      if (await options.registry.isTokenRevoked(workspace, sub, jti, iat)) return undefined;
+      const person = await personOf(workspace, sub);
+      return person ? { person, audience: aud } : undefined;
+    },
+    /** The person behind a request, by session cookie, else by Bearer token. */
+    async resolve(request: Request, workspace: string, platform = false) {
+      return (await this.identify(request, workspace, platform))?.person;
     },
     /** The person of a valid session cookie only (a token cannot mint a longer-lived token). */
     async session(request: Request, workspace: string): Promise<Person | undefined> {
@@ -70,7 +94,7 @@ export interface MembershipPolicy {
   /** Anyone signing in with an email of one of these domains becomes a member, with no role. */
   memberDomains: string[];
   /**
-   * The role each group of the provider grants (D-037). A person in one of these groups is
+   * The role each group of the provider grants (D-041). A person in one of these groups is
    * admitted; roles are set at the first sign-in only, and read from the registry afterwards.
    */
   groupRoles?: Record<string, string>;

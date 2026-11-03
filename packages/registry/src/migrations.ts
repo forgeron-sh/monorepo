@@ -263,9 +263,76 @@ export const platformMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "group_members"`)],
   },
   {
-    // The workspace's sign-in provider and the OAuth clients of its delegated connectors (D-037).
+    // Revoked tokens (D-035): one row per revoked token (`jti`), or, with no `jti`, every token of the
+    // person issued up to `at` (seconds). A row is forgotten once no token it covers can be valid.
+    name: "0012_token_revocations",
+    fingerprint: "token-revocations-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "token_revocations" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "workspace" TEXT NOT NULL,
+  "person" TEXT NOT NULL,
+  "jti" TEXT,
+  "at" INTEGER NOT NULL,
+  "expires_at" TEXT NOT NULL
+)`),
+      st(`CREATE INDEX "token_revocations_person" ON "token_revocations" ("workspace", "person")`),
+    ],
+    down: [st(`DROP TABLE "token_revocations"`)],
+  },
+  {
+    // Per-person secrets (D-036): one per tool, person and name, sealed with the platform key. The
+    // value is read back only by the gateway, to hand the caller's own to the tool they call.
+    name: "0013_user_secrets",
+    fingerprint: "user-secrets-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "user_secrets" (
+  "tool_id" TEXT NOT NULL,
+  "person" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "iv" TEXT NOT NULL,
+  "ciphertext" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("tool_id", "person", "name")
+)`),
+    ],
+    down: [st(`DROP TABLE "user_secrets"`)],
+  },
+  {
+    // The matrix edits (D-039) are audited: `access` joins the kinds of the audit log. SQLite cannot
+    // change a CHECK, so the table is rebuilt with its rows.
+    name: "0014_audit_access",
+    fingerprint: "audit-access-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "audit_log_next" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "at" TEXT NOT NULL,
+  "tool_id" TEXT,
+  "actor" TEXT NOT NULL,
+  "interface" TEXT,
+  "via" TEXT,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('action', 'deployment', 'promotion', 'rollback', 'approval', 'access')),
+  "subject" TEXT NOT NULL,
+  "version_id" TEXT,
+  "result" TEXT NOT NULL CHECK ("result" IN ('ok', 'denied', 'error')),
+  "detail" TEXT
+)`),
+      st(
+        `INSERT INTO "audit_log_next" SELECT "id", "at", "tool_id", "actor", "interface", "via", "kind", "subject", "version_id", "result", "detail" FROM "audit_log" ORDER BY "rowid"`,
+      ),
+      st(`DROP TABLE "audit_log"`),
+      st(`ALTER TABLE "audit_log_next" RENAME TO "audit_log"`),
+      st(`CREATE INDEX "audit_log_by_tool" ON "audit_log" ("tool_id", "at")`),
+    ],
+    down: [],
+  },
+  {
+    // The workspace's sign-in provider and the OAuth clients of its delegated connectors (D-041).
     // Client secrets are sealed (iv + ciphertext), never stored in the clear.
-    name: "0014_identity_config",
+    name: "0015_identity_config",
     fingerprint: "identity-config-v1",
     destructive: false,
     up: [

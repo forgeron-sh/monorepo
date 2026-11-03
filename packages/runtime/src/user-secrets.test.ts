@@ -66,9 +66,10 @@ function setup() {
 
 const get = (path: string, headers: Record<string, string> = {}) =>
   new Request(`https://acme.forgeron.test${path}`, { headers });
-const mcpCall = () =>
+const mcpCall = (version?: string) =>
   new Request("https://acme.forgeron.test/mcp", {
     method: "POST",
+    ...(version ? { headers: { "mcp-protocol-version": version } } : {}),
     body: JSON.stringify({
       jsonrpc: "2.0",
       id: 1,
@@ -104,6 +105,35 @@ describe("per-person secrets on first use", () => {
     expect(answer.result.content[0]!.text).toContain(
       "https://acme.forgeron.test/t/odoo-gateway/secrets",
     );
+  });
+
+  it("MCP 2025-11-25: URL elicitation, so the client opens the page and calls again", async () => {
+    const { runtime } = setup();
+    const answer = (await (await runtime.fetch(mcpCall("2025-11-25"))).json()) as {
+      result?: unknown;
+      error: {
+        code: number;
+        data: { elicitations: Array<{ mode: string; url: string; elicitationId: string }> };
+      };
+    };
+    expect(answer.result).toBeUndefined();
+    expect(answer.error.code).toBe(-32042);
+    expect(answer.error.data.elicitations).toEqual([
+      expect.objectContaining({
+        mode: "url",
+        url: "https://acme.forgeron.test/t/odoo-gateway/secrets",
+        elicitationId: expect.any(String),
+      }),
+    ]);
+  });
+
+  it("MCP: once the secret is entered the same call succeeds", async () => {
+    const { runtime, data } = setup();
+    data.set("u1", { ODOO_API_KEY: "test-only-value" });
+    const answer = (await (await runtime.fetch(mcpCall("2025-11-25"))).json()) as {
+      result: { isError: boolean };
+    };
+    expect(answer.result.isError).toBe(false);
   });
 
   it("web and CLI input: the form stores the value, then the action sees it as ctx.userSecrets", async () => {

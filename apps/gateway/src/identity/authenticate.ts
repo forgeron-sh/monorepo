@@ -1,4 +1,4 @@
-import { verifyToken } from "./tokens";
+import { verifyToken, type TokenClaims } from "./tokens";
 
 /** The person a tool's runtime sees (`@forgeron/runtime`'s `User`); roles come from the workspace. */
 export interface Person {
@@ -10,6 +10,10 @@ export interface Person {
 
 export interface AuthenticatorOptions {
   secret: string;
+  /** Keys tokens were signed with before a rotation (D-035). */
+  previousSecrets?: string[];
+  /** Is this token void (D-035)? Without it nothing is revoked. */
+  revoked?(claims: TokenClaims): boolean | Promise<boolean>;
   /** Resolves the person and their roles in the workspace; `undefined` if they no longer exist. */
   resolvePerson(id: string): Person | undefined | Promise<Person | undefined>;
   now(): Date;
@@ -26,8 +30,13 @@ export function tokenAuthenticator(options: AuthenticatorOptions) {
     const header = request.headers.get("authorization") ?? "";
     const token = /^Bearer (\S+)$/i.exec(header)?.[1];
     if (!token) return undefined;
-    const check = await verifyToken(token, { secret: options.secret, now: options.now() });
+    const check = await verifyToken(token, {
+      secret: options.secret,
+      ...(options.previousSecrets ? { previousSecrets: options.previousSecrets } : {}),
+      now: options.now(),
+    });
     if (!check.ok) return undefined;
+    if (await options.revoked?.(check.claims)) return undefined;
     const user = await options.resolvePerson(check.claims.sub);
     return user ? { user, audience: check.claims.aud } : undefined;
   };

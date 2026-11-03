@@ -78,7 +78,7 @@ export interface AccessMatrix {
   cells: Record<string, Record<string, AccessCell>>;
 }
 
-export type AuditKind = "action" | "deployment" | "promotion" | "rollback" | "approval";
+export type AuditKind = "action" | "deployment" | "promotion" | "rollback" | "approval" | "access";
 export type AuditResult = "ok" | "denied" | "error";
 export type AuditInterface = "mcp" | "api" | "cli" | "web";
 
@@ -322,6 +322,9 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   };
   const slot = (toolId: string, environment: string, name: string) =>
     `${toolId}/${environment}/${name}`;
+
+  const userSlot = (toolId: string, person: string, name: string) =>
+    `user/${toolId}/${person}/${name}`;
 
   const connectionSlot = (c: {
     toolId: string;
@@ -637,7 +640,7 @@ ORDER BY "user_id", "connector"`,
       ).map(toMember);
     },
 
-    // ---- groups (D-033): who gets the pilot version at the production address
+    // ---- groups (D-035): who gets the pilot version at the production address
     /** The groups of a workspace with their members, by name. */
     async listGroups(workspace: string): Promise<Array<{ name: string; members: Member[] }>> {
       const rows = await all(
@@ -717,6 +720,129 @@ ORDER BY "user_id", "connector"`,
         if (/UNIQUE|constraint/i.test(String(error))) return false;
         throw error;
       }
+    },
+
+    // ---- token revocation (D-035)
+    /** Voids one token, named by its `jti`, until `expiresAt` (its own expiry). */
+    async revokeToken(workspace: string, person: string, jti: string, expiresAt: Date) {
+      await d1.batch([
+        d1.prepare(`DELETE FROM "token_revocations" WHERE "expires_at" < ?`).bind(now()),
+        d1
+          .prepare(
+            `INSERT INTO "token_revocations" ("id", "workspace", "person", "jti", "at", "expires_at") VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            newId(),
+            workspace,
+            person,
+            jti,
+            Math.floor(Date.parse(now()) / 1000),
+            expiresAt.toISOString(),
+          ),
+      ]);
+    },
+    /**
+     * Voids every token of a person issued up to now, those of the same second included: when in
+     * doubt the token is refused. `lifetime` is the longest a token can live.
+     */
+    async revokePersonTokens(workspace: string, person: string, lifetimeSeconds: number) {
+      await d1.batch([
+        d1.prepare(`DELETE FROM "token_revocations" WHERE "expires_at" < ?`).bind(now()),
+        d1
+          .prepare(
+            `INSERT INTO "token_revocations" ("id", "workspace", "person", "jti", "at", "expires_at") VALUES (?, ?, ?, NULL, ?, ?)`,
+          )
+          .bind(
+            newId(),
+            workspace,
+            person,
+            Math.floor(Date.parse(now()) / 1000),
+            new Date(Date.parse(now()) + lifetimeSeconds * 1000).toISOString(),
+          ),
+      ]);
+    },
+    /** Is this token void? `issuedAt` is the token's `iat`, in seconds; `jti` is absent on old tokens. */
+    async isTokenRevoked(
+      workspace: string,
+      person: string,
+      jti: string | undefined,
+      issuedAt: number,
+    ): Promise<boolean> {
+      const row = await first(
+        `SELECT 1 AS "hit" FROM "token_revocations" WHERE "workspace" = ? AND "person" = ? AND (("jti" IS NULL AND "at" >= ?) OR "jti" = ?) LIMIT 1`,
+        workspace,
+        person,
+        issuedAt,
+        jti ?? "",
+      );
+      return row !== undefined;
+    },
+
+    // ---- per-person secrets (resources.userSecrets: typed by each person, sealed, D-036)
+    /** Sets or replaces the secret of one person for one tool. Encrypted before the database. */
+    async setUserSecret(input: { toolId: string; person: string; name: string; value: string }) {
+      const sealed = await secretBox().seal(
+        userSlot(input.toolId, input.person, input.name),
+        input.value,
+      );
+      await write(
+        `INSERT INTO "user_secrets" ("tool_id", "person", "name", "iv", "ciphertext", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT ("tool_id", "person", "name") DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updated_at" = excluded."updated_at"`,
+        input.toolId,
+        input.person,
+        input.name,
+        sealed.iv,
+        sealed.ciphertext,
+        now(),
+      );
+    },
+    /**
+     * The decrypted secrets of ONE person for one tool. Only the gateway calls this, to hand a person
+     * their own to the tool they call: no route of the platform returns what it gives back.
+     */
+    async readUserSecrets(toolId: string, person: string): Promise<Record<string, string>> {
+      const box = secretBox();
+      const out: Record<string, string> = {};
+      for (const r of await all(
+        `SELECT "name", "iv", "ciphertext" FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ?`,
+        toolId,
+        person,
+      )) {
+        const name = String(r.name);
+        out[name] = await box.open(userSlot(toolId, person, name), {
+          iv: String(r.iv),
+          ciphertext: String(r.ciphertext),
+        });
+      }
+      return out;
+    },
+    /** Who holds which per-person secrets of a tool: names only, for the admin to revoke from. */
+    async userSecretHolders(toolId: string): Promise<Array<{ person: string; names: string[] }>> {
+      const by = new Map<string, string[]>();
+      for (const r of await all(
+        `SELECT "person", "name" FROM "user_secrets" WHERE "tool_id" = ? ORDER BY "person", "name"`,
+        toolId,
+      )) {
+        by.set(String(r.person), [...(by.get(String(r.person)) ?? []), String(r.name)]);
+      }
+      return [...by].map(([person, names]) => ({ person, names }));
+    },
+    /** The admin's revocation: one secret of one person, or all of that person's, for a tool. */
+    async revokeUserSecrets(toolId: string, person: string, name?: string): Promise<number> {
+      const found = await all(
+        name === undefined
+          ? `SELECT 1 FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ?`
+          : `SELECT 1 FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ? AND "name" = ?`,
+        ...(name === undefined ? [toolId, person] : [toolId, person, name]),
+      );
+      if (found.length === 0) return 0;
+      await write(
+        name === undefined
+          ? `DELETE FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ?`
+          : `DELETE FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ? AND "name" = ?`,
+        ...(name === undefined ? [toolId, person] : [toolId, person, name]),
+      );
+      return found.length;
     },
 
     // ---- builds
@@ -1155,25 +1281,37 @@ ORDER BY "user_id", "connector"`,
       if (!manifest.actions[action]) {
         throw new RegistryError("NOT_FOUND", `The tool has no action ${action}.`);
       }
-      if (allowed === undefined) {
-        await write(
-          `DELETE FROM "role_access" WHERE "tool_id" = ? AND "role" = ? AND "action" = ?`,
+      const before = (await this.accessMatrix(toolId)).cells[role]![action]!;
+      const audit = auditStatement(
+        {
           toolId,
-          role,
-          action,
-        );
-        return;
-      }
-      await write(
-        `INSERT INTO "role_access" ("tool_id", "role", "action", "allowed", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
-         ON CONFLICT ("tool_id", "role", "action") DO UPDATE SET "allowed" = excluded."allowed", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
-        toolId,
-        role,
-        action,
-        allowed ? 1 : 0,
-        actor,
+          actor,
+          kind: "access",
+          subject: `${role}:${action}`,
+          detail: { role, action, from: before.allowed, to: allowed ?? before.default },
+        },
         now(),
       );
+      if (allowed === undefined) {
+        await d1.batch([
+          d1
+            .prepare(
+              `DELETE FROM "role_access" WHERE "tool_id" = ? AND "role" = ? AND "action" = ?`,
+            )
+            .bind(toolId, role, action),
+          audit,
+        ]);
+        return;
+      }
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "role_access" ("tool_id", "role", "action", "allowed", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT ("tool_id", "role", "action") DO UPDATE SET "allowed" = excluded."allowed", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+          )
+          .bind(toolId, role, action, allowed ? 1 : 0, actor, now()),
+        audit,
+      ]);
     },
     /**
      * What the gateway forwards with a person (`access` of the runtime's `User`): the overrides of

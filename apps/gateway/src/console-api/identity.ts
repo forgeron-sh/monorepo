@@ -1,7 +1,7 @@
 import type { IdentityConfig } from "@forgeron/registry";
 import { parseIdentityProviderInput } from "../identity/presets";
 
-// The sign-in configuration of a workspace, edited by an admin in the console (D-037):
+// The sign-in configuration of a workspace, edited by an admin in the console (D-041):
 //   GET|PUT|DELETE /api/identity-provider          -> the workspace's OIDC provider (Entra ID, Google, any OIDC)
 //   GET            /api/connector-clients          -> the OAuth clients of the delegated connectors
 //   PUT|DELETE     /api/connector-clients/<type>   -> set or remove one

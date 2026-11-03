@@ -5,6 +5,7 @@ import {
   createSelfHostHosting,
   deploy,
   PreviewDataError,
+  seedStatus,
   type Build,
   type D1Database,
   type Environment,
@@ -102,9 +103,23 @@ describe("a preview's database", () => {
     expect(await count([...databases.values()][0]!)).toBe(0);
   });
 
-  it("says it is not seeded when nobody can run the tool's seed", async () => {
+  it("leaves the seed to the preview's Worker when nobody here can run it", async () => {
     const result = await deploy(hosting, preview("feat/a"), build());
-    expect(result.database).toEqual({ fresh: true, data: "seed", seeded: false });
+    expect(result.database).toEqual({ fresh: true, data: "seed", seeded: false, pending: true });
+    const db = [...databases.values()][0]!;
+    expect(await seedStatus(db)).toBe("pending");
+    expect(await count(db)).toBe(0);
+  });
+
+  it("marks nothing for preview.data: empty, and does not mark again on a second deployment", async () => {
+    await deploy(hosting, preview("feat/a"), build("empty"));
+    expect(await seedStatus([...databases.values()][0]!)).toBeUndefined();
+    await deploy(hosting, preview("feat/b"), build());
+    const db = [...databases.values()][1]!;
+    await db.prepare(`UPDATE "_forgeron_seed" SET status = 'done'`).all();
+    const again = await deploy(hosting, preview("feat/b"), build());
+    expect(again.database).toEqual({ fresh: false, seeded: false });
+    expect(await seedStatus(db)).toBe("done");
   });
 
   it("refuses preview.data: snapshot, which is not implemented", async () => {

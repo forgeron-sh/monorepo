@@ -9,7 +9,7 @@
 export interface ToolEntry {
   production?: string;
   pilot?: string;
-  /** The group that gets the pilot version at the production address (D-034). */
+  /** The group that gets the pilot version at the production address (D-036). */
   pilotGroup?: string;
   /** By branch. */
   previews: Record<string, string>;
@@ -31,6 +31,12 @@ export interface Caller {
   request: Request;
 }
 
+/** What the gateway adds to the request it hands a tool, or the answer that stops it (D-035). */
+export type Forwarding = { headers: Record<string, string> } | { refuse: Response };
+
+/** The headers only the gateway may set: whatever the caller sent under these names is dropped. */
+const INTERNAL_HEADERS = ["x-forgeron-user", "x-forgeron-user-secrets", "x-forgeron-base-url"];
+
 export interface DispatcherOptions {
   /** `forgeron.app`: the workspace is the one label in front of it. */
   baseDomain: string;
@@ -46,6 +52,12 @@ export interface DispatcherOptions {
   identify?(caller: Caller): string | undefined | Promise<string | undefined>;
   /** Counts a person's seat in a workspace. A failure never blocks the call. */
   recordSeat?(workspace: string, personId: string): void | Promise<void>;
+  /**
+   * Who is calling, for the tool's runtime: the headers that carry the person and their own
+   * per-person secrets, or a refusal (a token issued for another tool is `403`). Called once the
+   * tool is found and before the request reaches it. Without it a tool sees nobody.
+   */
+  forward?(caller: Caller): Forwarding | undefined | Promise<Forwarding | undefined>;
   /** May this caller see a branch preview? Without it, nobody does. */
   canPreview?(caller: Caller & { branch: string }): boolean | Promise<boolean>;
 }
@@ -147,8 +159,17 @@ export function createDispatcher(options: DispatcherOptions) {
       }
     }
 
+    const forwarding = await options.forward?.(caller);
+    if (forwarding && "refuse" in forwarding) return forwarding.refuse;
+
     const forwarded = new URL(url);
     forwarded.pathname = path.rest;
-    return target.fetch(new Request(forwarded, request));
+    const outgoing = new Request(forwarded, request);
+    // Identity comes from the gateway or from nowhere: a caller cannot choose who it is.
+    for (const name of INTERNAL_HEADERS) outgoing.headers.delete(name);
+    for (const [name, value] of Object.entries(forwarding?.headers ?? {})) {
+      outgoing.headers.set(name, value);
+    }
+    return target.fetch(outgoing);
   };
 }

@@ -20,6 +20,7 @@ import {
   type Hosting,
 } from "@forgeron/hosting";
 import { handleConsent } from "./consent/consent";
+import { handleAccessMatrix } from "./console-api/access-matrix";
 import { handleConnections } from "./console-api/connections";
 import { handleIdentity } from "./console-api/identity";
 import { handleSecrets } from "./console-api/secrets";
@@ -38,7 +39,9 @@ import { createAuth } from "./identity/auth";
 import { createCaller, membership } from "./identity/caller";
 import { providerFromConfig } from "./identity/presets";
 import { handleCliAuthorize, handleCliToken } from "./identity/cli";
-import { handleIssueToken } from "./identity/issue";
+import { handleIssueToken, handleRevokeToken } from "./identity/issue";
+import { handleRevocations } from "./console-api/revocations";
+import { forwardIdentity, handleUserSecrets } from "./dispatch/user-secrets";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget, type DispatchNamespace } from "./dispatch/targets";
 
@@ -64,11 +67,16 @@ export interface GatewayEnv {
    * base64. Secret. Without it nobody can sign in and every call is anonymous.
    */
   AUTH_SECRET?: string;
+  /**
+   * Rotation (D-035): the keys `AUTH_SECRET` replaced, comma-separated. Tokens they signed stay good
+   * until they expire (30 days at most); drop them after that. Secret.
+   */
+  AUTH_SECRET_PREVIOUS?: string;
   /** Encrypts tool secrets and connection tokens at rest: 32 random bytes, base64. Secret. */
   SECRETS_KEY?: string;
   /**
    * The identity provider's issuer URL (OIDC, D-019). A provider an admin saved in the platform
-   * (`/console-api/api/identity-provider`, D-037) wins over these; with neither, `/auth` answers 404.
+   * (`/console-api/api/identity-provider`, D-041) wins over these; with neither, `/auth` answers 404.
    */
   OIDC_ISSUER?: string;
   OIDC_CLIENT_ID?: string;
@@ -102,7 +110,7 @@ const notFound = () =>
  * `/auth/…`, `/whoami`, `/deploy`, `/promote`, `/rollback` and `/deploy-tokens` are the platform's, `/console-api/…` is the
  * console's API, and every other path is the console itself. One resolver (`createCaller`) turns a
  * session cookie or an audience-bound token into the person for all of them. The pilot version
- * goes to the members of the pilot group at the production address (D-034).
+ * goes to the members of the pilot group at the production address (D-036).
  */
 export function createGateway(
   env: GatewayEnv,
@@ -119,6 +127,10 @@ export function createGateway(
 ) {
   const now = options.now ?? (() => new Date());
   const secret = env.AUTH_SECRET;
+  const previousSecrets = (env.AUTH_SECRET_PREVIOUS ?? "")
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
 
   // The registry encrypts with `SECRETS_KEY` when it is bound, which is asynchronous: built once.
   let built: Promise<{ registry: Registry; config: IdentityConfig; box?: SecretBox }> | undefined;
@@ -136,7 +148,7 @@ export function createGateway(
 
   const parts = async () => {
     const registry = await getRegistry();
-    const caller = secret ? createCaller({ registry, secret, now }) : undefined;
+    const caller = secret ? createCaller({ registry, secret, previousSecrets, now }) : undefined;
     const identify =
       options.identify ??
       (caller
@@ -154,7 +166,7 @@ export function createGateway(
               registry.recordSeat(workspace, personId),
           }
         : {}),
-      // Pilot has the address of production: its group's members get it (D-034). Anonymous, or a
+      // Pilot has the address of production: its group's members get it (D-036). Anonymous, or a
       // pilot with no group, nobody.
       ...(identify
         ? {
@@ -172,6 +184,17 @@ export function createGateway(
               const roles = (await caller.resolve(c.request, c.workspace))?.roles ?? [];
               return roles.includes("admin") || roles.includes("developer");
             },
+          }
+        : {}),
+      // The person and their own per-person secrets go to the tool; a token for another tool stops here.
+      ...(caller
+        ? {
+            forward: (c: { workspace: string; tool: string; request: Request }) =>
+              forwardIdentity(c.tool, c.request, {
+                registry,
+                workspace: c.workspace,
+                identify: (r) => caller.identify(r, c.workspace),
+              }),
           }
         : {}),
       targets: (worker) =>
@@ -219,6 +242,16 @@ export function createGateway(
     const workspace = workspaceOf(url.host, env.BASE_DOMAIN);
     const { registry, caller, dispatch } = await parts();
     const { config, box } = await getBuilt();
+    // Per-person secrets are typed at the gateway, never at the tool (D-036).
+    const secretsOf = workspace ? /^\/t\/([a-z0-9-]+)\/secrets\/?$/.exec(url.pathname) : null;
+    if (workspace && secretsOf && secret && caller) {
+      return handleUserSecrets(request, secretsOf[1]!, {
+        registry,
+        workspace,
+        // A CLI token may enter secrets: the route is the platform's own.
+        identify: (r) => caller.identify(r, workspace, true),
+      });
+    }
     if (!workspace || url.pathname === "/t" || url.pathname.startsWith("/t/")) {
       return dispatch(request);
     }
@@ -254,6 +287,14 @@ export function createGateway(
           return url.pathname === "/auth/cli"
             ? handleCliAuthorize(request, cli)
             : handleCliToken(request, cli);
+        }
+        if (url.pathname === "/auth/token/revoke") {
+          return handleRevokeToken(request, {
+            workspace,
+            registry,
+            now,
+            person: (r) => caller.resolve(r, workspace, true),
+          });
         }
         if (url.pathname === "/auth/token") {
           return handleIssueToken(request, {
@@ -363,7 +404,13 @@ export function createGateway(
         (consent
           ? await handleConsent(forwarded, { registry, consent, workspace, caller: identity })
           : undefined) ??
+        (await handleRevocations(forwarded, {
+          registry,
+          workspace,
+          caller: identity,
+        })) ??
         (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
         (await handleGroups(forwarded, { registry, workspace, caller: identity })) ??
