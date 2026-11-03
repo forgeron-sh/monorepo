@@ -46,7 +46,7 @@ async function publish(workspace: string, name: string, deployed: [string, strin
   const version = await registry.publishVersion(tool.id, build.id, "1.0.0");
   for (const [environment, branch] of deployed) {
     const target = await registry.ensureEnvironment(tool.id, environment as "production", branch);
-    await registry.activate(target.id, version.id);
+    await registry.activate(target.id, version.id, { actor: "test" });
   }
   return tool;
 }

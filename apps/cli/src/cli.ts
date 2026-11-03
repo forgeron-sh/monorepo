@@ -7,6 +7,7 @@ import { init } from "./commands/init";
 import { install } from "./commands/install";
 import { link } from "./commands/link";
 import { play } from "./commands/play";
+import { secrets } from "./commands/secrets";
 import { test } from "./commands/test";
 import { UsageError, type Io } from "./io";
 
@@ -22,6 +23,7 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   db,
   change,
   release,
+  secrets,
 };
 
 const USAGE = `Usage: forgeron <command>
@@ -35,6 +37,8 @@ const USAGE = `Usage: forgeron <command>
   db generate|migrate|status|rollback|seed|shell
                                        the database: migrations, seed, SQL (forgeron db for details)
   change --type <t> --bump <b> -m ".."  add a change to changes/ (change check: CI)
+  secrets set <NAME> [--env] | list [--env]
+                                       tool secrets of an environment (the value is typed, never an argument)
   release [--no-git]                   next version, CHANGELOG.md, tag
   test [vitest args]                   build the tool, then run Vitest
   build                                build every tool under this folder`;

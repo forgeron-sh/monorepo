@@ -2,6 +2,7 @@
 // already defines, so the gateway, a script and a test all use it. Every write is one statement or
 // one batch (D-012).
 import type { D1Database, EnvironmentName } from "@forgeron/hosting";
+import type { SecretBox } from "./secret-box";
 
 export type RegisteredEnvironment = Exclude<EnvironmentName, "local">;
 export type ApprovalStatus = "pending" | "approved" | "rejected";
@@ -79,7 +80,8 @@ export type RegistryErrorCode =
   | "BRANCH_REQUIRED"
   | "WRONG_TOOL"
   | "NO_ARTIFACT"
-  | "NO_PREVIOUS";
+  | "NO_PREVIOUS"
+  | "NO_SECRET_KEY";
 
 export class RegistryError extends Error {
   override name = "RegistryError";
@@ -93,6 +95,8 @@ export class RegistryError extends Error {
 export interface RegistryOptions {
   now?: () => Date;
   newId?: () => string;
+  /** Encrypts tool secrets at rest; without it the secret methods refuse to run. */
+  secrets?: SecretBox;
 }
 
 type Row = Record<string, unknown>;
@@ -177,6 +181,18 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     return toTool(row);
   }
 
+  const secretBox = (): SecretBox => {
+    if (!options.secrets) {
+      throw new RegistryError(
+        "NO_SECRET_KEY",
+        "The registry has no secret key: it cannot keep secrets.",
+      );
+    }
+    return options.secrets;
+  };
+  const slot = (toolId: string, environment: string, name: string) =>
+    `${toolId}/${environment}/${name}`;
+
   return {
     // ---- tools
     async createTool(input: { workspace: string; name: string }): Promise<Tool> {
@@ -213,6 +229,72 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     async deleteTool(id: string): Promise<void> {
       await requireTool(id);
       await write(`DELETE FROM "tools" WHERE "id" = ?`, id);
+    },
+
+    // ---- secrets (resources.secrets: set by the admin, per tool and environment, encrypted)
+    /** Sets or replaces a secret. The value is encrypted before it reaches the database. */
+    async setSecret(
+      toolId: string,
+      environment: RegisteredEnvironment,
+      name: string,
+      value: string,
+    ): Promise<void> {
+      await requireTool(toolId);
+      const sealed = await secretBox().seal(slot(toolId, environment, name), value);
+      await write(
+        `INSERT INTO "secrets" ("tool_id", "environment", "name", "iv", "ciphertext", "updated_at")
+VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT ("tool_id", "environment", "name")
+DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updated_at" = excluded."updated_at"`,
+        toolId,
+        environment,
+        name,
+        sealed.iv,
+        sealed.ciphertext,
+        now(),
+      );
+    },
+    /** The names of the secrets that are set, never their values. */
+    async secretNames(toolId: string, environment: RegisteredEnvironment): Promise<string[]> {
+      return (
+        await all(
+          `SELECT "name" FROM "secrets" WHERE "tool_id" = ? AND "environment" = ? ORDER BY "name"`,
+          toolId,
+          environment,
+        )
+      ).map((r) => String(r.name));
+    },
+    async deleteSecret(
+      toolId: string,
+      environment: RegisteredEnvironment,
+      name: string,
+    ): Promise<void> {
+      await write(
+        `DELETE FROM "secrets" WHERE "tool_id" = ? AND "environment" = ? AND "name" = ?`,
+        toolId,
+        environment,
+        name,
+      );
+    },
+    /** The decrypted secrets of an environment: for the runtime's `ctx.secrets`, never for a person. */
+    async readSecrets(
+      toolId: string,
+      environment: RegisteredEnvironment,
+    ): Promise<Record<string, string>> {
+      const box = secretBox();
+      const out: Record<string, string> = {};
+      for (const r of await all(
+        `SELECT "name", "iv", "ciphertext" FROM "secrets" WHERE "tool_id" = ? AND "environment" = ?`,
+        toolId,
+        environment,
+      )) {
+        const name = String(r.name);
+        out[name] = await box.open(slot(toolId, environment, name), {
+          iv: String(r.iv),
+          ciphertext: String(r.ciphertext),
+        });
+      }
+      return out;
     },
 
     // ---- builds
