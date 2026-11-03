@@ -14,6 +14,8 @@ export type {
   Registry,
   RegistryErrorCode,
   RegistryOptions,
+  SecretState,
+  SecretStatus,
   RegisteredEnvironment,
   Tool,
   VersionRecord,

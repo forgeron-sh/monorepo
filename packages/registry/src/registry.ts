@@ -55,6 +55,14 @@ export interface Approval {
   decidedAt?: string;
 }
 
+export type SecretState = "set" | "missing";
+
+/** One secret the tool declares, and whether each environment has it. Never a value. */
+export interface SecretStatus {
+  name: string;
+  environments: Record<RegisteredEnvironment, SecretState>;
+}
+
 export type RegistryErrorCode =
   | "NOT_FOUND"
   | "ALREADY_EXISTS"
@@ -231,6 +239,35 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
           environment,
         )
       ).map((r) => String(r.name));
+    },
+    /**
+     * The secrets the tool declares (`resources.secrets` of its latest published version) and,
+     * for each environment, whether it is set or missing. The same answer feeds the console and
+     * the admin MCP's `secrets_status`.
+     */
+    async secretsStatus(toolId: string): Promise<SecretStatus[]> {
+      await requireTool(toolId);
+      const latest = (await this.listVersions(toolId)).at(-1);
+      const build = latest ? await this.getBuild(latest.buildId) : undefined;
+      const declared = Object.keys(
+        (build?.manifest as { resources?: { secrets?: Record<string, unknown> } } | null)?.resources
+          ?.secrets ?? {},
+      ).sort();
+      const set = {
+        preview: new Set(await this.secretNames(toolId, "preview")),
+        pilot: new Set(await this.secretNames(toolId, "pilot")),
+        production: new Set(await this.secretNames(toolId, "production")),
+      };
+      const state = (env: RegisteredEnvironment, name: string): SecretState =>
+        set[env].has(name) ? "set" : "missing";
+      return declared.map((name) => ({
+        name,
+        environments: {
+          preview: state("preview", name),
+          pilot: state("pilot", name),
+          production: state("production", name),
+        },
+      }));
     },
     async deleteSecret(
       toolId: string,

@@ -39,8 +39,15 @@
     "apps/console": {
       "name": "@forgeron/console",
       "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/ui": "workspace:*",
+        "react": "19.3.1",
+      },
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "react-dom": "19.3.1",
       },
     },
     "apps/gateway": {
