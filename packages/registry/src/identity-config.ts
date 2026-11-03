@@ -38,6 +38,27 @@ export interface IdentityProviderInput {
   groupRoles?: Record<string, string>;
 }
 
+/** A workspace's SAML provider (D-050): there is no secret, the certificates are public. */
+export interface SamlProviderConfig {
+  idpEntityId: string;
+  ssoUrl: string;
+  /** PEM certificates whose keys may sign a response. */
+  certificates: string[];
+  emailAttribute?: string;
+  groupsAttribute?: string;
+  nameAttribute?: string;
+  groupRoles: Record<string, string>;
+  updatedBy: string;
+  updatedAt: string;
+}
+
+export type SamlProviderInput = Omit<
+  SamlProviderConfig,
+  "groupRoles" | "updatedBy" | "updatedAt"
+> & {
+  groupRoles?: Record<string, string>;
+};
+
 /** The OAuth client of one connector type (`microsoft-365`), as the platform registered it. */
 export interface ConnectorClientConfig {
   connector: string;
@@ -132,6 +153,8 @@ export function createIdentityConfig(
         : undefined;
       const at = now();
       await d1.batch([
+        // One sign-in provider per workspace: an OIDC one replaces a SAML one.
+        d1.prepare(`DELETE FROM "saml_providers" WHERE "workspace" = ?`).bind(workspace),
         d1
           .prepare(
             `INSERT INTO "identity_providers" ("workspace", "kind", "issuer", "client_id", "tenant", "hosted_domain", "email_claim", "groups_claim", "group_roles", "iv", "ciphertext", "updated_by", "updated_at")
@@ -157,14 +180,62 @@ ON CONFLICT ("workspace") DO UPDATE SET "kind" = excluded."kind", "issuer" = exc
           ),
       ]);
     },
+    /** Removes the workspace's sign-in provider, whichever kind it is. */
     async deleteIdentityProvider(workspace: string): Promise<boolean> {
-      const existed = (
-        await rows(`SELECT 1 AS x FROM "identity_providers" WHERE "workspace" = ?`, workspace)
-      )[0];
+      const existed =
+        (
+          await rows(`SELECT 1 AS x FROM "identity_providers" WHERE "workspace" = ?`, workspace)
+        )[0] ??
+        (await rows(`SELECT 1 AS x FROM "saml_providers" WHERE "workspace" = ?`, workspace))[0];
       await d1.batch([
         d1.prepare(`DELETE FROM "identity_providers" WHERE "workspace" = ?`).bind(workspace),
+        d1.prepare(`DELETE FROM "saml_providers" WHERE "workspace" = ?`).bind(workspace),
       ]);
       return existed !== undefined;
+    },
+
+    async getSamlProvider(workspace: string): Promise<SamlProviderConfig | undefined> {
+      const r = (await rows(`SELECT * FROM "saml_providers" WHERE "workspace" = ?`, workspace))[0];
+      if (!r) return undefined;
+      return {
+        idpEntityId: String(r.idp_entity_id),
+        ssoUrl: String(r.sso_url),
+        certificates: JSON.parse(String(r.certificates)) as string[],
+        ...(text(r.email_attribute) ? { emailAttribute: text(r.email_attribute)! } : {}),
+        ...(text(r.groups_attribute) ? { groupsAttribute: text(r.groups_attribute)! } : {}),
+        ...(text(r.name_attribute) ? { nameAttribute: text(r.name_attribute)! } : {}),
+        groupRoles: JSON.parse(String(r.group_roles)) as Record<string, string>,
+        updatedBy: String(r.updated_by),
+        updatedAt: String(r.updated_at),
+      };
+    },
+    /** Saves the SAML provider and removes an OIDC one, in one batch: one provider per workspace. */
+    async setSamlProvider(
+      workspace: string,
+      input: SamlProviderInput,
+      actor: string,
+    ): Promise<void> {
+      await d1.batch([
+        d1.prepare(`DELETE FROM "identity_providers" WHERE "workspace" = ?`).bind(workspace),
+        d1
+          .prepare(
+            `INSERT INTO "saml_providers" ("workspace", "idp_entity_id", "sso_url", "certificates", "email_attribute", "groups_attribute", "name_attribute", "group_roles", "updated_by", "updated_at")
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT ("workspace") DO UPDATE SET "idp_entity_id" = excluded."idp_entity_id", "sso_url" = excluded."sso_url", "certificates" = excluded."certificates", "email_attribute" = excluded."email_attribute", "groups_attribute" = excluded."groups_attribute", "name_attribute" = excluded."name_attribute", "group_roles" = excluded."group_roles", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+          )
+          .bind(
+            workspace,
+            input.idpEntityId,
+            input.ssoUrl,
+            JSON.stringify(input.certificates),
+            input.emailAttribute ?? null,
+            input.groupsAttribute ?? null,
+            input.nameAttribute ?? null,
+            JSON.stringify(input.groupRoles ?? {}),
+            actor,
+            now(),
+          ),
+      ]);
     },
 
     /** The OAuth clients of the connectors, without secrets. */

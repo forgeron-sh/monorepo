@@ -1,8 +1,8 @@
 import type { AuditEntry, IdentityConfig } from "@forgeron/registry";
-import { parseIdentityProviderInput } from "../identity/presets";
+import { parseIdentityProviderInput, parseSamlProviderInput } from "../identity/presets";
 
 // The sign-in configuration of a workspace, edited by an admin in the console (D-041):
-//   GET|PUT|DELETE /api/identity-provider          -> the workspace's OIDC provider (Entra ID, Google, any OIDC)
+//   GET|PUT|DELETE /api/identity-provider          -> the workspace's sign-in provider: OIDC (Entra ID, Google, any) or SAML
 //   GET            /api/connector-clients          -> the OAuth clients of the delegated connectors
 //   PUT|DELETE     /api/connector-clients/<type>   -> set or remove one
 // A client secret goes in and never comes out: the answers say only whether one is kept.
@@ -63,7 +63,12 @@ export async function handleIdentity(
 
   if (path === "/api/identity-provider") {
     if (request.method === "GET") {
-      return json(200, { provider: (await config.getIdentityProvider(workspace)) ?? null });
+      const saml = await config.getSamlProvider(workspace);
+      return json(200, {
+        provider: saml
+          ? { kind: "saml", ...saml }
+          : ((await config.getIdentityProvider(workspace)) ?? null),
+      });
     }
     if (request.method === "DELETE") {
       if (!(await config.deleteIdentityProvider(workspace))) {
@@ -73,7 +78,22 @@ export async function handleIdentity(
       return new Response(null, { status: 204 });
     }
     if (request.method === "PUT") {
-      const parsed = parseIdentityProviderInput(await readBody(request));
+      const body = await readBody(request);
+      if ((body as { kind?: unknown } | undefined)?.kind === "saml") {
+        // SAML (D-050): public certificates only, no secret to keep. Saving it replaces an OIDC provider.
+        const saml = await parseSamlProviderInput(body);
+        if ("message" in saml) return json(400, { error: "INVALID", message: saml.message });
+        await config.setSamlProvider(workspace, saml.input, caller.id);
+        await audited("identity-provider:set", {
+          kind: "saml",
+          idpEntityId: saml.input.idpEntityId,
+          certificates: saml.input.certificates.length,
+        });
+        return json(200, {
+          provider: { kind: "saml", ...(await config.getSamlProvider(workspace)) },
+        });
+      }
+      const parsed = parseIdentityProviderInput(body);
       if ("message" in parsed) return json(400, { error: "INVALID", message: parsed.message });
       if (parsed.input.clientSecret && !options.canKeepSecrets) {
         return json(501, { error: "NOT_CONFIGURED", message: "The gateway has no secret key." });

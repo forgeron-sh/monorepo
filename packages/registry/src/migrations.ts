@@ -413,4 +413,33 @@ export const platformMigrations: BuildMigration[] = [
       st(`DROP TABLE "email_codes"`),
     ],
   },
+  {
+    // SAML sign-in (D-050): a workspace's SAML provider (pinned certificates, attribute mapping) and
+    // the short-lived ids that bind a response to its request and refuse a replayed assertion.
+    name: "0017_saml",
+    fingerprint: "saml-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "saml_providers" (
+  "workspace" TEXT NOT NULL PRIMARY KEY,
+  "idp_entity_id" TEXT NOT NULL,
+  "sso_url" TEXT NOT NULL,
+  "certificates" TEXT NOT NULL,
+  "email_attribute" TEXT,
+  "groups_attribute" TEXT,
+  "name_attribute" TEXT,
+  "group_roles" TEXT NOT NULL,
+  "updated_by" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL
+)`),
+      st(`CREATE TABLE "saml_requests" (
+  "workspace" TEXT NOT NULL,
+  "id" TEXT NOT NULL,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('request', 'assertion')),
+  "expires_at" TEXT NOT NULL,
+  PRIMARY KEY ("workspace", "id", "kind")
+)`),
+    ],
+    down: [st(`DROP TABLE "saml_requests"`), st(`DROP TABLE "saml_providers"`)],
+  },
 ];

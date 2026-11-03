@@ -1,8 +1,8 @@
 import { fromBase64Url, toBase64Url } from "./sealed";
 
 // OpenID Connect, authorization code with PKCE. Microsoft Entra ID and Google Workspace are OIDC
-// providers, as is any OIDC identity provider (their presets are in `presets.ts`); SAML is not
-// covered (D-041). `fetch` is injected, so the flow is proven against a simulated provider.
+// providers, as is any OIDC identity provider (their presets are in `presets.ts`); SAML is
+// in `saml.ts` (D-050). `fetch` is injected, so the flow is proven against a simulated provider.
 
 export interface OidcProvider {
   /** The provider's issuer URL: it serves `/.well-known/openid-configuration`. */

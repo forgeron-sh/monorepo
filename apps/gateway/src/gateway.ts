@@ -4,6 +4,7 @@ import {
   createConsent,
   createEmailCodes,
   createIdentityConfig,
+  createSamlRequests,
   createRegistry,
   createSecretBox,
   type EmailCodes,
@@ -43,6 +44,7 @@ import { createEmailAuth } from "./identity/email-auth";
 import { cloudflareMailSender, type MailSender, type SendEmailBinding } from "./mail/mail";
 import { createCaller, membership } from "./identity/caller";
 import { providerFromConfig } from "./identity/presets";
+import type { SamlProvider } from "./identity/saml";
 import { handleCliAuthorize, handleCliToken } from "./identity/cli";
 import { handleIssueToken, handleRevokeToken } from "./identity/issue";
 import { handleRevocations } from "./console-api/revocations";
@@ -288,6 +290,28 @@ export function createGateway(
     return createSelfHostHosting({ ...common, ...(gateway ? { gateway } : {}) });
   };
 
+  // The SAML provider an admin saved (D-050); it wins over any OIDC provider, saved or from bindings.
+  const samlOf = async (
+    workspace: string,
+    config: IdentityConfig,
+  ): Promise<SamlProvider | undefined> => {
+    // Single sign-on is on when OIDC is (nothing stated, or `oidc` named) or when `saml` is named.
+    if (!oidcOn && !methods.includes("saml")) return undefined;
+    const saved = await config.getSamlProvider(workspace);
+    if (!saved) return undefined;
+    const origin = `https://${workspace}.${env.BASE_DOMAIN}`;
+    return {
+      idpEntityId: saved.idpEntityId,
+      ssoUrl: saved.ssoUrl,
+      certificates: saved.certificates,
+      spEntityId: `${origin}/auth/saml/metadata`,
+      acsUrl: `${origin}/auth/saml/acs`,
+      ...(saved.emailAttribute ? { emailAttribute: saved.emailAttribute } : {}),
+      ...(saved.groupsAttribute ? { groupsAttribute: saved.groupsAttribute } : {}),
+      ...(saved.nameAttribute ? { nameAttribute: saved.nameAttribute } : {}),
+    };
+  };
+
   const methods = (env.SIGN_IN_METHODS ?? "")
     .split(",")
     .map((m) => m.trim().toLowerCase())
@@ -358,7 +382,10 @@ export function createGateway(
             codes,
             mail: mailer,
             policy: (ws) => policyOf(registry, ws),
-            oidcAvailable: async (ws) => (await providerOf(ws, config)) !== undefined,
+            // The "company account" button leads to `/auth/login?method=oidc`: SAML answers it too.
+            oidcAvailable: async (ws) =>
+              (await samlOf(ws, config)) !== undefined ||
+              (await providerOf(ws, config)) !== undefined,
             now,
             sessionTtlSeconds: options.sessionTtlSeconds ?? 8 * 60 * 60,
             ...(options.defer ? { defer: options.defer } : {}),
@@ -370,6 +397,8 @@ export function createGateway(
           baseDomain: env.BASE_DOMAIN,
           secret,
           providerFor: (ws) => providerOf(ws, config),
+          samlFor: (ws) => samlOf(ws, config),
+          samlRequests: createSamlRequests(env.DB),
           resolvePerson: async (ws, identity) =>
             (async () => {
               const policy = await policyOf(registry, ws);
@@ -377,7 +406,10 @@ export function createGateway(
                 ...(policy.adminEmail ? { adminEmail: policy.adminEmail } : {}),
                 memberDomains: policy.domains,
                 ...(policy.defaultRole ? { defaultRole: policy.defaultRole } : {}),
-                groupRoles: (await config.getIdentityProvider(ws))?.groupRoles ?? {},
+                groupRoles:
+                  (await config.getIdentityProvider(ws))?.groupRoles ??
+                  (await config.getSamlProvider(ws))?.groupRoles ??
+                  {},
               })(ws, identity);
             })(),
           fetch: options.fetch ?? fetch,

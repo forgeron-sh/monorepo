@@ -31,7 +31,10 @@ export type {
   IdentityProviderConfig,
   IdentityProviderInput,
   IdentityProviderKind,
+  SamlProviderConfig,
+  SamlProviderInput,
 } from "./identity-config";
+export { createSamlRequests } from "./saml-requests";
 export { createEmailCodes, type EmailCodes } from "./email-codes";
 export { loadGatewayCode, saveGatewayCode } from "./gateway-code";
 export { createSecretBox, type SealedSecret, type SecretBox } from "./secret-box";
