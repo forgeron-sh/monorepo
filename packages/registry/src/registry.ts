@@ -549,6 +549,30 @@ ORDER BY "user_id", "connector"`,
       };
     },
 
+    // ---- seats (D-024: a person with an authenticated call in the workspace, per UTC month)
+    /**
+     * Counts a person's seat for the current month. Once is enough: calling again changes nothing.
+     * A call a tool makes on its own behalf (`tool:<name>`) and a job are not people: no seat.
+     */
+    async recordSeat(workspace: string, personId: string): Promise<void> {
+      if (personId === "" || personId.startsWith("tool:")) return;
+      await write(
+        `INSERT OR IGNORE INTO "seats" ("workspace", "person_id", "month") VALUES (?, ?, ?)`,
+        workspace,
+        personId,
+        now().slice(0, 7),
+      );
+    },
+    /** The seats of a workspace for a month (`"2026-11"`, UTC; this month by default). */
+    async countSeats(workspace: string, month: string = now().slice(0, 7)): Promise<number> {
+      const row = await first(
+        `SELECT COUNT(*) AS seats FROM "seats" WHERE "workspace" = ? AND "month" = ?`,
+        workspace,
+        month,
+      );
+      return Number(row?.seats ?? 0);
+    },
+
     // ---- builds
     /** Records what CI sent. The same fingerprint gives back the build already recorded. */
     async recordBuild(

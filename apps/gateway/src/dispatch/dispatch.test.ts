@@ -101,6 +101,8 @@ function setup(
   hooks: {
     inPilot?: (c: Caller) => boolean;
     canPreview?: (c: Caller & { branch: string }) => boolean;
+    identify?: (c: Caller) => string | undefined | Promise<string | undefined>;
+    recordSeat?: (workspace: string, personId: string) => void | Promise<void>;
   } = {},
 ) {
   const seen = new Map<string, Request>();
@@ -231,5 +233,36 @@ describe("dispatch", () => {
     const dispatch = createDispatcher({ baseDomain: BASE, registry, targets: () => undefined });
     const response = await dispatch(new Request("https://acme.forgeron.app/t/crm/mcp"));
     expect(response.status).toBe(502);
+  });
+
+  describe("seats", () => {
+    it("counts the authenticated person of a call that reaches a tool", async () => {
+      const recordSeat = vi.fn<(workspace: string, personId: string) => void>();
+      const { get } = setup({
+        identify: (c) => c.request.headers.get("x-person") ?? undefined,
+        recordSeat,
+      });
+      await get("https://acme.forgeron.app/t/crm/mcp", { headers: { "x-person": "p1" } });
+      await get("https://acme.forgeron.app/t/crm/mcp");
+      expect(recordSeat).toHaveBeenCalledTimes(1);
+      expect(recordSeat).toHaveBeenCalledWith("acme", "p1");
+    });
+
+    it("counts nothing for a call that reaches no tool", async () => {
+      const recordSeat = vi.fn<(workspace: string, personId: string) => void>();
+      const { get } = setup({ identify: () => "p1", recordSeat });
+      await get("https://acme.forgeron.app/t/missing/mcp");
+      expect(recordSeat).not.toHaveBeenCalled();
+    });
+
+    it("never blocks the call when counting fails", async () => {
+      const { get } = setup({
+        identify: () => "p1",
+        recordSeat: () => {
+          throw new Error("D1 is down");
+        },
+      });
+      expect((await get("https://acme.forgeron.app/t/crm/mcp")).status).toBe(200);
+    });
   });
 });

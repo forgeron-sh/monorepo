@@ -4,7 +4,7 @@ import { handleConnections } from "./console-api/connections";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleTools } from "./console-api/tools";
-import { createDispatcher, workspaceOf } from "./dispatch/dispatch";
+import { createDispatcher, workspaceOf, type DispatcherOptions } from "./dispatch/dispatch";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget, type DispatchNamespace } from "./dispatch/targets";
 
@@ -44,11 +44,22 @@ const notFound = () =>
  * not built yet, so nobody is in a pilot group, nobody may see a preview, and the console's API
  * has no caller (`401`): all of it fails closed until it is.
  */
-export function createGateway(env: GatewayEnv, options: FromRegistryOptions = {}) {
+export function createGateway(
+  env: GatewayEnv,
+  options: FromRegistryOptions & { identify?: DispatcherOptions["identify"] } = {},
+) {
   const registry = createRegistry(env.DB);
   const dispatch = createDispatcher({
     baseDomain: env.BASE_DOMAIN,
     registry: dispatchRegistry(registry, options),
+    // Seats are counted once identity tells who called (`identify`); without it nothing is counted.
+    ...(options.identify
+      ? {
+          identify: options.identify,
+          recordSeat: (workspace: string, personId: string) =>
+            registry.recordSeat(workspace, personId),
+        }
+      : {}),
     targets: (worker) =>
       env.DISPATCHER ? namespaceTarget(env.DISPATCHER, worker) : serviceBindingTarget(env, worker),
   });
