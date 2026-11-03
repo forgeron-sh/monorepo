@@ -7,7 +7,7 @@ import { audienceOf } from "./audience";
 
 const PREFIX = "fgt";
 
-export interface TokenClaims {
+interface TokenClaims {
   /** The person: their id in the workspace. */
   sub: string;
   /** `<workspace>/<tool>`. */
@@ -18,7 +18,7 @@ export interface TokenClaims {
   exp: number;
 }
 
-export type TokenFailure = "malformed" | "signature" | "expired" | "audience";
+type TokenFailure = "malformed" | "signature" | "expired" | "audience";
 
 export type TokenCheck = { ok: true; claims: TokenClaims } | { ok: false; reason: TokenFailure };
 
