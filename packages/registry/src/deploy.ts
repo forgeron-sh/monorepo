@@ -2,6 +2,7 @@
 // audit log (who, when, which version). The registry is written only for what happened: a build
 // that fails to deploy stays recorded (CI can retry), but the environment keeps pointing at its
 // previous version.
+import { diffResourceChanges, type Manifest } from "@forgeron/manifest";
 import {
   deploy,
   restore,
@@ -13,6 +14,7 @@ import {
 } from "@forgeron/hosting";
 import {
   RegistryError,
+  type Approval,
   type BuildRecord,
   type EnvironmentRecord,
   type Registry,
@@ -39,6 +41,49 @@ export interface DeployBuildInput {
 export interface DeployedBuild extends Deployment {
   version: VersionRecord;
   environment: EnvironmentRecord;
+}
+
+const guarded = (name: RegisteredEnvironment) => name === "pilot" || name === "production";
+
+/**
+ * What a version asks for that production does not have yet (sdk.md §3): each resource added or
+ * broadened becomes a pending approval. With no production version, everything it asks for is new.
+ */
+async function requestApprovals(
+  registry: Registry,
+  tool: Tool,
+  version: VersionRecord,
+  manifest: Manifest,
+): Promise<void> {
+  const production = (await registry.listEnvironments(tool.id)).find(
+    (e) => e.name === "production",
+  );
+  const served = production?.versionId
+    ? await registry.getVersion(production.versionId)
+    : undefined;
+  const baseline = served ? (await registry.getBuild(served.buildId))?.manifest : undefined;
+  const previous = (baseline as Manifest | undefined)?.resources ?? {};
+  for (const change of diffResourceChanges(previous, manifest.resources)) {
+    if (change.needsApproval) {
+      await registry.requestApproval(version.id, { resource: change.subject, kind: change.kind });
+    }
+  }
+}
+
+/** Pilot and production wait for an admin; a preview does not. */
+async function assertApproved(
+  registry: Registry,
+  environment: RegisteredEnvironment,
+  version: VersionRecord,
+): Promise<void> {
+  if (!guarded(environment)) return;
+  const waiting = await registry.unapproved(version.id);
+  if (waiting.length > 0) {
+    throw new RegistryError(
+      "PENDING_APPROVAL",
+      `${environment} waits for an admin to approve: ${waiting.map((a) => a.resource).join(", ")}.`,
+    );
+  }
 }
 
 const target = (tool: Tool, name: RegisteredEnvironment, branch?: string) => ({
@@ -79,6 +124,8 @@ export async function deployBuild(
     ...(build.changelog ? { changelog: build.changelog } : {}),
   });
   const version = await registry.publishVersion(tool.id, recorded.id, input.version);
+  await requestApprovals(registry, tool, version, build.manifest);
+  await assertApproved(registry, input.environment, version);
   const deployment = await deploy(
     hosting,
     target(tool, input.environment, input.branch),
@@ -124,6 +171,7 @@ export async function promoteVersion(
   const record = await registry.getBuild(version.buildId);
   if (!record) throw new RegistryError("NOT_FOUND", `There is no build ${version.buildId}.`);
   const slot = await registry.ensureEnvironment(tool.id, input.to, input.branch);
+  await assertApproved(registry, input.to, version);
   const deployment = await deploy(
     hosting,
     target(tool, input.to, input.branch),
@@ -193,4 +241,43 @@ export async function closePreview(
     (e) => e.name === "preview" && e.branch === branch,
   );
   if (environment) await registry.removeEnvironment(environment.id);
+}
+
+/** An admin accepts everything a version asks for: it can now reach pilot and production. */
+export async function approveVersion(
+  registry: Registry,
+  versionId: string,
+  actor: string,
+  via?: string,
+): Promise<Approval[]> {
+  return decideVersion(registry, versionId, "approved", actor, via);
+}
+
+/** An admin refuses what a version asks for: it stays out of pilot and production. */
+export async function rejectVersion(
+  registry: Registry,
+  versionId: string,
+  actor: string,
+  via?: string,
+): Promise<Approval[]> {
+  return decideVersion(registry, versionId, "rejected", actor, via);
+}
+
+async function decideVersion(
+  registry: Registry,
+  versionId: string,
+  decision: "approved" | "rejected",
+  actor: string,
+  via?: string,
+): Promise<Approval[]> {
+  const version = await registry.getVersion(versionId);
+  if (!version) throw new RegistryError("NOT_FOUND", `There is no version ${versionId}.`);
+  const pending = (await registry.listApprovals(version.toolId, "pending")).filter(
+    (a) => a.versionId === versionId,
+  );
+  const decided: Approval[] = [];
+  for (const approval of pending) {
+    decided.push(await registry.decideApproval(approval.id, decision, actor, via));
+  }
+  return decided;
 }

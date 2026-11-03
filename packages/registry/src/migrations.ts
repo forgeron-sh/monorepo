@@ -114,4 +114,28 @@ export const platformMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "secrets"`)],
   },
+  {
+    // The audit log (sdk.md §15): one line per action call, deployment, promotion, rollback and
+    // approval. No foreign key: the log outlives the tool it is about.
+    name: "0004_audit_log",
+    fingerprint: "audit-log-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "audit_log" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "at" TEXT NOT NULL,
+  "tool_id" TEXT,
+  "actor" TEXT NOT NULL,
+  "interface" TEXT,
+  "via" TEXT,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('action', 'deployment', 'promotion', 'rollback', 'approval')),
+  "subject" TEXT NOT NULL,
+  "version_id" TEXT,
+  "result" TEXT NOT NULL CHECK ("result" IN ('ok', 'denied', 'error')),
+  "detail" TEXT
+)`),
+      st(`CREATE INDEX "audit_log_by_tool" ON "audit_log" ("tool_id", "at")`),
+    ],
+    down: [st(`DROP TABLE "audit_log"`)],
+  },
 ];
