@@ -15,7 +15,7 @@ export {
 export type { DeployBuildInput, DeployedBuild, PromoteInput, RollbackInput } from "./deploy";
 export { createRegistry, RegistryError, VIA_FORGERON_MCP } from "./registry";
 export { docsProblem } from "./docs-check";
-export { listCatalog, findCard, assetUrl } from "./catalog";
+export { listCatalog, findCard, findAsset, assetUrl } from "./catalog";
 export type { CatalogCaller } from "./catalog";
 export { ConsentError, createConsent } from "./consent";
 export type {

@@ -6,6 +6,7 @@ import type { Build, DeployOptions, Hosting } from "@forgeron/hosting";
 import {
   closePreview,
   deployBuild,
+  docsProblem,
   type Registry,
   type RegisteredEnvironment,
 } from "@forgeron/registry";
@@ -164,6 +165,10 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   if (manifestName !== audience.tool) {
     return fail(403, "FORBIDDEN", `This token is for "${audience.tool}", not "${manifestName}".`);
   }
+
+  // The documentation is shown to every member: check it again, whatever the CLI did (D-056).
+  const docs = await docsProblem(uploaded.manifest!, uploaded.docs);
+  if (docs) return fail(400, "INVALID", docs);
 
   const { registry } = context;
   const tool =

@@ -155,3 +155,16 @@ export async function findCard(
     },
   };
 }
+
+/** One image of the version the catalog shows, or `undefined` (no such tool, version or file). */
+export async function findAsset(
+  registry: Registry,
+  workspace: string,
+  name: string,
+  path: string,
+): Promise<{ type: string; hash: string; bytes: Uint8Array } | undefined> {
+  const tool = await registry.findTool(workspace, name);
+  const s = tool ? await shown(registry, tool) : undefined;
+  if (!tool || !s) return undefined;
+  return registry.assetOf(tool.id, s.build.id, path);
+}

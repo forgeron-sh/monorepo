@@ -32,6 +32,7 @@ import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleApprovals } from "./console-api/approvals";
 import { handleAudit } from "./console-api/audit";
+import { handleCatalog } from "./console-api/catalog";
 import { handleTools } from "./console-api/tools";
 import { handleWorkspace } from "./console-api/workspace";
 import {
@@ -534,6 +535,7 @@ export function createGateway(
               id: who.id,
               admin: who.roles.includes("admin"),
               developer: who.roles.includes("developer"),
+              roles: who.roles,
             }
           : undefined;
       // A person's OAuth consent for a delegated connector (sdk.md §10): the OAuth clients are the
@@ -582,6 +584,12 @@ export function createGateway(
         (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleCatalog(forwarded, {
+          registry,
+          workspace,
+          origin: `https://${workspace}.${env.BASE_DOMAIN}`,
+          caller: identity,
+        })) ??
         (await handleWorkspace(forwarded, {
           registry,
           workspace,

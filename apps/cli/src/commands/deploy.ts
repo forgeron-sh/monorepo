@@ -71,6 +71,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
   }
   const migrations = await read("migrations.json");
   const changelog = await read("changelog.json");
+  const docs = await read("docs.json");
   const version = versionOf(built.version, built.fingerprint, env, branch);
 
   const response = await fetch(new URL("/deploy", project.endpoint), {
@@ -87,6 +88,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
         fingerprint: built.fingerprint,
         ...(migrations ? { migrations: JSON.parse(migrations) } : {}),
         ...(changelog ? { changelog: JSON.parse(changelog) } : {}),
+        ...(docs ? { docs: JSON.parse(docs) } : {}),
       },
     }),
   });

@@ -112,6 +112,83 @@ describe("POST /deploy", () => {
     expect(refused.status).toBe(400);
   });
 
+  it("stores the README and the images of the build, and refuses documentation that lies", async () => {
+    const hash = async (bytes: Uint8Array) =>
+      [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))]
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 1]);
+    const readme = "# CRM\n![a](docs/a.png)";
+    const documented = async (over: { svg?: string } = {}) => {
+      const files = [{ path: "docs/a.png", type: "image/png", bytes: png }];
+      if (over.svg) {
+        files.push({
+          path: "docs/i.svg",
+          type: "image/svg+xml",
+          bytes: new TextEncoder().encode(over.svg),
+        });
+      }
+      const assets = await Promise.all(
+        files.map(async (f) => ({
+          path: f.path,
+          type: f.type,
+          size: f.bytes.length,
+          hash: await hash(f.bytes),
+          base64: Buffer.from(f.bytes).toString("base64"),
+        })),
+      );
+      const encoded = new TextEncoder().encode(readme);
+      const b = build();
+      return {
+        ...b,
+        manifest: {
+          ...b.manifest,
+          docs: {
+            readme: { size: encoded.length, hash: await hash(encoded) },
+            assets: assets.map((a) => ({ path: a.path, type: a.type, size: a.size, hash: a.hash })),
+          },
+        },
+        docs: { readme, assets },
+      };
+    };
+
+    const { hosting } = fakeHosting();
+    const evil = await handleDeploy(
+      post(
+        "/deploy",
+        upload({ build: await documented({ svg: "<svg><script>alert(1)</script></svg>" }) }),
+        await deploymentToken(),
+      ),
+      context(hosting),
+    );
+    expect(evil.status).toBe(400);
+    expect(((await evil.json()) as { error: { message: string } }).error.message).toMatch(
+      /docs\/i\.svg.*SVG is refused/,
+    );
+    expect(await registry.findTool("acme", "crm")).toBeUndefined();
+
+    const traversal = await documented();
+    traversal.docs.assets[0]!.path = "../a.png";
+    expect(
+      (
+        await handleDeploy(
+          post("/deploy", upload({ build: traversal }), await deploymentToken()),
+          context(hosting),
+        )
+      ).status,
+    ).toBe(400);
+
+    const ok = await handleDeploy(
+      post("/deploy", upload({ build: await documented() }), await deploymentToken()),
+      context(hosting),
+    );
+    expect(ok.status).toBe(200);
+    const tool = (await registry.findTool("acme", "crm"))!;
+    const [version] = await registry.listVersions(tool.id);
+    expect(await registry.readmeOf(tool.id, version!.buildId)).toBe(readme);
+    expect((await registry.assetOf(tool.id, version!.buildId, "docs/a.png"))!.bytes.length).toBe(5);
+  });
+
   it("deploys the uploaded build for a valid FORGERON_TOKEN and answers where it is served", async () => {
     const { hosting, calls } = fakeHosting();
     const response = await handleDeploy(
