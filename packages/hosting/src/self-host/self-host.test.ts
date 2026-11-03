@@ -80,7 +80,6 @@ const tables = async () =>
 describe("names", () => {
   it("are stable per tool and environment", () => {
     expect(workerName("acme", production)).toBe("acme--crm--production");
-    expect(workerName("acme", { tool: "crm", name: "pilot" })).toBe("acme--crm--pilot");
     expect(workerName("acme", production)).toBe(workerName("acme", production));
   });
 

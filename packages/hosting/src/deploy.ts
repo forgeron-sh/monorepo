@@ -28,7 +28,7 @@ export interface DeployOptions {
    * Worker (`seed-marker.ts`).
    */
   seed?: (db: D1Database) => void | Promise<void>;
-  /** Pilot and production refuse a destructive migration unless told (`--allow-destructive`). */
+  /** Production refuses a destructive migration unless told (`--allow-destructive`). */
   allowDestructive?: boolean;
   now?: MigrateOptions["now"];
 }
@@ -58,7 +58,7 @@ export async function deploy(
   const provisioned = await hosting.provision(environment, build.manifest);
   const uploaded = await hosting.upload(provisioned, build);
   // A preview owns its database: it may drop what it likes. The others share one.
-  const guarded = environment.name === "pilot" || environment.name === "production";
+  const guarded = environment.name === "production";
   const { applied } = await hosting.migrate(uploaded, {
     allowDestructive: options.allowDestructive ?? !guarded,
     ...(options.now ? { now: options.now } : {}),

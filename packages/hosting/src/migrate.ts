@@ -17,7 +17,7 @@ export interface BuildMigration {
   fingerprint: string;
   up: readonly MigrationStatement[];
   down: readonly MigrationStatement[];
-  /** Drops or rewrites data: refused in pilot and production without `--allow-destructive`. */
+  /** Drops or rewrites data: refused in production without `--allow-destructive`. */
   destructive: boolean;
 }
 
@@ -58,7 +58,7 @@ export class MigrationError extends Error {
 }
 
 export interface MigrateOptions {
-  /** Pilot and production refuse a destructive migration unless told. A local database does not mind. */
+  /** Production refuses a destructive migration unless told. A local database does not mind. */
   allowDestructive?: boolean;
   now?: () => Date;
 }

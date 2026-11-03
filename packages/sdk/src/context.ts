@@ -5,7 +5,7 @@ import type { Database, Schema } from "./db/schema";
 // that uses a resource the config does not declare, so no member is optional here.
 // `ctx.db` comes with `@forgeron/sdk/db`.
 
-export type Environment = "local" | "preview" | "pilot" | "production";
+export type Environment = "local" | "preview" | "production";
 
 /** Where a call comes from: an interface, a scheduled task or another tool. */
 export type CallSource = Interface | "job" | "tool";

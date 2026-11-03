@@ -28,7 +28,7 @@ export function Badge({ tone = "neutral", dot, mono, className, children }: Badg
   );
 }
 
-const ENV_LABEL = { production: "Production", pilot: "Pilot", preview: "Preview" } as const;
+const ENV_LABEL = { production: "Production", preview: "Preview" } as const;
 
 export interface EnvTagProps {
   env: keyof typeof ENV_LABEL;

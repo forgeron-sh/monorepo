@@ -44,8 +44,6 @@ export interface EnvironmentRecord {
   versionId?: string;
   url?: string;
   activatedAt?: string;
-  /** Pilot only: the group that gets this version at the production address. */
-  pilotGroup?: string;
   createdAt: string;
 }
 
@@ -255,7 +253,6 @@ const toEnvironment = (r: Row): EnvironmentRecord => ({
   ...(text(r.version_id) ? { versionId: text(r.version_id) } : {}),
   ...(text(r.url) ? { url: text(r.url) } : {}),
   ...(text(r.activated_at) ? { activatedAt: text(r.activated_at) } : {}),
-  ...(text(r.pilot_group) ? { pilotGroup: text(r.pilot_group) } : {}),
   createdAt: String(r.created_at),
 });
 const toAudit = (r: Row): AuditRecord => ({
@@ -465,7 +462,6 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
       ).sort();
       const set = {
         preview: new Set(await this.secretNames(toolId, "preview")),
-        pilot: new Set(await this.secretNames(toolId, "pilot")),
         production: new Set(await this.secretNames(toolId, "production")),
       };
       const state = (env: RegisteredEnvironment, name: string): SecretState =>
@@ -474,7 +470,6 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
         name,
         environments: {
           preview: state("preview", name),
-          pilot: state("pilot", name),
           production: state("production", name),
         },
       }));
@@ -730,15 +725,12 @@ ORDER BY "user_id", "connector"`,
       ]);
       return { ...member, roles: clean };
     },
-    /** Removes a member (and their group places). Their sessions and tokens stop working at once. */
+    /** Removes a member. Their sessions and tokens stop working at once. */
     async removeMember(workspace: string, id: string, actor: string): Promise<void> {
       const member = await this.findMember(workspace, id);
       if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
       if (member.roles.includes("admin")) await this.requireOtherAdmin(workspace, id);
       await d1.batch([
-        d1
-          .prepare(`DELETE FROM "group_members" WHERE "workspace" = ? AND "member_id" = ?`)
-          .bind(workspace, id),
         d1.prepare(`DELETE FROM "members" WHERE "workspace" = ? AND "id" = ?`).bind(workspace, id),
         auditStatement(
           {
@@ -965,68 +957,6 @@ ORDER BY "user_id", "connector"`,
         ),
       ]);
       return { domains, ...(settings.defaultRole ? { defaultRole: settings.defaultRole } : {}) };
-    },
-
-    // ---- groups (D-035): who gets the pilot version at the production address
-    /** The groups of a workspace with their members, by name. */
-    async listGroups(workspace: string): Promise<Array<{ name: string; members: Member[] }>> {
-      const rows = await all(
-        `SELECT g."group_name" AS "group_name", m.* FROM "group_members" g JOIN "members" m ON m."workspace" = g."workspace" AND m."id" = g."member_id" WHERE g."workspace" = ? ORDER BY g."group_name", m."email"`,
-        workspace,
-      );
-      const groups = new Map<string, Member[]>();
-      for (const row of rows) {
-        const name = String(row.group_name);
-        groups.set(name, [...(groups.get(name) ?? []), toMember(row)]);
-      }
-      return [...groups].map(([name, members]) => ({ name, members }));
-    },
-    /** Replaces the members of a group; an empty list empties it. Every id must be a member. */
-    async setGroupMembers(
-      workspace: string,
-      group: string,
-      memberIds: readonly string[],
-    ): Promise<Member[]> {
-      const ids = [...new Set(memberIds)];
-      const members: Member[] = [];
-      for (const id of ids) {
-        const member = await this.findMember(workspace, id);
-        if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
-        members.push(member);
-      }
-      await d1.batch([
-        d1
-          .prepare(`DELETE FROM "group_members" WHERE "workspace" = ? AND "group_name" = ?`)
-          .bind(workspace, group),
-        ...ids.map((id) =>
-          d1
-            .prepare(
-              `INSERT INTO "group_members" ("workspace", "group_name", "member_id") VALUES (?, ?, ?)`,
-            )
-            .bind(workspace, group, id),
-        ),
-      ]);
-      return members;
-    },
-    async isGroupMember(workspace: string, group: string, memberId: string): Promise<boolean> {
-      return (
-        (await first(
-          `SELECT 1 AS "x" FROM "group_members" WHERE "workspace" = ? AND "group_name" = ? AND "member_id" = ?`,
-          workspace,
-          group,
-          memberId,
-        )) !== undefined
-      );
-    },
-    /** The groups a member belongs to. */
-    async groupsOf(workspace: string, memberId: string): Promise<string[]> {
-      return (
-        await all(
-          `SELECT "group_name" FROM "group_members" WHERE "workspace" = ? AND "member_id" = ? ORDER BY "group_name"`,
-          workspace,
-          memberId,
-        )
-      ).map((r) => String(r.group_name));
     },
 
     // ---- one-time codes (D-028)
@@ -1373,35 +1303,6 @@ ORDER BY "user_id", "connector"`,
         version,
       );
       return row ? toVersion(row) : undefined;
-    },
-    /** Sets, or with `undefined` clears, the group that gets the pilot version. */
-    async setPilotGroup(
-      environmentId: string,
-      group: string | undefined,
-    ): Promise<EnvironmentRecord> {
-      const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
-      if (!env) throw new RegistryError("NOT_FOUND", `There is no environment ${environmentId}.`);
-      await write(
-        `UPDATE "environments" SET "pilot_group" = ? WHERE "id" = ?`,
-        group ?? null,
-        environmentId,
-      );
-      return toEnvironment(
-        (await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId))!,
-      );
-    },
-    /**
-     * The environment that answers someone at the production address: the pilot if it serves a
-     * version and the person is in its group, production otherwise.
-     */
-    async servedFor(
-      toolId: string,
-      groups: readonly string[],
-    ): Promise<EnvironmentRecord | undefined> {
-      const environments = await this.listEnvironments(toolId);
-      const pilot = environments.find((e) => e.name === "pilot");
-      if (pilot?.versionId && pilot.pilotGroup && groups.includes(pilot.pilotGroup)) return pilot;
-      return environments.find((e) => e.name === "production" && e.versionId);
     },
     /** Forgets an environment (a preview whose branch is gone). */
     async removeEnvironment(environmentId: string): Promise<void> {

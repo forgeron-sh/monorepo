@@ -2,7 +2,7 @@ import { Badge, Button, Table, type TableColumn } from "@forgeron/ui";
 
 // The versions that wait for an admin: what each asks for, and a way to decide (docs/sdk.md
 // section 3, "When a new version asks for more"). A version that is not approved reaches preview,
-// not pilot or production.
+// not production.
 
 export interface RequestedResource {
   /** The request to decide. */

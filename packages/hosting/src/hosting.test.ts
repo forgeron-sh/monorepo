@@ -57,31 +57,34 @@ describe("assertDeployable", () => {
     expect(() => assertDeployable(env("local"), build())).not.toThrow();
   });
 
-  it.each(["pilot", "production"] as const)("refuses %s without a changelog entry", (name) => {
-    expect(() => assertDeployable(env(name), build())).toThrow(ChangelogRefusal);
+  it("refuses production without a changelog entry", () => {
+    expect(() => assertDeployable(env("production"), build())).toThrow(ChangelogRefusal);
     expect(() =>
-      assertDeployable(env(name), build({ entries: [], declared: "none", detected: "none" })),
+      assertDeployable(
+        env("production"),
+        build({ entries: [], declared: "none", detected: "none" }),
+      ),
     ).toThrow("changelog entry");
   });
 
-  it.each(["pilot", "production"] as const)(
-    "refuses %s when the declared impact is lower",
-    (name) => {
-      let refusal: unknown;
-      try {
-        assertDeployable(env(name), build({ entries: [{}], declared: "patch", detected: "major" }));
-      } catch (error) {
-        refusal = error;
-      }
-      expect(refusal).toMatchObject({ code: "IMPACT_TOO_LOW" });
-    },
-  );
+  it("refuses production when the declared impact is lower", () => {
+    let refusal: unknown;
+    try {
+      assertDeployable(
+        env("production"),
+        build({ entries: [{}], declared: "patch", detected: "major" }),
+      );
+    } catch (error) {
+      refusal = error;
+    }
+    expect(refusal).toMatchObject({ code: "IMPACT_TOO_LOW" });
+  });
 
   it("accepts an entry that covers the change, or exceeds it", () => {
     expect(() => assertDeployable(env("production"), build(entry))).not.toThrow();
     expect(() =>
       assertDeployable(
-        env("pilot"),
+        env("production"),
         build({ entries: [{}], declared: "major", detected: "patch" }),
       ),
     ).not.toThrow();

@@ -49,7 +49,6 @@ describe("Overview", () => {
           {
             name: "crm",
             production: null,
-            pilot: null,
             previews: [{ branch: "main", version: "0.1.0" }],
           },
         ],

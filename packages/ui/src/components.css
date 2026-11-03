@@ -135,10 +135,6 @@
   background: var(--inverse);
   color: var(--on-inverse);
 }
-.fg-env-pilot {
-  border: 1px solid var(--ink);
-  color: var(--ink);
-}
 .fg-env-preview {
   border: 1px dashed var(--line-strong);
   color: var(--ink-muted);
@@ -151,9 +147,6 @@
 }
 .fg-env-production .fg-env-mark {
   background: currentColor;
-}
-.fg-env-pilot .fg-env-mark {
-  border: 1.5px solid currentColor;
 }
 .fg-env-preview .fg-env-mark {
   border: 1.5px dashed currentColor;

@@ -83,7 +83,6 @@ const registry: Registry = {
     if (workspace === "acme" && tool === "crm") {
       return {
         production: "acme--crm--production",
-        pilot: "acme--crm--pilot",
         previews: { "feat-export": "acme--crm--pr-12" },
       };
     }
@@ -99,7 +98,6 @@ const registry: Registry = {
 
 function setup(
   hooks: {
-    inPilot?: (c: Caller) => boolean;
     canPreview?: (c: Caller & { branch: string }) => boolean;
     identify?: (c: Caller) => string | undefined | Promise<string | undefined>;
     recordSeat?: (workspace: string, personId: string) => void | Promise<void>;
@@ -109,7 +107,6 @@ function setup(
   const targets = new Map<string, Target>(
     [
       "acme--crm--production",
-      "acme--crm--pilot",
       "acme--crm--pr-12",
       "acme--odoo--production",
       "globex--crm--production",
@@ -184,21 +181,16 @@ describe("dispatch", () => {
     for (const target of targets.values()) expect(target.fetch).not.toHaveBeenCalled();
   });
 
-  it("serves production at the address everyone uses, pilot only to the pilot group", async () => {
-    const outside = setup({ inPilot: () => false });
-    expect((await outside.get("https://acme.forgeron.app/t/crm/mcp")).body.worker).toBe(
+  it("serves production at the address everyone uses, whoever calls", async () => {
+    const anonymous = setup();
+    expect((await anonymous.get("https://acme.forgeron.app/t/crm/mcp")).body.worker).toBe(
       "acme--crm--production",
     );
-    const inside = setup({ inPilot: (c) => c.workspace === "acme" && c.tool === "crm" });
-    expect((await inside.get("https://acme.forgeron.app/t/crm/mcp")).body.worker).toBe(
-      "acme--crm--pilot",
-    );
-    // Nobody is in the pilot group when nothing says who is.
-    expect((await setup().get("https://acme.forgeron.app/t/crm/mcp")).body.worker).toBe(
+    const known = setup({ identify: () => "ada" });
+    expect((await known.get("https://acme.forgeron.app/t/crm/mcp")).body.worker).toBe(
       "acme--crm--production",
     );
-    // A tool with no pilot serves production to the pilot group too.
-    expect((await inside.get("https://acme.forgeron.app/t/odoo/mcp")).body.worker).toBe(
+    expect((await known.get("https://acme.forgeron.app/t/odoo/mcp")).body.worker).toBe(
       "acme--odoo--production",
     );
   });

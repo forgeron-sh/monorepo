@@ -54,7 +54,7 @@ export function Overview({ ws, fetchJson, go }: OverviewProps) {
     () => (ws.setup.deployed > 0 ? loadTools(fetchJson) : Promise.resolve([])),
     [ws.setup.deployed],
   );
-  const tool = tools.data?.find((t) => t.production || t.pilot || t.previews.length)?.name;
+  const tool = tools.data?.find((t) => t.production || t.previews.length)?.name;
 
   const body = (id: Step["id"]) => {
     switch (id) {

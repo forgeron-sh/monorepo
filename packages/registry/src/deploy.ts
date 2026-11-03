@@ -32,8 +32,6 @@ export interface DeployBuildInput {
   build: Build;
   /** The number the version is published under. */
   version: string;
-  /** Pilot only: the group that gets this version at the production address. */
-  group?: string;
   allowDestructive?: boolean;
   /** Fills a preview's new database (`preview.data: seed`): see `DeployOptions.seed`. */
   seed?: DeployOptions["seed"];
@@ -46,7 +44,7 @@ export interface DeployedBuild extends Deployment {
   environment: EnvironmentRecord;
 }
 
-const guarded = (name: RegisteredEnvironment) => name === "pilot" || name === "production";
+const guarded = (name: RegisteredEnvironment) => name === "production";
 
 /**
  * What a version asks for that production does not have yet (sdk.md §3): each resource added or
@@ -73,7 +71,7 @@ async function requestApprovals(
   }
 }
 
-/** Pilot and production wait for an admin; a preview does not. */
+/** Production waits for an admin; a preview does not. */
 async function assertApproved(
   registry: Registry,
   environment: RegisteredEnvironment,
@@ -133,13 +131,10 @@ export async function deployBuild(
     ...(input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive }),
     ...(input.seed ? { seed: input.seed } : {}),
   });
-  let environment = await registry.activate(slot.id, version.id, {
+  const environment = await registry.activate(slot.id, version.id, {
     actor: input.actor,
     url: deployment.activation.url,
   });
-  if (input.environment === "pilot" && input.group) {
-    environment = await registry.setPilotGroup(slot.id, input.group);
-  }
   return { ...deployment, version, environment };
 }
 
@@ -149,7 +144,6 @@ export interface PromoteInput {
   version: string;
   to: RegisteredEnvironment;
   branch?: string;
-  group?: string;
   allowDestructive?: boolean;
   actor: string;
 }
@@ -179,14 +173,11 @@ export async function promoteVersion(
     buildOf(record),
     input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive },
   );
-  let environment = await registry.activate(slot.id, version.id, {
+  const environment = await registry.activate(slot.id, version.id, {
     actor: input.actor,
     kind: "promote",
     url: deployment.activation.url,
   });
-  if (input.to === "pilot" && input.group) {
-    environment = await registry.setPilotGroup(slot.id, input.group);
-  }
   return { ...deployment, version, environment };
 }
 
@@ -244,7 +235,7 @@ export async function closePreview(
   if (environment) await registry.removeEnvironment(environment.id);
 }
 
-/** An admin accepts everything a version asks for: it can now reach pilot and production. */
+/** An admin accepts everything a version asks for: it can now reach production. */
 export async function approveVersion(
   registry: Registry,
   versionId: string,
@@ -254,7 +245,7 @@ export async function approveVersion(
   return decideVersion(registry, versionId, "approved", actor, via);
 }
 
-/** An admin refuses what a version asks for: it stays out of pilot and production. */
+/** An admin refuses what a version asks for: it stays out of production. */
 export async function rejectVersion(
   registry: Registry,
   versionId: string,

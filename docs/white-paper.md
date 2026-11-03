@@ -11,7 +11,7 @@ The bet: tomorrow, teams will work with their business tools through an assistan
 Three things to remember:
 
 - **A way of writing tools, not just an SDK.** Forgeron enforces one light, single shape: a config file, tables, actions, views. All tools look alike, so all tools stay maintainable.
-- **A production platform.** Every push to GitHub creates a version, deployed to preview, pilot or production. Access by role and by action, enterprise SSO, usage log.
+- **A production platform.** Every push to GitHub creates a version, deployed to preview or production. Access by role and by action, enterprise SSO, usage log.
 - **Ready-to-use tools.** A catalog of light templates (CRM, contact records, data hub, API gateways like Odoo) that the company launches as they are or forges to fit.
 
 Forgeron is distributed as self-host (open source, on the company's own Cloudflare account) or as cloud, with a single per-seat subscription.
@@ -107,8 +107,8 @@ The action's description, input schema and access level serve all four. A change
 
 1. **Develop** locally with `forgeron dev`: the tool runs as it does in production, database included, with its local MCP server.
 2. **Push** to GitHub: every push creates an immutable version, and every branch a preview.
-3. **Open as a pilot** a version to a specific group, to test it in real conditions.
-4. **Promote** to production from the console or with `forgeron deploy --env production`.
+3. **Test** the version in its preview, in real conditions.
+4. **Promote** it to production from the console or with `forgeron promote <version> --to production`.
 5. **Roll back** in one click if needed: the previous version is always available.
 
 ### Access
@@ -128,7 +128,7 @@ flowchart TB
 
   subgraph Platform["Forgeron platform"]
     direction LR
-    Build["Build<br/>forgeron build"] --> Ver["Versions<br/>preview · pilot · production"]
+    Build["Build<br/>forgeron build"] --> Ver["Versions<br/>preview · production"]
     Con["Console<br/>access · SSO · secrets · log"]
   end
 
@@ -241,7 +241,7 @@ We start with the developer foundation and prove it on a real case, the Odoo MCP
 flowchart LR
   P1["<b>Phase 1 · Foundation</b><br/>manifest, SDK and CLI<br/>dev, build, test<br/>MCP and API<br/>D1 and migrations<br/>gateway with company SSO<br/>self-host deployment"]
   G1{{"Gate 1<br/>Odoo gateway rewritten with Forgeron,<br/>in internal production"}}
-  P2["<b>Phase 2 · Platform</b><br/>console<br/>preview, pilot, production<br/>access by role and action<br/>per-person secrets<br/>usage log · playground"]
+  P2["<b>Phase 2 · Platform</b><br/>console<br/>preview, production<br/>access by role and action<br/>per-person secrets<br/>usage log · playground"]
   G2{{"Gate 2<br/>First pilot customer<br/>in production"}}
   P3["<b>Phase 3 · Catalog</b><br/>CRM, contact records<br/>data hub, dashboard<br/>Microsoft 365, Google<br/>and Odoo connectors"]
   G3{{"Gate 3<br/>Public launch of the<br/>open source repository"}}

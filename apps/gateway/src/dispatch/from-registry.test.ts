@@ -21,18 +21,15 @@ const platform = (environments: EnvironmentRecord[]) =>
   }) as unknown as PlatformRegistry;
 
 describe("dispatchRegistry", () => {
-  it("routes production, pilot and a preview to the Workers self-host deployed", async () => {
+  it("routes production and a preview to the Workers self-host deployed", async () => {
     const entry = await dispatchRegistry(
       platform([
         environment({ name: "production" }),
-        environment({ name: "pilot", pilotGroup: "beta" }),
         environment({ name: "preview", branch: "feat/Export 2" }),
       ]),
     ).find("demo", "crm");
     expect(entry).toEqual({
       production: "demo--crm--production",
-      pilot: "demo--crm--pilot",
-      pilotGroup: "beta",
       previews: {
         "feat/Export 2": workerName("demo", {
           tool: "crm",

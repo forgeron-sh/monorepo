@@ -4,10 +4,9 @@ import { UsageError, type Io } from "../io";
 import { readProject } from "../project";
 
 const PROMOTE_USAGE =
-  "Usage: forgeron promote <version> --to preview|pilot|production [--group <name>] [--branch <name>] [--allow-destructive]";
-const ROLLBACK_USAGE =
-  "Usage: forgeron rollback [--env pilot|production|preview] [--branch <name>]";
-const ENVIRONMENTS = ["preview", "pilot", "production"];
+  "Usage: forgeron promote <version> --to preview|production [--branch <name>] [--allow-destructive]";
+const ROLLBACK_USAGE = "Usage: forgeron rollback [--env production|preview] [--branch <name>]";
+const ENVIRONMENTS = ["preview", "production"];
 
 /**
  * Who the CLI is to the gateway for promote and rollback (D-033): `FORGERON_TOKEN` (a deployment
@@ -45,7 +44,6 @@ async function call(endpoint: string, path: string, token: string, body: unknown
         version?: string;
         url?: string;
         applied?: string[];
-        group?: string;
         error?: { message?: string };
       }
     | undefined;
@@ -55,8 +53,7 @@ async function call(endpoint: string, path: string, token: string, body: unknown
 /**
  * `forgeron promote <version> --to <env>`: puts a version the workspace already holds on another
  * environment, with no rebuild. The gateway applies the rules of a deployment: the changelog must
- * cover the change, a destructive migration needs `--allow-destructive`, and the migrations must
- * be compatible with the database the environment shares (D-021).
+ * cover the change and a destructive migration needs `--allow-destructive`.
  */
 export async function promote(args: string[], io: Io): Promise<number> {
   const { values, positionals } = parseArgs({
@@ -64,7 +61,6 @@ export async function promote(args: string[], io: Io): Promise<number> {
     allowPositionals: true,
     options: {
       to: { type: "string" },
-      group: { type: "string" },
       branch: { type: "string" },
       "allow-destructive": { type: "boolean" },
     },
@@ -73,9 +69,6 @@ export async function promote(args: string[], io: Io): Promise<number> {
   if (!version || positionals.length > 1 || !values.to) throw new UsageError(PROMOTE_USAGE);
   if (!ENVIRONMENTS.includes(values.to)) {
     throw new UsageError(`--to ${values.to}: one of ${ENVIRONMENTS.join(", ")}.`);
-  }
-  if (values.group && values.to !== "pilot") {
-    throw new UsageError("--group is for the pilot: only the pilot has a group.");
   }
   if (values.to === "preview" && !values.branch) {
     throw new UsageError("A preview is tied to a branch: pass --branch <name>.");
@@ -88,7 +81,6 @@ export async function promote(args: string[], io: Io): Promise<number> {
     version,
     to: values.to,
     ...(values.branch ? { branch: values.branch } : {}),
-    ...(values.group ? { group: values.group } : {}),
     ...(values["allow-destructive"] ? { allowDestructive: true } : {}),
   });
   if (!ok) {
@@ -98,7 +90,6 @@ export async function promote(args: string[], io: Io): Promise<number> {
   io.log(
     `Promoted ${project.tool}@${answer?.version ?? version} to ${values.to}${answer?.url ? `: ${answer.url}` : ""}`,
   );
-  if (answer?.group) io.log(`Served to the group "${answer.group}" at the production address.`);
   if (answer?.applied?.length) io.log(`Migrations applied: ${answer.applied.join(", ")}`);
   return 0;
 }

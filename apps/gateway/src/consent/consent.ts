@@ -12,9 +12,9 @@ import { ConsentError, type AuditEntry, type Consent, type Registry } from "@for
 // The scopes asked come from what the tool declared, never from the request.
 
 const START =
-  /^\/api\/tools\/([a-z0-9-]+)\/environments\/(preview|pilot|production)\/consent\/([a-z][a-z0-9-]*)$/;
+  /^\/api\/tools\/([a-z0-9-]+)\/environments\/(preview|production)\/consent\/([a-z][a-z0-9-]*)$/;
 const MINE =
-  /^\/api\/tools\/([a-z0-9-]+)\/environments\/(preview|pilot|production)\/consent(?:\/([a-z][a-z0-9-]*))?$/;
+  /^\/api\/tools\/([a-z0-9-]+)\/environments\/(preview|production)\/consent(?:\/([a-z][a-z0-9-]*))?$/;
 const CALLBACK = "/api/consent/callback";
 
 export interface ConsentRoutesOptions {
@@ -107,7 +107,7 @@ async function consentRoutes(
     const [, toolName, environment, name] = mine as unknown as [
       string,
       string,
-      "preview" | "pilot" | "production",
+      "preview" | "production",
       string | undefined,
     ];
     const tool = await options.registry.findTool(options.workspace, toolName);
@@ -173,7 +173,7 @@ async function consentRoutes(
     const [, toolName, environment, name] = start as unknown as [
       string,
       string,
-      "preview" | "pilot" | "production",
+      "preview" | "production",
       string,
     ];
     const tool = await options.registry.findTool(options.workspace, toolName);

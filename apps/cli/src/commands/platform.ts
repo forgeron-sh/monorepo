@@ -267,7 +267,7 @@ async function toolBindings(d1: ReturnType<typeof createRestD1>): Promise<string
     serviceBindingName(
       workerName(row.workspace, {
         tool: row.tool,
-        name: row.environment as "preview" | "pilot" | "production",
+        name: row.environment as "preview" | "production",
         ...(row.branch ? { branch: row.branch } : {}),
       }),
     ),

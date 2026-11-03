@@ -6,7 +6,7 @@ import type { AuditEntry, Registry } from "@forgeron/registry";
 // Only an admin may call them. The answers say who consented to what, never a token.
 
 const ROUTE =
-  /^\/api\/tools\/([a-z0-9-]+)\/environments\/(preview|pilot|production)\/connections(?:\/([^/]+)\/([a-z][a-z0-9-]*))?$/;
+  /^\/api\/tools\/([a-z0-9-]+)\/environments\/(preview|production)\/connections(?:\/([^/]+)\/([a-z][a-z0-9-]*))?$/;
 
 export interface ConnectionsApiOptions {
   registry: Registry;
@@ -34,7 +34,7 @@ export async function handleConnections(
   const [, toolName, environment, user, connector] = match as unknown as [
     string,
     string,
-    "preview" | "pilot" | "production",
+    "preview" | "production",
     string | undefined,
     string | undefined,
   ];

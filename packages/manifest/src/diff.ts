@@ -80,7 +80,7 @@ export interface Change {
 
 export interface ManifestDiff {
   changes: Change[];
-  /** True when at least one change needs approval before pilot or production. */
+  /** True when at least one change needs approval before production. */
   pendingApproval: boolean;
   /** The strongest impact among the changes; `none` when the manifests are equivalent. */
   impact: Impact;

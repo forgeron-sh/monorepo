@@ -16,8 +16,7 @@ import type { Person } from "../identity/authenticate";
 import { verifyToken } from "../identity/tokens";
 import { DEPLOY_SCOPE } from "./deploy";
 
-const ENVIRONMENTS: RegisteredEnvironment[] = ["preview", "pilot", "production"];
-const GROUP = /^[a-z0-9][a-z0-9-]{0,39}$/;
+const ENVIRONMENTS: RegisteredEnvironment[] = ["preview", "production"];
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -138,24 +137,18 @@ async function prepare(request: Request, context: PromoteContext, environmentKey
 }
 
 /**
- * `POST /promote` `{ tool?, version, to, branch?, group?, allowDestructive? }`: puts a version the
+ * `POST /promote` `{ tool?, version, to, branch?, allowDestructive? }`: puts a version the
  * tool already has on another environment, from the code recorded with its build. The target takes
  * it under the rules of a deployment: the changelog must cover the change (FOR-64), a destructive
- * migration needs `allowDestructive`, and what the version asks for must be approved (D-021).
+ * migration needs `allowDestructive`, and what the version asks for must be approved.
  */
 export async function handlePromote(request: Request, context: PromoteContext) {
   const ready = await prepare(request, context, "to");
   if (ready instanceof Response) return ready;
   const { actor, tool, body, environment, branch } = ready;
-  const { version, group, allowDestructive } = body;
+  const { version, allowDestructive } = body;
   if (typeof version !== "string" || version === "") {
     return fail(400, "INVALID", "version: the number to promote.");
-  }
-  if (group !== undefined && (typeof group !== "string" || !GROUP.test(group))) {
-    return fail(400, "INVALID", "group: a name of a-z, 0-9 and '-', up to 40 characters.");
-  }
-  if (group !== undefined && environment !== "pilot") {
-    return fail(400, "INVALID", "group: only the pilot has a group.");
   }
   try {
     const promoted = await promoteVersion(context.registry, context.hosting, {
@@ -163,7 +156,6 @@ export async function handlePromote(request: Request, context: PromoteContext) {
       version,
       to: environment,
       ...(branch ? { branch } : {}),
-      ...(typeof group === "string" ? { group } : {}),
       ...(allowDestructive === true ? { allowDestructive: true } : {}),
       actor,
     });
@@ -173,7 +165,6 @@ export async function handlePromote(request: Request, context: PromoteContext) {
       environment,
       url: promoted.activation.url,
       applied: promoted.applied,
-      ...(promoted.environment.pilotGroup ? { group: promoted.environment.pilotGroup } : {}),
     });
   } catch (error) {
     return failed(error);

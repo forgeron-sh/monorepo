@@ -9,7 +9,7 @@ inputs:
     required: false
     default: ""
   environment:
-    description: Environment to deploy to (preview, pilot or production).
+    description: Environment to deploy to (preview or production).
     required: false
     default: preview
   args:

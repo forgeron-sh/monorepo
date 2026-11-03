@@ -1,6 +1,6 @@
 import type { Interface, Manifest } from "@forgeron/manifest";
 
-export type Environment = "local" | "preview" | "pilot" | "production";
+export type Environment = "local" | "preview" | "production";
 
 export interface User {
   id: string;

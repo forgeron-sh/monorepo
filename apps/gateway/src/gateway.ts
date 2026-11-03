@@ -42,7 +42,6 @@ import {
 } from "./dispatch/dispatch";
 import { handleCreateDeployToken, handleDeploy } from "./deploy/deploy";
 import { handlePromote, handleRollback } from "./deploy/promote";
-import { handleGroups } from "./console-api/groups";
 import { createAuth } from "./identity/auth";
 import { createEmailAuth } from "./identity/email-auth";
 import { invitationId, invitationLink } from "./identity/invitation";
@@ -147,8 +146,7 @@ const notFound = (request: Request) =>
  * The gateway's request handler. On a workspace origin: `/t/<tool>…` is dispatched to the tool,
  * `/auth/…`, `/whoami`, `/deploy`, `/promote`, `/rollback` and `/deploy-tokens` are the platform's, `/console-api/…` is the
  * console's API, and every other path is the console itself. One resolver (`createCaller`) turns a
- * session cookie or an audience-bound token into the person for all of them. The pilot version
- * goes to the members of the pilot group at the production address (D-036).
+ * session cookie or an audience-bound token into the person for all of them.
  */
 export function createGateway(
   env: GatewayEnv,
@@ -234,17 +232,6 @@ export function createGateway(
               registry.recordSeat(workspace, personId),
           }
         : {}),
-      // Pilot has the address of production: its group's members get it (D-036). Anonymous, or a
-      // pilot with no group, nobody.
-      ...(identify
-        ? {
-            inPilot: async (c: Caller & { group?: string }) => {
-              if (!c.group) return false;
-              const person = await identify(c);
-              return person ? registry.isGroupMember(c.workspace, c.group, person) : false;
-            },
-          }
-        : {}),
       // A preview is for the workspace's administrators and developers (sdk.md §7).
       ...(caller
         ? {
@@ -300,7 +287,7 @@ export function createGateway(
       accountId: env.CLOUDFLARE_ACCOUNT_ID,
       apiToken: env.CLOUDFLARE_API_TOKEN,
       workspace,
-      // Production and pilot answer at the tool's address; a preview adds `@<branch>` to it.
+      // Production answers at the tool's address; a preview adds `@<branch>` to it.
       url: (worker: string) =>
         `https://${workspace}.${env.BASE_DOMAIN}/t/${worker.split("--")[1] ?? ""}`,
     };
@@ -615,7 +602,6 @@ export function createGateway(
         })) ??
         (await handleApprovals(forwarded, { registry, workspace, caller: identity })) ??
         (await handleAudit(forwarded, { registry, workspace, caller: identity })) ??
-        (await handleGroups(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecrets(forwarded, { registry, workspace, caller: identity })) ??
         notFound(request)
       );

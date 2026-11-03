@@ -6,7 +6,7 @@ import { ToolPage, ToolsPage } from "./tools-page";
 afterEach(cleanup);
 
 const tools = {
-  tools: [{ name: "crm", production: "1.0.0", pilot: null, previews: [] }],
+  tools: [{ name: "crm", production: "1.0.0", previews: [] }],
 };
 const matrix = {
   roles: ["admin"],

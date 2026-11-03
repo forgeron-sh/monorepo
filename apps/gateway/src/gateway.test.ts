@@ -15,7 +15,6 @@ const reached: string[] = [];
 const tools = new Map(
   [
     "acme--crm--production",
-    "acme--crm--pilot",
     "acme--crm--pr-12",
     "acme--odoo--production",
     "globex--crm--production",
@@ -62,7 +61,7 @@ beforeAll(async () => {
   d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   registry = createRegistry(d1);
-  await publish("acme", "crm", [["production"], ["pilot"], ["preview", "feat-export"]]);
+  await publish("acme", "crm", [["production"], ["preview", "feat-export"]]);
   await publish("acme", "odoo", [["production"]]);
   await publish("globex", "crm", [["production"]]);
   // Created, never activated: nothing serves it yet.
@@ -103,7 +102,7 @@ describe("the gateway, with the platform D1", () => {
     expect(reached).toEqual([]);
   });
 
-  it("serves production to everyone while nothing says who is in the pilot group", async () => {
+  it("serves production at the tool's address to everyone", async () => {
     expect((await get("https://acme.forgeron.app/t/crm/mcp")).body.worker).toBe(
       "acme--crm--production",
     );

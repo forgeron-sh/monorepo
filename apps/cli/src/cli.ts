@@ -59,9 +59,9 @@ const USAGE = `Usage: forgeron <command>
   change --type <t> --bump <b> -m ".."  add a change to changes/ (change check: CI)
   secrets set <NAME> [--env] | list [--env]
                                        tool secrets of an environment (the value is typed, never an argument)
-  deploy [--env preview|pilot|production] [--group <name>]
+  deploy [--env preview|production]
                                        build, upload to the gateway with FORGERON_TOKEN
-  promote <version> --to <env> [--group <name>]
+  promote <version> --to <env>
                                        put an existing version on another environment, no rebuild
   rollback [--env production]          put the previous version of an environment back on traffic
   preview close [--branch <name>]      tear down the preview of a branch (FORGERON_TOKEN)

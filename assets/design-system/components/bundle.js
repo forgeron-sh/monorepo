@@ -19,7 +19,7 @@
       p.dot ? h("span", { className: "fg-dot", "aria-hidden": "true" }) : null, p.children);
   }
 
-  var ENV_LABEL = { production: "Production", pilot: "Pilot", preview: "Preview" };
+  var ENV_LABEL = { production: "Production", preview: "Preview" };
   function EnvTag(p) {
     var env = p.env || "preview";
     return h("span", { className: cx("fg-env", "fg-env-" + env, p.className) },

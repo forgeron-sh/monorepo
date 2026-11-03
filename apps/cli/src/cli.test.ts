@@ -331,12 +331,12 @@ describe("forgeron init", () => {
       const c = await linked();
       const readSecret = vi.fn<NonNullable<Io["readSecret"]>>(async () => "typed-value");
       c.io.readSecret = readSecret;
-      expect(await run(["secrets", "set", "ODOO_KEY", "--env", "pilot"], c.io)).toBe(0);
+      expect(await run(["secrets", "set", "ODOO_KEY", "--env", "production"], c.io)).toBe(0);
       expect(readSecret).toHaveBeenCalledOnce();
       expect(requests).toEqual([
         {
           method: "PUT",
-          url: "/api/tools/crm/environments/pilot/secrets/ODOO_KEY",
+          url: "/api/tools/crm/environments/production/secrets/ODOO_KEY",
           auth: "Bearer test-token-not-real",
           body: JSON.stringify({ value: "typed-value" }),
         },
@@ -678,14 +678,16 @@ describe("forgeron db", () => {
   describe("the shell outside local", () => {
     it("is read-only unless --write and the admin role", () => {
       const read = { write: false, role: undefined };
-      expect(() => checkShell("pilot", "SELECT 1", read)).not.toThrow();
-      expect(() => checkShell("pilot", "DELETE FROM things", read)).toThrow("read-only");
-      expect(() => checkShell("pilot", "SELECT 1; DROP TABLE things", read)).toThrow("read-only");
+      expect(() => checkShell("production", "SELECT 1", read)).not.toThrow();
+      expect(() => checkShell("production", "DELETE FROM things", read)).toThrow("read-only");
+      expect(() => checkShell("production", "SELECT 1; DROP TABLE things", read)).toThrow(
+        "read-only",
+      );
       expect(() =>
-        checkShell("pilot", "DELETE FROM things", { write: true, role: "reader" }),
+        checkShell("production", "DELETE FROM things", { write: true, role: "reader" }),
       ).toThrow("admin role");
       expect(() =>
-        checkShell("pilot", "DELETE FROM things", { write: true, role: "admin" }),
+        checkShell("production", "DELETE FROM things", { write: true, role: "admin" }),
       ).not.toThrow();
       expect(() => checkShell("local", "DELETE FROM things", read)).not.toThrow();
     });
@@ -693,7 +695,7 @@ describe("forgeron db", () => {
     it("exits 2 on a write without --write, before reaching any environment", async () => {
       const c = capture("/");
       expect(
-        await run(["db", "shell", "--env", "pilot", "--sql", "DELETE FROM things"], c.io),
+        await run(["db", "shell", "--env", "production", "--sql", "DELETE FROM things"], c.io),
       ).toBe(2);
       expect(c.errors[0]).toContain("read-only");
     });

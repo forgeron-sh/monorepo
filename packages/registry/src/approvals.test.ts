@@ -67,7 +67,7 @@ const hosting = (): Hosting => ({
 });
 
 const deployTo = (
-  environment: "preview" | "pilot" | "production",
+  environment: "preview" | "production",
   fingerprint: string,
   version: string,
   resources: object,
@@ -85,14 +85,11 @@ const deployTo = (
 const network = { network: { allow: ["api.hubspot.com"], why: "Sync deals" } };
 
 describe("approving the resources a version asks for", () => {
-  it("lets a version that asks for something new reach a preview, not pilot or production", async () => {
+  it("lets a version that asks for something new reach a preview, not production", async () => {
     const preview = await deployTo("preview", "fp1", "1.0.0-a", network, "feat-a");
     expect(preview.environment.versionId).toBe(preview.version.id);
 
     await expect(deployTo("production", "fp2", "1.0.0", network)).rejects.toMatchObject({
-      code: "PENDING_APPROVAL",
-    });
-    await expect(deployTo("pilot", "fp3", "1.0.1", network)).rejects.toMatchObject({
       code: "PENDING_APPROVAL",
     });
     const production = (await registry.listEnvironments(tool.id)).find(
@@ -113,7 +110,7 @@ describe("approving the resources a version asks for", () => {
     ]);
   });
 
-  it("unblocks pilot and production once an admin approves, and logs the approval", async () => {
+  it("unblocks production once an admin approves, and logs the approval", async () => {
     const preview = await deployTo("preview", "fp1", "1.0.0", network, "feat-a");
     const approved = await approveVersion(registry, preview.version.id, "admin-1");
     expect(approved.map((a) => a.status)).toEqual(["approved"]);
@@ -201,7 +198,7 @@ describe("the audit log", () => {
     await promoteVersion(registry, hosting(), {
       tool,
       version: "1.2.0-a",
-      to: "pilot",
+      to: "production",
       actor: "kim",
     });
 
@@ -211,7 +208,7 @@ describe("the audit log", () => {
       ["deployment", "ely", "production:1.1.0"],
       ["rollback", "sam", "production:1.0.0"],
       ["deployment", "ely", "preview:1.2.0-a"],
-      ["promotion", "kim", "pilot:1.2.0-a"],
+      ["promotion", "kim", "production:1.2.0-a"],
     ]);
     expect(log[2]).toMatchObject({ versionId: v1.version.id, result: "ok" });
     expect(log.every((l) => l.at.length > 0)).toBe(true);

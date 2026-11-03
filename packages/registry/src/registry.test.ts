@@ -133,9 +133,12 @@ describe("environments", () => {
   it("records which version an environment serves, and keeps the last one", async () => {
     const { tool, build, version } = await seed();
     const second = await registry.publishVersion(tool.id, build.id, "1.1.0");
-    const env = await registry.ensureEnvironment(tool.id, "pilot");
+    const env = await registry.ensureEnvironment(tool.id, "production");
     expect(env.versionId).toBeUndefined();
-    await registry.activate(env.id, version.id, { actor: "ely", url: "https://pilot.example" });
+    await registry.activate(env.id, version.id, {
+      actor: "ely",
+      url: "https://production.example",
+    });
     const switched = await registry.activate(env.id, second.id, { actor: "ely" });
     expect(switched.versionId).toBe(second.id);
     expect(switched.url).toBeUndefined();
@@ -211,24 +214,24 @@ describe("secrets", () => {
     expect(await registry.readSecrets(tool.id, "production")).toEqual({
       ODOO_KEY: "sk-test-value-2",
     });
-    expect(await registry.readSecrets(tool.id, "pilot")).toEqual({});
+    expect(await registry.readSecrets(tool.id, "preview")).toEqual({});
   });
 
   it("lists names only, per environment, and deletes", async () => {
     const { tool } = await seed();
-    await registry.setSecret(tool.id, "pilot", "B", "x");
-    await registry.setSecret(tool.id, "pilot", "A", "y");
+    await registry.setSecret(tool.id, "preview", "B", "x");
+    await registry.setSecret(tool.id, "preview", "A", "y");
     await registry.setSecret(tool.id, "production", "C", "z");
-    expect(await registry.secretNames(tool.id, "pilot")).toEqual(["A", "B"]);
-    await registry.deleteSecret(tool.id, "pilot", "A");
-    expect(await registry.secretNames(tool.id, "pilot")).toEqual(["B"]);
+    expect(await registry.secretNames(tool.id, "preview")).toEqual(["A", "B"]);
+    await registry.deleteSecret(tool.id, "preview", "A");
+    expect(await registry.secretNames(tool.id, "preview")).toEqual(["B"]);
   });
 
   it("does not open a ciphertext moved to another slot", async () => {
     const { tool } = await seed();
-    await registry.setSecret(tool.id, "pilot", "A", "x");
+    await registry.setSecret(tool.id, "preview", "A", "x");
     await d1.batch([d1.prepare(`UPDATE "secrets" SET "name" = 'B'`)]);
-    await expect(registry.readSecrets(tool.id, "pilot")).rejects.toThrow(
+    await expect(registry.readSecrets(tool.id, "preview")).rejects.toThrow(
       /operation failed|decrypt|cipher/i,
     );
   });
@@ -236,7 +239,7 @@ describe("secrets", () => {
   it("refuses to keep secrets without a key", async () => {
     const { tool } = await seed();
     const keyless = createRegistry(d1);
-    expect(await code(keyless.setSecret(tool.id, "pilot", "A", "x"))).toBe("NO_SECRET_KEY");
+    expect(await code(keyless.setSecret(tool.id, "preview", "A", "x"))).toBe("NO_SECRET_KEY");
   });
 
   it("rejects a key that is not 32 bytes", async () => {
@@ -251,17 +254,17 @@ describe("secrets", () => {
     });
     await registry.publishVersion(tool.id, build.id, "1.0.0");
     await registry.setSecret(tool.id, "production", "ODOO_KEY", "test-only-value");
-    await registry.setSecret(tool.id, "pilot", "UNDECLARED", "x");
+    await registry.setSecret(tool.id, "preview", "UNDECLARED", "x");
 
     const status = await registry.secretsStatus(tool.id);
     expect(status).toEqual([
       {
         name: "API_KEY",
-        environments: { preview: "missing", pilot: "missing", production: "missing" },
+        environments: { preview: "missing", production: "missing" },
       },
       {
         name: "ODOO_KEY",
-        environments: { preview: "missing", pilot: "missing", production: "set" },
+        environments: { preview: "missing", production: "set" },
       },
     ]);
     expect(JSON.stringify(status)).not.toContain("test-only-value");

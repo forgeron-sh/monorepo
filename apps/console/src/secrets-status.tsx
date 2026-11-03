@@ -3,7 +3,7 @@ import { Badge, Table, type TableColumn } from "@forgeron/ui";
 // The secrets of a tool, per environment: "set" or "missing", never a value (docs/sdk.md section 10).
 // Entering or editing values is not here: the CLI does it (`forgeron secrets set`).
 
-const ENVIRONMENTS = ["preview", "pilot", "production"] as const;
+const ENVIRONMENTS = ["preview", "production"] as const;
 type Environment = (typeof ENVIRONMENTS)[number];
 
 export interface SecretStatusRow {

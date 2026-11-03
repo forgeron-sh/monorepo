@@ -42,7 +42,7 @@ This document describes how to write, test, build and deploy an internal tool wi
 | **Build**        | The immutable result of `forgeron build` for a given commit. Every push produces a build, identified by its commit.                                     |
 | **Version**      | The semver number of a tool (`1.5.0`). It only changes with `forgeron release`; a build carries the current version plus its commit (`v1.5.0+a41f9e0`). |
 | **Release**      | The move to a new version: `forgeron release` reads `changes/`, writes the changelog and creates the `<tool>@<version>` tag.                            |
-| **Environment**  | Where a version runs: `preview` (per branch), `pilot` (a group), `production`.                                                                          |
+| **Environment**  | Where a version runs: `preview` (per branch), `production`.                                                                                             |
 
 ## 2. Structure of a tool
 
@@ -168,7 +168,7 @@ CRM v1.4.0 requests:
 
 #### When a new version asks for more
 
-`forgeron build` compares the resources with those of the production version. A resource that is **added or broadened** (new connector, extra scope, new host, new per-person secret) puts the version **pending approval**: it deploys to preview, but not to pilot or production until an admin has accepted the request, in the console or the admin MCP. A removed resource asks for nothing.
+`forgeron build` compares the resources with those of the production version. A resource that is **added or broadened** (new connector, extra scope, new host, new per-person secret) puts the version **pending approval**: it deploys to preview, but not to production until an admin has accepted the request, in the console or the admin MCP. A removed resource asks for nothing.
 
 ## 4. The `.forgeron` folder
 
@@ -205,23 +205,23 @@ The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forge
 
 ### Lifecycle
 
-| Command                                                                                     | What it does                                                                                                                                             |
-| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `forgeron login` · `logout` · `whoami`                                                      | Authenticates the person on a workspace (browser, SSO)                                                                                                   |
-| `forgeron init [name] [--template crm]`                                                     | Creates a tool, from scratch or from a template in the catalog; writes `.forgeron/`                                                                      |
-| `forgeron link`                                                                             | Links an existing folder to a tool in the workspace                                                                                                      |
-| `forgeron dev [--as <role>] [--port 8787]`                                                  | Runs the tool locally on the Cloudflare runtime: API, local MCP server (`/mcp`), views, playground; hot reload; applies migrations to the local database |
-| `forgeron play [--template <name>]`                                                         | Opens the playground: list of actions, generated form, result, MCP / API / CLI preview; with `--template`, tries out a template without installing it    |
-| `forgeron test`                                                                             | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                          |
-| `forgeron build`                                                                            | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                    |
-| `forgeron preview close [--branch <name>]`                                                  | Tears down the preview of a branch (a closed pull request); needs `FORGERON_TOKEN`                                                                       |
-| `forgeron deploy [--env preview\|pilot\|production] [--group <name>] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                          |
-| `forgeron versions`                                                                         | Lists versions and their environments                                                                                                                    |
-| `forgeron promote <version> --to <env>`                                                     | Promotes an existing version, without rebuilding                                                                                                         |
-| `forgeron rollback [--env production]`                                                      | Goes back to the environment's previous version                                                                                                          |
-| `forgeron logs [--env] [--action <name>] [--job <name>] [--follow]`                         | Execution log                                                                                                                                            |
-| `forgeron jobs run <name> [--env]`                                                          | Runs a scheduled task on demand                                                                                                                          |
-| `forgeron resources [--diff production]`                                                    | Shows the requested resources, or what changes compared with an environment                                                                              |
+| Command                                                             | What it does                                                                                                                                             |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forgeron login` · `logout` · `whoami`                              | Authenticates the person on a workspace (browser, SSO)                                                                                                   |
+| `forgeron init [name] [--template crm]`                             | Creates a tool, from scratch or from a template in the catalog; writes `.forgeron/`                                                                      |
+| `forgeron link`                                                     | Links an existing folder to a tool in the workspace                                                                                                      |
+| `forgeron dev [--as <role>] [--port 8787]`                          | Runs the tool locally on the Cloudflare runtime: API, local MCP server (`/mcp`), views, playground; hot reload; applies migrations to the local database |
+| `forgeron play [--template <name>]`                                 | Opens the playground: list of actions, generated form, result, MCP / API / CLI preview; with `--template`, tries out a template without installing it    |
+| `forgeron test`                                                     | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                          |
+| `forgeron build`                                                    | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                    |
+| `forgeron preview close [--branch <name>]`                          | Tears down the preview of a branch (a closed pull request); needs `FORGERON_TOKEN`                                                                       |
+| `forgeron deploy [--env preview\|production] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                          |
+| `forgeron versions`                                                 | Lists versions and their environments                                                                                                                    |
+| `forgeron promote <version> --to <env>`                             | Promotes an existing version, without rebuilding                                                                                                         |
+| `forgeron rollback [--env production]`                              | Goes back to the environment's previous version                                                                                                          |
+| `forgeron logs [--env] [--action <name>] [--job <name>] [--follow]` | Execution log                                                                                                                                            |
+| `forgeron jobs run <name> [--env]`                                  | Runs a scheduled task on demand                                                                                                                          |
+| `forgeron resources [--diff production]`                            | Shows the requested resources, or what changes compared with an environment                                                                              |
 
 ### Versions and changelog
 
@@ -329,7 +329,7 @@ export default action({
 | `tools.<name>`         | `uses`                  | Calls to actions of other tools                                                  |
 | `log`                  | always                  | `log.info / warn / error(message, data)` to the log                              |
 | `now()`                | always                  | Clock in the workspace's time zone, frozen in tests                              |
-| `env`                  | always                  | `"local" \| "preview" \| "pilot" \| "production"`                                |
+| `env`                  | always                  | `"local" \| "preview" \| "production"`                                           |
 
 ### Errors
 
@@ -373,13 +373,12 @@ https://acme.forgeron.app/t/crm/cli              CLI command manifest
 https://acme.forgeron.app/t/crm/play             tool's playground
 ```
 
-| Segment                                         | Rule                                                                                                                                                                       |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `<workspace>`                                   | `[a-z0-9-]`, 3 to 40 characters. Reserved: `www`, `app`, `api`, `docs`, `status`, `console`, `mcp`, `admin`, `auth`, `cdn`, `static`, `play`.                              |
-| `/t/<tool>`                                     | The tool's `name`. `t` is the only prefix for tools; the other top-level paths (`/mcp`, `/settings`, `/auth`…) belong to the platform.                                     |
-| `/t/<tool>/mcp`, `/api`, `/cli`, `/play`, `/_f` | Reserved by the platform. A view cannot use these paths; the build refuses it.                                                                                             |
-| `/t/<tool>@<branch>/…`                          | A preview: same structure, on the branch's version (`/t/crm@feat-export/mcp`).                                                                                             |
-| Pilot                                           | **Same address as production.** The gateway serves the pilot version to the people in the pilot group and production to everyone else. Nobody has to change URL in Claude. |
+| Segment                                         | Rule                                                                                                                                          |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<workspace>`                                   | `[a-z0-9-]`, 3 to 40 characters. Reserved: `www`, `app`, `api`, `docs`, `status`, `console`, `mcp`, `admin`, `auth`, `cdn`, `static`, `play`. |
+| `/t/<tool>`                                     | The tool's `name`. `t` is the only prefix for tools; the other top-level paths (`/mcp`, `/settings`, `/auth`…) belong to the platform.        |
+| `/t/<tool>/mcp`, `/api`, `/cli`, `/play`, `/_f` | Reserved by the platform. A view cannot use these paths; the build refuses it.                                                                |
+| `/t/<tool>@<branch>/…`                          | A preview: same structure, on the branch's version (`/t/crm@feat-export/mcp`).                                                                |
 
 `/t/<tool>/cli` answers depending on the caller. The CLI fetches the command manifest there, as JSON (actions, arguments, options), keeps it in cache and refreshes it at each version; execution then goes through `/t/<tool>/api`. A browser sees a help page there: installation, `forgeron login`, list of commands.
 
@@ -437,9 +436,8 @@ Names are identical in the schema, in the database and in queries (`snake_case` 
 
 1. The version is built; pending migrations are listed.
 2. In **preview**, a fresh database is created per branch, migrated then filled according to `preview.data` (`seed` by default).
-3. In **pilot and production**, migrations are applied **before** traffic is switched. A `destructive` migration is refused without `--allow-destructive`.
+3. In **production**, migrations are applied **before** traffic is switched. A `destructive` migration is refused without `--allow-destructive`.
 4. A migration and its record are applied in one batch: if it fails, it is rolled back, the deployment stops, and the old version keeps serving.
-5. Pilot and production share the same database: a pilot version cannot ship a migration that is incompatible with the current production version (checked at deployment).
 
 ### Seed
 
@@ -599,7 +597,7 @@ Output in `.forgeron/build/`:
 
 The build fails if: an action has no `access` or `description`, an action name is duplicated, the schema differs from the last snapshot without a migration, an import leaves the tool (except npm packages), a view cites a non-existent action (read from the literal names given to `useAction` and `useMutation`; a name held in a variable is not checked), a view path is reserved by the platform or shared with another view, or code uses an undeclared resource (`ctx.db` without `resources.db`).
 
-Deployment to pilot or production additionally fails if the version has no changelog entry, if the declared impact is lower than the detected impact (section 16), or if new resources are awaiting approval.
+Deployment to production additionally fails if the version has no changelog entry, if the declared impact is lower than the detected impact (section 16), or if new resources are awaiting approval.
 
 ## 15. Versions, environments, deployment
 
@@ -607,7 +605,6 @@ Deployment to pilot or production additionally fails if the version has no chang
 | ------------ | ---------------------------------------------------------------- | --------------------------------------- | ------------------------------------------- |
 | `local`      | `forgeron dev`                                                   | `.forgeron/local/dev.sqlite`            | the developer                               |
 | `preview`    | each push to a branch, or `forgeron deploy`                      | one database per branch, `preview.data` | the `admin` roles and the tool's developers |
-| `pilot`      | `forgeron deploy --env pilot --group <group>` or the console     | that of production                      | a chosen group of people                    |
 | `production` | promotion from the console or `forgeron deploy --env production` | that of production                      | the tool's roles                            |
 
 - **Version**: see section 16. A build is promoted from one environment to the next without being rebuilt.
@@ -636,7 +633,7 @@ For each tool in the repository (section 2), the action runs:
 
 1. `forgeron test`;
 2. `forgeron change check`;
-3. `forgeron deploy`: build, upload to the gateway, migrations, preview of the branch. On the default branch, the workspace chooses whether the build goes to pilot, to production, or waits for promotion.
+3. `forgeron deploy`: build, upload to the gateway, migrations, preview of the branch. On the default branch, the workspace chooses whether the build goes to production or waits for promotion from its preview.
 
 Authentication goes through `FORGERON_TOKEN` (deployment token, section 4). To be studied: GitHub Actions OIDC, so that no secret is stored in the repository.
 
@@ -650,13 +647,13 @@ Every tool has a mandatory **semver** version and **changelog**. Forgeron does n
 
 Three words, three things, so that "every push creates a version" and "the version only changes with `forgeron release`" do not contradict each other:
 
-|                  | Created by                            | Identifier                                                                                                                     | Changes when        |
-| ---------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
-| Build            | each push, or `forgeron deploy`       | the commit (`a41f9e0`)                                                                                                         | on every commit     |
-| Version          | `forgeron release`                    | semver (`1.5.0`)                                                                                                               | on every release    |
-| What is deployed | `forgeron deploy`, `forgeron promote` | `v1.5.0+a41f9e0` in pilot and production, `1.6.0-preview.<branch>.<n>` in preview (the version the next release would produce) | on every deployment |
+|                  | Created by                            | Identifier                                                                                                           | Changes when        |
+| ---------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Build            | each push, or `forgeron deploy`       | the commit (`a41f9e0`)                                                                                               | on every commit     |
+| Version          | `forgeron release`                    | semver (`1.5.0`)                                                                                                     | on every release    |
+| What is deployed | `forgeron deploy`, `forgeron promote` | `v1.5.0+a41f9e0` in production, `1.6.0-preview.<branch>.<n>` in preview (the version the next release would produce) | on every deployment |
 
-A push without a release therefore produces a new build of the current version (`v1.5.0+b72c1d4`): it deploys to preview, but not to pilot or production if the manifest changed without an entry in `changes/` (see below).
+A push without a release therefore produces a new build of the current version (`v1.5.0+b72c1d4`): it deploys to preview, but not to production if the manifest changed without an entry in `changes/` (see below).
 
 ### Where the version lives
 
@@ -704,7 +701,7 @@ One file per change rather than a single file: two branches never step on each o
 | New view, new scheduled task, new resource                            | `minor`        |
 | Description changed, internal code, non-destructive migration         | `patch`        |
 
-If `changes/` is empty while the manifest changed, or if the declared impact is lower than the detected impact, deployment to pilot and production is refused. Previews are not blocked.
+If `changes/` is empty while the manifest changed, or if the declared impact is lower than the detected impact, deployment to production is refused. Previews are not blocked.
 
 For other tools, the impact matters: a tool that declares `uses: { crm: "^1.4.0" }` never automatically receives a `2.0.0` version of the CRM.
 
@@ -712,7 +709,7 @@ For other tools, the impact matters: a tool that declares `uses: { crm: "^1.4.0"
 
 `forgeron release` also writes `.forgeron/released.json` (committed): the manifest and the migrations of the version it released. `forgeron change check` and `forgeron build` compare with it, until the platform can serve the last published manifest. Before the first release there is no baseline and nothing is detected. A new migration marked `destructive` counts as `major`.
 
-`changelog.json` holds the pending entries, or those of the last release when none is pending, with `declared` (the strongest bump), `detected` and `pendingApproval`. A host calls `assertDeployable` (`@forgeron/hosting`) before taking a build to pilot or production.
+`changelog.json` holds the pending entries, or those of the last release when none is pending, with `declared` (the strongest bump), `detected` and `pendingApproval`. A host calls `assertDeployable` (`@forgeron/hosting`) before taking a build to production.
 
 ### `forgeron release`
 
@@ -768,7 +765,7 @@ In addition to each tool's MCP server, the workspace exposes **a Forgeron MCP se
 | `tool_versions`                  | Versions and environments, recent deployments                                               | developer                     |             |
 | `tool_install_plan`              | Prepares the installation of a template: name, requested resources, estimated cost if known | admin                         |             |
 | `tool_install`                   | Installs the prepared plan (plan identifier required)                                       | admin                         | yes         |
-| `tool_promote`                   | Promotes a version to pilot or production                                                   | admin                         | yes         |
+| `tool_promote`                   | Promotes a version to production                                                            | admin                         | yes         |
 | `tool_rollback`                  | Goes back to an environment's previous version                                              | admin                         | yes         |
 | `resources_pending`              | The versions awaiting a resource approval                                                   | admin                         |             |
 | `resources_approve`              | Approves a version's new resources                                                          | admin                         | yes         |
@@ -856,6 +853,5 @@ Conversely, `forgeron/react` remains a subpath: its hooks speak the runtime prot
 - Views: client-side rendering only, or server rendering?
 - Is the CSP sandbox (`sandbox`) suitable for React views and `@forgeron/ui`? If not, move to an origin dedicated to views.
 - Should more than two levels be allowed in action names (`crm.deals.notes.add`)?
-- Pilot and production share the database: should strict schema compatibility be enforced, or should a separate database be offered for the pilot?
 - Do we need a "tool owner" role distinct from the workspace roles, so that a developer can administer their tool without being a workspace admin?
 - Should the changelog be visible to end users (for example "what's new" in Claude or in views), or only to admins?

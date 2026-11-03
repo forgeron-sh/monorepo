@@ -35,11 +35,9 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 /* EnvTag: the environment is expressed by shape, not by tint */
 .fg-env { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 var(--space-2); border-radius: var(--radius-none); font: 500 12px/16px var(--font-sans); white-space: nowrap; }
 .fg-env-production { background: var(--inverse); color: var(--on-inverse); }
-.fg-env-pilot { border: 1px solid var(--ink); color: var(--ink); }
 .fg-env-preview { border: 1px dashed var(--line-strong); color: var(--ink-muted); }
 .fg-env-mark { width: 6px; height: 6px; flex: none; }
 .fg-env-production .fg-env-mark { background: currentColor; border-radius: var(--radius-full); }
-.fg-env-pilot .fg-env-mark { border: 1.5px solid currentColor; border-radius: var(--radius-full); }
 .fg-env-preview .fg-env-mark { border: 1.5px dashed currentColor; border-radius: var(--radius-full); }
 
 /* Input */

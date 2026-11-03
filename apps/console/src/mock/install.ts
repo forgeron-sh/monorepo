@@ -53,16 +53,14 @@ export async function installMock(): Promise<void> {
           {
             name: "crm",
             production: "1.4.0",
-            pilot: "1.5.0",
             previews: [{ branch: "feat-contacts", version: "1.5.1" }],
           },
           {
             name: "inventory",
             production: null,
-            pilot: null,
             previews: [{ branch: "main", version: "0.2.0" }],
           },
-          { name: "odoo", production: "2.0.3", pilot: null, previews: [] },
+          { name: "odoo", production: "2.0.3", previews: [] },
         ],
     approvals: fresh
       ? []
@@ -192,7 +190,7 @@ export async function installMock(): Promise<void> {
           members: state.members.length,
           invitations: state.invitations.length,
           tools: state.tools.length,
-          deployed: state.tools.filter((t) => t.production || t.pilot || t.previews.length).length,
+          deployed: state.tools.filter((t) => t.production || t.previews.length).length,
           called: !fresh,
         },
         ...(admin
@@ -301,11 +299,11 @@ export async function installMock(): Promise<void> {
         secrets: [
           {
             name: "ODOO_KEY",
-            environments: { preview: "set", pilot: "set", production: "missing" },
+            environments: { preview: "set", production: "missing" },
           },
           {
             name: "HUBSPOT_TOKEN",
-            environments: { preview: "set", pilot: "missing", production: "missing" },
+            environments: { preview: "set", production: "missing" },
           },
         ],
       });

@@ -39,8 +39,8 @@ async function builtMigrations(dir: string): Promise<BuildMigration[]> {
 
 function environmentOf(env: string | undefined): void {
   if (env === undefined || env === "local") return;
-  if (!["preview", "pilot", "production"].includes(env))
-    throw new UsageError(`--env ${env}: unknown environment (local, preview, pilot, production).`);
+  if (!["preview", "production"].includes(env))
+    throw new UsageError(`--env ${env}: unknown environment (local, preview, production).`);
   throw new UsageError(
     `--env ${env}: a remote environment needs the platform, which is not available yet. Only local is.`,
   );

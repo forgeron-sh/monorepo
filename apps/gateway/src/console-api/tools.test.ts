@@ -20,7 +20,7 @@ const call = (path = "/api/tools", method = "GET", workspace = "acme") =>
 async function deploy(
   workspace: string,
   name: string,
-  versions: Record<string, [environment: "preview" | "pilot" | "production", branch?: string]>,
+  versions: Record<string, [environment: "preview" | "production", branch?: string]>,
 ) {
   const tool = await registry.createTool({ workspace, name });
   for (const [version, [environment, branch]] of Object.entries(versions)) {
@@ -41,7 +41,6 @@ beforeAll(async () => {
   registry = createRegistry(d1);
   await deploy("acme", "crm", {
     "1.0.0": ["production"],
-    "1.1.0": ["pilot"],
     "1.2.0-rc": ["preview", "feat-export"],
   });
   await deploy("acme", "odoo", { "0.3.0": ["production"] });
@@ -56,11 +55,10 @@ describe("the tools of a workspace", () => {
       {
         name: "crm",
         production: "1.0.0",
-        pilot: "1.1.0",
         previews: [{ branch: "feat-export", version: "1.2.0-rc" }],
       },
-      { name: "draft", production: null, pilot: null, previews: [] },
-      { name: "odoo", production: "0.3.0", pilot: null, previews: [] },
+      { name: "draft", production: null, previews: [] },
+      { name: "odoo", production: "0.3.0", previews: [] },
     ]);
   });
 
