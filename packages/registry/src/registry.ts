@@ -19,6 +19,9 @@ export interface BuildRecord {
   fingerprint: string;
   manifest: unknown;
   changelog: unknown;
+  /** The Worker's code, kept so that a version can be promoted or restored without a rebuild. */
+  worker?: string;
+  migrations?: unknown;
   createdAt: string;
 }
 
@@ -39,6 +42,21 @@ export interface EnvironmentRecord {
   versionId?: string;
   url?: string;
   activatedAt?: string;
+  /** Pilot only: the group that gets this version at the production address. */
+  pilotGroup?: string;
+  createdAt: string;
+}
+
+export type DeploymentKind = "deploy" | "promote" | "rollback";
+
+/** One line of the audit log: who put which version on which environment, and when. */
+export interface DeploymentRecord {
+  id: string;
+  toolId: string;
+  environmentId: string;
+  versionId: string;
+  kind: DeploymentKind;
+  actor: string;
   createdAt: string;
 }
 
@@ -59,7 +77,9 @@ export type RegistryErrorCode =
   | "ALREADY_EXISTS"
   | "ALREADY_DECIDED"
   | "BRANCH_REQUIRED"
-  | "WRONG_TOOL";
+  | "WRONG_TOOL"
+  | "NO_ARTIFACT"
+  | "NO_PREVIOUS";
 
 export class RegistryError extends Error {
   override name = "RegistryError";
@@ -94,6 +114,8 @@ const toBuild = (r: Row): BuildRecord => ({
   fingerprint: String(r.fingerprint),
   manifest: json(r.manifest),
   changelog: json(r.changelog),
+  ...(text(r.worker) !== undefined ? { worker: text(r.worker) } : {}),
+  ...(text(r.migrations) !== undefined ? { migrations: json(r.migrations) } : {}),
   createdAt: String(r.created_at),
 });
 const toVersion = (r: Row): VersionRecord => ({
@@ -111,6 +133,16 @@ const toEnvironment = (r: Row): EnvironmentRecord => ({
   ...(text(r.version_id) ? { versionId: text(r.version_id) } : {}),
   ...(text(r.url) ? { url: text(r.url) } : {}),
   ...(text(r.activated_at) ? { activatedAt: text(r.activated_at) } : {}),
+  ...(text(r.pilot_group) ? { pilotGroup: text(r.pilot_group) } : {}),
+  createdAt: String(r.created_at),
+});
+const toDeployment = (r: Row): DeploymentRecord => ({
+  id: String(r.id),
+  toolId: String(r.tool_id),
+  environmentId: String(r.environment_id),
+  versionId: String(r.version_id),
+  kind: r.kind as DeploymentKind,
+  actor: String(r.actor),
   createdAt: String(r.created_at),
 });
 const toApproval = (r: Row): Approval => ({
@@ -187,7 +219,13 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     /** Records what CI sent. The same fingerprint gives back the build already recorded. */
     async recordBuild(
       toolId: string,
-      input: { fingerprint: string; manifest: unknown; changelog?: unknown },
+      input: {
+        fingerprint: string;
+        manifest: unknown;
+        changelog?: unknown;
+        worker?: string;
+        migrations?: unknown;
+      },
     ): Promise<BuildRecord> {
       await requireTool(toolId);
       const existing = await first(
@@ -198,12 +236,14 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
       if (existing) return toBuild(existing);
       const id = newId();
       await write(
-        `INSERT INTO "builds" ("id", "tool_id", "fingerprint", "manifest", "changelog", "created_at") VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO "builds" ("id", "tool_id", "fingerprint", "manifest", "changelog", "worker", "migrations", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         id,
         toolId,
         input.fingerprint,
         JSON.stringify(input.manifest),
         input.changelog === undefined ? null : JSON.stringify(input.changelog),
+        input.worker ?? null,
+        input.migrations === undefined ? null : JSON.stringify(input.migrations),
         now(),
       );
       return toBuild((await first(`SELECT * FROM "builds" WHERE "id" = ?`, id))!);
@@ -293,11 +333,14 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
         )
       ).map(toEnvironment);
     },
-    /** Records that the environment serves this version (the traffic switch itself is `hosting`'s). */
+    /**
+     * Records that the environment serves this version, and writes the line of the audit log, in
+     * one batch (the traffic switch itself is `hosting`'s).
+     */
     async activate(
       environmentId: string,
       versionId: string,
-      url?: string,
+      options: { actor: string; kind?: DeploymentKind; url?: string },
     ): Promise<EnvironmentRecord> {
       const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
       if (!env) throw new RegistryError("NOT_FOUND", `There is no environment ${environmentId}.`);
@@ -306,16 +349,87 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
       if (version.toolId !== String(env.tool_id)) {
         throw new RegistryError("WRONG_TOOL", "The version belongs to another tool.");
       }
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `UPDATE "environments" SET "version_id" = ?, "url" = ?, "activated_at" = ? WHERE "id" = ?`,
+          )
+          .bind(versionId, options.url ?? null, at, environmentId),
+        d1
+          .prepare(
+            `INSERT INTO "deployments" ("id", "tool_id", "environment_id", "version_id", "kind", "actor", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            newId(),
+            version.toolId,
+            environmentId,
+            versionId,
+            options.kind ?? "deploy",
+            options.actor,
+            at,
+          ),
+      ]);
+      return toEnvironment(
+        (await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId))!,
+      );
+    },
+    /** The audit log of an environment, oldest first. */
+    async history(environmentId: string): Promise<DeploymentRecord[]> {
+      return (
+        await all(
+          `SELECT * FROM "deployments" WHERE "environment_id" = ? ORDER BY "rowid"`,
+          environmentId,
+        )
+      ).map(toDeployment);
+    },
+    /** The version the environment served before the current one: the latest one that is not it. */
+    async previousVersion(environmentId: string): Promise<VersionRecord | undefined> {
+      const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
+      if (!env) throw new RegistryError("NOT_FOUND", `There is no environment ${environmentId}.`);
+      const row = await first(
+        `SELECT "version_id" FROM "deployments" WHERE "environment_id" = ? AND "version_id" != ? ORDER BY "rowid" DESC LIMIT 1`,
+        environmentId,
+        text(env.version_id) ?? "",
+      );
+      return row ? this.getVersion(String(row.version_id)) : undefined;
+    },
+    async findVersion(toolId: string, version: string): Promise<VersionRecord | undefined> {
+      const row = await first(
+        `SELECT * FROM "versions" WHERE "tool_id" = ? AND "version" = ?`,
+        toolId,
+        version,
+      );
+      return row ? toVersion(row) : undefined;
+    },
+    /** Sets, or with `undefined` clears, the group that gets the pilot version. */
+    async setPilotGroup(
+      environmentId: string,
+      group: string | undefined,
+    ): Promise<EnvironmentRecord> {
+      const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
+      if (!env) throw new RegistryError("NOT_FOUND", `There is no environment ${environmentId}.`);
       await write(
-        `UPDATE "environments" SET "version_id" = ?, "url" = ?, "activated_at" = ? WHERE "id" = ?`,
-        versionId,
-        url ?? null,
-        now(),
+        `UPDATE "environments" SET "pilot_group" = ? WHERE "id" = ?`,
+        group ?? null,
         environmentId,
       );
       return toEnvironment(
         (await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId))!,
       );
+    },
+    /**
+     * The environment that answers someone at the production address: the pilot if it serves a
+     * version and the person is in its group, production otherwise.
+     */
+    async servedFor(
+      toolId: string,
+      groups: readonly string[],
+    ): Promise<EnvironmentRecord | undefined> {
+      const environments = await this.listEnvironments(toolId);
+      const pilot = environments.find((e) => e.name === "pilot");
+      if (pilot?.versionId && pilot.pilotGroup && groups.includes(pilot.pilotGroup)) return pilot;
+      return environments.find((e) => e.name === "production" && e.versionId);
     },
     /** Forgets an environment (a preview whose branch is gone). */
     async removeEnvironment(environmentId: string): Promise<void> {

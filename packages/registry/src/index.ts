@@ -4,13 +4,15 @@ import { applyMigrations, type D1Database, type MigrateOptions } from "@forgeron
 import { platformMigrations } from "./migrations";
 
 export { platformMigrations } from "./migrations";
-export { closePreview, deployBuild } from "./deploy";
-export type { DeployBuildInput, DeployedBuild } from "./deploy";
+export { closePreview, deployBuild, promoteVersion, rollbackEnvironment } from "./deploy";
+export type { DeployBuildInput, DeployedBuild, PromoteInput, RollbackInput } from "./deploy";
 export { createRegistry, RegistryError } from "./registry";
 export type {
   Approval,
   ApprovalStatus,
   BuildRecord,
+  DeploymentKind,
+  DeploymentRecord,
   EnvironmentRecord,
   Registry,
   RegistryErrorCode,
