@@ -31,17 +31,22 @@ export function CopyBlock({ value, label, prefix, className }: CopyBlockProps) {
 
   return (
     <div className={cx("fg-copy", className)}>
-      <code className="fg-copy-text" tabIndex={0} aria-label={label}>
-        {prefix ? (
-          <span className="fg-copy-prefix" aria-hidden="true">
-            {prefix}{" "}
-          </span>
-        ) : null}
-        {value}
-      </code>
-      <button type="button" className="fg-btn fg-btn-ghost fg-btn-sm" onClick={copy}>
-        {copied ? "Copied" : "Copy"}
-      </button>
+      <div className="fg-copy-head">
+        <span>{label}</span>
+        <button type="button" className="fg-copy-btn" onClick={copy}>
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <pre className="fg-copy-pre">
+        <code className="fg-copy-text" tabIndex={0} aria-label={label}>
+          {prefix ? (
+            <span className="fg-copy-prefix" aria-hidden="true">
+              {prefix}{" "}
+            </span>
+          ) : null}
+          {value}
+        </code>
+      </pre>
       <span className="fg-sr" role="status">
         {copied ? "Copied to the clipboard" : ""}
       </span>

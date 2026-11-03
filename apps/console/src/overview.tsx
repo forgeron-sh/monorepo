@@ -191,7 +191,6 @@ export function Overview({ ws, fetchJson, go }: OverviewProps) {
 function Command({ caption, value, hint }: { caption: string; value: string; hint?: string }) {
   return (
     <div>
-      <p className="fc-caption">{caption}</p>
       <CopyBlock label={caption} value={value} prefix="$" />
       {hint ? (
         <p className="fc-section-hint" style={{ margin: "var(--space-1) 0 0" }}>

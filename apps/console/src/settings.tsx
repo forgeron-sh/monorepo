@@ -297,10 +297,10 @@ function OidcForm({
         Sign in with your company account: Microsoft Entra ID, Google Workspace or any OpenID
         Connect provider.
       </p>
-      <div>
-        <p className="fc-caption">Redirect URI to register at the provider</p>
-        <CopyBlock label="Redirect URI" value={`${ws.endpoint}/auth/callback`} />
-      </div>
+      <CopyBlock
+        label="Redirect URI to register at the provider"
+        value={`${ws.endpoint}/auth/callback`}
+      />
       {replaces ? (
         <Notice tone="warning">SAML is configured. Saving OpenID Connect replaces it.</Notice>
       ) : null}
@@ -496,12 +496,16 @@ function SamlForm({
       </p>
       <div className="fc-row" style={{ alignItems: "stretch" }}>
         <div style={{ flex: "1 1 280px", minWidth: 0 }}>
-          <p className="fc-caption">Entity ID (service provider)</p>
-          <CopyBlock label="Entity ID" value={`${ws.endpoint}/auth/saml/metadata`} />
+          <CopyBlock
+            label="Entity ID (service provider)"
+            value={`${ws.endpoint}/auth/saml/metadata`}
+          />
         </div>
         <div style={{ flex: "1 1 280px", minWidth: 0 }}>
-          <p className="fc-caption">Reply URL (assertion consumer service)</p>
-          <CopyBlock label="Reply URL" value={`${ws.endpoint}/auth/saml/acs`} />
+          <CopyBlock
+            label="Reply URL (assertion consumer service)"
+            value={`${ws.endpoint}/auth/saml/acs`}
+          />
         </div>
       </div>
       {replaces ? (

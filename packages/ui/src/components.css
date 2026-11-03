@@ -429,7 +429,6 @@
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
   min-height: 100vh;
-  background: var(--bg);
   color: var(--ink);
   font: 400 14px/22px var(--font-sans);
 }
@@ -692,13 +691,13 @@
   padding: 0 var(--space-3);
   border-radius: var(--radius-none);
   border: 1px solid var(--line-strong);
-  background: var(--surface-sunken);
+  background: var(--bg);
   color: var(--ink);
   font: 400 14px/20px var(--font-sans);
   transition: border-color 0.12s;
 }
 .fg-input::placeholder {
-  color: var(--ink-faint);
+  color: var(--ink-muted);
 }
 .fg-input:hover {
   border-color: var(--ink-muted);
@@ -710,6 +709,7 @@
   cursor: not-allowed;
   color: var(--ink-faint);
   border-color: var(--line);
+  background: var(--surface);
 }
 .fg-input-mono {
   font-family: var(--font-mono);
@@ -736,7 +736,7 @@
   margin: 0;
   border-radius: var(--radius-none);
   border: 1px solid var(--line-strong);
-  background: var(--surface-sunken);
+  background: var(--bg);
   display: grid;
   place-content: center;
   cursor: pointer;
@@ -807,33 +807,58 @@
   margin-top: var(--space-6);
 }
 
-/* CopyBlock */
+/* CopyBlock: the reference CodeBlock (assets/design-system/components) */
 .fg-copy {
-  display: flex;
-  align-items: stretch;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
-  background: var(--surface-sunken);
   border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.fg-copy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border-bottom: 1px solid var(--line);
+  font: 500 12px/16px var(--font-mono);
+  color: var(--ink-muted);
+}
+.fg-copy-btn {
+  height: 24px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 500 12px/16px var(--font-sans);
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
+}
+.fg-copy-btn:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.fg-copy-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.fg-copy-pre {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow-x: auto;
 }
 .fg-copy-text {
-  flex: 1;
-  min-width: 0;
   display: block;
-  align-self: center;
-  padding: var(--space-1) 0;
-  overflow-x: auto;
   white-space: pre;
   font: 400 13px/20px var(--font-mono);
   color: var(--ink);
 }
 .fg-copy-prefix {
-  color: var(--ink-faint);
+  color: var(--ink-muted);
   user-select: none;
-}
-.fg-copy .fg-btn {
-  align-self: center;
-  flex: none;
 }
 
 /* Tabs */
