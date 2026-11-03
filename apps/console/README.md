@@ -4,7 +4,7 @@ The console of a workspace: tools, versions, access, secrets.
 
 ## Screens
 
-A sidebar shell with path routing (`router.ts`, D-053); members of the workspace only see the first two.
+A sidebar shell with path routing (`router.ts`, D-054); members of the workspace only see the first two.
 
 - Overview: first-run checklist computed from `/api/workspace`, with the CLI commands to copy, and the workspace endpoint
 - Tools: versions per environment; one tool's access matrix (roles × actions) and secrets status (set or missing; values are never read back)

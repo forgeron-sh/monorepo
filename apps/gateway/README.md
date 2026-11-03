@@ -7,6 +7,7 @@ The only public Worker of the platform.
 - `dispatch/`: subdomain → workspace, `/t/<tool>` → the tool's Worker
 - `identity/`: SSO, OAuth 2.1 (MCP), audience-bound tokens
 - `registry/`: tools, builds, versions, environments (D1)
+- `pages/`: the page shell (`renderPage`, notices, buttons, error pages) every HTML page of the gateway uses, its stylesheet generated from `assets/design-system/tokens.json`; sign-in, CLI authorization and error pages (D-053)
 - `deploy/`: receives a build from CI (`POST /deploy`, authenticated by `FORGERON_TOKEN`), calls `@forgeron/hosting`; issues deployment tokens (`POST /deploy-tokens`, administrators)
 - `admin-mcp/`: administration MCP (`sdk.md` §17)
 - `console-api/`: console API (`secrets.ts`: `PUT`/`GET /api/tools/<tool>/environments/<env>/secrets`, admin only, names out and values in; `secrets-status.ts`: `GET /api/tools/<tool>/secrets-status`, set or missing per declared secret)

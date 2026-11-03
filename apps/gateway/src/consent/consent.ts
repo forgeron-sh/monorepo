@@ -1,3 +1,5 @@
+import { errorPage } from "../pages/errors";
+import { linkButton, notice, page, paragraph, prefersHtml } from "../pages/shell";
 import { ConsentError, type AuditEntry, type Consent, type Registry } from "@forgeron/registry";
 
 // The consent routes of a delegated connector (docs/sdk.md section 10). Any signed-in person may
@@ -68,6 +70,28 @@ export async function handleConsent(
   request: Request,
   options: ConsentRoutesOptions,
 ): Promise<Response | undefined> {
+  const answered = await consentRoutes(request, options);
+  // A person who follows the provider's redirect sees a page, not a JSON error.
+  if (!answered || answered.status < 400 || request.method !== "GET" || !prefersHtml(request)) {
+    return answered;
+  }
+  const body = (await answered
+    .clone()
+    .json()
+    .catch(() => undefined)) as { message?: unknown } | undefined;
+  return errorPage(answered.status, {
+    workspace: options.workspace,
+    ...(typeof body?.message === "string" ? { detail: body.message } : {}),
+    ...(answered.headers.get("retry-after")
+      ? { headers: { "retry-after": answered.headers.get("retry-after")! } }
+      : {}),
+  });
+}
+
+async function consentRoutes(
+  request: Request,
+  options: ConsentRoutesOptions,
+): Promise<Response | undefined> {
   const url = new URL(request.url);
   const start = START.exec(url.pathname);
   const mine = MINE.exec(url.pathname);
@@ -135,6 +159,14 @@ export async function handleConsent(
         subject: `connector-consent:${done.connector}:grant`,
         detail: { environment: done.environment },
       });
+      if (prefersHtml(request)) {
+        return page(
+          { title: "Connected", eyebrow: "Connector", workspace: options.workspace },
+          notice("success", `${done.connector} is connected to your account.`) +
+            paragraph("You can close this tab and go back to your work.", "lead") +
+            linkButton("Open the workspace", "/", true),
+        );
+      }
       return json(200, { connected: true, connector: done.connector });
     }
 

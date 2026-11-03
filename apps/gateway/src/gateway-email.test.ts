@@ -120,6 +120,10 @@ describe("the first administrator", () => {
   });
 });
 
+/** The page without the address the person typed: the page echoes it back, nothing else may differ. */
+const anonymous = async (response: Response, email: string) =>
+  (await response.text()).replaceAll(email, "ADDRESS");
+
 describe("a person who may not sign in", () => {
   it("gets the very same answer and no mail, and no code can open the door", async () => {
     const before = mail.sent.length;
@@ -127,7 +131,9 @@ describe("a person who may not sign in", () => {
     const stranger = await requestCode("stranger@elsewhere.test", { ip: "198.51.100.2" });
     expect(mail.sent.length).toBe(before + 1);
     expect(stranger.status).toBe(known.status);
-    expect(await stranger.text()).toBe(await known.text());
+    expect(await anonymous(stranger, "stranger@elsewhere.test")).toBe(
+      await anonymous(known, "root@acme.fr"),
+    );
     expect(stranger.headers.getSetCookie().length).toBe(known.headers.getSetCookie().length);
     expect(stranger.headers.getSetCookie()[0]!.split("=")[0]).toBe(
       known.headers.getSetCookie()[0]!.split("=")[0],
@@ -136,7 +142,9 @@ describe("a person who may not sign in", () => {
     const guess = await verify("12345678", cookiesOf(stranger));
     const wrong = await verify("00000000", cookiesOf(known));
     expect(guess.status).toBe(400);
-    expect(await guess.text()).toBe(await wrong.text());
+    expect(await anonymous(guess, "stranger@elsewhere.test")).toBe(
+      await anonymous(wrong, "root@acme.fr"),
+    );
   });
 
   it("is not made a member by a request alone", async () => {
@@ -160,7 +168,7 @@ describe("a person who may not sign in", () => {
     const a = await requestCode("root@acme.fr", { ip: "198.51.100.4", gw: broken });
     const b = await requestCode("nobody@elsewhere.test", { ip: "198.51.100.5", gw: broken });
     expect(a.status).toBe(200);
-    expect(await a.text()).toBe(await b.text());
+    expect(await anonymous(a, "root@acme.fr")).toBe(await anonymous(b, "nobody@elsewhere.test"));
     expect(JSON.stringify(log.mock.calls)).not.toContain("root@acme.fr");
     log.mockRestore();
   });
@@ -493,6 +501,35 @@ describe("members, invitations and domains", () => {
   });
 });
 
+const decode = (text: string) =>
+  text.replaceAll("&amp;", "&").replaceAll("&quot;", '"').replaceAll("&#39;", "'");
+
+/** Presses a button of the CLI confirmation page: what the page hands back to the CLI. */
+async function answer(
+  gateway: (request: Request) => Promise<Response>,
+  confirmation: Response,
+  cookie: string,
+  origin: string,
+  decision: "allow" | "deny" = "allow",
+) {
+  const html = await confirmation.text();
+  const fields = new URLSearchParams(
+    [...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map(
+      (m): [string, string] => [decode(m[1]!), decode(m[2]!)],
+    ),
+  );
+  fields.set("decision", decision);
+  const posted = await gateway(
+    new Request(`${origin}/auth/cli`, {
+      method: "POST",
+      headers: { cookie, origin, "content-type": "application/x-www-form-urlencoded" },
+      body: fields,
+    }),
+  );
+  const refresh = /http-equiv="refresh" content="0;url=([^"]+)"/.exec(await posted.clone().text());
+  return { status: posted.status, location: refresh ? decode(refresh[1]!) : undefined };
+}
+
 describe("forgeron login through the email sign-in", () => {
   it("goes sign-in page, code, session, then back to the CLI's own page", async () => {
     const redirect = "http://127.0.0.1:43111/callback";
@@ -517,7 +554,9 @@ describe("forgeron login through the email sign-in", () => {
         headers: { cookie: cookiesOf(done) },
       }),
     );
-    expect(back.headers.get("location")).toMatch(/^http:\/\/127\.0\.0\.1:43111\/callback\?code=/);
+    expect(back.status).toBe(200);
+    const handed = await answer(gateway(), back, cookiesOf(done), ORIGIN);
+    expect(handed.location).toMatch(/^http:\/\/127\.0\.0\.1:43111\/callback\?code=/);
   });
 });
 
@@ -621,7 +660,9 @@ describe("console mail mode (D-051)", () => {
       g(new Request(`${origin}/auth/email/request`, form({ email }, { origin })));
     const known = await ask("root@acme.fr");
     const stranger = await ask("stranger@elsewhere.test");
-    expect(await stranger.text()).toBe(await known.text());
+    expect(await anonymous(stranger, "stranger@elsewhere.test")).toBe(
+      await anonymous(known, "root@acme.fr"),
+    );
     // One line, for the allowed address only.
     expect(lines).toHaveLength(1);
     const entry = JSON.parse(lines[0]!) as { event: string; address: string; code: string };
