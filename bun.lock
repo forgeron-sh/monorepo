@@ -121,6 +121,18 @@
         "@forgeron/tsconfig": "workspace:*",
       },
     },
+    "packages/registry": {
+      "name": "@forgeron/registry",
+      "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/hosting": "workspace:*",
+      },
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/node": "24.19.2",
+        "miniflare": "4.20260730.0",
+      },
+    },
     "packages/runtime": {
       "name": "@forgeron/runtime",
       "version": "0.0.0",
@@ -364,6 +376,8 @@
     "@forgeron/hosting": ["@forgeron/hosting@workspace:packages/hosting"],
 
     "@forgeron/manifest": ["@forgeron/manifest@workspace:packages/manifest"],
+
+    "@forgeron/registry": ["@forgeron/registry@workspace:packages/registry"],
 
     "@forgeron/runtime": ["@forgeron/runtime@workspace:packages/runtime"],
 

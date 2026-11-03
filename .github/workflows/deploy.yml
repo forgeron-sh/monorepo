@@ -31,6 +31,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      # To add with apps/gateway: platform D1 migrations before the deployment.
+      - name: Migrate the platform D1
+        run: bun run --cwd packages/registry migrate
+        env:
+          PLATFORM_D1_ID: ${{ vars.PLATFORM_D1_ID }}
       - name: Build and deploy
         run: bun run deploy:${{ inputs.environment || github.ref_name }}
