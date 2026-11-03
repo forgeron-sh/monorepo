@@ -9,6 +9,7 @@ import { link } from "./commands/link";
 import { play } from "./commands/play";
 import { secrets } from "./commands/secrets";
 import { test } from "./commands/test";
+import { token } from "./commands/token";
 import { UsageError, type Io } from "./io";
 
 const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
@@ -24,6 +25,7 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   change,
   release,
   secrets,
+  token,
 };
 
 const USAGE = `Usage: forgeron <command>
@@ -40,6 +42,7 @@ const USAGE = `Usage: forgeron <command>
   secrets set <NAME> [--env] | list [--env]
                                        tool secrets of an environment (the value is typed, never an argument)
   release [--no-git]                   next version, CHANGELOG.md, tag
+  token create --name <n> --scope deploy  create a deployment token for CI (FORGERON_TOKEN)
   test [vitest args]                   build the tool, then run Vitest
   build                                build every tool under this folder`;
 

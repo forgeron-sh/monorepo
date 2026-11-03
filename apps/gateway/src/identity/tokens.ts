@@ -16,9 +16,11 @@ interface TokenClaims {
   iat: number;
   /** Expires at, seconds since the epoch. */
   exp: number;
+  /** What the token may do besides being a person's: absent on API and CLI tokens (`deploy`…). */
+  scp?: string;
 }
 
-type TokenFailure = "malformed" | "signature" | "expired" | "audience";
+type TokenFailure = "malformed" | "signature" | "expired" | "audience" | "scope";
 
 export type TokenCheck = { ok: true; claims: TokenClaims } | { ok: false; reason: TokenFailure };
 
@@ -53,6 +55,8 @@ export interface IssueOptions {
   /** How long the token lives. No default: each flow that issues tokens decides. */
   ttlSeconds: number;
   now: Date;
+  /** A token with a scope is only accepted where that scope is asked for, and nowhere else. */
+  scope?: string;
 }
 
 export async function issueToken(options: IssueOptions): Promise<string> {
@@ -63,6 +67,7 @@ export async function issueToken(options: IssueOptions): Promise<string> {
     aud: audienceOf(options.workspace, options.tool),
     iat,
     exp: iat + options.ttlSeconds,
+    ...(options.scope === undefined ? {} : { scp: options.scope }),
   };
   const body = `${PREFIX}.${toBase64Url(encoder.encode(JSON.stringify(claims)))}`;
   const signature = await crypto.subtle.sign(
@@ -81,17 +86,19 @@ const isClaims = (value: unknown): value is TokenClaims => {
     typeof claims.sub === "string" &&
     typeof claims.aud === "string" &&
     Number.isFinite(claims.iat) &&
-    Number.isFinite(claims.exp)
+    Number.isFinite(claims.exp) &&
+    (claims.scp === undefined || typeof claims.scp === "string")
   );
 };
 
 /**
- * Checks signature, expiry and, when `audience` is given, that the token was issued for it.
+ * Checks signature, expiry, the scope (none unless `scope` is given) and, when `audience` is given,
+ * that the token was issued for it.
  * The signature is checked first: nothing in an unsigned token is trusted.
  */
 export async function verifyToken(
   token: string,
-  options: { secret: string; now: Date; audience?: string },
+  options: { secret: string; now: Date; audience?: string; scope?: string },
 ): Promise<TokenCheck> {
   const parts = token.split(".");
   const [prefix, payload, signature] = parts;
@@ -119,5 +126,7 @@ export async function verifyToken(
   if (options.audience !== undefined && claims.aud !== options.audience) {
     return { ok: false, reason: "audience" };
   }
+  // A scoped token (deployment) is not a person's API token, and the other way round.
+  if (claims.scp !== options.scope) return { ok: false, reason: "scope" };
   return { ok: true, claims };
 }
