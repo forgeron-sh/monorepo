@@ -1,5 +1,11 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { UsageError } from "./io";
+import { writeProject } from "./project";
+
+export const SDK_VERSION = "0.0.0";
+export const VITEST_VERSION = "5.0.5";
 
 // Catalog templates are npm packages `@forgeron/template-<name>` (docs/sdk.md §18).
 // `forgeron init --template <name>` reads the registry's metadata, downloads the tarball and unpacks it.
@@ -73,4 +79,83 @@ function untar(tar: Uint8Array): Map<string, Uint8Array> {
     offset += Math.ceil(size / 512) * 512;
   }
   return files;
+}
+
+export interface CatalogEntry {
+  /** The template's name, without the `@forgeron/template-` prefix. */
+  name: string;
+  version: string;
+  description: string;
+}
+
+const PREFIX = "@forgeron/template-";
+
+/** Templates of the catalog whose name or description contains `text`. */
+export async function searchCatalog(
+  text: string,
+  registry = process.env.FORGERON_REGISTRY ?? DEFAULT_REGISTRY,
+): Promise<CatalogEntry[]> {
+  const base = registry.replace(/\/+$/, "");
+  const query = new URLSearchParams({ text: `scope:forgeron ${text}`, size: "250" });
+  const response = await get(`${base}/-/v1/search?${query}`, text);
+  const body = (await response.json()) as {
+    objects?: Array<{ package?: { name?: string; version?: string; description?: string } }>;
+  };
+  const needle = text.toLowerCase();
+  const entries: CatalogEntry[] = [];
+  for (const { package: pkg } of body.objects ?? []) {
+    if (!pkg?.name?.startsWith(PREFIX) || typeof pkg.version !== "string") continue;
+    const name = pkg.name.slice(PREFIX.length);
+    const description = pkg.description ?? "";
+    if (`${name} ${description}`.toLowerCase().includes(needle)) {
+      entries.push({ name, version: pkg.version, description });
+    }
+  }
+  return entries.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** The manifest the package ships (`forgeron build` wrote it before packing), if any. */
+export const TEMPLATE_MANIFEST = ".forgeron/build/manifest.json";
+
+/** Writes a downloaded template as the tool `name` in `dir`, then links it (`.forgeron/project.json`). */
+export async function writeTemplate(
+  dir: string,
+  name: string,
+  templateName: string,
+  template: TemplatePackage,
+): Promise<void> {
+  for (const [path, content] of template.files) {
+    if (path === "package.json" || path.startsWith(".forgeron/build/")) continue;
+    await mkdir(join(dir, path, ".."), { recursive: true });
+    // The tool carries the name chosen here, not the template's.
+    const body =
+      path === "forgeron.config.ts"
+        ? new TextEncoder().encode(
+            new TextDecoder().decode(content).replace(`name: "${templateName}"`, `name: "${name}"`),
+          )
+        : content;
+    await writeFile(join(dir, path), body);
+  }
+  const pkg = JSON.parse(
+    new TextDecoder().decode(template.files.get("package.json") ?? new Uint8Array()) || "{}",
+  ) as { dependencies?: Record<string, string> };
+  await writeFile(
+    join(dir, "package.json"),
+    `${JSON.stringify(
+      {
+        name,
+        version: "0.1.0",
+        private: true,
+        type: "module",
+        scripts: { build: "forgeron build", dev: "forgeron dev", test: "forgeron test" },
+        dependencies: pkg.dependencies ?? { "@forgeron/sdk": SDK_VERSION },
+        devDependencies: { vitest: VITEST_VERSION },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  await mkdir(join(dir, ".forgeron"), { recursive: true });
+  await writeFile(join(dir, ".forgeron/.gitignore"), "local/\ngenerated/\nbuild/\n");
+  await writeProject(dir, { tool: name });
 }

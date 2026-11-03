@@ -1,8 +1,10 @@
 import { build } from "./commands/build";
+import { catalog } from "./commands/catalog";
 import { change, release } from "./commands/change";
 import { db } from "./commands/db";
 import { dev } from "./commands/dev";
 import { init } from "./commands/init";
+import { install } from "./commands/install";
 import { link } from "./commands/link";
 import { play } from "./commands/play";
 import { test } from "./commands/test";
@@ -10,6 +12,8 @@ import { UsageError, type Io } from "./io";
 
 const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   init,
+  catalog,
+  install,
   link,
   build,
   test,
@@ -22,7 +26,9 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
 
 const USAGE = `Usage: forgeron <command>
 
-  init [name]                          create a tool
+  init [name] [--template <name>]      create a tool, from scratch or from a template
+  catalog search <text>                search the template catalog
+  install <template> [--name <tool>]   show the requested resources, then install after approval
   link --workspace <name>              link the tool to a workspace
   dev [--as <role>] [--port 8787]      run the tool locally
   play [--as <role>] [--port 8788]     open the playground of the tool
