@@ -3,7 +3,12 @@
 // platform builds nothing: the body is the build CI already made. Each deployment lands in the
 // environment's history (who, when, which version) through `deployBuild`.
 import type { Build, DeployOptions, Hosting } from "@forgeron/hosting";
-import { deployBuild, type Registry, type RegisteredEnvironment } from "@forgeron/registry";
+import {
+  closePreview,
+  deployBuild,
+  type Registry,
+  type RegisteredEnvironment,
+} from "@forgeron/registry";
 import { audienceOf, parseAudience } from "../identity/audience";
 import type { Person } from "../identity/authenticate";
 import { issueToken, verifyToken } from "../identity/tokens";
@@ -112,12 +117,44 @@ export interface DeployContext {
 }
 
 /**
+ * `DELETE /deploy` `{ branch }`: the preview of that branch of the token's tool is torn down and
+ * forgotten (a merged or closed pull request). A branch with no preview is not an error: the
+ * answer says `closed: false`, so a second close, or a close of a branch never deployed, is fine.
+ */
+async function closeBranchPreview(
+  request: Request,
+  context: DeployContext,
+  toolName: string,
+): Promise<Response> {
+  const body = await bodyOf(request);
+  const branch = body?.branch;
+  if (typeof branch !== "string" || branch === "") {
+    return fail(400, "INVALID", "branch: the branch whose preview to close.");
+  }
+  const { registry } = context;
+  const tool = await registry.findTool(context.workspace, toolName);
+  if (!tool) return json(200, { tool: toolName, branch, closed: false });
+  const existed = (await registry.listEnvironments(tool.id)).some(
+    (e) => e.name === "preview" && e.branch === branch,
+  );
+  if (!existed) return json(200, { tool: toolName, branch, closed: false });
+  try {
+    await closePreview(registry, context.hosting, tool, branch);
+  } catch (error) {
+    return fail(500, "CLOSE_FAILED", error instanceof Error ? error.message : String(error));
+  }
+  return json(200, { tool: toolName, branch, closed: true });
+}
+
+/**
  * `POST /deploy` `{ environment, branch?, version, build, allowDestructive? }`, with
  * `Authorization: Bearer $FORGERON_TOKEN`. The tool is the token's, never the body's: a token
  * for `crm` cannot deploy another tool, nor a build whose manifest names another.
  */
 export async function handleDeploy(request: Request, context: DeployContext): Promise<Response> {
-  if (request.method !== "POST") return fail(405, "METHOD_NOT_ALLOWED", "Use POST.");
+  if (request.method !== "POST" && request.method !== "DELETE") {
+    return fail(405, "METHOD_NOT_ALLOWED", "Use POST (deploy) or DELETE (close a preview).");
+  }
   const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
   if (!token) return fail(401, "UNAUTHENTICATED", "Send the deployment token as FORGERON_TOKEN.");
   const check = await verifyToken(token, {
@@ -132,6 +169,7 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   if (!audience || audience.workspace !== context.workspace) {
     return fail(403, "FORBIDDEN", "This token was not issued for this workspace.");
   }
+  if (request.method === "DELETE") return closeBranchPreview(request, context, audience.tool);
 
   const body = await bodyOf(request);
   if (!body) return fail(400, "INVALID", "The body must be a JSON object.");

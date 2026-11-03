@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline/promises";
+import { systemKeychain } from "./keychain";
 import type { Keychain } from "./credentials";
 
 /** What a command needs of the outside world: tests give their own. */
@@ -15,7 +16,7 @@ export interface Io {
   confirm?(question: string): Promise<boolean>;
   /** Reads a value from the keyboard without echoing it (or from piped input); never an argument. */
   readSecret?(prompt: string): Promise<string>;
-  /** The system keychain, when the platform has an adapter: without it credentials go to the file. */
+  /** The system keychain, macOS and Linux (keychain.ts): without it credentials go to the file. */
   keychain?: Keychain;
   /** Opens a URL in the person's browser; absent when there is none (the URL is printed anyway). */
   openUrl?(url: string): Promise<void>;
@@ -63,6 +64,7 @@ export function terminal(): Io {
       }
     },
     readSecret: readHidden,
+    keychain: systemKeychain(),
     openUrl: openInBrowser,
     stopped: new Promise((resolve) => process.once("SIGINT", () => resolve())),
   };

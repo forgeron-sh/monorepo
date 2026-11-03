@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 // system keychain, or failing that in `~/.config/forgeron/credentials` (permissions 600).
 // `XDG_CONFIG_HOME` moves the folder, as it does for other tools.
 
-/** The system keychain, as the CLI needs it. Tests give a fake; the OS adapters are not written yet. */
+/** The system keychain, as the CLI needs it. The OS adapters are in keychain.ts; tests give a fake. */
 export interface Keychain {
   get(account: string): Promise<string | undefined>;
   set(account: string, secret: string): Promise<void>;
@@ -27,11 +27,23 @@ export async function readCredentials(env: NodeJS.ProcessEnv = process.env, keyc
   } catch {
     // A keychain that cannot be read (locked, absent) is not a reason to be signed out of the file.
   }
+  let token: string | undefined;
   try {
-    return (await readFile(credentialsFile(env), "utf8")).trim() || undefined;
+    token = (await readFile(credentialsFile(env), "utf8")).trim() || undefined;
   } catch {
     return undefined;
   }
+  // A token an earlier version (or a machine without keychain then) left in the file moves to the
+  // keychain, and the file goes only once the keychain holds it.
+  if (token && keychain) {
+    try {
+      await keychain.set(ACCOUNT, token);
+      await rm(credentialsFile(env), { force: true });
+    } catch {
+      // Stays in the file.
+    }
+  }
+  return token;
 }
 
 /** Stores the token in the keychain, or in the file (600) when there is none or it refuses. */

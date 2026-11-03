@@ -6,6 +6,9 @@
 #   FORGERON_ENV     environment to deploy to (default: preview)
 #   FORGERON_ARGS    extra arguments for `forgeron deploy`, such as --allow-destructive
 #   FORGERON_TOKEN   deployment token; without it (pull requests from forks) nothing is deployed
+#   FORGERON_CLOSE   "true": instead, close the preview of the pull request's branch (`forgeron
+#                    preview close`), for every tool; nothing is tested or deployed
+#   GITHUB_OUTPUT    when set, `urls` gets one "<tool> <address>" line per deployed tool
 set -euo pipefail
 
 root="${1:-.}"
@@ -22,17 +25,40 @@ if [ "${#tools[@]}" -eq 0 ]; then
   exit 1
 fi
 
+deployed="$(mktemp)"
+trap 'rm -f "$deployed"' EXIT
+
 for dir in "${tools[@]}"; do
   echo "::group::$dir"
   (
     cd "$dir"
+    if [ "${FORGERON_CLOSE:-}" = "true" ]; then
+      if [ -n "${FORGERON_TOKEN:-}" ]; then
+        "${forgeron[@]}" preview close
+      else
+        echo "::notice::FORGERON_TOKEN is not set: the preview of $dir was not closed."
+      fi
+      exit 0
+    fi
     "${forgeron[@]}" test
     "${forgeron[@]}" change check
     if [ -n "${FORGERON_TOKEN:-}" ]; then
-      "${forgeron[@]}" deploy --env "${FORGERON_ENV:-preview}" ${extra[@]+"${extra[@]}"}
+      # `Deployed <tool>@<version> to <env>: <address>`: the address goes to the action's output.
+      out="$(mktemp)"
+      "${forgeron[@]}" deploy --env "${FORGERON_ENV:-preview}" ${extra[@]+"${extra[@]}"} | tee "$out"
+      sed -nE 's/^Deployed ([^@ ]+)@[^ ]+ to [^ :]+: (https?:\/\/[^ ]+)$/\1 \2/p' "$out" >>"$deployed"
+      rm -f "$out"
     else
       echo "::notice::FORGERON_TOKEN is not set: $dir was tested and checked, not deployed."
     fi
   )
   echo "::endgroup::"
 done
+
+if [ -n "${GITHUB_OUTPUT:-}" ] && [ -s "$deployed" ]; then
+  {
+    echo "urls<<FORGERON_URLS_EOF"
+    cat "$deployed"
+    echo "FORGERON_URLS_EOF"
+  } >>"$GITHUB_OUTPUT"
+fi
