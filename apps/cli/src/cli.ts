@@ -4,6 +4,7 @@ import { db } from "./commands/db";
 import { dev } from "./commands/dev";
 import { init } from "./commands/init";
 import { link } from "./commands/link";
+import { play } from "./commands/play";
 import { test } from "./commands/test";
 import { UsageError, type Io } from "./io";
 
@@ -13,6 +14,7 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   build,
   test,
   dev,
+  play,
   db,
   change,
   release,
@@ -23,6 +25,7 @@ const USAGE = `Usage: forgeron <command>
   init [name]                          create a tool
   link --workspace <name>              link the tool to a workspace
   dev [--as <role>] [--port 8787]      run the tool locally
+  play [--as <role>] [--port 8788]     open the playground of the tool
   db generate|migrate|status|rollback|seed|shell
                                        the database: migrations, seed, SQL (forgeron db for details)
   change --type <t> --bump <b> -m ".."  add a change to changes/ (change check: CI)
