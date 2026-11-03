@@ -31,11 +31,11 @@ Rules of the log:
 | D-016 | 03/11/2026 | Views are served with a sandbox CSP and call their tool with a 15-minute token                                | Active            |
 | D-017 | 03/11/2026 | The gateway reaches tool Workers through a dispatch namespace in cloud, `TOOL_<WORKER>` bindings in self-host | Active            |
 | D-018 | 03/11/2026 | In cloud mode the script is sent at `activate`, after the migration, not at `upload`                          | Active            |
-| D-019 | 03/11/2026 | Views are a statically served React app that calls actions, not server-rendered pages                         | Active            |
-| D-020 | 03/11/2026 | Pilot and production share one database, with a strict compatibility check at deployment                      | Active            |
-| D-021 | 03/11/2026 | D1 only for now; a Postgres option through Hyperdrive is not offered                                          | Active            |
-| D-022 | 03/11/2026 | No tool owner role: workspace roles only                                                                      | Active            |
-| D-023 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                    | Active            |
+| D-020 | 03/11/2026 | Views are a statically served React app that calls actions, not server-rendered pages                         | Active            |
+| D-021 | 03/11/2026 | Pilot and production share one database, with a strict compatibility check at deployment                      | Active            |
+| D-022 | 03/11/2026 | D1 only for now; a Postgres option through Hyperdrive is not offered                                          | Active            |
+| D-023 | 03/11/2026 | No tool owner role: workspace roles only                                                                      | Active            |
+| D-024 | 03/11/2026 | A seat is a person who made an authenticated call in the workspace during a calendar month                    | Active            |
 
 ---
 
@@ -225,7 +225,7 @@ Rules of the log:
 - **Not done**: a queue resource (refused with a 501, as in self-host); the gateway side, which reaches the script through the namespace binding (D-017); custom limits and an outbound Worker.
 - **Applied in**: `packages/hosting/src/cloud/`, `packages/hosting/src/resources.ts` (shared with self-host), `multipart` upload in `self-host/cloudflare.ts`.
 
-## D-019 — Views are a statically served React app that calls actions, not server-rendered pages
+## D-020 — Views are a statically served React app that calls actions, not server-rendered pages
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: a view is built into static files (`views/`, one ES module per view, `sdk.md` §14) and served by the gateway; it reads and writes through the hooks of `@forgeron/sdk/react`, which call `POST <base>/_f/call/<action>`. No server-side rendering.
@@ -234,7 +234,7 @@ Rules of the log:
 - **Decided by**: the user delegated open decisions to the assistant on 03/11/2026 ("prend les décisions"); revisable.
 - **Applied in**: FOR-35 closed; `sdk.md` §11, §14.
 
-## D-020 — Pilot and production share one database, with a strict compatibility check at deployment
+## D-021 — Pilot and production share one database, with a strict compatibility check at deployment
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: the pilot and production environments of a tool use the same D1 database. A version served to the pilot cannot ship a migration that is incompatible with the version currently in production; the check happens at deployment (`sdk.md` §8, point 5).
@@ -244,7 +244,7 @@ Rules of the log:
 - **Decided by**: delegated on 03/11/2026; revisable.
 - **Applied in**: FOR-58 closed; `sdk.md` §8, §20.
 
-## D-021 — D1 only for now; a Postgres option through Hyperdrive is not offered
+## D-022 — D1 only for now; a Postgres option through Hyperdrive is not offered
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: the only database engine is D1 (`resources.db.engine` is the literal `d1`). A Postgres option through Hyperdrive is not offered in the first versions.
@@ -254,7 +254,7 @@ Rules of the log:
 - **Decided by**: delegated on 03/11/2026; revisable.
 - **Applied in**: FOR-15 closed.
 
-## D-022 — No tool owner role: workspace roles only
+## D-023 — No tool owner role: workspace roles only
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: there is no "tool owner" role distinct from the workspace roles. Administering a tool (deployment tokens, approvals, secrets) requires the workspace's `admin` level. A developer who must administer a tool is given that level.
@@ -264,7 +264,7 @@ Rules of the log:
 - **Decided by**: delegated on 03/11/2026; revisable.
 - **Applied in**: FOR-100 closed.
 
-## D-023 — A seat is a person who made an authenticated call in the workspace during a calendar month
+## D-024 — A seat is a person who made an authenticated call in the workspace during a calendar month
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: a seat is counted per workspace and per calendar month (UTC): a person is counted once if at least one authenticated call, through any interface (MCP, API, CLI, web), reached a tool of the workspace that month. Jobs and calls made by a tool on its own behalf do not count. The store keeps only the workspace, the person's identifier and the month, nothing the identity layer does not already hold.
