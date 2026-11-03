@@ -96,10 +96,9 @@ async function answer(
 ) {
   const html = await confirmation.text();
   const fields = new URLSearchParams(
-    [...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map((m) => [
-      decode(m[1]!),
-      decode(m[2]!),
-    ]),
+    [...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map(
+      (m): [string, string] => [decode(m[1]!), decode(m[2]!)],
+    ),
   );
   fields.set("decision", decision);
   const posted = await gateway(

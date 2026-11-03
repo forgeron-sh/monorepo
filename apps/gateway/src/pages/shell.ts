@@ -8,7 +8,7 @@ import { stylesheet } from "./css";
 const ANVIL = "M0 0H132L81.506 50.494A29 29 0 0 0 102.012 100H132V132H0V100A33 33 0 0 0 0 34Z";
 
 /** The policy of the sign-in pages (D-049). Not loosened for any page of the shell. */
-export const PAGE_CSP =
+const PAGE_CSP =
   "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'";
 
 export const escape = (text: string) =>
@@ -34,7 +34,7 @@ const symbol = (size: number) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 132 132" aria-hidden="true" focusable="false"><path fill="currentColor" d="${ANVIL}"/></svg>`;
 
 /** A complete document. `body` is trusted markup: build it with `escape` and the helpers below. */
-export function renderPage(options: PageOptions, body: string): string {
+function renderPage(options: PageOptions, body: string): string {
   const where = options.workspace ? `<span class="where">${escape(options.workspace)}</span>` : "";
   return (
     `<!doctype html><html lang="en"><head><meta charset="utf-8">` +

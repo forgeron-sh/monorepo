@@ -49,7 +49,7 @@ function readRequest(params: URLSearchParams) {
 
 /**
  * `GET /auth/cli` asks the signed-in person to authorize the CLI and `POST /auth/cli` carries
- * their answer (D-052): nothing is handed to the loopback address without a click.
+ * their answer (D-053): nothing is handed to the loopback address without a click.
  */
 export async function handleCliAuthorize(request: Request, context: CliLoginContext) {
   const url = new URL(request.url);

@@ -8,7 +8,7 @@ import { memoryMailSender } from "./mail/mail";
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 // The pages the gateway serves, as a browser sees them: one shell, every step of the sign-in, the
-// invitation landing and the CLI confirmation (FOR-128, D-052).
+// invitation landing and the CLI confirmation (FOR-128, D-053).
 
 const ORIGIN = "https://acme.forgeron.app";
 const CSP =

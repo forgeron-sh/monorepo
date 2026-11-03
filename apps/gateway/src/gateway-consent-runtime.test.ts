@@ -194,16 +194,17 @@ describe("the tool's call carries the caller's own consent", () => {
     );
     expect(done.status).toBe(200);
     expect(done.headers.get("content-type")).toContain("application/json");
-    // A person who follows the provider's redirect gets a page.
-    const again = await gateway(
-      at(`/console-api/api/consent/callback?state=${encodeURIComponent(state)}&code=c`, {
-        ...send("GET", undefined, ana),
-        headers: { ...send("GET", undefined, ana).headers, accept: "text/html" },
+    // A person who follows the provider's redirect with a state it did not give gets a page.
+    const request = send("GET", undefined, ana);
+    const refused = await gateway(
+      at("/console-api/api/consent/callback?state=unknown&code=c", {
+        ...request,
+        headers: { ...request.headers, accept: "text/html" },
       }),
     );
-    expect(again.headers.get("content-type")).toContain("text/html");
-    expect(again.status).toBeGreaterThanOrEqual(400);
-    expect(await again.text()).toContain("<h1>");
+    expect(refused.headers.get("content-type")).toContain("text/html");
+    expect(refused.status).toBeGreaterThanOrEqual(400);
+    expect(await refused.text()).toContain("<h1>");
 
     const after = await callTool(ana);
     expect(after.tokens).toEqual({ microsoft: "at-1" });
