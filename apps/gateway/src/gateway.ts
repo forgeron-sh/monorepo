@@ -68,7 +68,7 @@ export interface GatewayEnv {
   SECRETS_KEY?: string;
   /**
    * The identity provider's issuer URL (OIDC, D-019). A provider an admin saved in the platform
-   * (`/console-api/api/identity-provider`, D-035) wins over these; with neither, `/auth` answers 404.
+   * (`/console-api/api/identity-provider`, D-037) wins over these; with neither, `/auth` answers 404.
    */
   OIDC_ISSUER?: string;
   OIDC_CLIENT_ID?: string;

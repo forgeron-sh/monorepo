@@ -44,7 +44,7 @@ Rules of the log:
 | D-032 | 03/11/2026 | The gateway keeps its own code in the platform D1, and `platform install` carries the tool bindings over                         | Active            |
 | D-033 | 03/11/2026 | `promote` and `rollback` are `POST /promote` and `POST /rollback` on the gateway, for a workspace admin or a deployment token    | Active            |
 | D-034 | 03/11/2026 | The pilot group is a named set of members in the registry, edited through the console API; the pilot version is served to it     | Active            |
-| D-035 | 03/11/2026 | Sign-in presets for Entra ID and Google live in the platform D1 and the console API; SAML is deferred; consent is self-service   | Active            |
+| D-037 | 03/11/2026 | Sign-in presets for Entra ID and Google live in the platform D1 and the console API; SAML is deferred; consent is self-service   | Active            |
 
 ---
 
@@ -389,11 +389,11 @@ Rules of the log:
 - **Later**: emails, domains or groups from the SSO claims as a second source of members; a console screen over the groups API.
 - **Applied in**: `packages/registry` (`0011_group_members`, `setGroupMembers`, `isGroupMember`, `listGroups`); `apps/gateway/src/dispatch`, `console-api/groups.ts`, `gateway.ts`. Replaces the "`inPilot`: not done" of D-027. FOR-57.
 
-## D-035 — Sign-in presets for Entra ID and Google live in the platform D1 and the console API; SAML is deferred; consent is self-service
+## D-037 — Sign-in presets for Entra ID and Google live in the platform D1 and the console API; SAML is deferred; consent is self-service
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**:
-  1. A workspace's sign-in provider is a row of `identity_providers` (migration 0013, secret sealed with `SECRETS_KEY`), edited by an admin through `GET|PUT|DELETE /console-api/api/identity-provider`. The answer never contains the secret (`hasSecret`); a `PUT` without `clientSecret` keeps the one stored. A saved provider wins over the `OIDC_*` bindings, which remain the fallback (a gateway installed by `platform install` keeps working); removing it returns to them.
+  1. A workspace's sign-in provider is a row of `identity_providers` (migration 0014, secret sealed with `SECRETS_KEY`), edited by an admin through `GET|PUT|DELETE /console-api/api/identity-provider`. The answer never contains the secret (`hasSecret`); a `PUT` without `clientSecret` keeps the one stored. A saved provider wins over the `OIDC_*` bindings, which remain the fallback (a gateway installed by `platform install` keeps working); removing it returns to them.
   2. Three kinds, all OIDC (D-019): `oidc` (any issuer), `entra` and `google`. `entra` needs the directory (tenant) id as a GUID (`common`, `organizations` and `consumers` are refused: they would admit other directories), derives the issuer `https://login.microsoftonline.com/<tenant>/v2.0`, requires the `tid` claim to equal it, and reads the email from `preferred_username` (the UPN: `email` is an optional claim) and the groups from `groups`. `google` needs the Workspace domain, uses the issuer `https://accounts.google.com`, requires the `hd` claim to equal it, and sends `hd` to the account chooser as a hint only. `emailClaim` and `groupsClaim` override the defaults. Any kind: an `email_verified: false` ID token is refused.
   3. `groupRoles` maps a group to a role. A person in a mapped group is admitted and gets those roles at their first sign-in; roles are then read from the registry as before (D-027), so a later change of group at the provider does not change them.
   4. The OAuth clients of delegated connectors (`connector_clients`, one per workspace and connector type, secret sealed) are edited through `GET|PUT|DELETE /console-api/api/connector-clients[/<type>]`. The consent routes are mounted under the console API: `GET …/tools/<t>/environments/<e>/consent/<name>` starts, `GET /console-api/api/consent/callback` completes, `GET …/consent` lists the person's own consents, `DELETE …/consent/<name>` withdraws one; the admin's `GET|DELETE …/connections[/<user>/<connector>]` lists and revokes (FOR-79). Scopes come from the tool's manifest, never from the request.
@@ -402,4 +402,4 @@ Rules of the log:
 - **Rejected**: multi-tenant Entra (`common`): the issuer is templated per tenant and every directory could sign in; Google without `hd`: any Google account would pass the provider; groups as live roles (needs a role sync and revocation, not designed); a SAML parser written here.
 - **Know**: the Entra `groups` claim carries group ids and is replaced by a link when a person is in too many groups (overage): such a person then has no groups and gets no role from the mapping. The UPN of Entra can differ from the mailbox address, which matters for `MEMBER_EMAIL_DOMAINS`.
 - **Not done / not verified**: no real Entra or Google sign-in and no real connector consent was tried (simulated providers only: the claim names and issuers come from the providers' documentation, not from a live tenant); SAML; the callback of a consent answers JSON, not a page of the console; the console has no screen for these routes; the run-time use of `accessToken` by a connector's session (`ConnectorSession.token()`) in a tool Worker, and sharing the identity with MCP (FOR-107), are not part of this change; a provider change is not recorded in the audit log.
-- **Applied in**: FOR-82, FOR-79; `packages/registry` (`0013_identity_config`, `identity-config.ts`), `apps/gateway/src/identity/presets.ts`, `console-api/identity.ts`, `consent/consent.ts`.
+- **Applied in**: FOR-82, FOR-79; `packages/registry` (`0014_identity_config`, `identity-config.ts`), `apps/gateway/src/identity/presets.ts`, `console-api/identity.ts`, `consent/consent.ts`.

@@ -263,9 +263,9 @@ export const platformMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "group_members"`)],
   },
   {
-    // The workspace's sign-in provider and the OAuth clients of its delegated connectors (D-035).
+    // The workspace's sign-in provider and the OAuth clients of its delegated connectors (D-037).
     // Client secrets are sealed (iv + ciphertext), never stored in the clear.
-    name: "0013_identity_config",
+    name: "0014_identity_config",
     fingerprint: "identity-config-v1",
     destructive: false,
     up: [
