@@ -62,6 +62,19 @@ export function buildManifest(loaded: LoadedTool, version: string): Manifest {
     );
   }
 
+  if (loaded.seed !== undefined) {
+    if (loaded.seed.kind !== "seed") {
+      throw new Error(
+        "db/seed.ts: the default export is not a seed (use seed() from @forgeron/sdk/db).",
+      );
+    }
+    if (!config.resources?.db) {
+      throw new Error(
+        "db/seed.ts fills a database, but resources.db is not declared in forgeron.config.ts (add `db: database()`).",
+      );
+    }
+  }
+
   const events: Manifest["events"] = {};
   for (const [name, def] of Object.entries(loaded.events)) {
     if (def?.kind !== "event") {

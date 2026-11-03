@@ -6,7 +6,7 @@ import { checkResources } from "./check";
 import { discoverTools } from "./discover";
 import { fingerprintSources, sha256 } from "./fingerprint";
 import { resolveMigration, sameSnapshot, snapshotOf } from "@forgeron/sdk/db";
-import { loadTool, schemaFileOf, sourcesOf } from "./load";
+import { loadTool, schemaFileOf, seedFileOf, sourcesOf } from "./load";
 import { readSnapshot } from "./migrations/generate";
 import { buildManifest } from "./manifest";
 
@@ -77,6 +77,7 @@ function workerEntry(
   jobs: Array<{ name: string; file: string }>,
   schemaFile: string | undefined,
   migrationsFile: string | undefined,
+  seedFile: string | undefined,
 ): string {
   const q = JSON.stringify;
   return [
@@ -85,6 +86,7 @@ function workerEntry(
     ...actions.map((a, i) => `import action${i} from ${q(a.file)};`),
     ...(schemaFile ? [`import schema from ${q(schemaFile)};`] : []),
     ...(migrationsFile ? [`import migrations from ${q(migrationsFile)};`] : []),
+    ...(seedFile ? [`import seed from ${q(seedFile)};`] : []),
     ...events.map((e, i) => `import event${i} from ${q(e.file)};`),
     ...jobs.map((j, i) => `import job${i} from ${q(j.file)};`),
     `const actions = { ${actions.map((a, i) => `${q(a.name)}: action${i}`).join(", ")} };`,
@@ -99,7 +101,7 @@ function workerEntry(
     `export function createTool(options = {}) {`,
     `  return createRuntime({ manifest, actions, events, jobs, authenticate: gatewayIdentity, ...options });`,
     `}`,
-    `export { manifest${schemaFile ? ", schema" : ""}${migrationsFile ? ", migrations" : ""} };`,
+    `export { manifest${schemaFile ? ", schema" : ""}${migrationsFile ? ", migrations" : ""}${seedFile ? ", seed" : ""} };`,
     `// The Worker's bindings arrive with each call: the database of the environment is \`env.DB\`.`,
     `let runtime;`,
     `const runtimeFor = (env) => (runtime ??= createTool(env?.DB ? { platform: { db: createDb(env.DB) } } : {}));`,
@@ -177,6 +179,7 @@ export async function buildTool(folder: string): Promise<BuildResult> {
       jobs,
       await schemaFileOf(dir),
       migrations.length > 0 ? migrationsFile : undefined,
+      await seedFileOf(dir),
     ),
   );
   const bundle = await rolldown({ input, platform: "neutral", logLevel: "silent" });

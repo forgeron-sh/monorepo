@@ -11,14 +11,14 @@
         "forgeron.config.ts",
         "db/schema.ts",
         "db/migrations/*.ts",
+        "db/seed.ts",
         "actions/**/*.ts",
         "jobs/**/*.ts",
         "events/**/*.ts"
       ]
     },
     "packages/compiler": {
-      "ignore": ["fixtures/**"],
-      "ignoreDependencies": ["@forgeron/runtime"]
+      "ignore": ["fixtures/**"]
     },
     "packages/sdk": {
       "ignore": ["fixtures/**"]

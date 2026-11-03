@@ -5,6 +5,7 @@ import type { Batch } from "../db/schema";
 import type { Environment, Fetch, ToolClient } from "../context";
 import { createSchemaSql } from "../db/ddl";
 import type { Schema } from "../db/schema";
+import type { SeedDefinition } from "../db/seed";
 import { ToolError } from "../errors";
 import { memoryCache } from "./cache";
 import { createMemoryD1 } from "./memory-d1";
@@ -34,6 +35,8 @@ export interface TestToolOptions {
   secrets?: Record<string, string>;
   /** Upstreams: `mockFetch({...})`. The tool's `resources.network` still filters the hosts. */
   fetch?: Fetch;
+  /** Fills the database with `db/seed.ts` before the test starts. */
+  seed?: boolean;
   /** Freezes `ctx.now()`. */
   now?: string | Date;
   env?: Environment;
@@ -75,6 +78,8 @@ interface BuiltWorker {
   manifest: Manifest;
   /** The tool's `db/schema.ts`, if it has one. */
   schema?: Schema;
+  /** The tool's `db/seed.ts`, if it has one. */
+  seed?: SeedDefinition;
 }
 
 function currentDirectory(): string {
@@ -124,6 +129,12 @@ export async function createTestTool<DB = any>(
     for (const statement of worker.schema ? createSchemaSql(worker.schema) : [])
       await d1.exec(statement);
     db = createDb(d1);
+    if (options.seed) {
+      if (!worker.seed) throw new Error("`seed: true` needs a db/seed.ts in the tool.");
+      await worker.seed.run({ db: db as never });
+    }
+  } else if (options.seed) {
+    throw new Error("`seed: true` needs a tool with resources.db.");
   }
 
   const make = (given: Partial<TestIdentity>): TestTool<DB> => {

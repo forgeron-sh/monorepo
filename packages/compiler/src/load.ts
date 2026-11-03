@@ -1,6 +1,6 @@
 import { actionNameOfPath } from "@forgeron/manifest";
 import type { ActionDefinition, EventDefinition, JobDefinition, ToolConfig } from "@forgeron/sdk";
-import type { MigrationDefinition } from "@forgeron/sdk/db";
+import type { MigrationDefinition, SeedDefinition } from "@forgeron/sdk/db";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -18,6 +18,8 @@ export interface LoadedTool {
   events: Record<string, EventDefinition>;
   /** The tool's `db/schema.ts`, if it has one. */
   schema?: unknown;
+  /** The tool's `db/seed.ts`, if it has one. */
+  seed?: SeedDefinition;
   /** `db/migrations/NNNN_<name>.ts`, by name. */
   migrations: Record<string, MigrationDefinition>;
   /** The source files of the tool that went into the bundle (not npm packages, not tests). */
@@ -61,9 +63,20 @@ function named(dir: string, kind: string, entries: Array<{ name: string; file: s
 }
 
 const SCHEMA_FILE = ["db", "schema.ts"] as const;
+const SEED_FILE = ["db", "seed.ts"] as const;
 
 export async function schemaFileOf(dir: string): Promise<string | undefined> {
   const file = join(dir, ...SCHEMA_FILE);
+  try {
+    await access(file);
+    return file;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function seedFileOf(dir: string): Promise<string | undefined> {
+  const file = join(dir, ...SEED_FILE);
   try {
     await access(file);
     return file;
@@ -131,6 +144,7 @@ function boundary(dir: string) {
 export async function loadTool(dir: string, scratch: string): Promise<LoadedTool> {
   const { actions, jobs, events, migrations } = await sourcesOf(dir);
   const schemaFile = await schemaFileOf(dir);
+  const seedFile = await seedFileOf(dir);
   const q = JSON.stringify;
   // Each file is imported on its own so that a failure names the file, not the bundle.
   const guarded = (file: string) =>
@@ -147,6 +161,7 @@ export async function loadTool(dir: string, scratch: string): Promise<LoadedTool
     `export const jobs = { ${jobs.map((j) => `${q(j.name)}: ${guarded(j.file)}`).join(", ")} };`,
     `export const events = { ${events.map((e) => `${q(e.name)}: ${guarded(e.file)}`).join(", ")} };`,
     ...(schemaFile ? [`export const schema = ${guarded(schemaFile)};`] : []),
+    ...(seedFile ? [`export const seed = ${guarded(seedFile)};`] : []),
     `export const migrations = { ${migrations.map((m) => `${q(m.name)}: ${guarded(m.file)}`).join(", ")} };`,
     `export const toJsonSchema = (schema, io) => z.toJSONSchema(schema, { io });`,
   ].join("\n");

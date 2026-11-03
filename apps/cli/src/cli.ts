@@ -20,7 +20,8 @@ const USAGE = `Usage: forgeron <command>
   init [name]                          create a tool
   link --workspace <name>              link the tool to a workspace
   dev [--as <role>] [--port 8787]      run the tool locally
-  db generate [--name <name>]          write the migration for a change of db/schema.ts
+  db generate|migrate|status|rollback|seed|shell
+                                       the database: migrations, seed, SQL (forgeron db for details)
   test [vitest args]                   build the tool, then run Vitest
   build                                build every tool under this folder`;
 
