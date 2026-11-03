@@ -5,7 +5,7 @@ import { RegistryError } from "@forgeron/registry";
 //   GET /api/tools/<tool>/access-matrix  -> { roles, actions, cells: { role: { action: { default, override?, allowed } } } }
 //   PUT /api/tools/<tool>/access-matrix  body { changes: [{ role, action, allowed: true | false | null }] }
 // `action` is an action name or `view:<name>`; `null` gives the cell back to the manifest's levels.
-// The changes are applied together, in one batch with their audit lines: all or none (D-044). Only an admin may call them, and a change
+// The changes are applied together, in one batch with their audit lines: all or none (D-047). Only an admin may call them, and a change
 // is written to the audit log by the registry. It takes effect on the next call, on every interface.
 
 const MAX_CHANGES = 500;
