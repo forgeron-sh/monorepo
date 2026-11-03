@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import type { Keychain } from "./credentials";
 
-// The system keychain adapters (D-033). The token never travels as an argument (it would show in
+// The system keychain adapters (D-035). The token never travels as an argument (it would show in
 // `ps`): it goes to the program's standard input. Windows has no adapter: the 600 file is used.
 
 /** Runs a program with `input` on its standard input; rejects when the program cannot start. */

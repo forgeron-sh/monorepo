@@ -42,6 +42,10 @@ Rules of the log:
 | D-029 | 03/11/2026 | In self-host the gateway is redeployed with `inherit` bindings to add or remove a tool's `TOOL_<WORKER>` binding                 | Active            |
 | D-031 | 03/11/2026 | `forgeron login` gets a CLI token scoped `cli` for the platform, one-time PKCE code, 30 days                                     | Active            |
 | D-032 | 03/11/2026 | The gateway keeps its own code in the platform D1, and `platform install` carries the tool bindings over                         | Active            |
+| D-033 | 03/11/2026 | `promote` and `rollback` are `POST /promote` and `POST /rollback` on the gateway, for a workspace admin or a deployment token    | Active            |
+| D-034 | 03/11/2026 | The pilot group is a named set of members in the registry, edited through the console API; the pilot version is served to it     | Active            |
+| D-035 | 03/11/2026 | The keychain is the macOS `security` tool or Linux `secret-tool`, fed on standard input; Windows uses the 600 file               | Active            |
+| D-036 | 03/11/2026 | Each template deploys as a preview per pull request, announced by a comment, closed through `DELETE /deploy`                     | Active            |
 
 ---
 
@@ -294,7 +298,7 @@ Rules of the log:
 - **Decision**: `forgeron login` starts a one-shot server on `127.0.0.1` (a random port, only `/callback`), opens `<endpoint>/auth/cli?redirect_uri&state&code_challenge&code_challenge_method=S256` in the browser (the URL is printed too), and waits for the workspace to send the person back with a one-time `code` and the same `state`. It then trades the code with the PKCE verifier at `POST <endpoint>/auth/cli/token` for the person's token, stores it, and never puts a token in a URL. A `state` that is not its own, or a refusal, stores nothing. `whoami` asks `GET <endpoint>/whoami`; `logout` forgets the token from the keychain and the file.
 - **Storage**: the system keychain through a `Keychain` interface (`io.keychain`), else `~/.config/forgeron/credentials` created `600` in a `700` folder (an older, wider file is narrowed). A keychain that refuses falls back to the file; a token in the keychain removes the file.
 - **Why**: `sdk.md` §4: a person's credentials are never in the project. The loopback redirect with PKCE is the usual way a CLI signs in through a browser, and keeps the token out of the browser's history and the command line.
-- **Not done**: the gateway side of `/auth/cli`, `/auth/cli/token` and `/whoami` does not exist (these paths are what the CLI asks for, simulated in the tests); the OS keychain adapters were written afterwards (D-033); no real sign-in was tried.
+- **Not done**: the gateway side of `/auth/cli`, `/auth/cli/token` and `/whoami` does not exist (these paths are what the CLI asks for, simulated in the tests); the OS keychain adapters were written afterwards (D-035); no real sign-in was tried.
 - **Applied in**: `apps/cli/src/commands/login.ts`, `apps/cli/src/credentials.ts`, `apps/cli/src/io.ts`.
 
 ## D-026 — `--auth wrangler` installs with the wrangler session token and never stores it in the gateway
@@ -368,7 +372,25 @@ Rules of the log:
 - **Not done / not verified**: the assets are kept with `keep_assets: true`, documented for the upload endpoints ("Direct Upload"), not tried on the beta versions endpoint, and their routing config (`not_found_handling`, `run_worker_first`) may not survive it; `Object.keys(env)` is the list of bindings (workerd's `env` enumerates them, not checked); two tool deployments at the same moment can lose a binding; a gateway installed before this change has no stored code until the install is run again; nothing was tried on a real account.
 - **Applied in**: FOR-119.
 
-## D-033 — The keychain is the macOS `security` tool or Linux `secret-tool`, fed on standard input; Windows uses the 600 file
+## D-033 — `promote` and `rollback` are `POST /promote` and `POST /rollback` on the gateway, for a workspace admin or a deployment token
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: `forgeron promote <version> --to <env> [--group] [--branch] [--allow-destructive]` and `forgeron rollback [--env production] [--branch]` call `POST /promote {tool, version, to, branch?, group?, allowDestructive?}` and `POST /rollback {tool, environment, branch?}` at the workspace endpoint of `.forgeron/project.json`, next to `/deploy`. The gateway runs `promoteVersion` and `rollbackEnvironment` of the registry (no rebuild: the code is the one recorded with the version's build; a rollback applies and reverts no migration). The caller is **a workspace administrator** (a session, or the CLI token of `forgeron login`, D-031) **or a deployment token of that tool** (D-025, scope `deploy`; it cannot name another tool). A developer or a plain member is refused (`403`), an anonymous call too (`401`). The CLI sends `FORGERON_TOKEN` when set (CI), else the token `forgeron login` stored. The audit line is the `deployments` row (kind `promote` or `rollback`, actor, time): the actor is the administrator's email or the token's `deploy:<name>`. Refusals keep their meaning in the status: a changelog that does not cover the change (FOR-64) `422`; a refused migration (destructive without `--allow-destructive`, compatibility, D-021) `409 MIGRATION_REFUSED`; an approval pending `409`; no earlier version `409`; unknown version or tool `404`. `forgeron deploy --env pilot --group <name>` sends `group` to `POST /deploy`, which only the pilot accepts.
+- **Why**: the pieces (`promoteVersion`, `rollbackEnvironment`) existed in the registry and the D-031 token already authenticates the CLI on platform routes; moving production is an administrator's act, and CI needs the same without a person, which is what a deployment token is for. Putting the routes beside `/deploy` keeps one place that holds the hosting credentials.
+- **Rejected**: letting developers promote (production is guarded by approvals for the same reason); a CLI token that works on tools (D-031); a new token scope for promotion (the deployment token is already limited to one tool and one workspace); rebuilding on promotion (the point of FOR-51).
+- **Not done**: the console button for promotion (out of scope of FOR-51); the preview's URL does not carry `@<branch>` (as for `/deploy`); not run against a real Cloudflare account (the hosting is simulated in tests).
+- **Applied in**: `apps/gateway/src/deploy/promote.ts`, `deploy.ts` (`group`), `gateway.ts`; `apps/cli/src/commands/promote.ts`, `deploy.ts`. FOR-51, FOR-54, FOR-57.
+
+## D-034 — The pilot group is a named set of members in the registry, edited through the console API; the pilot version is served to it
+
+- **Date**: 03/11/2026 · **Status**: Active
+- **Decision**: a group is a name (`[a-z0-9-]`, up to 40) in a workspace and a set of its members (D-027): table `group_members (workspace, group_name, member_id)` (migration 0011, deleted with the member). The pilot environment of a tool carries the name (`pilot_group`, set by `deploy --env pilot --group` or `promote --to pilot --group`). The dispatcher gives its `inPilot` hook the group of the tool's pilot; the gateway answers yes when the caller, identified as for seats (session or tool token, D-024), is a member of that group. Anonymous callers, a pilot with no group, and a gateway with no identity get production. The group's members are read at each call, so a change is effective at once. The console API (admins only): `GET /api/groups`, `PUT /api/groups/<name> {members: [email…]}` (replaces the members; every email must be a member of the workspace, or `400 UNKNOWN_MEMBER` and nothing is written) and `GET /api/members`.
+- **Why**: D-027 already stores members; groups of the SSO provider would tie the pilot to one provider and need a claim the sign-in does not read yet. Emails are what an administrator knows; ids stay internal.
+- **Rejected**: a group per tool (one group serves several tools' pilots); storing the group in the token (stale until expiry, D-015).
+- **Later**: emails, domains or groups from the SSO claims as a second source of members; a console screen over the groups API.
+- **Applied in**: `packages/registry` (`0011_group_members`, `setGroupMembers`, `isGroupMember`, `listGroups`); `apps/gateway/src/dispatch`, `console-api/groups.ts`, `gateway.ts`. Replaces the "`inPilot`: not done" of D-027. FOR-57.
+
+## D-035 — The keychain is the macOS `security` tool or Linux `secret-tool`, fed on standard input; Windows uses the 600 file
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: `apps/cli/src/keychain.ts` implements the `Keychain` interface of D-025 on macOS (`security -i`, which reads its commands from standard input: `add-generic-password -U -s forgeron -a forgeron -w "<token>"`; reading is `find-generic-password -w`, forgetting `delete-generic-password`) and on Linux (`secret-tool store|lookup|clear service forgeron account forgeron`, the secret on standard input). The token is never an argument, so it is not in `ps`; a token with a character outside printable ASCII is refused rather than quoted. Programs are started through an injectable `Runner` (no shell, standard error discarded), so tests use a fake runner and never touch a keychain. On Windows (and any other system) there is no adapter and the `~/.config/forgeron/credentials` file (the folder is not locked down by Windows file modes; `600` is best-effort there) is used; the Windows Credential Manager has no command that takes a secret without an argument, and a native module is not worth it for now.
@@ -377,7 +399,7 @@ Rules of the log:
 - **Not verified**: no real macOS Keychain or libsecret was driven (the runner is faked): the exact `security -i` quoting and exit codes (44 for not found) come from the manual page and common use, and `secret-tool` exit codes for a missing entry are assumed non-zero.
 - **Applied in**: FOR-85.
 
-## D-034 — Each template deploys as a preview per pull request, announced by a comment, closed through `DELETE /deploy`
+## D-036 — Each template deploys as a preview per pull request, announced by a comment, closed through `DELETE /deploy`
 
 - **Date**: 03/11/2026 · **Status**: Active
 - **Decision**: `.github/workflows/templates-preview.yml` runs on `opened, synchronize, reopened, closed`. For the first three, each template is tested, checked and deployed as a preview of the pull request's branch (the deploy action, one `FORGERON_TOKEN_<NAME>` secret per template) and, when an address came back and the pull request is not from a fork, a comment per template (found by a hidden marker, edited on each push) gives the address. On `closed` (merged or not) a `close` job runs `forgeron preview close` per template, through `DELETE /deploy {branch}` with the same deployment token: the gateway tears the preview down and forgets it (`closePreview`, already in the registry); a branch with no preview answers `closed: false`, not an error. The deploy action gained a `close` input and a `urls` output (one `<tool> <address>` line per deployed tool, read from the CLI's `Deployed … : <address>` line).
