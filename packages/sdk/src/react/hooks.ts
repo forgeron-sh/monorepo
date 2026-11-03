@@ -128,6 +128,11 @@ export function useUser(): User {
   return useViewContext("useUser").runtime.user;
 }
 
+/** To disable the control of an action: whether the person may call it, as the console's matrix says. The server checks anyway. */
+export function useCanCall(action: string): boolean {
+  return useViewContext("useCanCall").runtime.canCall(action);
+}
+
 /** To disable a control: the server checks the access level anyway. */
 export function useCan(level: string): boolean {
   return useViewContext("useCan").runtime.can(level);

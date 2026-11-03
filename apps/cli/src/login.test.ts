@@ -262,6 +262,29 @@ describe("forgeron whoami and logout", () => {
     expect(logs.at(-1)).toBe("You were not signed in.");
   });
 
+  it("moves a token left in the file to the keychain on first read, and keeps it if the keychain refuses", async () => {
+    const { keychain, entries } = fakeKeychain();
+    const { file } = await setup();
+    await mkdir(join(file, ".."), { recursive: true });
+    await writeFile(file, "file-token\n");
+    expect(await readCredentials(process.env, keychain)).toBe("file-token");
+    expect(entries.get("forgeron")).toBe("file-token");
+    await expect(stat(file)).rejects.toThrow("ENOENT");
+
+    await writeFile(file, "other-token\n");
+    const refusing = fakeKeychain(true).keychain;
+    expect(await readCredentials(process.env, refusing)).toBe("other-token");
+    expect(await readFile(file, "utf8")).toBe("other-token\n");
+  });
+
+  it("never prints the token", async () => {
+    const { io, logs, errors } = await setup();
+    await run(["login"], io);
+    await run(["whoami"], io);
+    await run(["logout"], io);
+    expect([...logs, ...errors].join("\n")).not.toContain("fgt.person.token");
+  });
+
   it("keeps no secret in .forgeron/project.json", async () => {
     const { io } = await setup();
     await run(["login"], io);

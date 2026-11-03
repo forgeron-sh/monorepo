@@ -24,13 +24,24 @@ inputs:
     description: Where to look for tools (folders with a forgeron.config.ts).
     required: false
     default: "."
+  close:
+    description: >-
+      "true" closes the preview of the pull request's branch for every tool (forgeron preview close)
+      instead of testing and deploying: for a pull request that is closed or merged.
+    required: false
+    default: "false"
+outputs:
+  urls:
+    description: One "<tool> <address>" line per tool that was deployed (empty when nothing was).
+    value: ${{ steps.run.outputs.urls }}
 runs:
   using: composite
   steps:
     - uses: actions/setup-node@v4
       with:
         node-version: 24.21.0
-    - run: bash "$GITHUB_ACTION_PATH/run.sh" "$ROOT"
+    - id: run
+      run: bash "$GITHUB_ACTION_PATH/run.sh" "$ROOT"
       shell: bash
       env:
         ROOT: ${{ inputs.working-directory }}
@@ -38,3 +49,4 @@ runs:
         FORGERON_ENV: ${{ inputs.environment }}
         FORGERON_ARGS: ${{ inputs.args }}
         FORGERON_CMD: ${{ inputs.command }}
+        FORGERON_CLOSE: ${{ inputs.close }}

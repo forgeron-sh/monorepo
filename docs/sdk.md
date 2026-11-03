@@ -195,7 +195,7 @@ CRM v1.4.0 requests:
 ```
 
 - `project.json` contains **no secret**: it only says which workspace (`workspace`, the `acme` of `acme.forgeron.app`) and which tool the folder is linked to. It is written by `forgeron init` or `forgeron link`.
-- A person's **credentials** are never in the project. `forgeron login` opens the browser (the workspace's SSO) and stores the token in the system keychain, or failing that in `~/.config/forgeron/credentials` (permissions 600).
+- A person's **credentials** are never in the project. `forgeron login` opens the browser (the workspace's SSO) and stores the token in the system keychain (macOS Keychain, Linux libsecret through `secret-tool`), or failing that in `~/.config/forgeron/credentials` (permissions 600; the only storage on Windows, where file modes do not restrict access, D-044). `forgeron logout` forgets it from both.
 - `local/env` is only used by `forgeron dev` and by tests. Preview and production secrets are set with `forgeron secrets set`.
 - In CI, authentication goes through `FORGERON_TOKEN` (a deployment token created in the console).
 
@@ -214,6 +214,7 @@ The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forge
 | `forgeron play [--template <name>]`                                                         | Opens the playground: list of actions, generated form, result, MCP / API / CLI preview; with `--template`, tries out a template without installing it    |
 | `forgeron test`                                                                             | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                          |
 | `forgeron build`                                                                            | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                    |
+| `forgeron preview close [--branch <name>]`                                                  | Tears down the preview of a branch (a closed pull request); needs `FORGERON_TOKEN`                                                                       |
 | `forgeron deploy [--env preview\|pilot\|production] [--group <name>] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                          |
 | `forgeron versions`                                                                         | Lists versions and their environments                                                                                                                    |
 | `forgeron promote <version> --to <env>`                                                     | Promotes an existing version, without rebuilding                                                                                                         |
@@ -528,6 +529,7 @@ export default defineView({
 | `useParams()`                                             | URL parameters validated by `params`; `[values, setValues]`        |
 | `useUser()`                                               | The signed-in person and their roles                               |
 | `useCan(level)`                                           | To disable a button; the server checks anyway                      |
+| `useCanCall(action)`                                      | Same, for an action, with the console's roles × actions matrix     |
 
 - Views are React 18+ components, built by `forgeron build` and served by the tool's Worker, behind the SSO.
 - `@forgeron/ui` provides components aligned with the Forgeron design system (black and white, sharp corners): `Page`, `Table`, `Board`, `Stat`, `BarChart`, `Select`, `Button`… Optional.
@@ -806,7 +808,7 @@ Forgeron uses **both**: the `forgeron` name for the single entry point, and the 
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `forgeron`                                                      | SDK (`defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`) and CLI (`forgeron` binary) | A single `npm i -D forgeron`, a single `npx forgeron`                                    |
 | `forgeron/db`                                                   | `schema`, `table`, `t`, `index`, `migration`, `sql`                                            | Tied to the migration format and to the runtime                                          |
-| `forgeron/react`                                                | `defineView`, `useAction`, `useMutation`, `useParams`, `useUser`, `useCan`                     | Speaks the runtime protocol; React as an optional peer dependency                        |
+| `forgeron/react`                                                | `defineView`, `useAction`, `useMutation`, `useParams`, `useUser`, `useCan`, `useCanCall`       | Speaks the runtime protocol; React as an optional peer dependency                        |
 | `forgeron/testing`                                              | `createTestTool`, `mockFetch`                                                                  | Must simulate the runtime of the same version                                            |
 | `@forgeron/ui`                                                  | React components of the design system (`Page`, `Table`, `Board`, `BarChart`…)                  | Optional, heavy, versioned with the design system; also used by the site and the console |
 | `@forgeron/connector-<name>`                                    | Connectors: `microsoft-365`, `google-workspace`, `odoo`, `slack`…                              | Each connector bundles a third-party client; you only install the ones you use           |

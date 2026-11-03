@@ -1,4 +1,4 @@
-import type { Manifest } from "@forgeron/manifest";
+import { mayAccess, type Manifest } from "@forgeron/manifest";
 import { matchesCron, parseCron, zoneFormatter } from "./cron";
 import type {
   ActionContext,
@@ -153,9 +153,7 @@ export function createEngine(options: RuntimeOptions): Engine {
   // The one access check, for every interface: a role may call an action if the console says so,
   // else if one of its levels is the action's. The person may if one of their roles may.
   const mayCall = (user: User, name: string, level: string): boolean =>
-    user.roles.some(
-      (role) => user.access?.[role]?.[name] ?? (manifest.roles[role]?.grants ?? []).includes(level),
-    );
+    mayAccess(user, manifest.roles, name, level);
 
   // A call from a task or another tool does not go through an interface: it is not hidden by `interfaces`.
   const exposed = (name: string, via: CallSource): RuntimeAction | undefined => {

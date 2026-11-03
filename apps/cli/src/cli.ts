@@ -10,6 +10,7 @@ import { link } from "./commands/link";
 import { login, logout, whoami } from "./commands/login";
 import { platform } from "./commands/platform";
 import { play } from "./commands/play";
+import { preview } from "./commands/preview";
 import { promote, rollback } from "./commands/promote";
 import { secrets } from "./commands/secrets";
 import { test } from "./commands/test";
@@ -33,6 +34,7 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   change,
   release,
   deploy,
+  preview,
   promote,
   rollback,
   secrets,
@@ -62,6 +64,7 @@ const USAGE = `Usage: forgeron <command>
   promote <version> --to <env> [--group <name>]
                                        put an existing version on another environment, no rebuild
   rollback [--env production]          put the previous version of an environment back on traffic
+  preview close [--branch <name>]      tear down the preview of a branch (FORGERON_TOKEN)
   release [--no-git]                   next version, CHANGELOG.md, tag
   token create --name <n> --scope deploy  create a deployment token for CI (FORGERON_TOKEN)
   test [vitest args]                   build the tool, then run Vitest

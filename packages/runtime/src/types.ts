@@ -196,6 +196,11 @@ export interface ViewBootstrap {
   user: User;
   /** The access levels the person holds: it only serves to disable controls. */
   grants: string[];
+  /**
+   * The actions the person may call, the console's matrix included (D-043): what `useCanCall` reads.
+   * Absent: `canCall` shows nothing as allowed.
+   */
+  callable?: string[];
 }
 
 /** A person the gateway resolved from a token, with the audience the token was issued for (`acme/crm`). */
