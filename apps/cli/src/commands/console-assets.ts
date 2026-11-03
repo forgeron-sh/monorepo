@@ -1,16 +1,10 @@
-import type { CloudflareClient } from "@forgeron/hosting";
+import type { Asset } from "@forgeron/hosting";
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { extname, join, relative, sep } from "node:path";
 import { UsageError } from "../io";
 
-// The console's build (`apps/console/dist`) is uploaded as the static assets of the gateway Worker:
-// https://developers.cloudflare.com/workers/static-assets/direct-upload/
-//   1. POST workers/scripts/<worker>/assets-upload-session {manifest} -> {jwt, buckets}
-//   2. POST workers/assets/upload?base64=true, one multipart request per bucket, authorised with the
-//      session `jwt` (not the API token) -> the last answers with the completion `jwt`
-//   3. the Worker version carries `assets.jwt` (a bucket list that is empty means the files are
-//      already stored: the session `jwt` is the completion token).
+// The console's build (`apps/console/dist`) is read here; `uploadAssets` (@forgeron/hosting) sends it.
 
 const TYPES: Record<string, string> = {
   ".html": "text/html",
@@ -26,15 +20,6 @@ const TYPES: Record<string, string> = {
   ".txt": "text/plain",
   ".map": "application/json",
 };
-
-interface Asset {
-  /** `/index.html`: the path the file is served at. */
-  path: string;
-  hash: string;
-  size: number;
-  base64: string;
-  type: string;
-}
 
 /** Vite writes its own manifest in `.vite/`: it describes the build, it is not a page. */
 const skipped = (path: string) => path.startsWith("/.vite/");
@@ -76,37 +61,4 @@ export async function readAssets(dir: string): Promise<Asset[]> {
     throw new UsageError(`${dir} has no index.html: it is not a console build.`);
   }
   return assets;
-}
-
-/** Registers and uploads the assets; returns the completion token the Worker version carries. */
-export async function uploadAssets(
-  client: CloudflareClient,
-  worker: string,
-  assets: Asset[],
-): Promise<string> {
-  const manifest = Object.fromEntries(assets.map((a) => [a.path, { hash: a.hash, size: a.size }]));
-  const session = await client.request<{ jwt: string; buckets?: string[][] }>(
-    "POST",
-    `/workers/scripts/${worker}/assets-upload-session`,
-    { manifest },
-  );
-  const byHash = new Map(assets.map((a) => [a.hash, a]));
-  let completion = session.buckets?.length ? undefined : session.jwt;
-  for (const bucket of session.buckets ?? []) {
-    const form = new FormData();
-    for (const hash of bucket) {
-      const asset = byHash.get(hash);
-      if (!asset) throw new Error("Cloudflare asked for a file that is not in the console build.");
-      form.append(hash, new Blob([asset.base64], { type: asset.type }), hash);
-    }
-    const result = await client.form<{ jwt?: string }>(
-      "POST",
-      "/workers/assets/upload?base64=true",
-      form,
-      session.jwt,
-    );
-    if (result.jwt) completion = result.jwt;
-  }
-  if (!completion) throw new Error("Cloudflare did not return the completion token of the assets.");
-  return completion;
 }

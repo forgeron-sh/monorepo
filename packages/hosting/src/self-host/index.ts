@@ -124,6 +124,8 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
 
 export { CloudflareError, createCloudflareClient } from "./cloudflare";
 export type { CloudflareClient, CloudflareOptions } from "./cloudflare";
+export { GATEWAY_ASSETS_CONFIG, uploadAssets } from "./assets";
+export type { Asset } from "./assets";
 export { createRestD1 } from "./d1-rest";
 export { createGatewayBindings } from "./gateway-bindings";
 export type { GatewayBindings, GatewayBindingsOptions } from "./gateway-bindings";

@@ -4,7 +4,11 @@ import type { D1Database } from "../migrate";
 
 interface Version {
   id: string;
-  body: { modules: { content_base64: string }[]; bindings: Record<string, unknown>[] };
+  body: {
+    modules: { content_base64: string }[];
+    bindings: Record<string, unknown>[];
+    assets?: { jwt: string; config?: unknown };
+  };
 }
 
 export class FakeCloudflare {
@@ -24,6 +28,11 @@ export class FakeCloudflare {
       modules: Record<string, string>;
     }
   >();
+  /** The files Cloudflare holds, by hash: an upload session only asks for those it lacks. */
+  readonly storedAssets = new Map<string, string>();
+  /** Upload sessions by jwt, with the hashes still to upload; `completions` are the finished ones. */
+  private readonly sessions = new Map<string, { manifest: string[]; missing: Set<string> }>();
+  private readonly completions = new Map<string, string[]>();
   private counter = 0;
 
   /** Gives each database the D1 behind it, by name, as it is created. */
@@ -43,7 +52,8 @@ export class FakeCloudflare {
           : undefined;
     this.calls.push(`${method} ${path}`);
     try {
-      return this.ok(await this.route(method, path, url.searchParams, body));
+      const authorization = new Headers(init?.headers).get("authorization") ?? "";
+      return this.ok(await this.route(method, path, url.searchParams, body, authorization));
     } catch (error) {
       if (error instanceof Response) return error;
       return this.fail(400, String(error));
@@ -74,8 +84,37 @@ export class FakeCloudflare {
     path: string,
     query: URLSearchParams,
     body: Record<string, unknown> | undefined,
+    authorization = "",
   ): Promise<unknown> {
     let m: RegExpMatchArray | null;
+    // The Direct Upload of static assets (the console of the gateway).
+    if (
+      (m = path.match(/^\/workers\/scripts\/([^/]+)\/assets-upload-session$/)) &&
+      method === "POST"
+    ) {
+      const manifest = body?.manifest as Record<string, { hash: string; size: number }>;
+      const hashes = Object.values(manifest ?? {}).map((f) => f.hash);
+      const missing = new Set(hashes.filter((h) => !this.storedAssets.has(h)));
+      const jwt = this.id("session");
+      this.sessions.set(jwt, { manifest: hashes, missing });
+      // Nothing to upload: the session token completes the upload.
+      if (!missing.size) this.completions.set(jwt, hashes);
+      return { jwt, buckets: missing.size ? [[...missing]] : [] };
+    }
+    if (method === "POST" && path === "/workers/assets/upload") {
+      // Authorised with the session jwt, not with the API token.
+      const session = this.sessions.get(authorization.replace(/^Bearer /, ""));
+      if (!session) throw this.fail(401, "the upload needs the jwt of an assets upload session");
+      for (const [hash, content] of Object.entries(body?.modules as Record<string, string>)) {
+        if (!session.missing.has(hash)) throw this.fail(400, `unexpected file ${hash}`);
+        this.storedAssets.set(hash, content);
+        session.missing.delete(hash);
+      }
+      if (session.missing.size) return {};
+      const jwt = this.id("completion");
+      this.completions.set(jwt, session.manifest);
+      return { jwt };
+    }
     if (method === "GET" && path === "/d1/database") {
       const name = query.get("name");
       return [...this.databases]
@@ -139,8 +178,22 @@ export class FakeCloudflare {
     if ((m = path.match(/^\/workers\/workers\/([^/]+)\/versions$/)) && method === "POST") {
       const worker = this.workers.get(m[1]!);
       if (!worker) throw this.fail(404, "no such worker");
+      const upload = body as Version["body"] & { keep_assets?: boolean };
+      // The real API: a version never inherits assets, it attaches the ones an upload completed.
+      if (upload.keep_assets !== undefined) {
+        throw this.fail(
+          400,
+          "Assets cannot be inherited between versions using keep_assets. Provide an explicit assets upload to attach assets to the new version instead.",
+        );
+      }
+      const hadAssets = worker.versions.some((v) => v.body.assets);
+      if (upload.assets && !this.completions.has(upload.assets.jwt)) {
+        throw this.fail(400, "assets.jwt is not the completion token of an assets upload");
+      }
+      if (hadAssets && !upload.assets) {
+        throw this.fail(400, "This Worker has assets: the new version must carry assets.jwt.");
+      }
       const id = this.id("version");
-      const upload = body as Version["body"];
       // `inherit` copies a binding, secret value included, from the most recently uploaded version
       // (Cloudflare docs: that is not always the deployed one); one that cannot be resolved is error 10057.
       const previous = worker.versions.at(-1);

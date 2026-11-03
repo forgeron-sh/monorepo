@@ -291,6 +291,19 @@ describe("forgeron platform install", () => {
       expect(JSON.stringify(cf.calls)).not.toContain(".vite");
     });
 
+    it("stores the console files in the platform D1, with the gateway code (D-052)", async () => {
+      const cf = fakeCloudflare();
+      await platform(install(["--console", "dist"]), io, { fetch: cf.fetcher });
+      const stored = cf.calls
+        .filter((c) => c.path.endsWith("/query") && Array.isArray(c.body?.batch))
+        .flatMap((c) => c.body!.batch as Array<{ sql: string; params: unknown[] }>)
+        .filter((q) => q.sql.includes('INSERT INTO "gateway_assets"'));
+      expect(stored.map((q) => q.params[0]).sort()).toEqual(["/assets/app.js", "/index.html"]);
+      expect(stored.find((q) => q.params[0] === "/assets/app.js")!.params[5]).toBe(
+        btoa("console.log(1);"),
+      );
+    });
+
     it("uploads nothing a second time: Cloudflare already holds the files", async () => {
       const cf = fakeCloudflare();
       await platform(install(["--console", "dist"]), io, { fetch: cf.fetcher });

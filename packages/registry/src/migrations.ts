@@ -442,4 +442,24 @@ export const platformMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "saml_requests"`), st(`DROP TABLE "saml_providers"`)],
   },
+  {
+    // The console's files (D-052): `platform install` stores them so that the running gateway can
+    // upload them again with each new version of itself (Cloudflare does not inherit assets). One row
+    // per chunk of base64: a D1 statement is limited in size.
+    name: "0018_gateway_assets",
+    fingerprint: "gateway-assets-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "gateway_assets" (
+  "path" TEXT NOT NULL,
+  "part" INTEGER NOT NULL,
+  "hash" TEXT NOT NULL,
+  "size" INTEGER NOT NULL,
+  "type" TEXT NOT NULL,
+  "content" TEXT NOT NULL,
+  PRIMARY KEY ("path", "part")
+)`),
+    ],
+    down: [st(`DROP TABLE "gateway_assets"`)],
+  },
 ];
