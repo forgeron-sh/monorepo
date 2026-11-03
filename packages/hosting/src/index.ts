@@ -2,7 +2,7 @@
 // Neutral: plain data in and out, no Node API, so the gateway (a Worker) and the CLI can both use it.
 // The implementations are separate: `./local` here, `./self-host` through the Cloudflare API; cloud comes later.
 export * from "./core";
-export { deploy, teardownPreview } from "./deploy";
+export { deploy, restore, teardownPreview } from "./deploy";
 export type { DeployOptions, Deployment } from "./deploy";
 export {
   CloudflareError,
