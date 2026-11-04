@@ -34,7 +34,7 @@ import { SchemaView } from "./schema-view";
 
 // The Database tab of a tool page: the tables of one environment or branch on the left, one table on the
 // right as data, definition, or the schema of all of them. Read only; the gateway enforces who may look
-// and what is masked (D-058). A screen of its own: nothing here writes.
+// and what is masked (D-059). A screen of its own: nothing here writes.
 
 const MASK_TEXT = {
   tagged: "Tagged as personal data in the schema",

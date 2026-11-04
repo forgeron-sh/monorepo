@@ -1,4 +1,4 @@
-// Typed calls to the gateway's database explorer (`/console-api/api/tools/<tool>/db/...`, D-058).
+// Typed calls to the gateway's database explorer (`/console-api/api/tools/<tool>/db/...`, D-059).
 // The browser never holds a Cloudflare token: the gateway reaches the database.
 import { CONSOLE_API, type FetchJson } from "../../api";
 

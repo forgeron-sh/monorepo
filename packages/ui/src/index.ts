@@ -42,4 +42,10 @@ export type {
 } from "./data-grid";
 export { Drawer } from "./drawer";
 export type { DrawerProps } from "./drawer";
+export { Menu } from "./menu";
+export type { MenuEntry, MenuProps } from "./menu";
+export { Avatar } from "./avatar";
+export type { AvatarProps } from "./avatar";
+export { SettingsGroup, SettingsRow } from "./settings";
+export type { SettingsGroupProps, SettingsRowProps } from "./settings";
 export * from "./architecture";
