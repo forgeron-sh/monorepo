@@ -1,14 +1,11 @@
 import { defineRoute, ErrorSchema } from "@forgeron/platform-contract";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import {
-  createPlatformApp,
-  crossOriginWrite,
-  platformRoute,
-  UNMATCHED,
-  type ConsolePerson,
-} from "./app";
+import { createPlatformApp, crossOriginWrite, platformRoute, type ConsolePerson } from "./app";
 import { ADMIN, describeRouteMatrix, MEMBER } from "./route-matrix";
+import { NOT_A_ROUTE } from "./test-app";
+
+const notFound = () => new Response(null, { status: 404, headers: { [NOT_A_ROUTE]: "1" } });
 
 // A route of the contract that exists for this test only: the shell has no real route yet (D-064).
 const Thing = z.strictObject({ name: z.string().min(1) });
@@ -41,7 +38,7 @@ app.openapi(platformRoute(boom, "member"), () => {
   throw new Error("registry down");
 });
 
-const as = (who: ConsolePerson | undefined) => ({ identity: async () => who });
+const as = (who: ConsolePerson | undefined) => ({ identity: async () => who, notFound });
 const call = (request: Request, who: ConsolePerson | undefined) => app.fetch(request, as(who));
 const get = (path: string, who?: ConsolePerson, init?: RequestInit) =>
   call(new Request(`https://acme.forgeron.test${path}`, init), who);
@@ -67,7 +64,7 @@ describe("the shell", () => {
   it("answers a route it owns as the matrix says, and passes the person on", async () => {
     const res = await get("/api/__thing", MEMBER);
     expect(res.status).toBe(200);
-    expect(res.headers.get(UNMATCHED)).toBeNull();
+    expect(res.headers.get(NOT_A_ROUTE)).toBeNull();
     expect(await res.json()).toEqual({ name: "a" });
     const saved = await get("/api/__thing", ADMIN, {
       method: "PUT",
@@ -77,7 +74,7 @@ describe("the shell", () => {
     expect(await saved.json()).toEqual({ name: "b" });
   });
 
-  it("leaves a path it does not own to the hand-written chain, whoever asks and however", async () => {
+  it("answers a path it does not own with the gateway's 404, whoever asks and however", async () => {
     for (const who of [undefined, MEMBER]) {
       for (const method of ["GET", "POST", "PUT", "PATCH", "DELETE"]) {
         const res = await get("/api/members", who, {
@@ -87,13 +84,14 @@ describe("the shell", () => {
             : { headers: { "content-type": "text/plain" }, body: "x" }),
         });
         expect(res.status).toBe(404);
-        expect(res.headers.get(UNMATCHED)).toBe("1");
+        expect(res.headers.get(NOT_A_ROUTE)).toBe("1");
       }
     }
     // The person is not even looked up for it.
     let looked = 0;
     await app.fetch(new Request("https://acme.forgeron.test/api/tools"), {
       identity: async () => (looked++, undefined),
+      notFound,
     });
     expect(looked).toBe(0);
   });

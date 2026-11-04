@@ -9,7 +9,7 @@ import {
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import { handleDatabase } from "../console-api/database";
-import { UNMATCHED, type PlatformEnv } from "./app";
+import type { PlatformEnv } from "./app";
 
 // The database explorer (D-059, docs/console-ux.md), read only, for admins and developers. The routes
 // are in the contract and in the OpenAPI document; the explorer's own checks stay in `handleDatabase`
@@ -25,7 +25,7 @@ const serve = async (c: Context<PlatformEnv>) =>
     hosting: c.env.hosting,
     caller: async () => c.env.identity(),
     ...(c.env.databaseTimeoutMs ? { timeoutMs: c.env.databaseTimeoutMs } : {}),
-  })) ?? c.body(null, 404, { [UNMATCHED]: "1" });
+  })) ?? c.notFound();
 
 export function mountDatabase(app: OpenAPIHono<PlatformEnv>): void {
   for (const route of [

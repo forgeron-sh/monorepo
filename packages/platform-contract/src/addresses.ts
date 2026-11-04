@@ -53,6 +53,12 @@ import type {
   rollbackRoute,
   whoamiRoute,
 } from "./bearer";
+import type {
+  consentCallbackRoute,
+  listConsentsRoute,
+  startConsentRoute,
+  withdrawConsentRoute,
+} from "./consent";
 import type { auditRoute, workspaceRoute } from "./workspace";
 import { addressOf } from "./route";
 
@@ -210,4 +216,20 @@ export const addresses = {
   revokeToken: addressOf<typeof revokeTokenRoute>({ method: "post", path: "/auth/token/revoke" }),
   rollback: addressOf<typeof rollbackRoute>({ method: "post", path: "/rollback" }),
   whoami: addressOf<typeof whoamiRoute>({ method: "get", path: "/whoami" }),
+  consentCallback: addressOf<typeof consentCallbackRoute>({
+    method: "get",
+    path: "/api/consent/callback",
+  }),
+  listConsents: addressOf<typeof listConsentsRoute>({
+    method: "get",
+    path: "/api/tools/{tool}/environments/{environment}/consent",
+  }),
+  startConsent: addressOf<typeof startConsentRoute>({
+    method: "get",
+    path: "/api/tools/{tool}/environments/{environment}/consent/{name}",
+  }),
+  withdrawConsent: addressOf<typeof withdrawConsentRoute>({
+    method: "delete",
+    path: "/api/tools/{tool}/environments/{environment}/consent/{name}",
+  }),
 };

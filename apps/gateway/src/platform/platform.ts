@@ -3,6 +3,7 @@ import { mountApprovals } from "./approvals";
 import { mountBearer } from "./bearer";
 import { mountCatalog } from "./catalog";
 import { mountConnections } from "./connections";
+import { mountConsent } from "./consent";
 import { mountDatabase } from "./database";
 import { mountIdentity } from "./identity";
 import { mountMembers } from "./members";
@@ -25,6 +26,7 @@ export function createPlatform() {
   mountSecrets(app);
   mountApprovals(app);
   mountBearer(app);
+  mountConsent(app);
 
   // The OpenAPI 3.1 document of what is mounted above, for any signed-in member, like the catalog:
   // it describes the API a member's own console calls, and an anonymous visitor has no use for it.
