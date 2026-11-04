@@ -76,6 +76,7 @@ Rules of the log:
 | D-074 | 04/11/2026 | The console calls the console API through the contract's typed client; its addresses are a schema-free table in the contract                                           | Active                                 |
 | D-075 | 04/11/2026 | The routes of the CLI and CI (`/whoami`, `/deploy`, `/promote`…) are in the contract and mounted on the Hono app; the CLI calls them through the typed client          | Active                                 |
 | D-076 | 04/11/2026 | The consent routes are in the contract and mounted on the Hono app; the legacy chain and its fall-through tag are removed                                              | Active                                 |
+| D-077 | 04/11/2026 | The gateway is composed in `compose.ts`: modules built once, a `RequestContext` per request with a memoised person, and each area takes a narrow port                  | Active                                 |
 
 ---
 
@@ -920,3 +921,17 @@ Rules of the log:
 - **Measured** (one build each, 04/11/2026, origin/main against this change): gateway bundle 1,191,773 → 1,194,070 bytes raw, 258,451 → 259,021 gzip (no `node:*`, nothing external). The console and the CLI are not touched.
 - **Not verified**: no real gateway or provider; the consent exchange is tested against simulated providers.
 - **Applied in**: FOR-154 (end); `apps/gateway/src/platform`, `apps/gateway/src/gateway.ts`, `packages/platform-contract/src/consent.ts`, `docs/ARCHITECTURE.md`.
+
+## D-077 — The gateway is composed in `compose.ts`: modules built once, a request context per request with a memoised person, and each area takes a narrow port
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**:
+  1. **`apps/gateway/src/compose.ts`**: `createModules(env, options)` builds what lives as long as the Worker (the registry, the identity configuration, the one-time codes, the secret box, the resolver of the caller, the dispatcher, the sign-in switches); `createRequestModules(modules, parts, request, workspace)` builds what lives as long as one request: `who()` (the person, looked up at most once and only when a route asks) and the context of each area (`platformBindings`, `userSecrets`, `cliLogin`, `emailAuth`, `auth`). Explicit factories, no container (D-063).
+  2. **`gateway.ts` is the table of routes**: it reads the path and picks the context; it builds nothing. `GatewayEnv` and `gatewayBindingsOf` moved to `env.ts` and are re-exported from `gateway.ts`, so the importers and the tests did not change.
+  3. **Narrow ports**: the context of each area asks for `Pick<Registry, …>` of the methods it calls (identity: tokens, CLI login, caller, email sign-in, invitations; dispatch: personal secrets, connector tokens; consent; the console API builders). The compiler lists what is missing when a method is added.
+  4. **Rule `gateway-compose-is-the-root`** (with a case in `scripts/deps-selftest.ts`): only `gateway.ts`, `compose.ts` and the tests import `compose.ts`.
+- **Why**: `createGateway` built the same pieces in five places and every area took the whole registry. A reader could not see what an area depends on, and a test of one area needed the whole registry.
+- **Rejected**: Awilix (D-063); a port type per area exported from the registry package (the registry's own modules already narrow what they ask of each other; a second layer of names there would be a change to the package for no gain).
+- **Know**: `deploy/` and `promote/` still take the whole `Registry`: they pass it to `deployBuild`, `promoteVersion`, `rollbackEnvironment` and `closePreview`, which are in another package and ask for it. `PlatformBindings.registry` stays whole too: the Hono routes are many and each reads it through `c.env`. Narrowing them is a change to those packages, not to the gateway. The person is now shared by the two `platformBindings` calls of one request (only one is ever made), which changes nothing observable.
+- **Not verified**: no deployed gateway; the behaviour is held by the gateway's own tests (unchanged) and the type check.
+- **Applied in**: FOR-157; `apps/gateway/src/{compose,env,gateway}.ts`, the contexts of `identity/`, `dispatch/`, `consent/`, `console-api/`, `.dependency-cruiser.cjs`, `scripts/deps-selftest.ts`, `docs/ARCHITECTURE.md`.

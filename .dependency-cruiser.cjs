@@ -106,6 +106,18 @@ module.exports = {
       to: { path: "^apps/gateway/src/", pathNot: "^apps/gateway/src/kernel/" },
     },
     {
+      // `compose.ts` builds what each area is handed; an area that imported it would ask for the
+      // whole gateway instead of the port it uses. Only the route table (and the tests) wire it.
+      name: "gateway-compose-is-the-root",
+      severity: "error",
+      from: {
+        path: "^apps/gateway/src/",
+        pathNot: "^apps/gateway/src/(gateway\\.ts$|compose\\.ts$|.*\\.test\\.ts$)",
+      },
+      // The root file `compose.ts` (a case names a fixture ending in `compose.ts` instead).
+      to: { path: "^apps/gateway/src/[^/]*compose\\.ts$" },
+    },
+    {
       // Identity renders pages and asks nothing of dispatch; dispatch and pages never import identity.
       name: "identity-is-below-dispatch-and-pages",
       severity: "error",

@@ -12,7 +12,15 @@ import type { Forwarding } from "./dispatch";
 // runtime reads and a caller cannot set (the dispatcher drops it).
 
 export interface UserSecretsContext {
-  registry: Registry;
+  registry: Pick<
+    Registry,
+    | "accessFor"
+    | "currentManifest"
+    | "findTool"
+    | "readUserSecrets"
+    | "recordAudit"
+    | "setUserSecret"
+  >;
   workspace: string;
   /** The person and the audience of their token, if any (a session has none). */
   identify(request: Request): Promise<{ person: Person; audience?: string } | undefined>;

@@ -105,7 +105,7 @@ function compare(previous: unknown, next: unknown): Pick<VersionRow, "changes" |
   }
 }
 
-async function actors(registry: Registry, workspace: string) {
+async function actors(registry: Pick<Registry, "listMembers">, workspace: string) {
   const people = new Map((await registry.listMembers(workspace)).map((m) => [m.id, m.email]));
   // CI signs a deployment with `deploy:<token name>`: say what it is rather than show the raw id.
   return (actor: string) =>
@@ -118,7 +118,15 @@ const addressOf = (origin: string, tool: string, branch?: string) =>
   `${origin}/t/${tool}${branch ? `@${branch}` : ""}`;
 
 export async function branches(
-  registry: Registry,
+  registry: Pick<
+    Registry,
+    | "getBuild"
+    | "listDeployments"
+    | "listEnvironments"
+    | "listMembers"
+    | "listVersions"
+    | "previousVersion"
+  >,
   workspace: string,
   tool: Tool,
   origin: string,
@@ -186,7 +194,7 @@ export async function branches(
 }
 
 export async function versionsOf(
-  registry: Registry,
+  registry: Pick<Registry, "getBuild" | "listEnvironments" | "listVersions">,
   tool: Tool,
 ): Promise<{ tool: string; versions: VersionRow[] }> {
   const published: VersionRecord[] = await registry.listVersions(tool.id);
@@ -216,7 +224,7 @@ export async function versionsOf(
 
 /** The tool's audit lines. `limit` is lenient: anything but a positive integer is the default. */
 export async function activityOf(
-  registry: Registry,
+  registry: Pick<Registry, "listAudit" | "listMembers">,
   workspace: string,
   tool: Tool,
   asked: string | undefined,

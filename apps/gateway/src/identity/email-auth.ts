@@ -42,7 +42,10 @@ interface EmailPolicy {
 export interface EmailAuthOptions {
   baseDomain: string;
   secret: string;
-  registry: Registry;
+  registry: Pick<
+    Registry,
+    "findInvitation" | "findMember" | "findMemberByEmail" | "joinMember" | "listInvitations"
+  >;
   codes: EmailCodes;
   mail: MailSender;
   policy(workspace: string): Promise<EmailPolicy>;

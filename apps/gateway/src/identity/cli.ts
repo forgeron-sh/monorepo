@@ -27,7 +27,7 @@ const fail = (status: number, code: string, message: string) =>
 export interface CliLoginContext {
   workspace: string;
   secret: string;
-  registry: Registry;
+  registry: Pick<Registry, "findMember" | "spendCode">;
   now(): Date;
   /** The person of the session cookie; `undefined` if there is none. */
   session(request: Request): Promise<Person | undefined>;

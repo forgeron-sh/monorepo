@@ -109,6 +109,13 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "gateway-compose-is-the-root",
+    files: {
+      [`apps/gateway/src/dispatch/${F}.ts`]: `import "../${F}_compose.ts";\n`,
+      [`apps/gateway/src/${F}_compose.ts`]: STUB,
+    },
+  },
+  {
     rule: "identity-is-below-dispatch-and-pages",
     files: {
       [`apps/gateway/src/pages/${F}.ts`]: `import "../identity/${F}_target.ts";\n`,

@@ -20,7 +20,16 @@ const toPerson = (member: Member): Person => ({
 });
 
 export interface CallerOptions {
-  registry: Registry;
+  registry: Pick<
+    Registry,
+    | "addMember"
+    | "findInvitation"
+    | "findMember"
+    | "findMemberByEmail"
+    | "findMemberBySubject"
+    | "isTokenRevoked"
+    | "joinMember"
+  >;
   secret: string;
   /** Keys tokens were signed with before a rotation (`AUTH_SECRET_PREVIOUS`, D-035). */
   previousSecrets?: string[];
@@ -106,7 +115,13 @@ export interface MembershipPolicy {
  * `resolvePerson` of the sign-in (D-027): an existing member by their provider subject; else the
  * administrator named by the policy; else a member of an allowed email domain; else nobody.
  */
-export function membership(registry: Registry, policy: MembershipPolicy) {
+export function membership(
+  registry: Pick<
+    Registry,
+    "addMember" | "findInvitation" | "findMemberByEmail" | "findMemberBySubject" | "joinMember"
+  >,
+  policy: MembershipPolicy,
+) {
   return async (workspace: string, identity: Identity): Promise<{ id: string } | undefined> => {
     const known = await registry.findMemberBySubject(workspace, identity.subject);
     if (known) return known;

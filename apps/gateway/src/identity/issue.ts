@@ -17,7 +17,7 @@ const fail = (status: number, code: string, message: string) =>
 export interface IssueContext {
   workspace: string;
   secret: string;
-  registry: Registry;
+  registry: Pick<Registry, "findTool">;
   now(): Date;
   /** The person of the session cookie; `undefined` if there is none. */
   session(request: Request): Promise<Person | undefined>;
@@ -68,7 +68,7 @@ export async function handleIssueToken(request: Request, context: IssueContext) 
 
 export interface RevokeContext {
   workspace: string;
-  registry: Registry;
+  registry: Pick<Registry, "revokePersonTokens" | "revokeToken">;
   now(): Date;
   /** The person of the session cookie or of a CLI token: anyone may revoke their own tokens. */
   person(request: Request): Promise<Person | undefined>;
