@@ -15,7 +15,7 @@ permissions:
 jobs:
   # Independent jobs run side by side; `check` stays the one status that gates a merge.
   typecheck:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, perf]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
       - run: bun run typecheck
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, perf]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
       - run: bun run test
 
   static:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, perf]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
   check:
     if: always()
     needs: [typecheck, test, static]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, perf]
     timeout-minutes: 5
     steps:
       - name: All the jobs passed
@@ -66,7 +66,7 @@ jobs:
   # The PR title becomes the squash message: it must follow Conventional Commits.
   pr-title:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, perf]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
