@@ -4,7 +4,7 @@ The console of a workspace: tools, versions, access, secrets.
 
 ## Screens
 
-A sidebar shell with path routing; the screens are the route table (`src/shell/routes.ts`, D-056, D-057). The sidebar has a workspace switcher, Home, Tools, then Members, Approvals and Audit log for admins, Settings, and the person's menu (theme, documentation, sign out). `g` then a letter goes to a section, `/` searches. A member only sees what they may use.
+A sidebar shell with path routing; the screens are the route table (`src/shell/routes.ts`, D-056, D-058). The sidebar has a workspace switcher, Home, Tools, then Members, Approvals and Audit log for admins, Settings, and the person's menu (theme, documentation, sign out). `g` then a letter goes to a section, `/` searches. A member only sees what they may use.
 
 - Home: first-run checklist computed from `/api/workspace`, with the CLI commands to copy, and the workspace endpoint
 - Tools: versions per environment; one tool's access matrix (roles × actions) and secrets status (set or missing; values are never read back)

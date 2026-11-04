@@ -36,3 +36,4 @@ export { Avatar } from "./avatar";
 export type { AvatarProps } from "./avatar";
 export { SettingsGroup, SettingsRow } from "./settings";
 export type { SettingsGroupProps, SettingsRowProps } from "./settings";
+export * from "./architecture";
