@@ -81,6 +81,13 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "platform-contract-imports-schemas-only",
+    files: {
+      [`packages/platform-contract/src/${F}.ts`]: `import "../../hosting/src/${F}_target.ts";\n`,
+      [`packages/hosting/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "ui-does-not-import-sdk",
     files: {
       [`packages/ui/src/${F}.ts`]: `import "../../sdk/src/${F}_target.ts";\n`,
