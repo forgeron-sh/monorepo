@@ -24,6 +24,7 @@ import {
   type Hosting,
 } from "@forgeron/hosting";
 import { handleConsent } from "./consent/consent";
+import { createPlatformApp, UNMATCHED } from "./platform/app";
 import { handleAccessMatrix } from "./console-api/access-matrix";
 import { handleManifest } from "./console-api/manifest";
 import { handleConnections } from "./console-api/connections";
@@ -170,6 +171,8 @@ export function createGateway(
   } = {},
 ) {
   const now = options.now ?? (() => new Date());
+  // The platform API as one Hono app (D-064): built once, the person comes with each request.
+  const platform = createPlatformApp();
   const secret = env.AUTH_SECRET;
   const previousSecrets = (env.AUTH_SECRET_PREVIOUS ?? "")
     .split(",")
@@ -554,6 +557,9 @@ export function createGateway(
         box && /\/consent(\/|$)/.test(inner.pathname)
           ? consentFor(workspace, await config.connectorClientsWithSecrets(workspace), box)
           : undefined;
+      // Hono answers the paths it owns; for any other it says so and the chain below goes on.
+      const owned = await platform.fetch(forwarded, { identity });
+      if (!owned.headers.has(UNMATCHED)) return owned;
       return (
         (await handleIdentity(forwarded, {
           config,
