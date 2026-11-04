@@ -70,6 +70,73 @@ function Version({ row, now }: { row: VersionRow; now: Date }) {
   );
 }
 
+interface Served {
+  key: string;
+  environment: "production" | "preview";
+  branch?: string;
+  row: VersionRow;
+}
+
+/** One line per environment, production first: the version it serves, read from the versions list. */
+function served(rows: VersionRow[]): Served[] {
+  const out: Served[] = [];
+  for (const row of rows) {
+    for (const e of row.environments) {
+      out.push({
+        key: `${e.environment}/${e.branch ?? ""}`,
+        environment: e.environment,
+        ...(e.branch ? { branch: e.branch } : {}),
+        row,
+      });
+    }
+  }
+  return out.sort(
+    (a, b) => Number(b.environment === "production") - Number(a.environment === "production"),
+  );
+}
+
+function Environments({ rows }: { rows: VersionRow[] }) {
+  const list = served(rows);
+  if (list.length === 0) return null;
+  return (
+    <section aria-label="Version of each environment">
+      <h3 className="ft-version-name">Environments</h3>
+      <ul className="ft-versions-list ft-environments">
+        {list.map(({ key, environment, branch, row }) => (
+          <li key={key} className="ft-version">
+            <div className="ft-version-head">
+              <span className="ft-served">
+                <EnvTag env={environment} />
+                {branch ? <code>{branch}</code> : null}
+              </span>
+              <code>{row.version}</code>
+              {row.previous ? (
+                <span className="fc-muted">
+                  since <code>{row.previous}</code>
+                  <ImpactBadge impact={row.impact} />
+                </span>
+              ) : (
+                <span className="fc-muted">First version</span>
+              )}
+            </div>
+            {row.changelog && row.changelog.entries.length > 0 ? (
+              <ul className="ft-entries" aria-label={`Contents of ${row.version}`}>
+                {row.changelog.entries.map((entry, i) => (
+                  <li key={i}>
+                    <span className="fc-mono fc-muted">{entry.type}</span> {entry.description}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="fc-muted ft-compare">No changelog entry.</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export default function VersionsTab({ tool, api, now }: ToolTabProps) {
   const versions = useLoad(() => loadVersions(api.fetchJson, tool), [api, tool]);
   if (versions.loading) return <Loading label="Loading versions" />;
@@ -85,10 +152,14 @@ export default function VersionsTab({ tool, api, now }: ToolTabProps) {
     );
   }
   return (
-    <ul className="ft-versions-list">
-      {versions.data.map((row) => (
-        <Version key={row.version} row={row} now={now()} />
-      ))}
-    </ul>
+    <>
+      <Environments rows={versions.data} />
+      <h3 className="ft-version-name">All versions</h3>
+      <ul className="ft-versions-list">
+        {versions.data.map((row) => (
+          <Version key={row.version} row={row} now={now()} />
+        ))}
+      </ul>
+    </>
   );
 }
