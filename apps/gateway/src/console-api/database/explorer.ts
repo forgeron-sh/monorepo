@@ -18,14 +18,14 @@ import {
   type TableInfo,
 } from "./sql";
 
-export interface ForeignKey {
+interface ForeignKey {
   columns: string[];
   references: { table: string; columns: string[] };
   onUpdate: string;
   onDelete: string;
 }
 
-export interface IndexInfo {
+interface IndexInfo {
   name: string;
   unique: boolean;
   /** `c` created by `CREATE INDEX`, `u` by a UNIQUE constraint, `pk` by the primary key. */

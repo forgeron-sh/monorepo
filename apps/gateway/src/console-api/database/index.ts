@@ -36,7 +36,7 @@ import {
 const ROUTE =
   /^\/api\/tools\/([a-z0-9-]+)\/db\/(environments|tables|schema)(?:\/([^/]+)(?:\/(rows|export))?)?$/;
 /** A statement that takes longer is given up on: the person gets an answer, the database keeps working. */
-export const STATEMENT_TIMEOUT_MS = 10_000;
+const STATEMENT_TIMEOUT_MS = 10_000;
 const EXPORT_CHUNK = 1000;
 
 export interface DatabaseApiOptions {

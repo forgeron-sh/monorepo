@@ -113,7 +113,7 @@ function closing(text: string, from: number, quoteChar: string): number {
 
 // ---- filters
 
-export const OPERATORS = [
+const OPERATORS = [
   "eq",
   "neq",
   "gt",

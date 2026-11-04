@@ -32,14 +32,14 @@ export interface DbColumn {
   foreignKey: { table: string; columns: string[] } | null;
 }
 
-export interface ForeignKey {
+interface ForeignKey {
   columns: string[];
   references: { table: string; columns: string[] };
   onUpdate: string;
   onDelete: string;
 }
 
-export interface DbIndex {
+interface DbIndex {
   name: string;
   unique: boolean;
   origin: string;
