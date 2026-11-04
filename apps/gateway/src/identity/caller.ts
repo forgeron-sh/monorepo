@@ -1,5 +1,5 @@
 import type { Member, Registry } from "@forgeron/registry";
-import type { Person } from "./authenticate";
+import type { Person } from "../kernel/person";
 import type { Identity } from "./oidc";
 import { readSession } from "./session";
 import { verifyToken } from "./tokens";

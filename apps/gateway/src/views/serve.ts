@@ -1,6 +1,6 @@
 import { mayAccess, viewSubject, type AccessOverrides, type Manifest } from "@forgeron/manifest";
 import type { ViewBootstrap } from "@forgeron/runtime";
-import type { Person } from "../identity/authenticate";
+import type { Person } from "../kernel/person";
 import { issueToken } from "../identity/tokens";
 
 // Serves a tool's views (sdk.md §7, "Isolation between tools on the same origin"). Every tool of a

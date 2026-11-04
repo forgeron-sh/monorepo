@@ -1,5 +1,5 @@
 import type { Registry } from "@forgeron/registry";
-import type { Person } from "./authenticate";
+import type { Person } from "../kernel/person";
 import { authorizationPage, handBackPage } from "../pages/cli";
 import { errorPage } from "../pages/errors";
 import { CLI_SCOPE } from "./caller";

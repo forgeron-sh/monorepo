@@ -12,7 +12,7 @@ import {
   type Registry,
 } from "@forgeron/registry";
 import { parseAudience } from "../identity/audience";
-import type { Person } from "../identity/authenticate";
+import type { Person } from "../kernel/person";
 import { verifyToken } from "../identity/tokens";
 import { DEPLOY_SCOPE } from "./deploy";
 

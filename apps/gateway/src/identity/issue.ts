@@ -1,5 +1,5 @@
 import type { Registry } from "@forgeron/registry";
-import type { Person } from "./authenticate";
+import type { Person } from "../kernel/person";
 import { issueToken } from "./tokens";
 
 // `POST /auth/token` `{ tool, days }`: a signed-in person asks for an API or CLI token bound to one
