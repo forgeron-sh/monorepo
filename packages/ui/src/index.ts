@@ -30,3 +30,4 @@ export { CopyBlock } from "./copy-block";
 export type { CopyBlockProps } from "./copy-block";
 export { Tabs } from "./tabs";
 export type { TabItem, TabsProps } from "./tabs";
+export * from "./architecture";
