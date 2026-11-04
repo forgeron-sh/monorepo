@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
+import * as contract from "./index";
 import { addressOf, createClient, defineRoute, ErrorSchema, type Answer } from "./index";
+import { addresses } from "./addresses";
 
 const getThing = defineRoute({
   method: "get",
@@ -64,11 +66,26 @@ describe("createClient", () => {
   });
 
   it("a browser can import the client without any schema: its entry only imports types from zod", () => {
-    for (const file of ["client.ts", "route.ts"]) {
+    for (const file of ["client.ts", "route.ts", "addresses.ts"]) {
       const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
       const imports = [...source.matchAll(/^import\s+(type\s+)?[^;]*?from\s+"([^"]+)"/gms)];
       expect(imports.filter((m) => m[2] === "zod" && !m[1])).toEqual([]);
       expect(imports.filter((m) => m[2]!.startsWith("@forgeron/"))).toEqual([]);
+      // What is imported for real (not as a type) is the address helper, never a route object.
+      expect(imports.filter((m) => !m[1] && m[2] !== "./route")).toEqual([]);
     }
+  });
+
+  it("has an address for every route of the contract, the route's own method and path", () => {
+    const routes = Object.entries(contract).filter(
+      ([name]) => name.endsWith("Route") && name !== "defineRoute",
+    ) as Array<[string, { method: string; path: string }]>;
+    expect(routes.length).toBeGreaterThan(30);
+    const table = addresses as Record<string, { method: string; path: string }>;
+    for (const [name, route] of routes) {
+      const key = name.slice(0, -"Route".length);
+      expect([key, table[key]]).toEqual([key, { method: route.method, path: route.path }]);
+    }
+    expect(Object.keys(table).length).toBe(routes.length);
   });
 });

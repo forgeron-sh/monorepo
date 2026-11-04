@@ -2,8 +2,7 @@ import type {
   CatalogTool as CatalogToolContract,
   ToolCard as ToolCardContract,
 } from "@forgeron/manifest";
-import type { listCatalogRoute, toolCardRoute } from "@forgeron/platform-contract";
-import { addressOf } from "@forgeron/platform-contract/client";
+import { addresses } from "@forgeron/platform-contract/client";
 import { ok, typedClient, type FetchJson } from "../../api";
 
 // The catalog the console draws: `GET /api/catalog` and `GET /api/catalog/<tool>`. The shapes are those
@@ -23,13 +22,8 @@ type Raw = Record<string, unknown>;
 /** Only an address of the console API's catalog is ever put in an `<img>`. */
 const ASSET_URL = /^\/console-api\/api\/catalog\/[^/?#]+\/assets\/[^?#]+(\?v=[\w-]+)?$/;
 
-// The routes are imported as types: their schemas stay out of the browser bundle (D-064). An address
-// that is not the contract's method and path does not compile.
-const listCatalog = addressOf<typeof listCatalogRoute>({ method: "get", path: "/api/catalog" });
-const toolCard = addressOf<typeof toolCardRoute>({ method: "get", path: "/api/catalog/{tool}" });
-
 export async function loadCatalog(fetchJson: FetchJson): Promise<CatalogTool[]> {
-  return ok(await typedClient(fetchJson)(listCatalog)).tools;
+  return ok(await typedClient(fetchJson)(addresses.listCatalog)).tools;
 }
 
 /** A changelog entry is free-form for now: a string, or an object with a line of text in it. */
@@ -42,7 +36,7 @@ const changelogLine = (entry: unknown): string => {
 };
 
 export async function loadToolCard(fetchJson: FetchJson, name: string): Promise<ToolCardData> {
-  const card = ok(await typedClient(fetchJson)(toolCard, { params: { tool: name } }));
+  const card = ok(await typedClient(fetchJson)(addresses.toolCard, { params: { tool: name } }));
   if (!card.name) throw new Error("The platform answered without a tool.");
   return {
     ...card,

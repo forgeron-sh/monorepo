@@ -1,3 +1,5 @@
+import { addresses } from "@forgeron/platform-contract/client";
+import { ok, typedClient } from "./api";
 import { Badge, Table, type TableColumn } from "@forgeron/ui";
 
 // The secrets of a tool, per environment: "set" or "missing", never a value (docs/sdk.md section 10).
@@ -19,9 +21,7 @@ export async function loadSecretsStatus(
   fetchJson: (path: string) => Promise<unknown>,
   tool: string,
 ): Promise<SecretStatusRow[]> {
-  const body = (await fetchJson(`/api/tools/${tool}/secrets-status`)) as {
-    secrets?: Array<{ name?: unknown; environments?: Record<string, unknown> }>;
-  };
+  const body = ok(await typedClient(fetchJson)(addresses.secretsStatus, { params: { tool } }));
   return (body.secrets ?? []).map((secret) => ({
     name: String(secret.name),
     environments: Object.fromEntries(

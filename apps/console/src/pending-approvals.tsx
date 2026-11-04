@@ -1,3 +1,5 @@
+import { addresses } from "@forgeron/platform-contract/client";
+import { ok, typedClient, typedSender, type SendJson } from "./api";
 import { Badge, Button, Table, type TableColumn } from "@forgeron/ui";
 
 // The versions that wait for an admin: what each asks for, and a way to decide (docs/sdk.md
@@ -26,14 +28,7 @@ export interface PendingVersion {
 export async function loadPendingApprovals(
   fetchJson: (path: string) => Promise<unknown>,
 ): Promise<PendingVersion[]> {
-  const body = (await fetchJson("/api/approvals")) as {
-    versions?: Array<{
-      id?: unknown;
-      tool?: unknown;
-      version?: unknown;
-      approvals?: Array<{ id?: unknown; resource?: unknown; kind?: unknown }>;
-    }>;
-  };
+  const body = ok(await typedClient(fetchJson)(addresses.listApprovals));
   return (body.versions ?? []).map((entry) => ({
     id: String(entry.id),
     tool: String(entry.tool),
@@ -54,12 +49,17 @@ export async function loadPendingApprovals(
 
 /** Decides each request of a version, one after the other: the first refusal stops the rest. */
 export async function decideVersion(
-  sendJson: (path: string, body: unknown, method: "POST") => Promise<unknown>,
+  sendJson: SendJson,
   version: PendingVersion,
   decision: "approved" | "rejected",
 ): Promise<void> {
   for (const request of version.requests) {
-    await sendJson(`/api/approvals/${request.id}`, { decision }, "POST");
+    ok(
+      await typedSender(sendJson)(addresses.decideApproval, {
+        params: { id: request.id },
+        json: { decision },
+      }),
+    );
   }
 }
 

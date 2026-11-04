@@ -1,4 +1,5 @@
-import type { FetchJson } from "./api";
+import { addresses } from "@forgeron/platform-contract/client";
+import { ok, typedClient, type FetchJson } from "./api";
 
 // The workspace and the signed-in person: the answer of `GET /api/workspace`. Only what the shell and
 // the first-run checklist draw is kept.
@@ -21,7 +22,7 @@ const num = (value: unknown) => (typeof value === "number" ? value : 0);
 const mailMode = (value: unknown) => (value === "email" || value === "console" ? value : "off");
 
 export async function loadWorkspace(fetchJson: FetchJson): Promise<WorkspaceInfo> {
-  const body = (await fetchJson("/api/workspace")) as Record<string, any>;
+  const body = ok(await typedClient(fetchJson)(addresses.workspace));
   const info: WorkspaceInfo = {
     workspace: String(body.workspace),
     endpoint: String(body.endpoint),

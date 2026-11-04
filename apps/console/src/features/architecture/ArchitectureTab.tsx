@@ -1,6 +1,7 @@
 import type { Manifest } from "@forgeron/manifest";
 import { ArchitectureDiagram, EmptyState } from "@forgeron/ui";
-import type { FetchJson } from "../../api";
+import { addresses } from "@forgeron/platform-contract/client";
+import { typedClient, ok, type FetchJson } from "../../api";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
 import type { ToolTabProps } from "../tools/tabs";
@@ -22,7 +23,7 @@ function isManifest(value: unknown): value is Manifest {
 }
 
 export async function loadManifest(fetchJson: FetchJson, tool: string): Promise<Manifest> {
-  const body = (await fetchJson(`/api/tools/${tool}/manifest`)) as { manifest?: unknown };
+  const body = ok(await typedClient(fetchJson)(addresses.toolManifest, { params: { tool } }));
   if (!isManifest(body.manifest)) throw new Error("The platform answered without a manifest.");
   return body.manifest;
 }

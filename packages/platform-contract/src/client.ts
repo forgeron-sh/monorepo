@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import type { Address, RouteSpec } from "./route";
 
+export { addresses } from "./addresses";
 export { addressOf, type Address } from "./route";
 
 // A typed client derived from the route objects alone: no app type, no handler, no codegen.

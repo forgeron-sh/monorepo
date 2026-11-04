@@ -73,6 +73,7 @@ Rules of the log:
 | D-071 | 04/11/2026 | The members, invitations and membership settings routes are served by Hono, the first write routes from the contract                                                   | Active                                 |
 | D-072 | 04/11/2026 | The identity provider, connector client and tool secret routes are served by Hono; the personal secrets page stays where it is                                         | Active                                 |
 | D-073 | 04/11/2026 | The approvals and revocation routes are served by Hono; a write that a browser sends from another origin is refused on the whole console API                           | Active                                 |
+| D-074 | 04/11/2026 | The console calls the console API through the contract's typed client; its addresses are a schema-free table in the contract                                           | Active                                 |
 
 ---
 
@@ -879,3 +880,15 @@ Rules of the log:
   6. **Left out, on purpose**: token issue and revocation (`/auth/token`, `/auth/token/revoke`), the CLI sign-in (`/auth/cli`) and deploy tokens are not console API routes (they sit under `/auth` and at the workspace origin) and are FOR-154's: the spike's step 7 mounts the CLI's platform routes on the same app. Nothing in `console-api/` is called "rotation".
 - **Not verified**: the Origin check was not run against a real browser (the rule is tested on requests built with the headers a browser sends, which a page cannot set); the console was not run against this build; no real D1; the document was not checked with an OpenAPI validator.
 - **Applied in**: FOR-153 (approvals, revocations, Origin check); `packages/platform-contract/src` (`approvals.ts`, `revocations.ts`), `apps/gateway/src/platform` (`approvals.ts`, `app.ts`, `route-matrix.ts`, `platform.test.ts`, `approvals.test.ts`), `apps/gateway/src/gateway.ts`.
+
+## D-074 — The console calls the console API through the contract's typed client; its addresses are a schema-free table in the contract
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**:
+  1. **Step 7 of the spike's migration order, console part** (FOR-154): every call of the console to `/console-api` (the reads of `workspace`, `audit`, `members`, `access-matrix`, `approvals`, `secrets-status`, `manifest`, `identity-provider`, the tools, the catalog and the database explorer, and the writes of the members, invitations, domains, access matrix, approvals and identity provider) goes through `typedClient` / `typedSender` of `apps/console/src/api.ts`, which build the contract's `createClient` over the transport a screen is given. The path, the method, the parameters, the query and the body of a call are checked against the route at compile time (a wrong body or a renamed route fails to compile in the console); the answer is typed from the route.
+  2. **The transport stays**: `Api.fetchJson` and `Api.sendJson` are still what screens, tests and the local harness hand in, so `ApiError` and `explain` are untouched (a refusal still throws), and the screens' view models still read their answers defensively (no schema runs in the browser). The typed client sits over them, it does not replace them: 145 console tests pass unchanged. The platform's own routes outside `/console-api` (`/promote`, `/rollback`, `/deploy`, called through `sendPlatform`) are the next step.
+  3. **`addresses`** (`packages/platform-contract/src/addresses.ts`, exported by `@forgeron/platform-contract/client`): one entry per route, `addressOf<typeof route>({ method, path })`, so the console imports the routes as types only and no schema reaches the browser bundle (D-066). A test checks that every route of the contract has its entry with the route's own method and path, that the table has no extra entry, and that `client.ts`, `route.ts` and `addresses.ts` import nothing but types and `addressOf`. A new route is added to its module, exported from `index.ts` and given its entry in `addresses.ts`: the test fails until it is.
+  4. **No import across apps**: the console imports only the contract package; `apps-do-not-import-each-other` holds (`bun run deps`).
+- **Measured**: console production bundle (`vite build`, JS and CSS, gzip with Node's default level): see the pull request.
+- **Not verified**: the console was not run against a real gateway or in a browser (tests and the production build only); the typed answers are not validated at run time.
+- **Applied in**: FOR-154 (console); `apps/console/src` (`api.ts` and the screens' loaders and writers), `packages/platform-contract/src` (`addresses.ts`, `client.ts`, `database.ts`).

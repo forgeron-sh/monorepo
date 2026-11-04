@@ -1,4 +1,5 @@
-import type { Api, FetchJson } from "../../api";
+import { addresses } from "@forgeron/platform-contract/client";
+import { typedClient, ok, type Api, type FetchJson } from "../../api";
 
 // Typed calls to the console API for the tools (apps/gateway/src/console-api/tools.ts and
 // tool-pages.ts). Only the fields shown are kept, whatever else an answer holds.
@@ -90,7 +91,7 @@ function commitOf(value: unknown): { commit?: Commit } {
 }
 
 export async function loadTools(fetchJson: FetchJson): Promise<ToolRow[]> {
-  const body = (await fetchJson("/api/tools")) as { tools?: Array<Record<string, any>> };
+  const body = ok(await typedClient(fetchJson)(addresses.listTools));
   return list<Record<string, any>>(body.tools).map((tool) => ({
     name: String(tool.name),
     summary: text(tool.summary) ?? null,
@@ -128,10 +129,8 @@ const branchRow = (r: Record<string, any>): BranchRow => ({
   })),
 });
 
-const toolPath = (tool: string, part: string) => `/api/tools/${encodeURIComponent(tool)}/${part}`;
-
 export async function loadBranches(fetchJson: FetchJson, tool: string): Promise<Branches> {
-  const body = (await fetchJson(toolPath(tool, "branches"))) as Record<string, any>;
+  const body = ok(await typedClient(fetchJson)(addresses.toolBranches, { params: { tool } }));
   return {
     production: body.production ? branchRow(body.production) : null,
     branches: list<Record<string, any>>(body.branches).map(branchRow),
@@ -139,7 +138,7 @@ export async function loadBranches(fetchJson: FetchJson, tool: string): Promise<
 }
 
 export async function loadVersions(fetchJson: FetchJson, tool: string): Promise<VersionRow[]> {
-  const body = (await fetchJson(toolPath(tool, "versions"))) as { versions?: unknown };
+  const body = ok(await typedClient(fetchJson)(addresses.toolVersions, { params: { tool } }));
   return list<Record<string, any>>(body.versions).map((v) => ({
     version: String(v.version),
     publishedAt: String(v.publishedAt),
@@ -169,7 +168,9 @@ export async function loadVersions(fetchJson: FetchJson, tool: string): Promise<
 }
 
 export async function loadActivity(fetchJson: FetchJson, tool: string): Promise<ActivityLine[]> {
-  const body = (await fetchJson(toolPath(tool, "activity"))) as { entries?: unknown };
+  const body = ok(
+    await typedClient(fetchJson)(addresses.toolActivity, { params: { tool }, query: {} }),
+  );
   return list<Record<string, unknown>>(body.entries).map((e) => ({
     id: String(e.id),
     at: String(e.at),

@@ -1,5 +1,6 @@
 import { Badge, EmptyState, Page, Table, type TableColumn } from "@forgeron/ui";
-import type { Api, FetchJson } from "./api";
+import { addresses } from "@forgeron/platform-contract/client";
+import { typedClient, ok, type Api, type FetchJson } from "./api";
 import { ago } from "./format";
 import { AdminOnly, Loading, LoadError } from "./states";
 import { useLoad } from "./use-load";
@@ -20,7 +21,7 @@ export interface AuditRow {
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
 export async function loadAudit(fetchJson: FetchJson): Promise<AuditRow[]> {
-  const body = (await fetchJson("/api/audit")) as { entries?: Array<Record<string, unknown>> };
+  const body = ok(await typedClient(fetchJson)(addresses.audit, { query: {} }));
   return (body.entries ?? []).map((e) => ({
     id: text(e.id),
     at: text(e.at),
