@@ -2,7 +2,6 @@ import { createRegistry, migratePlatform, type Registry } from "@forgeron/regist
 import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { handleApprovals } from "./approvals";
 import type { SignIn } from "@forgeron/platform-contract";
 import { platformCaller } from "../platform/test-app";
 
@@ -35,11 +34,10 @@ const req = (path: string, init?: RequestInit) =>
 const workspace = (path = "/api/workspace", method = "GET") =>
   platformCaller({ registry, signIn, who: person })(req(path, { method }));
 const approvals = (path: string, init?: RequestInit) =>
-  handleApprovals(req(path, init), {
+  platformCaller({
     registry,
-    workspace: "acme",
-    caller: async () => (roles ? { id: "p1", admin: roles.includes("admin") } : undefined),
-  });
+    who: () => (roles ? { id: "p1", roles, admin: roles.includes("admin") } : undefined),
+  })(req(path, init));
 const audit = (path = "/api/audit", method = "GET") =>
   platformCaller({
     registry,

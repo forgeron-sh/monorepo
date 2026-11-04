@@ -125,8 +125,15 @@ describe("the members routes", () => {
       developer: false,
       roles: ["admin"],
     };
+    // A workspace of its own: the matrix above saved settings for `acme`.
+    const fresh = platformCaller({
+      registry,
+      workspace: "fresh",
+      who: () => person,
+      installDomains: ["acme.test"],
+    });
     const at = (path: string, init?: RequestInit) =>
-      call(new Request(`https://acme.forgeron.test${path}`, init))!;
+      fresh(new Request(`https://acme.forgeron.test${path}`, init))!;
     const json = (method: string, body: unknown) => ({
       method,
       headers: { "content-type": "application/json" },
