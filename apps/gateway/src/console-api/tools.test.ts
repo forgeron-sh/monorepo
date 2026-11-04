@@ -23,10 +23,11 @@ async function deploy(
   versions: Record<string, [environment: "preview" | "production", branch?: string]>,
 ) {
   const tool = await registry.createTool({ workspace, name });
+  const description = name === "odoo" ? { description: "Tickets and invoices." } : {};
   for (const [version, [environment, branch]] of Object.entries(versions)) {
     const build = await registry.recordBuild(tool.id, {
       fingerprint: `fp-${name}-${version}`,
-      manifest: { name },
+      manifest: { name, ...description },
     });
     const published = await registry.publishVersion(tool.id, build.id, version);
     const target = await registry.ensureEnvironment(tool.id, environment, branch);
@@ -56,9 +57,17 @@ describe("the tools of a workspace", () => {
         name: "crm",
         production: "1.0.0",
         previews: [{ branch: "feat-export", version: "1.2.0-rc" }],
+        summary: null,
+        lastDeployment: { at: expect.any(String), version: "1.2.0-rc" },
       },
-      { name: "draft", production: null, previews: [] },
-      { name: "odoo", production: "0.3.0", previews: [] },
+      { name: "draft", production: null, previews: [], summary: null, lastDeployment: null },
+      {
+        name: "odoo",
+        production: "0.3.0",
+        previews: [],
+        summary: "Tickets and invoices.",
+        lastDeployment: { at: expect.any(String), version: "0.3.0" },
+      },
     ]);
   });
 

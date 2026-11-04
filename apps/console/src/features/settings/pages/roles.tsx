@@ -2,7 +2,7 @@ import { Badge, EmptyState, Page, SettingsGroup, SettingsRow } from "@forgeron/u
 import { loadMembers, knownRoles } from "../../../members";
 import type { PageProps } from "../../../shell/page-props";
 import { LoadError, Loading } from "../../../states";
-import { loadTools } from "../../../tools-list";
+import { loadTools } from "../../tools/api";
 import { useLoad } from "../../../use-load";
 import { SettingsStack } from "../components/settings-stack";
 
