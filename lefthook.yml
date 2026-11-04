@@ -16,4 +16,4 @@ pre-commit:
 pre-push:
   commands:
     check:
-      run: bun run check
+      run: sh scripts/pre-push.sh
