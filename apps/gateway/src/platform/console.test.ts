@@ -72,6 +72,54 @@ describeRouteMatrix({
   ],
 });
 
+describeRouteMatrix({
+  title: "GET connections",
+  call: through,
+  method: "GET",
+  path: "/api/tools/crm/environments/production/connections",
+  access: "admin",
+  forbidden: "Connections are for admins.",
+});
+describeRouteMatrix({
+  title: "DELETE one connection",
+  call: through,
+  method: "DELETE",
+  path: "/api/tools/crm/environments/production/connections/ada%40example.test/microsoft-365",
+  access: "admin",
+  forbidden: "Connections are for admins.",
+});
+describeRouteMatrix({
+  title: "GET secrets-status",
+  call: through,
+  method: "GET",
+  path: "/api/tools/crm/secrets-status",
+  access: "developer",
+  forbidden: "Secrets status is for developers and admins.",
+});
+
+describe("the connections routes", () => {
+  it("answer 404 for an unknown environment, and 400 for a person that is not a valid encoding", async () => {
+    person = {
+      id: "p",
+      email: "a@acme.test",
+      name: "A",
+      admin: true,
+      developer: false,
+      roles: ["admin"],
+    };
+    const base = "https://acme.forgeron.test/api/tools/crm/environments";
+    expect((await call(new Request(`${base}/staging/connections`)))!.status).toBe(404);
+    const bad = (await call(
+      new Request(`${base}/production/connections/%E0%A4%A/microsoft-365`, { method: "DELETE" }),
+    ))!;
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: "INVALID", message: "The person is not valid." });
+    expect(
+      (await call(new Request(`${base}/production/connections`, { method: "POST" })))!.status,
+    ).toBe(405);
+  });
+});
+
 describe("the access matrix", () => {
   it("answers 404 for an unknown tool to an admin, and 405 to a method it does not take", async () => {
     person = {

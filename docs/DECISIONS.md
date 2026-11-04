@@ -68,6 +68,7 @@ Rules of the log:
 | D-066 | 04/11/2026 | The catalog is the first contract served by Hono: the OpenAPI document is for signed-in members, the console calls it through a client that bundles no schema          | Active                                 |
 | D-067 | 04/11/2026 | The tool routes (list, branches, versions, activity, manifest) are served by Hono; a developer access level with a per-route 403 message                               | Active                                 |
 | D-068 | 04/11/2026 | The workspace, audit log and access matrix routes are served by Hono; the access matrix write now requires a JSON content type                                         | Active                                 |
+| D-069 | 04/11/2026 | The connections and secrets status routes are served by Hono                                                                                                           | Active                                 |
 
 ---
 
@@ -815,3 +816,14 @@ Rules of the log:
   4. **Tests**: `workspace.test.ts` keeps its cases for the workspace and the audit log and now calls the app (`platformCaller` takes `signIn` and `baseDomain`); `gateway-access.test.ts` (through the gateway) is unchanged; `platform/console.test.ts` adds the shared 401/403/415/400 matrix for the four routes, with the access matrix's own 403 and 400 messages (`describeRouteMatrix` takes `invalidMessage`).
 - **Not verified**: the console was not run against this build (it reads these routes through `fetchJson`); the document was not checked with an OpenAPI validator; nothing ran against a real D1.
 - **Applied in**: FOR-152 (workspace, audit, access matrix); `packages/platform-contract/src` (`workspace.ts`, `access-matrix.ts`), `apps/gateway/src/platform` (`workspace.ts`, `access-matrix.ts`, `app.ts`, `console.test.ts`), `apps/gateway/src/gateway.ts`.
+
+## D-069 — The connections and secrets status routes are served by Hono
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**:
+  1. **Third read-route PR** (FOR-152): `GET /api/tools/<tool>/environments/<env>/connections` and `DELETE …/connections/<user>/<connector>` (admins) and `GET /api/tools/<tool>/secrets-status` (admins and developers) are route objects in `packages/platform-contract` (`connections.ts`, `secrets-status.ts`) served from `apps/gateway/src/platform/connections.ts`; `console-api/connections.ts` and `secrets-status.ts` are deleted. The answers carry no token and no secret value, as before: the schemas are `strictObject`, and `ConnectionInfo` and `SecretStatus` have no such field.
+  2. **Same behaviour**: the 403 messages (`Connections are for admins.`, `Secrets status is for developers and admins.`), the order (401, 403, 404 for an unknown tool), the `204` of a revocation and its audit line (`connector-consent:<connector>:revoke`, written by the registry; a failure to write it does not undo the revocation), `404` when that person has no such consent, `400 The person is not valid.` for a person that is not a valid URL encoding (the id is decoded here, once, from the address as sent, because Hono passes a malformed one on undecoded).
+  3. **Not the same**: an environment other than `preview` or `production` is a `404` from the route to an admin (it used to fall through to the end of the chain, to anyone); any other method on a connections path is `405` before anyone is asked who they are (it was `405` after the checks); the revocation's `audit` option of the old handler (never passed by the gateway) is gone.
+  4. **Tests**: `consent.test.ts` (the connections cases) and `secrets-status.test.ts` keep their cases and call the app; `platform/console.test.ts` adds the shared matrix for the three routes (the `DELETE` has no body, so no 415).
+- **Not verified**: the console was not run against this build; no real D1; the document was not checked with an OpenAPI validator.
+- **Applied in**: FOR-152 (connections, secrets status); `packages/platform-contract/src` (`connections.ts`, `secrets-status.ts`), `apps/gateway/src/platform/connections.ts`, `apps/gateway/src/gateway.ts`.

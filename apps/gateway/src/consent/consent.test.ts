@@ -9,7 +9,7 @@ import {
 import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { handleConnections } from "../console-api/connections";
+import { platformCaller } from "../platform/test-app";
 import { handleConsent } from "./consent";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -77,11 +77,9 @@ const consentCall = (path: string) =>
     caller: async () => person,
   });
 const adminCall = (method: string, path: string) =>
-  handleConnections(new Request(`https://acme.forgeron.test${path}`, { method }), {
-    registry,
-    workspace: "acme",
-    caller: async () => admin,
-  });
+  platformCaller({ registry, who: () => admin })(
+    new Request(`https://acme.forgeron.test${path}`, { method }),
+  );
 
 async function consentFlow() {
   const start = await consentCall(`${base}/consent/microsoft`);

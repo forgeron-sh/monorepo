@@ -70,6 +70,6 @@ describe("manifest API", () => {
     expect(((await none!.json()) as { error: string }).error).toBe("NO_MANIFEST");
     expect((await call("/api/tools/nope/manifest"))?.status).toBe(404);
     expect((await call("/api/tools/crm/manifest", "PUT"))?.status).toBe(405);
-    expect(await call("/api/tools/crm/secrets-status")).toBeUndefined();
+    expect(await call("/api/tools/crm/other")).toBeUndefined();
   });
 });
