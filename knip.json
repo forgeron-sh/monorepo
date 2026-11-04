@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignore": ["assets/**"],
+  "ignore": ["assets/**", "apps/gateway/scripts/spike-*.ts", "apps/gateway/src/spike/**"],
   "workspaces": {
     ".": {
       "entry": ["scripts/*.ts"]
