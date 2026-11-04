@@ -220,3 +220,60 @@ with a mocked console API (no real secrets) lets a screen be opened without a wo
   `docs/sidebar-reference` for measured references of the settings area and the sidebar, `design-qa.md`
   for how a visual check is written down.
 - Mobbin, through the Mobbin tools, for any screen not listed here.
+
+## Extension points
+
+What other work builds on; the shell itself is not edited to add a screen (D-056).
+
+### A page
+
+1. Create `apps/console/src/features/<domain>/pages/<name>.tsx` with a **default export** component taking
+   `PageProps` (`shell/page-props.ts`): `ws` (the workspace and the person), `api` (`fetchJson`,
+   `sendJson`), `now`, `go(href)`, `params` (the `:name` segments), `refreshPending()`.
+   The page draws a `Page` from `@forgeron/ui` and owns its loading, empty and error states.
+2. Add it to `apps/console/src/features/<domain>/routes.ts`, which default-exports a `RouteDef[]`:
+
+```ts
+import type { RouteDef } from "../../shell/routes";
+
+const routes: RouteDef[] = [
+  {
+    path: "/tools/:name", // `:name` is read into `params.name`
+    title: "Tool",
+    access: "everyone", // "everyone" | "member" (holds a role) | "admin"
+    page: () => import("./pages/tool-page"),
+    // nav: { group: "main" | "admin", label: "Tools", shortcut: "t" }  // a sidebar item, not for `:` paths
+    // settings: { group: "account" | "workspace" | "administration", label: "Profile" }
+  },
+];
+export default routes;
+```
+
+`routes.ts` is loaded when the console starts: keep it to route definitions and tab registrations, and
+import pages lazily. `shortcut` is the letter after `g` (`g` then `t`); letters are unique across the table
+(a test checks it). A person who may not see a route does not get its menu item, and the address answers
+"This page is for admins."
+
+### A tool page tab
+
+```ts
+import { registerToolTab } from "../tools"; // in features/<domain>/routes.ts
+
+registerToolTab({
+  id: "architecture",
+  title: "Architecture",
+  adminOnly: false,
+  order: 40, // optional: low first (default 100, then registration order)
+  load: () => import("./components/architecture-tab"), // default export taking ToolTabProps
+});
+```
+
+`ToolTabProps` is `{ tool, ws, api, now }`. The tool page (FOR-130) calls `toolTabs(admin)` and draws what
+comes back; an `adminOnly` tab is neither shown nor loaded for a member.
+
+### Folders
+
+`features/<domain>/{pages,components,api.ts,routes.ts,index.ts}`. `index.ts` exports what another feature
+may use (a type, a registry function); anything else is private. `api.ts` holds the typed calls to the
+console API (`/api/...` paths through `api.fetchJson` / `api.sendJson`). The table and the matcher are
+`shell/routes.ts`; `hrefOf("/tools/:name", { name })` builds an address.

@@ -268,7 +268,7 @@ export async function buildTool(folder: string): Promise<BuildResult> {
     throw new Error(`${dir}/package.json has no version: it carries the tool's version.`);
 
   const loaded = await loadTool(dir, scratch);
-  // The README and its images go to the catalog (D-056): the manifest keeps their hashes, `docs.json`
+  // The README and its images go to the catalog (D-057): the manifest keeps their hashes, `docs.json`
   // the content, which `forgeron deploy` sends with the build.
   const docs = await collectDocs(dir, loaded.config.icon);
   const docsFile = join(outDir, "docs.json");

@@ -633,7 +633,15 @@ Rules of the log:
 - **Not verified**: the migration ran against an in-memory D1 (`remove-pilot.test.ts`) with data in every table it touches, not against a real D1; D1's foreign-key enforcement during the table rebuild is the part to watch.
 - **Applied in**: FOR-132; `packages/registry` (`0019_remove_pilot`, `deploy.ts`, `registry.ts`), `packages/hosting`, `packages/runtime`, `packages/sdk`, `apps/gateway` (`dispatch`, `deploy`, `console-api`), `apps/cli`, `apps/console`, `packages/ui` and `assets/design-system` (`EnvTag`), `sdk.md` §7, §8, §15, §16, §20, `ARCHITECTURE.md`, `white-paper.md`, `self-host.md`, `design-system.md`.
 
-## D-056 — A tool's README and images are collected at build, stored with the version, and served to every member through a catalog API
+## D-056 — The console has one route table and a feature folder per domain: a page is added without editing the shell
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**: every screen of the console is an entry of the route table, `apps/console/src/shell/routes.ts`: a path with `:name` parameters, a title, who may see it (`everyone`, `member`, `admin`), a lazy page, and optionally a sidebar item (group, label, shortcut) or a place in the settings area. A feature adds its entries by default-exporting a `RouteDef[]` from `apps/console/src/features/<domain>/routes.ts`, which the table collects with `import.meta.glob`; a page that a person may not use is not in the menu, and its address answers "This page is for admins." The shell hands every page the same `PageProps` (`ws`, `api`, `now`, `go`, `params`, `refreshPending`) and draws it inside `AppLayout` under a `Suspense`. The tabs of the tool page are a registry, `features/tools/tabs.ts` (`registerToolTab({ id, title, adminOnly, load })`), that a feature fills from its own `routes.ts`, so the tool page never imports the features. A feature never imports another feature's internals. Replaces the closed list of `RouteId` in `router.ts` (D-054), which needed an edit of the router and of the shell for each screen.
+- **Why**: five sessions add screens in parallel; with a closed `switch` in the shell each one would edit the same lines, and a screen's permission was checked in the page, after the menu had already shown it.
+- **Rejected**: a routing library (one table and the History API do the job, D-054); registering routes by calling a function at import time (the order of imports would decide the order of the menu, a glob plus the table order does not); a tab registry the shell fills (the shell would import every feature).
+- **Applied in**: FOR-134; `apps/console/src/shell`, `apps/console/src/features`, `apps/console/src/router.ts`, `docs/console-ux.md`.
+
+## D-057 — A tool's README and images are collected at build, stored with the version, and served to every member through a catalog API
 
 - **Date**: 04/11/2026 · **Status**: Active
 - **Decision**:

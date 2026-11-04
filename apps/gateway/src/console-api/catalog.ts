@@ -1,7 +1,7 @@
 import { isSafeDocPath } from "@forgeron/manifest";
 import { findAsset, findCard, listCatalog, RegistryError, type Registry } from "@forgeron/registry";
 
-// The catalog of the workspace (docs/console-ux.md, "Catalog API", D-056), for any signed-in member:
+// The catalog of the workspace (docs/console-ux.md, "Catalog API", D-057), for any signed-in member:
 //   GET /api/catalog                       -> { tools: CatalogTool[] }
 //   GET /api/catalog/<tool>                -> ToolCard
 //   GET /api/catalog/<tool>/assets/<path>  -> an image of the stored bundle

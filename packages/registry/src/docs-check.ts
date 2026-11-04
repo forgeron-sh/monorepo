@@ -1,5 +1,5 @@
 // A build is a request body: the platform checks its documentation again before it stores or serves a
-// byte of it (D-056). The compiler already did, but nothing the sender says about itself is trusted.
+// byte of it (D-057). The compiler already did, but nothing the sender says about itself is trusted.
 import type { BuildDocs } from "@forgeron/hosting";
 import {
   DOC_IMAGE_TYPES,

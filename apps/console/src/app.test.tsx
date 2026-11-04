@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./app";
 import { cleanup, click, fakeApi, flush, mount, NOW, refusal } from "./test-utils";
 import { loadWorkspace } from "./workspace";
@@ -63,7 +63,7 @@ describe("App", () => {
     expect(side.textContent).toContain("demo");
     expect(side.textContent).toContain("ada@acme.fr");
     expect([...side.querySelectorAll("nav a")].map((a) => a.textContent)).toEqual([
-      "Overview",
+      "Home",
       "Tools",
       "Members",
       "Approvals1",
@@ -71,7 +71,7 @@ describe("App", () => {
       "Settings",
     ]);
     expect(side.querySelector('a[href="/auth/logout"]')?.textContent).toBe("Sign out");
-    expect(side.querySelector('[aria-current="page"]')?.textContent).toBe("Overview");
+    expect(side.querySelector('[aria-current="page"]')?.textContent).toBe("Home");
   });
 
   it("routes with the History API, moves focus to the content, and follows back", async () => {
@@ -79,22 +79,20 @@ describe("App", () => {
     const page = await mount(<App api={api} now={() => NOW} />);
     const link = [...page.querySelectorAll("nav a")].find((a) => a.textContent === "Members");
     await click(link);
-    await flush();
+    await vi.waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Members"));
     expect(window.location.pathname).toBe("/members");
-    expect(page.querySelector("h1")?.textContent).toBe("Members");
     expect(page.querySelector('[aria-current="page"]')?.textContent).toBe("Members");
     expect(document.activeElement?.id).toBe("content");
     window.history.pushState(null, "", "/tools");
     window.dispatchEvent(new PopStateEvent("popstate"));
-    await flush();
-    expect(page.querySelector("h1")?.textContent).toBe("Tools");
+    await vi.waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Tools"));
   });
 
   it("opens a deep link, and says so for an unknown path", async () => {
     window.history.replaceState(null, "", "/audit");
     const { api } = fakeApi(routes());
     const page = await mount(<App api={api} now={() => NOW} />);
-    expect(page.querySelector("h1")?.textContent).toBe("Audit log");
+    await vi.waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Audit log"));
     await cleanup();
     window.history.replaceState(null, "", "/nope");
     const lost = await mount(<App api={api} now={() => NOW} />);
@@ -106,7 +104,7 @@ describe("App", () => {
     const { api, reads } = fakeApi(routes(["developer"]));
     const page = await mount(<App api={api} now={() => NOW} />);
     expect([...page.querySelectorAll("nav a")].map((a) => a.textContent)).toEqual([
-      "Overview",
+      "Home",
       "Tools",
     ]);
     expect(page.textContent).toContain("This page is for admins.");
@@ -136,7 +134,7 @@ describe("App", () => {
     expect(page.textContent).toContain("The console could not load");
     up = true;
     await click([...page.querySelectorAll("button")].find((b) => b.textContent === "Try again"));
-    expect(page.querySelector("h1")?.textContent).toBe("Overview");
+    await vi.waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Overview"));
   });
 
   it("opens the menu on a phone and closes it when moving or pressing Escape", async () => {

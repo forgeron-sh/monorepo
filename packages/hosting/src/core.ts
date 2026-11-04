@@ -24,7 +24,7 @@ export interface Build {
   migrations?: BuildMigration[];
   /** `changelog.json`: what production checks before accepting the build (sdk.md §16). */
   changelog?: BuildChangelog;
-  /** The README and the images it references (D-056); the manifest has their hashes. */
+  /** The README and the images it references (D-057); the manifest has their hashes. */
   docs?: BuildDocs;
 }
 

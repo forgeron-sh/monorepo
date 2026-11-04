@@ -1,4 +1,4 @@
-// What a tool's documentation may hold (D-056). The compiler checks it at build, and the platform checks
+// What a tool's documentation may hold (D-057). The compiler checks it at build, and the platform checks
 // it again at deployment: a build is a request body, so nothing it says about itself is trusted.
 
 export const MAX_FILE = 1024 * 1024;

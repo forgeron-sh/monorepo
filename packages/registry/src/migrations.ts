@@ -547,7 +547,7 @@ export const platformMigrations: BuildMigration[] = [
     down: [],
   },
   {
-    // The documentation of a version for the catalog (D-056): the README and the images it references.
+    // The documentation of a version for the catalog (D-057): the README and the images it references.
     // The content is stored once per tool and hash (a version that keeps an image does not copy it),
     // chunked like the gateway's code (a D1 statement is limited in size); each build lists its files.
     // Only creates tables: an installed platform keeps everything it has.
