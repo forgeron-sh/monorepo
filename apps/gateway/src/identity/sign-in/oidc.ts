@@ -1,4 +1,5 @@
-import { fromBase64Url, toBase64Url } from "./sealed";
+import type { Identity } from "../authn/identity";
+import { fromBase64Url, toBase64Url } from "../authn/sealed";
 
 // OpenID Connect, authorization code with PKCE. Microsoft Entra ID and Google Workspace are OIDC
 // providers, as is any OIDC identity provider (their presets are in `presets.ts`); SAML is
@@ -35,15 +36,6 @@ export interface LoginState {
   state: string;
   nonce: string;
   verifier: string;
-}
-
-export interface Identity {
-  /** The provider's stable id for the person. */
-  subject: string;
-  email: string;
-  name: string;
-  /** The groups the provider states, if a groups claim is configured. */
-  groups: string[];
 }
 
 export class OidcError extends Error {

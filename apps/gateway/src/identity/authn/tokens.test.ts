@@ -1,7 +1,7 @@
 import { createRuntime } from "@forgeron/runtime";
 import { describe, expect, it, vi } from "vitest";
 import { audienceOf, parseAudience } from "./audience";
-import type { Person } from "../kernel/person";
+import type { Person } from "../../kernel/person";
 import { tokenAuthenticator } from "./authenticate";
 import { issueToken, verifyToken } from "./tokens";
 

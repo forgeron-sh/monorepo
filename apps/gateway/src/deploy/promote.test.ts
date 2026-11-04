@@ -3,7 +3,7 @@ import { createRegistry, deployBuild, migratePlatform, type Registry } from "@fo
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Person } from "../kernel/person";
-import { issueToken } from "../identity/tokens";
+import { issueToken } from "../identity/authn/tokens";
 import { handlePromote, handleRollback } from "./promote";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });

@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createAuth, type AuthOptions } from "./auth";
-import { tokenAuthenticator } from "./authenticate";
+import { tokenAuthenticator } from "../authn/authenticate";
 import { OidcError, completeLogin, startLogin, type OidcProvider } from "./oidc";
-import { toBase64Url } from "./sealed";
-import { SESSION_COOKIE, closeSession, cookieOf, openSession, readSession } from "./session";
+import { toBase64Url } from "../authn/sealed";
+import { SESSION_COOKIE, closeSession, cookieOf, openSession, readSession } from "../authn/session";
 
 const secret = "test-secret-not-a-real-one";
 const now = new Date("2026-11-03T10:00:00Z");

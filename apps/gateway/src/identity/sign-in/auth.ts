@@ -1,9 +1,9 @@
-import { workspaceOf } from "../kernel/workspace";
-import { negotiated } from "../pages/errors";
+import type { Identity } from "../authn/identity";
+import { workspaceOf } from "../../kernel/workspace";
+import { negotiated } from "../../pages/errors";
 import {
   completeLogin,
   startLogin,
-  type Identity,
   type LoginState,
   type OidcFetch,
   type OidcProvider,
@@ -16,8 +16,8 @@ import {
   type SamlProvider,
   type SamlRequests,
 } from "./saml";
-import { seal, unseal } from "./sealed";
-import { closeSession, cookieOf, openSession } from "./session";
+import { seal, unseal } from "../authn/sealed";
+import { closeSession, cookieOf, openSession } from "../authn/session";
 
 // `/auth/login`, `/auth/callback` and `/auth/logout` of a workspace: sign-in through the workspace's
 // identity provider, then a session cookie. The platform paths belong to the gateway, never to a tool.

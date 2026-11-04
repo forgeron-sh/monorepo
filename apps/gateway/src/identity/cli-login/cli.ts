@@ -1,11 +1,11 @@
 import type { Registry } from "@forgeron/registry";
-import type { Person } from "../kernel/person";
-import { authorizationPage, handBackPage } from "../pages/cli";
-import { errorPage } from "../pages/errors";
-import { CLI_SCOPE } from "./caller";
-import { sameOriginPost } from "./origin";
-import { seal, toBase64Url, unseal } from "./sealed";
-import { issueToken } from "./tokens";
+import type { Person } from "../../kernel/person";
+import { authorizationPage, handBackPage } from "../../pages/cli";
+import { errorPage } from "../../pages/errors";
+import { CLI_SCOPE } from "../authn/caller";
+import { sameOriginPost } from "../authn/origin";
+import { seal, toBase64Url, unseal } from "../authn/sealed";
+import { issueToken } from "../authn/tokens";
 
 // `forgeron login` (D-025, D-028): `GET /auth/cli` asks the signed-in person to authorize the CLI,
 // `POST /auth/cli` then sends the browser back to the CLI's loopback address with a one-time code; `POST /auth/cli/token` trades the code, with the PKCE

@@ -1,5 +1,5 @@
 import type { Invitation, Registry } from "@forgeron/registry";
-import { toBase64Url } from "./sealed";
+import { toBase64Url } from "../authn/sealed";
 
 // The link in an invitation mail carries an opaque id: a keyed hash of the invitation, so that it
 // cannot be guessed, says nothing of the address, and stops working when the person is invited

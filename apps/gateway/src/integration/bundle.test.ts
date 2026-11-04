@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Miniflare } from "miniflare";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildGateway } from "../scripts/build";
+import { buildGateway } from "../../scripts/build";
 
 // `bun run --cwd apps/gateway build` (D-028): the bundle is one ES module that workerd loads with
 // the compatibility settings `platform install` uploads it with, and it answers requests.

@@ -2,7 +2,7 @@ import type { Build, D1Database, Hosting } from "@forgeron/hosting";
 import { createRegistry, migratePlatform, type Registry } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { issueToken } from "../identity/tokens";
+import { issueToken } from "../identity/authn/tokens";
 import { handleCreateDeployToken, handleDeploy } from "./deploy";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });

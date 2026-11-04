@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { toBase64Url } from "./identity/sealed";
+import { toBase64Url } from "./identity/authn/sealed";
 
 // A simulated OIDC provider for the gateway's end-to-end tests: discovery, JWKS and a token
 // endpoint with a real RSA key, and PKCE enforced the way a real provider does.

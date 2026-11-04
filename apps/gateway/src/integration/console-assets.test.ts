@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Miniflare } from "miniflare";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { buildGateway } from "../scripts/build";
+import { buildGateway } from "../../scripts/build";
 
 // FOR-122: the console, built by `apps/console`, loads its entry page from the gateway, in workerd,
 // the way `forgeron platform install` deploys them: the gateway bundle with the build as assets.
@@ -20,7 +20,7 @@ beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "forgeron-console-"));
   const dist = join(dir, "dist");
   const build = spawnSync("bunx", ["vite", "build", "--outDir", dist], {
-    cwd: join(here, "..", "..", "console"),
+    cwd: join(here, "..", "..", "..", "console"),
     encoding: "utf8",
   });
   if (build.status !== 0) throw new Error(`console build failed:\n${build.stdout}${build.stderr}`);
