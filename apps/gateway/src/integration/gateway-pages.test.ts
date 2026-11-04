@@ -113,12 +113,18 @@ describe("the page shell", () => {
   });
 
   it("gives a browser an error page and an API client its JSON", async () => {
-    const page = await get("/mcp", { accept: "text/html,application/xhtml+xml" });
+    const page = await get("/nowhere", { accept: "text/html,application/xhtml+xml" });
     const html = await expectShell(page);
     expect(page.status).toBe(404);
     expect(html).toContain("<h1>This page does not exist</h1>");
     expect(html).toContain("Check the address, or go to the workspace home.");
-    expect((await get("/mcp")).headers.get("content-type")).toContain("application/json");
+    expect((await get("/nowhere")).headers.get("content-type")).toContain("application/json");
+    // The workspace's API paths never answer a page, even to a browser (sdk.md §7, point 1).
+    for (const path of ["/mcp", "/api", "/api/x", "/cli", "/cli/x"]) {
+      const answered = await get(path, { accept: "text/html" });
+      expect(answered.status).toBe(404);
+      expect(answered.headers.get("content-type")).toContain("application/json");
+    }
     const post = await gateway()(new Request(`${ORIGIN}/auth/login`, { method: "POST" }));
     expect(post.status).toBe(405);
     expect(post.headers.get("allow")).toBe("GET");
