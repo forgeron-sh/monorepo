@@ -96,6 +96,11 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
       return db?.id ? createRestD1(client, db.id) : undefined;
     },
 
+    async openDatabase(environment) {
+      const id = await resources.findD1(nameOf(environment));
+      return id ? createRestD1(client, id) : undefined;
+    },
+
     async activate(uploaded): Promise<Activation> {
       const worker = nameOf(uploaded.provisioned.environment);
       await client.request("POST", `/workers/scripts/${worker}/deployments`, {

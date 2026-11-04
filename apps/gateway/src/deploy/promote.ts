@@ -108,7 +108,10 @@ async function prepare(request: Request, context: PromoteContext, environmentKey
   if (!ENVIRONMENTS.includes(environment as RegisteredEnvironment)) {
     return fail(400, "INVALID", `${environmentKey}: one of ${ENVIRONMENTS.join(", ")}.`);
   }
-  const { branch } = body;
+  const { branch, reason } = body;
+  if (reason !== undefined && (typeof reason !== "string" || reason.length > 500)) {
+    return fail(400, "INVALID", "reason: a text of at most 500 characters.");
+  }
   if (environment === "preview" && (typeof branch !== "string" || branch === "")) {
     return fail(400, "INVALID", "branch: a preview is tied to a branch.");
   }
@@ -133,6 +136,7 @@ async function prepare(request: Request, context: PromoteContext, environmentKey
     body,
     environment: environment as RegisteredEnvironment,
     ...(typeof branch === "string" && branch ? { branch } : {}),
+    ...(typeof reason === "string" && reason.trim() ? { reason: reason.trim() } : {}),
   };
 }
 
@@ -145,7 +149,7 @@ async function prepare(request: Request, context: PromoteContext, environmentKey
 export async function handlePromote(request: Request, context: PromoteContext) {
   const ready = await prepare(request, context, "to");
   if (ready instanceof Response) return ready;
-  const { actor, tool, body, environment, branch } = ready;
+  const { actor, tool, body, environment, branch, reason } = ready;
   const { version, allowDestructive } = body;
   if (typeof version !== "string" || version === "") {
     return fail(400, "INVALID", "version: the number to promote.");
@@ -157,6 +161,7 @@ export async function handlePromote(request: Request, context: PromoteContext) {
       to: environment,
       ...(branch ? { branch } : {}),
       ...(allowDestructive === true ? { allowDestructive: true } : {}),
+      ...(reason ? { reason } : {}),
       actor,
     });
     return json(200, {
@@ -178,12 +183,13 @@ export async function handlePromote(request: Request, context: PromoteContext) {
 export async function handleRollback(request: Request, context: PromoteContext) {
   const ready = await prepare(request, context, "environment");
   if (ready instanceof Response) return ready;
-  const { actor, tool, environment, branch } = ready;
+  const { actor, tool, environment, branch, reason } = ready;
   try {
     const rolled = await rollbackEnvironment(context.registry, context.hosting, {
       tool,
       environment,
       ...(branch ? { branch } : {}),
+      ...(reason ? { reason } : {}),
       actor,
     });
     return json(200, {

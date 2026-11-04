@@ -421,9 +421,13 @@ If the sandbox gets in the way of some views (local storage, downloads, librarie
 | `t.json()`      | `TEXT` JSON, checked with `json_valid` (not yet validated by a schema nor (de)serialized: write `JSON.stringify(value)`, read a string) | `string`                               |
 | `t.ref(table)`  | `TEXT REFERENCES`                                                                                                                       | `string`                               |
 
-Modifiers: `.notNull()`, `.unique()`, `.default(v)`, `.defaultNow()`, `.onUpdateNow()`, `.onDelete("cascade" | "set null" | "restrict")`. Indexes: `index(col)`, `index([a, b])`, `unique([a, b])`.
+Modifiers: `.notNull()`, `.unique()`, `.default(v)`, `.defaultNow()`, `.onUpdateNow()`, `.onDelete("cascade" | "set null" | "restrict")`, `.personal()`. Indexes: `index(col)`, `index([a, b])`, `unique([a, b])`.
 
 Names are identical in the schema, in the database and in queries (`snake_case` recommended). `forgeron build` (so `forgeron dev` and `forgeron test`) writes `.forgeron/generated/db.d.ts`, which gives `ctx.db` the types of the schema: a `Kysely<DB>` plus `batch`, the way to make several writes atomic (D-012). The tool's `tsconfig.json` has to include `.forgeron/generated`. A tool that declares `db/schema.ts` must declare `resources.db`.
+
+### Personal data
+
+`.personal()` tags a column as personal data: `email: t.text().personal()`. The tag is written in the table's SQL (`/* personal */` after the column), so the console's database explorer finds it in the database itself and masks the column by default: its values are never read for the page, never in an export, and the column cannot be sorted or filtered on (D-059). A column whose name says it (`email`, `phone`, `first_name`, `last_name`, `address`, `birth…`, `iban`, `ip`, `password`, `token`, `secret`…) is masked as well when it is not tagged. Tagging a column that already exists is a column change: `forgeron db generate` rebuilds the table.
 
 ### Migrations
 

@@ -16,6 +16,9 @@ const ID =
 const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 const TODAY = "date('now')";
 
+/** What follows a personal column's definition in its `CREATE TABLE`. */
+export const PERSONAL_MARKER = "/* personal */";
+
 function columnSql(name: string, def: ColumnDef): string {
   const parts = [q(name)];
   switch (def.kind) {
@@ -46,6 +49,8 @@ function columnSql(name: string, def: ColumnDef): string {
     parts.push(`REFERENCES ${q(def.references!)}(${q("id")})`);
     if (def.onDelete) parts.push(`ON DELETE ${def.onDelete.toUpperCase()}`);
   }
+  // A block comment, which SQLite keeps in `sqlite_master`: the explorer reads the tag from there.
+  if (def.personal) parts.push(PERSONAL_MARKER);
   return parts.join(" ");
 }
 

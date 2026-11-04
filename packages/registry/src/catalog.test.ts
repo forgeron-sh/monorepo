@@ -209,11 +209,11 @@ describe("the documentation of a version", () => {
     expect(await registry.listVersions(tool.id)).toEqual([]);
   });
 
-  it("is added by migration 0020 to a platform that predates it, keeping what it holds", async () => {
+  it("is added by migration 0021 to a platform that predates it, keeping what it holds", async () => {
     const other = await createMemoryD1();
     try {
       const old = other as unknown as D1Database;
-      const before = platformMigrations.findIndex((m) => m.name === "0020_tool_docs");
+      const before = platformMigrations.findIndex((m) => m.name === "0021_tool_docs");
       expect(before).toBeGreaterThan(0);
       await applyMigrations(old, platformMigrations.slice(0, before));
       await old.batch([

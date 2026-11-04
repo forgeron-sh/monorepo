@@ -18,6 +18,7 @@ import {
   RegistryError,
   type Approval,
   type BuildRecord,
+  type DeploymentCommit,
   type EnvironmentRecord,
   type Registry,
   type RegisteredEnvironment,
@@ -38,6 +39,8 @@ export interface DeployBuildInput {
   seed?: DeployOptions["seed"];
   /** Who deploys: written in the audit log. */
   actor: string;
+  /** The commit CI built from, kept with the deployment for the console. */
+  commit?: DeploymentCommit;
 }
 
 export interface DeployedBuild extends Deployment {
@@ -138,6 +141,7 @@ export async function deployBuild(
   const environment = await registry.activate(slot.id, version.id, {
     actor: input.actor,
     url: deployment.activation.url,
+    ...(input.commit ? { commit: input.commit } : {}),
   });
   return { ...deployment, version, environment };
 }
@@ -150,6 +154,8 @@ export interface PromoteInput {
   branch?: string;
   allowDestructive?: boolean;
   actor: string;
+  /** Why, as the person wrote it: kept in the audit line. */
+  reason?: string;
 }
 
 /**
@@ -181,6 +187,7 @@ export async function promoteVersion(
     actor: input.actor,
     kind: "promote",
     url: deployment.activation.url,
+    ...(input.reason ? { reason: input.reason } : {}),
   });
   return { ...deployment, version, environment };
 }
@@ -190,6 +197,8 @@ export interface RollbackInput {
   environment: RegisteredEnvironment;
   branch?: string;
   actor: string;
+  /** Why, as the person wrote it: kept in the audit line. */
+  reason?: string;
 }
 
 /**
@@ -221,6 +230,7 @@ export async function rollbackEnvironment(
     actor: input.actor,
     kind: "rollback",
     url: activation.url,
+    ...(input.reason ? { reason: input.reason } : {}),
   });
   return { version: previous, environment };
 }

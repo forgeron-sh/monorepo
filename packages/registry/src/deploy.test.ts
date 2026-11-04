@@ -91,6 +91,32 @@ describe("deployBuild", () => {
     expect(environment?.versionId).toBe(first.version.id);
   });
 
+  it("keeps the commit of a deployment, and lists the history newest first", async () => {
+    const tool = await registry.createTool({ workspace: "acme", name: "crm" });
+    const { hosting } = fakeHosting();
+    await deployBuild(registry, hosting, {
+      tool,
+      environment: "preview",
+      branch: "feat/a",
+      build: build("fp1"),
+      version: "0.0.1-a",
+      actor: "ely",
+      commit: { sha: "a41f9e0c", message: "Add the export", author: "Ada" },
+    });
+    await deployBuild(registry, hosting, {
+      tool,
+      environment: "production",
+      build: build("fp2"),
+      version: "1.0.0",
+      actor: "ely",
+    });
+    const history = await registry.listDeployments(tool.id);
+    expect(history.map((d) => d.commit)).toEqual([
+      undefined,
+      { sha: "a41f9e0c", message: "Add the export", author: "Ada" },
+    ]);
+  });
+
   it("closes a preview: torn down, then forgotten", async () => {
     const tool = await registry.createTool({ workspace: "acme", name: "crm" });
     const { hosting, calls } = fakeHosting();

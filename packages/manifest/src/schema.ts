@@ -140,7 +140,7 @@ function checkInvariants(manifest: z.infer<typeof ManifestShape>, ctx: z.Refinem
   }
 }
 
-/** The types an image of a tool's README may have (D-058). SVG is accepted only without script. */
+/** The types an image of a tool's README may have (D-061). SVG is accepted only without script. */
 export const DOC_IMAGE_TYPES = {
   png: "image/png",
   jpg: "image/jpeg",

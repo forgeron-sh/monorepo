@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { loadProvider, SettingsPage, splitCertificates } from "./settings";
+import { InstallPage, loadProvider, SignInPage, splitCertificates } from "./settings";
 import { button, cleanup, click, fakeApi, field, mount, refusal, submit, type } from "./test-utils";
 import type { WorkspaceInfo } from "./workspace";
 
@@ -45,21 +45,21 @@ describe("loadProvider", () => {
   });
 });
 
-describe("SettingsPage", () => {
+describe("SignInPage", () => {
   it("is for admins", async () => {
     const { api } = fakeApi({});
     const page = await mount(
-      <SettingsPage
+      <SignInPage
         api={api}
         ws={ws({ person: { id: "m2", email: "b", name: "b", roles: [], admin: false } })}
       />,
     );
-    expect(page.textContent).toContain("Settings is for admins.");
+    expect(page.textContent).toContain("Sign-in is for admins.");
   });
 
   it("says how email sign-in works, and warns about the console mail mode", async () => {
     const { api } = fakeApi({ "/api/identity-provider": { provider: null } });
-    const page = await mount(<SettingsPage api={api} ws={ws()} />);
+    const page = await mount(<SignInPage api={api} ws={ws()} />);
     expect(page.textContent).toContain("Mail mode is console.");
     expect(page.textContent).toContain("https://demo.example.test/auth/callback");
     expect(page.textContent).toContain("https://demo.example.test/auth/saml/acs");
@@ -69,7 +69,7 @@ describe("SettingsPage", () => {
   it("tells how to turn email on when it is off", async () => {
     const { api } = fakeApi({ "/api/identity-provider": { provider: null } });
     const page = await mount(
-      <SettingsPage
+      <SignInPage
         api={api}
         ws={ws({
           signIn: {
@@ -89,7 +89,7 @@ describe("SettingsPage", () => {
       "/api/identity-provider": { provider: null },
       "PUT /api/identity-provider": {},
     });
-    const page = await mount(<SettingsPage api={api} ws={ws()} />);
+    const page = await mount(<SignInPage api={api} ws={ws()} />);
     await type(field(page, "Client ID"), "client-1");
     await type(field(page, "Issuer URL"), "https://login.example.test");
     await type(field(page, "Client secret"), "test-only-secret");
@@ -119,7 +119,7 @@ describe("SettingsPage", () => {
       },
       "PUT /api/identity-provider": {},
     });
-    const page = await mount(<SettingsPage api={api} ws={ws()} />);
+    const page = await mount(<SignInPage api={api} ws={ws()} />);
     expect(page.textContent).toContain("A secret is kept.");
     await submit(page.querySelectorAll("form")[0]);
     expect(sent.at(-1)!.body).toEqual({
@@ -135,7 +135,7 @@ describe("SettingsPage", () => {
       "/api/identity-provider": { provider: null },
       "PUT /api/identity-provider": {},
     });
-    const page = await mount(<SettingsPage api={api} ws={ws()} />);
+    const page = await mount(<SignInPage api={api} ws={ws()} />);
     const form = page.querySelectorAll("form")[1]!;
     await type(field(form, "Identity provider entity ID"), "https://idp.example.test");
     await type(field(form, "Sign-on URL"), "https://idp.example.test/sso");
@@ -156,7 +156,7 @@ describe("SettingsPage", () => {
         throw refusal(400, "`issuer` must be an https URL.");
       },
     });
-    const page = await mount(<SettingsPage api={api} ws={ws()} />);
+    const page = await mount(<SignInPage api={api} ws={ws()} />);
     await submit(page.querySelectorAll("form")[0]);
     expect(page.querySelector("form [role=alert]")?.textContent).toContain(
       "`issuer` must be an https URL.",
@@ -176,7 +176,7 @@ describe("SettingsPage", () => {
       },
       "DELETE /api/identity-provider": undefined,
     });
-    const page = await mount(<SettingsPage api={api} ws={ws()} />);
+    const page = await mount(<SignInPage api={api} ws={ws()} />);
     expect(page.textContent).toContain("SAML is configured. Saving OpenID Connect replaces it.");
     await click(button(page, "Remove provider"));
     expect(sent).toEqual([]);
@@ -190,11 +190,7 @@ describe("SettingsPage", () => {
   });
 
   it("shows the install", async () => {
-    const { api } = fakeApi({ "/api/identity-provider": { provider: null } });
-    const page = await mount(<SettingsPage api={api} ws={ws()} />);
-    await click(
-      [...page.querySelectorAll('[role="tab"]')].find((t) => t.textContent === "Install"),
-    );
+    const page = await mount(<InstallPage ws={ws()} />);
     expect(page.textContent).toContain("example.test");
     expect(page.textContent).toContain("forgeron platform install");
   });
