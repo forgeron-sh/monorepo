@@ -546,4 +546,48 @@ export const platformMigrations: BuildMigration[] = [
     // Nothing to put back: the pilot data is deleted.
     down: [],
   },
+  {
+    // What the console shows beside each deployment (D-056): the commit that was deployed, as CI
+    // knows it. Nullable: a deployment made before this, or by a client that sends nothing, has none.
+    name: "0020_deployment_commit",
+    fingerprint: "deployment-commit-v1",
+    destructive: false,
+    up: [
+      st(`ALTER TABLE "deployments" ADD COLUMN "commit_sha" TEXT`),
+      st(`ALTER TABLE "deployments" ADD COLUMN "commit_message" TEXT`),
+      st(`ALTER TABLE "deployments" ADD COLUMN "commit_author" TEXT`),
+    ],
+    down: [
+      st(`ALTER TABLE "deployments" DROP COLUMN "commit_author"`),
+      st(`ALTER TABLE "deployments" DROP COLUMN "commit_message"`),
+      st(`ALTER TABLE "deployments" DROP COLUMN "commit_sha"`),
+    ],
+  },
+  {
+    // The documentation of a version for the catalog (D-061): the README and the images it references.
+    // The content is stored once per tool and hash (a version that keeps an image does not copy it),
+    // chunked like the gateway's code (a D1 statement is limited in size); each build lists its files.
+    // Only creates tables: an installed platform keeps everything it has.
+    name: "0021_tool_docs",
+    fingerprint: "tool-docs-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "docs_blobs" (
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "hash" TEXT NOT NULL,
+  "part" INTEGER NOT NULL,
+  "content" TEXT NOT NULL,
+  PRIMARY KEY ("tool_id", "hash", "part")
+)`),
+      st(`CREATE TABLE "build_docs" (
+  "build_id" TEXT NOT NULL REFERENCES "builds" ("id") ON DELETE CASCADE,
+  "path" TEXT NOT NULL,
+  "hash" TEXT NOT NULL,
+  "type" TEXT NOT NULL,
+  "size" INTEGER NOT NULL,
+  PRIMARY KEY ("build_id", "path")
+)`),
+    ],
+    down: [st(`DROP TABLE "build_docs"`), st(`DROP TABLE "docs_blobs"`)],
+  },
 ];

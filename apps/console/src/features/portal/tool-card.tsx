@@ -1,5 +1,5 @@
 import "./portal.css";
-import { Badge, Button, DetailList, Markdown, Notice, Tabs, ToolIcon } from "@forgeron/ui";
+import { Badge, Button, DetailList, Markdown, Notice, Tabs } from "@forgeron/ui";
 import { useState } from "react";
 import type { Api } from "../../api";
 import { ago } from "../../format";
@@ -41,14 +41,9 @@ export function ToolCardView({
   const images = imagesOf(card);
   return (
     <div className="fp-card">
-      <header className="fp-card-head">
-        <ToolIcon name={card.name} size="lg" />
-        <div className="fp-card-titles">
-          <h2 className="fp-card-title">{card.title}</h2>
-          <p className="fp-card-summary">{card.summary}</p>
-        </div>
-        {granted ? (
-          card.interfaces.web ? (
+      {granted ? (
+        <div className="fp-card-head">
+          {card.interfaces.web ? (
             <Button variant="primary" href={`/t/${encodeURIComponent(card.name)}/`}>
               Open
             </Button>
@@ -56,9 +51,9 @@ export function ToolCardView({
             <Button variant="primary" onClick={() => setTab("install")}>
               Connect
             </Button>
-          )
-        ) : null}
-      </header>
+          )}
+        </div>
+      ) : null}
 
       {!granted ? (
         <Notice tone="info" title="You do not use this tool yet.">

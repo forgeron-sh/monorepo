@@ -35,7 +35,14 @@ export type SendJson = (
 export interface Api {
   fetchJson: FetchJson;
   sendJson: SendJson;
+  /**
+   * The platform's own routes on the workspace origin (`/promote`, `/rollback`, `/deploy`): the same
+   * session answers there, they are not under `/console-api`. Absent where a screen does not need it.
+   */
+  sendPlatform?: SendPlatform;
 }
+
+type SendPlatform = (path: string, body: unknown, method?: "POST" | "DELETE") => Promise<unknown>;
 
 /** What to tell a person about a failed call: what the platform said, else what to do. */
 export function explain(error: unknown, fallback: string): string {
@@ -70,4 +77,30 @@ export async function sendJson(
   });
   if (!response.ok) throw await failure(path, response);
   return response.status === 204 ? undefined : response.json();
+}
+
+/** A call to one of the platform's routes; its refusals are `{ error: { code, message } }`. */
+export async function sendPlatform(
+  path: string,
+  body: unknown,
+  method: "POST" | "DELETE" = "POST",
+): Promise<unknown> {
+  const response = await fetch(path, {
+    method,
+    credentials: "same-origin",
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const failed = (await response.json().catch(() => undefined)) as
+      | { error?: { message?: unknown } }
+      | undefined;
+    const detail = typeof failed?.error?.message === "string" ? failed.error.message : undefined;
+    throw new ApiError(
+      `${path}: ${response.status}${detail ? ` ${detail}` : ""}`,
+      response.status,
+      detail,
+    );
+  }
+  return response.json();
 }

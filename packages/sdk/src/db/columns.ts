@@ -26,6 +26,8 @@ export interface ColumnDef {
   unique: boolean;
   default?: DefaultValue;
   onUpdateNow: boolean;
+  /** Holds personal data: the console's database explorer masks it (docs/sdk.md §8). */
+  personal?: boolean;
   /** `enum`: the allowed values. */
   values?: readonly string[];
   /** `ref`: the table pointed at, and what happens to this row when the target row goes. */
@@ -86,6 +88,14 @@ export class Column<S, N extends boolean = true, D extends boolean = false, W = 
     if (this.def.kind !== "timestamp")
       throw new TypeError("onUpdateNow() is for timestamp columns.");
     return new Column(this.with({ onUpdateNow: true }));
+  }
+
+  /**
+   * Tags the column as personal data. The tag is written in the table's SQL, so the console's
+   * database explorer finds it in the database itself and masks the column by default.
+   */
+  personal(): Column<S, N, D, W> {
+    return new Column(this.with({ personal: true }));
   }
 
   onDelete(action: OnDelete): Column<S, N, D, W> {

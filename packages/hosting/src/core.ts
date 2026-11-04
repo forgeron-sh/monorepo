@@ -24,6 +24,14 @@ export interface Build {
   migrations?: BuildMigration[];
   /** `changelog.json`: what production checks before accepting the build (sdk.md §16). */
   changelog?: BuildChangelog;
+  /** The README and the images it references (D-061); the manifest has their hashes. */
+  docs?: BuildDocs;
+}
+
+/** The documentation of a build, with its content: `manifest.docs` lists the same files by hash. */
+export interface BuildDocs {
+  readme?: string;
+  assets: Array<{ path: string; type: string; size: number; hash: string; base64: string }>;
 }
 
 export type Impact = "none" | "patch" | "minor" | "major";
@@ -80,6 +88,12 @@ export interface Hosting {
   teardown(environment: Environment): Promise<void>;
   /** The environment's database, to fill it (a preview's seed). Absent when the host cannot reach it. */
   database?(provisioned: Provisioned): D1Database | undefined;
+  /**
+   * The database of an environment that is already deployed, found by name: no deployment is
+   * involved, so the gateway can read a tool's data (the console's database explorer). The caller
+   * must only ever read from it. `undefined` when the environment has no database.
+   */
+  openDatabase?(environment: Environment): Promise<D1Database | undefined>;
 }
 
 /** The bindings a tool's resources become: one D1, KV, R2 or queue per declared resource. */

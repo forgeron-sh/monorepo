@@ -115,7 +115,7 @@ describe("Tool card", () => {
     const view = await mount(
       <ToolOverview tool="crm" ws={ws(false)} api={card("crm", false)} now={() => NOW} />,
     );
-    expect(view.querySelector("h2")!.textContent).toBe("CRM");
+    expect(view.querySelector(".fp-card-head a, .fp-card-head button")!.textContent).toBe("Open");
     expect(view.querySelector("img")!.getAttribute("src")).toBe(
       "/console-api/api/catalog/crm/assets/img/contacts.svg?v=mock",
     );

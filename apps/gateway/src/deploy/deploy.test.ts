@@ -112,6 +112,83 @@ describe("POST /deploy", () => {
     expect(refused.status).toBe(400);
   });
 
+  it("stores the README and the images of the build, and refuses documentation that lies", async () => {
+    const hash = async (bytes: Uint8Array) =>
+      [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))]
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 1]);
+    const readme = "# CRM\n![a](docs/a.png)";
+    const documented = async (over: { svg?: string } = {}) => {
+      const files = [{ path: "docs/a.png", type: "image/png", bytes: png }];
+      if (over.svg) {
+        files.push({
+          path: "docs/i.svg",
+          type: "image/svg+xml",
+          bytes: new TextEncoder().encode(over.svg),
+        });
+      }
+      const assets = await Promise.all(
+        files.map(async (f) => ({
+          path: f.path,
+          type: f.type,
+          size: f.bytes.length,
+          hash: await hash(f.bytes),
+          base64: Buffer.from(f.bytes).toString("base64"),
+        })),
+      );
+      const encoded = new TextEncoder().encode(readme);
+      const b = build();
+      return {
+        ...b,
+        manifest: {
+          ...b.manifest,
+          docs: {
+            readme: { size: encoded.length, hash: await hash(encoded) },
+            assets: assets.map((a) => ({ path: a.path, type: a.type, size: a.size, hash: a.hash })),
+          },
+        },
+        docs: { readme, assets },
+      };
+    };
+
+    const { hosting } = fakeHosting();
+    const evil = await handleDeploy(
+      post(
+        "/deploy",
+        upload({ build: await documented({ svg: "<svg><script>alert(1)</script></svg>" }) }),
+        await deploymentToken(),
+      ),
+      context(hosting),
+    );
+    expect(evil.status).toBe(400);
+    expect(((await evil.json()) as { error: { message: string } }).error.message).toMatch(
+      /docs\/i\.svg.*SVG is refused/,
+    );
+    expect(await registry.findTool("acme", "crm")).toBeUndefined();
+
+    const traversal = await documented();
+    traversal.docs.assets[0]!.path = "../a.png";
+    expect(
+      (
+        await handleDeploy(
+          post("/deploy", upload({ build: traversal }), await deploymentToken()),
+          context(hosting),
+        )
+      ).status,
+    ).toBe(400);
+
+    const ok = await handleDeploy(
+      post("/deploy", upload({ build: await documented() }), await deploymentToken()),
+      context(hosting),
+    );
+    expect(ok.status).toBe(200);
+    const tool = (await registry.findTool("acme", "crm"))!;
+    const [version] = await registry.listVersions(tool.id);
+    expect(await registry.readmeOf(tool.id, version!.buildId)).toBe(readme);
+    expect((await registry.assetOf(tool.id, version!.buildId, "docs/a.png"))!.bytes.length).toBe(5);
+  });
+
   it("deploys the uploaded build for a valid FORGERON_TOKEN and answers where it is served", async () => {
     const { hosting, calls } = fakeHosting();
     const response = await handleDeploy(
@@ -134,6 +211,26 @@ describe("POST /deploy", () => {
     expect(await historyOf("production")).toEqual([
       { actor: "deploy:ci", kind: "deploy", at: now.toISOString(), version: "1.0.0" },
     ]);
+  });
+
+  it("keeps the commit CI reports, cut to its first line, and refuses one that is not a commit", async () => {
+    const commit = { sha: "A41F9E0C", message: "Add the export\n\nLong body", author: " Ada " };
+    const token = await deploymentToken();
+    const ok = await handleDeploy(post("/deploy", upload({ commit }), token), context());
+    expect(ok.status).toBe(200);
+    const tool = (await registry.findTool("acme", "crm"))!;
+    expect((await registry.listDeployments(tool.id))[0]?.commit).toEqual({
+      sha: "a41f9e0c",
+      message: "Add the export",
+      author: "Ada",
+    });
+    for (const bad of ["a41f9e0", { sha: "not-a-hash" }, { sha: "a41f9e0", message: 3 }]) {
+      const refused = await handleDeploy(
+        post("/deploy", upload({ commit: bad }), token),
+        context(),
+      );
+      expect(refused.status).toBe(400);
+    }
   });
 
   it("answers with the reason when the deployment fails, and records nothing", async () => {
@@ -287,6 +384,28 @@ describe("DELETE /deploy", () => {
     expect((await registry.listEnvironments(tool.id)).some((e) => e.name === "preview")).toBe(
       false,
     );
+  });
+
+  it("lets an administrator of the workspace close a preview, naming the tool", async () => {
+    const { hosting } = fakeHosting();
+    await handleDeploy(
+      post(
+        "/deploy",
+        upload({ environment: "preview", branch: "feat/a" }),
+        await deploymentToken(),
+      ),
+      context(hosting),
+    );
+    const person = (roles: string[]) => ({ id: "u1", email: "ada@acme.fr", name: "Ada", roles });
+    const closeAs = (who: ReturnType<typeof person> | undefined, body: unknown) =>
+      handleDeploy(remove(body), { ...context(hosting), authenticate: () => who });
+    expect((await closeAs(undefined, { tool: "crm", branch: "feat/a" })).status).toBe(401);
+    expect((await closeAs(person(["developer"]), { tool: "crm", branch: "feat/a" })).status).toBe(
+      403,
+    );
+    expect((await closeAs(person(["admin"]), { branch: "feat/a" })).status).toBe(400);
+    const closed = await closeAs(person(["admin"]), { tool: "crm", branch: "feat/a" });
+    expect(await closed.json()).toEqual({ tool: "crm", branch: "feat/a", removed: true });
   });
 
   it("succeeds for a tool the workspace does not know, and refuses without a valid token or a branch", async () => {

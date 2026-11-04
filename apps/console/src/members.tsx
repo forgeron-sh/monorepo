@@ -328,9 +328,22 @@ type Asking =
   | { kind: "remove"; member: MemberRow };
 
 /** The members screen: the lists, the invite and role dialogs, and who joins by themselves. For an admin. */
-export function MembersPage({ api, selfId, now }: { api: Api; selfId?: string; now: () => Date }) {
+export function MembersPage({
+  api,
+  selfId,
+  now,
+  inviteOnOpen = false,
+}: {
+  api: Api;
+  selfId?: string;
+  now: () => Date;
+  /** Opens the invite dialog as the screen opens ("Invite people" in the workspace menu). */
+  inviteOnOpen?: boolean;
+}) {
   const loaded = useLoad(() => loadMembers(api.fetchJson), [api]);
-  const [asking, setAsking] = useState<Asking>();
+  const [asking, setAsking] = useState<Asking | undefined>(
+    inviteOnOpen ? { kind: "invite" } : undefined,
+  );
   const [notice, setNotice] = useState<{ tone: "success" | "warning" | "danger"; text: string }>();
 
   const run = async (work: () => Promise<unknown>, done: string) => {
@@ -381,12 +394,6 @@ export function MembersPage({ api, selfId, now }: { api: Api; selfId?: string; n
                 `Invitation to ${i.email} withdrawn.`,
               )
             }
-          />
-          <DomainsForm
-            key={view.domains.join(",") + view.defaultRole}
-            view={view}
-            api={api}
-            onSaved={loaded.reload}
           />
           {asking?.kind === "invite" ? (
             <InviteDialog
@@ -599,7 +606,7 @@ function RemoveDialog({
   );
 }
 
-function DomainsForm({
+export function DomainsForm({
   view,
   api,
   onSaved,
@@ -673,5 +680,27 @@ function DomainsForm({
         </div>
       </form>
     </section>
+  );
+}
+
+/** Who joins by themselves: the allowed email domains and the role they get. For an admin. */
+export function DomainsPage({ api }: { api: Api }) {
+  const loaded = useLoad(() => loadMembers(api.fetchJson), [api]);
+  const view = loaded.data;
+  return (
+    <Page title="Domains" description="Email domains whose people join this workspace on sign-in.">
+      {loaded.loading ? (
+        <Loading label="Loading domains" />
+      ) : loaded.error && !view ? (
+        <LoadError what="The domains" error={loaded.error} onRetry={loaded.reload} />
+      ) : view ? (
+        <DomainsForm
+          key={view.domains.join(",") + view.defaultRole}
+          view={view}
+          api={api}
+          onSaved={loaded.reload}
+        />
+      ) : null}
+    </Page>
   );
 }

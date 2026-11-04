@@ -1,48 +1,20 @@
+import type {
+  CatalogTool as CatalogToolContract,
+  ToolCard as ToolCardContract,
+} from "@forgeron/manifest";
 import type { FetchJson } from "../../api";
 
 // The catalog the console draws: `GET /api/catalog` and `GET /api/catalog/<tool>`. The shapes are those
-// of `CatalogResponse` and `ToolCard` in `@forgeron/manifest` (`catalog.ts`, FOR-137); they are declared
-// here until that module is on main, and read defensively so a field the platform adds or drops never
-// breaks a screen.
+// of `CatalogResponse` and `ToolCard` in `@forgeron/manifest` (FOR-137, D-061). The answers are read
+// defensively, without the schema (no zod in the browser), so a field the platform adds or drops
+// never breaks a screen.
 
-export interface CatalogTool {
-  name: string;
-  title: string;
-  summary: string;
-  icon: string | null;
-  productionVersion: string | null;
-  interfaces: { mcp?: boolean; api?: boolean; cli?: boolean; web?: boolean };
-  /** `granted`: the person may use it. `requestable`: they could ask an admin for one of `roles`. */
-  access: "granted" | "requestable";
-  /** The roles of the tool that may call at least one action: what to ask for. */
-  roles: Array<{ name: string; label: string }>;
-}
+export type CatalogTool = CatalogToolContract;
 
-interface ToolAsset {
-  path: string;
-  type: string;
-  size: number;
-  /** Ready for an `<img>`; ends with `?v=<hash>`. */
-  url: string;
-}
-
-export interface ToolCardData extends CatalogTool {
-  /** The README, markdown source. */
-  readme: string | null;
-  assets: ToolAsset[];
-  connect: {
-    mcp: { url: string } | null;
-    api: { baseUrl: string } | null;
-    cli: { command: string } | null;
-  };
-  /** Set by an admin: informative. */
-  requiredSecrets: Array<{ name: string; why: string | null }>;
-  /** What the person is asked for. */
-  requiredUserSecrets: Array<{ name: string; label: string; why: string }>;
-  connectors: Array<{ name: string; type: string; mode: string }>;
-  yourAccess: Array<{ action: string; allowed: boolean }>;
+/** A tool card; the changelog is flattened to lines of text, the contract leaves its entries free-form. */
+export type ToolCardData = Omit<ToolCardContract, "lastRelease"> & {
   lastRelease: { version: string; date: string; changelog: string[] } | null;
-}
+};
 
 type Raw = Record<string, any>;
 const str = (value: unknown, fallback = "") => (typeof value === "string" ? value : fallback);
@@ -116,7 +88,7 @@ export async function loadToolCard(fetchJson: FetchJson, name: string): Promise<
     connectors: list(raw.connectors, (c) => ({
       name: str(c.name),
       type: str(c.type),
-      mode: str(c.mode),
+      mode: c.mode === "application" ? "application" : "delegated",
     })),
     yourAccess: list(raw.yourAccess, (a) => ({
       action: str(a.action),

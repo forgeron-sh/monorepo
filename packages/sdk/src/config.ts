@@ -17,6 +17,8 @@ export interface ToolConfig {
   name: string;
   title?: string;
   description?: string;
+  /** A small `.svg` or `.png` of the tool folder, shown in the catalog: `"docs/icon.svg"`. */
+  icon?: string;
   /** All `true` except `web`, which is `true` only if the tool has views. */
   interfaces?: Partial<Manifest["interfaces"]>;
   roles?: Manifest["roles"];

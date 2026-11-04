@@ -9,12 +9,16 @@ export interface NavItem {
   current?: boolean;
   /** A count or a state next to the label, e.g. pending approvals. */
   badge?: ReactNode;
+  /** A small glyph before the label (16px, `currentColor`); decorative. */
+  icon?: ReactNode;
 }
 
 export interface NavProps {
   /** Accessible name of the landmark. */
   label: string;
   items: ReadonlyArray<NavItem>;
+  /** A small title above the group: "Account", "Workspace". */
+  heading?: string;
   /** Called on a plain click, so the caller can route without a page load; omit for normal links. */
   onNavigate?: (href: string, event: MouseEvent<HTMLAnchorElement>) => void;
   className?: string;
@@ -24,9 +28,10 @@ const plainClick = (e: MouseEvent) =>
   e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
 /** A vertical list of links; the current one is told by `aria-current`, not by color alone. */
-export function Nav({ label, items, onNavigate, className }: NavProps) {
+export function Nav({ label, items, heading, onNavigate, className }: NavProps) {
   return (
     <nav aria-label={label} className={cx("fg-nav", className)}>
+      {heading ? <p className="fg-nav-heading">{heading}</p> : null}
       <ul className="fg-nav-list">
         {items.map((item) => (
           <li key={item.id}>
@@ -44,7 +49,10 @@ export function Nav({ label, items, onNavigate, className }: NavProps) {
                   : undefined
               }
             >
-              <span>{item.label}</span>
+              <span className="fg-nav-label">
+                {item.icon ? <span className="fg-nav-icon">{item.icon}</span> : null}
+                {item.label}
+              </span>
               {item.badge !== undefined && item.badge !== null ? (
                 <span className="fg-nav-badge">{item.badge}</span>
               ) : null}

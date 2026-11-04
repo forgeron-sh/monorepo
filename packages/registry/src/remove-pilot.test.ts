@@ -65,7 +65,9 @@ afterEach(() => memory.close());
 
 describe("0019_remove_pilot", () => {
   it("removes the pilot of an installed platform and keeps everything else", async () => {
-    expect(await migratePlatform(d1)).toEqual({ applied: ["0019_remove_pilot"] });
+    expect(await migratePlatform(d1)).toEqual({
+      applied: ["0019_remove_pilot", "0020_deployment_commit", "0021_tool_docs"],
+    });
 
     expect(await rows(`SELECT "id", "name" FROM "environments" ORDER BY "id"`)).toEqual([
       { id: "e-prev", name: "preview" },
@@ -84,6 +86,11 @@ describe("0019_remove_pilot", () => {
       { environment: "production" },
     ]);
     expect(await rows(`SELECT 1 FROM "versions"`)).toHaveLength(1);
+    // 0020 adds the commit columns without touching the rows already there: they have none.
+    expect(await rows(`SELECT "commit_sha", "commit_author" FROM "deployments"`)).toEqual([
+      { commit_sha: null, commit_author: null },
+      { commit_sha: null, commit_author: null },
+    ]);
   });
 
   it("leaves no pilot column, table or allowed name behind", async () => {
