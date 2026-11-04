@@ -6,23 +6,12 @@ import { parseArgs } from "node:util";
 import { clearCredentials, readCredentials, writeCredentials } from "../credentials";
 import { UsageError, type Io } from "../io";
 import { platformClient, refusal } from "../platform-client";
-import { checkWorkspace, defaultEndpoint, readProject } from "../project";
+import { resolveEndpoint } from "../project";
 
 const LOGIN_USAGE = "Usage: forgeron login [--workspace <name>] [--endpoint <url>]";
 
 // How long the browser has to come back.
 const WAIT_MS = 5 * 60_000;
-
-/** The workspace to talk to: the flags, else the one this folder is linked to. */
-async function endpointOf(values: { workspace?: string; endpoint?: string }, io: Io) {
-  if (values.endpoint) return values.endpoint;
-  if (values.workspace) return defaultEndpoint(checkWorkspace(values.workspace));
-  const project = await readProject(io.cwd);
-  if (project?.endpoint) return project.endpoint;
-  throw new UsageError(
-    "No workspace to sign in to: run `forgeron link --workspace <name>` first, or pass --workspace.",
-  );
-}
 
 const b64 = (bytes: Buffer) => bytes.toString("base64url");
 
@@ -38,7 +27,7 @@ export async function login(args: string[], io: Io): Promise<number> {
     options: { workspace: { type: "string" }, endpoint: { type: "string" } },
   });
   if (positionals.length > 0) throw new UsageError(LOGIN_USAGE);
-  const endpoint = await endpointOf(values, io);
+  const endpoint = await resolveEndpoint(values, io.cwd);
 
   const state = b64(randomBytes(16));
   const verifier = b64(randomBytes(32));
@@ -138,7 +127,7 @@ export async function whoami(args: string[], io: Io): Promise<number> {
   if (positionals.length > 0) throw new UsageError("Usage: forgeron whoami [--workspace <name>]");
   const token = await readCredentials(process.env, io.keychain);
   if (!token) throw new UsageError("Not signed in: run `forgeron login` first.");
-  const endpoint = await endpointOf(values, io);
+  const endpoint = await resolveEndpoint(values, io.cwd);
 
   const answer = await platformClient(endpoint, token)(addresses.whoami);
   if (answer.status !== 200 || !answer.body?.email) {

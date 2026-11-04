@@ -88,6 +88,15 @@ describe("forgeron token create", () => {
     expect(logs.at(-1)).toBe("fgt.example.token");
   });
 
+  it("resolves the endpoint of the linked project for --workspace, and lets --endpoint win", async () => {
+    answer = { status: 201, body: { token: "t", expiresAt: "x" } };
+    const { io } = await setup();
+    expect(await run([...create, "--workspace", "acme"], io)).toBe(0);
+    expect(requests).toHaveLength(1);
+    expect(await run([...create, "--endpoint", endpoint], io)).toBe(0);
+    expect(requests).toHaveLength(2);
+  });
+
   it("reads the person's token from the system keychain when the file has none", async () => {
     answer = { status: 201, body: { token: "fgt.example.token", expiresAt: "x" } };
     const { io } = await setup({ credentials: "" });

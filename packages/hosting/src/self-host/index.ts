@@ -23,7 +23,7 @@ export interface SelfHostOptions extends CloudflareOptions {
   /** Part of every name. */
   workspace: string;
   /** Where an environment answers, from the name of its Worker (workers.dev, a route, a custom domain). */
-  url(workerName: string): string;
+  url(workerName: string, environment: Environment): string;
   compatibilityDate?: string;
   /**
    * Gives the gateway a service binding to each tool Worker once it serves, and takes it away
@@ -108,7 +108,7 @@ export function createSelfHostHosting(options: SelfHostOptions): Hosting {
         versions: [{ percentage: 100, version_id: uploaded.versionId }],
       });
       await options.gateway?.bind(worker);
-      return { url: options.url(worker) };
+      return { url: options.url(worker, uploaded.provisioned.environment) };
     },
 
     // Deletes the Worker, then what it was bound to. Each is looked up by name: there may be no

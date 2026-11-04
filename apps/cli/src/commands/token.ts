@@ -3,7 +3,7 @@ import { parseArgs } from "node:util";
 import { readCredentials } from "../credentials";
 import { UsageError, type Io } from "../io";
 import { platformClient, refusal } from "../platform-client";
-import { readProject } from "../project";
+import { readProject, resolveEndpoint } from "../project";
 
 const USAGE = "Usage: forgeron token create --name <name> --scope deploy [--days 90]";
 
@@ -25,6 +25,8 @@ export async function token(args: string[], io: Io): Promise<number> {
       name: { type: "string" },
       scope: { type: "string" },
       days: { type: "string" },
+      workspace: { type: "string" },
+      endpoint: { type: "string" },
     },
   });
   if (positionals.length > 0 || !values.name || !values.scope) throw new UsageError(USAGE);
@@ -37,17 +39,18 @@ export async function token(args: string[], io: Io): Promise<number> {
   }
 
   const project = await readProject(io.cwd);
-  if (!project?.endpoint) {
+  if (!project) {
     throw new UsageError(
       "This tool is not linked to a workspace: run `forgeron link --workspace <name>` first.",
     );
   }
+  const endpoint = await resolveEndpoint(values, io.cwd);
   const credentials = await readCredentials(process.env, io.keychain);
   if (!credentials) {
     throw new UsageError("Not signed in: run `forgeron login` first.");
   }
 
-  const answer = await platformClient(project.endpoint, credentials)(addresses.createDeployToken, {
+  const answer = await platformClient(endpoint, credentials)(addresses.createDeployToken, {
     json: { tool: project.tool, name: values.name, scope: "deploy", days },
   });
   if (answer.status !== 201 || !answer.body?.token) {
