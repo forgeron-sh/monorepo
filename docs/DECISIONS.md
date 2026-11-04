@@ -69,6 +69,7 @@ Rules of the log:
 | D-067 | 04/11/2026 | The tool routes (list, branches, versions, activity, manifest) are served by Hono; a developer access level with a per-route 403 message                               | Active                                 |
 | D-068 | 04/11/2026 | The workspace, audit log and access matrix routes are served by Hono; the access matrix write now requires a JSON content type                                         | Active                                 |
 | D-069 | 04/11/2026 | The connections and secrets status routes are served by Hono                                                                                                           | Active                                 |
+| D-070 | 04/11/2026 | The database explorer routes are mounted on Hono, in the contract and the document, and still answered by the explorer itself                                          | Active                                 |
 
 ---
 
@@ -827,3 +828,14 @@ Rules of the log:
   4. **Tests**: `consent.test.ts` (the connections cases) and `secrets-status.test.ts` keep their cases and call the app; `platform/console.test.ts` adds the shared matrix for the three routes (the `DELETE` has no body, so no 415).
 - **Not verified**: the console was not run against this build; no real D1; the document was not checked with an OpenAPI validator.
 - **Applied in**: FOR-152 (connections, secrets status); `packages/platform-contract/src` (`connections.ts`, `secrets-status.ts`), `apps/gateway/src/platform/connections.ts`, `apps/gateway/src/gateway.ts`.
+
+## D-070 — The database explorer routes are mounted on Hono, in the contract and the document, and still answered by the explorer itself
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**:
+  1. **Last of the read routes** (FOR-152): the six routes of the explorer (`GET /api/tools/<tool>/db/{environments,tables,schema}`, `…/tables/<table>`, `…/rows`, `…/export`, D-059) are route objects in `packages/platform-contract` (`database.ts`), registered in the OpenAPI document and mounted on the Hono app (`apps/gateway/src/platform/database.ts`) for every method. The chain's `handleDatabase` call is gone; `handleDatabase` stays the implementation.
+  2. **Not ported to typed handlers, on purpose**: the explorer's order of checks is part of what it promises: it looks the tool up first (404), writes a `denied` audit line **before** it answers 403 (a refusal is on the record), gives `401` and `403` a `message` the console shows, and checks the environment, the masking (`reveal` is admin only), the query (400 with its own codes), the timeout (504) and the host's failures (502, the reason only in the log) in that order. The shell's guards (401, then 403, then 404, no audit line) would change all of that, so these routes take no shell guard and the handler decides. Their `200` schemas are documentation (`looseObject` for the table definitions, which the schema reader keeps extending): the handler is not checked against them at compile time, unlike the routes of D-066 to D-069.
+  3. **The CSV works through Hono**: the export is a plain `Response` (`text/csv; charset=utf-8`, `content-disposition: attachment`, `cache-control: no-store`, `x-forgeron-truncated` when it cut); the shell's `no-store` default only fills a header a route left out. The CSV is built in memory in chunks of 1,000 rows up to the export cap, not streamed, as before.
+  4. **Same behaviour**: every case of the explorer's test (38) passes through the app; a path the routes do not own (`/db/nope`) still falls through (404); anything but `GET` is the explorer's own 405 ("The database is read only.") before anyone is asked who they are. The shell's `env` carries `hosting(workspace)` and an optional `databaseTimeoutMs` (the tests shorten it, as they did the handler's `timeoutMs`).
+- **Not verified**: no real D1 and no Cloudflare database (the tests use SQLite behind the explorer's own read-only wrapper); the console was not run against this build; the document was not checked with an OpenAPI validator; a CSV at the export cap was not run through the Worker's real limits.
+- **Applied in**: FOR-152 (database explorer); `packages/platform-contract/src/database.ts`, `apps/gateway/src/platform` (`database.ts`, `app.ts`, `test-app.ts`), `apps/gateway/src/gateway.ts`, `apps/gateway/src/console-api/database/database.test.ts`.

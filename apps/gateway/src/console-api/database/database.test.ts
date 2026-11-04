@@ -3,7 +3,7 @@ import type { D1Database, Hosting } from "@forgeron/hosting";
 import { createSchemaSql, index, schema, t, table } from "@forgeron/sdk/db";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { handleDatabase } from "./index";
+import { platformCaller } from "../../platform/test-app";
 import { assertSelect, rowsStatement, taggedColumns, type TableInfo } from "./sql";
 
 // A database that refuses what D1 refuses: any read of a `_cf_*` table, and `pragma_*` on one,
@@ -83,14 +83,19 @@ const hosting = {
   },
 } as unknown as Hosting;
 
-const call = (path: string, options: { timeoutMs?: number; hosting?: Hosting | undefined } = {}) =>
-  handleDatabase(new Request(`https://acme.forgeron.test/api/tools/crm/db/${path}`), {
-    registry,
-    workspace: "acme",
+const app = (
+  options: { timeoutMs?: number; hosting?: Hosting | undefined; registry?: Registry } = {},
+) =>
+  platformCaller({
+    registry: options.registry ?? registry,
+    who: () => caller,
     hosting: () => ("hosting" in options ? options.hosting : hosting),
-    caller: async () => caller,
-    ...(options.timeoutMs ? { timeoutMs: options.timeoutMs } : {}),
-  }) as Promise<Response>;
+    ...(options.timeoutMs ? { databaseTimeoutMs: options.timeoutMs } : {}),
+  });
+const call = (path: string, options: { timeoutMs?: number; hosting?: Hosting | undefined } = {}) =>
+  app(options)(
+    new Request(`https://acme.forgeron.test/api/tools/crm/db/${path}`),
+  ) as Promise<Response>;
 const get = async (path: string) => {
   const response = await call(path);
   return { status: response.status, body: (await response.json()) as any };
@@ -158,21 +163,13 @@ describe("who may look", () => {
   });
 
   it("ignores any other route", async () => {
-    expect(
-      await handleDatabase(new Request("https://x.test/api/tools/crm/db/nope"), {
-        registry,
-        workspace: "acme",
-        hosting: () => hosting,
-        caller: async () => caller,
-      }),
-    ).toBeUndefined();
+    expect(await app()(new Request("https://x.test/api/tools/crm/db/nope"))).toBeUndefined();
   });
 
   it("answers a write method with 405", async () => {
     admin();
-    const response = await handleDatabase(
+    const response = await app()(
       new Request("https://x.test/api/tools/crm/db/tables", { method: "POST" }),
-      { registry, workspace: "acme", hosting: () => hosting, caller: async () => caller },
     );
     expect(response!.status).toBe(405);
   });
@@ -314,7 +311,12 @@ describe("the rows", () => {
     admin();
     await tool.exec(`INSERT INTO companies (id, name) VALUES ('c3', '=HYPERLINK("x"), "q"')`);
     const response = await call("tables/companies/export");
-    expect(response.headers.get("content-type")).toContain("text/csv");
+    expect(response.headers.get("content-type")).toBe("text/csv; charset=utf-8");
+    expect(response.headers.get("content-disposition")).toBe(
+      'attachment; filename="crm-companies.csv"',
+    );
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.has("x-forgeron-truncated")).toBe(false);
     const csv = await response.text();
     expect(csv.split("\r\n")[0]).toBe("id,name,domain");
     expect(csv).toContain(`"'=HYPERLINK(""x""), ""q"""`);
@@ -476,12 +478,9 @@ describe("limits and failures", () => {
         throw new Error("audit down");
       },
     } as unknown as Registry;
-    const response = await handleDatabase(new Request("https://x.test/api/tools/crm/db/tables"), {
-      registry: failing,
-      workspace: "acme",
-      hosting: () => hosting,
-      caller: async () => caller,
-    });
+    const response = await app({ registry: failing })(
+      new Request("https://x.test/api/tools/crm/db/tables"),
+    );
     expect(response!.status).toBe(502);
     expect(await response!.text()).not.toContain("companies");
   });
