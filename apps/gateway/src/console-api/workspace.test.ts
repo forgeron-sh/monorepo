@@ -3,8 +3,8 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handleApprovals } from "./approvals";
-import { handleAudit } from "./audit";
-import { handleWorkspace, type SignInState } from "./workspace";
+import type { SignIn } from "@forgeron/platform-contract";
+import { platformCaller } from "../platform/test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -13,8 +13,18 @@ let registry: Registry;
 let roles: string[] | undefined;
 let toolId: string;
 
-const person = () => (roles ? { id: "p1", email: "ada@acme.test", name: "Ada", roles } : undefined);
-const signIn = async (): Promise<SignInState> => ({
+const person = () =>
+  roles
+    ? {
+        id: "p1",
+        email: "ada@acme.test",
+        name: "Ada",
+        roles,
+        admin: roles.includes("admin"),
+        developer: roles.includes("developer"),
+      }
+    : undefined;
+const signIn = async (): Promise<SignIn> => ({
   email: { enabled: true, mail: "console" },
   oidc: { enabled: false, configured: false },
   saml: { enabled: false, configured: false },
@@ -23,14 +33,7 @@ const read = async (response: Response | undefined) => JSON.parse(await response
 const req = (path: string, init?: RequestInit) =>
   new Request(`https://acme.forgeron.test${path}`, init);
 const workspace = (path = "/api/workspace", method = "GET") =>
-  handleWorkspace(req(path, { method }), {
-    registry,
-    workspace: "acme",
-    endpoint: "https://acme.forgeron.test",
-    baseDomain: "forgeron.test",
-    signIn,
-    caller: async () => person(),
-  });
+  platformCaller({ registry, signIn, who: person })(req(path, { method }));
 const approvals = (path: string, init?: RequestInit) =>
   handleApprovals(req(path, init), {
     registry,
@@ -38,11 +41,10 @@ const approvals = (path: string, init?: RequestInit) =>
     caller: async () => (roles ? { id: "p1", admin: roles.includes("admin") } : undefined),
   });
 const audit = (path = "/api/audit", method = "GET") =>
-  handleAudit(req(path, { method }), {
+  platformCaller({
     registry,
-    workspace: "acme",
-    caller: async () => (roles ? { admin: roles.includes("admin") } : undefined),
-  });
+    who: () => (roles ? { roles, admin: roles.includes("admin") } : undefined),
+  })(req(path, { method }));
 
 beforeEach(async () => {
   roles = ["admin"];
@@ -98,7 +100,7 @@ describe("workspace API", () => {
     expect((await workspace())?.status).toBe(401);
     roles = ["admin"];
     expect((await workspace("/api/workspace", "POST"))?.status).toBe(405);
-    expect(await workspace("/api/tools")).toBeUndefined();
+    expect(await workspace("/api/other")).toBeUndefined();
   });
 });
 

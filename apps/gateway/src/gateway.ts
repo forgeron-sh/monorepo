@@ -26,16 +26,13 @@ import {
 import { handleConsent } from "./consent/consent";
 import { UNMATCHED } from "./platform/app";
 import { createPlatform } from "./platform/platform";
-import { handleAccessMatrix } from "./console-api/access-matrix";
 import { handleConnections } from "./console-api/connections";
 import { handleIdentity } from "./console-api/identity";
 import { handleMembers } from "./console-api/members";
 import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleApprovals } from "./console-api/approvals";
-import { handleAudit } from "./console-api/audit";
 import { handleDatabase } from "./console-api/database";
-import { handleWorkspace } from "./console-api/workspace";
 import {
   createDispatcher,
   workspaceOf,
@@ -543,6 +540,8 @@ export function createGateway(
         who
           ? {
               id: who.id,
+              email: who.email,
+              name: who.name,
               admin: who.roles.includes("admin"),
               developer: who.roles.includes("developer"),
               roles: who.roles,
@@ -560,6 +559,18 @@ export function createGateway(
         registry,
         workspace,
         origin: `https://${workspace}.${env.BASE_DOMAIN}`,
+        baseDomain: env.BASE_DOMAIN,
+        signIn: async () => ({
+          email: { enabled: emailOn, mail: consoleMail ? "console" : mailer ? "email" : "off" },
+          oidc: {
+            enabled: oidcOn,
+            configured: (await providerOf(workspace, config)) !== undefined,
+          },
+          saml: {
+            enabled: oidcOn || methods.includes("saml"),
+            configured: (await samlOf(workspace, config)) !== undefined,
+          },
+        }),
       });
       if (!owned.headers.has(UNMATCHED)) return owned;
       return (
@@ -599,7 +610,6 @@ export function createGateway(
           caller: identity,
         })) ??
         (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
-        (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleDatabase(forwarded, {
           registry,
@@ -607,26 +617,7 @@ export function createGateway(
           hosting: hostingOf,
           caller: identity,
         })) ??
-        (await handleWorkspace(forwarded, {
-          registry,
-          workspace,
-          endpoint: `https://${workspace}.${env.BASE_DOMAIN}`,
-          baseDomain: env.BASE_DOMAIN,
-          caller: async () => who,
-          signIn: async () => ({
-            email: { enabled: emailOn, mail: consoleMail ? "console" : mailer ? "email" : "off" },
-            oidc: {
-              enabled: oidcOn,
-              configured: (await providerOf(workspace, config)) !== undefined,
-            },
-            saml: {
-              enabled: oidcOn || methods.includes("saml"),
-              configured: (await samlOf(workspace, config)) !== undefined,
-            },
-          }),
-        })) ??
         (await handleApprovals(forwarded, { registry, workspace, caller: identity })) ??
-        (await handleAudit(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecrets(forwarded, { registry, workspace, caller: identity })) ??
         notFound(request)
       );

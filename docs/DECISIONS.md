@@ -67,6 +67,7 @@ Rules of the log:
 | D-065 | 04/11/2026 | The registry is split into modules behind the same `createRegistry`; the migration order stays global and frozen                                                       | Active                                 |
 | D-066 | 04/11/2026 | The catalog is the first contract served by Hono: the OpenAPI document is for signed-in members, the console calls it through a client that bundles no schema          | Active                                 |
 | D-067 | 04/11/2026 | The tool routes (list, branches, versions, activity, manifest) are served by Hono; a developer access level with a per-route 403 message                               | Active                                 |
+| D-068 | 04/11/2026 | The workspace, audit log and access matrix routes are served by Hono; the access matrix write now requires a JSON content type                                         | Active                                 |
 
 ---
 
@@ -800,3 +801,17 @@ Rules of the log:
 - **Why**: one handler per pull request keeps each step reviewable (FOR-152); the tool page and the manifest are the first routes with a role other than admin, so the access level had to exist before the next ones.
 - **Not verified**: the console was not run against this build (it reads these routes through its own `fetchJson`; moving it to the typed client is a later step); the new contract schemas for these answers were written from the builders' types, and `manifest` is typed as a free record (the manifest schema has refinements the OpenAPI generator may not accept): the document was not checked with an OpenAPI validator.
 - **Applied in**: FOR-152 (tools); `packages/platform-contract/src/tools.ts`, `apps/gateway/src/platform` (`tools.ts`, `app.ts`, `route-matrix.ts`, `test-app.ts`), `apps/gateway/src/console-api` (`tools.ts`, `tool-pages.ts`).
+
+## D-068 — The workspace, audit log and access matrix routes are served by Hono; the access matrix write now requires a JSON content type
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**:
+  1. **Second read-route PR** (FOR-152): `GET /api/workspace` (any signed-in member), `GET /api/audit` (admins) and `GET`/`PUT /api/tools/<tool>/access-matrix` (admins) are route objects in `packages/platform-contract` (`workspace.ts`, `access-matrix.ts`) served from `apps/gateway/src/platform` (`workspace.ts`, `access-matrix.ts`). The handlers `workspace.ts`, `audit.ts` and `access-matrix.ts` of `console-api/` are deleted. Same JSON, same 405 on other methods before anyone is asked who they are, same lenient `?limit=` on the audit log (50 by default, at most 200). The access matrix is the first write route: its `PUT` is the first to go through the shell's JSON-only guard and the schema of the body.
+  2. **The person of the shell carries `email` and `name`** (the workspace route draws them), and the shell's `env` carries `baseDomain` and `signIn()` (which methods are on): the gateway's `identity` closure and the `signIn` it built for the old handler are handed over as they were. The workspace route now builds `person` as `{ id, email, name, roles, admin }` explicitly, where the old one spread the caller it was given.
+  3. **Behaviour that is not the same as before, on purpose or by the framework**:
+     - the access matrix `PUT` answers `415` to a body that is not sent as `application/json`: the old handler read the body whatever its content type, which is what the JSON-only rule of D-064 exists to prevent for a write on the console API (a cross-site form can send `text/plain`). The console always sends JSON;
+     - for an invalid body sent to a tool that does not exist, the answer is `400` where the old handler said `404` (the body is checked before the tool is looked up); both are for admins only;
+     - the `400` for a body that is not JSON at all now reads `The body is not JSON.` for every route of the shell (it was `Invalid input.`), and the schema message of the access matrix is the old one.
+  4. **Tests**: `workspace.test.ts` keeps its cases for the workspace and the audit log and now calls the app (`platformCaller` takes `signIn` and `baseDomain`); `gateway-access.test.ts` (through the gateway) is unchanged; `platform/console.test.ts` adds the shared 401/403/415/400 matrix for the four routes, with the access matrix's own 403 and 400 messages (`describeRouteMatrix` takes `invalidMessage`).
+- **Not verified**: the console was not run against this build (it reads these routes through `fetchJson`); the document was not checked with an OpenAPI validator; nothing ran against a real D1.
+- **Applied in**: FOR-152 (workspace, audit, access matrix); `packages/platform-contract/src` (`workspace.ts`, `access-matrix.ts`), `apps/gateway/src/platform` (`workspace.ts`, `access-matrix.ts`, `app.ts`, `console.test.ts`), `apps/gateway/src/gateway.ts`.

@@ -9,3 +9,5 @@ export {
   toolManifestRoute,
   toolVersionsRoute,
 } from "./tools";
+export { MAX_ACCESS_CHANGES, getAccessMatrixRoute, putAccessMatrixRoute } from "./access-matrix";
+export { auditRoute, workspaceRoute, type SignIn } from "./workspace";
