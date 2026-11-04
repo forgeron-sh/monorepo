@@ -30,6 +30,18 @@ export { CopyBlock } from "./copy-block";
 export type { CopyBlockProps } from "./copy-block";
 export { Tabs } from "./tabs";
 export type { TabItem, TabsProps } from "./tabs";
+export { ConstraintChip, DataGrid, Pager, cellText } from "./data-grid";
+export type {
+  ConstraintChipProps,
+  ConstraintKind,
+  DataGridProps,
+  GridCell,
+  GridColumn,
+  GridSort,
+  PagerProps,
+} from "./data-grid";
+export { Drawer } from "./drawer";
+export type { DrawerProps } from "./drawer";
 export { Menu } from "./menu";
 export type { MenuEntry, MenuProps } from "./menu";
 export { Avatar } from "./avatar";
