@@ -6,6 +6,7 @@ Monorepo for the Forgeron SDK, CLI, runtime, platform and templates. Read [docs/
 
 - Toolchain pinned in `.prototools`; run `proto use` once, then `bun install`.
 - `bun run check` before pushing: types, lint, format, tests, knip, deps, import-rule self-test.
+- The pre-push hook runs `bun run check` under a machine-wide lock (one at a time, tests capped at 4 workers) and skips it for documentation-only pushes. Never run several full checks in parallel, and run `vitest` on the files you touched rather than the whole suite while iterating.
 - After a change: `bun run format` (oxfmt, two spaces, double quotes, semicolons).
 
 ## Rules
