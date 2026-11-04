@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type { RouteSpec } from "@forgeron/platform-contract";
 import { HTTPException } from "hono/http-exception";
+import type { Registry } from "@forgeron/registry";
 import type { MiddlewareHandler } from "hono";
 
 // The platform API under `/console-api` as one Hono app (D-064, FOR-150). Routes move here one
@@ -20,6 +21,11 @@ export interface ConsolePerson {
 /** What the gateway hands to each request: Hono's `env`. */
 interface PlatformBindings {
   identity(): Promise<ConsolePerson | undefined>;
+  registry: Registry;
+  /** The workspace the request was dispatched to. */
+  workspace: string;
+  /** The workspace's address, `https://acme.forgeron.app`. */
+  origin: string;
 }
 
 export type PlatformEnv = { Bindings: PlatformBindings; Variables: { person: ConsolePerson } };
@@ -70,6 +76,13 @@ export function platformRoute<const R extends RouteSpec>(spec: R, access: Access
   });
 }
 
+/** Signed in, any role: for a route that is not in the contract (the OpenAPI document). */
+export const memberOnly = guard("member");
+
+/** 405 for a method a path does not take, before anyone is asked who they are (as the old handlers did). */
+export const methodNotAllowed: MiddlewareHandler<PlatformEnv> = async (c) =>
+  c.json({ error: "METHOD_NOT_ALLOWED" }, 405);
+
 export function createPlatformApp() {
   const app = new OpenAPIHono<PlatformEnv>({
     // The shape the hand-written validators answer with.
@@ -78,7 +91,8 @@ export function createPlatformApp() {
   });
   app.use("*", async (c, next) => {
     await next();
-    c.header("cache-control", "no-store");
+    // Nothing is cached unless a route says so (an image keyed by its hash does).
+    if (!c.res.headers.has("cache-control")) c.header("cache-control", "no-store");
   });
   app.onError((error, c) => {
     // What Hono throws itself (a body that is not JSON, a wrong media type) is the person's
