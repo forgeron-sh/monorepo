@@ -1,7 +1,7 @@
 import { Badge, Button, CopyBlock, Notice, Page, Stat } from "@forgeron/ui";
 import type { FetchJson } from "./api";
 import { pathOf, routeClick } from "./router";
-import { loadTools } from "./tools-list";
+import { loadTools } from "./features/tools/api";
 import { useLoad } from "./use-load";
 import type { WorkspaceInfo } from "./workspace";
 

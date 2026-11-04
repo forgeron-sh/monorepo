@@ -546,4 +546,21 @@ export const platformMigrations: BuildMigration[] = [
     // Nothing to put back: the pilot data is deleted.
     down: [],
   },
+  {
+    // What the console shows beside each deployment (D-056): the commit that was deployed, as CI
+    // knows it. Nullable: a deployment made before this, or by a client that sends nothing, has none.
+    name: "0020_deployment_commit",
+    fingerprint: "deployment-commit-v1",
+    destructive: false,
+    up: [
+      st(`ALTER TABLE "deployments" ADD COLUMN "commit_sha" TEXT`),
+      st(`ALTER TABLE "deployments" ADD COLUMN "commit_message" TEXT`),
+      st(`ALTER TABLE "deployments" ADD COLUMN "commit_author" TEXT`),
+    ],
+    down: [
+      st(`ALTER TABLE "deployments" DROP COLUMN "commit_author"`),
+      st(`ALTER TABLE "deployments" DROP COLUMN "commit_message"`),
+      st(`ALTER TABLE "deployments" DROP COLUMN "commit_sha"`),
+    ],
+  },
 ];

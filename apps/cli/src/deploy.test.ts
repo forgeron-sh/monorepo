@@ -3,7 +3,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { run } from "./cli";
 import type { Io } from "./io";
 
@@ -36,7 +36,7 @@ afterAll(() => new Promise((resolve) => server.close(resolve)));
 const dirs: string[] = [];
 const saved = { ...process.env };
 afterEach(async () => {
-  for (const key of ["FORGERON_TOKEN", "GITHUB_HEAD_REF", "GITHUB_REF_NAME"]) {
+  for (const key of ["FORGERON_TOKEN", "GITHUB_HEAD_REF", "GITHUB_REF_NAME", "GITHUB_SHA"]) {
     if (saved[key] === undefined) delete process.env[key];
     else process.env[key] = saved[key];
   }
@@ -114,6 +114,29 @@ describe("forgeron deploy", () => {
       version: expect.stringMatching(/^\d+\.\d+\.\d+\+[0-9a-f]{7}$/),
     });
     expect(uploads[1]?.body).not.toHaveProperty("branch");
+  });
+
+  it("sends the commit of the checkout, for the console's list of branches", async () => {
+    process.env.FORGERON_TOKEN = "t";
+    delete process.env.GITHUB_SHA;
+    answer = { status: 200, body: {} };
+    const { io } = await linked();
+    const sha = "a41f9e0c3d2b1a0f9e8d7c6b5a4f3e2d1c0b9a87";
+    const capture = vi.fn<NonNullable<Io["capture"]>>(async () => ({
+      code: 0,
+      stdout: `${sha}\x1fAdd the export\x1fAda\n`,
+    }));
+    expect(await run(["deploy", "--branch", "feat/a"], { ...io, capture })).toBe(0);
+    expect(uploads.at(-1)?.body.commit).toEqual({ sha, message: "Add the export", author: "Ada" });
+
+    // No git to ask: nothing is sent, and the deployment goes on.
+    expect(await run(["deploy", "--branch", "feat/a"], io)).toBe(0);
+    expect(uploads.at(-1)?.body).not.toHaveProperty("commit");
+
+    // CI gives the sha; the checkout's subject is not that commit's, so only the sha goes.
+    process.env.GITHUB_SHA = "b".repeat(40);
+    expect(await run(["deploy", "--branch", "feat/a"], { ...io, capture })).toBe(0);
+    expect(uploads.at(-1)?.body.commit).toEqual({ sha: "b".repeat(40) });
   });
 
   it("shows what the gateway refused, and exits 1", async () => {

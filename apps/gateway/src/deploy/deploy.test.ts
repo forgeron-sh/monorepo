@@ -136,6 +136,26 @@ describe("POST /deploy", () => {
     ]);
   });
 
+  it("keeps the commit CI reports, cut to its first line, and refuses one that is not a commit", async () => {
+    const commit = { sha: "A41F9E0C", message: "Add the export\n\nLong body", author: " Ada " };
+    const token = await deploymentToken();
+    const ok = await handleDeploy(post("/deploy", upload({ commit }), token), context());
+    expect(ok.status).toBe(200);
+    const tool = (await registry.findTool("acme", "crm"))!;
+    expect((await registry.listDeployments(tool.id))[0]?.commit).toEqual({
+      sha: "a41f9e0c",
+      message: "Add the export",
+      author: "Ada",
+    });
+    for (const bad of ["a41f9e0", { sha: "not-a-hash" }, { sha: "a41f9e0", message: 3 }]) {
+      const refused = await handleDeploy(
+        post("/deploy", upload({ commit: bad }), token),
+        context(),
+      );
+      expect(refused.status).toBe(400);
+    }
+  });
+
   it("answers with the reason when the deployment fails, and records nothing", async () => {
     const response = await handleDeploy(
       post("/deploy", upload(), await deploymentToken()),
@@ -287,6 +307,28 @@ describe("DELETE /deploy", () => {
     expect((await registry.listEnvironments(tool.id)).some((e) => e.name === "preview")).toBe(
       false,
     );
+  });
+
+  it("lets an administrator of the workspace close a preview, naming the tool", async () => {
+    const { hosting } = fakeHosting();
+    await handleDeploy(
+      post(
+        "/deploy",
+        upload({ environment: "preview", branch: "feat/a" }),
+        await deploymentToken(),
+      ),
+      context(hosting),
+    );
+    const person = (roles: string[]) => ({ id: "u1", email: "ada@acme.fr", name: "Ada", roles });
+    const closeAs = (who: ReturnType<typeof person> | undefined, body: unknown) =>
+      handleDeploy(remove(body), { ...context(hosting), authenticate: () => who });
+    expect((await closeAs(undefined, { tool: "crm", branch: "feat/a" })).status).toBe(401);
+    expect((await closeAs(person(["developer"]), { tool: "crm", branch: "feat/a" })).status).toBe(
+      403,
+    );
+    expect((await closeAs(person(["admin"]), { branch: "feat/a" })).status).toBe(400);
+    const closed = await closeAs(person(["admin"]), { tool: "crm", branch: "feat/a" });
+    expect(await closed.json()).toEqual({ tool: "crm", branch: "feat/a", removed: true });
   });
 
   it("succeeds for a tool the workspace does not know, and refuses without a valid token or a branch", async () => {

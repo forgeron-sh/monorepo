@@ -6,6 +6,7 @@ import type { Build, DeployOptions, Hosting } from "@forgeron/hosting";
 import {
   closePreview,
   deployBuild,
+  type DeploymentCommit,
   type Registry,
   type RegisteredEnvironment,
 } from "@forgeron/registry";
@@ -103,6 +104,27 @@ export async function handleCreateDeployToken(
   });
 }
 
+const clip = (value: string, max: number) => value.slice(0, max);
+
+/**
+ * The commit CI says the build comes from, kept for the console. `undefined` when none is sent,
+ * `null` when what was sent is not one. The message is cut to its first line.
+ */
+function commitOf(value: unknown): DeploymentCommit | undefined | null {
+  if (value === undefined) return undefined;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const { sha, message, author } = value as Record<string, unknown>;
+  if (typeof sha !== "string" || !/^[0-9a-f]{7,64}$/i.test(sha)) return null;
+  if (message !== undefined && typeof message !== "string") return null;
+  if (author !== undefined && typeof author !== "string") return null;
+  const first = message?.split("\n")[0]?.trim();
+  return {
+    sha: sha.toLowerCase(),
+    ...(first ? { message: clip(first, 200) } : {}),
+    ...(author?.trim() ? { author: clip(author.trim(), 100) } : {}),
+  };
+}
+
 export interface DeployContext {
   workspace: string;
   secret: string;
@@ -114,6 +136,11 @@ export interface DeployContext {
    * code itself, so whoever assembles it says how (`preview.data: seed` leaves it empty without).
    */
   seed?: (build: Build) => DeployOptions["seed"];
+  /**
+   * The person behind the request (session or CLI token). Closing a preview accepts an administrator
+   * of the workspace as well as the tool's deployment token: the console's "Close preview".
+   */
+  authenticate?(request: Request): Person | undefined | Promise<Person | undefined>;
 }
 
 /**
@@ -142,6 +169,10 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   const body = await bodyOf(request);
   if (!body) return fail(400, "INVALID", "The body must be a JSON object.");
   const { environment, branch, version, build, allowDestructive } = body;
+  const commit = commitOf(body.commit);
+  if (commit === null) {
+    return fail(400, "INVALID", "commit: { sha, message?, author? } as strings.");
+  }
   if (!ENVIRONMENTS.includes(environment as RegisteredEnvironment)) {
     return fail(400, "INVALID", `environment: one of ${ENVIRONMENTS.join(", ")}.`);
   }
@@ -177,6 +208,7 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
       ...(typeof branch === "string" && branch ? { branch } : {}),
       actor: check.claims.sub,
       ...(seed ? { seed } : {}),
+      ...(commit ? { commit } : {}),
       build: uploaded as Build,
       version,
       ...(allowDestructive === true ? { allowDestructive: true } : {}),
@@ -201,27 +233,48 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
  */
 async function handleClosePreview(request: Request, context: DeployContext): Promise<Response> {
   const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
-  if (!token) return fail(401, "UNAUTHENTICATED", "Send the deployment token as FORGERON_TOKEN.");
-  const check = await verifyToken(token, {
-    secret: context.secret,
-    now: context.now(),
-    scope: DEPLOY_SCOPE,
-  });
-  if (!check.ok) {
-    return fail(401, "UNAUTHENTICATED", `This is not a valid deployment token (${check.reason}).`);
-  }
-  const audience = parseAudience(check.claims.aud);
-  if (!audience || audience.workspace !== context.workspace) {
-    return fail(403, "FORBIDDEN", "This token was not issued for this workspace.");
-  }
+  let toolName: string | undefined;
+  let named: unknown;
   const body = await bodyOf(request);
+  if (token) {
+    const check = await verifyToken(token, {
+      secret: context.secret,
+      now: context.now(),
+      scope: DEPLOY_SCOPE,
+    });
+    if (!check.ok) {
+      return fail(
+        401,
+        "UNAUTHENTICATED",
+        `This is not a valid deployment token (${check.reason}).`,
+      );
+    }
+    const audience = parseAudience(check.claims.aud);
+    if (!audience || audience.workspace !== context.workspace) {
+      return fail(403, "FORBIDDEN", "This token was not issued for this workspace.");
+    }
+    // The tool is the token's, never the body's.
+    toolName = audience.tool;
+  } else {
+    const person = await context.authenticate?.(request);
+    if (!person) {
+      return fail(401, "UNAUTHENTICATED", "Send the deployment token as FORGERON_TOKEN.");
+    }
+    if (!person.roles.includes("admin")) {
+      return fail(403, "FORBIDDEN", "Only an administrator of the workspace can do this.");
+    }
+    named = body?.tool;
+    if (typeof named !== "string" || named === "") {
+      return fail(400, "INVALID", "tool: the name of the tool.");
+    }
+    toolName = named;
+  }
   const branch = body?.branch;
   if (typeof branch !== "string" || branch === "") {
     return fail(400, "INVALID", "branch: the branch whose preview to remove.");
   }
-  // The tool is the token's, never the body's.
-  const tool = await context.registry.findTool(context.workspace, audience.tool);
-  if (!tool) return json(200, { tool: audience.tool, branch, removed: false });
+  const tool = await context.registry.findTool(context.workspace, toolName);
+  if (!tool) return json(200, { tool: toolName, branch, removed: false });
   try {
     await closePreview(context.registry, context.hosting, tool, branch);
   } catch (error) {

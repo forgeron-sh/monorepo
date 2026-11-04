@@ -4,6 +4,7 @@
 //   ready (default) · fresh (nothing done yet) · member (not an admin) · signedout · error · slow
 
 import { mockDatabase } from "./database";
+import { createToolsMock } from "./tools";
 
 type Json = Record<string, any>;
 const DAY = 24 * 60 * 60 * 1000;
@@ -55,7 +56,12 @@ export async function installMock(): Promise<void> {
           {
             name: "crm",
             production: "1.4.0",
-            previews: [{ branch: "feat-contacts", version: "1.5.1" }],
+            previews: [
+              { branch: "feat-export", version: "1.5.1" },
+              { branch: "feat-contacts-import", version: "1.5.0" },
+              { branch: "fix-accents-search", version: "1.3.0" },
+              { branch: "main", version: "1.4.0" },
+            ],
           },
           {
             name: "inventory",
@@ -149,6 +155,7 @@ export async function installMock(): Promise<void> {
         })),
   };
 
+  const toolsMock = createToolsMock(state.endpoint, iso);
   const matrix = (tool: string): Json => ({
     roles: ["admin", "developer", "viewer"],
     actions: [`${tool}.contacts.list`, `${tool}.contacts.update`, `${tool}.contacts.delete`],
@@ -173,14 +180,41 @@ export async function installMock(): Promise<void> {
       typeof input === "string" ? input : input instanceof URL ? input.href : input.url,
       location.href,
     );
-    if (!url.pathname.startsWith("/console-api/")) return realFetch(input, init);
+    const platformRoute = ["/promote", "/rollback", "/deploy"].includes(url.pathname);
+    if (!url.pathname.startsWith("/console-api/") && !platformRoute) return realFetch(input, init);
     if (scenario === "slow") await new Promise((r) => setTimeout(r, 3000));
     else await new Promise((r) => setTimeout(r, 120));
-    const path = url.pathname.slice("/console-api".length);
+    const path = platformRoute ? url.pathname : url.pathname.slice("/console-api".length);
     const method = (init?.method ?? "GET").toUpperCase();
     const body: Json = init?.body ? JSON.parse(String(init.body)) : {};
     const admin = state.me.roles.includes("admin");
 
+    if (platformRoute) {
+      if (!admin)
+        return reply(403, {
+          error: { code: "FORBIDDEN", message: "Only an administrator can do this." },
+        });
+      const sent: Json = init?.body ? JSON.parse(String(init.body)) : {};
+      if (path === "/promote") {
+        if (sent.version === "1.5.0")
+          return reply(409, {
+            error: {
+              code: "PENDING_APPROVAL",
+              message: "1.5.0 asks for a network access an admin has not approved yet.",
+            },
+          });
+        toolsMock.promote(sent);
+        return reply(200, { tool: sent.tool, version: sent.version, environment: "production" });
+      }
+      if (path === "/rollback")
+        return reply(200, {
+          tool: sent.tool,
+          version: toolsMock.rollback(),
+          environment: "production",
+        });
+      toolsMock.close(sent.branch);
+      return reply(200, { tool: sent.tool, branch: sent.branch, removed: true });
+    }
     if (scenario === "signedout") return reply(401, { error: "UNAUTHENTICATED" });
     if (scenario === "error") return reply(500, { error: "INTERNAL" });
     if (path === "/api/workspace") {
@@ -210,7 +244,24 @@ export async function installMock(): Promise<void> {
           : {}),
       });
     }
-    if (path === "/api/tools") return reply(200, { tools: state.tools });
+    if (path === "/api/tools")
+      return reply(200, {
+        tools: state.tools.map((t) => ({ ...t, ...toolsMock.summary(t.name) })),
+      });
+    const page = /^\/api\/tools\/([\w-]+)\/(branches|versions|activity)$/.exec(path);
+    if (page) {
+      if (!admin && !state.me.roles.includes("developer"))
+        return reply(403, { error: "FORBIDDEN", message: "This is for admins and developers." });
+      const tool = page[1]!;
+      return reply(
+        200,
+        page[2] === "branches"
+          ? toolsMock.branches(tool)
+          : page[2] === "versions"
+            ? toolsMock.versions(tool)
+            : toolsMock.activity(tool),
+      );
+    }
     const needAdmin = [
       "/api/members",
       "/api/invitations",

@@ -12,6 +12,7 @@ export type LazyPage = () => Promise<{ default: ComponentType<PageProps> }>;
 
 /** The groups of the sidebar, in order. Settings has its own area (`settings`). */
 export type NavGroup = "main" | "admin";
+const GROUPS: NavGroup[] = ["main", "admin"];
 
 export interface RouteDef {
   /** `/tools/:name`: a path; `:name` segments are read into `params`. Two routes never match the same address. */
@@ -52,25 +53,6 @@ const own: RouteDef[] = [
     ),
   },
   {
-    path: "/tools",
-    title: "Tools",
-    access: "everyone",
-    nav: { group: "main", label: "Tools", shortcut: "t" },
-    page: adapt(
-      () => import("../tools-page").then((m) => m.ToolsPage),
-      ({ api, go }) => ({ api, go }),
-    ),
-  },
-  {
-    path: "/tools/:name",
-    title: "Tool",
-    access: "everyone",
-    page: adapt(
-      () => import("../tools-page").then((m) => m.ToolPage),
-      ({ api, ws, params }) => ({ name: params.name!, api, admin: ws.person.admin }),
-    ),
-  },
-  {
     path: "/members",
     title: "Members",
     access: "admin",
@@ -107,10 +89,13 @@ const featureModules = import.meta.glob<{ default: RouteDef[] }>("../features/*/
   eager: true,
 });
 
+/** Sidebar groups first, in order, then the routes without an item: a feature's item joins its group. */
+const rank = (route: RouteDef) => (route.nav ? GROUPS.indexOf(route.nav.group) : GROUPS.length);
+
 export const routes: ReadonlyArray<RouteDef> = [
   ...own,
   ...Object.values(featureModules).flatMap((m) => m.default),
-];
+].sort((a, b) => rank(a) - rank(b));
 
 const segments = (path: string) => path.split("/").filter(Boolean);
 
