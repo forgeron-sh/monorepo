@@ -15,7 +15,13 @@ export async function buildGateway(file = join(here, "..", "dist", "worker.js"))
     input: join(here, "..", "src", "worker.ts"),
     platform: "neutral",
     external: NODE_BUILTIN,
-    resolve: { conditionNames: ["workerd", "worker", "browser", "import", "default"] },
+    resolve: {
+      conditionNames: ["workerd", "worker", "browser", "import", "default"],
+      // Some packages (`@asteasolutions/zod-to-openapi`, under `@hono/zod-openapi`) have `module`
+      // and `main` but no `exports`: with `platform: "neutral"` Rolldown reads neither and leaves
+      // the import external, which workerd then cannot load (`bundle.test.ts` catches it).
+      mainFields: ["module", "main"],
+    },
     logLevel: "silent",
   });
   await bundle.write({ file: target, format: "esm", codeSplitting: false });

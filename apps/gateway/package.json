@@ -10,8 +10,12 @@
     "@cloudflare/workers-oauth-provider": "1.2.4",
     "@forgeron/hosting": "workspace:*",
     "@forgeron/manifest": "workspace:*",
+    "@forgeron/platform-contract": "workspace:*",
     "@forgeron/playground": "workspace:*",
-    "@forgeron/registry": "workspace:*"
+    "@forgeron/registry": "workspace:*",
+    "@hono/zod-openapi": "1.6.3",
+    "hono": "4.13.16",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@forgeron/runtime": "workspace:*",
