@@ -3,14 +3,14 @@ import type { RouteSpec } from "@forgeron/platform-contract";
 import { HTTPException } from "hono/http-exception";
 import type { MiddlewareHandler } from "hono";
 
-// The platform API under `/console-api` as one Hono app (D-063, FOR-150). Routes move here one
+// The platform API under `/console-api` as one Hono app (D-064, FOR-150). Routes move here one
 // handler at a time: Hono answers the paths it owns, and for any other path it answers 404 with
 // `UNMATCHED`, which tells `createGateway` to go on with the hand-written chain. Everything that
 // could change an answer for a path Hono does not own is therefore attached to a route, never to
 // the app: a guard on `*` would refuse a legacy path before the chain saw it.
 
 /** The person the request is from, as the hand-written handlers see them. */
-export interface Person {
+export interface ConsolePerson {
   id: string;
   admin: boolean;
   developer: boolean;
@@ -19,10 +19,10 @@ export interface Person {
 
 /** What the gateway hands to each request: Hono's `env`. */
 interface PlatformBindings {
-  identity(): Promise<Person | undefined>;
+  identity(): Promise<ConsolePerson | undefined>;
 }
 
-export type PlatformEnv = { Bindings: PlatformBindings; Variables: { person: Person } };
+export type PlatformEnv = { Bindings: PlatformBindings; Variables: { person: ConsolePerson } };
 
 /** Set on the 404 of a path Hono does not own: the legacy chain answers it. */
 export const UNMATCHED = "x-forgeron-unmatched";

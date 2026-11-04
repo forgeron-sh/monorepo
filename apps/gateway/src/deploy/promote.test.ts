@@ -2,7 +2,7 @@ import { MigrationError, type Build, type D1Database, type Hosting } from "@forg
 import { createRegistry, deployBuild, migratePlatform, type Registry } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Person } from "../identity/authenticate";
+import type { Person } from "../kernel/person";
 import { issueToken } from "../identity/tokens";
 import { handlePromote, handleRollback } from "./promote";
 

@@ -88,7 +88,7 @@ Templates live in the repository for a specific reason: they are the **SDK's int
 | `@forgeron/runtime`           | Routing of the four interfaces, access control, `ctx` context, events, jobs                                                                                   | **workerd only**, no `node:*`              | `manifest`              |
 | `@forgeron/compiler`          | Tool discovery, Worker bundle, manifest, views, migrations, fingerprints                                                                                      | Node                                       | `manifest`              |
 | `@forgeron/manifest`          | Zod manifest schema, comparison of two manifests, minimum impact (`sdk.md` §16)                                                                               | neutral                                    | `zod` only              |
-| `@forgeron/platform-contract` | Route objects of the platform API (`defineRoute`), `ErrorSchema`, `createClient` (typed `fetch` client); read by the gateway, the console and the CLI (D-063) | neutral, no HTTP library                   | `zod`, `manifest`       |
+| `@forgeron/platform-contract` | Route objects of the platform API (`defineRoute`), `ErrorSchema`, `createClient` (typed `fetch` client); read by the gateway, the console and the CLI (D-064) | neutral, no HTTP library                   | `zod`, `manifest`       |
 | `@forgeron/hosting`           | Deployment interface and its three modes (see "Hosting modes")                                                                                                | neutral (HTTP calls to the Cloudflare API) | `manifest`              |
 | `@forgeron/registry`          | Platform D1: schema migrations and typed access (tools, builds, versions, environments, approvals, encrypted secrets)                                         | neutral                                    | `hosting`               |
 | `@forgeron/playground`        | The playground page (actions, generated forms, what MCP, API and CLI see), served by `forgeron play` and at `/t/<tool>/play`                                  | neutral                                    | none                    |
@@ -205,6 +205,8 @@ Checked by `bun run deps` (dependency-cruiser, `.dependency-cruiser.cjs`) in CI.
 - `@forgeron/sdk` imports neither the compiler nor `hosting` (`sdk-stays-light`): a tool never ships a build or deployment tool;
 - `@forgeron/manifest` depends on no other package of the repository;
 - `@forgeron/ui` does not import the SDK;
+- the registry has one door, `@forgeron/registry` (`registry-door-is-index`): nothing outside the package imports a file under `packages/registry/src/` other than `index.ts`;
+- the gateway's `kernel/` (`Person`, `workspaceOf`) imports nothing else of the gateway (`gateway-kernel-is-a-leaf`); `dispatch/` and `pages/` never import `identity/` and `identity/` never imports `dispatch/` (`identity-is-below-dispatch-and-pages`, `identity-does-not-import-dispatch`): folder cycles that the file-level `no-cycles` cannot see.
 - `@forgeron/platform-contract` imports no package of the repository but `manifest` (`platform-contract-imports-schemas-only`); its only npm dependency is `zod`, which knip enforces (an import that `package.json` does not list fails).
 
 ## Tooling

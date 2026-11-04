@@ -1,10 +1,10 @@
 import { defineRoute, ErrorSchema } from "@forgeron/platform-contract";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createPlatformApp, platformRoute, UNMATCHED, type Person } from "./app";
+import { createPlatformApp, platformRoute, UNMATCHED, type ConsolePerson } from "./app";
 import { ADMIN, describeRouteMatrix, MEMBER } from "./route-matrix";
 
-// A route of the contract that exists for this test only: the shell has no real route yet (D-063).
+// A route of the contract that exists for this test only: the shell has no real route yet (D-064).
 const Thing = z.strictObject({ name: z.string().min(1) });
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
   description,
@@ -35,9 +35,9 @@ app.openapi(platformRoute(boom, "member"), () => {
   throw new Error("registry down");
 });
 
-const as = (who: Person | undefined) => ({ identity: async () => who });
-const call = (request: Request, who: Person | undefined) => app.fetch(request, as(who));
-const get = (path: string, who?: Person, init?: RequestInit) =>
+const as = (who: ConsolePerson | undefined) => ({ identity: async () => who });
+const call = (request: Request, who: ConsolePerson | undefined) => app.fetch(request, as(who));
+const get = (path: string, who?: ConsolePerson, init?: RequestInit) =>
   call(new Request(`https://acme.forgeron.test${path}`, init), who);
 
 describeRouteMatrix({

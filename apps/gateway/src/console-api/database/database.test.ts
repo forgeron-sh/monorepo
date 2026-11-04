@@ -6,6 +6,47 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { handleDatabase } from "./index";
 import { assertSelect, rowsStatement, taggedColumns, type TableInfo } from "./sql";
 
+// A database that refuses what D1 refuses: any read of a `_cf_*` table, and `pragma_*` on one,
+// answers "not authorized" (the `_cf_KV` table every D1 database holds). Checked by SQLite's own
+// authorizer, so a statement that touches such a table fails whatever its text.
+async function createStrictD1() {
+  const { DatabaseSync } = (await import("node:sqlite")) as unknown as {
+    DatabaseSync: new (path: string) => {
+      exec(sql: string): void;
+      prepare(sql: string): { all(...params: unknown[]): unknown[] };
+      setAuthorizer(
+        callback: (action: number, p1: string | null, p2: string | null) => number,
+      ): void;
+      close(): void;
+    };
+  };
+  const db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA foreign_keys = ON");
+  const run = (sql: string, params: unknown[]) => ({ results: db.prepare(sql).all(...params) });
+  const statement = (sql: string, params: unknown[]): unknown => ({
+    sql,
+    params,
+    bind: (...values: unknown[]) => statement(sql, values),
+    all: async () => run(sql, params),
+  });
+  return {
+    prepare: (sql: string) => statement(sql, []),
+    exec: (sql: string) => db.exec(sql),
+    // After the setup: the authorizer would also refuse the statements that create `_cf_KV`.
+    lock() {
+      const SQLITE_READ = 20;
+      const SQLITE_PRAGMA = 19;
+      db.setAuthorizer((action, p1, p2) => {
+        const refused =
+          (action === SQLITE_READ && /^_cf_/.test(p1 ?? "")) ||
+          (action === SQLITE_PRAGMA && /^_cf_/.test(p2 ?? ""));
+        return refused ? 1 : 0;
+      });
+    },
+    close: () => db.close(),
+  };
+}
+
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 const companies = table("companies", {
@@ -451,5 +492,63 @@ describe("the personal tag", () => {
     const sql = `CREATE TABLE "x" ("id" TEXT PRIMARY KEY, "a" TEXT /* personal */, "b" TEXT DEFAULT 'a, /* personal */', "c b" TEXT CHECK ("c b" IN ('x', 'y')) /* personal */)`;
     expect([...taggedColumns(sql)]).toEqual(["a", "c b"]);
     expect(taggedColumns(null).size).toBe(0);
+  });
+});
+
+describe("a database that holds D1's own tables", () => {
+  const strict = async () => {
+    const d1 = await createStrictD1();
+    for (const sql of createSchemaSql(schema({ companies, contacts }))) d1.exec(sql);
+    d1.exec(`CREATE TABLE "_forgeron_migrations" ("name" TEXT)`);
+    d1.exec(`CREATE TABLE "_cf_KV" ("key" TEXT PRIMARY KEY, "value" BLOB) WITHOUT ROWID`);
+    d1.exec(`CREATE TABLE "log" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "line" TEXT)`);
+    d1.exec(`INSERT INTO "log" ("line") VALUES ('x')`); // creates `sqlite_sequence`
+    d1.lock();
+    return d1;
+  };
+  const withStrict = (d1: unknown): Hosting =>
+    ({ openDatabase: async () => d1 as D1Database }) as unknown as Hosting;
+
+  it("lists the tool's tables without touching `_cf_*` or `sqlite_*`", async () => {
+    admin();
+    const d1 = await strict();
+    const response = await call("tables", { hosting: withStrict(d1) });
+    expect(response.status).toBe(200);
+    const names = ((await response.json()) as { tables: { name: string }[] }).tables.map(
+      (x) => x.name,
+    );
+    expect(names).toEqual(["companies", "contacts", "log"]);
+    d1.close();
+  });
+
+  it("describes a table and the schema", async () => {
+    admin();
+    const d1 = await strict();
+    expect((await call("schema", { hosting: withStrict(d1) })).status).toBe(200);
+    expect((await call("tables/contacts", { hosting: withStrict(d1) })).status).toBe(200);
+    d1.close();
+  });
+
+  it("writes the cause of a failure of the host to the log, and not what must not leave", async () => {
+    admin();
+    const failing = Object.assign(
+      new Error(
+        "Cloudflare POST /d1/database/3e9fed11-9409-4b06-aa41-e5ad00148817/query failed (400): " +
+          "not authorized: SQLITE_AUTH [7500] Bearer cf-secret-token",
+      ),
+      { status: 400 },
+    );
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await call("tables", {
+      hosting: { openDatabase: async () => Promise.reject(failing) } as unknown as Hosting,
+    });
+    const written = JSON.stringify(log.mock.calls);
+    log.mockRestore();
+    expect(response.status).toBe(502);
+    expect(written).toContain("not authorized: SQLITE_AUTH [7500]");
+    expect(written).toContain("400");
+    expect(written).not.toContain("3e9fed11");
+    expect(written).not.toContain("cf-secret-token");
+    expect(await response.text()).not.toContain("SQLITE_AUTH");
   });
 });

@@ -1,7 +1,8 @@
 import type { Manifest } from "@forgeron/manifest";
 import { createRuntime } from "@forgeron/runtime";
 import { describe, expect, it } from "vitest";
-import { tokenAuthenticator, type Person } from "../identity/authenticate";
+import type { Person } from "../kernel/person";
+import { tokenAuthenticator } from "../identity/authenticate";
 import { issueToken } from "../identity/tokens";
 import { servePlayground } from "./serve";
 

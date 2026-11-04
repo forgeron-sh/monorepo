@@ -1,4 +1,4 @@
-import { workspaceOf } from "../dispatch/dispatch";
+import { workspaceOf } from "../kernel/workspace";
 import { negotiated } from "../pages/errors";
 import {
   completeLogin,

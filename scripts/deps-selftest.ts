@@ -94,6 +94,34 @@ const cases: Case[] = [
       [`packages/sdk/src/${F}_target.ts`]: STUB,
     },
   },
+  {
+    rule: "registry-door-is-index",
+    files: {
+      [`apps/gateway/src/${F}.ts`]: `import "../../../packages/registry/src/${F}_target.ts";\n`,
+      [`packages/registry/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "gateway-kernel-is-a-leaf",
+    files: {
+      [`apps/gateway/src/kernel/${F}.ts`]: `import "../dispatch/${F}_target.ts";\n`,
+      [`apps/gateway/src/dispatch/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "identity-is-below-dispatch-and-pages",
+    files: {
+      [`apps/gateway/src/pages/${F}.ts`]: `import "../identity/${F}_target.ts";\n`,
+      [`apps/gateway/src/identity/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "identity-does-not-import-dispatch",
+    files: {
+      [`apps/gateway/src/identity/${F}.ts`]: `import "../dispatch/${F}_target.ts";\n`,
+      [`apps/gateway/src/dispatch/${F}_target.ts`]: STUB,
+    },
+  },
 ];
 
 // Every declared rule must have a case, and vice versa.

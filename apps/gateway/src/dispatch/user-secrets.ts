@@ -1,7 +1,7 @@
 import type { Manifest } from "@forgeron/manifest";
 import type { Registry } from "@forgeron/registry";
 import { handleSecretsInput, type UserSecretStore } from "@forgeron/runtime";
-import type { Person } from "../identity/authenticate";
+import type { Person } from "../kernel/person";
 import { page } from "../pages/shell";
 import { connectorHeaders, type ConnectorTokensContext } from "./connector-tokens";
 import type { Forwarding } from "./dispatch";

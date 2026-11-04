@@ -1,5 +1,5 @@
 import type { EmailCodes, Member, Registry } from "@forgeron/registry";
-import { workspaceOf } from "../dispatch/dispatch";
+import { workspaceOf } from "../kernel/workspace";
 import type { MailSender } from "../mail/mail";
 import { errorPage } from "../pages/errors";
 import { reasonOf, signInPages } from "../pages/sign-in";

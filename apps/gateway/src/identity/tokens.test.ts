@@ -1,7 +1,8 @@
 import { createRuntime } from "@forgeron/runtime";
 import { describe, expect, it, vi } from "vitest";
 import { audienceOf, parseAudience } from "./audience";
-import { tokenAuthenticator, type Person } from "./authenticate";
+import type { Person } from "../kernel/person";
+import { tokenAuthenticator } from "./authenticate";
 import { issueToken, verifyToken } from "./tokens";
 
 const secret = "test-secret-not-a-real-one";

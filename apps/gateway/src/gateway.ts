@@ -171,7 +171,7 @@ export function createGateway(
   } = {},
 ) {
   const now = options.now ?? (() => new Date());
-  // The platform API as one Hono app (D-063): built once, the person comes with each request.
+  // The platform API as one Hono app (D-064): built once, the person comes with each request.
   const platform = createPlatformApp();
   const secret = env.AUTH_SECRET;
   const previousSecrets = (env.AUTH_SECRET_PREVIOUS ?? "")

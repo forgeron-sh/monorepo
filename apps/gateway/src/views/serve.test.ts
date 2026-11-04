@@ -2,7 +2,8 @@ import { createRuntime, type ViewBootstrap } from "@forgeron/runtime";
 import { createHttpRuntime, createMemoryParams } from "@forgeron/sdk/react";
 import { describe, expect, it, vi } from "vitest";
 import { audienceOf } from "../identity/audience";
-import { tokenAuthenticator, type Person } from "../identity/authenticate";
+import type { Person } from "../kernel/person";
+import { tokenAuthenticator } from "../identity/authenticate";
 import { verifyToken } from "../identity/tokens";
 import { serveView, VIEW_CSP, VIEW_TOKEN_TTL_SECONDS, type ViewAssets } from "./serve";
 

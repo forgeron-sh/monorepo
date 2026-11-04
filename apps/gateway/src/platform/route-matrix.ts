@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Access, Person } from "./app";
+import type { Access, ConsolePerson } from "./app";
 
 // The answers every route of the platform API gives before its own logic runs. Each route's test
 // calls `describeRouteMatrix` once, so the 401, 403, 415 and 400 rules cannot drift route by route.
@@ -7,7 +7,7 @@ import type { Access, Person } from "./app";
 export interface RouteMatrix {
   title: string;
   /** Calls the app as `who` (undefined: nobody signed in). */
-  call(request: Request, who: Person | undefined): Response | Promise<Response>;
+  call(request: Request, who: ConsolePerson | undefined): Response | Promise<Response>;
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   /** A concrete address of the route, with a path like `/api/members/m1`. */
   path: string;
@@ -18,8 +18,13 @@ export interface RouteMatrix {
   valid?: unknown;
 }
 
-export const MEMBER: Person = { id: "p-member", admin: false, developer: false, roles: [] };
-export const ADMIN: Person = { id: "p-admin", admin: true, developer: false, roles: ["admin"] };
+export const MEMBER: ConsolePerson = { id: "p-member", admin: false, developer: false, roles: [] };
+export const ADMIN: ConsolePerson = {
+  id: "p-admin",
+  admin: true,
+  developer: false,
+  roles: ["admin"],
+};
 
 const url = (path: string) => `https://acme.forgeron.test${path}`;
 const json = (m: RouteMatrix, body: unknown) =>

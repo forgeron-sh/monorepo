@@ -1,6 +1,6 @@
 import { mayAccess, type AccessOverrides, type Manifest } from "@forgeron/manifest";
 import { playgroundHtml } from "@forgeron/playground";
-import type { Person } from "../identity/authenticate";
+import type { Person } from "../kernel/person";
 
 // The playground of a tool, at `/t/<tool>/play` (sdk.md §7). It is Forgeron's own page, served at the
 // workspace origin like the console: it calls the tool's `/api`, `/mcp` and `/cli` with the person's

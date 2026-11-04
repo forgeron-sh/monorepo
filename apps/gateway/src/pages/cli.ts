@@ -1,4 +1,4 @@
-import type { Person } from "../identity/authenticate";
+import type { Person } from "../kernel/person";
 import { button, escape, facts, hiddenFields, notice, page, paragraph } from "./shell";
 
 // `forgeron login` in the browser (D-031, D-053): a confirmation, then a hand-back page.

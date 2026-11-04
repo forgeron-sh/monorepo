@@ -64,6 +64,36 @@ module.exports = {
       from: { path: "^packages/ui/" },
       to: { path: "^packages/(sdk|runtime|compiler)/" },
     },
+    {
+      // The registry has one door: `@forgeron/registry` (`src/index.ts`). Nothing outside the
+      // package reaches into its files (docs/spikes/module-model.md, FOR-155).
+      name: "registry-door-is-index",
+      severity: "error",
+      from: { path: "^(apps|packages|templates|scripts)/", pathNot: "^packages/registry/" },
+      to: { path: "^packages/registry/src/", pathNot: "^packages/registry/src/index\\.ts$" },
+    },
+    {
+      // The gateway's kernel (`Person`, `workspaceOf`) is what identity, dispatch and pages share:
+      // it imports none of them. This and the next rule keep the folders free of cycles, which
+      // the file-level `no-cycles` cannot see.
+      name: "gateway-kernel-is-a-leaf",
+      severity: "error",
+      from: { path: "^apps/gateway/src/kernel/" },
+      to: { path: "^apps/gateway/src/", pathNot: "^apps/gateway/src/kernel/" },
+    },
+    {
+      // Identity renders pages and asks nothing of dispatch; dispatch and pages never import identity.
+      name: "identity-is-below-dispatch-and-pages",
+      severity: "error",
+      from: { path: "^apps/gateway/src/(dispatch|pages)/", pathNot: "\\.test\\.ts$" },
+      to: { path: "^apps/gateway/src/identity/" },
+    },
+    {
+      name: "identity-does-not-import-dispatch",
+      severity: "error",
+      from: { path: "^apps/gateway/src/identity/" },
+      to: { path: "^apps/gateway/src/dispatch/" },
+    },
   ],
   options: {
     doNotFollow: { path: "(^|/)(node_modules|dist)/" },
