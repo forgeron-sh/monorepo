@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type { RouteSpec, SignIn } from "@forgeron/platform-contract";
 import { HTTPException } from "hono/http-exception";
 import type { Hosting } from "@forgeron/hosting";
-import type { Registry } from "@forgeron/registry";
+import type { Invitation, Registry } from "@forgeron/registry";
 import type { MiddlewareHandler } from "hono";
 
 // The platform API under `/console-api` as one Hono app (D-064, FOR-150). Routes move here one
@@ -33,6 +33,11 @@ interface PlatformBindings {
   baseDomain: string;
   /** Which sign-in methods are on, for the workspace route. */
   signIn(): Promise<SignIn>;
+  /** Domains from the install (`--member-email-domains`): used until an admin saves their own. */
+  installDomains: string[];
+  now(): Date;
+  /** Tells an invited address where to sign in. Best effort: `false` when it could not be sent. */
+  notify?(invitation: Invitation): Promise<boolean>;
   /** The hosting of the workspace, to reach a tool's database; `undefined` where there is none. */
   hosting(workspace: string): Hosting | undefined;
   /** How long the explorer waits for a statement (default 10 s); tests shorten it. */

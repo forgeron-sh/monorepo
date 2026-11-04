@@ -10,6 +10,7 @@ import {
   createSecretBox,
   type EmailCodes,
   type IdentityConfig,
+  type Invitation,
   type Registry,
   type SecretBox,
 } from "@forgeron/registry";
@@ -27,7 +28,6 @@ import { handleConsent } from "./consent/consent";
 import { UNMATCHED } from "./platform/app";
 import { createPlatform } from "./platform/platform";
 import { handleIdentity } from "./console-api/identity";
-import { handleMembers } from "./console-api/members";
 import { handleSecrets } from "./console-api/secrets";
 import { handleApprovals } from "./console-api/approvals";
 import {
@@ -550,11 +550,26 @@ export function createGateway(
         box && /\/consent(\/|$)/.test(inner.pathname)
           ? consentFor(workspace, await config.connectorClientsWithSecrets(workspace), box)
           : undefined;
+      // Tells an invited address where to sign in (best effort: the answer says whether it went).
+      const notify = mailer
+        ? async (invitation: Invitation) => {
+            await mailer.send({
+              to: invitation.email,
+              subject: `You are invited to ${workspace}`,
+              invitation: { roles: invitation.roles },
+              text: `You are invited to join ${workspace}${invitation.roles.length ? ` as ${invitation.roles.join(", ")}` : ""}.\n\nOpen ${invitationLink(`https://${workspace}.${env.BASE_DOMAIN}`, await invitationId(secret!, invitation))} to accept, then sign in with this email address. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
+            });
+            return true;
+          }
+        : undefined;
       // Hono answers the paths it owns; for any other it says so and the chain below goes on.
       const owned = await platform.fetch(forwarded, {
         identity,
         registry,
         workspace,
+        installDomains,
+        now,
+        ...(notify ? { notify } : {}),
         origin: `https://${workspace}.${env.BASE_DOMAIN}`,
         baseDomain: env.BASE_DOMAIN,
         hosting: hostingOf,
@@ -578,26 +593,6 @@ export function createGateway(
           canKeepSecrets: box !== undefined,
           caller: identity,
           audit: (entry) => registry.recordAudit(entry),
-        })) ??
-        (await handleMembers(forwarded, {
-          registry,
-          workspace,
-          installDomains,
-          caller: identity,
-          now,
-          ...(mailer
-            ? {
-                notify: async (invitation) => {
-                  await mailer.send({
-                    to: invitation.email,
-                    subject: `You are invited to ${workspace}`,
-                    invitation: { roles: invitation.roles },
-                    text: `You are invited to join ${workspace}${invitation.roles.length ? ` as ${invitation.roles.join(", ")}` : ""}.\n\nOpen ${invitationLink(`https://${workspace}.${env.BASE_DOMAIN}`, await invitationId(secret!, invitation))} to accept, then sign in with this email address. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
-                  });
-                  return true;
-                },
-              }
-            : {}),
         })) ??
         (consent
           ? await handleConsent(forwarded, { registry, consent, workspace, caller: identity })
