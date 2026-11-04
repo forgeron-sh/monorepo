@@ -2,7 +2,8 @@ import { createRegistry, migratePlatform, type Registry } from "@forgeron/regist
 import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { handleTools, listTools } from "./tools";
+import { platformCaller } from "../platform/test-app";
+import { listTools } from "./tools";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -11,11 +12,9 @@ let registry: Registry;
 let caller: object | undefined = {};
 
 const call = (path = "/api/tools", method = "GET", workspace = "acme") =>
-  handleTools(new Request(`https://acme.forgeron.test${path}`, { method }), {
-    registry,
-    workspace,
-    caller: async () => caller,
-  });
+  platformCaller({ registry, workspace, who: () => caller })(
+    new Request(`https://acme.forgeron.test${path}`, { method }),
+  );
 
 async function deploy(
   workspace: string,

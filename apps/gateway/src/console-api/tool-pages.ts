@@ -18,18 +18,7 @@ import type {
 
 const RECENT = 5;
 const MAX_ACTIVITY = 200;
-
-export interface ToolPagesOptions {
-  registry: Registry;
-  workspace: string;
-  caller(request: Request): Promise<{ admin: boolean; developer: boolean } | undefined>;
-}
-
-const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json", "cache-control": "no-store" },
-  });
+const DEFAULT_ACTIVITY = 50;
 
 interface DeploymentLine {
   at: string;
@@ -128,7 +117,7 @@ async function actors(registry: Registry, workspace: string) {
 const addressOf = (origin: string, tool: string, branch?: string) =>
   `${origin}/t/${tool}${branch ? `@${branch}` : ""}`;
 
-async function branches(
+export async function branches(
   registry: Registry,
   workspace: string,
   tool: Tool,
@@ -196,7 +185,7 @@ async function branches(
   return { tool: tool.name, production, branches: previews };
 }
 
-async function versionsOf(
+export async function versionsOf(
   registry: Registry,
   tool: Tool,
 ): Promise<{ tool: string; versions: VersionRow[] }> {
@@ -225,42 +214,24 @@ async function versionsOf(
   return { tool: tool.name, versions: rows.reverse() };
 }
 
-export async function handleToolPages(
-  request: Request,
-  options: ToolPagesOptions,
-): Promise<Response | undefined> {
-  const url = new URL(request.url);
-  const match = /^\/api\/tools\/([^/]+)\/(branches|versions|activity)$/.exec(url.pathname);
-  if (!match) return undefined;
-  if (request.method !== "GET") return json(405, { error: "METHOD_NOT_ALLOWED" });
-  const caller = await options.caller(request);
-  if (!caller) return json(401, { error: "UNAUTHENTICATED" });
-  if (!caller.admin && !caller.developer) {
-    return json(403, { error: "FORBIDDEN", message: "This is for admins and developers." });
-  }
-  const { registry, workspace } = options;
-  const tool = await registry.findTool(workspace, decodeURIComponent(match[1]!));
-  if (!tool) return json(404, { error: "NOT_FOUND", message: "There is no such tool." });
-
-  switch (match[2]) {
-    case "branches":
-      return json(200, await branches(registry, workspace, tool, url.origin));
-    case "versions":
-      return json(200, await versionsOf(registry, tool));
-    default: {
-      const asked = Number(url.searchParams.get("limit") ?? 50);
-      const limit = Number.isInteger(asked) && asked > 0 ? Math.min(asked, MAX_ACTIVITY) : 50;
-      const who = await actors(registry, workspace);
-      const entries = (await registry.listAudit(tool.id, { limit })).map((r) => ({
-        id: r.id,
-        at: r.at,
-        actor: who(r.actor),
-        interface: r.interface,
-        kind: r.kind,
-        subject: r.subject,
-        result: r.result,
-      }));
-      return json(200, { tool: tool.name, entries });
-    }
-  }
+/** The tool's audit lines. `limit` is lenient: anything but a positive integer is the default. */
+export async function activityOf(
+  registry: Registry,
+  workspace: string,
+  tool: Tool,
+  asked: string | undefined,
+) {
+  const n = Number(asked ?? DEFAULT_ACTIVITY);
+  const limit = Number.isInteger(n) && n > 0 ? Math.min(n, MAX_ACTIVITY) : DEFAULT_ACTIVITY;
+  const who = await actors(registry, workspace);
+  const entries = (await registry.listAudit(tool.id, { limit })).map((r) => ({
+    id: r.id,
+    at: r.at,
+    actor: who(r.actor),
+    interface: r.interface,
+    kind: r.kind,
+    subject: r.subject,
+    result: r.result,
+  }));
+  return { tool: tool.name, entries };
 }

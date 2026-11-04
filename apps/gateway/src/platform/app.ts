@@ -33,8 +33,13 @@ export type PlatformEnv = { Bindings: PlatformBindings; Variables: { person: Con
 /** Set on the 404 of a path Hono does not own: the legacy chain answers it. */
 export const UNMATCHED = "x-forgeron-unmatched";
 
-/** Who may call a route: any signed-in member, or an admin. */
-export type Access = "member" | "admin";
+/** Who may call a route: any signed-in member, an admin or a developer, or an admin. */
+export type Access = "member" | "developer" | "admin";
+
+const FORBIDDEN: Record<Exclude<Access, "member">, string> = {
+  admin: "This is for admins.",
+  developer: "This is for admins and developers.",
+};
 
 const answer = (status: 400 | 401 | 403 | 415, error: string, message?: string) =>
   Response.json(message ? { error, message } : { error }, {
@@ -44,11 +49,13 @@ const answer = (status: 400 | 401 | 403 | 415, error: string, message?: string) 
 
 /** 401 for nobody, 403 for a member on an admin route: the order of the hand-written handlers. */
 const guard =
-  (access: Access): MiddlewareHandler<PlatformEnv> =>
+  (access: Access, forbidden?: string): MiddlewareHandler<PlatformEnv> =>
   async (c, next) => {
     const person = await c.env.identity();
     if (!person) return answer(401, "UNAUTHENTICATED");
-    if (access === "admin" && !person.admin) return answer(403, "FORBIDDEN", "This is for admins.");
+    if (access !== "member" && !person.admin && (access === "admin" || !person.developer)) {
+      return answer(403, "FORBIDDEN", forbidden ?? FORBIDDEN[access]);
+    }
     c.set("person", person);
     await next();
   };
@@ -68,11 +75,16 @@ const jsonOnly: MiddlewareHandler<PlatformEnv> = async (c, next) => {
  * A contract route with its guards: identity, role, then JSON-only on a route that takes a body.
  * Pass the result to `app.openapi(…, handler)`.
  */
-export function platformRoute<const R extends RouteSpec>(spec: R, access: Access) {
+export function platformRoute<const R extends RouteSpec>(
+  spec: R,
+  access: Access,
+  /** The `message` of the 403, when a route says it in its own words. */
+  forbidden?: string,
+) {
   const writes = spec.method === "post" || spec.method === "put" || spec.method === "patch";
   return createRoute({
     ...spec,
-    middleware: writes ? [guard(access), jsonOnly] : [guard(access)],
+    middleware: writes ? [guard(access, forbidden), jsonOnly] : [guard(access, forbidden)],
   });
 }
 

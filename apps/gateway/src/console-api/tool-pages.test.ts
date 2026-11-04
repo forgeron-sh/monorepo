@@ -2,7 +2,7 @@ import { createRegistry, migratePlatform, type Registry } from "@forgeron/regist
 import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { handleToolPages } from "./tool-pages";
+import { platformCaller } from "../platform/test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -11,11 +11,9 @@ let registry: Registry;
 let caller: { admin: boolean; developer: boolean } | undefined = { admin: true, developer: false };
 
 const call = (path: string, method = "GET") =>
-  handleToolPages(new Request(`https://acme.forgeron.test${path}`, { method }), {
-    registry,
-    workspace: "acme",
-    caller: async () => caller,
-  });
+  platformCaller({ registry, who: () => caller })(
+    new Request(`https://acme.forgeron.test${path}`, { method }),
+  );
 
 const manifest = (actions: string[]) => ({
   name: "crm",

@@ -12,6 +12,8 @@ export interface RouteMatrix {
   /** A concrete address of the route, with a path like `/api/members/m1`. */
   path: string;
   access: Access;
+  /** The 403's message when the route words it its own way. */
+  forbidden?: string;
   /** Bodies the route's schema refuses (a write only): each must answer 400. */
   invalid?: unknown[];
   /** A body the route accepts, to tell a 415 from a 400 (a write only). */
@@ -26,6 +28,13 @@ export const ADMIN: ConsolePerson = {
   roles: ["admin"],
 };
 
+const DEVELOPER: ConsolePerson = {
+  id: "p-dev",
+  admin: false,
+  developer: true,
+  roles: ["developer"],
+};
+
 const url = (path: string) => `https://acme.forgeron.test${path}`;
 const json = (m: RouteMatrix, body: unknown) =>
   m.method === "GET" || m.method === "DELETE"
@@ -38,7 +47,7 @@ const json = (m: RouteMatrix, body: unknown) =>
 
 export function describeRouteMatrix(m: RouteMatrix): void {
   const write = m.method !== "GET" && m.method !== "DELETE";
-  const asAllowed = m.access === "admin" ? ADMIN : MEMBER;
+  const asAllowed = m.access === "admin" ? ADMIN : m.access === "developer" ? DEVELOPER : MEMBER;
   describe(`${m.title}: common answers`, () => {
     it("401 UNAUTHENTICATED for nobody, never cached", async () => {
       const res = await m.call(json(m, m.valid ?? {}), undefined);
@@ -47,11 +56,21 @@ export function describeRouteMatrix(m: RouteMatrix): void {
       expect(await res.json()).toEqual({ error: "UNAUTHENTICATED" });
     });
 
-    it.runIf(m.access === "admin")("403 FORBIDDEN for a member who is not an admin", async () => {
+    it.runIf(m.access !== "member")("403 FORBIDDEN for a member without the role", async () => {
       const res = await m.call(json(m, m.valid ?? {}), MEMBER);
       expect(res.status).toBe(403);
       expect(res.headers.get("cache-control")).toBe("no-store");
-      expect(await res.json()).toEqual({ error: "FORBIDDEN", message: "This is for admins." });
+      expect(await res.json()).toEqual({
+        error: "FORBIDDEN",
+        message:
+          m.forbidden ??
+          (m.access === "admin" ? "This is for admins." : "This is for admins and developers."),
+      });
+    });
+
+    it.runIf(m.access === "developer")("lets an admin who is not a developer in", async () => {
+      const res = await m.call(json(m, m.valid ?? {}), ADMIN);
+      expect([401, 403]).not.toContain(res.status);
     });
 
     it.runIf(write)("415 for a body that is not JSON, after the checks on who calls", async () => {
