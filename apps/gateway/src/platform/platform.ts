@@ -1,5 +1,7 @@
+import { mountAccessMatrix } from "./access-matrix";
 import { mountCatalog } from "./catalog";
 import { mountTools } from "./tools";
+import { mountWorkspace } from "./workspace";
 import { createPlatformApp, memberOnly } from "./app";
 
 /** The platform API: the shell with every route that has moved to the contract so far. */
@@ -7,6 +9,8 @@ export function createPlatform() {
   const app = createPlatformApp();
   mountCatalog(app);
   mountTools(app);
+  mountWorkspace(app);
+  mountAccessMatrix(app);
 
   // The OpenAPI 3.1 document of what is mounted above, for any signed-in member, like the catalog:
   // it describes the API a member's own console calls, and an anonymous visitor has no use for it.

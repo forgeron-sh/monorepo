@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import type { RouteSpec } from "@forgeron/platform-contract";
+import type { RouteSpec, SignIn } from "@forgeron/platform-contract";
 import { HTTPException } from "hono/http-exception";
 import type { Registry } from "@forgeron/registry";
 import type { MiddlewareHandler } from "hono";
@@ -13,6 +13,8 @@ import type { MiddlewareHandler } from "hono";
 /** The person the request is from, as the hand-written handlers see them. */
 export interface ConsolePerson {
   id: string;
+  email: string;
+  name: string;
   admin: boolean;
   developer: boolean;
   roles: string[];
@@ -26,6 +28,10 @@ interface PlatformBindings {
   workspace: string;
   /** The workspace's address, `https://acme.forgeron.app`. */
   origin: string;
+  /** The platform's base domain (`forgeron.app`). */
+  baseDomain: string;
+  /** Which sign-in methods are on, for the workspace route. */
+  signIn(): Promise<SignIn>;
 }
 
 export type PlatformEnv = { Bindings: PlatformBindings; Variables: { person: ConsolePerson } };
@@ -110,9 +116,12 @@ export function createPlatformApp() {
     // What Hono throws itself (a body that is not JSON, a wrong media type) is the person's
     // mistake, not a failure. Anything else is a failure: the Worker's own handler logs and answers.
     if (error instanceof HTTPException) {
+      if (error.status === 415) return c.json({ error: "INVALID", message: "Send JSON." }, 415);
+      // A body that is not JSON at all, against one that is JSON the schema refuses.
+      const malformed = /malformed json/i.test(error.message);
       return c.json(
-        { error: "INVALID", message: error.status === 415 ? "Send JSON." : "Invalid input." },
-        error.status === 415 ? 415 : 400,
+        { error: "INVALID", message: malformed ? "The body is not JSON." : "Invalid input." },
+        400,
       );
     }
     throw error;

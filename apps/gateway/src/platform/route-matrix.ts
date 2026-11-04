@@ -14,15 +14,26 @@ export interface RouteMatrix {
   access: Access;
   /** The 403's message when the route words it its own way. */
   forbidden?: string;
+  /** The 400's message when the route words it its own way (default `Invalid input.`). */
+  invalidMessage?: string;
   /** Bodies the route's schema refuses (a write only): each must answer 400. */
   invalid?: unknown[];
   /** A body the route accepts, to tell a 415 from a 400 (a write only). */
   valid?: unknown;
 }
 
-export const MEMBER: ConsolePerson = { id: "p-member", admin: false, developer: false, roles: [] };
+export const MEMBER: ConsolePerson = {
+  id: "p-member",
+  email: "m@acme.test",
+  name: "M",
+  admin: false,
+  developer: false,
+  roles: [],
+};
 export const ADMIN: ConsolePerson = {
   id: "p-admin",
+  email: "a@acme.test",
+  name: "A",
   admin: true,
   developer: false,
   roles: ["admin"],
@@ -30,6 +41,8 @@ export const ADMIN: ConsolePerson = {
 
 const DEVELOPER: ConsolePerson = {
   id: "p-dev",
+  email: "d@acme.test",
+  name: "D",
   admin: false,
   developer: true,
   roles: ["developer"],
@@ -106,7 +119,10 @@ export function describeRouteMatrix(m: RouteMatrix): void {
         const res = await m.call(json(m, body), asAllowed);
         expect(res.status).toBe(400);
         expect(res.headers.get("cache-control")).toBe("no-store");
-        expect(await res.json()).toEqual({ error: "INVALID", message: "Invalid input." });
+        expect(await res.json()).toEqual({
+          error: "INVALID",
+          message: m.invalidMessage ?? "Invalid input.",
+        });
       },
     );
   });

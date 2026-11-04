@@ -58,11 +58,25 @@ describeRouteMatrix({
 
 describe("the tool routes", () => {
   it("answer 404 for an unknown tool only to someone who may read it", async () => {
-    person = { id: "p", admin: false, developer: false, roles: [] };
+    person = {
+      id: "p",
+      email: "p@acme.test",
+      name: "P",
+      admin: false,
+      developer: false,
+      roles: [],
+    };
     expect(
       (await call(new Request("https://acme.forgeron.test/api/tools/ghost/versions")))!.status,
     ).toBe(403);
-    person = { id: "p", admin: false, developer: true, roles: ["developer"] };
+    person = {
+      id: "p",
+      email: "p@acme.test",
+      name: "P",
+      admin: false,
+      developer: true,
+      roles: ["developer"],
+    };
     const res = (await call(new Request("https://acme.forgeron.test/api/tools/ghost/versions")))!;
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "NOT_FOUND", message: "There is no such tool." });
