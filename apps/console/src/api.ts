@@ -1,3 +1,5 @@
+import { createClient } from "@forgeron/platform-contract/client";
+
 /** The gateway's API for the console. Same origin as the page: the session cookie goes with it, nowhere else. */
 export const CONSOLE_API = "/console-api";
 
@@ -22,6 +24,24 @@ async function failure(path: string, response: Response): Promise<ApiError> {
     response.status,
     detail,
   );
+}
+
+/**
+ * The platform's typed client (`@forgeron/platform-contract`) over a screen's `fetchJson`: GET routes
+ * only. A refusal still throws `ApiError`, so `explain` and every screen work as they did, and the
+ * tests and the harness keep handing in their own `fetchJson`.
+ */
+export function typedClient(fetchJson: FetchJson) {
+  return createClient(async (path) => Response.json(await fetchJson(String(path))), "");
+}
+
+/** The body of a route's `200`; any other status was thrown as `ApiError` by `fetchJson`. */
+export function ok<A extends { status: number; body: unknown }>(
+  answer: A,
+): Extract<A, { status: 200 }>["body"] {
+  if (answer.status !== 200)
+    throw new ApiError(`Unexpected answer ${answer.status}`, answer.status);
+  return answer.body;
 }
 
 export type FetchJson = (path: string) => Promise<unknown>;

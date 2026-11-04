@@ -145,15 +145,20 @@ For admins and members alike. The pattern of an app directory:
 
 ### Catalog API
 
-Typed in `@forgeron/manifest` (`catalog.ts`: zod schemas and types; the console imports the types). All
-routes are under `/console-api`, answer JSON with `cache-control: no-store`, and are for **any signed-in
+Typed in `@forgeron/manifest` (`catalog.ts`: zod schemas and types) and declared as route objects in
+`@forgeron/platform-contract` (`catalog.ts`), which the gateway serves with Hono and the console calls
+through the contract's typed client (D-066). All routes are under `/console-api`, answer JSON with `cache-control: no-store`, and are for **any signed-in
 member** (anonymous: `401`). A tool nobody may use is listed too.
 
-| Route                                   | Answer                                                |
-| --------------------------------------- | ----------------------------------------------------- |
-| `GET /api/catalog`                      | `{ tools: CatalogTool[] }`, sorted by name            |
-| `GET /api/catalog/<tool>`               | a `ToolCard`; `404` for an unknown tool               |
-| `GET /api/catalog/<tool>/assets/<path>` | an image of the bundle (`path` as in `assets[].path`) |
+| Route                                   | Answer                                                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `GET /api/catalog`                      | `{ tools: CatalogTool[] }`, sorted by name                                                             |
+| `GET /api/catalog/<tool>`               | a `ToolCard`; `404` for an unknown tool                                                                |
+| `GET /api/catalog/<tool>/assets/<path>` | an image of the bundle (`path` as in `assets[].path`)                                                  |
+| `GET /api/openapi.json`                 | the OpenAPI 3.1 document of the routes the contract serves; for any signed-in member, like the catalog |
+
+Any other method on a catalog route is `405` (even for someone not signed in); `HEAD` on an image answers
+the headers without the body.
 
 `CatalogTool`: `{ name, title, summary, icon, productionVersion, interfaces: { mcp, api, cli, web },
 access, roles }`.

@@ -24,7 +24,8 @@ import {
   type Hosting,
 } from "@forgeron/hosting";
 import { handleConsent } from "./consent/consent";
-import { createPlatformApp, UNMATCHED } from "./platform/app";
+import { UNMATCHED } from "./platform/app";
+import { createPlatform } from "./platform/platform";
 import { handleAccessMatrix } from "./console-api/access-matrix";
 import { handleManifest } from "./console-api/manifest";
 import { handleConnections } from "./console-api/connections";
@@ -34,7 +35,6 @@ import { handleSecrets } from "./console-api/secrets";
 import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleApprovals } from "./console-api/approvals";
 import { handleAudit } from "./console-api/audit";
-import { handleCatalog } from "./console-api/catalog";
 import { handleDatabase } from "./console-api/database";
 import { handleToolPages } from "./console-api/tool-pages";
 import { handleTools } from "./console-api/tools";
@@ -172,7 +172,7 @@ export function createGateway(
 ) {
   const now = options.now ?? (() => new Date());
   // The platform API as one Hono app (D-064): built once, the person comes with each request.
-  const platform = createPlatformApp();
+  const platform = createPlatform();
   const secret = env.AUTH_SECRET;
   const previousSecrets = (env.AUTH_SECRET_PREVIOUS ?? "")
     .split(",")
@@ -558,7 +558,12 @@ export function createGateway(
           ? consentFor(workspace, await config.connectorClientsWithSecrets(workspace), box)
           : undefined;
       // Hono answers the paths it owns; for any other it says so and the chain below goes on.
-      const owned = await platform.fetch(forwarded, { identity });
+      const owned = await platform.fetch(forwarded, {
+        identity,
+        registry,
+        workspace,
+        origin: `https://${workspace}.${env.BASE_DOMAIN}`,
+      });
       if (!owned.headers.has(UNMATCHED)) return owned;
       return (
         (await handleIdentity(forwarded, {
@@ -601,12 +606,6 @@ export function createGateway(
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleManifest(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
-        (await handleCatalog(forwarded, {
-          registry,
-          workspace,
-          origin: `https://${workspace}.${env.BASE_DOMAIN}`,
-          caller: identity,
-        })) ??
         (await handleDatabase(forwarded, {
           registry,
           workspace,

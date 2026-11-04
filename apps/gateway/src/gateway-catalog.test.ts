@@ -237,4 +237,82 @@ describe("the catalog through the gateway", () => {
     const bob = await signInAs("bob@acme.fr");
     expect((await gateway(at(API, { method: "POST", headers: { cookie: bob } }))).status).toBe(405);
   });
+
+  it("answers 405 to another method on the card and the image too, even to nobody", async () => {
+    const gateway = gatewayFor();
+    for (const path of [`${API}/crm`, `${API}/crm/assets/docs/shot.png`]) {
+      for (const method of ["POST", "PUT", "DELETE"]) {
+        expect((await gateway(at(path, { method }))).status).toBe(405);
+      }
+    }
+  });
+
+  it("answers HEAD for an image without a body, with the same headers", async () => {
+    const gateway = gatewayFor();
+    const bob = await signInAs("bob@acme.fr");
+    const head = await gateway(
+      at(`${API}/crm/assets/docs/shot.png?v=${pngHash}`, {
+        method: "HEAD",
+        headers: { cookie: bob },
+      }),
+    );
+    expect(head.status).toBe(200);
+    expect(head.headers.get("content-type")).toBe("image/png");
+    expect(head.headers.get("cache-control")).toBe("private, max-age=31536000, immutable");
+    expect(await head.text()).toBe("");
+  });
+});
+
+describe("the OpenAPI document", () => {
+  const DOC = "/console-api/api/openapi.json";
+
+  it("is for signed-in members, like the catalog it describes: anonymous is 401", async () => {
+    const gateway = gatewayFor();
+    const anonymous = await gateway(at(DOC));
+    expect(anonymous.status).toBe(401);
+    expect(await anonymous.json()).toEqual({ error: "UNAUTHENTICATED" });
+  });
+
+  it("is OpenAPI 3.1, never cached, and lists the catalog routes with their answers", async () => {
+    const gateway = gatewayFor();
+    const bob = await signInAs("bob@acme.fr");
+    const response = await gateway(at(DOC, { headers: { cookie: bob } }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const doc = (await response.json()) as {
+      openapi: string;
+      servers: { url: string }[];
+      paths: Record<string, Record<string, { responses: Record<string, unknown> }>>;
+    };
+    expect(doc.openapi).toBe("3.1.0");
+    expect(doc.servers).toEqual([{ url: "/console-api" }]);
+    expect(Object.keys(doc.paths).sort()).toEqual([
+      "/api/catalog",
+      "/api/catalog/{tool}",
+      "/api/catalog/{tool}/assets/{path}",
+    ]);
+    expect(Object.keys(doc.paths["/api/catalog/{tool}"]!.get!.responses).sort()).toEqual([
+      "200",
+      "401",
+      "404",
+      "500",
+    ]);
+    const image = doc.paths["/api/catalog/{tool}/assets/{path}"]!.get!.responses["200"] as {
+      content: object;
+    };
+    expect(Object.keys(image.content).sort()).toEqual([
+      "image/gif",
+      "image/jpeg",
+      "image/png",
+      "image/svg+xml",
+      "image/webp",
+    ]);
+  });
+
+  it("is not a way to write: a POST is not answered by Hono", async () => {
+    const gateway = gatewayFor();
+    const bob = await signInAs("bob@acme.fr");
+    const res = await gateway(at(DOC, { method: "POST", headers: { cookie: bob } }));
+    expect(res.status).toBe(404);
+  });
 });
