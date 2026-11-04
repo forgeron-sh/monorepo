@@ -27,20 +27,37 @@ async function failure(path: string, response: Response): Promise<ApiError> {
 }
 
 /**
- * The platform's typed client (`@forgeron/platform-contract`) over a screen's `fetchJson`: GET routes
- * only. A refusal still throws `ApiError`, so `explain` and every screen work as they did, and the
- * tests and the harness keep handing in their own `fetchJson`.
+ * The platform's typed client (`@forgeron/platform-contract`) over what a screen is given: its
+ * `fetchJson` for a read, its `sendJson` for a write. A refusal still throws `ApiError`, so `explain`
+ * and every screen work as they did, and the tests and the harness keep handing in their own
+ * transport.
  */
-export function typedClient(fetchJson: FetchJson) {
-  return createClient(async (path) => Response.json(await fetchJson(String(path))), "");
+export function typedClient(fetchJson: FetchJson, sendJson?: SendJson) {
+  return createClient(async (input, init) => {
+    const path = String(input);
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (method === "GET") return Response.json(await fetchJson(path));
+    if (!sendJson) throw new Error("This console cannot write to the platform.");
+    const body = typeof init?.body === "string" ? (JSON.parse(init.body) as unknown) : undefined;
+    const result = await sendJson(path, body, method as "PUT" | "POST" | "PATCH" | "DELETE");
+    return result === undefined ? new Response(null, { status: 204 }) : Response.json(result);
+  }, "");
 }
 
-/** The body of a route's `200`; any other status was thrown as `ApiError` by `fetchJson`. */
+/** The typed client for a screen that only writes: it has a `sendJson` and nothing to read with. */
+export function typedSender(sendJson: SendJson) {
+  return typedClient(async () => {
+    throw new Error("This client only writes.");
+  }, sendJson);
+}
+
+/** The body of a route's success; any other status was thrown as `ApiError` by the transport. */
 export function ok<A extends { status: number; body: unknown }>(
   answer: A,
-): Extract<A, { status: 200 }>["body"] {
-  if (answer.status !== 200)
+): Extract<A, { status: 200 | 201 | 204 }>["body"] {
+  if (answer.status < 200 || answer.status > 299) {
     throw new ApiError(`Unexpected answer ${answer.status}`, answer.status);
+  }
   return answer.body;
 }
 

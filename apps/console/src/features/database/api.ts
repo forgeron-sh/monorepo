@@ -1,6 +1,7 @@
 // Typed calls to the gateway's database explorer (`/console-api/api/tools/<tool>/db/...`, D-059).
 // The browser never holds a Cloudflare token: the gateway reaches the database.
-import { CONSOLE_API, type FetchJson } from "../../api";
+import { addresses } from "@forgeron/platform-contract/client";
+import { CONSOLE_API, ok, typedClient, type FetchJson } from "../../api";
 
 export type Operator =
   | "eq"
@@ -87,16 +88,15 @@ export interface RowQuery {
 
 const root = (tool: string) => `/api/tools/${encodeURIComponent(tool)}/db`;
 
-const targetParams = (target: Target, params = new URLSearchParams()) => {
-  params.set("env", target.env);
-  if (target.branch) params.set("branch", target.branch);
-  return params;
-};
+/** The query of a call, in the order the address has always had: `env`, `branch`, then the rest. */
+type Query = Record<string, string>;
+const targetQuery = (target: Target): Query => ({
+  env: target.env,
+  ...(target.branch ? { branch: target.branch } : {}),
+});
 
 export async function loadEnvironments(fetchJson: FetchJson, tool: string): Promise<Target[]> {
-  const body = (await fetchJson(`${root(tool)}/environments`)) as {
-    environments?: Array<{ name: "production" | "preview"; branch?: string }>;
-  };
+  const body = ok(await typedClient(fetchJson)(addresses.dbEnvironments, { params: { tool } }));
   return (body.environments ?? []).map((e) => ({
     env: e.name,
     ...(e.branch ? { branch: e.branch } : {}),
@@ -109,9 +109,9 @@ export async function loadTables(
   target: Target,
   platform: boolean,
 ): Promise<TableSummary[]> {
-  const params = targetParams(target);
-  if (platform) params.set("platform", "1");
-  return ((await fetchJson(`${root(tool)}/tables?${params}`)) as { tables: TableSummary[] }).tables;
+  const query = { ...targetQuery(target), ...(platform ? { platform: "1" } : {}) };
+  return ok(await typedClient(fetchJson)(addresses.dbTables, { params: { tool }, query }))
+    .tables as TableSummary[];
 }
 
 export async function loadSchema(
@@ -120,9 +120,9 @@ export async function loadSchema(
   target: Target,
   platform: boolean,
 ): Promise<DbTable[]> {
-  const params = targetParams(target);
-  if (platform) params.set("platform", "1");
-  return ((await fetchJson(`${root(tool)}/schema?${params}`)) as { tables: DbTable[] }).tables;
+  const query = { ...targetQuery(target), ...(platform ? { platform: "1" } : {}) };
+  return ok(await typedClient(fetchJson)(addresses.dbSchema, { params: { tool }, query }))
+    .tables as unknown as DbTable[];
 }
 
 export async function loadTable(
@@ -131,24 +131,18 @@ export async function loadTable(
   target: Target,
   table: string,
 ): Promise<DbTable> {
-  const params = targetParams(target);
-  params.set("platform", "1");
-  return (
-    (await fetchJson(`${root(tool)}/tables/${encodeURIComponent(table)}?${params}`)) as {
-      table: DbTable;
-    }
-  ).table;
+  const query = { ...targetQuery(target), platform: "1" };
+  return ok(await typedClient(fetchJson)(addresses.dbTable, { params: { tool, table }, query }))
+    .table as unknown as DbTable;
 }
 
-function rowParams(target: Target, query: Partial<RowQuery>) {
-  const params = targetParams(target);
-  params.set("platform", "1");
-  if (query.sort) {
-    params.set("sort", query.sort);
-    params.set("dir", query.descending ? "desc" : "asc");
-  }
-  if (query.filters?.length) params.set("filter", JSON.stringify(query.filters));
-  return params;
+function rowQuery(target: Target, query: Partial<RowQuery>): Query {
+  return {
+    ...targetQuery(target),
+    platform: "1",
+    ...(query.sort ? { sort: query.sort, dir: query.descending ? "desc" : "asc" } : {}),
+    ...(query.filters?.length ? { filter: JSON.stringify(query.filters) } : {}),
+  };
 }
 
 export async function loadRows(
@@ -158,16 +152,18 @@ export async function loadRows(
   table: string,
   query: RowQuery,
 ): Promise<RowsPage> {
-  const params = rowParams(target, query);
-  params.set("page", String(query.page));
-  return (await fetchJson(
-    `${root(tool)}/tables/${encodeURIComponent(table)}/rows?${params}`,
-  )) as RowsPage;
+  const answer = ok(
+    await typedClient(fetchJson)(addresses.dbRows, {
+      params: { tool, table },
+      query: { ...rowQuery(target, query), page: String(query.page) },
+    }),
+  );
+  return answer as unknown as RowsPage;
 }
 
 /** Where the CSV of the rows that match is, for a link: the browser sends its own session. */
 export function exportPath(tool: string, target: Target, table: string, query: Partial<RowQuery>) {
-  return `${CONSOLE_API}${root(tool)}/tables/${encodeURIComponent(table)}/export?${rowParams(target, query)}`;
+  return `${CONSOLE_API}${root(tool)}/tables/${encodeURIComponent(table)}/export?${new URLSearchParams(rowQuery(target, query))}`;
 }
 
 export const targetLabel = (target: Target) =>

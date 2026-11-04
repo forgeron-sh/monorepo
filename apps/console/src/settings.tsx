@@ -11,7 +11,16 @@ import {
   Textarea,
 } from "@forgeron/ui";
 import { useState, type ReactNode } from "react";
-import { explain, type Api, type FetchJson, type SendJson } from "./api";
+import { addresses } from "@forgeron/platform-contract/client";
+import {
+  explain,
+  ok,
+  typedClient,
+  typedSender,
+  type Api,
+  type FetchJson,
+  type SendJson,
+} from "./api";
 import { AdminOnly, Loading, LoadError } from "./states";
 import { useLoad } from "./use-load";
 import type { WorkspaceInfo } from "./workspace";
@@ -47,7 +56,7 @@ const opt = (value: unknown) => (typeof value === "string" && value ? value : un
 
 /** The saved provider, or `null` (never `undefined`: that is "not loaded yet"). Only what the forms show is kept; no secret ever comes back. */
 export async function loadProvider(fetchJson: FetchJson): Promise<Provider | null> {
-  const body = (await fetchJson("/api/identity-provider")) as {
+  const body = ok(await typedClient(fetchJson)(addresses.getIdentityProvider)) as {
     provider?: Record<string, any> | null;
   };
   const p = body.provider;
@@ -247,7 +256,7 @@ function useAction(onDone: () => void) {
 }
 
 async function remove(send: SendJson) {
-  await send("/api/identity-provider", undefined, "DELETE");
+  ok(await typedSender(send)(addresses.deleteIdentityProvider));
 }
 
 function Outcome({ error, done }: { error?: string | undefined; done?: string | undefined }) {
@@ -301,18 +310,20 @@ function OidcForm({
           event.preventDefault();
           void action.run(
             () =>
-              api.sendJson("/api/identity-provider", {
-                kind,
-                clientId: clientId.trim(),
-                ...(secret ? { clientSecret: secret } : {}),
-                ...(kind === "oidc" ? { issuer: issuer.trim() } : {}),
-                ...(kind === "entra" ? { tenant: tenant.trim() } : {}),
-                ...(kind === "google" ? { hostedDomain: hostedDomain.trim() } : {}),
-                ...(emailClaim.trim() ? { emailClaim: emailClaim.trim() } : {}),
-                ...(groupsClaim.trim() ? { groupsClaim: groupsClaim.trim() } : {}),
-                ...(saved && Object.keys(saved.groupRoles).length
-                  ? { groupRoles: saved.groupRoles }
-                  : {}),
+              typedSender(api.sendJson)(addresses.putIdentityProvider, {
+                json: {
+                  kind,
+                  clientId: clientId.trim(),
+                  ...(secret ? { clientSecret: secret } : {}),
+                  ...(kind === "oidc" ? { issuer: issuer.trim() } : {}),
+                  ...(kind === "entra" ? { tenant: tenant.trim() } : {}),
+                  ...(kind === "google" ? { hostedDomain: hostedDomain.trim() } : {}),
+                  ...(emailClaim.trim() ? { emailClaim: emailClaim.trim() } : {}),
+                  ...(groupsClaim.trim() ? { groupsClaim: groupsClaim.trim() } : {}),
+                  ...(saved && Object.keys(saved.groupRoles).length
+                    ? { groupRoles: saved.groupRoles }
+                    : {}),
+                },
               }),
             "OpenID Connect saved. It applies to the next sign-in.",
           );
@@ -508,17 +519,19 @@ function SamlForm({
           event.preventDefault();
           void action.run(
             () =>
-              api.sendJson("/api/identity-provider", {
-                kind: "saml",
-                idpEntityId: entityId.trim(),
-                ssoUrl: ssoUrl.trim(),
-                certificates: splitCertificates(certs),
-                ...(emailAttribute.trim() ? { emailAttribute: emailAttribute.trim() } : {}),
-                ...(groupsAttribute.trim() ? { groupsAttribute: groupsAttribute.trim() } : {}),
-                ...(nameAttribute.trim() ? { nameAttribute: nameAttribute.trim() } : {}),
-                ...(saved && Object.keys(saved.groupRoles).length
-                  ? { groupRoles: saved.groupRoles }
-                  : {}),
+              typedSender(api.sendJson)(addresses.putIdentityProvider, {
+                json: {
+                  kind: "saml",
+                  idpEntityId: entityId.trim(),
+                  ssoUrl: ssoUrl.trim(),
+                  certificates: splitCertificates(certs),
+                  ...(emailAttribute.trim() ? { emailAttribute: emailAttribute.trim() } : {}),
+                  ...(groupsAttribute.trim() ? { groupsAttribute: groupsAttribute.trim() } : {}),
+                  ...(nameAttribute.trim() ? { nameAttribute: nameAttribute.trim() } : {}),
+                  ...(saved && Object.keys(saved.groupRoles).length
+                    ? { groupRoles: saved.groupRoles }
+                    : {}),
+                },
               }),
             "SAML saved. It applies to the next sign-in.",
           );

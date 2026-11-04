@@ -12,7 +12,8 @@ import {
   type TableColumn,
 } from "@forgeron/ui";
 import { useState } from "react";
-import { explain, type Api, type SendJson } from "./api";
+import { addresses } from "@forgeron/platform-contract/client";
+import { explain, ok, typedClient, typedSender, type Api, type SendJson } from "./api";
 import { expiry } from "./format";
 import { Loading, LoadError } from "./states";
 import { useLoad } from "./use-load";
@@ -52,11 +53,7 @@ const strings = (value: unknown): string[] =>
 export async function loadMembers(
   fetchJson: (path: string) => Promise<unknown>,
 ): Promise<MembershipView> {
-  const body = (await fetchJson("/api/members")) as {
-    members?: Array<{ id?: unknown; email?: unknown; name?: unknown; roles?: unknown }>;
-    invitations?: Array<{ email?: unknown; roles?: unknown; expiresAt?: unknown }>;
-    settings?: { domains?: unknown; defaultRole?: unknown; source?: unknown };
-  };
+  const body = ok(await typedClient(fetchJson)(addresses.listMembers));
   return {
     members: (body.members ?? []).map((m) => ({
       id: String(m.id),
@@ -82,15 +79,20 @@ export const parseList = (text: string): string[] =>
     .map((t) => t.trim())
     .filter(Boolean);
 
-const inviteMember = (send: Send, email: string, roles: string[]) =>
-  send("/api/invitations", { email, roles }, "POST");
-const changeRoles = (send: Send, id: string, roles: string[]) =>
-  send(`/api/members/${id}`, { roles }, "PATCH");
-const removeMember = (send: Send, id: string) => send(`/api/members/${id}`, undefined, "DELETE");
-const withdrawInvitation = (send: Send, email: string) =>
-  send(`/api/invitations/${encodeURIComponent(email)}`, undefined, "DELETE");
-const saveDomains = (send: Send, domains: string[], defaultRole: string) =>
-  send("/api/membership-settings", { domains, defaultRole: defaultRole || null }, "PUT");
+const inviteMember = async (send: Send, email: string, roles: string[]) =>
+  ok(await typedSender(send)(addresses.inviteMember, { json: { email, roles } }));
+const changeRoles = async (send: Send, id: string, roles: string[]) =>
+  ok(await typedSender(send)(addresses.setMemberRoles, { params: { id }, json: { roles } }));
+const removeMember = async (send: Send, id: string) =>
+  ok(await typedSender(send)(addresses.removeMember, { params: { id } }));
+const withdrawInvitation = async (send: Send, email: string) =>
+  ok(await typedSender(send)(addresses.withdrawInvitation, { params: { email } }));
+const saveDomains = async (send: Send, domains: string[], defaultRole: string) =>
+  ok(
+    await typedSender(send)(addresses.putMembershipSettings, {
+      json: { domains, defaultRole: defaultRole || null },
+    }),
+  );
 
 export interface MembersProps {
   view: MembershipView;

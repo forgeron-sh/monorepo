@@ -59,7 +59,12 @@ export const dbEnvironmentsRoute = defineRoute({
   responses: {
     200: json(
       z.strictObject({
-        environments: z.array(z.strictObject({ name: z.string(), branch: z.string().optional() })),
+        environments: z.array(
+          z.strictObject({
+            name: z.enum(["production", "preview"]),
+            branch: z.string().optional(),
+          }),
+        ),
       }),
       "The environments",
     ),

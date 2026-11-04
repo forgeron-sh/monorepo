@@ -1,3 +1,5 @@
+import { addresses } from "@forgeron/platform-contract/client";
+import { ok, typedClient, typedSender, type SendJson } from "./api";
 import { Badge, Button, Notice, Table, type TableColumn } from "@forgeron/ui";
 import { useEffect, useState } from "react";
 import { Loading } from "./states";
@@ -25,13 +27,7 @@ export async function loadAccessMatrix(
   fetchJson: (path: string) => Promise<unknown>,
   tool: string,
 ): Promise<AccessMatrixData> {
-  const body = (await fetchJson(`/api/tools/${tool}/access-matrix`)) as {
-    roles?: unknown[];
-    actions?: unknown[];
-    /** The columns: the actions, then `view:<name>` for each view. */
-    subjects?: unknown[];
-    cells?: Record<string, Record<string, { allowed?: unknown; default?: unknown }>>;
-  };
+  const body = ok(await typedClient(fetchJson)(addresses.getAccessMatrix, { params: { tool } }));
   const roles = (body.roles ?? []).map(String);
   const actions = (body.subjects ?? body.actions ?? []).map(String);
   const cells: AccessMatrixData["cells"] = {};
@@ -111,18 +107,23 @@ export interface CellChange {
  * its default is sent as `null` so that the override is dropped instead of stored equal to it.
  */
 export async function saveAccessMatrix(
-  sendJson: (path: string, body: unknown) => Promise<unknown>,
+  sendJson: SendJson,
   tool: string,
   matrix: AccessMatrixData,
   changes: CellChange[],
 ): Promise<void> {
-  await sendJson(`/api/tools/${tool}/access-matrix`, {
-    changes: changes.map(({ role, action, allowed }) => ({
-      role,
-      action,
-      allowed: allowed === matrix.cells[role]?.[action]?.default ? null : allowed,
-    })),
-  });
+  ok(
+    await typedSender(sendJson)(addresses.putAccessMatrix, {
+      params: { tool },
+      json: {
+        changes: changes.map(({ role, action, allowed }) => ({
+          role,
+          action,
+          allowed: allowed === matrix.cells[role]?.[action]?.default ? null : allowed,
+        })),
+      },
+    }),
+  );
 }
 
 /** Applies the drafted flips on top of a loaded matrix. */
@@ -146,7 +147,7 @@ export function withDraft(
 export interface AccessMatrixEditorProps {
   tool: string;
   fetchJson: (path: string) => Promise<unknown>;
-  sendJson: (path: string, body: unknown) => Promise<unknown>;
+  sendJson: SendJson;
 }
 
 /** The matrix of a tool with Save: for an admin (the platform refuses anyone else). */
