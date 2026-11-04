@@ -338,6 +338,9 @@ export async function handleDatabase(
     console.error("db explorer: the database could not be read", {
       what,
       ...where,
+      ...((error as { table?: unknown }).table === undefined
+        ? {}
+        : { table: String((error as { table?: unknown }).table) }),
       ...describeFailure(error),
     });
     return failure(502, "DATABASE_UNAVAILABLE", "The database could not be read. Try again.");

@@ -172,14 +172,27 @@ export async function loadSchema(
   });
 }
 
-/** The row count of every table, in one statement. */
+/**
+ * The row count of every table, one small statement each. A single `UNION ALL` over every table made
+ * the answer depend on how many tables there are (FOR-159: the list answered with five tables and
+ * failed with six); a statement per table does not, and a failure names its table.
+ */
 export async function countRows(db: ReadOnlyDb, tables: TableInfo[]): Promise<Map<string, number>> {
-  if (!tables.length) return new Map();
-  const sql = tables
-    .map((t, i) => `SELECT ${i} AS i, COUNT(*) AS n FROM ${quote(t.name)}`)
-    .join(" UNION ALL ");
-  const rows = await db.all<{ i: number; n: number }>(select(sql));
-  return new Map(rows.map((r) => [tables[r.i]!.name, r.n]));
+  const counts = await Promise.all(
+    tables.map(async (t) => {
+      try {
+        const [row] = await db.all<{ n: number }>(
+          select(`SELECT COUNT(*) AS n FROM ${quote(t.name)}`),
+        );
+        return [t.name, row?.n ?? 0] as const;
+      } catch (error) {
+        throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
+          table: t.name,
+        });
+      }
+    }),
+  );
+  return new Map(counts);
 }
 
 export type Cell = string | number | null;
