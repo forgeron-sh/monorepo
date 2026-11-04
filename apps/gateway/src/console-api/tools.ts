@@ -15,7 +15,18 @@ export interface ToolListing {
   lastDeployment: { at: string; version: string } | null;
 }
 
-export async function listTools(registry: Registry, workspace: string): Promise<ToolListing[]> {
+export async function listTools(
+  registry: Pick<
+    Registry,
+    | "getBuild"
+    | "getVersion"
+    | "listDeployments"
+    | "listEnvironments"
+    | "listTools"
+    | "listVersions"
+  >,
+  workspace: string,
+): Promise<ToolListing[]> {
   const listing: ToolListing[] = [];
   for (const tool of await registry.listTools(workspace)) {
     const versions = new Map((await registry.listVersions(tool.id)).map((v) => [v.id, v.version]));

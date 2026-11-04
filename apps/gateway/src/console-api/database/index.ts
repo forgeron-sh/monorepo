@@ -40,7 +40,7 @@ const STATEMENT_TIMEOUT_MS = 10_000;
 const EXPORT_CHUNK = 1000;
 
 export interface DatabaseApiOptions {
-  registry: Registry;
+  registry: Pick<Registry, "findTool" | "listEnvironments" | "recordAudit">;
   workspace: string;
   hosting(workspace: string): Hosting | undefined;
   /** The caller, resolved by identity: `undefined` is anonymous. */

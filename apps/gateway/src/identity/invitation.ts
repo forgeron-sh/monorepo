@@ -24,7 +24,7 @@ export const invitationLink = (origin: string, id: string) => `${origin}/auth/in
 
 /** The pending invitation this id belongs to, with who sent it; `undefined` for any other id. */
 export async function findInvitationById(
-  registry: Registry,
+  registry: Pick<Registry, "findMember" | "listInvitations">,
   secret: string,
   workspace: string,
   id: string,

@@ -18,7 +18,15 @@ const MINE =
 const CALLBACK = "/api/consent/callback";
 
 export interface ConsentRoutesOptions {
-  registry: Registry;
+  registry: Pick<
+    Registry,
+    | "findTool"
+    | "getBuild"
+    | "listConnections"
+    | "listVersions"
+    | "recordAudit"
+    | "revokeConnection"
+  >;
   consent: Consent;
   /** Records a grant or a withdrawal (D-048). Defaults to the registry's audit log. */
   audit?(entry: AuditEntry): Promise<void>;
@@ -41,7 +49,7 @@ interface DeclaredConnector {
 }
 
 async function declaredConnector(
-  registry: Registry,
+  registry: Pick<Registry, "getBuild" | "listVersions">,
   toolId: string,
   name: string,
 ): Promise<DeclaredConnector | undefined> {

@@ -27,7 +27,11 @@ const refused = (error: RegistryError) => ({
 const invalid = (message: string) => (result: { success: boolean }, c: import("hono").Context) =>
   result.success ? undefined : c.json({ error: "INVALID", message }, 400);
 
-async function settings(registry: Registry, workspace: string, installDomains: string[]) {
+async function settings(
+  registry: Pick<Registry, "getMembershipSettings">,
+  workspace: string,
+  installDomains: string[],
+) {
   const saved = await registry.getMembershipSettings(workspace);
   return {
     domains: saved?.domains ?? installDomains,

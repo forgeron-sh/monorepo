@@ -9,7 +9,7 @@ import type { Forwarding } from "./dispatch";
 // runtime turns into the same 428 / URL elicitation as a missing per-person secret.
 
 export interface ConnectorTokensContext {
-  registry: Registry;
+  registry: Pick<Registry, "recordAudit">;
   workspace: string;
   /** The consent exchange, with the OAuth clients of these connector types loaded. */
   consent(types: string[]): Promise<Consent>;
