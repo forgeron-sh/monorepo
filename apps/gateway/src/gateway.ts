@@ -27,8 +27,6 @@ import {
 import { handleConsent } from "./consent/consent";
 import { UNMATCHED } from "./platform/app";
 import { createPlatform } from "./platform/platform";
-import { handleIdentity } from "./console-api/identity";
-import { handleSecrets } from "./console-api/secrets";
 import { handleApprovals } from "./console-api/approvals";
 import {
   createDispatcher,
@@ -568,6 +566,8 @@ export function createGateway(
         registry,
         workspace,
         installDomains,
+        config,
+        canKeepSecrets: box !== undefined,
         now,
         ...(notify ? { notify } : {}),
         origin: `https://${workspace}.${env.BASE_DOMAIN}`,
@@ -587,13 +587,6 @@ export function createGateway(
       });
       if (!owned.headers.has(UNMATCHED)) return owned;
       return (
-        (await handleIdentity(forwarded, {
-          config,
-          workspace,
-          canKeepSecrets: box !== undefined,
-          caller: identity,
-          audit: (entry) => registry.recordAudit(entry),
-        })) ??
         (consent
           ? await handleConsent(forwarded, { registry, consent, workspace, caller: identity })
           : undefined) ??
@@ -603,7 +596,6 @@ export function createGateway(
           caller: identity,
         })) ??
         (await handleApprovals(forwarded, { registry, workspace, caller: identity })) ??
-        (await handleSecrets(forwarded, { registry, workspace, caller: identity })) ??
         notFound(request)
       );
     }

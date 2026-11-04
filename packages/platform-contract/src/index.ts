@@ -32,3 +32,12 @@ export {
   setMemberRolesRoute,
   withdrawInvitationRoute,
 } from "./members";
+export {
+  deleteConnectorClientRoute,
+  deleteIdentityProviderRoute,
+  getIdentityProviderRoute,
+  listConnectorClientsRoute,
+  putConnectorClientRoute,
+  putIdentityProviderRoute,
+} from "./identity";
+export { MAX_SECRET_VALUE, listSecretsRoute, setSecretRoute } from "./secrets";
