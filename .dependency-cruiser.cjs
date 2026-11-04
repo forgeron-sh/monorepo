@@ -73,6 +73,30 @@ module.exports = {
       to: { path: "^packages/registry/src/", pathNot: "^packages/registry/src/index\\.ts$" },
     },
     {
+      // A registry module reaches another one through its `public.ts` only (FOR-156).
+      name: "module-uses-public-api",
+      severity: "error",
+      from: { path: "^packages/registry/src/modules/([^/]+)/" },
+      to: {
+        path: "^packages/registry/src/modules/[^/]+/(?!public\\.ts$)",
+        pathNot: "^packages/registry/src/modules/$1/",
+      },
+    },
+    {
+      // Nor does the rest of the registry (`registry.ts`, the stores at the root, tests) reach into a module.
+      name: "registry-root-uses-module-public-api",
+      severity: "error",
+      from: { path: "^packages/registry/src/(?!modules/|kernel/)" },
+      to: { path: "^packages/registry/src/modules/[^/]+/(?!public\\.ts$)" },
+    },
+    {
+      // The kernel (ids, clock, SQL helpers, secret box, audit statement) knows no module.
+      name: "kernel-is-generic",
+      severity: "error",
+      from: { path: "^packages/registry/src/kernel/" },
+      to: { path: "^packages/registry/src/modules/" },
+    },
+    {
       // The gateway's kernel (`Person`, `workspaceOf`) is what identity, dispatch and pages share:
       // it imports none of them. This and the next rule keep the folders free of cycles, which
       // the file-level `no-cycles` cannot see.

@@ -147,7 +147,7 @@ For admins and members alike. The pattern of an app directory:
 
 Typed in `@forgeron/manifest` (`catalog.ts`: zod schemas and types) and declared as route objects in
 `@forgeron/platform-contract` (`catalog.ts`), which the gateway serves with Hono and the console calls
-through the contract's typed client (D-065). All routes are under `/console-api`, answer JSON with `cache-control: no-store`, and are for **any signed-in
+through the contract's typed client (D-066). All routes are under `/console-api`, answer JSON with `cache-control: no-store`, and are for **any signed-in
 member** (anonymous: `401`). A tool nobody may use is listed too.
 
 | Route                                   | Answer                                                                                                 |
