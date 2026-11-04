@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type { RouteSpec, SignIn } from "@forgeron/platform-contract";
 import { HTTPException } from "hono/http-exception";
+import type { Hosting } from "@forgeron/hosting";
 import type { Registry } from "@forgeron/registry";
 import type { MiddlewareHandler } from "hono";
 
@@ -32,6 +33,10 @@ interface PlatformBindings {
   baseDomain: string;
   /** Which sign-in methods are on, for the workspace route. */
   signIn(): Promise<SignIn>;
+  /** The hosting of the workspace, to reach a tool's database; `undefined` where there is none. */
+  hosting(workspace: string): Hosting | undefined;
+  /** How long the explorer waits for a statement (default 10 s); tests shorten it. */
+  databaseTimeoutMs?: number;
 }
 
 export type PlatformEnv = { Bindings: PlatformBindings; Variables: { person: ConsolePerson } };

@@ -30,7 +30,6 @@ import { handleIdentity } from "./console-api/identity";
 import { handleMembers } from "./console-api/members";
 import { handleSecrets } from "./console-api/secrets";
 import { handleApprovals } from "./console-api/approvals";
-import { handleDatabase } from "./console-api/database";
 import {
   createDispatcher,
   workspaceOf,
@@ -558,6 +557,7 @@ export function createGateway(
         workspace,
         origin: `https://${workspace}.${env.BASE_DOMAIN}`,
         baseDomain: env.BASE_DOMAIN,
+        hosting: hostingOf,
         signIn: async () => ({
           email: { enabled: emailOn, mail: consoleMail ? "console" : mailer ? "email" : "off" },
           oidc: {
@@ -605,12 +605,6 @@ export function createGateway(
         (await handleRevocations(forwarded, {
           registry,
           workspace,
-          caller: identity,
-        })) ??
-        (await handleDatabase(forwarded, {
-          registry,
-          workspace,
-          hosting: hostingOf,
           caller: identity,
         })) ??
         (await handleApprovals(forwarded, { registry, workspace, caller: identity })) ??

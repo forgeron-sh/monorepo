@@ -13,3 +13,11 @@ export { MAX_ACCESS_CHANGES, getAccessMatrixRoute, putAccessMatrixRoute } from "
 export { auditRoute, workspaceRoute, type SignIn } from "./workspace";
 export { listConnectionsRoute, revokeConnectionRoute } from "./connections";
 export { secretsStatusRoute } from "./secrets-status";
+export {
+  dbEnvironmentsRoute,
+  dbExportRoute,
+  dbRowsRoute,
+  dbSchemaRoute,
+  dbTableRoute,
+  dbTablesRoute,
+} from "./database";

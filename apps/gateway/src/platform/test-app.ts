@@ -1,3 +1,4 @@
+import type { Hosting } from "@forgeron/hosting";
 import type { SignIn } from "@forgeron/platform-contract";
 import type { Registry } from "@forgeron/registry";
 import { UNMATCHED, type ConsolePerson } from "./app";
@@ -13,6 +14,8 @@ export function platformCaller(options: {
   who(): Partial<ConsolePerson> | undefined;
   signIn?: () => Promise<SignIn>;
   baseDomain?: string;
+  hosting?: () => Hosting | undefined;
+  databaseTimeoutMs?: number;
 }) {
   const app = createPlatform();
   return async (request: Request): Promise<Response | undefined> => {
@@ -35,6 +38,8 @@ export function platformCaller(options: {
       workspace: options.workspace ?? "acme",
       origin: new URL(request.url).origin,
       baseDomain: options.baseDomain ?? "forgeron.test",
+      hosting: options.hosting ?? (() => undefined),
+      ...(options.databaseTimeoutMs ? { databaseTimeoutMs: options.databaseTimeoutMs } : {}),
       signIn:
         options.signIn ??
         (async () => ({
