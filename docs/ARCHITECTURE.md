@@ -133,6 +133,20 @@ apps/gateway/src/
 
 These folders will become packages only if the need arises.
 
+## The platform API
+
+One Hono app (`createPlatform`, `apps/gateway/src/platform`) answers every route of the platform API: the console's under `/console-api` and the CLI's at the root of the workspace (`/whoami`, `/deploy`, `/promote`, `/rollback`, `/deploy-tokens`, `/auth/token`…). A path it does not own gets the gateway's 404. The hand-written pages (`/auth/login`, `/auth/cli`, the sign-in forms), the tools under `/t/` and the personal secrets page are not routes of the API and stay outside it.
+
+- **Where the contract lives**: `packages/platform-contract/src`, one module per area (`members.ts`, `bearer.ts`…). A route is plain data (`defineRoute`: method, path, request and answers as zod schemas); the package has no HTTP library. The gateway serves it, the console and the CLI call it through `createClient` (`@forgeron/platform-contract/client`), which imports no schema.
+- **The OpenAPI document**: `GET /console-api/api/openapi.json`, for a signed-in member, describes the routes under `/console-api` (D-066).
+- **Adding a route**:
+  1. Write the route object in its module in `packages/platform-contract/src` and export it from `index.ts`.
+  2. Give it an entry in `addresses.ts` (`addressOf<typeof route>({ method, path })`): a test fails until every route has one, with its own method and path.
+  3. Mount it in `apps/gateway/src/platform/<area>.ts` with `app.openapi(platformRoute(route, "member" | "developer" | "admin"), handler)`, and call `mount…` from `platform.ts`. The guards (401, 403, the Origin check on writes, JSON only) come with `platformRoute`.
+  4. Test it with `describeRouteMatrix` (`route-matrix.ts`): 401, 403, 415, 400 and the Origin cases for free.
+  5. Call it from the console with `ok(await typedClient(fetchJson)(addresses.x, input))`, from the CLI with `platformClient(endpoint, token)`.
+- A route whose checks must keep their own order or words (the database explorer, the CLI's routes, consent) is registered in the contract and answered by its handler (`app.all`), as D-070, D-075 and D-076 say.
+
 ## Hosting modes
 
 Decided on 22/10/2026 (D-009). The same platform runs in two contexts; only the implementation of `@forgeron/hosting` changes.

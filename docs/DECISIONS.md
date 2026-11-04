@@ -75,6 +75,7 @@ Rules of the log:
 | D-073 | 04/11/2026 | The approvals and revocation routes are served by Hono; a write that a browser sends from another origin is refused on the whole console API                           | Active                                 |
 | D-074 | 04/11/2026 | The console calls the console API through the contract's typed client; its addresses are a schema-free table in the contract                                           | Active                                 |
 | D-075 | 04/11/2026 | The routes of the CLI and CI (`/whoami`, `/deploy`, `/promote`…) are in the contract and mounted on the Hono app; the CLI calls them through the typed client          | Active                                 |
+| D-076 | 04/11/2026 | The consent routes are in the contract and mounted on the Hono app; the legacy chain and its fall-through tag are removed                                              | Active                                 |
 
 ---
 
@@ -907,3 +908,15 @@ Rules of the log:
 - **Not changed on purpose**: no Origin check on these routes (D-073 covers `/console-api`): the console's session calls to `/promote`, `/rollback` and `/deploy` are as exposed as before. `forgeron secrets` still calls `/api/tools/…` at the root of the workspace (the gateway answers 404 there: the routes are under `/console-api`); it is not in this change.
 - **Not verified**: no real gateway or Cloudflare account; the CLI tests run against HTTP servers that simulate the gateway.
 - **Applied in**: FOR-154 (CLI); `packages/platform-contract/src/bearer.ts`, `apps/gateway/src/platform/bearer.ts`, `apps/gateway/src/gateway.ts`, `apps/cli/src`.
+
+## D-076 — The consent routes are in the contract and mounted on the Hono app; the legacy chain and its fall-through tag are removed
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**:
+  1. **Last step of the spike's migration order** (FOR-154): the four consent routes of a delegated connector (start, callback, list, withdraw) are route objects (`consent.ts`) with `addresses` entries, registered in the document and mounted by `mountConsent`, which hands the request to `handleConsent`: a start is a `302`, the callback and the errors a person who follows the redirect sees are HTML pages, so the handler keeps its answers. Without `SECRETS_KEY` there is no consent and the path is a 404, as before.
+  2. **The chain is gone**: after the Hono app the gateway had nothing left but `handleConsent` and the 404. The fall-through tag (`x-forgeron-unmatched`, D-064) is deleted: the app answers an unknown path with the gateway's own 404 (`notFound` binding: a page for a browser, JSON for any other client), so the answer is the same as before. The tests that needed to tell "not a route" from a 404 use a marker of their own (`NOT_A_ROUTE`, `test-app.ts`).
+  3. **Kept**: the builders the routes use (`listTools`, `tool-pages`, the database explorer), the hand-written `/auth/*` pages and the personal secrets page.
+  4. **Docs**: ARCHITECTURE.md, "The platform API": where the contract lives and how to add a route.
+- **Measured** (one build each, 04/11/2026, origin/main against this change): gateway bundle 1,191,773 → 1,194,070 bytes raw, 258,451 → 259,021 gzip (no `node:*`, nothing external). The console and the CLI are not touched.
+- **Not verified**: no real gateway or provider; the consent exchange is tested against simulated providers.
+- **Applied in**: FOR-154 (end); `apps/gateway/src/platform`, `apps/gateway/src/gateway.ts`, `packages/platform-contract/src/consent.ts`, `docs/ARCHITECTURE.md`.

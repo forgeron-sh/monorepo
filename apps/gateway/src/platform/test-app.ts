@@ -1,7 +1,10 @@
 import type { Hosting } from "@forgeron/hosting";
 import type { SignIn } from "@forgeron/platform-contract";
 import type { IdentityConfig, Invitation, Registry } from "@forgeron/registry";
-import { UNMATCHED, type ConsolePerson } from "./app";
+import type { ConsolePerson } from "./app";
+
+/** Marks the 404 the tests give for a path that is no route (the gateway gives its own page). */
+export const NOT_A_ROUTE = "x-test-not-a-route";
 import { createPlatform } from "./platform";
 
 /**
@@ -50,6 +53,7 @@ export function platformCaller(options: {
       ...(options.notify ? { notify: options.notify } : {}),
       hosting: options.hosting ?? (() => undefined),
       ...(options.databaseTimeoutMs ? { databaseTimeoutMs: options.databaseTimeoutMs } : {}),
+      notFound: () => new Response(null, { status: 404, headers: { [NOT_A_ROUTE]: "1" } }),
       signIn:
         options.signIn ??
         (async () => ({
@@ -58,6 +62,6 @@ export function platformCaller(options: {
           saml: { enabled: false, configured: false },
         })),
     });
-    return response.headers.has(UNMATCHED) ? undefined : response;
+    return response.headers.has(NOT_A_ROUTE) ? undefined : response;
   };
 }

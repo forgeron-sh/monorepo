@@ -62,3 +62,9 @@ export {
   rollbackRoute,
   whoamiRoute,
 } from "./bearer";
+export {
+  consentCallbackRoute,
+  listConsentsRoute,
+  startConsentRoute,
+  withdrawConsentRoute,
+} from "./consent";

@@ -24,8 +24,7 @@ import {
   type GatewayBindings,
   type Hosting,
 } from "@forgeron/hosting";
-import { handleConsent } from "./consent/consent";
-import { UNMATCHED, type PlatformBindings } from "./platform/app";
+import type { PlatformBindings } from "./platform/app";
 import { createPlatform } from "./platform/platform";
 import {
   createDispatcher,
@@ -414,6 +413,15 @@ export function createGateway(
         : undefined;
       return {
         surface,
+        notFound: () => notFound(asked),
+        // A person's OAuth consent for a delegated connector (sdk.md §10): the OAuth clients are the
+        // workspace's, set by an admin; tokens are sealed and never leave the registry.
+        ...(box
+          ? {
+              consent: async () =>
+                consentFor(workspace, await config.connectorClientsWithSecrets(workspace), box),
+            }
+          : {}),
         identity: async () => {
           const person = await resolve();
           return person
@@ -533,32 +541,7 @@ export function createGateway(
       const inner = new URL(url);
       inner.pathname = url.pathname.slice(CONSOLE_API.length);
       const forwarded = new Request(inner, request);
-      const who = secret && caller ? await caller.resolve(request, workspace, true) : undefined;
-      const identity = async () =>
-        who
-          ? {
-              id: who.id,
-              email: who.email,
-              name: who.name,
-              admin: who.roles.includes("admin"),
-              developer: who.roles.includes("developer"),
-              roles: who.roles,
-            }
-          : undefined;
-      // A person's OAuth consent for a delegated connector (sdk.md §10): the OAuth clients are the
-      // workspace's, set by an admin; tokens are sealed and never leave the registry.
-      const consent =
-        box && /\/consent(\/|$)/.test(inner.pathname)
-          ? consentFor(workspace, await config.connectorClientsWithSecrets(workspace), box)
-          : undefined;
-      // Hono answers the paths it owns; for any other it says so and the chain below goes on.
-      const owned = await platform.fetch(forwarded, platformBindings(request, "console"));
-      if (!owned.headers.has(UNMATCHED)) return owned;
-      return (
-        (consent
-          ? await handleConsent(forwarded, { registry, consent, workspace, caller: identity })
-          : undefined) ?? notFound(request)
-      );
+      return platform.fetch(forwarded, platformBindings(request, "console"));
     }
 
     // The workspace's own API paths belong to parts of the gateway that do not exist yet: never the console.

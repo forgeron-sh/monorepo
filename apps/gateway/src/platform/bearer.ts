@@ -14,7 +14,7 @@ import { handleCreateDeployToken, handleDeploy } from "../deploy/deploy";
 import { handlePromote, handleRollback } from "../deploy/promote";
 import { handleCliToken } from "../identity/cli";
 import { handleIssueToken, handleRevokeToken } from "../identity/issue";
-import { UNMATCHED, type PlatformEnv } from "./app";
+import type { PlatformEnv } from "./app";
 
 // The routes the CLI and CI call, outside `/console-api` (D-075, FOR-154): `/whoami`, `/deploy-tokens`,
 // `/deploy`, `/promote`, `/rollback`, `/auth/token`, `/auth/token/revoke` and `/auth/cli/token`. They are
@@ -35,7 +35,7 @@ const NOT_CONFIGURED = {
 
 /** Answers on `/whoami`… only: `/console-api/whoami` is not a route, and the chain says so. */
 const rootOnly: MiddlewareHandler<PlatformEnv> = async (c, next) => {
-  if (c.env.surface !== "root" || !c.env.bearer) return c.body(null, 404, { [UNMATCHED]: "1" });
+  if (c.env.surface !== "root" || !c.env.bearer) return c.notFound();
   await next();
 };
 

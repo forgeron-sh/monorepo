@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type { RouteSpec, SignIn } from "@forgeron/platform-contract";
 import { HTTPException } from "hono/http-exception";
 import type { Hosting } from "@forgeron/hosting";
-import type { IdentityConfig, Invitation, Registry } from "@forgeron/registry";
+import type { Consent, IdentityConfig, Invitation, Registry } from "@forgeron/registry";
 import type { MiddlewareHandler } from "hono";
 import type { Person } from "../kernel/person";
 
@@ -39,6 +39,10 @@ export interface PlatformBindings {
    * for `/whoami`, `/deploy`… (the CLI's). A route answers only on its own surface.
    */
   surface: "console" | "root";
+  /** The gateway's 404 for a path that is no route: a page for a browser, JSON for any other client. */
+  notFound(): Response | Promise<Response>;
+  /** A person's OAuth consents for the connectors; `undefined` where the gateway cannot seal tokens. */
+  consent?(): Promise<Consent>;
   /** Set where identity is on (`AUTH_SECRET`): the routes of the CLI fail closed without it. */
   bearer?: BearerBindings;
   identity(): Promise<ConsolePerson | undefined>;
@@ -67,9 +71,6 @@ export interface PlatformBindings {
 }
 
 export type PlatformEnv = { Bindings: PlatformBindings; Variables: { person: ConsolePerson } };
-
-/** Set on the 404 of a path Hono does not own: the legacy chain answers it. */
-export const UNMATCHED = "x-forgeron-unmatched";
 
 /** Who may call a route: any signed-in member, an admin or a developer, or an admin. */
 export type Access = "member" | "developer" | "admin";
@@ -186,6 +187,6 @@ export function createPlatformApp() {
     }
     throw error;
   });
-  app.notFound((c) => c.body(null, 404, { [UNMATCHED]: "1" }));
+  app.notFound((c) => c.env.notFound());
   return app;
 }
