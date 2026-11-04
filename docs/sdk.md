@@ -83,7 +83,8 @@ import { defineConfig, database, bucket, kv, queue, connector } from "forgeron";
 export default defineConfig({
   name: "crm", // identifier, [a-z0-9-], unique within the workspace
   title: "CRM",
-  description: "Companies, contacts and leads.", // reused in MCP, OpenAPI, CLI help
+  description: "Companies, contacts and leads.", // reused in MCP, OpenAPI, CLI help and the catalog
+  icon: "docs/icon.svg", // optional, shown in the catalog
   interfaces: { mcp: true, api: true, cli: true, web: true },
 
   roles: {
@@ -120,15 +121,16 @@ export default defineConfig({
 });
 ```
 
-| Key                    | Type                                 | Default                                            | Role                                                                  |
-| ---------------------- | ------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------- |
-| `name`                 | `string`                             | — (required)                                       | Tool identifier, used in URLs, MCP and the CLI                        |
-| `title`, `description` | `string`                             | —                                                  | Display and generated descriptions                                    |
-| `interfaces`           | `{ mcp, api, cli, web }` booleans    | all `true` except `web` (true only if views exist) | Exposed interfaces                                                    |
-| `roles`                | `Record<string, { label?, grants }>` | `{}`                                               | Default roles; every level cited in `grants` exists                   |
-| `resources`            | object, see below                    | `{}`                                               | The resources requested from the platform                             |
-| `uses`                 | `Record<tool, semver range>`         | `{}`                                               | Tools whose actions are called (section 12)                           |
-| `preview.data`         | `"seed" \| "empty" \| "snapshot"`    | `"seed"`                                           | Data of a preview database; `snapshot` requires the admin's agreement |
+| Key                    | Type                                 | Default                                            | Role                                                                           |
+| ---------------------- | ------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `name`                 | `string`                             | — (required)                                       | Tool identifier, used in URLs, MCP and the CLI                                 |
+| `title`, `description` | `string`                             | —                                                  | Display and generated descriptions                                             |
+| `icon`                 | `string` (path)                      | —                                                  | A small `.svg` or `.png` of the tool folder, shown in the catalog (section 14) |
+| `interfaces`           | `{ mcp, api, cli, web }` booleans    | all `true` except `web` (true only if views exist) | Exposed interfaces                                                             |
+| `roles`                | `Record<string, { label?, grants }>` | `{}`                                               | Default roles; every level cited in `grants` exists                            |
+| `resources`            | object, see below                    | `{}`                                               | The resources requested from the platform                                      |
+| `uses`                 | `Record<tool, semver range>`         | `{}`                                               | Tools whose actions are called (section 12)                                    |
+| `preview.data`         | `"seed" \| "empty" \| "snapshot"`    | `"seed"`                                           | Data of a preview database; `snapshot` requires the admin's agreement          |
 
 The tool's version is not in the config: it comes from `package.json` and only changes with `forgeron release` (section 16).
 
@@ -595,9 +597,14 @@ Output in `.forgeron/build/`:
 | `worker.js`                | The tool's Worker: actions, events, tasks, routing of the four interfaces                                                                                                                                               |
 | `manifest.json`            | Name, version, actions (names, descriptions, JSON schemas, access, CLI options), views, scheduled tasks, event handlers (event and mode), roles, resources, dependencies                                                |
 | `changelog.json`           | The changelog entries of this version, structured                                                                                                                                                                       |
+| `docs.json`                | The tool's `README.md` and the images it references, with their content (the manifest keeps their hashes under `docs`); only when the tool has a README or an icon                                                      |
 | `migrations/`              | The compiled migrations, with their fingerprints                                                                                                                                                                        |
 | `views/`                   | The views, as static files: one ES module per view (`views/pipeline.js`, whose default export is the `defineView` object), plus the chunks they share; each is listed in `manifest.json` under `views` with its `entry` |
 | `openapi.json`, `mcp.json` | Generated descriptions, published with the version                                                                                                                                                                      |
+
+### Documentation
+
+The catalog (the member space of the console) shows a card per tool. Its text is the tool's `README.md`, collected at build with the images it references with a relative path (`![](docs/a.png)`, `<img src="docs/a.png">`) and the config's `icon`. Nothing else is read: a link to another site is left as it is, and the console only shows images that come from the build. A build fails, naming the file, if a path leaves the tool folder (`..`, a link that leaves it), a file is over 1 MB (README, image) or the whole over 5 MB, the icon is over 128 KB or is not a `.svg` or `.png`, an image is not `.png`, `.jpg`, `.webp`, `.gif` or `.svg`, its content is not what its extension says, or an SVG holds a script, an event handler, a `foreignObject` or an address outside the file. The platform checks all of it again when it receives the build. A README is plain markdown: the console does not render raw HTML in it.
 
 The build fails if: an action has no `access` or `description`, an action name is duplicated, the schema differs from the last snapshot without a migration, an import leaves the tool (except npm packages), a view cites a non-existent action (read from the literal names given to `useAction` and `useMutation`; a name held in a variable is not checked), a view path is reserved by the platform or shared with another view, or code uses an undeclared resource (`ctx.db` without `resources.db`).
 

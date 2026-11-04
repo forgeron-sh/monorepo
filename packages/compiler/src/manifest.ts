@@ -17,7 +17,11 @@ function jsonSchema(loaded: LoadedTool, schema: unknown, io: "input" | "output",
 /** Where the build writes a view, relative to `.forgeron/build/`. */
 const viewEntryOf = (name: string) => `views/${name}.js`;
 
-export function buildManifest(loaded: LoadedTool, version: string): Manifest {
+export function buildManifest(
+  loaded: LoadedTool,
+  version: string,
+  documentation: { docs?: Manifest["docs"]; icon?: string } = {},
+): Manifest {
   const { config } = loaded;
   // An `interfaces` object lists what is exposed; left out, everything but the web is.
   const interfaces = {
@@ -124,6 +128,8 @@ export function buildManifest(loaded: LoadedTool, version: string): Manifest {
     version,
     ...(config.title ? { title: config.title } : {}),
     ...(config.description ? { description: config.description } : {}),
+    ...(documentation.icon ? { icon: documentation.icon } : {}),
+    ...(documentation.docs ? { docs: documentation.docs } : {}),
     interfaces,
     roles: config.roles ?? {},
     actions,

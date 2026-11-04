@@ -13,6 +13,7 @@ import {
   type Deployment,
   type Hosting,
 } from "@forgeron/hosting";
+import { docsProblem } from "./docs-check";
 import {
   RegistryError,
   type Approval,
@@ -119,6 +120,8 @@ export async function deployBuild(
   input: DeployBuildInput,
 ): Promise<DeployedBuild> {
   const { tool, build } = input;
+  const problem = await docsProblem(build.manifest, build.docs);
+  if (problem) throw new RegistryError("INVALID_DOCS", problem);
   const slot = await registry.ensureEnvironment(tool.id, input.environment, input.branch);
   const recorded = await registry.recordBuild(tool.id, {
     fingerprint: build.fingerprint,
@@ -127,6 +130,7 @@ export async function deployBuild(
     ...(build.migrations ? { migrations: build.migrations } : {}),
     ...(build.changelog ? { changelog: build.changelog } : {}),
   });
+  if (build.docs) await registry.storeDocs(tool.id, recorded.id, build.docs);
   const version = await registry.publishVersion(tool.id, recorded.id, input.version);
   await requestApprovals(registry, tool, version, build.manifest);
   await assertApproved(registry, input.environment, version);

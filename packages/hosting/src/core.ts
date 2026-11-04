@@ -24,6 +24,14 @@ export interface Build {
   migrations?: BuildMigration[];
   /** `changelog.json`: what production checks before accepting the build (sdk.md §16). */
   changelog?: BuildChangelog;
+  /** The README and the images it references (D-061); the manifest has their hashes. */
+  docs?: BuildDocs;
+}
+
+/** The documentation of a build, with its content: `manifest.docs` lists the same files by hash. */
+export interface BuildDocs {
+  readme?: string;
+  assets: Array<{ path: string; type: string; size: number; hash: string; base64: string }>;
 }
 
 export type Impact = "none" | "patch" | "minor" | "major";

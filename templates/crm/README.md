@@ -1,4 +1,32 @@
-# Template `crm`
+# CRM
+
+Companies, contacts and sales leads of the team, in one place you can ask Claude about.
+
+## What it does
+
+- Keeps the companies, the contacts and the leads (deals) of the sales team.
+- Moves a lead from one stage to another and remembers who moved it, from where, to where.
+- Answers from Claude, the API and the command line, with the same rules.
+
+## How to use it
+
+- In Claude, ask for what you need: "list the leads in negotiation", "find the contacts of Acme", "move this lead to won". Connect the tool first (see **Connect** on this page).
+- In a terminal: `forgeron crm deals list`, `forgeron crm contacts search "Durand"`.
+- Deleting a lead asks for a confirmation.
+
+## Permissions
+
+| Role         | May                                |
+| ------------ | ---------------------------------- |
+| `support`    | Read companies, contacts and leads |
+| `sales`      | Read, create and update            |
+| `management` | The same, and delete a lead        |
+
+An administrator can change these in the access matrix of the tool. Without a role, ask an administrator for one.
+
+## For developers
+
+This is the template `crm`.
 
 Companies, contacts and leads, usable from Claude.
 
@@ -20,7 +48,7 @@ Specification: [`docs/examples/01-crm.md`](../../docs/examples/01-crm.md). This 
 
 `deals.create` and `contacts.create` are not in the example, which assumes a seed (`db/seed.ts`, not available yet): without them nothing could be created.
 
-## Tests
+### Tests
 
 ```bash
 bun run test
@@ -28,11 +56,11 @@ bun run test
 
 `createTestTool` runs the tool **as built** on an in-memory database with the tables of the schema, so the root `bun run test` builds the templates first (`scripts/build-templates.ts`). The Odoo upstream of other templates is simulated; this one needs none.
 
-## Types
+### Types
 
 `ctx.db` is a `Kysely<DB>` typed by `db/schema.ts`: a column that does not exist, a required field left out or a stage that is not in the pipeline are type errors. The types come from `.forgeron/generated/db.d.ts`, which `forgeron build` writes and git ignores, so `moon run crm:typecheck` builds first.
 
-## Notes
+### Notes
 
 - Migrations: `forgeron db generate` after a change of `db/schema.ts` (D-014: a rename is a drop and an add).
 - Version: carried by `package.json`, changed only by `forgeron release` (D-007).

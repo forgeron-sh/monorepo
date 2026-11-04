@@ -1,4 +1,32 @@
-# Template `inventory`
+# Equipment inventory
+
+Equipment across sites, fed by CSV imports and a nightly SharePoint synchronization.
+
+## What it does
+
+- Lists the sites and the pieces of equipment, with their type, their attributes, their attachments and the date of their next check.
+- Imports a CSV of equipment (a dry run first), and keeps itself in line with a SharePoint list every night.
+- Answers from Claude, the API and the command line.
+
+## How to use it
+
+- In Claude: "equipment of one city whose check is due", "attach this PDF to a piece of equipment".
+- To import a CSV, run the import in dry-run mode first, read the report, then run it for real.
+- Attaching a file stores it and gives a link that works for 15 minutes.
+
+## Permissions
+
+| Role         | May                                              |
+| ------------ | ------------------------------------------------ |
+| `reader`     | Read sites, equipment and the history of imports |
+| `technician` | Read, create and update, attach files            |
+| `admin`      | The same, delete, and import a CSV               |
+
+The nightly synchronization needs the `SHAREPOINT_TOKEN` secret, set by an administrator.
+
+## For developers
+
+This is the template `inventory`.
 
 Equipment across sites, fed by CSV imports and a nightly SharePoint synchronization, queryable from Claude and the API.
 
@@ -19,7 +47,7 @@ Specification: [`docs/examples/03-data-hub.md`](../../docs/examples/03-data-hub.
 
 Roles: `technician` read and write, `reader` read only, `admin` also `delete` and the tool-specific `import` level.
 
-## Differences from the example
+### Differences from the example
 
 The SDK does not provide some pieces the example uses; this template stays on what exists today.
 
@@ -30,7 +58,7 @@ The SDK does not provide some pieces the example uses; this template stays on wh
 - The test platform has no `ctx.files`: the checks that precede storing an attachment are tested, storing itself is not.
 - The `ref` to `sku` rename (two-step migration) is not part of this template.
 
-## Tests
+### Tests
 
 ```bash
 bun run test
