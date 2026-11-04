@@ -520,6 +520,48 @@ describe("a database that holds D1's own tables", () => {
     d1.close();
   });
 
+  it("counts with platform=1 whatever the host does with a compound statement", async () => {
+    admin();
+    const d1 = await strict();
+    d1.exec(`DROP TABLE "_forgeron_migrations"`);
+    d1.exec(
+      `CREATE TABLE "_forgeron_migrations" ("name" TEXT PRIMARY KEY NOT NULL, "fingerprint" TEXT NOT NULL, "applied_at" TEXT NOT NULL)`,
+    );
+    // A host that refuses a statement with several terms: the counts are asked one table at a time.
+    const picky = {
+      prepare: (sql: string) => {
+        if (/union/i.test(sql)) throw new Error("too many terms in compound SELECT");
+        return (d1 as unknown as { prepare: (s: string) => unknown }).prepare(sql);
+      },
+    };
+    const response = await call("tables?platform=1", { hosting: withStrict(picky) });
+    expect(response.status).toBe(200);
+    const names = ((await response.json()) as { tables: { name: string }[] }).tables.map(
+      (x) => x.name,
+    );
+    expect(names).toEqual(["_forgeron_migrations", "companies", "contacts", "log"]);
+    d1.close();
+  });
+
+  it("names the table whose count failed in the log, and not in the answer", async () => {
+    admin();
+    const d1 = await strict();
+    const refusing = {
+      prepare: (sql: string) => {
+        if (sql.includes('"contacts"') && /COUNT/.test(sql)) throw new Error("boom");
+        return (d1 as unknown as { prepare: (s: string) => unknown }).prepare(sql);
+      },
+    };
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await call("tables", { hosting: withStrict(refusing) });
+    const written = JSON.stringify(log.mock.calls);
+    log.mockRestore();
+    expect(response.status).toBe(502);
+    expect(written).toContain('"table":"contacts"');
+    expect(await response.text()).not.toContain("contacts");
+    d1.close();
+  });
+
   it("describes a table and the schema", async () => {
     admin();
     const d1 = await strict();
