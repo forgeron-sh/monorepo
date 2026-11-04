@@ -91,7 +91,10 @@ beforeAll(async () => {
     commit: { sha: "bbbbbbb2", message: "Add the export", author: "Bob" },
   });
   const preview = await registry.ensureEnvironment(tool.id, "preview", "feat-export");
-  await registry.activate(preview.id, v2.id, { actor: "ci", url: "https://feat-export.test" });
+  await registry.activate(preview.id, v2.id, {
+    actor: "deploy:ci-token",
+    url: "https://feat-export.test",
+  });
   await registry.createTool({ workspace: "acme", name: "draft" });
 });
 afterAll(() => memory.close());
@@ -107,7 +110,7 @@ describe("a tool's branches", () => {
       status: "ready",
       commit: { sha: "bbbbbbb2", message: "Add the export", author: "Bob" },
       deployedBy: "ci",
-      url: "https://acme.test/t/crm",
+      url: "https://acme.forgeron.test/t/crm",
       rollbackTo: "1.0.0",
       migrations: { count: 2, last: "0002_export" },
     });
@@ -117,10 +120,13 @@ describe("a tool's branches", () => {
       environment: "preview",
       branch: "feat-export",
       version: "1.1.0",
+      // The address is where the gateway serves the preview, not what the deployment stored.
+      url: "https://acme.forgeron.test/t/crm@feat-export",
       // The preview was deployed without a commit: the version's own commit stands in.
       commit: { sha: "bbbbbbb2" },
     });
     expect(body.branches[0].rollbackTo).toBeUndefined();
+    expect(body.branches[0].deployedBy).toBe("ci-token (deploy token)");
   });
 
   it("answers an empty tool", async () => {
