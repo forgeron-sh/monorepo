@@ -1,6 +1,6 @@
 import type { Hosting } from "@forgeron/hosting";
 import type { SignIn } from "@forgeron/platform-contract";
-import type { Registry } from "@forgeron/registry";
+import type { Invitation, Registry } from "@forgeron/registry";
 import { UNMATCHED, type ConsolePerson } from "./app";
 import { createPlatform } from "./platform";
 
@@ -15,6 +15,9 @@ export function platformCaller(options: {
   signIn?: () => Promise<SignIn>;
   baseDomain?: string;
   hosting?: () => Hosting | undefined;
+  installDomains?: string[];
+  now?: () => Date;
+  notify?: (invitation: Invitation) => Promise<boolean>;
   databaseTimeoutMs?: number;
 }) {
   const app = createPlatform();
@@ -38,6 +41,9 @@ export function platformCaller(options: {
       workspace: options.workspace ?? "acme",
       origin: new URL(request.url).origin,
       baseDomain: options.baseDomain ?? "forgeron.test",
+      installDomains: options.installDomains ?? [],
+      now: options.now ?? (() => new Date()),
+      ...(options.notify ? { notify: options.notify } : {}),
       hosting: options.hosting ?? (() => undefined),
       ...(options.databaseTimeoutMs ? { databaseTimeoutMs: options.databaseTimeoutMs } : {}),
       signIn:
