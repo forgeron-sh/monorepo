@@ -25,7 +25,7 @@ import {
   type Hosting,
 } from "@forgeron/hosting";
 import { handleConsent } from "./consent/consent";
-import { UNMATCHED } from "./platform/app";
+import { UNMATCHED, type PlatformBindings } from "./platform/app";
 import { createPlatform } from "./platform/platform";
 import {
   createDispatcher,
@@ -33,8 +33,6 @@ import {
   type Caller,
   type DispatcherOptions,
 } from "./dispatch/dispatch";
-import { handleCreateDeployToken, handleDeploy } from "./deploy/deploy";
-import { handlePromote, handleRollback } from "./deploy/promote";
 import { createAuth } from "./identity/auth";
 import { createEmailAuth } from "./identity/email-auth";
 import { invitationId, invitationLink } from "./identity/invitation";
@@ -48,8 +46,8 @@ import {
 import { createCaller, membership } from "./identity/caller";
 import { providerFromConfig } from "./identity/presets";
 import type { SamlProvider } from "./identity/saml";
-import { handleCliAuthorize, handleCliToken } from "./identity/cli";
-import { handleIssueToken, handleRevokeToken } from "./identity/issue";
+import { handleCliAuthorize } from "./identity/cli";
+import type { Person } from "./kernel/person";
 import { forwardIdentity, handleUserSecrets } from "./dispatch/user-secrets";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget, type DispatchNamespace } from "./dispatch/targets";
@@ -122,6 +120,17 @@ export interface GatewayEnv {
 
 /** Where the console reads and writes on the workspace origin. */
 const CONSOLE_API = "/console-api";
+/** The platform routes outside `/console-api` that the Hono app answers (the contract's `bearer` module). */
+const BEARER_PATHS = new Set([
+  "/whoami",
+  "/deploy-tokens",
+  "/deploy",
+  "/promote",
+  "/rollback",
+  "/auth/token",
+  "/auth/token/revoke",
+  "/auth/cli/token",
+]);
 
 const CONSOLE_CSP =
   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
@@ -384,6 +393,76 @@ export function createGateway(
       return dispatch(request);
     }
 
+    // What the platform app needs from this gateway for one request. The person comes lazily: a route
+    // that is public, or refused before anyone is asked, never costs a lookup.
+    const platformBindings = (asked: Request, surface: "console" | "root"): PlatformBindings => {
+      let who: Promise<Person | undefined> | undefined;
+      const resolve = () =>
+        (who ??=
+          secret && caller ? caller.resolve(asked, workspace, true) : Promise.resolve(undefined));
+      // Tells an invited address where to sign in (best effort: the answer says whether it went).
+      const notify = mailer
+        ? async (invitation: Invitation) => {
+            await mailer.send({
+              to: invitation.email,
+              subject: `You are invited to ${workspace}`,
+              invitation: { roles: invitation.roles },
+              text: `You are invited to join ${workspace}${invitation.roles.length ? ` as ${invitation.roles.join(", ")}` : ""}.\n\nOpen ${invitationLink(`https://${workspace}.${env.BASE_DOMAIN}`, await invitationId(secret!, invitation))} to accept, then sign in with this email address. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
+            });
+            return true;
+          }
+        : undefined;
+      return {
+        surface,
+        identity: async () => {
+          const person = await resolve();
+          return person
+            ? {
+                id: person.id,
+                email: person.email,
+                name: person.name,
+                admin: person.roles.includes("admin"),
+                developer: person.roles.includes("developer"),
+                roles: person.roles,
+              }
+            : undefined;
+        },
+        registry,
+        workspace,
+        installDomains,
+        config,
+        canKeepSecrets: box !== undefined,
+        now,
+        ...(notify ? { notify } : {}),
+        origin: `https://${workspace}.${env.BASE_DOMAIN}`,
+        baseDomain: env.BASE_DOMAIN,
+        hosting: hostingOf,
+        ...(secret && caller
+          ? {
+              bearer: {
+                secret,
+                person: resolve,
+                session: () => caller.session(asked, workspace),
+              },
+            }
+          : {}),
+        signIn: async () => ({
+          email: { enabled: emailOn, mail: consoleMail ? "console" : mailer ? "email" : "off" },
+          oidc: {
+            enabled: oidcOn,
+            configured: (await providerOf(workspace, config)) !== undefined,
+          },
+          saml: {
+            enabled: oidcOn || methods.includes("saml"),
+            configured: (await samlOf(workspace, config)) !== undefined,
+          },
+        }),
+      };
+    };
+    // The routes the CLI and CI call (D-075): a Bearer token, or a session, and `{ error: { code, message } }`.
+    const ownedByPlatform = (asked: Request) =>
+      platform.fetch(asked, platformBindings(asked, "root"));
+
     // The platform's own paths. Without `AUTH_SECRET` identity is off and they fail closed.
     if (secret && caller) {
       if (url.pathname.startsWith("/auth/")) {
@@ -435,93 +514,19 @@ export function createGateway(
           now,
           sessionTtlSeconds: options.sessionTtlSeconds ?? 8 * 60 * 60,
         });
-        if (url.pathname === "/auth/cli" || url.pathname === "/auth/cli/token") {
-          const cli = {
+        if (url.pathname === "/auth/cli") {
+          return handleCliAuthorize(request, {
             workspace,
             secret,
             registry,
             now,
             session: (r: Request) => caller.session(r, workspace),
-          };
-          return url.pathname === "/auth/cli"
-            ? handleCliAuthorize(request, cli)
-            : handleCliToken(request, cli);
-        }
-        if (url.pathname === "/auth/token/revoke") {
-          return handleRevokeToken(request, {
-            workspace,
-            registry,
-            now,
-            person: (r) => caller.resolve(r, workspace, true),
           });
         }
-        if (url.pathname === "/auth/token") {
-          return handleIssueToken(request, {
-            workspace,
-            secret,
-            registry,
-            now,
-            session: (r) => caller.session(r, workspace),
-          });
-        }
+        if (BEARER_PATHS.has(url.pathname)) return ownedByPlatform(request);
         return (await auth(request)) ?? notFound(request);
       }
-      if (url.pathname === "/whoami") {
-        const person = await caller.resolve(request, workspace, true);
-        return person
-          ? Response.json({ ...person, workspace }, { headers: { "cache-control": "no-store" } })
-          : Response.json(
-              { error: { code: "UNAUTHENTICATED", message: "Not signed in." } },
-              { status: 401 },
-            );
-      }
-      if (url.pathname === "/deploy-tokens") {
-        return handleCreateDeployToken(request, {
-          workspace,
-          secret,
-          now,
-          authenticate: (r) => caller.resolve(r, workspace, true),
-        });
-      }
-      if (
-        url.pathname === "/deploy" ||
-        url.pathname === "/promote" ||
-        url.pathname === "/rollback"
-      ) {
-        const hosting = hostingOf(workspace);
-        if (!hosting) {
-          return Response.json(
-            {
-              error: {
-                code: "NOT_CONFIGURED",
-                message: "This gateway has no Cloudflare account to deploy to.",
-              },
-            },
-            { status: 501 },
-          );
-        }
-        if (url.pathname === "/deploy") {
-          return handleDeploy(request, {
-            workspace,
-            secret,
-            now,
-            registry,
-            hosting,
-            authenticate: (r) => caller.resolve(r, workspace, true),
-          });
-        }
-        const promotion = {
-          workspace,
-          secret,
-          now,
-          registry,
-          hosting,
-          authenticate: (r: Request) => caller.resolve(r, workspace, true),
-        };
-        return url.pathname === "/promote"
-          ? handlePromote(request, promotion)
-          : handleRollback(request, promotion);
-      }
+      if (BEARER_PATHS.has(url.pathname)) return ownedByPlatform(request);
     }
 
     if (url.pathname.startsWith(`${CONSOLE_API}/`)) {
@@ -546,43 +551,8 @@ export function createGateway(
         box && /\/consent(\/|$)/.test(inner.pathname)
           ? consentFor(workspace, await config.connectorClientsWithSecrets(workspace), box)
           : undefined;
-      // Tells an invited address where to sign in (best effort: the answer says whether it went).
-      const notify = mailer
-        ? async (invitation: Invitation) => {
-            await mailer.send({
-              to: invitation.email,
-              subject: `You are invited to ${workspace}`,
-              invitation: { roles: invitation.roles },
-              text: `You are invited to join ${workspace}${invitation.roles.length ? ` as ${invitation.roles.join(", ")}` : ""}.\n\nOpen ${invitationLink(`https://${workspace}.${env.BASE_DOMAIN}`, await invitationId(secret!, invitation))} to accept, then sign in with this email address. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
-            });
-            return true;
-          }
-        : undefined;
       // Hono answers the paths it owns; for any other it says so and the chain below goes on.
-      const owned = await platform.fetch(forwarded, {
-        identity,
-        registry,
-        workspace,
-        installDomains,
-        config,
-        canKeepSecrets: box !== undefined,
-        now,
-        ...(notify ? { notify } : {}),
-        origin: `https://${workspace}.${env.BASE_DOMAIN}`,
-        baseDomain: env.BASE_DOMAIN,
-        hosting: hostingOf,
-        signIn: async () => ({
-          email: { enabled: emailOn, mail: consoleMail ? "console" : mailer ? "email" : "off" },
-          oidc: {
-            enabled: oidcOn,
-            configured: (await providerOf(workspace, config)) !== undefined,
-          },
-          saml: {
-            enabled: oidcOn || methods.includes("saml"),
-            configured: (await samlOf(workspace, config)) !== undefined,
-          },
-        }),
-      });
+      const owned = await platform.fetch(forwarded, platformBindings(request, "console"));
       if (!owned.headers.has(UNMATCHED)) return owned;
       return (
         (consent

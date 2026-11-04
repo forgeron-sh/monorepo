@@ -1,5 +1,7 @@
+import { addresses } from "@forgeron/platform-contract/client";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
+import { platformClient, refusal } from "../platform-client";
 import { readProject } from "../project";
 
 const USAGE = "Usage: forgeron preview close [--branch <name>]";
@@ -33,20 +35,16 @@ export async function preview(args: string[], io: Io): Promise<number> {
     );
   }
 
-  const response = await fetch(new URL("/deploy", project.endpoint), {
-    method: "DELETE",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify({ branch }),
+  const answer = await platformClient(project.endpoint, token)(addresses.closePreview, {
+    json: { branch },
   });
-  const body = (await response.json().catch(() => undefined)) as
-    | { closed?: boolean; error?: { message?: string } }
-    | undefined;
-  if (!response.ok) {
-    io.error(body?.error?.message ?? `The workspace answered ${response.status}.`);
+  if (answer.status !== 200) {
+    io.error(refusal(answer));
     return 1;
   }
+  // The gateway says `removed` (the CLI used to read `closed`, so it always reported no preview).
   io.log(
-    body?.closed
+    answer.body.removed
       ? `Closed the preview of ${project.tool} for ${branch}.`
       : `${project.tool} had no preview for ${branch}.`,
   );

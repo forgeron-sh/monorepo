@@ -42,6 +42,17 @@ import type {
   toolManifestRoute,
   toolVersionsRoute,
 } from "./tools";
+import type {
+  cliTokenRoute,
+  closePreviewRoute,
+  createDeployTokenRoute,
+  deployRoute,
+  issueTokenRoute,
+  promoteRoute,
+  revokeTokenRoute,
+  rollbackRoute,
+  whoamiRoute,
+} from "./bearer";
 import type { auditRoute, workspaceRoute } from "./workspace";
 import { addressOf } from "./route";
 
@@ -187,4 +198,16 @@ export const addresses = {
     path: "/api/invitations/{email}",
   }),
   workspace: addressOf<typeof workspaceRoute>({ method: "get", path: "/api/workspace" }),
+  cliToken: addressOf<typeof cliTokenRoute>({ method: "post", path: "/auth/cli/token" }),
+  closePreview: addressOf<typeof closePreviewRoute>({ method: "delete", path: "/deploy" }),
+  createDeployToken: addressOf<typeof createDeployTokenRoute>({
+    method: "post",
+    path: "/deploy-tokens",
+  }),
+  deploy: addressOf<typeof deployRoute>({ method: "post", path: "/deploy" }),
+  issueToken: addressOf<typeof issueTokenRoute>({ method: "post", path: "/auth/token" }),
+  promote: addressOf<typeof promoteRoute>({ method: "post", path: "/promote" }),
+  revokeToken: addressOf<typeof revokeTokenRoute>({ method: "post", path: "/auth/token/revoke" }),
+  rollback: addressOf<typeof rollbackRoute>({ method: "post", path: "/rollback" }),
+  whoami: addressOf<typeof whoamiRoute>({ method: "get", path: "/whoami" }),
 };

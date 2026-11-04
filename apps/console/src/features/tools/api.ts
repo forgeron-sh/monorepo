@@ -1,5 +1,5 @@
 import { addresses } from "@forgeron/platform-contract/client";
-import { typedClient, ok, type Api, type FetchJson } from "../../api";
+import { typedClient, typedPlatform, ok, type Api, type FetchJson } from "../../api";
 
 // Typed calls to the console API for the tools (apps/gateway/src/console-api/tools.ts and
 // tool-pages.ts). Only the fields shown are kept, whatever else an answer holds.
@@ -184,26 +184,38 @@ export async function loadActivity(fetchJson: FetchJson, tool: string): Promise<
 
 function platform(api: Api) {
   if (!api.sendPlatform) throw new Error("This console cannot reach the platform routes.");
-  return api.sendPlatform;
+  return typedPlatform(api.sendPlatform);
 }
 
 /** `POST /promote`: puts a version the tool already has on production, or on a branch's preview. */
-export const promote = (api: Api, input: { tool: string; version: string; reason: string }) =>
-  platform(api)("/promote", {
-    tool: input.tool,
-    version: input.version,
-    to: "production",
-    ...(input.reason ? { reason: input.reason } : {}),
-  });
+export const promote = async (api: Api, input: { tool: string; version: string; reason: string }) =>
+  ok(
+    await platform(api)(addresses.promote, {
+      json: {
+        tool: input.tool,
+        version: input.version,
+        to: "production",
+        ...(input.reason ? { reason: input.reason } : {}),
+      },
+    }),
+  );
 
 /** `POST /rollback`: production serves the version it served before the current one. */
-export const rollback = (api: Api, input: { tool: string; reason: string }) =>
-  platform(api)("/rollback", {
-    tool: input.tool,
-    environment: "production",
-    ...(input.reason ? { reason: input.reason } : {}),
-  });
+export const rollback = async (api: Api, input: { tool: string; reason: string }) =>
+  ok(
+    await platform(api)(addresses.rollback, {
+      json: {
+        tool: input.tool,
+        environment: "production",
+        ...(input.reason ? { reason: input.reason } : {}),
+      },
+    }),
+  );
 
 /** `DELETE /deploy`: the branch's preview goes, with its Worker and its database. */
-export const closePreview = (api: Api, input: { tool: string; branch: string }) =>
-  platform(api)("/deploy", { tool: input.tool, branch: input.branch }, "DELETE");
+export const closePreview = async (api: Api, input: { tool: string; branch: string }) =>
+  ok(
+    await platform(api)(addresses.closePreview, {
+      json: { tool: input.tool, branch: input.branch },
+    }),
+  );

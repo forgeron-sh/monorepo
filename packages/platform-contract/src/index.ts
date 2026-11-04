@@ -48,3 +48,17 @@ export {
   revokeUserSecretRoute,
   revokeUserSecretsRoute,
 } from "./revocations";
+export {
+  MAX_DEPLOY_TOKEN_DAYS,
+  MAX_TOKEN_DAYS,
+  PlatformErrorSchema,
+  cliTokenRoute,
+  closePreviewRoute,
+  createDeployTokenRoute,
+  deployRoute,
+  issueTokenRoute,
+  promoteRoute,
+  revokeTokenRoute,
+  rollbackRoute,
+  whoamiRoute,
+} from "./bearer";

@@ -1,6 +1,8 @@
+import { addresses } from "@forgeron/platform-contract/client";
 import { parseArgs } from "node:util";
 import { readCredentials } from "../credentials";
 import { UsageError, type Io } from "../io";
+import { platformClient, refusal } from "../platform-client";
 import { readProject } from "../project";
 
 const PROMOTE_USAGE =
@@ -33,23 +35,6 @@ async function endpointOf(io: Io) {
   return { project, endpoint: project.endpoint };
 }
 
-async function call(endpoint: string, path: string, token: string, body: unknown) {
-  const response = await fetch(new URL(path, endpoint), {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-  });
-  const answer = (await response.json().catch(() => undefined)) as
-    | {
-        version?: string;
-        url?: string;
-        applied?: string[];
-        error?: { message?: string };
-      }
-    | undefined;
-  return { ok: response.ok, status: response.status, answer };
-}
-
 /**
  * `forgeron promote <version> --to <env>`: puts a version the workspace already holds on another
  * environment, with no rebuild. The gateway applies the rules of a deployment: the changelog must
@@ -76,21 +61,24 @@ export async function promote(args: string[], io: Io): Promise<number> {
   const { project, endpoint } = await endpointOf(io);
   const token = await credentialsOf(io);
 
-  const { ok, status, answer } = await call(endpoint, "/promote", token, {
-    tool: project.tool,
-    version,
-    to: values.to,
-    ...(values.branch ? { branch: values.branch } : {}),
-    ...(values["allow-destructive"] ? { allowDestructive: true } : {}),
+  const answer = await platformClient(endpoint, token)(addresses.promote, {
+    json: {
+      tool: project.tool,
+      version,
+      to: values.to as "preview" | "production",
+      ...(values.branch ? { branch: values.branch } : {}),
+      ...(values["allow-destructive"] ? { allowDestructive: true } : {}),
+    },
   });
-  if (!ok) {
-    io.error(answer?.error?.message ?? `The workspace answered ${status}.`);
+  if (answer.status !== 200) {
+    io.error(refusal(answer));
     return 1;
   }
+  const promoted = answer.body;
   io.log(
-    `Promoted ${project.tool}@${answer?.version ?? version} to ${values.to}${answer?.url ? `: ${answer.url}` : ""}`,
+    `Promoted ${project.tool}@${promoted.version ?? version} to ${values.to}${promoted.url ? `: ${promoted.url}` : ""}`,
   );
-  if (answer?.applied?.length) io.log(`Migrations applied: ${answer.applied.join(", ")}`);
+  if (promoted.applied?.length) io.log(`Migrations applied: ${promoted.applied.join(", ")}`);
   return 0;
 }
 
@@ -116,16 +104,18 @@ export async function rollback(args: string[], io: Io): Promise<number> {
   const { project, endpoint } = await endpointOf(io);
   const token = await credentialsOf(io);
 
-  const { ok, status, answer } = await call(endpoint, "/rollback", token, {
-    tool: project.tool,
-    environment: env,
-    ...(values.branch ? { branch: values.branch } : {}),
+  const answer = await platformClient(endpoint, token)(addresses.rollback, {
+    json: {
+      tool: project.tool,
+      environment: env as "preview" | "production",
+      ...(values.branch ? { branch: values.branch } : {}),
+    },
   });
-  if (!ok) {
-    io.error(answer?.error?.message ?? `The workspace answered ${status}.`);
+  if (answer.status !== 200) {
+    io.error(refusal(answer));
     return 1;
   }
-  io.log(`Rolled back ${project.tool} on ${env} to ${answer?.version}.`);
+  io.log(`Rolled back ${project.tool} on ${env} to ${answer.body.version}.`);
   io.log(
     "No migration was rolled back: use `forgeron db rollback` if the schema must go back too.",
   );

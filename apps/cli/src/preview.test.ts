@@ -12,7 +12,7 @@ let server: Server;
 let endpoint: string;
 const requests: Array<{ method?: string; path?: string; authorization?: string; body: unknown }> =
   [];
-let answer: { status: number; body: unknown } = { status: 200, body: { closed: true } };
+let answer: { status: number; body: unknown } = { status: 200, body: { removed: true } };
 
 beforeAll(async () => {
   server = createServer((req, res) => {
@@ -42,7 +42,7 @@ afterEach(async () => {
     else process.env[key] = saved[key];
   }
   requests.length = 0;
-  answer = { status: 200, body: { closed: true } };
+  answer = { status: 200, body: { removed: true } };
   await Promise.all(dirs.splice(0).map((d) => rm(d, { recursive: true, force: true })));
 });
 
@@ -85,7 +85,7 @@ describe("forgeron preview close", () => {
   it("takes the pull request's branch from CI and says when there was nothing to close", async () => {
     process.env.FORGERON_TOKEN = "t";
     process.env.GITHUB_HEAD_REF = "feat/b";
-    answer = { status: 200, body: { closed: false } };
+    answer = { status: 200, body: { removed: false } };
     const { io, logs } = await linked();
     expect(await run(["preview", "close"], io)).toBe(0);
     expect(requests[0]?.body).toEqual({ branch: "feat/b" });

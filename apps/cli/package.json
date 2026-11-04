@@ -13,6 +13,7 @@
     "@forgeron/compiler": "workspace:*",
     "@forgeron/hosting": "workspace:*",
     "@forgeron/manifest": "workspace:*",
+    "@forgeron/platform-contract": "workspace:*",
     "@forgeron/playground": "workspace:*",
     "@forgeron/registry": "workspace:*",
     "@forgeron/sdk": "workspace:*"

@@ -1,8 +1,10 @@
 import { buildTool } from "@forgeron/compiler";
+import { addresses } from "@forgeron/platform-contract/client";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
+import { platformClient, refusal } from "../platform-client";
 import { readProject } from "../project";
 
 const USAGE =
@@ -99,11 +101,9 @@ export async function deploy(args: string[], io: Io): Promise<number> {
   const version = versionOf(built.version, built.fingerprint, env, branch);
   const commit = await commitOf(io);
 
-  const response = await fetch(new URL("/deploy", project.endpoint), {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      environment: env,
+  const answer = await platformClient(project.endpoint, token)(addresses.deploy, {
+    json: {
+      environment: env as "preview" | "production",
       ...(env === "preview" ? { branch } : {}),
       version,
       ...(commit ? { commit } : {}),
@@ -116,15 +116,13 @@ export async function deploy(args: string[], io: Io): Promise<number> {
         ...(changelog ? { changelog: JSON.parse(changelog) } : {}),
         ...(docs ? { docs: JSON.parse(docs) } : {}),
       },
-    }),
+    },
   });
-  const body = (await response.json().catch(() => undefined)) as
-    | { url?: string; version?: string; applied?: string[]; error?: { message?: string } }
-    | undefined;
-  if (!response.ok) {
-    io.error(body?.error?.message ?? `The workspace answered ${response.status}.`);
+  if (answer.status !== 200) {
+    io.error(refusal(answer));
     return 1;
   }
+  const body = answer.body;
 
   io.log(
     `Deployed ${built.name}@${body?.version ?? version} to ${env}${body?.url ? `: ${body.url}` : ""}`,

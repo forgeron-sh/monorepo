@@ -1,6 +1,8 @@
+import { addresses } from "@forgeron/platform-contract/client";
 import { parseArgs } from "node:util";
 import { readCredentials } from "../credentials";
 import { UsageError, type Io } from "../io";
+import { platformClient, refusal } from "../platform-client";
 import { readProject } from "../project";
 
 const USAGE = "Usage: forgeron token create --name <name> --scope deploy [--days 90]";
@@ -45,18 +47,14 @@ export async function token(args: string[], io: Io): Promise<number> {
     throw new UsageError("Not signed in: run `forgeron login` first.");
   }
 
-  const response = await fetch(new URL("/deploy-tokens", project.endpoint), {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${credentials}` },
-    body: JSON.stringify({ tool: project.tool, name: values.name, scope: values.scope, days }),
+  const answer = await platformClient(project.endpoint, credentials)(addresses.createDeployToken, {
+    json: { tool: project.tool, name: values.name, scope: "deploy", days },
   });
-  const body = (await response.json().catch(() => undefined)) as
-    | { token?: string; expiresAt?: string; error?: { message?: string } }
-    | undefined;
-  if (!response.ok || !body?.token) {
-    io.error(body?.error?.message ?? `The workspace answered ${response.status}.`);
+  if (answer.status !== 201 || !answer.body?.token) {
+    io.error(refusal(answer));
     return 1;
   }
+  const body = answer.body;
 
   io.log(`Deployment token "${values.name}" for ${project.tool}, valid until ${body.expiresAt}.`);
   io.log("It is shown once: store it as the CI secret FORGERON_TOKEN.");
