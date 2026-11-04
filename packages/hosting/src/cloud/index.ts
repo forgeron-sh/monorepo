@@ -31,7 +31,7 @@ export interface CloudOptions extends CloudflareOptions {
   /** The dispatch namespace the tool Workers are uploaded to. */
   namespace: string;
   /** Where an environment answers, from the name of its Worker. */
-  url(workerName: string): string;
+  url(workerName: string, environment: Environment): string;
   compatibilityDate?: string;
 }
 
@@ -117,7 +117,7 @@ export function createCloudHosting(options: CloudOptions): Hosting {
         "worker.js",
       );
       await client.form("PUT", script(worker), form);
-      return { url: options.url(worker) };
+      return { url: options.url(worker, uploaded.provisioned.environment) };
     },
 
     // Deletes the script, then what it was bound to. A half-removed environment can be removed again.

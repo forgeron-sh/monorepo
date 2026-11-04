@@ -58,3 +58,25 @@ export async function writeProject(dir: string, project: ProjectFile): Promise<v
   await mkdir(join(dir, ".forgeron"), { recursive: true });
   await writeFile(file(dir), `${JSON.stringify(project, null, 2)}\n`);
 }
+
+/**
+ * The endpoint a command talks to: `--endpoint`, else the project file's (`forgeron link`), else
+ * the default of `--workspace`. A `--workspace` that is the linked one keeps the linked endpoint,
+ * which may be another than the default (`forgeron link --endpoint`).
+ */
+export async function resolveEndpoint(
+  flags: { workspace?: string; endpoint?: string },
+  dir: string,
+): Promise<string> {
+  if (flags.endpoint) return flags.endpoint;
+  const project = await readProject(dir);
+  if (flags.workspace) {
+    const workspace = checkWorkspace(flags.workspace);
+    if (project?.endpoint && project.workspace === workspace) return project.endpoint;
+    return defaultEndpoint(workspace);
+  }
+  if (project?.endpoint) return project.endpoint;
+  throw new UsageError(
+    "No workspace to talk to: run `forgeron link --workspace <name>` first, or pass --workspace.",
+  );
+}

@@ -61,7 +61,8 @@ beforeEach(async () => {
     workspace: "acme",
     namespace: "forgeron-tools",
     fetch: cloudflare.fetch,
-    url: (name) => `https://acme.forgeron.test/${name}`,
+    url: (name, environment) =>
+      `https://acme.forgeron.test/${name}${environment.branch ? `@${environment.branch}` : ""}`,
   });
 });
 afterEach(() => memory.close());
@@ -172,6 +173,17 @@ describe("deploying to production in the cloud", () => {
     await deploy(hosting, production, build("v1", [], { manifest: bare }));
     expect(cloudflare.scripts.get(SCRIPT)!.metadata.bindings).toEqual([]);
     expect(cloudflare.databases.size).toBe(0);
+  });
+});
+
+describe("the address of a preview in the cloud", () => {
+  it("is given the environment, so it can carry the branch", async () => {
+    const result = await deploy(
+      hosting,
+      { tool: "crm", name: "preview", branch: "feat/export" },
+      build("p1", []),
+    );
+    expect(result.activation.url).toMatch(/^https:\/\/acme\.forgeron\.test\/.+@feat\/export$/);
   });
 });
 

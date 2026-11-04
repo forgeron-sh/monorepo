@@ -28,6 +28,7 @@ import type { Person } from "./kernel/person";
 import { forwardIdentity } from "./dispatch/user-secrets";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget } from "./dispatch/targets";
+import { toolAddress } from "./tool-address";
 
 // The composition of the gateway (D-077). `createModules` builds what lives as long as the Worker:
 // the registry and the identity pieces, once. `createRequestModules` builds what lives as long as one
@@ -123,8 +124,8 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       apiToken: env.CLOUDFLARE_API_TOKEN,
       workspace,
       // Production answers at the tool's address; a preview adds `@<branch>` to it.
-      url: (worker: string) =>
-        `https://${workspace}.${env.BASE_DOMAIN}/t/${worker.split("--")[1] ?? ""}`,
+      url: (worker: string, environment: { branch?: string }) =>
+        toolAddress(`https://${workspace}.${env.BASE_DOMAIN}`, worker, environment),
     };
     if (env.DISPATCHER && env.DISPATCH_NAMESPACE) {
       return createCloudHosting({ ...common, namespace: env.DISPATCH_NAMESPACE });
