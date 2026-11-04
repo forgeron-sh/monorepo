@@ -123,6 +123,27 @@ const describe = (table: TableDefinition, rows?: number) => ({
   })),
 });
 
+/**
+ * What to write to the log about a failure of the host: its HTTP status and Cloudflare's own message
+ * and code (`... failed (400): not authorized [7500]`), without the request path (it carries the
+ * database id and the account) and without anything that looks like an id.
+ */
+function describeFailure(error: unknown): { status?: number; reason: string } {
+  const status = (error as { status?: unknown } | null)?.status;
+  const message = error instanceof Error ? error.message : String(error);
+  const detail = message.replace(/^Cloudflare \w+ \S+ failed \(\d+\): /, "");
+  return {
+    ...(typeof status === "number" ? { status } : {}),
+    reason: detail
+      .replace(/Bearer\s+\S+/gi, "Bearer <token>")
+      .replace(
+        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32}/gi,
+        "<id>",
+      )
+      .slice(0, 300),
+  };
+}
+
 /** Answers a database explorer route, or `undefined` when the request is for another route. */
 export async function handleDatabase(
   request: Request,
@@ -314,6 +335,11 @@ export async function handleDatabase(
       return failure(504, "TIMEOUT", "The database took too long to answer. Narrow the filter.");
     }
     // Whatever the host said stays on the server: it may carry account details.
+    console.error("db explorer: the database could not be read", {
+      what,
+      ...where,
+      ...describeFailure(error),
+    });
     return failure(502, "DATABASE_UNAVAILABLE", "The database could not be read. Try again.");
   }
 }
