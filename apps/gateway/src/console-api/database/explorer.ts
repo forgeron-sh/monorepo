@@ -57,8 +57,15 @@ export type ReadOnlyDb = ReturnType<typeof readOnly>;
 
 const select = (sql: string, params: unknown[] = []): Statement => ({ sql, params });
 
-/** The tables a person may open: the tool's own, and the platform's only when asked for. */
-const TABLES = `SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' AND name NOT LIKE '\\_cf\\_%' ESCAPE '\\' ORDER BY name LIMIT ${MAX_TABLES}`;
+/**
+ * The tables a person may open: the tool's own, and the platform's only when asked for. D1 refuses
+ * any read of its own `_cf_*` tables ("not authorized"), `pragma_*` included, and a
+ * `pragma_table_info(m.name)` joined to `sqlite_master` runs once per row it did not filter out: the
+ * filter is in every statement that reaches a table, not only in the list of names.
+ */
+const hidden = (column: string) =>
+  `${column} NOT LIKE 'sqlite\\_%' ESCAPE '\\' AND ${column} NOT LIKE '\\_cf\\_%' ESCAPE '\\'`;
+const TABLES = `SELECT name, sql FROM sqlite_master WHERE type = 'table' AND ${hidden("name")} ORDER BY name LIMIT ${MAX_TABLES}`;
 
 export async function loadSchema(
   db: ReadOnlyDb,
@@ -78,7 +85,7 @@ export async function loadSchema(
       pk: number;
     }>(
       select(
-        `SELECT m.name AS tbl, p.name, p.type, p."notnull", p.dflt_value, p.pk FROM sqlite_master m, pragma_table_info(m.name) p WHERE m.type = 'table' ORDER BY m.name, p.cid`,
+        `SELECT m.name AS tbl, p.name, p.type, p."notnull", p.dflt_value, p.pk FROM sqlite_master m, pragma_table_info(m.name) p WHERE m.type = 'table' AND ${hidden("m.name")} ORDER BY m.name, p.cid`,
       ),
     ),
     db.all<{
@@ -92,7 +99,7 @@ export async function loadSchema(
       on_delete: string;
     }>(
       select(
-        `SELECT m.name AS tbl, f.id, f.seq, f."table", f."from", f."to", f.on_update, f.on_delete FROM sqlite_master m, pragma_foreign_key_list(m.name) f WHERE m.type = 'table' ORDER BY m.name, f.id, f.seq`,
+        `SELECT m.name AS tbl, f.id, f.seq, f."table", f."from", f."to", f.on_update, f.on_delete FROM sqlite_master m, pragma_foreign_key_list(m.name) f WHERE m.type = 'table' AND ${hidden("m.name")} ORDER BY m.name, f.id, f.seq`,
       ),
     ),
     db.all<{
@@ -104,7 +111,7 @@ export async function loadSchema(
       seqno: number;
     }>(
       select(
-        `SELECT m.name AS tbl, i.name, i."unique", i.origin, c.name AS "column", c.seqno FROM sqlite_master m, pragma_index_list(m.name) i, pragma_index_info(i.name) c WHERE m.type = 'table' ORDER BY m.name, i.seq, c.seqno`,
+        `SELECT m.name AS tbl, i.name, i."unique", i.origin, c.name AS "column", c.seqno FROM sqlite_master m, pragma_index_list(m.name) i, pragma_index_info(i.name) c WHERE m.type = 'table' AND ${hidden("m.name")} ORDER BY m.name, i.seq, c.seqno`,
       ),
     ),
   ]);

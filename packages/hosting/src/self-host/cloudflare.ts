@@ -59,7 +59,10 @@ export function createCloudflareClient(options: CloudflareOptions): CloudflareCl
     );
     const envelope = (await response.json().catch(() => undefined)) as Envelope<T> | undefined;
     if (!response.ok || !envelope?.success) {
-      const detail = envelope?.errors?.map((e) => e.message).join("; ") || response.statusText;
+      const detail =
+        envelope?.errors
+          ?.map((e) => (e.code ? `${e.message} [${e.code}]` : e.message))
+          .join("; ") || response.statusText;
       throw new CloudflareError(
         `Cloudflare ${method} ${path} failed (${response.status}): ${detail}`,
         response.status,
