@@ -34,3 +34,4 @@ export { Markdown, safeHref, safeImage } from "./markdown";
 export type { MarkdownProps } from "./markdown";
 export { DetailList, ToolCard, ToolIcon } from "./tool-card";
 export type { DetailItem, DetailListProps, ToolCardProps, ToolIconProps } from "./tool-card";
+export * from "./architecture";

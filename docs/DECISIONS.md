@@ -60,7 +60,7 @@ Rules of the log:
 | D-051 | 03/11/2026 | A console mail mode writes the sign-in codes to the Worker's logs for test installs; opt-in, never on the cloud                                   | Active                                 |
 | D-054 | 03/11/2026 | The console is an application: a sidebar shell, path routing with the History API, screens for the first run, members, settings and the audit log | Active                                 |
 | D-055 | 04/11/2026 | The pilot environment is removed: Forgeron has `local`, `preview` and `production`; a version goes from a preview to production                   | Active                                 |
-| D-057 | 04/11/2026 | The member space renders a README to React elements; links and images are allow-listed                                                            | Active                                 |
+| D-058 | 04/11/2026 | The member space renders a README to React elements; links and images are allow-listed                                                            | Active                                 |
 
 ---
 
@@ -642,7 +642,17 @@ Rules of the log:
 - **Rejected**: a routing library (one table and the History API do the job, D-054); registering routes by calling a function at import time (the order of imports would decide the order of the menu, a glob plus the table order does not); a tab registry the shell fills (the shell would import every feature).
 - **Applied in**: FOR-134; `apps/console/src/shell`, `apps/console/src/features`, `apps/console/src/router.ts`, `docs/console-ux.md`.
 
-## D-057 — The member space renders a README to React elements; links and images are allow-listed
+## D-057 — The architecture diagram is a pure layout of the manifest drawn as a static SVG, and it draws only what the manifest says
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**: `layoutArchitecture(manifest)` (`packages/ui/src/architecture/layout.ts`) is a pure, deterministic function from a manifest to nodes, edges and coordinates in a fixed 840-unit-wide box. `ArchitectureDiagram` draws it as an inline SVG with a `viewBox`, so it scales to its container, and no layout library. The only edges are interface to action group, from each action's `interfaces`; the manifest says nothing more, so the resources, roles, events, tasks and used tools are nodes without edges. Every node is a focusable element (`tabindex=0`) whose `aria-label` is a full sentence; a text list says the same, and replaces the drawing when its container is narrower than 640px (container query), where the drawing would be too small to read. `GET /api/tools/<tool>/manifest` (developers and admins) gives the console the manifest of the version production serves, else the latest.
+- **Why**: the manifest is the one source of truth, so the diagram cannot disagree with the tool. A line between an action and a resource that the manifest does not state would be a guess a reader takes for a fact; the ticket's own rule was to never invent one.
+- **Rejected**: a layout library (ELK, dagre): the shape is fixed (three columns and a band), a library adds weight and non-determinism for no gain; drawing action to resource edges from names (`deals.*` to a `deals` table): the manifest carries neither tables nor which action reads what; scaling the drawing down on a phone: unreadable.
+- **Know**: the database node is one box, the manifest declares no tables. If the manifest later records which resources an action uses (for example a `uses` list on an action), the layout gets those edges and nothing else changes. The fixtures of the four templates (`packages/ui/src/architecture/fixtures.ts`) are the built manifests with action input schemas cut down to `{ type: "object" }`: rebuild them if the templates' actions change.
+- **Not verified**: the tab on the real tool page (FOR-130 is not merged: the tab is registered in the registry of FOR-134, nothing draws it yet); the route against a real D1.
+- **Applied in**: FOR-135; `packages/ui` (`architecture/`), `apps/console` (`features/architecture/`), `apps/gateway` (`console-api/manifest.ts`), `apps/site` (`/design-system/architecture`).
+
+## D-058 — The member space renders a README to React elements; links and images are allow-listed
 
 - **Date**: 04/11/2026 · **Status**: Active
 - **Decision**:

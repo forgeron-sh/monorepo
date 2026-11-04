@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css",
-    "./tokens.css": "./tokens/tokens.css"
+    "./tokens.css": "./tokens/tokens.css",
+    "./architecture-fixtures": "./src/architecture/fixtures.ts"
   },
   "scripts": {
     "tokens": "node tokens/build.mjs",
@@ -17,6 +18,7 @@
     "remark-gfm": "4.0.1"
   },
   "devDependencies": {
+    "@forgeron/manifest": "workspace:*",
     "@forgeron/tsconfig": "workspace:*",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
