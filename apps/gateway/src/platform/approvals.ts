@@ -48,6 +48,7 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
             id,
             c.req.valid("json").decision,
             c.get("person").id,
+            c.env.via,
           );
           return c.json({ id: decided.id, status: decided.status }, 200);
         } catch (error) {

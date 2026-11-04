@@ -45,6 +45,7 @@ const deployment = (c: Context<PlatformEnv>) => {
   return {
     context: {
       workspace,
+      ...(c.env.via ? { via: c.env.via } : {}),
       secret: bearer!.secret,
       now,
       registry,

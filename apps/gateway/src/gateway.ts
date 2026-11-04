@@ -72,6 +72,12 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
       return modules.platform.fetch(forwarded, asked.platformBindings("console"));
     }
 
+    // The admin MCP (sdk.md §17): POST only, so a GET still meets the JSON 404 below. Without
+    // identity it does not exist, like the platform's own paths.
+    if (url.pathname === "/mcp" && request.method === "POST" && asked.adminMcp) {
+      return asked.adminMcp()(request);
+    }
+
     // The workspace's own API paths belong to parts of the gateway that do not exist yet: never the
     // console, and JSON whatever the client accepts (sdk.md §7, Isolation point 1).
     if (/^\/(mcp|api|cli)(\/|$)/.test(url.pathname)) {
