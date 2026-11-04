@@ -1,7 +1,7 @@
 import { mayAccess, viewSubject, type AccessOverrides, type Manifest } from "@forgeron/manifest";
 import type { ViewBootstrap } from "@forgeron/runtime";
 import type { Person } from "../kernel/person";
-import { issueToken } from "../identity/tokens";
+import { issueToken } from "../identity/authn/tokens";
 
 // Serves a tool's views (sdk.md §7, "Isolation between tools on the same origin"). Every tool of a
 // workspace shares one origin, so a view's response carries a CSP `sandbox`: the browser gives the

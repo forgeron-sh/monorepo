@@ -1,6 +1,6 @@
 import { importCertificate, type PinnedKey } from "./saml-cert";
 import { attribute, canonicalize, childrenNamed, textOf, type XmlElement } from "./saml-xml";
-import { fromBase64Url } from "./sealed";
+import { fromBase64Url } from "../authn/sealed";
 
 // XML signature verification for SAML (D-050), written for exactly what SAML uses and nothing more:
 //  - the key is a certificate the administrator pinned; `KeyInfo` in the message is never read;

@@ -2,8 +2,8 @@ import type { D1Database } from "@forgeron/hosting";
 import { migratePlatform } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { createGateway, type GatewayEnv } from "./gateway";
-import { memoryMailSender } from "./mail/mail";
+import { createGateway, type GatewayEnv } from "../gateway";
+import { memoryMailSender } from "../mail/mail";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -134,7 +134,7 @@ describe("the page shell", () => {
   });
 
   it("answers a failure of the gateway with a 500 page that tells nothing", async () => {
-    const { default: worker } = await import("./index");
+    const { default: worker } = await import("../index");
     const failing = {
       prepare: () => {
         throw new Error("storage secret detail");

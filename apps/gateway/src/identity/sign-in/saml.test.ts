@@ -4,7 +4,7 @@ import {
   simulatedSamlIdp,
   type Respond,
   type SimulatedSamlIdp,
-} from "../simulated-saml-idp";
+} from "../../simulated-saml-idp";
 import { completeSamlLogin, startSamlLogin, type SamlProvider, type SamlRequests } from "./saml";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });

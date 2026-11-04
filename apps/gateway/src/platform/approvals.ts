@@ -8,7 +8,7 @@ import {
 } from "@forgeron/platform-contract";
 import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { LONGEST_TOKEN_SECONDS } from "../identity/issue";
+import { LONGEST_TOKEN_SECONDS } from "../identity/authn/issue";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
 // The versions that wait for an admin (docs/sdk.md §3) and the admin's revocations (D-035, D-036), for

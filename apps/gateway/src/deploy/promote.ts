@@ -11,9 +11,9 @@ import {
   type RegisteredEnvironment,
   type Registry,
 } from "@forgeron/registry";
-import { parseAudience } from "../identity/audience";
+import { parseAudience } from "../identity/authn/audience";
 import type { Person } from "../kernel/person";
-import { verifyToken } from "../identity/tokens";
+import { verifyToken } from "../identity/authn/tokens";
 import { DEPLOY_SCOPE } from "./deploy";
 
 const ENVIRONMENTS: RegisteredEnvironment[] = ["preview", "production"];

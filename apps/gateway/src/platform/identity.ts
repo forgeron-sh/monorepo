@@ -7,7 +7,7 @@ import {
   putIdentityProviderRoute,
 } from "@forgeron/platform-contract";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { parseIdentityProviderInput, parseSamlProviderInput } from "../identity/presets";
+import { parseIdentityProviderInput, parseSamlProviderInput } from "../identity/sign-in/presets";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
 // The sign-in configuration of a workspace, edited by an admin in the console (D-041, D-050): the

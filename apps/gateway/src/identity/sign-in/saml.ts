@@ -1,5 +1,5 @@
-import { toBase64Url, fromBase64Url } from "./sealed";
-import type { Identity } from "./oidc";
+import { toBase64Url, fromBase64Url } from "../authn/sealed";
+import type { Identity } from "../authn/identity";
 import { pinnedKeys, verifySignature, DS } from "./saml-signature";
 import {
   attribute,

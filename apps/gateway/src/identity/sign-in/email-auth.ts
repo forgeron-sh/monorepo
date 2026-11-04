@@ -1,13 +1,13 @@
 import type { EmailCodes, Member, Registry } from "@forgeron/registry";
-import { workspaceOf } from "../kernel/workspace";
-import type { MailSender } from "../mail/mail";
-import { errorPage } from "../pages/errors";
-import { reasonOf, signInPages } from "../pages/sign-in";
+import { workspaceOf } from "../../kernel/workspace";
+import type { MailSender } from "../../mail/mail";
+import { errorPage } from "../../pages/errors";
+import { reasonOf, signInPages } from "../../pages/sign-in";
 import { safeNext } from "./auth";
 import { findInvitationById } from "./invitation";
-import { sameOriginPost } from "./origin";
-import { seal, toBase64Url, unseal } from "./sealed";
-import { cookieOf, openSession } from "./session";
+import { sameOriginPost } from "../authn/origin";
+import { seal, toBase64Url, unseal } from "../authn/sealed";
+import { cookieOf, openSession } from "../authn/session";
 
 // Passwordless sign-in by email (D-049), beside the OpenID Connect provider:
 //   GET  /auth/login           the sign-in page (email form; the OIDC button first when both are on)

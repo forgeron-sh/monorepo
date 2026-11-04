@@ -8,7 +8,7 @@ import {
 } from "@forgeron/platform-contract";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
-import { handleDatabase } from "../console-api/database";
+import { handleDatabase } from "../console-api/database/index";
 import type { PlatformEnv } from "./app";
 
 // The database explorer (D-059, docs/console-ux.md), read only, for admins and developers. The routes

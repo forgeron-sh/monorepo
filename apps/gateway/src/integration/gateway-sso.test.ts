@@ -7,8 +7,8 @@ import {
 } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { createGateway, type GatewayEnv } from "./gateway";
-import { simulatedProvider } from "./simulated-idp";
+import { createGateway, type GatewayEnv } from "../gateway";
+import { simulatedProvider } from "../simulated-idp";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 

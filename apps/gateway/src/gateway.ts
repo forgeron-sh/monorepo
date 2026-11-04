@@ -1,4 +1,4 @@
-import { handleCliAuthorize } from "./identity/cli";
+import { handleCliAuthorize } from "./identity/cli-login/cli";
 import { handleUserSecrets } from "./dispatch/user-secrets";
 import { workspaceOf } from "./dispatch/dispatch";
 import {

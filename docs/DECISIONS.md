@@ -77,6 +77,7 @@ Rules of the log:
 | D-075 | 04/11/2026 | The routes of the CLI and CI (`/whoami`, `/deploy`, `/promote`…) are in the contract and mounted on the Hono app; the CLI calls them through the typed client          | Active                                 |
 | D-076 | 04/11/2026 | The consent routes are in the contract and mounted on the Hono app; the legacy chain and its fall-through tag are removed                                              | Active                                 |
 | D-077 | 04/11/2026 | The gateway is composed in `compose.ts`: modules built once, a `RequestContext` per request with a memoised person, and each area takes a narrow port                  | Active                                 |
+| D-078 | 04/11/2026 | `identity/` is split into `authn`, `sign-in` and `cli-login`; the tests that drive the whole gateway move to `integration/`                                            | Active                                 |
 
 ---
 
@@ -936,3 +937,17 @@ Rules of the log:
 - **Know**: `deploy/` and `promote/` still take the whole `Registry`: they pass it to `deployBuild`, `promoteVersion`, `rollbackEnvironment` and `closePreview`, which are in another package and ask for it. `PlatformBindings.registry` stays whole too: the Hono routes are many and each reads it through `c.env`. Narrowing them is a change to those packages, not to the gateway. The person is now shared by the two `platformBindings` calls of one request (only one is ever made), which changes nothing observable.
 - **Not verified**: no deployed gateway; the behaviour is held by the gateway's own tests (unchanged) and the type check.
 - **Applied in**: FOR-157; `apps/gateway/src/{compose,env,gateway}.ts`, the contexts of `identity/`, `dispatch/`, `consent/`, `console-api/`, `.dependency-cruiser.cjs`, `scripts/deps-selftest.ts`, `docs/ARCHITECTURE.md`.
+
+## D-078 — `identity/` is split into `authn`, `sign-in` and `cli-login`; the tests that drive the whole gateway move to `integration/`
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**:
+  1. **`identity/authn/`**: who is calling (`session`, `tokens`, `audience`, `authenticate`, `caller`, `issue`) and the primitives they share (`sealed`, `origin`, and the `Identity` type, moved out of `oidc.ts`). **`identity/sign-in/`**: `auth` (the OIDC and SAML routes), `email-auth`, `invitation`, `oidc`, `saml*`, `presets`. **`identity/cli-login/`**: `cli.ts`, the browser step of `forgeron login`. Tests moved with their subject.
+  2. **Rules, each with a case in `scripts/deps-selftest.ts`**: `identity-authn-is-a-leaf` (authn imports neither of the other two) and `identity-sign-in-and-cli-login-are-apart`. The two rules of D-063 (`identity-is-below-dispatch-and-pages`, `identity-does-not-import-dispatch`) already cover the outside and still apply to every subfolder.
+  3. **`integration/`**: the 15 `*.test.ts` that sat at the root of `apps/gateway/src` (the ticket counted 14) are moved there; the paths they build from (`../scripts/build`, `wrangler.jsonc`, the console folder) gain one level.
+  4. **`gateway.ts` is not split further**: re-measured after FOR-154 and FOR-157 it is 96 lines (the table of routes), with `compose.ts` 481 and `env.ts` 128.
+- **Why**: `identity/` held 18 files for three different jobs, and the one "who is calling" piece was imported by deploy, platform, views and playground next to OIDC and SAML code. The folders say which is which and the rules keep the arrows one way.
+- **Rejected**: the rule name of the ticket, `identity-does-not-import-dispatch-or-pages`: identity renders pages (`pages/sign-in`, `pages/cli`, `pages/errors`) on purpose, so the rule would be false; the direction that holds (dispatch and pages never import identity) is `identity-is-below-dispatch-and-pages`. Splitting `compose.ts` by area now: it is one function per lifetime and nothing else changes it, so a split would add files without separating changes.
+- **Know**: the `Identity` type is in `authn/identity.ts` and `oidc.ts` imports it, so `authn` needs nothing from `sign-in`. Nothing was renamed or rewritten: the files moved and their relative imports were rewritten by a script, then checked by the type check, the dependency check and the tests.
+- **Not verified**: no deployed gateway; the behaviour is held by the existing tests, which are unchanged except for their import paths.
+- **Applied in**: FOR-158; `apps/gateway/src/{identity,integration}`, `.dependency-cruiser.cjs`, `scripts/deps-selftest.ts`, `docs/ARCHITECTURE.md`.

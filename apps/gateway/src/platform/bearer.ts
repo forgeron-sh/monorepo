@@ -12,8 +12,8 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, MiddlewareHandler } from "hono";
 import { handleCreateDeployToken, handleDeploy } from "../deploy/deploy";
 import { handlePromote, handleRollback } from "../deploy/promote";
-import { handleCliToken } from "../identity/cli";
-import { handleIssueToken, handleRevokeToken } from "../identity/issue";
+import { handleCliToken } from "../identity/cli-login/cli";
+import { handleIssueToken, handleRevokeToken } from "../identity/authn/issue";
 import type { PlatformEnv } from "./app";
 
 // The routes the CLI and CI call, outside `/console-api` (D-075, FOR-154): `/whoami`, `/deploy-tokens`,

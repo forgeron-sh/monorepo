@@ -123,6 +123,20 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "identity-authn-is-a-leaf",
+    files: {
+      [`apps/gateway/src/identity/authn/${F}.ts`]: `import "../sign-in/${F}_target.ts";\n`,
+      [`apps/gateway/src/identity/sign-in/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "identity-sign-in-and-cli-login-are-apart",
+    files: {
+      [`apps/gateway/src/identity/sign-in/${F}.ts`]: `import "../cli-login/${F}_target.ts";\n`,
+      [`apps/gateway/src/identity/cli-login/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "identity-does-not-import-dispatch",
     files: {
       [`apps/gateway/src/identity/${F}.ts`]: `import "../dispatch/${F}_target.ts";\n`,

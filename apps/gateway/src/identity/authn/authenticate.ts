@@ -1,4 +1,4 @@
-import type { Person } from "../kernel/person";
+import type { Person } from "../../kernel/person";
 import { verifyToken, type TokenClaims } from "./tokens";
 
 export interface AuthenticatorOptions {

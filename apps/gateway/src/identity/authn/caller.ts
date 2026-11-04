@@ -1,6 +1,6 @@
 import type { Member, Registry } from "@forgeron/registry";
-import type { Person } from "../kernel/person";
-import type { Identity } from "./oidc";
+import type { Person } from "../../kernel/person";
+import type { Identity } from "./identity";
 import { readSession } from "./session";
 import { verifyToken } from "./tokens";
 import { parseAudience } from "./audience";

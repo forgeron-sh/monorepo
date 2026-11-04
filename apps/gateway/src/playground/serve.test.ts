@@ -2,8 +2,8 @@ import type { Manifest } from "@forgeron/manifest";
 import { createRuntime } from "@forgeron/runtime";
 import { describe, expect, it } from "vitest";
 import type { Person } from "../kernel/person";
-import { tokenAuthenticator } from "../identity/authenticate";
-import { issueToken } from "../identity/tokens";
+import { tokenAuthenticator } from "../identity/authn/authenticate";
+import { issueToken } from "../identity/authn/tokens";
 import { servePlayground } from "./serve";
 
 const secret = "test-secret-not-a-real-one";

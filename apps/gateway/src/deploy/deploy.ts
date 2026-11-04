@@ -11,9 +11,9 @@ import {
   type Registry,
   type RegisteredEnvironment,
 } from "@forgeron/registry";
-import { audienceOf, parseAudience } from "../identity/audience";
+import { audienceOf, parseAudience } from "../identity/authn/audience";
 import type { Person } from "../kernel/person";
-import { issueToken, verifyToken } from "../identity/tokens";
+import { issueToken, verifyToken } from "../identity/authn/tokens";
 
 /** The only scope a deployment token has today. */
 export const DEPLOY_SCOPE = "deploy";

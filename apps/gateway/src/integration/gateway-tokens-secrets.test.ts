@@ -9,8 +9,8 @@ import {
 import { createRuntime } from "@forgeron/runtime";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { createGateway, type GatewayEnv } from "./gateway";
-import { issueToken } from "./identity/tokens";
+import { createGateway, type GatewayEnv } from "../gateway";
+import { issueToken } from "../identity/authn/tokens";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 

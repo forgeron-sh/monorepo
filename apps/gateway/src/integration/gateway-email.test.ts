@@ -2,9 +2,9 @@ import type { D1Database } from "@forgeron/hosting";
 import { createRegistry, migratePlatform, type Registry } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { createGateway, type GatewayEnv } from "./gateway";
-import { memoryMailSender } from "./mail/mail";
-import { simulatedProvider } from "./simulated-idp";
+import { createGateway, type GatewayEnv } from "../gateway";
+import { memoryMailSender } from "../mail/mail";
+import { simulatedProvider } from "../simulated-idp";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
