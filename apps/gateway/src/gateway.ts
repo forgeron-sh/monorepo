@@ -26,11 +26,9 @@ import {
 import { handleConsent } from "./consent/consent";
 import { UNMATCHED } from "./platform/app";
 import { createPlatform } from "./platform/platform";
-import { handleConnections } from "./console-api/connections";
 import { handleIdentity } from "./console-api/identity";
 import { handleMembers } from "./console-api/members";
 import { handleSecrets } from "./console-api/secrets";
-import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleApprovals } from "./console-api/approvals";
 import { handleDatabase } from "./console-api/database";
 import {
@@ -609,8 +607,6 @@ export function createGateway(
           workspace,
           caller: identity,
         })) ??
-        (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
-        (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
         (await handleDatabase(forwarded, {
           registry,
           workspace,
