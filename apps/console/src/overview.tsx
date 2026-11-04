@@ -45,7 +45,8 @@ export interface OverviewProps {
   go: (href: string) => void;
 }
 
-export function Overview({ ws, fetchJson, go }: OverviewProps) {
+/** The first-run checklist: what is done and what to do next. Also drawn on the admin's Home. */
+export function FirstRun({ ws, fetchJson, go }: OverviewProps) {
   const steps = firstRunSteps(ws);
   const next = steps.find((s) => !s.done)?.id;
   const finished = steps.filter((s) => s.done).length;
@@ -103,14 +104,7 @@ export function Overview({ ws, fetchJson, go }: OverviewProps) {
   };
 
   return (
-    <Page
-      title="Overview"
-      description={
-        <>
-          Workspace <span className="fc-mono">{ws.workspace}</span>
-        </>
-      }
-    >
+    <>
       <section className="fc-section" aria-labelledby="start">
         <div className="fc-section-head">
           <h2 id="start" className="fc-section-title">
@@ -160,6 +154,21 @@ export function Overview({ ws, fetchJson, go }: OverviewProps) {
           ))}
         </ol>
       </section>
+    </>
+  );
+}
+
+export function Overview({ ws, fetchJson, go }: OverviewProps) {
+  return (
+    <Page
+      title="Overview"
+      description={
+        <>
+          Workspace <span className="fc-mono">{ws.workspace}</span>
+        </>
+      }
+    >
+      <FirstRun ws={ws} fetchJson={fetchJson} go={go} />
 
       <section className="fc-section" aria-labelledby="numbers">
         <div className="fc-section-head">

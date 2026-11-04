@@ -48,8 +48,8 @@ const own: RouteDef[] = [
     access: "everyone",
     nav: { group: "main", label: "Home", shortcut: "h" },
     page: adapt(
-      () => import("../overview").then((m) => m.Overview),
-      ({ ws, api, go }) => ({ ws, fetchJson: api.fetchJson, go }),
+      () => import("../features/portal/home").then((m) => m.PortalHome),
+      ({ ws, api, go }) => ({ ws, api, go }),
     ),
   },
   {

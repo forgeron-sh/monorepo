@@ -1,0 +1,130 @@
+/* The member space: Home and the tool card. Tokens only (packages/ui/tokens). */
+.fp-search {
+  max-width: 360px;
+  margin-bottom: var(--space-6);
+}
+.fp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+}
+.fp-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.fp-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fp-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Tool card */
+.fp-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.fp-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+.fp-card-titles {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.fp-card-title {
+  margin: 0;
+  font: 600 22px/30px var(--font-display);
+  letter-spacing: -0.01em;
+}
+.fp-card-summary {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+}
+.fp-card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-8);
+  align-items: start;
+}
+.fp-card-main {
+  min-width: 0;
+}
+.fp-role {
+  font: 500 0.9em/1.4 var(--font-mono);
+}
+.fp-access {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.fp-release-head {
+  margin: 0 0 var(--space-2);
+}
+.fp-changelog {
+  font-size: 13px;
+}
+.fp-changelog {
+  margin: 0;
+  padding-inline-start: var(--space-4);
+}
+@media (max-width: 900px) {
+  .fp-card-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Connect instructions */
+.fp-connect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 78ch;
+}
+.fp-h3 {
+  margin: 0 0 var(--space-3);
+  font: 600 16px/24px var(--font-sans);
+}
+.fp-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fp-step {
+  display: flex;
+  gap: var(--space-3);
+}
+.fp-step > div {
+  flex: 1;
+  min-width: 0;
+}
+.fp-step .fg-copy {
+  margin-top: var(--space-2);
+}
+.fp-step-n {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line-strong);
+  font: 500 12px/22px var(--font-mono);
+  text-align: center;
+}

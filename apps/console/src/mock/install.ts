@@ -3,6 +3,7 @@
 // made up; there is no secret in it. Pick a scenario with `?mock=`:
 //   ready (default) · fresh (nothing done yet) · member (not an admin) · signedout · error · slow
 
+import { mockCatalogRoute } from "../features/portal/mock";
 import { mockDatabase } from "./database";
 import { createToolsMock } from "./tools";
 
@@ -243,6 +244,10 @@ export async function installMock(): Promise<void> {
             }
           : {}),
       });
+    }
+    if (path.startsWith("/api/catalog")) {
+      const answer = scenario === "empty" ? { tools: [] } : mockCatalogRoute(path, admin);
+      return answer ? reply(200, answer) : reply(404, { error: "NOT_FOUND" });
     }
     if (path === "/api/tools")
       return reply(200, {

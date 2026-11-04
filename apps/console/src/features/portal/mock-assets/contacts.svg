@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Contact list">
+  <rect width="640" height="360" fill="#f6f6f5"/>
+  <rect x="24" y="24" width="592" height="40" fill="#1c1c1c"/>
+  <text x="40" y="50" font-family="monospace" font-size="16" fill="#fff">crm / contacts</text>
+  <g font-family="monospace" font-size="14" fill="#1c1c1c">
+    <rect x="24" y="80" width="592" height="1" fill="#8c8c88"/>
+    <text x="40" y="112">Ada Lovelace</text><text x="320" y="112">ada@acme.example</text>
+    <rect x="24" y="128" width="592" height="1" fill="#e5e5e3"/>
+    <text x="40" y="160">Grace Hopper</text><text x="320" y="160">grace@acme.example</text>
+    <rect x="24" y="176" width="592" height="1" fill="#e5e5e3"/>
+    <text x="40" y="208">Alan Turing</text><text x="320" y="208">alan@acme.example</text>
+    <rect x="24" y="224" width="592" height="1" fill="#e5e5e3"/>
+    <text x="40" y="256">Edsger Dijkstra</text><text x="320" y="256">edsger@acme.example</text>
+  </g>
+</svg>
