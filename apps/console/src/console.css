@@ -49,40 +49,82 @@ code {
 }
 
 /* Sidebar contents */
-.fc-brand {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.fc-workspace {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.fc-trigger-name {
+  flex: 1;
   min-width: 0;
-}
-.fc-workspace-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 600 16px/22px var(--font-display);
-  letter-spacing: -0.01em;
+  font-weight: 600;
 }
-.fc-person {
-  display: flex;
-  flex-direction: column;
+.fc-topbar-name {
+  display: inline-flex;
+  align-items: center;
   gap: var(--space-2);
   min-width: 0;
+  font-weight: 600;
 }
-.fc-person-email {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 500;
-}
-.fc-person-roles {
+.fc-search {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 32px;
+  margin-bottom: var(--space-3);
+  padding: 0 var(--space-3);
+  background: transparent;
+  color: var(--ink-muted);
+  border: 1px solid var(--line-strong);
+  font: 400 14px/20px var(--font-sans);
+  cursor: pointer;
+}
+.fc-search:hover {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+.fc-search:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.fc-kbd {
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  font: 500 11px/18px var(--font-mono);
+}
+.fg-nav.fc-nav-end {
+  margin-top: auto;
+  padding-top: var(--space-3);
+}
+
+/* Search dialog */
+.fc-results {
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.fc-result {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  text-decoration: none;
+}
+.fc-result:hover {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.fc-result:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* Settings pages: groups of rows */
+.fc-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 760px;
 }
 
 /* Page contents */

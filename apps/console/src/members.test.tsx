@@ -2,6 +2,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  DomainsPage,
   knownRoles,
   loadMembers,
   Members,
@@ -114,7 +115,6 @@ describe("MembersPage", () => {
     const { shown } = open();
     const page = await shown;
     expect(page.textContent).toContain("ada@acme.fr");
-    expect(page.textContent).toContain("Who joins by themselves");
   });
 
   it("says what happened when the members cannot be loaded, and offers to try again", async () => {
@@ -221,6 +221,27 @@ describe("MembersPage", () => {
       method: "DELETE",
     });
     expect(page.textContent).toContain("Invitation to eve@acme.fr withdrawn.");
+  });
+});
+
+describe("MembersPage invite on open", () => {
+  it("opens the invite dialog when asked to", async () => {
+    const { api } = fakeApi({ "/api/members": served });
+    const page = await mount(<MembersPage api={api} now={() => NOW} inviteOnOpen />);
+    expect(page.ownerDocument.querySelector('[role="dialog"]')?.textContent).toContain("Invite");
+  });
+});
+
+describe("DomainsPage", () => {
+  const open = (routes: Record<string, unknown> = {}) => {
+    const fake = fakeApi({ "/api/members": served, ...routes });
+    return { ...fake, shown: mount(<DomainsPage api={fake.api} />) };
+  };
+
+  it("shows who joins by themselves", async () => {
+    const page = await open().shown;
+    expect(page.querySelector("h1")?.textContent).toBe("Domains");
+    expect(page.textContent).toContain("Who joins by themselves");
   });
 
   it("saves the domains and the default role", async () => {

@@ -25,6 +25,7 @@ import {
 } from "@forgeron/hosting";
 import { handleConsent } from "./consent/consent";
 import { handleAccessMatrix } from "./console-api/access-matrix";
+import { handleManifest } from "./console-api/manifest";
 import { handleConnections } from "./console-api/connections";
 import { handleIdentity } from "./console-api/identity";
 import { handleMembers } from "./console-api/members";
@@ -589,6 +590,7 @@ export function createGateway(
         (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
         (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
+        (await handleManifest(forwarded, { registry, workspace, caller: identity })) ??
         (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
         (await handleToolPages(forwarded, {
           registry,

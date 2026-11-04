@@ -395,6 +395,9 @@
 /* Focus: one solid 2px ring on everything interactive that is not a button */
 :where(
   .fg-nav-link,
+  .fg-menu-trigger,
+  .fg-menu-item,
+  .fg-srow-link,
   .fg-tab,
   .fg-input,
   .fg-check-input,
@@ -456,15 +459,19 @@
 .fg-sidebar {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: 100%;
 }
 .fg-sidebar-head {
   padding: var(--space-4);
   border-bottom: 1px solid var(--line);
 }
 .fg-sidebar-body {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  min-height: 0;
   padding: var(--space-3) var(--space-2);
+  overflow-y: auto;
 }
 .fg-sidebar-foot {
   padding: var(--space-4);
@@ -886,4 +893,354 @@
 }
 .fg-tabpanel {
   padding-top: var(--space-6);
+}
+
+/* Nav heading and icons */
+.fg-nav + .fg-nav {
+  margin-top: var(--space-4);
+}
+.fg-nav-heading {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink-muted);
+  font: 500 12px/16px var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fg-nav-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.fg-nav-icon {
+  display: inline-flex;
+}
+
+/* Menu */
+.fg-menu {
+  position: relative;
+  min-width: 0;
+}
+.fg-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 36px;
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid transparent;
+  font: 500 14px/20px var(--font-sans);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
+}
+.fg-menu-trigger:hover,
+.fg-menu-trigger[aria-expanded="true"] {
+  background: var(--surface-hover);
+}
+.fg-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(320px, 90vw);
+  padding: var(--space-1);
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-pop);
+}
+.fg-menu-above {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+.fg-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  font: 400 14px/20px var(--font-sans);
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+.fg-menu-item:hover,
+.fg-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.fg-menu-item:focus-visible {
+  outline-offset: -2px;
+}
+.fg-menu-danger {
+  color: var(--danger);
+}
+.fg-menu-heading {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  color: var(--ink-muted);
+  font: 500 12px/16px var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fg-menu-text {
+  padding: var(--space-2) var(--space-3);
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+.fg-menu-sep {
+  height: 1px;
+  margin: var(--space-1) 0;
+  background: var(--line);
+}
+
+/* Avatar */
+.fg-avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  background: var(--inverse);
+  color: var(--on-inverse);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Settings: groups of rows */
+.fg-sgroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.fg-sgroup-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fg-sgroup-title {
+  margin: 0;
+  font: 600 16px/24px var(--font-sans);
+}
+.fg-sgroup-desc {
+  margin: 0;
+  color: var(--ink-muted);
+}
+.fg-sgroup-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+}
+.fg-sgroup-danger .fg-sgroup-card,
+.fg-sgroup-danger .fg-srow + .fg-srow {
+  border-color: var(--danger);
+}
+.fg-sgroup-danger .fg-sgroup-title {
+  color: var(--danger);
+}
+.fg-srow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  min-height: 56px;
+  padding: var(--space-3) var(--space-4);
+  color: var(--ink);
+  text-decoration: none;
+}
+.fg-srow + .fg-srow {
+  border-top: 1px solid var(--line);
+}
+.fg-srow-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.fg-srow-label {
+  font-weight: 500;
+}
+.fg-srow-desc {
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+.fg-srow-control {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 50%;
+}
+.fg-srow-value {
+  overflow: hidden;
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-srow-link:hover {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+@media (max-width: 800px) {
+  .fg-srow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .fg-srow-link {
+    flex-direction: row;
+    align-items: center;
+  }
+  .fg-srow-control {
+    max-width: 100%;
+  }
+}
+/* Architecture diagram: a static SVG, tokens only. The list says the same and replaces the drawing
+   when the container is narrow (the drawing would be too small to read). */
+.fg-arch {
+  container-type: inline-size;
+}
+.fg-arch-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-3);
+}
+.fg-arch-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-sans);
+}
+.fg-arch-list {
+  display: none;
+  font: 400 14px/22px var(--font-sans);
+  color: var(--ink);
+}
+.fg-arch-list h3 {
+  margin: var(--space-6) 0 var(--space-2);
+  font: 600 14px/22px var(--font-sans);
+}
+.fg-arch-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.fg-arch-list li {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.fg-arch-list-open .fg-arch-list {
+  display: block;
+}
+.fg-arch-list-open .fg-arch-svg {
+  display: none;
+}
+@container (max-width: 640px) {
+  .fg-arch-svg,
+  .fg-arch-toggle {
+    display: none;
+  }
+  .fg-arch-list {
+    display: block;
+  }
+  .fg-arch-list-open .fg-arch-svg {
+    display: none;
+  }
+}
+.fg-arch-section {
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--ink-muted);
+}
+.fg-arch-edge {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.fg-arch-node {
+  outline: none;
+}
+.fg-arch-node rect {
+  fill: var(--surface-raised);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.fg-arch-interface rect {
+  fill: var(--inverse);
+  stroke: var(--inverse);
+}
+.fg-arch-interface .fg-arch-title,
+.fg-arch-interface .fg-arch-sub {
+  fill: var(--on-inverse);
+}
+.fg-arch-off rect {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-dasharray: 4 3;
+}
+.fg-arch-off .fg-arch-title,
+.fg-arch-off .fg-arch-sub {
+  fill: var(--ink-muted);
+}
+.fg-arch-node:hover rect {
+  fill: var(--surface-hover);
+}
+.fg-arch-interface:hover rect {
+  fill: var(--inverse);
+}
+.fg-arch-node:focus-visible rect {
+  stroke: var(--focus);
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+.fg-arch-title {
+  font: 500 13px var(--font-sans);
+  fill: var(--ink);
+}
+.fg-arch-group .fg-arch-title,
+.fg-arch-row,
+.fg-arch-level,
+.fg-arch-sub,
+.fg-arch-kind {
+  font-family: var(--font-mono);
+}
+.fg-arch-kind {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--ink-muted);
+}
+.fg-arch-sub {
+  font-size: 11px;
+  fill: var(--ink-muted);
+}
+.fg-arch-row {
+  font-size: 12px;
+  fill: var(--ink);
+}
+.fg-arch-level {
+  font-size: 11px;
+  fill: var(--ink-muted);
+}
+.fg-arch-level-write {
+  fill: var(--ink);
+}
+.fg-arch-level-strong {
+  fill: var(--ink);
+  font-weight: 600;
+}
+.fg-arch-rule {
+  stroke: var(--line);
 }

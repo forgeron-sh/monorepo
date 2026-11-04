@@ -12,7 +12,7 @@ const PATHS = {
   members: "/members",
   approvals: "/approvals",
   audit: "/audit",
-  settings: "/settings",
+  settings: "/settings/profile",
 } as const;
 
 export const pathOf = (id: keyof typeof PATHS) => PATHS[id];
@@ -29,20 +29,26 @@ const subscribe = (listener: () => void) => {
   };
 };
 
-/** The current address and a way to go elsewhere. Moving puts focus on the content, for a keyboard user. */
-export function useRoute(): [string, (href: string) => void] {
+/** The current path, a way to go elsewhere, and the query string. Moving puts focus on the content, for a keyboard user. */
+export function useRoute(): [string, (href: string) => void, string] {
   const pathname = useSyncExternalStore(
     subscribe,
     () => window.location.pathname,
     () => "/",
   );
+  const search = useSyncExternalStore(
+    subscribe,
+    () => window.location.search,
+    () => "",
+  );
   const go = useCallback((href: string) => {
-    if (href !== window.location.pathname) window.history.pushState(null, "", href);
+    if (href !== window.location.pathname + window.location.search)
+      window.history.pushState(null, "", href);
     window.dispatchEvent(new Event(CHANGE));
     window.scrollTo?.(0, 0);
     document.getElementById("content")?.focus({ preventScroll: true });
   }, []);
-  return [pathname, go];
+  return [pathname, go, search];
 }
 
 /** `onClick` for a link: a plain click routes in the page, a modified one opens the link as the browser does. */

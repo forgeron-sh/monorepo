@@ -8,7 +8,6 @@ import {
   Notice,
   Page,
   Select,
-  Tabs,
   Textarea,
 } from "@forgeron/ui";
 import { useState, type ReactNode } from "react";
@@ -100,28 +99,20 @@ export interface SettingsPageProps {
   ws: WorkspaceInfo;
 }
 
-export function SettingsPage({ api, ws }: SettingsPageProps) {
-  const [tab, setTab] = useState("sign-in");
+/** How people sign in: email code, single sign-on. For an admin. */
+export function SignInPage({ api, ws }: SettingsPageProps) {
   return (
-    <Page
-      title="Settings"
-      description="How people sign in to this workspace, and how it is installed."
-    >
-      {!ws.person.admin ? (
-        <AdminOnly what="Settings" />
-      ) : (
-        <Tabs
-          label="Settings sections"
-          tabs={[
-            { id: "sign-in", label: "Sign-in methods" },
-            { id: "install", label: "Install" },
-          ]}
-          value={tab}
-          onChange={setTab}
-        >
-          {tab === "sign-in" ? <SignIn api={api} ws={ws} /> : <Install ws={ws} />}
-        </Tabs>
-      )}
+    <Page title="Sign-in" description="How people sign in to this workspace.">
+      {ws.person.admin ? <SignIn api={api} ws={ws} /> : <AdminOnly what="Sign-in" />}
+    </Page>
+  );
+}
+
+/** The install: its address and how to change it. For an admin. */
+export function InstallPage({ ws }: { ws: WorkspaceInfo }) {
+  return (
+    <Page title="Install information" description="Where this workspace runs and how to change it.">
+      {ws.person.admin ? <Install ws={ws} /> : <AdminOnly what="Install information" />}
     </Page>
   );
 }

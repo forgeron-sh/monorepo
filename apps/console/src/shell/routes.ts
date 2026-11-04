@@ -11,7 +11,7 @@ export type { PageProps };
 export type LazyPage = () => Promise<{ default: ComponentType<PageProps> }>;
 
 /** The groups of the sidebar, in order. Settings has its own area (`settings`). */
-type NavGroup = "main" | "admin";
+export type NavGroup = "main" | "admin";
 const GROUPS: NavGroup[] = ["main", "admin"];
 
 export interface RouteDef {
@@ -80,15 +80,6 @@ const own: RouteDef[] = [
     page: adapt(
       () => import("../audit-page").then((m) => m.AuditPage),
       ({ api, ws, now }) => ({ api, admin: ws.person.admin, now }),
-    ),
-  },
-  {
-    path: "/settings",
-    title: "Settings",
-    access: "admin",
-    page: adapt(
-      () => import("../settings").then((m) => m.SettingsPage),
-      ({ api, ws }) => ({ api, ws }),
     ),
   },
 ];
