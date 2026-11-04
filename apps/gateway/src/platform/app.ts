@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type { RouteSpec, SignIn } from "@forgeron/platform-contract";
 import { HTTPException } from "hono/http-exception";
 import type { Hosting } from "@forgeron/hosting";
-import type { Invitation, Registry } from "@forgeron/registry";
+import type { IdentityConfig, Invitation, Registry } from "@forgeron/registry";
 import type { MiddlewareHandler } from "hono";
 
 // The platform API under `/console-api` as one Hono app (D-064, FOR-150). Routes move here one
@@ -38,6 +38,10 @@ interface PlatformBindings {
   now(): Date;
   /** Tells an invited address where to sign in. Best effort: `false` when it could not be sent. */
   notify?(invitation: Invitation): Promise<boolean>;
+  /** The sign-in configuration (D-041): the provider and the connectors' OAuth clients. */
+  config: IdentityConfig;
+  /** Whether the gateway can seal a secret (`SECRETS_KEY` is bound). */
+  canKeepSecrets: boolean;
   /** The hosting of the workspace, to reach a tool's database; `undefined` where there is none. */
   hosting(workspace: string): Hosting | undefined;
   /** How long the explorer waits for a statement (default 10 s); tests shorten it. */

@@ -21,6 +21,7 @@ export interface RouteSpec {
   /** OpenAPI style: `/api/members/{id}`. */
   path: string;
   summary?: string;
+  description?: string;
   tags?: string[];
   request?: {
     params?: z.ZodObject;

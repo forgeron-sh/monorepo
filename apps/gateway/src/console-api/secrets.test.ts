@@ -7,7 +7,7 @@ import {
 import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { handleSecrets } from "./secrets";
+import { platformCaller } from "../platform/test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -20,16 +20,13 @@ let admin = true;
 let anonymous = false;
 
 const call = (method: string, path: string, body?: unknown) =>
-  handleSecrets(
+  platformCaller({ registry, who: () => (anonymous ? undefined : { admin }) })(
     new Request(`https://acme.forgeron.test${path}`, {
       method,
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(body === undefined
+        ? {}
+        : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
     }),
-    {
-      registry,
-      workspace: "acme",
-      caller: async () => (anonymous ? undefined : { admin }),
-    },
   );
 
 beforeEach(async () => {
@@ -58,8 +55,8 @@ describe("secrets API", () => {
     await call("PUT", `${base}/A`, { value: "x" });
     const preview = await call("GET", "/api/tools/crm/environments/preview/secrets");
     expect(await preview!.json()).toEqual({ secrets: [] });
-    // There is no pilot environment: its address is not a route.
-    expect(await call("GET", "/api/tools/crm/environments/pilot/secrets")).toBeUndefined();
+    // There is no pilot environment: it is a 404.
+    expect((await call("GET", "/api/tools/crm/environments/pilot/secrets"))?.status).toBe(404);
   });
 
   it("refuses anonymous callers and non-admins", async () => {
@@ -84,6 +81,6 @@ describe("secrets API", () => {
 
   it("ignores other routes", async () => {
     expect(await call("GET", "/api/tools/crm")).toBeUndefined();
-    expect(await call("PUT", `${base}/lowercase`, { value: "x" })).toBeUndefined();
+    expect((await call("PUT", `${base}/lowercase`, { value: "x" }))?.status).toBe(404);
   });
 });
