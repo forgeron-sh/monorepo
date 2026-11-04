@@ -7,7 +7,7 @@ import { ISSUER, simulatedProvider } from "./simulated-idp";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// The catalog through the gateway (FOR-137, D-057): any signed-in member reads it, a person with no role
+// The catalog through the gateway (FOR-137, D-058): any signed-in member reads it, a person with no role
 // sees the tool as `requestable`, a README is text and never HTML, an image is served from the bundle
 // with `nosniff` and a CSP, and no path leaves the bundle.
 

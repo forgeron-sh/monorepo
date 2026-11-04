@@ -10,7 +10,7 @@ import {
 } from "@forgeron/manifest";
 import { sha256 } from "./fingerprint";
 
-// The tool's documentation for the catalog (docs/console-ux.md, D-057): `README.md` and the images it
+// The tool's documentation for the catalog (docs/console-ux.md, D-058): `README.md` and the images it
 // references with a relative path, plus the config's `icon`. What is collected is what a member of the
 // workspace will be served, so each file is checked here, and a refusal names the file.
 

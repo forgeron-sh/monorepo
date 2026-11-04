@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { DOC_IMAGE_TYPES, InterfaceSchema, ToolNameSchema } from "./schema";
 
-// The catalog API of the console (docs/console-ux.md, "Catalog API", D-057). Any signed-in member of
+// The catalog API of the console (docs/console-ux.md, "Catalog API", D-058). Any signed-in member of
 // the workspace may read it: the catalog is how a person finds a tool they may not use yet.
 //   GET /console-api/api/catalog                      -> CatalogResponse
 //   GET /console-api/api/catalog/<tool>               -> ToolCard

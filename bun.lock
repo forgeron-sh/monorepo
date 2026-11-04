@@ -46,6 +46,7 @@
         "react": "19.3.1",
       },
       "devDependencies": {
+        "@forgeron/manifest": "workspace:*",
         "@forgeron/tsconfig": "workspace:*",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
@@ -216,6 +217,7 @@
       "name": "@forgeron/ui",
       "version": "0.0.0",
       "devDependencies": {
+        "@forgeron/manifest": "workspace:*",
         "@forgeron/tsconfig": "workspace:*",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",

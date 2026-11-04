@@ -166,7 +166,7 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
     return fail(403, "FORBIDDEN", `This token is for "${audience.tool}", not "${manifestName}".`);
   }
 
-  // The documentation is shown to every member: check it again, whatever the CLI did (D-057).
+  // The documentation is shown to every member: check it again, whatever the CLI did (D-058).
   const docs = await docsProblem(uploaded.manifest!, uploaded.docs);
   if (docs) return fail(400, "INVALID", docs);
 
