@@ -5,6 +5,8 @@ import { loadPendingApprovals } from "./pending-approvals";
 import { routeClick, useRoute } from "./router";
 import { canSee } from "./shell/access";
 import { AppLayout } from "./shell/app-layout";
+import { SettingsLayout } from "./shell/settings-layout";
+import { useTheme } from "./shell/theme";
 import { matchRoute, routes, type LazyPage, type PageProps } from "./shell/routes";
 import { Loading } from "./states";
 import { useLoad } from "./use-load";
@@ -12,21 +14,6 @@ import { loadWorkspace, type WorkspaceInfo } from "./workspace";
 
 // The console: the layout and the screen the route table gives for the current path. Atelier (light) follows the system's
 // colour scheme; Forge (dark) is the default (docs/design-system.md).
-
-/** Puts `data-theme` on the page from `prefers-color-scheme`, and keeps it there. */
-function useTheme() {
-  useEffect(() => {
-    const query = window.matchMedia?.("(prefers-color-scheme: light)");
-    if (!query) return;
-    const apply = () => {
-      if (query.matches) document.documentElement.dataset.theme = "light";
-      else delete document.documentElement.dataset.theme;
-    };
-    apply();
-    query.addEventListener("change", apply);
-    return () => query.removeEventListener("change", apply);
-  }, []);
-}
 
 export interface AppProps {
   api: Api;
@@ -37,7 +24,7 @@ export interface AppProps {
 export function App({ api, now = () => new Date() }: AppProps) {
   useTheme();
   const workspace = useLoad(() => loadWorkspace(api.fetchJson), [api]);
-  const [pathname, go] = useRoute();
+  const [pathname, go, search] = useRoute();
 
   if (workspace.loading) {
     return (
@@ -71,7 +58,9 @@ export function App({ api, now = () => new Date() }: AppProps) {
       </div>
     );
   }
-  return <Shell ws={workspace.data} api={api} now={now} pathname={pathname} go={go} />;
+  return (
+    <Shell ws={workspace.data} api={api} now={now} pathname={pathname} search={search} go={go} />
+  );
 }
 
 // A lazy component per route, made once at load: `lazy` must not be called while rendering.
@@ -84,15 +73,18 @@ function Shell({
   api,
   now,
   pathname,
+  search,
   go,
 }: {
   ws: WorkspaceInfo;
   api: Api;
   now: () => Date;
   pathname: string;
+  search: string;
   go: (href: string) => void;
 }) {
   const match = matchRoute(pathname);
+  const Layout = pathname.startsWith("/settings") ? SettingsLayout : AppLayout;
   const admin = ws.person.admin;
   const pending = useLoad(
     () => (admin ? loadPendingApprovals(api.fetchJson) : Promise.resolve([])),
@@ -108,7 +100,7 @@ function Shell({
   }, [match, ws.workspace]);
 
   return (
-    <AppLayout ws={ws} pathname={pathname} go={go} badges={{ "/approvals": waiting }}>
+    <Layout ws={ws} pathname={pathname} go={go} badges={{ "/approvals": waiting }}>
       {!match ? (
         <NotFound go={go} />
       ) : !canSee(match.route.access, ws.person) ? (
@@ -116,12 +108,13 @@ function Shell({
       ) : (
         <Suspense fallback={<Loading label={`Loading ${match.route.title}`} />}>
           <RouteScreen
+            key={pathname + search}
             load={match.route.page}
             props={{ ws, api, now, go, params: match.params, refreshPending: pending.reload }}
           />
         </Suspense>
       )}
-    </AppLayout>
+    </Layout>
   );
 }
 

@@ -226,3 +226,12 @@ comes back; an `adminOnly` tab is neither shown nor loaded for a member.
 may use (a type, a registry function); anything else is private. `api.ts` holds the typed calls to the
 console API (`/api/...` paths through `api.fetchJson` / `api.sendJson`). The table and the matcher are
 `shell/routes.ts`; `hrefOf("/tools/:name", { name })` builds an address.
+
+### The settings area
+
+A route with `settings: { group, label }` is a page of the settings area (the shell draws its sidebar and
+the "Back to app" link); `access` decides whether a person sees it, so Account pages are `everyone` and
+the others `admin`. `features/settings/routes.ts` holds the pages of D-057. A settings page is a `Page`
+holding a `SettingsStack` of `SettingsGroup`s (titled cards) of `SettingsRow`s (`@forgeron/ui`); a Danger
+zone is a `SettingsGroup tone="danger"`, last. A page for which the platform has no data yet shows an
+`EmptyState` saying so, never invented values.
