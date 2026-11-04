@@ -1026,6 +1026,7 @@
 }
 .fg-arch-rule {
   stroke: var(--line);
+}
 
 /* Markdown: a README, in the reading column */
 .fg-md {
