@@ -31,7 +31,7 @@ const json = (status: number, body: unknown) =>
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
 
-export interface DeploymentLine {
+interface DeploymentLine {
   at: string;
   kind: DeploymentRecord["kind"];
   version: string;
@@ -40,7 +40,7 @@ export interface DeploymentLine {
   commit?: DeploymentCommit;
 }
 
-export interface BranchRow {
+interface BranchRow {
   environment: "production" | "preview";
   /** A preview's branch. */
   branch?: string;
@@ -59,13 +59,13 @@ export interface BranchRow {
   deployments: DeploymentLine[];
 }
 
-export interface BranchesAnswer {
+interface BranchesAnswer {
   tool: string;
   production: BranchRow | null;
   branches: BranchRow[];
 }
 
-export interface VersionRow {
+interface VersionRow {
   version: string;
   publishedAt: string;
   /** Where it is served now. */

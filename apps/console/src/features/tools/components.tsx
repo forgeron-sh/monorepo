@@ -1,5 +1,5 @@
 import { Badge, Button } from "@forgeron/ui";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { Impact, Status } from "./api";
 
 // The small pieces the tools screens share. Presentational: no data, no workspace identity.
@@ -176,17 +176,5 @@ export function ActionMenu({
         </div>
       ) : null}
     </div>
-  );
-}
-
-/** A titled block of a screen. */
-export function Block({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="fc-section">
-      <div className="fc-section-head">
-        <h2 className="fc-section-title">{title}</h2>
-      </div>
-      {children}
-    </section>
   );
 }

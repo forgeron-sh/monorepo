@@ -25,7 +25,7 @@ export function toolsApi(
 export const NOW = new Date("2026-11-03T12:00:00Z");
 const ago = (ms: number) => new Date(NOW.getTime() - ms).toISOString();
 export const HOUR = 3_600_000;
-export const DAY = 24 * HOUR;
+const DAY = 24 * HOUR;
 
 export const tools = {
   tools: [
@@ -124,7 +124,7 @@ export const versions = {
   ],
 };
 
-export const ws = (admin = true): WorkspaceInfo => ({
+const ws = (admin = true): WorkspaceInfo => ({
   workspace: "demo",
   endpoint: "https://demo.test",
   person: { id: "m1", email: "ada@acme.test", name: "Ada", roles: admin ? ["admin"] : [], admin },

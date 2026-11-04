@@ -42,11 +42,7 @@ export interface Api {
   sendPlatform?: SendPlatform;
 }
 
-export type SendPlatform = (
-  path: string,
-  body: unknown,
-  method?: "POST" | "DELETE",
-) => Promise<unknown>;
+type SendPlatform = (path: string, body: unknown, method?: "POST" | "DELETE") => Promise<unknown>;
 
 /** What to tell a person about a failed call: what the platform said, else what to do. */
 export function explain(error: unknown, fallback: string): string {

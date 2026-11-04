@@ -3,7 +3,7 @@ import type { Api, FetchJson } from "../../api";
 // Typed calls to the console API for the tools (apps/gateway/src/console-api/tools.ts and
 // tool-pages.ts). Only the fields shown are kept, whatever else an answer holds.
 
-export interface Commit {
+interface Commit {
   sha: string;
   message?: string;
   author?: string;
@@ -20,7 +20,7 @@ export interface ToolRow {
   lastDeployment: { at: string; version: string } | null;
 }
 
-export interface DeploymentLine {
+interface DeploymentLine {
   at: string;
   kind: "deploy" | "promote" | "rollback";
   version: string;
