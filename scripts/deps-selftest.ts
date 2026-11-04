@@ -115,6 +115,27 @@ const cases: Case[] = [
       [`apps/gateway/src/dispatch/${F}_target.ts`]: STUB,
     },
   },
+  {
+    rule: "module-uses-public-api",
+    files: {
+      [`packages/registry/src/modules/secrets/${F}.ts`]: `import "../catalog/${F}_target.ts";\n`,
+      [`packages/registry/src/modules/catalog/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "registry-root-uses-module-public-api",
+    files: {
+      [`packages/registry/src/${F}.ts`]: `import "./modules/catalog/${F}_target.ts";\n`,
+      [`packages/registry/src/modules/catalog/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "kernel-is-generic",
+    files: {
+      [`packages/registry/src/kernel/${F}.ts`]: `import "../modules/catalog/${F}_target.ts";\n`,
+      [`packages/registry/src/modules/catalog/${F}_target.ts`]: STUB,
+    },
+  },
 ];
 
 // Every declared rule must have a case, and vice versa.

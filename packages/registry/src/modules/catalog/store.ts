@@ -1,0 +1,416 @@
+import type { AuditKind } from "../../kernel/audit";
+import type { RegisteredEnvironment } from "../../kernel/errors";
+import { RegistryError } from "../../kernel/errors";
+import type { Kernel } from "../../kernel/kernel";
+import { text } from "../../kernel/rows";
+import type { BuildDocs } from "@forgeron/hosting";
+import { toTool, toBuild, toVersion, toEnvironment, toDeployment } from "./types";
+import type {
+  Tool,
+  BuildRecord,
+  VersionRecord,
+  EnvironmentRecord,
+  DeploymentKind,
+  DeploymentCommit,
+  DeploymentRecord,
+  DocFile,
+} from "./types";
+
+// The README and the images of a version are chunked like the gateway's code (D-056).
+const DOC_CHUNK = 20_000;
+const DOC_BATCH = 100;
+/** The README is stored among the files of a build under this path, with this type. */
+const README_PATH = "README.md";
+const README_TYPE = "text/markdown";
+
+const DEPLOYMENT_AUDIT: Record<DeploymentKind, AuditKind> = {
+  deploy: "deployment",
+  promote: "promotion",
+  rollback: "rollback",
+};
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export function createCatalog(kernel: Kernel) {
+  const { d1, now, newId, all, first, write, auditStatement } = kernel;
+  /** The content stored under a hash, whole. */
+  const docBlob = async (toolId: string, hash: string): Promise<string | undefined> => {
+    const rows = await all(
+      `SELECT "content" FROM "docs_blobs" WHERE "tool_id" = ? AND "hash" = ? ORDER BY "part"`,
+      toolId,
+      hash,
+    );
+    return rows.length ? rows.map((r) => String(r.content)).join("") : undefined;
+  };
+
+  async function requireTool(id: string): Promise<Tool> {
+    const row = await first(`SELECT * FROM "tools" WHERE "id" = ?`, id);
+    if (!row) throw new RegistryError("NOT_FOUND", `There is no tool ${id}.`);
+    return toTool(row);
+  }
+
+  const api = {
+    // ---- tools
+    async createTool(input: { workspace: string; name: string }): Promise<Tool> {
+      if (await this.findTool(input.workspace, input.name)) {
+        throw new RegistryError(
+          "ALREADY_EXISTS",
+          `The workspace ${input.workspace} already has a tool ${input.name}.`,
+        );
+      }
+      const id = newId();
+      await write(
+        `INSERT INTO "tools" ("id", "workspace", "name", "created_at") VALUES (?, ?, ?, ?)`,
+        id,
+        input.workspace,
+        input.name,
+        now(),
+      );
+      return requireTool(id);
+    },
+    async findTool(workspace: string, name: string): Promise<Tool | undefined> {
+      const row = await first(
+        `SELECT * FROM "tools" WHERE "workspace" = ? AND "name" = ?`,
+        workspace,
+        name,
+      );
+      return row ? toTool(row) : undefined;
+    },
+    async listTools(workspace: string): Promise<Tool[]> {
+      return (
+        await all(`SELECT * FROM "tools" WHERE "workspace" = ? ORDER BY "name"`, workspace)
+      ).map(toTool);
+    },
+    /** Deletes the tool with its builds, versions, environments and approvals. */
+    async deleteTool(id: string): Promise<void> {
+      await requireTool(id);
+      await write(`DELETE FROM "tools" WHERE "id" = ?`, id);
+    },
+
+    // ---- builds
+    /** Records what CI sent. The same fingerprint gives back the build already recorded. */
+    async recordBuild(
+      toolId: string,
+      input: {
+        fingerprint: string;
+        manifest: unknown;
+        changelog?: unknown;
+        worker?: string;
+        migrations?: unknown;
+      },
+    ): Promise<BuildRecord> {
+      await requireTool(toolId);
+      const existing = await first(
+        `SELECT * FROM "builds" WHERE "tool_id" = ? AND "fingerprint" = ?`,
+        toolId,
+        input.fingerprint,
+      );
+      if (existing) return toBuild(existing);
+      const id = newId();
+      await write(
+        `INSERT INTO "builds" ("id", "tool_id", "fingerprint", "manifest", "changelog", "worker", "migrations", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        id,
+        toolId,
+        input.fingerprint,
+        JSON.stringify(input.manifest),
+        input.changelog === undefined ? null : JSON.stringify(input.changelog),
+        input.worker ?? null,
+        input.migrations === undefined ? null : JSON.stringify(input.migrations),
+        now(),
+      );
+      return toBuild((await first(`SELECT * FROM "builds" WHERE "id" = ?`, id))!);
+    },
+    /**
+     * Stores the README and the images of a build (D-056). The content goes first, once per hash and
+     * in batches; the list of the build's files goes last, so a build with a list has all its content.
+     * The same build stored twice is the same.
+     */
+    async storeDocs(toolId: string, buildId: string, docs: BuildDocs): Promise<void> {
+      const files: Array<{ path: string; type: string; size: number; hash: string; text: string }> =
+        [];
+      if (docs.readme !== undefined) {
+        files.push({
+          path: README_PATH,
+          type: README_TYPE,
+          size: new TextEncoder().encode(docs.readme).length,
+          hash: await sha256Hex(new TextEncoder().encode(docs.readme)),
+          text: docs.readme,
+        });
+      }
+      for (const a of docs.assets) {
+        files.push({ path: a.path, type: a.type, size: a.size, hash: a.hash, text: a.base64 });
+      }
+      const known = new Set(
+        (await all(`SELECT DISTINCT "hash" FROM "docs_blobs" WHERE "tool_id" = ?`, toolId)).map(
+          (r) => String(r.hash),
+        ),
+      );
+      const insert = d1.prepare(
+        `INSERT OR IGNORE INTO "docs_blobs" ("tool_id", "hash", "part", "content") VALUES (?, ?, ?, ?)`,
+      );
+      const statements = [];
+      for (const file of files) {
+        if (known.has(file.hash)) continue;
+        known.add(file.hash);
+        // An empty file still gets one row.
+        const parts = Math.max(1, Math.ceil(file.text.length / DOC_CHUNK));
+        for (let part = 0; part < parts; part++) {
+          statements.push(
+            insert.bind(
+              toolId,
+              file.hash,
+              part,
+              file.text.slice(part * DOC_CHUNK, (part + 1) * DOC_CHUNK),
+            ),
+          );
+        }
+      }
+      for (let i = 0; i < statements.length; i += DOC_BATCH) {
+        await d1.batch(statements.slice(i, i + DOC_BATCH));
+      }
+      const list = d1.prepare(
+        `INSERT OR REPLACE INTO "build_docs" ("build_id", "path", "hash", "type", "size") VALUES (?, ?, ?, ?, ?)`,
+      );
+      await d1.batch([
+        d1.prepare(`DELETE FROM "build_docs" WHERE "build_id" = ?`).bind(buildId),
+        ...files.map((f) => list.bind(buildId, f.path, f.hash, f.type, f.size)),
+      ]);
+    },
+    /** The files of a build's documentation, without their content. */
+    async docsOf(buildId: string): Promise<DocFile[]> {
+      return (
+        await all(
+          `SELECT "path", "hash", "type", "size" FROM "build_docs" WHERE "build_id" = ? ORDER BY "path"`,
+          buildId,
+        )
+      ).map((r) => ({
+        path: String(r.path),
+        hash: String(r.hash),
+        type: String(r.type),
+        size: Number(r.size),
+      }));
+    },
+    /** The README of a build, or `undefined` if it has none. */
+    async readmeOf(toolId: string, buildId: string): Promise<string | undefined> {
+      const file = (await this.docsOf(buildId)).find((f) => f.path === README_PATH);
+      if (!file) return undefined;
+      return (await docBlob(toolId, file.hash)) ?? undefined;
+    },
+    /** One image of a build, as bytes; `undefined` if the build has no such file (the README is not one). */
+    async assetOf(
+      toolId: string,
+      buildId: string,
+      path: string,
+    ): Promise<(DocFile & { bytes: Uint8Array }) | undefined> {
+      const file = (await this.docsOf(buildId)).find(
+        (f) => f.path === path && f.path !== README_PATH,
+      );
+      if (!file) return undefined;
+      const base64 = await docBlob(toolId, file.hash);
+      if (base64 === undefined) return undefined;
+      return { ...file, bytes: Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)) };
+    },
+    async getBuild(id: string): Promise<BuildRecord | undefined> {
+      const row = await first(`SELECT * FROM "builds" WHERE "id" = ?`, id);
+      return row ? toBuild(row) : undefined;
+    },
+
+    // ---- versions
+    /** Publishes a build under a version number. A version number is used once per tool. */
+    async publishVersion(toolId: string, buildId: string, version: string): Promise<VersionRecord> {
+      const build = await this.getBuild(buildId);
+      if (!build) throw new RegistryError("NOT_FOUND", `There is no build ${buildId}.`);
+      if (build.toolId !== toolId) {
+        throw new RegistryError("WRONG_TOOL", `The build ${buildId} belongs to another tool.`);
+      }
+      if (
+        await first(
+          `SELECT 1 FROM "versions" WHERE "tool_id" = ? AND "version" = ?`,
+          toolId,
+          version,
+        )
+      ) {
+        throw new RegistryError("ALREADY_EXISTS", `The tool already has a version ${version}.`);
+      }
+      const id = newId();
+      await write(
+        `INSERT INTO "versions" ("id", "tool_id", "build_id", "version", "created_at") VALUES (?, ?, ?, ?, ?)`,
+        id,
+        toolId,
+        buildId,
+        version,
+        now(),
+      );
+      return toVersion((await first(`SELECT * FROM "versions" WHERE "id" = ?`, id))!);
+    },
+    async getVersion(id: string): Promise<VersionRecord | undefined> {
+      const row = await first(`SELECT * FROM "versions" WHERE "id" = ?`, id);
+      return row ? toVersion(row) : undefined;
+    },
+    /** Oldest first, in the order they were published. */
+    async listVersions(toolId: string): Promise<VersionRecord[]> {
+      return (
+        await all(
+          `SELECT * FROM "versions" WHERE "tool_id" = ? ORDER BY "created_at", "rowid"`,
+          toolId,
+        )
+      ).map(toVersion);
+    },
+
+    // ---- environments
+    /** The environment of a tool, created if needed. A preview needs its branch; the others have none. */
+    async ensureEnvironment(
+      toolId: string,
+      name: RegisteredEnvironment,
+      branch?: string,
+    ): Promise<EnvironmentRecord> {
+      await requireTool(toolId);
+      if (name === "preview" && !branch) {
+        throw new RegistryError("BRANCH_REQUIRED", "A preview environment is tied to a branch.");
+      }
+      const key = name === "preview" ? branch! : "";
+      const found = await first(
+        `SELECT * FROM "environments" WHERE "tool_id" = ? AND "name" = ? AND "branch" = ?`,
+        toolId,
+        name,
+        key,
+      );
+      if (found) return toEnvironment(found);
+      const id = newId();
+      await write(
+        `INSERT INTO "environments" ("id", "tool_id", "name", "branch", "created_at") VALUES (?, ?, ?, ?, ?)`,
+        id,
+        toolId,
+        name,
+        key,
+        now(),
+      );
+      return toEnvironment((await first(`SELECT * FROM "environments" WHERE "id" = ?`, id))!);
+    },
+    async listEnvironments(toolId: string): Promise<EnvironmentRecord[]> {
+      return (
+        await all(
+          `SELECT * FROM "environments" WHERE "tool_id" = ? ORDER BY "name", "branch"`,
+          toolId,
+        )
+      ).map(toEnvironment);
+    },
+    /**
+     * Records that the environment serves this version, and writes the line of the audit log, in
+     * one batch (the traffic switch itself is `hosting`'s).
+     */
+    async activate(
+      environmentId: string,
+      versionId: string,
+      options: {
+        actor: string;
+        via?: string;
+        kind?: DeploymentKind;
+        url?: string;
+        commit?: DeploymentCommit;
+        /** Why a person promoted or rolled back: written in the audit line. */
+        reason?: string;
+      },
+    ): Promise<EnvironmentRecord> {
+      const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
+      if (!env) throw new RegistryError("NOT_FOUND", `There is no environment ${environmentId}.`);
+      const version = await this.getVersion(versionId);
+      if (!version) throw new RegistryError("NOT_FOUND", `There is no version ${versionId}.`);
+      if (version.toolId !== String(env.tool_id)) {
+        throw new RegistryError("WRONG_TOOL", "The version belongs to another tool.");
+      }
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `UPDATE "environments" SET "version_id" = ?, "url" = ?, "activated_at" = ? WHERE "id" = ?`,
+          )
+          .bind(versionId, options.url ?? null, at, environmentId),
+        d1
+          .prepare(
+            `INSERT INTO "deployments" ("id", "tool_id", "environment_id", "version_id", "kind", "actor", "commit_sha", "commit_message", "commit_author", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            newId(),
+            version.toolId,
+            environmentId,
+            versionId,
+            options.kind ?? "deploy",
+            options.actor,
+            options.commit?.sha ?? null,
+            options.commit?.message ?? null,
+            options.commit?.author ?? null,
+            at,
+          ),
+        auditStatement(
+          {
+            toolId: version.toolId,
+            actor: options.actor,
+            ...(options.via ? { via: options.via } : {}),
+            kind: DEPLOYMENT_AUDIT[options.kind ?? "deploy"],
+            subject: `${String(env.name)}:${version.version}`,
+            versionId,
+            detail: {
+              environment: String(env.name),
+              ...(env.branch ? { branch: String(env.branch) } : {}),
+              ...(options.reason ? { reason: options.reason } : {}),
+            },
+          },
+          at,
+        ),
+      ]);
+      return toEnvironment(
+        (await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId))!,
+      );
+    },
+    /** The audit log of an environment, oldest first. */
+    async history(environmentId: string): Promise<DeploymentRecord[]> {
+      return (
+        await all(
+          `SELECT * FROM "deployments" WHERE "environment_id" = ? ORDER BY "rowid"`,
+          environmentId,
+        )
+      ).map(toDeployment);
+    },
+    /** Every deployment of a tool, newest first: the history the console shows. */
+    async listDeployments(toolId: string, limit = 200): Promise<DeploymentRecord[]> {
+      return (
+        await all(
+          `SELECT * FROM "deployments" WHERE "tool_id" = ? ORDER BY "rowid" DESC LIMIT ?`,
+          toolId,
+          limit,
+        )
+      ).map(toDeployment);
+    },
+    /** The version the environment served before the current one: the latest one that is not it. */
+    async previousVersion(environmentId: string): Promise<VersionRecord | undefined> {
+      const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
+      if (!env) throw new RegistryError("NOT_FOUND", `There is no environment ${environmentId}.`);
+      const row = await first(
+        `SELECT "version_id" FROM "deployments" WHERE "environment_id" = ? AND "version_id" != ? ORDER BY "rowid" DESC LIMIT 1`,
+        environmentId,
+        text(env.version_id) ?? "",
+      );
+      return row ? this.getVersion(String(row.version_id)) : undefined;
+    },
+    async findVersion(toolId: string, version: string): Promise<VersionRecord | undefined> {
+      const row = await first(
+        `SELECT * FROM "versions" WHERE "tool_id" = ? AND "version" = ?`,
+        toolId,
+        version,
+      );
+      return row ? toVersion(row) : undefined;
+    },
+    /** Forgets an environment (a preview whose branch is gone). */
+    async removeEnvironment(environmentId: string): Promise<void> {
+      await write(`DELETE FROM "environments" WHERE "id" = ?`, environmentId);
+    },
+  };
+
+  return { api, requireTool };
+}
+
+export type Catalog = ReturnType<typeof createCatalog>;

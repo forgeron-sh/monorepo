@@ -1,0 +1,593 @@
+[
+  {
+    "name": "0001_registry",
+    "fingerprint": "registry-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"tools\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"workspace\" TEXT NOT NULL,\n  \"name\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  UNIQUE (\"workspace\", \"name\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"builds\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"fingerprint\" TEXT NOT NULL,\n  \"manifest\" TEXT NOT NULL,\n  \"changelog\" TEXT,\n  \"created_at\" TEXT NOT NULL,\n  UNIQUE (\"tool_id\", \"fingerprint\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"versions\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"build_id\" TEXT NOT NULL REFERENCES \"builds\" (\"id\") ON DELETE CASCADE,\n  \"version\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  UNIQUE (\"tool_id\", \"version\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"environments\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"name\" TEXT NOT NULL CHECK (\"name\" IN ('preview', 'pilot', 'production')),\n  \"branch\" TEXT NOT NULL DEFAULT '',\n  \"version_id\" TEXT REFERENCES \"versions\" (\"id\") ON DELETE SET NULL,\n  \"url\" TEXT,\n  \"activated_at\" TEXT,\n  \"created_at\" TEXT NOT NULL,\n  UNIQUE (\"tool_id\", \"name\", \"branch\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"approvals\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"version_id\" TEXT NOT NULL REFERENCES \"versions\" (\"id\") ON DELETE CASCADE,\n  \"resource\" TEXT NOT NULL,\n  \"kind\" TEXT NOT NULL,\n  \"status\" TEXT NOT NULL DEFAULT 'pending' CHECK (\"status\" IN ('pending', 'approved', 'rejected')),\n  \"requested_at\" TEXT NOT NULL,\n  \"decided_by\" TEXT,\n  \"decided_at\" TEXT,\n  UNIQUE (\"version_id\", \"resource\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"versions_by_tool\" ON \"versions\" (\"tool_id\")",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"environments_by_tool\" ON \"environments\" (\"tool_id\")",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"approvals_by_status\" ON \"approvals\" (\"tool_id\", \"status\")",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"approvals\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"environments\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"versions\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"builds\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"tools\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0002_deployments",
+    "fingerprint": "deployments-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "ALTER TABLE \"builds\" ADD COLUMN \"worker\" TEXT",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"builds\" ADD COLUMN \"migrations\" TEXT",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"environments\" ADD COLUMN \"pilot_group\" TEXT",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"deployments\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"environment_id\" TEXT NOT NULL REFERENCES \"environments\" (\"id\") ON DELETE CASCADE,\n  \"version_id\" TEXT NOT NULL REFERENCES \"versions\" (\"id\") ON DELETE CASCADE,\n  \"kind\" TEXT NOT NULL CHECK (\"kind\" IN ('deploy', 'promote', 'rollback')),\n  \"actor\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"deployments_by_environment\" ON \"deployments\" (\"environment_id\")",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"deployments\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"environments\" DROP COLUMN \"pilot_group\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"builds\" DROP COLUMN \"migrations\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"builds\" DROP COLUMN \"worker\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0003_secrets",
+    "fingerprint": "secrets-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"secrets\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"environment\" TEXT NOT NULL CHECK (\"environment\" IN ('preview', 'pilot', 'production')),\n  \"name\" TEXT NOT NULL,\n  \"iv\" TEXT NOT NULL,\n  \"ciphertext\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"environment\", \"name\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"secrets\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0004_connections",
+    "fingerprint": "connections-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"connections\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"environment\" TEXT NOT NULL CHECK (\"environment\" IN ('preview', 'pilot', 'production')),\n  \"user_id\" TEXT NOT NULL,\n  \"connector\" TEXT NOT NULL,\n  \"scopes\" TEXT NOT NULL,\n  \"expires_at\" TEXT,\n  \"iv\" TEXT NOT NULL,\n  \"ciphertext\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"environment\", \"user_id\", \"connector\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"connections\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0005_audit_log",
+    "fingerprint": "audit-log-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"audit_log\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"at\" TEXT NOT NULL,\n  \"tool_id\" TEXT,\n  \"actor\" TEXT NOT NULL,\n  \"interface\" TEXT,\n  \"via\" TEXT,\n  \"kind\" TEXT NOT NULL CHECK (\"kind\" IN ('action', 'deployment', 'promotion', 'rollback', 'approval')),\n  \"subject\" TEXT NOT NULL,\n  \"version_id\" TEXT,\n  \"result\" TEXT NOT NULL CHECK (\"result\" IN ('ok', 'denied', 'error')),\n  \"detail\" TEXT\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"audit_log_by_tool\" ON \"audit_log\" (\"tool_id\", \"at\")",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"audit_log\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0006_role_access",
+    "fingerprint": "role-access-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"role_access\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"role\" TEXT NOT NULL,\n  \"action\" TEXT NOT NULL,\n  \"allowed\" INTEGER NOT NULL CHECK (\"allowed\" IN (0, 1)),\n  \"updated_by\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"role\", \"action\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"role_access\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0007_seats",
+    "fingerprint": "seats-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"seats\" (\n  \"workspace\" TEXT NOT NULL,\n  \"person_id\" TEXT NOT NULL,\n  \"month\" TEXT NOT NULL,\n  PRIMARY KEY (\"workspace\", \"month\", \"person_id\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"seats\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0008_members",
+    "fingerprint": "members-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"members\" (\n  \"workspace\" TEXT NOT NULL,\n  \"id\" TEXT NOT NULL,\n  \"subject\" TEXT NOT NULL,\n  \"email\" TEXT NOT NULL,\n  \"name\" TEXT NOT NULL,\n  \"roles\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"workspace\", \"id\"),\n  UNIQUE (\"workspace\", \"subject\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"members\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0009_cli_codes",
+    "fingerprint": "cli-codes-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"cli_codes\" (\n  \"id\" TEXT NOT NULL PRIMARY KEY,\n  \"expires_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"cli_codes\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0010_gateway_code",
+    "fingerprint": "gateway-code-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"gateway_code\" (\n  \"part\" INTEGER PRIMARY KEY NOT NULL,\n  \"content\" TEXT NOT NULL\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"gateway_code\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0011_group_members",
+    "fingerprint": "group-members-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"group_members\" (\n  \"workspace\" TEXT NOT NULL,\n  \"group_name\" TEXT NOT NULL,\n  \"member_id\" TEXT NOT NULL,\n  PRIMARY KEY (\"workspace\", \"group_name\", \"member_id\"),\n  FOREIGN KEY (\"workspace\", \"member_id\") REFERENCES \"members\" (\"workspace\", \"id\") ON DELETE CASCADE\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"group_members\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0012_token_revocations",
+    "fingerprint": "token-revocations-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"token_revocations\" (\n  \"id\" TEXT NOT NULL PRIMARY KEY,\n  \"workspace\" TEXT NOT NULL,\n  \"person\" TEXT NOT NULL,\n  \"jti\" TEXT,\n  \"at\" INTEGER NOT NULL,\n  \"expires_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"token_revocations_person\" ON \"token_revocations\" (\"workspace\", \"person\")",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"token_revocations\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0013_user_secrets",
+    "fingerprint": "user-secrets-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"user_secrets\" (\n  \"tool_id\" TEXT NOT NULL,\n  \"person\" TEXT NOT NULL,\n  \"name\" TEXT NOT NULL,\n  \"iv\" TEXT NOT NULL,\n  \"ciphertext\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"person\", \"name\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"user_secrets\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0014_audit_access",
+    "fingerprint": "audit-access-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"audit_log_next\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"at\" TEXT NOT NULL,\n  \"tool_id\" TEXT,\n  \"actor\" TEXT NOT NULL,\n  \"interface\" TEXT,\n  \"via\" TEXT,\n  \"kind\" TEXT NOT NULL CHECK (\"kind\" IN ('action', 'deployment', 'promotion', 'rollback', 'approval', 'access')),\n  \"subject\" TEXT NOT NULL,\n  \"version_id\" TEXT,\n  \"result\" TEXT NOT NULL CHECK (\"result\" IN ('ok', 'denied', 'error')),\n  \"detail\" TEXT\n)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"audit_log_next\" SELECT \"id\", \"at\", \"tool_id\", \"actor\", \"interface\", \"via\", \"kind\", \"subject\", \"version_id\", \"result\", \"detail\" FROM \"audit_log\" ORDER BY \"rowid\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"audit_log\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"audit_log_next\" RENAME TO \"audit_log\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"audit_log_by_tool\" ON \"audit_log\" (\"tool_id\", \"at\")",
+        "parameters": []
+      }
+    ],
+    "down": []
+  },
+  {
+    "name": "0015_identity_config",
+    "fingerprint": "identity-config-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"identity_providers\" (\n  \"workspace\" TEXT NOT NULL PRIMARY KEY,\n  \"kind\" TEXT NOT NULL CHECK (\"kind\" IN ('oidc', 'entra', 'google')),\n  \"issuer\" TEXT,\n  \"client_id\" TEXT NOT NULL,\n  \"tenant\" TEXT,\n  \"hosted_domain\" TEXT,\n  \"email_claim\" TEXT,\n  \"groups_claim\" TEXT,\n  \"group_roles\" TEXT NOT NULL,\n  \"iv\" TEXT,\n  \"ciphertext\" TEXT,\n  \"updated_by\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"connector_clients\" (\n  \"workspace\" TEXT NOT NULL,\n  \"connector\" TEXT NOT NULL,\n  \"authorize_url\" TEXT NOT NULL,\n  \"token_url\" TEXT NOT NULL,\n  \"client_id\" TEXT NOT NULL,\n  \"iv\" TEXT,\n  \"ciphertext\" TEXT,\n  \"updated_by\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"workspace\", \"connector\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"connector_clients\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"identity_providers\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0016_email_sign_in",
+    "fingerprint": "email-sign-in-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"email_codes\" (\n  \"id\" TEXT NOT NULL PRIMARY KEY,\n  \"workspace\" TEXT NOT NULL,\n  \"email\" TEXT NOT NULL,\n  \"code_hash\" TEXT NOT NULL,\n  \"ip_hash\" TEXT NOT NULL,\n  \"attempts\" INTEGER NOT NULL DEFAULT 0,\n  \"created_at\" TEXT NOT NULL,\n  \"expires_at\" TEXT NOT NULL,\n  \"used_at\" TEXT\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"email_codes_by_email\" ON \"email_codes\" (\"workspace\", \"email\", \"created_at\")",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"email_codes_by_ip\" ON \"email_codes\" (\"workspace\", \"ip_hash\", \"created_at\")",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"invitations\" (\n  \"workspace\" TEXT NOT NULL,\n  \"email\" TEXT NOT NULL,\n  \"roles\" TEXT NOT NULL,\n  \"invited_by\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  \"expires_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"workspace\", \"email\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"membership_settings\" (\n  \"workspace\" TEXT NOT NULL PRIMARY KEY,\n  \"domains\" TEXT NOT NULL,\n  \"default_role\" TEXT,\n  \"updated_by\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"membership_settings\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"invitations\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"email_codes\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0017_saml",
+    "fingerprint": "saml-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"saml_providers\" (\n  \"workspace\" TEXT NOT NULL PRIMARY KEY,\n  \"idp_entity_id\" TEXT NOT NULL,\n  \"sso_url\" TEXT NOT NULL,\n  \"certificates\" TEXT NOT NULL,\n  \"email_attribute\" TEXT,\n  \"groups_attribute\" TEXT,\n  \"name_attribute\" TEXT,\n  \"group_roles\" TEXT NOT NULL,\n  \"updated_by\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"saml_requests\" (\n  \"workspace\" TEXT NOT NULL,\n  \"id\" TEXT NOT NULL,\n  \"kind\" TEXT NOT NULL CHECK (\"kind\" IN ('request', 'assertion')),\n  \"expires_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"workspace\", \"id\", \"kind\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"saml_requests\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"saml_providers\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0018_gateway_assets",
+    "fingerprint": "gateway-assets-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"gateway_assets\" (\n  \"path\" TEXT NOT NULL,\n  \"part\" INTEGER NOT NULL,\n  \"hash\" TEXT NOT NULL,\n  \"size\" INTEGER NOT NULL,\n  \"type\" TEXT NOT NULL,\n  \"content\" TEXT NOT NULL,\n  PRIMARY KEY (\"path\", \"part\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"gateway_assets\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0019_remove_pilot",
+    "fingerprint": "remove-pilot-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "DROP TABLE \"group_members\"",
+        "parameters": []
+      },
+      {
+        "sql": "DELETE FROM \"secrets\" WHERE \"environment\" = 'pilot'",
+        "parameters": []
+      },
+      {
+        "sql": "DELETE FROM \"connections\" WHERE \"environment\" = 'pilot'",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"secrets_next\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"environment\" TEXT NOT NULL CHECK (\"environment\" IN ('preview', 'production')),\n  \"name\" TEXT NOT NULL,\n  \"iv\" TEXT NOT NULL,\n  \"ciphertext\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"environment\", \"name\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"secrets_next\" SELECT * FROM \"secrets\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"secrets\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"secrets_next\" RENAME TO \"secrets\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"connections_next\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"environment\" TEXT NOT NULL CHECK (\"environment\" IN ('preview', 'production')),\n  \"user_id\" TEXT NOT NULL,\n  \"connector\" TEXT NOT NULL,\n  \"scopes\" TEXT NOT NULL,\n  \"expires_at\" TEXT,\n  \"iv\" TEXT NOT NULL,\n  \"ciphertext\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"environment\", \"user_id\", \"connector\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"connections_next\" SELECT * FROM \"connections\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"connections\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"connections_next\" RENAME TO \"connections\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"deployments_keep\" AS SELECT d.* FROM \"deployments\" d JOIN \"environments\" e ON e.\"id\" = d.\"environment_id\" WHERE e.\"name\" <> 'pilot'",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"deployments\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"environments_next\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"name\" TEXT NOT NULL CHECK (\"name\" IN ('preview', 'production')),\n  \"branch\" TEXT NOT NULL DEFAULT '',\n  \"version_id\" TEXT REFERENCES \"versions\" (\"id\") ON DELETE SET NULL,\n  \"url\" TEXT,\n  \"activated_at\" TEXT,\n  \"created_at\" TEXT NOT NULL,\n  UNIQUE (\"tool_id\", \"name\", \"branch\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"environments_next\" SELECT \"id\", \"tool_id\", \"name\", \"branch\", \"version_id\", \"url\", \"activated_at\", \"created_at\" FROM \"environments\" WHERE \"name\" <> 'pilot'",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"environments\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"environments_next\" RENAME TO \"environments\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"environments_by_tool\" ON \"environments\" (\"tool_id\")",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"deployments\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"environment_id\" TEXT NOT NULL REFERENCES \"environments\" (\"id\") ON DELETE CASCADE,\n  \"version_id\" TEXT NOT NULL REFERENCES \"versions\" (\"id\") ON DELETE CASCADE,\n  \"kind\" TEXT NOT NULL CHECK (\"kind\" IN ('deploy', 'promote', 'rollback')),\n  \"actor\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"deployments\" SELECT * FROM \"deployments_keep\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"deployments_keep\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"deployments_by_environment\" ON \"deployments\" (\"environment_id\")",
+        "parameters": []
+      }
+    ],
+    "down": []
+  },
+  {
+    "name": "0020_deployment_commit",
+    "fingerprint": "deployment-commit-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "ALTER TABLE \"deployments\" ADD COLUMN \"commit_sha\" TEXT",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"deployments\" ADD COLUMN \"commit_message\" TEXT",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"deployments\" ADD COLUMN \"commit_author\" TEXT",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "ALTER TABLE \"deployments\" DROP COLUMN \"commit_author\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"deployments\" DROP COLUMN \"commit_message\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"deployments\" DROP COLUMN \"commit_sha\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0021_tool_docs",
+    "fingerprint": "tool-docs-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"docs_blobs\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"hash\" TEXT NOT NULL,\n  \"part\" INTEGER NOT NULL,\n  \"content\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"hash\", \"part\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"build_docs\" (\n  \"build_id\" TEXT NOT NULL REFERENCES \"builds\" (\"id\") ON DELETE CASCADE,\n  \"path\" TEXT NOT NULL,\n  \"hash\" TEXT NOT NULL,\n  \"type\" TEXT NOT NULL,\n  \"size\" INTEGER NOT NULL,\n  PRIMARY KEY (\"build_id\", \"path\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"build_docs\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"docs_blobs\"",
+        "parameters": []
+      }
+    ]
+  }
+]
