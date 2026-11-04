@@ -1,4 +1,5 @@
 import { mountAccessMatrix } from "./access-matrix";
+import { mountApprovals } from "./approvals";
 import { mountCatalog } from "./catalog";
 import { mountConnections } from "./connections";
 import { mountDatabase } from "./database";
@@ -21,6 +22,7 @@ export function createPlatform() {
   mountMembers(app);
   mountIdentity(app);
   mountSecrets(app);
+  mountApprovals(app);
 
   // The OpenAPI 3.1 document of what is mounted above, for any signed-in member, like the catalog:
   // it describes the API a member's own console calls, and an anonymous visitor has no use for it.

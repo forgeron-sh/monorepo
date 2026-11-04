@@ -27,7 +27,6 @@ import {
 import { handleConsent } from "./consent/consent";
 import { UNMATCHED } from "./platform/app";
 import { createPlatform } from "./platform/platform";
-import { handleApprovals } from "./console-api/approvals";
 import {
   createDispatcher,
   workspaceOf,
@@ -51,7 +50,6 @@ import { providerFromConfig } from "./identity/presets";
 import type { SamlProvider } from "./identity/saml";
 import { handleCliAuthorize, handleCliToken } from "./identity/cli";
 import { handleIssueToken, handleRevokeToken } from "./identity/issue";
-import { handleRevocations } from "./console-api/revocations";
 import { forwardIdentity, handleUserSecrets } from "./dispatch/user-secrets";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget, type DispatchNamespace } from "./dispatch/targets";
@@ -589,14 +587,7 @@ export function createGateway(
       return (
         (consent
           ? await handleConsent(forwarded, { registry, consent, workspace, caller: identity })
-          : undefined) ??
-        (await handleRevocations(forwarded, {
-          registry,
-          workspace,
-          caller: identity,
-        })) ??
-        (await handleApprovals(forwarded, { registry, workspace, caller: identity })) ??
-        notFound(request)
+          : undefined) ?? notFound(request)
       );
     }
 

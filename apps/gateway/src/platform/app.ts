@@ -81,6 +81,28 @@ const guard =
   };
 
 /**
+ * A write that a browser sends from another origin is refused, whatever the cookie says (D-073). A
+ * browser always tells where a write comes from: `Origin` on every write that is not a `GET`, and
+ * `Sec-Fetch-Site` on every request, neither of which a page can set. A client that is not a browser
+ * (the CLI, a script with a token) sends neither and is not asked: it has no ambient cookie to abuse.
+ * This is a second lock behind the JSON-only rule below, not a replacement for it.
+ */
+export function crossOriginWrite(request: Request): boolean {
+  const site = request.headers.get("sec-fetch-site");
+  if (site === "same-origin") return false;
+  if (site === "cross-site" || site === "same-site") return true;
+  const origin = request.headers.get("origin");
+  return origin !== null && origin !== new URL(request.url).origin;
+}
+
+const sameOriginOnly: MiddlewareHandler<PlatformEnv> = async (c, next) => {
+  if (crossOriginWrite(c.req.raw)) {
+    return answer(403, "FORBIDDEN", "Cross-origin writes are refused.");
+  }
+  await next();
+};
+
+/**
  * A write is JSON: a form post from another site cannot send that content type without our
  * consent, and on the console API it is the cross-site guard besides the session cookie.
  */
@@ -101,10 +123,16 @@ export function platformRoute<const R extends RouteSpec>(
   /** The `message` of the 403, when a route says it in its own words. */
   forbidden?: string,
 ) {
-  const writes = spec.method === "post" || spec.method === "put" || spec.method === "patch";
+  const changes = spec.method !== "get";
+  // A body is JSON; a write without one (a revocation, a deletion) has nothing to type.
+  const hasBody = spec.request?.body !== undefined;
   return createRoute({
     ...spec,
-    middleware: writes ? [guard(access, forbidden), jsonOnly] : [guard(access, forbidden)],
+    middleware: [
+      guard(access, forbidden),
+      ...(changes ? [sameOriginOnly] : []),
+      ...(hasBody ? [jsonOnly] : []),
+    ],
   });
 }
 

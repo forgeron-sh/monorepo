@@ -12,6 +12,8 @@ export interface RouteMatrix {
   /** A concrete address of the route, with a path like `/api/members/m1`. */
   path: string;
   access: Access;
+  /** A `POST` that takes no body (a revocation): no 415, no 400. */
+  noBody?: boolean;
   /** The 403's message when the route words it its own way. */
   forbidden?: string;
   /** The 400's message when the route words it its own way (default `Invalid input.`). */
@@ -59,7 +61,7 @@ const json = (m: RouteMatrix, body: unknown) =>
       });
 
 export function describeRouteMatrix(m: RouteMatrix): void {
-  const write = m.method !== "GET" && m.method !== "DELETE";
+  const write = m.method !== "GET" && m.method !== "DELETE" && !m.noBody;
   const asAllowed = m.access === "admin" ? ADMIN : m.access === "developer" ? DEVELOPER : MEMBER;
   describe(`${m.title}: common answers`, () => {
     it("401 UNAUTHENTICATED for nobody, never cached", async () => {
@@ -85,6 +87,55 @@ export function describeRouteMatrix(m: RouteMatrix): void {
       const res = await m.call(json(m, m.valid ?? {}), ADMIN);
       expect([401, 403]).not.toContain(res.status);
     });
+
+    it.runIf(m.method !== "GET")(
+      "403 for a write a browser sends from another origin (D-073)",
+      async () => {
+        const from = (headers: Record<string, string>) => {
+          const body = write ? JSON.stringify(m.valid ?? {}) : null;
+          return new Request(url(m.path), {
+            method: m.method,
+            headers: { ...(write ? { "content-type": "application/json" } : {}), ...headers },
+            body,
+          });
+        };
+        // Who is asked first: nobody signed in is a 401, not a statement about the origin.
+        expect((await m.call(from({ origin: "https://evil.test" }), undefined)).status).toBe(401);
+        const refused: Array<Record<string, string>> = [
+          { origin: "https://evil.test" },
+          { origin: "null" },
+          { origin: "https://globex.forgeron.test" },
+          { "sec-fetch-site": "cross-site" },
+          { "sec-fetch-site": "same-site", origin: "https://acme.forgeron.test" },
+        ];
+        for (const headers of refused) {
+          const res = await m.call(from(headers), asAllowed);
+          expect(`${JSON.stringify(headers)} -> ${res.status}`).toBe(
+            `${JSON.stringify(headers)} -> 403`,
+          );
+          expect(await res.json()).toEqual({
+            error: "FORBIDDEN",
+            message: "Cross-origin writes are refused.",
+          });
+        }
+        // The page itself, and a client that is not a browser, are let through.
+        const allowed: Array<Record<string, string>> = [
+          { origin: "https://acme.forgeron.test" },
+          { "sec-fetch-site": "same-origin" },
+          { "sec-fetch-site": "same-origin", origin: "https://acme.forgeron.test" },
+          {},
+        ];
+        for (const headers of allowed) {
+          // The handler may then fail on the matrix's stand-ins: that it ran is what is checked.
+          const res = await Promise.resolve(m.call(from(headers), asAllowed)).catch(
+            () => undefined,
+          );
+          expect(`${JSON.stringify(headers)} -> ${res?.status}`).not.toBe(
+            `${JSON.stringify(headers)} -> 403`,
+          );
+        }
+      },
+    );
 
     it.runIf(write)("415 for a body that is not JSON, after the checks on who calls", async () => {
       const form = () =>

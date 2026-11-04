@@ -1,7 +1,13 @@
 import { defineRoute, ErrorSchema } from "@forgeron/platform-contract";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createPlatformApp, platformRoute, UNMATCHED, type ConsolePerson } from "./app";
+import {
+  createPlatformApp,
+  crossOriginWrite,
+  platformRoute,
+  UNMATCHED,
+  type ConsolePerson,
+} from "./app";
 import { ADMIN, describeRouteMatrix, MEMBER } from "./route-matrix";
 
 // A route of the contract that exists for this test only: the shell has no real route yet (D-064).
@@ -94,5 +100,45 @@ describe("the shell", () => {
 
   it("a failure of a handler is not turned into an answer: the Worker logs it and answers 500", async () => {
     await expect(get("/api/__boom", MEMBER)).rejects.toThrow("registry down");
+  });
+});
+
+describe("the Origin check on writes (D-073)", () => {
+  const write = (headers: Record<string, string>) =>
+    new Request("https://acme.forgeron.app/api/x", { method: "PUT", headers });
+
+  it("refuses what a browser says comes from elsewhere", () => {
+    const refused: Array<Record<string, string>> = [
+      { origin: "https://evil.test" },
+      { origin: "http://acme.forgeron.app" },
+      { origin: "https://acme.forgeron.app:8443" },
+      { origin: "https://globex.forgeron.app" },
+      { origin: "null" },
+      { "sec-fetch-site": "cross-site" },
+      { "sec-fetch-site": "same-site" },
+      { "sec-fetch-site": "cross-site", origin: "https://acme.forgeron.app" },
+    ];
+    for (const headers of refused) {
+      expect([JSON.stringify(headers), crossOriginWrite(write(headers))]).toEqual([
+        JSON.stringify(headers),
+        true,
+      ]);
+    }
+  });
+
+  it("lets through the page itself and a client that is not a browser", () => {
+    const allowed: Array<Record<string, string>> = [
+      { origin: "https://acme.forgeron.app" },
+      { "sec-fetch-site": "same-origin" },
+      { "sec-fetch-site": "same-origin", origin: "null" },
+      {},
+      { authorization: "Bearer a-token" },
+    ];
+    for (const headers of allowed) {
+      expect([JSON.stringify(headers), crossOriginWrite(write(headers))]).toEqual([
+        JSON.stringify(headers),
+        false,
+      ]);
+    }
   });
 });
