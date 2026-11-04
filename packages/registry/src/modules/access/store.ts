@@ -98,6 +98,8 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
       toolId: string,
       changes: ReadonlyArray<{ role: string; action: string; allowed: boolean | undefined }>,
       actor: string,
+      /** Through which door the change came, when it is not the console (`VIA_FORGERON_MCP`). */
+      via?: string,
     ): Promise<void> {
       const manifest = await this.currentManifest(toolId);
       const before = (await this.accessMatrix(toolId)).cells;
@@ -132,6 +134,7 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
             {
               toolId,
               actor,
+              ...(via ? { via } : {}),
               kind: "access",
               subject: `${role}:${action}`,
               detail: { role, action, from: cell.allowed, to: allowed ?? cell.default },

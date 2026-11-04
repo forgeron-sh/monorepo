@@ -154,6 +154,8 @@ export interface PromoteInput {
   branch?: string;
   allowDestructive?: boolean;
   actor: string;
+  /** Through which door the call came, when it is not the CLI or the console. */
+  via?: string;
   /** Why, as the person wrote it: kept in the audit line. */
   reason?: string;
 }
@@ -185,6 +187,7 @@ export async function promoteVersion(
   );
   const environment = await registry.activate(slot.id, version.id, {
     actor: input.actor,
+    ...(input.via ? { via: input.via } : {}),
     kind: "promote",
     url: deployment.activation.url,
     ...(input.reason ? { reason: input.reason } : {}),
@@ -197,6 +200,8 @@ export interface RollbackInput {
   environment: RegisteredEnvironment;
   branch?: string;
   actor: string;
+  /** Through which door the call came, when it is not the CLI or the console. */
+  via?: string;
   /** Why, as the person wrote it: kept in the audit line. */
   reason?: string;
 }
@@ -228,6 +233,7 @@ export async function rollbackEnvironment(
   );
   const environment = await registry.activate(slot.id, previous.id, {
     actor: input.actor,
+    ...(input.via ? { via: input.via } : {}),
     kind: "rollback",
     url: activation.url,
     ...(input.reason ? { reason: input.reason } : {}),

@@ -32,6 +32,8 @@ export interface PromoteContext {
   now(): Date;
   registry: Registry;
   hosting: Hosting;
+  /** The door the call came through, when it is not the CLI (`VIA_FORGERON_MCP`). */
+  via?: string;
   /** The person behind the request (session or CLI token); `undefined` if anonymous. */
   authenticate(request: Request): Person | undefined | Promise<Person | undefined>;
 }
@@ -162,6 +164,7 @@ export async function handlePromote(request: Request, context: PromoteContext) {
       ...(branch ? { branch } : {}),
       ...(allowDestructive === true ? { allowDestructive: true } : {}),
       ...(reason ? { reason } : {}),
+      ...(context.via ? { via: context.via } : {}),
       actor,
     });
     return json(200, {
@@ -190,6 +193,7 @@ export async function handleRollback(request: Request, context: PromoteContext) 
       environment,
       ...(branch ? { branch } : {}),
       ...(reason ? { reason } : {}),
+      ...(context.via ? { via: context.via } : {}),
       actor,
     });
     return json(200, {

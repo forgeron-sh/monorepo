@@ -68,6 +68,7 @@ export function mountMembers(app: OpenAPIHono<PlatformEnv>): void {
           c.req.valid("param").id,
           trimmed(c.req.valid("json").roles),
           c.get("person").id,
+          c.env.via,
         );
         return c.json(shown(member), 200);
       } catch (error) {

@@ -49,6 +49,8 @@ export interface PlatformBindings {
   registry: Registry;
   /** The workspace the request was dispatched to. */
   workspace: string;
+  /** The door a call came through when it is not the console (`VIA_FORGERON_MCP`): written in the audit lines. */
+  via?: string;
   /** The workspace's address, `https://acme.forgeron.app`. */
   origin: string;
   /** The platform's base domain (`forgeron.app`). */

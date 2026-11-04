@@ -96,6 +96,8 @@ export function createMembers(kernel: Kernel) {
       id: string,
       roles: readonly string[],
       actor: string,
+      /** Through which door the change came, when it is not the console (`VIA_FORGERON_MCP`). */
+      via?: string,
     ): Promise<Member> {
       const clean = [...new Set(roles)];
       if (clean.some((r) => !ROLE.test(r))) {
@@ -114,6 +116,7 @@ export function createMembers(kernel: Kernel) {
           {
             actor,
             interface: "api",
+            ...(via ? { via } : {}),
             kind: "access",
             subject: "member:roles",
             detail: { workspace, member: id, email: member.email, from: member.roles, to: clean },

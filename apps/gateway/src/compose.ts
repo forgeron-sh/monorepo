@@ -10,7 +10,9 @@ import {
   type Invitation,
   type Registry,
   type SecretBox,
+  VIA_FORGERON_MCP,
 } from "@forgeron/registry";
+import { createAdminMcp } from "./admin-mcp/server";
 import { createCloudHosting, createSelfHostHosting, type Hosting } from "@forgeron/hosting";
 import { gatewayBindingsOf, type GatewayEnv } from "./env";
 import type { PlatformBindings } from "./platform/app";
@@ -323,6 +325,7 @@ export function createRequestModules(
     (who ??= identity
       ? identity.caller.resolve(request, workspace, true)
       : Promise.resolve(undefined));
+  const personOfRequest = whoIs;
 
   // Tells an invited address where to sign in (best effort: the answer says whether it went).
   const notify = mailer
@@ -338,7 +341,10 @@ export function createRequestModules(
     : undefined;
 
   /** What the platform app needs from this gateway for this request. */
-  const platformBindings = (surface: "console" | "root"): PlatformBindings => ({
+  const platformBindings = (
+    surface: "console" | "root",
+    whoIs: () => Promise<Person | undefined> = personOfRequest,
+  ): PlatformBindings => ({
     surface,
     notFound: () => notFound(request),
     // A person's OAuth consent for a delegated connector (sdk.md §10): the OAuth clients are the
@@ -403,6 +409,37 @@ export function createRequestModules(
     /** The person of the request, looked up at most once. */
     who: whoIs,
     platformBindings,
+
+    /**
+     * The admin MCP (`/mcp`, D-079). Its caller is a CLI token as a Bearer and nothing else. A tool
+     * reaches the platform by calling its routes in this process with that person's identity and
+     * `via` set, so the console's guards, validation and audit lines are the ones that apply.
+     */
+    adminMcp: identity
+      ? () => {
+          let caller: Promise<Person | undefined> | undefined;
+          const person = () => (caller ??= identity.caller.cliBearer(request, workspace));
+          return createAdminMcp({
+            person,
+            platform: async (call) => {
+              const response = await modules.platform.fetch(
+                new Request(`${origin}${call.path}`, {
+                  method: call.method,
+                  ...(call.body === undefined
+                    ? {}
+                    : {
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify(call.body),
+                      }),
+                }),
+                { ...platformBindings(call.surface ?? "console", person), via: VIA_FORGERON_MCP },
+              );
+              const body: unknown = await response.json().catch(() => undefined);
+              return { status: response.status, body };
+            },
+          });
+        }
+      : undefined,
 
     /** Per-person secrets are typed at the gateway, never at the tool (D-036). */
     userSecrets: identity

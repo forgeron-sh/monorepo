@@ -46,6 +46,7 @@ export function mountAccessMatrix(app: OpenAPIHono<PlatformEnv>): void {
             allowed: change.allowed ?? undefined,
           })),
           c.get("person").id,
+          c.env.via,
         );
         return c.json(await registry.accessMatrix(tool.id), 200);
       } catch (error) {

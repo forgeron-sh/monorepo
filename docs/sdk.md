@@ -766,34 +766,35 @@ In addition to each tool's MCP server, the workspace exposes **a Forgeron MCP se
 
 ### Exposed tools
 
-| MCP tool                         | What it does                                                                                | Minimum role in the workspace | Destructive |
-| -------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
-| `catalog_search`                 | Searches the catalog for a template                                                         | member                        |             |
-| `catalog_get`                    | Template detail: actions, requested resources, changelog                                    | member                        |             |
-| `tools_list`                     | The workspace's tools, their versions per environment                                       | member                        |             |
-| `tool_get`                       | Tool detail: interfaces, MCP address to add in Claude, resources, owners                    | member                        |             |
-| `tool_changelog`                 | A tool's changelog, optionally since a version                                              | member                        |             |
-| `tool_versions`                  | Versions and environments, recent deployments                                               | developer                     |             |
-| `tool_install_plan`              | Prepares the installation of a template: name, requested resources, estimated cost if known | admin                         |             |
-| `tool_install`                   | Installs the prepared plan (plan identifier required)                                       | admin                         | yes         |
-| `tool_promote`                   | Promotes a version to production                                                            | admin                         | yes         |
-| `tool_rollback`                  | Goes back to an environment's previous version                                              | admin                         | yes         |
-| `resources_pending`              | The versions awaiting a resource approval                                                   | admin                         |             |
-| `resources_approve`              | Approves a version's new resources                                                          | admin                         | yes         |
-| `access_list`                    | Who has which role on a tool                                                                | admin                         |             |
-| `access_grant` · `access_revoke` | Grants or removes a role for a person or a group                                            | admin                         | yes         |
-| `usage_report`                   | Who uses which tool, by interface, over a period                                            | admin                         |             |
-| `logs_search`                    | Searches the log (calls, errors, deployments)                                               | developer                     |             |
-| `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                            | developer                     |             |
-| `secret_request`                 | Sends an admin a link to enter a secret                                                     | developer                     |             |
+Each tool calls the platform's own routes with the signed-in person's identity, so it has the guard, the validation and the audit lines of the console. `/mcp` is authenticated with a **CLI token** (`forgeron login`) sent as a Bearer token, limited to the workspace (D-079); the session cookie and a tool's tokens are refused. A person is offered only the tools their role allows.
+
+| MCP tool                         | What it does                                                                                 | Minimum role in the workspace | Destructive |
+| -------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
+| `catalog_search`                 | Searches the workspace's catalog of tools                                                    | member                        |             |
+| `catalog_get`                    | A tool's card: what it does, how to connect, what the caller may call                        | member                        |             |
+| `tools_list`                     | The workspace's tools, their versions per environment                                        | member                        |             |
+| `tool_get`                       | Tool detail: versions per environment and its card                                           | member                        |             |
+| `tool_changelog`                 | A tool's changelog, optionally since a version                                               | developer                     |             |
+| `tool_versions`                  | Versions and environments                                                                    | developer                     |             |
+| `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                             | developer                     |             |
+| `tool_promote`                   | Promotes a version to an environment (never allows a destructive migration)                  | admin                         | yes         |
+| `tool_rollback`                  | Goes back to an environment's previous version                                               | admin                         | yes         |
+| `resources_pending`              | The versions awaiting a resource approval                                                    | admin                         |             |
+| `resources_approve`              | Approves one pending request for a resource                                                  | admin                         | yes         |
+| `access_list`                    | A tool's roles × actions matrix, or the members and their roles                              | admin                         |             |
+| `access_grant` · `access_revoke` | Gives or takes a workspace role of a member, or allows or refuses a role an action of a tool | admin                         | yes         |
+
+`tool_changelog` is for developers because the route that carries the changelog is (the version list shows the commits and what changed); a member reads a tool's card.
+
+**Not available yet**: `tool_install_plan` and `tool_install` (a tool created from a template, FOR-160 and FOR-161), `usage_report` (FOR-162), `secret_request` (FOR-163), granting a role to a group (FOR-165), and signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
 
 ### Safeguards
 
 - **Secret values never go through Claude.** No tool reads or writes a secret value; `secret_request` produces a link to a platform input page.
 - **Installing takes two steps.** `tool_install_plan` returns the plan and the requested resources; `tool_install` only accepts that plan's identifier. An instruction slipped into a document cannot install a tool in one go.
-- **Destructive tools** carry the MCP `destructiveHint` annotation and require confirmation.
-- **No elevation.** The MCP acts with the rights of the signed-in person: it cannot grant a role higher than their own, nor approve what they could not approve in the console.
-- **Everything is logged**, with the mention "via Forgeron MCP".
+- **Destructive tools** carry the MCP `destructiveHint` annotation, so the client asks before it calls them.
+- **No elevation.** The MCP acts with the rights of the signed-in person, read from the token's person at each call and never from an argument: it cannot approve what they could not approve in the console, and every tool it offers is the console's own route behind the same guard. Granting a role is an admin's tool.
+- **Everything that changes something is logged**, with the mention "via Forgeron MCP" (`via` of the audit line).
 
 ### Example
 

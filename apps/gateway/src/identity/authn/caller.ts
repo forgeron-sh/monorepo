@@ -85,6 +85,24 @@ export function createCaller(options: CallerOptions) {
     async resolve(request: Request, workspace: string, platform = false) {
       return (await this.identify(request, workspace, platform))?.person;
     },
+    /**
+     * The person of a CLI token sent as a Bearer, and of nothing else: no cookie (a browser could
+     * be made to send it), no token issued for a tool. What the admin MCP trusts (D-079).
+     */
+    async cliBearer(request: Request, workspace: string): Promise<Person | undefined> {
+      const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
+      if (!token) return undefined;
+      const check = await verifyToken(token, {
+        secret: options.secret,
+        ...(options.previousSecrets ? { previousSecrets: options.previousSecrets } : {}),
+        now: options.now(),
+        scope: CLI_SCOPE,
+      });
+      if (!check.ok || parseAudience(check.claims.aud)?.workspace !== workspace) return undefined;
+      const { sub, jti, iat } = check.claims;
+      if (await options.registry.isTokenRevoked(workspace, sub, jti, iat)) return undefined;
+      return personOf(workspace, sub);
+    },
     /** The person of a valid session cookie only (a token cannot mint a longer-lived token). */
     async session(request: Request, workspace: string): Promise<Person | undefined> {
       const session = await readSession(request, {

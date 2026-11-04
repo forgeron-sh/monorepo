@@ -116,6 +116,20 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "admin-mcp-goes-through-the-platform",
+    files: {
+      [`apps/gateway/src/admin-mcp/${F}.ts`]: `import "../../../../packages/registry/src/${F}_target.ts";\n`,
+      [`packages/registry/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "admin-mcp-goes-through-the-platform",
+    files: {
+      [`apps/gateway/src/admin-mcp/${F}.ts`]: `import "../platform/${F}_target.ts";\n`,
+      [`apps/gateway/src/platform/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "identity-is-below-dispatch-and-pages",
     files: {
       [`apps/gateway/src/pages/${F}.ts`]: `import "../identity/${F}_target.ts";\n`,

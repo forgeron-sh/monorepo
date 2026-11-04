@@ -118,6 +118,18 @@ module.exports = {
       to: { path: "^apps/gateway/src/[^/]*compose\\.ts$" },
     },
     {
+      // The admin MCP (D-079) acts through the platform's routes, called as the person, so the
+      // console's guard and audit lines apply to it. It imports neither the registry nor any other
+      // area of the gateway: `compose.ts` hands it a port.
+      name: "admin-mcp-goes-through-the-platform",
+      severity: "error",
+      from: { path: "^apps/gateway/src/admin-mcp/", pathNot: "\\.test\\.ts$" },
+      to: {
+        path: "^(packages/registry/|apps/gateway/src/)",
+        pathNot: "^apps/gateway/src/(admin-mcp|kernel)/",
+      },
+    },
+    {
       // Identity renders pages and asks nothing of dispatch; dispatch and pages never import identity.
       name: "identity-is-below-dispatch-and-pages",
       severity: "error",
