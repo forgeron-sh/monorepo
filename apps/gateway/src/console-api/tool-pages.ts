@@ -118,13 +118,21 @@ function compare(previous: unknown, next: unknown): Pick<VersionRow, "changes" |
 
 async function actors(registry: Registry, workspace: string) {
   const people = new Map((await registry.listMembers(workspace)).map((m) => [m.id, m.email]));
-  return (actor: string) => people.get(actor) ?? actor;
+  // CI signs a deployment with `deploy:<token name>`: say what it is rather than show the raw id.
+  return (actor: string) =>
+    people.get(actor) ??
+    (actor.startsWith("deploy:") ? `${actor.slice("deploy:".length)} (deploy token)` : actor);
 }
+
+/** Where a tool is served: `/t/<tool>`, and `/t/<tool>@<branch>` for a preview (dispatch). */
+const addressOf = (origin: string, tool: string, branch?: string) =>
+  `${origin}/t/${tool}${branch ? `@${branch}` : ""}`;
 
 async function branches(
   registry: Registry,
   workspace: string,
   tool: Tool,
+  origin: string,
 ): Promise<BranchesAnswer> {
   const who = await actors(registry, workspace);
   const versions = new Map((await registry.listVersions(tool.id)).map((v) => [v.id, v]));
@@ -169,7 +177,7 @@ async function branches(
       ...(commit ? { commit } : {}),
       deployedBy: latest ? who(latest.actor) : "",
       deployedAt: environment.activatedAt ?? latest?.createdAt ?? version.createdAt,
-      ...(environment.url ? { url: environment.url } : {}),
+      url: addressOf(origin, tool.name, environment.branch ?? undefined),
       ...(previous ? { rollbackTo: previous.version } : {}),
       migrations: { count: names.length, ...(names.length ? { last: names.at(-1)! } : {}) },
       deployments: history.slice(0, RECENT).map(line),
@@ -236,7 +244,7 @@ export async function handleToolPages(
 
   switch (match[2]) {
     case "branches":
-      return json(200, await branches(registry, workspace, tool));
+      return json(200, await branches(registry, workspace, tool, url.origin));
     case "versions":
       return json(200, await versionsOf(registry, tool));
     default: {
