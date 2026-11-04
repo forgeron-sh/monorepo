@@ -72,8 +72,14 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
       return modules.platform.fetch(forwarded, asked.platformBindings("console"));
     }
 
-    // The workspace's own API paths belong to parts of the gateway that do not exist yet: never the console.
-    if (/^\/(mcp|api|cli)(\/|$)/.test(url.pathname)) return notFound(request);
+    // The workspace's own API paths belong to parts of the gateway that do not exist yet: never the
+    // console, and JSON whatever the client accepts (sdk.md §7, Isolation point 1).
+    if (/^\/(mcp|api|cli)(\/|$)/.test(url.pathname)) {
+      return Response.json(
+        { error: { code: "NOT_FOUND", message: "Not found." } },
+        { status: 404 },
+      );
+    }
 
     if (request.method !== "GET" && request.method !== "HEAD") {
       return Response.json(

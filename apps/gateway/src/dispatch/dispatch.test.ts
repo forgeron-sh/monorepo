@@ -165,6 +165,40 @@ describe("dispatch", () => {
     expect(forwarded.headers.get("authorization")).toBe("Bearer t");
   });
 
+  it("never hands the session cookie to a tool: its code cannot read it", async () => {
+    const { get, seen } = setup();
+    await get("https://acme.forgeron.app/t/crm/api/x", {
+      headers: { cookie: "__Host-fg_session=secret; other=1", authorization: "Bearer t" },
+    });
+    const forwarded = seen.get("acme--crm--production")!;
+    expect(forwarded.headers.get("cookie")).toBeNull();
+    expect(forwarded.headers.get("authorization")).toBe("Bearer t");
+  });
+
+  it("confines what a tool answers: sandboxed, no sniffing, no cookie of its own", async () => {
+    const dispatch = createDispatcher({
+      baseDomain: BASE,
+      registry,
+      targets: () => ({
+        fetch: () =>
+          new Response("<script>fetch('/whoami')</script>", {
+            headers: [
+              ["content-type", "text/html"],
+              ["content-security-policy", "default-src *"],
+              ["set-cookie", "__Host-fg_session=planted; Path=/"],
+              ["set-cookie", "a=b"],
+            ],
+          }),
+      }),
+    });
+    const response = await dispatch(new Request("https://acme.forgeron.app/t/crm/anything"));
+    expect(response.headers.get("content-security-policy")).toMatch(/^sandbox allow-scripts /);
+    expect(response.headers.get("content-security-policy")).not.toContain("allow-same-origin");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.getSetCookie()).toEqual([]);
+    expect(await response.text()).toContain("fetch");
+  });
+
   it("answers 404 for an unknown workspace, host, tool or non-tool path, reaching no tool", async () => {
     const { get, targets } = setup();
     for (const url of [

@@ -47,6 +47,26 @@ const INTERNAL_HEADERS = [
   "x-forgeron-connector-consent",
 ];
 
+/**
+ * What a tool's response may not do on the workspace origin (sdk.md §7, Isolation points 1 and 4):
+ * it runs sandboxed (an opaque origin: no cookies, no session to call an API with), it is not
+ * sniffed into another type, and it cannot set a cookie, which would plant or replace one for the
+ * whole origin, the session's included.
+ */
+const TOOL_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-downloads";
+
+function confined(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.delete("set-cookie");
+  headers.set("content-security-policy", TOOL_SANDBOX);
+  headers.set("x-content-type-options", "nosniff");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export interface DispatcherOptions {
   /** `forgeron.app`: the workspace is the one label in front of it. */
   baseDomain: string;
@@ -146,9 +166,11 @@ export function createDispatcher(options: DispatcherOptions) {
     const outgoing = new Request(forwarded, request);
     // Identity comes from the gateway or from nowhere: a caller cannot choose who it is.
     for (const name of INTERNAL_HEADERS) outgoing.headers.delete(name);
+    // The session cookie is for the console and the identity gateway only: a tool never sees it.
+    outgoing.headers.delete("cookie");
     for (const [name, value] of Object.entries(forwarding?.headers ?? {})) {
       outgoing.headers.set(name, value);
     }
-    return target.fetch(outgoing);
+    return confined(await target.fetch(outgoing));
   };
 }
