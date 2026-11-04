@@ -27,7 +27,6 @@ import { handleConsent } from "./consent/consent";
 import { UNMATCHED } from "./platform/app";
 import { createPlatform } from "./platform/platform";
 import { handleAccessMatrix } from "./console-api/access-matrix";
-import { handleManifest } from "./console-api/manifest";
 import { handleConnections } from "./console-api/connections";
 import { handleIdentity } from "./console-api/identity";
 import { handleMembers } from "./console-api/members";
@@ -36,8 +35,6 @@ import { handleSecretsStatus } from "./console-api/secrets-status";
 import { handleApprovals } from "./console-api/approvals";
 import { handleAudit } from "./console-api/audit";
 import { handleDatabase } from "./console-api/database";
-import { handleToolPages } from "./console-api/tool-pages";
-import { handleTools } from "./console-api/tools";
 import { handleWorkspace } from "./console-api/workspace";
 import {
   createDispatcher,
@@ -604,21 +601,11 @@ export function createGateway(
         (await handleConnections(forwarded, { registry, workspace, caller: identity })) ??
         (await handleAccessMatrix(forwarded, { registry, workspace, caller: identity })) ??
         (await handleSecretsStatus(forwarded, { registry, workspace, caller: identity })) ??
-        (await handleManifest(forwarded, { registry, workspace, caller: identity })) ??
-        (await handleTools(forwarded, { registry, workspace, caller: identity })) ??
         (await handleDatabase(forwarded, {
           registry,
           workspace,
           hosting: hostingOf,
           caller: identity,
-        })) ??
-        (await handleToolPages(forwarded, {
-          registry,
-          workspace,
-          caller: async () => {
-            const person = await identity();
-            return person ? { admin: person.admin, developer: person.developer } : undefined;
-          },
         })) ??
         (await handleWorkspace(forwarded, {
           registry,

@@ -66,6 +66,7 @@ Rules of the log:
 | D-064 | 04/11/2026 | The platform API moves to Hono one route at a time: route objects in `@forgeron/platform-contract`, a Hono shell in the gateway that falls through to the legacy chain | Active                                 |
 | D-065 | 04/11/2026 | The registry is split into modules behind the same `createRegistry`; the migration order stays global and frozen                                                       | Active                                 |
 | D-066 | 04/11/2026 | The catalog is the first contract served by Hono: the OpenAPI document is for signed-in members, the console calls it through a client that bundles no schema          | Active                                 |
+| D-067 | 04/11/2026 | The tool routes (list, branches, versions, activity, manifest) are served by Hono; a developer access level with a per-route 403 message                               | Active                                 |
 
 ---
 
@@ -787,3 +788,15 @@ Rules of the log:
 - **Rejected**: the route objects in the browser (the 27 KB above); a public document (see 4); a hand-written `Address` that is not checked against the route.
 - **Not verified**: the console was not run against a real gateway (only its tests with the typed client over `fetchJson`, and the production build); the image route and the document were not run in a browser or against a real D1; the document was checked for its paths, methods, statuses and media types, not against an OpenAPI validator.
 - **Applied in**: FOR-151; `packages/platform-contract` (`catalog.ts`, `route.ts`, `client.ts`), `apps/gateway/src/platform` (`catalog.ts`, `platform.ts`, `app.ts`), `apps/console/src/api.ts` and `features/portal/catalog.ts`, `docs/console-ux.md`.
+
+## D-067 — The tool routes (list, branches, versions, activity, manifest) are served by Hono; a developer access level with a per-route 403 message
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**:
+  1. **First of the read routes** (FOR-152, step 5 of the spike's migration order): `GET /api/tools` (any signed-in member) and `GET /api/tools/<tool>/{branches,versions,activity,manifest}` (admins and developers) are route objects in `packages/platform-contract` (`tools.ts`) and served from `apps/gateway/src/platform/tools.ts`. `console-api/manifest.ts` and the handlers of `tools.ts` and `tool-pages.ts` are deleted; what they computed stays (`listTools`, shared with the admin MCP, and `branches`, `versionsOf`, `activityOf`). The answers are the same JSON; the handlers are checked against the declared answers at compile time.
+  2. **Access `developer`** in the shell (`platformRoute(spec, "developer", forbidden?)`): 403 for anyone who is neither an admin nor a developer. The message of the 403 is a per-route option because the old handlers worded it differently (`This is for admins and developers.` for the tool page, `The manifest is for developers and admins.` for the manifest); `describeRouteMatrix` takes it as `forbidden`, and checks that an admin who is not a developer gets in.
+  3. **Unchanged on purpose**: the order (401, 403, then 404 for an unknown tool, so a plain member is never told whether a tool exists), `?limit=` on the activity route read leniently (anything but a positive integer is 50, at most 200; the contract types it as a string for that reason, no 400), the 405 on any other method (before anyone is asked who they are), the manifest's `404 NO_MANIFEST`.
+  4. **The tests are the old ones**, now calling the app through `platformCaller` (`platform/test-app.ts`): `tools.test.ts`, `tool-pages.test.ts` and `manifest.test.ts` keep their cases; `platform/tools.test.ts` adds the shared matrix for the five routes.
+- **Why**: one handler per pull request keeps each step reviewable (FOR-152); the tool page and the manifest are the first routes with a role other than admin, so the access level had to exist before the next ones.
+- **Not verified**: the console was not run against this build (it reads these routes through its own `fetchJson`; moving it to the typed client is a later step); the new contract schemas for these answers were written from the builders' types, and `manifest` is typed as a free record (the manifest schema has refinements the OpenAPI generator may not accept): the document was not checked with an OpenAPI validator.
+- **Applied in**: FOR-152 (tools); `packages/platform-contract/src/tools.ts`, `apps/gateway/src/platform` (`tools.ts`, `app.ts`, `route-matrix.ts`, `test-app.ts`), `apps/gateway/src/console-api` (`tools.ts`, `tool-pages.ts`).

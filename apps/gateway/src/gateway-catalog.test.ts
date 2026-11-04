@@ -286,11 +286,13 @@ describe("the OpenAPI document", () => {
     };
     expect(doc.openapi).toBe("3.1.0");
     expect(doc.servers).toEqual([{ url: "/console-api" }]);
-    expect(Object.keys(doc.paths).sort()).toEqual([
-      "/api/catalog",
-      "/api/catalog/{tool}",
-      "/api/catalog/{tool}/assets/{path}",
-    ]);
+    expect(Object.keys(doc.paths)).toEqual(
+      expect.arrayContaining([
+        "/api/catalog",
+        "/api/catalog/{tool}",
+        "/api/catalog/{tool}/assets/{path}",
+      ]),
+    );
     expect(Object.keys(doc.paths["/api/catalog/{tool}"]!.get!.responses).sort()).toEqual([
       "200",
       "401",
