@@ -12,7 +12,7 @@ import {
   type RegisteredEnvironment,
 } from "@forgeron/registry";
 import { audienceOf, parseAudience } from "../identity/audience";
-import type { Person } from "../identity/authenticate";
+import type { Person } from "../kernel/person";
 import { issueToken, verifyToken } from "../identity/tokens";
 
 /** The only scope a deployment token has today. */

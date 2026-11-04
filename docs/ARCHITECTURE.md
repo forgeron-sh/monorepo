@@ -203,6 +203,8 @@ Checked by `bun run deps` (dependency-cruiser, `.dependency-cruiser.cjs`) in CI.
 - `@forgeron/sdk` imports neither the compiler nor `hosting` (`sdk-stays-light`): a tool never ships a build or deployment tool;
 - `@forgeron/manifest` depends on no other package of the repository;
 - `@forgeron/ui` does not import the SDK.
+- the registry has one door, `@forgeron/registry` (`registry-door-is-index`): nothing outside the package imports a file under `packages/registry/src/` other than `index.ts`;
+- the gateway's `kernel/` (`Person`, `workspaceOf`) imports nothing else of the gateway (`gateway-kernel-is-a-leaf`); `dispatch/` and `pages/` never import `identity/` and `identity/` never imports `dispatch/` (`identity-is-below-dispatch-and-pages`, `identity-does-not-import-dispatch`): folder cycles that the file-level `no-cycles` cannot see.
 
 ## Tooling
 

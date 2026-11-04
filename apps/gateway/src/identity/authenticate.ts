@@ -1,12 +1,5 @@
+import type { Person } from "../kernel/person";
 import { verifyToken, type TokenClaims } from "./tokens";
-
-/** The person a tool's runtime sees (`@forgeron/runtime`'s `User`); roles come from the workspace. */
-export interface Person {
-  id: string;
-  email: string;
-  name: string;
-  roles: string[];
-}
 
 export interface AuthenticatorOptions {
   secret: string;

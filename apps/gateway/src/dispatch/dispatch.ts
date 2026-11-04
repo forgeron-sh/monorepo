@@ -5,6 +5,11 @@
 // Identity is not here: whether the caller may see a preview is asked of the hook
 // `canPreview`, which fails closed when absent.
 
+import { workspaceOf } from "../kernel/workspace";
+
+// Re-exported for the gateway and the tests: the function lives in the kernel (no cycle with identity).
+export { workspaceOf };
+
 /** What the registry knows of a tool: the Worker of each environment (`<workspace>--<tool>--…`). */
 export interface ToolEntry {
   production?: string;
@@ -65,33 +70,9 @@ export interface DispatcherOptions {
   canPreview?(caller: Caller & { branch: string }): boolean | Promise<boolean>;
 }
 
-// sdk.md §7: `[a-z0-9-]`, 3 to 40 characters; these are reserved.
-const WORKSPACE = /^[a-z0-9-]{3,40}$/;
-const RESERVED = new Set([
-  "www",
-  "app",
-  "api",
-  "docs",
-  "status",
-  "console",
-  "mcp",
-  "admin",
-  "auth",
-  "cdn",
-  "static",
-  "play",
-]);
+// sdk.md §7: workspace names are `[a-z0-9-]`, 3 to 40 characters (see `kernel/workspace.ts`).
 const TOOL = /^[a-z0-9][a-z0-9-]*$/;
 const BRANCH = /^[a-z0-9][a-z0-9._-]*$/;
-
-/** The workspace named by a host: exactly one label under the base domain. */
-export function workspaceOf(host: string, baseDomain: string): string | undefined {
-  const name = host.toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
-  const suffix = `.${baseDomain.toLowerCase()}`;
-  if (!name.endsWith(suffix)) return undefined;
-  const label = name.slice(0, -suffix.length);
-  return WORKSPACE.test(label) && !RESERVED.has(label) ? label : undefined;
-}
 
 export interface ToolPath {
   tool: string;

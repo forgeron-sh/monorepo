@@ -62,6 +62,7 @@ Rules of the log:
 | D-055 | 04/11/2026 | The pilot environment is removed: Forgeron has `local`, `preview` and `production`; a version goes from a preview to production                   | Active                                 |
 | D-059 | 04/11/2026 | The console reads a tool's database read only: statements built by the server, personal data masked by a `/* personal */` tag or a column name    | Active                                 |
 | D-062 | 04/11/2026 | The member space renders a README to React elements; links and images are allow-listed                                                            | Active                                 |
+| D-063 | 04/11/2026 | The registry has one door and the gateway has a kernel: folder cycles are forbidden by rules, each proved by a self-test case                     | Active                                 |
 
 ---
 
@@ -722,3 +723,17 @@ Rules of the log:
 - **Know**: a relative link in a README (to another file of the repository) has nothing to open and is shown as text. Raw HTML written in a README appears as visible text instead of disappearing. The Open button goes to `/t/<tool>/`, an address assumed from how tools are served. The contract has no links field, so the details column has no links yet; a changelog entry is free-form in the contract, so only entries that are a string or hold a line of text are shown.
 - **Not verified**: no real workspace was used: everything was seen on the harness in the in-app browser (dark and light, 375 px and desktop, keyboard only), not in Safari or Firefox, not with a screen reader. The console was not run against the real catalog API, only against the harness mock typed with the contract.
 - **Applied in**: FOR-138; `packages/ui/src` (`markdown`, `tool-card`), `apps/console/src/features/portal`, `apps/console/preview.html`.
+
+## D-063 — The registry has one door and the gateway has a kernel: folder cycles are forbidden by rules, each proved by a self-test case
+
+- **Date**: 04/11/2026 · **Status**: Active
+- **Decision**:
+  1. **`registry-door-is-index`**: code outside `packages/registry` imports `@forgeron/registry` only (its `src/index.ts`), never a file under `src/`. It holds today (the package `exports` already hides the files); the rule keeps it so when `registry.ts` is split into modules (FOR-156).
+  2. **`apps/gateway/src/kernel/`** holds what several gateway folders share and that belongs to none: `Person` (`person.ts`) and `workspaceOf` (`workspace.ts`, with the reserved names). It imports nothing else of the gateway (`gateway-kernel-is-a-leaf`).
+  3. **The two folder cycles are removed and forbidden**: `identity <-> dispatch` (`workspaceOf` in `auth.ts` and `email-auth.ts`, `Person` in `dispatch/user-secrets.ts`) and `identity <-> pages` (`Person` in `pages/cli.ts`). `identity` keeps rendering `pages`; `dispatch` and `pages` never import `identity` (`identity-is-below-dispatch-and-pages`, test files aside), and `identity` never imports `dispatch` (`identity-does-not-import-dispatch`). Each rule has a case in `scripts/deps-selftest.ts`.
+  4. `dispatch.ts` still exports `workspaceOf` (a re-export of the kernel's), so `gateway.ts` and `dispatch.test.ts` do not change. No behaviour change.
+- **Why**: `docs/spikes/module-model.md` (FOR-144) found that `no-cycles` is green at file level while two folder cycles exist; the kernel is the smallest move that removes both, and a rule is what keeps them from coming back.
+- **Rejected**: putting `Person` and `workspaceOf` in `packages/registry` (the ticket says "registry kernel"): `workspaceOf` parses a host and `Person` is the runtime's user, both gateway matters, and the registry would then export HTTP concerns to the gateway it serves; the registry's own kernel (ids, clock, `secretBox`, `auditStatement`) comes with FOR-156. Folding the folder rules into `no-cycles` with `--collapse`: dependency-cruiser finds cycles before it collapses, so a folder cycle stays invisible (tried on the old and the new tree: both report nothing).
+- **Know**: the rule that `identity` is below `dispatch` and `pages` is a direction chosen because `identity` renders pages and not the reverse; a future folder that both need goes in the kernel.
+- **Not verified**: folder cycles other than the two named (the check above cannot find them), the rest of `apps/gateway` beyond the touched tests and the typecheck.
+- **Applied in**: FOR-155; `.dependency-cruiser.cjs`, `scripts/deps-selftest.ts`, `apps/gateway/src/kernel`, `docs/ARCHITECTURE.md` ("Dependency rules").
