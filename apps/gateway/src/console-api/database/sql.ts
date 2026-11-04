@@ -1,7 +1,7 @@
 // The statements of the database explorer. The server builds every one of them itself, from
 // parameters it has validated against the table's own metadata: an identifier is only ever one the
 // database reported (and is quoted), a value is only ever bound. There is no way to hand it SQL, and
-// `assertSelect` refuses anything that is not one `SELECT`, whatever built it (docs/DECISIONS.md, D-057).
+// `assertSelect` refuses anything that is not one `SELECT`, whatever built it (docs/DECISIONS.md, D-058).
 
 export const PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;

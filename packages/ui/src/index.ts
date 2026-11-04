@@ -42,3 +42,4 @@ export type {
 } from "./data-grid";
 export { Drawer } from "./drawer";
 export type { DrawerProps } from "./drawer";
+export * from "./architecture";
