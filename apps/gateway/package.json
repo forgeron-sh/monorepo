@@ -11,7 +11,8 @@
     "@forgeron/hosting": "workspace:*",
     "@forgeron/manifest": "workspace:*",
     "@forgeron/playground": "workspace:*",
-    "@forgeron/registry": "workspace:*"
+    "@forgeron/registry": "workspace:*",
+    "awilix": "13.0.5"
   },
   "devDependencies": {
     "@forgeron/runtime": "workspace:*",
