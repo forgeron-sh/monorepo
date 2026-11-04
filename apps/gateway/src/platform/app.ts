@@ -4,6 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import type { Hosting } from "@forgeron/hosting";
 import type { IdentityConfig, Invitation, Registry } from "@forgeron/registry";
 import type { MiddlewareHandler } from "hono";
+import type { Person } from "../kernel/person";
 
 // The platform API under `/console-api` as one Hono app (D-064, FOR-150). Routes move here one
 // handler at a time: Hono answers the paths it owns, and for any other path it answers 404 with
@@ -21,8 +22,25 @@ export interface ConsolePerson {
   roles: string[];
 }
 
+/** What the routes outside `/console-api` need: the token secret and who is calling. */
+interface BearerBindings {
+  /** `AUTH_SECRET`: the key deployment and personal tokens are signed with. */
+  secret: string;
+  /** The person behind a session or a token of `forgeron login`, if any. */
+  person(): Promise<Person | undefined>;
+  /** The person of the session cookie alone, if any. */
+  session(): Promise<Person | undefined>;
+}
+
 /** What the gateway hands to each request: Hono's `env`. */
-interface PlatformBindings {
+export interface PlatformBindings {
+  /**
+   * Which path the request came on: `console` for `/console-api/…` (the console's routes), `root`
+   * for `/whoami`, `/deploy`… (the CLI's). A route answers only on its own surface.
+   */
+  surface: "console" | "root";
+  /** Set where identity is on (`AUTH_SECRET`): the routes of the CLI fail closed without it. */
+  bearer?: BearerBindings;
   identity(): Promise<ConsolePerson | undefined>;
   registry: Registry;
   /** The workspace the request was dispatched to. */

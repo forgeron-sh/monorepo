@@ -1,9 +1,11 @@
+import { addresses } from "@forgeron/platform-contract/client";
 import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { parseArgs } from "node:util";
 import { clearCredentials, readCredentials, writeCredentials } from "../credentials";
 import { UsageError, type Io } from "../io";
+import { platformClient, refusal } from "../platform-client";
 import { checkWorkspace, defaultEndpoint, readProject } from "../project";
 
 const LOGIN_USAGE = "Usage: forgeron login [--workspace <name>] [--endpoint <url>]";
@@ -95,19 +97,14 @@ export async function login(args: string[], io: Io): Promise<number> {
       return 1;
     }
 
-    const response = await fetch(new URL("/auth/cli/token", endpoint), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code, code_verifier: verifier, redirect_uri: redirectUri }),
+    const answer = await platformClient(endpoint)(addresses.cliToken, {
+      json: { code, code_verifier: verifier, redirect_uri: redirectUri },
     });
-    const body = (await response.json().catch(() => undefined)) as
-      | { token?: string; error?: { message?: string } }
-      | undefined;
-    if (!response.ok || !body?.token) {
-      io.error(body?.error?.message ?? `The workspace answered ${response.status}.`);
+    if (answer.status !== 200 || !answer.body?.token) {
+      io.error(refusal(answer));
       return 1;
     }
-    const where = await writeCredentials(body.token, process.env, io.keychain);
+    const where = await writeCredentials(answer.body.token, process.env, io.keychain);
     io.log(
       `Signed in to ${new URL(endpoint).host}. The token is stored in ${
         where === "keychain"
@@ -143,20 +140,16 @@ export async function whoami(args: string[], io: Io): Promise<number> {
   if (!token) throw new UsageError("Not signed in: run `forgeron login` first.");
   const endpoint = await endpointOf(values, io);
 
-  const response = await fetch(new URL("/whoami", endpoint), {
-    headers: { authorization: `Bearer ${token}` },
-  });
-  const body = (await response.json().catch(() => undefined)) as
-    | { name?: string; email?: string; workspace?: string; error?: { message?: string } }
-    | undefined;
-  if (!response.ok || !body?.email) {
+  const answer = await platformClient(endpoint, token)(addresses.whoami);
+  if (answer.status !== 200 || !answer.body?.email) {
     io.error(
-      response.status === 401
+      answer.status === 401
         ? "The stored token is not valid any more: run `forgeron login` again."
-        : (body?.error?.message ?? `The workspace answered ${response.status}.`),
+        : refusal(answer),
     );
     return 1;
   }
+  const body = answer.body;
   io.log(
     `${body.name ?? body.email} <${body.email}> on ${body.workspace ?? new URL(endpoint).host}`,
   );

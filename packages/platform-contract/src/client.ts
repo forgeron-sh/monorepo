@@ -63,7 +63,14 @@ export function createClient(fetchImpl: typeof fetch, base: string) {
       },
       ...(json === undefined ? {} : { body: JSON.stringify(json) }),
     });
+    // An answer that is not JSON (a gateway page, a proxy's error) has a status and no body.
     const text = await response.text();
-    return { status: response.status, body: text ? JSON.parse(text) : undefined } as Answer<R>;
+    let body: unknown;
+    try {
+      body = text ? JSON.parse(text) : undefined;
+    } catch {
+      body = undefined;
+    }
+    return { status: response.status, body } as Answer<R>;
   };
 }

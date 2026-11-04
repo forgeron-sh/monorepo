@@ -52,6 +52,18 @@ export function typedSender(sendJson: SendJson) {
 }
 
 /** The body of a route's success; any other status was thrown as `ApiError` by the transport. */
+/**
+ * The typed client for the routes outside `/console-api` (`/promote`, `/rollback`, `/deploy`), over
+ * the screens' `sendPlatform`: a refusal throws `ApiError` there, so only the success is answered here.
+ */
+export function typedPlatform(send: SendPlatform) {
+  return createClient(async (input, init) => {
+    const method = (init?.method ?? "POST").toUpperCase() === "DELETE" ? "DELETE" : "POST";
+    const body = typeof init?.body === "string" ? (JSON.parse(init.body) as unknown) : undefined;
+    return Response.json(await send(String(input), body, method));
+  }, "");
+}
+
 export function ok<A extends { status: number; body: unknown }>(
   answer: A,
 ): Extract<A, { status: 200 | 201 | 204 }>["body"] {
