@@ -972,7 +972,7 @@ Rules of the log:
 - **Not verified**: no real MCP client (Claude) was connected, only JSON-RPC over the gateway in tests; no deployed gateway; hosting is simulated for the promotions.
 - **Applied in**: `apps/gateway/src/admin-mcp/`, `compose.ts`, `gateway.ts`, `identity/authn/caller.ts`, `platform/{app,access-matrix,approvals,members,bearer}.ts`, `deploy/promote.ts`, `packages/registry/src/{deploy.ts,modules/access,modules/members}`, `.dependency-cruiser.cjs`, `docs/sdk.md` §17.
 
-## D-080 — The template catalogue is the tools of the reserved workspace `@templates`; installing one copies its latest version into the workspace, audited, with its approvals pending
+## D-081 — The template catalogue is the tools of the reserved workspace `@templates`; installing one copies its latest version into the workspace, audited, with its approvals pending
 
 - **Date**: 06/11/2026 · **Status**: Active
 - **Decision** (FOR-160, `docs/sdk.md` §17; the launch list of templates stays FOR-30):

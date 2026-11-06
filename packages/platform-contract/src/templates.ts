@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
-// The template catalogue and the installation of a template (D-080, docs/sdk.md §17). Both are for
+// The template catalogue and the installation of a template (D-081, docs/sdk.md §17). Both are for
 // admins: installing creates a tool and its requests for resources.
 
 const json = <T extends z.ZodType>(schema: T, description: string) => ({

@@ -3,7 +3,7 @@ import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// The template catalogue and its installation (D-080), for admins. The registry audits the install
+// The template catalogue and its installation (D-081), for admins. The registry audits the install
 // in the same batch as the tool; the actor is the person, and `via` the door when it is the MCP.
 
 export function mountTemplates(app: OpenAPIHono<PlatformEnv>): void {

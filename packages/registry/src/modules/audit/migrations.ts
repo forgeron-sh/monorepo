@@ -57,7 +57,7 @@ export const auditMigrations: BuildMigration[] = [
     down: [],
   },
   {
-    // Installing a template (D-080) is audited: `install` joins the kinds. Rebuilt as in 0014.
+    // Installing a template (D-081) is audited: `install` joins the kinds. Rebuilt as in 0014.
     name: "0022_audit_install",
     fingerprint: "audit-install-v1",
     destructive: false,

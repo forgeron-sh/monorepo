@@ -1,4 +1,4 @@
-// The template catalogue (D-080): the tools of the reserved workspace `@templates`, published with
+// The template catalogue (D-081): the tools of the reserved workspace `@templates`, published with
 // the calls a deployment uses (a build, its docs, a version). Installing one copies its latest version
 // into a workspace as a new tool, in one batch with the audit line. Nothing is deployed: the tool has
 // a version and its pending approvals, and goes to an environment through the usual promotion.
