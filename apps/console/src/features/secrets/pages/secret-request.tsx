@@ -5,7 +5,7 @@ import { ApiError, ok, typedSender } from "../../../api";
 import type { PageProps } from "../../../shell/page-props";
 import { useLoad } from "../../../use-load";
 
-// Where a person types a tool's secret after the admin MCP gave them a link (docs/sdk.md §17, D-080).
+// Where a person types a tool's secret after the admin MCP gave them a link (docs/sdk.md §17, D-083).
 // The token of the link is in the part of the address after `#`, which a browser never sends to a
 // server: it is read once, taken out of the address bar and the history, and sent in a body. The value
 // is held in this field only: it is sent in a body, never put in an address, and nothing the platform

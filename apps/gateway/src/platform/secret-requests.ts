@@ -8,7 +8,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// Entering a secret from a link (docs/sdk.md §17, D-080). The link is asked for by a developer (or by
+// Entering a secret from a link (docs/sdk.md §17, D-083). The link is asked for by a developer (or by
 // the admin MCP for them) and used by the same person, signed in, on the console page. A value is
 // read from the body of `fulfil`, handed to the registry and dropped: it is in no answer and no line.
 

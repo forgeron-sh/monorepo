@@ -40,11 +40,11 @@ export const secretsMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "user_secrets"`)],
   },
   {
-    // Secret requests (D-080): a short-lived, single-use link to the page where a person types a
+    // Secret requests (D-083): a short-lived, single-use link to the page where a person types a
     // tool secret themselves. Only the hash of the link's token is kept, never the token. `claim` is
     // set by the batch that spends the link, so the secret and its audit line are written only by
     // the batch that won.
-    name: "0022_secret_requests",
+    name: "0023_secret_requests",
     fingerprint: "secret-requests-v1",
     destructive: false,
     up: [

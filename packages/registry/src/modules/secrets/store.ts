@@ -9,7 +9,7 @@ export type CatalogPort = { requireTool: Catalog["requireTool"] } & Pick<
   "getBuild" | "listVersions"
 >;
 
-/** How long a link to enter a secret lives (D-080). */
+/** How long a link to enter a secret lives (D-083). */
 const SECRET_REQUEST_TTL_MS = 15 * 60 * 1000;
 
 const toBase64Url = (bytes: Uint8Array) =>
@@ -194,7 +194,7 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
       return found.length;
     },
 
-    // ---- requests to enter a secret (D-080): the admin MCP never sees a value, it hands a link
+    // ---- requests to enter a secret (D-083): the admin MCP never sees a value, it hands a link
     /**
      * Opens a link where `person` types the secret `name` of a tool in an environment. Returns the
      * link's token once; only its hash is kept. The line in the audit log carries no token.

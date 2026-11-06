@@ -13,7 +13,7 @@ import { issueToken } from "../identity/authn/tokens";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// `secret_request` (sdk.md §17, D-080) through the whole gateway: the MCP hands a link and never sees
+// `secret_request` (sdk.md §17, D-083) through the whole gateway: the MCP hands a link and never sees
 // a value; the person types the value on the console API, once, as themselves, before the link
 // expires. The people, the keys and the values are test values.
 

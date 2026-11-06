@@ -791,7 +791,7 @@ Each tool calls the platform's own routes with the signed-in person's identity, 
 
 ### Safeguards
 
-- **Secret values never go through Claude.** No tool reads or writes a secret value. `secret_request` returns a link to a console page where the person types it: the link is single use, lasts 15 minutes, is bound to the person and works only on a signed-in session of theirs (D-080).
+- **Secret values never go through Claude.** No tool reads or writes a secret value. `secret_request` returns a link to a console page where the person types it: the link is single use, lasts 15 minutes, is bound to the person and works only on a signed-in session of theirs (D-083).
 - **Installing takes two steps.** `tool_install_plan` returns the plan and the requested resources; `tool_install` only accepts that plan's identifier. An instruction slipped into a document cannot install a tool in one go.
 - **Destructive tools** carry the MCP `destructiveHint` annotation, so the client asks before it calls them.
 - **No elevation.** The MCP acts with the rights of the signed-in person, read from the token's person at each call and never from an argument: it cannot approve what they could not approve in the console, and every tool it offers is the console's own route behind the same guard. Granting a role is an admin's tool.

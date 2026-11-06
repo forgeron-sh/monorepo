@@ -79,7 +79,7 @@ Rules of the log:
 | D-077 | 04/11/2026 | The gateway is composed in `compose.ts`: modules built once, a `RequestContext` per request with a memoised person, and each area takes a narrow port                  | Active                                 |
 | D-078 | 04/11/2026 | `identity/` is split into `authn`, `sign-in` and `cli-login`; the tests that drive the whole gateway move to `integration/`                                            | Active                                 |
 | D-079 | 04/11/2026 | The admin MCP is served at `/mcp` with a CLI token as Bearer; its tools call the platform's routes as the caller and the audit says `via`                              | Active                                 |
-| D-080 | 06/11/2026 | The admin MCP asks for a secret with a single-use link to a console page; it never takes or sees the value                                                             | Active                                 |
+| D-083 | 06/11/2026 | The admin MCP asks for a secret with a single-use link to a console page; it never takes or sees the value                                                             | Active                                 |
 
 ---
 
@@ -973,13 +973,13 @@ Rules of the log:
 - **Not verified**: no real MCP client (Claude) was connected, only JSON-RPC over the gateway in tests; no deployed gateway; hosting is simulated for the promotions.
 - **Applied in**: `apps/gateway/src/admin-mcp/`, `compose.ts`, `gateway.ts`, `identity/authn/caller.ts`, `platform/{app,access-matrix,approvals,members,bearer}.ts`, `deploy/promote.ts`, `packages/registry/src/{deploy.ts,modules/access,modules/members}`, `.dependency-cruiser.cjs`, `docs/sdk.md` §17.
 
-## D-080 — The admin MCP asks for a secret with a single-use link to a console page; it never takes or sees the value
+## D-083 — The admin MCP asks for a secret with a single-use link to a console page; it never takes or sees the value
 
 - **Date**: 06/11/2026 · **Status**: Active
 - **Decision** (FOR-163, `docs/sdk.md` §17):
   1. **Tool**: `secret_request` (developer) takes a tool, an environment (`preview` or `production`) and a secret name, and returns `{ url, expiresAt, note }`. Its input is strict (a `value` is refused) and it has no value in its output: the link only.
   2. **Link**: `https://<workspace>.<base>/secret-request#<token>`, 32 random bytes in base64url. The token is in the **fragment**, which a browser never sends to a server, so no gateway, proxy or CDN log holds it; the page reads it, removes it from the address bar and the history, and sends it in a body.
-  3. **Record** (`secret_requests`, migration `0022`, secrets module): the SHA-256 hash of the token (never the token), the tool, the environment, the name, the person it was issued to, `expires_at`, `used_at` and a `claim`. It lives **15 minutes** and works **once**.
+  3. **Record** (`secret_requests`, migration `0023`, secrets module): the SHA-256 hash of the token (never the token), the tool, the environment, the name, the person it was issued to, `expires_at`, `used_at` and a `claim`. It lives **15 minutes** and works **once**.
   4. **Routes** (`platform-contract/secret-requests.ts`): `POST /api/tools/{tool}/environments/{env}/secrets/{name}/request` (developer or admin; takes no body, answers `201 { url, expiresAt }`), `POST /api/secret-requests/lookup` (what a link is for, spends nothing) and `POST /api/secret-requests/fulfil` (sets the value). The last two are for any signed-in member: the link, not the role, is the right, and it is bound to one person.
   5. **Bound to the person**: lookup and fulfil answer `404` (the same body) for a link that is unknown, another person's, another workspace's or already used, and `410` for an expired one, so a link does not say that it exists to someone else and a wrong person does not spend it. They also need the **session** of that person: a CLI token of the same person (the admin MCP's credential) is refused with `401`, so that a program holding it cannot type a value in the person's place.
   6. **One batch**: fulfilling is one `d1.batch` of three statements: the claim (a conditional `UPDATE`: not used, the right person, not expired, with a fresh `claim`), the sealed secret and the audit line, the last two written **only if this batch holds the claim** (`INSERT … SELECT … WHERE EXISTS`, and `auditStatement` takes an optional `onlyIf`). Two parallel uses cannot both set a value, and a use never leaves a secret without its line, or a line without its secret. The value is sealed before the batch, so a registry without a key refuses before it spends the link.
