@@ -65,9 +65,12 @@ afterEach(() => memory.close());
 
 describe("0019_remove_pilot", () => {
   it("removes the pilot of an installed platform and keeps everything else", async () => {
-    expect(await migratePlatform(d1)).toEqual({
-      applied: ["0019_remove_pilot", "0020_deployment_commit", "0021_tool_docs"],
-    });
+    // Later migrations may follow these three: only the first ones belong to this test.
+    expect((await migratePlatform(d1)).applied.slice(0, 3)).toEqual([
+      "0019_remove_pilot",
+      "0020_deployment_commit",
+      "0021_tool_docs",
+    ]);
 
     expect(await rows(`SELECT "id", "name" FROM "environments" ORDER BY "id"`)).toEqual([
       { id: "e-prev", name: "preview" },

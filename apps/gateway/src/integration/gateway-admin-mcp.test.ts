@@ -256,13 +256,19 @@ describe("who may reach /mcp", () => {
 
 describe("the tools and their minimum role", () => {
   const MEMBER = ["catalog_search", "catalog_get", "tools_list", "tool_get"];
-  const DEVELOPER = [...MEMBER, "tool_versions", "tool_changelog", "secrets_status"];
+  const DEVELOPER = [
+    ...MEMBER,
+    "tool_versions",
+    "tool_changelog",
+    "secrets_status",
+    "secret_request",
+  ];
 
   it("offers each person the tools their role allows", async () => {
     expect((await listed(ana)).sort()).toEqual([...MEMBER].sort());
     expect((await listed(dev)).sort()).toEqual([...DEVELOPER].sort());
     expect((await listed(root)).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(14);
+    expect(TOOLS).toHaveLength(15);
   });
 
   it("marks what changes something with destructiveHint, and nothing else", async () => {

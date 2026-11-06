@@ -7,3 +7,15 @@ export interface SecretStatus {
   name: string;
   environments: Record<RegisteredEnvironment, SecretState>;
 }
+
+/** What a person is shown about a link before they type: where the secret goes, never a value. */
+export interface SecretRequestInfo {
+  toolId: string;
+  tool: string;
+  environment: RegisteredEnvironment;
+  name: string;
+  expiresAt: string;
+}
+
+/** Why a link cannot be used: it is unknown or another person's, it ran out, or it was spent. */
+export type SecretRequestRefusal = "unknown" | "expired" | "used";

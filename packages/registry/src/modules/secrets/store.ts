@@ -1,6 +1,6 @@
 import type { RegisteredEnvironment } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
-import type { SecretState, SecretStatus } from "./types";
+import type { SecretRequestInfo, SecretRequestRefusal, SecretState, SecretStatus } from "./types";
 import type { Catalog } from "../catalog/public";
 
 /** What this module asks of the catalog: narrow, and only through its public API. */
@@ -9,8 +9,23 @@ export type CatalogPort = { requireTool: Catalog["requireTool"] } & Pick<
   "getBuild" | "listVersions"
 >;
 
+/** How long a link to enter a secret lives (D-080). */
+const SECRET_REQUEST_TTL_MS = 15 * 60 * 1000;
+
+const toBase64Url = (bytes: Uint8Array) =>
+  btoa(String.fromCharCode(...bytes))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
+
+/** What is stored in place of a link's token: nobody can get the link back from the database. */
+async function hashToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function createSecrets(kernel: Kernel, catalog: CatalogPort) {
-  const { now, all, write, secretBox } = kernel;
+  const { d1, now, newId, all, first, write, secretBox, auditStatement } = kernel;
   const { requireTool } = catalog;
   const slot = (toolId: string, environment: string, name: string) =>
     `${toolId}/${environment}/${name}`;
@@ -177,6 +192,142 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
         ...(name === undefined ? [toolId, person] : [toolId, person, name]),
       );
       return found.length;
+    },
+
+    // ---- requests to enter a secret (D-080): the admin MCP never sees a value, it hands a link
+    /**
+     * Opens a link where `person` types the secret `name` of a tool in an environment. Returns the
+     * link's token once; only its hash is kept. The line in the audit log carries no token.
+     */
+    async requestSecret(input: {
+      toolId: string;
+      environment: RegisteredEnvironment;
+      name: string;
+      person: string;
+      via?: string;
+    }): Promise<{ token: string; expiresAt: string }> {
+      await requireTool(input.toolId);
+      const token = toBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+      const at = now();
+      const expiresAt = new Date(Date.parse(at) + SECRET_REQUEST_TTL_MS).toISOString();
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "secret_requests" ("id", "token_hash", "tool_id", "environment", "name", "person", "created_at", "expires_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            newId(),
+            await hashToken(token),
+            input.toolId,
+            input.environment,
+            input.name,
+            input.person,
+            at,
+            expiresAt,
+          ),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.person,
+            ...(input.via ? { via: input.via } : {}),
+            kind: "access",
+            subject: `secret:${input.name}`,
+            detail: { event: "secret-requested", environment: input.environment },
+          },
+          at,
+        ),
+      ]);
+      return { token, expiresAt };
+    },
+    /** What a link is for, if `person` may use it now; otherwise why not. Spends nothing. */
+    async secretRequest(
+      workspace: string,
+      token: string,
+      person: string,
+    ): Promise<SecretRequestInfo | SecretRequestRefusal> {
+      const row = await first(
+        `SELECT r."tool_id", t."name" AS "tool", r."environment", r."name", r."person", r."expires_at", r."used_at"
+FROM "secret_requests" r JOIN "tools" t ON t."id" = r."tool_id"
+WHERE r."token_hash" = ? AND t."workspace" = ?`,
+        await hashToken(token),
+        workspace,
+      );
+      // Another person's link, or another workspace's, is the same answer as no link.
+      if (!row || String(row.person) !== person) return "unknown";
+      if (row.used_at !== null && row.used_at !== undefined) return "used";
+      if (String(row.expires_at) <= now()) return "expired";
+      return {
+        toolId: String(row.tool_id),
+        tool: String(row.tool),
+        environment: String(row.environment) as RegisteredEnvironment,
+        name: String(row.name),
+        expiresAt: String(row.expires_at),
+      };
+    },
+    /**
+     * Spends the link and sets the secret. The claim, the sealed value and the audit line are ONE
+     * `d1.batch`: the claim is a conditional update, and the other two are written only if this
+     * batch made it, so two parallel uses cannot both set a value, and a use never leaves a line
+     * without a secret or a secret without a line.
+     */
+    async fulfilSecretRequest(
+      workspace: string,
+      token: string,
+      person: string,
+      value: string,
+      via?: string,
+    ): Promise<SecretRequestInfo | SecretRequestRefusal> {
+      const info = await this.secretRequest(workspace, token, person);
+      if (typeof info === "string") return info;
+      const hash = await hashToken(token);
+      const sealed = await secretBox().seal(slot(info.toolId, info.environment, info.name), value);
+      const at = now();
+      const claim = newId();
+      const mine = {
+        sql: `SELECT 1 FROM "secret_requests" WHERE "token_hash" = ? AND "claim" = ?`,
+        values: [hash, claim],
+      };
+      await d1.batch([
+        d1
+          .prepare(
+            `UPDATE "secret_requests" SET "used_at" = ?, "claim" = ? WHERE "token_hash" = ? AND "person" = ? AND "used_at" IS NULL AND "expires_at" > ?`,
+          )
+          .bind(at, claim, hash, person, at),
+        d1
+          .prepare(
+            `INSERT INTO "secrets" ("tool_id", "environment", "name", "iv", "ciphertext", "updated_at")
+SELECT ?, ?, ?, ?, ?, ? WHERE EXISTS (${mine.sql})
+ON CONFLICT ("tool_id", "environment", "name")
+DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updated_at" = excluded."updated_at"`,
+          )
+          .bind(
+            info.toolId,
+            info.environment,
+            info.name,
+            sealed.iv,
+            sealed.ciphertext,
+            at,
+            ...mine.values,
+          ),
+        auditStatement(
+          {
+            toolId: info.toolId,
+            actor: person,
+            ...(via ? { via } : {}),
+            kind: "access",
+            subject: `secret:${info.name}`,
+            detail: { event: "secret-set", environment: info.environment },
+          },
+          at,
+          mine,
+        ),
+      ]);
+      const won = await first(mine.sql, ...mine.values);
+      return won
+        ? info
+        : (await this.secretRequest(workspace, token, person)) === "expired"
+          ? "expired"
+          : "used";
     },
   };
 }

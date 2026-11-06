@@ -41,6 +41,11 @@ export {
   putIdentityProviderRoute,
 } from "./identity";
 export { MAX_SECRET_VALUE, listSecretsRoute, setSecretRoute } from "./secrets";
+export {
+  createSecretRequestRoute,
+  fulfilSecretRequestRoute,
+  lookupSecretRequestRoute,
+} from "./secret-requests";
 export { decideApprovalRoute, listApprovalsRoute } from "./approvals";
 export {
   listUserSecretHoldersRoute,

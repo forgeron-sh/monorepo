@@ -87,6 +87,41 @@ describeRouteMatrix({
   valid: { value: "x" },
   invalid: [{}, { value: "" }, { value: 1 }, { value: "x".repeat(16 * 1024 + 1) }],
 });
+describeRouteMatrix({
+  title: "POST a request to enter a secret",
+  access: "developer",
+  call: through,
+  method: "POST",
+  path: "/api/tools/crm/environments/production/secrets/ODOO_KEY/request",
+  forbidden: "Asking for a link to enter a secret is for developers and admins.",
+  noBody: true,
+});
+const TOKEN = "t".repeat(43);
+describeRouteMatrix({
+  title: "POST lookup of a secret request",
+  access: "member",
+  call: through,
+  method: "POST",
+  path: "/api/secret-requests/lookup",
+  invalidMessage: "Send `{ token }`.",
+  valid: { token: TOKEN },
+  invalid: [{}, { token: "short" }, { token: TOKEN, extra: 1 }],
+});
+describeRouteMatrix({
+  title: "POST fulfilment of a secret request",
+  access: "member",
+  call: through,
+  method: "POST",
+  path: "/api/secret-requests/fulfil",
+  invalidMessage: "Send `{ token, value }`; `value` is 16 KB at most.",
+  valid: { token: TOKEN, value: "x" },
+  invalid: [
+    { token: TOKEN },
+    { token: TOKEN, value: "" },
+    { value: "x" },
+    { token: TOKEN, value: 1 },
+  ],
+});
 
 describe("the identity and secrets routes", () => {
   it("answer a bad provider with the parser's own message, and 405 to another method", async () => {
