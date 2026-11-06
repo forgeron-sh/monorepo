@@ -7,6 +7,7 @@ import { mountConsent } from "./consent";
 import { mountDatabase } from "./database";
 import { mountIdentity } from "./identity";
 import { mountMembers } from "./members";
+import { mountSecretRequests } from "./secret-requests";
 import { mountSecrets } from "./secrets";
 import { mountTemplates } from "./templates";
 import { mountTools } from "./tools";
@@ -25,6 +26,7 @@ export function createPlatform() {
   mountMembers(app);
   mountIdentity(app);
   mountSecrets(app);
+  mountSecretRequests(app);
   mountApprovals(app);
   mountTemplates(app);
   mountBearer(app);

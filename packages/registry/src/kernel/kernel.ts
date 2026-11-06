@@ -29,10 +29,23 @@ export function createKernel(d1: D1Database, options: RegistryOptions = {}) {
   const first = async (sql: string, ...values: unknown[]) => (await all(sql, ...values))[0];
   const write = (sql: string, ...values: unknown[]) => d1.batch([d1.prepare(sql).bind(...values)]);
 
-  const auditStatement = (entry: AuditEntry, at: string) =>
+  /**
+   * The audit line as a statement for a `d1.batch`. With `onlyIf` (a SQL condition and its values)
+   * the line is written only when the condition holds, so that a batch whose first statement
+   * claims something can keep the line from a claim that was lost.
+   */
+  const auditStatement = (
+    entry: AuditEntry,
+    at: string,
+    onlyIf?: { sql: string; values: unknown[] },
+  ) =>
     d1
       .prepare(
-        `INSERT INTO "audit_log" ("id", "at", "tool_id", "actor", "interface", "via", "kind", "subject", "version_id", "result", "detail") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO "audit_log" ("id", "at", "tool_id", "actor", "interface", "via", "kind", "subject", "version_id", "result", "detail") ${
+          onlyIf
+            ? `SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (${onlyIf.sql})`
+            : "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        }`,
       )
       .bind(
         newId(),
@@ -46,6 +59,7 @@ export function createKernel(d1: D1Database, options: RegistryOptions = {}) {
         entry.versionId ?? null,
         entry.result ?? "ok",
         entry.detail === undefined ? null : JSON.stringify(entry.detail),
+        ...(onlyIf?.values ?? []),
       );
 
   const secretBox = (): SecretBox => {

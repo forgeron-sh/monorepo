@@ -66,6 +66,8 @@ export type {
   Registry,
   RegistryErrorCode,
   RegistryOptions,
+  SecretRequestInfo,
+  SecretRequestRefusal,
   SecretState,
   SecretStatus,
   RegisteredEnvironment,

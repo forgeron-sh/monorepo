@@ -1,4 +1,5 @@
 import {
+  createSecretRequestRoute,
   decideApprovalRoute,
   getAccessMatrixRoute,
   listApprovalsRoute,
@@ -50,6 +51,7 @@ export interface ToolDefinition {
 const NAME = /^[a-z0-9][a-z0-9-]*$/;
 const ROLE = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/;
 const tool = z.string().regex(NAME).max(60).describe("The tool's name");
+const SECRET_NAME = /^[A-Z][A-Z0-9_]*$/;
 const environment = z.enum(["production", "preview"]);
 const branch = z.string().min(1).max(100).optional();
 const reason = z.string().max(500).optional().describe("Why, in the audit line");
@@ -246,6 +248,30 @@ export const TOOLS: readonly ToolDefinition[] = [
     input: z.strictObject({ tool }),
     run: ({ tool: name }, port) =>
       ask(port, { method: "GET", path: at(secretsStatusRoute.path, { tool: name }) }),
+  }),
+  define({
+    name: "secret_request",
+    title: "Ask for a link to enter a secret",
+    description:
+      "Gives a link to a console page where YOU type a tool's secret yourself; open it signed in as the same person. The link works once for 15 minutes. Never put the value in the conversation: this tool takes no value and returns only the link.",
+    minRole: "developer",
+    destructive: false,
+    input: z.strictObject({
+      tool,
+      environment,
+      name: z.string().regex(SECRET_NAME).max(100).describe("The secret's name, as `API_KEY`"),
+    }),
+    async run({ tool: toolName, environment: env, name }, port) {
+      const { url, expiresAt } = (await ask(port, {
+        method: "POST",
+        path: at(createSecretRequestRoute.path, { tool: toolName, environment: env, name }),
+      })) as { url: string; expiresAt: string };
+      return {
+        url,
+        expiresAt,
+        note: "Open this link while signed in to the console as yourself and type the value there. It is single use.",
+      };
+    },
   }),
   define({
     name: "resources_pending",

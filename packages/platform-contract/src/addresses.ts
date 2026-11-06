@@ -33,6 +33,11 @@ import type {
   revokeUserSecretRoute,
   revokeUserSecretsRoute,
 } from "./revocations";
+import type {
+  createSecretRequestRoute,
+  fulfilSecretRequestRoute,
+  lookupSecretRequestRoute,
+} from "./secret-requests";
 import type { listSecretsRoute, setSecretRoute } from "./secrets";
 import type { installTemplateRoute, listTemplatesRoute } from "./templates";
 import type { secretsStatusRoute } from "./secrets-status";
@@ -94,6 +99,10 @@ export const addresses = {
     method: "post",
     path: "/api/approvals/{id}",
   }),
+  createSecretRequest: addressOf<typeof createSecretRequestRoute>({
+    method: "post",
+    path: "/api/tools/{tool}/environments/{environment}/secrets/{name}/request",
+  }),
   deleteConnectorClient: addressOf<typeof deleteConnectorClientRoute>({
     method: "delete",
     path: "/api/connector-clients/{type}",
@@ -101,6 +110,10 @@ export const addresses = {
   deleteIdentityProvider: addressOf<typeof deleteIdentityProviderRoute>({
     method: "delete",
     path: "/api/identity-provider",
+  }),
+  fulfilSecretRequest: addressOf<typeof fulfilSecretRequestRoute>({
+    method: "post",
+    path: "/api/secret-requests/fulfil",
   }),
   getAccessMatrix: addressOf<typeof getAccessMatrixRoute>({
     method: "get",
@@ -139,6 +152,10 @@ export const addresses = {
   listUserSecretHolders: addressOf<typeof listUserSecretHoldersRoute>({
     method: "get",
     path: "/api/tools/{tool}/user-secrets",
+  }),
+  lookupSecretRequest: addressOf<typeof lookupSecretRequestRoute>({
+    method: "post",
+    path: "/api/secret-requests/lookup",
   }),
   putAccessMatrix: addressOf<typeof putAccessMatrixRoute>({
     method: "put",

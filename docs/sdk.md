@@ -777,6 +777,7 @@ Each tool calls the platform's own routes with the signed-in person's identity, 
 | `tool_changelog`                 | A tool's changelog, optionally since a version                                               | developer                     |             |
 | `tool_versions`                  | Versions and environments                                                                    | developer                     |             |
 | `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                             | developer                     |             |
+| `secret_request`                 | A link where you type a tool's secret yourself; single use, never the value                  | developer                     |             |
 | `tool_promote`                   | Promotes a version to an environment (never allows a destructive migration)                  | admin                         | yes         |
 | `tool_rollback`                  | Goes back to an environment's previous version                                               | admin                         | yes         |
 | `resources_pending`              | The versions awaiting a resource approval                                                    | admin                         |             |
@@ -786,11 +787,11 @@ Each tool calls the platform's own routes with the signed-in person's identity, 
 
 `tool_changelog` is for developers because the route that carries the changelog is (the version list shows the commits and what changed); a member reads a tool's card.
 
-**Not available yet**: `tool_install_plan` and `tool_install` (a tool created from a template: the platform routes exist, D-081; the MCP tools are FOR-161), `usage_report` (FOR-162), `secret_request` (FOR-163), granting a role to a group (FOR-165), and signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
+**Not available yet**: `tool_install_plan` and `tool_install` (a tool created from a template: the platform routes exist, D-081; the MCP tools are FOR-161), `usage_report` (FOR-162), granting a role to a group (FOR-165), and signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
 
 ### Safeguards
 
-- **Secret values never go through Claude.** No tool reads or writes a secret value; `secret_request` produces a link to a platform input page.
+- **Secret values never go through Claude.** No tool reads or writes a secret value. `secret_request` returns a link to a console page where the person types it: the link is single use, lasts 15 minutes, is bound to the person and works only on a signed-in session of theirs (D-083).
 - **Installing takes two steps.** `tool_install_plan` returns the plan and the requested resources; `tool_install` only accepts that plan's identifier. An instruction slipped into a document cannot install a tool in one go.
 - **Destructive tools** carry the MCP `destructiveHint` annotation, so the client asks before it calls them.
 - **No elevation.** The MCP acts with the rights of the signed-in person, read from the token's person at each call and never from an argument: it cannot approve what they could not approve in the console, and every tool it offers is the console's own route behind the same guard. Granting a role is an admin's tool.

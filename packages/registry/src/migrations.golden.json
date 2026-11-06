@@ -617,5 +617,22 @@
       }
     ],
     "down": []
+  },
+  {
+    "name": "0023_secret_requests",
+    "fingerprint": "secret-requests-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"secret_requests\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"token_hash\" TEXT NOT NULL UNIQUE,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"environment\" TEXT NOT NULL CHECK (\"environment\" IN ('preview', 'pilot', 'production')),\n  \"name\" TEXT NOT NULL,\n  \"person\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  \"expires_at\" TEXT NOT NULL,\n  \"used_at\" TEXT,\n  \"claim\" TEXT\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"secret_requests\"",
+        "parameters": []
+      }
+    ]
   }
 ]
