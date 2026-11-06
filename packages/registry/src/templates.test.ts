@@ -145,10 +145,12 @@ describe("installing a template", () => {
     const count = async (table: string) =>
       Number(
         (
-          await (memory as unknown as D1Database)
-            .prepare(`SELECT COUNT(*) AS n FROM "${table}"`)
-            .all()
-        ).results![0]!.n,
+          (
+            await (memory as unknown as D1Database)
+              .prepare(`SELECT COUNT(*) AS n FROM "${table}"`)
+              .all()
+          ).results![0] as { n: number }
+        ).n,
       );
     // Only the template's own rows remain (one build, one version, one docs listing).
     expect([await count("builds"), await count("versions"), await count("approvals")]).toEqual([

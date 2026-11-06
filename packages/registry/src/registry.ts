@@ -36,7 +36,6 @@ export type { ConnectionInfo, ConnectionTokens } from "./modules/connections/pub
 export type { Invitation, JoinVia, Member, MembershipSettings } from "./modules/members/public";
 export type { SecretState, SecretStatus } from "./modules/secrets/public";
 export { TEMPLATE_WORKSPACE } from "./modules/templates/public";
-export type { InstalledTemplate, Template } from "./modules/templates/public";
 
 export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   const kernel = createKernel(d1, options);
