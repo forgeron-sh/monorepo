@@ -34,8 +34,7 @@ Everything about the real install is for the parent session's checks (see "Not t
      reach, and an older version may bind Workers that no longer exist.
    - **Nothing measures the cost of a bind** (a full gateway upload, with the console assets, per branch and
      per tool). Not measured here; the parent session can.
-4. **Proposed work: five tickets, written below, not created.** No decision is recorded by this report; the
-   decision number comes with ticket 1.
+4. **Proposed work: five tickets, written below, not created.** The conclusion is recorded as D-080.
 
 ## Question
 
@@ -107,6 +106,14 @@ number of branch × tool lifecycles, not by the number of pushes.
 **Answer to "how do self-host previews get reached"**: through the gateway, at `/t/<tool>@<branch>`, over
 a service binding that the gateway adds to itself when the preview's Worker first serves. That is what the
 real install does according to the parent session's brief. This report did not re-observe it.
+
+## Existing proof
+
+Fact, reported by the parent session (not re-run here): on 2026-11-04 `/t/crm@fabriks-test-2` on
+demo.fabriks.cc answered, and MCP `tools/list` returned 200. This is the proof of concept FOR-20 asks for,
+with one difference: it was made through the gateway's redeploy, not "without touching the gateway". It
+shows that a preview Worker is bound and served at `/t/<tool>@<branch>`. It does not show concurrent
+deploys, teardown, the cost of a bind, behaviour near 500 Workers, or a rollback after many binds.
 
 ## What Cloudflare offers instead, and why none fits
 
