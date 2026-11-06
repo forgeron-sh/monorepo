@@ -79,7 +79,7 @@ Rules of the log:
 | D-077 | 04/11/2026 | The gateway is composed in `compose.ts`: modules built once, a `RequestContext` per request with a memoised person, and each area takes a narrow port                  | Active                                 |
 | D-078 | 04/11/2026 | `identity/` is split into `authn`, `sign-in` and `cli-login`; the tests that drive the whole gateway move to `integration/`                                            | Active                                 |
 | D-079 | 04/11/2026 | The admin MCP is served at `/mcp` with a CLI token as Bearer; its tools call the platform's routes as the caller and the audit says `via`                              | Active                                 |
-| D-080 | 06/11/2026 | The views keep the CSP sandbox: no dedicated views origin; `/_f/call` needs CORS, and a view keeps no state in the browser                                             | Active                                 |
+| D-082 | 06/11/2026 | The views keep the CSP sandbox: no dedicated views origin; `/_f/call` needs CORS, and a view keeps no state in the browser                                             | Active                                 |
 
 ---
 
@@ -973,7 +973,7 @@ Rules of the log:
 - **Not verified**: no real MCP client (Claude) was connected, only JSON-RPC over the gateway in tests; no deployed gateway; hosting is simulated for the promotions.
 - **Applied in**: `apps/gateway/src/admin-mcp/`, `compose.ts`, `gateway.ts`, `identity/authn/caller.ts`, `platform/{app,access-matrix,approvals,members,bearer}.ts`, `deploy/promote.ts`, `packages/registry/src/{deploy.ts,modules/access,modules/members}`, `.dependency-cruiser.cjs`, `docs/sdk.md` §17.
 
-## D-080 — The views keep the CSP sandbox; no dedicated views origin
+## D-082 — The views keep the CSP sandbox; no dedicated views origin
 
 - **Date**: 06/11/2026 · **Status**: Active
 - **Decision**: views stay under `Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups allow-downloads` (D-016), on the workspace origin. The fallback of `sdk.md` §7 (`acme.forgeron-views.app`) is not taken. A view keeps no state in the browser (`localStorage`, `sessionStorage`, `indexedDB`, cookies and service workers throw under the sandbox): it asks an action. `/_f/call/<action>` answers CORS (`OPTIONS`, `Access-Control-Allow-Origin: *`, never `Allow-Credentials`) and stays authenticated by the audience Bearer only.

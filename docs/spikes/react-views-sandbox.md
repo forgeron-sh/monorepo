@@ -1,6 +1,6 @@
 # Spike FOR-49: can the CSP sandbox host React views and `@forgeron/ui`?
 
-Written 2026-11-06. Decision: D-080. The prototype is throwaway, lives outside the repository and is not in this pull
+Written 2026-11-06. Decision: D-082. The prototype is throwaway, lives outside the repository and is not in this pull
 request.
 
 ## Verdict
