@@ -79,6 +79,7 @@ Rules of the log:
 | D-077 | 04/11/2026 | The gateway is composed in `compose.ts`: modules built once, a `RequestContext` per request with a memoised person, and each area takes a narrow port                  | Active                                 |
 | D-078 | 04/11/2026 | `identity/` is split into `authn`, `sign-in` and `cli-login`; the tests that drive the whole gateway move to `integration/`                                            | Active                                 |
 | D-079 | 04/11/2026 | The admin MCP is served at `/mcp` with a CLI token as Bearer; its tools call the platform's routes as the caller and the audit says `via`                              | Active                                 |
+| D-080 | 06/11/2026 | The views keep the CSP sandbox: no dedicated views origin; `/_f/call` needs CORS, and a view keeps no state in the browser                                             | Active                                 |
 
 ---
 
@@ -971,3 +972,13 @@ Rules of the log:
 - **Known, not changed**: `/promote` and `/rollback` name the actor by email in the audit line while the access lines name the person's id (as for the CLI). The token of a CLI login lives 30 days and cannot be revoked before except through the person's revocation (D-035). A person who is both a CLI user and an MCP client has one token for both.
 - **Not verified**: no real MCP client (Claude) was connected, only JSON-RPC over the gateway in tests; no deployed gateway; hosting is simulated for the promotions.
 - **Applied in**: `apps/gateway/src/admin-mcp/`, `compose.ts`, `gateway.ts`, `identity/authn/caller.ts`, `platform/{app,access-matrix,approvals,members,bearer}.ts`, `deploy/promote.ts`, `packages/registry/src/{deploy.ts,modules/access,modules/members}`, `.dependency-cruiser.cjs`, `docs/sdk.md` §17.
+
+## D-080 — The views keep the CSP sandbox; no dedicated views origin
+
+- **Date**: 06/11/2026 · **Status**: Active
+- **Decision**: views stay under `Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups allow-downloads` (D-016), on the workspace origin. The fallback of `sdk.md` §7 (`acme.forgeron-views.app`) is not taken. A view keeps no state in the browser (`localStorage`, `sessionStorage`, `indexedDB`, cookies and service workers throw under the sandbox): it asks an action. `/_f/call/<action>` answers CORS (`OPTIONS`, `Access-Control-Allow-Origin: *`, never `Allow-Credentials`) and stays authenticated by the audience Bearer only.
+- **Why**: `docs/spikes/react-views-sandbox.md` (FOR-49): a real build of the dashboard template (React 19, `@forgeron/ui`, `@forgeron/sdk/react`) rendered under the real `VIEW_CSP`, called its actions with the view token, kept its URL parameters, downloaded a file, and still rendered under `script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self'`. No cookie reached any request of the page. `@forgeron/ui` and `@forgeron/sdk` use no storage.
+- **Rejected**: a dedicated views origin (a second certificate and cookie scope, and it would still need CORS for the calls); `allow-same-origin` (it removes the isolation of §7).
+- **Known, not changed**: the pipeline around the sandbox is not finished: CORS on `/_f/call`, a mount entry in the build, a caller of `serveView`, CSS bundling, content-hashed entry names, renewal of the 15-minute token (tickets proposed in the report).
+- **Not verified**: Chrome 156 headless only (no Firefox or Safari); popups to other sites, the clipboard and the other `@forgeron/ui` components were not run; no real gateway or Worker.
+- **Applied in**: `docs/spikes/react-views-sandbox.md`, `sdk.md` §20.
