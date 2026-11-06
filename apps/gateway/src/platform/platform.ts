@@ -9,6 +9,7 @@ import { mountIdentity } from "./identity";
 import { mountMembers } from "./members";
 import { mountSecretRequests } from "./secret-requests";
 import { mountSecrets } from "./secrets";
+import { mountTemplates } from "./templates";
 import { mountTools } from "./tools";
 import { mountWorkspace } from "./workspace";
 import { createPlatformApp, memberOnly } from "./app";
@@ -27,6 +28,7 @@ export function createPlatform() {
   mountSecrets(app);
   mountSecretRequests(app);
   mountApprovals(app);
+  mountTemplates(app);
   mountBearer(app);
   mountConsent(app);
 

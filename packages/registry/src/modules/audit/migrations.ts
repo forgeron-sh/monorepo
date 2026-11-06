@@ -56,4 +56,32 @@ export const auditMigrations: BuildMigration[] = [
     ],
     down: [],
   },
+  {
+    // Installing a template (D-081) is audited: `install` joins the kinds. Rebuilt as in 0014.
+    name: "0022_audit_install",
+    fingerprint: "audit-install-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "audit_log_next" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "at" TEXT NOT NULL,
+  "tool_id" TEXT,
+  "actor" TEXT NOT NULL,
+  "interface" TEXT,
+  "via" TEXT,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('action', 'deployment', 'promotion', 'rollback', 'approval', 'access', 'install')),
+  "subject" TEXT NOT NULL,
+  "version_id" TEXT,
+  "result" TEXT NOT NULL CHECK ("result" IN ('ok', 'denied', 'error')),
+  "detail" TEXT
+)`),
+      st(
+        `INSERT INTO "audit_log_next" SELECT "id", "at", "tool_id", "actor", "interface", "via", "kind", "subject", "version_id", "result", "detail" FROM "audit_log" ORDER BY "rowid"`,
+      ),
+      st(`DROP TABLE "audit_log"`),
+      st(`ALTER TABLE "audit_log_next" RENAME TO "audit_log"`),
+      st(`CREATE INDEX "audit_log_by_tool" ON "audit_log" ("tool_id", "at")`),
+    ],
+    down: [],
+  },
 ];

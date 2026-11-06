@@ -13,7 +13,7 @@ export {
   rollbackEnvironment,
 } from "./deploy";
 export type { DeployBuildInput, DeployedBuild, PromoteInput, RollbackInput } from "./deploy";
-export { createRegistry, RegistryError, VIA_FORGERON_MCP } from "./registry";
+export { createRegistry, RegistryError, TEMPLATE_WORKSPACE, VIA_FORGERON_MCP } from "./registry";
 export { docsProblem } from "./docs-check";
 export { listCatalog, findCard, findAsset, assetUrl } from "./catalog";
 export type { CatalogCaller } from "./catalog";

@@ -591,6 +591,34 @@
     ]
   },
   {
+    "name": "0022_audit_install",
+    "fingerprint": "audit-install-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"audit_log_next\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"at\" TEXT NOT NULL,\n  \"tool_id\" TEXT,\n  \"actor\" TEXT NOT NULL,\n  \"interface\" TEXT,\n  \"via\" TEXT,\n  \"kind\" TEXT NOT NULL CHECK (\"kind\" IN ('action', 'deployment', 'promotion', 'rollback', 'approval', 'access', 'install')),\n  \"subject\" TEXT NOT NULL,\n  \"version_id\" TEXT,\n  \"result\" TEXT NOT NULL CHECK (\"result\" IN ('ok', 'denied', 'error')),\n  \"detail\" TEXT\n)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"audit_log_next\" SELECT \"id\", \"at\", \"tool_id\", \"actor\", \"interface\", \"via\", \"kind\", \"subject\", \"version_id\", \"result\", \"detail\" FROM \"audit_log\" ORDER BY \"rowid\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"audit_log\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"audit_log_next\" RENAME TO \"audit_log\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"audit_log_by_tool\" ON \"audit_log\" (\"tool_id\", \"at\")",
+        "parameters": []
+      }
+    ],
+    "down": []
+  },
+  {
     "name": "0023_secret_requests",
     "fingerprint": "secret-requests-v1",
     "destructive": false,

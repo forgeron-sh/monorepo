@@ -39,6 +39,7 @@ import type {
   lookupSecretRequestRoute,
 } from "./secret-requests";
 import type { listSecretsRoute, setSecretRoute } from "./secrets";
+import type { installTemplateRoute, listTemplatesRoute } from "./templates";
 import type { secretsStatusRoute } from "./secrets-status";
 import type {
   listToolsRoute,
@@ -126,6 +127,10 @@ export const addresses = {
     method: "get",
     path: "/api/membership-settings",
   }),
+  installTemplate: addressOf<typeof installTemplateRoute>({
+    method: "post",
+    path: "/api/templates/{name}/install",
+  }),
   inviteMember: addressOf<typeof inviteMemberRoute>({ method: "post", path: "/api/invitations" }),
   listApprovals: addressOf<typeof listApprovalsRoute>({ method: "get", path: "/api/approvals" }),
   listCatalog: addressOf<typeof listCatalogRoute>({ method: "get", path: "/api/catalog" }),
@@ -142,6 +147,7 @@ export const addresses = {
     method: "get",
     path: "/api/tools/{tool}/environments/{environment}/secrets",
   }),
+  listTemplates: addressOf<typeof listTemplatesRoute>({ method: "get", path: "/api/templates" }),
   listTools: addressOf<typeof listToolsRoute>({ method: "get", path: "/api/tools" }),
   listUserSecretHolders: addressOf<typeof listUserSecretHoldersRoute>({
     method: "get",

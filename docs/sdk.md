@@ -787,7 +787,7 @@ Each tool calls the platform's own routes with the signed-in person's identity, 
 
 `tool_changelog` is for developers because the route that carries the changelog is (the version list shows the commits and what changed); a member reads a tool's card.
 
-**Not available yet**: `tool_install_plan` and `tool_install` (a tool created from a template, FOR-160 and FOR-161), `usage_report` (FOR-162), granting a role to a group (FOR-165), and signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
+**Not available yet**: `tool_install_plan` and `tool_install` (a tool created from a template: the platform routes exist, D-081; the MCP tools are FOR-161), `usage_report` (FOR-162), granting a role to a group (FOR-165), and signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
 
 ### Safeguards
 
