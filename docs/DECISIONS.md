@@ -79,6 +79,7 @@ Rules of the log:
 | D-077 | 04/11/2026 | The gateway is composed in `compose.ts`: modules built once, a `RequestContext` per request with a memoised person, and each area takes a narrow port                  | Active                                 |
 | D-078 | 04/11/2026 | `identity/` is split into `authn`, `sign-in` and `cli-login`; the tests that drive the whole gateway move to `integration/`                                            | Active                                 |
 | D-079 | 04/11/2026 | The admin MCP is served at `/mcp` with a CLI token as Bearer; its tools call the platform's routes as the caller and the audit says `via`                              | Active                                 |
+| D-080 | 06/11/2026 | A self-host preview is reached by a service binding the gateway adds to itself when the preview first serves; no per-version URL, Cloudflare Preview or HTTP token     | Active                                 |
 | D-083 | 06/11/2026 | The admin MCP asks for a secret with a single-use link to a console page; it never takes or sees the value                                                             | Active                                 |
 
 ---
@@ -972,6 +973,15 @@ Rules of the log:
 - **Known, not changed**: `/promote` and `/rollback` name the actor by email in the audit line while the access lines name the person's id (as for the CLI). The token of a CLI login lives 30 days and cannot be revoked before except through the person's revocation (D-035). A person who is both a CLI user and an MCP client has one token for both.
 - **Not verified**: no real MCP client (Claude) was connected, only JSON-RPC over the gateway in tests; no deployed gateway; hosting is simulated for the promotions.
 - **Applied in**: `apps/gateway/src/admin-mcp/`, `compose.ts`, `gateway.ts`, `identity/authn/caller.ts`, `platform/{app,access-matrix,approvals,members,bearer}.ts`, `deploy/promote.ts`, `packages/registry/src/{deploy.ts,modules/access,modules/members}`, `.dependency-cruiser.cjs`, `docs/sdk.md` §17.
+
+## D-080 — A self-host preview is reached by a service binding the gateway adds to itself when the preview first serves; no per-version URL, Cloudflare Preview or HTTP token
+
+- **Date**: 06/11/2026 · **Status**: Active
+- **Decision**: the redeploy of the gateway for each new branch is the design, not a problem to remove: a preview is a Worker of its own, bound as `TOOL_<WORKER>` on its first `activate` and unbound on `teardown` (D-017, D-029, D-032); later pushes to the branch redeploy nothing. The leads of FOR-20 are rejected: per-version URLs (public, production resources, no isolation, no Durable Object Workers), Cloudflare Previews (a service binding from a Preview reaches the production deployment only, so the gateway cannot select a Preview; public URL), an HTTP token (removes the premise of D-036 that only the gateway reaches a tool). Closes the "Still open" line of D-009 and the "Open decisions" row of `ARCHITECTURE.md`.
+- **Proof**: a preview already runs on a real install: `/t/crm@fabriks-test-2` on demo.fabriks.cc, MCP `tools/list` answered 200 (checked by the parent session on 04/11/2026; not re-run for this decision). It proves that a preview Worker is bound to the gateway and served at `/t/<tool>@<branch>`. It does not prove: two previews deployed at the same moment, teardown, the time and size of a bind, behaviour near 500 Workers, or a gateway rollback after many binds.
+- **Why**: see `docs/spikes/self-host-previews.md`: bounded cost (two redeploys per branch and tool), no binding limit documented for service bindings, the 500-Workers cap is hit first (`workers/platform/limits`, 2026-10-29).
+- **Not done**: serializing concurrent binds, sweeping stale previews, showing the Worker budget, keeping a known-good gateway version (tickets proposed in the report).
+- **Applied in**: `docs/spikes/self-host-previews.md`.
 
 ## D-083 — The admin MCP asks for a secret with a single-use link to a console page; it never takes or sees the value
 
