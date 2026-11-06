@@ -80,6 +80,7 @@ Rules of the log:
 | D-078 | 04/11/2026 | `identity/` is split into `authn`, `sign-in` and `cli-login`; the tests that drive the whole gateway move to `integration/`                                            | Active                                 |
 | D-079 | 04/11/2026 | The admin MCP is served at `/mcp` with a CLI token as Bearer; its tools call the platform's routes as the caller and the audit says `via`                              | Active                                 |
 | D-080 | 06/11/2026 | A self-host preview is reached by a service binding the gateway adds to itself when the preview first serves; no per-version URL, Cloudflare Preview or HTTP token     | Active                                 |
+| D-082 | 06/11/2026 | The views keep the CSP sandbox: no dedicated views origin; `/_f/call` needs CORS, and a view keeps no state in the browser                                             | Active                                 |
 
 ---
 
@@ -981,3 +982,13 @@ Rules of the log:
 - **Why**: see `docs/spikes/self-host-previews.md`: bounded cost (two redeploys per branch and tool), no binding limit documented for service bindings, the 500-Workers cap is hit first (`workers/platform/limits`, 2026-10-29).
 - **Not done**: serializing concurrent binds, sweeping stale previews, showing the Worker budget, keeping a known-good gateway version (tickets proposed in the report).
 - **Applied in**: `docs/spikes/self-host-previews.md`.
+
+## D-082 — The views keep the CSP sandbox; no dedicated views origin
+
+- **Date**: 06/11/2026 · **Status**: Active
+- **Decision**: views stay under `Content-Security-Policy: sandbox allow-scripts allow-forms allow-popups allow-downloads` (D-016), on the workspace origin. The fallback of `sdk.md` §7 (`acme.forgeron-views.app`) is not taken. A view keeps no state in the browser (`localStorage`, `sessionStorage`, `indexedDB`, cookies and service workers throw under the sandbox): it asks an action. `/_f/call/<action>` answers CORS (`OPTIONS`, `Access-Control-Allow-Origin: *`, never `Allow-Credentials`) and stays authenticated by the audience Bearer only.
+- **Why**: `docs/spikes/react-views-sandbox.md` (FOR-49): a real build of the dashboard template (React 19, `@forgeron/ui`, `@forgeron/sdk/react`) rendered under the real `VIEW_CSP`, called its actions with the view token, kept its URL parameters, downloaded a file, and still rendered under `script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self'`. No cookie reached any request of the page. `@forgeron/ui` and `@forgeron/sdk` use no storage.
+- **Rejected**: a dedicated views origin (a second certificate and cookie scope, and it would still need CORS for the calls); `allow-same-origin` (it removes the isolation of §7).
+- **Known, not changed**: the pipeline around the sandbox is not finished: CORS on `/_f/call`, a mount entry in the build, a caller of `serveView`, CSS bundling, content-hashed entry names, renewal of the 15-minute token (tickets proposed in the report).
+- **Not verified**: Chrome 156 headless only (no Firefox or Safari); popups to other sites, the clipboard and the other `@forgeron/ui` components were not run; no real gateway or Worker.
+- **Applied in**: `docs/spikes/react-views-sandbox.md`, `sdk.md` §20.
