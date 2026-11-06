@@ -42,6 +42,7 @@ export {
 } from "./identity";
 export { MAX_SECRET_VALUE, listSecretsRoute, setSecretRoute } from "./secrets";
 export { decideApprovalRoute, listApprovalsRoute } from "./approvals";
+export { installTemplateRoute, listTemplatesRoute } from "./templates";
 export {
   listUserSecretHoldersRoute,
   revokePersonTokensRoute,

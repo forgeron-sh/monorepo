@@ -1,4 +1,11 @@
-export type AuditKind = "action" | "deployment" | "promotion" | "rollback" | "approval" | "access";
+export type AuditKind =
+  | "action"
+  | "deployment"
+  | "promotion"
+  | "rollback"
+  | "approval"
+  | "access"
+  | "install";
 export type AuditResult = "ok" | "denied" | "error";
 export type AuditInterface = "mcp" | "api" | "cli" | "web";
 

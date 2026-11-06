@@ -12,6 +12,7 @@ import { createConnections } from "./modules/connections/public";
 import { createIdentityStore } from "./modules/identity-store/public";
 import { createMembers } from "./modules/members/public";
 import { createSecrets } from "./modules/secrets/public";
+import { createTemplates } from "./modules/templates/public";
 
 export { RegistryError } from "./kernel/errors";
 export type { RegisteredEnvironment, RegistryErrorCode } from "./kernel/errors";
@@ -34,6 +35,8 @@ export type {
 export type { ConnectionInfo, ConnectionTokens } from "./modules/connections/public";
 export type { Invitation, JoinVia, Member, MembershipSettings } from "./modules/members/public";
 export type { SecretState, SecretStatus } from "./modules/secrets/public";
+export { TEMPLATE_WORKSPACE } from "./modules/templates/public";
+export type { InstalledTemplate, Template } from "./modules/templates/public";
 
 export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   const kernel = createKernel(d1, options);
@@ -49,6 +52,7 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     ...createApprovals(kernel, catalogPort),
     ...createAudit(kernel),
     ...createAccess(kernel, catalogPort),
+    ...createTemplates(kernel, catalogPort),
   };
 }
 
