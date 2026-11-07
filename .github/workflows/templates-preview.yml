@@ -24,7 +24,7 @@ permissions:
 jobs:
   template:
     if: ${{ github.event.action != 'closed' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 20
     # Comments need write access to pull requests; a fork's token is read-only, and it has no
     # secrets either, so nothing is deployed for it.
@@ -86,7 +86,7 @@ jobs:
   # and the account holds 500 (D-009).
   close:
     if: ${{ github.event.action == 'closed' && vars.FORGERON_WORKSPACE != '' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
     strategy:
       fail-fast: false
