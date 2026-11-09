@@ -145,6 +145,20 @@ export function createMembers(kernel: Kernel) {
             `DELETE FROM "user_secrets" WHERE "person" = ? AND "tool_id" IN (SELECT "id" FROM "tools" WHERE "workspace" = ?)`,
           )
           .bind(id, workspace),
+        // The person's registry of secrets (D-104): the bindings, the versions, then the secrets.
+        d1
+          .prepare(
+            `DELETE FROM "secret_bindings" WHERE "person" = ? AND "secret_id" IN (SELECT "id" FROM "person_secrets" WHERE "workspace" = ? AND "person" = ?)`,
+          )
+          .bind(id, workspace, id),
+        d1
+          .prepare(
+            `DELETE FROM "person_secret_versions" WHERE "secret_id" IN (SELECT "id" FROM "person_secrets" WHERE "workspace" = ? AND "person" = ?)`,
+          )
+          .bind(workspace, id),
+        d1
+          .prepare(`DELETE FROM "person_secrets" WHERE "workspace" = ? AND "person" = ?`)
+          .bind(workspace, id),
         d1.prepare(`DELETE FROM "members" WHERE "workspace" = ? AND "id" = ?`).bind(workspace, id),
         auditStatement(
           {

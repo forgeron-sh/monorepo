@@ -374,7 +374,9 @@ describe("per-person secrets", () => {
     expect(await registry.readUserSecrets(tool.id, "p1")).toEqual({ KEY: "v-two", OTHER: "x" });
     expect(await registry.readUserSecrets(tool.id, "p2")).toEqual({ KEY: "v-p2" });
     expect(await registry.readUserSecrets(tool.id, "p3")).toEqual({});
-    const raw = JSON.stringify((await d1.prepare(`SELECT * FROM "user_secrets"`).all()).results);
+    const raw = JSON.stringify(
+      (await d1.prepare(`SELECT * FROM "person_secret_versions"`).all()).results,
+    );
     expect(raw).not.toContain("v-two");
     expect(await registry.userSecretHolders(tool.id)).toEqual([
       { person: "p1", names: ["KEY", "OTHER"] },

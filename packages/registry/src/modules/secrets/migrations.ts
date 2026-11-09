@@ -81,4 +81,61 @@ export const secretsMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "user_setup"`)],
   },
+  {
+    // The registry of a person's secrets (D-104): a secret has a stable id, immutable numbered versions,
+    // and bindings that say which tool field uses it, in which scope, and which version. `aad` is the
+    // additional data a version was sealed with, so values sealed before this migration keep opening.
+    name: "0027_secret_registry",
+    fingerprint: "secret-registry-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "person_secrets" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "workspace" TEXT NOT NULL,
+  "person" TEXT NOT NULL,
+  "label" TEXT NOT NULL,
+  "kind" TEXT,
+  "created_at" TEXT NOT NULL,
+  "archived_at" TEXT
+)`),
+      st(`CREATE INDEX "person_secrets_by_person" ON "person_secrets" ("workspace", "person")`),
+      st(`CREATE TABLE "person_secret_versions" (
+  "secret_id" TEXT NOT NULL REFERENCES "person_secrets" ("id") ON DELETE CASCADE,
+  "version" INTEGER NOT NULL,
+  "iv" TEXT NOT NULL,
+  "ciphertext" TEXT NOT NULL,
+  "aad" TEXT NOT NULL,
+  "created_at" TEXT NOT NULL,
+  "created_by" TEXT NOT NULL,
+  "via" TEXT NOT NULL,
+  PRIMARY KEY ("secret_id", "version")
+)`),
+      st(`CREATE TABLE "secret_bindings" (
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "person" TEXT NOT NULL,
+  "field" TEXT NOT NULL,
+  "scope" TEXT NOT NULL CHECK ("scope" IN ('*', 'production', 'preview') OR "scope" LIKE 'preview:%'),
+  "secret_id" TEXT NOT NULL REFERENCES "person_secrets" ("id") ON DELETE CASCADE,
+  "pin" INTEGER,
+  PRIMARY KEY ("tool_id", "person", "field", "scope")
+)`),
+      st(`CREATE INDEX "secret_bindings_by_secret" ON "secret_bindings" ("secret_id")`),
+      // The conversion of `user_secrets` (D-036): each row becomes a secret, its version 1 and a tool-wide
+      // binding. The value is not opened: the version keeps the additional data it was sealed with.
+      st(`INSERT INTO "person_secrets" ("id", "workspace", "person", "label", "kind", "created_at", "archived_at")
+SELECT 'sec_l' || u."rowid", t."workspace", u."person", u."name", NULL, u."updated_at", NULL
+FROM "user_secrets" u JOIN "tools" t ON t."id" = u."tool_id"`),
+      st(`INSERT INTO "person_secret_versions" ("secret_id", "version", "iv", "ciphertext", "aad", "created_at", "created_by", "via")
+SELECT 'sec_l' || u."rowid", 1, u."iv", u."ciphertext", 'user/' || u."tool_id" || '/' || u."person" || '/' || u."name", u."updated_at", u."person", 'legacy'
+FROM "user_secrets" u JOIN "tools" t ON t."id" = u."tool_id"`),
+      st(`INSERT INTO "secret_bindings" ("tool_id", "person", "field", "scope", "secret_id", "pin")
+SELECT u."tool_id", u."person", u."name", '*', 'sec_l' || u."rowid", NULL
+FROM "user_secrets" u JOIN "tools" t ON t."id" = u."tool_id"`),
+    ],
+    down: [
+      st(`DROP TABLE "secret_bindings"`),
+      st(`DROP TABLE "person_secret_versions"`),
+      st(`DROP TABLE "person_secrets"`),
+    ],
+  },
 ];
