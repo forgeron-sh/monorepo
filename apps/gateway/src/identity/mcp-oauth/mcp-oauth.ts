@@ -42,7 +42,7 @@ const oauthError = (status: number, error: string, description: string) =>
   Response.json({ error, error_description: description }, { status, headers: noStore });
 
 /** `https`, or `http` on the machine itself (a desktop client listens there). No credentials, no fragment. */
-export function redirectAllowed(value: string): boolean {
+function redirectAllowed(value: string): boolean {
   try {
     const url = new URL(value);
     if (url.hash || url.username || url.password || value.length > 500) return false;
