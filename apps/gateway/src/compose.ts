@@ -69,10 +69,12 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
   // The platform API as one Hono app (D-064): built once, the person comes with each request.
   const platform = createPlatform();
   const secret = env.AUTH_SECRET;
-  const previousSecrets = (env.AUTH_SECRET_PREVIOUS ?? "")
-    .split(",")
-    .map((k) => k.trim())
-    .filter(Boolean);
+  const listOf = (value: string | undefined) =>
+    (value ?? "")
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+  const previousSecrets = listOf(env.AUTH_SECRET_PREVIOUS);
 
   const methods = (env.SIGN_IN_METHODS ?? "")
     .split(",")
@@ -108,7 +110,9 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
     | undefined;
   const getBuilt = () =>
     (built ??= (async () => {
-      const box = env.SECRETS_KEY ? await createSecretBox(env.SECRETS_KEY) : undefined;
+      const box = env.SECRETS_KEY
+        ? await createSecretBox(env.SECRETS_KEY, listOf(env.SECRETS_KEY_PREVIOUS))
+        : undefined;
       return {
         // One clock for the registry and the gateway: the expiry of a one-time code depends on it.
         registry: createRegistry(env.DB, { now, ...(box ? { secrets: box } : {}) }),

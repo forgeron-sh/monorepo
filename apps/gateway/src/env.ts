@@ -40,6 +40,11 @@ export interface GatewayEnv {
   /** Encrypts tool secrets and connection tokens at rest: 32 random bytes, base64. Secret. */
   SECRETS_KEY?: string;
   /**
+   * Rotation (D-100): the keys `SECRETS_KEY` replaced, comma-separated. A value sealed under one still
+   * opens; nothing is sealed under it. Keep it until every value has been given again. Secret.
+   */
+  SECRETS_KEY_PREVIOUS?: string;
+  /**
    * The identity provider's issuer URL (OIDC, D-019). A provider an admin saved in the platform
    * (`/console-api/api/identity-provider`, D-041) wins over these; with neither, `/auth` answers 404.
    */
