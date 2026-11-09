@@ -97,6 +97,7 @@ Rules of the log:
 | D-096 | 09/11/2026 | A tool declares a `setup`: plain fields in the manifest, secret fields as `resources.userSecrets` (FOR-171, ticket 2)                                                  | Active                                 |
 | D-097 | 09/11/2026 | A tool's plain setup values are kept in clear per tool and person, handed in `ctx.user.setup`, asked at `/t/<tool>/setup` (FOR-171, tickets 3 and 4)                   | Active                                 |
 | D-098 | 09/11/2026 | The OAuth step sends a person through the tool's setup page before the click, and issues no token for a tool whose setup is incomplete (FOR-171, ticket 5)             | Active                                 |
+| D-099 | 09/11/2026 | Per-person secrets may be carried sealed in the OAuth token, as an opt-in `keep: "token"` of a secret field; not started (FOR-172)                                     | Proposed                               |
 
 ---
 
@@ -1214,3 +1215,14 @@ Rules of the log:
 - **Not done**: the connectors as steps of the page (a delegated connector's consent still comes at the first call, as a `428`), the `check` call, the CLI prompt removal, a console screen. A person is sent through the setup page by a redirect: a client that does not follow the browser's navigation, or a person who closes the tab, ends the dance; the app starts it again.
 - **Not verified**: no real MCP client, no browser; played in `integration/gateway-mcp-oauth.test.ts` with a session cookie and a stub tool Worker.
 - **Applied in**: `apps/gateway/src/identity/mcp-oauth/mcp-oauth.ts`, `apps/gateway/src/dispatch/user-secrets.ts`; `packages/runtime/src/secrets.ts` (`missingSetup`, `next`); `docs/sdk.md` §10.
+
+## D-099 — Per-person secrets may be carried sealed in the OAuth token, as an opt-in `keep: "token"` of a secret field; not started (FOR-172)
+
+- **Date**: 09/11/2026 · **Status**: Proposed: the direction is the owner's (oral, 2026-11-07), the design is `docs/spikes/secrets-in-token.md`, and five choices in it are the owner's to confirm before any code
+- **Decision**: a secret field may declare where its value rests, `keep: "platform"` (today, D-036, the default) or `keep: "token"`. A token-borne secret is **sealed** (AES-GCM under a key derived from `SECRETS_KEY`, bound to the token's `jti`, audience and field name) into the claims of the access and refresh tokens of the person's OAuth connection, typed on the **consent page** and carried by the authorization code, re-sealed at each refresh and opened by the gateway at each call to fill the same header as today. The tool's code is unchanged (`ctx.userSecrets`). Nothing is written to the registry.
+- **Why**: the platform's database then holds none of those secrets, so a leak of it, even with `SECRETS_KEY`, reveals none, and a person who leaves leaves nothing to delete.
+- **What it costs, stated**: an admin cannot see or clear such a secret; changing one means connecting again in every client; `SECRETS_KEY` needs a previous key to be rotated without ending every connection; it does not work for the CLI and API, nor for event handlers and tasks; a token becomes a larger bearer credential (see the spike).
+- **To confirm by the owner** (recommendations in the spike): MCP only for those fields (the Odoo template's `cli: true` would change); the secret typed on the consent page, not the setup page; opt-in per field with the platform as the default; a `SECRETS_KEY_PREVIOUS`; `ODOO_API_KEY` as the first and only token-borne field.
+- **Rejected**: a short-lived stored record keyed by the token (it is the stored model with a shorter life); carrying it in the authorization code only (a code lives 60 seconds); making it the default (it would break the CLI, the admin's list and the rotation for every tool).
+- **Not done**: everything. No code, no ticket created. The seven tickets are listed in the spike; the first, `SECRETS_KEY_PREVIOUS`, is useful on its own.
+- **Applied in**: `docs/spikes/secrets-in-token.md`.
