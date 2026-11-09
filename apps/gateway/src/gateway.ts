@@ -5,6 +5,7 @@ import {
   handleToken,
   metadata,
 } from "./identity/mcp-oauth/mcp-oauth";
+import { handleMySecrets } from "./my-secrets/my-secrets";
 import { handleCliAuthorize } from "./identity/cli-login/cli";
 import { handleUserSecrets } from "./dispatch/user-secrets";
 import { workspaceOf } from "./dispatch/dispatch";
@@ -72,6 +73,11 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
       if (url.pathname === "/oauth/authorize") return handleAuthorize(request, oauth);
       if (url.pathname === "/oauth/token") return handleToken(request, oauth);
       if (url.pathname === "/oauth/revoke") return handleRevoke(request, oauth);
+    }
+
+    // A person's own page of secrets (D-106): the session cookie only.
+    if (parts.identity && asked.mySecrets && url.pathname === "/my/secrets") {
+      return handleMySecrets(request, asked.mySecrets());
     }
 
     // The platform's own paths. Without `AUTH_SECRET` identity is off and they fail closed.
