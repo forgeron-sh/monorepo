@@ -30,8 +30,9 @@ export function createSecrets(kernel: Kernel, catalog: CatalogPort) {
   const slot = (toolId: string, environment: string, name: string) =>
     `${toolId}/${environment}/${name}`;
 
-  const userSlot = (toolId: string, person: string, name: string) =>
-    `user/${toolId}/${person}/${name}`;
+  /** What a version of a person's secret is sealed with: bound to the person, the secret and its version (D-104). */
+  const secretAad = (workspace: string, person: string, id: string, version: number) =>
+    `secret/${workspace}/${person}/${id}/${version}`;
 
   return {
     // ---- secrets (resources.secrets: set by the admin, per tool and environment, encrypted)
@@ -127,38 +128,113 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
       return out;
     },
 
-    // ---- per-person secrets (resources.userSecrets: typed by each person, sealed, D-036)
-    /** Sets or replaces the secret of one person for one tool. Encrypted before the database. */
-    async setUserSecret(input: { toolId: string; person: string; name: string; value: string }) {
-      const sealed = await secretBox().seal(
-        userSlot(input.toolId, input.person, input.name),
-        input.value,
-      );
-      await write(
-        `INSERT INTO "user_secrets" ("tool_id", "person", "name", "iv", "ciphertext", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
-         ON CONFLICT ("tool_id", "person", "name") DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updated_at" = excluded."updated_at"`,
+    // ---- per-person secrets (resources.userSecrets, D-036), kept in a registry of the person's secrets (D-104)
+    // A secret has a stable id and numbered, immutable versions; a binding says which tool field uses it,
+    // in which scope, and which version (a pin, or the latest). These four methods keep their names and
+    // meaning: a person's value for a tool field, by default the tool-wide binding.
+    /**
+     * Sets or replaces the secret of one person for one tool field: a new **version** of the secret the
+     * tool-wide binding points at, or a new secret and binding. Encrypted before the database. The
+     * binding follows the latest version: typing a value is choosing to use it.
+     */
+    async setUserSecret(input: {
+      toolId: string;
+      person: string;
+      name: string;
+      value: string;
+      /** Who typed it: the person by default. */
+      by?: string;
+      via?: "setup" | "admin";
+    }) {
+      const tool = await requireTool(input.toolId);
+      const bound = await first(
+        `SELECT b."secret_id" AS "id", (SELECT MAX("version") FROM "person_secret_versions" WHERE "secret_id" = b."secret_id") AS "latest"
+FROM "secret_bindings" b WHERE b."tool_id" = ? AND b."person" = ? AND b."field" = ? AND b."scope" = '*'`,
         input.toolId,
         input.person,
         input.name,
-        sealed.iv,
-        sealed.ciphertext,
-        now(),
       );
+      const at = now();
+      const id = bound ? String(bound.id) : `sec_${newId()}`;
+      const version = bound ? Number(bound.latest) + 1 : 1;
+      const aad = secretAad(tool.workspace, input.person, id, version);
+      const sealed = await secretBox().seal(aad, input.value);
+      await d1.batch([
+        ...(bound
+          ? [
+              d1
+                .prepare(
+                  `UPDATE "secret_bindings" SET "pin" = NULL WHERE "tool_id" = ? AND "person" = ? AND "field" = ? AND "scope" = '*'`,
+                )
+                .bind(input.toolId, input.person, input.name),
+            ]
+          : [
+              d1
+                .prepare(
+                  `INSERT INTO "person_secrets" ("id", "workspace", "person", "label", "kind", "created_at") VALUES (?, ?, ?, ?, NULL, ?)`,
+                )
+                .bind(id, tool.workspace, input.person, input.name, at),
+            ]),
+        d1
+          .prepare(
+            `INSERT INTO "person_secret_versions" ("secret_id", "version", "iv", "ciphertext", "aad", "created_at", "created_by", "via") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            id,
+            version,
+            sealed.iv,
+            sealed.ciphertext,
+            aad,
+            at,
+            input.by ?? input.person,
+            input.via ?? "setup",
+          ),
+        ...(bound
+          ? []
+          : [
+              d1
+                .prepare(
+                  `INSERT INTO "secret_bindings" ("tool_id", "person", "field", "scope", "secret_id", "pin") VALUES (?, ?, ?, '*', ?, NULL)`,
+                )
+                .bind(input.toolId, input.person, input.name, id),
+            ]),
+      ]);
     },
     /**
      * The decrypted secrets of ONE person for one tool. Only the gateway calls this, to hand a person
-     * their own to the tool they call: no route of the platform returns what it gives back.
+     * their own to the tool they call: no route of the platform returns what it gives back. For each
+     * field the most specific binding that applies to where the call is served wins: `preview:<branch>`,
+     * then `preview`, then `production`, then the tool-wide `*`; its version is its pin, or the latest.
      */
-    async readUserSecrets(toolId: string, person: string): Promise<Record<string, string>> {
-      const box = secretBox();
-      const out: Record<string, string> = {};
-      for (const r of await all(
-        `SELECT "name", "iv", "ciphertext" FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ?`,
+    async readUserSecrets(
+      toolId: string,
+      person: string,
+      served: { environment?: "production" | "preview"; branch?: string } = {},
+    ): Promise<Record<string, string>> {
+      const order =
+        served.environment === "preview"
+          ? [...(served.branch ? [`preview:${served.branch}`] : []), "preview", "*"]
+          : ["production", "*"];
+      const rows = await all(
+        `SELECT b."field", b."scope", v."iv", v."ciphertext", v."aad"
+FROM "secret_bindings" b JOIN "person_secret_versions" v
+  ON v."secret_id" = b."secret_id"
+ AND v."version" = COALESCE(b."pin", (SELECT MAX("version") FROM "person_secret_versions" WHERE "secret_id" = b."secret_id"))
+WHERE b."tool_id" = ? AND b."person" = ?`,
         toolId,
         person,
-      )) {
-        const name = String(r.name);
-        out[name] = await box.open(userSlot(toolId, person, name), {
+      );
+      const best = new Map<string, (typeof rows)[number]>();
+      for (const r of rows) {
+        const rank = order.indexOf(String(r.scope));
+        if (rank === -1) continue;
+        const current = best.get(String(r.field));
+        if (!current || rank < order.indexOf(String(current.scope))) best.set(String(r.field), r);
+      }
+      const box = secretBox();
+      const out: Record<string, string> = {};
+      for (const [field, r] of best) {
+        out[field] = await box.open(String(r.aad), {
           iv: String(r.iv),
           ciphertext: String(r.ciphertext),
         });
@@ -169,29 +245,45 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
     async userSecretHolders(toolId: string): Promise<Array<{ person: string; names: string[] }>> {
       const by = new Map<string, string[]>();
       for (const r of await all(
-        `SELECT "person", "name" FROM "user_secrets" WHERE "tool_id" = ? ORDER BY "person", "name"`,
+        `SELECT DISTINCT "person", "field" FROM "secret_bindings" WHERE "tool_id" = ? ORDER BY "person", "field"`,
         toolId,
       )) {
-        by.set(String(r.person), [...(by.get(String(r.person)) ?? []), String(r.name)]);
+        by.set(String(r.person), [...(by.get(String(r.person)) ?? []), String(r.field)]);
       }
       return [...by].map(([person, names]) => ({ person, names }));
     },
-    /** The admin's revocation: one secret of one person, or all of that person's, for a tool. */
+    /**
+     * The admin's revocation: one field of one person, or all of that person's, for a tool, in every
+     * scope. The person is asked again. A secret that no binding uses any more is deleted with its
+     * versions; one that another tool still uses stays. Returns how many fields were cleared.
+     */
     async revokeUserSecrets(toolId: string, person: string, name?: string): Promise<number> {
-      const found = await all(
-        name === undefined
-          ? `SELECT 1 FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ?`
-          : `SELECT 1 FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ? AND "name" = ?`,
-        ...(name === undefined ? [toolId, person] : [toolId, person, name]),
+      const where = name === undefined ? "" : ` AND "field" = ?`;
+      const args = name === undefined ? [toolId, person] : [toolId, person, name];
+      const bound = await all(
+        `SELECT "field", "secret_id" FROM "secret_bindings" WHERE "tool_id" = ? AND "person" = ?${where}`,
+        ...args,
       );
-      if (found.length === 0) return 0;
-      await write(
-        name === undefined
-          ? `DELETE FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ?`
-          : `DELETE FROM "user_secrets" WHERE "tool_id" = ? AND "person" = ? AND "name" = ?`,
-        ...(name === undefined ? [toolId, person] : [toolId, person, name]),
-      );
-      return found.length;
+      if (bound.length === 0) return 0;
+      const ids = [...new Set(bound.map((r) => String(r.secret_id)))];
+      const marks = ids.map(() => "?").join(", ");
+      await d1.batch([
+        d1
+          .prepare(`DELETE FROM "secret_bindings" WHERE "tool_id" = ? AND "person" = ?${where}`)
+          .bind(...args),
+        // Only the secrets this call unbound, and only if nothing else uses them.
+        d1
+          .prepare(
+            `DELETE FROM "person_secret_versions" WHERE "secret_id" IN (${marks}) AND NOT EXISTS (SELECT 1 FROM "secret_bindings" b WHERE b."secret_id" = "person_secret_versions"."secret_id")`,
+          )
+          .bind(...ids),
+        d1
+          .prepare(
+            `DELETE FROM "person_secrets" WHERE "id" IN (${marks}) AND NOT EXISTS (SELECT 1 FROM "secret_bindings" b WHERE b."secret_id" = "person_secrets"."id")`,
+          )
+          .bind(...ids),
+      ]);
+      return new Set(bound.map((r) => String(r.field))).size;
     },
 
     // ---- plain per-person values of a tool's setup (D-097): in clear, the person's own and the admin's to see

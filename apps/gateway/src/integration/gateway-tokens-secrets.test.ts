@@ -344,7 +344,9 @@ describe("per-person secrets on first use", () => {
     ).toBe(403);
     // The value is sealed at rest.
     expect(
-      JSON.stringify((await memory.prepare(`SELECT * FROM "user_secrets"`).all()).results),
+      JSON.stringify(
+        (await memory.prepare(`SELECT * FROM "person_secret_versions"`).all()).results,
+      ),
     ).not.toContain("ben-test-value");
   });
 

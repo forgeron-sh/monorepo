@@ -689,5 +689,58 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0027_secret_registry",
+    "fingerprint": "secret-registry-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"person_secrets\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"workspace\" TEXT NOT NULL,\n  \"person\" TEXT NOT NULL,\n  \"label\" TEXT NOT NULL,\n  \"kind\" TEXT,\n  \"created_at\" TEXT NOT NULL,\n  \"archived_at\" TEXT\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"person_secrets_by_person\" ON \"person_secrets\" (\"workspace\", \"person\")",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"person_secret_versions\" (\n  \"secret_id\" TEXT NOT NULL REFERENCES \"person_secrets\" (\"id\") ON DELETE CASCADE,\n  \"version\" INTEGER NOT NULL,\n  \"iv\" TEXT NOT NULL,\n  \"ciphertext\" TEXT NOT NULL,\n  \"aad\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  \"created_by\" TEXT NOT NULL,\n  \"via\" TEXT NOT NULL,\n  PRIMARY KEY (\"secret_id\", \"version\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"secret_bindings\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"person\" TEXT NOT NULL,\n  \"field\" TEXT NOT NULL,\n  \"scope\" TEXT NOT NULL CHECK (\"scope\" IN ('*', 'production', 'preview') OR \"scope\" LIKE 'preview:%'),\n  \"secret_id\" TEXT NOT NULL REFERENCES \"person_secrets\" (\"id\") ON DELETE CASCADE,\n  \"pin\" INTEGER,\n  PRIMARY KEY (\"tool_id\", \"person\", \"field\", \"scope\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"secret_bindings_by_secret\" ON \"secret_bindings\" (\"secret_id\")",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"person_secrets\" (\"id\", \"workspace\", \"person\", \"label\", \"kind\", \"created_at\", \"archived_at\")\nSELECT 'sec_l' || u.\"rowid\", t.\"workspace\", u.\"person\", u.\"name\", NULL, u.\"updated_at\", NULL\nFROM \"user_secrets\" u JOIN \"tools\" t ON t.\"id\" = u.\"tool_id\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"person_secret_versions\" (\"secret_id\", \"version\", \"iv\", \"ciphertext\", \"aad\", \"created_at\", \"created_by\", \"via\")\nSELECT 'sec_l' || u.\"rowid\", 1, u.\"iv\", u.\"ciphertext\", 'user/' || u.\"tool_id\" || '/' || u.\"person\" || '/' || u.\"name\", u.\"updated_at\", u.\"person\", 'legacy'\nFROM \"user_secrets\" u JOIN \"tools\" t ON t.\"id\" = u.\"tool_id\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"secret_bindings\" (\"tool_id\", \"person\", \"field\", \"scope\", \"secret_id\", \"pin\")\nSELECT u.\"tool_id\", u.\"person\", u.\"name\", '*', 'sec_l' || u.\"rowid\", NULL\nFROM \"user_secrets\" u JOIN \"tools\" t ON t.\"id\" = u.\"tool_id\"",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"secret_bindings\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"person_secret_versions\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"person_secrets\"",
+        "parameters": []
+      }
+    ]
   }
 ]
