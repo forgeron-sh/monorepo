@@ -300,6 +300,23 @@ describe("per-person secrets on first use", () => {
     expect(seen).toEqual([{ user: ben, secrets: { ODOO_API_KEY: "ben-test-value" } }]);
   });
 
+  it("answers the page and the form on a preview address like on the production one (FOR-174)", async () => {
+    const token = await tokenFor(ben, "crm");
+    const page = await call("/t/crm@feature-x/secrets", token);
+    expect(page.status).toBe(200);
+    expect(await page.text()).toContain("Odoo API key");
+    const saved = await call(
+      "/t/crm@feature-x/secrets",
+      await cliToken(ben),
+      json({ ODOO_API_KEY: "preview-test-value" }),
+    );
+    expect(saved.status).toBe(200);
+    // The value is the person's for the tool: the production address sees the same one.
+    seen.length = 0;
+    expect((await call("/t/crm/api/tickets.mine", token)).status).toBe(200);
+    expect(seen).toEqual([{ user: ben, secrets: { ODOO_API_KEY: "preview-test-value" } }]);
+  });
+
   it("never gives a person's value to anyone else, the developer's console or the admin", async () => {
     const adminToken = await cliToken(admin);
     // Ben's value is stored; a person who never typed theirs is asked, whatever ben stored.

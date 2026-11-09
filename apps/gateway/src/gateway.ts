@@ -44,7 +44,9 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
     if (!workspace) return parts.dispatch(request);
     const asked = createRequestModules(modules, parts, request, workspace);
 
-    const secretsOf = /^\/t\/([a-z0-9-]+)\/secrets\/?$/.exec(url.pathname);
+    // A preview address (`/t/<tool>@<branch>/secrets`) answers like the production one: a person's
+    // secrets belong to the tool, not to an environment, so the branch is not part of the key (FOR-174).
+    const secretsOf = /^\/t\/([a-z0-9-]+)(?:@[^/]+)?\/secrets\/?$/.exec(url.pathname);
     if (secretsOf && asked.userSecrets) {
       return handleUserSecrets(request, secretsOf[1]!, asked.userSecrets());
     }
