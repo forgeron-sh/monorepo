@@ -16,7 +16,7 @@ export const CLI_SCOPE = "cli";
 export const MCP_SCOPE = "mcp";
 
 /** A tool's MCP path, `/t/<tool>/mcp` or `/t/<tool>@<branch>/mcp`: the only place an `mcp` tool token works. */
-export const TOOL_MCP = /^\/t\/([a-z0-9][a-z0-9-]*)(?:@[^/]+)?\/mcp\/?$/;
+const TOOL_MCP = /^\/t\/([a-z0-9][a-z0-9-]*)(?:@[^/]+)?\/mcp\/?$/;
 
 const toPerson = (member: Member): Person => ({
   id: member.id,
