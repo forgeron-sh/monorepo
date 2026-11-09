@@ -259,11 +259,11 @@ The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forge
 
 ### Secrets and access
 
-| Command                                          | What it does                                                                                             |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `forgeron secrets set <NAME> [--env] [--user]`   | Sets a tool secret, or your own with `--user`; the value is read from the keyboard, never as an argument |
-| `forgeron secrets list [--env]`                  | Names of the secrets that are set, never the values                                                      |
-| `forgeron token create --name ci --scope deploy` | Creates a deployment token for CI                                                                        |
+| Command                                          | What it does                                                                                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forgeron secrets set <NAME> [--env]`            | Sets a tool secret; the value is read from the keyboard, never as an argument. `--user` only prints the link to your own setup page (D-102) |
+| `forgeron secrets list [--env]`                  | Names of the secrets that are set, never the values                                                                                         |
+| `forgeron token create --name ci --scope deploy` | Creates a deployment token for CI                                                                                                           |
 
 ### Tool actions, as commands
 
@@ -481,7 +481,7 @@ export default schedule("0 2 * * *", { timezone: "Europe/Paris" }, async (ctx) =
 **Secrets**
 
 - `resources.secrets`: set by the admin, per environment, encrypted. Read with `ctx.secrets.NAME`.
-- `resources.userSecrets`: specific to each person and each tool. Collected by the platform on first use (MCP elicitation, CLI prompt, web page). Neither the developer nor the admin can read them; the admin can revoke them.
+- `resources.userSecrets`: specific to each person and each tool. Collected by the platform on the web, at `/t/<tool>/setup`: asked when a person connects an MCP client (D-098), or from the link of the first call that fails (MCP elicitation, the CLI prints the link). Nothing is asked in the terminal (D-102). Neither the developer nor the admin can read them; the admin can revoke them.
 
 **Setup** (D-096)
 
@@ -504,7 +504,7 @@ setup: {
 - **Where it is asked, and what the tool gets** (D-097): `/t/<tool>/setup` (and `/t/<tool>/secrets`, the same page) shows one form: the plain fields, then the secrets. A required plain field and a missing secret fail a call together with `428 SECRET_REQUIRED` and that one link. The plain values are kept in clear, one per tool and person (not per environment), shown to their owner and to the workspace's admins, and removed with the person. In an action they are `ctx.user.setup.firstName` (`undefined` if not given); a task has none. Everything is checked before anything is kept: a required field, a choice among its options, a length (200 characters unless `maxLength`).
 - Admins list what each person gave (`GET /console-api/api/tools/<tool>/user-setup`) and clear one value or all of a person's (`DELETE …/user-setup/<person>[/<name>]`): the person is asked again.
 - **At the OAuth connection** (D-098): when an MCP client asks to connect to a tool whose setup a person has not finished, the authorization step sends them to `/t/<tool>/setup`, which sends them back to the "Allow" click when they are done. No token is issued for a tool whose setup is incomplete.
-- Not done yet (D-097, D-098, D-101): the connectors as steps of the page, the removal of the CLI prompt, a console screen.
+- Not done yet (D-097, D-098, D-101, D-102): the connectors as steps of the page, a console screen.
 
 **Connectors**
 

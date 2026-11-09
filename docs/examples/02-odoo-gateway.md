@@ -87,7 +87,7 @@ export default defineConfig({
 1. The person adds the tool's MCP server in Claude and signs in with Microsoft.
 2. On their first call, the platform notices that `ODOO_API_KEY` is missing.
    - On MCP, the call returns an input request (MCP elicitation) or, if the client does not support it, a link to a platform page.
-   - On the CLI, `forgeron odoo tickets list` asks for the key in the terminal, or you set it with `forgeron secrets set --user ODOO_API_KEY`.
+   - On the CLI, the call fails with the link to the setup page; the key is given there, on the web, never in the terminal (D-102).
 3. The key is encrypted and tied to the person and the tool. The developer cannot read it; the admin can revoke it.
 
 ## The Odoo client

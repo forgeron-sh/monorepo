@@ -1,116 +1,61 @@
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { run } from "./cli";
 import type { Io } from "./io";
-import { missingSecretsOf, promptUserSecrets } from "./commands/user-secrets";
 
-// A workspace endpoint that answers `POST /t/<tool>/secrets` the way the gateway does.
-let server: Server;
-let endpoint: string;
-const requests: Array<{ url?: string; authorization?: string; body: unknown }> = [];
-let status = 200;
-
-beforeAll(async () => {
-  server = createServer((req, res) => {
-    let raw = "";
-    req.on("data", (chunk) => (raw += chunk));
-    req.on("end", () => {
-      requests.push({
-        ...(req.url ? { url: req.url } : {}),
-        ...(req.headers.authorization ? { authorization: req.headers.authorization } : {}),
-        body: JSON.parse(raw || "null"),
-      });
-      res.statusCode = status;
-      res.end("{}");
-    });
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  endpoint = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-});
-afterAll(() => new Promise((resolve) => server.close(resolve)));
+// A person's own secrets are given on the web (D-102): `forgeron secrets set --user` prints the link
+// to the tool's setup page and reads nothing, sends nothing.
 
 const dirs: string[] = [];
-const saved = process.env.XDG_CONFIG_HOME;
 afterEach(async () => {
-  process.env.XDG_CONFIG_HOME = saved as string;
-  if (saved === undefined) delete process.env.XDG_CONFIG_HOME;
-  requests.length = 0;
-  status = 200;
+  vi.unstubAllGlobals();
   await Promise.all(dirs.splice(0).map((d) => rm(d, { recursive: true, force: true })));
 });
 
-async function setup(typed: string[]) {
+async function setup(endpoint = "https://acme.forgeron.app") {
   const cwd = await mkdtemp(join(tmpdir(), "forgeron-usersecrets-"));
-  const config = await mkdtemp(join(tmpdir(), "forgeron-config-"));
-  dirs.push(cwd, config);
-  process.env.XDG_CONFIG_HOME = config;
+  dirs.push(cwd);
   await mkdir(join(cwd, ".forgeron"));
   await writeFile(
     join(cwd, ".forgeron", "project.json"),
     JSON.stringify({ tool: "crm", workspace: "acme", endpoint }),
   );
-  await mkdir(join(config, "forgeron"));
-  await writeFile(join(config, "forgeron", "credentials"), "login-token\n");
-  const logs: string[] = [];
-  const prompts: string[] = [];
+  const errors: string[] = [];
+  const readSecret = vi.fn<() => Promise<string>>(async () => "never-asked");
   const io: Io = {
     cwd,
-    log: (m) => void logs.push(m),
-    error: () => {},
+    log: () => {},
+    error: (m) => void errors.push(m),
     exec: async () => 0,
-    readSecret: async (prompt) => (prompts.push(prompt), typed.shift() ?? ""),
+    readSecret,
     stopped: new Promise(() => {}),
   };
-  return { io, logs, prompts };
+  return { io, errors, readSecret };
 }
 
 describe("forgeron secrets set --user", () => {
-  it("prompts without echo and stores the value for this tool through the gateway", async () => {
-    const { io, logs } = await setup(["typed-test-value"]);
-    expect(await run(["secrets", "set", "ODOO_API_KEY", "--user"], io)).toBe(0);
-    expect(requests).toEqual([
-      {
-        url: "/t/crm/secrets",
-        authorization: "Bearer login-token",
-        body: { ODOO_API_KEY: "typed-test-value" },
-      },
-    ]);
-    expect(logs.join("\n")).not.toContain("typed-test-value");
-  });
-
-  it("stores nothing when the value is empty", async () => {
-    const { io } = await setup([""]);
+  it("prints the link to the tool's setup page, asks for nothing and sends nothing", async () => {
+    const fetched = vi.fn<() => void>();
+    vi.stubGlobal("fetch", fetched);
+    const { io, errors, readSecret } = await setup();
     expect(await run(["secrets", "set", "ODOO_API_KEY", "--user"], io)).toBe(2);
-    expect(requests).toEqual([]);
+    expect(errors.join("\n")).toContain("https://acme.forgeron.app/t/crm/setup");
+    expect(readSecret).not.toHaveBeenCalled();
+    expect(fetched).not.toHaveBeenCalled();
   });
 
-  it("shows what the workspace refused, and exits 1", async () => {
-    status = 403;
-    const { io } = await setup(["v"]);
-    expect(await run(["secrets", "set", "ODOO_API_KEY", "--user"], io)).toBe(1);
+  it("keeps a trailing slash of the endpoint out of the link", async () => {
+    const { io, errors } = await setup("https://acme.forgeron.app/");
+    await run(["secrets", "set", "K", "--user"], io);
+    expect(errors.join("\n")).toContain("https://acme.forgeron.app/t/crm/setup");
+    expect(errors.join("\n")).not.toContain("app//t/");
   });
-});
 
-describe("a missing secret answered by a tool (428)", () => {
-  const body = {
-    error: {
-      code: "SECRET_REQUIRED",
-      details: { missing: [{ name: "K", label: "The key", why: "To read your tickets" }] },
-    },
-  };
-
-  it("is read from the error and prompted for with the tool's own label and reason", async () => {
-    const missing = missingSecretsOf(body)!;
-    expect(missing).toHaveLength(1);
-    expect(missingSecretsOf({ error: { code: "FORBIDDEN" } })).toBeUndefined();
-    const { io, logs, prompts } = await setup(["abc"]);
-    expect(await promptUserSecrets(io, { endpoint, tool: "crm", token: "t" }, missing)).toBe(true);
-    expect(prompts).toEqual(["The key: "]);
-    expect(logs[0]).toContain("To read your tickets");
-    expect(requests[0]?.body).toEqual({ K: "abc" });
+  it("still refuses --user on a command that is not `secrets set <NAME>`", async () => {
+    const { io, errors } = await setup();
+    expect(await run(["secrets", "list", "--user"], io)).toBe(2);
+    expect(errors.join("\n")).toContain("--user goes with");
   });
 });
