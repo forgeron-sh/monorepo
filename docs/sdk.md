@@ -768,26 +768,26 @@ In addition to each tool's MCP server, the workspace exposes **a Forgeron MCP se
 
 Each tool calls the platform's own routes with the signed-in person's identity, so it has the guard, the validation and the audit lines of the console. `/mcp` is authenticated with a **CLI token** (`forgeron login`) sent as a Bearer token, limited to the workspace (D-079); the session cookie and a tool's tokens are refused. A person is offered only the tools their role allows.
 
-| MCP tool                         | What it does                                                                                 | Minimum role in the workspace | Destructive |
-| -------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
-| `catalog_search`                 | Searches the workspace's catalog of tools                                                    | member                        |             |
-| `catalog_get`                    | A tool's card: what it does, how to connect, what the caller may call                        | member                        |             |
-| `tools_list`                     | The workspace's tools, their versions per environment                                        | member                        |             |
-| `tool_get`                       | Tool detail: versions per environment and its card                                           | member                        |             |
-| `tool_changelog`                 | A tool's changelog, optionally since a version                                               | developer                     |             |
-| `tool_versions`                  | Versions and environments                                                                    | developer                     |             |
-| `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                             | developer                     |             |
-| `secret_request`                 | A link where you type a tool's secret yourself; single use, never the value                  | developer                     |             |
-| `tool_promote`                   | Promotes a version to an environment (never allows a destructive migration)                  | admin                         | yes         |
-| `tool_rollback`                  | Goes back to an environment's previous version                                               | admin                         | yes         |
-| `resources_pending`              | The versions awaiting a resource approval                                                    | admin                         |             |
-| `resources_approve`              | Approves one pending request for a resource                                                  | admin                         | yes         |
-| `access_list`                    | A tool's roles × actions matrix, or the members and their roles                              | admin                         |             |
-| `access_grant` · `access_revoke` | Gives or takes a workspace role of a member, or allows or refuses a role an action of a tool | admin                         | yes         |
+| MCP tool                         | What it does                                                                                                                   | Minimum role in the workspace | Destructive |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | ----------- |
+| `catalog_search`                 | Searches the workspace's catalog of tools                                                                                      | member                        |             |
+| `catalog_get`                    | A tool's card: what it does, how to connect, what the caller may call                                                          | member                        |             |
+| `tools_list`                     | The workspace's tools, their versions per environment                                                                          | member                        |             |
+| `tool_get`                       | Tool detail: versions per environment and its card                                                                             | member                        |             |
+| `tool_changelog`                 | A tool's changelog, optionally since a version                                                                                 | developer                     |             |
+| `tool_versions`                  | Versions and environments                                                                                                      | developer                     |             |
+| `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                                                               | developer                     |             |
+| `secret_request`                 | A link where you type a tool's secret yourself; single use, never the value                                                    | developer                     |             |
+| `tool_promote`                   | Promotes a version to an environment (never allows a destructive migration)                                                    | admin                         | yes         |
+| `tool_rollback`                  | Goes back to an environment's previous version                                                                                 | admin                         | yes         |
+| `resources_pending`              | The versions awaiting a resource approval                                                                                      | admin                         |             |
+| `resources_approve`              | Approves one pending request for a resource                                                                                    | admin                         | yes         |
+| `access_list`                    | A tool's roles × actions matrix, or the members and their roles                                                                | admin                         |             |
+| `access_grant` · `access_revoke` | Gives or takes a workspace role of a member, or allows or refuses a role an action of a tool (a group is not a subject: D-091) | admin                         | yes         |
 
 `tool_changelog` is for developers because the route that carries the changelog is (the version list shows the commits and what changed); a member reads a tool's card.
 
-**Not available yet**: `tool_install_plan` and `tool_install` (a tool created from a template: the platform routes exist, D-081; the MCP tools are FOR-161), `usage_report` (FOR-162), granting a role to a group (FOR-165), and signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
+**Not available yet**: `tool_install_plan` and `tool_install` (a tool created from a template: the platform routes exist, D-081; the MCP tools are FOR-161), `usage_report` (FOR-162), and signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
 
 ### Safeguards
 
