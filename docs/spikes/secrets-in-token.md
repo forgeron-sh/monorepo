@@ -1,5 +1,7 @@
 # Spike FOR-172: per-person secrets carried in the OAuth token, never stored
 
+> **Outcome (2026-11-09, D-103): not adopted.** The owner kept the stored model of D-036. This report stays as the record of the options and the threat model. Its tickets are dropped, except the first (`SECRETS_KEY_PREVIOUS`, done as D-100).
+
 Project "Identity, access and usage log". Written 2026-11-09. Documentation only: no code was changed and
 nothing was run. Labels used below: **Fact** (read in the code or a decision of this repository),
 **Deduction** (follows from facts), **Hypothesis** (plausible, not checked). The owner's direction (oral,
@@ -197,3 +199,28 @@ plain value in the call, as it does now (D-036 "Know").
 - No MCP client was connected: whether a connector keeps a refresh token that long, and sends it back
   unchanged, is assumed from the OAuth specification.
 - The threat model is a reasoning on the code as read; it was not reviewed by anyone else.
+
+## Addendum: a third option, raised by the owner and rejected (2026-11-09)
+
+**The idea**: the platform stores the secret **encrypted under a key that the person holds**, and the person
+supplies that key with each call, so that a leak of the database and of `SECRETS_KEY` reveals nothing.
+
+**What it would give (deduction)**: nothing readable after a leak of the database even with `SECRETS_KEY`; and a
+compromised gateway exposes only the people who call during the intrusion, not the dormant ones. The
+administrator could still see that a secret exists and clear it, which the token-borne option cannot offer.
+
+**Why it was not taken**
+
+- A person cannot hold 256 bits. The only channel an OAuth connector offers is the token, so the gateway would
+  **generate the key at the connection and put it in the token**: it sees the key at creation and on every call.
+- **One key per connection** (Claude on the web, on the desktop, another machine): the secret is encrypted once
+  per connection or typed again.
+- **A lost token loses the secret**, and the setup page, which runs in a browser without the token, cannot
+  change a secret without the key.
+- The key travels in every call like the token does: no new interception risk, but a stolen **database plus a
+  captured token** then gives the secret, where the token-borne option needs `SECRETS_KEY` plus a captured token.
+
+**What the owner wants instead**: the secret stays stored under a key the platform holds, because then it
+survives a reconnection and a change of client, an administrator can set one, see that it exists and
+perhaps read it to debug, and the same secret can serve a person across several tools. Three of those are not
+built and are open in D-103.
