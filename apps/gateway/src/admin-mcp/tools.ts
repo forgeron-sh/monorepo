@@ -16,6 +16,7 @@ import {
   setMemberRolesRoute,
   toolCardRoute,
   toolVersionsRoute,
+  usageRoute,
 } from "@forgeron/platform-contract";
 import { z } from "zod";
 
@@ -336,6 +337,31 @@ export const TOOLS: readonly ToolDefinition[] = [
     destructive: true,
     input: target,
     run: (args, port) => setAccess(args, port, false),
+  }),
+  define({
+    name: "usage_report",
+    title: "Usage of the workspace",
+    description:
+      "Authenticated calls per tool and per person over a period of UTC days (`from`, `to`, `YYYY-MM-DD`; the last 30 days by default). Counts only: no payload, no path.",
+    minRole: "admin",
+    destructive: false,
+    input: z.strictObject({
+      from: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+      to: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+    }),
+    run: ({ from, to }, port) => {
+      const query = new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) });
+      return ask(port, {
+        method: "GET",
+        path: `${usageRoute.path}${query.size ? `?${query}` : ""}`,
+      });
+    },
   }),
   define({
     name: "template_list",

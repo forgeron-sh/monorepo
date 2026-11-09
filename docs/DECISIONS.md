@@ -91,6 +91,7 @@ Rules of the log:
 | D-090 | 09/11/2026 | Texts about self-host previews that D-080 made stale are corrected in place (FOR-166)                                                                                  | Active                                 |
 | D-091 | 09/11/2026 | A group is not a grantable subject: `access_grant` gives roles to members and cells of the matrix (FOR-165)                                                            | Active                                 |
 | D-092 | 09/11/2026 | The admin MCP installs a template in two steps: a plan bound to the person, then only the plan's identifier (FOR-161)                                                  | Active                                 |
+| D-093 | 09/11/2026 | Usage is one counter per workspace, tool, person and UTC day; the admin MCP reads it with `usage_report` (FOR-162)                                                     | Active                                 |
 
 ---
 
@@ -1121,3 +1122,18 @@ Rules of the log:
 - **Known, not changed**: a plan spent and then refused because the workspace gained a tool of that name in the meantime is not given back. Plans that expired stay in the table (no sweep: the table is small, and a sweep is one `DELETE` when it matters).
 - **Not verified**: no real MCP client and no deployed gateway; tested through the whole gateway with a real registry and CLI tokens.
 - **Applied in**: `packages/registry/src/modules/templates/`, `packages/platform-contract/src/templates.ts`, `apps/gateway/src/platform/templates.ts`, `apps/gateway/src/admin-mcp/tools.ts`, `docs/sdk.md` §17.
+
+## D-093 — Usage is one counter per workspace, tool, person and UTC day; the admin MCP reads it with `usage_report` (FOR-162)
+
+- **Date**: 09/11/2026 · **Status**: Active
+- **Decision**:
+  1. **What is counted**: an authenticated call that reached a tool, in the place where a seat is counted (D-024): the dispatcher, once identity says who called and the tool is found. One row per workspace, tool name, person id and UTC day, with a number of calls (`usage_daily`, migration `0025`, new `usage` module). A call a tool makes on its own behalf (`tool:<name>`) and an anonymous one are not counted.
+  2. **What is not kept**: no path, no action name, no payload, no address, no user agent. Tool names, not ids: a deleted tool keeps its past counts.
+  3. **How long**: rows are kept as they are; there is no sweep. A row is one per person, tool and day, so a workspace of 100 people on 10 tools writes at most 1,000 rows a day. A sweep (`DELETE … WHERE day < ?`) is a later ticket if the table ever matters.
+  4. **Read**: `GET /api/usage?from&to` (contract `workspace.ts`), admin only, a period of at most a year of UTC days (30 days to today by default), answered by tool (calls, distinct people) and by person (calls, with the member's name and email, empty if the person left). The MCP tool `usage_report` calls that route and is read only.
+  5. **Failure**: counting never blocks a call (as for seats): an error is swallowed in the dispatcher.
+- **Why**: the white paper sells governance; an administrator needs to know which tools are used and by whom, and per-seat billing (D-024) already counts people. A counter per day is the smallest thing that answers "which tool, how much, who" without becoming a second audit log: the audit log holds what changed, this holds how much was used.
+- **Rejected**: logging each call (a row per request, a payload question, a growth question); counting inside the tool's Worker (a tool could lie, and the gateway already knows); reusing `seats` (a month and a person, no tool).
+- **Cost, stated**: one more D1 write per authenticated call to a tool, next to the seat write. Not measured on a real D1. If it shows in latency, the two writes can share one batch or the counter can move to a Durable Object with a periodic flush.
+- **Not done / not verified**: the console has no usage screen; the numbers were not compared with a real workspace's traffic; the unique-people count over a period is per tool, so a person who used two tools counts once in each.
+- **Applied in**: `packages/registry/src/modules/usage/`, `packages/platform-contract/src/workspace.ts`, `apps/gateway/src/dispatch/dispatch.ts`, `apps/gateway/src/compose.ts`, `apps/gateway/src/platform/workspace.ts`, `apps/gateway/src/admin-mcp/tools.ts`, `docs/sdk.md` §17.

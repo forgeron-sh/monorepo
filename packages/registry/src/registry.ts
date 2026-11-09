@@ -13,6 +13,7 @@ import { createIdentityStore } from "./modules/identity-store/public";
 import { createMembers } from "./modules/members/public";
 import { createSecrets } from "./modules/secrets/public";
 import { createTemplates } from "./modules/templates/public";
+import { createUsage } from "./modules/usage/public";
 
 export { RegistryError } from "./kernel/errors";
 export type { RegisteredEnvironment, RegistryErrorCode } from "./kernel/errors";
@@ -57,6 +58,7 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     ...createAudit(kernel),
     ...createAccess(kernel, catalogPort),
     ...createTemplates(kernel, catalogPort),
+    ...createUsage(kernel),
   };
 }
 

@@ -3,7 +3,7 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConsolePerson } from "./app";
-import { describeRouteMatrix } from "./route-matrix";
+import { ADMIN, describeRouteMatrix } from "./route-matrix";
 import { platformCaller } from "./test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -43,6 +43,13 @@ describeRouteMatrix({
   call: through,
   method: "GET",
   path: "/api/audit",
+  access: "admin",
+});
+describeRouteMatrix({
+  title: "GET /api/usage",
+  call: through,
+  method: "GET",
+  path: "/api/usage",
   access: "admin",
 });
 describeRouteMatrix({
@@ -138,5 +145,25 @@ describe("the access matrix", () => {
       new Request("https://acme.forgeron.test/api/tools/crm/access-matrix", { method: "POST" }),
     ))!;
     expect(post.status).toBe(405);
+  });
+});
+
+describe("GET /api/usage (D-093)", () => {
+  const ask = (query: string) =>
+    through(new Request(`https://acme.forgeron.test/api/usage${query}`), ADMIN);
+
+  it("reports the period asked, by tool and by person, and refuses a period that makes no sense", async () => {
+    await registry.recordUsage("acme", "crm", ADMIN.id);
+    const day = new Date().toISOString().slice(0, 10);
+    const ok = await ask(`?from=${day}&to=${day}`);
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toMatchObject({
+      from: day,
+      to: day,
+      tools: [{ tool: "crm", calls: 1, people: 1 }],
+    });
+    expect((await ask("?from=2026-11-05&to=2026-11-01")).status).toBe(400);
+    expect((await ask("?from=2020-01-01&to=2026-11-01")).status).toBe(400);
+    expect((await ask("?from=yesterday")).status).toBe(400);
   });
 });

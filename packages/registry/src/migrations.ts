@@ -13,6 +13,7 @@ import { identityStoreMigrations } from "./modules/identity-store/public";
 import { membersMigrations } from "./modules/members/public";
 import { secretsMigrations } from "./modules/secrets/public";
 import { templatesMigrations } from "./modules/templates/public";
+import { usageMigrations } from "./modules/usage/public";
 import { rootMigrations } from "./root-migrations";
 
 /** The modules' lists in one list, ordered by name. A name used twice is a mistake: it throws. */
@@ -36,5 +37,6 @@ export const platformMigrations: BuildMigration[] = composeMigrations([
   membersMigrations,
   identityStoreMigrations,
   templatesMigrations,
+  usageMigrations,
   rootMigrations,
 ]);

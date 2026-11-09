@@ -269,7 +269,7 @@ describe("the tools and their minimum role", () => {
     expect((await listed(ana)).sort()).toEqual([...MEMBER].sort());
     expect((await listed(dev)).sort()).toEqual([...DEVELOPER].sort());
     expect((await listed(root)).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(18);
+    expect(TOOLS).toHaveLength(19);
   });
 
   it("marks what changes something with destructiveHint, and nothing else", async () => {
@@ -301,6 +301,7 @@ describe("the tools and their minimum role", () => {
         ["tool_promote", { tool: "crm", version: "1.1.0", to: "production" }],
         ["tool_rollback", { tool: "crm", environment: "production" }],
         ["template_list", {}],
+        ["usage_report", {}],
         ["tool_install_plan", { template: "inventory" }],
         ["tool_install", { plan: "anything" }],
         ["resources_pending", {}],
@@ -652,5 +653,24 @@ describe("installing a template takes two steps (D-092)", () => {
   it("takes no value and no argument but the plan's identifier", async () => {
     const refused = await call(root, "tool_install", { plan: "x", template: "inventory" });
     expect(refused.error).toBe(true);
+  });
+});
+
+describe("usage_report (D-093)", () => {
+  it("is read only, for administrators, and reports counts by tool and by person", async () => {
+    await registry.recordUsage("acme", "crm", ana);
+    await registry.recordUsage("acme", "crm", dev);
+    const tools = (await rpc(await token(root), "tools/list")).result.tools as any[];
+    const tool = tools.find((t) => t.name === "usage_report");
+    expect(tool.annotations.readOnlyHint).toBe(true);
+    const day = now.toISOString().slice(0, 10);
+    const report = (await call(root, "usage_report", { from: day, to: day })).data;
+    expect(report.tools).toEqual([{ tool: "crm", calls: 2, people: 2 }]);
+    expect(report.people.map((p: any) => p.email).sort()).toEqual([
+      "ana@acme.test",
+      "dev@acme.test",
+    ]);
+    expect(JSON.stringify(report)).not.toMatch(/token|secret|path/i);
+    expect((await call(root, "usage_report", { from: "yesterday" })).error).toBe(true);
   });
 });

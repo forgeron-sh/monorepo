@@ -89,3 +89,42 @@ export const auditRoute = defineRoute({
   },
   responses: { 200: json(AuditAnswerSchema, "The lines"), 401: notSignedIn, 403: notAdmin },
 });
+
+const Day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/** Usage of the workspace over a period of UTC days (D-093). */
+export const usageRoute = defineRoute({
+  method: "get",
+  path: "/api/usage",
+  summary: "Authenticated calls per tool and per person over a period, without payloads",
+  tags: ["usage"],
+  request: {
+    query: z.object({
+      from: Day.optional().describe("First UTC day, `2026-11-01`; 30 days before `to` by default"),
+      to: Day.optional().describe("Last UTC day, included; today by default"),
+    }),
+  },
+  responses: {
+    200: json(
+      z.strictObject({
+        from: z.string(),
+        to: z.string(),
+        tools: z.array(
+          z.strictObject({ tool: z.string(), calls: z.number().int(), people: z.number().int() }),
+        ),
+        people: z.array(
+          z.strictObject({
+            person: z.string(),
+            name: z.string(),
+            email: z.string(),
+            calls: z.number().int(),
+          }),
+        ),
+      }),
+      "The usage",
+    ),
+    400: json(ErrorSchema, "A period that ends before it starts, or longer than a year"),
+    401: notSignedIn,
+    403: notAdmin,
+  },
+});

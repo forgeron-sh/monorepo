@@ -651,5 +651,26 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0025_usage_daily",
+    "fingerprint": "usage-daily-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"usage_daily\" (\n  \"workspace\" TEXT NOT NULL,\n  \"tool\" TEXT NOT NULL,\n  \"person_id\" TEXT NOT NULL,\n  \"day\" TEXT NOT NULL,\n  \"calls\" INTEGER NOT NULL,\n  PRIMARY KEY (\"workspace\", \"tool\", \"person_id\", \"day\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"usage_daily_by_day\" ON \"usage_daily\" (\"workspace\", \"day\")",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"usage_daily\"",
+        "parameters": []
+      }
+    ]
   }
 ]

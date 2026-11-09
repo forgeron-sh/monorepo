@@ -101,6 +101,7 @@ function setup(
     canPreview?: (c: Caller & { branch: string }) => boolean;
     identify?: (c: Caller) => string | undefined | Promise<string | undefined>;
     recordSeat?: (workspace: string, personId: string) => void | Promise<void>;
+    recordUsage?: (workspace: string, tool: string, personId: string) => void | Promise<void>;
   } = {},
 ) {
   const seen = new Map<string, Request>();
@@ -285,6 +286,33 @@ describe("dispatch", () => {
       const { get } = setup({
         identify: () => "p1",
         recordSeat: () => {
+          throw new Error("D1 is down");
+        },
+      });
+      expect((await get("https://acme.forgeron.app/t/crm/mcp")).status).toBe(200);
+    });
+  });
+
+  describe("usage (D-093)", () => {
+    it("counts the call per tool and person, for an authenticated call that reaches a tool only", async () => {
+      const recordUsage = vi.fn<(workspace: string, tool: string, personId: string) => void>();
+      const { get } = setup({
+        identify: (c) => c.request.headers.get("x-person") ?? undefined,
+        recordSeat: () => {},
+        recordUsage,
+      });
+      await get("https://acme.forgeron.app/t/crm/mcp", { headers: { "x-person": "p1" } });
+      await get("https://acme.forgeron.app/t/crm/mcp");
+      await get("https://acme.forgeron.app/t/missing/mcp", { headers: { "x-person": "p1" } });
+      expect(recordUsage).toHaveBeenCalledTimes(1);
+      expect(recordUsage).toHaveBeenCalledWith("acme", "crm", "p1");
+    });
+
+    it("never blocks the call when counting fails", async () => {
+      const { get } = setup({
+        identify: () => "p1",
+        recordSeat: () => {},
+        recordUsage: () => {
           throw new Error("D1 is down");
         },
       });

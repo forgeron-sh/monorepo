@@ -10,7 +10,7 @@ export {
   toolVersionsRoute,
 } from "./tools";
 export { MAX_ACCESS_CHANGES, getAccessMatrixRoute, putAccessMatrixRoute } from "./access-matrix";
-export { auditRoute, workspaceRoute, type SignIn } from "./workspace";
+export { auditRoute, usageRoute, workspaceRoute, type SignIn } from "./workspace";
 export { listConnectionsRoute, revokeConnectionRoute } from "./connections";
 export { secretsStatusRoute } from "./secrets-status";
 export {
