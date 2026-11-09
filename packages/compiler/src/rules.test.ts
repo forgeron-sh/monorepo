@@ -21,6 +21,56 @@ describe("an action without a description or an access level", () => {
   it("is refused when it has no access level", async () => {
     await expect(buildTool(tool("no-access"))).rejects.toThrow(/actions\/ping\.ts: .*access level/);
   }, 60_000);
+
+  it("keeps the check on no interface, and answers it only to the gateway's marker (D-101)", async () => {
+    const built = await buildTool(tool("setup"));
+    const manifest = JSON.parse(
+      await readFile(join(built.outDir, "manifest.json"), "utf8"),
+    ) as Manifest;
+    expect(manifest.actions["setup.check"]!.interfaces).toEqual([]);
+    expect(manifest.actions.whoami!.interfaces.length).toBeGreaterThan(0);
+
+    const worker = (await import(/* @vite-ignore */ `file://${built.outDir}/worker.js`)) as {
+      default: { fetch(request: Request, env?: unknown): Promise<Response> };
+    };
+    const user = JSON.stringify({ id: "p1", email: "a@acme.test", name: "A", roles: [] });
+    const check = (body: unknown, marker = true, path = "/_f/setup-check") =>
+      worker.default.fetch(
+        new Request(`https://acme.forgeron.app${path}`, {
+          method: "POST",
+          headers: {
+            "x-forgeron-user": user,
+            ...(marker ? { "x-forgeron-setup-check": "1" } : {}),
+          },
+          body: JSON.stringify(body),
+        }),
+      );
+    // No role is asked: the platform is the caller, not the person.
+    expect(
+      await (await check({ setup: { firstName: "Ana" }, secrets: { ODOO_API_KEY: "ok" } })).json(),
+    ).toEqual({
+      ok: true,
+    });
+    expect(
+      await (
+        await check({ setup: { firstName: "Nobody" }, secrets: { ODOO_API_KEY: "wrong" } })
+      ).json(),
+    ).toEqual({
+      ok: false,
+      message: "Some values are not valid.",
+      errors: { firstName: "That name is not accepted.", ODOO_API_KEY: "Odoo refused this key." },
+    });
+    // Without the marker, or as an action, nobody can reach it.
+    expect((await check({}, false)).status).toBe(404);
+    const asAction = await worker.default.fetch(
+      new Request("https://acme.forgeron.app/api/setup.check", {
+        headers: {
+          "x-forgeron-user": JSON.stringify({ id: "p1", email: "", name: "", roles: ["reader"] }),
+        },
+      }),
+    );
+    expect(asAction.status).toBe(404);
+  }, 60_000);
 });
 
 describe("an action name declared twice", () => {
@@ -172,7 +222,7 @@ describe("a setup (D-096)", () => {
     };
     const call = (headers: Record<string, string>) =>
       worker.default.fetch(
-        new Request("https://acme.forgeron.app/api/setup.check", {
+        new Request("https://acme.forgeron.app/api/whoami", {
           headers: {
             "x-forgeron-user": JSON.stringify({
               id: "p1",

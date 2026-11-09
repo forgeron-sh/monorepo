@@ -43,6 +43,7 @@ const INTERNAL_HEADERS = [
   "x-forgeron-user",
   "x-forgeron-user-secrets",
   "x-forgeron-user-setup",
+  "x-forgeron-setup-check",
   "x-forgeron-base-url",
   "x-forgeron-connector-tokens",
   "x-forgeron-connector-consent",
@@ -94,6 +95,25 @@ export interface DispatcherOptions {
   forward?(caller: Caller): Forwarding | undefined | Promise<Forwarding | undefined>;
   /** May this caller see a branch preview? Without it, nobody does. */
   canPreview?(caller: Caller & { branch: string }): boolean | Promise<boolean>;
+}
+
+/**
+ * The gateway's own call to a tool's Worker, for what is not a caller's request (D-101: the check of a
+ * setup). It finds the production Worker of the tool exactly as the dispatcher does and refuses one
+ * that is not the workspace's; the caller of this function supplies the identity headers, since no
+ * person's request is behind it. `undefined` when the tool has no Worker the gateway can reach.
+ */
+export function createToolCaller(options: Pick<DispatcherOptions, "registry" | "targets">) {
+  return async (
+    workspace: string,
+    tool: string,
+    request: Request,
+  ): Promise<Response | undefined> => {
+    const entry = await options.registry.find(workspace, tool);
+    const worker = entry?.production;
+    if (!worker?.startsWith(`${workspace}--${tool}--`)) return undefined;
+    return options.targets(worker)?.fetch(request);
+  };
 }
 
 // sdk.md §7: workspace names are `[a-z0-9-]`, 3 to 40 characters (see `kernel/workspace.ts`).

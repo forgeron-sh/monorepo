@@ -28,6 +28,8 @@ export default defineConfig({
       }),
       ODOO_LOGIN: field.secret({ label: "Odoo login (email)", why: "Identify you to Odoo" }),
     },
+    // Odoo says whether the login and key are good before they are kept (D-101).
+    check: "setup.check",
   },
 
   roles: {
