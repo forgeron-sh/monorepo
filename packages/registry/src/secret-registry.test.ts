@@ -385,10 +385,10 @@ describe("offering a saved secret to another tool (D-105)", () => {
   it("opens only the person's own secret, in their workspace", async () => {
     const odoo = await registry.createTool({ workspace: "acme", name: "odoo" });
     await registry.setUserSecret({ toolId: odoo.id, person: "p1", name: "K", value: "p1-value" });
-    const [{ id }] = await registry.listPersonSecrets("acme", "p1");
-    expect(await registry.readPersonSecret("acme", "p1", id!)).toBe("p1-value");
-    expect(await registry.readPersonSecret("acme", "p2", id!)).toBeUndefined();
-    expect(await registry.readPersonSecret("other-workspace", "p1", id!)).toBeUndefined();
+    const id = (await registry.listPersonSecrets("acme", "p1"))[0]!.id;
+    expect(await registry.readPersonSecret("acme", "p1", id)).toBe("p1-value");
+    expect(await registry.readPersonSecret("acme", "p2", id)).toBeUndefined();
+    expect(await registry.readPersonSecret("other-workspace", "p1", id)).toBeUndefined();
     expect(await registry.readPersonSecret("acme", "p1", "sec_unknown")).toBeUndefined();
   });
 
@@ -401,8 +401,8 @@ describe("offering a saved secret to another tool (D-105)", () => {
       name: "K",
       value: "shared-value",
     });
-    const [{ id }] = await registry.listPersonSecrets("acme", "p1");
-    await registry.bindUserSecret({ toolId: hr.id, person: "p1", field: "HR_KEY", secretId: id! });
+    const id = (await registry.listPersonSecrets("acme", "p1"))[0]!.id;
+    await registry.bindUserSecret({ toolId: hr.id, person: "p1", field: "HR_KEY", secretId: id });
     expect(await registry.readUserSecrets(hr.id, "p1")).toEqual({ HR_KEY: "shared-value" });
     expect(await registry.listPersonSecrets("acme", "p1")).toHaveLength(1);
     const lines = await registry.listAudit(hr.id);
@@ -421,12 +421,12 @@ describe("offering a saved secret to another tool (D-105)", () => {
     const odoo = await registry.createTool({ workspace: "acme", name: "odoo" });
     const away = await registry.createTool({ workspace: "globex", name: "odoo" });
     await registry.setUserSecret({ toolId: odoo.id, person: "p1", name: "K", value: "mine" });
-    const [{ id }] = await registry.listPersonSecrets("acme", "p1");
+    const id = (await registry.listPersonSecrets("acme", "p1"))[0]!.id;
     await expect(
-      registry.bindUserSecret({ toolId: odoo.id, person: "p2", field: "K", secretId: id! }),
+      registry.bindUserSecret({ toolId: odoo.id, person: "p2", field: "K", secretId: id }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(
-      registry.bindUserSecret({ toolId: away.id, person: "p1", field: "K", secretId: id! }),
+      registry.bindUserSecret({ toolId: away.id, person: "p1", field: "K", secretId: id }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(await registry.readUserSecrets(odoo.id, "p2")).toEqual({});
     expect(await registry.listAudit(odoo.id)).toEqual([]);
