@@ -1,3 +1,10 @@
+import {
+  handleAuthorize,
+  handleRegister,
+  handleRevoke,
+  handleToken,
+  metadata,
+} from "./identity/mcp-oauth/mcp-oauth";
 import { handleCliAuthorize } from "./identity/cli-login/cli";
 import { handleUserSecrets } from "./dispatch/user-secrets";
 import { workspaceOf } from "./dispatch/dispatch";
@@ -54,6 +61,18 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
 
     // The routes the CLI and CI call (D-075): a Bearer token, or a session, and `{ error: { code, message } }`.
     const ownedByPlatform = () => modules.platform.fetch(request, asked.platformBindings("root"));
+
+    // OAuth for MCP clients (D-094): the documents a client reads, then registration, the person's
+    // answer, the token and the revocation. Without `AUTH_SECRET` they do not exist.
+    if (parts.identity && asked.mcpOAuth) {
+      const oauth = asked.mcpOAuth();
+      const document = metadata(request, oauth);
+      if (document) return document;
+      if (url.pathname === "/oauth/register") return handleRegister(request, oauth);
+      if (url.pathname === "/oauth/authorize") return handleAuthorize(request, oauth);
+      if (url.pathname === "/oauth/token") return handleToken(request, oauth);
+      if (url.pathname === "/oauth/revoke") return handleRevoke(request, oauth);
+    }
 
     // The platform's own paths. Without `AUTH_SECRET` identity is off and they fail closed.
     if (parts.identity) {

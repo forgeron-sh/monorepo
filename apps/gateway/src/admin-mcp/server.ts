@@ -96,11 +96,15 @@ export function createAdminMcp(context: AdminMcpContext) {
         {
           error: {
             code: "UNAUTHENTICATED",
-            message: "Send a CLI token of this workspace as a Bearer token (`forgeron login`).",
+            message:
+              "Send a token of this workspace as a Bearer: from `forgeron login`, or from OAuth (see the resource metadata).",
           },
         },
         401,
-        { "www-authenticate": "Bearer" },
+        {
+          // RFC 9728: where an MCP client finds the authorization server (D-094).
+          "www-authenticate": `Bearer resource_metadata="${new URL(request.url).origin}/.well-known/oauth-protected-resource"`,
+        },
       );
     }
 

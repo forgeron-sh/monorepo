@@ -138,18 +138,21 @@ module.exports = {
     },
     {
       // Inside identity: `authn` (who is calling: session, tokens, caller) is what `sign-in` and
-      // `cli-login` build on, so it imports neither; the two do not import each other.
+      // `cli-login` and `mcp-oauth` build on, so it imports none of them; they do not import each other.
       name: "identity-authn-is-a-leaf",
       severity: "error",
       from: { path: "^apps/gateway/src/identity/authn/" },
-      to: { path: "^apps/gateway/src/identity/(sign-in|cli-login)/" },
+      to: { path: "^apps/gateway/src/identity/(sign-in|cli-login|mcp-oauth)/" },
     },
     {
       name: "identity-sign-in-and-cli-login-are-apart",
       severity: "error",
-      from: { path: "^apps/gateway/src/identity/(sign-in|cli-login)/", pathNot: "\\.test\\.ts$" },
+      from: {
+        path: "^apps/gateway/src/identity/(sign-in|cli-login|mcp-oauth)/",
+        pathNot: "\\.test\\.ts$",
+      },
       to: {
-        path: "^apps/gateway/src/identity/(sign-in|cli-login)/",
+        path: "^apps/gateway/src/identity/(sign-in|cli-login|mcp-oauth)/",
         // The same folder is not "the other one": a file may import its siblings.
         pathNot: "^apps/gateway/src/identity/$1/",
       },

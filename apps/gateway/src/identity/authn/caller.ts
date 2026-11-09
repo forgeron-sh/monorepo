@@ -12,6 +12,9 @@ import { parseAudience } from "./audience";
 /** The scope of a CLI token (D-028): good on the platform's routes, refused by every tool. */
 export const CLI_SCOPE = "cli";
 
+/** The scope of a token an MCP client got through OAuth (D-094): good on the admin MCP and nowhere else. */
+export const MCP_SCOPE = "mcp";
+
 const toPerson = (member: Member): Person => ({
   id: member.id,
   email: member.email,
@@ -102,6 +105,29 @@ export function createCaller(options: CallerOptions) {
       const { sub, jti, iat } = check.claims;
       if (await options.registry.isTokenRevoked(workspace, sub, jti, iat)) return undefined;
       return personOf(workspace, sub);
+    },
+    /**
+     * What the admin MCP trusts (D-079, D-094): the person of a Bearer that is a CLI token or a token
+     * an MCP client got through OAuth, and of nothing else. A token with the `mcp` scope is refused
+     * by every other route, because the other routes ask for no scope or for `cli`.
+     */
+    async mcpBearer(request: Request, workspace: string): Promise<Person | undefined> {
+      const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
+      if (!token) return undefined;
+      for (const scope of [MCP_SCOPE, CLI_SCOPE]) {
+        const check = await verifyToken(token, {
+          secret: options.secret,
+          ...(options.previousSecrets ? { previousSecrets: options.previousSecrets } : {}),
+          now: options.now(),
+          scope,
+        });
+        if (!check.ok) continue;
+        if (parseAudience(check.claims.aud)?.workspace !== workspace) return undefined;
+        const { sub, jti, iat } = check.claims;
+        if (await options.registry.isTokenRevoked(workspace, sub, jti, iat)) return undefined;
+        return personOf(workspace, sub);
+      }
+      return undefined;
     },
     /** The person of a valid session cookie only (a token cannot mint a longer-lived token). */
     async session(request: Request, workspace: string): Promise<Person | undefined> {

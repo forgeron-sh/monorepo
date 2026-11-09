@@ -766,7 +766,7 @@ In addition to each tool's MCP server, the workspace exposes **a Forgeron MCP se
 
 ### Exposed tools
 
-Each tool calls the platform's own routes with the signed-in person's identity, so it has the guard, the validation and the audit lines of the console. `/mcp` is authenticated with a **CLI token** (`forgeron login`) sent as a Bearer token, limited to the workspace (D-079); the session cookie and a tool's tokens are refused. A person is offered only the tools their role allows.
+Each tool calls the platform's own routes with the signed-in person's identity, so it has the guard, the validation and the audit lines of the console. `/mcp` is authenticated with a Bearer token limited to the workspace: a **CLI token** (`forgeron login`, D-079) or an **OAuth token** that an MCP client such as a Claude connector got by signing in at `/oauth/authorize` (D-094: PKCE, one hour, renewed by a refresh token that rotates, revocable); the session cookie and a tool's tokens are refused. An OAuth token is good on `/mcp` only. A person is offered only the tools their role allows.
 
 | MCP tool                         | What it does                                                                                                                   | Minimum role in the workspace | Destructive |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | ----------- |
@@ -790,8 +790,6 @@ Each tool calls the platform's own routes with the signed-in person's identity, 
 | `access_grant` · `access_revoke` | Gives or takes a workspace role of a member, or allows or refuses a role an action of a tool (a group is not a subject: D-091) | admin                         | yes         |
 
 `tool_changelog` is for developers because the route that carries the changelog is (the version list shows the commits and what changed); a member reads a tool's card.
-
-**Not available yet**: signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
 
 ### Safeguards
 

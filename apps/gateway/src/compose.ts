@@ -420,7 +420,7 @@ export function createRequestModules(
     adminMcp: identity
       ? () => {
           let caller: Promise<Person | undefined> | undefined;
-          const person = () => (caller ??= identity.caller.cliBearer(request, workspace));
+          const person = () => (caller ??= identity.caller.mcpBearer(request, workspace));
           return createAdminMcp({
             person,
             platform: async (call) => {
@@ -457,6 +457,18 @@ export function createRequestModules(
     cliLogin: identity
       ? () => ({
           workspace,
+          secret: identity.secret,
+          registry,
+          now,
+          session: (r: Request) => identity.caller.session(r, workspace),
+        })
+      : undefined,
+
+    /** OAuth for MCP clients (D-094): the endpoints a client such as Claude uses to sign in to `/mcp`. */
+    mcpOAuth: identity
+      ? () => ({
+          workspace,
+          origin,
           secret: identity.secret,
           registry,
           now,

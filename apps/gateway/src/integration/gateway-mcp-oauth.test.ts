@@ -1,0 +1,454 @@
+import { createHash, randomBytes } from "node:crypto";
+import type { D1Database } from "@forgeron/hosting";
+import { createRegistry, migratePlatform, type Registry } from "@forgeron/registry";
+import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { createGateway, type GatewayEnv } from "../gateway";
+import { openSession } from "../identity/authn/session";
+import { issueToken } from "../identity/authn/tokens";
+
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
+
+// OAuth for MCP clients (D-094) through the whole gateway, played as Claude plays it: read the
+// resource metadata, register, send the person to /oauth/authorize, trade the code with PKCE, call
+// /mcp with the access token, refresh, revoke. The people, the secret and the client are test values.
+
+const SECRET = "test-secret-not-a-real-one";
+const ORIGIN = "https://acme.forgeron.app";
+const REDIRECT = "https://client.example/callback";
+let clock = new Date("2026-11-09T10:00:00Z");
+const tick = (seconds: number) => (clock = new Date(clock.getTime() + seconds * 1000));
+
+let memory: MemoryD1;
+let registry: Registry;
+let env: GatewayEnv;
+let ana = ""; // a member
+let root = ""; // an administrator
+const cookies: Record<string, string> = {};
+
+beforeAll(async () => {
+  memory = await createMemoryD1();
+  const d1 = memory as unknown as D1Database;
+  await migratePlatform(d1);
+  registry = createRegistry(d1, { now: () => clock });
+  const member = async (subject: string, roles: string[]) =>
+    (
+      await registry.addMember({
+        workspace: "acme",
+        subject,
+        email: `${subject}@acme.test`,
+        name: subject,
+        roles,
+      })
+    ).id;
+  ana = await member("ana", []);
+  root = await member("root", ["admin"]);
+  env = { DB: d1, BASE_DOMAIN: "forgeron.app", AUTH_SECRET: SECRET };
+  for (const [name, id] of [
+    ["ana", ana],
+    ["root", root],
+  ] as const) {
+    cookies[name] = (
+      await openSession(
+        { person: id, workspace: "acme" },
+        { secret: SECRET, ttlSeconds: 86_400, now: clock },
+      )
+    ).split(";")[0]!;
+  }
+});
+afterAll(() => memory.close());
+
+const gateway = () => createGateway(env, { now: () => clock });
+const get = (path: string, headers: Record<string, string> = {}) =>
+  gateway()(new Request(`${ORIGIN}${path}`, { headers }));
+const form = (path: string, body: Record<string, string>, headers: Record<string, string> = {}) =>
+  gateway()(
+    new Request(`${ORIGIN}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", ...headers },
+      body: new URLSearchParams(body),
+    }),
+  );
+const decode = (text: string) =>
+  text.replaceAll("&amp;", "&").replaceAll("&quot;", '"').replaceAll("&#39;", "'");
+
+const pkce = () => {
+  const verifier = randomBytes(32).toString("base64url");
+  return { verifier, challenge: createHash("sha256").update(verifier).digest("base64url") };
+};
+const register = async (over: Record<string, unknown> = {}) =>
+  gateway()(
+    new Request(`${ORIGIN}/oauth/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ redirect_uris: [REDIRECT], client_name: "Claude", ...over }),
+    }),
+  );
+const clientId = async () => ((await (await register()).json()) as { client_id: string }).client_id;
+const authorizeQuery = (client: string, challenge: string, over: Record<string, string> = {}) =>
+  new URLSearchParams({
+    response_type: "code",
+    client_id: client,
+    redirect_uri: REDIRECT,
+    state: "st1",
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    resource: `${ORIGIN}/mcp`,
+    ...over,
+  });
+
+/** The person presses a button of the consent page; what the page sends the browser to. */
+async function answer(page: Response, cookie: string, decision: "allow" | "deny" = "allow") {
+  const html = await page.text();
+  const fields = Object.fromEntries(
+    [...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map((m) => [
+      decode(m[1]!),
+      decode(m[2]!),
+    ]),
+  );
+  const posted = await form(
+    "/oauth/authorize",
+    { ...fields, decision },
+    { cookie, origin: ORIGIN },
+  );
+  const refresh = /http-equiv="refresh" content="0;url=([^"]+)"/.exec(await posted.text());
+  return { status: posted.status, to: refresh ? new URL(decode(refresh[1]!)) : undefined };
+}
+
+/** The whole dance for one person: the tokens an app ends up with. */
+async function connect(person: "ana" | "root", over: { client?: string } = {}) {
+  const client = over.client ?? (await clientId());
+  const { verifier, challenge } = pkce();
+  const page = await get(`/oauth/authorize?${authorizeQuery(client, challenge)}`, {
+    cookie: cookies[person]!,
+  });
+  expect(page.status).toBe(200);
+  const { to } = await answer(page, cookies[person]!);
+  const code = to!.searchParams.get("code")!;
+  const traded = await form("/oauth/token", {
+    grant_type: "authorization_code",
+    code,
+    code_verifier: verifier,
+    redirect_uri: REDIRECT,
+    client_id: client,
+  });
+  return { client, code, verifier, traded };
+}
+type Tokens = {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
+};
+const tokensOf = async (response: Response) => (await response.json()) as Tokens;
+
+const mcp = async (bearer: string | undefined, method: string, params?: unknown) => {
+  const response = await gateway()(
+    new Request(`${ORIGIN}/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    }),
+  );
+  return {
+    status: response.status,
+    headers: response.headers,
+    body: (await response.json()) as any,
+  };
+};
+const toolNames = async (bearer: string) =>
+  ((await mcp(bearer, "tools/list")).body.result.tools as any[]).map((t) => t.name as string);
+
+describe("what a client reads first", () => {
+  it("is told where the authorization server is, by the 401 and by the documents", async () => {
+    const refused = await mcp(undefined, "tools/list");
+    expect(refused.status).toBe(401);
+    expect(refused.headers.get("www-authenticate")).toBe(
+      `Bearer resource_metadata="${ORIGIN}/.well-known/oauth-protected-resource"`,
+    );
+    const resource = (await (await get("/.well-known/oauth-protected-resource")).json()) as any;
+    expect(resource).toMatchObject({
+      resource: `${ORIGIN}/mcp`,
+      authorization_servers: [ORIGIN],
+    });
+    const server = (await (await get("/.well-known/oauth-authorization-server")).json()) as any;
+    expect(server).toMatchObject({
+      issuer: ORIGIN,
+      authorization_endpoint: `${ORIGIN}/oauth/authorize`,
+      token_endpoint: `${ORIGIN}/oauth/token`,
+      registration_endpoint: `${ORIGIN}/oauth/register`,
+      code_challenge_methods_supported: ["S256"],
+      token_endpoint_auth_methods_supported: ["none"],
+    });
+  });
+
+  it("registers a public client, and refuses an address that is neither https nor this machine's", async () => {
+    const ok = await register({ redirect_uris: ["http://127.0.0.1:5555/cb", REDIRECT] });
+    expect(ok.status).toBe(201);
+    expect(await ok.json()).toMatchObject({
+      client_name: "Claude",
+      token_endpoint_auth_method: "none",
+    });
+    for (const redirect_uris of [
+      ["http://evil.example/cb"],
+      ["https://client.example/cb#frag"],
+      ["https://user:pw@client.example/cb"],
+      ["javascript:alert(1)"],
+      [],
+      "https://client.example/cb",
+    ]) {
+      expect((await register({ redirect_uris })).status).toBe(400);
+    }
+    expect((await register({ token_endpoint_auth_method: "client_secret_basic" })).status).toBe(
+      400,
+    );
+  });
+});
+
+describe("signing in an MCP client", () => {
+  it("sends a signed-out person to sign in, then back; a click is needed to allow", async () => {
+    const client = await clientId();
+    const { challenge } = pkce();
+    const url = `/oauth/authorize?${authorizeQuery(client, challenge)}`;
+    const out = await get(url);
+    expect(out.status).toBe(302);
+    expect(out.headers.get("location")).toBe(`/auth/login?next=${encodeURIComponent(url)}`);
+    const page = await get(url, { cookie: cookies.ana! });
+    expect(page.status).toBe(200);
+    const html = await page.text();
+    expect(html).toContain("Claude");
+    expect(html).toContain("ana@acme.test");
+    expect(html).toContain("client.example");
+    expect(page.headers.get("location")).toBeNull();
+  });
+
+  it("gives the administrator the whole admin MCP and a member only the member tools", async () => {
+    const admin = await tokensOf((await connect("root")).traded);
+    const member = await tokensOf((await connect("ana")).traded);
+    expect(admin).toMatchObject({ token_type: "Bearer", expires_in: 3600 });
+    expect(await toolNames(admin.access_token)).toContain("tool_install");
+    const names = await toolNames(member.access_token);
+    expect(names).toEqual(["catalog_search", "catalog_get", "tools_list", "tool_get"]);
+    const refused = await mcp(member.access_token, "tools/call", {
+      name: "access_grant",
+      arguments: { person: "ana@acme.test", role: "admin" },
+    });
+    expect(refused.body.error ?? refused.body.result?.isError).toBeTruthy();
+    expect((await registry.findMember("acme", ana))?.roles).toEqual([]);
+  });
+
+  it("refuses the access token everywhere but the admin MCP", async () => {
+    const { access_token } = await tokensOf((await connect("root")).traded);
+    const bearer = { authorization: `Bearer ${access_token}` };
+    expect((await get("/whoami", bearer)).status).toBe(401);
+    expect((await get("/console-api/api/workspace", bearer)).status).toBe(401);
+    expect((await get("/t/crm/mcp", bearer)).status).not.toBe(200);
+    // And a token made for the CLI, or for a tool, is not an OAuth token: the admin MCP still takes the CLI's.
+    const cli = await issueToken({
+      secret: SECRET,
+      person: root,
+      workspace: "acme",
+      tool: "platform",
+      ttlSeconds: 60,
+      now: clock,
+      scope: "cli",
+    });
+    expect((await mcp(cli, "tools/list")).status).toBe(200);
+  });
+
+  it("expires the access token after an hour, and a refresh token renews it", async () => {
+    const first = await tokensOf((await connect("root")).traded);
+    tick(3601);
+    expect((await mcp(first.access_token, "tools/list")).status).toBe(401);
+    const renewed = await form("/oauth/token", {
+      grant_type: "refresh_token",
+      refresh_token: first.refresh_token,
+      client_id: await (async () => {
+        const claims = JSON.parse(
+          Buffer.from(first.refresh_token.split(".")[1]!, "base64url").toString(),
+        );
+        return claims.cid as string;
+      })(),
+    });
+    expect(renewed.status).toBe(200);
+    const next = await tokensOf(renewed);
+    expect(next.refresh_token).not.toBe(first.refresh_token);
+    expect((await mcp(next.access_token, "tools/list")).status).toBe(200);
+  });
+
+  it("ends the connection when a refresh token is used twice", async () => {
+    const { client, traded } = await connect("root");
+    const first = await tokensOf(traded);
+    const rotate = (refresh_token: string) =>
+      form("/oauth/token", { grant_type: "refresh_token", refresh_token, client_id: client });
+    const second = await tokensOf(await rotate(first.refresh_token));
+    expect((await mcp(second.access_token, "tools/list")).status).toBe(200);
+    const replay = await rotate(first.refresh_token);
+    expect(replay.status).toBe(400);
+    expect(await replay.json()).toMatchObject({ error: "invalid_grant" });
+    // Whoever holds a copy, the whole connection is over: the newer tokens stop too.
+    expect((await mcp(second.access_token, "tools/list")).status).toBe(401);
+    expect((await rotate(second.refresh_token)).status).toBe(400);
+  });
+
+  it("revokes a connection on request: the access token and the refresh token both stop", async () => {
+    const { client, traded } = await connect("ana");
+    const tokens = await tokensOf(traded);
+    expect((await mcp(tokens.access_token, "tools/list")).status).toBe(200);
+    expect((await form("/oauth/revoke", { token: tokens.refresh_token })).status).toBe(200);
+    expect((await mcp(tokens.access_token, "tools/list")).status).toBe(401);
+    expect(
+      (
+        await form("/oauth/token", {
+          grant_type: "refresh_token",
+          refresh_token: tokens.refresh_token,
+          client_id: client,
+        })
+      ).status,
+    ).toBe(400);
+    // An unknown token is a 200 too: revocation says nothing about what exists.
+    expect((await form("/oauth/revoke", { token: "nonsense" })).status).toBe(200);
+  });
+
+  it("stops at once for a person who is removed or whose tokens are all revoked", async () => {
+    const { access_token } = await tokensOf((await connect("ana")).traded);
+    expect((await mcp(access_token, "tools/list")).status).toBe(200);
+    await registry.revokePersonTokens("acme", ana, 86_400);
+    expect((await mcp(access_token, "tools/list")).status).toBe(401);
+  });
+});
+
+describe("what the authorization step refuses", () => {
+  it("shows an error, and redirects nowhere, for a client or an address that is not registered", async () => {
+    const { challenge } = pkce();
+    const client = await clientId();
+    for (const query of [
+      authorizeQuery("not-a-client", challenge),
+      authorizeQuery(client, challenge, { redirect_uri: "https://evil.example/cb" }),
+    ]) {
+      const response = await get(`/oauth/authorize?${query}`, { cookie: cookies.ana! });
+      expect(response.status).toBe(400);
+      expect(response.headers.get("location")).toBeNull();
+    }
+    // A client registered at another workspace is not this workspace's: its id is signed for that one.
+    const other = await gateway()(
+      new Request("https://globex.forgeron.app/oauth/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ redirect_uris: [REDIRECT] }),
+      }),
+    );
+    const foreign = ((await other.json()) as { client_id: string }).client_id;
+    const refused = await get(`/oauth/authorize?${authorizeQuery(foreign, challenge)}`, {
+      cookie: cookies.ana!,
+    });
+    expect(refused.status).toBe(400);
+  });
+
+  it("requires S256 PKCE, the code response type, this workspace's MCP as the resource and a known scope", async () => {
+    const client = await clientId();
+    const { challenge } = pkce();
+    const asked = (over: Record<string, string>) =>
+      get(`/oauth/authorize?${authorizeQuery(client, challenge, over)}`, { cookie: cookies.ana! });
+    expect((await asked({ code_challenge_method: "plain" })).status).toBe(400);
+    expect((await asked({ response_type: "token" })).status).toBe(400);
+    expect((await asked({ resource: "https://acme.forgeron.app/t/crm/mcp" })).status).toBe(400);
+    expect((await asked({ scope: "admin" })).status).toBe(400);
+    expect((await asked({ scope: "mcp" })).status).toBe(200);
+    expect(
+      (await get(`/oauth/authorize?${authorizeQuery(client, "")}`, { cookie: cookies.ana! }))
+        .status,
+    ).toBe(400);
+  });
+
+  it("tells the app when the person says no, and refuses an answer that did not come from the page", async () => {
+    const client = await clientId();
+    const { challenge } = pkce();
+    const page = await get(`/oauth/authorize?${authorizeQuery(client, challenge)}`, {
+      cookie: cookies.ana!,
+    });
+    const html = await page.clone().text();
+    const denied = await answer(page, cookies.ana!, "deny");
+    expect(denied.to!.searchParams.get("error")).toBe("access_denied");
+    expect(denied.to!.searchParams.get("state")).toBe("st1");
+    expect(denied.to!.searchParams.get("code")).toBeNull();
+    const fields = Object.fromEntries(
+      [...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)].map((m) => [
+        decode(m[1]!),
+        decode(m[2]!),
+      ]),
+    );
+    const foreign = await form(
+      "/oauth/authorize",
+      { ...fields, decision: "allow" },
+      { cookie: cookies.ana!, origin: "https://evil.example" },
+    );
+    expect(foreign.status).toBe(403);
+    const signedOut = await form(
+      "/oauth/authorize",
+      { ...fields, decision: "allow" },
+      { origin: ORIGIN },
+    );
+    expect(signedOut.status).toBe(401);
+  });
+
+  it("trades a code once, for its own client and address, with its own verifier", async () => {
+    const { client, code, verifier, traded } = await connect("ana");
+    expect(traded.status).toBe(200);
+    const again = (over: Record<string, string> = {}) =>
+      form("/oauth/token", {
+        grant_type: "authorization_code",
+        code,
+        code_verifier: verifier,
+        redirect_uri: REDIRECT,
+        client_id: client,
+        ...over,
+      });
+    expect(await (await again()).json()).toMatchObject({ error: "invalid_grant" });
+
+    const second = await connect("ana");
+    for (const over of [
+      { code_verifier: pkce().verifier },
+      { redirect_uri: "https://client.example/other" },
+      { client_id: await clientId() },
+    ]) {
+      const { code: fresh } = await (async () => {
+        const c = await connect("ana");
+        return { code: c.code, verifier: c.verifier, client: c.client };
+      })();
+      const refused = await form("/oauth/token", {
+        grant_type: "authorization_code",
+        code: fresh,
+        code_verifier: second.verifier,
+        redirect_uri: REDIRECT,
+        client_id: second.client,
+        ...over,
+      });
+      expect(refused.status).toBe(400);
+    }
+    expect((await form("/oauth/token", { grant_type: "password", username: "ana" })).status).toBe(
+      400,
+    );
+  });
+
+  it("lets a code live a minute only", async () => {
+    const client = await clientId();
+    const { verifier, challenge } = pkce();
+    const page = await get(`/oauth/authorize?${authorizeQuery(client, challenge)}`, {
+      cookie: cookies.ana!,
+    });
+    const { to } = await answer(page, cookies.ana!);
+    tick(61);
+    const late = await form("/oauth/token", {
+      grant_type: "authorization_code",
+      code: to!.searchParams.get("code")!,
+      code_verifier: verifier,
+      redirect_uri: REDIRECT,
+      client_id: client,
+    });
+    expect(late.status).toBe(400);
+  });
+});
