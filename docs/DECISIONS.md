@@ -89,6 +89,7 @@ Rules of the log:
 | D-088 | 09/11/2026 | The launch catalogue is the four templates of `templates/`, maintained by the core team                                                                                | Active                                 |
 | D-089 | 09/11/2026 | Connectors in order: Microsoft 365, Google Workspace, then Odoo                                                                                                        | Active                                 |
 | D-090 | 09/11/2026 | Texts about self-host previews that D-080 made stale are corrected in place (FOR-166)                                                                                  | Active                                 |
+| D-091 | 09/11/2026 | A group is not a grantable subject: `access_grant` gives roles to members and cells of the matrix (FOR-165)                                                            | Active                                 |
 
 ---
 
@@ -1095,3 +1096,12 @@ Rules of the log:
 - **Date**: 09/11/2026 · **Status**: Active
 - **Decision**: D-009's and D-045's "Still open" and "Not verified" lines about previews are left as written (this log is never rewritten) and are superseded by D-080 and by `docs/spikes/self-host-previews.md`. The living documents are corrected: `docs/ARCHITECTURE.md` (the open-decisions row about previews, and the Hosting modes sentence) and `docs/self-host.md` (the `/mcp` line, now served by D-079, and the wording of "Binding limits").
 - **Why**: the spike lists these inconsistencies; a reader who trusts them looks for a problem that was settled.
+
+## D-091 — A group is not a grantable subject: `access_grant` gives roles to members and cells of the matrix (FOR-165)
+
+- **Date**: 09/11/2026 · **Status**: Active
+- **Decision**: `access_grant` and `access_revoke` act on a member's workspace roles (`setMemberRoles`) and on the cells of a tool's role × action matrix. There is no `group:<name>` subject, and `docs/sdk.md` §17 no longer promises one.
+- **Why**: groups exist only as the identity provider's `groupRoles`, applied once, at a person's first sign-in (D-027). Making them a subject would mean a groups table, memberships kept in step with the provider, and a second path to a role that the audit log and the access matrix must both explain. Nothing asks for it: the matrix already grants an action to a role, and a role is given to people by the provider's mapping or by an administrator.
+- **Rejected**: a `groups` registry module with its own route (a second source of truth for who holds a role); resolving the provider's groups at each call (a network call on the path of every request, and the token does not carry them).
+- **Revisit when**: a customer needs a group to stay in step with its provider after the first sign-in. That is a sign-in feature (refresh the roles at each sign-in), not a new subject.
+- **Applied in**: `docs/sdk.md` §17.
