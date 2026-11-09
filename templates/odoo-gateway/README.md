@@ -13,6 +13,7 @@ Odoo support tickets from Claude, with each person's own permissions.
 - The first time, you are asked for your Odoo login and your Odoo API key; they are kept for you only.
 - In Claude: "my open tickets", "show ticket 12345", "reply to ticket 12345 that the part ships Monday". A reply asks for your confirmation before it is sent.
 - In a terminal: `forgeron odoo tickets list`.
+- To connect Claude to the gateway, step by step: [`docs/odoo-gateway-in-claude.md`](../../docs/odoo-gateway-in-claude.md).
 
 ## Permissions
 
@@ -55,4 +56,4 @@ bun run test
 - Version: carried by `package.json`, changed only by `forgeron release` (D-007).
 - Serves as an SDK integration test: it must compile, pass its tests and deploy to preview on every PR.
 - Only uses the public API (`@forgeron/sdk`, `@forgeron/ui`, connectors).
-- Not yet: collecting the per-person secrets (FOR-95), reading tool secrets from the environment (FOR-98) and `forgeron dev` (FOR-11). Until then, secrets are given by the test platform.
+- Per-person secrets are collected by the gateway at `/t/odoo/secrets` (D-036); in tests they are given by the test platform.

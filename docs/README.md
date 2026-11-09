@@ -10,6 +10,7 @@ This folder imagines the Forgeron SDK starting from concrete cases. Each example
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — the plan of the monorepo that builds Forgeron: apps, packages, templates, hosting modes, tooling, delivery.
 - [`DECISIONS.md`](DECISIONS.md) — the decision log, dated, with what was ruled out and why.
 - [`self-host.md`](self-host.md) — installing the platform on your own Cloudflare account with `forgeron platform install`.
+- [`odoo-gateway-in-claude.md`](odoo-gateway-in-claude.md) — connecting Claude to the Odoo gateway: address, sign-in, the one-time Odoo key.
 - [`design-system.md`](design-system.md) — the guidelines: colors, typography, logo, components. The files (tokens, fonts, logos) are in `../assets/`.
 
 | File                                                         | Starting constraint                                         | What the example brings out                                                                                                                                                                     |
