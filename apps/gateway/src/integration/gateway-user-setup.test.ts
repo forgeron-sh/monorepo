@@ -28,6 +28,15 @@ const manifest: Manifest = {
   interfaces: { mcp: true, api: true, cli: true, web: true },
   roles: { reader: { grants: ["read"] } },
   actions: {
+    "setup.check": {
+      description: "Checks a setup.",
+      access: "read",
+      input: { type: "object", properties: {} },
+      confirm: false,
+      cli: { args: [] },
+      http: { method: "GET" },
+      interfaces: [],
+    },
     "tickets.mine": {
       description: "My tickets.",
       access: "read",
@@ -49,12 +58,15 @@ const manifest: Manifest = {
       firstName: { type: "text", label: "First name", required: true, maxLength: 20 },
       team: { type: "choice", label: "Team", required: false, options: ["support", "sales"] },
     },
+    check: "setup.check",
   },
   uses: {},
   preview: { data: "seed" },
 };
 
 const seen: Array<{ user: string; setup: unknown; secrets: unknown }> = [];
+// What the tool's setup check was asked about, to prove it sees the values about to be kept.
+const checked: Array<{ setup: unknown; secrets: unknown }> = [];
 
 // What the compiler's entry does with the headers only the gateway sets.
 function toolWorker(request: Request) {
@@ -77,6 +89,22 @@ function toolWorker(request: Request) {
       ...(setupHeader !== null ? { userSetup: JSON.parse(setupHeader) } : {}),
     },
     actions: {
+      "setup.check": {
+        input: { safeParse: (data: unknown) => ({ success: true, data }) },
+        run: (ctx) => {
+          checked.push({ setup: ctx.user.setup, secrets: ctx.userSecrets });
+          return {
+            errors: {
+              ...(ctx.user.setup.firstName === "Nobody"
+                ? { firstName: "That name is not accepted." }
+                : {}),
+              ...(ctx.userSecrets.ODOO_API_KEY === "wrong"
+                ? { ODOO_API_KEY: "Odoo refused this key." }
+                : {}),
+            },
+          };
+        },
+      },
       "tickets.mine": {
         input: { safeParse: (data: unknown) => ({ success: true, data }) },
         run: (ctx) => (
@@ -285,5 +313,106 @@ describe("a tool's setup through the gateway (D-097)", () => {
     expect(await registry.clearUserSetup(toolId, ana)).toBe(1);
     expect((await call("/t/crm/api/tickets.mine", await tokenFor(ana))).status).toBe(428);
     expect(admin).not.toBe("");
+  });
+});
+
+describe("a tool's check of its setup (D-101)", () => {
+  let cara = "";
+  beforeAll(async () => {
+    cara = (
+      await registry.addMember({
+        workspace: "acme",
+        subject: "cara",
+        email: "cara@acme.test",
+        name: "cara",
+        roles: [],
+      })
+    ).id;
+  });
+
+  it("refuses what the tool refuses, keeps nothing, and says which field and why", async () => {
+    const token = await tokenFor(cara);
+    const refused = await call(
+      "/t/crm/setup",
+      token,
+      form({ firstName: "Nobody", team: "sales", ODOO_API_KEY: "wrong" }),
+    );
+    expect(refused.status).toBe(400);
+    const html = await refused.text();
+    expect(html).toContain("That name is not accepted.");
+    expect(html).toContain("Odoo refused this key.");
+    expect(html).toContain("Not saved");
+    // The secret is not sent back to the browser, and nothing was kept, not even the good field.
+    expect(html).not.toContain("wrong");
+    expect(await registry.readUserSetup(toolId, cara)).toEqual({});
+    expect(await registry.readUserSecrets(toolId, cara)).toEqual({});
+
+    const asJson = await call("/t/crm/setup", token, json({ ODOO_API_KEY: "wrong" }));
+    expect(asJson.status).toBe(400);
+    expect(await asJson.json()).toMatchObject({
+      error: { fields: { ODOO_API_KEY: "Odoo refused this key." } },
+    });
+  });
+
+  it("accepts what the tool accepts, and lets the check see the values already kept", async () => {
+    const token = await tokenFor(cara);
+    expect((await call("/t/crm/setup", token, json({ firstName: "Cara" }))).status).toBe(200);
+    checked.length = 0;
+    // Only a secret is given now: the check still sees the first name kept before.
+    const ok = await call("/t/crm/setup", token, json({ ODOO_API_KEY: "a-good-test-key" }));
+    expect(ok.status).toBe(200);
+    expect(checked).toEqual([
+      { setup: { firstName: "Cara" }, secrets: { ODOO_API_KEY: "a-good-test-key" } },
+    ]);
+    expect(await registry.readUserSecrets(toolId, cara)).toEqual({
+      ODOO_API_KEY: "a-good-test-key",
+    });
+  });
+
+  it("is not asked when nothing is given", async () => {
+    checked.length = 0;
+    const empty = await call("/t/crm/setup", await tokenFor(cara), json({}));
+    expect(empty.status).toBe(200);
+    expect(checked).toEqual([]);
+  });
+
+  it("is the platform's to ask: a caller reaching for the check path, with the marker, gets nothing", async () => {
+    const token = await tokenFor(cara);
+    const forged = await call("/t/crm/_f/setup-check", token, {
+      method: "POST",
+      headers: { "x-forgeron-setup-check": "1", "content-type": "application/json" },
+      body: JSON.stringify({ setup: { firstName: "x" }, secrets: {} }),
+    });
+    expect(forged.status).toBe(404);
+    // And the action is on no interface: the API does not know it.
+    expect((await call("/t/crm/api/setup.check", token)).status).toBe(404);
+  });
+
+  it("keeps nothing when the tool cannot be reached: the person is told to try again", async () => {
+    const token = await tokenFor(cara);
+    const down = {
+      DISPATCHER: {
+        get: () => ({
+          fetch: () => {
+            throw new Error("the tool is down");
+          },
+        }),
+      },
+    } as Partial<GatewayEnv>;
+    const response = await createGateway(
+      { ...env, ...down },
+      { now: () => now },
+    )(
+      new Request("https://acme.forgeron.app/t/crm/setup", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify({ firstName: "Changed" }),
+      }),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: { message: "The check could not be completed. Try again." },
+    });
+    expect((await registry.readUserSetup(toolId, cara)).firstName).toBe("Cara");
   });
 });

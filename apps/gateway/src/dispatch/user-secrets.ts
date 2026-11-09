@@ -1,6 +1,11 @@
 import type { Manifest } from "@forgeron/manifest";
 import type { Registry } from "@forgeron/registry";
-import { handleSecretsInput, type UserSecretStore, type UserSetupStore } from "@forgeron/runtime";
+import {
+  handleSecretsInput,
+  type SetupCheckResult,
+  type UserSecretStore,
+  type UserSetupStore,
+} from "@forgeron/runtime";
 import type { Person } from "../kernel/person";
 import { page } from "../pages/shell";
 import { connectorHeaders, type ConnectorTokensContext } from "./connector-tokens";
@@ -26,6 +31,15 @@ export interface UserSecretsContext {
   workspace: string;
   /** The person and the audience of their token, if any (a session has none). */
   identify(request: Request): Promise<{ person: Person; audience?: string } | undefined>;
+  /**
+   * Asks the tool's Worker to check the values a person is about to give its setup (D-101). Without it
+   * nothing is checked. A tool that cannot be reached answers that the check could not be completed.
+   */
+  checkSetup?(
+    tool: string,
+    person: Person,
+    candidate: { setup: Record<string, string>; secrets: Record<string, string> },
+  ): Promise<SetupCheckResult>;
   /** Delegated connectors (D-046): without it a tool's connectors get no token. */
   connectors?: Pick<ConnectorTokensContext, "consent" | "consentUrl">;
 }
@@ -94,8 +108,14 @@ export async function handleUserSecrets(
     `${url.origin}/t/${tool}`,
     ({ title, eyebrow, body, status }) =>
       page({ title, eyebrow, workspace: context.workspace, status }, body),
-    setupStore,
-    next,
+    {
+      setupStore,
+      ...(next ? { next } : {}),
+      // Only a tool that declares a check is asked, and only where the gateway can ask.
+      ...(manifest.setup?.check && context.checkSetup
+        ? { check: (candidate) => context.checkSetup!(tool, who.person, candidate) }
+        : {}),
+    },
   );
 }
 

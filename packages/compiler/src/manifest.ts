@@ -49,7 +49,14 @@ export function buildManifest(
       confirm: def.confirm ?? def.access === "delete",
       cli: { args: [...(def.cli?.args ?? [])] },
       http: def.http ?? { method: def.access === "read" ? "GET" : "POST" },
-      interfaces: def.interfaces ? enabled.filter((key) => def.interfaces!.includes(key)) : enabled,
+      // The action that checks a setup is the platform's to call (D-101): on no interface, whatever the
+      // tool wrote, so that MCP, the API and the CLI never offer it.
+      interfaces:
+        name === config.setup?.check
+          ? []
+          : def.interfaces
+            ? enabled.filter((key) => def.interfaces!.includes(key))
+            : enabled,
       ...(def.rateLimit ? { rateLimit: def.rateLimit } : {}),
     };
   }

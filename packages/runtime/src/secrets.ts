@@ -1,4 +1,10 @@
+import type { SetupCandidate } from "./engine";
 import type { Manifest, User, UserSecretStore, UserSetupStore } from "./types";
+
+/** The answer of a tool's setup check: what the page needs of it. */
+export type SetupCheckResult =
+  | { ok: true }
+  | { ok: false; message: string; errors: Record<string, string> };
 
 // `/setup` and `/secrets`: where a person enters what a tool asks of them (`manifest.setup` and
 // `resources.userSecrets`, sdk.md §10, D-036, D-097), the link every interface points to when
@@ -64,15 +70,23 @@ export async function handleSecretsInput(
   store: UserSecretStore,
   baseUrl: string,
   render: SecretsRenderer = bare,
-  /** Where the plain values live; without it the page asks for secrets only. */
-  setupStore?: UserSetupStore,
-  /**
-   * Where to send the person once they are done, a path of the host that the host has already
-   * checked (the OAuth step that sent them here, D-098). The page offers it as a link, and the form
-   * keeps it.
-   */
-  next?: string,
+  extras: {
+    /** Where the plain values live; without it the page asks for secrets only. */
+    setupStore?: UserSetupStore;
+    /**
+     * Where to send the person once they are done, a path of the host that the host has already
+     * checked (the OAuth step that sent them here, D-098). The page offers it as a link, and the form
+     * keeps it.
+     */
+    next?: string;
+    /**
+     * Asks the tool whether the values the person is about to give are good (D-101). Nothing is kept
+     * when it says no. Without it every valid value is kept.
+     */
+    check?: (candidate: SetupCandidate) => Promise<SetupCheckResult>;
+  } = {},
 ): Promise<Response> {
+  const { setupStore, next, check } = extras;
   const declared = Object.entries(manifest.resources.userSecrets ?? {});
   const fields = setupStore ? Object.entries(manifest.setup?.fields ?? {}) : [];
   const page = `${baseUrl.replace(/\/+$/, "")}/${fields.length > 0 ? "setup" : "secrets"}`;
@@ -80,7 +94,11 @@ export async function handleSecretsInput(
   const heading = fields.length > 0 ? "Your setup" : "Your secrets";
   const eyebrow = manifest.title ?? manifest.name;
 
-  const form = async (errors: Record<string, string> = {}, sent: Record<string, string> = {}) => {
+  const form = async (
+    errors: Record<string, string> = {},
+    sent: Record<string, string> = {},
+    message?: string,
+  ) => {
     const own = await store.read(user);
     const values = setupStore ? await setupStore.read(user) : {};
     const plain = fields
@@ -108,7 +126,7 @@ export async function handleSecretsInput(
       .map(([name, secret], i) => {
         const set = Boolean(own[name]);
         const help = [secret.help, secret.why].filter(Boolean).join(" ");
-        return `<div class="secret"><label for="secret-${i}">${escapeHtml(secret.label)}${set ? ` <span class="tag-set">Set</span>` : ""}</label><input id="secret-${i}" type="password" name="${escapeHtml(name)}" autocomplete="off" spellcheck="false" placeholder="${set ? "Enter a new value to replace it" : ""}"><span class="hint">${escapeHtml(help)}</span></div>`;
+        return `<div class="secret"><label for="secret-${i}">${escapeHtml(secret.label)}${set ? ` <span class="tag-set">Set</span>` : ""}</label><input id="secret-${i}" type="password" name="${escapeHtml(name)}" autocomplete="off" spellcheck="false" placeholder="${set ? "Enter a new value to replace it" : ""}"><span class="hint">${escapeHtml(help)}</span>${errors[name] ? `<span class="hint" role="alert">${escapeHtml(errors[name])}</span>` : ""}</div>`;
       })
       .join("");
     const lead =
@@ -117,8 +135,11 @@ export async function handleSecretsInput(
         : fields.length > 0
           ? "These values are shown to you and to the workspace's administrators."
           : "Only you can use these values, and a value is never shown again. Leave a field empty to keep what is set.";
+    const refused = message
+      ? `<p class="notice warning" role="alert"><span class="tag">Not saved</span><span>${escapeHtml(message)}</span></p>`
+      : "";
     return plain || secrets
-      ? `<p class="lead">${lead}</p><form method="post" action="${escapeHtml(action)}" class="stack">${plain}${secrets}<button type="submit" class="btn primary">${fields.length > 0 ? "Save" : "Save secrets"}</button></form>`
+      ? `${refused}<p class="lead">${lead}</p><form method="post" action="${escapeHtml(action)}" class="stack">${plain}${secrets}<button type="submit" class="btn primary">${fields.length > 0 ? "Save" : "Save secrets"}</button></form>`
       : `<p>This tool asks for nothing from you.</p>`;
   };
 
@@ -191,6 +212,38 @@ export async function handleSecretsInput(
       Object.entries(sent).filter((e): e is [string, string] => typeof e[1] === "string"),
     );
     return render({ title: heading, eyebrow, body: await form(errors, strings), status: 400 });
+  }
+
+  // The tool's own check, on what would be kept: the values given now over the ones already kept. It
+  // says no for a reason the person can act on (an Odoo key that Odoo refuses), and nothing is kept.
+  const submittedSecrets = Object.entries(sent).filter(
+    (e): e is [string, string] => secretNames.has(e[0]) && typeof e[1] === "string" && e[1] !== "",
+  );
+  if (check && (Object.keys(values).length > 0 || submittedSecrets.length > 0)) {
+    const verdict = await check({
+      setup: { ...current, ...values },
+      secrets: { ...(await store.read(user)), ...Object.fromEntries(submittedSecrets) },
+    });
+    if (!verdict.ok) {
+      if (asJson) {
+        return Response.json(
+          { error: { code: "INVALID", message: verdict.message, fields: verdict.errors } },
+          { status: 400 },
+        );
+      }
+      // The secrets are not sent back to the browser: only the plain values are put in the form again.
+      const strings = Object.fromEntries(
+        Object.entries(sent).filter(
+          (e): e is [string, string] => typeof e[1] === "string" && !secretNames.has(e[0]),
+        ),
+      );
+      return render({
+        title: heading,
+        eyebrow,
+        body: await form(verdict.errors, strings, verdict.message),
+        status: 400,
+      });
+    }
   }
 
   const saved: string[] = [];

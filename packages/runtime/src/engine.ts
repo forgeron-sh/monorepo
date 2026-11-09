@@ -81,10 +81,27 @@ interface ListedAction {
   entry: Manifest["actions"][string];
 }
 
+/** The values a person is about to give a tool's setup, before they are kept. */
+export interface SetupCandidate {
+  setup: Record<string, string>;
+  secrets: Record<string, string>;
+}
+
 export interface Engine {
   /** The actions this person may call through this interface. */
   list(user: User, via: Interface): ListedAction[];
-  invoke(user: User, via: CallSource, name: string, rawInput: unknown): Promise<Outcome>;
+  invoke(
+    user: User,
+    via: CallSource,
+    name: string,
+    rawInput: unknown,
+    /**
+     * The setup check (D-101): the platform, not the person, runs the action, with the values the
+     * person is about to give. No access level is asked, and `ctx.user.setup` and `ctx.userSecrets` are
+     * these values instead of the ones kept.
+     */
+    candidate?: SetupCandidate,
+  ): Promise<Outcome>;
   /** Runs a `queue` handler that the platform's queue handed back. Throws on failure, to be retried. */
   deliver(delivery: QueuedDelivery): Promise<void>;
   /** Runs a scheduled task now, as the tool. */
@@ -240,14 +257,14 @@ export function createEngine(options: RuntimeOptions): Engine {
         .map(([name, entry]) => ({ name, entry }));
     },
 
-    async invoke(user, via, name, rawInput) {
+    async invoke(user, via, name, rawInput, candidate) {
       const entry = manifest.actions[name];
       const impl = exposed(name, via);
       if (!entry || !impl) return failure("NOT_FOUND", `Unknown action "${name}".`);
 
       // Before anything else, so that a refused person learns nothing about the input.
       const allowed = grants(user);
-      if (!mayCall(user, name, entry.access)) {
+      if (!candidate && !mayCall(user, name, entry.access)) {
         return failure("FORBIDDEN", `The access level "${entry.access}" is required.`);
       }
 
@@ -258,13 +275,15 @@ export function createEngine(options: RuntimeOptions): Engine {
 
       // Per-person setup, first use: the caller's own values, or the list of what is missing (D-036,
       // D-097). The secrets and the plain fields are asked at the same page, so they fail together.
-      let userSecrets = platform.userSecrets;
-      let setup: Readonly<Record<string, string | undefined>> = platform.userSetup ?? {};
+      let userSecrets = candidate ? candidate.secrets : platform.userSecrets;
+      let setup: Readonly<Record<string, string | undefined>> = candidate
+        ? candidate.setup
+        : (platform.userSetup ?? {});
       const declared = Object.entries(manifest.resources.userSecrets ?? {});
       const fields = Object.entries(manifest.setup?.fields ?? {});
       const checkSecrets = Boolean(platform.userSecretStore) && declared.length > 0;
       const checkSetup = platform.userSetup !== undefined && fields.length > 0;
-      if ((checkSecrets || checkSetup) && isInterface(via)) {
+      if ((checkSecrets || checkSetup) && isInterface(via) && !candidate) {
         const own = checkSecrets ? await platform.userSecretStore!.read(user) : {};
         const missingSecrets = checkSecrets ? declared.filter(([secret]) => !own[secret]) : [];
         const missingFields = checkSetup

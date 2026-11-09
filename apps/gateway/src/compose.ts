@@ -1,3 +1,4 @@
+import type { SetupCheckResult } from "@forgeron/runtime";
 import {
   createConsent,
   createEmailCodes,
@@ -17,7 +18,12 @@ import { createCloudHosting, createSelfHostHosting, type Hosting } from "@forger
 import { gatewayBindingsOf, type GatewayEnv } from "./env";
 import type { PlatformBindings } from "./platform/app";
 import { createPlatform } from "./platform/platform";
-import { createDispatcher, type Caller, type DispatcherOptions } from "./dispatch/dispatch";
+import {
+  createDispatcher,
+  createToolCaller,
+  type Caller,
+  type DispatcherOptions,
+} from "./dispatch/dispatch";
 import { createAuth } from "./identity/sign-in/auth";
 import { createEmailAuth } from "./identity/sign-in/email-auth";
 import { invitationId, invitationLink } from "./identity/sign-in/invitation";
@@ -221,9 +227,12 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
         ? async (c: { workspace: string; request: Request }) =>
             (await caller.resolve(c.request, c.workspace))?.id
         : undefined);
+    const dispatchRegistryOf = dispatchRegistry(registry, options);
+    const targetOf = (worker: string) =>
+      env.DISPATCHER ? namespaceTarget(env.DISPATCHER, worker) : serviceBindingTarget(env, worker);
     const dispatch = createDispatcher({
       baseDomain: env.BASE_DOMAIN,
-      registry: dispatchRegistry(registry, options),
+      registry: dispatchRegistryOf,
       // Seats are counted once identity tells who called (`identify`); without it nothing is counted.
       ...(identify
         ? {
@@ -274,10 +283,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
               ),
           }
         : {}),
-      targets: (worker) =>
-        env.DISPATCHER
-          ? namespaceTarget(env.DISPATCHER, worker)
-          : serviceBindingTarget(env, worker),
+      targets: targetOf,
     });
     return {
       registry,
@@ -286,6 +292,8 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       codes,
       consentFor,
       dispatch,
+      /** The gateway's own call to a tool's Worker (the check of a setup, D-101). */
+      callTool: createToolCaller({ registry: dispatchRegistryOf, targets: targetOf }),
       // Set where identity is on (`AUTH_SECRET`): without it the platform's own paths fail closed.
       identity: secret && caller ? { secret, caller } : undefined,
     };
@@ -454,6 +462,45 @@ export function createRequestModules(
           workspace,
           // A CLI token may enter secrets: the route is the platform's own.
           identify: (r: Request) => identity.caller.identify(r, workspace, true),
+          // The tool's own check of what a person is about to give (D-101). The identity headers are
+          // the gateway's, from the person it just identified, and the marker is one callers cannot set.
+          checkSetup: async (
+            tool: string,
+            person: Person,
+            candidate: { setup: Record<string, string>; secrets: Record<string, string> },
+          ): Promise<SetupCheckResult> => {
+            const refused = {
+              ok: false as const,
+              message: "The check could not be completed. Try again.",
+              errors: {},
+            };
+            try {
+              const response = await parts.callTool(
+                workspace,
+                tool,
+                new Request(`${origin}/_f/setup-check`, {
+                  method: "POST",
+                  headers: {
+                    "content-type": "application/json",
+                    "x-forgeron-setup-check": "1",
+                    "x-forgeron-user": JSON.stringify({
+                      id: person.id,
+                      email: person.email,
+                      name: person.name,
+                      roles: person.roles,
+                    }),
+                    "x-forgeron-base-url": `${origin}/t/${tool}`,
+                  },
+                  body: JSON.stringify(candidate),
+                }),
+              );
+              // No Worker to ask (the tool is not deployed): nothing can be checked, nothing is refused.
+              if (!response) return { ok: true };
+              return response.ok ? ((await response.json()) as SetupCheckResult) : refused;
+            } catch {
+              return refused;
+            }
+          },
         })
       : undefined,
 

@@ -1,10 +1,11 @@
 // Runs a tool in its Worker: MCP / API / CLI / Web routing, access, ctx context. workerd only.
-export { createRuntime, type Runtime } from "./runtime";
+export { createRuntime, type Runtime, type SetupCheck } from "./runtime";
 export { toolName } from "./mcp";
 export {
   handleSecretsInput,
   missingSetup,
   type SecretsPage,
+  type SetupCheckResult,
   type SecretsRenderer,
 } from "./secrets";
 export { EXIT_CODE, HTTP_STATUS } from "./types";
