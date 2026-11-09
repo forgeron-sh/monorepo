@@ -5,6 +5,7 @@ import {
   createSecretBox,
   deployBuild,
   migratePlatform,
+  TEMPLATE_WORKSPACE,
   type Registry,
 } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
@@ -268,7 +269,7 @@ describe("the tools and their minimum role", () => {
     expect((await listed(ana)).sort()).toEqual([...MEMBER].sort());
     expect((await listed(dev)).sort()).toEqual([...DEVELOPER].sort());
     expect((await listed(root)).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(15);
+    expect(TOOLS).toHaveLength(18);
   });
 
   it("marks what changes something with destructiveHint, and nothing else", async () => {
@@ -279,6 +280,7 @@ describe("the tools and their minimum role", () => {
         "access_grant",
         "access_revoke",
         "resources_approve",
+        "tool_install",
         "tool_promote",
         "tool_rollback",
       ].sort(),
@@ -298,6 +300,9 @@ describe("the tools and their minimum role", () => {
         ["resources_approve", { id: approvalId }],
         ["tool_promote", { tool: "crm", version: "1.1.0", to: "production" }],
         ["tool_rollback", { tool: "crm", environment: "production" }],
+        ["template_list", {}],
+        ["tool_install_plan", { template: "inventory" }],
+        ["tool_install", { plan: "anything" }],
         ["resources_pending", {}],
         ["access_list", {}],
       ] as const) {
@@ -575,5 +580,77 @@ describe("the protocol", () => {
       new Request("https://acme.forgeron.app/mcp/extra", { headers: { accept: "text/html" } }),
     );
     expect(response.status).toBe(404);
+  });
+});
+
+describe("installing a template takes two steps (D-092)", () => {
+  const publishTemplate = async (name: string, version: string) => {
+    const t =
+      (await registry.findTool(TEMPLATE_WORKSPACE, name)) ??
+      (await registry.createTool({ workspace: TEMPLATE_WORKSPACE, name }));
+    const b = await registry.recordBuild(t.id, {
+      fingerprint: `${name}-${version}`,
+      manifest: { ...manifest, name, resources: { db: { why: "rows" } } },
+      worker: `// ${name}`,
+    });
+    await registry.publishVersion(t.id, b.id, version);
+  };
+  const planOf = async (person: string, template: string) =>
+    (await call(person, "tool_install_plan", { template })).data.plan as string;
+
+  it("a plan creates nothing; the plan's identifier installs, once, and says what waits for approval", async () => {
+    await publishTemplate("inventory", "0.4.0");
+    expect((await call(root, "template_list")).data.templates).toEqual([
+      { name: "inventory", version: "0.4.0", resources: ["resources.db"] },
+    ]);
+    const planned = await call(root, "tool_install_plan", { template: "inventory" });
+    expect(planned.data).toMatchObject({
+      template: "inventory",
+      version: "0.4.0",
+      resources: ["resources.db"],
+    });
+    expect(await registry.findTool("acme", "inventory")).toBeUndefined();
+
+    const done = await call(root, "tool_install", { plan: planned.data.plan });
+    expect(done.data).toEqual({
+      tool: "inventory",
+      version: "0.4.0",
+      approvals: [{ resource: "resources.db", kind: "resource.added" }],
+    });
+    expect((await audit("inventory:0.4.0")).map((l) => [l.actor, l.via, l.kind])).toEqual([
+      [root, "Forgeron MCP", "install"],
+    ]);
+    expect((await audit("install-plan:inventory")).map((l) => l.via)).toEqual(["Forgeron MCP"]);
+    // The same plan, again: refused, and nothing more is created.
+    const again = await call(root, "tool_install", { plan: planned.data.plan });
+    expect(again.error).toBe(true);
+    expect(again.text).toMatch(/409 PLAN_USED/);
+  });
+
+  it("refuses an unknown plan, and another administrator's plan, with the same words", async () => {
+    await publishTemplate("stock", "1.0.0");
+    const mine = await planOf(root, "stock");
+    const foreign = await call(other, "tool_install", { plan: mine });
+    const unknown = await call(other, "tool_install", { plan: "no-such-plan" });
+    expect(foreign.error).toBe(true);
+    expect(foreign.text).toBe(unknown.text);
+    expect(await registry.findTool("acme", "stock")).toBeUndefined();
+    // Neither spent it: its owner still installs.
+    expect((await call(root, "tool_install", { plan: mine })).error).toBe(false);
+  });
+
+  it("refuses a plan whose template changed since it was shown", async () => {
+    await publishTemplate("ledger", "1.0.0");
+    const plan = await planOf(root, "ledger");
+    await publishTemplate("ledger", "1.1.0");
+    const refused = await call(root, "tool_install", { plan });
+    expect(refused.error).toBe(true);
+    expect(refused.text).toMatch(/PLAN_STALE/);
+    expect(await registry.findTool("acme", "ledger")).toBeUndefined();
+  });
+
+  it("takes no value and no argument but the plan's identifier", async () => {
+    const refused = await call(root, "tool_install", { plan: "x", template: "inventory" });
+    expect(refused.error).toBe(true);
   });
 });

@@ -47,7 +47,12 @@ export {
   lookupSecretRequestRoute,
 } from "./secret-requests";
 export { decideApprovalRoute, listApprovalsRoute } from "./approvals";
-export { installTemplateRoute, listTemplatesRoute } from "./templates";
+export {
+  createInstallPlanRoute,
+  installFromPlanRoute,
+  installTemplateRoute,
+  listTemplatesRoute,
+} from "./templates";
 export {
   listUserSecretHoldersRoute,
   revokePersonTokensRoute,

@@ -90,6 +90,7 @@ Rules of the log:
 | D-089 | 09/11/2026 | Connectors in order: Microsoft 365, Google Workspace, then Odoo                                                                                                        | Active                                 |
 | D-090 | 09/11/2026 | Texts about self-host previews that D-080 made stale are corrected in place (FOR-166)                                                                                  | Active                                 |
 | D-091 | 09/11/2026 | A group is not a grantable subject: `access_grant` gives roles to members and cells of the matrix (FOR-165)                                                            | Active                                 |
+| D-092 | 09/11/2026 | The admin MCP installs a template in two steps: a plan bound to the person, then only the plan's identifier (FOR-161)                                                  | Active                                 |
 
 ---
 
@@ -1105,3 +1106,18 @@ Rules of the log:
 - **Rejected**: a `groups` registry module with its own route (a second source of truth for who holds a role); resolving the provider's groups at each call (a network call on the path of every request, and the token does not carry them).
 - **Revisit when**: a customer needs a group to stay in step with its provider after the first sign-in. That is a sign-in feature (refresh the roles at each sign-in), not a new subject.
 - **Applied in**: `docs/sdk.md` §17.
+
+## D-092 — The admin MCP installs a template in two steps: a plan bound to the person, then only the plan's identifier (FOR-161)
+
+- **Date**: 09/11/2026 · **Status**: Active
+- **Decision** (`docs/sdk.md` §17):
+  1. **Tools**: `template_list` (admin, reads), `tool_install_plan` (admin; creates no tool) and `tool_install` (admin, `destructiveHint`). `tool_install` takes the plan's identifier and nothing else: no template name, no workspace, no person.
+  2. **Plan** (`install_plans`, migration `0024`, templates module): the workspace, the template, the **version it showed**, the person, an expiry of **15 minutes** and a `used_at`. The identifier is a random UUID; the binding to the person and the workspace is what protects it, as for a secret request (D-083).
+  3. **Refusals**: a plan that does not exist, is another person's or another workspace's gets the same `404`; one already spent gets `409 PLAN_USED`; an expired one `410 PLAN_EXPIRED`; one whose template has a **newer version** than the plan showed gets `409 PLAN_STALE`, so what an admin confirmed is what is installed. The conditional `UPDATE … WHERE used_at IS NULL AND expires_at > now` spends the plan before anything is created, so two parallel uses cannot both install.
+  4. **Routes** (contract `templates.ts`): `POST /api/templates/{name}/install-plan` and `POST /api/install-plans/{plan}/install`, admin only, on the same guard as every route of the platform. The direct `POST /api/templates/{name}/install` (D-081) stays for the console: a person who clicks has already seen the screen.
+  5. **Audit**: the install keeps its `install` line (D-081); making a plan writes one `access` line, subject `install-plan:<template>`, `via` set for the MCP. No line holds a secret: an install carries none.
+- **Why**: the admin MCP is where an instruction slipped into a document could become an action (D-083). Two steps with an identifier that only the same administrator can spend means a hidden instruction cannot install a tool in one call, and cannot install a different thing than the one shown.
+- **Rejected**: a signed, stateless plan (cannot be spent once); a `confirm: true` argument on one tool (a model can fill it); a plan identifier that is a secret token (the binding to the person already makes it useless to anyone else); giving the plan back after a failure (a new plan is cheap, and a retry cannot install twice).
+- **Known, not changed**: a plan spent and then refused because the workspace gained a tool of that name in the meantime is not given back. Plans that expired stay in the table (no sweep: the table is small, and a sweep is one `DELETE` when it matters).
+- **Not verified**: no real MCP client and no deployed gateway; tested through the whole gateway with a real registry and CLI tokens.
+- **Applied in**: `packages/registry/src/modules/templates/`, `packages/platform-contract/src/templates.ts`, `apps/gateway/src/platform/templates.ts`, `apps/gateway/src/admin-mcp/tools.ts`, `docs/sdk.md` §17.
