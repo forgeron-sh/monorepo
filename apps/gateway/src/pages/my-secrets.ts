@@ -4,7 +4,7 @@ import { button, escape, hiddenFields, notice, page, paragraph } from "./shell";
 // A person's own secrets (D-106): what they gave the workspace's tools, which tool uses which, and the
 // one place to change a key. A value is never shown, not even to its owner: to change one, give a new one.
 
-export interface SecretView {
+interface SecretView {
   id: string;
   label: string;
   kind?: string;
