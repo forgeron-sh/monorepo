@@ -98,6 +98,7 @@ Rules of the log:
 | D-097 | 09/11/2026 | A tool's plain setup values are kept in clear per tool and person, handed in `ctx.user.setup`, asked at `/t/<tool>/setup` (FOR-171, tickets 3 and 4)                   | Active                                 |
 | D-098 | 09/11/2026 | The OAuth step sends a person through the tool's setup page before the click, and issues no token for a tool whose setup is incomplete (FOR-171, ticket 5)             | Active                                 |
 | D-099 | 09/11/2026 | Per-person secrets may be carried sealed in the OAuth token, as an opt-in `keep: "token"` of a secret field; not started (FOR-172)                                     | Proposed                               |
+| D-100 | 09/11/2026 | `SECRETS_KEY_PREVIOUS`: a value sealed under a replaced key still opens (FOR-172, ticket 1)                                                                            | Active                                 |
 
 ---
 
@@ -1226,3 +1227,11 @@ Rules of the log:
 - **Rejected**: a short-lived stored record keyed by the token (it is the stored model with a shorter life); carrying it in the authorization code only (a code lives 60 seconds); making it the default (it would break the CLI, the admin's list and the rotation for every tool).
 - **Not done**: everything. No code, no ticket created. The seven tickets are listed in the spike; the first, `SECRETS_KEY_PREVIOUS`, is useful on its own.
 - **Applied in**: `docs/spikes/secrets-in-token.md`.
+
+## D-100 — `SECRETS_KEY_PREVIOUS`: a value sealed under a replaced key still opens (FOR-172, ticket 1)
+
+- **Date**: 09/11/2026 · **Status**: Active · useful on its own, and the first ticket of `docs/spikes/secrets-in-token.md`
+- **Decision**: `createSecretBox(key, previous?)` opens a value with the current key, then with each previous one, and seals with the current key only. The gateway reads the previous keys from `SECRETS_KEY_PREVIOUS` (comma-separated, as `AUTH_SECRET_PREVIOUS`, D-035) and passes them to the registry's box, which also serves the identity configuration. A previous key that is not 32 bytes fails at startup. A value that no listed key opens fails as before; the slot is still the additional data, so a value moved to another slot does not open.
+- **Why**: until now replacing `SECRETS_KEY` made every stored secret unreadable (`docs/self-host.md`), so the key could not be rotated, which is the first thing a security review asks. The tokens' own key has had its overlap since D-035.
+- **Not done**: **re-sealing**. A value is sealed under the new key only when it is saved again, so the previous key cannot be dropped until every value has been typed or saved again (the sealed values are in `secrets`, `user_secrets`, the identity provider's client secret, the connectors' client secrets and the sealed refresh tokens of connections: five places in three modules). A re-sealing command is a later ticket. The install does not set `*_PREVIOUS` for you: set it with the dashboard or the API, as for `AUTH_SECRET_PREVIOUS`, which `self-host.md` now lists too.
+- **Applied in**: `packages/registry/src/secret-box.ts`, `apps/gateway/src/compose.ts`, `env.ts`; `docs/self-host.md`; tests in `secret-box.test.ts` and `integration/gateway-tokens-secrets.test.ts`.

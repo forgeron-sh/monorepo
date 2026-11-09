@@ -17,14 +17,20 @@ export interface SecretBox {
 const b64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
 const unb64 = (text: string) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
 
-/** `key` is 32 random bytes, base64: the platform's master key, held in the gateway's secrets. */
-export async function createSecretBox(key: string): Promise<SecretBox> {
+const importKey = async (key: string) => {
   const raw = unb64(key);
   if (raw.length !== 32) throw new Error("The secret key must be 32 bytes, base64-encoded.");
-  const cryptoKey = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, [
-    "encrypt",
-    "decrypt",
-  ]);
+  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
+};
+
+/**
+ * `key` is 32 random bytes, base64: the platform's master key, held in the gateway's secrets.
+ * `previous` are the keys it replaced (`SECRETS_KEY_PREVIOUS`, D-100): a value sealed under one of
+ * them still opens, nothing is sealed with them, and a value sealed again goes under `key`.
+ */
+export async function createSecretBox(key: string, previous: string[] = []): Promise<SecretBox> {
+  const cryptoKey = await importKey(key);
+  const olderKeys = await Promise.all(previous.map(importKey));
   const aad = (slot: string) => new TextEncoder().encode(slot);
   return {
     async seal(slot, value) {
@@ -37,12 +43,21 @@ export async function createSecretBox(key: string): Promise<SecretBox> {
       return { iv: b64(iv), ciphertext: b64(new Uint8Array(data)) };
     },
     async open(slot, sealed) {
-      const data = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: unb64(sealed.iv), additionalData: aad(slot) },
-        cryptoKey,
-        unb64(sealed.ciphertext),
-      );
-      return new TextDecoder().decode(data);
+      // The current key first; a failure of its authentication tag is the only reason to try another.
+      let failure: unknown;
+      for (const candidate of [cryptoKey, ...olderKeys]) {
+        try {
+          const data = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: unb64(sealed.iv), additionalData: aad(slot) },
+            candidate,
+            unb64(sealed.ciphertext),
+          );
+          return new TextDecoder().decode(data);
+        } catch (error) {
+          failure ??= error;
+        }
+      }
+      throw failure;
     },
   };
 }

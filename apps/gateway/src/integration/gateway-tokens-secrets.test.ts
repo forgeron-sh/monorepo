@@ -368,3 +368,47 @@ describe("per-person secrets on first use", () => {
     expect(response.status).toBe(403);
   });
 });
+
+describe("rotating the sealing key (D-100)", () => {
+  it("opens a per-person secret sealed under the previous key, and only while it is listed", async () => {
+    const OLD_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
+    const NEW_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(8)));
+    const person = (
+      await registry.addMember({
+        workspace: "acme",
+        subject: "rot",
+        email: "rot@acme.test",
+        name: "rot",
+        roles: [],
+      })
+    ).id;
+    const tool = (await registry.findTool("acme", "crm"))!;
+    // A value typed while the old key was the platform's...
+    const older = createRegistry(env.DB, {
+      secrets: await createSecretBox(OLD_KEY),
+      now: () => clock,
+    });
+    await older.setUserSecret({
+      toolId: tool.id,
+      person,
+      name: "ODOO_API_KEY",
+      value: "sealed-under-the-old-key",
+    });
+    const token = await tokenFor(person, "crm");
+    const callWith = (extra: Partial<GatewayEnv>) =>
+      gateway(extra)(
+        new Request("https://acme.forgeron.app/t/crm/api/tickets.mine", {
+          headers: { authorization: `Bearer ${token}` },
+        }),
+      );
+
+    // ...opens after the key is replaced, while the old one is listed as previous...
+    seen.length = 0;
+    expect((await callWith({ SECRETS_KEY: NEW_KEY, SECRETS_KEY_PREVIOUS: OLD_KEY })).status).toBe(
+      200,
+    );
+    expect(seen).toEqual([{ user: person, secrets: { ODOO_API_KEY: "sealed-under-the-old-key" } }]);
+    // ...and no longer once it is dropped: nothing opens, the person is asked again.
+    expect((await callWith({ SECRETS_KEY: NEW_KEY })).status).toBe(428);
+  });
+});
