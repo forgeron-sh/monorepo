@@ -10,6 +10,7 @@ import { createRuntime } from "@forgeron/runtime";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createGateway, type GatewayEnv } from "../gateway";
+import { openSession } from "../identity/authn/session";
 import { issueToken } from "../identity/authn/tokens";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -571,5 +572,213 @@ describe("offering a saved secret to a second tool (D-105)", () => {
   it("never binds by field name: a tool asking for the same name gets nothing the person did not choose", async () => {
     // Eve typed nothing and chose nothing: her calls are asked again, whatever Dan saved.
     expect((await call("/t/hr/api/tickets.mine", await tokenFor(eve, "hr"))).status).toBe(428);
+  });
+});
+
+describe("a person's own page of secrets (D-106)", () => {
+  const ORIGIN = "https://acme.forgeron.app";
+  let hana = "";
+  let other = "";
+  let cookie = "";
+  let otherCookie = "";
+  let secretId = "";
+
+  const session = async (person: string) =>
+    (
+      await openSession({ person, workspace: "acme" }, { secret: SECRET, ttlSeconds: 3600, now })
+    ).split(";")[0]!;
+  const page = (path = "/my/secrets", who = cookie) =>
+    gateway()(new Request(`${ORIGIN}${path}`, { headers: { cookie: who } }));
+  const act = (fields: Record<string, string>, who = cookie, origin = ORIGIN) =>
+    gateway()(
+      new Request(`${ORIGIN}/my/secrets`, {
+        method: "POST",
+        headers: { cookie: who, origin, "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(fields),
+      }),
+    );
+
+  beforeAll(async () => {
+    const add = async (subject: string) =>
+      (
+        await registry.addMember({
+          workspace: "acme",
+          subject,
+          email: `${subject}@acme.test`,
+          name: subject,
+          roles: [],
+        })
+      ).id;
+    hana = await add("hana");
+    other = await add("other");
+    cookie = await session(hana);
+    otherCookie = await session(other);
+    // Hana gave the first tool her key, and chose it for the second.
+    const first = await call(
+      "/t/crm/setup",
+      await tokenFor(hana),
+      json({ firstName: "Hana", ODOO_API_KEY: "hana-key-one" }),
+    );
+    if (first.status !== 200) throw new Error(`The setup was refused: ${first.status}`);
+    secretId = (await registry.listPersonSecrets("acme", hana))[0]!.id;
+    await registry.bindUserSecret({ toolId: hrId, person: hana, field: "ODOO_API_KEY", secretId });
+  });
+
+  it("is for a signed-in person's session only: a token or nobody is sent to sign in", async () => {
+    const out = await gateway()(new Request(`${ORIGIN}/my/secrets`));
+    expect(out.status).toBe(302);
+    expect(out.headers.get("location")).toBe("/auth/login?next=%2Fmy%2Fsecrets");
+    const bearer = await gateway()(
+      new Request(`${ORIGIN}/my/secrets`, {
+        headers: { authorization: `Bearer ${await tokenFor(hana)}` },
+      }),
+    );
+    expect(bearer.status).toBe(302);
+    expect((await act({ action: "new" }, "")).status).toBe(401);
+  });
+
+  it("lists the secret with its tools, versions and who changed it, and never a value", async () => {
+    const response = await page();
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(html).toContain("<h1>Your secrets</h1>");
+    expect(html).toContain("Odoo API key");
+    expect(html).toContain("odoo.api-key");
+    expect(html).toMatch(/<strong>crm<\/strong>/);
+    expect(html).toMatch(/<strong>hr<\/strong>/);
+    expect(html).toContain("by you");
+    expect(html).not.toContain("hana-key-one");
+    expect(html).not.toContain("<script");
+    // Another person sees none of it.
+    const mine = await (await page("/my/secrets", otherCookie)).text();
+    expect(mine).not.toContain("Odoo API key");
+  });
+
+  it("refuses a post that did not come from the page, and a secret that is not the person's", async () => {
+    expect(
+      (
+        await act(
+          { action: "version", secret: secretId, value: "x" },
+          cookie,
+          "https://evil.example",
+        )
+      ).status,
+    ).toBe(403);
+    const foreign = await act(
+      { action: "version", secret: secretId, value: "stolen" },
+      otherCookie,
+    );
+    expect(foreign.status).toBe(400);
+    expect(await foreign.text()).toContain("That is not one of your secrets.");
+    expect(
+      (await act({ action: "delete", secret: secretId, confirm: "yes" }, otherCookie)).status,
+    ).toBe(400);
+    expect(await registry.readUserSecrets(toolId, hana)).toEqual({ ODOO_API_KEY: "hana-key-one" });
+  });
+
+  it("changes the key once for every tool that follows the latest, after each tool's own check", async () => {
+    checked.length = 0;
+    // A key the tool refuses is kept nowhere: not as a version, not for either tool.
+    const refused = await act({ action: "version", secret: secretId, value: "wrong" });
+    expect(refused.status).toBe(400);
+    expect(await refused.text()).toContain("Odoo refused this key.");
+    expect((await registry.listPersonSecrets("acme", hana))[0]!.versions).toBe(1);
+    expect(await registry.readUserSecrets(hrId, hana)).toEqual({ ODOO_API_KEY: "hana-key-one" });
+
+    checked.length = 0;
+    const ok = await act({ action: "version", secret: secretId, value: "hana-key-two" });
+    expect(ok.status).toBe(303);
+    expect(ok.headers.get("location")).toBe("/my/secrets?done=version");
+    // The check ran for both tools, on the new value, and both now get it.
+    expect(checked.map((c) => (c.secrets as Record<string, string>).ODOO_API_KEY)).toEqual([
+      "hana-key-two",
+      "hana-key-two",
+    ]);
+    expect(await registry.readUserSecrets(toolId, hana)).toEqual({ ODOO_API_KEY: "hana-key-two" });
+    expect(await registry.readUserSecrets(hrId, hana)).toEqual({ ODOO_API_KEY: "hana-key-two" });
+    const done = await (await page("/my/secrets?done=version")).text();
+    expect(done).toContain("The new value is saved.");
+    expect(done).toContain("Version 2");
+    // A message that is not one of the page's own is not echoed.
+    expect(await (await page("/my/secrets?done=<script>")).text()).not.toContain("<script>");
+  });
+
+  it("keeps a tool on an earlier version when the person pins it, and follows the latest again when they unpin", async () => {
+    const pin = (version: string) =>
+      act({
+        action: "bind",
+        tool: "hr",
+        field: "ODOO_API_KEY",
+        scope: "*",
+        secret: secretId,
+        pin: version,
+      });
+    expect((await pin("1")).status).toBe(303);
+    expect(await registry.readUserSecrets(hrId, hana)).toEqual({ ODOO_API_KEY: "hana-key-one" });
+    expect(await registry.readUserSecrets(toolId, hana)).toEqual({ ODOO_API_KEY: "hana-key-two" });
+    // A pinned tool is not asked about a new value it will not get: only crm is checked.
+    checked.length = 0;
+    expect(
+      (await act({ action: "version", secret: secretId, value: "hana-key-three" })).status,
+    ).toBe(303);
+    expect(checked).toHaveLength(1);
+    expect(await registry.readUserSecrets(hrId, hana)).toEqual({ ODOO_API_KEY: "hana-key-one" });
+    expect((await pin("")).status).toBe(303);
+    expect(await registry.readUserSecrets(hrId, hana)).toEqual({ ODOO_API_KEY: "hana-key-three" });
+    expect((await pin("9")).status).toBe(400);
+    // Only a binding the person has can be changed.
+    expect(
+      (
+        await act({
+          action: "bind",
+          tool: "hr",
+          field: "NOPE",
+          scope: "*",
+          secret: secretId,
+          pin: "",
+        })
+      ).status,
+    ).toBe(400);
+  });
+
+  it("stops one tool using the secret, keeps the secret for the other, and deletes it only when confirmed", async () => {
+    expect(
+      (await act({ action: "unbind", tool: "hr", field: "ODOO_API_KEY", scope: "*" })).headers.get(
+        "location",
+      ),
+    ).toBe("/my/secrets?done=unbound");
+    expect(await registry.readUserSecrets(hrId, hana)).toEqual({});
+    expect(await registry.readUserSecrets(toolId, hana)).toEqual({
+      ODOO_API_KEY: "hana-key-three",
+    });
+    const unconfirmed = await act({ action: "delete", secret: secretId });
+    expect(unconfirmed.status).toBe(400);
+    expect(await registry.listPersonSecrets("acme", hana)).toHaveLength(1);
+    expect((await act({ action: "delete", secret: secretId, confirm: "yes" })).status).toBe(303);
+    expect(await registry.listPersonSecrets("acme", hana)).toEqual([]);
+    // The tool asks again: the person is asked at its setup page.
+    expect((await call("/t/crm/api/tickets.mine", await tokenFor(hana))).status).toBe(428);
+  });
+
+  it("saves a secret no tool uses yet, renames it, and checks what it is given", async () => {
+    expect((await act({ action: "new", label: "", value: "v" })).status).toBe(400);
+    expect(
+      (await act({ action: "new", label: "Spare", kind: "Not A Kind", value: "v" })).status,
+    ).toBe(400);
+    expect(
+      (await act({ action: "new", label: "Spare", kind: "odoo.api-key", value: "spare-value" }))
+        .status,
+    ).toBe(303);
+    const [spare] = await registry.listPersonSecrets("acme", hana);
+    expect(spare).toMatchObject({ label: "Spare", kind: "odoo.api-key", usedBy: [] });
+    expect((await act({ action: "rename", secret: spare!.id, label: "Spare key" })).status).toBe(
+      303,
+    );
+    expect((await registry.listPersonSecrets("acme", hana))[0]!.label).toBe("Spare key");
+    // A tool that asks for the same kind offers it.
+    const offered = await (await call("/t/hr/setup", await tokenFor(hana, "hr"))).text();
+    expect(offered).toContain("Spare key");
+    expect(offered).not.toContain("spare-value");
+    expect((await act({ action: "nonsense" })).status).toBe(400);
   });
 });

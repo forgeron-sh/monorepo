@@ -374,6 +374,10 @@ describe("offering a saved secret to another tool (D-105)", () => {
         kind: "odoo.api-key",
         versions: 2,
         updatedAt: expect.any(String),
+        history: [
+          { version: 2, createdAt: expect.any(String), via: "setup", byPerson: true },
+          { version: 1, createdAt: expect.any(String), via: "setup", byPerson: true },
+        ],
         usedBy: [{ tool: "odoo", field: "ODOO_API_KEY", scope: "*" }],
       },
     ]);
@@ -430,5 +434,146 @@ describe("offering a saved secret to another tool (D-105)", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(await registry.readUserSecrets(odoo.id, "p2")).toEqual({});
     expect(await registry.listAudit(odoo.id)).toEqual([]);
+  });
+});
+
+describe("managing one's own secrets (D-106)", () => {
+  const odoo = async () => registry.createTool({ workspace: "acme", name: "odoo" });
+
+  it("makes a secret that no tool uses, and adds versions that the audit records without a value", async () => {
+    const id = await registry.createPersonSecret({
+      workspace: "acme",
+      person: "p1",
+      label: "My Odoo key",
+      kind: "odoo.api-key",
+      value: "first-value",
+    });
+    expect(await registry.readPersonSecret("acme", "p1", id)).toBe("first-value");
+    expect(
+      await registry.addSecretVersion({
+        workspace: "acme",
+        person: "p1",
+        secretId: id,
+        value: "second-value",
+      }),
+    ).toBe(2);
+    expect(await registry.readPersonSecret("acme", "p1", id)).toBe("second-value");
+    // An earlier version is still readable, by its number.
+    expect(await registry.readPersonSecret("acme", "p1", id, 1)).toBe("first-value");
+    expect(await registry.readPersonSecret("acme", "p1", id, 9)).toBeUndefined();
+    const [listed] = await registry.listPersonSecrets("acme", "p1");
+    expect(listed).toMatchObject({
+      label: "My Odoo key",
+      kind: "odoo.api-key",
+      versions: 2,
+      usedBy: [],
+    });
+    const lines = (
+      await d1.prepare(`SELECT "subject", "actor", "detail" FROM "audit_log" ORDER BY "at"`).all()
+    ).results as Array<{ subject: string; detail: string }>;
+    expect(lines.map((l) => l.subject)).toEqual(["secret:created", "secret:version"]);
+    expect(JSON.stringify(lines)).not.toContain("-value");
+  });
+
+  it("refuses a version for a secret that is not the person's", async () => {
+    const id = await registry.createPersonSecret({
+      workspace: "acme",
+      person: "p1",
+      label: "K",
+      value: "v",
+    });
+    expect(
+      await registry.addSecretVersion({
+        workspace: "acme",
+        person: "p2",
+        secretId: id,
+        value: "x",
+      }),
+    ).toBeUndefined();
+    expect(
+      await registry.addSecretVersion({
+        workspace: "other",
+        person: "p1",
+        secretId: id,
+        value: "x",
+      }),
+    ).toBeUndefined();
+    expect(await registry.renamePersonSecret("acme", "p2", id, "Stolen")).toBe(false);
+    expect(await registry.deletePersonSecret("acme", "p2", id)).toBeUndefined();
+    expect(await registry.renamePersonSecret("acme", "p1", id, "Renamed")).toBe(true);
+    expect((await registry.listPersonSecrets("acme", "p1"))[0]!.label).toBe("Renamed");
+  });
+
+  it("pins a binding to an earlier version, and refuses a version or a scope that does not exist", async () => {
+    const tool = await odoo();
+    await registry.setUserSecret({ toolId: tool.id, person: "p1", name: "K", value: "v-one" });
+    const id = (await registry.listPersonSecrets("acme", "p1"))[0]!.id;
+    await registry.addSecretVersion({
+      workspace: "acme",
+      person: "p1",
+      secretId: id,
+      value: "v-two",
+    });
+    expect(await registry.readUserSecrets(tool.id, "p1")).toEqual({ K: "v-two" });
+    await registry.bindUserSecret({
+      toolId: tool.id,
+      person: "p1",
+      field: "K",
+      secretId: id,
+      pin: 1,
+    });
+    expect(await registry.readUserSecrets(tool.id, "p1")).toEqual({ K: "v-one" });
+    expect((await registry.listPersonSecrets("acme", "p1"))[0]!.usedBy).toEqual([
+      { tool: "odoo", field: "K", scope: "*", pin: 1 },
+    ]);
+    await expect(
+      registry.bindUserSecret({ toolId: tool.id, person: "p1", field: "K", secretId: id, pin: 5 }),
+    ).rejects.toMatchObject({ code: "INVALID" });
+    await expect(
+      registry.bindUserSecret({
+        toolId: tool.id,
+        person: "p1",
+        field: "K",
+        secretId: id,
+        scope: "staging",
+      }),
+    ).rejects.toMatchObject({ code: "INVALID" });
+    // A new value typed at the tool's own page is the latest again: the pin is cleared.
+    await registry.setUserSecret({ toolId: tool.id, person: "p1", name: "K", value: "v-three" });
+    expect(await registry.readUserSecrets(tool.id, "p1")).toEqual({ K: "v-three" });
+  });
+
+  it("unbinds one scope and keeps the secret; deletes a secret with its versions and bindings", async () => {
+    const tool = await odoo();
+    await registry.setUserSecret({ toolId: tool.id, person: "p1", name: "K", value: "v" });
+    const id = (await registry.listPersonSecrets("acme", "p1"))[0]!.id;
+    await registry.bindUserSecret({
+      toolId: tool.id,
+      person: "p1",
+      field: "K",
+      secretId: id,
+      scope: "preview:feat",
+    });
+    expect(
+      await registry.unbindUserSecret({
+        toolId: tool.id,
+        person: "p1",
+        field: "K",
+        scope: "preview:feat",
+      }),
+    ).toBe(true);
+    expect(
+      await registry.unbindUserSecret({
+        toolId: tool.id,
+        person: "p1",
+        field: "K",
+        scope: "preview:feat",
+      }),
+    ).toBe(false);
+    expect(await registry.readUserSecrets(tool.id, "p1")).toEqual({ K: "v" });
+    expect(await registry.deletePersonSecret("acme", "p1", id)).toBe(1);
+    expect(await registry.readUserSecrets(tool.id, "p1")).toEqual({});
+    expect(await registry.listPersonSecrets("acme", "p1")).toEqual([]);
+    expect(await registry.deletePersonSecret("acme", "p1", id)).toBeUndefined();
   });
 });

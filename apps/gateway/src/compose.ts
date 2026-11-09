@@ -417,6 +417,48 @@ export function createRequestModules(
     }),
   });
 
+  /**
+   * The tool's own check of what a person is about to give (D-101). The identity headers are the
+   * gateway's, from the person it just identified, and the marker is one callers cannot set.
+   */
+  const checkSetup = async (
+    tool: string,
+    person: Person,
+    candidate: { setup: Record<string, string>; secrets: Record<string, string> },
+  ): Promise<SetupCheckResult> => {
+    const refused = {
+      ok: false as const,
+      message: "The check could not be completed. Try again.",
+      errors: {},
+    };
+    try {
+      const response = await parts.callTool(
+        workspace,
+        tool,
+        new Request(`${origin}/_f/setup-check`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-forgeron-setup-check": "1",
+            "x-forgeron-user": JSON.stringify({
+              id: person.id,
+              email: person.email,
+              name: person.name,
+              roles: person.roles,
+            }),
+            "x-forgeron-base-url": `${origin}/t/${tool}`,
+          },
+          body: JSON.stringify(candidate),
+        }),
+      );
+      // No Worker to ask (the tool is not deployed): nothing can be checked, nothing is refused.
+      if (!response) return { ok: true };
+      return response.ok ? ((await response.json()) as SetupCheckResult) : refused;
+    } catch {
+      return refused;
+    }
+  };
+
   return {
     request,
     workspace,
@@ -464,43 +506,17 @@ export function createRequestModules(
           identify: (r: Request) => identity.caller.identify(r, workspace, true),
           // The tool's own check of what a person is about to give (D-101). The identity headers are
           // the gateway's, from the person it just identified, and the marker is one callers cannot set.
-          checkSetup: async (
-            tool: string,
-            person: Person,
-            candidate: { setup: Record<string, string>; secrets: Record<string, string> },
-          ): Promise<SetupCheckResult> => {
-            const refused = {
-              ok: false as const,
-              message: "The check could not be completed. Try again.",
-              errors: {},
-            };
-            try {
-              const response = await parts.callTool(
-                workspace,
-                tool,
-                new Request(`${origin}/_f/setup-check`, {
-                  method: "POST",
-                  headers: {
-                    "content-type": "application/json",
-                    "x-forgeron-setup-check": "1",
-                    "x-forgeron-user": JSON.stringify({
-                      id: person.id,
-                      email: person.email,
-                      name: person.name,
-                      roles: person.roles,
-                    }),
-                    "x-forgeron-base-url": `${origin}/t/${tool}`,
-                  },
-                  body: JSON.stringify(candidate),
-                }),
-              );
-              // No Worker to ask (the tool is not deployed): nothing can be checked, nothing is refused.
-              if (!response) return { ok: true };
-              return response.ok ? ((await response.json()) as SetupCheckResult) : refused;
-            } catch {
-              return refused;
-            }
-          },
+          checkSetup,
+        })
+      : undefined,
+
+    /** The person's own page of secrets (D-106): the session cookie only, and the tools' checks. */
+    mySecrets: identity
+      ? () => ({
+          workspace,
+          registry,
+          session: (r: Request) => identity.caller.session(r, workspace),
+          checkSetup,
         })
       : undefined,
 

@@ -265,7 +265,9 @@ WHERE b."tool_id" = ? AND b."person" = ?`,
         kind?: string;
         versions: number;
         updatedAt: string;
-        usedBy: Array<{ tool: string; field: string; scope: string }>;
+        /** Newest first: when, how, and whether the person themselves typed it. */
+        history: Array<{ version: number; createdAt: string; via: string; byPerson: boolean }>;
+        usedBy: Array<{ tool: string; field: string; scope: string; pin?: number }>;
       }>
     > {
       const secrets = await all(
@@ -277,11 +279,18 @@ GROUP BY s."id" ORDER BY s."created_at", s."id"`,
         person,
       );
       const uses = await all(
-        `SELECT b."secret_id", t."name" AS "tool", b."field", b."scope"
+        `SELECT b."secret_id", t."name" AS "tool", b."field", b."scope", b."pin"
 FROM "secret_bindings" b JOIN "tools" t ON t."id" = b."tool_id"
 WHERE b."person" = ? AND t."workspace" = ? ORDER BY t."name", b."field", b."scope"`,
         person,
         workspace,
+      );
+      const versions = await all(
+        `SELECT v."secret_id", v."version", v."created_at", v."created_by", v."via"
+FROM "person_secret_versions" v JOIN "person_secrets" s ON s."id" = v."secret_id"
+WHERE s."workspace" = ? AND s."person" = ? ORDER BY v."version" DESC`,
+        workspace,
+        person,
       );
       return secrets.map((r) => ({
         id: String(r.id),
@@ -289,9 +298,22 @@ WHERE b."person" = ? AND t."workspace" = ? ORDER BY t."name", b."field", b."scop
         ...(r.kind === null || r.kind === undefined ? {} : { kind: String(r.kind) }),
         versions: Number(r.versions),
         updatedAt: String(r.updated_at),
+        history: versions
+          .filter((v) => String(v.secret_id) === String(r.id))
+          .map((v) => ({
+            version: Number(v.version),
+            createdAt: String(v.created_at),
+            via: String(v.via),
+            byPerson: String(v.created_by) === person,
+          })),
         usedBy: uses
           .filter((u) => String(u.secret_id) === String(r.id))
-          .map((u) => ({ tool: String(u.tool), field: String(u.field), scope: String(u.scope) })),
+          .map((u) => ({
+            tool: String(u.tool),
+            field: String(u.field),
+            scope: String(u.scope),
+            ...(u.pin === null || u.pin === undefined ? {} : { pin: Number(u.pin) }),
+          })),
       }));
     },
     /**
@@ -302,14 +324,17 @@ WHERE b."person" = ? AND t."workspace" = ? ORDER BY t."name", b."field", b."scop
       workspace: string,
       person: string,
       secretId: string,
+      /** A version to read instead of the latest. */
+      version?: number,
     ): Promise<string | undefined> {
       const row = await first(
         `SELECT v."iv", v."ciphertext", v."aad" FROM "person_secrets" s JOIN "person_secret_versions" v ON v."secret_id" = s."id"
-WHERE s."id" = ? AND s."workspace" = ? AND s."person" = ? AND s."archived_at" IS NULL
+WHERE s."id" = ? AND s."workspace" = ? AND s."person" = ? AND s."archived_at" IS NULL${version === undefined ? "" : ` AND v."version" = ?`}
 ORDER BY v."version" DESC LIMIT 1`,
         secretId,
         workspace,
         person,
+        ...(version === undefined ? [] : [version]),
       );
       return row
         ? secretBox().open(String(row.aad), {
@@ -328,9 +353,17 @@ ORDER BY v."version" DESC LIMIT 1`,
       person: string;
       field: string;
       secretId: string;
+      /** Where it applies: `*` (the default), `production`, `preview` or `preview:<branch>`. */
+      scope?: string;
+      /** A version to keep using; none follows the latest. */
+      pin?: number | null;
       via?: string;
     }): Promise<void> {
       const tool = await requireTool(input.toolId);
+      const scope = input.scope ?? "*";
+      if (!/^(\*|production|preview|preview:[a-z0-9][a-z0-9._-]*)$/.test(scope)) {
+        throw new RegistryError("INVALID", `"${scope}" is not a scope of a binding.`);
+      }
       const owned = await first(
         `SELECT 1 FROM "person_secrets" WHERE "id" = ? AND "workspace" = ? AND "person" = ? AND "archived_at" IS NULL`,
         input.secretId,
@@ -338,14 +371,25 @@ ORDER BY v."version" DESC LIMIT 1`,
         input.person,
       );
       if (!owned) throw new RegistryError("NOT_FOUND", "That is not one of your saved secrets.");
+      const pin = input.pin ?? null;
+      if (
+        pin !== null &&
+        !(await first(
+          `SELECT 1 FROM "person_secret_versions" WHERE "secret_id" = ? AND "version" = ?`,
+          input.secretId,
+          pin,
+        ))
+      ) {
+        throw new RegistryError("INVALID", `That secret has no version ${pin}.`);
+      }
       const at = now();
       await d1.batch([
         d1
           .prepare(
-            `INSERT INTO "secret_bindings" ("tool_id", "person", "field", "scope", "secret_id", "pin") VALUES (?, ?, ?, '*', ?, NULL)
-ON CONFLICT ("tool_id", "person", "field", "scope") DO UPDATE SET "secret_id" = excluded."secret_id", "pin" = NULL`,
+            `INSERT INTO "secret_bindings" ("tool_id", "person", "field", "scope", "secret_id", "pin") VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT ("tool_id", "person", "field", "scope") DO UPDATE SET "secret_id" = excluded."secret_id", "pin" = excluded."pin"`,
           )
-          .bind(input.toolId, input.person, input.field, input.secretId),
+          .bind(input.toolId, input.person, input.field, scope, input.secretId, pin),
         auditStatement(
           {
             toolId: input.toolId,
@@ -353,11 +397,203 @@ ON CONFLICT ("tool_id", "person", "field", "scope") DO UPDATE SET "secret_id" = 
             ...(input.via ? { via: input.via } : {}),
             kind: "access",
             subject: "secret:bound",
-            detail: { field: input.field, secret: input.secretId },
+            detail: {
+              field: input.field,
+              secret: input.secretId,
+              scope,
+              ...(pin === null ? {} : { pin }),
+            },
           },
           at,
         ),
       ]);
+    },
+    /** Stops a tool's field from using a secret in one scope. The secret stays in the person's registry. */
+    async unbindUserSecret(input: {
+      toolId: string;
+      person: string;
+      field: string;
+      scope?: string;
+    }): Promise<boolean> {
+      const scope = input.scope ?? "*";
+      const bound = await first(
+        `SELECT "secret_id" FROM "secret_bindings" WHERE "tool_id" = ? AND "person" = ? AND "field" = ? AND "scope" = ?`,
+        input.toolId,
+        input.person,
+        input.field,
+        scope,
+      );
+      if (!bound) return false;
+      await d1.batch([
+        d1
+          .prepare(
+            `DELETE FROM "secret_bindings" WHERE "tool_id" = ? AND "person" = ? AND "field" = ? AND "scope" = ?`,
+          )
+          .bind(input.toolId, input.person, input.field, scope),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.person,
+            kind: "access",
+            subject: "secret:unbound",
+            detail: { field: input.field, secret: String(bound.secret_id), scope },
+          },
+          now(),
+        ),
+      ]);
+      return true;
+    },
+    /** A secret of the person's own that no tool uses yet: what they call it, what kind, and its first value. */
+    async createPersonSecret(input: {
+      workspace: string;
+      person: string;
+      label: string;
+      kind?: string;
+      value: string;
+      by?: string;
+      via?: "my-secrets" | "admin";
+    }): Promise<string> {
+      const id = `sec_${newId()}`;
+      const at = now();
+      const aad = secretAad(input.workspace, input.person, id, 1);
+      const sealed = await secretBox().seal(aad, input.value);
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "person_secrets" ("id", "workspace", "person", "label", "kind", "created_at") VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(id, input.workspace, input.person, input.label, input.kind ?? null, at),
+        d1
+          .prepare(
+            `INSERT INTO "person_secret_versions" ("secret_id", "version", "iv", "ciphertext", "aad", "created_at", "created_by", "via") VALUES (?, 1, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            id,
+            sealed.iv,
+            sealed.ciphertext,
+            aad,
+            at,
+            input.by ?? input.person,
+            input.via ?? "my-secrets",
+          ),
+        auditStatement(
+          {
+            actor: input.by ?? input.person,
+            kind: "access",
+            subject: "secret:created",
+            detail: { secret: id, person: input.person },
+          },
+          at,
+        ),
+      ]);
+      return id;
+    },
+    /**
+     * A new version of one of the person's secrets: every binding on "latest" uses it from now on, one
+     * still pinned to an older version keeps that one. Returns the version, or `undefined` if the secret
+     * is not the person's. The audit line names the secret and the version, never a value.
+     */
+    async addSecretVersion(input: {
+      workspace: string;
+      person: string;
+      secretId: string;
+      value: string;
+      by?: string;
+      via?: "my-secrets" | "admin";
+    }): Promise<number | undefined> {
+      const row = await first(
+        `SELECT (SELECT MAX("version") FROM "person_secret_versions" WHERE "secret_id" = s."id") AS "latest"
+FROM "person_secrets" s WHERE s."id" = ? AND s."workspace" = ? AND s."person" = ? AND s."archived_at" IS NULL`,
+        input.secretId,
+        input.workspace,
+        input.person,
+      );
+      if (!row) return undefined;
+      const version = Number(row.latest) + 1;
+      const at = now();
+      const aad = secretAad(input.workspace, input.person, input.secretId, version);
+      const sealed = await secretBox().seal(aad, input.value);
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "person_secret_versions" ("secret_id", "version", "iv", "ciphertext", "aad", "created_at", "created_by", "via") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            input.secretId,
+            version,
+            sealed.iv,
+            sealed.ciphertext,
+            aad,
+            at,
+            input.by ?? input.person,
+            input.via ?? "my-secrets",
+          ),
+        auditStatement(
+          {
+            actor: input.by ?? input.person,
+            kind: "access",
+            subject: "secret:version",
+            detail: {
+              secret: input.secretId,
+              version,
+              person: input.person,
+              via: input.via ?? "my-secrets",
+            },
+          },
+          at,
+        ),
+      ]);
+      return version;
+    },
+    /** What the person calls one of their secrets. */
+    async renamePersonSecret(
+      workspace: string,
+      person: string,
+      secretId: string,
+      label: string,
+    ): Promise<boolean> {
+      const row = await first(
+        `SELECT 1 FROM "person_secrets" WHERE "id" = ? AND "workspace" = ? AND "person" = ? AND "archived_at" IS NULL`,
+        secretId,
+        workspace,
+        person,
+      );
+      if (!row) return false;
+      await write(`UPDATE "person_secrets" SET "label" = ? WHERE "id" = ?`, label, secretId);
+      return true;
+    },
+    /**
+     * Deletes one of the person's secrets with its versions and every binding on it: the tools that
+     * used it ask again. Returns how many bindings it ended, or `undefined` if it is not theirs.
+     */
+    async deletePersonSecret(
+      workspace: string,
+      person: string,
+      secretId: string,
+    ): Promise<number | undefined> {
+      const row = await first(
+        `SELECT 1 FROM "person_secrets" WHERE "id" = ? AND "workspace" = ? AND "person" = ?`,
+        secretId,
+        workspace,
+        person,
+      );
+      if (!row) return undefined;
+      const bindings = await all(`SELECT 1 FROM "secret_bindings" WHERE "secret_id" = ?`, secretId);
+      await d1.batch([
+        d1.prepare(`DELETE FROM "secret_bindings" WHERE "secret_id" = ?`).bind(secretId),
+        d1.prepare(`DELETE FROM "person_secret_versions" WHERE "secret_id" = ?`).bind(secretId),
+        d1.prepare(`DELETE FROM "person_secrets" WHERE "id" = ?`).bind(secretId),
+        auditStatement(
+          {
+            actor: person,
+            kind: "access",
+            subject: "secret:deleted",
+            detail: { secret: secretId, bindings: bindings.length },
+          },
+          now(),
+        ),
+      ]);
+      return bindings.length;
     },
     /** Who holds which per-person secrets of a tool: names only, for the admin to revoke from. */
     async userSecretHolders(toolId: string): Promise<Array<{ person: string; names: string[] }>> {
