@@ -94,6 +94,41 @@ export const ResourcesSchema = z.strictObject({
   network: z.strictObject({ allow: z.array(text), why: text }).optional(),
 });
 
+/** What a person gives a tool besides secrets (D-096): a plain value, in clear, `camelCase`. */
+const SetupFieldNameSchema = z.string().regex(/^[a-z][a-zA-Z0-9]{0,39}$/);
+
+const SetupTextFieldSchema = z.strictObject({
+  type: z.literal("text"),
+  label: text,
+  help: text.optional(),
+  required: z.boolean(),
+  maxLength: z.number().int().min(1).max(500).optional(),
+});
+
+const SetupChoiceFieldSchema = z.strictObject({
+  type: z.literal("choice"),
+  label: text,
+  help: text.optional(),
+  required: z.boolean(),
+  options: z.array(text).min(1).max(30),
+});
+
+export const SetupFieldSchema = z.discriminatedUnion("type", [
+  SetupTextFieldSchema,
+  SetupChoiceFieldSchema,
+]);
+
+/**
+ * What a tool needs from each person before it works (D-096). The secret fields of a setup are not
+ * here: they are `resources.userSecrets`, which the platform already approves, seals and hands to a
+ * call (D-036); the compiler moves `field.secret(...)` there.
+ */
+export const SetupSchema = z.strictObject({
+  fields: z.record(SetupFieldNameSchema, SetupFieldSchema),
+  /** An action that validates the values before they are kept; internal, never offered on an interface. */
+  check: ActionNameSchema.optional(),
+});
+
 /** Paths under /t/<tool> that belong to the platform (sdk.md §7). */
 export const RESERVED_VIEW_PATHS = ["/mcp", "/api", "/cli", "/play", "/_f"] as const;
 
@@ -117,6 +152,15 @@ function checkInvariants(manifest: z.infer<typeof ManifestShape>, ctx: z.Refinem
         message: `Action "${name}" duplicates "${first}": action names are compared without case.`,
       });
     }
+  }
+
+  const check = manifest.setup?.check;
+  if (check !== undefined && !(check in manifest.actions)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["setup", "check"],
+      message: `The setup check "${check}" is not an action of the tool.`,
+    });
   }
 
   const paths = new Map<string, string>();
@@ -191,6 +235,7 @@ const ManifestShape = z.strictObject({
   jobs: z.record(z.string(), JobSchema),
   events: z.record(z.string(), EventHandlerSchema),
   resources: ResourcesSchema,
+  setup: SetupSchema.optional(),
   uses: z.record(ToolNameSchema, text),
   preview: z.strictObject({ data: z.enum(["seed", "empty", "snapshot"]) }),
 });
@@ -206,5 +251,7 @@ export type EventHandler = z.infer<typeof EventHandlerSchema>;
 export type Role = z.infer<typeof RoleSchema>;
 export type Connector = z.infer<typeof ConnectorSchema>;
 export type Resources = z.infer<typeof ResourcesSchema>;
+export type Setup = z.infer<typeof SetupSchema>;
+export type SetupField = z.infer<typeof SetupFieldSchema>;
 export type Docs = z.infer<typeof DocsSchema>;
 export type Manifest = z.infer<typeof ManifestSchema>;

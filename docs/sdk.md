@@ -129,6 +129,7 @@ export default defineConfig({
 | `interfaces`           | `{ mcp, api, cli, web }` booleans    | all `true` except `web` (true only if views exist) | Exposed interfaces                                                             |
 | `roles`                | `Record<string, { label?, grants }>` | `{}`                                               | Default roles; every level cited in `grants` exists                            |
 | `resources`            | object, see below                    | `{}`                                               | The resources requested from the platform                                      |
+| `setup`                | `{ fields, check? }`, section 10     | none                                               | What each person gives before using the tool (D-096)                           |
 | `uses`                 | `Record<tool, semver range>`         | `{}`                                               | Tools whose actions are called (section 12)                                    |
 | `preview.data`         | `"seed" \| "empty" \| "snapshot"`    | `"seed"`                                           | Data of a preview database; `snapshot` requires the admin's agreement          |
 
@@ -481,6 +482,26 @@ export default schedule("0 2 * * *", { timezone: "Europe/Paris" }, async (ctx) =
 
 - `resources.secrets`: set by the admin, per environment, encrypted. Read with `ctx.secrets.NAME`.
 - `resources.userSecrets`: specific to each person and each tool. Collected by the platform on first use (MCP elicitation, CLI prompt, web page). Neither the developer nor the admin can read them; the admin can revoke them.
+
+**Setup** (D-096)
+
+What each person must give before the tool works is declared once, in `setup`:
+
+```ts
+setup: {
+  fields: {
+    firstName: field.text({ label: "First name" }),                              // a value, in clear
+    team: field.choice({ label: "Team", options: ["support", "sales"], required: false }),
+    ODOO_API_KEY: field.secret({ label: "Odoo API key", why: "Read your tickets", help: "…" }),
+  },
+  check: "setup.check",                                                          // optional, see below
+}
+```
+
+- `field.text` and `field.choice` are values anyone with the right to see the person may read: `camelCase` names, required unless `required: false`. `field.secret` is a per-person secret, `UPPER_SNAKE` name, and **is `resources.userSecrets`**: the build moves it there, so the admin approval, the sealed storage and `ctx.userSecrets` are exactly those described above. Declaring the same secret in both places is a build error. `resources.userSecrets` alone keeps working.
+- The manifest keeps the plain fields in `setup.fields`. Adding a field is a `minor` change (everyone fills it in at their next use), so is making one required; removing one or changing a label is a `patch`. A field asks the admin to approve nothing, except a secret, which is a resource like any other.
+- `check` names an action of the tool that validates the values before they are kept. It is internal: it is on no interface.
+- Not done yet (D-096): the page that asks for the setup, its use at the OAuth connection, the storage of the plain values, `ctx.user.setup` and the `check` call. Today a `setup` is declared, compiled and compared, and its secrets behave as `resources.userSecrets` do.
 
 **Connectors**
 
