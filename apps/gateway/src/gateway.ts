@@ -66,7 +66,7 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
     // answer, the token and the revocation. Without `AUTH_SECRET` they do not exist.
     if (parts.identity && asked.mcpOAuth) {
       const oauth = asked.mcpOAuth();
-      const document = metadata(request, oauth);
+      const document = await metadata(request, oauth);
       if (document) return document;
       if (url.pathname === "/oauth/register") return handleRegister(request, oauth);
       if (url.pathname === "/oauth/authorize") return handleAuthorize(request, oauth);

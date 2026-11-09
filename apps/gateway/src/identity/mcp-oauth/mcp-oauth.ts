@@ -31,7 +31,10 @@ export interface McpOAuthContext {
   origin: string;
   secret: string;
   previousSecrets?: string[];
-  registry: Pick<Registry, "findMember" | "spendCode" | "revokeToken" | "isTokenRevoked">;
+  registry: Pick<
+    Registry,
+    "findMember" | "findTool" | "spendCode" | "revokeToken" | "isTokenRevoked"
+  >;
   now(): Date;
   /** The person of the session cookie; `undefined` if there is none. */
   session(request: Request): Promise<Person | undefined>;
@@ -53,11 +56,51 @@ function redirectAllowed(value: string): boolean {
   }
 }
 
+const TOOL_RESOURCE = /^\/t\/([a-z0-9][a-z0-9-]*)(@[^/]+)?\/mcp$/;
+
+/**
+ * What an MCP client asks to be signed in to (`resource`, RFC 8707): the workspace's admin MCP, or
+ * the MCP of one tool that exists in it, at its address with or without a preview branch (D-095).
+ * The tool is `platform` for the admin MCP, which is the audience of its tokens (D-094).
+ */
+async function resourceOf(
+  resource: string,
+  context: McpOAuthContext,
+): Promise<{ tool: string; url: string } | undefined> {
+  if (resource === `${context.origin}/mcp`) return { tool: PLATFORM_TOOL, url: resource };
+  if (!resource.startsWith(`${context.origin}/`)) return undefined;
+  const found = TOOL_RESOURCE.exec(resource.slice(context.origin.length));
+  const tool = found?.[1];
+  // `platform` is the audience of the admin MCP: a tool of that name must never share it.
+  if (!tool || tool === PLATFORM_TOOL) return undefined;
+  if (!(await context.registry.findTool(context.workspace, tool))) return undefined;
+  return { tool, url: resource };
+}
+
 /** The documents a client reads to find out how to sign in (RFC 9728 and RFC 8414). */
-export function metadata(request: Request, context: McpOAuthContext): Response | undefined {
+export async function metadata(
+  request: Request,
+  context: McpOAuthContext,
+): Promise<Response | undefined> {
   const path = new URL(request.url).pathname;
   const headers = { "cache-control": "public, max-age=300", "access-control-allow-origin": "*" };
   if (request.method !== "GET") return undefined;
+  const prefix = "/.well-known/oauth-protected-resource";
+  // A tool's MCP has its own document: `/.well-known/oauth-protected-resource/t/<tool>/mcp` (RFC 9728).
+  if (path.startsWith(`${prefix}/t/`)) {
+    const asked = await resourceOf(`${context.origin}${path.slice(prefix.length)}`, context);
+    if (!asked) return undefined;
+    return Response.json(
+      {
+        resource: asked.url,
+        authorization_servers: [context.origin],
+        bearer_methods_supported: ["header"],
+        scopes_supported: [MCP_SCOPE],
+        resource_name: `${asked.tool} on ${context.workspace}`,
+      },
+      { headers },
+    );
+  }
   if (/^\/\.well-known\/oauth-protected-resource(\/mcp)?$/.test(path)) {
     return Response.json(
       {
@@ -190,9 +233,8 @@ export async function handleAuthorize(request: Request, context: McpOAuthContext
     return bad("A S256 code_challenge is required.");
   }
   const resource = params.get("resource");
-  if (resource !== null && resource !== `${context.origin}/mcp`) {
-    return bad("This workspace's MCP is the only resource it can give access to.");
-  }
+  const target = await resourceOf(resource ?? `${context.origin}/mcp`, context);
+  if (!target) return bad("This workspace has no MCP at that address.");
   const scope = params.get("scope");
   if (scope && scope.split(" ").some((s) => s !== MCP_SCOPE)) return bad("Unknown scope.");
 
@@ -211,6 +253,7 @@ export async function handleAuthorize(request: Request, context: McpOAuthContext
       workspace: context.workspace,
       person,
       clientName: client.name,
+      ...(target.tool === PLATFORM_TOOL ? {} : { tool: target.tool }),
       address: back.host,
       fields: {
         response_type: "code",
@@ -243,6 +286,7 @@ export async function handleAuthorize(request: Request, context: McpOAuthContext
       cid: client.id,
       ch: challenge,
       ru: redirectUri,
+      res: target.url,
       exp: Math.floor(context.now().getTime() / 1000) + CODE_SECONDS,
     },
     context.secret,
@@ -260,15 +304,18 @@ async function tokensFor(
   person: string,
   clientId: string,
   family: string,
+  resource: string,
   context: McpOAuthContext,
 ) {
+  const tool = (await resourceOf(resource, context))?.tool;
+  if (!tool) return oauthError(400, "invalid_target", "That MCP no longer exists here.");
   const now = context.now();
   const iat = Math.floor(now.getTime() / 1000);
   const access = await issueToken({
     secret: context.secret,
     person,
     workspace: context.workspace,
-    tool: PLATFORM_TOOL,
+    tool,
     ttlSeconds: ACCESS_SECONDS,
     now,
     scope: MCP_SCOPE,
@@ -283,6 +330,7 @@ async function tokensFor(
       sub: person,
       ws: context.workspace,
       cid: clientId,
+      res: resource,
       iat,
       exp: iat + REFRESH_DAYS * 24 * 60 * 60,
     },
@@ -315,12 +363,17 @@ export async function handleToken(request: Request, context: McpOAuthContext) {
   if (grant === "authorization_code") {
     const claims = await unseal(CODE, field("code"), context.secret);
     if (!claims || claims.ws !== context.workspace) return invalid("This code is not valid.");
-    const { sub, jti, ch, ru, cid, exp } = claims;
+    const { sub, jti, ch, ru, cid, exp, res } = claims;
     if (typeof exp !== "number" || nowSeconds >= exp) return invalid("This code has expired.");
     if (typeof sub !== "string" || typeof jti !== "string")
       return invalid("This code is not valid.");
     if (cid !== field("client_id") || ru !== field("redirect_uri")) {
       return invalid("This code was issued to another app or address.");
+    }
+    if (typeof res !== "string") return invalid("This code is not valid.");
+    // RFC 8707: a `resource` sent here must be the one the person allowed.
+    if (field("resource") && field("resource") !== res) {
+      return oauthError(400, "invalid_target", "This code was issued for another MCP.");
     }
     const digest = new Uint8Array(
       await crypto.subtle.digest("SHA-256", encoder.encode(field("code_verifier"))),
@@ -332,20 +385,21 @@ export async function handleToken(request: Request, context: McpOAuthContext) {
     if (!(await context.registry.findMember(context.workspace, sub))) {
       return invalid("This person is no longer in the workspace.");
     }
-    return tokensFor(sub, String(cid), jti, context);
+    return tokensFor(sub, String(cid), jti, res, context);
   }
 
   if (grant === "refresh_token") {
     const claims = await unseal(REFRESH, field("refresh_token"), context.secret);
     if (!claims || claims.ws !== context.workspace)
       return invalid("This refresh token is not valid.");
-    const { sub, jti, fam, cid, iat, exp } = claims;
+    const { sub, jti, fam, cid, iat, exp, res } = claims;
     if (
       typeof sub !== "string" ||
       typeof jti !== "string" ||
       typeof fam !== "string" ||
       typeof iat !== "number" ||
-      typeof exp !== "number"
+      typeof exp !== "number" ||
+      typeof res !== "string"
     ) {
       return invalid("This refresh token is not valid.");
     }
@@ -362,7 +416,7 @@ export async function handleToken(request: Request, context: McpOAuthContext) {
     if (!(await context.registry.findMember(context.workspace, sub))) {
       return invalid("This person is no longer in the workspace.");
     }
-    return tokensFor(sub, String(cid), fam, context);
+    return tokensFor(sub, String(cid), fam, res, context);
   }
   return oauthError(400, "unsupported_grant_type", "Use authorization_code or refresh_token.");
 }

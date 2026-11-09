@@ -55,9 +55,12 @@ const INTERNAL_HEADERS = [
  */
 const TOOL_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-downloads";
 
-function confined(response: Response): Response {
+function confined(response: Response, challenge?: string): Response {
   const headers = new Headers(response.headers);
   headers.delete("set-cookie");
+  // A tool says nothing about where a client signs in: the gateway does, or nobody does (D-095).
+  headers.delete("www-authenticate");
+  if (challenge && response.status === 401) headers.set("www-authenticate", challenge);
   headers.set("content-security-policy", TOOL_SANDBOX);
   headers.set("x-content-type-options", "nosniff");
   return new Response(response.body, {
@@ -176,6 +179,10 @@ export function createDispatcher(options: DispatcherOptions) {
     for (const [name, value] of Object.entries(forwarding?.headers ?? {})) {
       outgoing.headers.set(name, value);
     }
-    return confined(await target.fetch(outgoing));
+    // A `401` on a tool's MCP tells the client where to sign in (RFC 9728, D-095).
+    const challenge = /^\/mcp\/?$/.test(path.rest)
+      ? `Bearer resource_metadata="${url.origin}/.well-known/oauth-protected-resource${url.pathname.replace(/\/mcp\/?$/, "")}/mcp"`
+      : undefined;
+    return confined(await target.fetch(outgoing), challenge);
   };
 }

@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { D1Database } from "@forgeron/hosting";
+import type { Manifest } from "@forgeron/manifest";
 import { createRegistry, migratePlatform, type Registry } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -18,6 +19,32 @@ const ORIGIN = "https://acme.forgeron.app";
 const REDIRECT = "https://client.example/callback";
 let clock = new Date("2026-11-09T10:00:00Z");
 const tick = (seconds: number) => (clock = new Date(clock.getTime() + seconds * 1000));
+
+// A tool of the workspace: a Worker that answers who the gateway says the caller is, or 401 with a
+// challenge of its own that the gateway must not pass on.
+const toolWorker = (request: Request) => {
+  const user = request.headers.get("x-forgeron-user");
+  return user
+    ? Response.json({
+        jsonrpc: "2.0",
+        id: 1,
+        result: { user: (JSON.parse(user) as { id: string }).id },
+      })
+    : new Response("no", { status: 401, headers: { "www-authenticate": 'Bearer realm="evil"' } });
+};
+const crm = {
+  name: "crm",
+  version: "1.0.0",
+  interfaces: { mcp: true, api: true, cli: true, web: true },
+  roles: {},
+  actions: {},
+  views: {},
+  jobs: {},
+  events: {},
+  resources: {},
+  uses: {},
+  preview: { data: "seed" },
+} as unknown as Manifest;
 
 let memory: MemoryD1;
 let registry: Registry;
@@ -43,7 +70,22 @@ beforeAll(async () => {
     ).id;
   ana = await member("ana", []);
   root = await member("root", ["admin"]);
-  env = { DB: d1, BASE_DOMAIN: "forgeron.app", AUTH_SECRET: SECRET };
+  for (const name of ["crm", "hr"]) {
+    const tool = await registry.createTool({ workspace: "acme", name });
+    const built = await registry.recordBuild(tool.id, {
+      fingerprint: name,
+      manifest: { ...crm, name },
+    });
+    const version = await registry.publishVersion(tool.id, built.id, "1.0.0");
+    const production = await registry.ensureEnvironment(tool.id, "production");
+    await registry.activate(production.id, version.id, { actor: "test" });
+  }
+  env = {
+    DB: d1,
+    BASE_DOMAIN: "forgeron.app",
+    AUTH_SECRET: SECRET,
+    DISPATCHER: { get: () => ({ fetch: (request: Request) => toolWorker(request) }) },
+  } as GatewayEnv;
   for (const [name, id] of [
     ["ana", ana],
     ["root", root],
@@ -116,12 +158,13 @@ async function answer(page: Response, cookie: string, decision: "allow" | "deny"
 }
 
 /** The whole dance for one person: the tokens an app ends up with. */
-async function connect(person: "ana" | "root", over: { client?: string } = {}) {
+async function connect(person: "ana" | "root", over: { client?: string; resource?: string } = {}) {
   const client = over.client ?? (await clientId());
   const { verifier, challenge } = pkce();
-  const page = await get(`/oauth/authorize?${authorizeQuery(client, challenge)}`, {
-    cookie: cookies[person]!,
-  });
+  const page = await get(
+    `/oauth/authorize?${authorizeQuery(client, challenge, over.resource ? { resource: over.resource } : {})}`,
+    { cookie: cookies[person]! },
+  );
   expect(page.status).toBe(200);
   const { to } = await answer(page, cookies[person]!);
   const code = to!.searchParams.get("code")!;
@@ -355,7 +398,7 @@ describe("what the authorization step refuses", () => {
       get(`/oauth/authorize?${authorizeQuery(client, challenge, over)}`, { cookie: cookies.ana! });
     expect((await asked({ code_challenge_method: "plain" })).status).toBe(400);
     expect((await asked({ response_type: "token" })).status).toBe(400);
-    expect((await asked({ resource: "https://acme.forgeron.app/t/crm/mcp" })).status).toBe(400);
+    expect((await asked({ resource: "https://acme.forgeron.app/t/ghost/mcp" })).status).toBe(400);
     expect((await asked({ scope: "admin" })).status).toBe(400);
     expect((await asked({ scope: "mcp" })).status).toBe(200);
     expect(
@@ -450,5 +493,131 @@ describe("what the authorization step refuses", () => {
       client_id: client,
     });
     expect(late.status).toBe(400);
+  });
+});
+
+describe("signing in to a tool's MCP (D-095)", () => {
+  const TOOL = `${ORIGIN}/t/crm/mcp`;
+  const call = (path: string, bearer?: string) =>
+    get(path, bearer ? { authorization: `Bearer ${bearer}` } : {});
+
+  it("tells a client where to sign in: the gateway's challenge on a 401, and a document per tool", async () => {
+    const refused = await call("/t/crm/mcp");
+    expect(refused.status).toBe(401);
+    // The tool's own challenge is dropped: only the gateway says where to sign in.
+    expect(refused.headers.get("www-authenticate")).toBe(
+      `Bearer resource_metadata="${ORIGIN}/.well-known/oauth-protected-resource/t/crm/mcp"`,
+    );
+    const document = (await (
+      await get("/.well-known/oauth-protected-resource/t/crm/mcp")
+    ).json()) as any;
+    expect(document).toMatchObject({ resource: TOOL, authorization_servers: [ORIGIN] });
+    // A preview of the tool has one too, and a tool that does not exist has none.
+    expect(
+      ((await (await get("/.well-known/oauth-protected-resource/t/crm@feat/mcp")).json()) as any)
+        .resource,
+    ).toBe(`${ORIGIN}/t/crm@feat/mcp`);
+    expect((await get("/.well-known/oauth-protected-resource/t/ghost/mcp")).status).toBe(404);
+    expect((await get("/.well-known/oauth-protected-resource/t/platform/mcp")).status).toBe(404);
+  });
+
+  it("gives a person a token for that tool: it is them there, and nowhere else", async () => {
+    const page = await get(
+      `/oauth/authorize?${authorizeQuery(await clientId(), pkce().challenge, { resource: TOOL })}`,
+      { cookie: cookies.ana! },
+    );
+    const html = await page.text();
+    expect(html).toContain("crm");
+    expect(html).toContain("ana@acme.test");
+
+    const { traded } = await connect("ana", { resource: TOOL });
+    const tokens = await tokensOf(traded);
+    expect(tokens.expires_in).toBe(3600);
+    const here = await call("/t/crm/mcp", tokens.access_token);
+    expect(here.status).toBe(200);
+    expect(await here.json()).toMatchObject({ result: { user: ana } });
+    // Not the same tool's API, CLI or secrets page, not another tool, not the admin MCP.
+    for (const path of ["/t/crm/api/tickets.mine", "/t/crm/cli", "/t/crm/secrets"]) {
+      expect((await call(path, tokens.access_token)).status).not.toBe(200);
+    }
+    expect((await call("/t/hr/mcp", tokens.access_token)).status).toBe(401);
+    expect((await mcp(tokens.access_token, "tools/list")).status).toBe(401);
+    expect((await call("/whoami", tokens.access_token)).status).toBe(401);
+  });
+
+  it("does not let the admin MCP's token reach a tool, nor a tool's token the admin MCP", async () => {
+    const admin = await tokensOf((await connect("root")).traded);
+    expect((await call("/t/crm/mcp", admin.access_token)).status).toBe(401);
+    const tool = await tokensOf((await connect("root", { resource: TOOL })).traded);
+    expect((await mcp(tool.access_token, "tools/list")).status).toBe(401);
+  });
+
+  it("keeps the tool through a refresh, and ends it with the connection", async () => {
+    const { client, traded } = await connect("ana", { resource: TOOL });
+    const first = await tokensOf(traded);
+    const renewed = await tokensOf(
+      await form("/oauth/token", {
+        grant_type: "refresh_token",
+        refresh_token: first.refresh_token,
+        client_id: client,
+      }),
+    );
+    expect((await call("/t/crm/mcp", renewed.access_token)).status).toBe(200);
+    expect((await call("/t/hr/mcp", renewed.access_token)).status).toBe(401);
+    await form("/oauth/revoke", { token: renewed.refresh_token });
+    expect((await call("/t/crm/mcp", renewed.access_token)).status).toBe(401);
+  });
+
+  it("refuses a resource that is not an MCP of this workspace, and a code traded for another", async () => {
+    const client = await clientId();
+    const { challenge } = pkce();
+    for (const resource of [
+      `${ORIGIN}/t/ghost/mcp`,
+      `${ORIGIN}/t/platform/mcp`,
+      `${ORIGIN}/t/crm/api`,
+      "https://globex.forgeron.app/t/crm/mcp",
+      "https://evil.example/t/crm/mcp",
+    ]) {
+      const asked = await get(
+        `/oauth/authorize?${authorizeQuery(client, challenge, { resource })}`,
+        {
+          cookie: cookies.ana!,
+        },
+      );
+      expect(asked.status).toBe(400);
+    }
+    const { verifier, challenge: good } = pkce();
+    const page = await get(`/oauth/authorize?${authorizeQuery(client, good, { resource: TOOL })}`, {
+      cookie: cookies.ana!,
+    });
+    const { to } = await answer(page, cookies.ana!);
+    const wrong = await form("/oauth/token", {
+      grant_type: "authorization_code",
+      code: to!.searchParams.get("code")!,
+      code_verifier: verifier,
+      redirect_uri: REDIRECT,
+      client_id: client,
+      resource: `${ORIGIN}/mcp`,
+    });
+    expect(wrong.status).toBe(400);
+    expect(await wrong.json()).toMatchObject({ error: "invalid_target" });
+  });
+
+  it("stops when the tool is deleted from the workspace's point of view: no new token for it", async () => {
+    const extra = await registry.createTool({ workspace: "acme", name: "temp" });
+    const { client, traded } = await connect("ana", { resource: `${ORIGIN}/t/temp/mcp` });
+    const tokens = await tokensOf(traded);
+    expect(extra.name).toBe("temp");
+    await (memory as unknown as D1Database)
+      .prepare(`DELETE FROM "tools" WHERE "id" = ?`)
+      .bind(extra.id)
+      .all();
+    const refused = await form("/oauth/token", {
+      grant_type: "refresh_token",
+      refresh_token: tokens.refresh_token,
+      client_id: client,
+    });
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({ error: "invalid_target" });
   });
 });

@@ -3,7 +3,7 @@ import type { Person } from "../../kernel/person";
 import type { Identity } from "./identity";
 import { readSession } from "./session";
 import { verifyToken } from "./tokens";
-import { parseAudience } from "./audience";
+import { audienceOf, parseAudience } from "./audience";
 
 // The one resolver of "who is calling" for a workspace: a valid session cookie or a valid
 // audience-bound token (issued for this workspace) gives the person and their roles; anything
@@ -14,6 +14,9 @@ export const CLI_SCOPE = "cli";
 
 /** The scope of a token an MCP client got through OAuth (D-094): good on the admin MCP and nowhere else. */
 export const MCP_SCOPE = "mcp";
+
+/** A tool's MCP path, `/t/<tool>/mcp` or `/t/<tool>@<branch>/mcp`: the only place an `mcp` tool token works. */
+export const TOOL_MCP = /^\/t\/([a-z0-9][a-z0-9-]*)(?:@[^/]+)?\/mcp\/?$/;
 
 const toPerson = (member: Member): Person => ({
   id: member.id,
@@ -78,6 +81,15 @@ export function createCaller(options: CallerOptions) {
       };
       let check = await verifyToken(token, keys);
       if (!check.ok && platform) check = await verifyToken(token, { ...keys, scope: CLI_SCOPE });
+      // A token an MCP client got through OAuth for one tool (D-095): good on that tool's `/mcp` and on
+      // no other path, whatever the tool, and never for another tool.
+      if (!check.ok) {
+        const tool = TOOL_MCP.exec(new URL(request.url).pathname)?.[1];
+        if (tool) {
+          const scoped = await verifyToken(token, { ...keys, scope: MCP_SCOPE });
+          if (scoped.ok && scoped.claims.aud === audienceOf(workspace, tool)) check = scoped;
+        }
+      }
       if (!check.ok || parseAudience(check.claims.aud)?.workspace !== workspace) return undefined;
       const { sub, jti, iat, aud } = check.claims;
       if (await options.registry.isTokenRevoked(workspace, sub, jti, iat)) return undefined;
@@ -122,7 +134,8 @@ export function createCaller(options: CallerOptions) {
           scope,
         });
         if (!check.ok) continue;
-        if (parseAudience(check.claims.aud)?.workspace !== workspace) return undefined;
+        // The admin MCP is the platform's: a token for a tool (D-095) is not good here.
+        if (check.claims.aud !== audienceOf(workspace, "platform")) return undefined;
         const { sub, jti, iat } = check.claims;
         if (await options.registry.isTokenRevoked(workspace, sub, jti, iat)) return undefined;
         return personOf(workspace, sub);
