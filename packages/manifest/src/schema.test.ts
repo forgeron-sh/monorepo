@@ -224,3 +224,24 @@ describe("setup (D-096)", () => {
     expect(ManifestSchema.safeParse({ ...crm, setup: bad }).success).toBe(false);
   });
 });
+
+describe("the kind of a per-person secret (D-105)", () => {
+  const withKind = (kind: unknown) => ({
+    ...crm,
+    resources: {
+      ...crm.resources,
+      userSecrets: { ODOO_API_KEY: { label: "Odoo API key", why: "Read your tickets", kind } },
+    },
+  });
+
+  it.each(["odoo.api-key", "github.token", "slack"])("accepts the kind %s", (kind) => {
+    expect(ManifestSchema.safeParse(withKind(kind)).success).toBe(true);
+  });
+
+  it.each(["Odoo.Key", "odoo..key", ".key", "odoo key", "", "1odoo", "a".repeat(61)])(
+    "rejects the kind %j",
+    (kind) => {
+      expect(ManifestSchema.safeParse(withKind(kind)).success).toBe(false);
+    },
+  );
+});

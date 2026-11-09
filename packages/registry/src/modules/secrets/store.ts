@@ -1,4 +1,4 @@
-import type { RegisteredEnvironment } from "../../kernel/errors";
+import { RegistryError, type RegisteredEnvironment } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
 import type { SecretRequestInfo, SecretRequestRefusal, SecretState, SecretStatus } from "./types";
 import type { Catalog } from "../catalog/public";
@@ -145,6 +145,9 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
       /** Who typed it: the person by default. */
       by?: string;
       via?: "setup" | "admin";
+      /** For a secret this makes: what the person calls it, and what it is (D-105). A rotation keeps both. */
+      label?: string;
+      kind?: string;
     }) {
       const tool = await requireTool(input.toolId);
       const bound = await first(
@@ -171,9 +174,16 @@ FROM "secret_bindings" b WHERE b."tool_id" = ? AND b."person" = ? AND b."field" 
           : [
               d1
                 .prepare(
-                  `INSERT INTO "person_secrets" ("id", "workspace", "person", "label", "kind", "created_at") VALUES (?, ?, ?, ?, NULL, ?)`,
+                  `INSERT INTO "person_secrets" ("id", "workspace", "person", "label", "kind", "created_at") VALUES (?, ?, ?, ?, ?, ?)`,
                 )
-                .bind(id, tool.workspace, input.person, input.name, at),
+                .bind(
+                  id,
+                  tool.workspace,
+                  input.person,
+                  input.label ?? input.name,
+                  input.kind ?? null,
+                  at,
+                ),
             ]),
         d1
           .prepare(
@@ -240,6 +250,114 @@ WHERE b."tool_id" = ? AND b."person" = ?`,
         });
       }
       return out;
+    },
+    /**
+     * A person's saved secrets in a workspace, without a value: what they are called, what kind, how
+     * many versions, when last changed, and which tools use them (D-105). Only the person's own.
+     */
+    async listPersonSecrets(
+      workspace: string,
+      person: string,
+    ): Promise<
+      Array<{
+        id: string;
+        label: string;
+        kind?: string;
+        versions: number;
+        updatedAt: string;
+        usedBy: Array<{ tool: string; field: string; scope: string }>;
+      }>
+    > {
+      const secrets = await all(
+        `SELECT s."id", s."label", s."kind", COUNT(v."version") AS "versions", MAX(v."created_at") AS "updated_at"
+FROM "person_secrets" s JOIN "person_secret_versions" v ON v."secret_id" = s."id"
+WHERE s."workspace" = ? AND s."person" = ? AND s."archived_at" IS NULL
+GROUP BY s."id" ORDER BY s."created_at", s."id"`,
+        workspace,
+        person,
+      );
+      const uses = await all(
+        `SELECT b."secret_id", t."name" AS "tool", b."field", b."scope"
+FROM "secret_bindings" b JOIN "tools" t ON t."id" = b."tool_id"
+WHERE b."person" = ? AND t."workspace" = ? ORDER BY t."name", b."field", b."scope"`,
+        person,
+        workspace,
+      );
+      return secrets.map((r) => ({
+        id: String(r.id),
+        label: String(r.label),
+        ...(r.kind === null || r.kind === undefined ? {} : { kind: String(r.kind) }),
+        versions: Number(r.versions),
+        updatedAt: String(r.updated_at),
+        usedBy: uses
+          .filter((u) => String(u.secret_id) === String(r.id))
+          .map((u) => ({ tool: String(u.tool), field: String(u.field), scope: String(u.scope) })),
+      }));
+    },
+    /**
+     * The latest value of one of the person's own secrets, for the setup page to check it and bind it
+     * to a tool: `undefined` if it is not theirs in this workspace. The page never shows it.
+     */
+    async readPersonSecret(
+      workspace: string,
+      person: string,
+      secretId: string,
+    ): Promise<string | undefined> {
+      const row = await first(
+        `SELECT v."iv", v."ciphertext", v."aad" FROM "person_secrets" s JOIN "person_secret_versions" v ON v."secret_id" = s."id"
+WHERE s."id" = ? AND s."workspace" = ? AND s."person" = ? AND s."archived_at" IS NULL
+ORDER BY v."version" DESC LIMIT 1`,
+        secretId,
+        workspace,
+        person,
+      );
+      return row
+        ? secretBox().open(String(row.aad), {
+            iv: String(row.iv),
+            ciphertext: String(row.ciphertext),
+          })
+        : undefined;
+    },
+    /**
+     * Makes the tool-wide binding of a field use one of the person's saved secrets, on its latest
+     * version (D-105). Refused if the secret is not the person's in the tool's workspace. The audit
+     * line names the field and the secret's id, never a value, and is written in the same batch.
+     */
+    async bindUserSecret(input: {
+      toolId: string;
+      person: string;
+      field: string;
+      secretId: string;
+      via?: string;
+    }): Promise<void> {
+      const tool = await requireTool(input.toolId);
+      const owned = await first(
+        `SELECT 1 FROM "person_secrets" WHERE "id" = ? AND "workspace" = ? AND "person" = ? AND "archived_at" IS NULL`,
+        input.secretId,
+        tool.workspace,
+        input.person,
+      );
+      if (!owned) throw new RegistryError("NOT_FOUND", "That is not one of your saved secrets.");
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "secret_bindings" ("tool_id", "person", "field", "scope", "secret_id", "pin") VALUES (?, ?, ?, '*', ?, NULL)
+ON CONFLICT ("tool_id", "person", "field", "scope") DO UPDATE SET "secret_id" = excluded."secret_id", "pin" = NULL`,
+          )
+          .bind(input.toolId, input.person, input.field, input.secretId),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.person,
+            ...(input.via ? { via: input.via } : {}),
+            kind: "access",
+            subject: "secret:bound",
+            detail: { field: input.field, secret: input.secretId },
+          },
+          at,
+        ),
+      ]);
     },
     /** Who holds which per-person secrets of a tool: names only, for the admin to revoke from. */
     async userSecretHolders(toolId: string): Promise<Array<{ person: string; names: string[] }>> {

@@ -199,7 +199,7 @@ describe("a setup (D-096)", () => {
       check: "setup.check",
     });
     expect(manifest.resources.userSecrets).toEqual({
-      ODOO_API_KEY: { label: "Odoo API key", why: "Read your tickets" },
+      ODOO_API_KEY: { label: "Odoo API key", why: "Read your tickets", kind: "odoo.api-key" },
     });
   }, 60_000);
 

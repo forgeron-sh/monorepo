@@ -7,7 +7,11 @@ export default defineConfig({
     fields: {
       firstName: field.text({ label: "First name" }),
       team: field.choice({ label: "Team", options: ["support", "sales"], required: false }),
-      ODOO_API_KEY: field.secret({ label: "Odoo API key", why: "Read your tickets" }),
+      ODOO_API_KEY: field.secret({
+        label: "Odoo API key",
+        why: "Read your tickets",
+        kind: "odoo.api-key",
+      }),
     },
     check: "setup.check",
   },

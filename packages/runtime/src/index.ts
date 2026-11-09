@@ -4,6 +4,8 @@ export { toolName } from "./mcp";
 export {
   handleSecretsInput,
   missingSetup,
+  type SavedSecret,
+  type SavedSecrets,
   type SecretsPage,
   type SetupCheckResult,
   type SecretsRenderer,

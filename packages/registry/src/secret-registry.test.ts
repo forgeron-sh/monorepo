@@ -342,3 +342,93 @@ describe("secrets typed before the registry existed (D-036)", () => {
     }
   });
 });
+
+describe("offering a saved secret to another tool (D-105)", () => {
+  it("lists a person's own secrets without a value: label, kind, versions and where they are used", async () => {
+    const odoo = await registry.createTool({ workspace: "acme", name: "odoo" });
+    await registry.setUserSecret({
+      toolId: odoo.id,
+      person: "p1",
+      name: "ODOO_API_KEY",
+      value: "key-one",
+      label: "Odoo API key",
+      kind: "odoo.api-key",
+    });
+    await registry.setUserSecret({
+      toolId: odoo.id,
+      person: "p1",
+      name: "ODOO_API_KEY",
+      value: "key-two",
+    });
+    await registry.setUserSecret({
+      toolId: odoo.id,
+      person: "p2",
+      name: "ODOO_API_KEY",
+      value: "not-p1",
+    });
+    const listed = await registry.listPersonSecrets("acme", "p1");
+    expect(listed).toEqual([
+      {
+        id: expect.stringMatching(/^sec_/),
+        label: "Odoo API key",
+        kind: "odoo.api-key",
+        versions: 2,
+        updatedAt: expect.any(String),
+        usedBy: [{ tool: "odoo", field: "ODOO_API_KEY", scope: "*" }],
+      },
+    ]);
+    expect(JSON.stringify(listed)).not.toContain("key-");
+    expect(await registry.listPersonSecrets("acme", "nobody")).toEqual([]);
+    expect(await registry.listPersonSecrets("other-workspace", "p1")).toEqual([]);
+  });
+
+  it("opens only the person's own secret, in their workspace", async () => {
+    const odoo = await registry.createTool({ workspace: "acme", name: "odoo" });
+    await registry.setUserSecret({ toolId: odoo.id, person: "p1", name: "K", value: "p1-value" });
+    const [{ id }] = await registry.listPersonSecrets("acme", "p1");
+    expect(await registry.readPersonSecret("acme", "p1", id!)).toBe("p1-value");
+    expect(await registry.readPersonSecret("acme", "p2", id!)).toBeUndefined();
+    expect(await registry.readPersonSecret("other-workspace", "p1", id!)).toBeUndefined();
+    expect(await registry.readPersonSecret("acme", "p1", "sec_unknown")).toBeUndefined();
+  });
+
+  it("binds a saved secret to another tool's field: one secret, two bindings, audited without a value", async () => {
+    const odoo = await registry.createTool({ workspace: "acme", name: "odoo" });
+    const hr = await registry.createTool({ workspace: "acme", name: "hr" });
+    await registry.setUserSecret({
+      toolId: odoo.id,
+      person: "p1",
+      name: "K",
+      value: "shared-value",
+    });
+    const [{ id }] = await registry.listPersonSecrets("acme", "p1");
+    await registry.bindUserSecret({ toolId: hr.id, person: "p1", field: "HR_KEY", secretId: id! });
+    expect(await registry.readUserSecrets(hr.id, "p1")).toEqual({ HR_KEY: "shared-value" });
+    expect(await registry.listPersonSecrets("acme", "p1")).toHaveLength(1);
+    const lines = await registry.listAudit(hr.id);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ actor: "p1", kind: "access", subject: "secret:bound" });
+    expect(JSON.stringify(lines)).not.toContain("shared-value");
+    // Rotating once changes what both tools get.
+    await registry.setUserSecret({ toolId: odoo.id, person: "p1", name: "K", value: "rotated" });
+    expect(await registry.readUserSecrets(hr.id, "p1")).toEqual({ HR_KEY: "rotated" });
+    // Clearing one tool's field keeps the secret for the other.
+    expect(await registry.revokeUserSecrets(hr.id, "p1")).toBe(1);
+    expect(await registry.readUserSecrets(odoo.id, "p1")).toEqual({ K: "rotated" });
+  });
+
+  it("refuses to bind a secret that is not the person's, or from another workspace", async () => {
+    const odoo = await registry.createTool({ workspace: "acme", name: "odoo" });
+    const away = await registry.createTool({ workspace: "globex", name: "odoo" });
+    await registry.setUserSecret({ toolId: odoo.id, person: "p1", name: "K", value: "mine" });
+    const [{ id }] = await registry.listPersonSecrets("acme", "p1");
+    await expect(
+      registry.bindUserSecret({ toolId: odoo.id, person: "p2", field: "K", secretId: id! }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(
+      registry.bindUserSecret({ toolId: away.id, person: "p1", field: "K", secretId: id! }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await registry.readUserSecrets(odoo.id, "p2")).toEqual({});
+    expect(await registry.listAudit(odoo.id)).toEqual([]);
+  });
+});
