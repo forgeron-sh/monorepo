@@ -53,7 +53,7 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
 
     // A preview address (`/t/<tool>@<branch>/secrets`) answers like the production one: a person's
     // secrets belong to the tool, not to an environment, so the branch is not part of the key (FOR-174).
-    const secretsOf = /^\/t\/([a-z0-9-]+)(?:@[^/]+)?\/secrets\/?$/.exec(url.pathname);
+    const secretsOf = /^\/t\/([a-z0-9-]+)(?:@[^/]+)?\/(?:secrets|setup)\/?$/.exec(url.pathname);
     if (secretsOf && asked.userSecrets) {
       return handleUserSecrets(request, secretsOf[1]!, asked.userSecrets());
     }

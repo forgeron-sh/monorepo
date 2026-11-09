@@ -57,7 +57,8 @@ export type CallSource = Interface | "job" | "tool";
 /** The `ctx` an action receives (`@forgeron/sdk` types it as `Context`). */
 export interface ActionContext {
   input: unknown;
-  user: User;
+  /** The person, with the plain values they gave the tool's setup (`ctx.user.setup`, D-097). */
+  user: User & { setup: Readonly<Record<string, string | undefined>> };
   can(level: string): boolean;
   interface: CallSource;
   emit(event: string, payload?: unknown): void | Promise<void>;
@@ -127,6 +128,17 @@ export interface UserSecretStore {
 }
 
 /**
+ * Where the platform keeps the plain values of a person's setup (`manifest.setup`, D-097): in clear,
+ * the person's own. The runtime writes what that person submitted; the gateway hands the tool the
+ * caller's values for a call (`Platform.userSetup`).
+ */
+export interface UserSetupStore {
+  read(user: User): Promise<Readonly<Record<string, string>>>;
+  /** Sets the given values; an empty string removes one. */
+  write(user: User, values: Record<string, string>): Promise<void>;
+}
+
+/**
  * What the platform lends the runtime for delegated connectors (D-046): the access token of the
  * caller's own consent, for each connector they gave one for, and where to give it for the others.
  * There is no refresh token here: the platform keeps it and refreshes before handing a token over.
@@ -152,6 +164,11 @@ export interface Platform {
   userSecrets: ActionContext["userSecrets"];
   /** When set, `ctx.userSecrets` is the caller's own, and a missing one is collected on first use. */
   userSecretStore?: UserSecretStore;
+  /**
+   * The caller's own plain values of the tool's setup, handed by the gateway for this call. When set,
+   * `ctx.user.setup` is these and a required field that is missing is asked for on first use.
+   */
+  userSetup?: Readonly<Record<string, string>>;
   connectors: ActionContext["connectors"];
   /** When set, a delegated connector gets the caller's own token, and a missing consent is asked for on first use. */
   connectorSessions?: ConnectorSessions;

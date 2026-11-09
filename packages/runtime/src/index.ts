@@ -7,6 +7,7 @@ export type {
   ConnectorSessionInput,
   ConnectorSessions,
   UserSecretStore,
+  UserSetupStore,
   ActionContext,
   Authenticated,
   CallSource,

@@ -40,6 +40,7 @@ export type {
   CacheOptions,
   CallSource,
   Context,
+  ContextUser,
   Environment,
   Fetch,
   FetchInit,

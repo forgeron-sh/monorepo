@@ -323,7 +323,7 @@ describe("scheduled tasks", () => {
     });
     await runtime.runJob("nightly");
     expect(seen).toEqual({
-      user: { id: "tool:shop", email: "", name: "tool:shop", roles: [] },
+      user: { id: "tool:shop", email: "", name: "tool:shop", roles: [], setup: {} },
       interface: "job",
       input: undefined,
       userSecrets: {},

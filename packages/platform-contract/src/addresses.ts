@@ -28,7 +28,10 @@ import type {
   withdrawInvitationRoute,
 } from "./members";
 import type {
+  clearUserSetupRoute,
+  clearUserSetupValueRoute,
   listUserSecretHoldersRoute,
+  listUserSetupRoute,
   revokePersonTokensRoute,
   revokeUserSecretRoute,
   revokeUserSecretsRoute,
@@ -162,6 +165,18 @@ export const addresses = {
   }),
   listTemplates: addressOf<typeof listTemplatesRoute>({ method: "get", path: "/api/templates" }),
   listTools: addressOf<typeof listToolsRoute>({ method: "get", path: "/api/tools" }),
+  clearUserSetup: addressOf<typeof clearUserSetupRoute>({
+    method: "delete",
+    path: "/api/tools/{tool}/user-setup/{person}",
+  }),
+  clearUserSetupValue: addressOf<typeof clearUserSetupValueRoute>({
+    method: "delete",
+    path: "/api/tools/{tool}/user-setup/{person}/{name}",
+  }),
+  listUserSetup: addressOf<typeof listUserSetupRoute>({
+    method: "get",
+    path: "/api/tools/{tool}/user-setup",
+  }),
   listUserSecretHolders: addressOf<typeof listUserSecretHoldersRoute>({
     method: "get",
     path: "/api/tools/{tool}/user-secrets",

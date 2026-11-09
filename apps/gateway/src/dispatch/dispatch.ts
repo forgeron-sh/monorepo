@@ -42,6 +42,7 @@ export type Forwarding = { headers: Record<string, string> } | { refuse: Respons
 const INTERNAL_HEADERS = [
   "x-forgeron-user",
   "x-forgeron-user-secrets",
+  "x-forgeron-user-setup",
   "x-forgeron-base-url",
   "x-forgeron-connector-tokens",
   "x-forgeron-connector-consent",

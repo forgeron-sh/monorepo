@@ -131,7 +131,20 @@ export function createMembers(kernel: Kernel) {
       const member = await this.findMember(workspace, id);
       if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
       if (member.roles.includes("admin")) await this.requireOtherAdmin(workspace, id);
+      // What the person gave the workspace's tools goes with them (D-097): their plain values and
+      // their sealed secrets. The rows are the secrets module's, written here in the same batch so
+      // that a removed person never leaves personal data behind.
       await d1.batch([
+        d1
+          .prepare(
+            `DELETE FROM "user_setup" WHERE "person" = ? AND "tool_id" IN (SELECT "id" FROM "tools" WHERE "workspace" = ?)`,
+          )
+          .bind(id, workspace),
+        d1
+          .prepare(
+            `DELETE FROM "user_secrets" WHERE "person" = ? AND "tool_id" IN (SELECT "id" FROM "tools" WHERE "workspace" = ?)`,
+          )
+          .bind(id, workspace),
         d1.prepare(`DELETE FROM "members" WHERE "workspace" = ? AND "id" = ?`).bind(workspace, id),
         auditStatement(
           {

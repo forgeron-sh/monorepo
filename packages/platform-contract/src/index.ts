@@ -54,7 +54,10 @@ export {
   listTemplatesRoute,
 } from "./templates";
 export {
+  clearUserSetupRoute,
+  clearUserSetupValueRoute,
   listUserSecretHoldersRoute,
+  listUserSetupRoute,
   revokePersonTokensRoute,
   revokeUserSecretRoute,
   revokeUserSecretsRoute,

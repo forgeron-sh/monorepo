@@ -164,4 +164,52 @@ describe("a setup (D-096)", () => {
       /setup\.check: The setup check "setup\.check" is not an action of the tool\./,
     );
   }, 60_000);
+
+  it("reads the person's plain values from the gateway's header in the built Worker (D-097)", async () => {
+    const built = await buildTool(tool("setup"));
+    const worker = (await import(/* @vite-ignore */ `file://${built.outDir}/worker.js`)) as {
+      default: { fetch(request: Request, env?: unknown): Promise<Response> };
+    };
+    const call = (headers: Record<string, string>) =>
+      worker.default.fetch(
+        new Request("https://acme.forgeron.app/api/setup.check", {
+          headers: {
+            "x-forgeron-user": JSON.stringify({
+              id: "p1",
+              email: "a@acme.test",
+              name: "A",
+              roles: ["reader"],
+            }),
+            "x-forgeron-base-url": "https://acme.forgeron.app/t/setup",
+            ...headers,
+          },
+        }),
+      );
+    // Without the gateway's header the plain values are not asked (a tool run on its own): only the
+    // secret, which the Worker has always asked for.
+    const alone = await call({});
+    expect(alone.status).toBe(428);
+    expect(await alone.json()).toMatchObject({
+      error: { details: { missing: [{ name: "ODOO_API_KEY" }] } },
+    });
+
+    // With it, a required value that is missing is a 428 with the link, secrets and values together.
+    const asked = await call({ "x-forgeron-user-setup": "{}" });
+    expect(asked.status).toBe(428);
+    expect(await asked.json()).toMatchObject({
+      error: {
+        details: {
+          inputUrl: "https://acme.forgeron.app/t/setup/setup",
+          missing: [{ name: "firstName" }, { name: "ODOO_API_KEY" }],
+        },
+      },
+    });
+
+    const given = await call({
+      "x-forgeron-user-setup": JSON.stringify({ firstName: "Ana" }),
+      "x-forgeron-user-secrets": JSON.stringify({ ODOO_API_KEY: "test-only-value" }),
+    });
+    expect(given.status).toBe(200);
+    expect(await given.json()).toMatchObject({ setup: { firstName: "Ana" } });
+  }, 60_000);
 });

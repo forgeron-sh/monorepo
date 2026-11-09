@@ -4,5 +4,5 @@ export default action({
   description: "Checks a person's setup.",
   access: "read",
   input: z.object({}),
-  run: () => ({ ok: true }),
+  run: (ctx) => ({ setup: ctx.user.setup }),
 });

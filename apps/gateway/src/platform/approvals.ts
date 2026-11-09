@@ -1,7 +1,10 @@
 import {
   decideApprovalRoute,
   listApprovalsRoute,
+  clearUserSetupRoute,
+  clearUserSetupValueRoute,
   listUserSecretHoldersRoute,
+  listUserSetupRoute,
   revokePersonTokensRoute,
   revokeUserSecretRoute,
   revokeUserSecretsRoute,
@@ -16,6 +19,7 @@ import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
 const REVOCATION_FORBIDDEN = "Revocation is for admins.";
 const SECRET_NAME = /^[A-Z][A-Z0-9_]*$/;
+const SETUP_NAME = /^[a-z][a-zA-Z0-9]{0,39}$/;
 const noTool = (name: string) => ({ error: "NOT_FOUND", message: `There is no tool ${name}.` });
 
 export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
@@ -109,6 +113,45 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ revoked: await registry.revokeUserSecrets(tool.id, person, secret) }, 200);
   });
 
+  // The plain values of a tool's setup (D-097): in clear, so the admin may read and clear them.
+  app.openapi(platformRoute(listUserSetupRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
+    const { registry, workspace } = c.env;
+    const name = c.req.valid("param").tool;
+    const tool = await registry.findTool(workspace, name);
+    if (!tool) return c.json(noTool(name), 404);
+    const members = new Map((await registry.listMembers(workspace)).map((m) => [m.id, m]));
+    return c.json(
+      {
+        people: (await registry.listUserSetup(tool.id)).map(({ person, values }) => ({
+          person,
+          name: members.get(person)?.name ?? "",
+          email: members.get(person)?.email ?? "",
+          values,
+        })),
+      },
+      200,
+    );
+  });
+
+  app.openapi(platformRoute(clearUserSetupRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
+    const { registry, workspace } = c.env;
+    const { tool: name, person } = c.req.valid("param");
+    const tool = await registry.findTool(workspace, name);
+    if (!tool) return c.json(noTool(name), 404);
+    return c.json({ revoked: await registry.clearUserSetup(tool.id, person) }, 200);
+  });
+
+  app.openapi(platformRoute(clearUserSetupValueRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
+    const { registry, workspace } = c.env;
+    const { tool: name, person, name: field } = c.req.valid("param");
+    const tool = await registry.findTool(workspace, name);
+    if (!tool) return c.json(noTool(name), 404);
+    if (!SETUP_NAME.test(field)) {
+      return c.json({ error: "NOT_FOUND", message: "There is no such field name." }, 404);
+    }
+    return c.json({ revoked: await registry.clearUserSetup(tool.id, person, field) }, 200);
+  });
+
   app.all("/api/approvals", methodNotAllowed);
   app.all("/api/approvals/:id", methodNotAllowed);
   app.all("/api/people/:id/tokens/revoke", methodNotAllowed);
@@ -125,6 +168,21 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
   app.on(
     ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
     "/api/tools/:tool/user-secrets/:person/:name",
+    methodNotAllowed,
+  );
+  app.on(
+    ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "/api/tools/:tool/user-setup",
+    methodNotAllowed,
+  );
+  app.on(
+    ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
+    "/api/tools/:tool/user-setup/:person",
+    methodNotAllowed,
+  );
+  app.on(
+    ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
+    "/api/tools/:tool/user-setup/:person/:name",
     methodNotAllowed,
   );
 }

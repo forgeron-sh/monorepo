@@ -63,4 +63,22 @@ export const secretsMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "secret_requests"`)],
   },
+  {
+    // Per-person plain values of a tool's setup (D-097): a first name, a team. Not secrets: kept in
+    // clear, one per tool, person and name, removed with the person.
+    name: "0026_user_setup",
+    fingerprint: "user-setup-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "user_setup" (
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "person" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "value" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("tool_id", "person", "name")
+)`),
+    ],
+    down: [st(`DROP TABLE "user_setup"`)],
+  },
 ];
