@@ -182,7 +182,7 @@ One stable name per tool and per environment, so that publishing a version chang
 <workspace>--<tool>--production      <workspace>--<tool>--pr-<n>
 ```
 
-In self-host, the gateway is redeployed only when a tool is created or deleted, never on every version.
+In self-host, the gateway is redeployed when a Worker is first bound to it or removed: a tool's first deployment per environment, a new preview branch, a teardown. It is never redeployed for a new version of a Worker that is already bound (D-080).
 
 ### Installing the platform in self-host
 
@@ -256,7 +256,7 @@ Those of Forgeron itself, not to be confused with a tool's environments (`local`
 | staging     | `*.staging.forgeron.app` to be validated (see below) | served by the gateway | `staging.forgeron.app` |
 | production  | `*.forgeron.app`                                     | served by the gateway | `forgeron.app`         |
 
-Cloudflare's universal certificate covers only one level of subdomain: `acme.staging.forgeron.app` is not covered. Either a separate domain is needed for staging (for example `*.forgeron-staging.app`), or an advanced certificate. **To be decided before the first deployment.**
+Cloudflare's universal certificate covers only one level of subdomain: `acme.staging.forgeron.app` is not covered. Either a separate domain is needed for staging (for example `*.forgeron-staging.app`), or an advanced certificate. **Decided, D-087: a separate registrable domain for staging.**
 
 In self-host, the domain is the customer's; the same single-subdomain-level rule applies.
 
@@ -313,15 +313,15 @@ The white paper's roadmap groups these steps into four phases: phase 1 is steps 
 
 Decisions already made are in [`DECISIONS.md`](DECISIONS.md). Still open:
 
-| Decision                                                                     | Blocks                       | Known state                                                                                                                        |
-| ---------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Per-action transaction (`sdk.md` §6, §9) with D1                             | step 4                       | decided, D-012: one atomic `ctx.db.batch()`; no interactive transaction. To do: `sync` handlers joining the batch, remote D1 check |
-| Self-host previews without redeploying the gateway for each branch           | step 5                       | leads: per-version preview URL (to be verified), HTTP access with an internal token                                                |
-| Uploading a user Worker with its D1 on Workers for Platforms                 | step 8                       | documented (doc of 16/09/2026), not tried; purchase of Workers for Platforms required                                              |
-| Dynamic OAuth resources (one token per tool without redeploying the gateway) | step 5                       | decided, D-013: build the authorization server from the registry, cached by registry version; watch the cost above ~100 tools      |
-| Staging domain (two-level certificate)                                       | first deployment             | see "Platform environments"                                                                                                        |
-| Open source license                                                          | npm publishing, `LICENSE`    | absent from the repository until decided                                                                                           |
-| GitHub organization and repository name                                      | badges, links, `SECURITY.md` | `OWNER/forgeron` in the meantime                                                                                                   |
-| Public npm name: `forgeron` or `@forgeron/sdk` + `@forgeron/cli`             | publishing, `sdk.md` §18     | lead: publish the CLI as `forgeron` to keep `npx forgeron`                                                                         |
+| Decision                                                                     | Blocks                       | Known state                                                                                                                                                                     |
+| ---------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Per-action transaction (`sdk.md` §6, §9) with D1                             | step 4                       | decided, D-012: one atomic `ctx.db.batch()`; no interactive transaction. To do: `sync` handlers joining the batch, remote D1 check                                              |
+| Self-host previews                                                           | step 5                       | decided, D-080: a preview is a Worker bound to the gateway on its first activation; the gateway is redeployed for each new branch. To measure: concurrent deployments (FOR-167) |
+| Uploading a user Worker with its D1 on Workers for Platforms                 | step 8                       | documented (doc of 16/09/2026), not tried; purchase of Workers for Platforms required                                                                                           |
+| Dynamic OAuth resources (one token per tool without redeploying the gateway) | step 5                       | decided, D-013: build the authorization server from the registry, cached by registry version; watch the cost above ~100 tools                                                   |
+| Staging domain (two-level certificate)                                       | first deployment             | decided, D-087: a separate registrable domain; to buy                                                                                                                           |
+| Open source license                                                          | npm publishing               | decided, D-085: Apache-2.0, and AGPL-3.0 for the gateway and the console; to confirm by the copyright holder                                                                    |
+| GitHub organization and repository name                                      | badges, links, `SECURITY.md` | the repository is `forgeron-sh/monorepo`; the public name is to decide (FOR-34)                                                                                                 |
+| Public npm name                                                              | publishing, `sdk.md` §18     | decided, D-086: `forgeron` (CLI) and `@forgeron/*`; not reserved yet                                                                                                            |
 
 Decided in this change: repository files (README, CONTRIBUTING, docs) are written in English (D-011).

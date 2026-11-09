@@ -1,6 +1,7 @@
 {
   "name": "@forgeron/template-odoo-gateway",
   "version": "0.0.0",
+  "license": "Apache-2.0",
   "files": [
     "forgeron.config.ts",
     "actions",

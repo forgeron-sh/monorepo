@@ -40,4 +40,4 @@ Found a security issue? Do not open a public issue: follow the [security policy]
 
 ## License
 
-To be decided (see the open questions in the [white paper](docs/white-paper.md#open-questions)).
+Apache-2.0, except `apps/gateway` and `apps/console`, which are AGPL-3.0-only. See [D-085](docs/DECISIONS.md) for the reasons, and each folder's `LICENSE`.

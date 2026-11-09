@@ -2,6 +2,7 @@
   "name": "@forgeron/gateway",
   "version": "0.0.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "build": "bun scripts/build.ts"
