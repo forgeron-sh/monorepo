@@ -1,7 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { D1Database } from "@forgeron/hosting";
 import type { Manifest } from "@forgeron/manifest";
-import { createRegistry, migratePlatform, type Registry } from "@forgeron/registry";
+import {
+  createRegistry,
+  createSecretBox,
+  migratePlatform,
+  type Registry,
+} from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createGateway, type GatewayEnv } from "../gateway";
@@ -15,6 +20,7 @@ vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 // /mcp with the access token, refresh, revoke. The people, the secret and the client are test values.
 
 const SECRET = "test-secret-not-a-real-one";
+const KEY = btoa(String.fromCharCode(...new Uint8Array(32)));
 const ORIGIN = "https://acme.forgeron.app";
 const REDIRECT = "https://client.example/callback";
 let clock = new Date("2026-11-09T10:00:00Z");
@@ -57,7 +63,7 @@ beforeAll(async () => {
   memory = await createMemoryD1();
   const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
-  registry = createRegistry(d1, { now: () => clock });
+  registry = createRegistry(d1, { now: () => clock, secrets: await createSecretBox(KEY) });
   const member = async (subject: string, roles: string[]) =>
     (
       await registry.addMember({
@@ -70,11 +76,22 @@ beforeAll(async () => {
     ).id;
   ana = await member("ana", []);
   root = await member("root", ["admin"]);
-  for (const name of ["crm", "hr"]) {
+  for (const name of ["crm", "hr", "onboard"]) {
     const tool = await registry.createTool({ workspace: "acme", name });
     const built = await registry.recordBuild(tool.id, {
       fingerprint: name,
-      manifest: { ...crm, name },
+      manifest: {
+        ...crm,
+        name,
+        // A tool that asks each person for their first name before it works (D-097).
+        ...(name === "onboard"
+          ? {
+              setup: {
+                fields: { firstName: { type: "text", label: "First name", required: true } },
+              },
+            }
+          : {}),
+      } as Manifest,
     });
     const version = await registry.publishVersion(tool.id, built.id, "1.0.0");
     const production = await registry.ensureEnvironment(tool.id, "production");
@@ -84,6 +101,7 @@ beforeAll(async () => {
     DB: d1,
     BASE_DOMAIN: "forgeron.app",
     AUTH_SECRET: SECRET,
+    SECRETS_KEY: KEY,
     DISPATCHER: { get: () => ({ fetch: (request: Request) => toolWorker(request) }) },
   } as GatewayEnv;
   for (const [name, id] of [
@@ -619,5 +637,118 @@ describe("signing in to a tool's MCP (D-095)", () => {
     });
     expect(refused.status).toBe(400);
     expect(await refused.json()).toMatchObject({ error: "invalid_target" });
+  });
+});
+
+describe("the tool's setup at the connection (D-098)", () => {
+  const ONBOARD = `${ORIGIN}/t/onboard/mcp`;
+  const asked = (person: "ana" | "root", client: string, challenge: string) =>
+    get(`/oauth/authorize?${authorizeQuery(client, challenge, { resource: ONBOARD })}`, {
+      cookie: cookies[person]!,
+    });
+
+  it("sends a person who has not given their setup to the setup page, then back, then to the click", async () => {
+    const client = await clientId();
+    const { verifier, challenge } = pkce();
+    const first = await asked("ana", client, challenge);
+    expect(first.status).toBe(302);
+    const to = new URL(first.headers.get("location")!, ORIGIN);
+    expect(to.pathname).toBe("/t/onboard/setup");
+    const next = to.searchParams.get("next")!;
+    expect(next.startsWith("/oauth/authorize?")).toBe(true);
+
+    // The setup page keeps the way back, and offers it once the values are saved.
+    const page = await get(`${to.pathname}${to.search}`, { cookie: cookies.ana! });
+    expect(page.status).toBe(200);
+    expect(await page.text()).toContain("First name");
+    const saved = await gateway()(
+      new Request(`${ORIGIN}${to.pathname}${to.search}`, {
+        method: "POST",
+        headers: { cookie: cookies.ana!, "content-type": "application/json" },
+        body: JSON.stringify({ firstName: "Ana" }),
+      }),
+    );
+    expect(saved.status).toBe(200);
+    // A form post gets the page with the link to carry on.
+    const posted = await gateway()(
+      new Request(`${ORIGIN}${to.pathname}${to.search}`, {
+        method: "POST",
+        headers: { cookie: cookies.ana!, "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ firstName: "Ana" }),
+      }),
+    );
+    expect(await posted.text()).toContain(`href="${next.replaceAll("&", "&amp;")}"`);
+
+    // Back at the authorization step: the setup is done, so the person is asked to allow.
+    const again = await get(next, { cookie: cookies.ana! });
+    expect(again.status).toBe(200);
+    const { to: back } = await answer(again, cookies.ana!);
+    const traded = await form("/oauth/token", {
+      grant_type: "authorization_code",
+      code: back!.searchParams.get("code")!,
+      code_verifier: verifier,
+      redirect_uri: REDIRECT,
+      client_id: client,
+    });
+    const tokens = await tokensOf(traded);
+    expect(
+      await (
+        await get("/t/onboard/mcp", { authorization: `Bearer ${tokens.access_token}` })
+      ).json(),
+    ).toMatchObject({
+      result: { user: ana },
+    });
+  });
+
+  it("does not issue a token for a tool whose setup is not done, even to a form posted by hand", async () => {
+    const client = await clientId();
+    const { challenge } = pkce();
+    const refused = await form(
+      "/oauth/authorize",
+      {
+        response_type: "code",
+        client_id: client,
+        redirect_uri: REDIRECT,
+        state: "st1",
+        code_challenge: challenge,
+        code_challenge_method: "S256",
+        resource: ONBOARD,
+        decision: "allow",
+      },
+      { cookie: cookies.root!, origin: ORIGIN },
+    );
+    expect(refused.status).toBe(400);
+    expect(await refused.text()).not.toContain("code=");
+  });
+
+  it("asks nothing for a tool with no setup, nor for the admin MCP", async () => {
+    const client = await clientId();
+    const { challenge } = pkce();
+    const plain = await get(
+      `/oauth/authorize?${authorizeQuery(client, challenge, { resource: `${ORIGIN}/t/crm/mcp` })}`,
+      { cookie: cookies.root! },
+    );
+    expect(plain.status).toBe(200);
+    const admin = await get(`/oauth/authorize?${authorizeQuery(client, challenge)}`, {
+      cookie: cookies.root!,
+    });
+    expect(admin.status).toBe(200);
+  });
+
+  it("sends a person on only to the authorization step, never to another address", async () => {
+    for (const next of [
+      "https://evil.example/",
+      "//evil.example/",
+      "/console",
+      "/oauth/authorize/../x",
+      "/t/crm/mcp",
+    ]) {
+      const page = await get(`/t/onboard/setup?next=${encodeURIComponent(next)}`, {
+        cookie: cookies.root!,
+      });
+      const html = await page.text();
+      expect(html).not.toContain(next);
+      expect(html).not.toContain("?next=");
+    }
   });
 });

@@ -503,7 +503,8 @@ setup: {
 - `check` names an action of the tool that validates the values before they are kept. It is internal: it is on no interface.
 - **Where it is asked, and what the tool gets** (D-097): `/t/<tool>/setup` (and `/t/<tool>/secrets`, the same page) shows one form: the plain fields, then the secrets. A required plain field and a missing secret fail a call together with `428 SECRET_REQUIRED` and that one link. The plain values are kept in clear, one per tool and person (not per environment), shown to their owner and to the workspace's admins, and removed with the person. In an action they are `ctx.user.setup.firstName` (`undefined` if not given); a task has none. Everything is checked before anything is kept: a required field, a choice among its options, a length (200 characters unless `maxLength`).
 - Admins list what each person gave (`GET /console-api/api/tools/<tool>/user-setup`) and clear one value or all of a person's (`DELETE …/user-setup/<person>[/<name>]`): the person is asked again.
-- Not done yet (D-097): the page at the OAuth connection, the connectors as steps of the page, the `check` call, the removal of the CLI prompt, a console screen. `check` is declared and compiled but never called.
+- **At the OAuth connection** (D-098): when an MCP client asks to connect to a tool whose setup a person has not finished, the authorization step sends them to `/t/<tool>/setup`, which sends them back to the "Allow" click when they are done. No token is issued for a tool whose setup is incomplete.
+- Not done yet (D-097, D-098): the connectors as steps of the page, the `check` call, the removal of the CLI prompt, a console screen. `check` is declared and compiled but never called.
 
 **Connectors**
 

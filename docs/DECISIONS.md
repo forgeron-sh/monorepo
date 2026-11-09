@@ -96,6 +96,7 @@ Rules of the log:
 | D-095 | 09/11/2026 | OAuth also signs an MCP client in to a tool's MCP: `resource` names `/t/<tool>/mcp`, the token is for that tool with the `mcp` scope (FOR-171, ticket 1)               | Active                                 |
 | D-096 | 09/11/2026 | A tool declares a `setup`: plain fields in the manifest, secret fields as `resources.userSecrets` (FOR-171, ticket 2)                                                  | Active                                 |
 | D-097 | 09/11/2026 | A tool's plain setup values are kept in clear per tool and person, handed in `ctx.user.setup`, asked at `/t/<tool>/setup` (FOR-171, tickets 3 and 4)                   | Active                                 |
+| D-098 | 09/11/2026 | The OAuth step sends a person through the tool's setup page before the click, and issues no token for a tool whose setup is incomplete (FOR-171, ticket 5)             | Active                                 |
 
 ---
 
@@ -1200,3 +1201,16 @@ Rules of the log:
 - **Personal data**: first and last names are personal data of the workspace's people. They are deleted with the member and clearable by an admin, never in the audit log or any other log. How long a customer keeps a person's data and what it tells its people is the customer's and the owner's to confirm.
 - **Not done**: the page at the OAuth connection and the connectors as steps (tickets 5), the `check` call (6), the CLI prompt removal (7), a console screen; `check` is declared and compiled, nothing calls it. Proven in tests against the in-memory D1 and the real runtime behind the gateway; no browser, no real Worker.
 - **Applied in**: `packages/registry/src/modules/secrets/` (`0026_user_setup`, `readUserSetup`, `writeUserSetup`, `listUserSetup`, `clearUserSetup`), `modules/members/store.ts`; `packages/runtime/src/{engine,secrets,types}.ts`; `packages/sdk/src/{context,testing/tool}.ts`; `packages/compiler/src/build.ts`; `packages/platform-contract/src/revocations.ts`; `apps/gateway/src/dispatch/{dispatch,user-secrets}.ts`, `gateway.ts`, `platform/approvals.ts`; `docs/sdk.md` §10.
+
+## D-098 — The OAuth step sends a person through the tool's setup page before the click, and issues no token for a tool whose setup is incomplete (FOR-171, ticket 5)
+
+- **Date**: 09/11/2026 · **Status**: Active · third step of `docs/spikes/tool-setup-oauth.md`
+- **Decision**:
+  1. **At `/oauth/authorize`**, for a tool resource (D-095), once the person has a session: if the tool's latest version declares a setup and the person still has a required plain field with no value or a declared secret that is not set (`missingSetup` of `@forgeron/runtime`, the rule the `428` uses), a `GET` answers `302` to `/t/<tool>/setup?next=<the authorization request>`. The admin MCP, a tool with no setup and a tool with no published version are not affected.
+  2. **The setup page keeps the way back**: it accepts `next` only if it is a path of this origin that starts with `/oauth/authorize?` (a short whitelist of characters, 2,000 at most); any other value is ignored, so the page is not an open redirect. The form keeps `next` in its action, and once the values are saved the page offers a "Continue" link to it. Back at the authorization step the setup is complete, so the person gets the consent page and its click (D-094).
+  3. **No token without the setup**: a `POST` that allows the app while the setup is incomplete is refused with `400` and no code. The check is not a security control (the tool's own `428` still asks at the first call); it keeps the promise that a person is onboarded as they connect.
+  4. **Why a redirect and not the form on the consent page**: the setup page already validates, stores, audits and handles secrets (D-036, D-097); a second form on the consent page would repeat all of it.
+- **Rejected**: the setup fields on the consent page; a `next` that may be any same-origin path; a setup that is optional at the OAuth step; refusing at the token endpoint (the person is then past the browser step).
+- **Not done**: the connectors as steps of the page (a delegated connector's consent still comes at the first call, as a `428`), the `check` call, the CLI prompt removal, a console screen. A person is sent through the setup page by a redirect: a client that does not follow the browser's navigation, or a person who closes the tab, ends the dance; the app starts it again.
+- **Not verified**: no real MCP client, no browser; played in `integration/gateway-mcp-oauth.test.ts` with a session cookie and a stub tool Worker.
+- **Applied in**: `apps/gateway/src/identity/mcp-oauth/mcp-oauth.ts`, `apps/gateway/src/dispatch/user-secrets.ts`; `packages/runtime/src/secrets.ts` (`missingSetup`, `next`); `docs/sdk.md` §10.

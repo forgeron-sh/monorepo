@@ -12,6 +12,24 @@ import type { Manifest, User, UserSecretStore, UserSetupStore } from "./types";
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
+/**
+ * What a person still has to give a tool before it works (D-097): the required plain fields with no
+ * value and the declared secrets that are not set. Empty when the setup is complete.
+ */
+export function missingSetup(
+  manifest: Manifest,
+  given: { setup: Readonly<Record<string, string>>; secrets: Readonly<Record<string, unknown>> },
+): { fields: string[]; secrets: string[] } {
+  return {
+    fields: Object.entries(manifest.setup?.fields ?? {})
+      .filter(([name, field]) => field.required && !given.setup[name])
+      .map(([name]) => name),
+    secrets: Object.keys(manifest.resources.userSecrets ?? {}).filter(
+      (name) => !given.secrets[name],
+    ),
+  };
+}
+
 /** A page of the secrets flow, for a host to dress (the gateway puts it in its page shell). */
 export interface SecretsPage {
   title: string;
@@ -48,10 +66,17 @@ export async function handleSecretsInput(
   render: SecretsRenderer = bare,
   /** Where the plain values live; without it the page asks for secrets only. */
   setupStore?: UserSetupStore,
+  /**
+   * Where to send the person once they are done, a path of the host that the host has already
+   * checked (the OAuth step that sent them here, D-098). The page offers it as a link, and the form
+   * keeps it.
+   */
+  next?: string,
 ): Promise<Response> {
   const declared = Object.entries(manifest.resources.userSecrets ?? {});
   const fields = setupStore ? Object.entries(manifest.setup?.fields ?? {}) : [];
-  const action = `${baseUrl.replace(/\/+$/, "")}/${fields.length > 0 ? "setup" : "secrets"}`;
+  const page = `${baseUrl.replace(/\/+$/, "")}/${fields.length > 0 ? "setup" : "secrets"}`;
+  const action = next ? `${page}?next=${encodeURIComponent(next)}` : page;
   const heading = fields.length > 0 ? "Your setup" : "Your secrets";
   const eyebrow = manifest.title ?? manifest.name;
 
@@ -180,11 +205,14 @@ export async function handleSecretsInput(
   }
   if (asJson) return Response.json({ saved });
   const noun = fields.length > 0 ? "value" : "secret";
+  const carryOn = next
+    ? `<p><a class="btn primary" href="${escapeHtml(next)}">Continue</a></p>`
+    : "";
   const count = saved.length === 1 ? `1 ${noun}` : `${saved.length} ${noun}s`;
   return render({
     title: fields.length > 0 ? "Setup saved" : "Secrets saved",
     eyebrow,
-    body: `<p class="notice success" role="status"><span class="tag">Done</span><span>${saved.length === 0 ? "Nothing was changed: every field was empty." : `${count} saved.`} You can go back to your work.</span></p>`,
+    body: `<p class="notice success" role="status"><span class="tag">Done</span><span>${saved.length === 0 ? "Nothing was changed: every field was empty." : `${count} saved.`} You can go back to your work.</span></p>${carryOn}`,
     status: 200,
   });
 }

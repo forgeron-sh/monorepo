@@ -1,4 +1,5 @@
 import type { Registry } from "@forgeron/registry";
+import { missingSetup } from "@forgeron/runtime";
 import type { Person } from "../../kernel/person";
 import { errorPage } from "../../pages/errors";
 import { connectionHandBackPage, consentPage } from "../../pages/mcp-oauth";
@@ -33,7 +34,14 @@ export interface McpOAuthContext {
   previousSecrets?: string[];
   registry: Pick<
     Registry,
-    "findMember" | "findTool" | "spendCode" | "revokeToken" | "isTokenRevoked"
+    | "currentManifest"
+    | "findMember"
+    | "findTool"
+    | "isTokenRevoked"
+    | "readUserSecrets"
+    | "readUserSetup"
+    | "revokeToken"
+    | "spendCode"
   >;
   now(): Date;
   /** The person of the session cookie; `undefined` if there is none. */
@@ -195,6 +203,30 @@ async function clientOf(id: string, context: McpOAuthContext): Promise<Client | 
 }
 
 /**
+ * Does this person still have something to give the tool before it works (D-097, D-098)? A tool with
+ * no published version, or no setup, asks nothing. A registry without a secret key cannot hold their
+ * secrets, so none counts as set.
+ */
+async function setupIncomplete(
+  tool: string,
+  person: Person,
+  context: McpOAuthContext,
+): Promise<boolean> {
+  const record = await context.registry.findTool(context.workspace, tool);
+  if (!record) return false;
+  let manifest;
+  try {
+    manifest = await context.registry.currentManifest(record.id);
+  } catch {
+    return false;
+  }
+  const secrets = await context.registry.readUserSecrets(record.id, person.id).catch(() => ({}));
+  const setup = await context.registry.readUserSetup(record.id, person.id);
+  const missing = missingSetup(manifest, { setup, secrets });
+  return missing.fields.length > 0 || missing.secrets.length > 0;
+}
+
+/**
  * `GET /oauth/authorize` asks the signed-in person to allow the client, `POST` carries their
  * answer: nothing is handed over without a click, as for `forgeron login` (D-053).
  */
@@ -245,6 +277,21 @@ export async function handleAuthorize(request: Request, context: McpOAuthContext
     return new Response(null, {
       status: 302,
       headers: { location: `/auth/login?next=${encodeURIComponent(next)}` },
+    });
+  }
+  // The tool's setup comes before the click: what the person must give is asked on the web, at the
+  // tool's setup page, which sends them back here when they are done (D-098). A POST that skips it
+  // is refused too, so a token is never issued for a tool the person has not set up.
+  if (target.tool !== PLATFORM_TOOL && (await setupIncomplete(target.tool, person, context))) {
+    if (posting) {
+      return bad("Finish this tool's setup first, then allow the app.");
+    }
+    const here = `${url.pathname}${url.search}`;
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: `/t/${target.tool}/setup?next=${encodeURIComponent(here)}`,
+      },
     });
   }
   const back = new URL(redirectUri);
