@@ -100,6 +100,7 @@ Rules of the log:
 | D-099 | 09/11/2026 | Per-person secrets may be carried sealed in the OAuth token, as an opt-in `keep: "token"` of a secret field; not started (FOR-172)                                     | Proposed                               |
 | D-100 | 09/11/2026 | `SECRETS_KEY_PREVIOUS`: a value sealed under a replaced key still opens (FOR-172, ticket 1)                                                                            | Active                                 |
 | D-101 | 09/11/2026 | The gateway asks a tool's setup `check` before it keeps what a person gave; the check is on no interface (FOR-171, ticket 6)                                           | Active                                 |
+| D-102 | 09/11/2026 | A person's own secrets are not typed in the terminal: the CLI prints the link to the setup page (FOR-171, ticket 7)                                                    | Active                                 |
 
 ---
 
@@ -1251,3 +1252,12 @@ Rules of the log:
 - **Cost, stated**: the check sees the plaintext values for one call, as `ctx.userSecrets` does in every call (D-036 "Know"). A tool's check can send them anywhere its network allow-list lets it: the same trust.
 - **Not done**: the check is run by the web page only (the CLI's JSON route goes through the same handler, so it is checked too, but the CLI prompt is still there); no timeout of its own beyond the platform's; a preview address checks against the production Worker. A person who gives a secret cannot tell Odoo is down from a wrong key beyond the message.
 - **Applied in**: `packages/runtime/src/{engine,runtime,secrets}.ts` (`checkSetup`, `SetupCandidate`, the route), `packages/compiler/src/manifest.ts`; `apps/gateway/src/dispatch/{dispatch,user-secrets}.ts` (`createToolCaller`), `compose.ts`; `templates/odoo-gateway/`; `docs/sdk.md` §10.
+
+## D-102 — A person's own secrets are not typed in the terminal: the CLI prints the link to the setup page (FOR-171, ticket 7)
+
+- **Date**: 09/11/2026 · **Status**: Active · amends the CLI bullet of D-036 · last step of `docs/spikes/tool-setup-oauth.md`
+- **Decision**: the web is the one place a person gives what a tool asks of them (the owner's direction of 2026-11-07, and decision 1 of the spike, confirmed on 2026-11-09). `promptUserSecrets`, `missingSecretsOf` and the hidden prompt of `forgeron secrets set <NAME> --user` are removed. `--user` is kept as a flag **so that it answers with the link** instead of an unknown-option error: it prints `<endpoint>/t/<tool>/setup`, exits `2`, reads nothing from the keyboard and sends nothing. A tool secret of the admin (`forgeron secrets set <NAME> --env`) is unchanged: it is not a person's own.
+- **Why**: one place means one set of checks (D-097, D-101), one page to harden, and no secret going through a shell, a pipe or the CLI process. The page also covers what a terminal prompt could not: plain fields, the tool's check, the OAuth step.
+- **Cost, stated**: a headless CI or a script cannot set a person's own secret any more. The JSON route of `/t/<tool>/setup` still takes `{ "NAME": "value" }` with a bearer token of the person (it is the page's own handler), but nothing in the CLI uses it; a person who needs it from a script writes the call. If this proves to be needed, a command that opens the browser to the page is the answer, not a prompt.
+- **Not done**: the command `forgeron <tool> <group> <verb>` that would have used the prompt on a `428` never existed, so a failing call from the CLI shows the platform's error and its link as before.
+- **Applied in**: `apps/cli/src/commands/secrets.ts`, `apps/cli/src/user-secrets.test.ts` (rewritten); `docs/sdk.md` §5 and §10, `docs/examples/02-odoo-gateway.md`.

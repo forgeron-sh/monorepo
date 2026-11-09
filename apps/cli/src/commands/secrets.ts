@@ -1,13 +1,12 @@
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
-import { readCredentials } from "../credentials";
 import { readProject } from "../project";
-import { promptUserSecrets } from "./user-secrets";
 
 // `forgeron secrets set <NAME> [--env <env>]` and `forgeron secrets list [--env <env>]` (sdk.md §5).
 // The value is read from the keyboard (or piped input), never from an argument, so it does not land
 // in the shell history or the process list. `list` shows names only. The platform encrypts at rest.
 // Credentials: the token comes from `FORGERON_TOKEN`, the address from `.forgeron/project.json`.
+// A person's own secrets are not set here: they are given on the web, at the tool's setup page (D-102).
 
 const ENVIRONMENTS = ["preview", "production"];
 const USAGE =
@@ -50,22 +49,11 @@ export async function secrets(args: string[], io: Io): Promise<number> {
     );
   }
   if (values.user) {
-    // Your own secret, for this tool: the token of `forgeron login`, the tool's declared label and reason.
-    const own = process.env.FORGERON_TOKEN ?? (await readCredentials(process.env, io.keychain));
-    if (!own) throw new UsageError("Run `forgeron login` first.");
-    const saved = await promptUserSecrets(
-      io,
-      { endpoint: project.endpoint, tool: project.tool, token: own },
-      [
-        {
-          name: name!,
-          label: name!,
-          why: "Kept for you alone; the tool's developer cannot read it.",
-        },
-      ],
+    // The web is the one place a person gives what a tool asks of them (D-102): the terminal prints
+    // the link and reads nothing, so a secret never goes through the shell, a pipe or this process.
+    throw new UsageError(
+      `Your own secrets are given on the web, not here. Open ${project.endpoint.replace(/\/+$/, "")}/t/${project.tool}/setup and sign in.`,
     );
-    if (!saved) throw new UsageError("The value is empty: nothing was set.");
-    return 0;
   }
   const token = process.env.FORGERON_TOKEN;
   if (!token) throw new UsageError("Set FORGERON_TOKEN to an admin token of the workspace.");
