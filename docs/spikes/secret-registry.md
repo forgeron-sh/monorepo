@@ -128,7 +128,7 @@ tools will ask again); add a new secret not tied to a tool yet.
    four methods behind their names, deletion with the member; all existing tests keep passing.
 2. **`kind` and the offer**: the manifest field, the setup page's three choices, the bound audit line.
 3. **"My secrets"** page: list, usage, add a version, rebind, pin, delete.
-4. **Administrator sets a secret**: the route, the MCP tool, the audit line, the person's view of it.
+4. **Administrator sets a secret**: the route, the audit line, the person's view of it. Done (D-107); no MCP tool, a secret must not pass through a model.
 5. **Branch and environment scopes**: the override on the page and in resolution.
 6. **Re-sealing** of every version under the current key.
 7. **Drop `user_secrets`** after one release.

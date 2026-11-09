@@ -208,6 +208,28 @@ FROM "secret_bindings" b WHERE b."tool_id" = ? AND b."person" = ? AND b."field" 
                 )
                 .bind(input.toolId, input.person, input.name, id),
             ]),
+        // An admin typing a person's secret leaves a line the person can see (D-107): who, for whom, which
+        // field and secret. Never the value.
+        ...(input.via === "admin"
+          ? [
+              auditStatement(
+                {
+                  toolId: input.toolId,
+                  actor: input.by ?? input.person,
+                  kind: "access",
+                  subject: "secret:set-by-admin",
+                  detail: {
+                    tool: tool.name,
+                    field: input.name,
+                    secret: id,
+                    version,
+                    person: input.person,
+                  },
+                },
+                at,
+              ),
+            ]
+          : []),
       ]);
     },
     /**

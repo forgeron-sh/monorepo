@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
+import { MAX_SECRET_VALUE } from "./secrets";
 
 // The admin's revocations (D-035, D-036), for admins. A value never comes out.
 
@@ -59,6 +60,33 @@ export const revokeUserSecretsRoute = defineRoute({
     401: notSignedIn,
     403: notAdmin,
     404: json(ErrorSchema, "No such tool"),
+  },
+});
+
+// An admin may type a person's secret for a tool, for example to unblock them (D-107). Their action is
+// audited and the person sees it in "My secrets". The value goes in and never comes out.
+export const setUserSecretRoute = defineRoute({
+  method: "put",
+  path: "/api/tools/{tool}/user-secrets/{person}/{name}",
+  summary: "Set one per-person secret for one person (audited, visible to them)",
+  tags: ["revocations"],
+  request: {
+    params: z.object({ tool, person, name: z.string().describe("`A-Z`, digits and `_`") }),
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({ value: z.string().min(1).max(MAX_SECRET_VALUE) }),
+        },
+      },
+    },
+  },
+  responses: {
+    204: { description: "Set" },
+    400: json(ErrorSchema, "`value` is a non-empty string (16 KB max), or the body is not JSON"),
+    401: notSignedIn,
+    403: notAdmin,
+    404: json(ErrorSchema, "No such tool, person, or a secret the tool does not declare"),
   },
 });
 

@@ -61,6 +61,7 @@ export {
   revokePersonTokensRoute,
   revokeUserSecretRoute,
   revokeUserSecretsRoute,
+  setUserSecretRoute,
 } from "./revocations";
 export {
   MAX_DEPLOY_TOKEN_DAYS,

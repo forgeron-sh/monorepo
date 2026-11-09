@@ -35,6 +35,7 @@ import type {
   revokePersonTokensRoute,
   revokeUserSecretRoute,
   revokeUserSecretsRoute,
+  setUserSecretRoute,
 } from "./revocations";
 import type {
   createSecretRequestRoute,
@@ -220,6 +221,10 @@ export const addresses = {
   revokeUserSecrets: addressOf<typeof revokeUserSecretsRoute>({
     method: "delete",
     path: "/api/tools/{tool}/user-secrets/{person}",
+  }),
+  setUserSecret: addressOf<typeof setUserSecretRoute>({
+    method: "put",
+    path: "/api/tools/{tool}/user-secrets/{person}/{name}",
   }),
   secretsStatus: addressOf<typeof secretsStatusRoute>({
     method: "get",

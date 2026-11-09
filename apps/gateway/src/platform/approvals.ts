@@ -8,6 +8,7 @@ import {
   revokePersonTokensRoute,
   revokeUserSecretRoute,
   revokeUserSecretsRoute,
+  setUserSecretRoute,
 } from "@forgeron/platform-contract";
 import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
@@ -113,6 +114,44 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ revoked: await registry.revokeUserSecrets(tool.id, person, secret) }, 200);
   });
 
+  // An admin types a person's secret (D-107): audited with a line the person sees, never read back.
+  app.openapi(
+    platformRoute(setUserSecretRoute, "admin", REVOCATION_FORBIDDEN),
+    async (c) => {
+      const { registry, workspace } = c.env;
+      const { tool: name, person, name: field } = c.req.valid("param");
+      const tool = await registry.findTool(workspace, name);
+      if (!tool) return c.json(noTool(name), 404);
+      if (!(await registry.findMember(workspace, person))) {
+        return c.json({ error: "NOT_FOUND", message: "There is no such person." }, 404);
+      }
+      let declared;
+      try {
+        declared = (await registry.currentManifest(tool.id)).resources.userSecrets?.[field];
+      } catch {
+        declared = undefined;
+      }
+      if (!SECRET_NAME.test(field) || !declared) {
+        return c.json({ error: "NOT_FOUND", message: "The tool declares no such secret." }, 404);
+      }
+      await registry.setUserSecret({
+        toolId: tool.id,
+        person,
+        name: field,
+        value: c.req.valid("json").value,
+        by: c.get("person").id,
+        via: "admin",
+        label: declared.label,
+        ...(declared.kind ? { kind: declared.kind } : {}),
+      });
+      return c.body(null, 204);
+    },
+    (result, c) =>
+      result.success
+        ? undefined
+        : c.json({ error: "INVALID", message: "`value` is a non-empty string (16 KB max)." }, 400),
+  );
+
   // The plain values of a tool's setup (D-097): in clear, so the admin may read and clear them.
   app.openapi(platformRoute(listUserSetupRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
     const { registry, workspace } = c.env;
@@ -166,7 +205,7 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
     methodNotAllowed,
   );
   app.on(
-    ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
+    ["GET", "POST", "PATCH", "OPTIONS"],
     "/api/tools/:tool/user-secrets/:person/:name",
     methodNotAllowed,
   );
