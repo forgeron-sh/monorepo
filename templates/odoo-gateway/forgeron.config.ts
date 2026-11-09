@@ -25,8 +25,14 @@ export default defineConfig({
         label: "Odoo API key",
         help: "Odoo › Preferences › Account Security › New API Key",
         why: "Read and reply to your tickets with your own Odoo permissions",
+        // Another tool that asks for an Odoo key is offered the one a person saved here (D-105).
+        kind: "odoo.api-key",
       }),
-      ODOO_LOGIN: field.secret({ label: "Odoo login (email)", why: "Identify you to Odoo" }),
+      ODOO_LOGIN: field.secret({
+        label: "Odoo login (email)",
+        why: "Identify you to Odoo",
+        kind: "odoo.login",
+      }),
     },
     // Odoo says whether the login and key are good before they are kept (D-101).
     check: "setup.check",

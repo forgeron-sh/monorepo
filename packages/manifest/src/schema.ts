@@ -88,7 +88,23 @@ export const ResourcesSchema = z.strictObject({
   queue: z.strictObject({ why: text.optional() }).optional(),
   secrets: z.record(SecretNameSchema, z.strictObject({ why: text.optional() })).optional(),
   userSecrets: z
-    .record(SecretNameSchema, z.strictObject({ label: text, help: text.optional(), why: text }))
+    .record(
+      SecretNameSchema,
+      z.strictObject({
+        label: text,
+        help: text.optional(),
+        why: text,
+        /**
+         * What the value is (`odoo.api-key`), a name tools agree on. A person's saved secrets of the same
+         * kind are offered at the setup page; nothing is ever bound by field name (D-105).
+         */
+        kind: z
+          .string()
+          .regex(/^[a-z][a-z0-9]*(\.[a-z0-9][a-z0-9-]*)*$/)
+          .max(60)
+          .optional(),
+      }),
+    )
     .optional(),
   connectors: z.record(z.string().regex(/^[a-z][a-z0-9-]*$/), ConnectorSchema).optional(),
   network: z.strictObject({ allow: z.array(text), why: text }).optional(),

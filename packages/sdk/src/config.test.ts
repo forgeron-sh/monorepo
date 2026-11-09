@@ -116,3 +116,14 @@ describe("field (D-096)", () => {
     expect(defineConfig(config)).toBe(config);
   });
 });
+
+describe("field.secret with a kind (D-105)", () => {
+  it("carries the kind a person's saved secrets are offered by", () => {
+    expect(field.secret({ label: "Odoo API key", why: "Read", kind: "odoo.api-key" })).toEqual({
+      type: "secret",
+      label: "Odoo API key",
+      why: "Read",
+      kind: "odoo.api-key",
+    });
+  });
+});

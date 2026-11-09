@@ -2,6 +2,7 @@ import type { Manifest } from "@forgeron/manifest";
 import type { Registry } from "@forgeron/registry";
 import {
   handleSecretsInput,
+  type SavedSecrets,
   type SetupCheckResult,
   type UserSecretStore,
   type UserSetupStore,
@@ -21,7 +22,10 @@ export interface UserSecretsContext {
     Registry,
     | "accessFor"
     | "currentManifest"
+    | "bindUserSecret"
     | "findTool"
+    | "listPersonSecrets"
+    | "readPersonSecret"
     | "readUserSecrets"
     | "readUserSetup"
     | "recordAudit"
@@ -88,8 +92,36 @@ export async function handleUserSecrets(
           "set",
         ]),
       ),
-    write: (user, name, value) =>
-      context.registry.setUserSecret({ toolId: record.id, person: user.id, name, value }),
+    // A secret made here is named as the tool names it and has the kind the tool declares (D-105).
+    write: (user, name, value) => {
+      const declared = manifest.resources.userSecrets?.[name];
+      return context.registry.setUserSecret({
+        toolId: record.id,
+        person: user.id,
+        name,
+        value,
+        ...(declared ? { label: declared.label } : {}),
+        ...(declared?.kind ? { kind: declared.kind } : {}),
+      });
+    },
+  };
+  // The person's registry of secrets, for the page to offer and to bind (D-105).
+  const saved: SavedSecrets = {
+    list: async () =>
+      (await context.registry.listPersonSecrets(context.workspace, who.person.id)).map((s) => ({
+        id: s.id,
+        label: s.label,
+        ...(s.kind ? { kind: s.kind } : {}),
+        usedBy: s.usedBy.map(({ tool: used, field }) => ({ tool: used, field })),
+      })),
+    value: (id) => context.registry.readPersonSecret(context.workspace, who.person.id, id),
+    bind: (field, id) =>
+      context.registry.bindUserSecret({
+        toolId: record.id,
+        person: who.person.id,
+        field,
+        secretId: id,
+      }),
   };
   const setupStore: UserSetupStore = {
     read: (user) => context.registry.readUserSetup(record.id, user.id),
@@ -110,6 +142,7 @@ export async function handleUserSecrets(
       page({ title, eyebrow, workspace: context.workspace, status }, body),
     {
       setupStore,
+      saved,
       ...(next ? { next } : {}),
       // Only a tool that declares a check is asked, and only where the gateway can ask.
       ...(manifest.setup?.check && context.checkSetup

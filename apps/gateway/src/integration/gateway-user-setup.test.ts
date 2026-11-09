@@ -51,7 +51,9 @@ const manifest: Manifest = {
   jobs: {},
   events: {},
   resources: {
-    userSecrets: { ODOO_API_KEY: { label: "Odoo API key", why: "Read your tickets" } },
+    userSecrets: {
+      ODOO_API_KEY: { label: "Odoo API key", why: "Read your tickets", kind: "odoo.api-key" },
+    },
   },
   setup: {
     fields: {
@@ -123,6 +125,7 @@ let ana = "";
 let ben = "";
 let admin = "";
 let toolId = "";
+let hrId = "";
 
 beforeAll(async () => {
   memory = await createMemoryD1();
@@ -135,6 +138,16 @@ beforeAll(async () => {
   const version = await registry.publishVersion(tool.id, built.id, "1.0.0");
   const production = await registry.ensureEnvironment(tool.id, "production");
   await registry.activate(production.id, version.id, { actor: "test" });
+  // A second tool that asks for the same kind of secret (D-105).
+  const hr = await registry.createTool({ workspace: "acme", name: "hr" });
+  hrId = hr.id;
+  const hrBuilt = await registry.recordBuild(hr.id, {
+    fingerprint: "hr",
+    manifest: { ...manifest, name: "hr" },
+  });
+  const hrVersion = await registry.publishVersion(hr.id, hrBuilt.id, "1.0.0");
+  const hrProduction = await registry.ensureEnvironment(hr.id, "production");
+  await registry.activate(hrProduction.id, hrVersion.id, { actor: "test" });
   const member = async (subject: string, roles: string[]) =>
     (
       await registry.addMember({
@@ -414,5 +427,149 @@ describe("a tool's check of its setup (D-101)", () => {
       error: { message: "The check could not be completed. Try again." },
     });
     expect((await registry.readUserSetup(toolId, cara)).firstName).toBe("Cara");
+  });
+});
+
+describe("offering a saved secret to a second tool (D-105)", () => {
+  let dan = "";
+  let eve = "";
+  let danSecret = "";
+  beforeAll(async () => {
+    const add = async (subject: string) =>
+      (
+        await registry.addMember({
+          workspace: "acme",
+          subject,
+          email: `${subject}@acme.test`,
+          name: subject,
+          roles: [],
+        })
+      ).id;
+    dan = await add("dan");
+    eve = await add("eve");
+    // Dan gives the first tool his key: it is saved, named as the tool names it, with its kind.
+    const first = await call(
+      "/t/crm/setup",
+      await tokenFor(dan),
+      json({ firstName: "Dan", ODOO_API_KEY: "dan-test-key" }),
+    );
+    if (first.status !== 200) throw new Error(`The setup was refused: ${first.status}`);
+    danSecret = (await registry.listPersonSecrets("acme", dan))[0]!.id;
+  });
+
+  it("is saved with the tool's own label and kind, and listed without its value", async () => {
+    const saved = await registry.listPersonSecrets("acme", dan);
+    expect(saved).toEqual([
+      expect.objectContaining({
+        id: danSecret,
+        label: "Odoo API key",
+        kind: "odoo.api-key",
+        versions: 1,
+        usedBy: [{ tool: "crm", field: "ODOO_API_KEY", scope: "*" }],
+      }),
+    ]);
+    expect(JSON.stringify(saved)).not.toContain("dan-test-key");
+  });
+
+  it("is offered on the other tool's page, under its kind, with where it is used, and never shown", async () => {
+    const page = await (await call("/t/hr/setup", await tokenFor(dan, "hr"))).text();
+    expect(page).toContain('name="use:ODOO_API_KEY"');
+    expect(page).toContain("Same kind");
+    expect(page).toContain("Odoo API key (used by crm)");
+    expect(page).not.toContain("dan-test-key");
+    // Not offered on the tool that already uses it, nor to a person who saved nothing.
+    expect(await (await call("/t/crm/setup", await tokenFor(dan))).text()).not.toContain(
+      "use:ODOO",
+    );
+    expect(await (await call("/t/hr/setup", await tokenFor(eve, "hr"))).text()).not.toContain(
+      "use:",
+    );
+  });
+
+  it("binds it to the second tool by the person's choice, checks it first, audits it and keeps one secret", async () => {
+    const token = await tokenFor(dan, "hr");
+    const chosen = await call(
+      "/t/hr/setup",
+      token,
+      json({ firstName: "Dan", "use:ODOO_API_KEY": danSecret }),
+    );
+    expect(chosen.status).toBe(200);
+    expect(await registry.readUserSecrets(hrId, dan)).toEqual({ ODOO_API_KEY: "dan-test-key" });
+    // One secret, two bindings: the key is the same value for both tools.
+    const listed = await registry.listPersonSecrets("acme", dan);
+    expect(listed).toHaveLength(1);
+    expect(listed[0]!.usedBy.map((u) => u.tool).sort()).toEqual(["crm", "hr"]);
+    // The audit line names the field and the secret's id, never a value.
+    const lines = await registry.listAudit(hrId);
+    const bound = lines.find((l) => l.subject === "secret:bound");
+    expect(bound).toMatchObject({ actor: dan, kind: "access" });
+    expect(JSON.stringify(lines)).not.toContain("dan-test-key");
+    // The check ran on the chosen value.
+    expect(checked.at(-1)).toMatchObject({ secrets: { ODOO_API_KEY: "dan-test-key" } });
+  });
+
+  it("changing the saved key once changes it for both tools", async () => {
+    const crmTool = (await registry.findTool("acme", "crm"))!;
+    await registry.setUserSecret({
+      toolId: crmTool.id,
+      person: dan,
+      name: "ODOO_API_KEY",
+      value: "dan-new-key",
+    });
+    expect(await registry.readUserSecrets(hrId, dan)).toEqual({ ODOO_API_KEY: "dan-new-key" });
+    expect((await registry.listPersonSecrets("acme", dan))[0]!.versions).toBe(2);
+  });
+
+  it("refuses a secret that is not the person's, a choice and a typed value together, and a saved key the tool refuses", async () => {
+    const token = await tokenFor(eve, "hr");
+    const foreign = await call("/t/hr/setup", token, json({ "use:ODOO_API_KEY": danSecret }));
+    expect(foreign.status).toBe(400);
+    expect(await foreign.json()).toMatchObject({
+      error: { fields: { ODOO_API_KEY: "That saved secret is not available." } },
+    });
+    expect(await registry.readUserSecrets(hrId, eve)).toEqual({});
+
+    const both = await call(
+      "/t/hr/setup",
+      await tokenFor(dan, "hr"),
+      json({ ODOO_API_KEY: "typed", "use:ODOO_API_KEY": danSecret }),
+    );
+    expect(both.status).toBe(400);
+  });
+
+  it("checks the chosen value, and binds nothing when the tool refuses it", async () => {
+    const gina = (
+      await registry.addMember({
+        workspace: "acme",
+        subject: "gina",
+        email: "gina@acme.test",
+        name: "gina",
+        roles: [],
+      })
+    ).id;
+    // A key Odoo no longer accepts, saved earlier (set here without going through the check).
+    await registry.setUserSecret({
+      toolId: toolId,
+      person: gina,
+      name: "ODOO_API_KEY",
+      value: "wrong",
+    });
+    const id = (await registry.listPersonSecrets("acme", gina))[0]!.id;
+    const refused = await call(
+      "/t/hr/setup",
+      await tokenFor(gina, "hr"),
+      json({ firstName: "Gina", "use:ODOO_API_KEY": id }),
+    );
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({
+      error: { fields: { ODOO_API_KEY: "Odoo refused this key." } },
+    });
+    expect(await registry.readUserSecrets(hrId, gina)).toEqual({});
+    expect((await registry.listPersonSecrets("acme", gina))[0]!.usedBy).toHaveLength(1);
+  });
+
+  it("never binds by field name: a tool asking for the same name gets nothing the person did not choose", async () => {
+    // Eve typed nothing and chose nothing: her calls are asked again, whatever Dan saved.
+    expect((await call("/t/hr/api/tickets.mine", await tokenFor(eve, "hr"))).status).toBe(428);
   });
 });

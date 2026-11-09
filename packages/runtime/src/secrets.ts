@@ -36,6 +36,26 @@ export function missingSetup(
   };
 }
 
+/** One of a person's saved secrets, without its value (D-105). */
+export interface SavedSecret {
+  id: string;
+  label: string;
+  kind?: string;
+  /** Where it is used, so that the person knows what changing it touches. */
+  usedBy: Array<{ tool: string; field: string }>;
+}
+
+/**
+ * What the page needs of the person's registry of secrets: to offer the saved ones, to read one of the
+ * person's own for the tool's check, and to bind one to a field. The page never shows a value.
+ */
+export interface SavedSecrets {
+  list(): Promise<SavedSecret[]>;
+  /** The latest value of the person's own secret, or `undefined` if it is not theirs. */
+  value(id: string): Promise<string | undefined>;
+  bind(field: string, id: string): Promise<void>;
+}
+
 /** A page of the secrets flow, for a host to dress (the gateway puts it in its page shell). */
 export interface SecretsPage {
   title: string;
@@ -84,9 +104,11 @@ export async function handleSecretsInput(
      * when it says no. Without it every valid value is kept.
      */
     check?: (candidate: SetupCandidate) => Promise<SetupCheckResult>;
+    /** The person's saved secrets: offered at each secret field, chosen by a click, never by field name. */
+    saved?: SavedSecrets;
   } = {},
 ): Promise<Response> {
-  const { setupStore, next, check } = extras;
+  const { setupStore, next, check, saved: registry } = extras;
   const declared = Object.entries(manifest.resources.userSecrets ?? {});
   const fields = setupStore ? Object.entries(manifest.setup?.fields ?? {}) : [];
   const page = `${baseUrl.replace(/\/+$/, "")}/${fields.length > 0 ? "setup" : "secrets"}`;
@@ -122,11 +144,35 @@ export async function handleSecretsInput(
         return `<div class="secret">${label}${input}${help}${error}</div>`;
       })
       .join("");
+    const offered = registry ? await registry.list() : [];
     const secrets = declared
       .map(([name, secret], i) => {
         const set = Boolean(own[name]);
         const help = [secret.help, secret.why].filter(Boolean).join(" ");
-        return `<div class="secret"><label for="secret-${i}">${escapeHtml(secret.label)}${set ? ` <span class="tag-set">Set</span>` : ""}</label><input id="secret-${i}" type="password" name="${escapeHtml(name)}" autocomplete="off" spellcheck="false" placeholder="${set ? "Enter a new value to replace it" : ""}"><span class="hint">${escapeHtml(help)}</span>${errors[name] ? `<span class="hint" role="alert">${escapeHtml(errors[name])}</span>` : ""}</div>`;
+        // Saved secrets this field is not already using: the same kind first, then the person's others.
+        const usable = offered.filter(
+          (o) => !o.usedBy.some((u) => u.tool === manifest.name && u.field === name),
+        );
+        const same = usable.filter((o) => secret.kind !== undefined && o.kind === secret.kind);
+        const others = usable.filter((o) => !same.includes(o));
+        const option = (o: SavedSecret) => {
+          const where = o.usedBy.length
+            ? ` (used by ${[...new Set(o.usedBy.map((u) => u.tool))].join(", ")})`
+            : "";
+          return `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}${escapeHtml(where)}</option>`;
+        };
+        const group = (title: string, list: SavedSecret[]) =>
+          list.length
+            ? `<optgroup label="${escapeHtml(title)}">${list.map(option).join("")}</optgroup>`
+            : "";
+        const choose =
+          same.length + others.length > 0
+            ? `<label for="use-${i}" class="hint">Or use a secret you saved before</label><select id="use-${i}" name="use:${escapeHtml(name)}"><option value="">Enter a new one</option>${group("Same kind", same)}${group("Your other saved secrets", others)}</select>`
+            : "";
+        const error = errors[name]
+          ? `<span class="hint" role="alert">${escapeHtml(errors[name])}</span>`
+          : "";
+        return `<div class="secret"><label for="secret-${i}">${escapeHtml(secret.label)}${set ? ` <span class="tag-set">Set</span>` : ""}</label><input id="secret-${i}" type="password" name="${escapeHtml(name)}" autocomplete="off" spellcheck="false" placeholder="${set ? "Enter a new value to replace it" : ""}"><span class="hint">${escapeHtml(help)}</span>${choose}${error}</div>`;
       })
       .join("");
     const lead =
@@ -173,7 +219,13 @@ export async function handleSecretsInput(
 
   const secretNames = new Set(declared.map(([name]) => name));
   const fieldOf = new Map(fields);
-  const unknown = Object.keys(sent).filter((name) => !secretNames.has(name) && !fieldOf.has(name));
+  // `use:NAME` chooses a saved secret for the secret field NAME.
+  const unknown = Object.keys(sent).filter(
+    (name) =>
+      !secretNames.has(name) &&
+      !fieldOf.has(name) &&
+      !(name.startsWith("use:") && secretNames.has(name.slice(4))),
+  );
   if (unknown.length > 0) {
     return Response.json(
       { error: { code: "INVALID", message: `Unknown field: ${unknown.join(", ")}.` } },
@@ -214,15 +266,56 @@ export async function handleSecretsInput(
     return render({ title: heading, eyebrow, body: await form(errors, strings), status: 400 });
   }
 
+  // A saved secret chosen for a secret field: it must be the person's own, and not typed over (D-105).
+  // Its value joins what the tool's check sees; nothing is bound before the check says yes.
+  const chosen: Array<[string, string]> = [];
+  const chosenValues: Record<string, string> = {};
+  for (const name of secretNames) {
+    const id = sent[`use:${name}`];
+    if (typeof id !== "string" || id === "") continue;
+    if (typeof sent[name] === "string" && sent[name] !== "") {
+      errors[name] = "Choose a saved secret or enter a new one, not both.";
+      continue;
+    }
+    const value = registry ? await registry.value(id) : undefined;
+    if (value === undefined) {
+      errors[name] = "That saved secret is not available.";
+      continue;
+    }
+    chosen.push([name, id]);
+    chosenValues[name] = value;
+  }
+  if (Object.keys(errors).length > 0) {
+    if (asJson) {
+      return Response.json(
+        { error: { code: "INVALID", message: "Some values are not valid.", fields: errors } },
+        { status: 400 },
+      );
+    }
+    const strings = Object.fromEntries(
+      Object.entries(sent).filter(
+        (e): e is [string, string] => typeof e[1] === "string" && !secretNames.has(e[0]),
+      ),
+    );
+    return render({ title: heading, eyebrow, body: await form(errors, strings), status: 400 });
+  }
+
   // The tool's own check, on what would be kept: the values given now over the ones already kept. It
   // says no for a reason the person can act on (an Odoo key that Odoo refuses), and nothing is kept.
   const submittedSecrets = Object.entries(sent).filter(
     (e): e is [string, string] => secretNames.has(e[0]) && typeof e[1] === "string" && e[1] !== "",
   );
-  if (check && (Object.keys(values).length > 0 || submittedSecrets.length > 0)) {
+  if (
+    check &&
+    (Object.keys(values).length > 0 || submittedSecrets.length > 0 || chosen.length > 0)
+  ) {
     const verdict = await check({
       setup: { ...current, ...values },
-      secrets: { ...(await store.read(user)), ...Object.fromEntries(submittedSecrets) },
+      secrets: {
+        ...(await store.read(user)),
+        ...chosenValues,
+        ...Object.fromEntries(submittedSecrets),
+      },
     });
     if (!verdict.ok) {
       if (asJson) {
@@ -250,6 +343,10 @@ export async function handleSecretsInput(
   if (setupStore && Object.keys(values).length > 0) {
     await setupStore.write(user, values);
     saved.push(...Object.keys(values));
+  }
+  for (const [name, id] of chosen) {
+    await registry!.bind(name, id);
+    saved.push(name);
   }
   for (const [name, value] of Object.entries(sent)) {
     if (!secretNames.has(name) || typeof value !== "string" || value === "") continue;

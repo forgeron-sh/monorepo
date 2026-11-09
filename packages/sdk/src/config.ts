@@ -102,7 +102,7 @@ export const field = {
     return { type: "choice", required, ...rest };
   },
   /** A per-person secret, sealed by the platform and never readable by the developer (D-036). */
-  secret(options: { label: string; why: string; help?: string }): SecretField {
+  secret(options: { label: string; why: string; help?: string; kind?: string }): SecretField {
     return { type: "secret", ...options };
   },
 };
