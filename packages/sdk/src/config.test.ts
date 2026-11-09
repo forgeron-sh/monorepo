@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bucket, connector, database, defineConfig, kv, queue } from "./index";
+import { bucket, connector, database, defineConfig, field, kv, queue } from "./index";
 
 describe("defineConfig", () => {
   // The odoo-gateway example of docs/examples/02-odoo-gateway.md.
@@ -73,5 +73,46 @@ describe("resource helpers", () => {
       scopes: ["Mail.Send"],
       why: "Send an email",
     });
+  });
+});
+
+describe("field (D-096)", () => {
+  it("makes a plain field required unless it says otherwise", () => {
+    expect(field.text({ label: "First name" })).toEqual({
+      type: "text",
+      required: true,
+      label: "First name",
+    });
+    expect(field.text({ label: "Nick", required: false, maxLength: 20 })).toEqual({
+      type: "text",
+      required: false,
+      label: "Nick",
+      maxLength: 20,
+    });
+    expect(field.choice({ label: "Team", options: ["a", "b"] })).toEqual({
+      type: "choice",
+      required: true,
+      label: "Team",
+      options: ["a", "b"],
+    });
+  });
+
+  it("marks a secret, with the reason the platform shows", () => {
+    expect(
+      field.secret({ label: "Odoo API key", why: "Read your tickets", help: "Odoo > Security" }),
+    ).toEqual({
+      type: "secret",
+      label: "Odoo API key",
+      why: "Read your tickets",
+      help: "Odoo > Security",
+    });
+  });
+
+  it("goes in a config's setup unchanged", () => {
+    const config = {
+      name: "odoo",
+      setup: { fields: { firstName: field.text({ label: "First name" }) } },
+    };
+    expect(defineConfig(config)).toBe(config);
   });
 });

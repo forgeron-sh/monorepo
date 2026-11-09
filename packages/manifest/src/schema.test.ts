@@ -189,3 +189,38 @@ describe("invariants", () => {
     }
   });
 });
+
+describe("setup (D-096)", () => {
+  const setup = {
+    fields: {
+      firstName: { type: "text", label: "First name", required: true },
+      team: { type: "choice", label: "Team", required: false, options: ["support", "sales"] },
+    },
+    check: "deals.move",
+  };
+
+  it("accepts plain fields and a check that is an action", () => {
+    expect(ManifestSchema.safeParse({ ...crm, setup }).success).toBe(true);
+    expect(ManifestSchema.safeParse({ ...crm, setup: { fields: {} } }).success).toBe(true);
+  });
+
+  it.each([
+    ["a check that is not an action", { ...setup, check: "ghost.run" }],
+    [
+      "a field name in upper case (that is a secret's)",
+      { fields: { FIRST: setup.fields.firstName } },
+    ],
+    ["a field name that starts with a digit", { fields: { "1st": setup.fields.firstName } }],
+    [
+      "a secret field (it belongs to resources.userSecrets)",
+      {
+        fields: { key: { type: "secret", label: "Key", why: "x" } },
+      },
+    ],
+    ["a choice with no option", { fields: { team: { ...setup.fields.team, options: [] } } }],
+    ["a field without required", { fields: { firstName: { type: "text", label: "First name" } } }],
+    ["an unknown key", { ...setup, colour: "red" }],
+  ])("rejects %s", (_, bad) => {
+    expect(ManifestSchema.safeParse({ ...crm, setup: bad }).success).toBe(false);
+  });
+});

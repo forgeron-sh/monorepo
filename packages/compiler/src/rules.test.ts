@@ -134,3 +134,34 @@ describe("building twice", () => {
     }
   }, 90_000);
 });
+
+describe("a setup (D-096)", () => {
+  it("keeps the plain fields in the manifest and moves the secret fields to the per-person secrets", async () => {
+    const built = await buildTool(tool("setup"));
+    const manifest = JSON.parse(
+      await readFile(join(built.outDir, "manifest.json"), "utf8"),
+    ) as Manifest;
+    expect(manifest.setup).toEqual({
+      fields: {
+        firstName: { type: "text", label: "First name", required: true },
+        team: { type: "choice", label: "Team", options: ["support", "sales"], required: false },
+      },
+      check: "setup.check",
+    });
+    expect(manifest.resources.userSecrets).toEqual({
+      ODOO_API_KEY: { label: "Odoo API key", why: "Read your tickets" },
+    });
+  }, 60_000);
+
+  it("refuses a secret declared in the setup and in resources.userSecrets", async () => {
+    await expect(buildTool(tool("setup-clash"))).rejects.toThrow(
+      /setup\.fields\.ODOO_API_KEY is a secret that resources\.userSecrets\.ODOO_API_KEY already declares/,
+    );
+  }, 60_000);
+
+  it("refuses a check that is not an action of the tool", async () => {
+    await expect(buildTool(tool("setup-check"))).rejects.toThrow(
+      /setup\.check: The setup check "setup\.check" is not an action of the tool\./,
+    );
+  }, 60_000);
+});

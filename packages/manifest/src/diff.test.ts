@@ -464,3 +464,62 @@ describe("pending approval", () => {
     expect(result).toMatchObject({ impact: "minor", pendingApproval: true });
   });
 });
+
+describe("setup changes (D-096)", () => {
+  const first = { type: "text" as const, label: "First name", required: true };
+  const base = (): Manifest => {
+    const m = clone(crm);
+    m.setup = { fields: { firstName: first } };
+    return m;
+  };
+  const change = (mutate: Mutation) => {
+    const next = base();
+    mutate(next);
+    return diffManifests(base(), next);
+  };
+
+  it("makes a new field a minor change that asks an admin for nothing", () => {
+    const result = change((m) => {
+      m.setup!.fields.lastName = { ...first, label: "Last name" };
+    });
+    expect(result.changes).toEqual([
+      { kind: "setup.field-added", subject: "setup.fields.lastName", impact: "minor" },
+    ]);
+    expect(result.pendingApproval).toBe(false);
+  });
+
+  it("makes a removed field a patch, a field made required or of another type a minor, a label a patch", () => {
+    expect(change((m) => delete m.setup!.fields.firstName).changes[0]).toMatchObject({
+      kind: "setup.field-removed",
+      impact: "patch",
+    });
+    const optional = base();
+    optional.setup!.fields.firstName = { ...first, required: false };
+    expect(diffManifests(optional, base()).changes[0]).toMatchObject({
+      kind: "setup.field-changed",
+      impact: "minor",
+    });
+    expect(
+      change((m) => (m.setup!.fields.firstName = { ...first, label: "Given name" })).impact,
+    ).toBe("patch");
+    expect(
+      change(
+        (m) =>
+          (m.setup!.fields.firstName = {
+            type: "choice",
+            label: "First name",
+            required: true,
+            options: ["a"],
+          }),
+      ).impact,
+    ).toBe("minor");
+  });
+
+  it("sees a check added, changed or dropped, and no setup at all as no change", () => {
+    expect(change((m) => (m.setup!.check = "deals.move")).changes[0]).toMatchObject({
+      kind: "setup.check-changed",
+      impact: "patch",
+    });
+    expect(diffManifests(crm, clone(crm)).changes).toEqual([]);
+  });
+});

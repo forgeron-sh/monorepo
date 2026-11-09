@@ -64,6 +64,10 @@ export type ChangeKind =
   | "resource.broadened"
   | "resource.narrowed"
   | "resource.why-changed"
+  | "setup.field-added"
+  | "setup.field-removed"
+  | "setup.field-changed"
+  | "setup.check-changed"
   | "uses.added"
   | "uses.removed"
   | "uses.range-changed";
@@ -174,6 +178,7 @@ export function diffManifests(previous: Manifest, next: Manifest): ManifestDiff 
     },
   });
   diffResources(previous.resources, next.resources, add);
+  diffSetup(previous.setup, next.setup, add);
   diffKeyed(previous.uses, next.uses, {
     added: (name) => add("uses.added", `uses.${name}`, "minor"),
     removed: (name) => add("uses.removed", `uses.${name}`, "patch"),
@@ -191,6 +196,29 @@ export function diffManifests(previous: Manifest, next: Manifest): ManifestDiff 
   );
   const impact = flagged.reduce<Impact>((acc, change) => maxImpact(acc, change.impact), "none");
   return { changes: flagged, impact, pendingApproval: flagged.some((c) => c.needsApproval) };
+}
+
+/**
+ * The plain fields of a setup (D-096). A new field makes everyone fill it in at their next use, so it
+ * is a `minor`; a field made required does the same; a removed one is a `patch`. Not a resource: an
+ * admin approves nothing here (the secret fields are `resources.userSecrets`, which are approved).
+ */
+function diffSetup(previous: Manifest["setup"], next: Manifest["setup"], add: Add): void {
+  diffKeyed(previous?.fields ?? {}, next?.fields ?? {}, {
+    added: (name) => add("setup.field-added", `setup.fields.${name}`, "minor"),
+    removed: (name) => add("setup.field-removed", `setup.fields.${name}`, "patch"),
+    both: (name, before, after) => {
+      if (sameJson(before, after)) return;
+      const subject = `setup.fields.${name}`;
+      const madeRequired = !before.required && after.required;
+      add(
+        "setup.field-changed",
+        subject,
+        madeRequired || before.type !== after.type ? "minor" : "patch",
+      );
+    },
+  });
+  if (previous?.check !== next?.check) add("setup.check-changed", "setup.check", "patch");
 }
 
 type Add = (kind: ChangeKind, subject: string, impact: Change["impact"], detail?: string) => void;

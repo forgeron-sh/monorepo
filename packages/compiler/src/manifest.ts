@@ -1,4 +1,5 @@
 import { ManifestSchema, type Manifest } from "@forgeron/manifest";
+import type { ToolConfig } from "@forgeron/sdk";
 import type { LoadedTool } from "./load";
 
 // Writes the manifest from what the tool declares, with every default resolved (sdk.md §6, §14).
@@ -123,6 +124,8 @@ export function buildManifest(
     };
   }
 
+  const { resources, setup } = withSetup(config);
+
   const manifest = {
     name: config.name,
     version,
@@ -136,7 +139,8 @@ export function buildManifest(
     views,
     jobs,
     events,
-    resources: config.resources ?? {},
+    resources,
+    ...(setup ? { setup } : {}),
     uses: config.uses ?? {},
     preview: config.preview ?? { data: "seed" },
   };
@@ -147,4 +151,39 @@ export function buildManifest(
     throw new Error(`The manifest of "${config.name}" is not valid:\n${issues.join("\n")}`);
   }
   return parsed.data;
+}
+
+/**
+ * The resources and the setup the manifest keeps (D-096). A secret field of the setup is a per-person
+ * secret: it goes to `resources.userSecrets`, where the platform already asks the admin to approve it,
+ * seals it and hands it to a call (D-036). The plain fields stay in `setup`.
+ */
+function withSetup(config: ToolConfig): {
+  resources: Manifest["resources"];
+  setup?: Manifest["setup"];
+} {
+  const resources = config.resources ?? {};
+  const declared = config.setup;
+  if (!declared) return { resources };
+  const plain: NonNullable<Manifest["setup"]>["fields"] = {};
+  const secrets: NonNullable<Manifest["resources"]["userSecrets"]> = { ...resources.userSecrets };
+  for (const [name, field] of Object.entries(declared.fields)) {
+    if (field.type !== "secret") {
+      plain[name] = field;
+      continue;
+    }
+    if (name in secrets) {
+      throw new Error(
+        `setup.fields.${name} is a secret that resources.userSecrets.${name} already declares: declare it once.`,
+      );
+    }
+    const { type: _, ...secret } = field;
+    secrets[name] = secret;
+  }
+  return {
+    resources: Object.keys(secrets).length > 0 ? { ...resources, userSecrets: secrets } : resources,
+    ...(Object.keys(plain).length > 0 || declared.check
+      ? { setup: { fields: plain, ...(declared.check ? { check: declared.check } : {}) } }
+      : {}),
+  };
 }
