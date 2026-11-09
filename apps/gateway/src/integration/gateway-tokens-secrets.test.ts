@@ -361,6 +361,48 @@ describe("per-person secrets on first use", () => {
     expect((await call("/t/crm/api/tickets.mine", token)).status).toBe(428);
   });
 
+  it("the admin sets a person's secret: it works at once, leaves a line and never comes back (D-107)", async () => {
+    const cat = (
+      await registry.addMember({
+        workspace: "acme",
+        subject: "cat2",
+        email: "cat2@acme.test",
+        name: "cat2",
+        roles: [],
+      })
+    ).id;
+    const put = (token: string, who: string, field = "ODOO_API_KEY") =>
+      call(`/console-api/api/tools/crm/user-secrets/${who}/${field}`, token, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ value: "set-by-admin-value" }),
+      });
+    // A member cannot, and the tool's own token neither.
+    expect((await put(await cliToken(ana), cat)).status).toBe(403);
+    // No such person, no such field.
+    expect((await put(await cliToken(admin), "ghost")).status).toBe(404);
+    expect((await put(await cliToken(admin), cat, "UNKNOWN_KEY")).status).toBe(404);
+    expect((await put(await cliToken(admin), cat)).status).toBe(204);
+    // The person's calls now carry it, and they are not asked.
+    seen.length = 0;
+    expect((await call("/t/crm/api/tickets.mine", await tokenFor(cat, "crm"))).status).toBe(200);
+    expect(seen[0]?.secrets).toEqual({ ODOO_API_KEY: "set-by-admin-value" });
+    // The registry says an administrator set it, and the audit line names who, never the value.
+    const mine = await registry.listPersonSecrets("acme", cat);
+    expect(mine[0]?.history[0]).toMatchObject({ via: "admin", byPerson: false });
+    const tool = (await registry.findTool("acme", "crm"))!;
+    const line = (await registry.listAudit(tool.id, { kind: "access" })).find(
+      (l) => l.subject === "secret:set-by-admin",
+    );
+    expect(line?.actor).toBe(admin);
+    expect(JSON.stringify(line)).not.toContain("set-by-admin-value");
+    // Nothing reads it back: holders list names only.
+    const holders = await (
+      await call("/console-api/api/tools/crm/user-secrets", await cliToken(admin))
+    ).text();
+    expect(holders).not.toContain("set-by-admin-value");
+  });
+
   it("another tool's token cannot store a secret for this tool", async () => {
     const response = await call(
       "/t/crm/secrets",

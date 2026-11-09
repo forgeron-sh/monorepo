@@ -105,6 +105,7 @@ Rules of the log:
 | D-104 | 09/11/2026 | A registry of a person's secrets: secret, versions and bindings; an admin may set one with an audit the person sees (FOR-172)                                          | Proposed                               |
 | D-105 | 09/11/2026 | A secret field declares a `kind`; the setup page offers the person's saved secrets of that kind and binds one by a click (FOR-172, ticket 2 of the registry)           | Active                                 |
 | D-106 | 09/11/2026 | A person's page of secrets: `/my/secrets` lists, changes and deletes them in one place; no value is ever shown (FOR-172, ticket 3 of the registry)                     | Active                                 |
+| D-107 | 09/11/2026 | An administrator may type a person's secret for a tool: audited, visible to the person, never read back (FOR-172, ticket 4 of the registry)                            | Active                                 |
 
 ---
 
@@ -1327,3 +1328,19 @@ Rules of the log:
 - **Not done**: a link to the page from the console and from the setup page (the address is documented, nothing points to it yet); the administrator's route (ticket 4); creating a binding from the page for a tool that does not use the secret yet (the setup page of the tool is where a tool is bound); the branch scopes are shown and editable but nothing creates them yet (ticket 5); re-sealing (6); dropping `user_secrets` (7).
 - **Not verified**: no browser (forms and `<details>` were read as HTML); no real tool behind the checks.
 - **Applied in**: `apps/gateway/src/my-secrets/my-secrets.ts`, `apps/gateway/src/pages/my-secrets.ts`, `gateway.ts`, `compose.ts` (`checkSetup` shared); `packages/registry/src/modules/secrets/store.ts`; `docs/sdk.md` §10.
+
+## D-107 — An administrator may type a person's secret for a tool: audited, visible to the person, never read back (FOR-172, ticket 4 of the registry)
+
+- **Date**: 09/11/2026 · **Status**: Active · fourth step of D-104; follows the owner's "yes, with an audit" of D-103
+- **Decision**:
+  1. **Route**: `PUT /api/tools/{tool}/user-secrets/{person}/{name}` with `{ "value": "..." }` (16 KB max), **admin only** like the other revocation routes. 204 on success; 404 for an unknown tool, a person who is not a member, or a field the tool does not declare in `resources.userSecrets`; 400 for a bad body. The value goes in and never comes out: no route returns it, the holders list still gives names only.
+  2. **Effect**: the same as the person typing it at the tool's setup page: a new version of the secret behind the tool-wide binding, or a new secret (label and kind taken from the tool's declaration) with its binding. The binding follows the latest version, so the person's next call carries it. The version records **who typed it** (`created_by` = the admin) and `via: "admin"`.
+  3. **Audit**: in the same batch, a line `secret:set-by-admin` on the tool (kind `access`): the admin, the tool, the field, the secret's id, the version, the person; **never the value**.
+  4. **What the person sees**: "My secrets" (D-106) already says **by an administrator** for the last change and in the history; nothing else is needed on their side.
+  5. **No MCP tool and no CLI command**: a secret typed into a chat would pass through a model's context and a terminal history. The route is for the console, which is where a person's keys are entered by hand.
+  6. **The admin's own check**: none. The tool's setup `check` (D-101) is not run for an administrator's value; the person's next call tells whether it works. Running it would need the person's other values, which the administrator must not see.
+- **Why**: a person blocked by a missing key (leave, wrong key) is unblocked by an administrator without sending the key through the person, and the person can see that it happened.
+- **Rejected**: letting an administrator read a value for debugging (a stored secret is then retrievable by more people; unchanged from D-103); an e-mail to the person (decision d of the spike, left to the owner: no mail sender is configured for the gateway yet, so the line in "My secrets" is the notice for now).
+- **Not done**: a console screen for the route; the mail; branch scopes (ticket 5).
+- **Not verified**: no console, no browser.
+- **Applied in**: `packages/platform-contract/src/revocations.ts` (`setUserSecretRoute`), `apps/gateway/src/platform/approvals.ts`, `packages/registry/src/modules/secrets/store.ts` (`setUserSecret`); tests `gateway-tokens-secrets.test.ts`, `approvals.test.ts`.

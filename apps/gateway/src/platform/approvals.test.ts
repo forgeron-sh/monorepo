@@ -75,6 +75,17 @@ describeRouteMatrix({
 });
 
 describeRouteMatrix({
+  title: "PUT one secret of a person",
+  ...admin,
+  ...revocation,
+  method: "PUT",
+  path: "/api/tools/crm/user-secrets/mem_1/ODOO_KEY",
+  invalidMessage: "`value` is a non-empty string (16 KB max).",
+  valid: { value: "test-value" },
+  invalid: [{}, { value: "" }, { value: 1 }],
+});
+
+describeRouteMatrix({
   title: "GET user setup",
   ...admin,
   ...revocation,
