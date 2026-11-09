@@ -1,7 +1,7 @@
 import type { Manifest } from "@forgeron/manifest";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createRuntime, type User, type UserSecretStore } from "./index";
+import { createRuntime, missingSetup, type User, type UserSecretStore } from "./index";
 
 const ALL = ["mcp", "api", "cli", "web"] as const;
 const manifest: Manifest = {
@@ -183,5 +183,40 @@ describe("per-person secrets on first use", () => {
     expect((await post({ OTHER: "x" })).status).toBe(400);
     expect((await post({ ODOO_API_KEY: "x" }, { origin: "https://evil.test" })).status).toBe(403);
     expect(data.size).toBe(0);
+  });
+});
+
+describe("missingSetup (D-097)", () => {
+  const withSetup: Manifest = {
+    ...manifest,
+    setup: {
+      fields: {
+        firstName: { type: "text", label: "First name", required: true },
+        team: { type: "choice", label: "Team", required: false, options: ["a"] },
+      },
+    },
+  };
+  const secretNames = Object.keys(manifest.resources.userSecrets ?? {});
+
+  it("lists the required fields with no value and the secrets that are not set", () => {
+    expect(missingSetup(withSetup, { setup: {}, secrets: {} })).toEqual({
+      fields: ["firstName"],
+      secrets: secretNames,
+    });
+  });
+
+  it("is empty once everything required is given; an optional field is never missing", () => {
+    const given = Object.fromEntries(secretNames.map((n) => [n, "v"]));
+    expect(missingSetup(withSetup, { setup: { firstName: "Ana" }, secrets: given })).toEqual({
+      fields: [],
+      secrets: [],
+    });
+  });
+
+  it("asks nothing of a tool that declares nothing", () => {
+    expect(missingSetup({ ...manifest, resources: {} }, { setup: {}, secrets: {} })).toEqual({
+      fields: [],
+      secrets: [],
+    });
   });
 });

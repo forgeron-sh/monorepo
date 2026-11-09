@@ -30,6 +30,9 @@ export interface UserSecretsContext {
   connectors?: Pick<ConnectorTokensContext, "consent" | "consentUrl">;
 }
 
+/** The only place a setup page sends a person on: the OAuth authorization step of this workspace. */
+const SETUP_NEXT = /^\/oauth\/authorize\?[A-Za-z0-9%._~!$&'()*+,;=:@/?-]*$/;
+
 const refuse = (status: number, code: string, message: string) =>
   Response.json({ error: { code, message } }, { status });
 
@@ -80,6 +83,9 @@ export async function handleUserSecrets(
       context.registry.writeUserSetup({ toolId: record.id, person: user.id, values }),
   };
   const url = new URL(request.url);
+  // Where the OAuth step that sent the person here wants them back: only that step's own path (D-098).
+  const asked = url.searchParams.get("next");
+  const next = asked && SETUP_NEXT.test(asked) && asked.length <= 2000 ? asked : undefined;
   return handleSecretsInput(
     request,
     manifest,
@@ -89,6 +95,7 @@ export async function handleUserSecrets(
     ({ title, eyebrow, body, status }) =>
       page({ title, eyebrow, workspace: context.workspace, status }, body),
     setupStore,
+    next,
   );
 }
 
