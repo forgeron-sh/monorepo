@@ -16,3 +16,17 @@ export interface InstalledTemplate {
   /** The requests an admin still has to decide before the tool can reach production. */
   approvals: Array<{ resource: string; kind: string }>;
 }
+
+/** What an install plan shows before anything is created (D-092). */
+export interface InstallPlan {
+  /** The identifier `tool_install` accepts: single-use, bound to the person and the workspace. */
+  id: string;
+  template: string;
+  version: string;
+  /** What an admin will have to approve (`resources.db`, `resources.network`…). */
+  resources: string[];
+  expiresAt: string;
+}
+
+/** Why a plan cannot be used. `unknown` covers a plan that does not exist, is another person's or another workspace's. */
+export type InstallPlanRefusal = "unknown" | "used" | "expired" | "stale";

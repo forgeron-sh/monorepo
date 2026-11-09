@@ -41,6 +41,7 @@ export type {
   SecretStatus,
 } from "./modules/secrets/public";
 export { TEMPLATE_WORKSPACE } from "./modules/templates/public";
+export type { InstallPlan, InstallPlanRefusal } from "./modules/templates/public";
 
 export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   const kernel = createKernel(d1, options);

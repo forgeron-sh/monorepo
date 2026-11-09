@@ -1,10 +1,13 @@
 import {
+  createInstallPlanRoute,
   createSecretRequestRoute,
   decideApprovalRoute,
   getAccessMatrixRoute,
+  installFromPlanRoute,
   listApprovalsRoute,
   listCatalogRoute,
   listMembersRoute,
+  listTemplatesRoute,
   listToolsRoute,
   promoteRoute,
   putAccessMatrixRoute,
@@ -333,6 +336,40 @@ export const TOOLS: readonly ToolDefinition[] = [
     destructive: true,
     input: target,
     run: (args, port) => setAccess(args, port, false),
+  }),
+  define({
+    name: "template_list",
+    title: "List the templates",
+    description: "The templates of the catalog, with the resources each one asks for.",
+    minRole: "admin",
+    destructive: false,
+    input: z.strictObject({}),
+    run: (_args, port) => ask(port, { method: "GET", path: listTemplatesRoute.path }),
+  }),
+  define({
+    name: "tool_install_plan",
+    title: "Plan the install of a template",
+    description:
+      "Shows what installing a template would create and which resources would need approval. Creates no tool: it returns a plan identifier, valid for 15 minutes, that only `tool_install` accepts. Show the plan to the person and ask before calling `tool_install`.",
+    minRole: "admin",
+    destructive: false,
+    input: z.strictObject({ template: tool.describe("The template's name") }),
+    run: ({ template }, port) =>
+      ask(port, {
+        method: "POST",
+        path: at(createInstallPlanRoute.path, { name: template }),
+      }),
+  }),
+  define({
+    name: "tool_install",
+    title: "Install a template",
+    description:
+      "Creates the tool of a plan made by `tool_install_plan`, once. Takes only the plan's identifier. The tool has no environment yet and its resources wait for approval.",
+    minRole: "admin",
+    destructive: true,
+    input: z.strictObject({ plan: z.string().min(1).max(64).describe("The plan's identifier") }),
+    run: ({ plan }, port) =>
+      ask(port, { method: "POST", path: at(installFromPlanRoute.path, { plan }) }),
   }),
   define({
     name: "tool_promote",

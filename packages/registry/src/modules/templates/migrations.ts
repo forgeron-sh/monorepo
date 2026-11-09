@@ -1,0 +1,28 @@
+import type { BuildMigration } from "@forgeron/hosting";
+import { st } from "../../kernel/sql";
+
+// Migrations owned by the templates module; the number is global (the order is the name, see ../../migrations.ts).
+export const templatesMigrations: BuildMigration[] = [
+  {
+    // Install plans (D-092): the plan an admin reads before a tool is created from a template. It is
+    // bound to the person and the workspace, names the version it showed, lives 15 minutes and is
+    // spent once. `claim` is set by the statement that spends it.
+    name: "0024_install_plans",
+    fingerprint: "install-plans-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "install_plans" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "workspace" TEXT NOT NULL,
+  "template" TEXT NOT NULL,
+  "version" TEXT NOT NULL,
+  "person" TEXT NOT NULL,
+  "created_at" TEXT NOT NULL,
+  "expires_at" TEXT NOT NULL,
+  "used_at" TEXT,
+  "claim" TEXT
+)`),
+    ],
+    down: [st(`DROP TABLE "install_plans"`)],
+  },
+];

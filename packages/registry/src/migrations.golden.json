@@ -634,5 +634,22 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0024_install_plans",
+    "fingerprint": "install-plans-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"install_plans\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"workspace\" TEXT NOT NULL,\n  \"template\" TEXT NOT NULL,\n  \"version\" TEXT NOT NULL,\n  \"person\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  \"expires_at\" TEXT NOT NULL,\n  \"used_at\" TEXT,\n  \"claim\" TEXT\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"install_plans\"",
+        "parameters": []
+      }
+    ]
   }
 ]

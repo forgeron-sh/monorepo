@@ -158,3 +158,81 @@ describe("installing a template", () => {
     ]);
   });
 });
+
+describe("install plans (D-092)", () => {
+  const acme = { workspace: "acme", person: "ana" };
+
+  it("shows what would be created, creates nothing, and audits that a plan was made", async () => {
+    await publish("crm", "1.0.0", { db: { why: "deals" } });
+    const plan = await registry.createInstallPlan({
+      ...acme,
+      template: "crm",
+      via: VIA_FORGERON_MCP,
+    });
+    expect(plan).toMatchObject({ template: "crm", version: "1.0.0", resources: ["resources.db"] });
+    expect(await registry.findTool("acme", "crm")).toBeUndefined();
+  });
+
+  it("installs the template once: the plan is spent, a second use is refused", async () => {
+    await publish("crm", "1.0.0", { db: { why: "deals" } });
+    const plan = await registry.createInstallPlan({ ...acme, template: "crm" });
+    const installed = await registry.installFromPlan({ ...acme, plan: plan.id });
+    expect(installed).toMatchObject({ tool: { name: "crm" }, version: { version: "1.0.0" } });
+    expect(await registry.installFromPlan({ ...acme, plan: plan.id })).toBe("used");
+  });
+
+  it("refuses a plan that is unknown, another person's or another workspace's, with the same answer", async () => {
+    await publish("crm", "1.0.0", {});
+    const plan = await registry.createInstallPlan({ ...acme, template: "crm" });
+    expect(await registry.installFromPlan({ ...acme, plan: "nope" })).toBe("unknown");
+    expect(
+      await registry.installFromPlan({ workspace: "acme", person: "ben", plan: plan.id }),
+    ).toBe("unknown");
+    expect(
+      await registry.installFromPlan({ workspace: "other", person: "ana", plan: plan.id }),
+    ).toBe("unknown");
+    // None of those spent it: the right person still can.
+    expect(await registry.installFromPlan({ ...acme, plan: plan.id })).toMatchObject({
+      tool: { name: "crm" },
+    });
+  });
+
+  it("refuses an expired plan and a plan whose template has a newer version than the one shown", async () => {
+    await publish("crm", "1.0.0", {});
+    let clock = new Date("2026-11-09T10:00:00Z");
+    const timed = createRegistry(memory as unknown as D1Database, { now: () => clock });
+    const plan = await timed.createInstallPlan({ ...acme, template: "crm" });
+    clock = new Date(clock.getTime() + 16 * 60 * 1000);
+    expect(await timed.installFromPlan({ ...acme, plan: plan.id })).toBe("expired");
+
+    clock = new Date("2026-11-09T11:00:00Z");
+    const fresh = await timed.createInstallPlan({ ...acme, template: "crm" });
+    await publish("crm", "1.1.0", {});
+    expect(await timed.installFromPlan({ ...acme, plan: fresh.id })).toBe("stale");
+    expect(await timed.findTool("acme", "crm")).toBeUndefined();
+  });
+
+  it("lets only one of two parallel uses install", async () => {
+    await publish("crm", "1.0.0", {});
+    const plan = await registry.createInstallPlan({ ...acme, template: "crm" });
+    const results = await Promise.allSettled([
+      registry.installFromPlan({ ...acme, plan: plan.id }),
+      registry.installFromPlan({ ...acme, plan: plan.id }),
+    ]);
+    const installed = results.filter(
+      (r) => r.status === "fulfilled" && typeof r.value === "object",
+    );
+    expect(installed).toHaveLength(1);
+  });
+
+  it("refuses a plan for a template that does not exist or that the workspace already has", async () => {
+    await expect(registry.createInstallPlan({ ...acme, template: "crm" })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    await publish("crm", "1.0.0", {});
+    await registry.createTool({ workspace: "acme", name: "crm" });
+    await expect(registry.createInstallPlan({ ...acme, template: "crm" })).rejects.toBeInstanceOf(
+      RegistryError,
+    );
+  });
+});
