@@ -9,6 +9,8 @@ export interface ConsentInput {
   person: Person;
   /** What the client called itself when it registered. Anyone may pick any name: it is shown as a claim. */
   clientName: string;
+  /** The tool the app asks to use, or `undefined` for the workspace's admin MCP. */
+  tool?: string;
   /** Where the answer goes: the host of the registered redirect address. */
   address: string;
   /** The client's request, posted back unchanged by both buttons. */
@@ -18,15 +20,18 @@ export interface ConsentInput {
 export function consentPage(input: ConsentInput): Response {
   return page(
     {
-      title: `Let "${input.clientName}" use ${input.workspace}?`,
+      title: input.tool
+        ? `Let "${input.clientName}" use ${input.tool}?`
+        : `Let "${input.clientName}" use ${input.workspace}?`,
       eyebrow: "Connect an app",
       workspace: input.workspace,
     },
-    `<p class="lead">An app calling itself <strong>${escape(input.clientName)}</strong> asks to administer this workspace as you, through its MCP. Allow it only if you just asked an app to connect.</p>` +
+    `<p class="lead">An app calling itself <strong>${escape(input.clientName)}</strong> asks to ${input.tool ? `use the tool <strong>${escape(input.tool)}</strong>` : "administer this workspace"} as you, through its MCP. Allow it only if you just asked an app to connect.</p>` +
       facts([
         ["Signed in as", input.person.email],
         ["Workspace", input.workspace],
         ["The answer goes to", input.address],
+        ...(input.tool ? ([["Tool", input.tool]] as Array<[string, string]>) : []),
         ["It may", "Do what your role allows here, and no more"],
         ["Access lasts", "One hour, renewed until you revoke it or 30 days pass"],
       ]) +
