@@ -19,6 +19,8 @@ export interface TestIdentity {
   id?: string;
   roles: string[];
   userSecrets?: Record<string, string>;
+  /** The plain values the person gave the tool's `setup` (`ctx.user.setup`, D-097). */
+  setup?: Record<string, string>;
 }
 
 export interface EmittedEvent {
@@ -160,6 +162,8 @@ export async function createTestTool<DB = any>(
       platform: {
         secrets: options.secrets ?? {},
         userSecrets: identity.userSecrets ?? {},
+        // Given, the plain values are the person's and a required field left out is asked for (428).
+        ...(identity.setup ? { userSetup: identity.setup } : {}),
         connectors: options.connectors ?? {},
         fetch: options.fetch ?? noFetch,
         cache: memoryCache(user.id, cache),

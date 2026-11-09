@@ -194,6 +194,90 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
       return found.length;
     },
 
+    // ---- plain per-person values of a tool's setup (D-097): in clear, the person's own and the admin's to see
+    /** One person's plain values for a tool. The gateway hands them to the tool they call, as it does their secrets. */
+    async readUserSetup(toolId: string, person: string): Promise<Record<string, string>> {
+      return Object.fromEntries(
+        (
+          await all(
+            `SELECT "name", "value" FROM "user_setup" WHERE "tool_id" = ? AND "person" = ?`,
+            toolId,
+            person,
+          )
+        ).map((r) => [String(r.name), String(r.value)]),
+      );
+    },
+    /** Sets the given values (an empty string removes one), in one batch with the audit line (names only, never a value). */
+    async writeUserSetup(input: {
+      toolId: string;
+      person: string;
+      values: Record<string, string>;
+      via?: string;
+    }): Promise<void> {
+      await requireTool(input.toolId);
+      const at = now();
+      const names = Object.keys(input.values);
+      if (names.length === 0) return;
+      await d1.batch([
+        ...names.map((name) =>
+          input.values[name] === ""
+            ? d1
+                .prepare(
+                  `DELETE FROM "user_setup" WHERE "tool_id" = ? AND "person" = ? AND "name" = ?`,
+                )
+                .bind(input.toolId, input.person, name)
+            : d1
+                .prepare(
+                  `INSERT INTO "user_setup" ("tool_id", "person", "name", "value", "updated_at") VALUES (?, ?, ?, ?, ?)
+ON CONFLICT ("tool_id", "person", "name") DO UPDATE SET "value" = excluded."value", "updated_at" = excluded."updated_at"`,
+                )
+                .bind(input.toolId, input.person, name, input.values[name], at),
+        ),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.person,
+            ...(input.via ? { via: input.via } : {}),
+            kind: "access",
+            subject: "setup:set",
+            detail: { names },
+          },
+          at,
+        ),
+      ]);
+    },
+    /** What everyone gave a tool, for an admin to read and clear: people, names and values. */
+    async listUserSetup(
+      toolId: string,
+    ): Promise<Array<{ person: string; values: Record<string, string> }>> {
+      const by = new Map<string, Record<string, string>>();
+      for (const r of await all(
+        `SELECT "person", "name", "value" FROM "user_setup" WHERE "tool_id" = ? ORDER BY "person", "name"`,
+        toolId,
+      )) {
+        const person = String(r.person);
+        by.set(person, { ...by.get(person), [String(r.name)]: String(r.value) });
+      }
+      return [...by].map(([person, values]) => ({ person, values }));
+    },
+    /** The admin's clearing: one value of one person, or all of theirs, for a tool. The person is asked again. */
+    async clearUserSetup(toolId: string, person: string, name?: string): Promise<number> {
+      const found = await all(
+        name === undefined
+          ? `SELECT 1 FROM "user_setup" WHERE "tool_id" = ? AND "person" = ?`
+          : `SELECT 1 FROM "user_setup" WHERE "tool_id" = ? AND "person" = ? AND "name" = ?`,
+        ...(name === undefined ? [toolId, person] : [toolId, person, name]),
+      );
+      if (found.length === 0) return 0;
+      await write(
+        name === undefined
+          ? `DELETE FROM "user_setup" WHERE "tool_id" = ? AND "person" = ?`
+          : `DELETE FROM "user_setup" WHERE "tool_id" = ? AND "person" = ? AND "name" = ?`,
+        ...(name === undefined ? [toolId, person] : [toolId, person, name]),
+      );
+      return found.length;
+    },
+
     // ---- requests to enter a secret (D-083): the admin MCP never sees a value, it hands a link
     /**
      * Opens a link where `person` types the secret `name` of a tool in an environment. Returns the

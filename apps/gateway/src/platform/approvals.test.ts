@@ -74,6 +74,28 @@ describeRouteMatrix({
   path: "/api/tools/crm/user-secrets/mem_1/ODOO_KEY",
 });
 
+describeRouteMatrix({
+  title: "GET user setup",
+  ...admin,
+  ...revocation,
+  method: "GET",
+  path: "/api/tools/crm/user-setup",
+});
+describeRouteMatrix({
+  title: "DELETE a person's setup",
+  ...admin,
+  ...revocation,
+  method: "DELETE",
+  path: "/api/tools/crm/user-setup/mem_1",
+});
+describeRouteMatrix({
+  title: "DELETE one value of a person's setup",
+  ...admin,
+  ...revocation,
+  method: "DELETE",
+  path: "/api/tools/crm/user-setup/mem_1/firstName",
+});
+
 describe("the revocation routes", () => {
   it("take no body: a POST without a content type is not a 415", async () => {
     person = {
@@ -89,5 +111,64 @@ describe("the revocation routes", () => {
     ))!;
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "NOT_FOUND", message: "There is no such person." });
+  });
+});
+
+describe("the user setup routes (D-097)", () => {
+  const as = {
+    id: "p-admin",
+    email: "a@acme.test",
+    name: "A",
+    admin: true,
+    developer: false,
+    roles: ["admin"],
+  };
+  const url = (path: string) => `https://acme.forgeron.test${path}`;
+
+  it("list what people gave, with the member's name and email, clear one value or all, and 404 an unknown tool", async () => {
+    const tool = (await registry.findTool("acme", "crm"))!;
+    const ana = (
+      await registry.addMember({
+        workspace: "acme",
+        subject: "ana",
+        email: "ana@acme.test",
+        name: "Ana",
+        roles: [],
+      })
+    ).id;
+    await registry.writeUserSetup({
+      toolId: tool.id,
+      person: ana,
+      values: { firstName: "Ana", team: "sales" },
+    });
+    const listed = await through(new Request(url("/api/tools/crm/user-setup")), as);
+    expect(await listed.json()).toEqual({
+      people: [
+        {
+          person: ana,
+          name: "Ana",
+          email: "ana@acme.test",
+          values: { firstName: "Ana", team: "sales" },
+        },
+      ],
+    });
+    const one = await through(
+      new Request(url(`/api/tools/crm/user-setup/${ana}/team`), { method: "DELETE" }),
+      as,
+    );
+    expect(await one.json()).toEqual({ revoked: 1 });
+    const bad = await through(
+      new Request(url(`/api/tools/crm/user-setup/${ana}/NOT_A_FIELD`), { method: "DELETE" }),
+      as,
+    );
+    expect(bad.status).toBe(404);
+    const all = await through(
+      new Request(url(`/api/tools/crm/user-setup/${ana}`), { method: "DELETE" }),
+      as,
+    );
+    expect(await all.json()).toEqual({ revoked: 1 });
+    expect(await registry.readUserSetup(tool.id, ana)).toEqual({});
+    const ghost = await through(new Request(url("/api/tools/ghost/user-setup")), as);
+    expect(ghost.status).toBe(404);
   });
 });

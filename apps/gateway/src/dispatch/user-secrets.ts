@@ -1,6 +1,6 @@
 import type { Manifest } from "@forgeron/manifest";
 import type { Registry } from "@forgeron/registry";
-import { handleSecretsInput, type UserSecretStore } from "@forgeron/runtime";
+import { handleSecretsInput, type UserSecretStore, type UserSetupStore } from "@forgeron/runtime";
 import type { Person } from "../kernel/person";
 import { page } from "../pages/shell";
 import { connectorHeaders, type ConnectorTokensContext } from "./connector-tokens";
@@ -18,8 +18,10 @@ export interface UserSecretsContext {
     | "currentManifest"
     | "findTool"
     | "readUserSecrets"
+    | "readUserSetup"
     | "recordAudit"
     | "setUserSecret"
+    | "writeUserSetup"
   >;
   workspace: string;
   /** The person and the audience of their token, if any (a session has none). */
@@ -72,6 +74,11 @@ export async function handleUserSecrets(
     write: (user, name, value) =>
       context.registry.setUserSecret({ toolId: record.id, person: user.id, name, value }),
   };
+  const setupStore: UserSetupStore = {
+    read: (user) => context.registry.readUserSetup(record.id, user.id),
+    write: (user, values) =>
+      context.registry.writeUserSetup({ toolId: record.id, person: user.id, values }),
+  };
   const url = new URL(request.url);
   return handleSecretsInput(
     request,
@@ -81,6 +88,7 @@ export async function handleUserSecrets(
     `${url.origin}/t/${tool}`,
     ({ title, eyebrow, body, status }) =>
       page({ title, eyebrow, workspace: context.workspace, status }, body),
+    setupStore,
   );
 }
 
@@ -121,6 +129,11 @@ export async function forwardIdentity(
       // No platform key bound: the tool then sees none, and asks for them (428).
     }
     if (Object.keys(own).length > 0) headers["x-forgeron-user-secrets"] = JSON.stringify(own);
+    // The person's plain values, always sent when the gateway knows the tool: an empty object tells the
+    // tool that the gateway is the one keeping them, so a required field left out is asked for (D-097).
+    headers["x-forgeron-user-setup"] = JSON.stringify(
+      await context.registry.readUserSetup(record.id, who.person.id),
+    );
     if (context.connectors) {
       let manifest: Manifest | undefined;
       try {

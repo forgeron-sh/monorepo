@@ -672,5 +672,22 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0026_user_setup",
+    "fingerprint": "user-setup-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"user_setup\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"person\" TEXT NOT NULL,\n  \"name\" TEXT NOT NULL,\n  \"value\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"person\", \"name\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"user_setup\"",
+        "parameters": []
+      }
+    ]
   }
 ]

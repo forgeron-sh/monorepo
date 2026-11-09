@@ -17,6 +17,11 @@ export interface User {
   roles: string[];
 }
 
+/** The person of an action, with the plain values they gave the tool's `setup` (D-097). */
+export interface ContextUser extends User {
+  setup: Readonly<Record<string, string | undefined>>;
+}
+
 export interface FetchInit {
   method?: string;
   headers?: Record<string, string>;
@@ -88,7 +93,7 @@ export interface Context<Input = unknown> {
   /** Validated, typed input. */
   input: Input;
   /** The person, or `tool:<name>` in a scheduled task. */
-  user: User;
+  user: ContextUser;
   /** The tool's database, with `resources.db`: a Kysely typed by its schema, plus `batch`. */
   db: ContextDb;
   /** Checks an additional access level in code. */

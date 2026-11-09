@@ -256,29 +256,51 @@ export function createEngine(options: RuntimeOptions): Engine {
         return failure("INVALID", "The input is not valid.", parsed.error?.issues);
       }
 
-      // Per-person secrets, first use: the caller's own values, or the list of what is missing.
+      // Per-person setup, first use: the caller's own values, or the list of what is missing (D-036,
+      // D-097). The secrets and the plain fields are asked at the same page, so they fail together.
       let userSecrets = platform.userSecrets;
+      let setup: Readonly<Record<string, string | undefined>> = platform.userSetup ?? {};
       const declared = Object.entries(manifest.resources.userSecrets ?? {});
-      if (platform.userSecretStore && declared.length > 0 && isInterface(via)) {
-        const own = await platform.userSecretStore.read(user);
-        const missingOnes = declared.filter(([secret]) => !own[secret]);
-        if (missingOnes.length > 0) {
-          const inputUrl = `${(options.baseUrl ?? "").replace(/\/+$/, "")}/secrets`;
+      const fields = Object.entries(manifest.setup?.fields ?? {});
+      const checkSecrets = Boolean(platform.userSecretStore) && declared.length > 0;
+      const checkSetup = platform.userSetup !== undefined && fields.length > 0;
+      if ((checkSecrets || checkSetup) && isInterface(via)) {
+        const own = checkSecrets ? await platform.userSecretStore!.read(user) : {};
+        const missingSecrets = checkSecrets ? declared.filter(([secret]) => !own[secret]) : [];
+        const missingFields = checkSetup
+          ? fields.filter(([name, f]) => f.required && !platform.userSetup![name])
+          : [];
+        if (missingSecrets.length > 0 || missingFields.length > 0) {
+          const page = fields.length > 0 ? "setup" : "secrets";
+          const inputUrl = `${(options.baseUrl ?? "").replace(/\/+$/, "")}/${page}`;
+          const labels = [
+            ...missingFields.map(([, f]) => f.label),
+            ...missingSecrets.map(([, secret]) => secret.label),
+          ];
           return failure(
             "SECRET_REQUIRED",
-            `Your ${missingOnes.map(([, s]) => s.label).join(", ")} is needed first: enter it at ${inputUrl}`,
+            `Your ${labels.join(", ")} is needed first: enter it at ${inputUrl}`,
             {
               inputUrl,
-              missing: missingOnes.map(([secret, s]) => ({
-                name: secret,
-                label: s.label,
-                ...(s.help ? { help: s.help } : {}),
-                why: s.why,
-              })),
+              missing: [
+                ...missingFields.map(([name, f]) => ({
+                  name,
+                  label: f.label,
+                  ...(f.help ? { help: f.help } : {}),
+                })),
+                ...missingSecrets.map(([secret, s]) => ({
+                  name: secret,
+                  label: s.label,
+                  ...(s.help ? { help: s.help } : {}),
+                  why: s.why,
+                })),
+              ],
             },
           );
         }
-        userSecrets = Object.fromEntries(declared.map(([secret]) => [secret, own[secret]]));
+        if (checkSecrets) {
+          userSecrets = Object.fromEntries(declared.map(([secret]) => [secret, own[secret]]));
+        }
       }
 
       // Delegated connectors, first use: the caller's own token, or the link to give consent.
@@ -334,7 +356,7 @@ export function createEngine(options: RuntimeOptions): Engine {
       const queued: QueuedDelivery[] = [];
       const ctx: ActionContext = {
         input: parsed.data,
-        user,
+        user: { ...user, setup },
         can: (level) => allowed.has(level),
         interface: via,
         emit: emitter(user, queued, 0),
@@ -397,7 +419,8 @@ export function createEngine(options: RuntimeOptions): Engine {
       const queued: QueuedDelivery[] = [];
       await job.handler({
         input: undefined,
-        user,
+        // A task is the tool, not a person: it has given no setup.
+        user: { ...user, setup: {} },
         can: () => false,
         interface: "job",
         emit: emitter(user, queued, 0),
