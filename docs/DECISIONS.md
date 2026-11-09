@@ -82,6 +82,13 @@ Rules of the log:
 | D-080 | 06/11/2026 | A self-host preview is reached by a service binding the gateway adds to itself when the preview first serves; no per-version URL, Cloudflare Preview or HTTP token     | Active                                 |
 | D-082 | 06/11/2026 | The views keep the CSP sandbox: no dedicated views origin; `/_f/call` needs CORS, and a view keeps no state in the browser                                             | Active                                 |
 | D-083 | 06/11/2026 | The admin MCP asks for a secret with a single-use link to a console page; it never takes or sees the value                                                             | Active                                 |
+| D-084 | 09/11/2026 | Keep the hand-written authentication; Better Auth is not adopted (FOR-149)                                                                                             | Active                                 |
+| D-085 | 09/11/2026 | Licence: Apache-2.0 for what a tool imports and runs, AGPL-3.0 for the gateway and the console                                                                         | Active                                 |
+| D-086 | 09/11/2026 | Public npm names: `forgeron` for the CLI, `@forgeron/*` for the packages                                                                                               | Active                                 |
+| D-087 | 09/11/2026 | Staging lives on its own registrable domain, not on a second-level subdomain of production                                                                             | Active                                 |
+| D-088 | 09/11/2026 | The launch catalogue is the four templates of `templates/`, maintained by the core team                                                                                | Active                                 |
+| D-089 | 09/11/2026 | Connectors in order: Microsoft 365, Google Workspace, then Odoo                                                                                                        | Active                                 |
+| D-090 | 09/11/2026 | Texts about self-host previews that D-080 made stale are corrected in place (FOR-166)                                                                                  | Active                                 |
 
 ---
 
@@ -1032,3 +1039,59 @@ Rules of the log:
 - **Known, not changed**: the registry takes `now` from its clock, so the expiry is the gateway's clock; a link that was spent by a batch that failed after the claim cannot happen (one batch), but a registry error before it leaves the link unspent. The existing `PUT …/secrets/{name}` (admin, value in the body) is unchanged and is not used by the MCP.
 - **Not verified**: no browser was driven: the page is tested in jsdom, and the sign-in detour (a signed-out person opens the link, signs in, and must open it again, because sign-in does not bring them back to the fragment) was not tried; no deployed gateway; no real MCP client.
 - **Applied in**: `packages/registry/src/modules/secrets/{store,migrations,types}.ts`, `kernel/kernel.ts`, `migrations.golden.json`; `packages/platform-contract/src/secret-requests.ts`; `apps/gateway/src/platform/secret-requests.ts`, `apps/gateway/src/admin-mcp/tools.ts`; `apps/console/src/features/secrets/`; `docs/sdk.md` §17.
+
+## D-084 — Keep the hand-written authentication; Better Auth is not adopted (FOR-149)
+
+- **Date**: 09/11/2026 · **Status**: Active
+- **Decision**: authentication stays as written in `apps/gateway/src/identity/`. Better Auth is not adopted, in whole or in part, for now. The one partial lead of the spike (`@better-auth/oauth-provider` for FOR-107) is not pursued: D-013 already answers it and D-079 serves the admin MCP.
+- **Why**: `docs/spikes/better-auth.md` (4 November 2026): the session and the code are bound to the workspace and to the asking browser (D-019, D-049), the SAML verifier has a structural wrapping defence with its own tests (D-050), and domain admission writes its audit line in the same batch (D-027, D-049). Better Auth does not cover these, adds a static `node:crypto` import and needs `nodejs_compat`, and multiplies the bundle by 4 to 5.
+- **Rejected**: full adoption; adopting only its OAuth provider now.
+- **Revisit when**: the number of tools makes the D-013 cache cost visible (about 100 tools), or an identity feature is needed that the spike lists as covered and we lack.
+- **Applied in**: nothing changes in code; `docs/spikes/better-auth.md` stays the evidence.
+
+## D-085 — Licence: Apache-2.0 for what a tool imports and runs, AGPL-3.0 for the gateway and the console
+
+- **Date**: 09/11/2026 · **Status**: Active, to be confirmed by the copyright holder before the first public release
+- **Decision** (FOR-32): the root `LICENSE` is Apache-2.0 and covers the SDK, the runtime, the compiler, the manifest, the hosting, the registry, the platform contract, the playground, the UI, the connectors, the CLI, the site and the templates. `apps/gateway` and `apps/console` carry their own `LICENSE`, AGPL-3.0-only. Each `package.json` has a `license` field.
+- **Why**: the white paper (Business model) earns revenue on hosting and governance and names the two risks: a licence too strict stops adoption, a licence too permissive lets a third party resell the cloud. Tool code and templates import the SDK, the UI and the connectors, so those cannot be copyleft: nobody would write a company tool under a licence that reaches it. The gateway and the console are the platform itself, the part that is sold as Forgeron Cloud: AGPL obliges anyone who modifies it and offers it as a service to publish their changes, and does not touch a company that installs it unmodified on its own account (self-host).
+- **Rejected**: MIT or Apache-2.0 for everything (leaves the cloud open to resale); AGPL for everything (reaches tool code through the SDK); a source-available licence (not open source, against the white paper's promise).
+- **Not done**: no copyright holder is named in the files (the standard texts are unchanged); a contributor licence agreement is not decided, so contributions are accepted under the licence of the folder they touch. A legal review was not made.
+- **Applied in**: `LICENSE`, `apps/gateway/LICENSE`, `apps/console/LICENSE`, every `package.json`, `README.md`.
+
+## D-086 — Public npm names: `forgeron` for the CLI, `@forgeron/*` for the packages
+
+- **Date**: 09/11/2026 · **Status**: Active
+- **Decision** (FOR-33): the CLI is published as `forgeron`, so that `npx forgeron` works; the SDK and the other packages as `@forgeron/sdk`, `@forgeron/runtime`, and so on, as the repository already names them. Trusted publishing from GitHub Actions is the only way to publish (D-005's release flow).
+- **Why**: `npm view` on 09/11/2026 answered 404 for `forgeron`, `@forgeron/sdk` and `@forgeron/cli`, so the names looked free then. A 404 for a scope name does not prove that the `@forgeron` organisation is free to create: that is checked when it is created.
+- **Not done**: no name is reserved and nothing is published (FOR-96, FOR-93). Both need the owner's npm account.
+- **Applied in**: `docs/ARCHITECTURE.md` (open decisions).
+
+## D-087 — Staging lives on its own registrable domain, not on a second-level subdomain of production
+
+- **Date**: 09/11/2026 · **Status**: Active
+- **Decision** (FOR-21): staging uses a separate domain, for example `forgeron-staging.app`, with a wildcard `*.forgeron-staging.app`. The gateway's route is `*.<domain>/*`, as in production.
+- **Why**: Cloudflare's universal certificate covers one level of subdomain, so `acme.staging.forgeron.app` is not covered. A separate registrable domain keeps the same one-label workspace rule in staging as in production and needs no paid advanced certificate.
+- **Rejected**: `*.staging.forgeron.app` with Advanced Certificate Manager (a recurring cost and a staging that differs from production).
+- **Not done**: the domain is not bought and not on the Cloudflare account; `FOR-76` (deploy to staging and production) cannot start until it is. The name `forgeron-staging.app` is a placeholder the owner may change.
+- **Applied in**: `docs/ARCHITECTURE.md` ("Platform environments", open decisions).
+
+## D-088 — The launch catalogue is the four templates of `templates/`, maintained by the core team
+
+- **Date**: 09/11/2026 · **Status**: Active
+- **Decision** (FOR-30): the launch catalogue holds `crm`, `odoo-gateway`, `inventory` (the data hub) and `dashboard`, the four that CI builds and previews (D-045). The core team maintains them; a template is added only with a test and a place in `templates-preview.yml`.
+- **Why**: they are the SDK's integration tests, so they are kept working anyway; the white paper lists exactly these (CRM, contact records, data hub, API gateway, dashboard). A catalogue of tools nobody tests would break silently.
+- **Not done**: no individual owner is named (that is for the team); no template is published into `@templates` on a real install yet (D-081).
+- **Applied in**: `docs/ARCHITECTURE.md`.
+
+## D-089 — Connectors in order: Microsoft 365, Google Workspace, then Odoo
+
+- **Date**: 09/11/2026 · **Status**: Active
+- **Decision** (FOR-31): Microsoft 365 first, Google Workspace second (both exist, against simulated providers), then Odoo. Slack and GitHub come after the pilot.
+- **Why**: the first internal user of Forgeron (gate 1) signs in with Microsoft and needs the Odoo gateway, so Microsoft sign-in and the per-person Odoo key come first; the white paper names Microsoft 365 and Google first.
+- **Not done**: no connector ran against a real tenant (FOR-173).
+
+## D-090 — Texts about self-host previews that D-080 made stale are corrected in place (FOR-166)
+
+- **Date**: 09/11/2026 · **Status**: Active
+- **Decision**: D-009's and D-045's "Still open" and "Not verified" lines about previews are left as written (this log is never rewritten) and are superseded by D-080 and by `docs/spikes/self-host-previews.md`. The living documents are corrected: `docs/ARCHITECTURE.md` (the open-decisions row about previews, and the Hosting modes sentence) and `docs/self-host.md` (the `/mcp` line, now served by D-079, and the wording of "Binding limits").
+- **Why**: the spike lists these inconsistencies; a reader who trusts them looks for a problem that was settled.
