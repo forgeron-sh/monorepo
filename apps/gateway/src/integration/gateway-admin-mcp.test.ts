@@ -200,7 +200,9 @@ describe("who may reach /mcp", () => {
   it("answers 401 to nobody, and never lists a tool to them", async () => {
     const response = await post(undefined, { jsonrpc: "2.0", id: 1, method: "tools/list" });
     expect(response.status).toBe(401);
-    expect(response.headers.get("www-authenticate")).toBe("Bearer");
+    expect(response.headers.get("www-authenticate")).toBe(
+      'Bearer resource_metadata="https://acme.forgeron.app/.well-known/oauth-protected-resource"',
+    );
   });
 
   it("refuses a token issued for a tool, a deployment token and a token of another workspace", async () => {
