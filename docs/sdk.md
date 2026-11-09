@@ -778,6 +778,7 @@ Each tool calls the platform's own routes with the signed-in person's identity, 
 | `tool_versions`                  | Versions and environments                                                                                                      | developer                     |             |
 | `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                                                               | developer                     |             |
 | `secret_request`                 | A link where you type a tool's secret yourself; single use, never the value                                                    | developer                     |             |
+| `usage_report`                   | Authenticated calls per tool and per person over a period, counts only (D-093)                                                 | admin                         |             |
 | `template_list`                  | The templates of the catalog and the resources each asks for                                                                   | admin                         |             |
 | `tool_install_plan`              | What installing a template would create; returns a plan identifier (15 minutes, single use)                                    | admin                         |             |
 | `tool_install`                   | Creates the tool of a plan, once; takes only the plan's identifier                                                             | admin                         | yes         |
@@ -790,7 +791,7 @@ Each tool calls the platform's own routes with the signed-in person's identity, 
 
 `tool_changelog` is for developers because the route that carries the changelog is (the version list shows the commits and what changed); a member reads a tool's card.
 
-**Not available yet**: `usage_report` (FOR-162), and signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
+**Not available yet**: signing in to the MCP with OAuth from a Claude connector (FOR-164). Their safeguards below apply when they arrive.
 
 ### Safeguards
 

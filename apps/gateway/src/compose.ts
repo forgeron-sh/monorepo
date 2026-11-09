@@ -226,6 +226,8 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
             identify,
             recordSeat: (workspace: string, personId: string) =>
               registry.recordSeat(workspace, personId),
+            recordUsage: (workspace: string, tool: string, personId: string) =>
+              registry.recordUsage(workspace, tool, personId),
           }
         : {}),
       // A preview is for the workspace's administrators and developers (sdk.md §7).

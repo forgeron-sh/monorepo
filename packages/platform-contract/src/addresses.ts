@@ -70,7 +70,7 @@ import type {
   startConsentRoute,
   withdrawConsentRoute,
 } from "./consent";
-import type { auditRoute, workspaceRoute } from "./workspace";
+import type { auditRoute, usageRoute, workspaceRoute } from "./workspace";
 import { addressOf } from "./route";
 
 // The address of every route of the platform API (method and path), typed from the route: a client
@@ -239,6 +239,7 @@ export const addresses = {
     method: "delete",
     path: "/api/invitations/{email}",
   }),
+  usage: addressOf<typeof usageRoute>({ method: "get", path: "/api/usage" }),
   workspace: addressOf<typeof workspaceRoute>({ method: "get", path: "/api/workspace" }),
   cliToken: addressOf<typeof cliTokenRoute>({ method: "post", path: "/auth/cli/token" }),
   closePreview: addressOf<typeof closePreviewRoute>({ method: "delete", path: "/deploy" }),

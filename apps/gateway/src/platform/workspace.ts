@@ -1,4 +1,4 @@
-import { auditRoute, workspaceRoute } from "@forgeron/platform-contract";
+import { auditRoute, usageRoute, workspaceRoute } from "@forgeron/platform-contract";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
@@ -70,6 +70,27 @@ export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ entries: entries.slice(0, limit) }, 200);
   });
 
+  // Usage (D-093): counts only, per tool and per person. The period is at most a year of UTC days.
+  app.openapi(platformRoute(usageRoute, "admin"), async (c) => {
+    const { registry, workspace } = c.env;
+    const asked = c.req.valid("query");
+    const day = 86_400_000;
+    const to = asked.to ?? new Date().toISOString().slice(0, 10);
+    const from = asked.from ?? new Date(Date.parse(to) - 30 * day).toISOString().slice(0, 10);
+    const span = (Date.parse(to) - Date.parse(from)) / day;
+    if (!Number.isFinite(span) || span < 0 || span > 365) {
+      return c.json(
+        {
+          error: "INVALID",
+          message: "The period must end after it starts and last at most a year.",
+        },
+        400,
+      );
+    }
+    return c.json(await registry.usageReport(workspace, from, to), 200);
+  });
+
   app.all("/api/workspace", methodNotAllowed);
+  app.all("/api/usage", methodNotAllowed);
   app.all("/api/audit", methodNotAllowed);
 }

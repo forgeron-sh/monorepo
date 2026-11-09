@@ -80,6 +80,8 @@ export interface DispatcherOptions {
   identify?(caller: Caller): string | undefined | Promise<string | undefined>;
   /** Counts a person's seat in a workspace. A failure never blocks the call. */
   recordSeat?(workspace: string, personId: string): void | Promise<void>;
+  /** Counts one authenticated call to a tool, for the usage report (D-093). A failure never blocks the call. */
+  recordUsage?(workspace: string, tool: string, personId: string): void | Promise<void>;
   /**
    * Who is calling, for the tool's runtime: the headers that carry the person and their own
    * per-person secrets, or a refusal (a token issued for another tool is `403`). Called once the
@@ -152,7 +154,10 @@ export function createDispatcher(options: DispatcherOptions) {
     if (options.identify && options.recordSeat) {
       try {
         const person = await options.identify(caller);
-        if (person) await options.recordSeat(workspace, person);
+        if (person) {
+          await options.recordSeat(workspace, person);
+          await options.recordUsage?.(workspace, path.tool, person);
+        }
       } catch {
         // Counting must never stop a person from working.
       }
