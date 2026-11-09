@@ -102,6 +102,7 @@ Rules of the log:
 | D-101 | 09/11/2026 | The gateway asks a tool's setup `check` before it keeps what a person gave; the check is on no interface (FOR-171, ticket 6)                                           | Active                                 |
 | D-102 | 09/11/2026 | A person's own secrets are not typed in the terminal: the CLI prints the link to the setup page (FOR-171, ticket 7)                                                    | Active                                 |
 | D-103 | 09/11/2026 | Per-person secrets stay stored at the platform, sealed by a key the platform holds; the token-borne and user-held-key variants are not adopted (FOR-172)               | Active                                 |
+| D-104 | 09/11/2026 | A registry of a person's secrets: secret, versions and bindings; an admin may set one with an audit the person sees (FOR-172)                                          | Proposed                               |
 
 ---
 
@@ -1270,8 +1271,23 @@ Rules of the log:
 - **Why** (the owner's, and the spike's): a stored secret survives a reconnection and a change of client without the person typing it again; an administrator can set one, see that it exists and clear it; the same value can serve a person across the tools that ask for it. The token-borne variant loses all of this (the spike's "what is lost"). The user-held-key variant keeps the ciphertext at the platform but needs a key per connection that only the OAuth token can carry, which the gateway would create and then see on every call, and a lost token loses the secret: its gain (a leak of the database and of `SECRETS_KEY` reveals nothing; a compromised gateway exposes only the people who call during the intrusion) was judged not worth that cost.
 - **What is kept from the spike**: the threat-model table and the observation that nothing improves against a stolen client token or a hostile tool. The protections that remain are those of D-036 and D-100: AES-GCM bound to the slot, only the gateway opens a value, a leak of the database alone reveals none, and the key can now be rotated.
 - **Open, not decided** (asked by the owner on 2026-11-09, to be designed before any code):
-  1. **An administrator sets a person's secret.** Today only the person types their own. Setting one on someone's behalf means Odoo then attributes the actions to that person, who did not give the key: to be decided with its audit line, and whether the person is told.
+  1. **An administrator sets a person's secret.** **Decided on 2026-11-09 (the owner): yes, with an audit line** (D-104). Setting one on someone's behalf means Odoo then attributes the actions to that person, who did not give the key, so the line is visible to the person.
   2. **An administrator reads a value, for debugging.** D-036 and the white paper promise that no route returns a value and that the developer never sees it. Reading would break the first for the administrator; it needs a deliberate exception: a recorded reason, an audit line the person can see, and probably the person's notice. The spike's recommendation is not to: a debug need is better served by "set / updated at / cleared" and by the tool's own check (D-101), which says whether a key works without showing it.
   3. **The same secret across a person's tools.** Today a secret belongs to one tool and one person. A secret shared by several tools needs a name above the tool (`ODOO_API_KEY` of the person), a table of its own, and a rule that a tool newly asking for it does not receive it silently: the person confirms it once for that tool on the setup page, and the administrator still approves the request (D-096).
 - **Not done**: nothing is coded. The three points above are choices with security and legal weight (a person's key lets whoever holds it act as them in Odoo): they are for the owner to settle.
 - **Applied in**: `docs/DECISIONS.md` (D-099 marked), `docs/spikes/secrets-in-token.md` (addendum).
+
+## D-104 — A registry of a person's secrets: secret, versions and bindings; an admin may set one with an audit the person sees (FOR-172)
+
+- **Date**: 09/11/2026 · **Status**: Proposed: the direction is the owner's (2026-11-09), the design is `docs/spikes/secret-registry.md`, five choices in it are the owner's to confirm; extends D-103
+- **Decision**:
+  1. **Admin sets a person's secret: yes, with audit** (the owner). The version records the administrator and `via: "admin"`; the audit line (`secret:set-by-admin`: admin, person, secret id, field names, never a value) is written in the same batch; the person sees it in their page as "set by an administrator on <date>". An administrator still reads no value (D-103 point 2 stays open).
+  2. **Direction**: a person's secrets move to a registry of three parts: a **secret** (stable id, label, optional `kind`), immutable **versions** (a rotation adds one; each stores the additional data it was sealed with, so existing rows convert in SQL without re-sealing) and **bindings** (tool field, scope `*` / `production` / `preview` / `preview:<branch>`, secret, a pinned version or the latest). The tool's code and the header are unchanged.
+  3. **A secret is reused only by the person's click**: a field with a `kind` is offered the person's saved secrets of that kind at setup; no binding is made by name or in silence; the admin's approval of the request (D-096) stays.
+  4. **"My secrets"**: one page where the person sees their secrets, which tools and scopes use them, who last changed them, and changes a key once for every binding on "latest". No value is shown, even to its owner (to confirm).
+  5. **Secrets only**: a person's plain values stay per tool (D-097).
+  6. This **amends the setup spike's decision 5** (setup never per environment): the default stays tool-wide, a per-branch or per-environment binding is an override.
+- **Why**: the owner wants one place to change a key, the same key across several tools and reconnections, a visible history of who set what, and an admin who can help without reading.
+- **Rejected**: matching secrets across tools by field name (a name is not identity); binding silently (a tool could harvest keys); one row per tool with a copy of the value (changing a key would mean editing every copy); showing a value to its owner (it would have to be retrievable).
+- **Not done**: nothing is coded. Seven tickets are in the spike, not created.
+- **Applied in**: `docs/spikes/secret-registry.md`.
