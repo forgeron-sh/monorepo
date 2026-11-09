@@ -273,10 +273,15 @@ describe("a tool's setup through the gateway (D-097)", () => {
   });
 
   it("is listed and cleared by an admin, who then sees the person asked again", async () => {
-    expect(await registry.listUserSetup(toolId)).toEqual([
-      { person: ana, values: { firstName: "Ana" } },
-      { person: ben, values: { firstName: "Ben", team: "sales" } },
-    ]);
+    // Ordered by person id, which is random: compare as a set.
+    const listed = await registry.listUserSetup(toolId);
+    expect(listed).toHaveLength(2);
+    expect(listed).toEqual(
+      expect.arrayContaining([
+        { person: ana, values: { firstName: "Ana" } },
+        { person: ben, values: { firstName: "Ben", team: "sales" } },
+      ]),
+    );
     expect(await registry.clearUserSetup(toolId, ana)).toBe(1);
     expect((await call("/t/crm/api/tickets.mine", await tokenFor(ana))).status).toBe(428);
     expect(admin).not.toBe("");
