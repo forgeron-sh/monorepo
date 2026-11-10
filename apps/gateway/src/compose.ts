@@ -417,6 +417,8 @@ export function createRequestModules(
     ...(notifySecretSet ? { notifySecretSet } : {}),
     origin,
     baseDomain: env.BASE_DOMAIN,
+    marketplaceFetch: async (u, init) => (options.fetch ?? fetch)(u, init),
+    ...(env.OFFICIAL_MARKETPLACE ? { officialMarketplace: env.OFFICIAL_MARKETPLACE } : {}),
     hosting: modules.hostingOf,
     ...(identity
       ? {

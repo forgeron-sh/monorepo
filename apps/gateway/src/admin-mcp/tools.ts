@@ -6,9 +6,12 @@ import {
   installFromPlanRoute,
   listApprovalsRoute,
   listCatalogRoute,
+  listMarketplacesRoute,
+  listMarketplaceToolsRoute,
   listMembersRoute,
   listTemplatesRoute,
   listToolsRoute,
+  planMarketplaceToolRoute,
   promoteRoute,
   promotionPlanRoute,
   putAccessMatrixRoute,
@@ -390,17 +393,56 @@ export const TOOLS: readonly ToolDefinition[] = [
     run: (_args, port) => ask(port, { method: "GET", path: listTemplatesRoute.path }),
   }),
   define({
+    name: "marketplace_list",
+    title: "List the marketplaces",
+    description:
+      "The official catalogue (`official`) and the marketplaces the workspace added, with when each was last synced. Adding, syncing or removing a marketplace is done in the console.",
+    minRole: "admin",
+    destructive: false,
+    input: z.strictObject({}),
+    run: (_args, port) => ask(port, { method: "GET", path: listMarketplacesRoute.path }),
+  }),
+  define({
+    name: "marketplace_tools",
+    title: "List what a marketplace offers",
+    description:
+      "The tools of a marketplace at their latest version, with the resources each would ask for and whether the workspace already has it.",
+    minRole: "admin",
+    destructive: false,
+    input: z.strictObject({
+      marketplace: z
+        .string()
+        .min(1)
+        .max(64)
+        .describe("`official`, or an id from `marketplace_list`"),
+    }),
+    run: ({ marketplace }, port) =>
+      ask(port, { method: "GET", path: at(listMarketplaceToolsRoute.path, { id: marketplace }) }),
+  }),
+  define({
     name: "tool_install_plan",
     title: "Plan the install of a template",
     description:
-      "Shows what installing a template would create and which resources would need approval. Creates no tool: it returns a plan identifier, valid for 15 minutes, that only `tool_install` accepts. Show the plan to the person and ask before calling `tool_install`.",
+      "Shows what installing a template, or a tool of a marketplace, would create and which resources would need approval. Creates no tool: it returns a plan identifier, valid for 15 minutes, that only `tool_install` accepts. Show the plan to the person and ask before calling `tool_install`.",
     minRole: "admin",
     destructive: false,
-    input: z.strictObject({ template: tool.describe("The template's name") }),
-    run: ({ template }, port) =>
+    input: z.strictObject({
+      template: tool.describe("The template's or the tool's name"),
+      marketplace: z
+        .string()
+        .min(1)
+        .max(64)
+        .optional()
+        .describe(
+          "The marketplace's id from `marketplace_list`; the official catalogue when absent",
+        ),
+    }),
+    run: ({ template, marketplace }, port) =>
       ask(port, {
         method: "POST",
-        path: at(createInstallPlanRoute.path, { name: template }),
+        path: marketplace
+          ? at(planMarketplaceToolRoute.path, { id: marketplace, tool: template })
+          : at(createInstallPlanRoute.path, { name: template }),
       }),
   }),
   define({

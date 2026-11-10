@@ -75,6 +75,7 @@ describe("App", () => {
       "Members",
       "Approvals1",
       "Audit log",
+      "Marketplace",
       "Settings",
     ]);
     expect(side.querySelector(".fg-nav-heading")?.textContent).toBe("Administration");

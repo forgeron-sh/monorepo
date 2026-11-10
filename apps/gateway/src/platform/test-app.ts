@@ -26,6 +26,8 @@ export function platformCaller(options: {
   now?: () => Date;
   notify?: (invitation: Invitation) => Promise<boolean>;
   databaseTimeoutMs?: number;
+  marketplaceFetch?: typeof fetch;
+  officialMarketplace?: string;
 }) {
   const app = createPlatform();
   return async (request: Request): Promise<Response | undefined> => {
@@ -56,6 +58,12 @@ export function platformCaller(options: {
       now: options.now ?? (() => new Date()),
       ...(options.notify ? { notify: options.notify } : {}),
       hosting: options.hosting ?? (() => undefined),
+      marketplaceFetch:
+        options.marketplaceFetch ??
+        (async () => {
+          throw new Error("No GitHub in this test.");
+        }),
+      ...(options.officialMarketplace ? { officialMarketplace: options.officialMarketplace } : {}),
       ...(options.databaseTimeoutMs ? { databaseTimeoutMs: options.databaseTimeoutMs } : {}),
       notFound: () => new Response(null, { status: 404, headers: { [NOT_A_ROUTE]: "1" } }),
       signIn:

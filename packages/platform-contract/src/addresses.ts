@@ -19,6 +19,16 @@ import type {
   putIdentityProviderRoute,
 } from "./identity";
 import type {
+  addMarketplaceRoute,
+  installMarketplaceToolRoute,
+  listMarketplacesRoute,
+  listMarketplaceToolsRoute,
+  marketplaceToolCardRoute,
+  planMarketplaceToolRoute,
+  removeMarketplaceRoute,
+  syncMarketplaceRoute,
+} from "./marketplaces";
+import type {
   getMembershipSettingsRoute,
   inviteMemberRoute,
   listMembersRoute,
@@ -159,6 +169,38 @@ export const addresses = {
     path: "/api/templates/{name}/install",
   }),
   inviteMember: addressOf<typeof inviteMemberRoute>({ method: "post", path: "/api/invitations" }),
+  listMarketplaces: addressOf<typeof listMarketplacesRoute>({
+    method: "get",
+    path: "/api/marketplaces",
+  }),
+  addMarketplace: addressOf<typeof addMarketplaceRoute>({
+    method: "post",
+    path: "/api/marketplaces",
+  }),
+  removeMarketplace: addressOf<typeof removeMarketplaceRoute>({
+    method: "delete",
+    path: "/api/marketplaces/{id}",
+  }),
+  syncMarketplace: addressOf<typeof syncMarketplaceRoute>({
+    method: "post",
+    path: "/api/marketplaces/{id}/sync",
+  }),
+  listMarketplaceTools: addressOf<typeof listMarketplaceToolsRoute>({
+    method: "get",
+    path: "/api/marketplaces/{id}/tools",
+  }),
+  marketplaceToolCard: addressOf<typeof marketplaceToolCardRoute>({
+    method: "get",
+    path: "/api/marketplaces/{id}/tools/{tool}",
+  }),
+  installMarketplaceTool: addressOf<typeof installMarketplaceToolRoute>({
+    method: "post",
+    path: "/api/marketplaces/{id}/tools/{tool}/install",
+  }),
+  planMarketplaceTool: addressOf<typeof planMarketplaceToolRoute>({
+    method: "post",
+    path: "/api/marketplaces/{id}/tools/{tool}/install-plan",
+  }),
   listApprovals: addressOf<typeof listApprovalsRoute>({ method: "get", path: "/api/approvals" }),
   listCatalog: addressOf<typeof listCatalogRoute>({ method: "get", path: "/api/catalog" }),
   listConnections: addressOf<typeof listConnectionsRoute>({

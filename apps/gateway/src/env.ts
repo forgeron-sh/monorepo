@@ -77,6 +77,11 @@ export interface GatewayEnv {
   CLOUDFLARE_API_TOKEN?: string;
   /** Forgeron Cloud: the name of the dispatch namespace `DISPATCHER` is bound to. */
   DISPATCH_NAMESPACE?: string;
+  /**
+   * The public GitHub repository (`owner/name`) of the official marketplace (D-116): what any admin
+   * syncs into the template catalogue `@templates`. Unset: the official catalogue is filled another way.
+   */
+  OFFICIAL_MARKETPLACE?: string;
   /** The service bindings of self-host, and whatever else the Worker is given. */
   [binding: string]: unknown;
 }

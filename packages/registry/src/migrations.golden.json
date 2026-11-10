@@ -759,5 +759,39 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0029_marketplaces",
+    "fingerprint": "marketplaces-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"marketplaces\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"workspace\" TEXT NOT NULL,\n  \"repo\" TEXT NOT NULL,\n  \"title\" TEXT,\n  \"iv\" TEXT,\n  \"ciphertext\" TEXT,\n  \"created_by\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  \"synced_at\" TEXT,\n  \"sync_error\" TEXT,\n  UNIQUE (\"workspace\", \"repo\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"marketplaces\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0030_install_plans_source",
+    "fingerprint": "install-plans-source-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "ALTER TABLE \"install_plans\" ADD COLUMN \"source\" TEXT NOT NULL DEFAULT '@templates'",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "ALTER TABLE \"install_plans\" DROP COLUMN \"source\"",
+        "parameters": []
+      }
+    ]
   }
 ]

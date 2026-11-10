@@ -271,7 +271,7 @@ describe("the tools and their minimum role", () => {
     expect((await listed(ana)).sort()).toEqual([...MEMBER].sort());
     expect((await listed(dev)).sort()).toEqual([...DEVELOPER].sort());
     expect((await listed(root)).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(20);
+    expect(TOOLS).toHaveLength(22);
   });
 
   it("marks what changes something with destructiveHint, and nothing else", async () => {
@@ -304,6 +304,8 @@ describe("the tools and their minimum role", () => {
         ["tool_promote_plan", { tool: "crm", version: "1.1.0", to: "production" }],
         ["tool_rollback", { tool: "crm", environment: "production" }],
         ["template_list", {}],
+        ["marketplace_list", {}],
+        ["marketplace_tools", { marketplace: "official" }],
         ["usage_report", {}],
         ["tool_install_plan", { template: "inventory" }],
         ["tool_install", { plan: "anything" }],

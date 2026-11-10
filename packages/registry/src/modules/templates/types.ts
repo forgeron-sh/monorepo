@@ -1,3 +1,5 @@
+import type { Manifest } from "@forgeron/manifest";
+
 /** The workspace that holds the template catalogue. Not a workspace name (`@` is no part of an address). */
 export const TEMPLATE_WORKSPACE = "@templates";
 
@@ -30,3 +32,15 @@ export interface InstallPlan {
 
 /** Why a plan cannot be used. `unknown` covers a plan that does not exist, is another person's or another workspace's. */
 export type InstallPlanRefusal = "unknown" | "used" | "expired" | "stale";
+
+/** One tool of a catalogue as an admin reads it before installing (D-116). */
+export interface DescribedTemplate {
+  name: string;
+  version: string;
+  publishedAt: string;
+  manifest: Manifest;
+  resources: string[];
+  readme?: string;
+  guide?: string;
+  changelog: unknown[];
+}

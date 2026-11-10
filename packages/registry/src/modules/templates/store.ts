@@ -12,6 +12,7 @@ import type { Kernel } from "../../kernel/kernel";
 import type { Catalog } from "../catalog/public";
 import {
   TEMPLATE_WORKSPACE,
+  type DescribedTemplate,
   type InstalledTemplate,
   type InstallPlan,
   type InstallPlanRefusal,
@@ -21,10 +22,24 @@ import {
 /** How long an install plan lives (D-092). */
 const INSTALL_PLAN_TTL_MS = 15 * 60 * 1000;
 
+/**
+ * Where a tool can be installed from: the official catalogue (`@templates`, D-081) or a marketplace a
+ * workspace added (`@mp:<id>`, D-116). Both are hidden workspaces of the same registry.
+ */
+const SOURCE = /^@mp:[A-Za-z0-9-]{1,64}$/;
+function sourceOf(source: string | undefined): string {
+  const found = source ?? TEMPLATE_WORKSPACE;
+  if (found !== TEMPLATE_WORKSPACE && !SOURCE.test(found)) {
+    throw new RegistryError("INVALID", `${found} is not a catalogue.`);
+  }
+  return found;
+}
+const isSource = (workspace: string) => workspace === TEMPLATE_WORKSPACE || SOURCE.test(workspace);
+
 /** What this module asks of the catalog: narrow, and only through its public API. */
 export type CatalogPort = Pick<
   Catalog["api"],
-  "findTool" | "listTools" | "listVersions" | "getBuild"
+  "findTool" | "listTools" | "listVersions" | "getBuild" | "readmeOf" | "guideOf"
 >;
 
 export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
@@ -39,10 +54,13 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
 
   return {
     // ---- template catalogue
-    /** The templates of the catalogue, by name. A tool of the catalogue with no version is not one yet. */
-    async listTemplates(): Promise<Template[]> {
+    /**
+     * The templates of a catalogue (the official one by default), by name. A tool of the catalogue
+     * with no version is not one yet.
+     */
+    async listTemplates(source?: string): Promise<Template[]> {
       const templates: Template[] = [];
-      for (const tool of await catalog.listTools(TEMPLATE_WORKSPACE)) {
+      for (const tool of await catalog.listTools(sourceOf(source))) {
         const found = await latest(tool.id);
         if (!found) continue;
         const manifest = found.build.manifest as Manifest;
@@ -56,6 +74,30 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
     },
 
     /**
+     * What an admin reads before installing (D-116): the latest version of one tool of a catalogue,
+     * its manifest, README, guide and changelog. `undefined` for no such tool or one with no version.
+     */
+    async describeTemplate(name: string, source?: string): Promise<DescribedTemplate | undefined> {
+      const tool = await catalog.findTool(sourceOf(source), name);
+      const found = tool ? await latest(tool.id) : undefined;
+      if (!tool || !found) return undefined;
+      const manifest = found.build.manifest as Manifest;
+      const readme = await catalog.readmeOf(tool.id, found.build.id);
+      const guide = await catalog.guideOf(tool.id, found.build.id);
+      return {
+        name,
+        version: found.version.version,
+        publishedAt: found.version.createdAt,
+        manifest,
+        resources: diffResourceChanges({}, manifest.resources ?? {}).map((c) => c.subject),
+        ...(readme !== undefined ? { readme } : {}),
+        ...(guide !== undefined ? { guide } : {}),
+        changelog:
+          (found.build.changelog as { entries?: unknown[] } | null | undefined)?.entries ?? [],
+      };
+    },
+
+    /**
      * Creates a tool in `workspace` from the latest version of a template: the tool, a copy of the
      * build (code, migrations, changelog), the docs, the version under the same number, one pending
      * approval for each resource the template asks for, and the audit line, in one batch. The tool
@@ -66,11 +108,14 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
       template: string;
       actor: string;
       via?: string;
+      /** The catalogue to install from: `@templates` (default) or a marketplace's `@mp:<id>`. */
+      source?: string;
     }): Promise<InstalledTemplate> {
-      if (input.workspace === TEMPLATE_WORKSPACE) {
-        throw new RegistryError("INVALID", "The template catalogue is not a workspace.");
+      const from = sourceOf(input.source);
+      if (isSource(input.workspace)) {
+        throw new RegistryError("INVALID", "A catalogue is not a workspace.");
       }
-      const source = await catalog.findTool(TEMPLATE_WORKSPACE, input.template);
+      const source = await catalog.findTool(from, input.template);
       const found = source ? await latest(source.id) : undefined;
       if (!source || !found) {
         throw new RegistryError("NOT_FOUND", `There is no template ${input.template}.`);
@@ -138,7 +183,11 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
             kind: "install",
             subject: `${input.template}:${found.version.version}`,
             versionId,
-            detail: { template: input.template, workspace: input.workspace },
+            detail: {
+              template: input.template,
+              workspace: input.workspace,
+              ...(from === TEMPLATE_WORKSPACE ? {} : { source: from }),
+            },
           },
           at,
         ),
@@ -162,11 +211,13 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
       template: string;
       person: string;
       via?: string;
+      source?: string;
     }): Promise<InstallPlan> {
-      if (input.workspace === TEMPLATE_WORKSPACE) {
-        throw new RegistryError("INVALID", "The template catalogue is not a workspace.");
+      const from = sourceOf(input.source);
+      if (isSource(input.workspace)) {
+        throw new RegistryError("INVALID", "A catalogue is not a workspace.");
       }
-      const source = await catalog.findTool(TEMPLATE_WORKSPACE, input.template);
+      const source = await catalog.findTool(from, input.template);
       const found = source ? await latest(source.id) : undefined;
       if (!source || !found) {
         throw new RegistryError("NOT_FOUND", `There is no template ${input.template}.`);
@@ -184,7 +235,7 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
       await d1.batch([
         d1
           .prepare(
-            `INSERT INTO "install_plans" ("id", "workspace", "template", "version", "person", "created_at", "expires_at") VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO "install_plans" ("id", "workspace", "template", "version", "person", "created_at", "expires_at", "source") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             id,
@@ -194,6 +245,7 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
             input.person,
             at,
             expiresAt,
+            from,
           ),
         auditStatement(
           {
@@ -205,6 +257,7 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
               event: "install-planned",
               workspace: input.workspace,
               version: found.version.version,
+              ...(from === TEMPLATE_WORKSPACE ? {} : { source: from }),
             },
           },
           at,
@@ -232,7 +285,7 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
       via?: string;
     }): Promise<InstalledTemplate | InstallPlanRefusal> {
       const row = await first(
-        `SELECT "template", "version", "person", "expires_at", "used_at" FROM "install_plans" WHERE "id" = ? AND "workspace" = ?`,
+        `SELECT "template", "version", "person", "expires_at", "used_at", "source" FROM "install_plans" WHERE "id" = ? AND "workspace" = ?`,
         input.plan,
         input.workspace,
       );
@@ -242,7 +295,8 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
       const at = now();
       if (String(row.expires_at) <= at) return "expired";
       const template = String(row.template);
-      const source = await catalog.findTool(TEMPLATE_WORKSPACE, template);
+      const from = String(row.source);
+      const source = await catalog.findTool(from, template);
       const current = source ? await latest(source.id) : undefined;
       if (current?.version.version !== String(row.version)) return "stale";
       const claim = newId();
@@ -266,6 +320,7 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
         template,
         actor: input.person,
         ...(input.via ? { via: input.via } : {}),
+        source: from,
       });
     },
   };
