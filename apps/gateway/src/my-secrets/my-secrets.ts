@@ -1,4 +1,4 @@
-import type { Registry } from "@forgeron/registry";
+import { RegistryError, type Registry } from "@forgeron/registry";
 import type { SetupCheckResult } from "@forgeron/runtime";
 import { sameOriginPost } from "../identity/authn/origin";
 import type { Person } from "../kernel/person";
@@ -11,6 +11,7 @@ import { isDone, mySecretsPage } from "../pages/my-secrets";
 
 const KIND = /^[a-z][a-z0-9]*(\.[a-z0-9][a-z0-9-]*)*$/;
 const MAX_VALUE = 4096;
+const BRANCH = /^[a-z0-9][a-z0-9._-]*$/;
 
 export interface MySecretsContext {
   workspace: string;
@@ -221,6 +222,53 @@ export async function handleMySecrets(request: Request, context: MySecretsContex
         pin,
       });
       return back("bound");
+    }
+    case "override": {
+      // A different secret in one environment or one branch's preview (D-109): for a tool field the
+      // person already gave a secret to. The tool-wide binding stays the default everywhere else.
+      const tool = text("tool");
+      const field = text("field");
+      const where = text("where");
+      const branch = text("branch").trim().toLowerCase();
+      const record = await context.registry.findTool(context.workspace, tool);
+      const has = secrets.some((s) => s.usedBy.some((u) => u.tool === tool && u.field === field));
+      if (!record || !has) return refuse("That tool does not use one of your secrets there.");
+      const scope =
+        where === "production"
+          ? "production"
+          : where === "preview"
+            ? "preview"
+            : where === "branch"
+              ? `preview:${branch}`
+              : undefined;
+      if (!scope) return refuse("Choose where the other secret is used.");
+      if (where === "branch" && !BRANCH.test(branch)) {
+        return refuse("A branch is lower case letters, digits, dots, dashes and underscores.");
+      }
+      const target = owned(text("secret"));
+      if (!target) return refuse("That is not one of your secrets.");
+      const value = await context.registry.readPersonSecret(
+        context.workspace,
+        person.id,
+        target.id,
+      );
+      if (value === undefined) return refuse("That secret cannot be read.");
+      const refused = await refusedByATool([{ tool, fields: [field] }], value);
+      if (refused) return refuse(refused);
+      try {
+        await context.registry.bindUserSecret({
+          toolId: record.id,
+          person: person.id,
+          field,
+          scope,
+          secretId: target.id,
+          pin: null,
+        });
+      } catch (error) {
+        if (error instanceof RegistryError) return refuse("That scope cannot be used.");
+        throw error;
+      }
+      return back("overridden");
     }
     default:
       return refuse("That action is not known.");

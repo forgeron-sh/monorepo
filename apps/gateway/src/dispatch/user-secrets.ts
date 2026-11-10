@@ -162,6 +162,7 @@ export async function forwardIdentity(
   request: Request,
   context: UserSecretsContext,
   environment: "preview" | "production" = "production",
+  branch?: string,
 ): Promise<Forwarding | undefined> {
   const who = await context.identify(request);
   if (!who) return undefined;
@@ -184,7 +185,11 @@ export async function forwardIdentity(
   if (record) {
     let own: Record<string, string> = {};
     try {
-      own = await context.registry.readUserSecrets(record.id, who.person.id);
+      // The secret of the most specific scope that fits where this call is served (D-109).
+      own = await context.registry.readUserSecrets(record.id, who.person.id, {
+        environment,
+        ...(branch !== undefined ? { branch } : {}),
+      });
     } catch {
       // No platform key bound: the tool then sees none, and asks for them (428).
     }

@@ -30,6 +30,7 @@ const DONE: Record<string, string> = {
   renamed: "The secret is renamed.",
   deleted: "The secret is deleted. The tools that used it will ask for a new one.",
   bound: "The tool now uses that secret.",
+  overridden: "The tool now uses that secret there, and the same one as before everywhere else.",
   unbound: "The tool no longer uses that secret.",
 };
 
@@ -93,6 +94,16 @@ export function mySecretsPage(input: MySecretsInput): Response {
                   button("Save", { variant: "primary" }),
               ) +
               form({ action: "unbind", ...where }, button("Stop using it here")) +
+              (u.scope === "*"
+                ? `<p>Use another secret for a test environment or a branch, and this one everywhere else:</p>` +
+                  form(
+                    { action: "override", tool: u.tool, field: u.field },
+                    `<label for="where-${id}">Where</label><select id="where-${id}" name="where"><option value="production">Production</option><option value="preview">Every preview</option><option value="branch">The preview of one branch</option></select>` +
+                      `<label for="branch-${id}">Branch (for one branch)</label><input id="branch-${id}" type="text" name="branch" maxlength="60" autocomplete="off" spellcheck="false">` +
+                      `<label for="other-${id}">Use</label><select id="other-${id}" name="secret">${choices(s.id)}</select>` +
+                      button("Use it there", { variant: "primary" }),
+                  )
+                : "") +
               `</details></li>`
             );
           })

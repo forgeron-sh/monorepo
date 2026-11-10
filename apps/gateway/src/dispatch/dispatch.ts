@@ -33,6 +33,8 @@ export interface Caller {
   request: Request;
   /** The environment the call is served from, once it is known (set when the request is forwarded). */
   environment?: "preview" | "production";
+  /** The preview's branch, for a call served from one (D-109). */
+  branch?: string;
 }
 
 /** What the gateway adds to the request it hands a tool, or the answer that stops it (D-035). */
@@ -187,7 +189,11 @@ export function createDispatcher(options: DispatcherOptions) {
       }
     }
 
-    const forwarding = await options.forward?.({ ...caller, environment });
+    const forwarding = await options.forward?.({
+      ...caller,
+      environment,
+      ...(path.branch !== undefined ? { branch: path.branch } : {}),
+    });
     if (forwarding && "refuse" in forwarding) return forwarding.refuse;
 
     const forwarded = new URL(url);

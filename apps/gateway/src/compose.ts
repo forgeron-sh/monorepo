@@ -287,6 +287,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
                     : {}),
                 },
                 c.environment,
+                c.branch,
               ),
           }
         : {}),
