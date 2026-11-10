@@ -55,12 +55,14 @@ jobs:
     secrets: inherit
 
   # The npm packages (D-086, D-122): built, installed from their archives and used as a developer
-  # would, then published with their provenance. npm authenticates by trusted publishing; NPM_TOKEN
-  # is only for a package's first publication, before its trusted publisher is set on npmjs.com.
+  # would, then published by trusted publishing (OIDC): no token is stored. It needs a runner hosted
+  # by GitHub (not Blacksmith) and npm 11.5.1 or later (Node 24.21 ships 11.19). Provenance is added
+  # by npm itself once the repository is public. Each package's first publication is made by hand
+  # (D-122); its trusted publisher points at this file.
   publish-npm:
     needs: release-please
     if: needs.release-please.outputs.releases_created == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
@@ -68,14 +70,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      # Trusted publishing needs npm 11.5.1 or later: Node 24.21 ships 11.19.
       - run: bun run packages:build
       - run: bun run packages:smoke
-      - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -n "$NODE_AUTH_TOKEN" ]; then
-            echo "//registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}" > "$HOME/.npmrc"
-          fi
-          bun scripts/publish.ts
+      - run: bun scripts/publish.ts

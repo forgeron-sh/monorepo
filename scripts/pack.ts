@@ -75,7 +75,6 @@ async function pack(p: Published, names: Map<string, string>, version: string) {
     ...(Object.keys(dependencies).length > 0 ? { dependencies } : {}),
     ...(own.peerDependencies ? { peerDependencies: own.peerDependencies } : {}),
     ...(own.peerDependenciesMeta ? { peerDependenciesMeta: own.peerDependenciesMeta } : {}),
-    // Provenance is asked by the release workflow (`npm publish --provenance`): it needs CI's identity.
     publishConfig: { access: "public" },
   };
   await writeFile(join(dist, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);

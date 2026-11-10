@@ -866,7 +866,7 @@ Two names (D-086, D-122): `forgeron` is the **CLI** (`npx forgeron`), and the `@
 
 A tool depends on `@forgeron/sdk` (and on `forgeron` to run the CLI); `forgeron init` writes both. The CLI resolves the runtime and the SDK it bundles into a tool's Worker from where it is installed.
 
-How it is made (`scripts/packages.ts`): each package has a `tsdown.config.ts` that builds `dist/`; `bun run packages:build` builds them and writes `dist/package.json` (exports on the built files, `workspace:*` replaced by the version); `bun run packages:smoke` installs them from their archives in an empty folder and runs `forgeron init`, build, test and bundle. CI runs both on every pull request; the release workflow runs them again, then publishes with provenance. The workspace keeps importing `src/`.
+How it is made (`scripts/packages.ts`): each package has a `tsdown.config.ts` that builds `dist/`; `bun run packages:build` builds them and writes `dist/package.json` (exports on the built files, `workspace:*` replaced by the version); `bun run packages:smoke` installs them from their archives in an empty folder and runs `forgeron init`, build, test and bundle. CI runs both on every pull request; the release workflow runs them again, then publishes by trusted publishing (OIDC, no token; the first publication of each package by hand, D-122). The workspace keeps importing `src/`.
 
 ### Not published yet
 
