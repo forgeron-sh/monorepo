@@ -1,5 +1,6 @@
 import { addresses } from "@forgeron/platform-contract/client";
-import { Button, EmptyState, Field, Input, Notice, Page, Spinner } from "@forgeron/ui";
+import { Button, EmptyState, Field, Input, Notice, Page } from "@forgeron/ui";
+import { Loading } from "../../../states";
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, ok, typedSender } from "../../../api";
 import type { PageProps } from "../../../shell/page-props";
@@ -60,7 +61,7 @@ export default function SecretRequestPage({ api, now }: PageProps) {
   if (target.loading) {
     return (
       <Page title="Enter a secret">
-        <Spinner />
+        <Loading label="Loading the secret request" shape="form" />
       </Page>
     );
   }

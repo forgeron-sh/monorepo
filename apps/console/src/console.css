@@ -182,9 +182,43 @@ code {
   font-size: 13px;
 }
 .fc-loading {
+  padding: var(--space-2) 0;
+}
+.fc-skeleton-table,
+.fc-skeleton-form {
   display: flex;
-  justify-content: center;
-  padding: var(--space-12) 0;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.fc-skeleton-row {
+  display: flex;
+  gap: var(--space-6);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.fc-skeleton-cells {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-6);
+  padding: var(--space-2) 0;
+}
+.fc-skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+.fc-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+}
+.fc-skeleton-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 .fc-stats {
   display: grid;

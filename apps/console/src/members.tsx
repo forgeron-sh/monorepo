@@ -378,7 +378,7 @@ export function MembersPage({
         </div>
       ) : null}
       {loaded.loading ? (
-        <Loading label="Loading members" />
+        <Loading shape="table" label="Loading members" />
       ) : loaded.error && !view ? (
         <LoadError what="The members" error={loaded.error} onRetry={loaded.reload} />
       ) : view ? (
@@ -692,7 +692,7 @@ export function DomainsPage({ api }: { api: Api }) {
   return (
     <Page title="Domains" description="Email domains whose people join this workspace on sign-in.">
       {loaded.loading ? (
-        <Loading label="Loading domains" />
+        <Loading shape="list" label="Loading domains" />
       ) : loaded.error && !view ? (
         <LoadError what="The domains" error={loaded.error} onRetry={loaded.reload} />
       ) : view ? (

@@ -88,7 +88,7 @@ export function AuditPage({ api, admin, now }: { api: Api; admin: boolean; now: 
       {!admin ? (
         <AdminOnly what="The audit log" />
       ) : audit.loading ? (
-        <Loading label="Loading the audit log" />
+        <Loading shape="table" label="Loading the audit log" />
       ) : audit.error && !audit.data ? (
         <LoadError what="The audit log" error={audit.error} onRetry={audit.reload} />
       ) : audit.data && audit.data.length === 0 ? (

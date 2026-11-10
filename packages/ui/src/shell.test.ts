@@ -14,6 +14,9 @@ import {
   Nav,
   Notice,
   Sidebar,
+  Skeleton,
+  SkeletonGroup,
+  SkeletonText,
   Spinner,
   Tabs,
 } from "./index";
@@ -99,6 +102,22 @@ describe("Notice, EmptyState, Spinner", () => {
   });
   it("names the wait", () => {
     expect(html(h(Spinner, { label: "Loading members" }))).toContain("Loading members");
+  });
+});
+
+describe("Skeleton", () => {
+  it("keeps the shapes silent and announces the wait once", () => {
+    const out = html(h(SkeletonGroup, { label: "Loading members" }, h(SkeletonText, { lines: 2 })));
+    expect(out).toContain('role="status"');
+    expect(out).toContain('aria-busy="true"');
+    expect(out).toContain("Loading members");
+    expect(out.match(/aria-hidden="true"/g)?.length).toBeGreaterThanOrEqual(3);
+  });
+  it("sizes a block", () => {
+    expect(html(h(Skeleton, { width: 120, height: 32 }))).toContain("width:120px;height:32px");
+  });
+  it("shortens the last line of a paragraph", () => {
+    expect(html(h(SkeletonText, { lines: 3 }))).toContain("width:60%");
   });
 });
 

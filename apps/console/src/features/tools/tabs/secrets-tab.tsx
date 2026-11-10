@@ -8,7 +8,7 @@ import type { ToolTabProps } from "../tabs";
 export default function SecretsTab(props: ToolTabProps) {
   const { tool, api } = props;
   const secrets = useLoad(() => loadSecretsStatus(api.fetchJson, tool), [api, tool]);
-  if (secrets.loading) return <Loading label="Loading secrets" />;
+  if (secrets.loading) return <Loading shape="table" label="Loading secrets" />;
   if (secrets.error) {
     return <LoadError what="The secrets status" error={secrets.error} onRetry={secrets.reload} />;
   }

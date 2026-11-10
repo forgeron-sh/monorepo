@@ -45,7 +45,7 @@ export function ApprovalsPage({ api, onDecided }: { api: Api; onDecided?: () => 
       description="Versions that ask for more access than the last one wait here. Until you decide, they reach preview only."
     >
       {pending.loading ? (
-        <Loading label="Loading approvals" />
+        <Loading shape="list" label="Loading approvals" />
       ) : pending.error && !pending.data ? (
         <LoadError what="The approvals" error={pending.error} onRetry={pending.reload} />
       ) : pending.data && pending.data.length === 0 ? (

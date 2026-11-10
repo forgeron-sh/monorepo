@@ -44,7 +44,7 @@ export default function PeopleSecrets({ tool, api }: ToolTabProps) {
   const [problem, setProblem] = useState<string>();
   const [done, setDone] = useState<string>();
 
-  if (loaded.loading) return <Loading label="Loading what people hold" />;
+  if (loaded.loading) return <Loading shape="table" label="Loading what people hold" />;
   if (loaded.error || !loaded.data) {
     return <LoadError what="The people's secrets" error={loaded.error} onRetry={loaded.reload} />;
   }

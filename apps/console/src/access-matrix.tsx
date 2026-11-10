@@ -184,7 +184,7 @@ export function AccessMatrixEditor({ tool, fetchJson, sendJson }: AccessMatrixEd
         {error ?? "Check your connection, then reload the page."}
       </Notice>
     ) : (
-      <Loading label="Loading the access matrix" />
+      <Loading shape="table" label="Loading the access matrix" />
     );
   }
   const shown = withDraft(loaded, draft);

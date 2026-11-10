@@ -18,7 +18,7 @@ export default function RolesPage({ api, go }: PageProps) {
       description="Who holds which role, and where each tool says what a role may do."
     >
       {members.loading || tools.loading ? (
-        <Loading label="Loading roles" />
+        <Loading shape="table" label="Loading roles" />
       ) : !view ? (
         <LoadError what="The roles" error={members.error} onRetry={members.reload} />
       ) : (

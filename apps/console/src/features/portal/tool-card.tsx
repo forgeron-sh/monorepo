@@ -21,7 +21,7 @@ export interface ToolOverviewProps {
 
 export default function ToolOverview({ tool, ws, api, now = () => new Date() }: ToolOverviewProps) {
   const card = useLoad(() => loadToolCard(api.fetchJson, tool), [api, tool]);
-  if (card.loading) return <Loading label="Loading the tool card" />;
+  if (card.loading) return <Loading shape="page" label="Loading the tool card" />;
   if (card.error && !card.data)
     return <LoadError what="The tool card" error={card.error} onRetry={card.reload} />;
   return <ToolCardView card={card.data!} ws={ws} now={now} />;
