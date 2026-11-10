@@ -279,13 +279,6 @@
         "@forgeron/sdk": "workspace:*",
       },
     },
-    "templates/odoo-gateway": {
-      "name": "@forgeron/template-odoo-gateway",
-      "version": "0.0.0",
-      "dependencies": {
-        "@forgeron/sdk": "workspace:*",
-      },
-    },
   },
   "packages": {
     "@asamuzakjp/css-color": ["@asamuzakjp/css-color@7.1.9", "", { "dependencies": { "@csstools/css-calc": "^3.4.3", "@csstools/css-color-parser": "^4.2.6", "@csstools/css-parser-algorithms": "^4.0.2", "@csstools/css-tokenizer": "^4.0.2", "lru-cache": "^11.5.3" } }, "sha512-vZ6JQVq8Ivgz6b/IBlAf90wZviXdluY13cQOPO+nJHbmXwGrPl2GcpqUY7a55/8ZVdfONXpCFMpRijOBCHNlcQ=="],
@@ -491,8 +484,6 @@
     "@forgeron/template-dashboard": ["@forgeron/template-dashboard@workspace:templates/dashboard"],
 
     "@forgeron/template-inventory": ["@forgeron/template-inventory@workspace:templates/inventory"],
-
-    "@forgeron/template-odoo-gateway": ["@forgeron/template-odoo-gateway@workspace:templates/odoo-gateway"],
 
     "@forgeron/tsconfig": ["@forgeron/tsconfig@workspace:packages/tsconfig"],
 

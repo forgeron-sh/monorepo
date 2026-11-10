@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { bucket, connector, database, defineConfig, field, kv, queue } from "./index";
 
 describe("defineConfig", () => {
-  // The odoo-gateway example of docs/examples/02-odoo-gateway.md.
+  // An Odoo gateway: a tool without a database, with per-person secrets.
   const odoo = {
     name: "odoo",
     title: "Odoo gateway",

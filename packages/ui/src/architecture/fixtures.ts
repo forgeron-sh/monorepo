@@ -1,6 +1,7 @@
 import type { Manifest } from "@forgeron/manifest";
 
-// The manifests `forgeron build` writes for the four templates in `templates/`, with the JSON Schemas
+// The manifests `forgeron build` writes for the templates in `templates/`, plus an Odoo gateway (a tool
+// without a database, kept here as a fixture since it left `templates/`, D-114), with the JSON Schemas
 // of the action inputs cut down to `{ type: "object" }`: the diagram reads names, access levels,
 // interfaces and resources, never the schemas. Used by the design system preview and the tests.
 

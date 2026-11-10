@@ -86,7 +86,7 @@ Rules of the log:
 | D-085 | 09/11/2026 | Licence: Apache-2.0 for what a tool imports and runs, AGPL-3.0 for the gateway and the console                                                                                                               | Active                                 |
 | D-086 | 09/11/2026 | Public npm names: `forgeron` for the CLI, `@forgeron/*` for the packages                                                                                                                                     | Active                                 |
 | D-087 | 09/11/2026 | Staging lives on its own registrable domain, not on a second-level subdomain of production                                                                                                                   | Active                                 |
-| D-088 | 09/11/2026 | The launch catalogue is the four templates of `templates/`, maintained by the core team                                                                                                                      | Active                                 |
+| D-088 | 09/11/2026 | The launch catalogue is the four templates of `templates/`, maintained by the core team                                                                                                                      | Replaced by D-114                      |
 | D-089 | 09/11/2026 | Connectors in order: Microsoft 365, Google Workspace, then Odoo                                                                                                                                              | Active                                 |
 | D-090 | 09/11/2026 | Texts about self-host previews that D-080 made stale are corrected in place (FOR-166)                                                                                                                        | Active                                 |
 | D-091 | 09/11/2026 | A group is not a grantable subject: `access_grant` gives roles to members and cells of the matrix (FOR-165)                                                                                                  | Active                                 |
@@ -112,6 +112,7 @@ Rules of the log:
 | D-111 | 10/11/2026 | The leftovers of the secret registry: links to "Your secrets", console screens for an admin, a mail to the person, connectors as steps of the setup page (FOR-172)                                           | Active                                 |
 | D-112 | 10/11/2026 | One CI workflow, one job `check` on one machine; the per-template preview workflow is removed (supersedes D-045's workflow)                                                                                  |
 | D-113 | 10/11/2026 | Promote a branch to production when nothing stops it and guide the person when something does; admin operations and remote SQL from the CLI (FOR-183)                                                        | Active                                 |
+| D-114 | 10/11/2026 | The Odoo gateway leaves `templates/`: the launch catalogue is three templates, business tools live in tools repositories of their own                                                                        | Active                                 |
 
 ---
 
@@ -1100,7 +1101,7 @@ Rules of the log:
 
 ## D-088 — The launch catalogue is the four templates of `templates/`, maintained by the core team
 
-- **Date**: 09/11/2026 · **Status**: Active
+- **Date**: 09/11/2026 · **Status**: Replaced by D-114
 - **Decision** (FOR-30): the launch catalogue holds `crm`, `odoo-gateway`, `inventory` (the data hub) and `dashboard`, the four that CI builds and previews (D-045). The core team maintains them; a template is added only with a test and a place in `templates-preview.yml`.
 - **Why**: they are the SDK's integration tests, so they are kept working anyway; the white paper lists exactly these (CRM, contact records, data hub, API gateway, dashboard). A catalogue of tools nobody tests would break silently.
 - **Not done**: no individual owner is named (that is for the team); no template is published into `@templates` on a real install yet (D-081).
@@ -1432,3 +1433,15 @@ Rules of the log:
 - **Not done**: `db tables|schema|export` on a remote environment (a `SELECT` on `sqlite_master` does it); a clipboard copy from the CLI (the prompt is printed, or written with `--prompt-file`); the plan on a promotion by version number from the CLI (it asks for it with `--dry-run`); a preview as the target of `--from-branch` (production only from the CLI; the plan itself takes any target).
 - **Not verified**: no real D1 behind `db status|shell` and the plan (tested on in-memory databases through a fake host); no browser for the dialog; `forgeron platform status` against a simulated account only.
 - **Applied in**: `packages/hosting/src/migrate.ts` (`checkMigrations`), `packages/registry/src/promote-plan.ts`, `packages/platform-contract/src/{bearer,database-admin}.ts`, `apps/gateway/src/deploy/promote.ts`, `platform/database-admin.ts`, `admin-mcp/tools.ts`, `apps/cli/src/commands/{promote,db,admin,platform-status}.ts`, `remote.ts`, `apps/console/src/features/tools/release-dialog.tsx`; docs/sdk.md, docs/self-host.md.
+
+## D-114 — The Odoo gateway leaves `templates/`: the launch catalogue is three templates, business tools live in tools repositories of their own
+
+- **Date**: 10/11/2026 · **Status**: Active · replaces D-088
+- **Decision**:
+  1. `templates/odoo-gateway` (tool `odoo`) is removed from the repository, with `docs/examples/02-odoo-gateway.md` and `docs/odoo-gateway-in-claude.md`. It moves to Edicia's tools repository, a repository of Forgeron tools like any customer's (`docs/sdk.md` §2: one folder per `forgeron.config.ts`).
+  2. The launch catalogue is `crm`, `inventory` (the data hub) and `dashboard`, maintained by the core team. A template is a generic tool any workspace can use; a tool written for one company's systems is not one.
+  3. The Odoo manifest stays in `packages/ui/src/architecture/fixtures.ts` as a static fixture of a tool without a database; tests that use `odoo` as a tool name are unchanged.
+- **Why**: Odoo is one company's back office, not a standard tool; a business tool belongs to the repository of the company that runs it. Such repositories are meant to become marketplaces a workspace can add (to come).
+- **Rejected**: keeping it as a fourth template (the catalogue would carry a tool nobody outside its company installs); keeping it as an untested example in `docs/examples/` (an example nobody builds breaks silently, D-088's reason).
+- **Lost**: the SDK's integration tests no longer cover a tool without a database that uses per-person secret fields with a `kind`, a setup `check` and `network.allow` together; the unit tests of `manifest`, `runtime` and `sdk` still cover each.
+- **Applied in**: `templates/`, `apps/site/src/pages/index.astro`, `packages/ui/src/architecture/fixtures.ts`, `packages/sdk/src/config.test.ts`, `docs/ARCHITECTURE.md`, `docs/README.md`, `docs/sdk.md`.
