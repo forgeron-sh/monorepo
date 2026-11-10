@@ -138,10 +138,17 @@ export class ChangelogRefusal extends Error {
  * Production takes a build only if the changelog covers the change; a preview is never
  * blocked (sdk.md §14, §16). A host calls it before it uploads.
  */
-export function assertDeployable(environment: Environment, build: Build): void {
+export function assertDeployable(
+  environment: Environment,
+  build: Build,
+  options: { withoutRelease?: boolean } = {},
+): void {
   if (environment.name !== "production") return;
   const { changelog } = build;
   if (!changelog || changelog.entries.length === 0) {
+    // A release is advised, not required (D-121): an admin may put a build without one on
+    // production, knowingly. A release that declares too little is still refused below.
+    if (options.withoutRelease) return;
     throw new ChangelogRefusal(
       "NO_ENTRY",
       `${environment.name} takes a version with a changelog entry: run \`forgeron change\`, then \`forgeron release\`.`,

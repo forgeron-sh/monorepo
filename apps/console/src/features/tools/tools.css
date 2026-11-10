@@ -501,3 +501,42 @@
     padding-inline: var(--space-4);
   }
 }
+
+/* Updates (D-121): where the tool comes from, and the update waiting for it. */
+.ft-update {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+}
+.ft-update-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.ft-update-head .fc-section-title {
+  margin: 0;
+}
+.ft-update-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.ft-asks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ft-steps {
+  margin: 0;
+  padding-left: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

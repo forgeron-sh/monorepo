@@ -10,6 +10,7 @@ import {
   syncMarketplaceRoute,
 } from "@forgeron/platform-contract";
 import { marketplaceSource, RegistryError, TEMPLATE_WORKSPACE } from "@forgeron/registry";
+import { goLiveAfterInstall, updateByItself } from "../sources/update";
 import type { Context } from "hono";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { MarketplaceError } from "../marketplace/github";
@@ -51,9 +52,68 @@ const missing = (what = "marketplace") => ({
 
 const summaryOf = (m: Manifest) => m.summary ?? m.description ?? "";
 
+/** How long a sync is fresh: older, opening the marketplaces syncs again in the background. */
+const FRESH_MS = 60 * 60 * 1000;
+
+/**
+ * Reads the marketplace, records how it went, then moves the workspace's tools from it that update
+ * by themselves (D-121). A failure to read is recorded and thrown; an update that waits is not one.
+ */
+async function syncAndUpdate(c: Context<PlatformEnv>, found: Found & { repo: string }) {
+  const { registry, workspace } = c.env;
+  try {
+    const report = await syncMarketplace(registry, found.source, {
+      repo: found.repo,
+      fetch: c.env.marketplaceFetch,
+      ...(found.token ? { token: found.token } : {}),
+    });
+    if (found.id !== OFFICIAL) {
+      await registry.recordMarketplaceSync(workspace, found.id, {
+        ...(report.title ? { title: report.title } : {}),
+      });
+    }
+    const hosting = c.env.hosting(workspace);
+    if (hosting) {
+      for (const name of await registry.autoUpdatingFrom(workspace, found.source)) {
+        const tool = await registry.findTool(workspace, name);
+        if (tool) await updateByItself(registry, hosting, tool, `marketplace:${found.id}`);
+      }
+    }
+    return report;
+  } catch (error) {
+    if (error instanceof MarketplaceError && found.id !== OFFICIAL) {
+      await registry.recordMarketplaceSync(workspace, found.id, { error: error.message });
+    }
+    throw error;
+  }
+}
+
+/** Runs after the answer where the platform allows it (`waitUntil`), else before it (tests). */
+async function later(c: Context<PlatformEnv>, work: () => Promise<unknown>) {
+  const run = () => work().catch(() => undefined);
+  try {
+    c.executionCtx.waitUntil(run());
+  } catch {
+    await run();
+  }
+}
+
 export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
   app.openapi(platformRoute(listMarketplacesRoute, "admin"), async (c) => {
     const added = await c.env.registry.listMarketplaces(c.env.workspace);
+    // No cron (D-121): opening the marketplaces syncs those read more than an hour ago, after the
+    // answer, so a new release and the updates that go by themselves come without a click.
+    const stale = added.filter(
+      (m) => !m.syncedAt || c.env.now().getTime() - Date.parse(m.syncedAt) > FRESH_MS,
+    );
+    if (stale.length > 0) {
+      await later(c, async () => {
+        for (const m of stale) {
+          const found = await locate(c, m.id, true);
+          if (found?.repo) await syncAndUpdate(c, { ...found, repo: found.repo }).catch(() => {});
+        }
+      });
+    }
     return c.json(
       {
         marketplaces: [
@@ -143,22 +203,10 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
       );
     }
     try {
-      const report = await syncMarketplace(c.env.registry, found.source, {
-        repo: found.repo,
-        fetch: c.env.marketplaceFetch,
-        ...(found.token ? { token: found.token } : {}),
-      });
-      if (id !== OFFICIAL) {
-        await c.env.registry.recordMarketplaceSync(c.env.workspace, id, {
-          ...(report.title ? { title: report.title } : {}),
-        });
-      }
+      const report = await syncAndUpdate(c, { ...found, repo: found.repo });
       return c.json({ title: report.title ?? null, tools: report.tools }, 200);
     } catch (error) {
       if (!(error instanceof MarketplaceError)) throw error;
-      if (id !== OFFICIAL) {
-        await c.env.registry.recordMarketplaceSync(c.env.workspace, id, { error: error.message });
-      }
       return c.json({ error: "MARKETPLACE_UNREADABLE", message: error.message }, 502);
     }
   });
@@ -230,18 +278,28 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
     const found = await locate(c, id);
     if (!found) return c.json(missing(), 404);
     try {
-      const installed = await c.env.registry.installTemplate({
-        workspace: c.env.workspace,
+      const { registry, workspace } = c.env;
+      const person = c.get("person");
+      const installed = await registry.installTemplate({
+        workspace,
         template: tool,
         source: found.source,
-        actor: c.get("person").id,
+        actor: person.id,
         ...(c.env.via ? { via: c.env.via } : {}),
       });
+      const live = await goLiveAfterInstall(
+        registry,
+        c.env.hosting(workspace),
+        { workspace, tool: installed.tool.name, version: installed.version },
+        person.email,
+        c.env.via,
+      );
       return c.json(
         {
           tool: installed.tool.name,
           version: installed.version.version,
           approvals: installed.approvals,
+          ...live,
         },
         201,
       );

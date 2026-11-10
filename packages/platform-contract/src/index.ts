@@ -115,3 +115,12 @@ export {
   putAvailabilityRoute,
   uninstallLibraryToolRoute,
 } from "./library";
+export {
+  addRepositoryToolRoute,
+  AvailableUpdateSchema,
+  copyBranchDataRoute,
+  getToolSourceRoute,
+  putToolSourceRoute,
+  ToolSourceSchema,
+  updateToolRoute,
+} from "./sources";

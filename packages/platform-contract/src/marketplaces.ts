@@ -173,8 +173,12 @@ export const marketplaceToolCardRoute = defineRoute({
 const installed = z.strictObject({
   tool: z.string(),
   version: z.string(),
-  /** The requests an admin still has to decide before production. */
+  /** What the tool asks for: approved by the admin who installed it (D-121). */
   approvals: z.array(z.strictObject({ resource: z.string(), kind: z.string() })),
+  /** Whether it is in production now; `false` where the gateway cannot deploy, or it was refused. */
+  production: z.boolean(),
+  /** Why it is not in production, when it is not. */
+  waiting: z.string().optional(),
 });
 
 export const installMarketplaceToolRoute = defineRoute({
@@ -184,7 +188,10 @@ export const installMarketplaceToolRoute = defineRoute({
   tags: ["marketplaces"],
   request: { params: toolParams },
   responses: {
-    201: json(installed, "The tool, created: it has a version and no environment"),
+    201: json(
+      installed,
+      "The tool, created, approved and, where the gateway can deploy, in production",
+    ),
     401: notSignedIn,
     403: notAdmin,
     404: json(ErrorSchema, "No such marketplace or tool"),

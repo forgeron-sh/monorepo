@@ -11,6 +11,4 @@ export interface PageProps {
   go: (href: string) => void;
   /** The values of the `:name` segments of the route's path. */
   params: Readonly<Record<string, string>>;
-  /** Asks the shell to count the pending approvals again, after a decision. */
-  refreshPending: () => void;
 }

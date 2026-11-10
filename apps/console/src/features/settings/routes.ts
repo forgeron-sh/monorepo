@@ -3,7 +3,7 @@ import type { PageProps } from "../../shell/page-props";
 import type { LazyPage, RouteDef } from "../../shell/routes";
 
 // The settings area: Account for everyone, Workspace and Administration for admins. The members,
-// sign-in, domains, audit, approvals and install screens are the ones the console already had.
+// sign-in, domains, audit and install screens are the ones the console already had.
 
 const adapt =
   <P extends object>(load: () => Promise<ComponentType<P>>, props: (p: PageProps) => P): LazyPage =>
@@ -108,16 +108,6 @@ const routes: RouteDef[] = [
     page: adapt(
       () => import("../../audit-page").then((m) => m.AuditPage),
       ({ api, ws, now }) => ({ api, admin: ws.person.admin, now }),
-    ),
-  },
-  {
-    path: "/settings/approvals",
-    title: "Approvals",
-    access: "admin",
-    settings: { group: "administration", label: "Approvals" },
-    page: adapt(
-      () => import("../../approvals-page").then((m) => m.ApprovalsPage),
-      ({ api, refreshPending }) => ({ api, onDecided: refreshPending }),
     ),
   },
   {

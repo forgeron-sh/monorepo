@@ -74,7 +74,10 @@ describe("the tool page", () => {
     );
     await flushLazy();
     const pick = page.querySelector<HTMLSelectElement>(".ft-branch-pick select")!;
-    expect([...pick.options].map((o) => o.textContent)).toEqual(["Production", "feat-export"]);
+    expect([...pick.options].map((o) => o.textContent)).toEqual([
+      "Production · 1.4.0",
+      "feat-export",
+    ]);
     expect(pick.value).toBe("");
     expect(page.querySelector(".ft-branch-band")).toBeNull();
     await act(async () => {

@@ -2,3 +2,4 @@
 export { createTemplates } from "./store";
 export { templatesMigrations } from "./migrations";
 export { TEMPLATE_WORKSPACE } from "./types";
+export type { AvailableUpdate, ToolSource } from "./types";

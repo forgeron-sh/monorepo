@@ -23,7 +23,13 @@ export {
   TEMPLATE_WORKSPACE,
   VIA_FORGERON_MCP,
 } from "./registry";
-export type { Availability, AvailabilityMode, Marketplace } from "./registry";
+export type {
+  Availability,
+  AvailabilityMode,
+  AvailableUpdate,
+  Marketplace,
+  ToolSource,
+} from "./registry";
 export { docsProblem } from "./docs-check";
 export { listCatalog, findCard, findAsset, assetUrl } from "./catalog";
 export type { CatalogCaller } from "./catalog";

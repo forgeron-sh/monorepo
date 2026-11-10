@@ -6,6 +6,7 @@ import {
 } from "@forgeron/platform-contract";
 import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import { goLiveAfterInstall } from "../sources/update";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
 // The template catalogue and its installation (D-081), for admins. The registry audits the install
@@ -24,11 +25,20 @@ export function mountTemplates(app: OpenAPIHono<PlatformEnv>): void {
         actor: c.get("person").id,
         ...(c.env.via ? { via: c.env.via } : {}),
       });
+      const person = c.get("person");
+      const live = await goLiveAfterInstall(
+        c.env.registry,
+        c.env.hosting(c.env.workspace),
+        { workspace: c.env.workspace, tool: installed.tool.name, version: installed.version },
+        person.email,
+        c.env.via,
+      );
       return c.json(
         {
           tool: installed.tool.name,
           version: installed.version.version,
           approvals: installed.approvals,
+          ...live,
         },
         201,
       );
@@ -101,8 +111,15 @@ export function mountTemplates(app: OpenAPIHono<PlatformEnv>): void {
       if (done === "expired") {
         return c.json({ error: "PLAN_EXPIRED", message: "This plan expired." }, 410);
       }
+      const live = await goLiveAfterInstall(
+        c.env.registry,
+        c.env.hosting(c.env.workspace),
+        { workspace: c.env.workspace, tool: done.tool.name, version: done.version },
+        c.get("person").email,
+        c.env.via,
+      );
       return c.json(
-        { tool: done.tool.name, version: done.version.version, approvals: done.approvals },
+        { tool: done.tool.name, version: done.version.version, approvals: done.approvals, ...live },
         201,
       );
     } catch (error) {

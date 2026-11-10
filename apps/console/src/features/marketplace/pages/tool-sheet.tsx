@@ -1,6 +1,7 @@
 import {
   Badge,
   Button,
+  Checkbox,
   DetailList,
   Dialog,
   Markdown,
@@ -89,7 +90,7 @@ function details(card: MarketplaceToolCard) {
         )),
       ),
     },
-    { label: "Needs approval", value: list(card.resources.map(mono)) },
+    { label: "Asks for", value: list(card.resources.map(mono)) },
   ];
 }
 
@@ -104,6 +105,7 @@ export default function ToolSheet({ api, go, id, tool }: PageProps & { id: strin
   const card = useLoad(() => loadMarketplaceToolCard(api.fetchJson, id, tool), [api, id, tool]);
   const [tab, setTab] = useState("readme");
   const [confirming, setConfirming] = useState(false);
+  const [approved, setApproved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -122,7 +124,8 @@ export default function ToolSheet({ api, go, id, tool }: PageProps & { id: strin
     setError(undefined);
     try {
       const done = await installMarketplaceTool(api.sendJson, id, tool);
-      go(`/tools/${encodeURIComponent(done.tool)}`);
+      // Next: who can use it (D-117). Where it could not go to production, its page says why.
+      go(`/tools/${encodeURIComponent(done.tool)}?tab=availability`);
     } catch (e) {
       setError(explain(e, "The tool was not installed. Try again."));
       setBusy(false);
@@ -207,23 +210,38 @@ export default function ToolSheet({ api, go, id, tool }: PageProps & { id: strin
       {confirming ? (
         <Dialog
           title={`Install ${c.title} ${c.version}?`}
-          description="The tool is created in the workspace with no environment. Production waits for these approvals, then you choose who can use it."
+          description="The tool is created in the workspace and goes to production. Then you choose who can use it."
           onClose={() => !busy && setConfirming(false)}
           footer={
             <>
               <Button onClick={() => setConfirming(false)} disabled={busy}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={install} disabled={busy} data-autofocus>
+              <Button
+                variant="primary"
+                onClick={install}
+                disabled={busy || (c.resources.length > 0 && !approved)}
+                data-autofocus
+              >
                 {busy ? "Installing…" : "Install"}
               </Button>
             </>
           }
         >
           {c.resources.length > 0 ? (
-            list(c.resources.map(mono))
+            <>
+              <p className="fc-caption" style={{ margin: 0 }}>
+                It asks for
+              </p>
+              {list(c.resources.map(mono))}
+              <Checkbox
+                label="I approve what it asks for"
+                checked={approved}
+                onChange={(e) => setApproved(e.target.checked)}
+              />
+            </>
           ) : (
-            <p className="fc-muted">It asks for no resource that needs an approval.</p>
+            <p className="fc-muted">It asks for nothing that needs an approval.</p>
           )}
           {error ? <Notice tone="danger">{error}</Notice> : null}
         </Dialog>

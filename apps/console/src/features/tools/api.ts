@@ -1,5 +1,5 @@
 import { addresses } from "@forgeron/platform-contract/client";
-import { typedClient, typedPlatform, ok, type Api, type FetchJson } from "../../api";
+import { typedClient, typedPlatform, typedSender, ok, type Api, type FetchJson } from "../../api";
 
 // Typed calls to the console API for the tools (apps/gateway/src/console-api/tools.ts and
 // tool-pages.ts). Only the fields shown are kept, whatever else an answer holds.
@@ -188,7 +188,18 @@ function platform(api: Api) {
 }
 
 /** `POST /promote`: puts a version the tool already has on production, or on a branch's preview. */
-export const promote = async (api: Api, input: { tool: string; version: string; reason: string }) =>
+export const promote = async (
+  api: Api,
+  input: {
+    tool: string;
+    version: string;
+    reason: string;
+    /** Approves what the version asks for, in the same step (D-121). */
+    approve?: boolean;
+    /** Takes a build with no release, knowingly (D-121). */
+    withoutRelease?: boolean;
+  },
+) =>
   ok(
     await platform(api)(addresses.promote, {
       json: {
@@ -196,6 +207,8 @@ export const promote = async (api: Api, input: { tool: string; version: string; 
         version: input.version,
         to: "production",
         ...(input.reason ? { reason: input.reason } : {}),
+        ...(input.approve ? { approve: true } : {}),
+        ...(input.withoutRelease ? { withoutRelease: true } : {}),
       },
     }),
   );
@@ -264,3 +277,45 @@ export const closePreview = async (api: Api, input: { tool: string; branch: stri
       json: { tool: input.tool, branch: input.branch },
     }),
   );
+
+/** Where a tool comes from, and the update waiting for it (D-121). */
+export interface ToolSourceView {
+  kind: "marketplace" | "repo";
+  marketplace?: string;
+  repo?: string;
+  productionBranch: string;
+  autoUpdate: boolean;
+  production: string | null;
+  update: {
+    version: string;
+    branch?: string;
+    release: boolean;
+    changelog: string[];
+    approvals: string[];
+  } | null;
+}
+
+export const loadSource = async (fetchJson: FetchJson, tool: string): Promise<ToolSourceView> =>
+  ok(await typedClient(fetchJson)(addresses.getToolSource, { params: { tool } }));
+
+export const saveSource = async (
+  api: Api,
+  tool: string,
+  settings: { autoUpdate?: boolean; productionBranch?: string },
+): Promise<ToolSourceView> =>
+  ok(
+    await typedSender(api.sendJson)(addresses.putToolSource, { params: { tool }, json: settings }),
+  );
+
+/** Puts the waiting update in production, approving and accepting what the admin ticked. */
+export const updateTool = async (
+  api: Api,
+  tool: string,
+  input: { version: string; approve?: boolean; withoutRelease?: boolean },
+) => ok(await typedSender(api.sendJson)(addresses.updateTool, { params: { tool }, json: input }));
+
+/** Adds a tool that a GitHub repository's CI deploys; the answer holds its token, shown once. */
+export const addRepositoryTool = async (
+  api: Api,
+  input: { name: string; repo: string; productionBranch?: string },
+) => ok(await typedSender(api.sendJson)(addresses.addRepositoryTool, { json: input }));

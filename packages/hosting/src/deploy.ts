@@ -30,6 +30,8 @@ export interface DeployOptions {
   seed?: (db: D1Database) => void | Promise<void>;
   /** Production refuses a destructive migration unless told (`--allow-destructive`). */
   allowDestructive?: boolean;
+  /** Production takes a build with no changelog entry (no release), knowingly (D-121). */
+  withoutRelease?: boolean;
   now?: MigrateOptions["now"];
 }
 
@@ -54,7 +56,7 @@ export async function deploy(
   build: Build,
   options: DeployOptions = {},
 ): Promise<Deployment> {
-  assertDeployable(environment, build);
+  assertDeployable(environment, build, { withoutRelease: options.withoutRelease === true });
   const provisioned = await hosting.provision(environment, build.manifest);
   const uploaded = await hosting.upload(provisioned, build);
   // A preview owns its database: it may drop what it likes. The others share one.

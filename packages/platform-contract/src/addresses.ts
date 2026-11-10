@@ -32,6 +32,13 @@ import type {
   uninstallLibraryToolRoute,
 } from "./library";
 import type {
+  addRepositoryToolRoute,
+  copyBranchDataRoute,
+  getToolSourceRoute,
+  putToolSourceRoute,
+  updateToolRoute,
+} from "./sources";
+import type {
   addMarketplaceRoute,
   installMarketplaceToolRoute,
   listMarketplacesRoute,
@@ -191,6 +198,26 @@ export const addresses = {
   uninstallLibraryTool: addressOf<typeof uninstallLibraryToolRoute>({
     method: "delete",
     path: "/api/library/{tool}",
+  }),
+  getToolSource: addressOf<typeof getToolSourceRoute>({
+    method: "get",
+    path: "/api/tools/{tool}/source",
+  }),
+  putToolSource: addressOf<typeof putToolSourceRoute>({
+    method: "put",
+    path: "/api/tools/{tool}/source",
+  }),
+  updateTool: addressOf<typeof updateToolRoute>({
+    method: "post",
+    path: "/api/tools/{tool}/update",
+  }),
+  addRepositoryTool: addressOf<typeof addRepositoryToolRoute>({
+    method: "post",
+    path: "/api/tools/from-repository",
+  }),
+  copyBranchData: addressOf<typeof copyBranchDataRoute>({
+    method: "post",
+    path: "/api/tools/{tool}/branches/{branch}/data",
   }),
   getAvailability: addressOf<typeof getAvailabilityRoute>({
     method: "get",

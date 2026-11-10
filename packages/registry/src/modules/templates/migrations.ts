@@ -33,4 +33,27 @@ export const templatesMigrations: BuildMigration[] = [
     up: [st(`ALTER TABLE "install_plans" ADD COLUMN "source" TEXT NOT NULL DEFAULT '@templates'`)],
     down: [st(`ALTER TABLE "install_plans" DROP COLUMN "source"`)],
   },
+  {
+    // Where a tool comes from (D-121): a marketplace (`@templates` or `@mp:<id>`, and the tool's
+    // name there), or a GitHub repository whose CI deploys it (`repo`). Which branch's preview is the
+    // candidate for production, and whether a new version goes there by itself. A tool with no row
+    // was deployed before sources: it behaves as a repository on `main`, updated by hand.
+    name: "0033_tool_sources",
+    fingerprint: "tool-sources-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "tool_sources" (
+  "tool_id" TEXT PRIMARY KEY NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "kind" TEXT NOT NULL,
+  "source" TEXT,
+  "source_tool" TEXT,
+  "repo" TEXT,
+  "production_branch" TEXT NOT NULL DEFAULT 'main',
+  "auto_update" INTEGER NOT NULL DEFAULT 0,
+  "updated_by" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL
+)`),
+    ],
+    down: [st(`DROP TABLE "tool_sources"`)],
+  },
 ];

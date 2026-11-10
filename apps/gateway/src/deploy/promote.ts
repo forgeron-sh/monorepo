@@ -40,7 +40,7 @@ export interface PromoteContext {
 }
 
 /** Who acts, and on which tool: a deployment token carries its tool, an administrator names one. */
-type Actor = { actor: string; tool?: string } | Response;
+type Actor = { actor: string; tool?: string; person: boolean } | Response;
 
 async function actorOf(request: Request, context: PromoteContext): Promise<Actor> {
   const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
@@ -55,7 +55,7 @@ async function actorOf(request: Request, context: PromoteContext): Promise<Actor
       if (!audience || audience.workspace !== context.workspace) {
         return fail(403, "FORBIDDEN", "This token was not issued for this workspace.");
       }
-      return { actor: check.claims.sub, tool: audience.tool };
+      return { actor: check.claims.sub, tool: audience.tool, person: false };
     }
   }
   const person = await context.authenticate(request);
@@ -69,7 +69,7 @@ async function actorOf(request: Request, context: PromoteContext): Promise<Actor
   if (!person.roles.includes("admin")) {
     return fail(403, "FORBIDDEN", "Only an administrator of the workspace can do this.");
   }
-  return { actor: person.email };
+  return { actor: person.email, person: true };
 }
 
 async function bodyOf(request: Request): Promise<Record<string, unknown> | undefined> {
@@ -135,6 +135,7 @@ async function prepare(request: Request, context: PromoteContext, environmentKey
   if (!tool) return fail(404, "NOT_FOUND", `There is no tool ${toolName}.`);
   return {
     actor: who.actor,
+    person: who.person,
     tool,
     body,
     environment: environment as RegisteredEnvironment,
@@ -221,7 +222,15 @@ export async function handlePromote(request: Request, context: PromoteContext) {
   const ready = await prepare(request, context, "to");
   if (ready instanceof Response) return ready;
   const { actor, tool, body, environment, branch, reason } = ready;
-  const { allowDestructive } = body;
+  const { allowDestructive, approve, withoutRelease } = body;
+  // Approving and taking a build with no release are an administrator's, never CI's (D-121).
+  if ((approve === true || withoutRelease === true) && !ready.person) {
+    return fail(
+      403,
+      "FORBIDDEN",
+      "Only an administrator can approve or put a build with no release on production.",
+    );
+  }
   const named = await versionToPromote(body, context, tool);
   if (named instanceof Response) return named;
   try {
@@ -231,6 +240,8 @@ export async function handlePromote(request: Request, context: PromoteContext) {
       to: environment,
       ...(branch ? { branch } : {}),
       ...(allowDestructive === true ? { allowDestructive: true } : {}),
+      ...(approve === true ? { approve: true } : {}),
+      ...(withoutRelease === true ? { withoutRelease: true } : {}),
       ...(reason ? { reason } : {}),
       ...(context.via ? { via: context.via } : {}),
       actor,

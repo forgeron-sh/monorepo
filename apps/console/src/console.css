@@ -630,3 +630,11 @@ code {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Replacing a branch's data by another's (D-121). */
+.fc-db-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}

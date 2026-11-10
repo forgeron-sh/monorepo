@@ -271,7 +271,7 @@ describe("the tools and their minimum role", () => {
     expect((await listed(ana)).sort()).toEqual([...MEMBER].sort());
     expect((await listed(dev)).sort()).toEqual([...DEVELOPER].sort());
     expect((await listed(root)).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(22);
+    expect(TOOLS).toHaveLength(24);
   });
 
   it("marks what changes something with destructiveHint, and nothing else", async () => {
@@ -285,6 +285,7 @@ describe("the tools and their minimum role", () => {
         "tool_install",
         "tool_promote",
         "tool_rollback",
+        "tool_update",
       ].sort(),
     );
     for (const t of tools) {
@@ -664,11 +665,17 @@ describe("installing a template takes two steps (D-092)", () => {
     expect(await registry.findTool("acme", "inventory")).toBeUndefined();
 
     const done = await call(root, "tool_install", { plan: planned.data.plan });
+    // What the plan showed is approved by the install, and the tool is in production (D-121).
     expect(done.data).toEqual({
       tool: "inventory",
       version: "0.4.0",
       approvals: [{ resource: "resources.db", kind: "resource.added" }],
+      production: true,
     });
+    const installed = (await registry.findTool("acme", "inventory"))!;
+    expect((await registry.listApprovals(installed.id)).map((a) => [a.resource, a.status])).toEqual(
+      [["resources.db", "approved"]],
+    );
     expect((await audit("inventory:0.4.0")).map((l) => [l.actor, l.via, l.kind])).toEqual([
       [root, "Forgeron MCP", "install"],
     ]);

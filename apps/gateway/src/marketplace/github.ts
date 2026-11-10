@@ -94,8 +94,8 @@ export async function downloadAsset(
   if (typeof file.size === "number" && file.size > MAX_BUNDLE_BYTES) {
     throw new MarketplaceError(`${asset} is over ${MAX_BUNDLE_BYTES} bytes.`);
   }
-  // Only an address of the API is followed with the token.
-  if (!file.url.startsWith(`${API}/repos/`)) {
+  // Only an address of the API, in the repository asked, is followed with the token.
+  if (!file.url.startsWith(`${API}/repos/${path(reader.repo)}/`)) {
     throw new MarketplaceError(`The release ${release} names an asset outside GitHub's API.`);
   }
   const response = await reader.fetch(file.url, {

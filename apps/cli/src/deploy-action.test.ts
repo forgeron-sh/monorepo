@@ -161,6 +161,7 @@ describe("forgeron init", () => {
     );
     expect(workflow).toContain("uses: forgeron/deploy-action@v1");
     expect(workflow).toContain("token: ${{ secrets.FORGERON_TOKEN }}");
-    expect(workflow).toMatch(/on:\n {2}push:\n {2}pull_request:/);
+    // Each pushed branch, and its deletion (D-121); tags are a marketplace's release, not a preview.
+    expect(workflow).toMatch(/on:\n {2}push:\n {4}branches: \["\*\*"\]\n {2}delete:/);
   });
 });

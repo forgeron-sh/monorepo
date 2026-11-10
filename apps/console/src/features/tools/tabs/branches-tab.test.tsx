@@ -207,6 +207,35 @@ describe("the branches", () => {
       expect(button(dialog(), "Promote").disabled).toBe(true);
     });
 
+    it("approves what the version asks for, and takes a build with no release, in the dialog (D-121)", async () => {
+      const { platform } = await open({
+        ...plan,
+        ok: false,
+        conflicts: [
+          { code: "PENDING_APPROVAL", subject: "resources.network", message: "Waits." },
+          { code: "CHANGELOG_NO_ENTRY", message: "No entry." },
+        ],
+      });
+      const d = dialog();
+      expect(d.textContent).not.toContain("cannot go to production yet");
+      expect(d.textContent).toContain("This version asks for");
+      expect(d.textContent).toContain("resources.network");
+      expect(d.textContent).toContain("This build is not a release.");
+      expect(button(d, "Promote").disabled).toBe(true);
+      const box = (label: string) =>
+        [...d.querySelectorAll("label")]
+          .find((l) => l.textContent === label)!
+          .querySelector("input");
+      await click(box("I approve what it asks for"));
+      expect(button(d, "Promote").disabled).toBe(true);
+      await click(box("Put it in production without a release"));
+      await click(button(d, "Promote"));
+      expect(platform.at(-1)).toMatchObject({
+        path: "/promote",
+        body: { approve: true, withoutRelease: true },
+      });
+    });
+
     it("says when production already serves the version", async () => {
       await open({ ...plan, alreadyServed: true });
       expect(dialog().textContent).toContain("Production already serves this version.");

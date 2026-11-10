@@ -30,6 +30,12 @@ inputs:
       instead of testing and deploying: for a pull request that is closed or merged.
     required: false
     default: "false"
+  branch:
+    description: >-
+      With close, the branch whose preview goes; by default the pull request's. A deleted branch
+      gives its own name here (github.event.ref).
+    required: false
+    default: ""
 outputs:
   urls:
     description: One "<tool> <address>" line per tool that was deployed (empty when nothing was).
@@ -50,3 +56,4 @@ runs:
         FORGERON_ARGS: ${{ inputs.args }}
         FORGERON_CMD: ${{ inputs.command }}
         FORGERON_CLOSE: ${{ inputs.close }}
+        FORGERON_BRANCH: ${{ inputs.branch }}

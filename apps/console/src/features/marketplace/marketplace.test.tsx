@@ -24,7 +24,6 @@ const props = (api: PageProps["api"], go = vi.fn<(href: string) => void>()): Pag
   now: () => NOW,
   go,
   params: {},
-  refreshPending: () => {},
 });
 
 const official = {
@@ -69,7 +68,7 @@ describe("the marketplace screen (D-116)", () => {
     expect(container.textContent).toContain("Nothing to install yet");
     await click(button(container, "Outils Edicia"));
     expect(container.textContent).toContain("Odoo gateway");
-    expect(container.textContent).toContain("1 approval");
+    expect(container.textContent).toContain("Asks for 1");
     expect(container.textContent).toContain("private, read with a token");
   });
 
@@ -134,6 +133,7 @@ describe("the technical sheet of a tool", () => {
         tool: "odoo",
         version: "1.0.0",
         approvals: [{ resource: "resources.network", kind: "resource.added" }],
+        production: true,
       },
     });
     const container = await mount(<ToolSheet {...props(api, go)} id="m1" tool="odoo" />);
@@ -143,12 +143,15 @@ describe("the technical sheet of a tool", () => {
     expect(container.textContent).toContain("For the agents");
     await click(button(container, "Install"));
     expect(document.body.textContent).toContain("resources.network");
-    await click(
-      [...document.querySelectorAll("[role=dialog] button")].find(
+    const confirm = () =>
+      [...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button")].find(
         (b) => b.textContent === "Install",
-      ),
-    );
+      )!;
+    // What it asks for is approved in the dialog (D-121): not before the box is ticked.
+    expect(confirm().disabled).toBe(true);
+    await click(document.querySelector("[role=dialog] input[type=checkbox]"));
+    await click(confirm());
     expect(sent.map((s) => s.path)).toEqual(["/api/marketplaces/m1/tools/odoo/install"]);
-    expect(go).toHaveBeenCalledWith("/tools/odoo");
+    expect(go).toHaveBeenCalledWith("/tools/odoo?tab=availability");
   });
 });

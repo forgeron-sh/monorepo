@@ -96,7 +96,12 @@ export async function syncMarketplace(
     try {
       const build = await checkBundle(
         entry,
-        await downloadAsset(reader, entry.release, entry.asset),
+        // A tool published from its own repository (D-121) is read there, with the same token.
+        await downloadAsset(
+          entry.repo ? { ...reader, repo: entry.repo } : reader,
+          entry.release,
+          entry.asset,
+        ),
       );
       const tool = existing ?? (await registry.createTool({ workspace: source, name: entry.name }));
       const recorded = await registry.recordBuild(tool.id, {
