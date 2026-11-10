@@ -68,7 +68,6 @@ forgeron/
 │   └── tsconfig/           # @forgeron/tsconfig
 ├── templates/
 │   ├── crm/                # docs/examples/01-crm.md
-│   ├── odoo-gateway/       # docs/examples/02-odoo-gateway.md
 │   ├── inventory/          # docs/examples/03-data-hub.md
 │   └── dashboard/          # docs/examples/04-dashboard.md
 ├── assets/                 # logos, previews, design system (source of the @forgeron/ui tokens)
@@ -298,7 +297,7 @@ flowchart LR
 
 1. **Foundation** (done): tooling, CI, conventions, versioning, skeleton of the apps and packages.
 2. **`@forgeron/manifest`**: schema and diff, fully testable without Cloudflare.
-3. **SDK + runtime + `forgeron dev`** (`local` mode of `hosting`) on a tool without a database: the `odoo-gateway` template. Output: a working local MCP.
+3. **SDK + runtime + `forgeron dev`** (`local` mode of `hosting`) on a tool without a database: the Odoo gateway, a template then, since moved to a tools repository of its own (D-114). Output: a working local MCP.
 4. **Database and migrations** (`@forgeron/sdk/db`, generator) with the `crm` template.
 5. **Gateway + self-host `hosting`**: dispatch, identity (company SSO through OIDC, sessions, audience tokens), registry, preview deployment on a regular Cloudflare account. **Gate 1** (Odoo gateway in internal production) needs this step.
 6. **Platform**: console, environments and promotion, per-action access by role, per-person secrets, usage log (gate 2: first pilot customer).
