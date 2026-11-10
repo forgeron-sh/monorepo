@@ -151,9 +151,9 @@ describe("the page shell", () => {
       ...env,
       DB: failing,
       MAIL_MODE: "console",
-      BASE_DOMAIN: "fabriks.cc",
+      BASE_DOMAIN: "example.com",
     } as unknown as GatewayEnv;
-    const origin = "https://acme.fabriks.cc";
+    const origin = "https://acme.example.com";
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const response = await worker.fetch(
       new Request(`${origin}/auth/email/request`, {

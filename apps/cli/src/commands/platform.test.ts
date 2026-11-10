@@ -241,6 +241,20 @@ describe("forgeron platform install", () => {
     expect(logs.join("\n")).toContain('Found the route "*.forgeron.example.test/*"');
   });
 
+  it("serves one host only with --only: a record and a route for it, not the whole zone", async () => {
+    const cf = fakeCloudflare();
+    await platform(install(["--only", "acme"]), io, { fetch: cf.fetcher });
+    expect(cf.records).toEqual([
+      { id: "rec-1", name: "acme.forgeron.example.test", proxied: true },
+    ]);
+    expect(cf.routes).toEqual([
+      { id: "route-1", pattern: "acme.forgeron.example.test/*", script: "forgeron-gateway" },
+    ]);
+    await expect(platform(install(["--only", "www"]), io, { fetch: cf.fetcher })).rejects.toThrow(
+      "reserved",
+    );
+  });
+
   it("fails with a usage error when the zone is not on the account, or the route points elsewhere", async () => {
     await expect(
       platform(install(), io, { fetch: fakeCloudflare(TOKEN, []).fetcher }),

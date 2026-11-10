@@ -8,7 +8,7 @@ import { UsageError, type Io } from "../io";
 import { platformClient, refusal } from "../platform-client";
 import { resolveEndpoint } from "../project";
 
-const LOGIN_USAGE = "Usage: forgeron login [--workspace <name>] [--endpoint <url>]";
+const LOGIN_USAGE = "Usage: forgeron login [--workspace <name | host>] [--endpoint <url>]";
 
 // How long the browser has to come back.
 const WAIT_MS = 5 * 60_000;
@@ -124,7 +124,8 @@ export async function whoami(args: string[], io: Io): Promise<number> {
     allowPositionals: true,
     options: { workspace: { type: "string" }, endpoint: { type: "string" } },
   });
-  if (positionals.length > 0) throw new UsageError("Usage: forgeron whoami [--workspace <name>]");
+  if (positionals.length > 0)
+    throw new UsageError("Usage: forgeron whoami [--workspace <name | host>]");
   const token = await readCredentials(process.env, io.keychain);
   if (!token) throw new UsageError("Not signed in: run `forgeron login` first.");
   const endpoint = await resolveEndpoint(values, io.cwd);
