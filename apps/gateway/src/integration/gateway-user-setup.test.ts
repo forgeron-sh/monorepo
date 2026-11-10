@@ -782,3 +782,175 @@ describe("a person's own page of secrets (D-106)", () => {
     expect((await act({ action: "nonsense" })).status).toBe(400);
   });
 });
+
+describe("a different secret for a preview or a branch (D-109)", () => {
+  const ORIGIN = "https://acme.forgeron.app";
+  let dev = "";
+  let cookie = "";
+  let normal = "";
+  let testKey = "";
+
+  const act = (fields: Record<string, string>) =>
+    gateway()(
+      new Request(`${ORIGIN}/my/secrets`, {
+        method: "POST",
+        headers: {
+          cookie,
+          origin: ORIGIN,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams(fields),
+      }),
+    );
+  /** What the tool's Worker is handed for a call to this path. */
+  const secretsAt = async (path: string, token: string) => {
+    seen.length = 0;
+    expect((await call(path, token)).status).toBe(200);
+    return (seen[0]?.secrets ?? {}) as Record<string, string>;
+  };
+
+  beforeAll(async () => {
+    dev = (
+      await registry.addMember({
+        workspace: "acme",
+        subject: "devon",
+        email: "devon@acme.test",
+        name: "devon",
+        roles: ["developer"],
+      })
+    ).id;
+    cookie = (
+      await openSession(
+        { person: dev, workspace: "acme" },
+        { secret: SECRET, ttlSeconds: 3600, now },
+      )
+    ).split(";")[0]!;
+    // Two preview branches of the tool.
+    for (const branch of ["feature-x", "feature-y"]) {
+      const version = (await registry.listVersions(toolId))[0]!;
+      const preview = await registry.ensureEnvironment(toolId, "preview", branch);
+      await registry.activate(preview.id, version.id, { actor: "test" });
+    }
+    const first = await call(
+      "/t/crm/setup",
+      await tokenFor(dev),
+      json({ firstName: "Devon", ODOO_API_KEY: "devon-real-key" }),
+    );
+    if (first.status !== 200) throw new Error(`The setup was refused: ${first.status}`);
+    const own = (await registry.listPersonSecrets("acme", dev))[0]!;
+    normal = own.id;
+    // A second secret of their own: the key for a test instance.
+    await registry.createPersonSecret({
+      workspace: "acme",
+      person: dev,
+      label: "Test instance",
+      kind: "odoo.api-key",
+      value: "devon-test-key",
+    });
+    testKey = (await registry.listPersonSecrets("acme", dev)).find(
+      (s) => s.label === "Test instance",
+    )!.id;
+  });
+
+  it("serves the person's usual secret to production and to every preview until they say otherwise", async () => {
+    const token = await tokenFor(dev);
+    expect(await secretsAt("/t/crm/api/tickets.mine", token)).toEqual({
+      ODOO_API_KEY: "devon-real-key",
+    });
+    expect(await secretsAt("/t/crm@feature-x/api/tickets.mine", token)).toEqual({
+      ODOO_API_KEY: "devon-real-key",
+    });
+  });
+
+  it("serves another secret to one branch's preview, and the usual one everywhere else", async () => {
+    const out = await act({
+      action: "override",
+      tool: "crm",
+      field: "ODOO_API_KEY",
+      where: "branch",
+      branch: "feature-x",
+      secret: testKey,
+    });
+    expect(out.headers.get("location")).toBe("/my/secrets?done=overridden");
+    const token = await tokenFor(dev);
+    expect(await secretsAt("/t/crm@feature-x/api/tickets.mine", token)).toEqual({
+      ODOO_API_KEY: "devon-test-key",
+    });
+    expect(await secretsAt("/t/crm@feature-y/api/tickets.mine", token)).toEqual({
+      ODOO_API_KEY: "devon-real-key",
+    });
+    expect(await secretsAt("/t/crm/api/tickets.mine", token)).toEqual({
+      ODOO_API_KEY: "devon-real-key",
+    });
+    // The page says where each is used, in words.
+    const text = await (
+      await gateway()(new Request(`${ORIGIN}/my/secrets`, { headers: { cookie } }))
+    ).text();
+    expect(text).toContain("the preview of feature-x");
+    expect(text).not.toContain("devon-test-key");
+  });
+
+  it("lets every preview, then production, have their own, the most specific winning", async () => {
+    const token = await tokenFor(dev);
+    expect(
+      (
+        await act({
+          action: "override",
+          tool: "crm",
+          field: "ODOO_API_KEY",
+          where: "preview",
+          secret: testKey,
+        })
+      ).status,
+    ).toBe(303);
+    // feature-y now follows the preview override, feature-x still has its own branch one.
+    expect(await secretsAt("/t/crm@feature-y/api/tickets.mine", token)).toEqual({
+      ODOO_API_KEY: "devon-test-key",
+    });
+    expect(
+      (
+        await act({
+          action: "override",
+          tool: "crm",
+          field: "ODOO_API_KEY",
+          where: "production",
+          secret: normal,
+        })
+      ).status,
+    ).toBe(303);
+    expect(await secretsAt("/t/crm/api/tickets.mine", token)).toEqual({
+      ODOO_API_KEY: "devon-real-key",
+    });
+  });
+
+  it("refuses a branch that is not one, a secret that is not theirs and a tool they have no secret for", async () => {
+    const base = { action: "override", tool: "crm", field: "ODOO_API_KEY", secret: testKey };
+    expect((await act({ ...base, where: "branch", branch: "Not A Branch!" })).status).toBe(400);
+    expect((await act({ ...base, where: "elsewhere" })).status).toBe(400);
+    expect((await act({ ...base, where: "preview", secret: "sec_nobody" })).status).toBe(400);
+    expect((await act({ ...base, where: "preview", tool: "nothing" })).status).toBe(400);
+    expect((await act({ ...base, where: "preview", field: "NOPE" })).status).toBe(400);
+  });
+
+  it("asks the tool to check the secret it would now get", async () => {
+    await registry.addSecretVersion({
+      workspace: "acme",
+      person: dev,
+      secretId: testKey,
+      value: "wrong",
+    });
+    const before = (await registry.listPersonSecrets("acme", dev)).find((s) => s.id === testKey)!;
+    const out = await act({
+      action: "override",
+      tool: "crm",
+      field: "ODOO_API_KEY",
+      where: "branch",
+      branch: "feature-z",
+      secret: testKey,
+    });
+    expect(out.status).toBe(400);
+    expect(await out.text()).toContain("Odoo refused this key");
+    const after = (await registry.listPersonSecrets("acme", dev)).find((s) => s.id === testKey)!;
+    expect(after.usedBy).toEqual(before.usedBy);
+  });
+});
