@@ -20,6 +20,14 @@ for (const p of PUBLISHED) {
     console.log(`${name}@${version} is already on npm.`);
     continue;
   }
+  // npm "corrects" a package.json it finds wrong by removing fields (forgeron@0.1.0 lost its bin):
+  // a dry run first, and any correction stops the publication.
+  const dry = spawnSync("npm", ["publish", dist, "--access", "public", "--dry-run"], {
+    encoding: "utf8",
+  });
+  const corrected = `${dry.stdout}${dry.stderr}`.match(/.*(invalid and removed|auto-corrected).*/g);
+  if (corrected)
+    throw new Error(`npm would change ${name}'s package.json:\n${corrected.join("\n")}`);
   const args = ["publish", dist, "--access", "public"];
   const done = spawnSync("npm", args, { stdio: "inherit" });
   if (done.status !== 0) throw new Error(`npm ${args.join(" ")} failed.`);
