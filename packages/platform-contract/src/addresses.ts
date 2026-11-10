@@ -19,6 +19,14 @@ import type {
   putIdentityProviderRoute,
 } from "./identity";
 import type {
+  getAvailabilityRoute,
+  installLibraryToolRoute,
+  libraryCardRoute,
+  listLibraryRoute,
+  putAvailabilityRoute,
+  uninstallLibraryToolRoute,
+} from "./library";
+import type {
   addMarketplaceRoute,
   installMarketplaceToolRoute,
   listMarketplacesRoute,
@@ -169,6 +177,24 @@ export const addresses = {
     path: "/api/templates/{name}/install",
   }),
   inviteMember: addressOf<typeof inviteMemberRoute>({ method: "post", path: "/api/invitations" }),
+  listLibrary: addressOf<typeof listLibraryRoute>({ method: "get", path: "/api/library" }),
+  libraryCard: addressOf<typeof libraryCardRoute>({ method: "get", path: "/api/library/{tool}" }),
+  installLibraryTool: addressOf<typeof installLibraryToolRoute>({
+    method: "post",
+    path: "/api/library/{tool}",
+  }),
+  uninstallLibraryTool: addressOf<typeof uninstallLibraryToolRoute>({
+    method: "delete",
+    path: "/api/library/{tool}",
+  }),
+  getAvailability: addressOf<typeof getAvailabilityRoute>({
+    method: "get",
+    path: "/api/tools/{tool}/availability",
+  }),
+  putAvailability: addressOf<typeof putAvailabilityRoute>({
+    method: "put",
+    path: "/api/tools/{tool}/availability",
+  }),
   listMarketplaces: addressOf<typeof listMarketplacesRoute>({
     method: "get",
     path: "/api/marketplaces",

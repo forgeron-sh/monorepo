@@ -3,7 +3,7 @@
 // made up; there is no secret in it. Pick a scenario with `?mock=`:
 //   ready (default) · fresh (nothing done yet) · member (not an admin) · signedout · error · slow
 
-import { mockCatalogRoute } from "../features/portal/mock";
+import { mockCatalogRoute, mockLibraryRoute } from "../features/portal/mock";
 import { mockDatabase } from "./database";
 import { createMarketplacesMock } from "./marketplaces";
 import { createToolsMock } from "./tools";
@@ -21,6 +21,10 @@ export async function installMock(): Promise<void> {
   const scenario = new URLSearchParams(location.search).get("mock") ?? "ready";
   const fresh = scenario === "fresh";
   const state = {
+    availability: {} as Record<
+      string,
+      { mode: string; roles?: string[]; people?: string[]; updatedAt: string }
+    >,
     workspace: "demo",
     endpoint: "https://demo.fabriks.example",
     me: {
@@ -246,6 +250,35 @@ export async function installMock(): Promise<void> {
             }
           : {}),
       });
+    }
+    if (path.startsWith("/api/library")) {
+      const answer = mockLibraryRoute(path, method, admin);
+      if (answer) return reply(answer.status, answer.body);
+    }
+    const availability = /^\/api\/tools\/([\w-]+)\/availability$/.exec(path);
+    if (availability) {
+      if (!admin) return reply(403, { error: "FORBIDDEN", message: "This is for admins." });
+      const tool = availability[1]!;
+      if (method === "PUT") {
+        state.availability[tool] = {
+          mode: String(body.mode),
+          roles: body.roles ?? [],
+          people: body.people ?? [],
+          updatedAt: iso(0),
+        };
+      }
+      const rule = state.availability[tool];
+      return reply(
+        200,
+        rule
+          ? {
+              mode: rule.mode,
+              roles: rule.roles ?? [],
+              people: rule.people ?? [],
+              updatedAt: rule.updatedAt,
+            }
+          : { mode: tool === "crm" ? "open" : "nobody", roles: [], people: [], updatedAt: null },
+      );
     }
     if (path.startsWith("/api/catalog")) {
       const answer = scenario === "empty" ? { tools: [] } : mockCatalogRoute(path, admin);

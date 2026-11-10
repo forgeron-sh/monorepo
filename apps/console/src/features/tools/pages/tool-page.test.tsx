@@ -31,7 +31,14 @@ describe("the tool page", () => {
     await flushLazy();
     expect(page.querySelector("h1")?.textContent).toBe("crm");
     expect(page.textContent).toContain("Companies, contacts and deals.");
-    expect(tabLabels(page)).toEqual(["Branches", "Versions", "Access", "Secrets", "Activity"]);
+    expect(tabLabels(page)).toEqual([
+      "Branches",
+      "Versions",
+      "Availability",
+      "Access",
+      "Secrets",
+      "Activity",
+    ]);
     expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Branches");
     expect(page.textContent).toContain("feat-export");
   });

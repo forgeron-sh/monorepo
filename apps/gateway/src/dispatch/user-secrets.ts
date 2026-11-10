@@ -10,6 +10,7 @@ import {
 } from "@forgeron/runtime";
 import type { Person } from "../kernel/person";
 import { page } from "../pages/shell";
+import { libraryAccess, libraryPath } from "../library/library";
 import { connectorHeaders, type ConnectorTokensContext } from "./connector-tokens";
 import type { Forwarding } from "./dispatch";
 
@@ -22,7 +23,9 @@ export interface UserSecretsContext {
   registry: Pick<
     Registry,
     | "accessFor"
+    | "availabilityOf"
     | "currentManifest"
+    | "isInstalled"
     | "bindUserSecret"
     | "findTool"
     | "listConnections"
@@ -50,8 +53,12 @@ export interface UserSecretsContext {
   connectors?: Pick<ConnectorTokensContext, "consent" | "consentUrl">;
 }
 
-/** The only place a setup page sends a person on: the OAuth authorization step of this workspace. */
-const SETUP_NEXT = /^\/oauth\/authorize\?[A-Za-z0-9%._~!$&'()*+,;=:@/?-]*$/;
+/**
+ * Where a setup page sends a person on: the OAuth authorization step of this workspace, or the tool's
+ * page of their library in the console (D-117).
+ */
+const SETUP_NEXT =
+  /^(?:\/oauth\/authorize\?[A-Za-z0-9%._~!$&'()*+,;=:@/?-]*|\/library\/[a-z0-9-]+)$/;
 
 const refuse = (status: number, code: string, message: string) =>
   Response.json({ error: { code, message } }, { status });
@@ -194,6 +201,22 @@ export async function forwardIdentity(
   const refused = wrongAudience(context.workspace, tool, who.audience);
   if (refused) return { refuse: refused };
   const record = await context.registry.findTool(context.workspace, tool);
+  // A tool with a rule is reached only by the people who added it to their library and may still use
+  // it (D-117). A preview is for admins and developers already (`canPreview`).
+  if (record && environment === "production") {
+    const reach = await libraryAccess(context.registry, record.id, who.person);
+    if (reach !== "ok") {
+      return {
+        refuse: refuse(
+          403,
+          reach === "unavailable" ? "NOT_AVAILABLE" : "NOT_IN_LIBRARY",
+          reach === "unavailable"
+            ? `"${tool}" is not available to you: ask an admin.`
+            : `Add "${tool}" to your library first: ${libraryPath(tool)}`,
+        ),
+      };
+    }
+  }
   // The console's overrides of the roles × actions matrix for the person's roles, read at each call
   // so an edit applies at once on every interface (D-039).
   const access = record ? await context.registry.accessFor(record.id, who.person.roles) : {};

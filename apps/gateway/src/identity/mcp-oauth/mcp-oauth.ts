@@ -1,5 +1,6 @@
 import type { Registry } from "@forgeron/registry";
 import { missingSetup } from "@forgeron/runtime";
+import { libraryAccess, libraryPath } from "../../library/library";
 import type { Person } from "../../kernel/person";
 import { errorPage } from "../../pages/errors";
 import { connectionHandBackPage, consentPage } from "../../pages/mcp-oauth";
@@ -34,9 +35,11 @@ export interface McpOAuthContext {
   previousSecrets?: string[];
   registry: Pick<
     Registry,
+    | "availabilityOf"
     | "currentManifest"
     | "findMember"
     | "findTool"
+    | "isInstalled"
     | "isTokenRevoked"
     | "readUserSecrets"
     | "readUserSetup"
@@ -278,6 +281,25 @@ export async function handleAuthorize(request: Request, context: McpOAuthContext
       status: 302,
       headers: { location: `/auth/login?next=${encodeURIComponent(next)}` },
     });
+  }
+  // A tool with a rule is signed in to only by the people who added it to their library (D-117): the
+  // others are sent there, where they add it and come back.
+  if (target.tool !== PLATFORM_TOOL) {
+    const record = await context.registry.findTool(context.workspace, target.tool);
+    const reach = record ? await libraryAccess(context.registry, record.id, person) : "ok";
+    if (reach === "unavailable") {
+      return errorPage(403, {
+        workspace: context.workspace,
+        detail: "This tool is not available to you. Ask an admin.",
+      });
+    }
+    if (reach === "not-installed") {
+      if (posting) return bad("Add this tool to your library first, then allow the app.");
+      return new Response(null, {
+        status: 302,
+        headers: { location: libraryPath(target.tool) },
+      });
+    }
   }
   // The tool's setup comes before the click: what the person must give is asked on the web, at the
   // tool's setup page, which sends them back here when they are done (D-098). A POST that skips it
