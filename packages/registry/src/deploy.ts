@@ -158,6 +158,13 @@ export interface PromoteInput {
   via?: string;
   /** Why, as the person wrote it: kept in the audit line. */
   reason?: string;
+  /**
+   * The admin approves, in the same step, what the version asks for (D-121): approvals are a detail
+   * of the update, not a screen. Only a person may pass it, never a deployment token.
+   */
+  approve?: boolean;
+  /** Production takes a build with no release, knowingly (D-121). */
+  withoutRelease?: boolean;
 }
 
 /**
@@ -178,19 +185,21 @@ export async function promoteVersion(
   const record = await registry.getBuild(version.buildId);
   if (!record) throw new RegistryError("NOT_FOUND", `There is no build ${version.buildId}.`);
   const slot = await registry.ensureEnvironment(tool.id, input.to, input.branch);
+  if (input.approve && guarded(input.to)) {
+    await approveVersion(registry, version.id, input.actor, input.via);
+  }
   await assertApproved(registry, input.to, version);
-  const deployment = await deploy(
-    hosting,
-    target(tool, input.to, input.branch),
-    buildOf(record),
-    input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive },
-  );
+  const deployment = await deploy(hosting, target(tool, input.to, input.branch), buildOf(record), {
+    ...(input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive }),
+    ...(input.withoutRelease ? { withoutRelease: true } : {}),
+  });
   const environment = await registry.activate(slot.id, version.id, {
     actor: input.actor,
     ...(input.via ? { via: input.via } : {}),
     kind: "promote",
     url: deployment.activation.url,
     ...(input.reason ? { reason: input.reason } : {}),
+    ...(input.withoutRelease && guarded(input.to) ? { withoutRelease: true } : {}),
   });
   return { ...deployment, version, environment };
 }

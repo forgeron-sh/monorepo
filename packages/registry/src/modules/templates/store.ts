@@ -12,11 +12,13 @@ import type { Kernel } from "../../kernel/kernel";
 import type { Catalog } from "../catalog/public";
 import {
   TEMPLATE_WORKSPACE,
+  type AvailableUpdate,
   type DescribedTemplate,
   type InstalledTemplate,
   type InstallPlan,
   type InstallPlanRefusal,
   type Template,
+  type ToolSource,
 } from "./types";
 
 /** How long an install plan lives (D-092). */
@@ -39,8 +41,34 @@ const isSource = (workspace: string) => workspace === TEMPLATE_WORKSPACE || SOUR
 /** What this module asks of the catalog: narrow, and only through its public API. */
 export type CatalogPort = Pick<
   Catalog["api"],
-  "findTool" | "listTools" | "listVersions" | "getBuild" | "readmeOf" | "guideOf"
+  | "findTool"
+  | "listTools"
+  | "listVersions"
+  | "getBuild"
+  | "getVersion"
+  | "findVersion"
+  | "listEnvironments"
+  | "readmeOf"
+  | "guideOf"
 >;
+
+const toSource = (row: Record<string, unknown>): ToolSource => ({
+  kind: row.kind === "marketplace" ? "marketplace" : "repo",
+  ...(row.source ? { source: String(row.source) } : {}),
+  ...(row.source_tool ? { sourceTool: String(row.source_tool) } : {}),
+  ...(row.repo ? { repo: String(row.repo) } : {}),
+  productionBranch: String(row.production_branch ?? "main"),
+  autoUpdate: Number(row.auto_update) === 1,
+  recorded: true,
+});
+
+/** A tool deployed before sources (D-121): a repository on `main`, updated by hand. */
+const DEFAULT_SOURCE: ToolSource = {
+  kind: "repo",
+  productionBranch: "main",
+  autoUpdate: false,
+  recorded: false,
+};
 
 export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
   const { d1, now, newId, first, auditStatement } = kernel;
@@ -50,6 +78,72 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
     const version = (await catalog.listVersions(toolId)).at(-1);
     const build = version ? await catalog.getBuild(version.buildId) : undefined;
     return version && build ? { version, build } : undefined;
+  }
+
+  /** The manifest production serves, if any: what a new version's approvals are compared with. */
+  async function productionManifest(toolId: string): Promise<Manifest | undefined> {
+    const production = (await catalog.listEnvironments(toolId)).find(
+      (e) => e.name === "production" && e.versionId,
+    );
+    const served = production?.versionId
+      ? await catalog.getVersion(production.versionId)
+      : undefined;
+    const build = served ? await catalog.getBuild(served.buildId) : undefined;
+    return build?.manifest as Manifest | undefined;
+  }
+
+  /**
+   * The statements that copy a catalogue version into a tool: the build (code, migrations,
+   * changelog), its docs, the version under the same number, and one approval request per resource.
+   * The content is keyed by tool and hash: copied by the database, never read here.
+   */
+  function copyVersion(input: {
+    toolId: string;
+    fromToolId: string;
+    fromBuildId: string;
+    version: string;
+    requests: Array<{ resource: string; kind: string }>;
+    at: string;
+  }) {
+    const buildId = newId();
+    const versionId = newId();
+    const { toolId, at } = input;
+    return {
+      versionId,
+      statements: [
+        d1
+          .prepare(
+            `INSERT INTO "builds" ("id", "tool_id", "fingerprint", "manifest", "changelog", "worker", "migrations", "created_at") SELECT ?, ?, "fingerprint", "manifest", "changelog", "worker", "migrations", ? FROM "builds" WHERE "id" = ?`,
+          )
+          .bind(buildId, toolId, at, input.fromBuildId),
+        d1
+          .prepare(
+            `INSERT OR IGNORE INTO "docs_blobs" ("tool_id", "hash", "part", "content") SELECT ?, "hash", "part", "content" FROM "docs_blobs" WHERE "tool_id" = ?`,
+          )
+          .bind(toolId, input.fromToolId),
+        d1
+          .prepare(
+            `INSERT INTO "build_docs" ("build_id", "path", "hash", "type", "size") SELECT ?, "path", "hash", "type", "size" FROM "build_docs" WHERE "build_id" = ?`,
+          )
+          .bind(buildId, input.fromBuildId),
+        d1
+          .prepare(
+            `INSERT INTO "versions" ("id", "tool_id", "build_id", "version", "created_at") VALUES (?, ?, ?, ?, ?)`,
+          )
+          .bind(versionId, toolId, buildId, input.version, at),
+        ...input.requests.map((r) =>
+          d1
+            .prepare(
+              `INSERT INTO "approvals" ("id", "tool_id", "version_id", "resource", "kind", "requested_at") VALUES (?, ?, ?, ?, ?, ?)`,
+            )
+            .bind(newId(), toolId, versionId, r.resource, r.kind, at),
+        ),
+      ],
+    };
+  }
+
+  async function sourceRow(toolId: string) {
+    return first(`SELECT * FROM "tool_sources" WHERE "tool_id" = ?`, toolId);
   }
 
   return {
@@ -139,42 +233,28 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
 
       const at = now();
       const toolId = newId();
-      const buildId = newId();
-      const versionId = newId();
+      const copy = copyVersion({
+        toolId,
+        fromToolId: source.id,
+        fromBuildId: found.build.id,
+        version: found.version.version,
+        requests,
+        at,
+      });
+      const versionId = copy.versionId;
       await d1.batch([
         d1
           .prepare(
             `INSERT INTO "tools" ("id", "workspace", "name", "created_at") VALUES (?, ?, ?, ?)`,
           )
           .bind(toolId, input.workspace, input.template, at),
+        ...copy.statements,
+        // Where it came from (D-121): what a later update reads.
         d1
           .prepare(
-            `INSERT INTO "builds" ("id", "tool_id", "fingerprint", "manifest", "changelog", "worker", "migrations", "created_at") SELECT ?, ?, "fingerprint", "manifest", "changelog", "worker", "migrations", ? FROM "builds" WHERE "id" = ?`,
+            `INSERT INTO "tool_sources" ("tool_id", "kind", "source", "source_tool", "updated_by", "updated_at") VALUES (?, 'marketplace', ?, ?, ?, ?)`,
           )
-          .bind(buildId, toolId, at, found.build.id),
-        // The content is keyed by tool and hash: copied by the database, never read here.
-        d1
-          .prepare(
-            `INSERT OR IGNORE INTO "docs_blobs" ("tool_id", "hash", "part", "content") SELECT ?, "hash", "part", "content" FROM "docs_blobs" WHERE "tool_id" = ?`,
-          )
-          .bind(toolId, source.id),
-        d1
-          .prepare(
-            `INSERT INTO "build_docs" ("build_id", "path", "hash", "type", "size") SELECT ?, "path", "hash", "type", "size" FROM "build_docs" WHERE "build_id" = ?`,
-          )
-          .bind(buildId, found.build.id),
-        d1
-          .prepare(
-            `INSERT INTO "versions" ("id", "tool_id", "build_id", "version", "created_at") VALUES (?, ?, ?, ?, ?)`,
-          )
-          .bind(versionId, toolId, buildId, found.version.version, at),
-        ...requests.map((r) =>
-          d1
-            .prepare(
-              `INSERT INTO "approvals" ("id", "tool_id", "version_id", "resource", "kind", "requested_at") VALUES (?, ?, ?, ?, ?, ?)`,
-            )
-            .bind(newId(), toolId, versionId, r.resource, r.kind, at),
-        ),
+          .bind(toolId, from, input.template, input.actor, at),
         // Nobody may add it to their library until an admin says who (D-117).
         d1
           .prepare(
@@ -204,6 +284,177 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
         version: { id: versionId, version: found.version.version },
         approvals: requests,
       };
+    },
+
+    // ---- where a tool comes from, and its updates (D-121)
+    /** The tool's source; a tool deployed before sources reads as a repository on `main`. */
+    async toolSource(toolId: string): Promise<ToolSource> {
+      const row = await sourceRow(toolId);
+      return row ? toSource(row) : DEFAULT_SOURCE;
+    },
+
+    /** The tools of a workspace installed from a catalogue that update by themselves (D-121). */
+    async autoUpdatingFrom(workspace: string, source: string): Promise<string[]> {
+      const rows = await kernel.all(
+        `SELECT t."name" FROM "tool_sources" s JOIN "tools" t ON t."id" = s."tool_id" WHERE t."workspace" = ? AND s."kind" = 'marketplace' AND s."source" = ? AND s."auto_update" = 1 ORDER BY t."name"`,
+        workspace,
+        source,
+      );
+      return rows.map((r) => String(r.name));
+    },
+
+    /** The tool is deployed by a repository's CI: which repository, which branch is production's. */
+    async linkRepository(input: {
+      toolId: string;
+      repo: string;
+      productionBranch: string;
+      actor: string;
+    }): Promise<ToolSource> {
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "tool_sources" ("tool_id", "kind", "repo", "production_branch", "updated_by", "updated_at") VALUES (?, 'repo', ?, ?, ?, ?) ON CONFLICT ("tool_id") DO UPDATE SET "kind" = 'repo', "source" = NULL, "source_tool" = NULL, "repo" = excluded."repo", "production_branch" = excluded."production_branch", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+          )
+          .bind(input.toolId, input.repo, input.productionBranch, input.actor, at),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.actor,
+            kind: "access",
+            subject: `source:${input.repo}`,
+            detail: { event: "repository-linked", productionBranch: input.productionBranch },
+          },
+          at,
+        ),
+      ]);
+      return this.toolSource(input.toolId);
+    },
+
+    /** Whether new versions go to production by itself, and which branch is production's. */
+    async setToolSource(input: {
+      toolId: string;
+      autoUpdate?: boolean;
+      productionBranch?: string;
+      actor: string;
+    }): Promise<ToolSource> {
+      const current = await this.toolSource(input.toolId);
+      const autoUpdate = input.autoUpdate ?? current.autoUpdate;
+      const branch = input.productionBranch ?? current.productionBranch;
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "tool_sources" ("tool_id", "kind", "production_branch", "auto_update", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT ("tool_id") DO UPDATE SET "production_branch" = excluded."production_branch", "auto_update" = excluded."auto_update", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+          )
+          .bind(input.toolId, current.kind, branch, autoUpdate ? 1 : 0, input.actor, at),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.actor,
+            kind: "access",
+            subject: "source",
+            detail: { event: "source-settings", autoUpdate, productionBranch: branch },
+          },
+          at,
+        ),
+      ]);
+      return this.toolSource(input.toolId);
+    },
+
+    /**
+     * The version the tool could move to, or `undefined`. A marketplace tool: the catalogue's latest
+     * version, when the tool does not have it yet. A repository tool: the version the preview of its
+     * production branch serves, when production serves another.
+     */
+    async availableUpdate(toolId: string): Promise<AvailableUpdate | undefined> {
+      const source = await this.toolSource(toolId);
+      if (source.kind === "marketplace") {
+        if (!source.source || !source.sourceTool) return undefined;
+        const from = await catalog.findTool(source.source, source.sourceTool);
+        const found = from ? await latest(from.id) : undefined;
+        if (!found) return undefined;
+        if (await catalog.findVersion(toolId, found.version.version)) {
+          // Copied already: an update is waiting only if production does not serve it yet.
+          const production = (await catalog.listEnvironments(toolId)).find(
+            (e) => e.name === "production",
+          );
+          const served = production?.versionId
+            ? await catalog.getVersion(production.versionId)
+            : undefined;
+          return served?.version === found.version.version
+            ? undefined
+            : { version: found.version.version };
+        }
+        return { version: found.version.version };
+      }
+      const environments = await catalog.listEnvironments(toolId);
+      const preview = environments.find(
+        (e) => e.name === "preview" && e.branch === source.productionBranch && e.versionId,
+      );
+      if (!preview?.versionId) return undefined;
+      const production = environments.find((e) => e.name === "production");
+      if (production?.versionId === preview.versionId) return undefined;
+      const candidate = await catalog.getVersion(preview.versionId);
+      return candidate
+        ? { version: candidate.version, branch: source.productionBranch }
+        : undefined;
+    },
+
+    /**
+     * Copies the catalogue's latest version into a marketplace tool, with what it asks for that
+     * production does not have as pending approvals, in one batch with the audit line. Nothing is
+     * deployed: the update promotes it. A version already copied is answered as it is.
+     */
+    async updateFromSource(input: {
+      toolId: string;
+      actor: string;
+      via?: string;
+    }): Promise<{ version: string; approvals: Array<{ resource: string; kind: string }> }> {
+      const source = await this.toolSource(input.toolId);
+      if (source.kind !== "marketplace" || !source.source || !source.sourceTool) {
+        throw new RegistryError("INVALID", "This tool is not installed from a marketplace.");
+      }
+      const from = await catalog.findTool(source.source, source.sourceTool);
+      const found = from ? await latest(from.id) : undefined;
+      if (!from || !found) {
+        throw new RegistryError("NOT_FOUND", `The marketplace no longer has ${source.sourceTool}.`);
+      }
+      if (found.build.worker === undefined) {
+        throw new RegistryError("NO_ARTIFACT", "The new version was recorded without its code.");
+      }
+      const existing = await catalog.findVersion(input.toolId, found.version.version);
+      if (existing) return { version: existing.version, approvals: [] };
+      const manifest = found.build.manifest as Manifest;
+      const baseline = (await productionManifest(input.toolId))?.resources ?? {};
+      const requests = diffResourceChanges(baseline, manifest.resources ?? {})
+        .filter((c) => c.needsApproval)
+        .map((c) => ({ resource: c.subject, kind: c.kind }));
+      const at = now();
+      const copy = copyVersion({
+        toolId: input.toolId,
+        fromToolId: from.id,
+        fromBuildId: found.build.id,
+        version: found.version.version,
+        requests,
+        at,
+      });
+      await d1.batch([
+        ...copy.statements,
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.actor,
+            ...(input.via ? { via: input.via } : {}),
+            kind: "install",
+            subject: `${source.sourceTool}:${found.version.version}`,
+            versionId: copy.versionId,
+            detail: { event: "update", source: source.source },
+          },
+          at,
+        ),
+      ]);
+      return { version: found.version.version, approvals: requests };
     },
 
     // ---- install plans (D-092): the admin MCP shows a plan, then installs only that plan

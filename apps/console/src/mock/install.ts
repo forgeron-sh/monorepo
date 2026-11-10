@@ -76,6 +76,30 @@ export async function installMock(): Promise<void> {
           },
           { name: "odoo", production: "2.0.3", previews: [] },
         ],
+    sources: (fresh
+      ? {}
+      : {
+          crm: {
+            kind: "repo",
+            repo: "acme/crm",
+            productionBranch: "main",
+            autoUpdate: false,
+            update: {
+              version: "1.5.1",
+              branch: "main",
+              release: true,
+              changelog: ["Export contacts to CSV", "Faster search with accents"],
+              approvals: ["resources.network"],
+            },
+          },
+          odoo: {
+            kind: "marketplace",
+            marketplace: "official",
+            productionBranch: "main",
+            autoUpdate: true,
+            update: null,
+          },
+        }) as Record<string, Json>,
     approvals: fresh
       ? []
       : [
@@ -203,7 +227,7 @@ export async function installMock(): Promise<void> {
         });
       const sent: Json = init?.body ? JSON.parse(String(init.body)) : {};
       if (path === "/promote") {
-        if (sent.version === "1.5.0")
+        if (sent.version === "1.5.0" && sent.approve !== true)
           return reply(409, {
             error: {
               code: "PENDING_APPROVAL",
@@ -279,6 +303,49 @@ export async function installMock(): Promise<void> {
             }
           : { mode: "open", roles: [], people: [], updatedAt: null },
       );
+    }
+    // Where a tool comes from and its update (D-121).
+    const sourceOf = /^\/api\/tools\/([\w-]+)\/(source|update)$/.exec(path);
+    if (sourceOf && path !== "/api/tools/from-repository/update") {
+      if (!admin) return reply(403, { error: "FORBIDDEN", message: "This is for admins." });
+      const tool = sourceOf[1]!;
+      const found = state.tools.find((t) => t.name === tool);
+      const source = (state.sources[tool] ??= {
+        kind: "repo",
+        repo: `acme/${tool}`,
+        productionBranch: "main",
+        autoUpdate: false,
+        update: null,
+      });
+      if (sourceOf[2] === "update" && method === "POST") {
+        if (!source.update) return reply(404, { error: "NO_UPDATE", message: "No update waits." });
+        if (found) found.production = source.update.version;
+        source.update = null;
+        return reply(200, { tool, version: found?.production ?? "" });
+      }
+      if (method === "PUT") Object.assign(source, body);
+      return reply(200, { ...source, production: found?.production ?? null });
+    }
+    if (path === "/api/tools/from-repository" && method === "POST") {
+      if (!admin) return reply(403, { error: "FORBIDDEN", message: "This is for admins." });
+      if (state.tools.some((t) => t.name === body.name))
+        return reply(409, { error: "ALREADY_EXISTS", message: `There is already ${body.name}.` });
+      state.tools.push({ name: String(body.name), production: null, previews: [] });
+      return reply(201, {
+        tool: body.name,
+        repo: body.repo,
+        productionBranch: body.productionBranch ?? "main",
+        token: "harness-token-not-a-real-one",
+        expiresAt: iso(365 * DAY),
+      });
+    }
+    if (/^\/api\/tools\/[\w-]+\/branches\/[^/]+\/data$/.test(path) && method === "POST") {
+      return reply(200, {
+        tables: [
+          { name: "companies", rows: 6 },
+          { name: "contacts", rows: 137 },
+        ],
+      });
     }
     const availability = /^\/api\/tools\/([\w-]+)\/availability$/.exec(path);
     if (availability) {

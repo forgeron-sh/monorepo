@@ -2,13 +2,6 @@
 export { loadSecretsStatus, SecretsStatus, type SecretStatusRow } from "./secrets-status";
 export { loadTools, type ToolRow } from "./features/tools/api";
 export {
-  loadPendingApprovals,
-  PendingApprovals,
-  type PendingApprovalsProps,
-  type PendingVersion,
-  type RequestedResource,
-} from "./pending-approvals";
-export {
   AccessMatrix,
   AccessMatrixEditor,
   saveAccessMatrix,

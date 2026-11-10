@@ -209,25 +209,26 @@ The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forge
 
 ### Lifecycle
 
-| Command                                                             | What it does                                                                                                                                                 |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `forgeron login` · `logout` · `whoami`                              | Authenticates the person on a workspace (browser, SSO)                                                                                                       |
-| `forgeron init [name] [--template crm]`                             | Creates a tool, from scratch or from a template in the catalog; writes `.forgeron/`                                                                          |
-| `forgeron link`                                                     | Links an existing folder to a tool in the workspace                                                                                                          |
-| `forgeron dev [--as <role>] [--port 8787]`                          | Runs the tool locally on the Cloudflare runtime: API, local MCP server (`/mcp`), views, playground; hot reload; applies migrations to the local database     |
-| `forgeron play [--template <name>]`                                 | Opens the playground: list of actions, generated form, result, MCP / API / CLI preview; with `--template`, tries out a template without installing it        |
-| `forgeron test`                                                     | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                              |
-| `forgeron build`                                                    | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                        |
-| `forgeron bundle [--out <dir>]`                                     | Builds the tool into one file, `<name>-<version>.forgeron.json`, and prints its SHA-256: what a marketplace attaches to a release (D-115)                    |
-| `forgeron preview close [--branch <name>]`                          | Tears down the preview of a branch (a closed pull request); needs `FORGERON_TOKEN`                                                                           |
-| `forgeron deploy [--env preview\|production] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                              |
-| `forgeron versions`                                                 | Lists versions and their environments                                                                                                                        |
-| `forgeron promote <version> --to <env>`                             | Promotes an existing version, without rebuilding                                                                                                             |
-| `forgeron promote --from-branch <b> --to production`                | Promotes what a branch's preview serves, after checking the plan: no conflict, it goes; otherwise it prints each conflict and a prompt for an agent (exit 3) |
-| `forgeron rollback [--env production]`                              | Goes back to the environment's previous version                                                                                                              |
-| `forgeron logs [--env] [--action <name>] [--job <name>] [--follow]` | Execution log                                                                                                                                                |
-| `forgeron jobs run <name> [--env]`                                  | Runs a scheduled task on demand                                                                                                                              |
-| `forgeron resources [--diff production]`                            | Shows the requested resources, or what changes compared with an environment                                                                                  |
+| Command                                                             | What it does                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forgeron login` · `logout` · `whoami`                              | Authenticates the person on a workspace (browser, SSO)                                                                                                                                                                           |
+| `forgeron init [name] [--template crm]`                             | Creates a tool, from scratch or from a template, alone in its repository: `.forgeron/`, its CI workflow, `AGENTS.md`, `CLAUDE.md`, `docs/lifecycle.md`. At a marketplace's root, in `tools/<name>/`, listed in the index (D-121) |
+| `forgeron init marketplace [name]`                                  | Creates a marketplace: `forgeron-marketplace.json`, `tools/`, the release workflow, `AGENTS.md`, `CLAUDE.md`, `docs/lifecycle.md` (D-121)                                                                                        |
+| `forgeron link`                                                     | Links an existing folder to a tool in the workspace                                                                                                                                                                              |
+| `forgeron dev [--as <role>] [--port 8787]`                          | Runs the tool locally on the Cloudflare runtime: API, local MCP server (`/mcp`), views, playground; hot reload; applies migrations to the local database                                                                         |
+| `forgeron play [--template <name>]`                                 | Opens the playground: list of actions, generated form, result, MCP / API / CLI preview; with `--template`, tries out a template without installing it                                                                            |
+| `forgeron test`                                                     | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                                                                                                  |
+| `forgeron build`                                                    | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                                                                                            |
+| `forgeron bundle [--out <dir>]`                                     | Builds the tool into one file, `<name>-<version>.forgeron.json`, and prints its SHA-256: what a marketplace attaches to a release (D-115)                                                                                        |
+| `forgeron preview close [--branch <name>]`                          | Tears down the preview of a branch (a deleted branch, a closed pull request); needs `FORGERON_TOKEN`. The branch: `--branch`, else `FORGERON_BRANCH`, else the pull request's                                                    |
+| `forgeron deploy [--env preview\|production] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                                                                                                  |
+| `forgeron versions`                                                 | Lists versions and their environments                                                                                                                                                                                            |
+| `forgeron promote <version> --to <env>`                             | Promotes an existing version, without rebuilding                                                                                                                                                                                 |
+| `forgeron promote --from-branch <b> --to production`                | Promotes what a branch's preview serves, after checking the plan: no conflict, it goes; otherwise it prints each conflict and a prompt for an agent (exit 3)                                                                     |
+| `forgeron rollback [--env production]`                              | Goes back to the environment's previous version                                                                                                                                                                                  |
+| `forgeron logs [--env] [--action <name>] [--job <name>] [--follow]` | Execution log                                                                                                                                                                                                                    |
+| `forgeron jobs run <name> [--env]`                                  | Runs a scheduled task on demand                                                                                                                                                                                                  |
+| `forgeron resources [--diff production]`                            | Shows the requested resources, or what changes compared with an environment                                                                                                                                                      |
 
 ### Versions and changelog
 
@@ -644,15 +645,16 @@ Deployment to production additionally fails if the version has no changelog entr
 
 ## 15. Versions, environments, deployment
 
-| Environment  | Created by                                                       | Database                                | Who has access                                                                                           |
-| ------------ | ---------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `local`      | `forgeron dev`                                                   | `.forgeron/local/dev.sqlite`            | the developer                                                                                            |
-| `preview`    | each push to a branch, or `forgeron deploy`                      | one database per branch, `preview.data` | the `admin` roles and the tool's developers; the people an admin opens the branch to, as a pilot (D-119) |
-| `production` | promotion from the console or `forgeron deploy --env production` | that of production                      | the tool's roles                                                                                         |
+| Environment  | Created by                                                  | Database                                | Who has access                                                                                           |
+| ------------ | ----------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `local`      | `forgeron dev`                                              | `.forgeron/local/dev.sqlite`            | the developer                                                                                            |
+| `preview`    | each push to a branch, or `forgeron deploy`                 | one database per branch, `preview.data` | the `admin` roles and the tool's developers; the people an admin opens the branch to, as a pilot (D-119) |
+| `production` | the update of the production branch, or a promotion (D-121) | that of production                      | the tool's roles                                                                                         |
 
 - **Version**: see section 16. A build is promoted from one environment to the next without being rebuilt.
 - **Rollback**: `forgeron rollback` puts the previous version back on traffic. Migrations are not rolled back automatically; `forgeron db rollback` does it explicitly.
 - **Audit log**: every deployment, promotion and rollback is recorded (who, when, which version).
+- **Two sources** (D-121, [lifecycle.md](lifecycle.md)): a tool is installed from a **marketplace** (its latest release; a newer one is an update) or added from a **GitHub repository** that holds only it (each pushed branch is a preview; its production branch, `main` by default, is the candidate for production). An admin puts an update in production from the tool's page, approving in the same step what it asks for; a tool may update by itself when a new version asks for nothing new.
 
 ### Publishing from GitHub
 
@@ -662,23 +664,30 @@ The build happens **in the tool repository's CI**, not on the platform: Forgeron
 # .github/workflows/forgeron.yml, in the tool's repository (generated by forgeron init)
 on:
   push:
-  pull_request:
+    branches: ["**"]
+  delete:
 jobs:
-  forgeron:
+  deploy:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    permissions: { contents: read, id-token: write }
+    permissions: { contents: read }
     steps:
       - uses: actions/checkout@v4
       - uses: forgeron/deploy-action@v1 # name to be confirmed
+        with:
+          token: ${{ secrets.FORGERON_TOKEN }}
+  close: # the preview of a deleted branch goes
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch'
+    # same steps, with close: "true" and branch: ${{ github.event.ref }}
 ```
 
 For each tool in the repository (section 2), the action runs:
 
 1. `forgeron test`;
 2. `forgeron change check`;
-3. `forgeron deploy`: build, upload to the gateway, migrations, preview of the branch. On the default branch, the workspace chooses whether the build goes to production or waits for promotion from its preview.
+3. `forgeron deploy`: build, upload to the gateway, migrations, preview of the branch. Every branch, the production branch included, deploys a preview; production takes the production branch's preview through an update, by an admin or by itself (D-121).
 
-Authentication goes through `FORGERON_TOKEN` (deployment token, section 4). To be studied: GitHub Actions OIDC, so that no secret is stored in the repository.
+Authentication goes through `FORGERON_TOKEN` (deployment token, section 4); _Add from GitHub_ in the console gives one when it creates the tool. To be studied: GitHub Actions OIDC, so that no secret is stored in the repository.
 
 The **Forgeron GitHub app** comes later. It adds no build on the platform side: it installs the action in the repository, links the discovered tools to the workspace and shows the deployment status in pull requests.
 
@@ -697,6 +706,8 @@ Three words, three things, so that "every push creates a version" and "the versi
 | What is deployed | `forgeron deploy`, `forgeron promote` | `v1.5.0+a41f9e0` in production, `1.6.0-preview.<branch>.<n>` in preview (the version the next release would produce) | on every deployment |
 
 A push without a release therefore produces a new build of the current version (`v1.5.0+b72c1d4`): it deploys to preview, but not to production if the manifest changed without an entry in `changes/` (see below).
+
+A release is **advised, not required** (D-121): an admin may put a build with no changelog entry in production, knowingly (`withoutRelease`, a checkbox in the console); the audit line says so. A release that declares less than what Forgeron detects is still refused. Run `forgeron release` on the production branch only: it consumes `changes/`, so two branches releasing on their own would number the same version twice and conflict at the merge.
 
 ### Where the version lives
 

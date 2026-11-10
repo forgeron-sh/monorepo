@@ -13,6 +13,15 @@ export const MarketplaceToolSchema = z.object({
   name: ToolNameSchema,
   /** Where the tool lives in the repository; for the reader, the platform does not use it. */
   path: z.string().optional(),
+  /**
+   * `owner/name` of the repository whose release holds the bundle, when it is not the marketplace's
+   * own (D-121): a tool developed in its own repository, published here without being copied. The
+   * marketplace's token, if any, reads it too.
+   */
+  repo: z
+    .string()
+    .regex(/^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/)
+    .optional(),
   version: z.string().min(1).max(64),
   /** The tag of the GitHub release that holds the bundle; `null` until a release is published. */
   release: z.string().min(1).max(200).nullable(),

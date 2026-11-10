@@ -2,7 +2,7 @@
 
 > Status: proposal (October 22, 2026), to be validated by the team. It derives from [`white-paper.md`](white-paper.md), [`sdk.md`](sdk.md) and the lessons of the Toolbox POC. Decisions and their rationale are kept in [`DECISIONS.md`](DECISIONS.md); this document gives the outcome.
 
-This document describes **the repository that builds Forgeron**: the SDK, the CLI, the runtime, the platform and the templates. It does not describe the shape of a tool written with Forgeron, which is the subject of `sdk.md`.
+This document describes **the repository that builds Forgeron**: the SDK, the CLI, the runtime, the platform and the templates. It does not describe the shape of a tool written with Forgeron, which is the subject of `sdk.md`, nor how a tool lives once written, which is [`lifecycle.md`](lifecycle.md).
 
 ## Overview
 
@@ -127,6 +127,7 @@ apps/gateway/src/
 ├── registry/           # uses @forgeron/registry: tools, builds, versions, environments, approvals (D1)
 ├── deploy/             # receiving a build, calling @forgeron/hosting, traffic switch
 ├── marketplace/        # reading a marketplace on GitHub, syncing its bundles into the registry (D-116)
+├── sources/            # where a tool comes from: its update, putting it in production, copying a branch's data (D-121)
 ├── admin-mcp/          # admin MCP tools (sdk.md §17)
 ├── console-api/        # API consumed by apps/console
 └── audit/              # usage and deployment audit log

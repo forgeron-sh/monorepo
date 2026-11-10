@@ -12,6 +12,7 @@ import { mountSecretRequests } from "./secret-requests";
 import { mountSecrets } from "./secrets";
 import { mountLibrary } from "./library";
 import { mountMarketplaces } from "./marketplaces";
+import { mountSources } from "./sources";
 import { mountTemplates } from "./templates";
 import { mountTools } from "./tools";
 import { mountWorkspace } from "./workspace";
@@ -35,6 +36,7 @@ export function createPlatform() {
   mountTemplates(app);
   mountMarketplaces(app);
   mountLibrary(app);
+  mountSources(app);
   mountBearer(app);
   mountConsent(app);
 

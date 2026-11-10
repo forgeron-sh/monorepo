@@ -44,6 +44,7 @@ export type {
   SecretStatus,
 } from "./modules/secrets/public";
 export { TEMPLATE_WORKSPACE } from "./modules/templates/public";
+export type { AvailableUpdate, ToolSource } from "./modules/templates/public";
 export { marketplaceSource } from "./modules/marketplaces/public";
 export { AVAILABILITY_MODES, isAvailable, mayPilot } from "./modules/library/public";
 export type { Availability, AvailabilityMode } from "./modules/library/public";

@@ -25,6 +25,7 @@ import {
   type Filter,
   type Target,
 } from "./api";
+import { CopyDataButton } from "./copy-data";
 import { DefinitionView } from "./definition-view";
 import { FilterBar } from "./filter-bar";
 import { RowDrawer } from "./row-drawer";
@@ -70,6 +71,8 @@ async function copy(text: string) {
 
 export function DatabaseTab({ tool, api, branch }: { tool: string; api: Api; branch?: string }) {
   const envs = useLoad(() => loadEnvironments(api.fetchJson, tool), [api, tool]);
+  // A copy changes the rows: the explorer reads them again.
+  const [round, setRound] = useState(0);
   if (envs.loading) return <Loading shape="block" label="Loading environments" />;
   if (envs.error && !envs.data)
     return <LoadError what="The environments" error={envs.error} onRetry={envs.reload} />;
@@ -84,12 +87,28 @@ export function DatabaseTab({ tool, api, branch }: { tool: string; api: Api; bra
         description={
           branch === undefined
             ? "A database exists once a version is promoted. A branch's preview has its own: choose the branch at the top of the page."
-            : "Its database exists once the branch is deployed. Deploy it from the terminal, then come back."
+            : "Its database exists once the branch is deployed: push it, and its CI deploys it."
         }
       />
     );
   }
-  return <Explorer key={targetId(target)} tool={tool} api={api} target={target} />;
+  const others = (envs.data ?? []).flatMap((t) =>
+    t.env === "preview" && t.branch && t.branch !== branch ? [t.branch] : [],
+  );
+  return (
+    <div className="fc-stack">
+      {branch !== undefined ? (
+        <CopyDataButton
+          tool={tool}
+          api={api}
+          branch={branch}
+          branches={others}
+          onCopied={() => setRound((n) => n + 1)}
+        />
+      ) : null}
+      <Explorer key={`${targetId(target)}#${round}`} tool={tool} api={api} target={target} />
+    </div>
+  );
 }
 
 function Explorer({ tool, api, target }: { tool: string; api: Api; target: Target }) {

@@ -7,6 +7,7 @@ import { loadBranches, loadVersions, type BranchRow, type Status } from "../api"
 import { ActionMenu, BranchGlyph, CommitLine, CopyButton, StatusBadge } from "../components";
 import { ClosePreviewDialog, ReleaseDialog } from "../release-dialog";
 import type { ToolTabProps } from "../tabs";
+import { UpdatePanel } from "./update-panel";
 
 // Production and one preview per branch (docs/console-ux.md, "Branches"): the deployment list of
 // Vercel, with our vocabulary. A row opens onto its database, its last migration and its recent
@@ -19,7 +20,20 @@ type Action =
 
 const host = (url: string) => url.replace(/^https?:\/\//, "");
 
-export default function BranchesTab({ tool, api, ws, now }: ToolTabProps) {
+export default function BranchesTab(props: ToolTabProps) {
+  const [round, setRound] = useState(0);
+  // An update moves production: the list below reads it again.
+  return (
+    <div className="fc-stack">
+      {props.ws.person.admin ? (
+        <UpdatePanel tool={props.tool} api={props.api} onUpdated={() => setRound((n) => n + 1)} />
+      ) : null}
+      <BranchList key={round} {...props} />
+    </div>
+  );
+}
+
+function BranchList({ tool, api, ws, now }: ToolTabProps) {
   const admin = ws.person.admin;
   const branches = useLoad(() => loadBranches(api.fetchJson, tool), [api, tool]);
   // The changelog is for the dialogs: its failure does not stop the list.
@@ -58,7 +72,7 @@ export default function BranchesTab({ tool, api, ws, now }: ToolTabProps) {
     return (
       <EmptyState
         title="Nothing is deployed yet"
-        description="Deploy a branch to get its preview. Production takes a version you promote."
+        description="Push a branch: its CI deploys a preview. Production takes the update of its production branch."
         action={
           <div className="fc-stack" style={{ textAlign: "start" }}>
             <CopyBlock

@@ -49,8 +49,11 @@ export const installTemplateRoute = defineRoute({
         version: z.string(),
         /** The requests an admin still has to decide before production. */
         approvals: z.array(z.strictObject({ resource: z.string(), kind: z.string() })),
+        /** Approved by the admin who installed it (D-121); in production where the gateway can deploy. */
+        production: z.boolean(),
+        waiting: z.string().optional(),
       }),
-      "The tool, created: it has a version and no environment",
+      "The tool, created, approved and, where the gateway can deploy, in production",
     ),
     401: json(ErrorSchema, "Not signed in"),
     403: json(ErrorSchema, "Not an admin"),
@@ -97,8 +100,11 @@ export const installFromPlanRoute = defineRoute({
         tool: z.string(),
         version: z.string(),
         approvals: z.array(z.strictObject({ resource: z.string(), kind: z.string() })),
+        /** Approved by the admin who installed it (D-121); in production where the gateway can deploy. */
+        production: z.boolean(),
+        waiting: z.string().optional(),
       }),
-      "The tool, created: it has a version and no environment",
+      "The tool, created, approved and, where the gateway can deploy, in production",
     ),
     401: json(ErrorSchema, "Not signed in"),
     403: json(ErrorSchema, "Not an admin"),

@@ -1,7 +1,6 @@
 import { Button, Logo, Notice } from "@forgeron/ui";
 import { createElement, lazy, Suspense, useEffect, type ComponentType } from "react";
 import { ApiError, type Api } from "./api";
-import { loadPendingApprovals } from "./pending-approvals";
 import { routeClick, useRoute } from "./router";
 import { canSee } from "./shell/access";
 import { AppLayout } from "./shell/app-layout";
@@ -85,12 +84,6 @@ function Shell({
 }) {
   const match = matchRoute(pathname);
   const Layout = pathname.startsWith("/settings") ? SettingsLayout : AppLayout;
-  const admin = ws.person.admin;
-  const pending = useLoad(
-    () => (admin ? loadPendingApprovals(api.fetchJson) : Promise.resolve([])),
-    [api, admin],
-  );
-  const waiting = pending.data?.length ?? 0;
 
   // The tab title follows the screen.
   useEffect(() => {
@@ -100,7 +93,7 @@ function Shell({
   }, [match, ws.workspace]);
 
   return (
-    <Layout ws={ws} pathname={pathname} go={go} badges={{ "/approvals": waiting }}>
+    <Layout ws={ws} pathname={pathname} go={go}>
       {!match ? (
         <NotFound go={go} />
       ) : !canSee(match.route.access, ws.person) ? (
@@ -110,7 +103,7 @@ function Shell({
           <RouteScreen
             key={pathname + search}
             load={match.route.page}
-            props={{ ws, api, now, go, params: match.params, refreshPending: pending.reload }}
+            props={{ ws, api, now, go, params: match.params }}
           />
         </Suspense>
       )}

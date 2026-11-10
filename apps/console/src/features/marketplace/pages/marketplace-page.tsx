@@ -149,11 +149,7 @@ function Offer({
                 <span className="fm-meta">
                   <span className="fm-mono">{t.version}</span>
                   {t.installed ? <Badge tone="success">Installed</Badge> : null}
-                  {t.resources.length > 0 ? (
-                    <Badge>
-                      {t.resources.length} {t.resources.length === 1 ? "approval" : "approvals"}
-                    </Badge>
-                  ) : null}
+                  {t.resources.length > 0 ? <Badge>Asks for {t.resources.length}</Badge> : null}
                 </span>
               }
             />
@@ -262,7 +258,7 @@ export default function MarketplacePage({ api, go, now }: PageProps) {
   return (
     <Page
       title="Marketplace"
-      description="Install tools from the official catalogue or from your own marketplaces. An installed tool waits for its approvals, then for you to choose who can use it."
+      description="Install tools from the official catalogue or from your own marketplaces. Installing approves what a tool asks for and puts it in production; a newer release shows on its page, under Branches."
       actions={
         <Button variant="primary" onClick={() => setAdding(true)}>
           Add a marketplace

@@ -89,7 +89,13 @@ describe("the template routes", () => {
   it("install creates the tool for the workspace, audited as the caller, then 409 and 404", async () => {
     const res = await through(post("/api/templates/inventory/install"), ADMIN);
     expect(res.status).toBe(201);
-    expect(await res.json()).toEqual({ tool: "inventory", version: "0.4.0", approvals: [] });
+    expect(await res.json()).toEqual({
+      tool: "inventory",
+      version: "0.4.0",
+      approvals: [],
+      production: false,
+      waiting: "This gateway cannot deploy.",
+    });
     const tool = (await registry.findTool("acme", "inventory"))!;
     const [line] = await registry.listAudit(tool.id);
     expect(line).toMatchObject({ kind: "install", actor: ADMIN.id, subject: "inventory:0.4.0" });

@@ -39,6 +39,45 @@ const tab = (page: HTMLElement, name: string) =>
 const table = (page: HTMLElement, name: string) =>
   [...page.querySelectorAll(".fc-db-table")].find((t) => t.textContent?.startsWith(name));
 
+describe("replacing a branch's data (D-121)", () => {
+  it("offers the other branches, asks for the tool's name, then copies", async () => {
+    const { api: fake } = api([
+      { name: "production" },
+      { name: "preview", branch: "feat-contacts" },
+      { name: "preview", branch: "seeded" },
+    ]);
+    const sent: unknown[] = [];
+    fake.sendJson = async (path, body, method) => {
+      sent.push({ path, body, method });
+      return { tables: [{ name: "companies", rows: 6 }] };
+    };
+    const page = await open(fake, "feat-contacts");
+    const label = "Replace with another branch's data";
+    for (let i = 0; i < 20 && !button(page, label); i++) await flush();
+    await click(button(page, label));
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
+    expect(dialog.querySelector("select")!.value).toBe("seeded");
+    const replace = button(dialog, "Replace the data");
+    expect(replace.disabled).toBe(true);
+    await type(dialog.querySelector<HTMLInputElement>("input")!, "crm");
+    await click(replace);
+    expect(sent).toEqual([
+      {
+        path: "/api/tools/crm/branches/feat-contacts/data",
+        body: { from: "seeded", confirm: "crm" },
+        method: "POST",
+      },
+    ]);
+    expect(page.textContent).toContain("6 rows copied from seeded.");
+  });
+
+  it("is not offered in production", async () => {
+    const { api: fake } = api();
+    const page = await open(fake);
+    expect(page.textContent).not.toContain("Replace with another branch's data");
+  });
+});
+
 describe("DatabaseTab", () => {
   it("lists the tables with their counts and shows the first one", async () => {
     const { api: fake } = api();

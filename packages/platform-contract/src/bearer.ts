@@ -89,6 +89,13 @@ const deployed = z.strictObject({
   environment,
   url: z.string().optional(),
   applied: z.array(z.string()),
+  /**
+   * After a deployment of a repository tool's production branch (D-121): the version production
+   * took by itself, or why it waits for an admin. Absent when the tool does not update by itself.
+   */
+  production: z
+    .union([z.strictObject({ version: z.string() }), z.strictObject({ waiting: z.string() })])
+    .optional(),
 });
 
 export const deployRoute = defineRoute({
@@ -252,6 +259,16 @@ export const promoteRoute = defineRoute({
         branch: z.string().optional().describe("Required for a preview"),
         allowDestructive: z.boolean().optional(),
         reason: z.string().max(500).optional(),
+        approve: z
+          .boolean()
+          .optional()
+          .describe(
+            "An administrator approves, in the same step, what the version asks for (D-121)",
+          ),
+        withoutRelease: z
+          .boolean()
+          .optional()
+          .describe("An administrator puts a build with no release on production, knowingly"),
       }),
     ),
   },

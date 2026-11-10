@@ -324,6 +324,8 @@ export function createCatalog(kernel: Kernel) {
         commit?: DeploymentCommit;
         /** Why a person promoted or rolled back: written in the audit line. */
         reason?: string;
+        /** Production took a build with no release, knowingly (D-121): written in the audit line. */
+        withoutRelease?: boolean;
       },
     ): Promise<EnvironmentRecord> {
       const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
@@ -368,6 +370,7 @@ export function createCatalog(kernel: Kernel) {
               environment: String(env.name),
               ...(env.branch ? { branch: String(env.branch) } : {}),
               ...(options.reason ? { reason: options.reason } : {}),
+              ...(options.withoutRelease ? { withoutRelease: true } : {}),
             },
           },
           at,

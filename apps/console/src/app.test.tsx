@@ -63,7 +63,7 @@ describe("App", () => {
   beforeEach(() => window.history.replaceState(null, "", "/"));
 
   it("draws the workspace switcher, the grouped navigation and the person menu", async () => {
-    const { api } = fakeApi(routes());
+    const { api, reads } = fakeApi(routes());
     const page = await mount(<App api={api} now={() => NOW} />);
     const side = page.querySelector(".fg-shell-side")!;
     const switcher = side.querySelector<HTMLButtonElement>('button[aria-label="Workspace"]')!;
@@ -73,13 +73,14 @@ describe("App", () => {
       "Home",
       "Tools",
       "Members",
-      "Approvals1",
       "Audit log",
       "Marketplace",
       "Settings",
     ]);
     expect(side.querySelector(".fg-nav-heading")?.textContent).toBe("Administration");
     expect(side.querySelector('[aria-current="page"]')?.textContent).toBe("Home");
+    // No screen of approvals (D-121): nothing reads them to count them.
+    expect(reads).not.toContain("/api/approvals");
     const person = side.querySelector<HTMLButtonElement>('button[aria-label="Your account"]')!;
     expect(person.textContent).toContain("ada");
     expect(side.querySelector('a[href="/auth/logout"]')).toBeNull();
@@ -191,7 +192,6 @@ describe("App", () => {
         "Sign-in",
         "Domains",
         "Audit log",
-        "Approvals",
         "Usage and seats",
         "Sealing key",
         "Install information",

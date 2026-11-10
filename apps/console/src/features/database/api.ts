@@ -1,7 +1,14 @@
 // Typed calls to the gateway's database explorer (`/console-api/api/tools/<tool>/db/...`, D-059).
 // The browser never holds a Cloudflare token: the gateway reaches the database.
 import { addresses } from "@forgeron/platform-contract/client";
-import { CONSOLE_API, ok, typedClient, type FetchJson } from "../../api";
+import {
+  CONSOLE_API,
+  ok,
+  typedClient,
+  typedSender,
+  type FetchJson,
+  type SendJson,
+} from "../../api";
 
 export type Operator =
   | "eq"
@@ -168,3 +175,18 @@ export function exportPath(tool: string, target: Target, table: string, query: P
 
 export const targetId = (target: Target) =>
   target.env === "production" ? "production" : `preview:${target.branch}`;
+
+/**
+ * Replaces a branch's data by another branch's (D-121): the gateway refuses production, either way,
+ * and two branches that are not on the same migrations. The tool's name confirms it.
+ */
+export const copyBranchData = async (
+  sendJson: SendJson,
+  input: { tool: string; branch: string; from: string },
+) =>
+  ok(
+    await typedSender(sendJson)(addresses.copyBranchData, {
+      params: { tool: input.tool, branch: input.branch },
+      json: { from: input.from, confirm: input.tool },
+    }),
+  );

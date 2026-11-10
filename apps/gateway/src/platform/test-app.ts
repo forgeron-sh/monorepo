@@ -28,6 +28,8 @@ export function platformCaller(options: {
   databaseTimeoutMs?: number;
   marketplaceFetch?: typeof fetch;
   officialMarketplace?: string;
+  /** The token secret, for a route that issues a token (D-121). */
+  tokenSecret?: string;
 }) {
   const app = createPlatform();
   return async (request: Request): Promise<Response | undefined> => {
@@ -64,6 +66,15 @@ export function platformCaller(options: {
           throw new Error("No GitHub in this test.");
         }),
       ...(options.officialMarketplace ? { officialMarketplace: options.officialMarketplace } : {}),
+      ...(options.tokenSecret
+        ? {
+            bearer: {
+              secret: options.tokenSecret,
+              person: async () => undefined,
+              session: async () => undefined,
+            },
+          }
+        : {}),
       ...(options.databaseTimeoutMs ? { databaseTimeoutMs: options.databaseTimeoutMs } : {}),
       notFound: () => new Response(null, { status: 404, headers: { [NOT_A_ROUTE]: "1" } }),
       signIn:

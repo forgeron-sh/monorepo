@@ -1,4 +1,4 @@
-import { Button, CopyBlock, Dialog, Field, Input, Notice, Textarea } from "@forgeron/ui";
+import { Button, Checkbox, CopyBlock, Dialog, Field, Input, Notice, Textarea } from "@forgeron/ui";
 import { useState } from "react";
 import { explain, type Api } from "../../api";
 import { useLoad } from "../../use-load";
@@ -16,6 +16,8 @@ import { ImpactBadge } from "./components";
 // Promote and Roll back, in the manner of Vercel's instant rollback: what goes in, what comes out,
 // what the change contains, why, and what is not undone. Both call the platform's own routes with the
 // person's session; the platform checks the changelog and the approvals again and says why it refuses.
+// What a version asks for is approved here, in the same step (D-121): there is no screen of approvals.
+// A build with no release can go too, once the admin says so.
 
 export interface ReleaseDialogProps {
   kind: "promote" | "rollback";
@@ -67,7 +69,22 @@ export function ReleaseDialog({
     [api, tool, to, promoting],
   );
   const plan = planned.data;
-  const blocked = promoting && plan !== undefined && (!plan.ok || plan.requiresAllowDestructive);
+  const [approve, setApprove] = useState(false);
+  const [withoutRelease, setWithoutRelease] = useState(false);
+  // An approval and a missing release are the admin's to accept here; anything else is fixed elsewhere.
+  const asks = plan?.conflicts.filter((c) => c.code === "PENDING_APPROVAL") ?? [];
+  const noRelease = plan?.conflicts.some((c) => c.code === "CHANGELOG_NO_ENTRY") ?? false;
+  const problems =
+    plan?.conflicts.filter(
+      (c) => c.code !== "PENDING_APPROVAL" && c.code !== "CHANGELOG_NO_ENTRY",
+    ) ?? [];
+  const blocked =
+    promoting &&
+    plan !== undefined &&
+    (problems.length > 0 ||
+      plan.requiresAllowDestructive ||
+      (asks.length > 0 && !approve) ||
+      (noRelease && !withoutRelease));
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(plan?.prompt ?? "");
@@ -85,8 +102,15 @@ export function ReleaseDialog({
     setBusy(true);
     setError(undefined);
     try {
-      if (promoting) await promote(api, { tool, version: to, reason: reason.trim() });
-      else await rollback(api, { tool, reason: reason.trim() });
+      if (promoting) {
+        await promote(api, {
+          tool,
+          version: to,
+          reason: reason.trim(),
+          ...(asks.length > 0 && approve ? { approve: true } : {}),
+          ...(noRelease && withoutRelease ? { withoutRelease: true } : {}),
+        });
+      } else await rollback(api, { tool, reason: reason.trim() });
       onDone();
     } catch (failure) {
       setError(
@@ -182,26 +206,55 @@ export function ReleaseDialog({
             Promoting it again changes nothing.
           </Notice>
         ) : null}
-        {plan && plan.ok && plan.migrations.pending.length > 0 ? (
+        {promoting && asks.length > 0 ? (
+          <div className="ft-asks">
+            <span className="fc-caption">This version asks for</span>
+            <ul className="ft-entries">
+              {asks.map((a) => (
+                <li key={a.subject} className="fc-mono">
+                  {a.subject}
+                </li>
+              ))}
+            </ul>
+            <Checkbox
+              label="I approve what it asks for"
+              checked={approve}
+              onChange={(e) => setApprove(e.target.checked)}
+            />
+          </div>
+        ) : null}
+        {promoting && noRelease ? (
+          <Notice tone="warning" title="This build is not a release.">
+            It has no changelog: the people who use the tool will not know what changes. Make a
+            release with <span className="fc-mono">forgeron change</span> and{" "}
+            <span className="fc-mono">forgeron release</span>, or put it in production as it is.
+            <Checkbox
+              label="Put it in production without a release"
+              checked={withoutRelease}
+              onChange={(e) => setWithoutRelease(e.target.checked)}
+            />
+          </Notice>
+        ) : null}
+        {plan && problems.length === 0 && plan.migrations.pending.length > 0 ? (
           <p style={{ margin: 0 }}>
             <span className="fc-caption">Migrations that will run</span>{" "}
             <span className="fc-mono">{plan.migrations.pending.join(", ")}</span>
           </p>
         ) : null}
-        {plan && plan.ok && plan.requiresAllowDestructive ? (
+        {plan && problems.length === 0 && plan.requiresAllowDestructive ? (
           <Notice tone="warning" title="It drops or rewrites data.">
             {plan.migrations.destructive.join(", ")} cannot run from here. Read it, then promote
             from a terminal with <span className="fc-mono">--allow-destructive</span>.
           </Notice>
         ) : null}
-        {plan && !plan.ok ? (
+        {plan && problems.length > 0 ? (
           <div className="ft-release" role="alert">
             <Notice
               tone="danger"
-              title={`This version cannot go to production yet (${plan.conflicts.length} problem${plan.conflicts.length === 1 ? "" : "s"}).`}
+              title={`This version cannot go to production yet (${problems.length} problem${problems.length === 1 ? "" : "s"}).`}
             >
               <ul className="ft-entries">
-                {plan.conflicts.map((c, i) => (
+                {problems.map((c, i) => (
                   <li key={i}>
                     <span className="fc-mono">{c.code}</span>
                     {c.subject ? <span className="fc-mono fc-muted"> {c.subject}</span> : null}

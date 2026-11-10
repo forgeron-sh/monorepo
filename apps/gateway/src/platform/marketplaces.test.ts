@@ -227,10 +227,13 @@ describe("the marketplace routes (D-116)", () => {
 
     const installed = await through(post(`/api/marketplaces/${m.id}/tools/odoo/install`));
     expect(installed.status).toBe(201);
+    // Installing is the approval (D-121); this test gateway cannot deploy.
     expect(await installed.json()).toEqual({
       tool: "odoo",
       version: "1.0.0",
       approvals: [{ resource: "resources.network", kind: "resource.added" }],
+      production: false,
+      waiting: "This gateway cannot deploy.",
     });
     expect((await through(post(`/api/marketplaces/${m.id}/tools/odoo/install`))).status).toBe(409);
     expect(await registry.findTool("acme", "odoo")).toBeDefined();
@@ -282,6 +285,46 @@ describe("the marketplace routes (D-116)", () => {
     expect((await through(post(`/api/install-plans/${plan}/install`))).status).toBe(201);
     expect(await registry.findTool("acme", "crm-x")).toBeDefined();
     expect(await registry.findTool(TEMPLATE_WORKSPACE, "crm-x")).toBeDefined();
+  });
+
+  it("read a tool released in its own repository, and update the tools that update by themselves (D-121)", async () => {
+    const m = await add("acme/tools-cross", TOKEN);
+    // The release lives in acme/odoo; the marketplace's index points to it.
+    const body = await bundleOf("odoo2", "1.0.0");
+    const assetUrl = `${API}/repos/acme/odoo/releases/assets/odoo2`;
+    routes[`${API}/repos/acme/odoo/releases/tags/${encodeURIComponent("odoo2@1.0.0")}`] = () =>
+      Response.json({
+        assets: [{ name: "odoo2-1.0.0.forgeron.json", url: assetUrl, size: body.length }],
+      });
+    routes[assetUrl] = () => new Response(body);
+    const index = async (version: string, release: string, asset: string, sha: string) => {
+      routes[`${API}/repos/acme/tools-cross/contents/forgeron-marketplace.json`] = () =>
+        new Response(
+          JSON.stringify({
+            name: "cross",
+            tools: [{ name: "odoo2", version, repo: "acme/odoo", release, asset, sha256: sha }],
+          }),
+        );
+    };
+    await index("1.0.0", "odoo2@1.0.0", "odoo2-1.0.0.forgeron.json", await hex(encode(body)));
+    const synced = (await (await through(post(`/api/marketplaces/${m.id}/sync`))).json()) as {
+      tools: Array<{ status: string }>;
+    };
+    expect(synced.tools.map((t) => t.status)).toEqual(["added"]);
+    expect(seen.some((r) => r.url.startsWith(`${API}/repos/acme/odoo/`))).toBe(true);
+    expect(seen.every((r) => r.headers.get("authorization") === `Bearer ${TOKEN}`)).toBe(true);
+
+    // Installed, updating by itself: the next sync of a newer release moves it (no hosting here, so
+    // the version is copied and production waits).
+    await registry.installTemplate({
+      workspace: "acme",
+      template: "odoo2",
+      source: marketplaceSource(m.id),
+      actor: "p",
+    });
+    const tool = (await registry.findTool("acme", "odoo2"))!;
+    await registry.setToolSource({ toolId: tool.id, autoUpdate: true, actor: "p" });
+    expect(await registry.autoUpdatingFrom("acme", marketplaceSource(m.id))).toEqual(["odoo2"]);
   });
 
   it("remove a marketplace of the workspace only, and never the official one", async () => {

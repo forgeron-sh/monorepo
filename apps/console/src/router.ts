@@ -10,7 +10,6 @@ const PATHS = {
   overview: "/",
   tools: "/tools",
   members: "/members",
-  approvals: "/approvals",
   audit: "/audit",
   settings: "/settings/profile",
 } as const;

@@ -14,6 +14,7 @@ import {
 import { audienceOf, parseAudience } from "../identity/authn/audience";
 import type { Person } from "../kernel/person";
 import { issueToken, verifyToken } from "../identity/authn/tokens";
+import { updateByItself } from "../sources/update";
 
 /** The only scope a deployment token has today. */
 export const DEPLOY_SCOPE = "deploy";
@@ -218,12 +219,20 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
       version,
       ...(allowDestructive === true ? { allowDestructive: true } : {}),
     });
+    // A repository tool's production branch is the candidate for production (D-121): it goes there
+    // by itself when the tool says so and nothing stops it. Never fails the deployment.
+    const source = environment === "preview" ? await registry.toolSource(tool.id) : undefined;
+    const production =
+      source?.kind === "repo" && branch === source.productionBranch
+        ? await updateByItself(registry, context.hosting, tool, check.claims.sub)
+        : undefined;
     return json(200, {
       tool: tool.name,
       version: deployed.version.version,
       environment: environment,
       url: deployed.activation.url,
       applied: deployed.applied,
+      ...(production ? { production } : {}),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

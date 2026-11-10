@@ -49,6 +49,7 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
 const USAGE = `Usage: forgeron <command>
 
   init [name] [--template <name>]      create a tool, from scratch or from a template
+  init marketplace [name]              create a marketplace of tools
   catalog search <text>                search the template catalog
   install <template> [--name <tool>]   show the requested resources, then install after approval
   link --workspace <name>              link the tool to a workspace

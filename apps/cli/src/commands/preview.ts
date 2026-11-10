@@ -20,7 +20,12 @@ export async function preview(args: string[], io: Io): Promise<number> {
     options: { branch: { type: "string" } },
   });
   if (positionals.length > 0) throw new UsageError(USAGE);
-  const branch = values.branch ?? process.env.GITHUB_HEAD_REF ?? process.env.GITHUB_REF_NAME;
+  // `FORGERON_BRANCH`: the deleted branch's name, which the action passes on (D-121).
+  const branch =
+    values.branch ??
+    (process.env.FORGERON_BRANCH || undefined) ??
+    process.env.GITHUB_HEAD_REF ??
+    process.env.GITHUB_REF_NAME;
   if (!branch) throw new UsageError("Which preview? Pass --branch <name>.");
   const token = process.env.FORGERON_TOKEN;
   if (!token) {

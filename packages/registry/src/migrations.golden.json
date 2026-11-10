@@ -843,5 +843,22 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0033_tool_sources",
+    "fingerprint": "tool-sources-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"tool_sources\" (\n  \"tool_id\" TEXT PRIMARY KEY NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"kind\" TEXT NOT NULL,\n  \"source\" TEXT,\n  \"source_tool\" TEXT,\n  \"repo\" TEXT,\n  \"production_branch\" TEXT NOT NULL DEFAULT 'main',\n  \"auto_update\" INTEGER NOT NULL DEFAULT 0,\n  \"updated_by\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"tool_sources\"",
+        "parameters": []
+      }
+    ]
   }
 ]

@@ -44,3 +44,28 @@ export interface DescribedTemplate {
   guide?: string;
   changelog: unknown[];
 }
+
+/** Where a tool comes from (D-121). */
+export interface ToolSource {
+  /** `marketplace`: installed from a catalogue; `repo`: deployed by a repository's CI. */
+  kind: "marketplace" | "repo";
+  /** The catalogue (`@templates`, `@mp:<id>`), for a marketplace tool. */
+  source?: string;
+  /** The tool's name in that catalogue. */
+  sourceTool?: string;
+  /** `owner/name`, for a repository tool: shown, never called. */
+  repo?: string;
+  /** The branch whose preview is the candidate for production (a repository tool). */
+  productionBranch: string;
+  /** A new version goes to production by itself when it asks for nothing new. */
+  autoUpdate: boolean;
+  /** False for a tool deployed before sources: what is shown is the default. */
+  recorded: boolean;
+}
+
+/** The version a tool could move to, from its source. */
+export interface AvailableUpdate {
+  version: string;
+  /** For a repository tool: the branch it is served from. */
+  branch?: string;
+}

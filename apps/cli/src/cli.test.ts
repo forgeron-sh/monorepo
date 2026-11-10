@@ -112,6 +112,57 @@ describe("forgeron init", () => {
     expect(c.logs[0]).toContain("Created my-tool");
   });
 
+  it("writes what an agent reads, and a workflow that previews each branch (D-121)", async () => {
+    const root = await empty();
+    expect(await run(["init", "my-tool"], capture(root).io)).toBe(0);
+    const dir = join(root, "my-tool");
+    expect(await readFile(join(dir, "CLAUDE.md"), "utf8")).toBe("@AGENTS.md\n");
+    expect(await readFile(join(dir, "AGENTS.md"), "utf8")).toContain("docs/lifecycle.md");
+    // The lifecycle is the Forgeron repository's own, word for word.
+    expect(await readFile(join(dir, "docs", "lifecycle.md"), "utf8")).toBe(
+      await readFile(new URL("../../../docs/lifecycle.md", import.meta.url), "utf8"),
+    );
+    const workflow = await readFile(join(dir, ".github", "workflows", "forgeron.yml"), "utf8");
+    expect(workflow).toContain("delete:");
+    expect(workflow).toContain('close: "true"');
+    expect(workflow).toContain("branch: ${{ github.event.ref }}");
+    expect(workflow).not.toContain("pull_request");
+  });
+
+  it("creates a marketplace, then a tool inside it, listed in the index (D-121)", async () => {
+    const root = await empty();
+    expect(await run(["init", "marketplace", "acme-tools"], capture(root).io)).toBe(0);
+    const market = join(root, "acme-tools");
+    expect(await json(join(market, "forgeron-marketplace.json"))).toEqual({
+      name: "acme-tools",
+      title: "acme-tools",
+      tools: [],
+    });
+    expect(await json(join(market, "package.json"))).toMatchObject({ workspaces: ["tools/*"] });
+    expect(await readFile(join(market, ".github", "workflows", "release.yml"), "utf8")).toContain(
+      'tags: ["*@*"]',
+    );
+    expect(await readFile(join(market, "CLAUDE.md"), "utf8")).toBe("@AGENTS.md\n");
+    await expect(stat(join(market, "docs", "lifecycle.md"))).resolves.toBeDefined();
+
+    expect(await run(["init", "odoo"], capture(market).io)).toBe(0);
+    const tool = join(market, "tools", "odoo");
+    expect(await json(join(tool, ".forgeron", "project.json"))).toEqual({ tool: "odoo" });
+    // The marketplace publishes; the tool has no deploy workflow nor AGENTS.md of its own.
+    await expect(stat(join(tool, ".github"))).rejects.toThrow(/ENOENT/);
+    await expect(stat(join(tool, "AGENTS.md"))).rejects.toThrow(/ENOENT/);
+    expect((await json(join(market, "forgeron-marketplace.json"))).tools).toEqual([
+      {
+        name: "odoo",
+        path: "tools/odoo",
+        version: "0.1.0",
+        release: null,
+        asset: null,
+        sha256: null,
+      },
+    ]);
+  });
+
   it("uses the current folder, named after it, when no name is given", async () => {
     const root = await empty();
     const dir = join(root, "from-cwd");

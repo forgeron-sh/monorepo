@@ -118,7 +118,10 @@ export default function ToolPage({
           <Select
             value={branch ?? ""}
             options={[
-              { value: "", label: "Production" },
+              {
+                value: "",
+                label: tool.production ? `Production · ${tool.production}` : "Production",
+              },
               ...previews.map((b) => ({ value: b, label: b })),
             ]}
             onChange={(e) => go(addressOf(tool.name, e.target.value || undefined))}
@@ -132,7 +135,7 @@ export default function ToolPage({
       ) : null}
       {branch !== undefined ? (
         <div className="ft-branch-band" role="status">
-          <Badge tone="warning">Preview</Badge>
+          <Badge tone="warning">Branch</Badge>
           <span className="ft-branch-band-text">
             You are looking at <code>{branch}</code>. What you change in Overview, Architecture,
             Availability, Database and Secrets is for this branch only, never for production.

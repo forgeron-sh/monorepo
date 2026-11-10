@@ -92,6 +92,18 @@ describe("forgeron preview close", () => {
     expect(logs).toEqual(["crm had no preview for feat/b."]);
   });
 
+  it("takes a deleted branch's name from the action before the pull request's (D-121)", async () => {
+    process.env.FORGERON_TOKEN = "t";
+    process.env.GITHUB_HEAD_REF = "";
+    process.env.GITHUB_REF_NAME = "main";
+    process.env.FORGERON_BRANCH = "feat/gone";
+    answer = { status: 200, body: { removed: true } };
+    const { io } = await linked();
+    expect(await run(["preview", "close"], io)).toBe(0);
+    expect(requests.at(-1)?.body).toEqual({ branch: "feat/gone" });
+    delete process.env.FORGERON_BRANCH;
+  });
+
   it("is a wrong use without a branch, a token, a link or the right words", async () => {
     delete process.env.GITHUB_HEAD_REF;
     delete process.env.GITHUB_REF_NAME;

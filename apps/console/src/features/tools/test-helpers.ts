@@ -141,7 +141,6 @@ export const pageProps = (
   now: () => NOW,
   go: options.go ?? (() => {}),
   params: {},
-  refreshPending: () => {},
 });
 
 /** What the shell hands a tab. */

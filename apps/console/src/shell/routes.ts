@@ -63,16 +63,6 @@ const own: RouteDef[] = [
     ),
   },
   {
-    path: "/approvals",
-    title: "Approvals",
-    access: "admin",
-    nav: { group: "admin", label: "Approvals", shortcut: "a" },
-    page: adapt(
-      () => import("../approvals-page").then((m) => m.ApprovalsPage),
-      ({ api, refreshPending }) => ({ api, onDecided: refreshPending }),
-    ),
-  },
-  {
     path: "/audit",
     title: "Audit log",
     access: "admin",

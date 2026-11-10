@@ -27,7 +27,8 @@ rounded corners. References on Mobbin are linked so each screen can be looked at
   [Vercel](https://mobbin.com/screens/a8d666ee-3303-4b28-9e1f-06b8dbd63cb6),
   [Plane](https://mobbin.com/screens/675ba224-6259-48bc-9cae-2bd3c712bf55).
 - **Navigation, grouped:** Home, Tools (the tool list; each tool is a child item when the list is short),
-  then for admins: Members, Approvals, Audit log. Settings is at the bottom of the navigation, not a page
+  then for admins: Members, Audit log. There is no screen of approvals: what a version asks for is
+  approved in the dialog that installs, updates or promotes it (D-121). Settings is at the bottom of the navigation, not a page
   among others.
 - **Bottom of the sidebar: the person's menu.** Avatar, name; opens a popover with theme (system, Forge,
   Atelier), documentation, sign out. No branding line.
@@ -45,7 +46,7 @@ A full area with its own sidebar, as in Linear: a "Back to app" link on top, the
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Account                 | Profile, Preferences (theme, language), Security (sessions, tokens, `forgeron login` devices), Connected accounts (the person's connector consents), Personal secrets |
 | Workspace (admins)      | General (name, address), Members, Roles and access, Sign-in (email, OIDC, SAML), Domains                                                                              |
-| Administration (admins) | Audit log, Approvals, Usage and seats, Install information (version, address, binding health)                                                                         |
+| Administration (admins) | Audit log, Usage and seats, Install information (version, address, binding health)                                                                                    |
 
 A settings page is a column of titled **groups**; a group is a card of **rows**: label and description on
 the left, the control on the right; a row that opens a sub-page ends with a chevron; a **Danger zone** group
@@ -59,6 +60,11 @@ owner's Linear clone (see "Where to look").
 A table or a grid (toggle), searchable: icon, name, one-line summary, production version, number of
 previews, last deployment, status dot. A row opens the tool page.
 [Vercel projects](https://mobbin.com/screens/c54df5c8-f72c-406e-bb92-a9a6b116f0a5).
+
+**Add from GitHub** (admins, D-121): the tool's name, its repository (`owner/name`, one tool per
+repository) and its production branch (`main` by default). The tool is created with no environment and
+nobody may add it yet; the dialog then shows, once, the deployment token to set as the repository's
+`FORGERON_TOKEN`, and the steps: the secret, the workflow `forgeron init` writes, a first push.
 
 ### Tool page
 
@@ -92,6 +98,12 @@ The deployment list of Vercel and the environment settings of Vercel/Cloudflare,
 [Vercel environments](https://mobbin.com/screens/11def438-b12a-4f4c-938e-ec13525dd1dd),
 [Vercel instant rollback](https://mobbin.com/screens/f10497e6-9a53-4d09-b1fe-e72cebede2a6).
 
+- On top, for admins, **Updates** (D-121): where the tool comes from (a marketplace, or a GitHub
+  repository and the branch production follows), the version production serves, and the update waiting
+  for it: its version, _Release_ or _Not a release_, its changelog, what it asks for that production
+  does not have. _Update production_ needs the admin to tick _I approve what it asks for_ and, for a
+  build with no release, _Put it in production without a release_. _Update by itself_ lets a new version
+  that asks for nothing new (and is a release) go on its own.
 - First row: **Production**: version, commit, who deployed, when, address, the `Roll back` action.
 - Then one row per **branch** (one preview per branch): branch name with a branch glyph, commit short hash
   and message, author, age, status dot (ready, building, failed), version, the preview address with copy
@@ -99,6 +111,8 @@ The deployment list of Vercel and the environment settings of Vercel/Cloudflare,
 - Filter bar: status, author, branch search. Environments are told apart with `EnvTag` shapes.
 - **Promote** and **Roll back** open a dialog that shows the from and to versions, the changelog entries
   and the impact (major, minor, patch), asks for a reason, and says that migrations are not rolled back.
+  What the version asks for, and a build with no release, are accepted there with a checkbox each; the
+  other conflicts of the plan still stop it.
 - A branch row expands to show its database, its last migration, and its recent deployments.
 
 ## Marketplace
@@ -107,7 +121,8 @@ For admins (D-116). One tab per marketplace: **Official** (the platform's catalo
 GitHub repository the workspace added. A tab says where the marketplace lives, when it was last synced,
 whether it is read with a token, and why the last sync failed; _Sync_ reads its index again and says,
 tool by tool, what was added, already there, not published yet or refused (and why). The tools are
-cards (title, summary, version, _Installed_, how many approvals they will need).
+cards (title, summary, version, _Installed_, how many resources they ask for). Opening the screen syncs,
+after the answer, the marketplaces read more than an hour ago (D-121): no cron.
 
 - **Add a marketplace**: a dialog with the repository (`owner/name`) and, for a private one, a read
   token (GitHub fine-grained, _Contents: read_). The token is sealed and never shown again; a first
@@ -115,8 +130,9 @@ cards (title, summary, version, _Installed_, how many approvals they will need).
 - **The technical sheet** (`/marketplace/<id>/<tool>`): the README, _What its users read_ (the guide,
   as a member will see it), the actions with their access level, the changelog; on the right the
   version, interfaces, roles, database, outbound hosts, secrets an admin sets, what each person is
-  asked for, connectors and what needs approval. _Install_ asks for a confirmation that lists the
-  approvals, creates the tool with no environment and opens it in Tools.
+  asked for, connectors and what it asks for. _Install_ asks for a confirmation that lists what it asks
+  for, with _I approve what it asks for_; the tool is created, approved and put in production where the
+  gateway can deploy, then its Availability tab opens. A newer release shows in its Updates (D-121).
 - **Remove** a marketplace: its token and what it offers go; the tools installed from it stay.
 
 ## Architecture diagram
@@ -136,6 +152,9 @@ Modelled on the Supabase table editor and schema visualizer:
 
 - Left: the tables of production or of the branch chosen at the top of the tool page (D-120), with a
   search field and a row count.
+- On a branch: _Replace with another branch's data_ (D-121). The other branch is chosen and the tool's
+  name typed; the branch's tables are emptied, then filled with the other branch's rows. Production's
+  data is never read nor replaced, and two branches on different migrations are refused.
 - Centre: a data grid with typed column headers, constraint chips (primary, not null, unique, foreign
   key), paging, sorting, a filter bar, a row detail drawer, copy and export as CSV.
 - A "Definition" view of a table (columns, indexes, foreign keys) and a schema view (tables and their

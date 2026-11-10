@@ -4,6 +4,8 @@ import {
   decideApprovalRoute,
   getAccessMatrixRoute,
   installFromPlanRoute,
+  getToolSourceRoute,
+  updateToolRoute,
   listApprovalsRoute,
   listCatalogRoute,
   listMarketplacesRoute,
@@ -449,12 +451,39 @@ export const TOOLS: readonly ToolDefinition[] = [
     name: "tool_install",
     title: "Install a template",
     description:
-      "Creates the tool of a plan made by `tool_install_plan`, once. Takes only the plan's identifier. The tool has no environment yet and its resources wait for approval.",
+      "Creates the tool of a plan made by `tool_install_plan`, once. Takes only the plan's identifier. What the plan showed is approved by this call, and the tool goes to production where the platform can deploy.",
     minRole: "admin",
     destructive: true,
     input: z.strictObject({ plan: z.string().min(1).max(64).describe("The plan's identifier") }),
     run: ({ plan }, port) =>
       ask(port, { method: "POST", path: at(installFromPlanRoute.path, { plan }) }),
+  }),
+  define({
+    name: "tool_source",
+    title: "Read a tool's update",
+    description:
+      "Where a tool comes from (a marketplace or a GitHub repository), the version production serves, and the update waiting for it: its version, whether it is a release, its changelog, and what it asks to approve. It changes nothing.",
+    minRole: "admin",
+    destructive: false,
+    input: z.strictObject({ tool: z.string().min(1).max(64) }),
+    run: ({ tool }, port) =>
+      ask(port, { method: "GET", path: at(getToolSourceRoute.path, { tool }) }),
+  }),
+  define({
+    name: "tool_update",
+    title: "Put a tool's update in production",
+    description:
+      "Puts the update `tool_source` showed in production. `version` is the one it showed: a newer update is refused, read it again. `approve` approves what it asks for; `withoutRelease` takes a build with no release, knowingly. Show the person both before setting them.",
+    minRole: "admin",
+    destructive: true,
+    input: z.strictObject({
+      tool: z.string().min(1).max(64),
+      version: z.string().min(1).max(200),
+      approve: z.boolean().optional(),
+      withoutRelease: z.boolean().optional(),
+    }),
+    run: ({ tool, ...body }, port) =>
+      ask(port, { method: "POST", path: at(updateToolRoute.path, { tool }), body }),
   }),
   define({
     name: "tool_promote_plan",

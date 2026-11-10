@@ -17,8 +17,7 @@ const target = {
   expiresAt: new Date(NOW.getTime() + 10 * 60_000).toISOString(),
 };
 
-const props = (api: Api): PageProps =>
-  ({ api, now: () => NOW, go: () => {}, params: {}, refreshPending: () => {} }) as never;
+const props = (api: Api): PageProps => ({ api, now: () => NOW, go: () => {}, params: {} }) as never;
 const open = (hash: string) => window.history.replaceState(null, "", `/secret-request${hash}`);
 beforeEach(() => open(`#${TOKEN}`));
 
