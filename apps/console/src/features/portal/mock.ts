@@ -141,6 +141,7 @@ export function mockToolCard(name: string, admin = false): ToolCardData | undefi
     ...tool,
     access: admin ? "granted" : tool.access,
     readme: name === "crm" ? MOCK_README : `# ${tool.title}\n\n${tool.summary}\n`,
+    guide: name === "crm" ? `# ${tool.title}\n\n${tool.summary}\n` : null,
     assets: [asset(name, "img/contacts.svg", 1400), asset(name, "img/merge.svg", 900)],
     connect: {
       mcp: tool.interfaces.mcp ? { url: `https://demo.fabriks.example/t/${name}/mcp` } : null,

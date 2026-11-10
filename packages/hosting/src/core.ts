@@ -28,9 +28,25 @@ export interface Build {
   docs?: BuildDocs;
 }
 
-/** The documentation of a build, with its content: `manifest.docs` lists the same files by hash. */
+/**
+ * A built tool in one file, as `forgeron bundle` writes it (D-115): what a marketplace hands to a
+ * platform that has no build step. `build` is the body of a deployment; `name` and `version` repeat the
+ * manifest's, so a reader refuses a file that says one thing and carries another.
+ */
+export interface ToolBundle {
+  format: typeof BUNDLE_FORMAT;
+  name: string;
+  version: string;
+  build: Build;
+}
+
+export const BUNDLE_FORMAT = "forgeron.bundle/1";
+
+/** The documentation of a build: `manifest.docs` lists the same files by hash. */
 export interface BuildDocs {
   readme?: string;
+  /** `GUIDE.md`: the tool explained to the people who use it, without technical detail (D-115). */
+  guide?: string;
   assets: Array<{ path: string; type: string; size: number; hash: string; base64: string }>;
 }
 

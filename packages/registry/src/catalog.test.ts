@@ -342,6 +342,31 @@ describe("the catalog", () => {
     await publish(await withDocs(undefined, []), "1.0.0");
     const card = (await findCard(registry, "acme", "crm", { roles: [] }, "https://x"))!;
     expect(card.readme).toBeNull();
+    expect(card.guide).toBeNull();
     expect(card.assets).toEqual([]);
+  });
+
+  it("serves the guide apart from the README, and the summary before the description (D-115)", async () => {
+    const guide = "# Use the CRM\n![a](docs/a.png)";
+    const build = await withDocs("# CRM, technical", [
+      { path: "docs/a.png", type: "image/png", bytes: PNG },
+    ]);
+    build.docs!.guide = guide;
+    build.manifest.docs!.guide = { size: encode(guide).length, hash: await hex(encode(guide)) };
+    build.manifest.summary = "Your companies and leads, from Claude.";
+    expect(await docsProblem(build.manifest, build.docs)).toBeUndefined();
+    await publish(build, "1.0.0");
+    const card = (await findCard(registry, "acme", "crm", { roles: [] }, "https://x"))!;
+    expect(card.readme).toBe("# CRM, technical");
+    expect(card.guide).toBe(guide);
+    expect(card.summary).toBe("Your companies and leads, from Claude.");
+    // Neither markdown file is an image of the card.
+    expect(card.assets.map((a) => a.path)).toEqual(["docs/a.png"]);
+
+    const tampered = structuredClone(build);
+    tampered.docs!.guide = "# changed";
+    expect(await docsProblem(tampered.manifest, tampered.docs)).toMatch(/guide is not the one/);
+    delete tampered.docs!.guide;
+    expect(await docsProblem(tampered.manifest, tampered.docs)).toMatch(/guide that was not sent/);
   });
 });

@@ -138,6 +138,7 @@ export function buildManifest(
     version,
     ...(config.title ? { title: config.title } : {}),
     ...(config.description ? { description: config.description } : {}),
+    ...(config.summary ? { summary: config.summary } : {}),
     ...(documentation.icon ? { icon: documentation.icon } : {}),
     ...(documentation.docs ? { docs: documentation.docs } : {}),
     interfaces,

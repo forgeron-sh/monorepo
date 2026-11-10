@@ -84,6 +84,7 @@ export default defineConfig({
   name: "crm", // identifier, [a-z0-9-], unique within the workspace
   title: "CRM",
   description: "Companies, contacts and leads.", // reused in MCP, OpenAPI, CLI help and the catalog
+  summary: "Your companies and leads, from Claude.", // optional: one sentence for the people who use it, no technical term
   icon: "docs/icon.svg", // optional, shown in the catalog
   interfaces: { mcp: true, api: true, cli: true, web: true },
 
@@ -217,6 +218,7 @@ The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forge
 | `forgeron play [--template <name>]`                                 | Opens the playground: list of actions, generated form, result, MCP / API / CLI preview; with `--template`, tries out a template without installing it        |
 | `forgeron test`                                                     | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                              |
 | `forgeron build`                                                    | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                        |
+| `forgeron bundle [--out <dir>]`                                     | Builds the tool into one file, `<name>-<version>.forgeron.json`, and prints its SHA-256: what a marketplace attaches to a release (D-115)                    |
 | `forgeron preview close [--branch <name>]`                          | Tears down the preview of a branch (a closed pull request); needs `FORGERON_TOKEN`                                                                           |
 | `forgeron deploy [--env preview\|production] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                              |
 | `forgeron versions`                                                 | Lists versions and their environments                                                                                                                        |
@@ -634,7 +636,7 @@ Output in `.forgeron/build/`:
 
 ### Documentation
 
-The catalog (the member space of the console) shows a card per tool. Its text is the tool's `README.md`, collected at build with the images it references with a relative path (`![](docs/a.png)`, `<img src="docs/a.png">`) and the config's `icon`. Nothing else is read: a link to another site is left as it is, and the console only shows images that come from the build. A build fails, naming the file, if a path leaves the tool folder (`..`, a link that leaves it), a file is over 1 MB (README, image) or the whole over 5 MB, the icon is over 128 KB or is not a `.svg` or `.png`, an image is not `.png`, `.jpg`, `.webp`, `.gif` or `.svg`, its content is not what its extension says, or an SVG holds a script, an event handler, a `foreignObject` or an address outside the file. The platform checks all of it again when it receives the build. A README is plain markdown: the console does not render raw HTML in it.
+The catalog (the member space of the console) shows a card per tool. Its text is the tool's `README.md`, technical and read by administrators, and its `GUIDE.md`, optional: the tool explained to the people who use it, with no technical detail (D-115). Both are collected at build with the images they reference with a relative path (`![](docs/a.png)`, `<img src="docs/a.png">`) and the config's `icon`. Nothing else is read: a link to another site is left as it is, and the console only shows images that come from the build. A build fails, naming the file, if a path leaves the tool folder (`..`, a link that leaves it), a file is over 1 MB (README, guide, image) or the whole over 5 MB, the icon is over 128 KB or is not a `.svg` or `.png`, an image is not `.png`, `.jpg`, `.webp`, `.gif` or `.svg`, its content is not what its extension says, or an SVG holds a script, an event handler, a `foreignObject` or an address outside the file. The platform checks all of it again when it receives the build. A README is plain markdown: the console does not render raw HTML in it.
 
 The build fails if: an action has no `access` or `description`, an action name is duplicated, the schema differs from the last snapshot without a migration, an import leaves the tool (except npm packages), a view cites a non-existent action (read from the literal names given to `useAction` and `useMutation`; a name held in a variable is not checked), a view path is reserved by the platform or shared with another view, or code uses an undeclared resource (`ctx.db` without `resources.db`).
 

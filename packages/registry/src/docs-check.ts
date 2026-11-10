@@ -25,19 +25,27 @@ export async function docsProblem(
     typeof docs !== "object" ||
     docs === null ||
     !Array.isArray(docs.assets) ||
-    (docs.readme !== undefined && typeof docs.readme !== "string")
+    (docs.readme !== undefined && typeof docs.readme !== "string") ||
+    (docs.guide !== undefined && typeof docs.guide !== "string")
   ) {
-    return "docs: a README (text) and a list of images.";
+    return "docs: a README and a guide (text) and a list of images.";
   }
   const listed = manifest.docs;
   if (!listed) return "docs: the manifest lists no documentation.";
   const encoder = new TextEncoder();
   let total = 0;
-  if (docs.readme !== undefined) {
-    const bytes = encoder.encode(docs.readme);
-    if (bytes.length > MAX_FILE) return `docs: the README is over ${MAX_FILE} bytes.`;
-    if (!listed.readme || listed.readme.hash !== (await hex(bytes))) {
-      return "docs: the README is not the one the manifest lists.";
+  for (const [label, text, entry] of [
+    ["README", docs.readme, listed.readme],
+    ["guide", docs.guide, listed.guide],
+  ] as const) {
+    if (text === undefined) {
+      if (entry) return `docs: the manifest lists a ${label} that was not sent.`;
+      continue;
+    }
+    const bytes = encoder.encode(text);
+    if (bytes.length > MAX_FILE) return `docs: the ${label} is over ${MAX_FILE} bytes.`;
+    if (!entry || entry.hash !== (await hex(bytes))) {
+      return `docs: the ${label} is not the one the manifest lists.`;
     }
     total += bytes.length;
   }

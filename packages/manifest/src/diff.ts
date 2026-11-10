@@ -254,6 +254,7 @@ function diffTool(previous: Manifest, next: Manifest, add: Add): void {
     add("tool.renamed", "name", "major", `${previous.name} → ${next.name}`);
   if (previous.title !== next.title) add("tool.text-changed", "title", "patch");
   if (previous.description !== next.description) add("tool.text-changed", "description", "patch");
+  if (previous.summary !== next.summary) add("tool.text-changed", "summary", "patch");
   if (previous.preview.data !== next.preview.data)
     add("tool.preview-changed", "preview.data", "patch");
   for (const key of ["mcp", "api", "cli", "web"] as const) {
