@@ -16,7 +16,11 @@ const PATHS = {
 } as const;
 
 export const pathOf = (id: keyof typeof PATHS) => PATHS[id];
-export const toolPath = (name: string) => hrefOf("/tools/:name", { name });
+/** A tool's page: production, or a branch's preview under `/tree/<branch>` (D-120). */
+export const toolPath = (name: string, branch?: string) =>
+  branch === undefined
+    ? hrefOf("/tools/:name", { name })
+    : hrefOf("/tools/:name/tree/:branch", { name, branch });
 
 const CHANGE = "forgeron:navigate";
 

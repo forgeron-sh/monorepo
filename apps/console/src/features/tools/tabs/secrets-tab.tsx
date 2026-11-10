@@ -6,7 +6,7 @@ import PeopleSecrets from "./people-secrets";
 import type { ToolTabProps } from "../tabs";
 
 export default function SecretsTab(props: ToolTabProps) {
-  const { tool, api } = props;
+  const { tool, api, branch } = props;
   const secrets = useLoad(() => loadSecretsStatus(api.fetchJson, tool), [api, tool]);
   if (secrets.loading) return <Loading shape="table" label="Loading secrets" />;
   if (secrets.error) {
@@ -17,9 +17,27 @@ export default function SecretsTab(props: ToolTabProps) {
       <p className="fc-section-hint" style={{ margin: 0 }}>
         Values are never shown. Set one from the terminal.
       </p>
-      <SecretsStatus rows={secrets.data ?? []} />
-      <CopyBlock label="Set a secret" value="forgeron secrets set <NAME>" prefix="$" />
-      <PeopleSecrets {...props} />
+      {branch === undefined ? (
+        <>
+          <SecretsStatus rows={secrets.data ?? []} />
+          <CopyBlock label="Set a secret" value="forgeron secrets set <NAME>" prefix="$" />
+          <PeopleSecrets {...props} />
+        </>
+      ) : (
+        <>
+          {/* Every branch's preview reads the preview's secrets; a person's are the branch's own. */}
+          <SecretsStatus rows={secrets.data ?? []} environments={["preview"]} />
+          <CopyBlock
+            label="Set a secret for the previews"
+            value="forgeron secrets set <NAME> --env preview"
+            prefix="$"
+          />
+          <p className="fc-muted">
+            Each pilot gives what this branch asks of them from their library. What they give is
+            kept apart from what they gave the tool in production.
+          </p>
+        </>
+      )}
     </div>
   );
 }

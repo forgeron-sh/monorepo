@@ -19,6 +19,12 @@ const IMAGE_TYPES = new Set([
 const TOOL = "[a-z0-9-]+";
 
 const missing = (message: string) => ({ error: "NOT_FOUND", message });
+const TEAM_ONLY = {
+  error: "FORBIDDEN",
+  message: "A branch's card is for admins and developers.",
+} as const;
+/** A branch's preview (D-120) is the team's until a pilot opens it, and pilots read it from their library. */
+const team = (person: { admin: boolean; developer: boolean }) => person.admin || person.developer;
 const failed = (error: RegistryError) => ({ error: error.code, message: error.message });
 
 /** The decoded path of an image, or `undefined` if it is not a plain path inside the bundle. */
@@ -46,7 +52,10 @@ export function mountCatalog(app: OpenAPIHono<PlatformEnv>): void {
     try {
       const { registry, workspace, origin } = c.env;
       const { tool } = c.req.valid("param");
-      const card = await findCard(registry, workspace, tool, c.get("person"), origin);
+      const { branch } = c.req.valid("query");
+      const person = c.get("person");
+      if (branch !== undefined && !team(person)) return c.json(TEAM_ONLY, 403);
+      const card = await findCard(registry, workspace, tool, person, origin, branch);
       return card ? c.json(card, 200) : c.json(missing(`There is no tool ${tool}.`), 404);
     } catch (error) {
       if (error instanceof RegistryError) return c.json(failed(error), 500);
@@ -62,7 +71,9 @@ export function mountCatalog(app: OpenAPIHono<PlatformEnv>): void {
       const { registry, workspace } = c.env;
       const path = assetPath(c.req.param("path"));
       if (!path) return c.json(missing("There is no such image."), 404);
-      const asset = await findAsset(registry, workspace, c.req.param("tool"), path);
+      const branch = c.req.query("branch") || undefined;
+      if (branch !== undefined && !team(c.get("person"))) return c.json(TEAM_ONLY, 403);
+      const asset = await findAsset(registry, workspace, c.req.param("tool"), path, branch);
       if (!asset || !IMAGE_TYPES.has(asset.type)) {
         return c.json(missing("There is no such image."), 404);
       }

@@ -6,12 +6,16 @@ import type { RouteDef } from "../../shell/routes";
 // knows `adminOnly`, so the tab is shown to admins.
 registerToolTab({
   id: "database",
+  scope: "branch",
   title: "Database",
   adminOnly: true,
   order: 60,
   load: async () => {
     const { DatabaseTab } = await import("./database-tab");
-    return { default: ({ tool, api }) => createElement(DatabaseTab, { tool, api }) };
+    return {
+      default: ({ tool, api, branch }) =>
+        createElement(DatabaseTab, { tool, api, ...(branch ? { branch } : {}) }),
+    };
   },
 });
 

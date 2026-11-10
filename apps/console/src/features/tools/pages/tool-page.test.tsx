@@ -66,6 +66,58 @@ describe("the tool page", () => {
     expect(tabLabels(page)).toEqual([]);
   });
 
+  it("shows production by default, and moves to a branch's address, keeping the tab (D-120)", async () => {
+    window.history.replaceState(null, "", "/tools/crm?tab=versions");
+    const went: string[] = [];
+    const page = await mount(
+      <ToolPage name="crm" {...pageProps(toolsApi(routes).api, { go: (h) => went.push(h) })} />,
+    );
+    await flushLazy();
+    const pick = page.querySelector<HTMLSelectElement>(".ft-branch-pick select")!;
+    expect([...pick.options].map((o) => o.textContent)).toEqual(["Production", "feat-export"]);
+    expect(pick.value).toBe("");
+    expect(page.querySelector(".ft-branch-band")).toBeNull();
+    await act(async () => {
+      pick.value = "feat-export";
+      pick.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(went).toEqual(["/tools/crm/tree/feat-export?tab=versions"]);
+  });
+
+  it("on a branch, says so above every tab and marks the tabs that every branch shares", async () => {
+    window.history.replaceState(null, "", "/tools/crm/tree/feat-export?tab=versions");
+    const went: string[] = [];
+    const page = await mount(
+      <ToolPage
+        name="crm"
+        branch="feat-export"
+        {...pageProps(toolsApi(routes).api, { go: (h) => went.push(h) })}
+      />,
+    );
+    await flushLazy();
+    expect(page.querySelector<HTMLSelectElement>(".ft-branch-pick select")!.value).toBe(
+      "feat-export",
+    );
+    expect(page.querySelector(".ft-branch-band")?.textContent).toContain("feat-export");
+    expect(page.textContent).toContain("The same for every branch.");
+    await click(
+      [...page.querySelectorAll("button")].find((b) => b.textContent === "Back to production"),
+    );
+    expect(went).toEqual(["/tools/crm?tab=versions"]);
+  });
+
+  it("shows production, with a word, for a branch that has no preview anymore", async () => {
+    window.history.replaceState(null, "", "/tools/crm/tree/gone?tab=versions");
+    const page = await mount(
+      <ToolPage name="crm" branch="gone" {...pageProps(toolsApi(routes).api)} />,
+    );
+    await flushLazy();
+    expect(page.textContent).toContain("The branch gone has no preview anymore.");
+    expect(page.querySelector(".ft-branch-band")).toBeNull();
+    expect(window.location.pathname).toBe("/tools/crm");
+    expect(window.location.search).toBe("?tab=versions");
+  });
+
   it("says when the tool does not exist, and when the list cannot be loaded", async () => {
     const missing = await mount(<ToolPage name="nope" {...pageProps(toolsApi(routes).api)} />);
     expect(missing.textContent).toContain("There is no tool named nope.");

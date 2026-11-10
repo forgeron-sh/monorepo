@@ -6,7 +6,6 @@ import {
   Input,
   Notice,
   Pager,
-  Select,
   Tabs,
   type GridColumn,
 } from "@forgeron/ui";
@@ -22,7 +21,6 @@ import {
   loadTable,
   loadTables,
   targetId,
-  targetLabel,
   type DbColumn,
   type Filter,
   type Target,
@@ -32,9 +30,9 @@ import { FilterBar } from "./filter-bar";
 import { RowDrawer } from "./row-drawer";
 import { SchemaView } from "./schema-view";
 
-// The Database tab of a tool page: the tables of one environment or branch on the left, one table on the
-// right as data, definition, or the schema of all of them. Read only; the gateway enforces who may look
-// and what is masked (D-059). A screen of its own: nothing here writes.
+// The Database tab of a tool page: the tables of production, or of the branch chosen at the top of the
+// page (D-120), on the left; one table on the right as data, definition, or the schema of all of them.
+// Read only; the gateway enforces who may look and what is masked (D-059). Nothing here writes.
 
 const MASK_TEXT = {
   tagged: "Tagged as personal data in the schema",
@@ -70,50 +68,31 @@ async function copy(text: string) {
   }
 }
 
-export function DatabaseTab({ tool, api }: { tool: string; api: Api }) {
+export function DatabaseTab({ tool, api, branch }: { tool: string; api: Api; branch?: string }) {
   const envs = useLoad(() => loadEnvironments(api.fetchJson, tool), [api, tool]);
-  const [chosen, setChosen] = useState<string>();
   if (envs.loading) return <Loading shape="block" label="Loading environments" />;
   if (envs.error && !envs.data)
     return <LoadError what="The environments" error={envs.error} onRetry={envs.reload} />;
-  const targets = envs.data ?? [];
-  if (targets.length === 0) {
+  // The branch is the page's (D-120): production, or the preview of the branch chosen in the header.
+  const target = (envs.data ?? []).find((t) =>
+    branch === undefined ? t.env === "production" : t.env === "preview" && t.branch === branch,
+  );
+  if (!target) {
     return (
       <EmptyState
-        title="Nothing deployed yet"
-        description="A database exists once a version is deployed. Deploy from the terminal, then come back."
+        title={branch === undefined ? "Nothing in production yet" : "No database for this branch"}
+        description={
+          branch === undefined
+            ? "A database exists once a version is promoted. A branch's preview has its own: choose the branch at the top of the page."
+            : "Its database exists once the branch is deployed. Deploy it from the terminal, then come back."
+        }
       />
     );
   }
-  const target =
-    targets.find((t) => targetId(t) === chosen) ??
-    targets.find((t) => t.env === "production") ??
-    targets[0]!;
-  return (
-    <Explorer
-      key={targetId(target)}
-      tool={tool}
-      api={api}
-      targets={targets}
-      target={target}
-      onTarget={(t) => setChosen(targetId(t))}
-    />
-  );
+  return <Explorer key={targetId(target)} tool={tool} api={api} target={target} />;
 }
 
-function Explorer({
-  tool,
-  api,
-  targets,
-  target,
-  onTarget,
-}: {
-  tool: string;
-  api: Api;
-  targets: Target[];
-  target: Target;
-  onTarget: (target: Target) => void;
-}) {
+function Explorer({ tool, api, target }: { tool: string; api: Api; target: Target }) {
   const [platform, setPlatform] = useState(false);
   const [search, setSearch] = useState("");
   const [table, setTable] = useState<string>();
@@ -130,12 +109,6 @@ function Explorer({
   return (
     <div className="fc-db">
       <aside className="fc-db-side" aria-label="Tables">
-        <Select
-          aria-label="Environment"
-          value={targetId(target)}
-          options={targets.map((t) => ({ value: targetId(t), label: targetLabel(t) }))}
-          onChange={(e) => onTarget(targets.find((t) => targetId(t) === e.target.value)!)}
-        />
         <Input
           type="search"
           aria-label="Search tables"

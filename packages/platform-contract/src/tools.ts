@@ -176,9 +176,13 @@ export const toolActivityRoute = defineRoute({
 export const toolManifestRoute = defineRoute({
   method: "get",
   path: "/api/tools/{tool}/manifest",
-  summary: "The manifest of the version production serves, else of the latest one published",
+  summary:
+    "The manifest of the version production serves, else of the latest one published; with `branch`, of the version that branch's preview serves",
   tags: ["tools"],
-  request: { params: tool },
+  request: {
+    params: tool,
+    query: z.object({ branch: z.string().min(1).optional().describe("A branch with a preview") }),
+  },
   responses: {
     200: json(
       z.strictObject({ manifest: z.record(z.string(), z.unknown()) }),
@@ -186,6 +190,9 @@ export const toolManifestRoute = defineRoute({
     ),
     401: notSignedIn,
     403: json(ErrorSchema, "Not an admin or a developer"),
-    404: json(ErrorSchema, "No such tool, or no version published yet (`NO_MANIFEST`)"),
+    404: json(
+      ErrorSchema,
+      "No such tool, no version published yet, or no preview for the branch (`NO_MANIFEST`)",
+    ),
   },
 });

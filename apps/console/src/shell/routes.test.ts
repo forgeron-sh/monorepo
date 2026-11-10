@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canSee } from "./access";
 import { hrefOf } from "./href";
+import { toolPath } from "../router";
 import { matchRoute, routes, type RouteDef } from "./routes";
 
 const page: RouteDef["page"] = async () => ({ default: () => null });
@@ -20,6 +21,12 @@ describe("matchRoute", () => {
     expect(matchRoute(hrefOf("/tools/:name", { name: "a b" }), table)?.params).toEqual({
       name: "a b",
     });
+  });
+  it("opens a tool on a branch, a slash in its name included (D-120)", () => {
+    const real = matchRoute(toolPath("crm", "feat/x"), routes);
+    expect(toolPath("crm", "feat/x")).toBe("/tools/crm/tree/feat%2Fx");
+    expect(real?.params).toEqual({ name: "crm", branch: "feat/x" });
+    expect(matchRoute(toolPath("crm"), routes)?.params).toEqual({ name: "crm" });
   });
   it("answers undefined for anything else", () => {
     expect(matchRoute("/nope", table)).toBeUndefined();

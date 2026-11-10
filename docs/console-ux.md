@@ -62,20 +62,28 @@ previews, last deployment, status dot. A row opens the tool page.
 
 ### Tool page
 
-Header: icon, name, summary, the **Open** and **Connect** buttons. Tabs:
+Header: icon, name, summary and, at the right, the **branch** the page shows (D-120): _Production_ at
+`/tools/<tool>`, a branch's preview at `/tools/<tool>/tree/<branch>`. Changing it keeps the open tab
+(`?tab=`). On a branch, a band under the header says which one, that what is changed there is for that
+branch only, and offers to go back to production. A branch whose preview is gone shows production with a
+word about it, and the address goes back to `/tools/<tool>`. The picker lists the branches that have a
+preview.
 
-| Tab          | Content                                                                                                   |
-| ------------ | --------------------------------------------------------------------------------------------------------- |
-| Overview     | The tool's README as markdown (see "Member space"), what it exposes, the people and roles that may use it |
-| Branches     | Production and the previews, see below                                                                    |
-| Versions     | Versions with their changelog, compared to the previous one                                               |
-| Architecture | A diagram generated from the manifest                                                                     |
-| Database     | The explorer, see below                                                                                   |
-| Access       | The roles by actions matrix                                                                               |
-| Secrets      | Which secrets are set, never their values                                                                 |
-| Activity     | The tool's audit log                                                                                      |
+| Tab          | Follows the branch | Content                                                                                  |
+| ------------ | ------------------ | ---------------------------------------------------------------------------------------- |
+| Overview     | yes                | The README, guide, version and addresses of the version the branch serves                |
+| Branches     | no                 | Production and the previews, see below                                                   |
+| Versions     | no                 | Versions with their changelog, compared to the previous one                              |
+| Architecture | yes                | A diagram generated from the manifest the branch serves                                  |
+| Availability | yes                | Who may add the tool (production), or who may pilot the branch                           |
+| Database     | yes                | The explorer, on the branch's database                                                   |
+| Access       | no                 | The roles by actions matrix                                                              |
+| Secrets      | yes                | Production: both environments and what people hold. A branch: the previews' secrets only |
+| Activity     | no                 | The tool's audit log                                                                     |
 
-Admin-only tabs are not shown to members. A member lands on Overview and sees only what they may use.
+On a branch, a tab that does not follow it says _The same for every branch._ above its content: it is
+shown, not hidden, so the tabs do not move when the branch changes. Admin-only tabs are not shown to
+members.
 
 ### Branches
 
@@ -126,7 +134,8 @@ Modelled on the Supabase table editor and schema visualizer:
 [table editor](https://mobbin.com/screens/dd17a25f-3822-4b14-a2fa-ce5a70b8f0be),
 [sorting](https://mobbin.com/screens/b2f6f6c1-8f63-4634-b1e9-930ee16aa838).
 
-- Left: the tables of the selected environment or branch, with a search field and a row count.
+- Left: the tables of production or of the branch chosen at the top of the tool page (D-120), with a
+  search field and a row count.
 - Centre: a data grid with typed column headers, constraint chips (primary, not null, unique, foreign
   key), paging, sorting, a filter bar, a row detail drawer, copy and export as CSV.
 - A "Definition" view of a table (columns, indexes, foreign keys) and a schema view (tables and their
@@ -159,8 +168,8 @@ tool, apart from it.
 Who may add the tool: nobody yet (a tool installed from a marketplace starts there), everyone, some
 workspace roles, or some people. Saving a choice on a tool that had none means each person adds it from
 their library to keep using it; the tab says so. What a person may do in the tool stays the Access tab.
-Below, **Pilots**: each branch that has a preview, with who may pilot it (admins and developers only
-until a choice is saved).
+On a branch (chosen at the top of the page, D-120), the tab is **who may pilot that branch** instead:
+admins and developers only until a choice is saved.
 
 ### A tool in the library (the member's sheet)
 
@@ -321,12 +330,14 @@ registerToolTab({
   id: "architecture",
   title: "Architecture",
   adminOnly: false,
+  scope: "branch", // "branch": follows the branch of the page (D-120); "tool": the same for every branch
   order: 40, // optional: low first (default 100, then registration order)
   load: () => import("./components/architecture-tab"), // default export taking ToolTabProps
 });
 ```
 
-`ToolTabProps` is `{ tool, ws, api, now }`. The tool page (FOR-130) calls `toolTabs(admin)` and draws what
+`ToolTabProps` is `{ tool, branch?, ws, api, now }`; `branch` is given to a `"branch"` tab on a branch's
+page only, so `undefined` means production. The tool page (FOR-130) calls `toolTabs(admin)` and draws what
 comes back; an `adminOnly` tab is neither shown nor loaded for a member.
 
 ### Folders

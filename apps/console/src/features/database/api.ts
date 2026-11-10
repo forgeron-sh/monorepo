@@ -166,7 +166,5 @@ export function exportPath(tool: string, target: Target, table: string, query: P
   return `${CONSOLE_API}${root(tool)}/tables/${encodeURIComponent(table)}/export?${new URLSearchParams(rowQuery(target, query))}`;
 }
 
-export const targetLabel = (target: Target) =>
-  target.env === "production" ? "Production" : `Preview · ${target.branch}`;
 export const targetId = (target: Target) =>
   target.env === "production" ? "production" : `preview:${target.branch}`;

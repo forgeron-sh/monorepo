@@ -9,6 +9,7 @@ import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { activityOf, branches, versionsOf } from "../console-api/tool-pages";
 import { listTools } from "../console-api/tools";
+import { previewManifest } from "../library/library";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
 // The tools of the workspace and what a tool's page reads. The list is for any signed-in member; the
@@ -50,6 +51,13 @@ export function mountTools(app: OpenAPIHono<PlatformEnv>): void {
       const name = c.req.valid("param").tool;
       const tool = await registry.findTool(workspace, name);
       if (!tool) return c.json(missing(`There is no tool ${name}.`), 404);
+      const { branch } = c.req.valid("query");
+      if (branch !== undefined) {
+        const manifest = await previewManifest(registry, tool.id, branch);
+        return manifest
+          ? c.json({ manifest: manifest as Record<string, unknown> }, 200)
+          : c.json({ error: "NO_MANIFEST", message: `The branch ${branch} has no preview.` }, 404);
+      }
       try {
         return c.json({ manifest: await registry.currentManifest(tool.id) }, 200);
       } catch (error) {

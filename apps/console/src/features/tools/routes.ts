@@ -21,5 +21,18 @@ const routes: RouteDef[] = [
       return { default: (p) => createElement(ToolPage, { ...p, name: p.params.name! }) };
     },
   },
+  {
+    // The same page for one branch's preview (D-120): its tabs show that branch.
+    path: "/tools/:name/tree/:branch",
+    title: "Tool",
+    access: "developer",
+    page: async () => {
+      const { default: ToolPage } = await import("./pages/tool-page");
+      return {
+        default: (p) =>
+          createElement(ToolPage, { ...p, name: p.params.name!, branch: p.params.branch! }),
+      };
+    },
+  },
 ];
 export default routes;

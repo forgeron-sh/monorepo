@@ -296,6 +296,7 @@ describe("the OpenAPI document", () => {
     expect(Object.keys(doc.paths["/api/catalog/{tool}"]!.get!.responses).sort()).toEqual([
       "200",
       "401",
+      "403",
       "404",
       "500",
     ]);
