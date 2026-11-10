@@ -200,6 +200,51 @@ export const promote = async (api: Api, input: { tool: string; version: string; 
     }),
   );
 
+/** What the dialog shows of a promotion plan (D-112); `undefined` when the platform did not give one. */
+export interface PromotionPlanView {
+  ok: boolean;
+  alreadyServed: boolean;
+  conflicts: Array<{ code: string; subject?: string; message: string }>;
+  requiresAllowDestructive: boolean;
+  migrations: { checked: boolean; pending: string[]; destructive: string[] };
+  changes: Array<{ impact: string; subject: string; detail?: string }>;
+  prompt?: string;
+}
+
+/** `POST /promote/plan`: can this version go to production, and what stops it. Nothing moves. */
+export async function promotionPlan(
+  api: Api,
+  input: { tool: string; version: string },
+): Promise<PromotionPlanView | undefined> {
+  const body: Record<string, any> = ok(
+    await platform(api)(addresses.promotionPlan, {
+      json: { tool: input.tool, version: input.version, to: "production" },
+    }),
+  );
+  if (typeof body.ok !== "boolean") return undefined;
+  return {
+    ok: body.ok,
+    alreadyServed: body.alreadyServed === true,
+    conflicts: list<Record<string, any>>(body.conflicts).map((c) => ({
+      code: String(c.code),
+      ...(text(c.subject) ? { subject: text(c.subject)! } : {}),
+      message: String(c.message),
+    })),
+    requiresAllowDestructive: body.requiresAllowDestructive === true,
+    migrations: {
+      checked: body.migrations?.checked === true,
+      pending: list<string>(body.migrations?.pending).map(String),
+      destructive: list<string>(body.migrations?.destructive).map(String),
+    },
+    changes: list<Record<string, any>>(body.changes).map((c) => ({
+      impact: String(c.impact),
+      subject: String(c.subject),
+      ...(text(c.detail) ? { detail: text(c.detail)! } : {}),
+    })),
+    ...(text(body.prompt) ? { prompt: text(body.prompt)! } : {}),
+  };
+}
+
 /** `POST /rollback`: production serves the version it served before the current one. */
 export const rollback = async (api: Api, input: { tool: string; reason: string }) =>
   ok(

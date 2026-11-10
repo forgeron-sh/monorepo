@@ -1,9 +1,11 @@
-import { Button, Dialog, Field, Input, Notice, Textarea } from "@forgeron/ui";
+import { Button, CopyBlock, Dialog, Field, Input, Notice, Textarea } from "@forgeron/ui";
 import { useState } from "react";
 import { explain, type Api } from "../../api";
+import { useLoad } from "../../use-load";
 import {
   closePreview,
   promote,
+  promotionPlan,
   rollback,
   type ChangelogEntry,
   type Impact,
@@ -23,6 +25,8 @@ export interface ReleaseDialogProps {
   from: string | null;
   /** The version production will serve. */
   to: string;
+  /** The branch it comes from, to word the command that fixes a conflict. */
+  branch?: string;
   /** The tool's versions, to read the changelog from; `undefined` when they could not be loaded. */
   versions?: ReadonlyArray<VersionRow>;
   onClose: () => void;
@@ -46,14 +50,32 @@ export function ReleaseDialog({
   api,
   from,
   to,
+  branch,
   versions,
   onClose,
   onDone,
 }: ReleaseDialogProps) {
   const [reason, setReason] = useState("");
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const promoting = kind === "promote";
+  // Promoting asks for the plan first (D-112): can it go, and what stops it. A rollback has none. When the
+  // platform gives no plan the dialog behaves as before: the platform checks again when it acts.
+  const planned = useLoad(
+    async () => (promoting ? await promotionPlan(api, { tool, version: to }) : undefined),
+    [api, tool, to, promoting],
+  );
+  const plan = planned.data;
+  const blocked = promoting && plan !== undefined && (!plan.ok || plan.requiresAllowDestructive);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(plan?.prompt ?? "");
+      setCopied(true);
+    } catch {
+      setError("The prompt could not be copied: select it below and copy it.");
+    }
+  };
 
   // Promoting brings in the changelog of `to`; rolling back takes out the one of `from`.
   const shown = versions?.find((v) => v.version === (promoting ? to : from));
@@ -88,7 +110,12 @@ export function ReleaseDialog({
           <Button onClick={onClose} disabled={busy}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={run} disabled={busy} data-autofocus>
+          <Button
+            variant="primary"
+            onClick={run}
+            disabled={busy || blocked || (promoting && planned.loading)}
+            data-autofocus
+          >
             {busy ? "Working" : promoting ? "Promote" : "Roll back"}
           </Button>
         </>
@@ -144,6 +171,73 @@ export function ReleaseDialog({
             />
           )}
         </Field>
+
+        {promoting && planned.loading ? (
+          <p className="fc-muted" style={{ margin: 0 }}>
+            Checking that it can go: the migrations, the changelog, the approvals.
+          </p>
+        ) : null}
+        {plan?.alreadyServed ? (
+          <Notice tone="info" title="Production already serves this version.">
+            Promoting it again changes nothing.
+          </Notice>
+        ) : null}
+        {plan && plan.ok && plan.migrations.pending.length > 0 ? (
+          <p style={{ margin: 0 }}>
+            <span className="fc-caption">Migrations that will run</span>{" "}
+            <span className="fc-mono">{plan.migrations.pending.join(", ")}</span>
+          </p>
+        ) : null}
+        {plan && plan.ok && plan.requiresAllowDestructive ? (
+          <Notice tone="warning" title="It drops or rewrites data.">
+            {plan.migrations.destructive.join(", ")} cannot run from here. Read it, then promote
+            from a terminal with <span className="fc-mono">--allow-destructive</span>.
+          </Notice>
+        ) : null}
+        {plan && !plan.ok ? (
+          <div className="ft-release" role="alert">
+            <Notice
+              tone="danger"
+              title={`This version cannot go to production yet (${plan.conflicts.length} problem${plan.conflicts.length === 1 ? "" : "s"}).`}
+            >
+              <ul className="ft-entries">
+                {plan.conflicts.map((c, i) => (
+                  <li key={i}>
+                    <span className="fc-mono">{c.code}</span>
+                    {c.subject ? <span className="fc-mono fc-muted"> {c.subject}</span> : null}
+                    {": "}
+                    {c.message}
+                  </li>
+                ))}
+              </ul>
+            </Notice>
+            <p style={{ margin: 0 }}>
+              Fix it from the terminal with the CLI, or hand it to an agent: copy the prompt, open
+              Claude Code in this tool&apos;s folder and paste it.
+            </p>
+            {plan.prompt ? (
+              <div>
+                <Button onClick={copy}>{copied ? "Copied" : "Copy prompt for your agent"}</Button>
+                <details>
+                  <summary>Read the prompt</summary>
+                  <pre className="fc-mono" style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+                    {plan.prompt}
+                  </pre>
+                </details>
+              </div>
+            ) : null}
+            <CopyBlock
+              label="See what the production database has applied"
+              value="forgeron db status --env production"
+              prefix="$"
+            />
+            <CopyBlock
+              label="Then try again"
+              value={`forgeron promote ${branch ? `--from-branch ${branch}` : to} --to production`}
+              prefix="$"
+            />
+          </div>
+        ) : null}
 
         <Notice tone="info" title="Migrations are not rolled back.">
           Only the code changes. A migration that already ran stays applied, and the other version

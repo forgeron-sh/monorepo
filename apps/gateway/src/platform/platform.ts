@@ -5,6 +5,7 @@ import { mountCatalog } from "./catalog";
 import { mountConnections } from "./connections";
 import { mountConsent } from "./consent";
 import { mountDatabase } from "./database";
+import { mountDatabaseAdmin } from "./database-admin";
 import { mountIdentity } from "./identity";
 import { mountMembers } from "./members";
 import { mountSecretRequests } from "./secret-requests";
@@ -23,6 +24,7 @@ export function createPlatform() {
   mountAccessMatrix(app);
   mountConnections(app);
   mountDatabase(app);
+  mountDatabaseAdmin(app);
   mountMembers(app);
   mountIdentity(app);
   mountSecrets(app);

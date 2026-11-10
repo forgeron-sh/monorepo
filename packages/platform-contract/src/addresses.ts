@@ -49,6 +49,7 @@ import type {
   installTemplateRoute,
   listTemplatesRoute,
 } from "./templates";
+import type { dbMigrationsRoute, dbQueryRoute } from "./database-admin";
 import type { resealSecretsRoute, secretsStatusRoute } from "./secrets-status";
 import type {
   listToolsRoute,
@@ -64,6 +65,7 @@ import type {
   deployRoute,
   issueTokenRoute,
   promoteRoute,
+  promotionPlanRoute,
   revokeTokenRoute,
   rollbackRoute,
   whoamiRoute,
@@ -85,6 +87,14 @@ export const addresses = {
   catalogAsset: addressOf<typeof catalogAssetRoute>({
     method: "get",
     path: "/api/catalog/{tool}/assets/{path}",
+  }),
+  dbMigrations: addressOf<typeof dbMigrationsRoute>({
+    method: "get",
+    path: "/api/tools/{tool}/db/migrations",
+  }),
+  dbQuery: addressOf<typeof dbQueryRoute>({
+    method: "post",
+    path: "/api/tools/{tool}/db/query",
   }),
   dbEnvironments: addressOf<typeof dbEnvironmentsRoute>({
     method: "get",
@@ -274,6 +284,7 @@ export const addresses = {
   deploy: addressOf<typeof deployRoute>({ method: "post", path: "/deploy" }),
   issueToken: addressOf<typeof issueTokenRoute>({ method: "post", path: "/auth/token" }),
   promote: addressOf<typeof promoteRoute>({ method: "post", path: "/promote" }),
+  promotionPlan: addressOf<typeof promotionPlanRoute>({ method: "post", path: "/promote/plan" }),
   revokeToken: addressOf<typeof revokeTokenRoute>({ method: "post", path: "/auth/token/revoke" }),
   rollback: addressOf<typeof rollbackRoute>({ method: "post", path: "/rollback" }),
   whoami: addressOf<typeof whoamiRoute>({ method: "get", path: "/whoami" }),

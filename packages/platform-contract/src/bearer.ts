@@ -168,6 +168,73 @@ const promotionErrors = {
   501: refusal("This gateway has no Cloudflare account to deploy to"),
 };
 
+const planConflict = z.strictObject({
+  code: z.string().describe("`MIGRATION_MISSING`, `CHANGELOG_NO_ENTRY`, `PENDING_APPROVAL`…"),
+  subject: z.string().optional().describe("A migration, a resource"),
+  message: z.string(),
+});
+
+/** The plan of a promotion (D-112): what it would do and what stops it. */
+const promotionPlan = z.strictObject({
+  tool: z.string(),
+  version: z.string().describe("The version that would be promoted"),
+  from: z.strictObject({ branch: z.string() }).optional(),
+  to: z.strictObject({
+    environment: environment,
+    branch: z.string().optional(),
+    currentVersion: z.string().optional(),
+  }),
+  alreadyServed: z.boolean(),
+  ok: z.boolean().describe("No conflict: it can go"),
+  conflicts: z.array(planConflict),
+  requiresAllowDestructive: z.boolean(),
+  migrations: z.strictObject({
+    checked: z.boolean().describe("False when the target's database could not be read"),
+    applied: z.array(z.string()),
+    pending: z.array(z.string()),
+    destructive: z.array(z.string()),
+  }),
+  changes: z.array(
+    z.strictObject({
+      kind: z.string(),
+      subject: z.string(),
+      impact: z.enum(["patch", "minor", "major"]),
+      detail: z.string().optional(),
+      needsApproval: z.literal(true).optional(),
+    }),
+  ),
+  impact: z.enum(["none", "patch", "minor", "major"]),
+  prompt: z.string().optional().describe("For an agent, when `ok` is false"),
+});
+
+export const promotionPlanRoute = defineRoute({
+  method: "post",
+  path: "/promote/plan",
+  summary: "Can this version go to the environment, and what stops it",
+  description:
+    "Read only: the migrations are compared with the target's database without being applied. Name the version, or the branch whose preview serves it. Same callers as a promotion.",
+  tags: ["cli"],
+  request: {
+    body: jsonBody(
+      z.strictObject({
+        tool: z.string().optional(),
+        version: z.string().optional(),
+        fromBranch: z.string().optional().describe("The branch whose preview serves the version"),
+        to: environment,
+        branch: z.string().optional().describe("Required for a preview target"),
+      }),
+    ),
+  },
+  responses: {
+    200: json(promotionPlan, "The plan"),
+    400: refusal("The body is not valid"),
+    401: refusal("Not signed in, and no deployment token"),
+    403: refusal("Not an administrator, or a token for another tool"),
+    404: refusal("No such tool, version or branch"),
+    501: refusal("This gateway has no Cloudflare account to deploy to"),
+  },
+});
+
 export const promoteRoute = defineRoute({
   method: "post",
   path: "/promote",
@@ -179,7 +246,8 @@ export const promoteRoute = defineRoute({
     body: jsonBody(
       z.strictObject({
         tool: z.string().optional(),
-        version: z.string(),
+        version: z.string().optional().describe("Or `fromBranch`"),
+        fromBranch: z.string().optional().describe("The branch whose preview serves the version"),
         to: environment,
         branch: z.string().optional().describe("Required for a preview"),
         allowDestructive: z.boolean().optional(),

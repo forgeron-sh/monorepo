@@ -15,15 +15,22 @@ import { openLocalDatabase } from "@forgeron/hosting/local";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
+import { addresses } from "@forgeron/platform-contract/client";
 import { UsageError, type Io } from "../io";
+import { consoleClient, consoleRefusal, credentialsOf, toolOf, workspaceOf } from "../remote";
 
 const USAGE = `Usage: forgeron db <generate|migrate|status|rollback|seed|shell>
   generate [--name <name>]
   migrate  [--env local]
-  status   [--env local]
+  status   [--env local|preview|production] [--branch <name>]
   rollback [--env local] [--steps 1]
   seed
-  shell    [--env local] --sql <statement> [--write] [--as <role>]`;
+  shell    [--env local|preview|production] [--branch <name>] --sql <statement> [--write] [--confirm <tool>]
+
+On preview and production (administrators, signed in with \`forgeron login\`): status compares the
+migrations of the version the environment serves with its database; shell runs one statement. A read
+runs as it is; a write needs --write, and on production --confirm <tool> (the tool's name). Every
+statement is recorded in the audit log before it runs. Outside a tool's folder: --tool and --endpoint.`;
 
 /** Statements that only read. */
 const READ_ONLY = /^\s*(select|explain|pragma\s+table_info|pragma\s+index_list|with)\b/i;
@@ -35,15 +42,6 @@ async function builtMigrations(dir: string): Promise<BuildMigration[]> {
   } catch {
     return [];
   }
-}
-
-function environmentOf(env: string | undefined): void {
-  if (env === undefined || env === "local") return;
-  if (!["preview", "production"].includes(env))
-    throw new UsageError(`--env ${env}: unknown environment (local, preview, production).`);
-  throw new UsageError(
-    `--env ${env}: a remote environment needs the platform, which is not available yet. Only local is.`,
-  );
 }
 
 /**
@@ -81,6 +79,10 @@ export async function db(args: string[], io: Io): Promise<number> {
       sql: { type: "string" },
       write: { type: "boolean" },
       as: { type: "string" },
+      branch: { type: "string" },
+      confirm: { type: "string" },
+      tool: { type: "string" },
+      endpoint: { type: "string" },
     },
   });
   if (positionals.length > 0) throw new UsageError(USAGE);
@@ -88,13 +90,12 @@ export async function db(args: string[], io: Io): Promise<number> {
   if (sub === "generate") return generate(values.name, io);
 
   const env = values.env ?? "local";
+  if (env !== "local") return remote(sub, env, values, io);
   if (sub === "shell") {
     if (values.sql === undefined)
       throw new UsageError("forgeron db shell: pass --sql <statement>.");
     checkShell(env, values.sql, { write: values.write === true, role: values.as });
   }
-  environmentOf(values.env);
-
   const database = await openLocalDatabase(join(io.cwd, ".forgeron", "local"));
   try {
     switch (sub) {
@@ -186,4 +187,87 @@ async function generate(name: string | undefined, io: Io): Promise<number> {
     }
     throw error;
   }
+}
+
+interface RemoteFlags {
+  sql?: string | undefined;
+  write?: boolean | undefined;
+  confirm?: string | undefined;
+  branch?: string | undefined;
+  tool?: string | undefined;
+  endpoint?: string | undefined;
+}
+
+/** What `status` and `shell` do on a preview or production database (D-112): through the workspace. */
+async function remote(sub: string, env: string, values: RemoteFlags, io: Io): Promise<number> {
+  if (env !== "preview" && env !== "production") {
+    throw new UsageError(`--env ${env}: one of local, preview, production.`);
+  }
+  if (sub !== "status" && sub !== "shell") {
+    throw new UsageError(
+      `forgeron db ${sub}: on ${env} only status and shell are available. Migrations are applied by a deployment.`,
+    );
+  }
+  if (env === "preview" && !values.branch) {
+    throw new UsageError("A preview is tied to a branch: pass --branch <name>.");
+  }
+  if (sub === "shell" && values.sql === undefined) {
+    throw new UsageError("forgeron db shell: pass --sql <statement>.");
+  }
+  // A write that was not asked for stops here, before reaching the workspace (which checks it again).
+  if (
+    sub === "shell" &&
+    values.write !== true &&
+    !(READ_ONLY.test(values.sql!) && !values.sql!.includes(";"))
+  ) {
+    throw new UsageError(`This statement writes: ${env} is read-only unless you pass --write.`);
+  }
+  const { endpoint, project } = await workspaceOf(io, values.endpoint);
+  const tool = toolOf(project, values.tool);
+  const client = consoleClient(endpoint, await credentialsOf(io));
+
+  if (sub === "status") {
+    const answer = await client(addresses.dbMigrations, {
+      params: { tool },
+      query: { env, ...(values.branch ? { branch: values.branch } : {}) },
+    });
+    if (answer.status !== 200) {
+      io.error(consoleRefusal(answer));
+      return 1;
+    }
+    const status = answer.body;
+    io.log(
+      `${tool} on ${status.environment}${status.branch ? ` (${status.branch})` : ""}, serving ${status.version ?? "nothing"}`,
+    );
+    for (const name of status.applied) io.log(`applied  ${name}`);
+    for (const name of status.pending) {
+      io.log(
+        `pending  ${name}${status.destructive.includes(name) ? "  (drops or rewrites data)" : ""}`,
+      );
+    }
+    if (status.applied.length + status.pending.length === 0) io.log("No migration.");
+    for (const c of status.conflicts) io.log(`conflict ${c.code} ${c.migration}: ${c.message}`);
+    // The same exit code as a promotion refused for conflicts: something to fix, not a failure of the tool.
+    return status.conflicts.length > 0 ? 3 : 0;
+  }
+
+  const answer = await client(addresses.dbQuery, {
+    params: { tool },
+    json: {
+      sql: values.sql!,
+      env,
+      ...(values.branch ? { branch: values.branch } : {}),
+      ...(values.write ? { write: true } : {}),
+      ...(values.confirm ? { confirm: values.confirm } : {}),
+    },
+  });
+  if (answer.status !== 200) {
+    io.error(consoleRefusal(answer));
+    return 1;
+  }
+  io.log(JSON.stringify(answer.body.rows, null, 2));
+  if (answer.body.truncated) {
+    io.error(`${answer.body.rowCount} rows: only the first ${answer.body.rows.length} are shown.`);
+  }
+  return 0;
 }

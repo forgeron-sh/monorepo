@@ -10,6 +10,7 @@ import {
   listTemplatesRoute,
   listToolsRoute,
   promoteRoute,
+  promotionPlanRoute,
   putAccessMatrixRoute,
   rollbackRoute,
   secretsStatusRoute,
@@ -59,6 +60,22 @@ const SECRET_NAME = /^[A-Z][A-Z0-9_]*$/;
 const environment = z.enum(["production", "preview"]);
 const branch = z.string().min(1).max(100).optional();
 const reason = z.string().max(500).optional().describe("Why, in the audit line");
+
+/** A version, or the branch whose preview serves it; the target and its branch (D-112). */
+const planInput = z.strictObject({
+  tool,
+  version: z.string().min(1).max(64).optional().describe("A version number, or `fromBranch`"),
+  fromBranch: branch.describe("The branch whose preview serves the version to promote"),
+  to: environment,
+  branch: branch.describe("The target's branch, for a preview"),
+});
+const promotionBody = (args: z.infer<typeof planInput>) => ({
+  tool: args.tool,
+  to: args.to,
+  ...(args.version ? { version: args.version } : {}),
+  ...(args.fromBranch ? { fromBranch: args.fromBranch } : {}),
+  ...(args.branch ? { branch: args.branch } : {}),
+});
 
 const at = (path: string, params: Record<string, string> = {}) =>
   path.replace(/\{(\w+)\}/g, (_, key: string) => encodeURIComponent(params[key] ?? ""));
@@ -398,32 +415,46 @@ export const TOOLS: readonly ToolDefinition[] = [
       ask(port, { method: "POST", path: at(installFromPlanRoute.path, { plan }) }),
   }),
   define({
+    name: "tool_promote_plan",
+    title: "Check a promotion",
+    description:
+      "Says whether a version, or the version a branch serves, can go to an environment, and what stops it: a migration the target's database has applied and this version lacks, an edited or out-of-order one, the changelog, an approval. It changes nothing. When something stops it, the answer carries a `prompt` to follow to fix it.",
+    minRole: "admin",
+    destructive: false,
+    input: planInput,
+    run: (args, port) =>
+      ask(port, {
+        method: "POST",
+        path: promotionPlanRoute.path,
+        surface: "root",
+        body: promotionBody(args),
+      }),
+  }),
+  define({
     name: "tool_promote",
     title: "Promote a version",
-    description: "Puts a version the tool already has on an environment. Production takes traffic.",
+    description:
+      "Puts a version the tool already has on an environment, or the version a branch serves (`fromBranch`). Production takes traffic. It checks the plan first: when something stops it, nothing moves and the answer is the plan, with the conflicts and a `prompt` to follow.",
     minRole: "admin",
     destructive: true,
-    input: z.strictObject({
-      tool,
-      version: z.string().min(1).max(64),
-      to: environment,
-      branch,
-      reason,
-    }),
+    input: planInput.extend({ reason }),
     // `allowDestructive` (a migration that drops data) is not offered here: it stays in the CLI.
-    run: ({ tool: name, version, to, branch: on, reason: why }, port) =>
-      ask(port, {
+    run: async (args, port) => {
+      const body = promotionBody(args);
+      const plan = (await ask(port, {
+        method: "POST",
+        path: promotionPlanRoute.path,
+        surface: "root",
+        body,
+      })) as { ok?: boolean };
+      if (plan.ok === false) return { promoted: false, plan };
+      return ask(port, {
         method: "POST",
         path: promoteRoute.path,
         surface: "root",
-        body: {
-          tool: name,
-          version,
-          to,
-          ...(on ? { branch: on } : {}),
-          ...(why ? { reason: why } : {}),
-        },
-      }),
+        body: { ...body, ...(args.reason ? { reason: args.reason } : {}) },
+      });
+    },
   }),
   define({
     name: "tool_rollback",

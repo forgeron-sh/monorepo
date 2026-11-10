@@ -27,6 +27,14 @@ export type {
   OAuthProvider,
 } from "./consent";
 export { createIdentityConfig } from "./identity-config";
+export { planPromotion, promotionPrompt } from "./promote-plan";
+export type {
+  PlanChange,
+  PlanConflict,
+  PlanConflictCode,
+  PlanInput,
+  PromotionPlan,
+} from "./promote-plan";
 export { createReseal, type ResealReport } from "./reseal";
 export type {
   ConnectorClientConfig,

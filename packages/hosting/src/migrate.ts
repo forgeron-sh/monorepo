@@ -99,6 +99,80 @@ export async function migrationStatus(d1: D1Database, migrations: readonly Build
   };
 }
 
+export interface MigrationConflict {
+  /** The same codes `applyMigrations` refuses with. */
+  code: "MISSING" | "EDITED" | "OUT_OF_ORDER";
+  migration: string;
+  message: string;
+}
+
+export interface MigrationCheck {
+  applied: string[];
+  /** What `applyMigrations` would apply, in order. */
+  pending: string[];
+  /** The pending ones that drop or rewrite data. */
+  destructive: string[];
+  /** Everything `applyMigrations` would refuse, all of it, not only the first. */
+  conflicts: MigrationConflict[];
+}
+
+/**
+ * What applying this build's migrations to this database would do, without doing it and without
+ * writing anything (not even the tracking table). It mirrors `applyMigrations`, so a promotion can say
+ * every problem at once, where the application stops at the first (D-112).
+ */
+export async function checkMigrations(
+  d1: D1Database,
+  migrations: readonly BuildMigration[],
+): Promise<MigrationCheck> {
+  let applied: Recorded[] = [];
+  try {
+    const { results = [] } = await d1
+      .prepare(`SELECT "name", "fingerprint" FROM "_forgeron_migrations" ORDER BY "name"`)
+      .all();
+    applied = results as Recorded[];
+  } catch {
+    // No tracking table yet: nothing was ever applied here.
+  }
+  const all = byName(migrations);
+  const known = new Map(all.map((m) => [m.name, m]));
+  const conflicts: MigrationConflict[] = [];
+  for (const row of applied) {
+    const file = known.get(row.name);
+    if (!file) {
+      conflicts.push({
+        code: "MISSING",
+        migration: row.name,
+        message: `The migration ${row.name} was applied, but this build does not have it.`,
+      });
+    } else if (file.fingerprint !== row.fingerprint) {
+      conflicts.push({
+        code: "EDITED",
+        migration: row.name,
+        message: `The migration ${row.name} was applied and its file has changed since: add a new migration instead of editing it.`,
+      });
+    }
+  }
+  const done = new Set(applied.map((r) => r.name));
+  const pending = all.filter((m) => !done.has(m.name));
+  const last = applied.at(-1)?.name;
+  for (const m of pending) {
+    if (last !== undefined && m.name < last) {
+      conflicts.push({
+        code: "OUT_OF_ORDER",
+        migration: m.name,
+        message: `The migration ${m.name} comes before ${last}, which is already applied.`,
+      });
+    }
+  }
+  return {
+    applied: applied.map((r) => r.name),
+    pending: pending.map((m) => m.name),
+    destructive: pending.filter((m) => m.destructive).map((m) => m.name),
+    conflicts,
+  };
+}
+
 /** Applies the migrations that are pending, in order, each atomically. Stops at the first failure. */
 export async function applyMigrations(
   d1: D1Database,

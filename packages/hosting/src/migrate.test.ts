@@ -3,6 +3,7 @@ import { Miniflare } from "miniflare";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   applyMigrations,
+  checkMigrations,
   migrationStatus,
   revertMigrations,
   type BuildMigration,
@@ -256,6 +257,51 @@ describe.each(targets)("migrations on %s", (_, open) => {
       });
       expect(await tables()).toContain("t");
       expect((await recorded()).map((r) => r.name)).toEqual(["0001_bad"]);
+    });
+  });
+  describe("checking without applying (D-112)", () => {
+    it("says what would be applied and writes nothing, not even the tracking table", async () => {
+      const check = await checkMigrations(d1, [init, addStage]);
+      expect(check).toEqual({
+        applied: [],
+        pending: ["0001_init", "0002_stage"],
+        destructive: [],
+        conflicts: [],
+      });
+      expect(await tables()).not.toContain("_forgeron_migrations");
+      expect(await tables()).not.toContain("deals");
+    });
+
+    it("lists the pending destructive ones", async () => {
+      await applyMigrations(d1, [init]);
+      const drop = migration("0002_drop", ['DROP TABLE "deals"'], [], { destructive: true });
+      expect(await checkMigrations(d1, [init, drop])).toMatchObject({
+        applied: ["0001_init"],
+        pending: ["0002_drop"],
+        destructive: ["0002_drop"],
+        conflicts: [],
+      });
+    });
+
+    it("gives every conflict at once, with the codes applyMigrations refuses with", async () => {
+      // Production has 0001 and a 0003 from another branch; this build edited 0001, lacks 0003 and
+      // brings a 0002 that now comes before an applied one.
+      const other = migration(
+        "0003_other",
+        ['CREATE TABLE "o" ("id" INTEGER)'],
+        ['DROP TABLE "o"'],
+      );
+      await applyMigrations(d1, [init, other]);
+      const edited = { ...init, fingerprint: "changed" };
+      const check = await checkMigrations(d1, [edited, addStage]);
+      expect(check.conflicts).toEqual([
+        expect.objectContaining({ code: "EDITED", migration: "0001_init" }),
+        expect.objectContaining({ code: "MISSING", migration: "0003_other" }),
+        expect.objectContaining({ code: "OUT_OF_ORDER", migration: "0002_stage" }),
+      ]);
+      // And applying says the same for the first one, in the same words.
+      const refused = await failure(applyMigrations(d1, [edited, addStage]));
+      expect(refused.message).toBe(check.conflicts[0]!.message);
     });
   });
 });
