@@ -44,6 +44,25 @@ export function checkWorkspace(workspace: string): string {
 
 export const defaultEndpoint = (workspace: string) => `https://${workspace}.forgeron.app`;
 
+/**
+ * What `--workspace` names: a workspace (`acme`, on forgeron.app) or the full host of an install
+ * (`forgeron.example.com`: the workspace is its first label, the address is the host itself).
+ */
+export function parseWorkspace(input: string): { workspace: string; endpoint: string } {
+  if (!input.includes(".")) {
+    const workspace = checkWorkspace(input);
+    return { workspace, endpoint: defaultEndpoint(workspace) };
+  }
+  const host = input.trim().toLowerCase().replace(/\.$/, "");
+  const labels = host.split(".");
+  if (labels.length < 3 || !labels.every((l) => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(l))) {
+    throw new UsageError(
+      `"${input}" is not a workspace host: use <workspace>.<domain>, for example acme.forgeron.app.`,
+    );
+  }
+  return { workspace: checkWorkspace(labels[0]!), endpoint: `https://${host}` };
+}
+
 const file = (dir: string) => join(dir, ".forgeron", "project.json");
 
 export async function readProject(dir: string): Promise<ProjectFile | undefined> {
@@ -61,7 +80,7 @@ export async function writeProject(dir: string, project: ProjectFile): Promise<v
 
 /**
  * The endpoint a command talks to: `--endpoint`, else the project file's (`forgeron link`), else
- * the default of `--workspace`. A `--workspace` that is the linked one keeps the linked endpoint,
+ * the address of `--workspace` (a name, or a full host). A `--workspace` that is the linked one keeps the linked endpoint,
  * which may be another than the default (`forgeron link --endpoint`).
  */
 export async function resolveEndpoint(
@@ -71,9 +90,11 @@ export async function resolveEndpoint(
   if (flags.endpoint) return flags.endpoint;
   const project = await readProject(dir);
   if (flags.workspace) {
-    const workspace = checkWorkspace(flags.workspace);
-    if (project?.endpoint && project.workspace === workspace) return project.endpoint;
-    return defaultEndpoint(workspace);
+    const { workspace, endpoint } = parseWorkspace(flags.workspace);
+    if (project?.endpoint && project.workspace === workspace && !flags.workspace.includes(".")) {
+      return project.endpoint;
+    }
+    return endpoint;
   }
   if (project?.endpoint) return project.endpoint;
   throw new UsageError(

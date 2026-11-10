@@ -654,8 +654,8 @@ describe("console mail mode (D-051)", () => {
 
   it("logs the code for the first administrator, who signs in with it; the answer is the same for a stranger", async () => {
     const lines: string[] = [];
-    const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "fabriks.cc" }, lines);
-    const origin = "https://acme.fabriks.cc";
+    const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "example.com" }, lines);
+    const origin = "https://acme.example.com";
     const ask = (email: string) =>
       g(new Request(`${origin}/auth/email/request`, form({ email }, { origin })));
     const known = await ask("root@acme.fr");
@@ -680,16 +680,16 @@ describe("console mail mode (D-051)", () => {
   });
 
   it("says on the sign-in page that it is for tests", async () => {
-    const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "fabriks.cc" }, []);
-    const page = await (await g(new Request("https://acme.fabriks.cc/auth/login"))).text();
+    const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "example.com" }, []);
+    const page = await (await g(new Request("https://acme.example.com/auth/login"))).text();
     expect(page).toContain("Test mode");
     log.mockRestore();
   });
 
   it("logs an invitation (address and roles), never a code", async () => {
     const lines: string[] = [];
-    const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "fabriks.cc" }, lines);
-    const origin = "https://acme.fabriks.cc";
+    const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "example.com" }, lines);
+    const origin = "https://acme.example.com";
     const asked = await g(
       new Request(`${origin}/auth/email/request`, form({ email: "root@acme.fr" }, { origin })),
     );
