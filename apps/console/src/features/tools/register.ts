@@ -35,7 +35,8 @@ registerToolTab({
   id: "secrets",
   order: 70,
   title: "Secrets",
-  adminOnly: false,
+  // It lists who holds which secret: an admin's screen (D-118). A person's own are on their library.
+  adminOnly: true,
   load: () => import("./tabs/secrets-tab"),
 });
 registerToolTab({

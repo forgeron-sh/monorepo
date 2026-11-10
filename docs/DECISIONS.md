@@ -116,6 +116,7 @@ Rules of the log:
 | D-115 | 10/11/2026 | A tool has a summary and a guide for the people who use it; `forgeron bundle` writes a build as one file for a marketplace                                                                                   | Active                                 |
 | D-116 | 10/11/2026 | Marketplaces: a GitHub repository of tool bundles a workspace adds, synced into a hidden catalogue and installed like a template                                                                             | Active                                 |
 | D-117 | 10/11/2026 | A person's library: an admin says who may add a tool, a person adds it, gives its setup and removes it; a tool with a rule is reached only from a library                                                    | Active                                 |
+| D-118 | 10/11/2026 | Two sheets per tool: the member's in their library, with nothing technical; the admin's in Tools, which becomes the technical screens                                                                        | Active                                 |
 
 ---
 
@@ -1492,3 +1493,15 @@ Rules of the log:
 - **Rejected**: enforcing libraries on every existing tool at once (every person would lose their tools until they add them again); availability as one more role of the matrix (a role is about actions; who may have a tool is about people, and roles are per tool); revoking the person's tokens on removal (the dispatcher refuses them already, and a session is not per tool); deleting the person's secrets on removal (another tool may use them, and the guide promises they stay).
 - **Not verified**: the MCP sign-in's redirect to the library is not driven by a test (the refusal at the dispatcher is, through the whole gateway); the console checked in the preview harness only.
 - **Applied in**: `packages/registry/src/modules/library/`, `modules/templates/store.ts`, `migrations.golden.json`; `packages/platform-contract/src/library.ts`, `addresses.ts`; `apps/gateway/src/library/library.ts`, `platform/library.ts`, `dispatch/user-secrets.ts`, `identity/mcp-oauth/mcp-oauth.ts`; `apps/console/src/features/portal/{home,library,mock}.ts(x)`, `features/tools/tabs/availability-tab.tsx`, `mock/install.ts`; `docs/console-ux.md`.
+
+## D-118 — Two sheets per tool: the member's in their library, with nothing technical; the admin's in Tools, which becomes the technical screens
+
+- **Date**: 10/11/2026 · **Status**: Active
+- **Decision**:
+  1. **The member's sheet** (`/library/<tool>`, console `features/portal/library-page.tsx`, data from `GET /api/library/{tool}`, D-117): the summary, the guide, adding and removing the tool, finishing its setup, and how to use it in the browser, in Claude and in a terminal, shown only once it is added and set up. Adding a tool that asks for something takes the person to its setup page, which brings them back. No version, role, action, interface name, resource or README reaches it.
+  2. **The admin's sheet** is the tool page in Tools: the Overview (README, details, how to install, and now _What its users read_), branches, versions, availability, access, database, secrets, activity. The Tools screens are for admins and developers (a new console access level `developer`); a member's way to a tool is their library.
+  3. **The Secrets tab is for admins**: it lists who holds which secret. A person's own are given through the setup page and listed on their page of secrets (D-106).
+- **Why**: the person who uses a tool needs to know what it does for them and how to start, not how it is built; the admin needs the opposite.
+- **Rejected**: one card with technical parts hidden by role (the same screen would keep growing both ways); keeping Tools in a member's menu (it shows branches, versions and roles).
+- **Not done**: the images of a guide on the member's sheet come from the catalog's assets, so they need the person to be a member of the workspace, as before; a developer without the admin role still sees only the Overview tab of a tool, as before.
+- **Applied in**: `apps/console/src/features/portal/{library-page,library,routes,tool-card,mock}.ts(x)`, `portal.css`, `apps/console/src/shell/access.ts`, `features/tools/{routes,register}.ts`; `docs/console-ux.md`.

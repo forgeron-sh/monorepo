@@ -8,14 +8,14 @@ const routes: RouteDef[] = [
   {
     path: "/tools",
     title: "Tools",
-    access: "everyone",
+    access: "developer",
     nav: { group: "main", label: "Tools", shortcut: "t" },
     page: () => import("./pages/tools-page"),
   },
   {
     path: "/tools/:name",
     title: "Tool",
-    access: "everyone",
+    access: "developer",
     page: async () => {
       const { default: ToolPage } = await import("./pages/tool-page");
       return { default: (p) => createElement(ToolPage, { ...p, name: p.params.name! }) };

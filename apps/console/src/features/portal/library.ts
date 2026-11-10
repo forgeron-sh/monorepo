@@ -9,8 +9,17 @@ export async function loadLibrary(fetchJson: FetchJson) {
 }
 export type LibraryTool = Awaited<ReturnType<typeof loadLibrary>>[number];
 
+export async function loadLibraryCard(fetchJson: FetchJson, tool: string) {
+  return ok(await typedClient(fetchJson)(addresses.libraryCard, { params: { tool } }));
+}
+export type LibraryCard = Awaited<ReturnType<typeof loadLibraryCard>>;
+
 export async function addToLibrary(send: SendJson, tool: string) {
   return ok(await typedSender(send)(addresses.installLibraryTool, { params: { tool } }));
+}
+
+export async function removeFromLibrary(send: SendJson, tool: string) {
+  ok(await typedSender(send)(addresses.uninstallLibraryTool, { params: { tool } }));
 }
 
 /** The tool's page in the person's library. */

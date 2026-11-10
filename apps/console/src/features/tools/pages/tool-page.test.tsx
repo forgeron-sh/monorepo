@@ -58,12 +58,12 @@ describe("the tool page", () => {
     expect(page.textContent).toContain("Nothing has happened yet");
   });
 
-  it("shows a member only the tabs that are not for admins", async () => {
+  it("shows a member none of the admin tabs, the secrets included (D-118)", async () => {
     const page = await mount(
       <ToolPage name="crm" {...pageProps(toolsApi(routes).api, { admin: false })} />,
     );
     await flushLazy();
-    expect(tabLabels(page)).toEqual(["Secrets"]);
+    expect(tabLabels(page)).toEqual([]);
   });
 
   it("says when the tool does not exist, and when the list cannot be loaded", async () => {

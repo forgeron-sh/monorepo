@@ -24,6 +24,13 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+button.fp-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
 .fp-link:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
