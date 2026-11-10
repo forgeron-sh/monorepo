@@ -52,10 +52,11 @@ What this does **not** change: that token is short-lived, so it is **not** store
 
 ```bash
 export CLOUDFLARE_API_TOKEN=...   # the token from step 1
-forgeron platform install --account <account-id> --domain <base-domain> --gateway apps/gateway/dist/worker.js --console apps/console/dist [--name forgeron]
+forgeron platform install --account <account-id> --domain <base-domain> --gateway apps/gateway/dist/worker.js --console apps/console/dist [--only <workspace>] [--name forgeron]
 ```
 
 - `--domain`: the base domain the gateway serves (`BASE_DOMAIN`), as in `forgeron.app` for the cloud.
+- `--only <workspace>`: serves `<workspace>.<domain>` alone: one proxied DNS record and one route for that host, instead of the wildcard `*.<domain>`. Use it when the zone hosts other sites, which a wildcard route would otherwise intercept.
 - `--console`: the console's build directory. Its files are uploaded as the static assets of the gateway Worker, served at `https://<workspace>.<domain>/`. Without it the gateway is deployed without the console, and the command says so.
 - `--oidc-issuer`, `--oidc-client-id`, `--admin-email`, `--member-email-domains`: your identity provider (any OIDC provider, D-019) and who may sign in (D-027). Give the issuer and the client id together, and at least one of the admin email and the member domains: without one of them nobody could sign in. They are checked before anything is sent: the issuer is an `https` URL without query or fragment, the client id has no spaces, the email and the domains have the usual shape. Without any of them the gateway has no sign-in, and the command says so.
 - `OIDC_CLIENT_SECRET` (environment variable, never an argument): the client secret, for a confidential client. Leave it unset for a public client (PKCE alone). Like the API token it is sent as a secret binding and never printed.

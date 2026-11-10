@@ -1,3 +1,4 @@
+import { checkWorkspace } from "../project";
 import {
   createCloudflareClient,
   createRestD1,
@@ -29,7 +30,7 @@ import { platformStatus, STATUS_USAGE } from "./platform-status";
 // is only ever an API token; see D-026.
 
 const USAGE =
-  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--sign-in email[,oidc] [--mail-from <address> | --mail console]] [--name forgeron] [--auth token|wrangler]";
+  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--sign-in email[,oidc] [--mail-from <address> | --mail console]] [--only <workspace>] [--name forgeron] [--auth token|wrangler]";
 
 interface Named {
   uuid?: string;
@@ -69,6 +70,7 @@ export async function platform(
       "sign-in": { type: "string" },
       "mail-from": { type: "string" },
       mail: { type: "string" },
+      only: { type: "string" },
       name: { type: "string", default: "forgeron" },
       auth: { type: "string", default: "token" },
     },
@@ -76,6 +78,8 @@ export async function platform(
   if (positionals.length > 0 || !values.account || !values.domain || !values.gateway) {
     throw new UsageError(USAGE);
   }
+  // `--only acme`: serve `acme.<domain>` alone, not every host of the zone (a zone that has other sites).
+  if (values.only !== undefined) checkWorkspace(values.only);
   const name = values.name as string;
   if (!/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(name)) {
     throw new UsageError(`"${name}" is not a usable name: 3 to 40 characters among a-z, 0-9, "-".`);
@@ -249,8 +253,8 @@ export async function platform(
             : "Sign-in is NOT configured: run the install again with --oidc-issuer and --oidc-client-id, or --sign-in email (docs/self-host.md).",
   );
 
-  // 4. DNS and route: a proxied wildcard record, then `*.<domain>/*` to the gateway.
-  await attachRoute(client, values.domain, worker, io);
+  // 4. DNS and route: a proxied record, then `*.<domain>/*` (or `<only>.<domain>/*`) to the gateway.
+  await attachRoute(client, values.domain, worker, io, values.only);
   io.log(
     assets
       ? `Deployed the console (${assets.length} files) as assets of the gateway.`
@@ -294,7 +298,13 @@ interface Zone {
 // Zone, proxied wildcard record and route, each created only when missing so that a second run
 // changes nothing. Cloudflare needs a proxied record for a route to be reached; with no origin the
 // record is the documented placeholder `AAAA 100::` (Workers best practices, "Routes").
-async function attachRoute(client: CloudflareClient, domain: string, worker: string, io: Io) {
+async function attachRoute(
+  client: CloudflareClient,
+  domain: string,
+  worker: string,
+  io: Io,
+  only?: string,
+) {
   const zones = await client.requestRoot<Zone[]>(
     "GET",
     `/zones?name=${encodeURIComponent(domain)}&account.id=${encodeURIComponent(client.accountId)}`,
@@ -305,7 +315,7 @@ async function attachRoute(client: CloudflareClient, domain: string, worker: str
       `The zone "${domain}" is not on this Cloudflare account (or the token cannot read zones). Add the domain to the account first, or pass the --domain of a zone it holds.`,
     );
   }
-  const wildcard = `*.${domain}`;
+  const wildcard = only ? `${only}.${domain}` : `*.${domain}`;
   const records = await client.requestRoot<Array<{ name: string; proxied?: boolean }>>(
     "GET",
     `/zones/${zone.id}/dns_records?name=${encodeURIComponent(wildcard)}`,
