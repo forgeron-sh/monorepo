@@ -110,6 +110,7 @@ Rules of the log:
 | D-109 | 10/11/2026 | Scopes in use: a call carries the secret of the most specific scope for where it is served; a person sets a different secret for production, every preview or one branch (FOR-172, ticket 5 of the registry) | Active                                 |
 | D-110 | 10/11/2026 | The legacy `user_secrets` table is dropped: the registry is the only place a person's secrets live (FOR-172, ticket 7 of the registry)                                                                       | Active                                 |
 | D-111 | 10/11/2026 | The leftovers of the secret registry: links to "Your secrets", console screens for an admin, a mail to the person, connectors as steps of the setup page (FOR-172)                                           | Active                                 |
+| D-112 | 10/11/2026 | One CI workflow: `static`, a sharded `test` and `check`; the per-template preview workflow is removed (supersedes D-045's workflow)                                                                          |
 
 ---
 
@@ -1403,3 +1404,12 @@ Rules of the log:
 - **Not done**: the OAuth step (D-098) does not wait for connectors, only for setup and secrets; a CLI command for re-sealing.
 - **Not verified**: no browser (the console screens are tested in jsdom and the gateway page as HTML); no real mail.
 - **Applied in**: `packages/runtime/src/secrets.ts` (`ConnectorStep`, `connectors`, `mySecrets`), `apps/gateway/src/dispatch/user-secrets.ts`, `compose.ts`, `mail/mail.ts`, `platform/approvals.ts`, `platform/app.ts`; `apps/console/src/features/tools/tabs/people-secrets.tsx`, `features/settings/pages/{personal-secrets,sealing}.tsx`; tests next to each.
+
+## D-112 — One CI workflow; the per-template preview workflow is removed
+
+- **Date**: 10/11/2026 · **Status**: Active · supersedes the workflow of D-045 (the log of D-045 is left as written)
+- **Decision**: `.github/workflows/ci.yml` is the only CI: `static` (lint, format, typecheck, knip, deps, neutral, templates, tokens), `test` (vitest in 4 shards) and `pr-title`, gated by the one status `check`, as in the Linear repository. `.github/workflows/templates-preview.yml` is deleted, so no template is deployed as a preview by CI any more; templates are still built and tested by `bun run test`. `bun run templates:check` now only checks that each template has a config and a test.
+- **Why**: one workflow to read and maintain; the four-template deploy matrix needed a workspace variable and one secret per template.
+- **Not done**: the repository variable `FORGERON_WORKSPACE` and the `FORGERON_TOKEN_*` secrets are not deleted (a settings change); a branch protection that required a job other than `check` must be checked.
+- **Not verified**: the workflow has not run; the shard count of 4 is a guess, not measured.
+- **Applied in**: `.github/workflows/ci.yml`, `scripts/check-templates.ts`, `docs/ARCHITECTURE.md`.

@@ -78,7 +78,7 @@ forgeron/
 
 Each app, package and template has its own `README.md`, which states its role, what it contains and the spec sections it implements.
 
-Templates live in the repository for a specific reason: they are the **SDK's integration tests**. Each example in `docs/examples/` becomes a template that must compile, pass its tests and deploy as a preview on every PR. If an SDK decision breaks an example, CI catches it. `bun run test` builds and tests every template; `.github/workflows/templates-preview.yml` tests, checks and deploys each one as a preview with the deploy action (one `FORGERON_TOKEN_<NAME>` secret per template, since a deployment token is bound to one tool), comments the preview address on the pull request and tears the previews down when it is closed (D-045); `bun run templates:check` refuses a template that is not in that workflow.
+Templates live in the repository for a specific reason: they are the **SDK's integration tests**. Each example in `docs/examples/` becomes a template that must compile and pass its tests on every PR. If an SDK decision breaks an example, CI catches it. `bun run test` builds and tests every template, in the one workflow `.github/workflows/ci.yml` (D-112); `bun run templates:check` refuses a template with no config or no test.
 
 ## Packages (`packages/`)
 

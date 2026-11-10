@@ -13,37 +13,17 @@ permissions:
   contents: read
 
 jobs:
-  # Independent jobs run side by side; `check` stays the one status that gates a merge.
-  typecheck:
-    runs-on: [self-hosted, perf]
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/setup
-      - run: bun run typecheck
-
-  test:
-    runs-on: [self-hosted, perf]
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/setup
-      - run: bun run test
-
   static:
     runs-on: [self-hosted, perf]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # moon compares with the default branch
       - uses: ./.github/actions/setup
       - run: bun run lint
       - run: bun run format:check
+      - run: bun run typecheck
       - run: bun run knip
       - run: bun run deps
       - run: bun run deps:selftest
@@ -51,17 +31,18 @@ jobs:
       - run: bun run templates:check
       - run: bun run tokens:check
 
-  check:
-    if: always()
-    needs: [typecheck, test, static]
+  # The templates are the SDK's integration tests (docs/ARCHITECTURE.md): they are built and tested here.
+  test:
     runs-on: [self-hosted, perf]
-    timeout-minutes: 5
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
-      - name: All the jobs passed
-        run: |
-          test "${{ needs.typecheck.result }}" = success
-          test "${{ needs.test.result }}" = success
-          test "${{ needs.static.result }}" = success
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: bunx vitest run --maxWorkers=4 --shard=${{ matrix.shard }}/4
 
   # The PR title becomes the squash message: it must follow Conventional Commits.
   pr-title:
@@ -75,3 +56,16 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: echo "$PR_TITLE" | bunx commitlint
+
+  # The one status that gates a merge: it keeps the name `check` whatever runs behind it.
+  check:
+    if: always()
+    needs: [static, test, pr-title]
+    runs-on: [self-hosted, perf]
+    timeout-minutes: 5
+    steps:
+      - name: All the jobs passed
+        run: |
+          test "${{ needs.static.result }}" = success
+          test "${{ needs.test.result }}" = success
+          case "${{ needs.pr-title.result }}" in success|skipped) ;; *) exit 1 ;; esac
