@@ -1,3 +1,4 @@
+import { VERSION } from "./version";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
@@ -5,7 +6,8 @@ import { UsageError } from "./io";
 import { writeProject } from "./project";
 import { WORKFLOW, WORKFLOW_PATH } from "./workflow";
 
-export const SDK_VERSION = "0.0.0";
+/** The SDK a new tool depends on: the one released with this CLI (D-122). */
+export const SDK_VERSION = VERSION;
 export const VITEST_VERSION = "5.0.5";
 
 // Catalog templates are npm packages `@forgeron/template-<name>` (docs/sdk.md §18).
@@ -155,7 +157,7 @@ export async function writeTemplate(
         type: "module",
         scripts: { build: "forgeron build", dev: "forgeron dev", test: "forgeron test" },
         dependencies: pkg.dependencies ?? { "@forgeron/sdk": SDK_VERSION },
-        devDependencies: { vitest: VITEST_VERSION },
+        devDependencies: { forgeron: SDK_VERSION, vitest: VITEST_VERSION },
       },
       null,
       2,

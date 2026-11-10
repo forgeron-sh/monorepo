@@ -41,7 +41,8 @@
       "ignoreDependencies": ["@astrojs/check"]
     },
     "apps/cli": {
-      "ignore": ["fixtures/**"]
+      "ignore": ["fixtures/**"],
+      "ignoreDependencies": ["@forgeron/runtime", "kysely", "miniflare", "rolldown", "zod"]
     },
     "apps/gateway": {
       "entry": ["src/index.ts", "src/worker.ts"],

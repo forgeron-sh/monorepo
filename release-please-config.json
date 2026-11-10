@@ -3,7 +3,20 @@
   "release-type": "node",
   "bump-minor-pre-major": true,
   "initial-version": "0.1.0",
-  "include-component-in-tag": false,
   "changelog-path": "CHANGELOG.md",
-  "packages": { ".": {} }
+  "include-component-in-tag": true,
+  "packages": {
+    ".": { "component": "platform", "include-component-in-tag": false },
+    "packages/manifest": { "component": "manifest" },
+    "packages/runtime": { "component": "runtime" },
+    "packages/sdk": { "component": "sdk" },
+    "apps/cli": { "component": "forgeron" }
+  },
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "forgeron",
+      "components": ["platform", "manifest", "runtime", "sdk", "forgeron"]
+    }
+  ]
 }

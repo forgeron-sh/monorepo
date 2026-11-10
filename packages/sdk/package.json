@@ -11,10 +11,14 @@
     "./testing": "./src/testing/index.ts",
     "./testing/d1": "./src/testing/memory-d1.ts"
   },
+  "scripts": {
+    "tsdown": "tsdown"
+  },
   "dependencies": {
     "@forgeron/manifest": "workspace:*",
     "@forgeron/runtime": "workspace:*",
     "kysely": "0.29.8",
+    "miniflare": "4.20260730.0",
     "zod": "4.6.7"
   },
   "devDependencies": {
@@ -22,15 +26,18 @@
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "miniflare": "4.20260730.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "peerDependencies": {
-    "react": ">=18.2.0"
+    "react": ">=18.2.0",
+    "react-dom": ">=18.2.0"
   },
   "peerDependenciesMeta": {
     "react": {
+      "optional": true
+    },
+    "react-dom": {
       "optional": true
     }
   }

@@ -1,14 +1,7 @@
 # @forgeron/runtime
 
-Runs a tool in its Worker and serves its four interfaces.
+The runtime a Forgeron tool runs on, in its Worker: actions, access by role, database, and the four interfaces (MCP, API, CLI, web). A tool does not import it: `forgeron build` bundles it with the tool. Documentation: [docs/sdk.md](https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md).
 
-## Planned contents
-
-- Routing `/mcp`, `/api/<action>`, `/cli`, views (`sdk.md` §7)
-- Enforcement of `access` and roles, audience-bound tokens
-- Building `ctx` from `env` (`sdk.md` §6)
-- Events and scheduled jobs (`sdk.md` §9)
-
-## Notes
+## In the monorepo
 
 workerd only: no `node:*`, no compiler import (`runtime-stays-on-workers` rule).

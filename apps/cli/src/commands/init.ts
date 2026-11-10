@@ -133,7 +133,7 @@ export async function init(args: string[], io: Io): Promise<number> {
         type: "module",
         scripts: { build: "forgeron build", dev: "forgeron dev", test: "forgeron test" },
         dependencies: { "@forgeron/sdk": SDK_VERSION },
-        devDependencies: { vitest: VITEST_VERSION },
+        devDependencies: { forgeron: SDK_VERSION, vitest: VITEST_VERSION },
       },
       null,
       2,

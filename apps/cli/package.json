@@ -8,7 +8,8 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "bun src/index.ts"
+    "dev": "bun src/index.ts",
+    "tsdown": "tsdown"
   },
   "dependencies": {
     "@forgeron/compiler": "workspace:*",
@@ -17,7 +18,12 @@
     "@forgeron/platform-contract": "workspace:*",
     "@forgeron/playground": "workspace:*",
     "@forgeron/registry": "workspace:*",
-    "@forgeron/sdk": "workspace:*"
+    "@forgeron/runtime": "workspace:*",
+    "@forgeron/sdk": "workspace:*",
+    "kysely": "0.29.8",
+    "miniflare": "4.20260730.0",
+    "rolldown": "1.2.16",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*",
