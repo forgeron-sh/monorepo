@@ -24,7 +24,7 @@ export const CatalogToolSchema = z.strictObject({
   name: ToolNameSchema,
   /** The config's `title`, else the name. */
   title: text,
-  /** One line: the config's `description`, or empty. */
+  /** One line for the people who use the tool: the config's `summary`, else its `description`, or empty. */
   summary: text,
   /** The URL of the tool's icon, or `null` (show the first letter of the title). */
   icon: text.nullable(),
@@ -41,6 +41,8 @@ export const CatalogResponseSchema = z.strictObject({ tools: z.array(CatalogTool
 export const ToolCardSchema = CatalogToolSchema.extend({
   /** Markdown source, as the developer wrote it. Never HTML: the client renders it without raw HTML. */
   readme: text.nullable(),
+  /** `GUIDE.md`: the tool explained to the people who use it, without technical detail (D-115). */
+  guide: text.nullable(),
   assets: z.array(CatalogAssetSchema),
   /** What to give a person to connect, per interface; `null` for an interface the tool does not expose. */
   connect: z.strictObject({

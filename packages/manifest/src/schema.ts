@@ -220,14 +220,18 @@ export const DocAssetSchema = z.strictObject({
   hash: z.string().regex(/^[0-9a-f]{64}$/),
 });
 
-/** The README and the images it references, as collected at build. Never the content. */
+const DocFileSchema = z.strictObject({
+  size: z.number().int().nonnegative(),
+  hash: z.string().regex(/^[0-9a-f]{64}$/),
+});
+
+/**
+ * The README (technical, for administrators), the guide (`GUIDE.md`, for the people who use the tool,
+ * D-115) and the images they reference, as collected at build. Never the content.
+ */
 export const DocsSchema = z.strictObject({
-  readme: z
-    .strictObject({
-      size: z.number().int().nonnegative(),
-      hash: z.string().regex(/^[0-9a-f]{64}$/),
-    })
-    .optional(),
+  readme: DocFileSchema.optional(),
+  guide: DocFileSchema.optional(),
   assets: z.array(DocAssetSchema),
 });
 
@@ -236,6 +240,8 @@ const ManifestShape = z.strictObject({
   version: z.string().regex(SEMVER),
   title: text.optional(),
   description: text.optional(),
+  /** One sentence for the people who use the tool, with no technical term (D-115). */
+  summary: text.optional(),
   /** The path, in `docs.assets`, of the tool's icon. */
   icon: z.string().optional(),
   docs: DocsSchema.optional(),

@@ -1,8 +1,7 @@
 import { buildTool } from "@forgeron/compiler";
 import { addresses } from "@forgeron/platform-contract/client";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { parseArgs } from "node:util";
+import { readBuild } from "../built";
 import { UsageError, type Io } from "../io";
 import { platformClient, refusal } from "../platform-client";
 import { readProject } from "../project";
@@ -10,14 +9,6 @@ import { readProject } from "../project";
 const USAGE =
   "Usage: forgeron deploy [--env preview|production] [--branch <name>] [--allow-destructive]";
 const ENVIRONMENTS = ["preview", "production"];
-
-const exists = async (path: string) => {
-  try {
-    return await readFile(path, "utf8");
-  } catch {
-    return undefined;
-  }
-};
 
 /** `1.5.0+a41f9e0` on production; a preview adds its branch (docs/sdk.md §16). */
 function versionOf(version: string, fingerprint: string, env: string, branch: string | undefined) {
@@ -89,15 +80,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
   }
 
   const built = await buildTool(io.cwd);
-  const read = async (file: string) => exists(join(built.outDir, file));
-  const worker = await read("worker.js");
-  const manifest = await read("manifest.json");
-  if (worker === undefined || manifest === undefined) {
-    throw new Error(`The build in ${built.outDir} has no worker.js or manifest.json.`);
-  }
-  const migrations = await read("migrations.json");
-  const changelog = await read("changelog.json");
-  const docs = await read("docs.json");
+  const build = await readBuild(built.outDir, built.fingerprint);
   const version = versionOf(built.version, built.fingerprint, env, branch);
   const commit = await commitOf(io);
 
@@ -108,14 +91,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
       version,
       ...(commit ? { commit } : {}),
       ...(values["allow-destructive"] ? { allowDestructive: true } : {}),
-      build: {
-        manifest: JSON.parse(manifest),
-        worker,
-        fingerprint: built.fingerprint,
-        ...(migrations ? { migrations: JSON.parse(migrations) } : {}),
-        ...(changelog ? { changelog: JSON.parse(changelog) } : {}),
-        ...(docs ? { docs: JSON.parse(docs) } : {}),
-      },
+      build: { ...build },
     },
   });
   if (answer.status !== 200) {

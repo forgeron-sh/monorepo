@@ -113,6 +113,7 @@ Rules of the log:
 | D-112 | 10/11/2026 | One CI workflow, one job `check` on one machine; the per-template preview workflow is removed (supersedes D-045's workflow)                                                                                  |
 | D-113 | 10/11/2026 | Promote a branch to production when nothing stops it and guide the person when something does; admin operations and remote SQL from the CLI (FOR-183)                                                        | Active                                 |
 | D-114 | 10/11/2026 | The Odoo gateway leaves `templates/`: the launch catalogue is three templates, business tools live in tools repositories of their own                                                                        | Active                                 |
+| D-115 | 10/11/2026 | A tool has a summary and a guide for the people who use it; `forgeron bundle` writes a build as one file for a marketplace                                                                                   | Active                                 |
 
 ---
 
@@ -1445,3 +1446,15 @@ Rules of the log:
 - **Rejected**: keeping it as a fourth template (the catalogue would carry a tool nobody outside its company installs); keeping it as an untested example in `docs/examples/` (an example nobody builds breaks silently, D-088's reason).
 - **Lost**: the SDK's integration tests no longer cover a tool without a database that uses per-person secret fields with a `kind`, a setup `check` and `network.allow` together; the unit tests of `manifest`, `runtime` and `sdk` still cover each.
 - **Applied in**: `templates/`, `apps/site/src/pages/index.astro`, `packages/ui/src/architecture/fixtures.ts`, `packages/sdk/src/config.test.ts`, `docs/ARCHITECTURE.md`, `docs/README.md`, `docs/sdk.md`.
+
+## D-115 — A tool has a summary and a guide for the people who use it; `forgeron bundle` writes a build as one file for a marketplace
+
+- **Date**: 10/11/2026 · **Status**: Active
+- **Decision**:
+  1. **`summary`** (config and manifest, optional): one sentence for the people who use the tool, with no technical term. The catalog's `summary` is the `summary`, else the `description` as before. A change is a `tool.text-changed` of impact patch, as for `description`.
+  2. **`GUIDE.md`** (optional, next to `README.md`): the tool explained to the people who use it. It is collected at build like the README (D-061): its relative images too, the same limits (1 MB a file, 5 MB in all), `manifest.docs.guide` keeps its size and hash, `docs.json` its content, the platform checks it again (`docsProblem`) and stores it among the build's files under `GUIDE.md`. The tool card gains `guide` (text or `null`). The README stays the technical text, for administrators.
+  3. **`forgeron bundle [--out <dir>]`** builds the tool of the current folder and writes `<name>-<version>.forgeron.json` (default `.forgeron/bundle/`): `{ format: "forgeron.bundle/1", name, version, build }`, where `build` is the body `forgeron deploy` sends (`ToolBundle` in `@forgeron/hosting`). It prints the file and its SHA-256. One JSON file, so a Worker reads it without an archive library. The CLI's deploy and bundle read `.forgeron/build/` through the same `readBuild`.
+- **Why**: a member's library must speak to the person, not to the developer; and a marketplace needs a built tool the platform can take without a build step (D-004).
+- **Rejected**: a guide inside the README behind a marker (one file for two readers, and the console would have to cut markdown); a tarball of `.forgeron/build/` (an archive parser in the gateway); the `build.json` file hashes in the bundle (the index will carry the hash of the whole file).
+- **Not done**: nothing reads a bundle yet (marketplaces come next); the console does not show the guide yet.
+- **Applied in**: `packages/manifest/src/{schema,catalog,diff}.ts`, `packages/sdk/src/config.ts`, `packages/compiler/src/{docs,manifest}.ts`, `packages/hosting/src/core.ts`, `packages/registry/src/{docs-check,catalog}.ts`, `packages/registry/src/modules/catalog/store.ts`, `apps/cli/src/{built,cli}.ts`, `apps/cli/src/commands/{bundle,deploy}.ts`, `docs/sdk.md` §3, §5 and §14.

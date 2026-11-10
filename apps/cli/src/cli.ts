@@ -1,5 +1,6 @@
 import { admin, api } from "./commands/admin";
 import { build } from "./commands/build";
+import { bundle } from "./commands/bundle";
 import { catalog } from "./commands/catalog";
 import { change, release } from "./commands/change";
 import { db } from "./commands/db";
@@ -29,6 +30,7 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   logout,
   whoami,
   build,
+  bundle,
   test,
   dev,
   play,
@@ -76,7 +78,8 @@ const USAGE = `Usage: forgeron <command>
   release [--no-git]                   next version, CHANGELOG.md, tag
   token create --name <n> --scope deploy  create a deployment token for CI (FORGERON_TOKEN)
   test [vitest args]                   build the tool, then run Vitest
-  build                                build every tool under this folder`;
+  build                                build every tool under this folder
+  bundle [--out <dir>]                 build the tool into one file, for a marketplace release`;
 
 /** Runs a command and returns the exit code: 0, 1 for a failure, 2 for a wrong use, 4 for something not found (sdk.md §5). */
 export async function run(argv: string[], io: Io): Promise<number> {

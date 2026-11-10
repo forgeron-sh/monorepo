@@ -10,12 +10,14 @@ import {
 } from "@forgeron/manifest";
 import { sha256 } from "./fingerprint";
 
-// The tool's documentation for the catalog (docs/console-ux.md, D-061): `README.md` and the images it
-// references with a relative path, plus the config's `icon`. What is collected is what a member of the
+// The tool's documentation for the catalog (docs/console-ux.md, D-061): `README.md` (technical, for
+// administrators), `GUIDE.md` (for the people who use the tool, D-115) and the images they reference
+// with a relative path, plus the config's `icon`. What is collected is what a member of the
 // workspace will be served, so each file is checked here, and a refusal names the file.
 
 export { MAX_FILE, svgProblem };
 const README = "README.md";
+const GUIDE = "GUIDE.md";
 
 interface CollectedAsset {
   path: string;
@@ -28,6 +30,7 @@ interface CollectedAsset {
 /** What the build hands to the deployment: the content, which the manifest only has the hashes of. */
 export interface CollectedDocs {
   readme?: string;
+  guide?: string;
   /** The path, among `assets`, of the config's icon. */
   icon?: string;
   assets: CollectedAsset[];
@@ -61,7 +64,7 @@ function normalized(file: string, reference: string): string {
   try {
     path = decodeURIComponent(path);
   } catch {
-    throw new Error(`${README}: the image "${reference}" is not a valid address.`);
+    throw new Error(`${file}: the image "${reference}" is not a valid address.`);
   }
   if (path.includes("\0") || path.includes("\\") || isAbsolute(path) || path.startsWith("/")) {
     throw new Error(`${file}: "${reference}" must be a relative path inside the tool folder.`);
@@ -128,22 +131,31 @@ async function collectImage(
   };
 }
 
-/** The README, its relative images and the icon of the tool folder `dir`. */
+/** A markdown file of the tool folder, or `undefined` when there is none. */
+async function readMarkdown(dir: string, file: string): Promise<string | undefined> {
+  try {
+    return (await readInside(dir, "the tool folder", file, MAX_FILE)).toString("utf8");
+  } catch (error) {
+    if (error instanceof Error && error.message.endsWith("does not exist.")) return undefined;
+    throw error;
+  }
+}
+
+/** The README, the guide, their relative images and the icon of the tool folder `dir`. */
 export async function collectDocs(dir: string, icon?: string): Promise<CollectedDocs> {
   const assets = new Map<string, CollectedAsset>();
-  let readme: string | undefined;
-  let total = 0;
-  try {
-    const content = await readInside(dir, "the tool folder", README, MAX_FILE);
-    readme = content.toString("utf8");
-    total += content.length;
-  } catch (error) {
-    if (!(error instanceof Error) || !error.message.endsWith("does not exist.")) throw error;
-  }
+  const readme = await readMarkdown(dir, README);
+  const guide = await readMarkdown(dir, GUIDE);
+  let total = Buffer.byteLength(readme ?? "") + Buffer.byteLength(guide ?? "");
   let iconPath: string | undefined;
   const wanted: Array<{ from: string; path: string; max: number }> = [];
-  for (const reference of imageReferences(readme ?? "")) {
-    wanted.push({ from: README, path: normalized(README, reference), max: MAX_FILE });
+  for (const [file, text] of [
+    [README, readme],
+    [GUIDE, guide],
+  ] as const) {
+    for (const reference of imageReferences(text ?? "")) {
+      wanted.push({ from: file, path: normalized(file, reference), max: MAX_FILE });
+    }
   }
   if (icon !== undefined) {
     const path = normalized("forgeron.config.ts (icon)", icon);
@@ -159,13 +171,14 @@ export async function collectDocs(dir: string, icon?: string): Promise<Collected
     total += asset.size;
     if (total > MAX_TOTAL) {
       throw new Error(
-        `${path}: the documentation (README and images) is over ${MAX_TOTAL} bytes in total.`,
+        `${path}: the documentation (README, guide and images) is over ${MAX_TOTAL} bytes in total.`,
       );
     }
     assets.set(path, asset);
   }
   return {
     ...(readme === undefined ? {} : { readme }),
+    ...(guide === undefined ? {} : { guide }),
     ...(iconPath === undefined ? {} : { icon: iconPath }),
     assets: [...assets.values()],
   };
@@ -173,16 +186,13 @@ export async function collectDocs(dir: string, icon?: string): Promise<Collected
 
 /** What the manifest keeps of the documentation: the hashes. */
 export function docsEntry(docs: CollectedDocs): Docs | undefined {
-  if (docs.readme === undefined && docs.assets.length === 0) return undefined;
+  if (docs.readme === undefined && docs.guide === undefined && docs.assets.length === 0) {
+    return undefined;
+  }
+  const file = (text: string) => ({ size: Buffer.byteLength(text), hash: sha256(text) });
   return {
-    ...(docs.readme === undefined
-      ? {}
-      : {
-          readme: {
-            size: Buffer.byteLength(docs.readme),
-            hash: sha256(docs.readme),
-          },
-        }),
+    ...(docs.readme === undefined ? {} : { readme: file(docs.readme) }),
+    ...(docs.guide === undefined ? {} : { guide: file(docs.guide) }),
     assets: docs.assets.map(({ path, type, size, hash }) => ({ path, type, size, hash })),
   };
 }

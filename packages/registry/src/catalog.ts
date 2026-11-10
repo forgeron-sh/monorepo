@@ -73,7 +73,7 @@ async function describe(
     entry: {
       name: s.tool.name,
       title: manifest.title ?? s.tool.name,
-      summary: manifest.description ?? "",
+      summary: manifest.summary ?? manifest.description ?? "",
       icon: icon ? assetUrl(s.tool.name, icon.path, icon.hash) : null,
       productionVersion: s.production,
       interfaces: { ...manifest.interfaces },
@@ -127,6 +127,7 @@ export async function findCard(
   return {
     ...entry,
     readme: (await registry.readmeOf(tool.id, s.build.id)) ?? null,
+    guide: (await registry.guideOf(tool.id, s.build.id)) ?? null,
     assets,
     connect: {
       mcp: exposed.mcp ? { url: `${origin}/t/${tool.name}/mcp` } : null,

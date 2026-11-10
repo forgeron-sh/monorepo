@@ -19,9 +19,11 @@ import type {
 // The README and the images of a version are chunked like the gateway's code (D-056).
 const DOC_CHUNK = 20_000;
 const DOC_BATCH = 100;
-/** The README is stored among the files of a build under this path, with this type. */
+/** The README and the guide are stored among the files of a build under these paths, with this type. */
 const README_PATH = "README.md";
-const README_TYPE = "text/markdown";
+const GUIDE_PATH = "GUIDE.md";
+const MARKDOWN_TYPE = "text/markdown";
+const isMarkdown = (path: string) => path === README_PATH || path === GUIDE_PATH;
 
 const DEPLOYMENT_AUDIT: Record<DeploymentKind, AuditKind> = {
   deploy: "deployment",
@@ -131,13 +133,18 @@ export function createCatalog(kernel: Kernel) {
     async storeDocs(toolId: string, buildId: string, docs: BuildDocs): Promise<void> {
       const files: Array<{ path: string; type: string; size: number; hash: string; text: string }> =
         [];
-      if (docs.readme !== undefined) {
+      for (const [path, text] of [
+        [README_PATH, docs.readme],
+        [GUIDE_PATH, docs.guide],
+      ] as const) {
+        if (text === undefined) continue;
+        const bytes = new TextEncoder().encode(text);
         files.push({
-          path: README_PATH,
-          type: README_TYPE,
-          size: new TextEncoder().encode(docs.readme).length,
-          hash: await sha256Hex(new TextEncoder().encode(docs.readme)),
-          text: docs.readme,
+          path,
+          type: MARKDOWN_TYPE,
+          size: bytes.length,
+          hash: await sha256Hex(bytes),
+          text,
         });
       }
       for (const a of docs.assets) {
@@ -199,15 +206,19 @@ export function createCatalog(kernel: Kernel) {
       if (!file) return undefined;
       return (await docBlob(toolId, file.hash)) ?? undefined;
     },
-    /** One image of a build, as bytes; `undefined` if the build has no such file (the README is not one). */
+    /** The guide (`GUIDE.md`, D-115) of a build, or `undefined` if it has none. */
+    async guideOf(toolId: string, buildId: string): Promise<string | undefined> {
+      const file = (await this.docsOf(buildId)).find((f) => f.path === GUIDE_PATH);
+      if (!file) return undefined;
+      return (await docBlob(toolId, file.hash)) ?? undefined;
+    },
+    /** One image of a build, as bytes; `undefined` if the build has no such file (README and guide are not). */
     async assetOf(
       toolId: string,
       buildId: string,
       path: string,
     ): Promise<(DocFile & { bytes: Uint8Array }) | undefined> {
-      const file = (await this.docsOf(buildId)).find(
-        (f) => f.path === path && f.path !== README_PATH,
-      );
+      const file = (await this.docsOf(buildId)).find((f) => f.path === path && !isMarkdown(f.path));
       if (!file) return undefined;
       const base64 = await docBlob(toolId, file.hash);
       if (base64 === undefined) return undefined;

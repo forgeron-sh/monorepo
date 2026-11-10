@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildTool } from "./build";
-import { collectDocs, imageReferences, MAX_FILE, svgProblem } from "./docs";
+import { collectDocs, docsEntry, imageReferences, MAX_FILE, svgProblem } from "./docs";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
@@ -78,6 +78,27 @@ describe("collectDocs", () => {
       ["docs/i.svg", "image/svg+xml", svg.length],
     ]);
     expect(docs.assets[0]!.hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("collects the guide and its images apart from the README (D-115)", async () => {
+    await writeFile(join(dir, "README.md"), "# Technical");
+    await writeFile(join(dir, "GUIDE.md"), "# For you\n![a](docs/a.png)");
+    const docs = await collectDocs(dir);
+    expect(docs.readme).toBe("# Technical");
+    expect(docs.guide).toBe("# For you\n![a](docs/a.png)");
+    expect(docs.assets.map((a) => a.path)).toEqual(["docs/a.png"]);
+    const entry = docsEntry(docs)!;
+    expect(entry.guide).toEqual({
+      size: docs.guide!.length,
+      hash: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
+  });
+
+  it("names the guide when one of its images is refused", async () => {
+    await writeFile(join(dir, "GUIDE.md"), "![x](../x.png)");
+    await expect(collectDocs(dir)).rejects.toThrow(
+      /GUIDE\.md: "\.\.\/x\.png" leaves the tool folder/,
+    );
   });
 
   it("has nothing for a tool without README", async () => {

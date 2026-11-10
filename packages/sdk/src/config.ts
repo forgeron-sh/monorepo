@@ -35,6 +35,8 @@ export interface ToolConfig {
   name: string;
   title?: string;
   description?: string;
+  /** One sentence for the people who use the tool, with no technical term: shown in their library. */
+  summary?: string;
   /** A small `.svg` or `.png` of the tool folder, shown in the catalog: `"docs/icon.svg"`. */
   icon?: string;
   /** All `true` except `web`, which is `true` only if the tool has views. */
