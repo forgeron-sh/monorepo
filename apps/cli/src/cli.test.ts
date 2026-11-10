@@ -610,7 +610,7 @@ describe("forgeron db", () => {
     expect(unknown.errors[0]).toContain('unknown subcommand "frobnicate"');
     const remote = capture("/");
     expect(await run(["db", "migrate", "--env", "production"], remote.io)).toBe(2);
-    expect(remote.errors[0]).toContain("needs the platform");
+    expect(remote.errors[0]).toContain("only status and shell are available");
     const stray = capture("/");
     expect(await run(["db", "generate", "extra"], stray.io)).toBe(2);
   });

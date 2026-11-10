@@ -116,12 +116,101 @@ describe("the branches", () => {
     await click(button(d, "Promote"));
     expect(platform).toEqual([
       {
+        path: "/promote/plan",
+        body: { tool: "crm", version: "1.5.1", to: "production" },
+        method: "POST",
+      },
+      {
         path: "/promote",
         body: { tool: "crm", version: "1.5.1", to: "production" },
         method: "POST",
       },
     ]);
     expect(reads.filter((r) => r.endsWith("/branches")).length).toBe(before + 1);
+  });
+
+  describe("the plan of a promotion (D-113)", () => {
+    const plan = {
+      tool: "crm",
+      version: "1.5.1",
+      alreadyServed: false,
+      ok: true,
+      conflicts: [],
+      requiresAllowDestructive: false,
+      migrations: {
+        checked: true,
+        applied: ["0001_init"],
+        pending: ["0002_stage"],
+        destructive: [],
+      },
+      changes: [],
+      impact: "patch",
+    };
+    const open = async (answer: unknown) => {
+      const shown = await show(routes, {
+        "POST /promote/plan": answer,
+        "POST /promote": { version: "1.5.1" },
+      });
+      await click(byLabel(shown.page, "Actions for feat-export"));
+      await click(button(shown.page, "Promote to production"));
+      return shown;
+    };
+
+    it("shows the migrations that will run when nothing stops it, and promotes", async () => {
+      const { platform } = await open(plan);
+      expect(dialog().textContent).toContain("Migrations that will run");
+      expect(dialog().textContent).toContain("0002_stage");
+      expect(button(dialog(), "Promote").disabled).toBe(false);
+      await click(button(dialog(), "Promote"));
+      expect(platform.map((c) => c.path)).toEqual(["/promote/plan", "/promote"]);
+    });
+
+    it("lists the conflicts, offers the prompt and the commands, and does not let it go", async () => {
+      const written: string[] = [];
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async (text: string) => void written.push(text) },
+      });
+      const { platform } = await open({
+        ...plan,
+        ok: false,
+        conflicts: [
+          {
+            code: "MIGRATION_MISSING",
+            subject: "0002_other",
+            message: "It was applied there, but this version lacks it.",
+          },
+        ],
+        prompt: "Help me promote crm. MIGRATION_MISSING (0002_other).",
+      });
+      const d = dialog();
+      expect(d.textContent).toContain("cannot go to production yet (1 problem)");
+      expect(d.textContent).toContain("MIGRATION_MISSING");
+      expect(d.textContent).toContain("0002_other");
+      expect(d.textContent).toContain("forgeron db status --env production");
+      expect(d.textContent).toContain("forgeron promote --from-branch feat-export --to production");
+      expect(button(d, "Promote").disabled).toBe(true);
+      await click(button(d, "Copy prompt for your agent"));
+      expect(written).toEqual(["Help me promote crm. MIGRATION_MISSING (0002_other)."]);
+      expect(d.textContent).toContain("Copied");
+      expect(platform.map((c) => c.path)).toEqual(["/promote/plan"]);
+    });
+
+    it("keeps a destructive migration for the terminal", async () => {
+      await open({
+        ...plan,
+        requiresAllowDestructive: true,
+        migrations: { ...plan.migrations, destructive: ["0002_stage"] },
+      });
+      expect(dialog().textContent).toContain("It drops or rewrites data.");
+      expect(dialog().textContent).toContain("--allow-destructive");
+      expect(button(dialog(), "Promote").disabled).toBe(true);
+    });
+
+    it("says when production already serves the version", async () => {
+      await open({ ...plan, alreadyServed: true });
+      expect(dialog().textContent).toContain("Production already serves this version.");
+    });
   });
 
   it("says why the platform refused, and keeps the dialog open", async () => {

@@ -78,6 +78,10 @@ The command does, in order:
 
 Running it again is safe: the D1 and the Worker are reused, and a new version of the gateway is deployed. The gateway's `CLOUDFLARE_API_TOKEN` secret is kept like its keys when you give no token to store, so running again with `--auth wrangler` does not take away its ability to deploy tools. The `TOOL_<WORKER>` service bindings of the tools already deployed (the registry lists their environments) are carried over to it. A binding Cloudflare cannot carry over is left out and named in the output: that tool is not reachable until it is deployed again.
 
+## Looking at an install (`forgeron platform status`)
+
+`forgeron platform status --account <id> --domain <base-domain> [--name forgeron] [--auth token|wrangler]` reads, and changes nothing: whether the platform database exists and which migrations are applied or pending, which bindings the gateway holds (a secret shows its name only; a plain value is shown for a short list of safe ones: the domain, the sign-in methods, the admin address), how many tool environments are bound, and whether `*.<domain>/*` points to the gateway. It exits 1 when something is missing or pending, and says what to run. The credential rules are the install's (D-026).
+
 ## Sign-in by email
 
 Without an identity provider, or beside one, the gateway signs people in by a code sent to their email (D-049). No password is stored.

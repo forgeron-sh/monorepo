@@ -17,6 +17,7 @@ import { UsageError, type Io } from "../io";
 import { resolveCloudflareCredential } from "./cloudflare-auth";
 import { identitySettings, KEYS, settingBindings, type IdentityFlags } from "./gateway-identity";
 import { readAssets } from "./console-assets";
+import { platformStatus, STATUS_USAGE } from "./platform-status";
 
 // `forgeron platform install` (docs/ARCHITECTURE.md, "Installing the platform in self-host"):
 // creates the platform D1 and migrates it, then deploys the gateway Worker on the customer's
@@ -51,7 +52,8 @@ export async function platform(
   options: PlatformOptions = {},
 ): Promise<number> {
   const [sub, ...rest] = args;
-  if (sub !== "install") throw new UsageError(USAGE);
+  if (sub === "status") return platformStatus(rest, io, options);
+  if (sub !== "install") throw new UsageError(`${USAGE}\n       ${STATUS_USAGE}`);
   const { values, positionals } = parseArgs({
     args: rest,
     allowPositionals: true,

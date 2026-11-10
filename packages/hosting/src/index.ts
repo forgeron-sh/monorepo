@@ -27,12 +27,20 @@ export type {
 } from "./self-host";
 export { createCloudHosting, ensureDispatchNamespace } from "./cloud";
 export type { CloudOptions } from "./cloud";
-export { applyMigrations, migrationStatus, MigrationError, revertMigrations } from "./migrate";
+export {
+  applyMigrations,
+  checkMigrations,
+  migrationStatus,
+  MigrationError,
+  revertMigrations,
+} from "./migrate";
 export type {
   BuildMigration,
   D1Database,
   MigrateOptions,
   MigrateResult,
+  MigrationCheck,
+  MigrationConflict,
   MigrationErrorCode,
   MigrationStatement,
 } from "./migrate";

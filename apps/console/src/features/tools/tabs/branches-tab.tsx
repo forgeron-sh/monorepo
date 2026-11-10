@@ -173,6 +173,7 @@ export default function BranchesTab({ tool, api, ws, now }: ToolTabProps) {
           api={api}
           from={current}
           to={action.row.version}
+          {...(action.row.branch ? { branch: action.row.branch } : {})}
           {...(versions.data ? { versions: versions.data } : {})}
           onClose={() => setAction(undefined)}
           onDone={done}

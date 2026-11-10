@@ -4,6 +4,7 @@ import {
   deployRoute,
   issueTokenRoute,
   promoteRoute,
+  promotionPlanRoute,
   revokeTokenRoute,
   rollbackRoute,
   whoamiRoute,
@@ -11,7 +12,7 @@ import {
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, MiddlewareHandler } from "hono";
 import { handleCreateDeployToken, handleDeploy } from "../deploy/deploy";
-import { handlePromote, handleRollback } from "../deploy/promote";
+import { handlePromote, handlePromotePlan, handleRollback } from "../deploy/promote";
 import { handleCliToken } from "../identity/cli-login/cli";
 import { handleIssueToken, handleRevokeToken } from "../identity/authn/issue";
 import type { PlatformEnv } from "./app";
@@ -97,6 +98,7 @@ export function mountBearer(app: OpenAPIHono<PlatformEnv>): void {
   });
   for (const [route, handle] of [
     [promoteRoute, handlePromote],
+    [promotionPlanRoute, handlePromotePlan],
     [rollbackRoute, handleRollback],
   ] as const) {
     mount(route.path, (c) => {

@@ -1,29 +1,16 @@
 import { addresses } from "@forgeron/platform-contract/client";
+import { writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { readCredentials } from "../credentials";
 import { UsageError, type Io } from "../io";
 import { platformClient, refusal } from "../platform-client";
 import { readProject } from "../project";
+import { credentialsOf } from "../remote";
 
-const PROMOTE_USAGE =
-  "Usage: forgeron promote <version> --to preview|production [--branch <name>] [--allow-destructive]";
+const PROMOTE_USAGE = `Usage: forgeron promote <version> --to preview|production [--branch <name>] [--allow-destructive]
+       forgeron promote --from-branch <name> --to production [--allow-destructive] [--dry-run] [--prompt-file <path>]`;
 const ROLLBACK_USAGE = "Usage: forgeron rollback [--env production|preview] [--branch <name>]";
 const ENVIRONMENTS = ["preview", "production"];
-
-/**
- * Who the CLI is to the gateway for promote and rollback (D-033): `FORGERON_TOKEN` (a deployment
- * token, CI) if set, else the token `forgeron login` stored. The gateway accepts a deployment
- * token of the tool, or an administrator.
- */
-async function credentialsOf(io: Io): Promise<string> {
-  const token = process.env.FORGERON_TOKEN || (await readCredentials(process.env, io.keychain));
-  if (!token) {
-    throw new UsageError(
-      "Not signed in: run `forgeron login` (an administrator), or set FORGERON_TOKEN.",
-    );
-  }
-  return token;
-}
 
 async function endpointOf(io: Io) {
   const project = await readProject(io.cwd);
@@ -33,6 +20,50 @@ async function endpointOf(io: Io) {
     );
   }
   return { project, endpoint: project.endpoint };
+}
+
+/** The exit code of a promotion that was refused for conflicts: not an error of the tool, not a wrong use. */
+const CONFLICTS = 3;
+
+/** What the CLI reads of a plan (`POST /promote/plan`). */
+interface Plan {
+  tool: string;
+  version: string;
+  to: { environment: string; branch?: string; currentVersion?: string };
+  alreadyServed: boolean;
+  ok: boolean;
+  conflicts: Array<{ code: string; subject?: string; message: string }>;
+  requiresAllowDestructive: boolean;
+  migrations: { checked: boolean; pending: string[]; destructive: string[] };
+  changes: Array<{ impact: string; subject: string; detail?: string }>;
+  prompt?: string;
+}
+
+/** What stops a promotion, the way out, and the prompt an agent can be given. */
+function printConflicts(
+  io: Io,
+  plan: Plan & {
+    conflicts: Array<{ code: string; subject?: string; message: string }>;
+    prompt?: string;
+  },
+) {
+  const where = plan.to.branch ? `${plan.to.environment} (${plan.to.branch})` : plan.to.environment;
+  io.error(
+    `${plan.tool}@${plan.version} cannot go to ${where} yet: ${plan.conflicts.length} problem${plan.conflicts.length === 1 ? "" : "s"}.`,
+  );
+  for (const c of plan.conflicts) {
+    io.error(`  - ${c.code}${c.subject ? ` (${c.subject})` : ""}: ${c.message}`);
+  }
+  io.error("");
+  io.error(
+    "Fix them with the CLI (`forgeron db status --env production` shows what the database has applied), or hand them to an agent: copy the prompt below into Claude Code or your agent, in this tool's folder.",
+  );
+  if (plan.prompt) {
+    io.error("");
+    io.error("----- prompt -----");
+    io.error(plan.prompt);
+    io.error("----- end of prompt -----");
+  }
 }
 
 /**
@@ -47,11 +78,25 @@ export async function promote(args: string[], io: Io): Promise<number> {
     options: {
       to: { type: "string" },
       branch: { type: "string" },
+      "from-branch": { type: "string" },
+      "dry-run": { type: "boolean" },
+      "prompt-file": { type: "string" },
       "allow-destructive": { type: "boolean" },
     },
   });
   const [version] = positionals;
-  if (!version || positionals.length > 1 || !values.to) throw new UsageError(PROMOTE_USAGE);
+  const fromBranch = values["from-branch"];
+  // Exactly one of a version and a branch to take it from.
+  if (
+    positionals.length > 1 ||
+    !values.to ||
+    (version === undefined) === (fromBranch === undefined)
+  ) {
+    throw new UsageError(PROMOTE_USAGE);
+  }
+  if (values["dry-run"] && fromBranch === undefined && version === undefined) {
+    throw new UsageError(PROMOTE_USAGE);
+  }
   if (!ENVIRONMENTS.includes(values.to)) {
     throw new UsageError(`--to ${values.to}: one of ${ENVIRONMENTS.join(", ")}.`);
   }
@@ -60,12 +105,68 @@ export async function promote(args: string[], io: Io): Promise<number> {
   }
   const { project, endpoint } = await endpointOf(io);
   const token = await credentialsOf(io);
+  const client = platformClient(endpoint, token);
+  const target = values.to as "preview" | "production";
+  const source = fromBranch !== undefined ? { fromBranch } : { version: version! };
 
-  const answer = await platformClient(endpoint, token)(addresses.promote, {
+  // From a branch, or asked to only look: the plan first (D-113). It says whether the version can go,
+  // and what stops it; nothing moves unless there is no conflict.
+  if (fromBranch !== undefined || values["dry-run"]) {
+    const planned = await client(addresses.promotionPlan, {
+      json: {
+        tool: project.tool,
+        ...source,
+        to: target,
+        ...(values.branch ? { branch: values.branch } : {}),
+      },
+    });
+    if (planned.status !== 200) {
+      io.error(refusal(planned));
+      return 1;
+    }
+    const plan = planned.body;
+    if (!plan.ok) {
+      printConflicts(io, plan);
+      if (values["prompt-file"] && plan.prompt) {
+        const file = resolve(io.cwd, values["prompt-file"]);
+        await writeFile(file, `${plan.prompt}\n`);
+        io.log(`The prompt was written to ${file}.`);
+      }
+      return CONFLICTS;
+    }
+    if (plan.alreadyServed) {
+      io.log(`${target} already serves ${project.tool}@${plan.version}: nothing to promote.`);
+      return 0;
+    }
+    io.log(
+      `${project.tool}@${plan.version} can go to ${target}${plan.to.currentVersion ? ` (it serves ${plan.to.currentVersion})` : ""}.`,
+    );
+    if (plan.migrations.checked || plan.migrations.pending.length > 0) {
+      io.log(
+        plan.migrations.pending.length
+          ? `  Migrations to apply: ${plan.migrations.pending.join(", ")}`
+          : "  No migration to apply.",
+      );
+    }
+    for (const change of plan.changes) {
+      io.log(
+        `  ${change.impact.padEnd(5)} ${change.subject}${change.detail ? `: ${change.detail}` : ""}`,
+      );
+    }
+    if (plan.requiresAllowDestructive && !values["allow-destructive"]) {
+      io.error(
+        `It drops or rewrites data (${plan.migrations.destructive.join(", ")}): read those migrations, then run again with --allow-destructive.`,
+      );
+      return 1;
+    }
+    if (values["dry-run"]) return 0;
+  }
+
+  const answer = await client(addresses.promote, {
     json: {
       tool: project.tool,
-      version,
-      to: values.to as "preview" | "production",
+      ...source,
+      to: target,
       ...(values.branch ? { branch: values.branch } : {}),
       ...(values["allow-destructive"] ? { allowDestructive: true } : {}),
     },
@@ -76,7 +177,7 @@ export async function promote(args: string[], io: Io): Promise<number> {
   }
   const promoted = answer.body;
   io.log(
-    `Promoted ${project.tool}@${promoted.version ?? version} to ${values.to}${promoted.url ? `: ${promoted.url}` : ""}`,
+    `Promoted ${project.tool}@${promoted.version ?? version ?? ""} to ${values.to}${promoted.url ? `: ${promoted.url}` : ""}`,
   );
   if (promoted.applied?.length) io.log(`Migrations applied: ${promoted.applied.join(", ")}`);
   return 0;

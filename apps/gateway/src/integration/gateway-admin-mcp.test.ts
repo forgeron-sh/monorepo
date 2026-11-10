@@ -271,7 +271,7 @@ describe("the tools and their minimum role", () => {
     expect((await listed(ana)).sort()).toEqual([...MEMBER].sort());
     expect((await listed(dev)).sort()).toEqual([...DEVELOPER].sort());
     expect((await listed(root)).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(19);
+    expect(TOOLS).toHaveLength(20);
   });
 
   it("marks what changes something with destructiveHint, and nothing else", async () => {
@@ -301,6 +301,7 @@ describe("the tools and their minimum role", () => {
         ["access_revoke", { person: "root@acme.test", role: "admin" }],
         ["resources_approve", { id: approvalId }],
         ["tool_promote", { tool: "crm", version: "1.1.0", to: "production" }],
+        ["tool_promote_plan", { tool: "crm", version: "1.1.0", to: "production" }],
         ["tool_rollback", { tool: "crm", environment: "production" }],
         ["template_list", {}],
         ["usage_report", {}],
@@ -504,6 +505,52 @@ describe("what the tools change goes through the console's path, audited via the
     expect(
       (await call(root, "tool_promote", { tool: "crm", version: "1.1.0", to: "preview" })).text,
     ).toMatch(/branch/);
+  });
+});
+
+describe("the plan of a promotion through the MCP (D-113)", () => {
+  it("says whether a version can go, and changes nothing", async () => {
+    const before = await auditCount();
+    const plan = await call(root, "tool_promote_plan", {
+      tool: "crm",
+      version: "1.1.0",
+      to: "production",
+    });
+    expect(plan.error).toBe(false);
+    expect(plan.data).toMatchObject({ tool: "crm", version: "1.1.0", ok: true, conflicts: [] });
+    expect(await auditCount()).toBe(before);
+    expect(
+      (await call(root, "tool_promote_plan", { tool: "crm", version: "9.9.9", to: "production" }))
+        .text,
+    ).toMatch(/^404 NOT_FOUND/);
+    // A version or a branch, not both and not neither: the platform says so.
+    expect((await call(root, "tool_promote_plan", { tool: "crm", to: "production" })).text).toMatch(
+      /^400 INVALID/,
+    );
+  });
+
+  it("answers tool_promote with the plan, and moves nothing, when something stops the version", async () => {
+    const tool = (await registry.findTool("acme", "crm"))!;
+    // A version recorded without a changelog entry: production refuses it.
+    const built = await registry.recordBuild(tool.id, {
+      fingerprint: "no-changelog",
+      manifest: { name: "crm", resources: {} },
+      worker: "// no changelog",
+    });
+    await registry.publishVersion(tool.id, built.id, "9.0.0");
+    const answer = await call(root, "tool_promote", {
+      tool: "crm",
+      version: "9.0.0",
+      to: "production",
+    });
+    expect(answer.error).toBe(false);
+    expect(answer.data.promoted).toBe(false);
+    expect(answer.data.plan.conflicts.map((c: any) => c.code)).toEqual(["CHANGELOG_NO_ENTRY"]);
+    expect(answer.data.plan.prompt).toContain("CHANGELOG_NO_ENTRY");
+    const production = (await registry.listEnvironments(tool.id)).find(
+      (e) => e.name === "production",
+    )!;
+    expect((await registry.getVersion(production.versionId!))!.version).not.toBe("9.0.0");
   });
 });
 

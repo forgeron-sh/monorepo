@@ -208,23 +208,24 @@ The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forge
 
 ### Lifecycle
 
-| Command                                                             | What it does                                                                                                                                             |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `forgeron login` · `logout` · `whoami`                              | Authenticates the person on a workspace (browser, SSO)                                                                                                   |
-| `forgeron init [name] [--template crm]`                             | Creates a tool, from scratch or from a template in the catalog; writes `.forgeron/`                                                                      |
-| `forgeron link`                                                     | Links an existing folder to a tool in the workspace                                                                                                      |
-| `forgeron dev [--as <role>] [--port 8787]`                          | Runs the tool locally on the Cloudflare runtime: API, local MCP server (`/mcp`), views, playground; hot reload; applies migrations to the local database |
-| `forgeron play [--template <name>]`                                 | Opens the playground: list of actions, generated form, result, MCP / API / CLI preview; with `--template`, tries out a template without installing it    |
-| `forgeron test`                                                     | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                          |
-| `forgeron build`                                                    | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                    |
-| `forgeron preview close [--branch <name>]`                          | Tears down the preview of a branch (a closed pull request); needs `FORGERON_TOKEN`                                                                       |
-| `forgeron deploy [--env preview\|production] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                          |
-| `forgeron versions`                                                 | Lists versions and their environments                                                                                                                    |
-| `forgeron promote <version> --to <env>`                             | Promotes an existing version, without rebuilding                                                                                                         |
-| `forgeron rollback [--env production]`                              | Goes back to the environment's previous version                                                                                                          |
-| `forgeron logs [--env] [--action <name>] [--job <name>] [--follow]` | Execution log                                                                                                                                            |
-| `forgeron jobs run <name> [--env]`                                  | Runs a scheduled task on demand                                                                                                                          |
-| `forgeron resources [--diff production]`                            | Shows the requested resources, or what changes compared with an environment                                                                              |
+| Command                                                             | What it does                                                                                                                                                 |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `forgeron login` · `logout` · `whoami`                              | Authenticates the person on a workspace (browser, SSO)                                                                                                       |
+| `forgeron init [name] [--template crm]`                             | Creates a tool, from scratch or from a template in the catalog; writes `.forgeron/`                                                                          |
+| `forgeron link`                                                     | Links an existing folder to a tool in the workspace                                                                                                          |
+| `forgeron dev [--as <role>] [--port 8787]`                          | Runs the tool locally on the Cloudflare runtime: API, local MCP server (`/mcp`), views, playground; hot reload; applies migrations to the local database     |
+| `forgeron play [--template <name>]`                                 | Opens the playground: list of actions, generated form, result, MCP / API / CLI preview; with `--template`, tries out a template without installing it        |
+| `forgeron test`                                                     | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                              |
+| `forgeron build`                                                    | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                        |
+| `forgeron preview close [--branch <name>]`                          | Tears down the preview of a branch (a closed pull request); needs `FORGERON_TOKEN`                                                                           |
+| `forgeron deploy [--env preview\|production] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                              |
+| `forgeron versions`                                                 | Lists versions and their environments                                                                                                                        |
+| `forgeron promote <version> --to <env>`                             | Promotes an existing version, without rebuilding                                                                                                             |
+| `forgeron promote --from-branch <b> --to production`                | Promotes what a branch's preview serves, after checking the plan: no conflict, it goes; otherwise it prints each conflict and a prompt for an agent (exit 3) |
+| `forgeron rollback [--env production]`                              | Goes back to the environment's previous version                                                                                                              |
+| `forgeron logs [--env] [--action <name>] [--job <name>] [--follow]` | Execution log                                                                                                                                                |
+| `forgeron jobs run <name> [--env]`                                  | Runs a scheduled task on demand                                                                                                                              |
+| `forgeron resources [--diff production]`                            | Shows the requested resources, or what changes compared with an environment                                                                                  |
 
 ### Versions and changelog
 
@@ -237,25 +238,28 @@ The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forge
 
 ### Administration
 
-| Command                                                          | What it does                                                                                   |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `forgeron catalog search <text>`                                 | Searches the template catalog                                                                  |
-| `forgeron install <template> [--name]`                           | Installs a template in the workspace, after displaying and approving the resources             |
-| `forgeron tools`                                                 | Lists the workspace's tools, their versions and environments                                   |
-| `forgeron access grant <tool> <role> <person\|group>` · `revoke` | Manages access                                                                                 |
-| `forgeron approve <tool> <version>`                              | Approves the new resources requested by a version                                              |
-| `forgeron mcp`                                                   | Runs the admin MCP locally (stdio), for a self-hosted workspace or a client without remote MCP |
+| Command                                                          | What it does                                                                                                                                                                                               |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forgeron catalog search <text>`                                 | Searches the template catalog                                                                                                                                                                              |
+| `forgeron install <template> [--name]`                           | Installs a template in the workspace, after displaying and approving the resources                                                                                                                         |
+| `forgeron tools`                                                 | Lists the workspace's tools, their versions and environments                                                                                                                                               |
+| `forgeron access grant <tool> <role> <person\|group>` · `revoke` | Manages access                                                                                                                                                                                             |
+| `forgeron approve <tool> <version>`                              | Approves the new resources requested by a version                                                                                                                                                          |
+| `forgeron mcp`                                                   | Runs the admin MCP locally (stdio), for a self-hosted workspace or a client without remote MCP                                                                                                             |
+| `forgeron admin <area> <verb>`                                   | The admin operations from a terminal: `tools list`, `approvals list\|approve\|reject`, `members list\|invite\|roles\|remove`, `audit`, `user-secrets list\|set\|revoke`, `reseal`, `revoke-tokens` (D-113) |
+| `forgeron api <METHOD> <path>`                                   | Calls any `/api/` route of the console API with your token, like `gh api` (D-113)                                                                                                                          |
+| `forgeron platform status --account --domain`                    | What is installed on the Cloudflare account: platform database and migrations, gateway bindings (names only), route (D-113)                                                                                |
 
 ### Database
 
-| Command                                       | What it does                                                                     |
-| --------------------------------------------- | -------------------------------------------------------------------------------- |
-| `forgeron db generate [--name <name>]`        | Compares `db/schema.ts` with the last snapshot and writes the migration(s)       |
-| `forgeron db migrate [--env]`                 | Applies pending migrations (local by default)                                    |
-| `forgeron db status [--env]`                  | Applied and pending migrations                                                   |
-| `forgeron db rollback [--env] [--steps 1]`    | Runs the `down` of the latest migrations                                         |
-| `forgeron db seed`                            | Runs `db/seed.ts` on the local database                                          |
-| `forgeron db shell [--env] --sql <statement>` | SQL console; read-only outside local, except with `--write` and the `admin` role |
+| Command                                       | What it does                                                                                                                                                                                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `forgeron db generate [--name <name>]`        | Compares `db/schema.ts` with the last snapshot and writes the migration(s)                                                                                                                                                           |
+| `forgeron db migrate [--env]`                 | Applies pending migrations (local by default)                                                                                                                                                                                        |
+| `forgeron db status [--env] [--branch]`       | Applied and pending migrations; on `preview` or `production`, against the version served, with the conflicts (administrators)                                                                                                        |
+| `forgeron db rollback [--env] [--steps 1]`    | Runs the `down` of the latest migrations                                                                                                                                                                                             |
+| `forgeron db seed`                            | Runs `db/seed.ts` on the local database                                                                                                                                                                                              |
+| `forgeron db shell [--env] --sql <statement>` | SQL console. Local: yours. On `preview` or `production` (administrators, `forgeron login`): one statement, read by default; a write needs `--write` and, on production, `--confirm <tool>`; recorded in the audit log before it runs |
 
 ### Secrets and access
 
@@ -794,26 +798,27 @@ In addition to each tool's MCP server, the workspace exposes **a Forgeron MCP se
 
 Each tool calls the platform's own routes with the signed-in person's identity, so it has the guard, the validation and the audit lines of the console. `/mcp` is authenticated with a Bearer token limited to the workspace: a **CLI token** (`forgeron login`, D-079) or an **OAuth token** that an MCP client such as a Claude connector got by signing in at `/oauth/authorize` (D-094: PKCE, one hour, renewed by a refresh token that rotates, revocable); the session cookie and a tool's tokens are refused. An OAuth token is good on `/mcp` only. The same sign-in works for a tool's MCP: `/t/<tool>/mcp` is its own OAuth resource, and the token it gives is for that tool and that path (D-095). A person is offered only the tools their role allows.
 
-| MCP tool                         | What it does                                                                                                                   | Minimum role in the workspace | Destructive |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | ----------- |
-| `catalog_search`                 | Searches the workspace's catalog of tools                                                                                      | member                        |             |
-| `catalog_get`                    | A tool's card: what it does, how to connect, what the caller may call                                                          | member                        |             |
-| `tools_list`                     | The workspace's tools, their versions per environment                                                                          | member                        |             |
-| `tool_get`                       | Tool detail: versions per environment and its card                                                                             | member                        |             |
-| `tool_changelog`                 | A tool's changelog, optionally since a version                                                                                 | developer                     |             |
-| `tool_versions`                  | Versions and environments                                                                                                      | developer                     |             |
-| `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                                                               | developer                     |             |
-| `secret_request`                 | A link where you type a tool's secret yourself; single use, never the value                                                    | developer                     |             |
-| `usage_report`                   | Authenticated calls per tool and per person over a period, counts only (D-093)                                                 | admin                         |             |
-| `template_list`                  | The templates of the catalog and the resources each asks for                                                                   | admin                         |             |
-| `tool_install_plan`              | What installing a template would create; returns a plan identifier (15 minutes, single use)                                    | admin                         |             |
-| `tool_install`                   | Creates the tool of a plan, once; takes only the plan's identifier                                                             | admin                         | yes         |
-| `tool_promote`                   | Promotes a version to an environment (never allows a destructive migration)                                                    | admin                         | yes         |
-| `tool_rollback`                  | Goes back to an environment's previous version                                                                                 | admin                         | yes         |
-| `resources_pending`              | The versions awaiting a resource approval                                                                                      | admin                         |             |
-| `resources_approve`              | Approves one pending request for a resource                                                                                    | admin                         | yes         |
-| `access_list`                    | A tool's roles × actions matrix, or the members and their roles                                                                | admin                         |             |
-| `access_grant` · `access_revoke` | Gives or takes a workspace role of a member, or allows or refuses a role an action of a tool (a group is not a subject: D-091) | admin                         | yes         |
+| MCP tool                         | What it does                                                                                                                                             | Minimum role in the workspace | Destructive |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
+| `catalog_search`                 | Searches the workspace's catalog of tools                                                                                                                | member                        |             |
+| `catalog_get`                    | A tool's card: what it does, how to connect, what the caller may call                                                                                    | member                        |             |
+| `tools_list`                     | The workspace's tools, their versions per environment                                                                                                    | member                        |             |
+| `tool_get`                       | Tool detail: versions per environment and its card                                                                                                       | member                        |             |
+| `tool_changelog`                 | A tool's changelog, optionally since a version                                                                                                           | developer                     |             |
+| `tool_versions`                  | Versions and environments                                                                                                                                | developer                     |             |
+| `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                                                                                         | developer                     |             |
+| `secret_request`                 | A link where you type a tool's secret yourself; single use, never the value                                                                              | developer                     |             |
+| `usage_report`                   | Authenticated calls per tool and per person over a period, counts only (D-093)                                                                           | admin                         |             |
+| `template_list`                  | The templates of the catalog and the resources each asks for                                                                                             | admin                         |             |
+| `tool_install_plan`              | What installing a template would create; returns a plan identifier (15 minutes, single use)                                                              | admin                         |             |
+| `tool_install`                   | Creates the tool of a plan, once; takes only the plan's identifier                                                                                       | admin                         | yes         |
+| `tool_promote_plan`              | Whether a version, or the version a branch serves, can go to an environment, and what stops it, with a prompt to fix it (D-113)                          | admin                         |             |
+| `tool_promote`                   | Promotes a version, or what a branch serves, after the plan: with conflicts it moves nothing and answers the plan (never allows a destructive migration) | admin                         | yes         |
+| `tool_rollback`                  | Goes back to an environment's previous version                                                                                                           | admin                         | yes         |
+| `resources_pending`              | The versions awaiting a resource approval                                                                                                                | admin                         |             |
+| `resources_approve`              | Approves one pending request for a resource                                                                                                              | admin                         | yes         |
+| `access_list`                    | A tool's roles × actions matrix, or the members and their roles                                                                                          | admin                         |             |
+| `access_grant` · `access_revoke` | Gives or takes a workspace role of a member, or allows or refuses a role an action of a tool (a group is not a subject: D-091)                           | admin                         | yes         |
 
 `tool_changelog` is for developers because the route that carries the changelog is (the version list shows the commits and what changed); a member reads a tool's card.
 

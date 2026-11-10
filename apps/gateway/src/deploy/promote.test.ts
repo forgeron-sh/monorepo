@@ -4,7 +4,7 @@ import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Person } from "../kernel/person";
 import { issueToken } from "../identity/authn/tokens";
-import { handlePromote, handleRollback } from "./promote";
+import { handlePromote, handlePromotePlan, handleRollback } from "./promote";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -322,5 +322,120 @@ describe("POST /rollback", () => {
     const ctx = (who?: Person) => context(fakeHosting().hosting, who);
     expect((await handleRollback(post("/rollback", body), ctx())).status).toBe(401);
     expect((await handleRollback(post("/rollback", body), ctx(person([])))).status).toBe(403);
+  });
+});
+
+describe("promoting from a branch, and the plan (D-113)", () => {
+  const admin = () => person(["admin"]);
+
+  it("promotes what a branch serves, by the branch name, when nothing stops it", async () => {
+    await seed();
+    const { hosting, calls } = fakeHosting();
+    const response = await handlePromote(
+      post("/promote", { tool: "crm", fromBranch: "feat", to: "production" }),
+      context(hosting, admin()),
+    );
+    expect(response.status).toBe(200);
+    // The preview of `feat` serves 1.2.0, the latest it was deployed.
+    expect(await response.json()).toMatchObject({ version: "1.2.0", environment: "production" });
+    expect(calls).toContain("upload:fp3");
+  });
+
+  it("wants the version or the branch, not both and not neither, and a branch that serves something", async () => {
+    await seed();
+    const ctx = () => context(fakeHosting().hosting, admin());
+    const refuse = async (body: Record<string, unknown>, status: number) =>
+      expect(
+        (await handlePromote(post("/promote", { tool: "crm", to: "production", ...body }), ctx()))
+          .status,
+      ).toBe(status);
+    await refuse({}, 400);
+    await refuse({ version: "1.1.0", fromBranch: "feat" }, 400);
+    await refuse({ fromBranch: "" }, 400);
+    await refuse({ fromBranch: "ghost" }, 404);
+  });
+
+  it("answers the plan without moving anything, for an administrator and for a deployment token", async () => {
+    await seed();
+    const { hosting, calls } = fakeHosting();
+    const before = await historyOf("production");
+    for (const [token, who] of [
+      [undefined, admin()],
+      [await deployToken(), undefined],
+    ] as const) {
+      const response = await handlePromotePlan(
+        post("/promote/plan", { tool: "crm", fromBranch: "feat", to: "production" }, token),
+        context(hosting, who),
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        tool: "crm",
+        version: "1.2.0",
+        from: { branch: "feat" },
+        to: { environment: "production", currentVersion: "1.0.0" },
+        ok: true,
+        conflicts: [],
+      });
+    }
+    expect(calls.filter((c) => c.startsWith("upload") && c !== "upload:fp1")).toEqual([]);
+    expect(await historyOf("production")).toEqual(before);
+  });
+
+  it("says what stops a version, with the prompt, and the promotion itself still refuses it", async () => {
+    // A version without a changelog entry: production refuses it.
+    const tool = await registry.createTool({ workspace: "acme", name: "crm" });
+    const { hosting } = fakeHosting();
+    await deployBuild(registry, hosting, {
+      tool,
+      environment: "preview",
+      branch: "wip",
+      build: build("fp9", { changelog: undefined as never }),
+      version: "2.0.0",
+      actor: "ci",
+    });
+    const plan = await handlePromotePlan(
+      post("/promote/plan", { tool: "crm", fromBranch: "wip", to: "production" }),
+      context(hosting, admin()),
+    );
+    expect(plan.status).toBe(200);
+    const body = (await plan.json()) as {
+      ok: boolean;
+      conflicts: Array<{ code: string }>;
+      prompt: string;
+    };
+    expect(body.ok).toBe(false);
+    expect(body.conflicts.map((c) => c.code)).toEqual(["CHANGELOG_NO_ENTRY"]);
+    expect(body.prompt).toContain("CHANGELOG_NO_ENTRY");
+    const promoted = await handlePromote(
+      post("/promote", { tool: "crm", fromBranch: "wip", to: "production" }),
+      context(hosting, admin()),
+    );
+    expect(promoted.status).toBe(422);
+  });
+
+  it("keeps the plan for the callers of a promotion, and bounds its body", async () => {
+    await seed();
+    const ctx = (who?: Person) => context(fakeHosting().hosting, who);
+    const body = { tool: "crm", fromBranch: "feat", to: "production" };
+    expect((await handlePromotePlan(post("/promote/plan", body), ctx())).status).toBe(401);
+    expect(
+      (await handlePromotePlan(post("/promote/plan", body), ctx(person(["developer"])))).status,
+    ).toBe(403);
+    expect(
+      (
+        await handlePromotePlan(
+          post("/promote/plan", { tool: "crm", to: "production" }),
+          ctx(admin()),
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await handlePromotePlan(
+          post("/promote/plan", { tool: "crm", fromBranch: "ghost", to: "production" }),
+          ctx(admin()),
+        )
+      ).status,
+    ).toBe(404);
   });
 });

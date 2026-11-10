@@ -5,6 +5,7 @@
 // cannot move production.
 import { ChangelogRefusal, MigrationError, type Hosting } from "@forgeron/hosting";
 import {
+  planPromotion,
   promoteVersion,
   rollbackEnvironment,
   RegistryError,
@@ -143,7 +144,75 @@ async function prepare(request: Request, context: PromoteContext, environmentKey
 }
 
 /**
- * `POST /promote` `{ tool?, version, to, branch?, allowDestructive? }`: puts a version the
+ * The version to promote: named, or the one a branch's preview serves (`fromBranch`, D-113). Exactly
+ * one of the two.
+ */
+async function versionToPromote(
+  body: Record<string, unknown>,
+  context: PromoteContext,
+  tool: { id: string; name: string },
+): Promise<string | Response> {
+  const { version, fromBranch } = body;
+  if (version !== undefined && (typeof version !== "string" || version === "")) {
+    return fail(400, "INVALID", "version: the number to promote.");
+  }
+  if (fromBranch !== undefined && (typeof fromBranch !== "string" || fromBranch === "")) {
+    return fail(400, "INVALID", "fromBranch: the branch whose preview serves the version.");
+  }
+  if ((version === undefined) === (fromBranch === undefined)) {
+    return fail(400, "INVALID", "Name the version, or the branch it is served from, not both.");
+  }
+  if (typeof version === "string") return version;
+  const preview = (await context.registry.listEnvironments(tool.id)).find(
+    (e) => e.name === "preview" && e.branch === fromBranch,
+  );
+  const served = preview?.versionId
+    ? await context.registry.getVersion(preview.versionId)
+    : undefined;
+  if (!served) {
+    return fail(
+      404,
+      "NOT_FOUND",
+      `The branch ${String(fromBranch)} has no preview serving a version.`,
+    );
+  }
+  return served.version;
+}
+
+/**
+ * `POST /promote/plan` (D-113): can this version go to the environment, and what stops it. Read only:
+ * the same callers and the same body as a promotion, and nothing moves.
+ */
+export async function handlePromotePlan(request: Request, context: PromoteContext) {
+  const ready = await prepare(request, context, "to");
+  if (ready instanceof Response) return ready;
+  const { tool, body, environment, branch } = ready;
+  const { version, fromBranch } = body;
+  if (version !== undefined && (typeof version !== "string" || version === "")) {
+    return fail(400, "INVALID", "version: the number to promote.");
+  }
+  if (fromBranch !== undefined && (typeof fromBranch !== "string" || fromBranch === "")) {
+    return fail(400, "INVALID", "fromBranch: the branch whose preview serves the version.");
+  }
+  if ((version === undefined) === (fromBranch === undefined)) {
+    return fail(400, "INVALID", "Name the version, or the branch it is served from, not both.");
+  }
+  try {
+    const plan = await planPromotion(context.registry, context.hosting, {
+      tool,
+      to: environment,
+      ...(branch ? { branch } : {}),
+      ...(typeof version === "string" ? { version } : {}),
+      ...(typeof fromBranch === "string" ? { fromBranch } : {}),
+    });
+    return json(200, plan);
+  } catch (error) {
+    return failed(error);
+  }
+}
+
+/**
+ * `POST /promote` `{ tool?, version | fromBranch, to, branch?, allowDestructive? }`: puts a version the
  * tool already has on another environment, from the code recorded with its build. The target takes
  * it under the rules of a deployment: the changelog must cover the change (FOR-64), a destructive
  * migration needs `allowDestructive`, and what the version asks for must be approved.
@@ -152,14 +221,13 @@ export async function handlePromote(request: Request, context: PromoteContext) {
   const ready = await prepare(request, context, "to");
   if (ready instanceof Response) return ready;
   const { actor, tool, body, environment, branch, reason } = ready;
-  const { version, allowDestructive } = body;
-  if (typeof version !== "string" || version === "") {
-    return fail(400, "INVALID", "version: the number to promote.");
-  }
+  const { allowDestructive } = body;
+  const named = await versionToPromote(body, context, tool);
+  if (named instanceof Response) return named;
   try {
     const promoted = await promoteVersion(context.registry, context.hosting, {
       tool,
-      version,
+      version: named,
       to: environment,
       ...(branch ? { branch } : {}),
       ...(allowDestructive === true ? { allowDestructive: true } : {}),

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Io } from "../io";
+import { platformMigrations } from "@forgeron/registry";
 import { platform } from "./platform";
 
 // A throwaway value: it protects nothing and is not a secret.
@@ -767,5 +768,82 @@ describe("forgeron platform install", () => {
   it("does not look at wrangler without --auth", async () => {
     await platform(install(), io, { fetch: fakeCloudflare().fetcher });
     expect(io.capture).not.toHaveBeenCalled();
+  });
+});
+
+describe("forgeron platform status (D-113)", () => {
+  const status = ["status", "--account", "acc-1", "--domain", "forgeron.example.test"];
+
+  /** The simulated account, plus what status reads back: the migrations applied and the gateway's settings. */
+  function readable(cf: ReturnType<typeof fakeCloudflare>, applied = platformMigrations) {
+    const fetcher: typeof fetch = async (input, init) => {
+      const url = new URL(String(input));
+      const path = url.pathname.replace(/^\/client\/v4(\/accounts\/[^/]+)?/, "");
+      if (init?.method === "POST" && /^\/d1\/database\/[^/]+\/query$/.test(path)) {
+        const sql = String(JSON.parse(String(init.body)).sql);
+        if (sql.includes('FROM "_forgeron_migrations"')) {
+          return Response.json({
+            success: true,
+            errors: [],
+            result: [
+              { results: applied.map((m) => ({ name: m.name, fingerprint: m.fingerprint })) },
+            ],
+          });
+        }
+      }
+      if (
+        (init?.method ?? "GET") === "GET" &&
+        path === "/workers/scripts/forgeron-gateway/settings"
+      ) {
+        const latest = cf.versions.at(-1);
+        if (!latest)
+          return Response.json(
+            { success: false, errors: [{ message: "nf" }], result: null },
+            { status: 404 },
+          );
+        return Response.json({ success: true, errors: [], result: { bindings: latest } });
+      }
+      return cf.fetcher(input, init);
+    };
+    return fetcher;
+  }
+
+  it("says everything is in place after an install, and prints no secret", async () => {
+    const cf = fakeCloudflare();
+    await platform(install(), io, { fetch: cf.fetcher });
+    logs.length = 0;
+    const code = await platform(status, io, { fetch: readable(cf) });
+    const out = logs.join("\n");
+    expect(out).toContain("Everything is in place.");
+    expect(code).toBe(0);
+    expect(out).toContain("Platform database forgeron-platform");
+    expect(out).toContain(`${platformMigrations.length} migrations applied`);
+    expect(out).toContain("plain_text  BASE_DOMAIN  forgeron.example.test");
+    expect(out).toMatch(/secret_text\s+CLOUDFLARE_API_TOKEN\s*$/m);
+    expect(out).toContain("to forgeron-gateway");
+    expect(out).toContain("Everything is in place.");
+    expect(out).not.toContain(TOKEN);
+  });
+
+  it("names what is pending, what is missing and what is not there, and exits 1", async () => {
+    const cf = fakeCloudflare();
+    await platform(install(), io, { fetch: cf.fetcher });
+    logs.length = 0;
+    // An install from before the last migrations.
+    const older = platformMigrations.slice(0, -2);
+    expect(await platform(status, io, { fetch: readable(cf, older) })).toBe(1);
+    const out = logs.join("\n");
+    expect(out).toContain("! 2 pending");
+    expect(out).toContain(platformMigrations.at(-1)!.name);
+    expect(out).toMatch(/problems?\./);
+  });
+
+  it("says when nothing is installed, and asks for the options it needs", async () => {
+    const cf = fakeCloudflare();
+    expect(await platform(status, io, { fetch: readable(cf) })).toBe(1);
+    const out = logs.join("\n");
+    expect(out).toContain("not found: run `forgeron platform install`");
+    expect(out).toContain("not deployed");
+    await expect(platform(["status", "--account", "acc-1"], io)).rejects.toThrow(/Usage/);
   });
 });
