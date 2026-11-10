@@ -49,7 +49,7 @@ import type {
   installTemplateRoute,
   listTemplatesRoute,
 } from "./templates";
-import type { secretsStatusRoute } from "./secrets-status";
+import type { resealSecretsRoute, secretsStatusRoute } from "./secrets-status";
 import type {
   listToolsRoute,
   toolActivityRoute,
@@ -225,6 +225,10 @@ export const addresses = {
   setUserSecret: addressOf<typeof setUserSecretRoute>({
     method: "put",
     path: "/api/tools/{tool}/user-secrets/{person}/{name}",
+  }),
+  resealSecrets: addressOf<typeof resealSecretsRoute>({
+    method: "post",
+    path: "/api/secrets/reseal",
   }),
   secretsStatus: addressOf<typeof secretsStatusRoute>({
     method: "get",

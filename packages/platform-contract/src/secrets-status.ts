@@ -34,3 +34,25 @@ export const secretsStatusRoute = defineRoute({
     404: json(ErrorSchema, "No such tool"),
   },
 });
+
+// Sealing again what the platform keeps under a replaced key (D-108), for the workspace's admins. It
+// answers counts, never a value.
+export const resealSecretsRoute = defineRoute({
+  method: "post",
+  path: "/api/secrets/reseal",
+  summary: "Seal this workspace's stored secrets again under the current key",
+  tags: ["secrets"],
+  responses: {
+    200: json(
+      z.strictObject({
+        resealed: z.number().int().describe("Values moved from a previous key to the current one"),
+        current: z.number().int().describe("Values already under the current key"),
+        unreadable: z.number().int().describe("Values no key opens: left as they are"),
+      }),
+      "What was done",
+    ),
+    401: json(ErrorSchema, "Not signed in"),
+    403: json(ErrorSchema, "Not an admin"),
+    409: json(ErrorSchema, "The gateway has no `SECRETS_KEY`"),
+  },
+});

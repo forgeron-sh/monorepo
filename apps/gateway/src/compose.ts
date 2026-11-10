@@ -3,6 +3,7 @@ import {
   createConsent,
   createEmailCodes,
   createIdentityConfig,
+  createReseal,
   createSamlRequests,
   createRegistry,
   createSecretBox,
@@ -112,7 +113,13 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
 
   // The registry encrypts with `SECRETS_KEY` when it is bound, which is asynchronous: built once.
   let built:
-    | Promise<{ registry: Registry; config: IdentityConfig; codes: EmailCodes; box?: SecretBox }>
+    | Promise<{
+        registry: Registry;
+        config: IdentityConfig;
+        codes: EmailCodes;
+        box?: SecretBox;
+        resealer?: ReturnType<typeof createReseal>;
+      }>
     | undefined;
   const getBuilt = () =>
     (built ??= (async () => {
@@ -124,7 +131,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
         registry: createRegistry(env.DB, { now, ...(box ? { secrets: box } : {}) }),
         config: createIdentityConfig(env.DB, { now, ...(box ? { secrets: box } : {}) }),
         codes: createEmailCodes(env.DB, { now }),
-        ...(box ? { box } : {}),
+        ...(box ? { box, resealer: createReseal(env.DB, box) } : {}),
       };
     })());
 
@@ -195,7 +202,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
 
   /** The pieces that need the registry (asynchronous when `SECRETS_KEY` is bound): built once. */
   const parts = async () => {
-    const { registry, config, box, codes } = await getBuilt();
+    const { registry, config, box, codes, resealer } = await getBuilt();
     // The consent exchange for a workspace, with the OAuth clients it is given (sdk.md §10).
     const consentFor = (
       workspace: string,
@@ -289,6 +296,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       registry,
       config,
       box,
+      resealer,
       codes,
       consentFor,
       dispatch,
@@ -329,7 +337,7 @@ export function createRequestModules(
   workspace: string,
 ) {
   const { env, options, now, mailer } = modules;
-  const { registry, config, box, codes, consentFor, identity } = parts;
+  const { registry, config, box, codes, consentFor, identity, resealer } = parts;
   const origin = `https://${workspace}.${env.BASE_DOMAIN}`;
 
   // The person comes lazily and at most once: a route that is public, or refused before anyone is
@@ -387,6 +395,7 @@ export function createRequestModules(
     installDomains: modules.installDomains,
     config,
     canKeepSecrets: box !== undefined,
+    ...(resealer ? { reseal: () => resealer.resealSecrets(workspace) } : {}),
     now,
     ...(notify ? { notify } : {}),
     origin,

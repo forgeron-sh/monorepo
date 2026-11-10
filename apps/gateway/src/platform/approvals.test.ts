@@ -86,6 +86,15 @@ describeRouteMatrix({
 });
 
 describeRouteMatrix({
+  title: "POST re-seal the secrets",
+  ...admin,
+  forbidden: "Secrets are for admins.",
+  method: "POST",
+  path: "/api/secrets/reseal",
+  noBody: true,
+});
+
+describeRouteMatrix({
   title: "GET user setup",
   ...admin,
   ...revocation,
@@ -122,6 +131,36 @@ describe("the revocation routes", () => {
     ))!;
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "NOT_FOUND", message: "There is no such person." });
+  });
+});
+
+describe("re-sealing (D-108)", () => {
+  const as = {
+    id: "p-admin",
+    email: "a@acme.test",
+    name: "A",
+    admin: true,
+    developer: false,
+    roles: ["admin"],
+  };
+  const post = () =>
+    new Request("https://acme.forgeron.test/api/secrets/reseal", { method: "POST" });
+
+  it("answers the counts and writes an audit line without a value", async () => {
+    const reseal = vi.fn<() => Promise<{ resealed: number; current: number; unreadable: number }>>(
+      async () => ({ resealed: 3, current: 1, unreadable: 0 }),
+    );
+    const caller = platformCaller({ registry, who: () => as, reseal });
+    const res = (await caller(post()))!;
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ resealed: 3, current: 1, unreadable: 0 });
+    expect(reseal).toHaveBeenCalledTimes(1);
+  });
+
+  it("answers 409 where the gateway has no key", async () => {
+    const res = (await platformCaller({ registry, who: () => as })(post()))!;
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: "NO_SECRET_KEY" });
   });
 });
 

@@ -1,4 +1,4 @@
-import { listSecretsRoute, setSecretRoute } from "@forgeron/platform-contract";
+import { listSecretsRoute, resealSecretsRoute, setSecretRoute } from "@forgeron/platform-contract";
 import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
@@ -44,6 +44,23 @@ export function mountSecrets(app: OpenAPIHono<PlatformEnv>): void {
         ? undefined
         : c.json({ error: "INVALID", message: "`value` is a non-empty string (16 KB max)." }, 400),
   );
+
+  // Sealing again under the current key (D-108): counts only, for the workspace's admins.
+  app.openapi(platformRoute(resealSecretsRoute, "admin", FORBIDDEN), async (c) => {
+    const { reseal, workspace } = c.env;
+    if (!reseal) {
+      return c.json({ error: "NO_SECRET_KEY", message: "The gateway has no `SECRETS_KEY`." }, 409);
+    }
+    const report = await reseal();
+    await c.env.registry.recordAudit({
+      actor: c.get("person").id,
+      kind: "access",
+      subject: "secrets:resealed",
+      detail: { workspace, ...report },
+    });
+    return c.json(report, 200);
+  });
+  app.on(["GET", "PUT", "PATCH", "DELETE", "OPTIONS"], "/api/secrets/reseal", methodNotAllowed);
 
   app.on(
     ["POST", "PATCH", "DELETE", "OPTIONS"],
