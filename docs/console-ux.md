@@ -136,13 +136,22 @@ Modelled on the Supabase table editor and schema visualizer:
 
 ## Member space
 
-What a person who is not an administrator sees. They sign in and land on **Home**:
+What a person sees. They sign in and land on **Home**, their **library** (D-117). Nothing on it is
+technical: no version, role, action, interface or resource.
 
-- **My tools**: the tools they may use, as cards (icon, name, summary, how to open).
-- **Catalog**: the tools of the workspace they do not use yet, each with its card and what is needed to
-  get access (a role to ask an admin for).
-- A person's **Connect** instructions per tool: the MCP address and how to add it to Claude, the API
-  address and a token, the CLI command. Copy blocks.
+- **My tools**: the tools they added, as cards (icon, title, the tool's `summary`). _Use_ opens the
+  tool's page of the library; a tool that still asks for something (their own key, an account) says
+  _Setup to finish_ and its button is _Finish setup_.
+- **Available to you**: the tools an admin opened to them that they have not added. _Add_ puts the tool
+  in their library and opens its page, where they finish its setup and see how to use it.
+- A tool deployed before libraries (no rule yet) is in the library of everyone who may call it, and
+  cannot be removed.
+
+### Availability (admin, a tab of the tool page)
+
+Who may add the tool: nobody yet (a tool installed from a marketplace starts there), everyone, some
+workspace roles, or some people. Saving a choice on a tool that had none means each person adds it from
+their library to keep using it; the tab says so. What a person may do in the tool stays the Access tab.
 
 ### Tool card (the Overview tab)
 

@@ -22,10 +22,6 @@ type Raw = Record<string, unknown>;
 /** Only an address of the console API's catalog is ever put in an `<img>`. */
 const ASSET_URL = /^\/console-api\/api\/catalog\/[^/?#]+\/assets\/[^?#]+(\?v=[\w-]+)?$/;
 
-export async function loadCatalog(fetchJson: FetchJson): Promise<CatalogTool[]> {
-  return ok(await typedClient(fetchJson)(addresses.listCatalog)).tools;
-}
-
 /** A changelog entry is free-form for now: a string, or an object with a line of text in it. */
 const changelogLine = (entry: unknown): string => {
   if (typeof entry === "string") return entry;

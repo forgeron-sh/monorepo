@@ -14,13 +14,15 @@ export {
 } from "./deploy";
 export type { DeployBuildInput, DeployedBuild, PromoteInput, RollbackInput } from "./deploy";
 export {
+  AVAILABILITY_MODES,
   createRegistry,
+  isAvailable,
   marketplaceSource,
   RegistryError,
   TEMPLATE_WORKSPACE,
   VIA_FORGERON_MCP,
 } from "./registry";
-export type { Marketplace } from "./registry";
+export type { Availability, AvailabilityMode, Marketplace } from "./registry";
 export { docsProblem } from "./docs-check";
 export { listCatalog, findCard, findAsset, assetUrl } from "./catalog";
 export type { CatalogCaller } from "./catalog";

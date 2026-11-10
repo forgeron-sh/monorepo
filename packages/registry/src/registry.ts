@@ -10,6 +10,7 @@ import { createAudit } from "./modules/audit/public";
 import { createCatalog } from "./modules/catalog/public";
 import { createConnections } from "./modules/connections/public";
 import { createIdentityStore } from "./modules/identity-store/public";
+import { createLibrary } from "./modules/library/public";
 import { createMarketplaces } from "./modules/marketplaces/public";
 import { createMembers } from "./modules/members/public";
 import { createSecrets } from "./modules/secrets/public";
@@ -44,6 +45,8 @@ export type {
 } from "./modules/secrets/public";
 export { TEMPLATE_WORKSPACE } from "./modules/templates/public";
 export { marketplaceSource } from "./modules/marketplaces/public";
+export { AVAILABILITY_MODES, isAvailable } from "./modules/library/public";
+export type { Availability, AvailabilityMode } from "./modules/library/public";
 export type { Marketplace } from "./modules/marketplaces/public";
 
 export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
@@ -62,6 +65,7 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     ...createAccess(kernel, catalogPort),
     ...createTemplates(kernel, catalogPort),
     ...createMarketplaces(kernel, catalogPort),
+    ...createLibrary(kernel),
     ...createUsage(kernel),
   };
 }

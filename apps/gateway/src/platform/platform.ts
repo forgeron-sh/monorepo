@@ -10,6 +10,7 @@ import { mountIdentity } from "./identity";
 import { mountMembers } from "./members";
 import { mountSecretRequests } from "./secret-requests";
 import { mountSecrets } from "./secrets";
+import { mountLibrary } from "./library";
 import { mountMarketplaces } from "./marketplaces";
 import { mountTemplates } from "./templates";
 import { mountTools } from "./tools";
@@ -33,6 +34,7 @@ export function createPlatform() {
   mountApprovals(app);
   mountTemplates(app);
   mountMarketplaces(app);
+  mountLibrary(app);
   mountBearer(app);
   mountConsent(app);
 

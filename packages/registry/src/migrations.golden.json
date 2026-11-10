@@ -793,5 +793,30 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0031_library",
+    "fingerprint": "library-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"tool_availability\" (\n  \"tool_id\" TEXT PRIMARY KEY NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"mode\" TEXT NOT NULL,\n  \"subjects\" TEXT NOT NULL DEFAULT '[]',\n  \"updated_by\" TEXT,\n  \"updated_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"person_tools\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"person\" TEXT NOT NULL,\n  \"installed_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"person\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"person_tools\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"tool_availability\"",
+        "parameters": []
+      }
+    ]
   }
 ]

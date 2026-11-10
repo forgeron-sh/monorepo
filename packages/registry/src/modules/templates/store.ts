@@ -175,6 +175,12 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
             )
             .bind(newId(), toolId, versionId, r.resource, r.kind, at),
         ),
+        // Nobody may add it to their library until an admin says who (D-117).
+        d1
+          .prepare(
+            `INSERT INTO "tool_availability" ("tool_id", "mode", "subjects", "updated_by", "updated_at") VALUES (?, 'nobody', '[]', ?, ?)`,
+          )
+          .bind(toolId, input.actor, at),
         auditStatement(
           {
             toolId,

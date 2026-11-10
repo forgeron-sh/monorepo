@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { button, cleanup, click, fakeApi, mount, NOW, refusal, type } from "../../test-utils";
 import type { WorkspaceInfo } from "../../workspace";
 import { PortalHome } from "./home";
-import { MOCK_TOOLS, mockCatalogRoute, mockToolCard } from "./mock";
+import { MOCK_TOOLS, mockLibrary, mockToolCard } from "./mock";
 import ToolOverview from "./tool-card";
 
 afterEach(cleanup);
@@ -19,46 +19,59 @@ const ws = (
 });
 const go = () => {};
 
-describe("Home for a member", () => {
-  it("lists the tools they use and the ones they could ask for, with the roles to ask for", async () => {
-    const { api } = fakeApi({ "/api/catalog": mockCatalogRoute("/api/catalog", false) });
+describe("Home, the person's library (D-117)", () => {
+  const library = (admin = false) => ({ tools: mockLibrary(admin) });
+
+  it("lists the tools the person added and those they may add, with nothing technical", async () => {
+    const { api } = fakeApi({ "/api/library": library() });
     const view = await mount(<PortalHome ws={ws(false)} api={api} go={go} />);
     const mine = view.querySelector("[aria-labelledby='my-tools']")!;
-    expect(mine.textContent).toContain("crm");
-    expect(mine.textContent).toContain("odoo");
-    expect(mine.textContent).not.toContain("inventory");
-    const catalog = view.querySelector("[aria-labelledby='catalog']")!;
-    expect(catalog.textContent).toContain("inventory");
-    expect(catalog.textContent).toContain("Logistics");
-    expect(catalog.textContent).toContain("Ask for the role");
+    expect(mine.textContent).toContain("CRM");
+    expect(mine.textContent).toContain("Odoo gateway");
+    expect(mine.textContent).toContain("Setup to finish");
+    const available = view.querySelector("[aria-labelledby='available']")!;
+    expect(available.textContent).toContain("Inventory");
+    expect(view.textContent).not.toMatch(/v\d+\.\d+|MCP|API|CLI|role/i);
     expect(view.textContent).not.toContain("In this workspace");
   });
 
-  it("says Open for a tool with a web interface and Connect for one without", async () => {
-    const { api } = fakeApi({ "/api/catalog": mockCatalogRoute("/api/catalog", false) });
+  it("sends to the tool's page to use it, or to finish its setup", async () => {
+    const { api } = fakeApi({ "/api/library": library() });
     const view = await mount(<PortalHome ws={ws(false)} api={api} go={go} />);
-    expect(button(view, "Open").getAttribute("href")).toBe("/t/crm/");
-    expect(button(view, "Connect").getAttribute("href")).toBe("/tools/odoo");
+    expect(button(view, "Use").getAttribute("href")).toBe("/library/crm");
+    expect(button(view, "Finish setup").getAttribute("href")).toBe("/library/odoo");
+  });
+
+  it("adds a tool with a click and opens its page", async () => {
+    const seen: string[] = [];
+    const { api, sent } = fakeApi({
+      "/api/library": library(),
+      "POST /api/library/inventory": { installed: true, setupUrl: null },
+    });
+    const view = await mount(<PortalHome ws={ws(false)} api={api} go={(h) => seen.push(h)} />);
+    await click(button(view, "Add"));
+    expect(sent.map((s) => `${s.method} ${s.path}`)).toEqual(["POST /api/library/inventory"]);
+    expect(seen).toEqual(["/library/inventory"]);
   });
 
   it("filters by what the person types, and says when nothing matches", async () => {
-    const { api } = fakeApi({ "/api/catalog": mockCatalogRoute("/api/catalog", false) });
+    const { api } = fakeApi({ "/api/library": library() });
     const view = await mount(<PortalHome ws={ws(false)} api={api} go={go} />);
     const search = view.querySelector<HTMLInputElement>("input[type=search]")!;
-    await type(search, "leave");
+    await type(search, "equipment");
     expect(view.querySelector("[aria-labelledby='my-tools']")!.textContent).toContain(
       "No tool of yours matches",
     );
-    expect(view.querySelector("[aria-labelledby='catalog']")!.textContent).toContain("leave");
+    expect(view.querySelector("[aria-labelledby='available']")!.textContent).toContain("Inventory");
     await type(search, "zzz");
-    expect(view.textContent).toContain("No tool of the catalog matches");
+    expect(view.textContent).toContain("No available tool matches");
   });
 
   it("shows an empty state that says what to do, and an error with a retry", async () => {
     const empty = await mount(
-      <PortalHome ws={ws(false)} api={fakeApi({ "/api/catalog": { tools: [] } }).api} go={go} />,
+      <PortalHome ws={ws(false)} api={fakeApi({ "/api/library": { tools: [] } }).api} go={go} />,
     );
-    expect(empty.textContent).toContain("You do not use a tool yet");
+    expect(empty.textContent).toContain("You have no tool yet");
     expect(empty.textContent).toContain("Ask an admin");
     await cleanup();
     const failed = await mount(
@@ -66,7 +79,7 @@ describe("Home for a member", () => {
         ws={ws(false)}
         api={
           fakeApi({
-            "/api/catalog": () => {
+            "/api/library": () => {
               throw refusal(500);
             },
           }).api
@@ -77,20 +90,12 @@ describe("Home for a member", () => {
     expect(failed.textContent).toContain("could not be loaded");
     expect(button(failed, "Try again")).toBeTruthy();
   });
-
-  it("navigates in the page when a card is clicked", async () => {
-    const { api } = fakeApi({ "/api/catalog": mockCatalogRoute("/api/catalog", false) });
-    const seen: string[] = [];
-    const view = await mount(<PortalHome ws={ws(false)} api={api} go={(h) => seen.push(h)} />);
-    await click(view.querySelector("a.fg-toolcard-link"));
-    expect(seen).toEqual(["/tools/crm"]);
-  });
 });
 
 describe("Home for an admin", () => {
   it("adds the numbers of the workspace and the checklist while it is not done", async () => {
     const { api } = fakeApi({
-      "/api/catalog": mockCatalogRoute("/api/catalog", true),
+      "/api/library": { tools: mockLibrary(true) },
       "/api/tools": { tools: [] },
     });
     const view = await mount(
@@ -102,8 +107,7 @@ describe("Home for an admin", () => {
     );
     expect(view.textContent).toContain("In this workspace");
     expect(view.textContent).toContain("Get started");
-    expect(view.querySelector("[aria-labelledby='my-tools']")!.textContent).toContain("inventory");
-    expect(view.querySelector("[aria-labelledby='catalog']")).toBeNull();
+    expect(view.querySelector("[aria-labelledby='available']")!.textContent).toContain("Inventory");
   });
 });
 
