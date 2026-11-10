@@ -153,9 +153,25 @@ Who may add the tool: nobody yet (a tool installed from a marketplace starts the
 workspace roles, or some people. Saving a choice on a tool that had none means each person adds it from
 their library to keep using it; the tab says so. What a person may do in the tool stays the Access tab.
 
+### A tool in the library (the member's sheet)
+
+`/library/<tool>`, for anyone (D-118). Icon, title, the tool's `summary`, then:
+
+- **Add to my tools** when it is not added; adding a tool that asks for something goes straight to its
+  setup page, which comes back here. **Finish setup** while something is missing, with a notice that
+  says what is kept and for whom.
+- **About**: the tool's guide (`GUIDE.md`), or its summary when it has none.
+- **Use it** (once added and set up, opened by default): in the browser (_Open_), in Claude (the address
+  to paste as a custom connector, and the steps), in a terminal (`forgeron login`, then the command).
+- **Remove from my tools**, with a confirmation that says the tool stops working for them and that their
+  saved keys stay in their secrets.
+
+No version, role, action, interface name, resource or README.
+
 ### Tool card (the Overview tab)
 
-For admins and members alike. The pattern of an app directory:
+For admins and developers: the technical sheet (D-118). The Tools screens are theirs; a member reaches
+a tool through their library. The pattern of an app directory:
 [Twenty](https://mobbin.com/screens/5a9b57e5-c736-4000-9772-da12bf1c33f3),
 [GitBook](https://mobbin.com/screens/431254e3-9be9-4945-8e49-6eb1eb8f42c1),
 [Zendesk](https://mobbin.com/screens/5f0e6be7-da0e-415a-ac9b-0ad2df79c0a5),
@@ -163,7 +179,8 @@ For admins and members alike. The pattern of an app directory:
 
 - Header: icon, name, summary, a primary button (Open or Connect).
 - Left column: the README, rendered markdown: headings, lists, tables, code blocks, links, **images** of
-  the tool's repository. Tabs "About" and "How to install".
+  the tool's repository. Tabs "About", "What its users read" (the guide, when there is one) and "How to
+  install".
 - Right column: details: version, last release, interfaces (MCP, API, CLI, Web), roles that may use it,
   required secrets and connectors (what the person will be asked for), links (repository, docs).
 - The README is the tool's `README.md` and the images it references; they are collected at build and

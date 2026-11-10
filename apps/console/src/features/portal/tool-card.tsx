@@ -77,6 +77,7 @@ export function ToolCardView({
             label="About this tool"
             tabs={[
               { id: "about", label: "About" },
+              ...(card.guide ? [{ id: "guide", label: "What its users read" }] : []),
               { id: "install", label: "How to install" },
             ]}
             value={tab}
@@ -90,6 +91,8 @@ export function ToolCardView({
                   The owner of this tool has not written a description yet.
                 </p>
               )
+            ) : tab === "guide" && card.guide ? (
+              <Markdown source={card.guide} images={images} />
             ) : (
               <ConnectInstructions tool={card} />
             )}

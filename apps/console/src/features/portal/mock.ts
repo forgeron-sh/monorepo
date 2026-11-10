@@ -197,7 +197,7 @@ export function mockLibrary(admin: boolean) {
   }));
 }
 
-function mockLibraryCard(name: string, admin: boolean) {
+export function mockLibraryCard(name: string, admin: boolean) {
   const tool = mockLibrary(admin).find((t) => t.name === name);
   const source = MOCK_TOOLS.find((t) => t.name === name);
   if (!tool || !source) return undefined;
