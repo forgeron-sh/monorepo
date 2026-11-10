@@ -1,0 +1,366 @@
+:robot: I have created a release *beep* *boop*
+---
+
+
+<details><summary>0.2.0</summary>
+
+## [0.2.0](https://github.com/forgeron-sh/monorepo/compare/v0.1.1...v0.2.0) (2026-11-10)
+
+
+### Features
+
+* **catalog:** tool README and images through build, registry and catalog API (FOR-137) ([#116](https://github.com/forgeron-sh/monorepo/issues/116)) ([7641308](https://github.com/forgeron-sh/monorepo/commit/764130800c33120d66ba191a81812623d58f4a78))
+* **cli:** --workspace takes a full host, platform install --only ([#179](https://github.com/forgeron-sh/monorepo/issues/179)) ([8f39178](https://github.com/forgeron-sh/monorepo/commit/8f39178fd884c2dd229cce8113552bac3658e274))
+* **cli,gateway,console:** promote from a branch with a plan, remote SQL, admin CLI (FOR-183) ([#178](https://github.com/forgeron-sh/monorepo/issues/178)) ([7fc7b17](https://github.com/forgeron-sh/monorepo/commit/7fc7b17b4665af46e9944e67206b02ebbaaa2f98))
+* **cli,gateway:** add keychain login storage and closable template previews (FOR-85, FOR-65) ([#89](https://github.com/forgeron-sh/monorepo/issues/89)) ([3bd00c8](https://github.com/forgeron-sh/monorepo/commit/3bd00c81dcb61d1642c6c485a75ba26ee5cde6fd))
+* **cli,gateway:** promote, roll back and serve a pilot group (FOR-51, FOR-54, FOR-57) ([#88](https://github.com/forgeron-sh/monorepo/issues/88)) ([f51165f](https://github.com/forgeron-sh/monorepo/commit/f51165ffca21e300086a21379bf2aa6d41577c8a))
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([d125126](https://github.com/forgeron-sh/monorepo/commit/d125126e82e4a3a41d9ef3415b789297c9a58668))
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([816b73c](https://github.com/forgeron-sh/monorepo/commit/816b73c296bda0de7d689e6038219f16c79ebf57))
+* **cli:** add catalog search and install with resource approval (FOR-70) ([#46](https://github.com/forgeron-sh/monorepo/issues/46)) ([f016088](https://github.com/forgeron-sh/monorepo/commit/f016088ce6b335d91ba671c5132ba7bf20367cf5))
+* **cli:** add forgeron deploy and the deploy GitHub Action, written by forgeron init (FOR-44) ([#60](https://github.com/forgeron-sh/monorepo/issues/60)) ([0ecffcf](https://github.com/forgeron-sh/monorepo/commit/0ecffcf219bb636e25ab7af3c8f8b0df04f0aa5a))
+* **cli:** add forgeron login, logout and whoami with keychain or 600 file storage (FOR-85) ([#75](https://github.com/forgeron-sh/monorepo/issues/75)) ([feb5c4d](https://github.com/forgeron-sh/monorepo/commit/feb5c4d71d198d5faf94d1ba5b40939e758e1562))
+* **cli:** add forgeron platform install and the self-host guide (FOR-25, FOR-109) ([#67](https://github.com/forgeron-sh/monorepo/issues/67)) ([15ae1e7](https://github.com/forgeron-sh/monorepo/commit/15ae1e780e7192a88c83b47600c96f3ed227976c))
+* **cli:** add forgeron play with a generated form per action (FOR-81) ([#29](https://github.com/forgeron-sh/monorepo/issues/29)) ([68836b8](https://github.com/forgeron-sh/monorepo/commit/68836b8c0e50f3c13c24405f9f5000ab65ea3894))
+* **cli:** add the changelog workflow and refuse uncovered changes (FOR-61, FOR-64, FOR-66) ([#28](https://github.com/forgeron-sh/monorepo/issues/28)) ([2fd747c](https://github.com/forgeron-sh/monorepo/commit/2fd747c4a204594f9eadae6bb0a5f5bc4b38c2ab))
+* **cli:** add the forgeron db commands and db/seed.ts (FOR-115, FOR-116) ([#27](https://github.com/forgeron-sh/monorepo/issues/27)) ([3a916ad](https://github.com/forgeron-sh/monorepo/commit/3a916ade23f700b95e0bb4332659724cf5208f39))
+* **cli:** attach the wildcard DNS record and gateway route on platform install (FOR-118) ([#79](https://github.com/forgeron-sh/monorepo/issues/79)) ([239e6ee](https://github.com/forgeron-sh/monorepo/commit/239e6eecb24614ebf19c2ed69524c39bb5bd010b))
+* **cli:** call the CLI platform routes through the contract's typed client (FOR-154) ([#135](https://github.com/forgeron-sh/monorepo/issues/135)) ([4a36f7b](https://github.com/forgeron-sh/monorepo/commit/4a36f7bbac5db0564957a89a41fde54882f2aac5))
+* **cli:** generate the gateway keys and set the OIDC identity on platform install (FOR-120) ([#84](https://github.com/forgeron-sh/monorepo/issues/84)) ([dc53f76](https://github.com/forgeron-sh/monorepo/commit/dc53f76770bf3fa7e3f5e78da947034556870be2))
+* **cli:** give a person's own secrets on the web, not in the terminal (FOR-171) ([#164](https://github.com/forgeron-sh/monorepo/issues/164)) ([49d5612](https://github.com/forgeron-sh/monorepo/commit/49d5612de48d41993a09f3bcda813b19d67cce67))
+* **cli:** implement the init, link, build, test and dev commands ([#20](https://github.com/forgeron-sh/monorepo/issues/20)) ([f60f540](https://github.com/forgeron-sh/monorepo/commit/f60f54065d22d8075eca07233796719fcdd96de2))
+* **cli:** init --template downloads @forgeron/template-&lt;name&gt; packages (FOR-68) ([#44](https://github.com/forgeron-sh/monorepo/issues/44)) ([4ec9167](https://github.com/forgeron-sh/monorepo/commit/4ec91671fac5f2783e41d3cb7552ca4bcd9ce866))
+* **cli:** install the platform with --auth wrangler, never storing the session token (FOR-117) ([#78](https://github.com/forgeron-sh/monorepo/issues/78)) ([b9a5edc](https://github.com/forgeron-sh/monorepo/commit/b9a5edcee5de5fed7259822b4e69a09a7fb12e0b))
+* **cli:** show what MCP, API and CLI see of each action in the playground (FOR-84) ([#30](https://github.com/forgeron-sh/monorepo/issues/30)) ([2195760](https://github.com/forgeron-sh/monorepo/commit/21957608cca1dab203eb30f19b34365ec03e593e))
+* **cli:** try a catalog template with forgeron play --template, without installing it (FOR-88) ([#61](https://github.com/forgeron-sh/monorepo/issues/61)) ([10b33b0](https://github.com/forgeron-sh/monorepo/commit/10b33b0e7ddf63f9be06dc0d0ecb8a65aa1f38b0))
+* **cli:** upload the console as assets of the gateway on platform install (FOR-122) ([#83](https://github.com/forgeron-sh/monorepo/issues/83)) ([acb72a1](https://github.com/forgeron-sh/monorepo/commit/acb72a14cc3ea2820848ac188a72c39e9d5f4bcd))
+* **compiler,gateway:** bundle declared connectors, keep consent on 5xx, audit grants (FOR-125) ([#96](https://github.com/forgeron-sh/monorepo/issues/96)) ([03fa667](https://github.com/forgeron-sh/monorepo/commit/03fa66796636a4a116347102bd5de5c3e00a893a))
+* **compiler:** build a tool into a Worker bundle, a manifest and a build record ([#10](https://github.com/forgeron-sh/monorepo/issues/10)) ([20ed7c7](https://github.com/forgeron-sh/monorepo/commit/20ed7c78b7b7d009df77643932558b0bc61f3bf3))
+* **compiler:** build views into static files and list them in the manifest (FOR-56) ([#38](https://github.com/forgeron-sh/monorepo/issues/38)) ([36e2e65](https://github.com/forgeron-sh/monorepo/commit/36e2e65f81fe0c2fe75d73a7024725b271c1e666))
+* **compiler:** fail the build on the rules of sdk.md section 14 ([#13](https://github.com/forgeron-sh/monorepo/issues/13)) ([722d2ce](https://github.com/forgeron-sh/monorepo/commit/722d2ce80ebbc929f3acc44a1fe40f32483fe778))
+* **compiler:** generate migrations from the schema and apply them on deployment ([#25](https://github.com/forgeron-sh/monorepo/issues/25)) ([97177dd](https://github.com/forgeron-sh/monorepo/commit/97177ddff623426d36fc255feb5c97435505518b))
+* **connector-microsoft-365:** add the Microsoft Graph connector (FOR-73) ([#47](https://github.com/forgeron-sh/monorepo/issues/47)) ([317c396](https://github.com/forgeron-sh/monorepo/commit/317c396b56dfa11097f2ab613a1c8bc8cac6f97f))
+* **connectors:** build @forgeron/connector-google-workspace (FOR-75) ([#39](https://github.com/forgeron-sh/monorepo/issues/39)) ([64c9589](https://github.com/forgeron-sh/monorepo/commit/64c95898fe33ed29da33e27fb61dff487358a9b5))
+* **console,gateway,hosting,sdk,ui:** database explorer, read only (FOR-136) ([#115](https://github.com/forgeron-sh/monorepo/issues/115)) ([bc31446](https://github.com/forgeron-sh/monorepo/commit/bc31446ad8e1b15d2cd27704520a41623cd32eac))
+* **console,gateway,registry,cli:** tools list and tool page (FOR-130) ([#114](https://github.com/forgeron-sh/monorepo/issues/114)) ([2309d23](https://github.com/forgeron-sh/monorepo/commit/2309d239e90c7c29912703a9a4a6aa0cd84f939f))
+* **console,gateway:** list tools with their versions per environment (FOR-41) ([#71](https://github.com/forgeron-sh/monorepo/issues/71)) ([5a06270](https://github.com/forgeron-sh/monorepo/commit/5a062706d3583f9012d26c078768d99ba12d331c))
+* **console,ui,gateway:** console shell, first-run checklist, members and settings (FOR-129) ([#107](https://github.com/forgeron-sh/monorepo/issues/107)) ([153696d](https://github.com/forgeron-sh/monorepo/commit/153696d3f2f79c83a6909de9e5c70b052a4cf144))
+* **console,ui:** member space with my tools, catalog and the tool card (FOR-138) ([#117](https://github.com/forgeron-sh/monorepo/issues/117)) ([67e264e](https://github.com/forgeron-sh/monorepo/commit/67e264eb04917e642d2e3721ec5e33a60e16b7fb))
+* **console,ui:** workspace switcher, person menu, shortcuts and settings area (FOR-134) ([#112](https://github.com/forgeron-sh/monorepo/issues/112)) ([aed071a](https://github.com/forgeron-sh/monorepo/commit/aed071a31265a82aff318ab63eb4c10dee3bf092))
+* **console:** call the console API through the contract's typed client (FOR-154) ([#134](https://github.com/forgeron-sh/monorepo/issues/134)) ([8803078](https://github.com/forgeron-sh/monorepo/commit/88030787ebe9f43bc53522ebedbec1aa7afbcb85))
+* **console:** route table, feature folders and the tool tab registry (FOR-134) ([#110](https://github.com/forgeron-sh/monorepo/issues/110)) ([8b73aaf](https://github.com/forgeron-sh/monorepo/commit/8b73aaf3261eb9e0bfd0915a4932b1a877023e20))
+* **console:** show the version of each environment on the Versions tab (FOR-50) ([#140](https://github.com/forgeron-sh/monorepo/issues/140)) ([f253810](https://github.com/forgeron-sh/monorepo/commit/f2538109f782a01b552e56c7436d8bf26052e823))
+* **console:** show which secrets are set or missing per environment (FOR-45) ([#59](https://github.com/forgeron-sh/monorepo/issues/59)) ([f5cedeb](https://github.com/forgeron-sh/monorepo/commit/f5cedeb57c2689130e8f870d6a12722d8207241d))
+* **console:** the member's sheet in the library and the admin's in Tools (D-118) ([f5bcd89](https://github.com/forgeron-sh/monorepo/commit/f5bcd89591d7c03cd3285c84f48f8e4e6d9f14b2))
+* **console:** the member's sheet in the library and the admin's in Tools (D-118) ([ae02f7a](https://github.com/forgeron-sh/monorepo/commit/ae02f7ad8a2f120695d719498acf20912b2f9465))
+* **gateway,cli:** accept builds from CI with a deployment token and create tokens (FOR-42, FOR-87) ([#58](https://github.com/forgeron-sh/monorepo/issues/58)) ([544922c](https://github.com/forgeron-sh/monorepo/commit/544922c87f187f2e520b37087f8cfeea8a968b94))
+* **gateway,cli:** console mail mode writes sign-in codes to the logs for test installs (FOR-126) ([#99](https://github.com/forgeron-sh/monorepo/issues/99)) ([c77fa87](https://github.com/forgeron-sh/monorepo/commit/c77fa876df575ab2c15241c0e216e3a298d9fd20))
+* **gateway,console,registry,sdk:** views honour the access matrix, save it atomically (FOR-43) ([#94](https://github.com/forgeron-sh/monorepo/issues/94)) ([16914f6](https://github.com/forgeron-sh/monorepo/commit/16914f6d3ed88d3c8b2196f347b42ef3779ca5e8))
+* **gateway,console,registry:** edit the roles x actions matrix and apply it on every call (FOR-43) ([#93](https://github.com/forgeron-sh/monorepo/issues/93)) ([148d00f](https://github.com/forgeron-sh/monorepo/commit/148d00f3b604fe7087c836c5b70cfcf6e1151b11))
+* **gateway,console,runtime:** the secret registry's leftovers (FOR-172) ([#174](https://github.com/forgeron-sh/monorepo/issues/174)) ([a4cabc7](https://github.com/forgeron-sh/monorepo/commit/a4cabc774b859157fb830bd392350ff68bbadc3e))
+* **gateway,console:** serve the console as assets at the workspace origin (FOR-39) ([#70](https://github.com/forgeron-sh/monorepo/issues/70)) ([c79d618](https://github.com/forgeron-sh/monorepo/commit/c79d618c2a54783b8ede136b21d3eeb216d58266))
+* **gateway,registry,console,cli:** sign in by emailed code, invitations and members (FOR-126) ([#98](https://github.com/forgeron-sh/monorepo/issues/98)) ([47fbd48](https://github.com/forgeron-sh/monorepo/commit/47fbd48e15a8a3d6ead31fd2a0ce3bbff84994ba))
+* **gateway,registry:** a page where a person manages their own secrets (FOR-172) ([#169](https://github.com/forgeron-sh/monorepo/issues/169)) ([835b61c](https://github.com/forgeron-sh/monorepo/commit/835b61cbb6ace42058543cd6433613fcb4374c48))
+* **gateway,registry:** add /auth/cli and /auth/cli/token for forgeron login (FOR-85) ([#85](https://github.com/forgeron-sh/monorepo/issues/85)) ([9ad6156](https://github.com/forgeron-sh/monorepo/commit/9ad6156d0fb61845b8fcef0c21d963eef1d279ff))
+* **gateway,registry:** mount sign-in, caller, tokens and deploy in the Worker (FOR-123) ([#81](https://github.com/forgeron-sh/monorepo/issues/81)) ([0437a95](https://github.com/forgeron-sh/monorepo/commit/0437a9520f9569f6067b7f575c08b1e601f9fd23))
+* **gateway,registry:** sign in through SAML 2.0 with a Web Crypto XML-DSig verifier (FOR-124) ([#97](https://github.com/forgeron-sh/monorepo/issues/97)) ([58ddb7a](https://github.com/forgeron-sh/monorepo/commit/58ddb7a8292810f0386c73f330cf40c6ea4835ab))
+* **gateway,runtime:** hand a delegated connector the caller's consent at run time (FOR-79) ([#95](https://github.com/forgeron-sh/monorepo/issues/95)) ([bc8fdb4](https://github.com/forgeron-sh/monorepo/commit/bc8fdb426191f907812ec4283c33bf4e0cea5b46))
+* **gateway:** a different secret for production, a preview or a branch (FOR-172) ([#172](https://github.com/forgeron-sh/monorepo/issues/172)) ([87c3580](https://github.com/forgeron-sh/monorepo/commit/87c3580a525f6738b0197daa6f84ee96b5c2dab8))
+* **gateway:** add a Hono shell and the platform contract package (FOR-150) ([#124](https://github.com/forgeron-sh/monorepo/issues/124)) ([d9bb331](https://github.com/forgeron-sh/monorepo/commit/d9bb331669c77fb442be68c6ecc09f9b7e68854c))
+* **gateway:** add entra and google sign-in presets and per-person consent (FOR-82, FOR-79) ([#92](https://github.com/forgeron-sh/monorepo/issues/92)) ([69bd40b](https://github.com/forgeron-sh/monorepo/commit/69bd40b108256f78d0ed653d539df719995bbb2d))
+* **gateway:** add the consent and connection routes for delegated connectors (FOR-79) ([#72](https://github.com/forgeron-sh/monorepo/issues/72)) ([28b6308](https://github.com/forgeron-sh/monorepo/commit/28b6308d8ba7929ec5a7a7d338caab5ea0ada2f2))
+* **gateway:** bind tools on deploy and keep bindings on platform install (FOR-119) ([#86](https://github.com/forgeron-sh/monorepo/issues/86)) ([5fe4434](https://github.com/forgeron-sh/monorepo/commit/5fe4434cc29d42890b273ec42ca7314b8acc7817))
+* **gateway:** build the gateway into one worker.js bundle with Rolldown (FOR-121) ([#80](https://github.com/forgeron-sh/monorepo/issues/80)) ([652b161](https://github.com/forgeron-sh/monorepo/commit/652b161590bc7b88635f897517766f38d5aea921))
+* **gateway:** dispatch workspace, tool and environment, branch previews included (FOR-22) ([#48](https://github.com/forgeron-sh/monorepo/issues/48)) ([40e2143](https://github.com/forgeron-sh/monorepo/commit/40e21433b9d098b1d5e6fa966a52989835f4cad6))
+* **gateway:** issue audience-bound API and CLI tokens refused by other tools (FOR-38) ([#43](https://github.com/forgeron-sh/monorepo/issues/43)) ([719d4c1](https://github.com/forgeron-sh/monorepo/commit/719d4c1751a4a023b0b179943c6479f8655739ce))
+* **gateway:** keep developer code off the workspace origin (FOR-40) ([#141](https://github.com/forgeron-sh/monorepo/issues/141)) ([a1aa445](https://github.com/forgeron-sh/monorepo/commit/a1aa445a779be1f6e1e41b74b5553763d37482c3))
+* **gateway:** mount the database explorer routes on Hono and in the contract (FOR-152) ([#130](https://github.com/forgeron-sh/monorepo/issues/130)) ([097bbc5](https://github.com/forgeron-sh/monorepo/commit/097bbc50a6e8e99e838bd0f4bd92bcb2016744a2))
+* **gateway:** one page shell for every page the gateway serves (FOR-128) ([#106](https://github.com/forgeron-sh/monorepo/issues/106)) ([6cc0a61](https://github.com/forgeron-sh/monorepo/commit/6cc0a619c48ff3b638d46e1ea4eda4aec283827e))
+* **gateway:** reach tool Workers through a dispatch namespace or service bindings (FOR-72) ([#63](https://github.com/forgeron-sh/monorepo/issues/63)) ([6ca552a](https://github.com/forgeron-sh/monorepo/commit/6ca552a021d37f7c16a9b6583549294d2c25e39f))
+* **gateway:** revoke and rotate tokens, collect per-person secrets (FOR-38, FOR-95) ([#91](https://github.com/forgeron-sh/monorepo/issues/91)) ([bd62a06](https://github.com/forgeron-sh/monorepo/commit/bd62a06e2ffc85c8012bdb0e22f4aeba9960631c))
+* **gateway:** route /t/&lt;tool&gt; from the platform registry in the Worker (FOR-22) ([#53](https://github.com/forgeron-sh/monorepo/issues/53)) ([a5cd22e](https://github.com/forgeron-sh/monorepo/commit/a5cd22e4cd7ba0259e4e7f769ea7bcb6208e4310))
+* **gateway:** run a tool's setup before the OAuth click (FOR-171) ([#160](https://github.com/forgeron-sh/monorepo/issues/160)) ([5cb9d45](https://github.com/forgeron-sh/monorepo/commit/5cb9d456b103c2c66fce90986ee21d23838450ea))
+* **gateway:** secret_request, a single-use link to enter a secret (FOR-163) ([#147](https://github.com/forgeron-sh/monorepo/issues/147)) ([fa21235](https://github.com/forgeron-sh/monorepo/commit/fa2123540c0c80981725a52c7843ccca466ebf33))
+* **gateway:** serve approvals and revocations with Hono and refuse cross-origin writes (FOR-153) ([#133](https://github.com/forgeron-sh/monorepo/issues/133)) ([a8e6eb1](https://github.com/forgeron-sh/monorepo/commit/a8e6eb112324be15979818d1055151184d6573e3))
+* **gateway:** serve the admin MCP at /mcp with the tools the platform supports (FOR-107) ([#143](https://github.com/forgeron-sh/monorepo/issues/143)) ([7bf7236](https://github.com/forgeron-sh/monorepo/commit/7bf72366b35146dc4486537dfd85ff59e56a9adf))
+* **gateway:** serve the catalog with Hono and publish the OpenAPI document (FOR-151) ([#126](https://github.com/forgeron-sh/monorepo/issues/126)) ([8ae7483](https://github.com/forgeron-sh/monorepo/commit/8ae7483679d05cf2713f837c4b20a42fe242c549))
+* **gateway:** serve the connections and secrets status routes with Hono (FOR-152) ([#129](https://github.com/forgeron-sh/monorepo/issues/129)) ([c45e3a7](https://github.com/forgeron-sh/monorepo/commit/c45e3a7ed4cc4da6264defe237207631275c8958))
+* **gateway:** serve the consent routes with Hono and remove the legacy chain (FOR-154) ([#136](https://github.com/forgeron-sh/monorepo/issues/136)) ([211d25b](https://github.com/forgeron-sh/monorepo/commit/211d25b777499b36d7f899c57d2b7399764ed25e))
+* **gateway:** serve the identity provider, connector client and secret routes with Hono (FOR-153) ([#132](https://github.com/forgeron-sh/monorepo/issues/132)) ([58e41c8](https://github.com/forgeron-sh/monorepo/commit/58e41c8a41d6dfe36f418ef43f4d0ea7dc80b430))
+* **gateway:** serve the members, invitations and membership settings routes with Hono (FOR-153) ([#131](https://github.com/forgeron-sh/monorepo/issues/131)) ([5f17711](https://github.com/forgeron-sh/monorepo/commit/5f1771118692401f907add8638a497ebb5846b42))
+* **gateway:** serve the playground at /t/&lt;tool&gt;/play (FOR-91) ([#54](https://github.com/forgeron-sh/monorepo/issues/54)) ([cba32af](https://github.com/forgeron-sh/monorepo/commit/cba32aff505f051949a15c67b4d4497f60d1af7a))
+* **gateway:** serve the tool routes with Hono from the contract (FOR-152) ([#127](https://github.com/forgeron-sh/monorepo/issues/127)) ([40be40a](https://github.com/forgeron-sh/monorepo/commit/40be40af8263c1e045fc538a32474d711f0b6f64))
+* **gateway:** serve the workspace, audit and access matrix routes with Hono (FOR-152) ([#128](https://github.com/forgeron-sh/monorepo/issues/128)) ([125dc16](https://github.com/forgeron-sh/monorepo/commit/125dc166fcac30c85055c5bc7bea52097c58088b))
+* **gateway:** serve views sandboxed with a CSP and a short-lived per-tool token (FOR-59) ([#51](https://github.com/forgeron-sh/monorepo/issues/51)) ([6b636b0](https://github.com/forgeron-sh/monorepo/commit/6b636b097c0630db1a3f761e0a5c7a06b135d6c5))
+* **gateway:** sign in an MCP client to /mcp with OAuth (FOR-164) ([#155](https://github.com/forgeron-sh/monorepo/issues/155)) ([4f89815](https://github.com/forgeron-sh/monorepo/commit/4f898159e42d02b946f635c04053b7219a5d1e44))
+* **gateway:** sign in an MCP client to a tool's MCP with OAuth (FOR-171) ([#157](https://github.com/forgeron-sh/monorepo/issues/157)) ([4ca38d6](https://github.com/forgeron-sh/monorepo/commit/4ca38d649808aec5064ef525b8f9540bccc0b7cf))
+* **gateway:** sign in through OpenID Connect and open a workspace session (FOR-82) ([#66](https://github.com/forgeron-sh/monorepo/issues/66)) ([7a15008](https://github.com/forgeron-sh/monorepo/commit/7a150087cbff84941abda0a622f23c737e446a66))
+* **hosting,registry,gateway,cli,console:** remove the pilot environment (FOR-132) ([#108](https://github.com/forgeron-sh/monorepo/issues/108)) ([0acc84f](https://github.com/forgeron-sh/monorepo/commit/0acc84f21292d0e0b6882be9aa651373b0c90aa0))
+* **hosting:** add the cloud mode on Workers for Platforms against a simulated API (FOR-69) ([#69](https://github.com/forgeron-sh/monorepo/issues/69)) ([e1579db](https://github.com/forgeron-sh/monorepo/commit/e1579dbc45720b4142b7699504d0e6b4ba2d989c))
+* **hosting:** add the local hosting mode and forgeron dev ([#19](https://github.com/forgeron-sh/monorepo/issues/19)) ([13e369f](https://github.com/forgeron-sh/monorepo/commit/13e369fcac7beb0aca0d1686362fd94c0bccc054))
+* **hosting:** bind and unbind each tool Worker on the gateway in self-host (FOR-119) ([#82](https://github.com/forgeron-sh/monorepo/issues/82)) ([1be1210](https://github.com/forgeron-sh/monorepo/commit/1be1210f31c0f74e6ced6e66de73cb3e80a2c6cd))
+* **hosting:** deploy a received build on self-host, migrations before traffic (FOR-24, FOR-48) ([#49](https://github.com/forgeron-sh/monorepo/issues/49)) ([73d6b65](https://github.com/forgeron-sh/monorepo/commit/73d6b6538e134ef5dae0874c47cc459570e46af1))
+* **hosting:** fill a preview's new database from preview.data (FOR-46) ([#62](https://github.com/forgeron-sh/monorepo/issues/62)) ([72119ca](https://github.com/forgeron-sh/monorepo/commit/72119ca8237fb0c1a35b51fb1c2dd103c28e6afe))
+* **hosting:** seed a new preview from its own Worker, close previews (FOR-46, FOR-69) ([#90](https://github.com/forgeron-sh/monorepo/issues/90)) ([4354edb](https://github.com/forgeron-sh/monorepo/commit/4354edb21204b0c46ada98c8c48875a1e411fd55))
+* **manifest,sdk,compiler:** a tool declares a setup (FOR-171) ([#158](https://github.com/forgeron-sh/monorepo/issues/158)) ([072250e](https://github.com/forgeron-sh/monorepo/commit/072250eaceae5c9f18dbb3b626ce101830961aa0))
+* **manifest:** add the manifest Zod schema and exported types ([#4](https://github.com/forgeron-sh/monorepo/issues/4)) ([3555220](https://github.com/forgeron-sh/monorepo/commit/35552202dbbb734c8cd6136127abdb3bf138f2ba))
+* **manifest:** compare two manifests and compute the minimum version impact ([#5](https://github.com/forgeron-sh/monorepo/issues/5)) ([17ec657](https://github.com/forgeron-sh/monorepo/commit/17ec657b5ef179d9c7d5fd6be9bef21cb01e27f1))
+* **manifest:** derive the MCP, API and CLI addresses of an action from its name ([#17](https://github.com/forgeron-sh/monorepo/issues/17)) ([944a7af](https://github.com/forgeron-sh/monorepo/commit/944a7af1ef0b8229479507ee026367c5926c7add))
+* **manifest:** flag added or broadened resources as pending approval ([#7](https://github.com/forgeron-sh/monorepo/issues/7)) ([ee8228a](https://github.com/forgeron-sh/monorepo/commit/ee8228ac00de64276e0f2a60d237fe297ef34c9d))
+* **manifest:** validate action names, view paths and reserved paths ([#6](https://github.com/forgeron-sh/monorepo/issues/6)) ([29c3eff](https://github.com/forgeron-sh/monorepo/commit/29c3effb3f29ae23b65d279de8c69b0206d3f469))
+* **platform,registry:** an admin may set a person's secret, audited (FOR-172) ([#170](https://github.com/forgeron-sh/monorepo/issues/170)) ([863cb9a](https://github.com/forgeron-sh/monorepo/commit/863cb9a4b0f22d9cd76d04e9089b673e54dbb929))
+* **registry,console:** approve requested resources, record the audit log (FOR-47, FOR-105) ([#64](https://github.com/forgeron-sh/monorepo/issues/64)) ([e67a40a](https://github.com/forgeron-sh/monorepo/commit/e67a40af00fff669bddd279d265e3489e793957d))
+* **registry,gateway,console:** a person's library and who may add a tool (D-117) ([049d774](https://github.com/forgeron-sh/monorepo/commit/049d774d3f0ac66359a07ea76d4a17170651264b))
+* **registry,gateway,console:** a person's library and who may add a tool (D-117) ([b32ad03](https://github.com/forgeron-sh/monorepo/commit/b32ad03dcdbff51736c38cc746a9f9ed2c86a6a8))
+* **registry,gateway,console:** marketplaces of tool bundles, installed like a template (D-116) ([486e8b8](https://github.com/forgeron-sh/monorepo/commit/486e8b817317a0950b0af1efd4547648d9a65e9f))
+* **registry,gateway,console:** marketplaces of tool bundles, installed like a template (D-116) ([7f1eb23](https://github.com/forgeron-sh/monorepo/commit/7f1eb2342636b2c69dc74dc597be411ecdfb7f2e))
+* **registry,gateway,console:** pilots, a branch preview opened to some people (D-119) ([db72ed4](https://github.com/forgeron-sh/monorepo/commit/db72ed44ef8872c8c4042537827c5d94c9ff2ee4))
+* **registry,gateway,console:** pilots, a branch preview opened to some people (D-119) ([39be005](https://github.com/forgeron-sh/monorepo/commit/39be005954568904bd6b5b42a1f6ec1d524cf548))
+* **registry,gateway,console:** the tool page shows production or one branch (D-120) ([b1b780a](https://github.com/forgeron-sh/monorepo/commit/b1b780ae485fb5be2978386b21c00921210eca34))
+* **registry,gateway,console:** the tool page shows production or one branch (D-120) ([38ea5d3](https://github.com/forgeron-sh/monorepo/commit/38ea5d3cb029bebc59be4cbb8627f66ae3277ec5))
+* **registry,gateway:** count the seats of each workspace per month (FOR-83) ([#76](https://github.com/forgeron-sh/monorepo/issues/76)) ([971f935](https://github.com/forgeron-sh/monorepo/commit/971f935bf33f7a672dfeedb599fabe5dfee22256))
+* **registry,gateway:** count usage per tool and person, and report it in the admin MCP (FOR-162) ([#154](https://github.com/forgeron-sh/monorepo/issues/154)) ([29dfa2f](https://github.com/forgeron-sh/monorepo/commit/29dfa2f79561afa64857db3bb04c4e9749cb3008))
+* **registry,gateway:** create a tool from a catalog template (FOR-160) ([#145](https://github.com/forgeron-sh/monorepo/issues/145)) ([8828e53](https://github.com/forgeron-sh/monorepo/commit/8828e534980efc605efd2c98a2175fd75d7e1816))
+* **registry,gateway:** install a template in two steps from the admin MCP (FOR-161) ([#153](https://github.com/forgeron-sh/monorepo/issues/153)) ([f7d7238](https://github.com/forgeron-sh/monorepo/commit/f7d7238a2eb4db3ca7b7a4964eae51d194236781))
+* **registry,gateway:** offer a person's saved secrets at setup by kind (FOR-172) ([#168](https://github.com/forgeron-sh/monorepo/issues/168)) ([1e9c363](https://github.com/forgeron-sh/monorepo/commit/1e9c363256c89a8fba3706e51fe5fbf0d2838cf0))
+* **registry,gateway:** open values sealed under a previous SECRETS_KEY (FOR-172) ([#162](https://github.com/forgeron-sh/monorepo/issues/162)) ([da64269](https://github.com/forgeron-sh/monorepo/commit/da642697867d8be77fad758171d0fd5e3a097cb3))
+* **registry,gateway:** seal stored secrets again under the current key (FOR-172) ([#171](https://github.com/forgeron-sh/monorepo/issues/171)) ([3c1074a](https://github.com/forgeron-sh/monorepo/commit/3c1074aeb9c4f9b789bccb020c4d372d5973a13c))
+* **registry,runtime,console:** edit the roles x actions matrix without a redeploy (FOR-43) ([#74](https://github.com/forgeron-sh/monorepo/issues/74)) ([54e2fb6](https://github.com/forgeron-sh/monorepo/commit/54e2fb635d057efd06c6846f563f74abfdbc7ef7))
+* **registry,runtime,gateway:** keep a person's setup values, ask at /setup (FOR-171) ([#159](https://github.com/forgeron-sh/monorepo/issues/159)) ([506f945](https://github.com/forgeron-sh/monorepo/commit/506f9456fe6b2762900de61227961b2446a8c498))
+* **registry:** a registry of a person's secrets, with versions and bindings (FOR-172) ([#167](https://github.com/forgeron-sh/monorepo/issues/167)) ([125c7f2](https://github.com/forgeron-sh/monorepo/commit/125c7f270bb7aef497b1a73975d3f7b4c029d3ec))
+* **registry:** drop the legacy user_secrets table (FOR-172) ([#173](https://github.com/forgeron-sh/monorepo/issues/173)) ([4131332](https://github.com/forgeron-sh/monorepo/commit/4131332d7a8f079064ec0ba20d36ae9e78ff3701))
+* **registry:** keep each person's OAuth consent sealed, with the consent flow (FOR-79) ([#65](https://github.com/forgeron-sh/monorepo/issues/65)) ([e878454](https://github.com/forgeron-sh/monorepo/commit/e87845474f336f16cdc26597b30d75518fa1219c))
+* **registry:** promote, roll back and audit deployments, serve the pilot group (FOR-51, 54, 57) ([#55](https://github.com/forgeron-sh/monorepo/issues/55)) ([11a6e1d](https://github.com/forgeron-sh/monorepo/commit/11a6e1dbeee77eba646d4daf1ab0c8f73df39efb))
+* **registry:** store tool secrets encrypted per environment, with CLI and API (FOR-98) ([#52](https://github.com/forgeron-sh/monorepo/issues/52)) ([b85e524](https://github.com/forgeron-sh/monorepo/commit/b85e524ed8d4f497375745e77a3e65f5c193d668))
+* **registry:** store tools, builds, versions, environments and approvals in platform D1 (FOR-23) ([#40](https://github.com/forgeron-sh/monorepo/issues/40)) ([503bc42](https://github.com/forgeron-sh/monorepo/commit/503bc4287d225844e54b7844fdde6ea3f23ab735))
+* **runtime,gateway:** check a tool's setup before keeping it (FOR-171) ([#163](https://github.com/forgeron-sh/monorepo/issues/163)) ([0788c67](https://github.com/forgeron-sh/monorepo/commit/0788c67e5d147836e5518bd2241f5c9e90ea4bc5))
+* **runtime:** collect per-person secrets on first use on each interface (FOR-95) ([#56](https://github.com/forgeron-sh/monorepo/issues/56)) ([e63c4da](https://github.com/forgeron-sh/monorepo/commit/e63c4da106146fca54b8862bd8ab44f9eb913beb))
+* **runtime:** map every error code to the CLI exit codes and log refused outbound calls ([#15](https://github.com/forgeron-sh/monorepo/issues/15)) ([f870988](https://github.com/forgeron-sh/monorepo/commit/f870988c714773ce3bfeee831ea7b0392a6836db))
+* **runtime:** refuse tokens of another tool, prove one access check everywhere (FOR-90) ([#34](https://github.com/forgeron-sh/monorepo/issues/34)) ([73583dc](https://github.com/forgeron-sh/monorepo/commit/73583dc5373d27486997b804700abbdac9925bf9))
+* **runtime:** run event handlers in sync and queue modes and scheduled tasks ([#21](https://github.com/forgeron-sh/monorepo/issues/21)) ([8644e7b](https://github.com/forgeron-sh/monorepo/commit/8644e7bb4d9a57aa206b62f899577ddec7d64b81))
+* **runtime:** serve MCP, API, CLI and web from the manifest with access checks ([#9](https://github.com/forgeron-sh/monorepo/issues/9)) ([2456473](https://github.com/forgeron-sh/monorepo/commit/245647383bded7d85907cdc70e733db1e0a826bb))
+* **sdk,cli,registry:** a tool's summary and guide for its users, forgeron bundle (D-115) ([2ca7b1a](https://github.com/forgeron-sh/monorepo/commit/2ca7b1a993d42aacbe6cd3ae3e56e7e0f7877c6f))
+* **sdk,cli,registry:** a tool's summary and guide for its users, forgeron bundle (D-115) ([584c245](https://github.com/forgeron-sh/monorepo/commit/584c24592a86c7ca00b86c29bc1ef32313a77c64))
+* **sdk:** add defineView and the useAction, useMutation, useParams, useUser, useCan hooks (FOR-52) ([#35](https://github.com/forgeron-sh/monorepo/issues/35)) ([4f9e427](https://github.com/forgeron-sh/monorepo/commit/4f9e4278547ce5ee9a85a55264e1c760f7a71a00))
+* **sdk:** declare tables and query them with a typed ctx.db on D1 ([#24](https://github.com/forgeron-sh/monorepo/issues/24)) ([9e0aecc](https://github.com/forgeron-sh/monorepo/commit/9e0aeccd88cf8c0201f26ddcb264880f723ce70d))
+* **sdk:** define the connector interface with modes, scopes and host limits (FOR-71) ([#32](https://github.com/forgeron-sh/monorepo/issues/32)) ([f99e4a6](https://github.com/forgeron-sh/monorepo/commit/f99e4a669b6fd5be95bf9ec62b1b5a2cb278381f))
+* **sdk:** implement the public API for tools without a database ([#8](https://github.com/forgeron-sh/monorepo/issues/8)) ([ef57a49](https://github.com/forgeron-sh/monorepo/commit/ef57a49ce271a224faf0ffef522245e8e5701cf3))
+* **sdk:** provide forgeron/testing with createTestTool and mockFetch ([#11](https://github.com/forgeron-sh/monorepo/issues/11)) ([8597435](https://github.com/forgeron-sh/monorepo/commit/85974352f9852903e1f0758d2c76909144cd0ccf))
+* **site:** page d'accueil Astro et composants atomiques de @forgeron/ui ([#1](https://github.com/forgeron-sh/monorepo/issues/1)) ([8d31907](https://github.com/forgeron-sh/monorepo/commit/8d3190757eafec8df57167881bb762af94f45c72))
+* **templates:** build the dashboard template on top of the crm tool (FOR-63) ([#42](https://github.com/forgeron-sh/monorepo/issues/42)) ([646884b](https://github.com/forgeron-sh/monorepo/commit/646884bc80aa4deac6feb264d9edbc712c4dbd27))
+* **templates:** build the inventory template for imports and synchronizations (FOR-60) ([#36](https://github.com/forgeron-sh/monorepo/issues/36)) ([da5dbc8](https://github.com/forgeron-sh/monorepo/commit/da5dbc89e2bda6babd128725cc7613116b99e1e0))
+* **templates:** implement the crm template on D1 with events and roles ([#26](https://github.com/forgeron-sh/monorepo/issues/26)) ([c8e91b8](https://github.com/forgeron-sh/monorepo/commit/c8e91b84aa75e8cc4bc79bad4a5835428efee875))
+* **templates:** implement the odoo-gateway template against a simulated Odoo ([#12](https://github.com/forgeron-sh/monorepo/issues/12)) ([8331055](https://github.com/forgeron-sh/monorepo/commit/83310550c2bf4dde481b4bb141682ffa5860f7e2))
+* **templates:** restrict the dashboard Monday view to the management role (FOR-67) ([#50](https://github.com/forgeron-sh/monorepo/issues/50)) ([fb99c76](https://github.com/forgeron-sh/monorepo/commit/fb99c7620f01e45fa6f880987a46ddb00cf6556c))
+* tools from a marketplace or a repository, updated with their approvals (D-121) ([2921a70](https://github.com/forgeron-sh/monorepo/commit/2921a706b6473b23253ccfa92d708e383782f053))
+* tools from a marketplace or a repository, updated with their approvals (D-121) ([29a4827](https://github.com/forgeron-sh/monorepo/commit/29a482757af51be59ea4b6dea945bfc70b0b0014))
+* **ui,console,gateway,site:** architecture diagram of a tool from its manifest (FOR-135) ([#111](https://github.com/forgeron-sh/monorepo/issues/111)) ([fbd1237](https://github.com/forgeron-sh/monorepo/commit/fbd12373a085e110f6c4cb0059857380ea7f0cee))
+* **ui,console:** skeletons in place of spinners while a screen loads ([#176](https://github.com/forgeron-sh/monorepo/issues/176)) ([027bf98](https://github.com/forgeron-sh/monorepo/commit/027bf988b61442f1d8f5e4c48db87b492f791e2f))
+* **ui:** add Page, Table, Board, Stat, BarChart and Select (FOR-62) ([#33](https://github.com/forgeron-sh/monorepo/issues/33)) ([5ccf3ac](https://github.com/forgeron-sh/monorepo/commit/5ccf3acc9c5cc1504631441b0d9424d78d2d9b83))
+
+
+### Bug Fixes
+
+* **build:** pin tsdown 0.23.5, whose rolldown matches the repository's ([37e0523](https://github.com/forgeron-sh/monorepo/commit/37e0523f93bc19f090523a484e02cafd5baf33c9))
+* **cli,gateway,hosting:** preview address with [@branch](https://github.com/branch), endpoint of the linked project (FOR-131) ([#142](https://github.com/forgeron-sh/monorepo/issues/142)) ([0b30339](https://github.com/forgeron-sh/monorepo/commit/0b3033922b8f5ff7ac64a9c01e3e8cf878baa0ee))
+* **cli:** a re-run of the install keeps the gateway's API token secret ([#175](https://github.com/forgeron-sh/monorepo/issues/175)) ([3c60a8d](https://github.com/forgeron-sh/monorepo/commit/3c60a8dcdd577daf6f4d95f5e0a08837580ba2ae))
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([4f2021c](https://github.com/forgeron-sh/monorepo/commit/4f2021ced002b11c561c139e776ed1e2280318c8))
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([20a4899](https://github.com/forgeron-sh/monorepo/commit/20a4899d238ffe52003099948ef0cf637dd7fb33))
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([932ceb9](https://github.com/forgeron-sh/monorepo/commit/932ceb93cc4b2fde07d0c167aa5fe37bba9d1f9d))
+* **cli:** read the login token from the keychain in token create and promote ([#103](https://github.com/forgeron-sh/monorepo/issues/103)) ([316c7eb](https://github.com/forgeron-sh/monorepo/commit/316c7ebda8d7257c07e70ddede09038353570341))
+* **console,gateway:** preview address, deploy token name, no Google Fonts link ([#121](https://github.com/forgeron-sh/monorepo/issues/121)) ([5b620a0](https://github.com/forgeron-sh/monorepo/commit/5b620a01d6ea5035032efdbbd86f83c022048426))
+* **gateway,hosting,registry,cli:** upload the console assets with each gateway version (FOR-127) ([#104](https://github.com/forgeron-sh/monorepo/issues/104)) ([d5fb6eb](https://github.com/forgeron-sh/monorepo/commit/d5fb6eb0190ea5d67525b9bc61c0cfdea59cce17))
+* **gateway,hosting:** leave D1's own tables out of the explorer's metadata queries (FOR-136) ([#122](https://github.com/forgeron-sh/monorepo/issues/122)) ([edddba9](https://github.com/forgeron-sh/monorepo/commit/edddba90cc7ad712524988450c51666d7f111b6e))
+* **gateway:** count the explorer's tables one statement each and name the one that fails (FOR-159) ([#137](https://github.com/forgeron-sh/monorepo/issues/137)) ([b2c6586](https://github.com/forgeron-sh/monorepo/commit/b2c6586cd03e76ec360df44a8b6b922e35b85095))
+* **gateway:** let the email sign-in form post carry its origin ([#102](https://github.com/forgeron-sh/monorepo/issues/102)) ([91af01e](https://github.com/forgeron-sh/monorepo/commit/91af01e3720281ae78ae62d42d006fe2678083fe))
+* **gateway:** route previews to the Worker that self-host deployed ([#105](https://github.com/forgeron-sh/monorepo/issues/105)) ([ab4fc2e](https://github.com/forgeron-sh/monorepo/commit/ab4fc2eb4de45ce5f09f4591dc2c1ddaddd2876d))
+* **gateway:** serve a tool's secrets page on a preview address (FOR-174) ([#150](https://github.com/forgeron-sh/monorepo/issues/150)) ([2e9240c](https://github.com/forgeron-sh/monorepo/commit/2e9240c11a9263f9d9e3a423b98a9c788bc4c7e0))
+* **hosting:** bind returns a new statement in the REST D1 adapter ([#101](https://github.com/forgeron-sh/monorepo/issues/101)) ([ac2edea](https://github.com/forgeron-sh/monorepo/commit/ac2edea2483512c5557216797c9accc4ed8929cd))
+
+
+### Performance Improvements
+
+* **test:** run registry, gateway and hosting tests on in-memory D1, cache template builds ([#77](https://github.com/forgeron-sh/monorepo/issues/77)) ([22b09e7](https://github.com/forgeron-sh/monorepo/commit/22b09e7ff38d73ff9ca9ad5ed3c299bacb2eb5b3))
+</details>
+
+<details><summary>manifest: 0.2.0</summary>
+
+## [0.2.0](https://github.com/forgeron-sh/monorepo/compare/manifest-v0.1.1...manifest-v0.2.0) (2026-11-10)
+
+
+### Features
+
+* **catalog:** tool README and images through build, registry and catalog API (FOR-137) ([#116](https://github.com/forgeron-sh/monorepo/issues/116)) ([7641308](https://github.com/forgeron-sh/monorepo/commit/764130800c33120d66ba191a81812623d58f4a78))
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([d125126](https://github.com/forgeron-sh/monorepo/commit/d125126e82e4a3a41d9ef3415b789297c9a58668))
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([816b73c](https://github.com/forgeron-sh/monorepo/commit/816b73c296bda0de7d689e6038219f16c79ebf57))
+* **compiler:** build views into static files and list them in the manifest (FOR-56) ([#38](https://github.com/forgeron-sh/monorepo/issues/38)) ([36e2e65](https://github.com/forgeron-sh/monorepo/commit/36e2e65f81fe0c2fe75d73a7024725b271c1e666))
+* **gateway,console,registry,sdk:** views honour the access matrix, save it atomically (FOR-43) ([#94](https://github.com/forgeron-sh/monorepo/issues/94)) ([16914f6](https://github.com/forgeron-sh/monorepo/commit/16914f6d3ed88d3c8b2196f347b42ef3779ca5e8))
+* **hosting,registry,gateway,cli,console:** remove the pilot environment (FOR-132) ([#108](https://github.com/forgeron-sh/monorepo/issues/108)) ([0acc84f](https://github.com/forgeron-sh/monorepo/commit/0acc84f21292d0e0b6882be9aa651373b0c90aa0))
+* **manifest,sdk,compiler:** a tool declares a setup (FOR-171) ([#158](https://github.com/forgeron-sh/monorepo/issues/158)) ([072250e](https://github.com/forgeron-sh/monorepo/commit/072250eaceae5c9f18dbb3b626ce101830961aa0))
+* **manifest:** add the manifest Zod schema and exported types ([#4](https://github.com/forgeron-sh/monorepo/issues/4)) ([3555220](https://github.com/forgeron-sh/monorepo/commit/35552202dbbb734c8cd6136127abdb3bf138f2ba))
+* **manifest:** compare two manifests and compute the minimum version impact ([#5](https://github.com/forgeron-sh/monorepo/issues/5)) ([17ec657](https://github.com/forgeron-sh/monorepo/commit/17ec657b5ef179d9c7d5fd6be9bef21cb01e27f1))
+* **manifest:** derive the MCP, API and CLI addresses of an action from its name ([#17](https://github.com/forgeron-sh/monorepo/issues/17)) ([944a7af](https://github.com/forgeron-sh/monorepo/commit/944a7af1ef0b8229479507ee026367c5926c7add))
+* **manifest:** flag added or broadened resources as pending approval ([#7](https://github.com/forgeron-sh/monorepo/issues/7)) ([ee8228a](https://github.com/forgeron-sh/monorepo/commit/ee8228ac00de64276e0f2a60d237fe297ef34c9d))
+* **manifest:** validate action names, view paths and reserved paths ([#6](https://github.com/forgeron-sh/monorepo/issues/6)) ([29c3eff](https://github.com/forgeron-sh/monorepo/commit/29c3effb3f29ae23b65d279de8c69b0206d3f469))
+* **registry,console:** approve requested resources, record the audit log (FOR-47, FOR-105) ([#64](https://github.com/forgeron-sh/monorepo/issues/64)) ([e67a40a](https://github.com/forgeron-sh/monorepo/commit/e67a40af00fff669bddd279d265e3489e793957d))
+* **registry,gateway,console:** marketplaces of tool bundles, installed like a template (D-116) ([486e8b8](https://github.com/forgeron-sh/monorepo/commit/486e8b817317a0950b0af1efd4547648d9a65e9f))
+* **registry,gateway,console:** marketplaces of tool bundles, installed like a template (D-116) ([7f1eb23](https://github.com/forgeron-sh/monorepo/commit/7f1eb2342636b2c69dc74dc597be411ecdfb7f2e))
+* **registry,gateway:** offer a person's saved secrets at setup by kind (FOR-172) ([#168](https://github.com/forgeron-sh/monorepo/issues/168)) ([1e9c363](https://github.com/forgeron-sh/monorepo/commit/1e9c363256c89a8fba3706e51fe5fbf0d2838cf0))
+* **runtime:** run event handlers in sync and queue modes and scheduled tasks ([#21](https://github.com/forgeron-sh/monorepo/issues/21)) ([8644e7b](https://github.com/forgeron-sh/monorepo/commit/8644e7bb4d9a57aa206b62f899577ddec7d64b81))
+* **sdk,cli,registry:** a tool's summary and guide for its users, forgeron bundle (D-115) ([2ca7b1a](https://github.com/forgeron-sh/monorepo/commit/2ca7b1a993d42aacbe6cd3ae3e56e7e0f7877c6f))
+* **sdk,cli,registry:** a tool's summary and guide for its users, forgeron bundle (D-115) ([584c245](https://github.com/forgeron-sh/monorepo/commit/584c24592a86c7ca00b86c29bc1ef32313a77c64))
+* tools from a marketplace or a repository, updated with their approvals (D-121) ([2921a70](https://github.com/forgeron-sh/monorepo/commit/2921a706b6473b23253ccfa92d708e383782f053))
+* tools from a marketplace or a repository, updated with their approvals (D-121) ([29a4827](https://github.com/forgeron-sh/monorepo/commit/29a482757af51be59ea4b6dea945bfc70b0b0014))
+
+
+### Bug Fixes
+
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([4f2021c](https://github.com/forgeron-sh/monorepo/commit/4f2021ced002b11c561c139e776ed1e2280318c8))
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([932ceb9](https://github.com/forgeron-sh/monorepo/commit/932ceb93cc4b2fde07d0c167aa5fe37bba9d1f9d))
+</details>
+
+<details><summary>runtime: 0.2.0</summary>
+
+## [0.2.0](https://github.com/forgeron-sh/monorepo/compare/runtime-v0.1.1...runtime-v0.2.0) (2026-11-10)
+
+
+### Features
+
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([d125126](https://github.com/forgeron-sh/monorepo/commit/d125126e82e4a3a41d9ef3415b789297c9a58668))
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([816b73c](https://github.com/forgeron-sh/monorepo/commit/816b73c296bda0de7d689e6038219f16c79ebf57))
+* **gateway,console,registry,sdk:** views honour the access matrix, save it atomically (FOR-43) ([#94](https://github.com/forgeron-sh/monorepo/issues/94)) ([16914f6](https://github.com/forgeron-sh/monorepo/commit/16914f6d3ed88d3c8b2196f347b42ef3779ca5e8))
+* **gateway,console,runtime:** the secret registry's leftovers (FOR-172) ([#174](https://github.com/forgeron-sh/monorepo/issues/174)) ([a4cabc7](https://github.com/forgeron-sh/monorepo/commit/a4cabc774b859157fb830bd392350ff68bbadc3e))
+* **gateway,runtime:** hand a delegated connector the caller's consent at run time (FOR-79) ([#95](https://github.com/forgeron-sh/monorepo/issues/95)) ([bc8fdb4](https://github.com/forgeron-sh/monorepo/commit/bc8fdb426191f907812ec4283c33bf4e0cea5b46))
+* **gateway:** one page shell for every page the gateway serves (FOR-128) ([#106](https://github.com/forgeron-sh/monorepo/issues/106)) ([6cc0a61](https://github.com/forgeron-sh/monorepo/commit/6cc0a619c48ff3b638d46e1ea4eda4aec283827e))
+* **gateway:** revoke and rotate tokens, collect per-person secrets (FOR-38, FOR-95) ([#91](https://github.com/forgeron-sh/monorepo/issues/91)) ([bd62a06](https://github.com/forgeron-sh/monorepo/commit/bd62a06e2ffc85c8012bdb0e22f4aeba9960631c))
+* **gateway:** run a tool's setup before the OAuth click (FOR-171) ([#160](https://github.com/forgeron-sh/monorepo/issues/160)) ([5cb9d45](https://github.com/forgeron-sh/monorepo/commit/5cb9d456b103c2c66fce90986ee21d23838450ea))
+* **gateway:** serve views sandboxed with a CSP and a short-lived per-tool token (FOR-59) ([#51](https://github.com/forgeron-sh/monorepo/issues/51)) ([6b636b0](https://github.com/forgeron-sh/monorepo/commit/6b636b097c0630db1a3f761e0a5c7a06b135d6c5))
+* **hosting,registry,gateway,cli,console:** remove the pilot environment (FOR-132) ([#108](https://github.com/forgeron-sh/monorepo/issues/108)) ([0acc84f](https://github.com/forgeron-sh/monorepo/commit/0acc84f21292d0e0b6882be9aa651373b0c90aa0))
+* **manifest:** derive the MCP, API and CLI addresses of an action from its name ([#17](https://github.com/forgeron-sh/monorepo/issues/17)) ([944a7af](https://github.com/forgeron-sh/monorepo/commit/944a7af1ef0b8229479507ee026367c5926c7add))
+* **registry,gateway:** offer a person's saved secrets at setup by kind (FOR-172) ([#168](https://github.com/forgeron-sh/monorepo/issues/168)) ([1e9c363](https://github.com/forgeron-sh/monorepo/commit/1e9c363256c89a8fba3706e51fe5fbf0d2838cf0))
+* **registry,runtime,console:** edit the roles x actions matrix without a redeploy (FOR-43) ([#74](https://github.com/forgeron-sh/monorepo/issues/74)) ([54e2fb6](https://github.com/forgeron-sh/monorepo/commit/54e2fb635d057efd06c6846f563f74abfdbc7ef7))
+* **registry,runtime,gateway:** keep a person's setup values, ask at /setup (FOR-171) ([#159](https://github.com/forgeron-sh/monorepo/issues/159)) ([506f945](https://github.com/forgeron-sh/monorepo/commit/506f9456fe6b2762900de61227961b2446a8c498))
+* **runtime,gateway:** check a tool's setup before keeping it (FOR-171) ([#163](https://github.com/forgeron-sh/monorepo/issues/163)) ([0788c67](https://github.com/forgeron-sh/monorepo/commit/0788c67e5d147836e5518bd2241f5c9e90ea4bc5))
+* **runtime:** collect per-person secrets on first use on each interface (FOR-95) ([#56](https://github.com/forgeron-sh/monorepo/issues/56)) ([e63c4da](https://github.com/forgeron-sh/monorepo/commit/e63c4da106146fca54b8862bd8ab44f9eb913beb))
+* **runtime:** map every error code to the CLI exit codes and log refused outbound calls ([#15](https://github.com/forgeron-sh/monorepo/issues/15)) ([f870988](https://github.com/forgeron-sh/monorepo/commit/f870988c714773ce3bfeee831ea7b0392a6836db))
+* **runtime:** refuse tokens of another tool, prove one access check everywhere (FOR-90) ([#34](https://github.com/forgeron-sh/monorepo/issues/34)) ([73583dc](https://github.com/forgeron-sh/monorepo/commit/73583dc5373d27486997b804700abbdac9925bf9))
+* **runtime:** run event handlers in sync and queue modes and scheduled tasks ([#21](https://github.com/forgeron-sh/monorepo/issues/21)) ([8644e7b](https://github.com/forgeron-sh/monorepo/commit/8644e7bb4d9a57aa206b62f899577ddec7d64b81))
+* **runtime:** serve MCP, API, CLI and web from the manifest with access checks ([#9](https://github.com/forgeron-sh/monorepo/issues/9)) ([2456473](https://github.com/forgeron-sh/monorepo/commit/245647383bded7d85907cdc70e733db1e0a826bb))
+* **sdk:** declare tables and query them with a typed ctx.db on D1 ([#24](https://github.com/forgeron-sh/monorepo/issues/24)) ([9e0aecc](https://github.com/forgeron-sh/monorepo/commit/9e0aeccd88cf8c0201f26ddcb264880f723ce70d))
+* **sdk:** provide forgeron/testing with createTestTool and mockFetch ([#11](https://github.com/forgeron-sh/monorepo/issues/11)) ([8597435](https://github.com/forgeron-sh/monorepo/commit/85974352f9852903e1f0758d2c76909144cd0ccf))
+
+
+### Bug Fixes
+
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([4f2021c](https://github.com/forgeron-sh/monorepo/commit/4f2021ced002b11c561c139e776ed1e2280318c8))
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([932ceb9](https://github.com/forgeron-sh/monorepo/commit/932ceb93cc4b2fde07d0c167aa5fe37bba9d1f9d))
+</details>
+
+<details><summary>sdk: 0.2.0</summary>
+
+## [0.2.0](https://github.com/forgeron-sh/monorepo/compare/sdk-v0.1.1...sdk-v0.2.0) (2026-11-10)
+
+
+### Features
+
+* **catalog:** tool README and images through build, registry and catalog API (FOR-137) ([#116](https://github.com/forgeron-sh/monorepo/issues/116)) ([7641308](https://github.com/forgeron-sh/monorepo/commit/764130800c33120d66ba191a81812623d58f4a78))
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([d125126](https://github.com/forgeron-sh/monorepo/commit/d125126e82e4a3a41d9ef3415b789297c9a58668))
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([816b73c](https://github.com/forgeron-sh/monorepo/commit/816b73c296bda0de7d689e6038219f16c79ebf57))
+* **cli:** add the forgeron db commands and db/seed.ts (FOR-115, FOR-116) ([#27](https://github.com/forgeron-sh/monorepo/issues/27)) ([3a916ad](https://github.com/forgeron-sh/monorepo/commit/3a916ade23f700b95e0bb4332659724cf5208f39))
+* **compiler:** fail the build on the rules of sdk.md section 14 ([#13](https://github.com/forgeron-sh/monorepo/issues/13)) ([722d2ce](https://github.com/forgeron-sh/monorepo/commit/722d2ce80ebbc929f3acc44a1fe40f32483fe778))
+* **compiler:** generate migrations from the schema and apply them on deployment ([#25](https://github.com/forgeron-sh/monorepo/issues/25)) ([97177dd](https://github.com/forgeron-sh/monorepo/commit/97177ddff623426d36fc255feb5c97435505518b))
+* **console,gateway,hosting,sdk,ui:** database explorer, read only (FOR-136) ([#115](https://github.com/forgeron-sh/monorepo/issues/115)) ([bc31446](https://github.com/forgeron-sh/monorepo/commit/bc31446ad8e1b15d2cd27704520a41623cd32eac))
+* **gateway,console,registry,sdk:** views honour the access matrix, save it atomically (FOR-43) ([#94](https://github.com/forgeron-sh/monorepo/issues/94)) ([16914f6](https://github.com/forgeron-sh/monorepo/commit/16914f6d3ed88d3c8b2196f347b42ef3779ca5e8))
+* **gateway:** serve views sandboxed with a CSP and a short-lived per-tool token (FOR-59) ([#51](https://github.com/forgeron-sh/monorepo/issues/51)) ([6b636b0](https://github.com/forgeron-sh/monorepo/commit/6b636b097c0630db1a3f761e0a5c7a06b135d6c5))
+* **hosting,registry,gateway,cli,console:** remove the pilot environment (FOR-132) ([#108](https://github.com/forgeron-sh/monorepo/issues/108)) ([0acc84f](https://github.com/forgeron-sh/monorepo/commit/0acc84f21292d0e0b6882be9aa651373b0c90aa0))
+* **manifest,sdk,compiler:** a tool declares a setup (FOR-171) ([#158](https://github.com/forgeron-sh/monorepo/issues/158)) ([072250e](https://github.com/forgeron-sh/monorepo/commit/072250eaceae5c9f18dbb3b626ce101830961aa0))
+* **registry,gateway:** offer a person's saved secrets at setup by kind (FOR-172) ([#168](https://github.com/forgeron-sh/monorepo/issues/168)) ([1e9c363](https://github.com/forgeron-sh/monorepo/commit/1e9c363256c89a8fba3706e51fe5fbf0d2838cf0))
+* **registry,runtime,gateway:** keep a person's setup values, ask at /setup (FOR-171) ([#159](https://github.com/forgeron-sh/monorepo/issues/159)) ([506f945](https://github.com/forgeron-sh/monorepo/commit/506f9456fe6b2762900de61227961b2446a8c498))
+* **runtime:** collect per-person secrets on first use on each interface (FOR-95) ([#56](https://github.com/forgeron-sh/monorepo/issues/56)) ([e63c4da](https://github.com/forgeron-sh/monorepo/commit/e63c4da106146fca54b8862bd8ab44f9eb913beb))
+* **runtime:** run event handlers in sync and queue modes and scheduled tasks ([#21](https://github.com/forgeron-sh/monorepo/issues/21)) ([8644e7b](https://github.com/forgeron-sh/monorepo/commit/8644e7bb4d9a57aa206b62f899577ddec7d64b81))
+* **sdk,cli,registry:** a tool's summary and guide for its users, forgeron bundle (D-115) ([2ca7b1a](https://github.com/forgeron-sh/monorepo/commit/2ca7b1a993d42aacbe6cd3ae3e56e7e0f7877c6f))
+* **sdk,cli,registry:** a tool's summary and guide for its users, forgeron bundle (D-115) ([584c245](https://github.com/forgeron-sh/monorepo/commit/584c24592a86c7ca00b86c29bc1ef32313a77c64))
+* **sdk:** add defineView and the useAction, useMutation, useParams, useUser, useCan hooks (FOR-52) ([#35](https://github.com/forgeron-sh/monorepo/issues/35)) ([4f9e427](https://github.com/forgeron-sh/monorepo/commit/4f9e4278547ce5ee9a85a55264e1c760f7a71a00))
+* **sdk:** declare tables and query them with a typed ctx.db on D1 ([#24](https://github.com/forgeron-sh/monorepo/issues/24)) ([9e0aecc](https://github.com/forgeron-sh/monorepo/commit/9e0aeccd88cf8c0201f26ddcb264880f723ce70d))
+* **sdk:** define the connector interface with modes, scopes and host limits (FOR-71) ([#32](https://github.com/forgeron-sh/monorepo/issues/32)) ([f99e4a6](https://github.com/forgeron-sh/monorepo/commit/f99e4a669b6fd5be95bf9ec62b1b5a2cb278381f))
+* **sdk:** implement the public API for tools without a database ([#8](https://github.com/forgeron-sh/monorepo/issues/8)) ([ef57a49](https://github.com/forgeron-sh/monorepo/commit/ef57a49ce271a224faf0ffef522245e8e5701cf3))
+* **sdk:** provide forgeron/testing with createTestTool and mockFetch ([#11](https://github.com/forgeron-sh/monorepo/issues/11)) ([8597435](https://github.com/forgeron-sh/monorepo/commit/85974352f9852903e1f0758d2c76909144cd0ccf))
+* **templates:** implement the crm template on D1 with events and roles ([#26](https://github.com/forgeron-sh/monorepo/issues/26)) ([c8e91b8](https://github.com/forgeron-sh/monorepo/commit/c8e91b84aa75e8cc4bc79bad4a5835428efee875))
+* **templates:** implement the odoo-gateway template against a simulated Odoo ([#12](https://github.com/forgeron-sh/monorepo/issues/12)) ([8331055](https://github.com/forgeron-sh/monorepo/commit/83310550c2bf4dde481b4bb141682ffa5860f7e2))
+
+
+### Bug Fixes
+
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([4f2021c](https://github.com/forgeron-sh/monorepo/commit/4f2021ced002b11c561c139e776ed1e2280318c8))
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([932ceb9](https://github.com/forgeron-sh/monorepo/commit/932ceb93cc4b2fde07d0c167aa5fe37bba9d1f9d))
+
+
+### Performance Improvements
+
+* **test:** run registry, gateway and hosting tests on in-memory D1, cache template builds ([#77](https://github.com/forgeron-sh/monorepo/issues/77)) ([22b09e7](https://github.com/forgeron-sh/monorepo/commit/22b09e7ff38d73ff9ca9ad5ed3c299bacb2eb5b3))
+</details>
+
+<details><summary>forgeron: 0.2.0</summary>
+
+## [0.2.0](https://github.com/forgeron-sh/monorepo/compare/forgeron-v0.1.1...forgeron-v0.2.0) (2026-11-10)
+
+
+### Features
+
+* **catalog:** tool README and images through build, registry and catalog API (FOR-137) ([#116](https://github.com/forgeron-sh/monorepo/issues/116)) ([7641308](https://github.com/forgeron-sh/monorepo/commit/764130800c33120d66ba191a81812623d58f4a78))
+* **cli:** --workspace takes a full host, platform install --only ([#179](https://github.com/forgeron-sh/monorepo/issues/179)) ([8f39178](https://github.com/forgeron-sh/monorepo/commit/8f39178fd884c2dd229cce8113552bac3658e274))
+* **cli,gateway,console:** promote from a branch with a plan, remote SQL, admin CLI (FOR-183) ([#178](https://github.com/forgeron-sh/monorepo/issues/178)) ([7fc7b17](https://github.com/forgeron-sh/monorepo/commit/7fc7b17b4665af46e9944e67206b02ebbaaa2f98))
+* **cli,gateway:** add keychain login storage and closable template previews (FOR-85, FOR-65) ([#89](https://github.com/forgeron-sh/monorepo/issues/89)) ([3bd00c8](https://github.com/forgeron-sh/monorepo/commit/3bd00c81dcb61d1642c6c485a75ba26ee5cde6fd))
+* **cli,gateway:** promote, roll back and serve a pilot group (FOR-51, FOR-54, FOR-57) ([#88](https://github.com/forgeron-sh/monorepo/issues/88)) ([f51165f](https://github.com/forgeron-sh/monorepo/commit/f51165ffca21e300086a21379bf2aa6d41577c8a))
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([d125126](https://github.com/forgeron-sh/monorepo/commit/d125126e82e4a3a41d9ef3415b789297c9a58668))
+* **cli,sdk,runtime,manifest:** publishable npm packages built by tsdown, released together (D-122) ([816b73c](https://github.com/forgeron-sh/monorepo/commit/816b73c296bda0de7d689e6038219f16c79ebf57))
+* **cli:** add catalog search and install with resource approval (FOR-70) ([#46](https://github.com/forgeron-sh/monorepo/issues/46)) ([f016088](https://github.com/forgeron-sh/monorepo/commit/f016088ce6b335d91ba671c5132ba7bf20367cf5))
+* **cli:** add forgeron deploy and the deploy GitHub Action, written by forgeron init (FOR-44) ([#60](https://github.com/forgeron-sh/monorepo/issues/60)) ([0ecffcf](https://github.com/forgeron-sh/monorepo/commit/0ecffcf219bb636e25ab7af3c8f8b0df04f0aa5a))
+* **cli:** add forgeron login, logout and whoami with keychain or 600 file storage (FOR-85) ([#75](https://github.com/forgeron-sh/monorepo/issues/75)) ([feb5c4d](https://github.com/forgeron-sh/monorepo/commit/feb5c4d71d198d5faf94d1ba5b40939e758e1562))
+* **cli:** add forgeron platform install and the self-host guide (FOR-25, FOR-109) ([#67](https://github.com/forgeron-sh/monorepo/issues/67)) ([15ae1e7](https://github.com/forgeron-sh/monorepo/commit/15ae1e780e7192a88c83b47600c96f3ed227976c))
+* **cli:** add forgeron play with a generated form per action (FOR-81) ([#29](https://github.com/forgeron-sh/monorepo/issues/29)) ([68836b8](https://github.com/forgeron-sh/monorepo/commit/68836b8c0e50f3c13c24405f9f5000ab65ea3894))
+* **cli:** add the changelog workflow and refuse uncovered changes (FOR-61, FOR-64, FOR-66) ([#28](https://github.com/forgeron-sh/monorepo/issues/28)) ([2fd747c](https://github.com/forgeron-sh/monorepo/commit/2fd747c4a204594f9eadae6bb0a5f5bc4b38c2ab))
+* **cli:** add the forgeron db commands and db/seed.ts (FOR-115, FOR-116) ([#27](https://github.com/forgeron-sh/monorepo/issues/27)) ([3a916ad](https://github.com/forgeron-sh/monorepo/commit/3a916ade23f700b95e0bb4332659724cf5208f39))
+* **cli:** attach the wildcard DNS record and gateway route on platform install (FOR-118) ([#79](https://github.com/forgeron-sh/monorepo/issues/79)) ([239e6ee](https://github.com/forgeron-sh/monorepo/commit/239e6eecb24614ebf19c2ed69524c39bb5bd010b))
+* **cli:** call the CLI platform routes through the contract's typed client (FOR-154) ([#135](https://github.com/forgeron-sh/monorepo/issues/135)) ([4a36f7b](https://github.com/forgeron-sh/monorepo/commit/4a36f7bbac5db0564957a89a41fde54882f2aac5))
+* **cli:** generate the gateway keys and set the OIDC identity on platform install (FOR-120) ([#84](https://github.com/forgeron-sh/monorepo/issues/84)) ([dc53f76](https://github.com/forgeron-sh/monorepo/commit/dc53f76770bf3fa7e3f5e78da947034556870be2))
+* **cli:** give a person's own secrets on the web, not in the terminal (FOR-171) ([#164](https://github.com/forgeron-sh/monorepo/issues/164)) ([49d5612](https://github.com/forgeron-sh/monorepo/commit/49d5612de48d41993a09f3bcda813b19d67cce67))
+* **cli:** implement the init, link, build, test and dev commands ([#20](https://github.com/forgeron-sh/monorepo/issues/20)) ([f60f540](https://github.com/forgeron-sh/monorepo/commit/f60f54065d22d8075eca07233796719fcdd96de2))
+* **cli:** init --template downloads @forgeron/template-&lt;name&gt; packages (FOR-68) ([#44](https://github.com/forgeron-sh/monorepo/issues/44)) ([4ec9167](https://github.com/forgeron-sh/monorepo/commit/4ec91671fac5f2783e41d3cb7552ca4bcd9ce866))
+* **cli:** install the platform with --auth wrangler, never storing the session token (FOR-117) ([#78](https://github.com/forgeron-sh/monorepo/issues/78)) ([b9a5edc](https://github.com/forgeron-sh/monorepo/commit/b9a5edcee5de5fed7259822b4e69a09a7fb12e0b))
+* **cli:** show what MCP, API and CLI see of each action in the playground (FOR-84) ([#30](https://github.com/forgeron-sh/monorepo/issues/30)) ([2195760](https://github.com/forgeron-sh/monorepo/commit/21957608cca1dab203eb30f19b34365ec03e593e))
+* **cli:** try a catalog template with forgeron play --template, without installing it (FOR-88) ([#61](https://github.com/forgeron-sh/monorepo/issues/61)) ([10b33b0](https://github.com/forgeron-sh/monorepo/commit/10b33b0e7ddf63f9be06dc0d0ecb8a65aa1f38b0))
+* **cli:** upload the console as assets of the gateway on platform install (FOR-122) ([#83](https://github.com/forgeron-sh/monorepo/issues/83)) ([acb72a1](https://github.com/forgeron-sh/monorepo/commit/acb72a14cc3ea2820848ac188a72c39e9d5f4bcd))
+* **compiler:** generate migrations from the schema and apply them on deployment ([#25](https://github.com/forgeron-sh/monorepo/issues/25)) ([97177dd](https://github.com/forgeron-sh/monorepo/commit/97177ddff623426d36fc255feb5c97435505518b))
+* **console,gateway,registry,cli:** tools list and tool page (FOR-130) ([#114](https://github.com/forgeron-sh/monorepo/issues/114)) ([2309d23](https://github.com/forgeron-sh/monorepo/commit/2309d239e90c7c29912703a9a4a6aa0cd84f939f))
+* **gateway,cli:** accept builds from CI with a deployment token and create tokens (FOR-42, FOR-87) ([#58](https://github.com/forgeron-sh/monorepo/issues/58)) ([544922c](https://github.com/forgeron-sh/monorepo/commit/544922c87f187f2e520b37087f8cfeea8a968b94))
+* **gateway,cli:** console mail mode writes sign-in codes to the logs for test installs (FOR-126) ([#99](https://github.com/forgeron-sh/monorepo/issues/99)) ([c77fa87](https://github.com/forgeron-sh/monorepo/commit/c77fa876df575ab2c15241c0e216e3a298d9fd20))
+* **gateway,registry,console,cli:** sign in by emailed code, invitations and members (FOR-126) ([#98](https://github.com/forgeron-sh/monorepo/issues/98)) ([47fbd48](https://github.com/forgeron-sh/monorepo/commit/47fbd48e15a8a3d6ead31fd2a0ce3bbff84994ba))
+* **gateway:** bind tools on deploy and keep bindings on platform install (FOR-119) ([#86](https://github.com/forgeron-sh/monorepo/issues/86)) ([5fe4434](https://github.com/forgeron-sh/monorepo/commit/5fe4434cc29d42890b273ec42ca7314b8acc7817))
+* **gateway:** build the gateway into one worker.js bundle with Rolldown (FOR-121) ([#80](https://github.com/forgeron-sh/monorepo/issues/80)) ([652b161](https://github.com/forgeron-sh/monorepo/commit/652b161590bc7b88635f897517766f38d5aea921))
+* **gateway:** revoke and rotate tokens, collect per-person secrets (FOR-38, FOR-95) ([#91](https://github.com/forgeron-sh/monorepo/issues/91)) ([bd62a06](https://github.com/forgeron-sh/monorepo/commit/bd62a06e2ffc85c8012bdb0e22f4aeba9960631c))
+* **gateway:** serve the playground at /t/&lt;tool&gt;/play (FOR-91) ([#54](https://github.com/forgeron-sh/monorepo/issues/54)) ([cba32af](https://github.com/forgeron-sh/monorepo/commit/cba32aff505f051949a15c67b4d4497f60d1af7a))
+* **hosting,registry,gateway,cli,console:** remove the pilot environment (FOR-132) ([#108](https://github.com/forgeron-sh/monorepo/issues/108)) ([0acc84f](https://github.com/forgeron-sh/monorepo/commit/0acc84f21292d0e0b6882be9aa651373b0c90aa0))
+* **hosting:** add the local hosting mode and forgeron dev ([#19](https://github.com/forgeron-sh/monorepo/issues/19)) ([13e369f](https://github.com/forgeron-sh/monorepo/commit/13e369fcac7beb0aca0d1686362fd94c0bccc054))
+* **registry:** store tool secrets encrypted per environment, with CLI and API (FOR-98) ([#52](https://github.com/forgeron-sh/monorepo/issues/52)) ([b85e524](https://github.com/forgeron-sh/monorepo/commit/b85e524ed8d4f497375745e77a3e65f5c193d668))
+* **runtime:** run event handlers in sync and queue modes and scheduled tasks ([#21](https://github.com/forgeron-sh/monorepo/issues/21)) ([8644e7b](https://github.com/forgeron-sh/monorepo/commit/8644e7bb4d9a57aa206b62f899577ddec7d64b81))
+* **sdk,cli,registry:** a tool's summary and guide for its users, forgeron bundle (D-115) ([2ca7b1a](https://github.com/forgeron-sh/monorepo/commit/2ca7b1a993d42aacbe6cd3ae3e56e7e0f7877c6f))
+* **sdk,cli,registry:** a tool's summary and guide for its users, forgeron bundle (D-115) ([584c245](https://github.com/forgeron-sh/monorepo/commit/584c24592a86c7ca00b86c29bc1ef32313a77c64))
+* **sdk:** declare tables and query them with a typed ctx.db on D1 ([#24](https://github.com/forgeron-sh/monorepo/issues/24)) ([9e0aecc](https://github.com/forgeron-sh/monorepo/commit/9e0aeccd88cf8c0201f26ddcb264880f723ce70d))
+* **templates:** implement the crm template on D1 with events and roles ([#26](https://github.com/forgeron-sh/monorepo/issues/26)) ([c8e91b8](https://github.com/forgeron-sh/monorepo/commit/c8e91b84aa75e8cc4bc79bad4a5835428efee875))
+* tools from a marketplace or a repository, updated with their approvals (D-121) ([2921a70](https://github.com/forgeron-sh/monorepo/commit/2921a706b6473b23253ccfa92d708e383782f053))
+* tools from a marketplace or a repository, updated with their approvals (D-121) ([29a4827](https://github.com/forgeron-sh/monorepo/commit/29a482757af51be59ea4b6dea945bfc70b0b0014))
+
+
+### Bug Fixes
+
+* **cli,gateway,hosting:** preview address with [@branch](https://github.com/branch), endpoint of the linked project (FOR-131) ([#142](https://github.com/forgeron-sh/monorepo/issues/142)) ([0b30339](https://github.com/forgeron-sh/monorepo/commit/0b3033922b8f5ff7ac64a9c01e3e8cf878baa0ee))
+* **cli:** a re-run of the install keeps the gateway's API token secret ([#175](https://github.com/forgeron-sh/monorepo/issues/175)) ([3c60a8d](https://github.com/forgeron-sh/monorepo/commit/3c60a8dcdd577daf6f4d95f5e0a08837580ba2ae))
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([4f2021c](https://github.com/forgeron-sh/monorepo/commit/4f2021ced002b11c561c139e776ed1e2280318c8))
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([20a4899](https://github.com/forgeron-sh/monorepo/commit/20a4899d238ffe52003099948ef0cf637dd7fb33))
+* **cli:** publish the forgeron bin without a leading ./, release 0.1.1 ([932ceb9](https://github.com/forgeron-sh/monorepo/commit/932ceb93cc4b2fde07d0c167aa5fe37bba9d1f9d))
+* **cli:** read the login token from the keychain in token create and promote ([#103](https://github.com/forgeron-sh/monorepo/issues/103)) ([316c7eb](https://github.com/forgeron-sh/monorepo/commit/316c7ebda8d7257c07e70ddede09038353570341))
+* **gateway,hosting,registry,cli:** upload the console assets with each gateway version (FOR-127) ([#104](https://github.com/forgeron-sh/monorepo/issues/104)) ([d5fb6eb](https://github.com/forgeron-sh/monorepo/commit/d5fb6eb0190ea5d67525b9bc61c0cfdea59cce17))
+</details>
+
+---
+This PR was generated with [Release Please](https://github.com/googleapis/release-please). See [documentation](https://github.com/googleapis/release-please#release-please).
