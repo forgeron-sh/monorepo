@@ -58,7 +58,7 @@ export interface UserSecretsContext {
  * page of their library in the console (D-117).
  */
 const SETUP_NEXT =
-  /^(?:\/oauth\/authorize\?[A-Za-z0-9%._~!$&'()*+,;=:@/?-]*|\/library\/[a-z0-9-]+)$/;
+  /^(?:\/oauth\/authorize\?[A-Za-z0-9%._~!$&'()*+,;=:@/?-]*|\/library\/[a-z0-9-]+(?:\/pilots\/[a-z0-9._-]+)?)$/;
 
 const refuse = (status: number, code: string, message: string) =>
   Response.json({ error: { code, message } }, { status });

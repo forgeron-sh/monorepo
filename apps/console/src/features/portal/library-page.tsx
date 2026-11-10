@@ -3,7 +3,15 @@ import { useState, type ReactNode } from "react";
 import { explain, type Api } from "../../api";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
-import { addToLibrary, loadLibraryCard, removeFromLibrary, type LibraryCard } from "./library";
+import {
+  addPilot,
+  addToLibrary,
+  loadLibraryCard,
+  loadPilotCard,
+  removeFromLibrary,
+  removePilot,
+  type LibraryCard,
+} from "./library";
 import "./portal.css";
 
 // A tool as the person who uses it sees it (D-118): what it does (its guide), adding it to their
@@ -77,12 +85,19 @@ export function LibraryToolPage({
   api,
   go,
   tool,
+  pilot,
 }: {
   api: Api;
   go: (href: string) => void;
   tool: string;
+  /** A branch being tried (D-119): the page is that pilot's, not the tool's. */
+  pilot?: string;
 }) {
-  const card = useLoad(() => loadLibraryCard(api.fetchJson, tool), [api, tool]);
+  const card = useLoad(
+    () =>
+      pilot ? loadPilotCard(api.fetchJson, tool, pilot) : loadLibraryCard(api.fetchJson, tool),
+    [api, tool, pilot],
+  );
   const [tab, setTab] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -104,7 +119,9 @@ export function LibraryToolPage({
     setBusy(true);
     setError(undefined);
     try {
-      const done = await addToLibrary(api.sendJson, c.name);
+      const done = pilot
+        ? await addPilot(api.sendJson, c.name, pilot)
+        : await addToLibrary(api.sendJson, c.name);
       // The setup page is the gateway's: a full page load, which comes back here when it is done.
       if (done.setupUrl) window.location.assign(done.setupUrl);
       else {
@@ -122,7 +139,8 @@ export function LibraryToolPage({
     setBusy(true);
     setError(undefined);
     try {
-      await removeFromLibrary(api.sendJson, c.name);
+      if (pilot) await removePilot(api.sendJson, c.name, pilot);
+      else await removeFromLibrary(api.sendJson, c.name);
       go("/");
     } catch (e) {
       setError(explain(e, `${c.title} could not be removed. Try again.`));
@@ -133,7 +151,7 @@ export function LibraryToolPage({
 
   return (
     <Page
-      title={c.title}
+      title={c.pilot ? `${c.title} · pilot` : c.title}
       description={
         <button type="button" className="fp-link" onClick={() => go("/")}>
           Back to my tools
@@ -159,6 +177,12 @@ export function LibraryToolPage({
           </div>
         </div>
         {error ? <Notice tone="danger">{error}</Notice> : null}
+        {c.pilot ? (
+          <Notice tone="info" title={`Pilot version · ${c.pilot}`}>
+            A version of {c.title} being prepared, for you to try. It has its own data: nothing you
+            do here reaches the {c.title} everyone uses, and nothing comes from it.
+          </Notice>
+        ) : null}
         {c.installed && c.needsSetup ? (
           <Notice tone="warning" title="One step left">
             {c.title} needs something from you before it works, such as your own key. It is kept for

@@ -1,6 +1,6 @@
 import type { Registry } from "@forgeron/registry";
 import { missingSetup } from "@forgeron/runtime";
-import { libraryAccess, libraryPath } from "../../library/library";
+import { libraryAccess, libraryPath, pilotAccess } from "../../library/library";
 import type { Person } from "../../kernel/person";
 import { errorPage } from "../../pages/errors";
 import { connectionHandBackPage, consentPage } from "../../pages/mcp-oauth";
@@ -40,7 +40,9 @@ export interface McpOAuthContext {
     | "findMember"
     | "findTool"
     | "isInstalled"
+    | "isPilotInstalled"
     | "isTokenRevoked"
+    | "previewAvailabilityOf"
     | "readUserSecrets"
     | "readUserSetup"
     | "revokeToken"
@@ -77,7 +79,7 @@ const TOOL_RESOURCE = /^\/t\/([a-z0-9][a-z0-9-]*)(@[^/]+)?\/mcp$/;
 async function resourceOf(
   resource: string,
   context: McpOAuthContext,
-): Promise<{ tool: string; url: string } | undefined> {
+): Promise<{ tool: string; url: string; branch?: string } | undefined> {
   if (resource === `${context.origin}/mcp`) return { tool: PLATFORM_TOOL, url: resource };
   if (!resource.startsWith(`${context.origin}/`)) return undefined;
   const found = TOOL_RESOURCE.exec(resource.slice(context.origin.length));
@@ -85,7 +87,8 @@ async function resourceOf(
   // `platform` is the audience of the admin MCP: a tool of that name must never share it.
   if (!tool || tool === PLATFORM_TOOL) return undefined;
   if (!(await context.registry.findTool(context.workspace, tool))) return undefined;
-  return { tool, url: resource };
+  const branch = found?.[2]?.slice(1);
+  return { tool, url: resource, ...(branch ? { branch } : {}) };
 }
 
 /** The documents a client reads to find out how to sign in (RFC 9728 and RFC 8414). */
@@ -286,7 +289,14 @@ export async function handleAuthorize(request: Request, context: McpOAuthContext
   // others are sent there, where they add it and come back.
   if (target.tool !== PLATFORM_TOOL) {
     const record = await context.registry.findTool(context.workspace, target.tool);
-    const reach = record ? await libraryAccess(context.registry, record.id, person) : "ok";
+    // A pilot's MCP (`/t/<tool>@<branch>/mcp`) is reached by the people who added that pilot (D-119).
+    const reach = !record
+      ? "ok"
+      : target.branch !== undefined
+        ? (await pilotAccess(context.registry, record.id, target.branch, person))
+          ? "ok"
+          : "unavailable"
+        : await libraryAccess(context.registry, record.id, person);
     if (reach === "unavailable") {
       return errorPage(403, {
         workspace: context.workspace,

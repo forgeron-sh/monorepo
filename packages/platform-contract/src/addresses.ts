@@ -20,7 +20,12 @@ import type {
 } from "./identity";
 import type {
   getAvailabilityRoute,
+  getPilotAvailabilityRoute,
   installLibraryToolRoute,
+  installPilotRoute,
+  pilotCardRoute,
+  putPilotAvailabilityRoute,
+  uninstallPilotRoute,
   libraryCardRoute,
   listLibraryRoute,
   putAvailabilityRoute,
@@ -194,6 +199,26 @@ export const addresses = {
   putAvailability: addressOf<typeof putAvailabilityRoute>({
     method: "put",
     path: "/api/tools/{tool}/availability",
+  }),
+  pilotCard: addressOf<typeof pilotCardRoute>({
+    method: "get",
+    path: "/api/library/{tool}/pilots/{branch}",
+  }),
+  installPilot: addressOf<typeof installPilotRoute>({
+    method: "post",
+    path: "/api/library/{tool}/pilots/{branch}",
+  }),
+  uninstallPilot: addressOf<typeof uninstallPilotRoute>({
+    method: "delete",
+    path: "/api/library/{tool}/pilots/{branch}",
+  }),
+  getPilotAvailability: addressOf<typeof getPilotAvailabilityRoute>({
+    method: "get",
+    path: "/api/tools/{tool}/previews/{branch}/availability",
+  }),
+  putPilotAvailability: addressOf<typeof putPilotAvailabilityRoute>({
+    method: "put",
+    path: "/api/tools/{tool}/previews/{branch}/availability",
   }),
   listMarketplaces: addressOf<typeof listMarketplacesRoute>({
     method: "get",

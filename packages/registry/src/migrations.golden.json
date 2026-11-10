@@ -818,5 +818,30 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0032_pilots",
+    "fingerprint": "pilots-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"preview_availability\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"branch\" TEXT NOT NULL,\n  \"mode\" TEXT NOT NULL,\n  \"subjects\" TEXT NOT NULL DEFAULT '[]',\n  \"updated_by\" TEXT,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"branch\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"person_previews\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"branch\" TEXT NOT NULL,\n  \"person\" TEXT NOT NULL,\n  \"installed_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"branch\", \"person\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"person_previews\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"preview_availability\"",
+        "parameters": []
+      }
+    ]
   }
 ]

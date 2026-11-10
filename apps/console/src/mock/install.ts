@@ -255,6 +255,31 @@ export async function installMock(): Promise<void> {
       const answer = mockLibraryRoute(path, method, admin);
       if (answer) return reply(answer.status, answer.body);
     }
+    const pilotRule = /^\/api\/tools\/([\w-]+)\/previews\/([\w.-]+)\/availability$/.exec(path);
+    if (pilotRule) {
+      if (!admin) return reply(403, { error: "FORBIDDEN", message: "This is for admins." });
+      const key = `${pilotRule[1]}@${pilotRule[2]}`;
+      if (method === "PUT") {
+        state.availability[key] = {
+          mode: String(body.mode),
+          roles: body.roles ?? [],
+          people: body.people ?? [],
+          updatedAt: iso(0),
+        };
+      }
+      const rule = state.availability[key];
+      return reply(
+        200,
+        rule
+          ? {
+              mode: rule.mode,
+              roles: rule.roles ?? [],
+              people: rule.people ?? [],
+              updatedAt: rule.updatedAt,
+            }
+          : { mode: "open", roles: [], people: [], updatedAt: null },
+      );
+    }
     const availability = /^\/api\/tools\/([\w-]+)\/availability$/.exec(path);
     if (availability) {
       if (!admin) return reply(403, { error: "FORBIDDEN", message: "This is for admins." });

@@ -178,12 +178,13 @@ export function mockCatalogRoute(path: string, admin: boolean): unknown {
 
 /**
  * The library of the harness and the tests (D-117): what the person added (the tools they could call)
- * and what they may add. An admin may add every tool. `odoo` still asks for its setup.
+ * and what they may add. An admin may add every tool. `odoo` still asks for its setup, and a pilot of
+ * it (D-119) is opened to the person.
  */
 const added = new Set(MOCK_TOOLS.filter((t) => t.access === "granted").map((t) => t.name));
 
 export function mockLibrary(admin: boolean) {
-  return MOCK_TOOLS.filter(
+  const tools = MOCK_TOOLS.filter(
     (t) =>
       t.productionVersion !== null && (admin || t.access === "granted" || t.name === "inventory"),
   ).map((t) => ({
@@ -194,14 +195,28 @@ export function mockLibrary(admin: boolean) {
     installed: added.has(t.name),
     managed: true,
     needsSetup: added.has(t.name) && t.name === "odoo",
+    pilot: null as string | null,
   }));
+  return [
+    ...tools,
+    {
+      name: "odoo",
+      title: "Odoo gateway",
+      summary: "Read tickets and quotes from Odoo without leaving Claude.",
+      icon: null,
+      installed: added.has("odoo@pilot-a"),
+      managed: true,
+      needsSetup: false,
+      pilot: "pilot-a" as string | null,
+    },
+  ];
 }
 
-export function mockLibraryCard(name: string, admin: boolean) {
-  const tool = mockLibrary(admin).find((t) => t.name === name);
+export function mockLibraryCard(name: string, admin: boolean, pilot: string | null = null) {
+  const tool = mockLibrary(admin).find((t) => t.name === name && t.pilot === pilot);
   const source = MOCK_TOOLS.find((t) => t.name === name);
   if (!tool || !source) return undefined;
-  const base = "https://demo.fabriks.example";
+  const base = `https://demo.fabriks.example/t/${name}${pilot ? `@${pilot}` : ""}`;
   return {
     ...tool,
     guide:
@@ -214,9 +229,9 @@ export function mockLibraryCard(name: string, admin: boolean) {
     setupUrl: tool.needsSetup ? `/t/${name}/setup?next=%2Flibrary%2F${name}` : null,
     use: tool.installed
       ? {
-          web: source.interfaces.web ? { url: `${base}/t/${name}/` } : null,
-          mcp: source.interfaces.mcp ? { url: `${base}/t/${name}/mcp` } : null,
-          cli: source.interfaces.cli ? { command: `forgeron ${name} --help` } : null,
+          web: source.interfaces.web ? { url: `${base}/` } : null,
+          mcp: source.interfaces.mcp ? { url: `${base}/mcp` } : null,
+          cli: source.interfaces.cli && !pilot ? { command: `forgeron ${name} --help` } : null,
         }
       : { web: null, mcp: null, cli: null },
   };
@@ -224,30 +239,28 @@ export function mockLibraryCard(name: string, admin: boolean) {
 
 /** What the harness answers on `/api/library…`, keeping what a person adds or removes. */
 export function mockLibraryRoute(path: string, method: string, admin: boolean) {
-  if (path === "/api/library" && method === "GET")
+  if (path === "/api/library" && method === "GET") {
     return { status: 200, body: { tools: mockLibrary(admin) } };
-  const one = /^\/api\/library\/([\w-]+)$/.exec(path);
+  }
+  const one = /^\/api\/library\/([\w-]+)(?:\/pilots\/([\w.-]+))?$/.exec(path);
   if (!one) return undefined;
   const name = one[1]!;
-  const found = mockLibrary(admin).find((t) => t.name === name);
-  if (!found)
+  const pilot = one[2] ?? null;
+  const key = pilot ? `${name}@${pilot}` : name;
+  if (!mockLibrary(admin).some((t) => t.name === name && t.pilot === pilot)) {
     return {
       status: 404,
       body: { error: "NOT_FOUND", message: "There is no such tool in your library." },
     };
+  }
   if (method === "POST") {
-    added.add(name);
-    return {
-      status: 200,
-      body: {
-        installed: true,
-        setupUrl: name === "odoo" ? `/t/odoo/setup?next=%2Flibrary%2Fodoo` : null,
-      },
-    };
+    added.add(key);
+    const setupUrl = key === "odoo" ? "/t/odoo/setup?next=%2Flibrary%2Fodoo" : null;
+    return { status: 200, body: { installed: true, setupUrl } };
   }
   if (method === "DELETE") {
-    added.delete(name);
+    added.delete(key);
     return { status: 204, body: undefined };
   }
-  return { status: 200, body: mockLibraryCard(name, admin) };
+  return { status: 200, body: mockLibraryCard(name, admin, pilot) };
 }

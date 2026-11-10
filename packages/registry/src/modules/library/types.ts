@@ -23,6 +23,18 @@ export const AVAILABILITY_MODES: readonly AvailabilityMode[] = [
 ];
 
 /**
+ * May this person reach a branch preview (D-119)? Admins and developers always may, as before; anyone
+ * else only through a rule an admin set on that branch.
+ */
+export function mayPilot(
+  rule: Availability | undefined,
+  person: { id: string; roles: readonly string[] },
+): boolean {
+  if (person.roles.includes("admin") || person.roles.includes("developer")) return true;
+  return rule !== undefined && isAvailable(rule, person);
+}
+
+/**
  * May this person add the tool to their library? An admin always may (to try a tool before opening
  * it). `undefined`: the tool has no rule, so it is open.
  */

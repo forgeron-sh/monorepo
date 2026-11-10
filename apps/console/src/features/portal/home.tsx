@@ -16,7 +16,7 @@ import { FirstRun, firstRunSteps } from "../../overview";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
 import type { WorkspaceInfo } from "../../workspace";
-import { addToLibrary, libraryHref, loadLibrary, type LibraryTool } from "./library";
+import { addPilot, addToLibrary, libraryHref, loadLibrary, type LibraryTool } from "./library";
 
 // Home is the person's library (D-117): the tools they added, and those they may add with a click. An
 // admin sees the same two lists, with a strip of the workspace's numbers (and the first-run checklist
@@ -35,6 +35,7 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
   const library = useLoad(() => loadLibrary(api.fetchJson), [api]);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState<string>();
+  const keyOf = (t: LibraryTool) => (t.pilot ? `${t.name}@${t.pilot}` : t.name);
   const [error, setError] = useState<string>();
   const tools = library.data ?? [];
   const mine = tools.filter((t) => t.installed && matches(t, query));
@@ -43,11 +44,12 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
 
   // Adding a tool goes straight to its page, where the person finishes its setup and sees how to use it.
   const add = async (tool: LibraryTool) => {
-    setAdding(tool.name);
+    setAdding(keyOf(tool));
     setError(undefined);
     try {
-      await addToLibrary(api.sendJson, tool.name);
-      go(libraryHref(tool.name));
+      if (tool.pilot) await addPilot(api.sendJson, tool.name, tool.pilot);
+      else await addToLibrary(api.sendJson, tool.name);
+      go(libraryHref(tool.name, tool.pilot));
     } catch (e) {
       setError(explain(e, `${tool.title} could not be added. Try again.`));
       setAdding(undefined);
@@ -103,14 +105,18 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
               <ul className="fp-grid">
                 {mine.map((tool) => (
                   <ToolCard
-                    key={tool.name}
+                    key={keyOf(tool)}
                     name={tool.title}
                     summary={tool.summary}
-                    href={libraryHref(tool.name)}
+                    href={libraryHref(tool.name, tool.pilot)}
                     onNavigate={go}
-                    meta={tool.needsSetup ? <Badge tone="warning">Setup to finish</Badge> : null}
+                    meta={<Tags tool={tool} />}
                     footer={
-                      <Button size="sm" href={libraryHref(tool.name)} onClick={navigate(go)}>
+                      <Button
+                        size="sm"
+                        href={libraryHref(tool.name, tool.pilot)}
+                        onClick={navigate(go)}
+                      >
                         {tool.needsSetup ? "Finish setup" : "Use"}
                       </Button>
                     }
@@ -149,11 +155,12 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
                 <ul className="fp-grid">
                   {others.map((tool) => (
                     <ToolCard
-                      key={tool.name}
+                      key={keyOf(tool)}
                       name={tool.title}
                       summary={tool.summary}
-                      href={libraryHref(tool.name)}
+                      href={libraryHref(tool.name, tool.pilot)}
                       onNavigate={go}
+                      meta={<Tags tool={tool} />}
                       footer={
                         <Button
                           size="sm"
@@ -161,7 +168,7 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
                           onClick={() => add(tool)}
                           disabled={adding !== undefined}
                         >
-                          {adding === tool.name ? "Adding…" : "Add"}
+                          {adding === keyOf(tool) ? "Adding…" : "Add"}
                         </Button>
                       }
                     />
@@ -178,6 +185,17 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
         </>
       )}
     </Page>
+  );
+}
+
+/** A pilot says so, with its branch; a tool still waiting for the person says that too. */
+function Tags({ tool }: { tool: LibraryTool }) {
+  if (!tool.pilot && !tool.needsSetup) return null;
+  return (
+    <>
+      {tool.pilot ? <Badge tone="strong">{`Pilot · ${tool.pilot}`}</Badge> : null}
+      {tool.needsSetup ? <Badge tone="warning">Setup to finish</Badge> : null}
+    </>
   );
 }
 

@@ -18,6 +18,7 @@ export {
   createRegistry,
   isAvailable,
   marketplaceSource,
+  mayPilot,
   RegistryError,
   TEMPLATE_WORKSPACE,
   VIA_FORGERON_MCP,

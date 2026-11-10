@@ -1,4 +1,5 @@
 import type { SetupCheckResult } from "@forgeron/runtime";
+import { pilotAccess } from "./library/library";
 import {
   createConsent,
   createEmailCodes,
@@ -250,12 +251,21 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
               registry.recordUsage(workspace, tool, personId),
           }
         : {}),
-      // A preview is for the workspace's administrators and developers (sdk.md §7).
+      // A preview is for the workspace's administrators and developers (sdk.md §7), and for the people
+      // an admin opened the branch to who added it to their library: a pilot (D-119).
       ...(caller
         ? {
-            canPreview: async (c: { workspace: string; request: Request }) => {
-              const roles = (await caller.resolve(c.request, c.workspace))?.roles ?? [];
-              return roles.includes("admin") || roles.includes("developer");
+            canPreview: async (c: {
+              workspace: string;
+              tool: string;
+              branch: string;
+              request: Request;
+            }) => {
+              const person = await caller.resolve(c.request, c.workspace);
+              if (!person) return false;
+              if (person.roles.includes("admin") || person.roles.includes("developer")) return true;
+              const tool = await registry.findTool(c.workspace, c.tool);
+              return tool ? pilotAccess(registry, tool.id, c.branch, person) : false;
             },
           }
         : {}),

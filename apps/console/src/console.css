@@ -333,6 +333,13 @@ code {
   border: 0;
   min-width: 0;
 }
+.fc-details {
+  border-top: 1px solid var(--line);
+  padding: var(--space-3) 0;
+}
+.fc-details > summary {
+  cursor: pointer;
+}
 .fc-radio {
   display: flex;
   align-items: baseline;
