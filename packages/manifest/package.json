@@ -7,6 +7,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "tsdown": "tsdown"
+  },
   "dependencies": {
     "zod": "4.6.7"
   },

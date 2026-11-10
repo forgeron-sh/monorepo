@@ -7,6 +7,7 @@ import { db } from "./commands/db";
 import { deploy } from "./commands/deploy";
 import { dev } from "./commands/dev";
 import { init } from "./commands/init";
+import { VERSION } from "./version";
 import { install } from "./commands/install";
 import { link } from "./commands/link";
 import { login, logout, whoami } from "./commands/login";
@@ -86,7 +87,7 @@ const USAGE = `Usage: forgeron <command>
 export async function run(argv: string[], io: Io): Promise<number> {
   const [name, ...args] = argv;
   if (name === "--version" || name === "-v") {
-    io.log("forgeron 0.0.0");
+    io.log(`forgeron ${VERSION}`);
     return 0;
   }
   const command = name ? COMMANDS[name] : undefined;

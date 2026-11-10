@@ -1,14 +1,20 @@
 # @forgeron/sdk
 
-What a tool imports. The public API is specified in `docs/sdk.md`; this package implements it.
+Write a Forgeron tool: its configuration (`defineConfig`), its actions (`action`), its database (`@forgeron/sdk/db`), its views (`@forgeron/sdk/react`) and its tests (`@forgeron/sdk/testing`).
 
-## Planned contents
+```ts
+import { action, z } from "@forgeron/sdk";
 
-- `.`: `defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError` (`sdk.md` §3, §6, §9)
-- `./db`: schema, migrations, `sql` (`sdk.md` §8)
-- `./react`: `defineView`, `useAction`, `useMutation`, `useParams`, `useUser`, `useCan`, and `ViewHost`, which checks access then parameters before rendering a view; React is an optional peer dependency (`sdk.md` §11)
-- `./testing`: `createTestTool`, `mockFetch` (`sdk.md` §13)
+export default action({
+  description: "Sends back the message it receives.",
+  access: "read",
+  input: z.object({ message: z.string() }),
+  run: ({ input }) => ({ message: input.message }),
+});
+```
 
-## Notes
+Start a tool with `npx forgeron init`. Documentation: [docs/sdk.md](https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md).
 
-Imports neither `@forgeron/compiler` nor `@forgeron/hosting` (`sdk-stays-light` rule): a tool never ships build or deployment tooling.
+## In the monorepo
+
+Imports neither `@forgeron/compiler` nor `@forgeron/hosting` (`sdk-stays-light` rule): a tool never ships build or deployment tooling. React is an optional peer dependency.

@@ -39,3 +39,7 @@ jobs:
       - run: bun run tokens:check
       # The templates are the SDK's integration tests (docs/ARCHITECTURE.md): they are built and tested here.
       - run: bun run test
+      # The npm packages as a developer gets them (D-122): built, packed, installed from their archives
+      # in an empty folder, then `forgeron init`, build, test and bundle of a new tool.
+      - run: bun run packages:build
+      - run: bun run packages:smoke

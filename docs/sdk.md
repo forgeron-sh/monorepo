@@ -205,7 +205,7 @@ CRM v1.4.0 requests:
 
 ## 5. The CLI
 
-The CLI is installed with the SDK (`npm i -D forgeron`) and used with `npx forgeron` or a global alias.
+The CLI is published as `forgeron` (`npm i -D forgeron`, next to `@forgeron/sdk`, §18) and used with `npx forgeron` or a global alias.
 
 ### Lifecycle
 
@@ -853,43 +853,44 @@ Each tool calls the platform's own routes with the signed-in person's identity, 
 
 ## 18. The npm packages
 
-Forgeron uses **both**: the `forgeron` name for the single entry point, and the `@forgeron` organization for everything that is optional, heavy or versioned at its own pace.
+Two names (D-086, D-122): `forgeron` is the **CLI** (`npx forgeron`), and the `@forgeron` organization holds the packages a tool imports. The published ones are released together, under **one version**, by release-please; each has its own changelog.
 
-### The rule
+### Published
 
-- **Subpath of `forgeron`** (`forgeron/db`) when the module must have **exactly the same version** as the runtime and the CLI, and adds no heavy dependency. A developer installs one package, one version, and everything is consistent.
-- **`@forgeron/…` package** when the module is **optional**, brings heavy dependencies or peer dependencies (React), or evolves at a different pace from the SDK.
+| Package              | Content                                                                                                                                                                                      | Built                                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `forgeron`           | The CLI (`forgeron` binary)                                                                                                                                                                  | One file for Node (tsdown), with the compiler, hosting, registry, platform contract and playground inside |
+| `@forgeron/sdk`      | `defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`; `@forgeron/sdk/db` (schema, migrations, `sql`); `@forgeron/sdk/react` (views, React an optional peer); `@forgeron/sdk/testing` | ES modules and types (tsdown)                                                                             |
+| `@forgeron/runtime`  | The runtime a tool's Worker runs: a dependency of the SDK and the CLI, never imported by a tool                                                                                              | ES modules and types                                                                                      |
+| `@forgeron/manifest` | The manifest schema and the comparison of two versions: a dependency of the SDK, the runtime and the CLI                                                                                     | ES modules and types                                                                                      |
 
-### The breakdown
+A tool depends on `@forgeron/sdk` (and on `forgeron` to run the CLI); `forgeron init` writes both. The CLI resolves the runtime and the SDK it bundles into a tool's Worker from where it is installed.
 
-| Package                                                         | Content                                                                                        | Why there                                                                                |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `forgeron`                                                      | SDK (`defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`) and CLI (`forgeron` binary) | A single `npm i -D forgeron`, a single `npx forgeron`                                    |
-| `forgeron/db`                                                   | `schema`, `table`, `t`, `index`, `migration`, `sql`                                            | Tied to the migration format and to the runtime                                          |
-| `forgeron/react`                                                | `defineView`, `useAction`, `useMutation`, `useParams`, `useUser`, `useCan`, `useCanCall`       | Speaks the runtime protocol; React as an optional peer dependency                        |
-| `forgeron/testing`                                              | `createTestTool`, `mockFetch`                                                                  | Must simulate the runtime of the same version                                            |
-| `@forgeron/ui`                                                  | React components of the design system (`Page`, `Table`, `Board`, `BarChart`…)                  | Optional, heavy, versioned with the design system; also used by the site and the console |
-| `@forgeron/connector-<name>`                                    | Connectors: `microsoft-365`, `google-workspace`, `odoo`, `slack`…                              | Each connector bundles a third-party client; you only install the ones you use           |
-| `@forgeron/template-<name>`                                     | Catalog templates (`crm`, `inventory`, `dashboard`)                                            | Versioned and published as packages; `forgeron init --template crm` downloads them       |
-| `@forgeron/platform`                                            | The self-host platform: console, identity gateway, admin MCP                                   | Only concerns those who host Forgeron themselves                                         |
-| `@forgeron/runtime`, `@forgeron/compiler`, `@forgeron/manifest` | Internal implementation, dependencies of `forgeron`                                            | Code split; never imported directly by a tool                                            |
-| `@forgeron/tsconfig`                                            | Shared TypeScript configuration                                                                | Small, optional                                                                          |
+How it is made (`scripts/packages.ts`): each package has a `tsdown.config.ts` that builds `dist/`; `bun run packages:build` builds them and writes `dist/package.json` (exports on the built files, `workspace:*` replaced by the version); `bun run packages:smoke` installs them from their archives in an empty folder and runs `forgeron init`, build, test and bundle. CI runs both on every pull request; the release workflow runs them again, then publishes by trusted publishing (OIDC, no token; the first publication of each package by hand, D-122). The workspace keeps importing `src/`.
+
+### Not published yet
+
+| Package                      | Content                                                                       | Why later                                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `@forgeron/ui`               | React components of the design system (`Page`, `Table`, `Board`, `BarChart`…) | Optional, heavy, versioned with the design system; also used by the site and the console           |
+| `@forgeron/connector-<name>` | Connectors: `microsoft-365`, `google-workspace`…                              | Each bundles a third-party client; a tool installs only the ones it uses                           |
+| `@forgeron/template-<name>`  | Catalog templates (`crm`, `inventory`, `dashboard`)                           | `forgeron init --template crm` downloads them; marketplaces are the way to share tools now (D-116) |
+| `@forgeron/compiler`         | The build of a tool                                                           | Bundled in the CLI: nothing else needs it                                                          |
 
 ### `forgeron/ui` or `@forgeron/ui`?
 
 `@forgeron/ui`. Three reasons:
 
-1. A tool without a view (the Odoo gateway) must not download React and a component library.
+1. A tool without a view (Odoo) must not download React and a component library.
 2. The components follow the design system, not the runtime: a visual fix must not force a new SDK version.
 3. The showcase site and the console use the same components without depending on the SDK.
 
-Conversely, `forgeron/react` remains a subpath: its hooks speak the runtime protocol and must have the same version as it.
+Conversely, `@forgeron/sdk/react` remains a subpath of the SDK: its hooks speak the runtime protocol and are released with it.
 
 ### To reserve
 
-- `forgeron` and the `@forgeron` organization (acquired).
 - `create-forgeron`, if we want `npm create forgeron` in addition to `npx forgeron init`.
-- Empty names in the organization that could cause confusion: `@forgeron/sdk`, `@forgeron/cli`, `@forgeron/core`, published as empty packages that point to `forgeron`.
+- `@forgeron/cli` and `@forgeron/core`, as empty packages that point to `forgeron`, so that nobody else takes them.
 
 ## 19. What Forgeron reuses
 

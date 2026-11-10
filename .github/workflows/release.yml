@@ -17,7 +17,10 @@ jobs:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
     outputs:
+      # The platform's own release (the root component): it deploys staging.
       release_created: ${{ steps.release.outputs.release_created }}
+      # Any release: the npm packages are released with the platform, under one version (D-122).
+      releases_created: ${{ steps.release.outputs.releases_created }}
     steps:
       - id: release
         uses: googleapis/release-please-action@v4
@@ -50,3 +53,23 @@ jobs:
     with:
       environment: staging
     secrets: inherit
+
+  # The npm packages (D-086, D-122): built, installed from their archives and used as a developer
+  # would, then published by trusted publishing (OIDC): no token is stored. It needs a runner hosted
+  # by GitHub (not Blacksmith) and npm 11.5.1 or later (Node 24.21 ships 11.19). Provenance is added
+  # by npm itself once the repository is public. Each package's first publication is made by hand
+  # (D-122); its trusted publisher points at this file.
+  publish-npm:
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: bun run packages:build
+      - run: bun run packages:smoke
+      - run: bun scripts/publish.ts

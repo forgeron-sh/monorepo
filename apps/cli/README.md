@@ -1,29 +1,20 @@
-# @forgeron/cli
+# forgeron
 
-The `forgeron` binary.
+The Forgeron CLI: create a tool, run it locally, test it, release it and deploy it.
 
-## Implemented
+```sh
+npx forgeron init my-tool      # a tool alone in its repository, with its CI workflow
+cd my-tool && npm install
+npx forgeron dev               # run it locally: API, MCP server, views, playground
+npx forgeron test              # build it and run its tests
+npx forgeron change --type added --bump minor -m "…"   # describe a change
+npx forgeron release           # on the production branch: version, CHANGELOG.md, tag
+```
 
-| Command                                                                                         | What it does                                                                                                                                                                                                                                                         |
-| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `forgeron init [name]`                                                                          | Creates a tool of one action with its test, `changes/` and `.forgeron/` (`project.json` holds the tool name). Refuses a folder that is not empty. `--template` is for the catalog, not available yet.                                                                |
-| `forgeron secrets set <NAME> [--env]` / `list [--env]`                                          | Sets a tool secret of an environment (`production` by default): the value is typed or piped, never an argument. `list` prints names only. Needs `FORGERON_TOKEN` (an admin token) and a linked tool.                                                                 |
-| `forgeron platform install --account <id> --domain <d> --gateway <worker.js> [--console <dir>]` | Creates and migrates the platform D1, deploys the gateway Worker with the D1 and `CLOUDFLARE_API_TOKEN` (read from the environment, bound as a secret, never printed). With `--console`, uploads the console build as the gateway's assets. See `docs/self-host.md`. |
-| `forgeron link --workspace <name> [--endpoint <url>]`                                           | Writes the workspace and its address to `.forgeron/project.json`. Nothing is sent.                                                                                                                                                                                   |
-| `forgeron build`                                                                                | Builds every tool under the current folder into `.forgeron/build/` (`worker.js`, `manifest.json`, `build.json`).                                                                                                                                                     |
-| `forgeron db generate [--name <name>]`                                                          | Writes the migration for a change of `db/schema.ts` (and its snapshot). Says when it drops data or cannot be undone, and refuses a change it cannot write safely.                                                                                                    |
-| `forgeron test [vitest args]`                                                                   | Builds, then runs Vitest (`vitest run` without arguments): `createTestTool` runs the built Worker.                                                                                                                                                                   |
-| `forgeron dev [--as <role>] [--port 8787]`                                                      | Runs the tool in workerd (local hosting): `/mcp`, `/api/<action>`, `/cli`. Rebuilds on change, keeping the URL; keeps serving the previous build if the new one fails. `--as` runs as a person with only that role.                                                  |
+`npx forgeron init marketplace` creates a marketplace of tools. Every command: `npx forgeron --help`.
 
-Exit codes (`sdk.md` §5): `0` success, `1` failure, `2` wrong use.
+Documentation: [the SDK](https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md) and [the life of a tool](https://github.com/forgeron-sh/monorepo/blob/main/docs/lifecycle.md). Needs Node 24 or later.
 
-## Planned contents
+## In the monorepo
 
-- Tool lifecycle: `play`, `deploy`, `promote`, `rollback` (`sdk.md` §5)
-- Versions: `change`, `change check`, `release`, `changelog` (`sdk.md` §16)
-- Database, secrets, access: `db`, `secrets`, `token`, `access` (`sdk.md` §5)
-- Tool actions as commands: `forgeron <tool> <group> <verb>`
-
-## Notes
-
-Node. Depends on `@forgeron/sdk`, `@forgeron/compiler` and `@forgeron/hosting`; nothing depends on it (D-003).
+Node. Depends on `@forgeron/sdk`, `@forgeron/compiler` and `@forgeron/hosting`; nothing depends on it (D-003). The published build bundles the compiler, hosting, registry, platform contract and playground into one file; the SDK, the runtime and the manifest stay npm dependencies (D-122).
