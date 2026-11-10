@@ -10,6 +10,7 @@ import { auditMigrations } from "./modules/audit/public";
 import { catalogMigrations } from "./modules/catalog/public";
 import { connectionsMigrations } from "./modules/connections/public";
 import { identityStoreMigrations } from "./modules/identity-store/public";
+import { marketplacesMigrations } from "./modules/marketplaces/public";
 import { membersMigrations } from "./modules/members/public";
 import { secretsMigrations } from "./modules/secrets/public";
 import { templatesMigrations } from "./modules/templates/public";
@@ -37,6 +38,7 @@ export const platformMigrations: BuildMigration[] = composeMigrations([
   membersMigrations,
   identityStoreMigrations,
   templatesMigrations,
+  marketplacesMigrations,
   usageMigrations,
   rootMigrations,
 ]);

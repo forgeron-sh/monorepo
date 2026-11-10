@@ -25,4 +25,12 @@ export const templatesMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "install_plans"`)],
   },
+  {
+    // The catalogue a plan installs from (D-116): `@templates`, or a marketplace's `@mp:<id>`.
+    name: "0030_install_plans_source",
+    fingerprint: "install-plans-source-v1",
+    destructive: false,
+    up: [st(`ALTER TABLE "install_plans" ADD COLUMN "source" TEXT NOT NULL DEFAULT '@templates'`)],
+    down: [st(`ALTER TABLE "install_plans" DROP COLUMN "source"`)],
+  },
 ];

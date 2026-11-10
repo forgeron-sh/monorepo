@@ -93,6 +93,24 @@ The deployment list of Vercel and the environment settings of Vercel/Cloudflare,
   and the impact (major, minor, patch), asks for a reason, and says that migrations are not rolled back.
 - A branch row expands to show its database, its last migration, and its recent deployments.
 
+## Marketplace
+
+For admins (D-116). One tab per marketplace: **Official** (the platform's catalogue) first, then each
+GitHub repository the workspace added. A tab says where the marketplace lives, when it was last synced,
+whether it is read with a token, and why the last sync failed; _Sync_ reads its index again and says,
+tool by tool, what was added, already there, not published yet or refused (and why). The tools are
+cards (title, summary, version, _Installed_, how many approvals they will need).
+
+- **Add a marketplace**: a dialog with the repository (`owner/name`) and, for a private one, a read
+  token (GitHub fine-grained, _Contents: read_). The token is sealed and never shown again; a first
+  sync runs at once.
+- **The technical sheet** (`/marketplace/<id>/<tool>`): the README, _What its users read_ (the guide,
+  as a member will see it), the actions with their access level, the changelog; on the right the
+  version, interfaces, roles, database, outbound hosts, secrets an admin sets, what each person is
+  asked for, connectors and what needs approval. _Install_ asks for a confirmation that lists the
+  approvals, creates the tool with no environment and opens it in Tools.
+- **Remove** a marketplace: its token and what it offers go; the tools installed from it stay.
+
 ## Architecture diagram
 
 Generated from the tool's manifest, no hand drawing: the four interfaces (MCP, API, CLI, Web) on the left,

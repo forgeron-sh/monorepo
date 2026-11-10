@@ -313,6 +313,8 @@ describe("secrets typed before the registry existed (D-036)", () => {
       expect((await applyMigrations(before, platformMigrations)).applied).toEqual([
         "0027_secret_registry",
         "0028_drop_user_secrets",
+        "0029_marketplaces",
+        "0030_install_plans_source",
       ]);
       // The legacy table is gone once the rows are converted (D-110).
       await expect(before.prepare(`SELECT 1 FROM "user_secrets"`).all()).rejects.toBeDefined();

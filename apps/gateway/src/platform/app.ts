@@ -79,6 +79,10 @@ export interface PlatformBindings {
   reseal?(): Promise<ResealReport>;
   /** Whether the gateway can seal a secret (`SECRETS_KEY` is bound). */
   canKeepSecrets: boolean;
+  /** The `fetch` that reads a marketplace on GitHub (D-116); tests give a simulated GitHub. */
+  marketplaceFetch: typeof fetch;
+  /** `owner/name` of the official marketplace, from `OFFICIAL_MARKETPLACE`. */
+  officialMarketplace?: string;
   /** The hosting of the workspace, to reach a tool's database; `undefined` where there is none. */
   hosting(workspace: string): Hosting | undefined;
   /** How long the explorer waits for a statement (default 10 s); tests shorten it. */

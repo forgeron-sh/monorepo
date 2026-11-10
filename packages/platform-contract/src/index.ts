@@ -85,3 +85,17 @@ export {
   startConsentRoute,
   withdrawConsentRoute,
 } from "./consent";
+export {
+  addMarketplaceRoute,
+  installMarketplaceToolRoute,
+  listMarketplacesRoute,
+  listMarketplaceToolsRoute,
+  marketplaceToolCardRoute,
+  MarketplaceSchema,
+  MarketplaceToolCardSchema,
+  MarketplaceToolSchema,
+  planMarketplaceToolRoute,
+  removeMarketplaceRoute,
+  syncMarketplaceRoute,
+  SyncedToolSchema,
+} from "./marketplaces";

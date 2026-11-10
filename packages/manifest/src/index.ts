@@ -4,3 +4,4 @@ export * from "./addresses";
 export * from "./access";
 export * from "./catalog";
 export * from "./docs";
+export * from "./marketplace";

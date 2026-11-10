@@ -5,6 +5,7 @@
 
 import { mockCatalogRoute } from "../features/portal/mock";
 import { mockDatabase } from "./database";
+import { createMarketplacesMock } from "./marketplaces";
 import { createToolsMock } from "./tools";
 
 type Json = Record<string, any>;
@@ -157,6 +158,7 @@ export async function installMock(): Promise<void> {
   };
 
   const toolsMock = createToolsMock(state.endpoint, iso);
+  const marketplacesMock = createMarketplacesMock(() => new Date());
   const matrix = (tool: string): Json => ({
     roles: ["admin", "developer", "viewer"],
     actions: [`${tool}.contacts.list`, `${tool}.contacts.update`, `${tool}.contacts.delete`],
@@ -274,9 +276,15 @@ export async function installMock(): Promise<void> {
       "/api/identity-provider",
       "/api/approvals",
       "/api/audit",
+      "/api/marketplaces",
     ];
     if (!admin && needAdmin.some((p) => path.startsWith(p)))
       return reply(403, { error: "FORBIDDEN", message: "This is for admins." });
+
+    if (path.startsWith("/api/marketplaces")) {
+      const answer = marketplacesMock.route(path, method, body);
+      if (answer) return reply(answer.status, answer.body);
+    }
 
     if (path === "/api/members" && method === "GET")
       return reply(200, {

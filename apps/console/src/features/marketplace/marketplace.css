@@ -1,0 +1,50 @@
+/* The marketplaces screen and the technical card of a tool. Tokens only (packages/ui/tokens). */
+.fm-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.fm-head-text {
+  flex: 1 1 280px;
+  min-width: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.fm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fm-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.fm-report {
+  margin: var(--space-3) 0 0;
+  padding-inline-start: var(--space-4);
+  font-size: 13px;
+}
+.fm-list {
+  margin: 0;
+  padding-inline-start: var(--space-4);
+}
+.fm-actions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 13px;
+}
+.fm-actions code,
+.fm-mono {
+  font: 500 0.9em/1.4 var(--font-mono);
+}

@@ -126,6 +126,7 @@ apps/gateway/src/
 ├── integration/        # the tests that drive the whole gateway through `createGateway`
 ├── registry/           # uses @forgeron/registry: tools, builds, versions, environments, approvals (D1)
 ├── deploy/             # receiving a build, calling @forgeron/hosting, traffic switch
+├── marketplace/        # reading a marketplace on GitHub, syncing its bundles into the registry (D-116)
 ├── admin-mcp/          # admin MCP tools (sdk.md §17)
 ├── console-api/        # API consumed by apps/console
 └── audit/              # usage and deployment audit log
