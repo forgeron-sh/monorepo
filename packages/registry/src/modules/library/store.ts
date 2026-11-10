@@ -153,5 +153,145 @@ export function createLibrary(kernel: Kernel) {
       ]);
       return true;
     },
+
+    // ---- pilots (D-119): a branch preview as a tool of its own
+    async previewAvailabilityOf(toolId: string, branch: string): Promise<Availability | undefined> {
+      const row = await first(
+        `SELECT * FROM "preview_availability" WHERE "tool_id" = ? AND "branch" = ?`,
+        toolId,
+        branch,
+      );
+      return row ? toAvailability(row) : undefined;
+    },
+
+    /** Who may pilot a branch. Audited on the tool, with the branch. */
+    async setPreviewAvailability(input: {
+      toolId: string;
+      branch: string;
+      mode: AvailabilityMode;
+      roles?: string[];
+      people?: string[];
+      actor: string;
+      via?: string;
+    }): Promise<Availability> {
+      if (!AVAILABILITY_MODES.includes(input.mode)) {
+        throw new RegistryError("INVALID", `${String(input.mode)} is not an availability.`);
+      }
+      const subjects =
+        input.mode === "roles"
+          ? [...new Set(input.roles ?? [])]
+          : input.mode === "people"
+            ? [...new Set(input.people ?? [])]
+            : [];
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "preview_availability" ("tool_id", "branch", "mode", "subjects", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT ("tool_id", "branch") DO UPDATE SET "mode" = excluded."mode", "subjects" = excluded."subjects", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+          )
+          .bind(input.toolId, input.branch, input.mode, JSON.stringify(subjects), input.actor, at),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.actor,
+            ...(input.via ? { via: input.via } : {}),
+            kind: "access",
+            subject: `availability@${input.branch}`,
+            detail: {
+              event: "pilot-availability-set",
+              branch: input.branch,
+              mode: input.mode,
+              subjects,
+            },
+          },
+          at,
+        ),
+      ]);
+      return (await this.previewAvailabilityOf(input.toolId, input.branch))!;
+    },
+
+    /** The pilots a person added: tool and branch. */
+    async pilotsOf(person: string): Promise<Array<{ toolId: string; branch: string }>> {
+      return (
+        await all(`SELECT "tool_id", "branch" FROM "person_previews" WHERE "person" = ?`, person)
+      ).map((r) => ({ toolId: String(r.tool_id), branch: String(r.branch) }));
+    },
+
+    async isPilotInstalled(toolId: string, branch: string, person: string): Promise<boolean> {
+      return (
+        (await first(
+          `SELECT 1 FROM "person_previews" WHERE "tool_id" = ? AND "branch" = ? AND "person" = ?`,
+          toolId,
+          branch,
+          person,
+        )) !== undefined
+      );
+    },
+
+    async installPilotForPerson(input: {
+      toolId: string;
+      branch: string;
+      person: string;
+      via?: string;
+    }): Promise<void> {
+      if (await this.isPilotInstalled(input.toolId, input.branch, input.person)) return;
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT OR IGNORE INTO "person_previews" ("tool_id", "branch", "person", "installed_at") VALUES (?, ?, ?, ?)`,
+          )
+          .bind(input.toolId, input.branch, input.person, at),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.person,
+            ...(input.via ? { via: input.via } : {}),
+            kind: "access",
+            subject: `library@${input.branch}`,
+            detail: { event: "pilot-added", branch: input.branch },
+          },
+          at,
+        ),
+      ]);
+    },
+
+    /**
+     * Takes a pilot out of a person's library, with the bindings of their saved secrets to that branch
+     * (`preview:<branch>`). The setup values belong to the tool and stay. Returns whether it was there.
+     */
+    async uninstallPilotForPerson(input: {
+      toolId: string;
+      branch: string;
+      person: string;
+      via?: string;
+    }): Promise<boolean> {
+      if (!(await this.isPilotInstalled(input.toolId, input.branch, input.person))) return false;
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `DELETE FROM "person_previews" WHERE "tool_id" = ? AND "branch" = ? AND "person" = ?`,
+          )
+          .bind(input.toolId, input.branch, input.person),
+        d1
+          .prepare(
+            `DELETE FROM "secret_bindings" WHERE "tool_id" = ? AND "person" = ? AND "scope" = ?`,
+          )
+          .bind(input.toolId, input.person, `preview:${input.branch}`),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.person,
+            ...(input.via ? { via: input.via } : {}),
+            kind: "access",
+            subject: `library@${input.branch}`,
+            detail: { event: "pilot-removed", branch: input.branch },
+          },
+          at,
+        ),
+      ]);
+      return true;
+    },
   };
 }

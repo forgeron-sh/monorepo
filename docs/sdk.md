@@ -644,11 +644,11 @@ Deployment to production additionally fails if the version has no changelog entr
 
 ## 15. Versions, environments, deployment
 
-| Environment  | Created by                                                       | Database                                | Who has access                              |
-| ------------ | ---------------------------------------------------------------- | --------------------------------------- | ------------------------------------------- |
-| `local`      | `forgeron dev`                                                   | `.forgeron/local/dev.sqlite`            | the developer                               |
-| `preview`    | each push to a branch, or `forgeron deploy`                      | one database per branch, `preview.data` | the `admin` roles and the tool's developers |
-| `production` | promotion from the console or `forgeron deploy --env production` | that of production                      | the tool's roles                            |
+| Environment  | Created by                                                       | Database                                | Who has access                                                                                           |
+| ------------ | ---------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `local`      | `forgeron dev`                                                   | `.forgeron/local/dev.sqlite`            | the developer                                                                                            |
+| `preview`    | each push to a branch, or `forgeron deploy`                      | one database per branch, `preview.data` | the `admin` roles and the tool's developers; the people an admin opens the branch to, as a pilot (D-119) |
+| `production` | promotion from the console or `forgeron deploy --env production` | that of production                      | the tool's roles                                                                                         |
 
 - **Version**: see section 16. A build is promoted from one environment to the next without being rebuilt.
 - **Rollback**: `forgeron rollback` puts the previous version back on traffic. Migrations are not rolled back automatically; `forgeron db rollback` does it explicitly.

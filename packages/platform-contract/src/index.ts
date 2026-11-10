@@ -102,7 +102,12 @@ export {
 export {
   AvailabilitySchema,
   getAvailabilityRoute,
+  getPilotAvailabilityRoute,
   installLibraryToolRoute,
+  installPilotRoute,
+  pilotCardRoute,
+  putPilotAvailabilityRoute,
+  uninstallPilotRoute,
   LibraryCardSchema,
   libraryCardRoute,
   LibraryToolSchema,

@@ -20,5 +20,23 @@ const routes: RouteDef[] = [
       };
     },
   },
+  {
+    // A pilot (D-119): a branch's version opened to some people, with its own data.
+    path: "/library/:tool/pilots/:branch",
+    title: "Pilot",
+    access: "everyone",
+    page: async () => {
+      const { LibraryToolPage } = await import("./library-page");
+      return {
+        default: (p) =>
+          createElement(LibraryToolPage, {
+            api: p.api,
+            go: p.go,
+            tool: p.params.tool!,
+            pilot: p.params.branch!,
+          }),
+      };
+    },
+  },
 ];
 export default routes;

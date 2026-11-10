@@ -45,7 +45,7 @@ export type {
 } from "./modules/secrets/public";
 export { TEMPLATE_WORKSPACE } from "./modules/templates/public";
 export { marketplaceSource } from "./modules/marketplaces/public";
-export { AVAILABILITY_MODES, isAvailable } from "./modules/library/public";
+export { AVAILABILITY_MODES, isAvailable, mayPilot } from "./modules/library/public";
 export type { Availability, AvailabilityMode } from "./modules/library/public";
 export type { Marketplace } from "./modules/marketplaces/public";
 

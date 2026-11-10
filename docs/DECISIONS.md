@@ -117,6 +117,7 @@ Rules of the log:
 | D-116 | 10/11/2026 | Marketplaces: a GitHub repository of tool bundles a workspace adds, synced into a hidden catalogue and installed like a template                                                                             | Active                                 |
 | D-117 | 10/11/2026 | A person's library: an admin says who may add a tool, a person adds it, gives its setup and removes it; a tool with a rule is reached only from a library                                                    | Active                                 |
 | D-118 | 10/11/2026 | Two sheets per tool: the member's in their library, with nothing technical; the admin's in Tools, which becomes the technical screens                                                                        | Active                                 |
+| D-119 | 10/11/2026 | Pilots: a branch preview opened to some people, as a tool of its own with its own data; production reaches everyone who added the tool                                                                       | Active                                 |
 
 ---
 
@@ -1505,3 +1506,21 @@ Rules of the log:
 - **Rejected**: one card with technical parts hidden by role (the same screen would keep growing both ways); keeping Tools in a member's menu (it shows branches, versions and roles).
 - **Not done**: the images of a guide on the member's sheet come from the catalog's assets, so they need the person to be a member of the workspace, as before; a developer without the admin role still sees only the Overview tab of a tool, as before.
 - **Applied in**: `apps/console/src/features/portal/{library-page,library,routes,tool-card,mock}.ts(x)`, `portal.css`, `apps/console/src/shell/access.ts`, `features/tools/{routes,register}.ts`; `docs/console-ux.md`.
+
+## D-119 — Pilots: a branch preview opened to some people, as a tool of its own with its own data; production reaches everyone who added the tool
+
+- **Date**: 10/11/2026 · **Status**: Active
+- **Found, not changed**:
+  1. A person's library points at the tool, and the dispatcher serves what production serves: when a version is promoted, everyone who added the tool gets it at their next call, with nothing to do. A preview never reaches them unless it is promoted.
+  2. A preview already runs as its own Worker with its own database per branch (D-055, D-080), filled by its seed or left empty (`preview.data`; `snapshot` is not implemented): no data goes from production to a preview or back.
+- **Decision**:
+  1. **A pilot** is a branch preview an admin opens to people: `preview_availability` (migration `0032`, library module), per tool and branch, with the modes of D-117 (`nobody` reads _admins and developers only_). Without a rule a preview stays for admins and developers, as before.
+  2. **A person adds a pilot to their library apart from the tool** (`person_previews`): it is listed as a tool of its own (`pilot: <branch>` in `GET /api/library`), with its own page (`/library/<tool>/pilots/<branch>`) that says it is a version being tried with its own data. Adding the pilot does not add the tool, nor the reverse. Removing it removes the person's secret bindings for that branch (`preview:<branch>`, D-109); the setup values belong to the tool and stay.
+  3. **Reaching it**: `canPreview` lets in admins and developers as before, and anyone else who may pilot the branch and added it. The MCP sign-in on `/t/<tool>@<branch>/mcp` checks the pilot, not the tool. The pilot's setup page comes back to the pilot's page.
+  4. **Routes**: `GET`, `POST`, `DELETE /api/library/{tool}/pilots/{branch}` for any member; `GET`, `PUT /api/tools/{tool}/previews/{branch}/availability` for admins (`404` for a branch with no preview).
+  5. **Console**: Home shows a pilot as its own card, marked _Pilot · branch_; the admin's Availability tab lists the branches that have a preview, each with who may pilot it.
+- **Why**: a person can try a version that is being prepared, on data that is not production's, without confusing it with the tool everyone uses; an admin decides who, as for a tool.
+- **Rejected**: a pilot as a new tool in the registry (a second name for the same code, and its versions would not follow the branch); copying production's data into a pilot (personal data leaving production; asked not to, for now).
+- **Not done**: a pilot's CLI command (a terminal reaches a preview with `--branch` already, for developers); the images of a pilot's guide; removing rules and library entries of a branch whose preview was torn down (they stay unused, and the library only lists branches that still have a preview).
+- **Not verified**: the MCP sign-in on a pilot's address is not driven by a test; the console checked in the preview harness only.
+- **Applied in**: `packages/registry/src/modules/library/`, `migrations.golden.json`; `packages/platform-contract/src/library.ts`, `addresses.ts`; `apps/gateway/src/library/library.ts`, `platform/library.ts`, `compose.ts`, `dispatch/user-secrets.ts`, `identity/mcp-oauth/mcp-oauth.ts`; `apps/console/src/features/portal/`, `features/tools/tabs/availability-tab.tsx`, `mock/install.ts`; `docs/sdk.md` §15, `docs/console-ux.md`.

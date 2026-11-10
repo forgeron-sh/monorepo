@@ -1,6 +1,11 @@
 import {
   getAvailabilityRoute,
+  getPilotAvailabilityRoute,
   installLibraryToolRoute,
+  installPilotRoute,
+  pilotCardRoute,
+  putPilotAvailabilityRoute,
+  uninstallPilotRoute,
   libraryCardRoute,
   listLibraryRoute,
   putAvailabilityRoute,
@@ -9,7 +14,13 @@ import {
 import { findCard, isAvailable, listCatalog, type Availability } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
-import { needsSetup, setupPath } from "../library/library";
+import {
+  needsSetup,
+  pilotNeedsSetup,
+  pilotSetupPath,
+  previewManifest,
+  setupPath,
+} from "../library/library";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
 // A person's library (D-117): the tools they may add, those they added, how to use one; and, for an
@@ -38,6 +49,34 @@ async function entryOf(c: Context<PlatformEnv>, tool: { name: string; access: st
   };
 }
 
+/** A branch as a pilot for this person, or `undefined` when it is not opened to them (D-119). */
+async function pilotOf(c: Context<PlatformEnv>, toolId: string, name: string, branch: string) {
+  const person = c.get("person");
+  const rule = await c.env.registry.previewAvailabilityOf(toolId, branch);
+  if (!rule || !isAvailable(rule, person)) return undefined;
+  const manifest = await previewManifest(c.env.registry, toolId, branch);
+  if (!manifest) return undefined;
+  const installed = await c.env.registry.isPilotInstalled(toolId, branch, person.id);
+  const pending = installed
+    ? await pilotNeedsSetup(c.env.registry, toolId, branch, person.id)
+    : false;
+  return {
+    manifest,
+    entry: {
+      name,
+      title: manifest.title ?? name,
+      summary: manifest.summary ?? manifest.description ?? "",
+      icon: null,
+      installed,
+      managed: true,
+      needsSetup: pending,
+      pilot: branch,
+    },
+  };
+}
+
+const noPilot = { error: "NOT_FOUND", message: "There is no such pilot in your library." };
+
 const availabilityBody = (rule: Availability | undefined) =>
   rule
     ? { mode: rule.mode, roles: rule.roles, people: rule.people, updatedAt: rule.updatedAt ?? null }
@@ -61,7 +100,16 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
         installed: entry.installed,
         managed: entry.managed,
         needsSetup: entry.needsSetup,
+        pilot: null,
       });
+    }
+    // Pilots (D-119): each branch an admin opened to this person, as a tool of its own.
+    for (const record of await c.env.registry.listTools(c.env.workspace)) {
+      for (const env of await c.env.registry.listEnvironments(record.id)) {
+        if (env.name !== "preview" || !env.branch || !env.versionId) continue;
+        const pilot = await pilotOf(c, record.id, record.name, env.branch);
+        if (pilot) tools.push(pilot.entry);
+      }
     }
     return c.json({ tools }, 200);
   });
@@ -88,6 +136,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
         installed: entry.installed,
         managed: entry.managed,
         needsSetup: entry.needsSetup,
+        pilot: null,
         guide: card.guide,
         images: Object.fromEntries(card.assets.map((a) => [a.path, a.url])),
         setupUrl: entry.needsSetup ? setupPath(card.name) : null,
@@ -173,6 +222,116 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     return c.json(availabilityBody(rule), 200);
   });
 
+  app.openapi(platformRoute(pilotCardRoute, "member"), async (c) => {
+    const { tool, branch } = c.req.valid("param");
+    const record = await c.env.registry.findTool(c.env.workspace, tool);
+    const pilot = record ? await pilotOf(c, record.id, tool, branch) : undefined;
+    if (!record || !pilot) return c.json(noPilot, 404);
+    const env = (await c.env.registry.listEnvironments(record.id)).find(
+      (e) => e.name === "preview" && e.branch === branch,
+    );
+    const version = env?.versionId ? await c.env.registry.getVersion(env.versionId) : undefined;
+    const guide = version ? await c.env.registry.guideOf(record.id, version.buildId) : undefined;
+    const usable = pilot.entry.installed;
+    const base = `${c.env.origin}/t/${tool}@${branch}`;
+    const i = pilot.manifest.interfaces;
+    return c.json(
+      {
+        ...pilot.entry,
+        guide: guide ?? null,
+        images: {},
+        setupUrl: pilot.entry.needsSetup ? pilotSetupPath(tool, branch) : null,
+        use: {
+          web: usable && i.web ? { url: `${base}/` } : null,
+          mcp: usable && i.mcp ? { url: `${base}/mcp` } : null,
+          cli: null,
+        },
+      },
+      200,
+    );
+  });
+
+  app.openapi(platformRoute(installPilotRoute, "member"), async (c) => {
+    const { tool, branch } = c.req.valid("param");
+    const person = c.get("person");
+    const record = await c.env.registry.findTool(c.env.workspace, tool);
+    const pilot = record ? await pilotOf(c, record.id, tool, branch) : undefined;
+    if (!record || !pilot) return c.json(noPilot, 404);
+    await c.env.registry.installPilotForPerson({
+      toolId: record.id,
+      branch,
+      person: person.id,
+      ...(c.env.via ? { via: c.env.via } : {}),
+    });
+    const pending = await pilotNeedsSetup(c.env.registry, record.id, branch, person.id);
+    return c.json(
+      { installed: true as const, setupUrl: pending ? pilotSetupPath(tool, branch) : null },
+      200,
+    );
+  });
+
+  app.openapi(platformRoute(uninstallPilotRoute, "member"), async (c) => {
+    const { tool, branch } = c.req.valid("param");
+    const record = await c.env.registry.findTool(c.env.workspace, tool);
+    const removed = record
+      ? await c.env.registry.uninstallPilotForPerson({
+          toolId: record.id,
+          branch,
+          person: c.get("person").id,
+          ...(c.env.via ? { via: c.env.via } : {}),
+        })
+      : false;
+    return removed ? c.body(null, 204) : c.json(noPilot, 404);
+  });
+
+  const previewOf = async (c: Context<PlatformEnv>, tool: string, branch: string) => {
+    const record = await c.env.registry.findTool(c.env.workspace, tool);
+    if (!record) return undefined;
+    const env = (await c.env.registry.listEnvironments(record.id)).find(
+      (e) => e.name === "preview" && e.branch === branch,
+    );
+    return env ? record : undefined;
+  };
+
+  app.openapi(platformRoute(getPilotAvailabilityRoute, "admin"), async (c) => {
+    const { tool, branch } = c.req.valid("param");
+    const record = await previewOf(c, tool, branch);
+    if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such preview." }, 404);
+    return c.json(
+      availabilityBody(await c.env.registry.previewAvailabilityOf(record.id, branch)),
+      200,
+    );
+  });
+
+  app.openapi(platformRoute(putPilotAvailabilityRoute, "admin"), async (c) => {
+    const { tool, branch } = c.req.valid("param");
+    const record = await previewOf(c, tool, branch);
+    if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such preview." }, 404);
+    const body = c.req.valid("json");
+    if (body.mode === "people") {
+      for (const id of body.people ?? []) {
+        if (!(await c.env.registry.findMember(c.env.workspace, id))) {
+          return c.json(
+            { error: "INVALID", message: `${id} is not a member of the workspace.` },
+            400,
+          );
+        }
+      }
+    }
+    const rule = await c.env.registry.setPreviewAvailability({
+      toolId: record.id,
+      branch,
+      mode: body.mode,
+      ...(body.roles ? { roles: body.roles } : {}),
+      ...(body.people ? { people: body.people } : {}),
+      actor: c.get("person").id,
+      ...(c.env.via ? { via: c.env.via } : {}),
+    });
+    return c.json(availabilityBody(rule), 200);
+  });
+
+  app.all("/api/library/:tool/pilots/:branch", methodNotAllowed);
+  app.all("/api/tools/:tool/previews/:branch/availability", methodNotAllowed);
   app.all("/api/library", methodNotAllowed);
   app.all("/api/library/:tool", methodNotAllowed);
   app.all("/api/tools/:tool/availability", methodNotAllowed);

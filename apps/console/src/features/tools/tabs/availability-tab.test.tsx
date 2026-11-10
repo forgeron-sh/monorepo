@@ -58,3 +58,50 @@ describe("the Availability tab (D-117)", () => {
     expect(sent[0]!.body).toEqual({ mode: "people", people: ["m2"] });
   });
 });
+
+describe("pilots in the Availability tab (D-119)", () => {
+  it("lists the branches with a preview and opens one to some people", async () => {
+    const { api, sent } = fakeApi({
+      "/api/tools/odoo/availability": { mode: "nobody", roles: [], people: [], updatedAt: "x" },
+      "/api/tools/odoo/branches": {
+        production: null,
+        branches: [
+          {
+            environment: "preview",
+            branch: "pilot-a",
+            status: "ready",
+            version: "1.2.0",
+            deployedBy: "ci",
+            deployedAt: "2026-11-03T10:00:00Z",
+            migrations: { count: 0 },
+            deployments: [],
+          },
+        ],
+      },
+      "/api/tools/odoo/previews/pilot-a/availability": {
+        mode: "open",
+        roles: [],
+        people: [],
+        updatedAt: null,
+      },
+      "/api/members": members,
+      "PUT /api/tools/odoo/previews/pilot-a/availability": {
+        mode: "people",
+        roles: [],
+        people: ["m2"],
+        updatedAt: "y",
+      },
+    });
+    const view = await mount(<AvailabilityTab {...tabProps(api, "odoo")} />);
+    const pilot = view.querySelector("details")!;
+    expect(pilot.textContent).toContain("pilot-a");
+    expect(pilot.textContent).toContain("Admins and developers only");
+    await click(pilot.querySelector<HTMLInputElement>("input[value=people]"));
+    const bob = [...pilot.querySelectorAll("label")].find((l) => l.textContent?.startsWith("Bob"));
+    await click(bob!.querySelector("input"));
+    await click(button(pilot, "Save"));
+    expect(sent.map((s) => [s.method, s.path, s.body])).toEqual([
+      ["PUT", "/api/tools/odoo/previews/pilot-a/availability", { mode: "people", people: ["m2"] }],
+    ]);
+  });
+});

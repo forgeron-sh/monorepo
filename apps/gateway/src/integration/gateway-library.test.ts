@@ -253,3 +253,90 @@ describe("a person's library (D-117)", () => {
     expect((await callTool(ben)).status).toBe(403);
   });
 });
+
+describe("production and pilots (D-119)", () => {
+  it("brings a new production version to the people who added the tool, with nothing to do", async () => {
+    await registry.installForPerson({ toolId: odooId, person: ana });
+    await registry.writeUserSetup({ toolId: odooId, person: ana, values: { firstName: "Ana" } });
+    expect((await callTool(ana)).status).toBe(200);
+    const built = await registry.recordBuild(odooId, {
+      fingerprint: "odoo-2",
+      manifest: manifestOf("odoo"),
+    });
+    const next = await registry.publishVersion(odooId, built.id, "1.1.0");
+    const production = await registry.ensureEnvironment(odooId, "production");
+    await registry.activate(production.id, next.id, { actor: "test" });
+    expect((await callTool(ana)).status).toBe(200);
+    expect(await registry.isInstalled(odooId, ana)).toBe(true);
+  });
+
+  const callPilot = async (person: string) =>
+    gateway()(
+      new Request(`${ORIGIN}/t/odoo@pilot-a/api/tickets.mine`, {
+        headers: {
+          authorization: `Bearer ${await issueToken({
+            secret: SECRET,
+            person,
+            workspace: "acme",
+            tool: "odoo",
+            ttlSeconds: 86_400,
+            now,
+          })}`,
+        },
+      }),
+    );
+
+  it("keeps a branch for admins and developers until an admin opens it as a pilot", async () => {
+    const built = await registry.recordBuild(odooId, {
+      fingerprint: "odoo-pilot",
+      manifest: manifestOf("odoo"),
+    });
+    const version = await registry.publishVersion(odooId, built.id, "1.2.0-pilot-a");
+    const preview = await registry.ensureEnvironment(odooId, "preview", "pilot-a");
+    await registry.activate(preview.id, version.id, { actor: "test" });
+
+    expect((await callPilot(ben)).status).toBe(403);
+    expect((await consoleApi(ben, "/api/library/odoo/pilots/pilot-a")).status).toBe(404);
+    expect((await consoleApi(root, "/api/tools/odoo/previews/pilot-a/availability")).status).toBe(
+      200,
+    );
+    expect((await consoleApi(root, "/api/tools/odoo/previews/nope/availability")).status).toBe(404);
+    const opened = await consoleApi(root, "/api/tools/odoo/previews/pilot-a/availability", "PUT", {
+      mode: "people",
+      people: [ben],
+    });
+    expect(opened.status).toBe(200);
+  });
+
+  it("lists the pilot as a tool of its own, reached once added and set up, and removed apart", async () => {
+    const library = (await (await consoleApi(ben, "/api/library")).json()) as {
+      tools: Array<{ name: string; pilot: string | null; installed: boolean }>;
+    };
+    expect(library.tools.filter((t) => t.name === "odoo")).toEqual([
+      expect.objectContaining({ pilot: null, installed: false }),
+      expect.objectContaining({ pilot: "pilot-a", installed: false }),
+    ]);
+    // Another person was not given the pilot.
+    const others = (await (await consoleApi(ana, "/api/library")).json()) as {
+      tools: Array<{ pilot: string | null }>;
+    };
+    expect(others.tools.some((t) => t.pilot === "pilot-a")).toBe(false);
+
+    expect((await callPilot(ben)).status).toBe(403);
+    const added = await consoleApi(ben, "/api/library/odoo/pilots/pilot-a", "POST");
+    expect(await added.json()).toEqual({
+      installed: true,
+      setupUrl: "/t/odoo@pilot-a/setup?next=%2Flibrary%2Fodoo%2Fpilots%2Fpilot-a",
+    });
+    await registry.writeUserSetup({ toolId: odooId, person: ben, values: { firstName: "Ben" } });
+    expect((await callPilot(ben)).status).toBe(200);
+    // The pilot is not the tool: ben has not added the tool itself.
+    expect((await callTool(ben)).status).toBe(403);
+    const card = (await (await consoleApi(ben, "/api/library/odoo/pilots/pilot-a")).json()) as any;
+    expect(card).toMatchObject({ pilot: "pilot-a", installed: true, needsSetup: false });
+    expect(card.use.mcp).toEqual({ url: `${ORIGIN}/t/odoo@pilot-a/mcp` });
+
+    expect((await consoleApi(ben, "/api/library/odoo/pilots/pilot-a", "DELETE")).status).toBe(204);
+    expect((await callPilot(ben)).status).toBe(403);
+  });
+});

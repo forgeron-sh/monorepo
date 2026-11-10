@@ -65,3 +65,27 @@ describe("a tool's page in the person's library (D-118)", () => {
     expect(go).toHaveBeenCalledWith("/");
   });
 });
+
+describe("a pilot in the person's library (D-119)", () => {
+  it("says it is a version being tried with its own data, and adds and removes the pilot only", async () => {
+    const card = { ...mockLibraryCard("odoo", false, "pilot-a")!, installed: true };
+    const { api, sent } = fakeApi({
+      "/api/library/odoo/pilots/pilot-a": card,
+      "DELETE /api/library/odoo/pilots/pilot-a": undefined,
+    });
+    const view = await mount(
+      <LibraryToolPage api={api} go={() => {}} tool="odoo" pilot="pilot-a" />,
+    );
+    expect(view.textContent).toContain("Odoo gateway · pilot");
+    expect(view.textContent).toContain("It has its own data");
+    await click(button(view, "Remove"));
+    await click(
+      [...document.querySelectorAll("[role=dialog] button")].find(
+        (b) => b.textContent === "Remove",
+      ),
+    );
+    expect(sent.map((s) => `${s.method} ${s.path}`)).toEqual([
+      "DELETE /api/library/odoo/pilots/pilot-a",
+    ]);
+  });
+});

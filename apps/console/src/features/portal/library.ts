@@ -22,5 +22,20 @@ export async function removeFromLibrary(send: SendJson, tool: string) {
   ok(await typedSender(send)(addresses.uninstallLibraryTool, { params: { tool } }));
 }
 
-/** The tool's page in the person's library. */
-export const libraryHref = (tool: string) => `/library/${encodeURIComponent(tool)}`;
+/** The tool's page in the person's library; a pilot's (D-119) when a branch is given. */
+export const libraryHref = (tool: string, pilot?: string | null) =>
+  `/library/${encodeURIComponent(tool)}${pilot ? `/pilots/${encodeURIComponent(pilot)}` : ""}`;
+
+// ---- pilots (D-119): a version being tried on a branch, with its own data
+
+export async function loadPilotCard(fetchJson: FetchJson, tool: string, branch: string) {
+  return ok(await typedClient(fetchJson)(addresses.pilotCard, { params: { tool, branch } }));
+}
+
+export async function addPilot(send: SendJson, tool: string, branch: string) {
+  return ok(await typedSender(send)(addresses.installPilot, { params: { tool, branch } }));
+}
+
+export async function removePilot(send: SendJson, tool: string, branch: string) {
+  ok(await typedSender(send)(addresses.uninstallPilot, { params: { tool, branch } }));
+}

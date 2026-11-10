@@ -27,6 +27,11 @@ export const LibraryToolSchema = z.strictObject({
   managed: z.boolean(),
   /** Whether the person still has something to give before it works (their own key, an account…). */
   needsSetup: z.boolean(),
+  /**
+   * The branch, for a pilot (D-119): a version being tried, with its own data, apart from the tool
+   * everyone uses. `null` for the tool itself.
+   */
+  pilot: z.string().nullable(),
 });
 
 export const listLibraryRoute = defineRoute({
@@ -151,5 +156,94 @@ export const putAvailabilityRoute = defineRoute({
     401: notSignedIn,
     403: json(ErrorSchema, "Not an admin"),
     404: json(ErrorSchema, "No such tool"),
+  },
+});
+
+// ---- pilots (D-119): a branch preview opened to people, as a tool of its own with its own data
+
+const pilotParams = z.object({ tool: z.string(), branch: z.string() });
+
+export const pilotCardRoute = defineRoute({
+  method: "get",
+  path: "/api/library/{tool}/pilots/{branch}",
+  summary: "How to use a pilot version of a tool, for the person",
+  tags: ["library"],
+  request: { params: pilotParams },
+  responses: {
+    200: json(LibraryCardSchema, "The card"),
+    401: notSignedIn,
+    404: json(ErrorSchema, "No such pilot, or the person may not add it"),
+  },
+});
+
+export const installPilotRoute = defineRoute({
+  method: "post",
+  path: "/api/library/{tool}/pilots/{branch}",
+  summary: "Add a pilot version of a tool to the person's library",
+  tags: ["library"],
+  request: { params: pilotParams },
+  responses: {
+    200: json(
+      z.strictObject({ installed: z.literal(true), setupUrl: z.string().nullable() }),
+      "Added",
+    ),
+    401: notSignedIn,
+    404: json(ErrorSchema, "No such pilot, or the person may not add it"),
+  },
+});
+
+export const uninstallPilotRoute = defineRoute({
+  method: "delete",
+  path: "/api/library/{tool}/pilots/{branch}",
+  summary: "Remove a pilot version from the person's library",
+  tags: ["library"],
+  request: { params: pilotParams },
+  responses: {
+    204: { description: "Removed" },
+    401: notSignedIn,
+    404: json(ErrorSchema, "It is not in the person's library"),
+  },
+});
+
+export const getPilotAvailabilityRoute = defineRoute({
+  method: "get",
+  path: "/api/tools/{tool}/previews/{branch}/availability",
+  summary: "Who may pilot a branch of a tool",
+  tags: ["library"],
+  request: { params: pilotParams },
+  responses: {
+    200: json(AvailabilitySchema, "The rule; `open` means admins and developers only"),
+    401: notSignedIn,
+    403: json(ErrorSchema, "Not an admin"),
+    404: json(ErrorSchema, "No such tool or preview"),
+  },
+});
+
+export const putPilotAvailabilityRoute = defineRoute({
+  method: "put",
+  path: "/api/tools/{tool}/previews/{branch}/availability",
+  summary: "Set who may pilot a branch of a tool",
+  tags: ["library"],
+  request: {
+    params: pilotParams,
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            mode: z.enum(["nobody", "everyone", "roles", "people"]),
+            roles: z.array(z.string().min(1).max(64)).max(100).optional(),
+            people: z.array(z.string().min(1).max(64)).max(1000).optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: json(AvailabilitySchema, "The rule now"),
+    400: json(ErrorSchema, "Not a rule"),
+    401: notSignedIn,
+    403: json(ErrorSchema, "Not an admin"),
+    404: json(ErrorSchema, "No such tool or preview"),
   },
 });

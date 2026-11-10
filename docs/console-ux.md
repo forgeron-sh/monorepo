@@ -147,11 +147,20 @@ technical: no version, role, action, interface or resource.
 - A tool deployed before libraries (no rule yet) is in the library of everyone who may call it, and
   cannot be removed.
 
+### A pilot
+
+A branch preview an admin opened to some people (D-119) is a tool of its own in their library: a card
+marked _Pilot · branch_, and a page (`/library/<tool>/pilots/<branch>`) that says it is a version being
+prepared, for them to try, with its own data. Adding, finishing the setup and removing work as for a
+tool, apart from it.
+
 ### Availability (admin, a tab of the tool page)
 
 Who may add the tool: nobody yet (a tool installed from a marketplace starts there), everyone, some
 workspace roles, or some people. Saving a choice on a tool that had none means each person adds it from
 their library to keep using it; the tab says so. What a person may do in the tool stays the Access tab.
+Below, **Pilots**: each branch that has a preview, with who may pilot it (admins and developers only
+until a choice is saved).
 
 ### A tool in the library (the member's sheet)
 

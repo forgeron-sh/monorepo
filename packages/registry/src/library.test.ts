@@ -134,3 +134,52 @@ describe("a person's library", () => {
     expect(events).toContain("library-removed");
   });
 });
+
+describe("pilots (D-119)", () => {
+  it("are kept per branch, apart from the tool, and removed with that branch's bindings only", async () => {
+    const tool = await registry.createTool({ workspace: "acme", name: "odoo" });
+    expect(await registry.previewAvailabilityOf(tool.id, "pilot-a")).toBeUndefined();
+    await registry.setPreviewAvailability({
+      toolId: tool.id,
+      branch: "pilot-a",
+      mode: "people",
+      people: [ben.id],
+      actor: root.id,
+    });
+    expect(await registry.previewAvailabilityOf(tool.id, "pilot-a")).toMatchObject({
+      people: [ben.id],
+    });
+    expect(await registry.previewAvailabilityOf(tool.id, "pilot-b")).toBeUndefined();
+    expect(await registry.availabilityOf(tool.id)).toBeUndefined();
+
+    await registry.installPilotForPerson({ toolId: tool.id, branch: "pilot-a", person: ben.id });
+    expect(await registry.pilotsOf(ben.id)).toEqual([{ toolId: tool.id, branch: "pilot-a" }]);
+    expect(await registry.isInstalled(tool.id, ben.id)).toBe(false);
+
+    const secret = await registry.createPersonSecret({
+      workspace: "acme",
+      person: ben.id,
+      label: "Odoo key",
+      value: "test-only-value",
+    });
+    for (const scope of ["*", "preview:pilot-a"]) {
+      await registry.bindUserSecret({
+        toolId: tool.id,
+        person: ben.id,
+        field: "KEY",
+        secretId: secret,
+        scope,
+      });
+    }
+    expect(
+      await registry.uninstallPilotForPerson({
+        toolId: tool.id,
+        branch: "pilot-a",
+        person: ben.id,
+      }),
+    ).toBe(true);
+    expect(await registry.pilotsOf(ben.id)).toEqual([]);
+    // The binding of the tool itself stays; the pilot's went.
+    expect(await registry.readUserSecrets(tool.id, ben.id)).toEqual({ KEY: "test-only-value" });
+  });
+});
