@@ -59,6 +59,8 @@ async function pack(p: Published, names: Map<string, string>, version: string) {
     }
   }
   for (const file of Object.values(p.bin ?? {})) {
+    if (file.startsWith("./"))
+      throw new Error(`${own.name}: npm removes a bin that starts with "./" (${file}).`);
     if (!(await exists(join(dist, file)))) throw new Error(`${own.name}: ${file} was not built.`);
   }
   const manifest = {

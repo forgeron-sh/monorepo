@@ -33,7 +33,8 @@ export const PUBLISHED: Published[] = [
     dir: "apps/cli",
     name: "forgeron",
     description: "The Forgeron CLI: create, test, release and deploy tools.",
-    bin: { forgeron: "./index.mjs" },
+    // No leading "./": npm 11 removes such a bin when it publishes (forgeron@0.1.0 shipped without one).
+    bin: { forgeron: "index.mjs" },
   },
 ];
 

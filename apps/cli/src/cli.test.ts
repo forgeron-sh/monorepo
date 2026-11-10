@@ -249,7 +249,11 @@ describe("forgeron init", () => {
       const dir = join(root, "sales");
       const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8"));
       expect(pkg).toMatchObject({ name: "sales", version: "0.1.0", private: true });
-      expect(pkg.dependencies["@forgeron/sdk"]).toBe("0.0.0");
+      // `bun pm pack` wrote the workspace's SDK version in place of `workspace:*`.
+      const sdk = JSON.parse(
+        await readFile(join(here, "../../../packages/sdk/package.json"), "utf8"),
+      ) as { version: string };
+      expect(pkg.dependencies["@forgeron/sdk"]).toBe(sdk.version);
       expect(await readFile(join(dir, "forgeron.config.ts"), "utf8")).toContain('name: "sales"');
       await expect(readFile(join(dir, "actions/deals/create.ts"), "utf8")).resolves.toContain(
         "action(",
