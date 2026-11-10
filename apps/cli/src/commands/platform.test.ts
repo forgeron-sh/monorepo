@@ -33,6 +33,7 @@ function fakeCloudflare(
     branch: string;
   }> = [],
 ) {
+  let current = expected;
   const calls: Calls[] = [];
   const databases = new Map<string, string>();
   const workers = new Set<string>();
@@ -58,7 +59,7 @@ function fakeCloudflare(
     calls.push({ method, path, ...(body ? { body } : {}) });
     // The asset upload is the one call Cloudflare authorises with the session's JWT, not the API token.
     expect(new Headers(init?.headers).get("authorization")).toBe(
-      path === "/workers/assets/upload" ? `Bearer ${UPLOAD_JWT}` : `Bearer ${expected}`,
+      path === "/workers/assets/upload" ? `Bearer ${UPLOAD_JWT}` : `Bearer ${current}`,
     );
     let m: RegExpMatchArray | null;
     if (method === "POST" && /^\/workers\/scripts\/[^/]+\/assets-upload-session$/.test(path)) {
@@ -150,7 +151,11 @@ function fakeCloudflare(
     if (method === "POST" && /\/deployments$/.test(path)) return ok({ id: "deployment-1" });
     return missing();
   };
-  return { fetcher, calls, databases, records, routes, uploaded, versions };
+  /** The token the next calls must carry: a second run may sign in another way. */
+  const useToken = (token: string) => {
+    current = token;
+  };
+  return { fetcher, calls, databases, records, routes, uploaded, versions, useToken };
 }
 
 let dir: string;
@@ -689,6 +694,39 @@ describe("forgeron platform install", () => {
       });
       expect(JSON.stringify(cf.calls)).not.toContain(SESSION);
       expect([...logs, ...errors].join("\n")).not.toContain(GATEWAY);
+    });
+
+    it("keeps the API token the gateway already holds when run again without one to give", async () => {
+      // First installed with a token, then run again with the wrangler login only.
+      const cf = fakeCloudflare(TOKEN);
+      expect(await platform(install(), io, { fetch: cf.fetcher })).toBe(0);
+      delete process.env.CLOUDFLARE_API_TOKEN;
+      cf.useToken(SESSION);
+      logs.length = 0;
+      expect(await platform(install(["--auth", "wrangler"]), io, { fetch: cf.fetcher })).toBe(0);
+      const second = cf.calls.filter((c) => c.path.endsWith("/versions")).at(-1)!;
+      expect(
+        (second.body!.bindings as Array<Record<string, string>>).find(
+          (b) => b.name === "CLOUDFLARE_API_TOKEN",
+        ),
+      ).toEqual({ type: "inherit", name: "CLOUDFLARE_API_TOKEN" });
+      expect(logs.join("\n")).toContain("keeps the CLOUDFLARE_API_TOKEN secret it already had");
+      expect(logs.join("\n")).not.toContain("WITHOUT");
+    });
+
+    it("says so when there was no token to keep, instead of claiming it was kept", async () => {
+      delete process.env.CLOUDFLARE_API_TOKEN;
+      const cf = fakeCloudflare(SESSION);
+      await platform(install(["--auth", "wrangler"]), io, { fetch: cf.fetcher });
+      logs.length = 0;
+      expect(await platform(install(["--auth", "wrangler"]), io, { fetch: cf.fetcher })).toBe(0);
+      const second = cf.calls.filter((c) => c.path.endsWith("/versions")).at(-1)!;
+      expect(
+        (second.body!.bindings as Array<Record<string, string>>).find(
+          (b) => b.name === "CLOUDFLARE_API_TOKEN",
+        ),
+      ).toBeUndefined();
+      expect(logs.join("\n")).toContain("WITHOUT a CLOUDFLARE_API_TOKEN secret");
     });
 
     it("tells the person to run wrangler login when wrangler is missing, fails or prints nothing usable", async () => {

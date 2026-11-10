@@ -177,7 +177,11 @@ export async function platform(
         { type: "plain_text", name: "GATEWAY_WORKER", text: worker },
         ...(gatewayToken
           ? [{ type: "secret_text", name: "CLOUDFLARE_API_TOKEN", text: gatewayToken }]
-          : []),
+          : // Run again without a token to give: the one the gateway already holds is kept, as the keys
+            // are. Without this the new version would drop it and tools could no longer be deployed.
+            existed && !lost.has(TOKEN_BINDING)
+            ? [{ type: "inherit", name: TOKEN_BINDING }]
+            : []),
         ...settingBindings(settings, existed, lost),
         ...bound.filter((n) => !lost.has(n)).map((n) => ({ type: "inherit", name: n })),
       ],
@@ -191,7 +195,7 @@ export async function platform(
   } catch (error) {
     const message = (error as Error).message;
     const lost = new Set(
-      [...settings.map((s) => s.name), ...bound].filter((n) => message.includes(n)),
+      [...settings.map((s) => s.name), ...bound, TOKEN_BINDING].filter((n) => message.includes(n)),
     );
     if (!existed || (error as { status?: number }).status !== 400 || lost.size === 0) throw error;
     regenerated = lost;
@@ -203,6 +207,10 @@ export async function platform(
   });
   if (gatewayToken) {
     io.log(`Deployed the gateway "${worker}" (the API token is stored as its secret).`);
+  } else if (existed && !regenerated.has(TOKEN_BINDING)) {
+    io.log(
+      `Deployed the gateway "${worker}"; it keeps the CLOUDFLARE_API_TOKEN secret it already had.`,
+    );
   } else {
     io.log(`Deployed the gateway "${worker}" WITHOUT a CLOUDFLARE_API_TOKEN secret.`);
     io.log(
@@ -248,6 +256,8 @@ export async function platform(
   );
   return 0;
 }
+
+const TOKEN_BINDING = "CLOUDFLARE_API_TOKEN";
 
 /** `TOOL_<WORKER>` of every environment the registry holds: those a tool deployment bound. */
 async function toolBindings(d1: ReturnType<typeof createRestD1>): Promise<string[]> {
