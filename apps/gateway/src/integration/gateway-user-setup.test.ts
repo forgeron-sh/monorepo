@@ -954,3 +954,59 @@ describe("a different secret for a preview or a branch (D-109)", () => {
     expect(after.usedBy).toEqual(before.usedBy);
   });
 });
+
+describe("the setup page's link and connections (D-111)", () => {
+  it("links to the person's own secrets", async () => {
+    const html = await (await call("/t/crm/setup", await tokenFor(ana))).text();
+    expect(html).toContain('href="/my/secrets"');
+  });
+
+  it("shows a delegated connector as a step: a link to connect, then connected once consented", async () => {
+    const cal = await registry.createTool({ workspace: "acme", name: "cal" });
+    const built = await registry.recordBuild(cal.id, {
+      fingerprint: "cal",
+      manifest: {
+        ...manifest,
+        name: "cal",
+        resources: {
+          connectors: {
+            google: {
+              type: "google-calendar",
+              mode: "delegated",
+              scopes: ["calendar.read"],
+              why: "Read your calendar",
+            },
+          },
+        },
+        setup: undefined,
+      } as Manifest,
+    });
+    const version = await registry.publishVersion(cal.id, built.id, "1.0.0");
+    const production = await registry.ensureEnvironment(cal.id, "production");
+    await registry.activate(production.id, version.id, { actor: "test" });
+
+    const token = await tokenFor(ana, "cal");
+    const before = await (await call("/t/cal/secrets", token)).text();
+    expect(before).toContain("Connections");
+    expect(before).toContain("google-calendar");
+    expect(before).toContain("Read your calendar");
+    expect(before).toContain("/console-api/api/tools/cal/environments/production/consent/google");
+    expect(before).not.toContain("Connected");
+
+    await registry.saveConnection({
+      toolId: cal.id,
+      environment: "production",
+      userId: ana,
+      connector: "google-calendar",
+      scopes: ["calendar.read"],
+      tokens: { accessToken: "test-access", refreshToken: "test-refresh" },
+    });
+    const after = await (await call("/t/cal/secrets", token)).text();
+    expect(after).toContain("Connected");
+    expect(after).not.toContain("test-access");
+    // Another person has not consented.
+    expect(await (await call("/t/cal/secrets", await tokenFor(ben, "cal"))).text()).not.toContain(
+      "Connected",
+    );
+  });
+});

@@ -68,6 +68,11 @@ export interface PlatformBindings {
   now(): Date;
   /** Tells an invited address where to sign in. Best effort: `false` when it could not be sent. */
   notify?(invitation: Invitation): Promise<boolean>;
+  /**
+   * Tells a person that an administrator set one of their secrets (D-111): the tool and the field, never
+   * a value. Best effort: `false` when nothing was sent. Absent where the gateway cannot send mail.
+   */
+  notifySecretSet?(person: string, tool: string, field: string): Promise<boolean>;
   /** The sign-in configuration (D-041): the provider and the connectors' OAuth clients. */
   config: IdentityConfig;
   /** Seals this workspace's stored values again under the current key (D-108); set with `SECRETS_KEY`. */

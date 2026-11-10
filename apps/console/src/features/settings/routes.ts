@@ -128,6 +128,16 @@ const routes: RouteDef[] = [
     page: () => import("./pages/usage"),
   },
   {
+    path: "/settings/sealing",
+    title: "Sealing key",
+    access: "admin",
+    settings: { group: "administration", label: "Sealing key" },
+    page: adapt(
+      () => import("./pages/sealing").then((m) => m.default),
+      ({ api }) => ({ api }),
+    ),
+  },
+  {
     path: "/settings/install",
     title: "Install information",
     access: "admin",

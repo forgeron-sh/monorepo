@@ -5,6 +5,7 @@ export {
   handleSecretsInput,
   missingSetup,
   type SavedSecret,
+  type ConnectorStep,
   type SavedSecrets,
   type SecretsPage,
   type SetupCheckResult,

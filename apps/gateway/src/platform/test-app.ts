@@ -22,6 +22,7 @@ export function platformCaller(options: {
   config?: IdentityConfig;
   canKeepSecrets?: boolean;
   reseal?: () => Promise<ResealReport>;
+  notifySecretSet?: (person: string, tool: string, field: string) => Promise<boolean>;
   now?: () => Date;
   notify?: (invitation: Invitation) => Promise<boolean>;
   databaseTimeoutMs?: number;
@@ -51,6 +52,7 @@ export function platformCaller(options: {
       config: options.config ?? ({} as IdentityConfig),
       canKeepSecrets: options.canKeepSecrets ?? false,
       ...(options.reseal ? { reseal: options.reseal } : {}),
+      ...(options.notifySecretSet ? { notifySecretSet: options.notifySecretSet } : {}),
       now: options.now ?? (() => new Date()),
       ...(options.notify ? { notify: options.notify } : {}),
       hosting: options.hosting ?? (() => undefined),
