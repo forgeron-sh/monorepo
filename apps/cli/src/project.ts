@@ -42,7 +42,7 @@ export function checkWorkspace(workspace: string): string {
   return workspace;
 }
 
-export const defaultEndpoint = (workspace: string) => `https://${workspace}.forgeron.app`;
+const defaultEndpoint = (workspace: string) => `https://${workspace}.forgeron.app`;
 
 /**
  * What `--workspace` names: a workspace (`acme`, on forgeron.app) or the full host of an install
