@@ -109,6 +109,7 @@ Rules of the log:
 | D-108 | 10/11/2026 | Re-sealing: `POST /api/secrets/reseal` seals a workspace's stored values again under the current `SECRETS_KEY` (FOR-172, ticket 6 of the registry)                                                           | Active                                 |
 | D-109 | 10/11/2026 | Scopes in use: a call carries the secret of the most specific scope for where it is served; a person sets a different secret for production, every preview or one branch (FOR-172, ticket 5 of the registry) | Active                                 |
 | D-110 | 10/11/2026 | The legacy `user_secrets` table is dropped: the registry is the only place a person's secrets live (FOR-172, ticket 7 of the registry)                                                                       | Active                                 |
+| D-111 | 10/11/2026 | The leftovers of the secret registry: links to "Your secrets", console screens for an admin, a mail to the person, connectors as steps of the setup page (FOR-172)                                           | Active                                 |
 
 ---
 
@@ -1388,3 +1389,17 @@ Rules of the log:
 - **Rejected**: keeping it "just in case" (the spike's point 7); flagging the migration destructive (the platform's own migrations are not applied with that flag, and the data was copied).
 - **Not verified**: no real D1 with data from before 0027.
 - **Applied in**: `packages/registry/src/modules/secrets/migrations.ts`, `modules/members/store.ts`, `migrations.golden.json`; test `secret-registry.test.ts`.
+
+## D-111 — The leftovers of the secret registry: links, console screens, a mail to the person, connectors as steps of the setup page (FOR-172)
+
+- **Date**: 10/11/2026 · **Status**: Active · closes what D-106 to D-108 listed as "not done"
+- **Decision**:
+  1. **Links to "Your secrets"** (`/my/secrets`, D-106): the console's _Personal secrets_ page now leads to it (it was an empty state), and a tool's setup page ends with a link to it.
+  2. **Console, tool page, _Secrets_ tab (admins)**: a section _People's secrets_ lists who holds which secret **by name** (with the member's name and email), revokes one, and sets one for a person (person, name, value in a masked field) through D-107's route. The value goes in a body only and is shown nowhere; after a refusal it stays in the masked field so the name can be corrected.
+  3. **Console, Settings, Administration, _Sealing key_** (admins): one button calling D-108's route, answering counts only, with a warning when a value is unreadable.
+  4. **A mail to the person** when an administrator sets one of their secrets: "an administrator of <workspace> set your secret <FIELD> for the tool <tool>", with the link to `/my/secrets`; **never a value**, and not the administrator's name. Best effort: a mail that cannot be sent does not undo the secret and does not change the 204. It goes out through the gateway's mail sender (`SEND_EMAIL` and `MAIL_FROM`, or the console sender of a test install, which logs one line without a body). Where the gateway has no sender, nothing is sent and the line in "Your secrets" stays the notice. This answers decision d of the spike (yes, in "Your secrets" always, and by mail when mail is on).
+  5. **Connectors as steps of the setup page**: for each _delegated_ connector the tool declares, the page says **Connected** or gives a **Connect** link to the existing consent route (D-046), and shows the connector's reason. A tool that asks nothing else shows these steps instead of "asks for nothing from you". Production only: the consent of a preview environment is not offered from this page.
+- **Correction**: D-107 said no mail sender is configured for the gateway. That was wrong as a general statement: the gateway has a sender when `SEND_EMAIL` and `MAIL_FROM` are bound (it is the one that mails sign-in codes and invitations). What is true is that an install without them sends nothing.
+- **Not done**: the OAuth step (D-098) does not wait for connectors, only for setup and secrets; a CLI command for re-sealing.
+- **Not verified**: no browser (the console screens are tested in jsdom and the gateway page as HTML); no real mail.
+- **Applied in**: `packages/runtime/src/secrets.ts` (`ConnectorStep`, `connectors`, `mySecrets`), `apps/gateway/src/dispatch/user-secrets.ts`, `compose.ts`, `mail/mail.ts`, `platform/approvals.ts`, `platform/app.ts`; `apps/console/src/features/tools/tabs/people-secrets.tsx`, `features/settings/pages/{personal-secrets,sealing}.tsx`; tests next to each.

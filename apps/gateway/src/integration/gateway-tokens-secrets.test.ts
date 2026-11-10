@@ -11,6 +11,7 @@ import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createGateway, type GatewayEnv } from "../gateway";
 import { issueToken } from "../identity/authn/tokens";
+import { memoryMailSender, type MailSender } from "../mail/mail";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -401,6 +402,55 @@ describe("per-person secrets on first use", () => {
       await call("/console-api/api/tools/crm/user-secrets", await cliToken(admin))
     ).text();
     expect(holders).not.toContain("set-by-admin-value");
+  });
+
+  it("tells the person by mail that an administrator set their secret, with no value, and a failing mail does not undo it (D-111)", async () => {
+    const dana = (
+      await registry.addMember({
+        workspace: "acme",
+        subject: "dana",
+        email: "dana@acme.test",
+        name: "dana",
+        roles: [],
+      })
+    ).id;
+    const mail = memoryMailSender();
+    const withMail = (sender: MailSender) =>
+      createGateway({ ...env }, { now: () => clock, mail: sender });
+    const put = async (sender: MailSender | undefined, value: string) => {
+      const request = new Request(
+        `https://acme.forgeron.app/console-api/api/tools/crm/user-secrets/${dana}/ODOO_API_KEY`,
+        {
+          method: "PUT",
+          headers: {
+            authorization: `Bearer ${await cliToken(admin)}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ value }),
+        },
+      );
+      return (sender ? withMail(sender) : gateway())(request);
+    };
+    expect((await put(mail, "mailed-test-value")).status).toBe(204);
+    expect(mail.sent).toHaveLength(1);
+    expect(mail.sent[0]).toMatchObject({ to: "dana@acme.test" });
+    const text = mail.sent[0]!.text;
+    expect(text).toContain("ODOO_API_KEY");
+    expect(text).toContain("crm");
+    expect(text).toContain("https://acme.forgeron.app/my/secrets");
+    expect(JSON.stringify(mail.sent)).not.toContain("mailed-test-value");
+    // A mail that cannot be sent does not undo the secret.
+    const broken: MailSender = {
+      send: async () => {
+        throw new Error("mail is down");
+      },
+    };
+    expect((await put(broken, "second-test-value")).status).toBe(204);
+    expect(
+      await registry.readUserSecrets((await registry.findTool("acme", "crm"))!.id, dana),
+    ).toEqual({
+      ODOO_API_KEY: "second-test-value",
+    });
   });
 
   it("another tool's token cannot store a secret for this tool", async () => {

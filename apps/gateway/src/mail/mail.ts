@@ -8,6 +8,8 @@ export interface MailMessage {
   /** What the message carries, for a sender that does not send mail (`consoleMailSender`). */
   code?: string;
   invitation?: { roles: string[] };
+  /** A notice to a person, for a sender that does not send mail: what happened, never a value (D-111). */
+  notice?: string;
 }
 
 export interface MailSender {
@@ -37,6 +39,8 @@ export function consoleMailSender(log: (line: string) => void = console.log): Ma
     async send(message) {
       if (message.code !== undefined) {
         log(JSON.stringify({ event: "sign-in code", address: message.to, code: message.code }));
+      } else if (message.notice !== undefined) {
+        log(JSON.stringify({ event: message.notice, address: message.to }));
       } else if (message.invitation) {
         log(
           JSON.stringify({

@@ -144,6 +144,8 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
         label: declared.label,
         ...(declared.kind ? { kind: declared.kind } : {}),
       });
+      // The person is told, once the secret is kept. A mail that fails does not undo it.
+      await c.env.notifySecretSet?.(person, name, field).catch(() => false);
       return c.body(null, 204);
     },
     (result, c) =>

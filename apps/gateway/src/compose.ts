@@ -363,6 +363,21 @@ export function createRequestModules(
       }
     : undefined;
 
+  // Tells a person that an administrator set one of their secrets (D-111): a short mail with no value.
+  const notifySecretSet = mailer
+    ? async (person: string, toolName: string, field: string) => {
+        const member = await registry.findMember(workspace, person);
+        if (!member) return false;
+        await mailer.send({
+          to: member.email,
+          subject: `An administrator set a secret for you in ${workspace}`,
+          notice: "secret set by an administrator",
+          text: `An administrator of ${workspace} set your secret ${field} for the tool ${toolName}.\n\nYou can see it, change it or delete it on ${origin}/my/secrets. The value is never shown. If you did not expect this, tell your administrator.`,
+        });
+        return true;
+      }
+    : undefined;
+
   /** What the platform app needs from this gateway for this request. */
   const platformBindings = (
     surface: "console" | "root",
@@ -399,6 +414,7 @@ export function createRequestModules(
     ...(resealer ? { reseal: () => resealer.resealSecrets(workspace) } : {}),
     now,
     ...(notify ? { notify } : {}),
+    ...(notifySecretSet ? { notifySecretSet } : {}),
     origin,
     baseDomain: env.BASE_DOMAIN,
     hosting: modules.hostingOf,
@@ -517,6 +533,21 @@ export function createRequestModules(
           // The tool's own check of what a person is about to give (D-101). The identity headers are
           // the gateway's, from the person it just identified, and the marker is one callers cannot set.
           checkSetup,
+          // The tool's delegated connectors, as steps of its setup page (D-111).
+          ...(box
+            ? {
+                connectors: {
+                  consent: async (types: string[]) =>
+                    consentFor(
+                      workspace,
+                      await config.connectorClientsWithSecrets(workspace, types),
+                      box,
+                    ),
+                  consentUrl: (tool: string, environment: string, name: string) =>
+                    `https://${workspace}.${env.BASE_DOMAIN}${CONSOLE_API}/api/tools/${tool}/environments/${environment}/consent/${name}`,
+                },
+              }
+            : {}),
         })
       : undefined,
 

@@ -1,6 +1,7 @@
 import type { Manifest } from "@forgeron/manifest";
 import type { Registry } from "@forgeron/registry";
 import {
+  type ConnectorStep,
   handleSecretsInput,
   type SavedSecrets,
   type SetupCheckResult,
@@ -24,6 +25,7 @@ export interface UserSecretsContext {
     | "currentManifest"
     | "bindUserSecret"
     | "findTool"
+    | "listConnections"
     | "listPersonSecrets"
     | "readPersonSecret"
     | "readUserSecrets"
@@ -129,6 +131,27 @@ export async function handleUserSecrets(
       context.registry.writeUserSetup({ toolId: record.id, person: user.id, values }),
   };
   const url = new URL(request.url);
+  // The tool's delegated connectors as steps of this page (D-111): connected, or where to connect.
+  const steps: ConnectorStep[] = [];
+  if (context.connectors) {
+    const delegated = Object.entries(manifest.resources.connectors ?? {}).filter(
+      ([, c]) => c.mode === "delegated",
+    );
+    const consents =
+      delegated.length > 0
+        ? await context.registry.listConnections(record.id, "production", {
+            userId: who.person.id,
+          })
+        : [];
+    for (const [name, c] of delegated) {
+      steps.push({
+        label: c.type,
+        why: c.why,
+        connected: consents.some((k) => k.connector === c.type),
+        url: context.connectors.consentUrl(tool, "production", name),
+      });
+    }
+  }
   // Where the OAuth step that sent the person here wants them back: only that step's own path (D-098).
   const asked = url.searchParams.get("next");
   const next = asked && SETUP_NEXT.test(asked) && asked.length <= 2000 ? asked : undefined;
@@ -143,6 +166,8 @@ export async function handleUserSecrets(
     {
       setupStore,
       saved,
+      mySecrets: "/my/secrets",
+      ...(steps.length > 0 ? { connectors: steps } : {}),
       ...(next ? { next } : {}),
       // Only a tool that declares a check is asked, and only where the gateway can ask.
       ...(manifest.setup?.check && context.checkSetup

@@ -192,6 +192,7 @@ describe("App", () => {
         "Audit log",
         "Approvals",
         "Usage and seats",
+        "Sealing key",
         "Install information",
       ]);
       expect(side.querySelector('[aria-current="page"]')?.textContent).toBe("Profile");

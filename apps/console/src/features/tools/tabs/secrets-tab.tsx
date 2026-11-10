@@ -2,9 +2,11 @@ import { CopyBlock } from "@forgeron/ui";
 import { loadSecretsStatus, SecretsStatus } from "../../../secrets-status";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
+import PeopleSecrets from "./people-secrets";
 import type { ToolTabProps } from "../tabs";
 
-export default function SecretsTab({ tool, api }: ToolTabProps) {
+export default function SecretsTab(props: ToolTabProps) {
+  const { tool, api } = props;
   const secrets = useLoad(() => loadSecretsStatus(api.fetchJson, tool), [api, tool]);
   if (secrets.loading) return <Loading label="Loading secrets" />;
   if (secrets.error) {
@@ -17,6 +19,7 @@ export default function SecretsTab({ tool, api }: ToolTabProps) {
       </p>
       <SecretsStatus rows={secrets.data ?? []} />
       <CopyBlock label="Set a secret" value="forgeron secrets set <NAME>" prefix="$" />
+      <PeopleSecrets {...props} />
     </div>
   );
 }

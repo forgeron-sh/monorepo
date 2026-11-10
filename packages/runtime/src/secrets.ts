@@ -83,6 +83,15 @@ const bare: SecretsRenderer = ({ title, eyebrow, body, status }) =>
     },
   );
 
+/** A delegated connector as a step of the setup page. */
+export interface ConnectorStep {
+  label: string;
+  why: string;
+  connected: boolean;
+  /** Where the person gives their consent. */
+  url: string;
+}
+
 export async function handleSecretsInput(
   request: Request,
   manifest: Manifest,
@@ -106,9 +115,16 @@ export async function handleSecretsInput(
     check?: (candidate: SetupCandidate) => Promise<SetupCheckResult>;
     /** The person's saved secrets: offered at each secret field, chosen by a click, never by field name. */
     saved?: SavedSecrets;
+    /**
+     * The tool's delegated connectors, as steps of this page (D-111): each says whether the person has
+     * consented and links to where they give it. The host decides what is listed.
+     */
+    connectors?: ConnectorStep[];
+    /** Where the person manages all their secrets (`/my/secrets`): shown as a link under the form. */
+    mySecrets?: string;
   } = {},
 ): Promise<Response> {
-  const { setupStore, next, check, saved: registry } = extras;
+  const { setupStore, next, check, saved: registry, connectors = [], mySecrets } = extras;
   const declared = Object.entries(manifest.resources.userSecrets ?? {});
   const fields = setupStore ? Object.entries(manifest.setup?.fields ?? {}) : [];
   const page = `${baseUrl.replace(/\/+$/, "")}/${fields.length > 0 ? "setup" : "secrets"}`;
@@ -184,9 +200,27 @@ export async function handleSecretsInput(
     const refused = message
       ? `<p class="notice warning" role="alert"><span class="tag">Not saved</span><span>${escapeHtml(message)}</span></p>`
       : "";
+    // Delegated connectors are steps of the same page: connected, or a link to connect (D-111).
+    const steps = connectors.length
+      ? `<section class="stack"><h2>Connections</h2>${connectors
+          .map(
+            (c) =>
+              `<p><strong>${escapeHtml(c.label)}</strong> ${
+                c.connected
+                  ? `<span class="tag-set">Connected</span>`
+                  : `<a class="btn primary" href="${escapeHtml(c.url)}">Connect</a>`
+              }<span class="hint">${escapeHtml(c.why)}</span></p>`,
+          )
+          .join("")}</section>`
+      : "";
+    const manage = mySecrets
+      ? `<p class="hint">To see and change all your secrets, and which tool uses which: <a href="${escapeHtml(mySecrets)}">your secrets</a>.</p>`
+      : "";
     return plain || secrets
-      ? `${refused}<p class="lead">${lead}</p><form method="post" action="${escapeHtml(action)}" class="stack">${plain}${secrets}<button type="submit" class="btn primary">${fields.length > 0 ? "Save" : "Save secrets"}</button></form>`
-      : `<p>This tool asks for nothing from you.</p>`;
+      ? `${refused}<p class="lead">${lead}</p><form method="post" action="${escapeHtml(action)}" class="stack">${plain}${secrets}<button type="submit" class="btn primary">${fields.length > 0 ? "Save" : "Save secrets"}</button></form>${steps}${manage}`
+      : steps
+        ? `${steps}${manage}`
+        : `<p>This tool asks for nothing from you.</p>`;
   };
 
   if (request.method === "GET") {
