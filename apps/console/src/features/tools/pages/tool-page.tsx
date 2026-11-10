@@ -1,7 +1,15 @@
-import { Button, Notice, Page, Tabs } from "@forgeron/ui";
-import { createElement, lazy, Suspense, useMemo, useState, type ComponentType } from "react";
+import { Badge, Button, Notice, Page, Select, Tabs } from "@forgeron/ui";
+import {
+  createElement,
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+} from "react";
 import type { PageProps } from "../../../shell/page-props";
-import { pathOf } from "../../../router";
+import { pathOf, toolPath } from "../../../router";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
 import { loadTools } from "../api";
@@ -12,6 +20,11 @@ import "../tools.css";
 
 // One tool: its header, then the tabs that features registered (`registerToolTab`). The tab is in
 // the address (`?tab=branches`) so that a link opens it; the first one is the default.
+//
+// The page shows production at `/tools/<tool>` and a branch's preview at `/tools/<tool>/tree/<branch>`
+// (D-120), chosen at the right of the header. A tab whose scope is the branch follows it; a tab that
+// is the same for every branch says so on a branch's page. A branch whose preview is gone sends the
+// page back to production, with a word about it.
 
 const loaded = new Map<string, ComponentType<ToolTabProps>>();
 const panel = (tab: ToolTab) => {
@@ -27,12 +40,30 @@ function askedTab(): string | null {
   return new URLSearchParams(window.location.search).get("tab");
 }
 
-export default function ToolPage({ name, api, ws, now }: PageProps & { name: string }) {
+/** The address of the tool on a branch, keeping the open tab. */
+const addressOf = (name: string, branch: string | undefined) =>
+  toolPath(name, branch) + window.location.search;
+
+export default function ToolPage({
+  name,
+  branch: askedBranch,
+  api,
+  ws,
+  now,
+  go,
+}: PageProps & { name: string; branch?: string }) {
   const admin = ws.person.admin;
   const tools = useLoad(() => loadTools(api.fetchJson), [api]);
   const tabs = useMemo(() => toolTabs(admin), [admin]);
   const [asked, setAsked] = useState(askedTab);
   const tool = tools.data?.find((t) => t.name === name);
+  const previews = tool?.previews.map((p) => p.branch) ?? [];
+  // A branch with no preview (closed, or a mistyped address) is not shown: the page is production's.
+  const gone = askedBranch !== undefined && tool !== undefined && !previews.includes(askedBranch);
+  const branch = gone ? undefined : askedBranch;
+  useEffect(() => {
+    if (gone) window.history.replaceState(null, "", addressOf(name, undefined));
+  }, [gone, name]);
 
   const select = (id: string) => {
     setAsked(id);
@@ -82,7 +113,35 @@ export default function ToolPage({ name, api, ws, now }: PageProps & { name: str
           <h1 className="fg-page-title">{tool.name}</h1>
           {tool.summary ? <p className="fg-page-desc">{tool.summary}</p> : null}
         </div>
+        <label className="ft-branch-pick">
+          <span className="ft-branch-pick-label">Branch</span>
+          <Select
+            value={branch ?? ""}
+            options={[
+              { value: "", label: "Production" },
+              ...previews.map((b) => ({ value: b, label: b })),
+            ]}
+            onChange={(e) => go(addressOf(tool.name, e.target.value || undefined))}
+          />
+        </label>
       </header>
+      {gone ? (
+        <Notice tone="warning" title={`The branch ${askedBranch} has no preview anymore.`}>
+          This is production. Deploy the branch again to see it here.
+        </Notice>
+      ) : null}
+      {branch !== undefined ? (
+        <div className="ft-branch-band" role="status">
+          <Badge tone="warning">Preview</Badge>
+          <span className="ft-branch-band-text">
+            You are looking at <code>{branch}</code>. What you change in Overview, Architecture,
+            Availability, Database and Secrets is for this branch only, never for production.
+          </span>
+          <Button size="sm" onClick={() => go(addressOf(tool.name, undefined))}>
+            Back to production
+          </Button>
+        </div>
+      ) : null}
       {current ? (
         <Tabs
           label="Tool sections"
@@ -90,10 +149,14 @@ export default function ToolPage({ name, api, ws, now }: PageProps & { name: str
           value={current.id}
           onChange={select}
         >
+          {branch !== undefined && current.scope === "tool" ? (
+            <p className="ft-shared">The same for every branch.</p>
+          ) : null}
           <Suspense fallback={<Loading shape="block" label={`Loading ${current.title}`} />}>
             {createElement(panel(current), {
-              key: current.id,
+              key: `${current.id}@${current.scope === "branch" ? (branch ?? "") : ""}`,
               tool: tool.name,
+              ...(branch !== undefined && current.scope === "branch" ? { branch } : {}),
               api,
               ws,
               now,

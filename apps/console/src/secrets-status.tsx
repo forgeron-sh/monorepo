@@ -30,9 +30,11 @@ export async function loadSecretsStatus(
   }));
 }
 
-const columns: Array<TableColumn<SecretStatusRow>> = [
+const columnsFor = (
+  environments: ReadonlyArray<Environment>,
+): Array<TableColumn<SecretStatusRow>> => [
   { key: "name", header: "Secret", mono: true },
-  ...ENVIRONMENTS.map((env) => ({
+  ...environments.map((env) => ({
     key: env,
     header: env[0]!.toUpperCase() + env.slice(1),
     render: (row: SecretStatusRow) => (
@@ -43,10 +45,17 @@ const columns: Array<TableColumn<SecretStatusRow>> = [
   })),
 ];
 
-export function SecretsStatus({ rows }: { rows: ReadonlyArray<SecretStatusRow> }) {
+export function SecretsStatus({
+  rows,
+  environments = ENVIRONMENTS,
+}: {
+  rows: ReadonlyArray<SecretStatusRow>;
+  /** The columns: both by default; a branch's page shows the preview's only (D-120). */
+  environments?: ReadonlyArray<Environment>;
+}) {
   return (
     <Table
-      columns={columns}
+      columns={columnsFor(environments)}
       rows={rows}
       rowKey={(row) => row.name}
       empty="This tool declares no secret."

@@ -59,25 +59,9 @@ describe("the Availability tab (D-117)", () => {
   });
 });
 
-describe("pilots in the Availability tab (D-119)", () => {
-  it("lists the branches with a preview and opens one to some people", async () => {
+describe("pilots in the Availability tab (D-119, D-120)", () => {
+  it("opens the branch the page shows to some people, and nothing else", async () => {
     const { api, sent } = fakeApi({
-      "/api/tools/odoo/availability": { mode: "nobody", roles: [], people: [], updatedAt: "x" },
-      "/api/tools/odoo/branches": {
-        production: null,
-        branches: [
-          {
-            environment: "preview",
-            branch: "pilot-a",
-            status: "ready",
-            version: "1.2.0",
-            deployedBy: "ci",
-            deployedAt: "2026-11-03T10:00:00Z",
-            migrations: { count: 0 },
-            deployments: [],
-          },
-        ],
-      },
       "/api/tools/odoo/previews/pilot-a/availability": {
         mode: "open",
         roles: [],
@@ -92,16 +76,27 @@ describe("pilots in the Availability tab (D-119)", () => {
         updatedAt: "y",
       },
     });
-    const view = await mount(<AvailabilityTab {...tabProps(api, "odoo")} />);
-    const pilot = view.querySelector("details")!;
-    expect(pilot.textContent).toContain("pilot-a");
-    expect(pilot.textContent).toContain("Admins and developers only");
-    await click(pilot.querySelector<HTMLInputElement>("input[value=people]"));
-    const bob = [...pilot.querySelectorAll("label")].find((l) => l.textContent?.startsWith("Bob"));
+    const view = await mount(<AvailabilityTab {...tabProps(api, "odoo")} branch="pilot-a" />);
+    expect(view.textContent).toContain("Who can pilot this branch");
+    expect(view.textContent).toContain("Admins and developers only");
+    expect(view.textContent).not.toContain("Who can add this tool");
+    await click(view.querySelector<HTMLInputElement>("input[value=people]"));
+    const bob = [...view.querySelectorAll("label")].find((l) => l.textContent?.startsWith("Bob"));
     await click(bob!.querySelector("input"));
-    await click(button(pilot, "Save"));
+    await click(button(view, "Save"));
     expect(sent.map((s) => [s.method, s.path, s.body])).toEqual([
       ["PUT", "/api/tools/odoo/previews/pilot-a/availability", { mode: "people", people: ["m2"] }],
     ]);
+  });
+
+  it("points to the branch picker from production", async () => {
+    const { api } = fakeApi({
+      "/api/tools/odoo/availability": { mode: "nobody", roles: [], people: [], updatedAt: "x" },
+      "/api/members": members,
+    });
+    const view = await mount(<AvailabilityTab {...tabProps(api, "odoo")} />);
+    expect(view.textContent).toContain("Who can add this tool");
+    expect(view.textContent).toContain("choose the branch at the top of the page");
+    expect(view.querySelector("details")).toBeNull();
   });
 });

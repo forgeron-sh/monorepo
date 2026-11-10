@@ -14,6 +14,8 @@ const notSignedIn = json(ErrorSchema, "Not signed in");
 const notFound = json(ErrorSchema, "No such tool or image");
 const registryError = json(ErrorSchema, "The registry refused: `error` is its code");
 const tool = z.string().describe("The tool's name");
+/** A branch with a preview (D-120): the card and images of the version it serves. */
+const branch = z.string().min(1).optional().describe("A branch with a preview");
 
 export const listCatalogRoute = defineRoute({
   method: "get",
@@ -32,10 +34,11 @@ export const toolCardRoute = defineRoute({
   path: "/api/catalog/{tool}",
   summary: "A tool's card: README, assets, how to connect, what the person may call",
   tags: ["catalog"],
-  request: { params: z.object({ tool }) },
+  request: { params: z.object({ tool }), query: z.object({ branch }) },
   responses: {
     200: json(ToolCardSchema, "The card"),
     401: notSignedIn,
+    403: json(ErrorSchema, "A branch's card is for admins and developers"),
     404: notFound,
     500: registryError,
   },
@@ -51,6 +54,7 @@ export const catalogAssetRoute = defineRoute({
     params: z.object({ tool, path: z.string().describe("A plain path inside the bundle") }),
     query: z.object({
       v: z.string().optional().describe("The file's hash: that answer is immutable"),
+      branch,
     }),
   },
   responses: {
@@ -65,6 +69,7 @@ export const catalogAssetRoute = defineRoute({
       },
     },
     401: notSignedIn,
+    403: json(ErrorSchema, "A branch's images are for admins and developers"),
     404: notFound,
     500: registryError,
   },

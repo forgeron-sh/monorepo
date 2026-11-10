@@ -5,6 +5,7 @@ import { registerToolTab } from "./tabs";
 
 registerToolTab({
   id: "branches",
+  scope: "tool",
   order: 20,
   title: "Branches",
   adminOnly: true,
@@ -12,6 +13,7 @@ registerToolTab({
 });
 registerToolTab({
   id: "versions",
+  scope: "tool",
   order: 30,
   title: "Versions",
   adminOnly: true,
@@ -19,6 +21,7 @@ registerToolTab({
 });
 registerToolTab({
   id: "availability",
+  scope: "branch",
   order: 50,
   title: "Availability",
   adminOnly: true,
@@ -26,6 +29,7 @@ registerToolTab({
 });
 registerToolTab({
   id: "access",
+  scope: "tool",
   order: 60,
   title: "Access",
   adminOnly: true,
@@ -33,6 +37,7 @@ registerToolTab({
 });
 registerToolTab({
   id: "secrets",
+  scope: "branch",
   order: 70,
   title: "Secrets",
   // It lists who holds which secret: an admin's screen (D-118). A person's own are on their library.
@@ -41,6 +46,7 @@ registerToolTab({
 });
 registerToolTab({
   id: "activity",
+  scope: "tool",
   order: 80,
   title: "Activity",
   adminOnly: true,

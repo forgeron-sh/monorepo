@@ -20,7 +20,8 @@ export type ToolCardData = Omit<ToolCardContract, "lastRelease"> & {
 type Raw = Record<string, unknown>;
 
 /** Only an address of the console API's catalog is ever put in an `<img>`. */
-const ASSET_URL = /^\/console-api\/api\/catalog\/[^/?#]+\/assets\/[^?#]+(\?v=[\w-]+)?$/;
+const ASSET_URL =
+  /^\/console-api\/api\/catalog\/[^/?#]+\/assets\/[^?#]+(\?v=[\w-]+(&branch=[^&#]+)?)?$/;
 
 /** A changelog entry is free-form for now: a string, or an object with a line of text in it. */
 const changelogLine = (entry: unknown): string => {
@@ -31,8 +32,17 @@ const changelogLine = (entry: unknown): string => {
   return "";
 };
 
-export async function loadToolCard(fetchJson: FetchJson, name: string): Promise<ToolCardData> {
-  const card = ok(await typedClient(fetchJson)(addresses.toolCard, { params: { tool: name } }));
+export async function loadToolCard(
+  fetchJson: FetchJson,
+  name: string,
+  branch?: string,
+): Promise<ToolCardData> {
+  const card = ok(
+    await typedClient(fetchJson)(addresses.toolCard, {
+      params: { tool: name },
+      query: branch ? { branch } : {},
+    }),
+  );
   if (!card.name) throw new Error("The platform answered without a tool.");
   return {
     ...card,

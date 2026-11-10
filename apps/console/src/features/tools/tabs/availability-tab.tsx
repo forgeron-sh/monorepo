@@ -5,13 +5,13 @@ import { explain, ok, typedClient, typedSender, type FetchJson, type SendJson } 
 import { loadMembers } from "../../../members";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
-import { loadBranches } from "../api";
 import type { ToolTabProps } from "../tabs";
 
 // Who may add the tool to their library (D-117), and who may pilot each branch (D-119). A tool
 // installed from a marketplace starts with nobody; a tool deployed before libraries is open to
-// everyone without an install, until a rule is saved here. A branch is for admins and developers until
-// it is opened here: the people named then add it as a pilot, a tool of its own with its own data.
+// everyone without an install, until a rule is saved here. A branch (chosen at the top of the page,
+// D-120) is for admins and developers until it is opened here: the people named then add it as a
+// pilot, a tool of its own with its own data.
 // What each person may do in the tool stays the Access tab's roles × actions.
 
 type Mode = "nobody" | "everyone" | "roles" | "people";
@@ -59,47 +59,36 @@ const toggle = (list: string[], value: string, on: boolean) =>
 
 type Member = { id: string; name: string; email: string; roles: string[] };
 
-export default function AvailabilityTab({ tool, api }: ToolTabProps) {
-  const loaded = useLoad(async () => {
-    const branches = await loadBranches(api.fetchJson, tool).catch(() => ({ branches: [] }));
-    return {
-      members: (await loadMembers(api.fetchJson)).members,
-      branches: branches.branches.flatMap((b) => (b.branch ? [b.branch] : [])),
-    };
-  }, [api, tool]);
-  if (loaded.loading && !loaded.data) {
+export default function AvailabilityTab({ tool, branch, api }: ToolTabProps) {
+  const members = useLoad(async () => (await loadMembers(api.fetchJson)).members, [api]);
+  if (members.loading && !members.data) {
     return <Loading shape="form" label="Loading who can use the tool" />;
   }
-  if (!loaded.data) {
-    return <LoadError what="Who can use the tool" error={loaded.error} onRetry={loaded.reload} />;
+  if (!members.data) {
+    return <LoadError what="Who can use the tool" error={members.error} onRetry={members.reload} />;
   }
-  const { members, branches } = loaded.data;
-  return (
-    <div className="fc-stack">
-      <RuleSection tool={tool} api={api} members={members} />
-      <section className="fc-section" aria-labelledby="pilots-title">
-        <h2 id="pilots-title" className="fc-section-title">
-          Pilots
-        </h2>
-        <p className="fc-section-hint">
-          Open a branch to some people: they add it as a tool of its own, apart from the one
-          everyone uses, with its own data. A new version reaches production only when you promote
-          it.
+  if (branch === undefined) {
+    return (
+      <div className="fc-stack">
+        <RuleSection tool={tool} api={api} members={members.data} />
+        <p className="fc-muted">
+          To let some people pilot a branch, choose the branch at the top of the page.
         </p>
-        {branches.length === 0 ? (
-          <p className="fc-muted">No branch has a preview right now.</p>
-        ) : (
-          branches.map((branch) => (
-            <details key={branch} className="fc-details">
-              <summary>
-                <span className="fc-mono">{branch}</span>
-              </summary>
-              <RuleSection tool={tool} api={api} members={members} branch={branch} />
-            </details>
-          ))
-        )}
-      </section>
-    </div>
+      </div>
+    );
+  }
+  return (
+    <section className="fc-section" aria-labelledby="pilots-title">
+      <h2 id="pilots-title" className="fc-section-title">
+        Who can pilot this branch
+      </h2>
+      <p className="fc-section-hint">
+        The people you open it to add it from their library as a tool of its own, apart from the one
+        everyone uses, with its own data. Nothing is copied from production. A new version reaches
+        production only when you promote it.
+      </p>
+      <RuleSection tool={tool} api={api} members={members.data} branch={branch} />
+    </section>
   );
 }
 

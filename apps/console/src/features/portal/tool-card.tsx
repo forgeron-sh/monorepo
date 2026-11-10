@@ -14,13 +14,21 @@ import { ConnectInstructions } from "./connect";
 
 export interface ToolOverviewProps {
   tool: string;
+  /** A branch's preview (D-120): its README, guide and version instead of production's. */
+  branch?: string;
   ws: WorkspaceInfo;
   api: Api;
   now?: () => Date;
 }
 
-export default function ToolOverview({ tool, ws, api, now = () => new Date() }: ToolOverviewProps) {
-  const card = useLoad(() => loadToolCard(api.fetchJson, tool), [api, tool]);
+export default function ToolOverview({
+  tool,
+  branch,
+  ws,
+  api,
+  now = () => new Date(),
+}: ToolOverviewProps) {
+  const card = useLoad(() => loadToolCard(api.fetchJson, tool, branch), [api, tool, branch]);
   if (card.loading) return <Loading shape="page" label="Loading the tool card" />;
   if (card.error && !card.data)
     return <LoadError what="The tool card" error={card.error} onRetry={card.reload} />;

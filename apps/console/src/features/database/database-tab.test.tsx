@@ -29,8 +29,8 @@ function api(
 }
 
 /** The tab loads in steps (environments, tables, rows): let each answer land. */
-async function open(fake: Api) {
-  const page = await mount(<DatabaseTab tool="crm" api={fake} />);
+async function open(fake: Api, branch?: string) {
+  const page = await mount(<DatabaseTab tool="crm" api={fake} {...(branch ? { branch } : {})} />);
   for (let i = 0; i < 4; i++) await flush();
   return page;
 }
@@ -87,10 +87,26 @@ describe("DatabaseTab", () => {
     );
   });
 
-  it("says what to do when nothing is deployed", async () => {
-    const { api: fake } = api([]);
+  it("reads the database of the branch the page shows (D-120)", async () => {
+    const { api: fake, reads } = api();
+    await open(fake, "feat-contacts");
+    const tables = reads.find((r) => r.includes("/db/tables"));
+    expect(tables).toContain("env=preview");
+    expect(tables).toContain("branch=feat-contacts");
+    expect(reads.some((r) => r.includes("env=production"))).toBe(false);
+  });
+
+  it("says when the branch the page shows has no database", async () => {
+    const { api: fake } = api();
+    const page = await open(fake, "gone");
+    expect(page.textContent).toContain("No database for this branch");
+  });
+
+  it("says what to do when nothing is in production", async () => {
+    const { api: fake } = api([{ name: "preview", branch: "feat-contacts" }]);
     const page = await open(fake);
-    expect(page.textContent).toContain("Nothing deployed yet");
+    expect(page.textContent).toContain("Nothing in production yet");
+    expect(page.textContent).toContain("choose the branch at the top of the page");
   });
 
   it("filters on the server, with a typed operator, and goes back to the first page", async () => {

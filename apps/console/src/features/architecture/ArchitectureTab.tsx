@@ -7,7 +7,8 @@ import { useLoad } from "../../use-load";
 import type { ToolTabProps } from "../tools/tabs";
 
 // The Architecture tab of a tool's page: a diagram drawn from the manifest of the version the
-// platform serves (`GET /api/tools/<tool>/manifest`, for developers and admins).
+// platform serves (`GET /api/tools/<tool>/manifest`, for developers and admins), or the one a branch's
+// preview serves (D-120).
 
 /** What the diagram reads; an answer without it is not a manifest. */
 function isManifest(value: unknown): value is Manifest {
@@ -22,14 +23,23 @@ function isManifest(value: unknown): value is Manifest {
   );
 }
 
-export async function loadManifest(fetchJson: FetchJson, tool: string): Promise<Manifest> {
-  const body = ok(await typedClient(fetchJson)(addresses.toolManifest, { params: { tool } }));
+export async function loadManifest(
+  fetchJson: FetchJson,
+  tool: string,
+  branch?: string,
+): Promise<Manifest> {
+  const body = ok(
+    await typedClient(fetchJson)(addresses.toolManifest, {
+      params: { tool },
+      query: branch ? { branch } : {},
+    }),
+  );
   if (!isManifest(body.manifest)) throw new Error("The platform answered without a manifest.");
   return body.manifest;
 }
 
-export default function ArchitectureTab({ tool, api }: ToolTabProps) {
-  const manifest = useLoad(() => loadManifest(api.fetchJson, tool), [api, tool]);
+export default function ArchitectureTab({ tool, branch, api }: ToolTabProps) {
+  const manifest = useLoad(() => loadManifest(api.fetchJson, tool, branch), [api, tool, branch]);
   if (manifest.loading) return <Loading shape="block" label="Loading the architecture" />;
   if (manifest.error && !manifest.data) {
     return <LoadError what="The architecture" error={manifest.error} onRetry={manifest.reload} />;

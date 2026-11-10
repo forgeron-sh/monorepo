@@ -28,6 +28,12 @@ describe("loadManifest", () => {
     expect(manifest.name).toBe("crm");
   });
 
+  it("asks for the manifest a branch's preview serves (D-120)", async () => {
+    const paths: string[] = [];
+    await loadManifest(async (path) => (paths.push(path), { manifest: crm }), "crm", "feat/x");
+    expect(paths).toEqual(["/api/tools/crm/manifest?branch=feat%2Fx"]);
+  });
+
   it("refuses an answer that is not a manifest", async () => {
     await expect(loadManifest(async () => ({ manifest: { name: "crm" } }), "crm")).rejects.toThrow(
       "without a manifest",

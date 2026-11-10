@@ -1524,3 +1524,17 @@ Rules of the log:
 - **Not done**: a pilot's CLI command (a terminal reaches a preview with `--branch` already, for developers); the images of a pilot's guide; removing rules and library entries of a branch whose preview was torn down (they stay unused, and the library only lists branches that still have a preview).
 - **Not verified**: the MCP sign-in on a pilot's address is not driven by a test; the console checked in the preview harness only.
 - **Applied in**: `packages/registry/src/modules/library/`, `migrations.golden.json`; `packages/platform-contract/src/library.ts`, `addresses.ts`; `apps/gateway/src/library/library.ts`, `platform/library.ts`, `compose.ts`, `dispatch/user-secrets.ts`, `identity/mcp-oauth/mcp-oauth.ts`; `apps/console/src/features/portal/`, `features/tools/tabs/availability-tab.tsx`, `mock/install.ts`; `docs/sdk.md` §15, `docs/console-ux.md`.
+
+## D-120 — The tool page shows production or one branch, chosen in its header
+
+- **Date**: 10/11/2026 · **Status**: Active
+- **Decision**:
+  1. **One address per branch**: `/tools/<tool>` is production, `/tools/<tool>/tree/<branch>` a branch's preview (the branch encoded, a slash included). A picker at the right of the header moves between them and keeps the open tab.
+  2. **Each tab says its scope** (`scope` in `registerToolTab`): Overview, Architecture, Availability, Database and Secrets follow the branch; Branches, Versions, Access and Activity are the same for every branch and say so on a branch's page. They stay visible, so the tabs do not move.
+  3. **A branch is hard to miss**: a band under the header names it, says that changes there are for that branch only, and offers to go back to production. A branch whose preview is gone shows production, with a word, and the address goes back to production's.
+  4. **API**: `GET /api/tools/{tool}/manifest?branch=`, `GET /api/catalog/{tool}?branch=` and its images take a branch and answer what its preview serves (`404` without a preview). A branch's card and images are for admins and developers (`403` for anyone else); pilots read theirs from their library (D-119). A branch's card gives the preview's addresses (`/t/<tool>@<branch>/`).
+  5. **Replaced**: the Database tab's environment picker and the list of pilots in the Availability tab (D-119): both follow the page's branch.
+- **Why**: one choice of branch for the whole page instead of one per tab, and the Overview and Architecture of a preview, which the console could not show.
+- **Rejected**: a picker per tab (what replaced); hiding the tabs that do not follow the branch (the tabs would move, and Versions and Branches are what one looks at to choose a branch); `?branch=` in the query (a branch is a place, as on a code host).
+- **Not done**: Activity is not filtered by branch; Access stays the tool's matrix even when a branch declares other roles or actions (the matrix is read from production's manifest, as before); a person's secrets on a branch are not listed (they are given by each pilot from their library).
+- **Applied in**: `packages/registry/src/catalog.ts`; `packages/platform-contract/src/{tools,catalog}.ts`; `apps/gateway/src/platform/{tools,catalog}.ts`; `apps/console/src/router.ts`, `features/tools/{routes,tabs,register}.ts`, `features/tools/pages/tool-page.tsx`, `tools.css`, `features/tools/tabs/{availability,secrets}-tab.tsx`, `secrets-status.tsx`, `features/{portal,architecture,database}/`; `docs/console-ux.md`.

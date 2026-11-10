@@ -8,6 +8,11 @@ import type { WorkspaceInfo } from "../../workspace";
 export interface ToolTabProps {
   /** The tool's name. */
   tool: string;
+  /**
+   * The branch the page shows (`/tools/<tool>/tree/<branch>`, D-120), or `undefined` for production.
+   * Only a tab whose `scope` is `"branch"` reads it.
+   */
+  branch?: string;
   ws: WorkspaceInfo;
   api: Api;
   now: () => Date;
@@ -19,6 +24,11 @@ export interface ToolTab {
   title: string;
   /** Not shown, and not loaded, for a person who is not an admin. */
   adminOnly: boolean;
+  /**
+   * `"branch"`: what it shows follows the branch chosen in the header (D-120). `"tool"`: the same for
+   * every branch; on a branch, the page says so above it.
+   */
+  scope: "branch" | "tool";
   /** Where the tab sits: low first, then the order of registration. */
   order?: number;
   /** Loaded when the tab is first opened: `() => import("./components/branches")` with a default export. */

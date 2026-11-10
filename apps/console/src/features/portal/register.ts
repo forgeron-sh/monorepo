@@ -4,6 +4,7 @@ import { registerToolTab } from "../tools";
 export function registerOverviewTab(): void {
   registerToolTab({
     id: "overview",
+    scope: "branch",
     title: "Overview",
     adminOnly: false,
     order: 0,
