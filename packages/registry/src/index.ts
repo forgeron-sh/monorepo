@@ -27,6 +27,7 @@ export type {
   OAuthProvider,
 } from "./consent";
 export { createIdentityConfig } from "./identity-config";
+export { createReseal, type ResealReport } from "./reseal";
 export type {
   ConnectorClientConfig,
   ConnectorClientInput,

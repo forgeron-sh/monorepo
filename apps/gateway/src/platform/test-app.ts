@@ -1,6 +1,6 @@
 import type { Hosting } from "@forgeron/hosting";
 import type { SignIn } from "@forgeron/platform-contract";
-import type { IdentityConfig, Invitation, Registry } from "@forgeron/registry";
+import type { IdentityConfig, Invitation, Registry, ResealReport } from "@forgeron/registry";
 import type { ConsolePerson } from "./app";
 
 /** Marks the 404 the tests give for a path that is no route (the gateway gives its own page). */
@@ -21,6 +21,7 @@ export function platformCaller(options: {
   installDomains?: string[];
   config?: IdentityConfig;
   canKeepSecrets?: boolean;
+  reseal?: () => Promise<ResealReport>;
   now?: () => Date;
   notify?: (invitation: Invitation) => Promise<boolean>;
   databaseTimeoutMs?: number;
@@ -49,6 +50,7 @@ export function platformCaller(options: {
       installDomains: options.installDomains ?? [],
       config: options.config ?? ({} as IdentityConfig),
       canKeepSecrets: options.canKeepSecrets ?? false,
+      ...(options.reseal ? { reseal: options.reseal } : {}),
       now: options.now ?? (() => new Date()),
       ...(options.notify ? { notify: options.notify } : {}),
       hosting: options.hosting ?? (() => undefined),

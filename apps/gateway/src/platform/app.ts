@@ -2,7 +2,13 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type { RouteSpec, SignIn } from "@forgeron/platform-contract";
 import { HTTPException } from "hono/http-exception";
 import type { Hosting } from "@forgeron/hosting";
-import type { Consent, IdentityConfig, Invitation, Registry } from "@forgeron/registry";
+import type {
+  Consent,
+  IdentityConfig,
+  Invitation,
+  Registry,
+  ResealReport,
+} from "@forgeron/registry";
 import type { MiddlewareHandler } from "hono";
 import type { Person } from "../kernel/person";
 
@@ -64,6 +70,8 @@ export interface PlatformBindings {
   notify?(invitation: Invitation): Promise<boolean>;
   /** The sign-in configuration (D-041): the provider and the connectors' OAuth clients. */
   config: IdentityConfig;
+  /** Seals this workspace's stored values again under the current key (D-108); set with `SECRETS_KEY`. */
+  reseal?(): Promise<ResealReport>;
   /** Whether the gateway can seal a secret (`SECRETS_KEY` is bound). */
   canKeepSecrets: boolean;
   /** The hosting of the workspace, to reach a tool's database; `undefined` where there is none. */

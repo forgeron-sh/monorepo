@@ -12,6 +12,11 @@ export interface SealedSecret {
 export interface SecretBox {
   seal(slot: string, value: string): Promise<SealedSecret>;
   open(slot: string, sealed: SealedSecret): Promise<string>;
+  /**
+   * The value sealed again under the current key (D-108): `undefined` when it already is. Throws when no
+   * key opens it. Nothing is sealed under a previous key.
+   */
+  reseal(slot: string, sealed: SealedSecret): Promise<SealedSecret | undefined>;
 }
 
 const b64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
@@ -32,15 +37,43 @@ export async function createSecretBox(key: string, previous: string[] = []): Pro
   const cryptoKey = await importKey(key);
   const olderKeys = await Promise.all(previous.map(importKey));
   const aad = (slot: string) => new TextEncoder().encode(slot);
+  const seal = async (slot: string, value: string): Promise<SealedSecret> => {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const data = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv, additionalData: aad(slot) },
+      cryptoKey,
+      new TextEncoder().encode(value),
+    );
+    return { iv: b64(iv), ciphertext: b64(new Uint8Array(data)) };
+  };
+  const opens = (
+    candidate: Awaited<ReturnType<typeof importKey>>,
+    slot: string,
+    sealed: SealedSecret,
+  ) =>
+    crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: unb64(sealed.iv), additionalData: aad(slot) },
+      candidate,
+      unb64(sealed.ciphertext),
+    );
   return {
-    async seal(slot, value) {
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const data = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv, additionalData: aad(slot) },
-        cryptoKey,
-        new TextEncoder().encode(value),
-      );
-      return { iv: b64(iv), ciphertext: b64(new Uint8Array(data)) };
+    seal,
+    async reseal(slot, sealed) {
+      try {
+        await opens(cryptoKey, slot, sealed);
+        return undefined;
+      } catch {
+        // Not under the current key: one of the previous ones must open it, or this throws.
+      }
+      let failure: unknown;
+      for (const candidate of olderKeys) {
+        try {
+          return await seal(slot, new TextDecoder().decode(await opens(candidate, slot, sealed)));
+        } catch (error) {
+          failure ??= error;
+        }
+      }
+      throw failure ?? new Error("No key opens this value.");
     },
     async open(slot, sealed) {
       // The current key first; a failure of its authentication tag is the only reason to try another.

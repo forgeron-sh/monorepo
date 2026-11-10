@@ -106,6 +106,7 @@ Rules of the log:
 | D-105 | 09/11/2026 | A secret field declares a `kind`; the setup page offers the person's saved secrets of that kind and binds one by a click (FOR-172, ticket 2 of the registry)           | Active                                 |
 | D-106 | 09/11/2026 | A person's page of secrets: `/my/secrets` lists, changes and deletes them in one place; no value is ever shown (FOR-172, ticket 3 of the registry)                     | Active                                 |
 | D-107 | 09/11/2026 | An administrator may type a person's secret for a tool: audited, visible to the person, never read back (FOR-172, ticket 4 of the registry)                            | Active                                 |
+| D-108 | 10/11/2026 | Re-sealing: `POST /api/secrets/reseal` seals a workspace's stored values again under the current `SECRETS_KEY` (FOR-172, ticket 6 of the registry)                     | Active                                 |
 
 ---
 
@@ -1344,3 +1345,19 @@ Rules of the log:
 - **Not done**: a console screen for the route; the mail; branch scopes (ticket 5).
 - **Not verified**: no console, no browser.
 - **Applied in**: `packages/platform-contract/src/revocations.ts` (`setUserSecretRoute`), `apps/gateway/src/platform/approvals.ts`, `packages/registry/src/modules/secrets/store.ts` (`setUserSecret`); tests `gateway-tokens-secrets.test.ts`, `approvals.test.ts`.
+
+## D-108 — Re-sealing: `POST /api/secrets/reseal` seals a workspace's stored values again under the current `SECRETS_KEY` (FOR-172, ticket 6 of the registry)
+
+- **Date**: 10/11/2026 · **Status**: Active · closes the gap D-100 left ("there is no re-sealing yet")
+- **Decision**:
+  1. **What is sealed again**, for one workspace: the secrets of its tools, **every version** of its people's secrets, its connections, its sign-in provider's secret and its connectors' OAuth clients' secrets. Each value is opened with the current key or a listed previous one and sealed under the current key; one already under the current key is left alone. A version's own `aad` is its slot, a tool secret's slot is `<tool>/<environment>/<name>`, as when it was sealed.
+  2. **Route**: `POST /api/secrets/reseal`, **admin only**, no body. It answers counts: `resealed`, `current`, `unreadable`. No value. 409 `NO_SECRET_KEY` where the gateway has no `SECRETS_KEY`. It writes an audit line `secrets:resealed` with the counts.
+  3. **One workspace at a time**: the platform D1 is shared by workspaces, and an admin only touches the rows of theirs. The previous key can be dropped when **every** workspace of the install has answered `resealed: 0` and `unreadable: 0`.
+  4. **Safe to repeat and to interrupt**: each update applies only to the value that was read (it matches its `iv` and ciphertext), so a value written meanwhile, already under the current key, is not overwritten. A second run answers `resealed: 0`.
+  5. **A value no key opens** is counted as `unreadable` and left as it is; the run goes on. It must be typed again.
+  6. **Not covered**: the legacy `user_secrets` table (ticket 7 drops it), and one-time data that is not kept (codes, states).
+- **Why**: without it a replaced `SECRETS_KEY` could never leave `SECRETS_KEY_PREVIOUS`, so a leaked old key stayed useful.
+- **Rejected**: a command that runs on every gateway start (a write on a read path, and nobody sees it happen); re-sealing all workspaces from one admin's call (one workspace's admin acting on others' rows).
+- **Not done**: a console button and a CLI command for the route; the install does not set `SECRETS_KEY_PREVIOUS`.
+- **Not verified**: no real D1 with a real rotation; tested on the in-memory database with two generated keys.
+- **Applied in**: `packages/registry/src/reseal.ts`, `secret-box.ts` (`reseal`), `packages/platform-contract/src/secrets-status.ts`, `apps/gateway/src/platform/secrets.ts`, `compose.ts`; tests `reseal.test.ts`, `secret-box.test.ts`, `approvals.test.ts`; `docs/self-host.md`.

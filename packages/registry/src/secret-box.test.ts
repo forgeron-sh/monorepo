@@ -52,3 +52,17 @@ describe("the secret box and a rotated key", () => {
     await expect(createSecretBox(NEW, ["c2hvcnQ="])).rejects.toThrow(/32 bytes/);
   });
 });
+
+describe("sealing a value again (D-108)", () => {
+  it("does nothing under the current key, moves a previous key's value to it, and throws when no key opens it", async () => {
+    const old = await (await createSecretBox(OLD)).seal("slot", "a test value");
+    const box = await createSecretBox(NEW, [OLD]);
+    const moved = await box.reseal("slot", old);
+    expect(moved).toBeDefined();
+    expect(await (await createSecretBox(NEW)).open("slot", moved!)).toBe("a test value");
+    expect(await box.reseal("slot", moved!)).toBeUndefined();
+    // Another slot, or no previous key: nothing opens it.
+    await expect(box.reseal("other-slot", old)).rejects.toBeDefined();
+    await expect((await createSecretBox(NEW)).reseal("slot", old)).rejects.toBeDefined();
+  });
+});
