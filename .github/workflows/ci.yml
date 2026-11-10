@@ -13,14 +13,21 @@ permissions:
   contents: read
 
 jobs:
-  static:
+  # One job on one machine, and the one status that gates a merge: it keeps the name `check`.
+  check:
     runs-on: [self-hosted, perf]
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # moon compares with the default branch
       - uses: ./.github/actions/setup
+      # The PR title becomes the squash message: it must follow Conventional Commits.
+      - name: Check the PR title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: echo "$PR_TITLE" | bunx commitlint
       - run: bun run lint
       - run: bun run format:check
       - run: bun run typecheck
@@ -30,42 +37,5 @@ jobs:
       - run: bun run neutral
       - run: bun run templates:check
       - run: bun run tokens:check
-
-  # The templates are the SDK's integration tests (docs/ARCHITECTURE.md): they are built and tested here.
-  test:
-    runs-on: [self-hosted, perf]
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - run: bunx vitest run --maxWorkers=4 --shard=${{ matrix.shard }}/4
-
-  # The PR title becomes the squash message: it must follow Conventional Commits.
-  pr-title:
-    if: github.event_name == 'pull_request'
-    runs-on: [self-hosted, perf]
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - name: Check the PR title
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: echo "$PR_TITLE" | bunx commitlint
-
-  # The one status that gates a merge: it keeps the name `check` whatever runs behind it.
-  check:
-    if: always()
-    needs: [static, test, pr-title]
-    runs-on: [self-hosted, perf]
-    timeout-minutes: 5
-    steps:
-      - name: All the jobs passed
-        run: |
-          test "${{ needs.static.result }}" = success
-          test "${{ needs.test.result }}" = success
-          case "${{ needs.pr-title.result }}" in success|skipped) ;; *) exit 1 ;; esac
+      # The templates are the SDK's integration tests (docs/ARCHITECTURE.md): they are built and tested here.
+      - run: bun run test
