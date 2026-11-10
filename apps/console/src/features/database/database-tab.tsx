@@ -73,7 +73,7 @@ async function copy(text: string) {
 export function DatabaseTab({ tool, api }: { tool: string; api: Api }) {
   const envs = useLoad(() => loadEnvironments(api.fetchJson, tool), [api, tool]);
   const [chosen, setChosen] = useState<string>();
-  if (envs.loading) return <Loading label="Loading environments" />;
+  if (envs.loading) return <Loading shape="block" label="Loading environments" />;
   if (envs.error && !envs.data)
     return <LoadError what="The environments" error={envs.error} onRetry={envs.reload} />;
   const targets = envs.data ?? [];
@@ -144,7 +144,7 @@ function Explorer({
           onChange={(e) => setSearch(e.target.value)}
         />
         {tables.loading ? (
-          <Loading label="Loading tables" />
+          <Loading shape="list" label="Loading tables" />
         ) : tables.error && !tables.data ? (
           <LoadError what="The tables" error={tables.error} onRetry={tables.reload} />
         ) : shown.length === 0 ? (
@@ -235,7 +235,7 @@ function SchemaPanel({
     () => loadSchema(api.fetchJson, tool, target, platform),
     [api, tool, targetId(target), platform],
   );
-  if (schema.loading) return <Loading label="Loading the schema" />;
+  if (schema.loading) return <Loading shape="table" label="Loading the schema" />;
   if (schema.error && !schema.data)
     return <LoadError what="The schema" error={schema.error} onRetry={schema.reload} />;
   return <SchemaView tables={schema.data ?? []} onOpen={onOpen} />;
@@ -256,7 +256,7 @@ function DefinitionPanel({
     () => loadTable(api.fetchJson, tool, target, table),
     [api, tool, targetId(target), table],
   );
-  if (definition.loading) return <Loading label="Loading the definition" />;
+  if (definition.loading) return <Loading shape="block" label="Loading the definition" />;
   if (definition.error && !definition.data)
     return <LoadError what="The definition" error={definition.error} onRetry={definition.reload} />;
   return <DefinitionView table={definition.data!} />;
@@ -314,7 +314,7 @@ function DataPanel({
         : "Copying is not allowed here. Select the text instead.",
     );
 
-  if (rows.loading && !data) return <Loading label="Loading rows" />;
+  if (rows.loading && !data) return <Loading shape="table" label="Loading rows" />;
   if (rows.error && !data)
     return <LoadError what="The rows" error={rows.error} onRetry={rows.reload} />;
   if (!data) return null;

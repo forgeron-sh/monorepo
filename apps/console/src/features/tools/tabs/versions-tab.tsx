@@ -139,7 +139,7 @@ function Environments({ rows }: { rows: VersionRow[] }) {
 
 export default function VersionsTab({ tool, api, now }: ToolTabProps) {
   const versions = useLoad(() => loadVersions(api.fetchJson, tool), [api, tool]);
-  if (versions.loading) return <Loading label="Loading versions" />;
+  if (versions.loading) return <Loading shape="table" label="Loading versions" />;
   if (!versions.data) {
     return <LoadError what="The versions" error={versions.error} onRetry={versions.reload} />;
   }

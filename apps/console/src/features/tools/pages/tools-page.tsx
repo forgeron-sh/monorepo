@@ -121,7 +121,7 @@ export default function ToolsPage({ api, go, ws, now }: PageProps) {
       description="The tools of this workspace, the version production serves and their previews."
     >
       {tools.loading ? (
-        <Loading label="Loading tools" />
+        <Loading shape="cards" label="Loading tools" />
       ) : !tools.data ? (
         <LoadError what="The tools" error={tools.error} onRetry={tools.reload} />
       ) : tools.data.length === 0 ? (
