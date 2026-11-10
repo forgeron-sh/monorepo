@@ -138,4 +138,25 @@ FROM "user_secrets" u JOIN "tools" t ON t."id" = u."tool_id"`),
       st(`DROP TABLE "person_secrets"`),
     ],
   },
+  {
+    // The legacy per-person table is gone (D-110): 0027 converted every row into the registry, which is
+    // the only place a person's secrets are read from and written to now. Not flagged destructive: the
+    // flag guards the data of a tool (D-014), and what this drops was copied, sealed as it was, by 0027.
+    name: "0028_drop_user_secrets",
+    fingerprint: "drop-user-secrets-v1",
+    destructive: false,
+    up: [st(`DROP TABLE "user_secrets"`)],
+    // Nothing comes back: the registry holds the values. The empty table is only what the schema was.
+    down: [
+      st(`CREATE TABLE "user_secrets" (
+  "tool_id" TEXT NOT NULL,
+  "person" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "iv" TEXT NOT NULL,
+  "ciphertext" TEXT NOT NULL,
+  "updated_at" TEXT NOT NULL,
+  PRIMARY KEY ("tool_id", "person", "name")
+)`),
+    ],
+  },
 ];

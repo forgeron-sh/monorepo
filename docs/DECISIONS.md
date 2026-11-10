@@ -108,6 +108,7 @@ Rules of the log:
 | D-107 | 09/11/2026 | An administrator may type a person's secret for a tool: audited, visible to the person, never read back (FOR-172, ticket 4 of the registry)                                                                  | Active                                 |
 | D-108 | 10/11/2026 | Re-sealing: `POST /api/secrets/reseal` seals a workspace's stored values again under the current `SECRETS_KEY` (FOR-172, ticket 6 of the registry)                                                           | Active                                 |
 | D-109 | 10/11/2026 | Scopes in use: a call carries the secret of the most specific scope for where it is served; a person sets a different secret for production, every preview or one branch (FOR-172, ticket 5 of the registry) | Active                                 |
+| D-110 | 10/11/2026 | The legacy `user_secrets` table is dropped: the registry is the only place a person's secrets live (FOR-172, ticket 7 of the registry)                                                                       | Active                                 |
 
 ---
 
@@ -1377,3 +1378,13 @@ Rules of the log:
 - **Not done**: a scope per branch on the tool's setup page; removing the branch's overrides when the preview is closed (they stay until the person removes them: a binding for a closed branch is harmless).
 - **Not verified**: no browser; previews were exercised through the gateway with test values, not a real deployed preview.
 - **Applied in**: `apps/gateway/src/dispatch/dispatch.ts` (`Caller.branch`), `dispatch/user-secrets.ts`, `compose.ts`, `my-secrets/my-secrets.ts` (`override`), `pages/my-secrets.ts`; test `gateway-user-setup.test.ts`.
+
+## D-110 — The legacy `user_secrets` table is dropped: the registry is the only place a person's secrets live (FOR-172, ticket 7 of the registry)
+
+- **Date**: 10/11/2026 · **Status**: Active · last step of D-104
+- **Decision**: migration `0028_drop_user_secrets` drops the table. Migration 0027 had copied each row into the registry (secret, version 1 with its own additional data, tool-wide binding), so nothing is read from it any more. Removing a member no longer deletes from it. A platform that is behind 0027 applies 0027 then 0028 in one run: the rows are converted first, then the table goes (a test does exactly this, and the converted value still opens).
+- **Why**: a table nobody reads keeps sealed values under a key that D-108's re-sealing does not cover (it would have stayed the one place a previous key was still needed).
+- **Departure from the spike**: the spike said "after one release". Done now on the owner's instruction to finish the tickets, on this deduction: the platform has no installed user yet (`migrations.ts`), so no database exists where a release would have shown a conversion problem. **If an install exists that I do not know of, check that its `person_secrets` holds what its `user_secrets` held before it runs 0028.** The migration is not flagged destructive (D-014 guards a tool's data); a rollback recreates the table **empty**.
+- **Rejected**: keeping it "just in case" (the spike's point 7); flagging the migration destructive (the platform's own migrations are not applied with that flag, and the data was copied).
+- **Not verified**: no real D1 with data from before 0027.
+- **Applied in**: `packages/registry/src/modules/secrets/migrations.ts`, `modules/members/store.ts`, `migrations.golden.json`; test `secret-registry.test.ts`.

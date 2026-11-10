@@ -312,7 +312,10 @@ describe("secrets typed before the registry existed (D-036)", () => {
       // The registry arrives.
       expect((await applyMigrations(before, platformMigrations)).applied).toEqual([
         "0027_secret_registry",
+        "0028_drop_user_secrets",
       ]);
+      // The legacy table is gone once the rows are converted (D-110).
+      await expect(before.prepare(`SELECT 1 FROM "user_secrets"`).all()).rejects.toBeDefined();
       const upgraded = createRegistry(before, { secrets: box });
       expect(await upgraded.readUserSecrets("t1", "p1")).toEqual({
         ODOO_API_KEY: "typed-before-the-registry",
