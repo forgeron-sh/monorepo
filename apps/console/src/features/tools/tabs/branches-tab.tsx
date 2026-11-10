@@ -50,7 +50,7 @@ export default function BranchesTab({ tool, api, ws, now }: ToolTabProps) {
     [data, search, status, author],
   );
 
-  if (branches.loading) return <Loading label="Loading branches" />;
+  if (branches.loading) return <Loading shape="table" label="Loading branches" />;
   if (!data) {
     return <LoadError what="The branches" error={branches.error} onRetry={branches.reload} />;
   }

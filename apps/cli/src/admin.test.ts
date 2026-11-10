@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { run } from "./cli";
 import type { Io } from "./io";
 
-// `forgeron admin` and `forgeron api` (D-112): the admin operations from a terminal, with the token of
+// `forgeron admin` and `forgeron api` (D-113): the admin operations from a terminal, with the token of
 // `forgeron login`, through the workspace's console API.
 
 let server: Server;

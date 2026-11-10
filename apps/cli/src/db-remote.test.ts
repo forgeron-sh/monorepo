@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { run } from "./cli";
 import type { Io } from "./io";
 
-// `forgeron db status|shell --env preview|production` (D-112): through the workspace's console API.
+// `forgeron db status|shell --env preview|production` (D-113): through the workspace's console API.
 
 let server: Server;
 let endpoint: string;

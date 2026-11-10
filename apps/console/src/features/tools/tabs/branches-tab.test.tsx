@@ -129,7 +129,7 @@ describe("the branches", () => {
     expect(reads.filter((r) => r.endsWith("/branches")).length).toBe(before + 1);
   });
 
-  describe("the plan of a promotion (D-112)", () => {
+  describe("the plan of a promotion (D-113)", () => {
     const plan = {
       tool: "crm",
       version: "1.5.1",

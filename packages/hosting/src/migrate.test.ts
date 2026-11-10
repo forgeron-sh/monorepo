@@ -259,7 +259,7 @@ describe.each(targets)("migrations on %s", (_, open) => {
       expect((await recorded()).map((r) => r.name)).toEqual(["0001_bad"]);
     });
   });
-  describe("checking without applying (D-112)", () => {
+  describe("checking without applying (D-113)", () => {
     it("says what would be applied and writes nothing, not even the tracking table", async () => {
       const check = await checkMigrations(d1, [init, addStage]);
       expect(check).toEqual({

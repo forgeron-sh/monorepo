@@ -22,6 +22,8 @@ export { AppShell, Nav, Sidebar } from "./shell";
 export type { AppShellProps, NavItem, NavProps, SidebarProps } from "./shell";
 export { EmptyState, Notice, Spinner } from "./feedback";
 export type { EmptyStateProps, NoticeProps, SpinnerProps } from "./feedback";
+export { Skeleton, SkeletonGroup, SkeletonText } from "./skeleton";
+export type { SkeletonGroupProps, SkeletonProps, SkeletonTextProps } from "./skeleton";
 export { Checkbox, Field, Input, Textarea } from "./form";
 export type { CheckboxProps, FieldProps } from "./form";
 export { Dialog } from "./dialog";

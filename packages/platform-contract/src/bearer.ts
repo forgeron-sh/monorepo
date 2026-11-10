@@ -174,7 +174,7 @@ const planConflict = z.strictObject({
   message: z.string(),
 });
 
-/** The plan of a promotion (D-112): what it would do and what stops it. */
+/** The plan of a promotion (D-113): what it would do and what stops it. */
 const promotionPlan = z.strictObject({
   tool: z.string(),
   version: z.string().describe("The version that would be promoted"),

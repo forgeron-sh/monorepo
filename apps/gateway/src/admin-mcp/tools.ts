@@ -61,7 +61,7 @@ const environment = z.enum(["production", "preview"]);
 const branch = z.string().min(1).max(100).optional();
 const reason = z.string().max(500).optional().describe("Why, in the audit line");
 
-/** A version, or the branch whose preview serves it; the target and its branch (D-112). */
+/** A version, or the branch whose preview serves it; the target and its branch (D-113). */
 const planInput = z.strictObject({
   tool,
   version: z.string().min(1).max(64).optional().describe("A version number, or `fromBranch`"),

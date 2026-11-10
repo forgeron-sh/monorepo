@@ -29,7 +29,7 @@ export function App({ api, now = () => new Date() }: AppProps) {
   if (workspace.loading) {
     return (
       <div className="fc-center">
-        <Loading label="Loading the console" />
+        <Loading shape="page" label="Loading the console" />
       </div>
     );
   }
@@ -106,7 +106,7 @@ function Shell({
       ) : !canSee(match.route.access, ws.person) ? (
         <NotAdmin go={go} />
       ) : (
-        <Suspense fallback={<Loading label={`Loading ${match.route.title}`} />}>
+        <Suspense fallback={<Loading shape="page" label={`Loading ${match.route.title}`} />}>
           <RouteScreen
             key={pathname + search}
             load={match.route.page}

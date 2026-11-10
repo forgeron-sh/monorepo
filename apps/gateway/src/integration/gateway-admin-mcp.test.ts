@@ -508,7 +508,7 @@ describe("what the tools change goes through the console's path, audited via the
   });
 });
 
-describe("the plan of a promotion through the MCP (D-112)", () => {
+describe("the plan of a promotion through the MCP (D-113)", () => {
   it("says whether a version can go, and changes nothing", async () => {
     const before = await auditCount();
     const plan = await call(root, "tool_promote_plan", {

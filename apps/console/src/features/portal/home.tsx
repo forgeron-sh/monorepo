@@ -46,7 +46,7 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
       {admin ? <AdminStrip ws={ws} api={api} go={go} /> : null}
 
       {catalog.loading ? (
-        <Loading label="Loading your tools" />
+        <Loading shape="cards" label="Loading your tools" />
       ) : catalog.error && !catalog.data ? (
         <LoadError what="Your tools" error={catalog.error} onRetry={catalog.reload} />
       ) : (

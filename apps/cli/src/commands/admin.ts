@@ -5,7 +5,7 @@ import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { consoleClient, consoleRefusal, credentialsOf, toolOf, workspaceOf } from "../remote";
 
-// The platform's admin operations from the terminal (D-112), in the manner of `wrangler`: what the
+// The platform's admin operations from the terminal (D-113), in the manner of `wrangler`: what the
 // console does with a click, a command does with a token. Everything goes through the workspace's own
 // routes with the token of `forgeron login`, so the same guards, validation and audit lines apply.
 // None of these commands can show a secret's value: no route returns one.

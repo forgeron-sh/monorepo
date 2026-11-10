@@ -1,4 +1,4 @@
-// The plan of a promotion (D-112): before anything moves, can this version go to this environment, and
+// The plan of a promotion (D-113): before anything moves, can this version go to this environment, and
 // what stops it. It reads, it never writes: the migrations are compared with the target's database
 // without applying them, the changelog and the approvals are looked at, the manifest is compared with
 // what the target serves. When something stops it, the plan carries a prompt written for an agent.

@@ -144,7 +144,7 @@ async function prepare(request: Request, context: PromoteContext, environmentKey
 }
 
 /**
- * The version to promote: named, or the one a branch's preview serves (`fromBranch`, D-112). Exactly
+ * The version to promote: named, or the one a branch's preview serves (`fromBranch`, D-113). Exactly
  * one of the two.
  */
 async function versionToPromote(
@@ -180,7 +180,7 @@ async function versionToPromote(
 }
 
 /**
- * `POST /promote/plan` (D-112): can this version go to the environment, and what stops it. Read only:
+ * `POST /promote/plan` (D-113): can this version go to the environment, and what stops it. Read only:
  * the same callers and the same body as a promotion, and nothing moves.
  */
 export async function handlePromotePlan(request: Request, context: PromoteContext) {

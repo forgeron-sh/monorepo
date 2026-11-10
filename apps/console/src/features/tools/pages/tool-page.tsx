@@ -44,7 +44,7 @@ export default function ToolPage({ name, api, ws, now }: PageProps & { name: str
   if (tools.loading) {
     return (
       <Page title={name}>
-        <Loading label="Loading the tool" />
+        <Loading shape="page" label="Loading the tool" />
       </Page>
     );
   }
@@ -90,7 +90,7 @@ export default function ToolPage({ name, api, ws, now }: PageProps & { name: str
           value={current.id}
           onChange={select}
         >
-          <Suspense fallback={<Loading label={`Loading ${current.title}`} />}>
+          <Suspense fallback={<Loading shape="block" label={`Loading ${current.title}`} />}>
             {createElement(panel(current), {
               key: current.id,
               tool: tool.name,

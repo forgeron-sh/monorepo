@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { resolveCloudflareCredential } from "./cloudflare-auth";
 
-// `forgeron platform status` (D-112): what is installed on the Cloudflare account, read only, in the
+// `forgeron platform status` (D-113): what is installed on the Cloudflare account, read only, in the
 // manner of `wrangler`'s own listings. It answers what an operator asks before and after an install: is
 // the platform database migrated, which bindings does the gateway hold, does the route answer. It never
 // prints a secret: a secret binding shows its name only, and no value is ever read.

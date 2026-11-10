@@ -22,7 +22,7 @@ import { platformCaller } from "./test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// Operations on a tool's remote database (D-112): admins only, audited before they run, one statement.
+// Operations on a tool's remote database (D-113): admins only, audited before they run, one statement.
 
 let platform: MemoryD1;
 let production: MemoryD1;

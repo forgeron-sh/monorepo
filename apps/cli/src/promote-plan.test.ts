@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { run } from "./cli";
 import type { Io } from "./io";
 
-// `forgeron promote --from-branch` (D-112): the plan first, the promotion only when nothing stops it.
+// `forgeron promote --from-branch` (D-113): the plan first, the promotion only when nothing stops it.
 
 let server: Server;
 let endpoint: string;

@@ -60,7 +60,7 @@ export function ReleaseDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const promoting = kind === "promote";
-  // Promoting asks for the plan first (D-112): can it go, and what stops it. A rollback has none. When the
+  // Promoting asks for the plan first (D-113): can it go, and what stops it. A rollback has none. When the
   // platform gives no plan the dialog behaves as before: the platform checks again when it acts.
   const planned = useLoad(
     async () => (promoting ? await promotionPlan(api, { tool, version: to }) : undefined),

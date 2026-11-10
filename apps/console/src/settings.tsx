@@ -189,7 +189,7 @@ function SignIn({ api, ws }: { api: Api; ws: WorkspaceInfo }) {
         ) : null}
       </Method>
 
-      {provider.loading ? <Loading label="Loading sign-in settings" /> : null}
+      {provider.loading ? <Loading shape="form" label="Loading sign-in settings" /> : null}
       {provider.error && !provider.data && !provider.loading ? (
         <LoadError
           what="The single sign-on provider"

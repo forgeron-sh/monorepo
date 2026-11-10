@@ -325,7 +325,7 @@ describe("POST /rollback", () => {
   });
 });
 
-describe("promoting from a branch, and the plan (D-112)", () => {
+describe("promoting from a branch, and the plan (D-113)", () => {
   const admin = () => person(["admin"]);
 
   it("promotes what a branch serves, by the branch name, when nothing stops it", async () => {

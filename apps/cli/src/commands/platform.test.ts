@@ -771,7 +771,7 @@ describe("forgeron platform install", () => {
   });
 });
 
-describe("forgeron platform status (D-112)", () => {
+describe("forgeron platform status (D-113)", () => {
   const status = ["status", "--account", "acc-1", "--domain", "forgeron.example.test"];
 
   /** The simulated account, plus what status reads back: the migrations applied and the gateway's settings. */

@@ -30,7 +30,7 @@ export async function loadManifest(fetchJson: FetchJson, tool: string): Promise<
 
 export default function ArchitectureTab({ tool, api }: ToolTabProps) {
   const manifest = useLoad(() => loadManifest(api.fetchJson, tool), [api, tool]);
-  if (manifest.loading) return <Loading label="Loading the architecture" />;
+  if (manifest.loading) return <Loading shape="block" label="Loading the architecture" />;
   if (manifest.error && !manifest.data) {
     return <LoadError what="The architecture" error={manifest.error} onRetry={manifest.reload} />;
   }

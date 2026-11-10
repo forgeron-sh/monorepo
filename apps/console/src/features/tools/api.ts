@@ -200,7 +200,7 @@ export const promote = async (api: Api, input: { tool: string; version: string; 
     }),
   );
 
-/** What the dialog shows of a promotion plan (D-112); `undefined` when the platform did not give one. */
+/** What the dialog shows of a promotion plan (D-113); `undefined` when the platform did not give one. */
 export interface PromotionPlanView {
   ok: boolean;
   alreadyServed: boolean;

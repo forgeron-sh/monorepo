@@ -3,7 +3,7 @@ import { checkMigrations, type BuildMigration, type D1Database } from "@forgeron
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// Operations on a tool's remote database (D-112), for admins: the migrations of an environment against the
+// Operations on a tool's remote database (D-113), for admins: the migrations of an environment against the
 // version it serves, and one SQL statement run on it. The browser never names a database: the environment
 // must be one the registry knows, and the gateway reaches it through the hosting layer. Every statement is
 // audited BEFORE it runs, and a statement that cannot be audited is not run.

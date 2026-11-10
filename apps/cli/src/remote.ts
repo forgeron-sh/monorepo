@@ -3,7 +3,7 @@ import { UsageError, type Io } from "./io";
 import { platformClient } from "./platform-client";
 import { readProject, type ProjectFile } from "./project";
 
-// What a command that talks to a workspace needs (D-112): who the CLI is, which workspace, and which
+// What a command that talks to a workspace needs (D-113): who the CLI is, which workspace, and which
 // tool. The same rules for promote, the remote database and the admin commands.
 
 /**

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
-// Operations on a tool's remote database, for admins (D-112): what the environment's migrations are, and
+// Operations on a tool's remote database, for admins (D-113): what the environment's migrations are, and
 // one SQL statement run on it, in the manner of `wrangler d1 execute`. They are what `forgeron db status`
 // and `forgeron db shell` call with `--env preview|production`. Not the explorer (read only, masked
 // columns, developers too): arbitrary SQL cannot honour a masked column, so these are admins only, and

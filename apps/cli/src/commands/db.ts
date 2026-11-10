@@ -198,7 +198,7 @@ interface RemoteFlags {
   endpoint?: string | undefined;
 }
 
-/** What `status` and `shell` do on a preview or production database (D-112): through the workspace. */
+/** What `status` and `shell` do on a preview or production database (D-113): through the workspace. */
 async function remote(sub: string, env: string, values: RemoteFlags, io: Io): Promise<number> {
   if (env !== "preview" && env !== "production") {
     throw new UsageError(`--env ${env}: one of local, preview, production.`);

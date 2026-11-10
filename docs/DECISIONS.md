@@ -110,7 +110,8 @@ Rules of the log:
 | D-109 | 10/11/2026 | Scopes in use: a call carries the secret of the most specific scope for where it is served; a person sets a different secret for production, every preview or one branch (FOR-172, ticket 5 of the registry) | Active                                 |
 | D-110 | 10/11/2026 | The legacy `user_secrets` table is dropped: the registry is the only place a person's secrets live (FOR-172, ticket 7 of the registry)                                                                       | Active                                 |
 | D-111 | 10/11/2026 | The leftovers of the secret registry: links to "Your secrets", console screens for an admin, a mail to the person, connectors as steps of the setup page (FOR-172)                                           | Active                                 |
-| D-112 | 10/11/2026 | Promote a branch to production when nothing stops it and guide the person when something does; admin operations and remote SQL from the CLI (FOR-183)                                                        | Active                                 |
+| D-112 | 10/11/2026 | One CI workflow, one job `check` on one machine; the per-template preview workflow is removed (supersedes D-045's workflow)                                                                                  |
+| D-113 | 10/11/2026 | Promote a branch to production when nothing stops it and guide the person when something does; admin operations and remote SQL from the CLI (FOR-183)                                                        | Active                                 |
 
 ---
 
@@ -1405,7 +1406,16 @@ Rules of the log:
 - **Not verified**: no browser (the console screens are tested in jsdom and the gateway page as HTML); no real mail.
 - **Applied in**: `packages/runtime/src/secrets.ts` (`ConnectorStep`, `connectors`, `mySecrets`), `apps/gateway/src/dispatch/user-secrets.ts`, `compose.ts`, `mail/mail.ts`, `platform/approvals.ts`, `platform/app.ts`; `apps/console/src/features/tools/tabs/people-secrets.tsx`, `features/settings/pages/{personal-secrets,sealing}.tsx`; tests next to each.
 
-## D-112 — Promote a branch to production when nothing stops it, guide the person when something does; admin operations and remote SQL from the CLI (FOR-183)
+## D-112 — One CI workflow; the per-template preview workflow is removed
+
+- **Date**: 10/11/2026 · **Status**: Active · supersedes the workflow of D-045 (the log of D-045 is left as written)
+- **Decision**: `.github/workflows/ci.yml` is the only CI: one job `check` on one machine, as in the Linear repository: the PR title first (on a pull request), then lint, format, typecheck, knip, deps, neutral, templates, tokens and the tests. No shard, nothing in parallel. `.github/workflows/templates-preview.yml` is deleted, so no template is deployed as a preview by CI any more; templates are still built and tested by `bun run test`. `bun run templates:check` now only checks that each template has a config and a test.
+- **Why**: one workflow and one machine to read and maintain; the four-template deploy matrix needed a workspace variable and one secret per template.
+- **Not done**: the repository variable `FORGERON_WORKSPACE` and the `FORGERON_TOKEN_*` secrets are not deleted (a settings change); a branch protection that required a job other than `check` must be checked.
+- **Not verified**: the workflow has not run; a single job is slower than the parallel ones it replaces, and its 30-minute timeout is a guess.
+- **Applied in**: `.github/workflows/ci.yml`, `scripts/check-templates.ts`, `docs/ARCHITECTURE.md`.
+
+## D-113 — Promote a branch to production when nothing stops it, guide the person when something does; admin operations and remote SQL from the CLI (FOR-183)
 
 - **Date**: 10/11/2026 · **Status**: Active
 - **Decision**:

@@ -119,7 +119,7 @@ export interface MigrationCheck {
 /**
  * What applying this build's migrations to this database would do, without doing it and without
  * writing anything (not even the tracking table). It mirrors `applyMigrations`, so a promotion can say
- * every problem at once, where the application stops at the first (D-112).
+ * every problem at once, where the application stops at the first (D-113).
  */
 export async function checkMigrations(
   d1: D1Database,

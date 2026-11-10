@@ -9,7 +9,7 @@ import type { ToolTabProps } from "../tabs";
 
 export default function ActivityTab({ tool, api, now }: ToolTabProps) {
   const activity = useLoad(() => loadActivity(api.fetchJson, tool), [api, tool]);
-  if (activity.loading) return <Loading label="Loading activity" />;
+  if (activity.loading) return <Loading shape="list" label="Loading activity" />;
   if (!activity.data) {
     return <LoadError what="The activity" error={activity.error} onRetry={activity.reload} />;
   }

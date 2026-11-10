@@ -109,7 +109,7 @@ export async function promote(args: string[], io: Io): Promise<number> {
   const target = values.to as "preview" | "production";
   const source = fromBranch !== undefined ? { fromBranch } : { version: version! };
 
-  // From a branch, or asked to only look: the plan first (D-112). It says whether the version can go,
+  // From a branch, or asked to only look: the plan first (D-113). It says whether the version can go,
   // and what stops it; nothing moves unless there is no conflict.
   if (fromBranch !== undefined || values["dry-run"]) {
     const planned = await client(addresses.promotionPlan, {

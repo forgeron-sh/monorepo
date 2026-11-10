@@ -20,7 +20,7 @@ import {
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// The plan of a promotion (D-112): read only, and it says every problem at once.
+// The plan of a promotion (D-113): read only, and it says every problem at once.
 
 let memory: MemoryD1;
 let registry: Registry;
