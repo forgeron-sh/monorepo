@@ -1,6 +1,8 @@
 import { heldPermissions, mayAccess, type Manifest } from "@forgeron/manifest";
 import { matchesCron, parseCron, zoneFormatter } from "./cron";
 import { createDirectory } from "./directory";
+import { createRealtimeContext } from "./realtime-context";
+import type { Published } from "./realtime";
 import type {
   ActionContext,
   ErrorCode,
@@ -374,6 +376,8 @@ export function createEngine(options: RuntimeOptions): Engine {
       }
 
       const queued: QueuedDelivery[] = [];
+      // What the action publishes leaves only if it succeeds: a failed call tells nobody anything.
+      const published: Published[] = [];
       const ctx: ActionContext = {
         input: parsed.data,
         user: { ...user, setup },
@@ -383,6 +387,10 @@ export function createEngine(options: RuntimeOptions): Engine {
         secrets: platform.secrets,
         userSecrets,
         directory: createDirectory(manifest.resources.directory, platform.directory, user),
+        realtime: createRealtimeContext(
+          manifest,
+          platform.realtime?.publish.bind(platform.realtime),
+        ),
         connectors,
         fetch: outbound,
         files: platform.files,
@@ -406,9 +414,11 @@ export function createEngine(options: RuntimeOptions): Engine {
             return failure("INTERNAL", "Internal error.");
           }
           await dispatch(queued);
+          for (const message of published) platform.realtime?.publish(message);
           return { ok: true, result: checked.data };
         }
         await dispatch(queued);
+        for (const message of published) platform.realtime?.publish(message);
         return { ok: true, result };
       } catch (error) {
         const known = toolFailure(error);
@@ -448,6 +458,10 @@ export function createEngine(options: RuntimeOptions): Engine {
         secrets: platform.secrets,
         userSecrets: {},
         directory: createDirectory(manifest.resources.directory, undefined, user),
+        realtime: createRealtimeContext(
+          manifest,
+          platform.realtime?.publish.bind(platform.realtime),
+        ),
         connectors: platform.connectors,
         fetch: outbound,
         files: platform.files,

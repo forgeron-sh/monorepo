@@ -92,7 +92,7 @@ export async function serveLocalView(
     view: name,
     base: "",
     // No token locally: the Worker trusts the host, which gives it the developer's identity.
-    token: "local",
+    token: `local:${user.email}`,
     expiresAt: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
     user,
     grants: heldPermissions(who, shape),

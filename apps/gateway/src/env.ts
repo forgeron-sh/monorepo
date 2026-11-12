@@ -11,6 +11,12 @@ import type { SendEmailBinding } from "./mail/mail";
 import type { DispatchNamespace } from "./dispatch/targets";
 
 /** What the gateway Worker is given by its configuration (bindings to fill in `wrangler.jsonc`). */
+/** The part of a Durable Object namespace the gateway uses (the Workers runtime gives the real one). */
+export interface DurableObjectNamespaceLike {
+  idFromName(name: string): unknown;
+  get(id: unknown): { fetch(request: Request): Response | Promise<Response> };
+}
+
 export interface GatewayEnv {
   /** The platform D1. */
   DB: D1Database;
@@ -35,6 +41,11 @@ export interface GatewayEnv {
    * (`TOOL_<WORKER>`, see `serviceBindingOf`): the gateway holds the only way to a tool.
    */
   DISPATCHER?: DispatchNamespace;
+  /**
+   * Realtime (D-135): the Durable Object namespace of `RealtimeRoom`, one room per tool channel. Unset: a
+   * tool's realtime endpoint answers that it is not enabled on this install, and nothing else changes.
+   */
+  REALTIME?: DurableObjectNamespaceLike;
   /**
    * The built console (`apps/console/dist`, `assets` in `wrangler.jsonc`). It is the only app code
    * served at the workspace origin (sdk.md §7, "Isolation between tools on the same origin").

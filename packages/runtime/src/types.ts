@@ -1,4 +1,6 @@
 import type { Interface, Manifest } from "@forgeron/manifest";
+import type { RealtimeContext } from "./realtime-context";
+import type { Published } from "./realtime";
 
 export type Environment = "local" | "preview" | "production";
 
@@ -115,6 +117,8 @@ export interface ActionContext {
   userSecrets: Readonly<Record<string, string | undefined>>;
   /** The workspace's people and teams, with `resources.directory` only. */
   directory: Directory;
+  /** Tells the people listening to a channel (D-135); the tool declares its channels in `realtime`. */
+  realtime: RealtimeContext;
   connectors: Readonly<Record<string, unknown>>;
   fetch: Fetch;
   files: unknown;
@@ -223,6 +227,8 @@ export interface Platform {
   connectors: ActionContext["connectors"];
   /** The workspace's people and teams, as the gateway filtered them for this tool and this call (D-131). */
   directory?: DirectorySnapshot;
+  /** Where what an action publishes goes (D-135): the host sends it to the people listening. */
+  realtime?: { publish(message: Published): void };
   /** When set, a delegated connector gets the caller's own token, and a missing consent is asked for on first use. */
   connectorSessions?: ConnectorSessions;
   /**

@@ -1,5 +1,11 @@
 import type { Manifest } from "@forgeron/manifest";
-import { createDb, type Db, type Runtime, type RuntimeOptions } from "@forgeron/runtime";
+import {
+  createDb,
+  type Db,
+  type Published,
+  type Runtime,
+  type RuntimeOptions,
+} from "@forgeron/runtime";
 import type { Kysely } from "kysely";
 import type { Batch } from "../db/schema";
 import type { Environment, Fetch, ToolClient } from "../context";
@@ -100,6 +106,8 @@ export interface TestTool<DB = any> {
   db: Kysely<DB> & Batch;
   /** What actions, handlers and tasks emitted with `ctx.emit`, in order. */
   events: EmittedEvent[];
+  /** What actions published with `ctx.realtime`, in order; only what a successful call published (D-135). */
+  realtime: Published[];
 }
 
 interface BuiltWorker {
@@ -135,6 +143,7 @@ export async function createTestTool<DB = any>(
 ): Promise<TestTool<DB>> {
   const worker = await loadWorker(options.dir ?? currentDirectory());
   const events: EmittedEvent[] = [];
+  const realtime: Published[] = [];
   const cache = new Map<string, unknown>();
   const frozen = options.now === undefined ? undefined : new Date(options.now);
   const stubs = options.tools ?? {};
@@ -217,6 +226,7 @@ export async function createTestTool<DB = any>(
         ...(identity.setup ? { userSetup: identity.setup } : {}),
         connectors: options.connectors ?? {},
         ...(snapshot ? { directory: snapshot } : {}),
+        realtime: { publish: (m) => void realtime.push(m) },
         fetch: options.fetch ?? noFetch,
         cache: memoryCache(user.id, cache),
         ...(db ? { db } : {}),
@@ -234,6 +244,7 @@ export async function createTestTool<DB = any>(
     return {
       db: db as unknown as TestTool<DB>["db"],
       events,
+      realtime,
       fetch: (path, init) => runtime.fetch(new Request(`https://tool.test${path}`, init)),
       runJob: (name) => runtime.runJob(name),
       scheduled: (now) => runtime.scheduled(now),

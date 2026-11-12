@@ -7,7 +7,7 @@ import { relative } from "node:path";
 // file that went into the bundle, so it only sees `ctx.<member>`; code that renames `ctx` is not seen.
 
 const USE =
-  /\bctx\.(db|files|cache|directory|secrets|userSecrets|connectors|tools)\b(?:\.([A-Za-z_]\w*))?/g;
+  /\bctx\.(db|files|cache|directory|realtime|secrets|userSecrets|connectors|tools)\b(?:\.([A-Za-z_]\w*))?/g;
 
 // Members whose next name is a declared key: `ctx.secrets.API_KEY`.
 const NAMED = new Set(["secrets", "userSecrets", "connectors", "tools"]);
@@ -24,6 +24,8 @@ function declared(manifest: Manifest, member: string): Record<string, unknown> |
     case "cache":
     case "directory":
       return Boolean(resources[member]);
+    case "realtime":
+      return Boolean(manifest.realtime);
     case "tools":
       return manifest.uses;
     default:
@@ -31,7 +33,8 @@ function declared(manifest: Manifest, member: string): Record<string, unknown> |
   }
 }
 
-const where = (member: string) => (member === "tools" ? "uses" : `resources.${member}`);
+const where = (member: string) =>
+  member === "tools" ? "uses" : member === "realtime" ? "realtime" : `resources.${member}`;
 
 /** The messages of what `source` reads from `ctx` without declaring it. */
 export function findUndeclaredResources(source: string, manifest: Manifest): string[] {

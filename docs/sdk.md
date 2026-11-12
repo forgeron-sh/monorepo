@@ -595,6 +595,27 @@ export default defineView({
 - `useMutation` invalidates the reads of the same group: `deals.move` re-reads `deals.*`; an action without a dot invalidates every read. `run` rejects on failure, and the error is also exposed as `error`.
 - `useParams` returns the values parsed by `params`; the setter merges a partial update, validates it, then writes the URL. Values are strings in the URL, so use `z.coerce` for numbers.
 
+### Realtime
+
+A tool tells the people listening when something changed, and pages follow it live (D-135). Three pieces: **channels** the tool declares, **messages** its actions publish (or a page sends), and **presence** (who is on a channel).
+
+```ts
+// forgeron.config.ts
+realtime: {
+  channels: {
+    notes: { access: "read" },                       // anyone who may read: "something changed"
+    note: { access: "read", send: "write", presence: true, authorize: "notes.canJoin" }, // note:<id>
+  },
+},
+```
+
+- A channel is named `note`, or one instance of it, `note:<id>`. `access` is the level needed to listen (the matrix applies, subject `channel:<name>`), `send` the level needed to send **from a page** (none: only the tool publishes), `presence` lists the people on it, `authorize` names an action that decides for one instance: it receives `{ channel, id, kind }` and returns `true` to let the person in. It runs **as the person**, so the rule for following a note is the rule for reading it.
+- **Publish** from an action: `ctx.realtime.publish("note:123", "moved", { to: "won" })`, or `ctx.realtime.changed("notes")` (event `changed`, no payload). A payload is 8 KB at most and a call publishes 20 messages at most; the channel must be declared (a build error otherwise). What an action publishes leaves **only if it succeeds**. Prefer a signal over data: tell listeners to read again, and each reads through the action with their own access.
+- **In a view**: `useAction("notes.list", {}, { live: "notes" })` re-reads when anything is published on the channel. `useChannel("note:123")` gives `{ status, reason, messages, last, presence, send, track }`: `status` is `connecting`, `subscribed`, `denied` (with `reason`) or `closed`; `send(event, payload?)` reaches the others on the channel when the channel allows pages to send; `track(state)` shares a cursor or a typing flag with the others, who see it in `presence`. The connection is one WebSocket per page, opened by the first component that listens, reconnecting by itself.
+- **Protocol** (for a client that is not a view): `GET <tool>/_f/realtime?token=<view token>` upgraded to a WebSocket; JSON messages `{ t: "subscribe" | "unsubscribe" | "send" | "track" | "ping", channel, … }` and, back, `ready`, `subscribed` (with `presence`), `denied` (with `reason`), `message`, `presence`, `pong`, `error`. A person joins a channel only if the manifest, the matrix and the tool's `authorize` agree, and is told why if not. At most 50 channels per connection and 30 sends a second.
+- **In `forgeron dev`**: the same hub on a local WebSocket (`Live` line). Open two pages as two people with `?as=<email>` (people of `.forgeron/local/directory.json`) and watch one follow the other. In tests, `tool.realtime` lists what the actions published.
+- **On a platform**: the room of a tool channel is a Durable Object of the gateway (`REALTIME`); an install without it answers `501 NOT_ENABLED` and nothing else changes.
+
 ## 12. Composition between tools
 
 ```ts

@@ -53,6 +53,12 @@ export interface ToolConfig {
   roles?: Manifest["roles"];
   /** Everything the tool asks of the platform: what is not declared does not exist at runtime. */
   resources?: Resources;
+  /**
+   * The realtime channels of the tool (D-135): who may listen (`access`), who may send from a page (`send`),
+   * whether the people on it are listed (`presence`), and an action that decides for one instance
+   * (`authorize`, `note:<id>`). Actions publish with `ctx.realtime`.
+   */
+  realtime?: Manifest["realtime"];
   /** What each person must give before the tool works: values, secrets, and the connectors' consent. */
   setup?: ToolSetup;
   uses?: Manifest["uses"];

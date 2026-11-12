@@ -21,6 +21,12 @@ export interface User {
   teams?: string[];
 }
 
+/** `ctx.realtime` (D-135). */
+export interface Realtime {
+  publish(channel: string, event: string, payload?: unknown): void;
+  changed(channel: string): void;
+}
+
 /** A person of the workspace as `ctx.directory` gives them: the fields `resources.directory` asks for. */
 export interface DirectoryMember {
   id: string;
@@ -140,6 +146,12 @@ export interface Context<Input = unknown> {
   userSecrets: Readonly<Record<string, string | undefined>>;
   /** The workspace's people and teams, with `resources.directory` only. */
   directory: Directory;
+  /**
+   * Tells the people listening to a channel of the tool's `realtime` (D-135): `publish(channel, event,
+   * payload?)` sends a message (8 KB at most, 20 per call), `changed(channel)` tells listeners to read
+   * again. What an action publishes leaves only if the action succeeds.
+   */
+  realtime: Realtime;
   /** One entry per `resources.connectors`: the official client when there is one, and `fetch`. */
   connectors: ContextConnectors;
   fetch: Fetch;

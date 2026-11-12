@@ -2,11 +2,17 @@ import { useCallback, useMemo, useState, useRef, useEffect, useSyncExternalStore
 import type { z } from "zod";
 import type { User } from "../context";
 import { toError } from "./client";
+import type { ChannelState } from "./realtime";
 import { useViewContext } from "./view";
 
 export interface UseActionOptions {
   /** Re-reads every that many milliseconds while the component is mounted. */
   refresh?: number;
+  /**
+   * Re-reads when anything is published on these channels (D-135): `live: "notes"`. The read goes through
+   * the action again, so each person still gets what their own access allows, whatever was published.
+   */
+  live?: string | readonly string[];
 }
 
 export interface UseActionResult<T> {
@@ -33,6 +39,26 @@ export function useAction<Output = unknown>(
     [entry, refresh],
   );
   const state = useSyncExternalStore(subscribe, entry.getSnapshot, entry.getSnapshot);
+  const { runtime } = useViewContext("useAction");
+  const liveKey = options.live === undefined ? "" : JSON.stringify(options.live);
+  useEffect(() => {
+    const channels = liveKey
+      ? ([] as string[]).concat(JSON.parse(liveKey) as string | string[])
+      : [];
+    const connection = runtime.realtime;
+    if (channels.length === 0 || !connection) return;
+    // A burst of messages is one read.
+    let pending: ReturnType<typeof setTimeout> | undefined;
+    const reread = () => {
+      clearTimeout(pending);
+      pending = setTimeout(() => entry.invalidate(), 60);
+    };
+    const stops = channels.map((channel) => connection.channel(channel).onMessage(reread));
+    return () => {
+      clearTimeout(pending);
+      for (const stop of stops) stop();
+    };
+  }, [runtime, entry, liveKey]);
   return {
     data: state.data as Output | undefined,
     error: state.error,
@@ -136,4 +162,37 @@ export function useCanCall(action: string): boolean {
 /** To disable a control: the server checks the access level anyway. */
 export function useCan(level: string): boolean {
   return useViewContext("useCan").runtime.can(level);
+}
+
+export interface UseChannelResult extends ChannelState {
+  /** Sends the others on the channel a message (the tool must let pages send on it). */
+  send(event: string, payload?: unknown, options?: { self?: boolean }): void;
+  /** Tells the others something about you on the channel. */
+  track(state: unknown): void;
+  /** The last message, if any. */
+  last: ChannelState["messages"][number] | undefined;
+}
+
+const NOTHING: ChannelState = { status: "closed", messages: [], presence: [] };
+const IDLE = { subscribe: () => () => {}, getSnapshot: () => NOTHING };
+
+/**
+ * Listens to a channel of the tool (D-135): the messages its actions publish and the pages send, and who is
+ * on it. `undefined` listens to nothing (a channel that depends on something not loaded yet). The person
+ * is let in only if the tool says so; otherwise `status` is `denied` and `reason` says why.
+ */
+export function useChannel(name: string | undefined): UseChannelResult {
+  const { runtime } = useViewContext("useChannel");
+  const handle = useMemo(
+    () => (name && runtime.realtime ? runtime.realtime.channel(name) : undefined),
+    [runtime, name],
+  );
+  const source = handle ?? IDLE;
+  const state = useSyncExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot);
+  return {
+    ...state,
+    last: state.messages.at(-1),
+    send: (event, payload, options) => handle?.send(event, payload, options),
+    track: (value) => handle?.track(value),
+  };
 }

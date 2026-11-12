@@ -1,5 +1,6 @@
 import type { ViewBootstrap } from "@forgeron/runtime";
 import type { ViewParamsStore, ViewRuntime } from "./client";
+import { RealtimeConnection, realtimeUrl, type WebSocketLike } from "./realtime";
 
 // The runtime of a view in the browser: its actions go through `/_f/call/<action>` of its tool,
 // with the short-lived token the gateway put in the page (sdk.md §7, Isolation point 3). The
@@ -10,6 +11,10 @@ export interface HttpRuntimeOptions {
   params: ViewParamsStore;
   fetch?: (url: string, init: RequestInit) => Promise<Response>;
   now?: () => Date;
+  /** Opens the page's WebSocket; the browser's by default. Tests pass a fake. */
+  webSocket?: (url: string) => WebSocketLike;
+  /** The page's address, to resolve the tool's `/_f/realtime` against; `location.href` by default. */
+  location?: string;
 }
 
 /** A parameters store that lives in memory: for tests and for pages without a URL. */
@@ -47,7 +52,19 @@ export function createHttpRuntime(
   const now = options.now ?? (() => new Date());
   const grants = new Set(bootstrap.grants);
   const callable = new Set(bootstrap.callable ?? []);
+  // The connection opens with the first channel a component listens to, not before (D-135).
+  let realtime: RealtimeConnection | undefined;
+  const where = options.location ?? (globalThis as { location?: { href: string } }).location?.href;
   return {
+    get realtime() {
+      if (!realtime && where) {
+        realtime = new RealtimeConnection({
+          url: realtimeUrl(bootstrap.base, bootstrap.token, where),
+          ...(options.webSocket ? { webSocket: options.webSocket } : {}),
+        });
+      }
+      return realtime;
+    },
     user: bootstrap.user,
     can: (level) => grants.has(level),
     // A page without `callable` predates the matrix for views: nothing is known, so nothing is shown as allowed.

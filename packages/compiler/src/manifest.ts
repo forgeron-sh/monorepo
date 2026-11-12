@@ -146,6 +146,9 @@ export function buildManifest(
     roles: config.profiles ?? config.roles ?? {},
     actions,
     views,
+    ...(config.realtime && Object.keys(config.realtime.channels).length > 0
+      ? { realtime: config.realtime }
+      : {}),
     jobs,
     events,
     resources,

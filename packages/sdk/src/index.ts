@@ -50,6 +50,7 @@ export type {
   FetchResponse,
   Files,
   Logger,
+  Realtime,
   Register,
   ToolClient,
   User,

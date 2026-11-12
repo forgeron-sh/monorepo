@@ -2,6 +2,25 @@
 export { createRuntime, type Runtime, type SetupCheck } from "./runtime";
 export { toolName } from "./mcp";
 export {
+  CHANNEL,
+  MAX_PAYLOAD_BYTES,
+  MAX_PUBLISH_PER_CALL,
+  RealtimeHub,
+  authorizeChannel,
+  channelKey,
+} from "./realtime";
+export type { RealtimeContext } from "./realtime-context";
+export type {
+  ClientMessage,
+  Connection,
+  HubHooks,
+  PresenceEntry,
+  Published,
+  RealtimePerson,
+  RealtimeSocket,
+  ServerMessage,
+} from "./realtime";
+export {
   handleSecretsInput,
   missingSetup,
   type SavedSecret,

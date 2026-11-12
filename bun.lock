@@ -22,7 +22,7 @@
     },
     "apps/cli": {
       "name": "@forgeron/cli",
-      "version": "0.2.0",
+      "version": "0.3.1",
       "bin": {
         "forgeron": "./src/index.ts",
       },
@@ -148,7 +148,9 @@
       "version": "0.0.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/runtime": "workspace:*",
         "miniflare": "4.20260730.0",
+        "ws": "8.21.0",
       },
       "devDependencies": {
         "@forgeron/sdk": "workspace:*",
@@ -158,7 +160,7 @@
     },
     "packages/manifest": {
       "name": "@forgeron/manifest",
-      "version": "0.2.0",
+      "version": "0.3.1",
       "dependencies": {
         "zod": "4.6.7",
       },
@@ -200,7 +202,7 @@
     },
     "packages/runtime": {
       "name": "@forgeron/runtime",
-      "version": "0.2.0",
+      "version": "0.3.1",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
         "kysely": "0.29.8",
@@ -219,7 +221,7 @@
     },
     "packages/sdk": {
       "name": "@forgeron/sdk",
-      "version": "0.2.0",
+      "version": "0.3.1",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
         "@forgeron/runtime": "workspace:*",
