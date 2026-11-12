@@ -221,7 +221,7 @@ describe("the marketplace routes (D-116)", () => {
       readme: "# odoo, technical",
       guide: "# odoo for you",
       network: ["*.odoo.com"],
-      roles: [{ name: "support", label: "Support" }],
+      roles: [{ name: "support", label: "Support (default)" }],
       database: false,
     });
 

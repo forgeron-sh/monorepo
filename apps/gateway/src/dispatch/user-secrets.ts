@@ -217,9 +217,12 @@ export async function forwardIdentity(
       };
     }
   }
-  // The console's overrides of the roles × actions matrix for the person's roles, read at each call
-  // so an edit applies at once on every interface (D-039).
-  const access = record ? await context.registry.accessFor(record.id, who.person.roles) : {};
+  // What the person's workspace roles are mapped to in this tool, and the matrix resolved for each
+  // action, read at each call so an edit applies at once on every interface (D-039, D-127). A runtime
+  // built before D-127 reads only `access`, which says everything.
+  const { access, permissions } = record
+    ? await context.registry.accessFor(record.id, who.person.roles)
+    : { access: {}, permissions: {} };
   const headers: Record<string, string> = {
     "x-forgeron-user": JSON.stringify({
       id: who.person.id,
@@ -227,6 +230,7 @@ export async function forwardIdentity(
       name: who.person.name,
       roles: who.person.roles,
       access,
+      permissions,
     }),
     "x-forgeron-base-url": `${new URL(request.url).origin}/t/${tool}`,
   };

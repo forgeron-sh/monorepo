@@ -13,6 +13,12 @@ export interface User {
    * with the roles, so the change reaches every interface with no new version (docs/sdk.md §3).
    */
   access?: Record<string, Record<string, boolean>>;
+  /**
+   * The tool permissions each of the person's workspace roles is mapped to in the console (D-127).
+   * Without it (`forgeron dev`, tests), a role is read with the default mapping: the profile of that
+   * name, else `admin` holds every permission and `member` the default profile.
+   */
+  permissions?: Record<string, string[]>;
 }
 
 interface Issue {

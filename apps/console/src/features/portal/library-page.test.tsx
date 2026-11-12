@@ -21,6 +21,20 @@ describe("a tool's page in the person's library (D-118)", () => {
     expect(view.textContent).not.toMatch(/version|role|action|README|resource/i);
   });
 
+  it("tells a member whose roles open nothing to ask an admin (D-127)", async () => {
+    const { api } = fakeApi({ "/api/library/crm": { ...crm, allowed: false } });
+    const member = await mount(<LibraryToolPage api={api} go={() => {}} tool="crm" />);
+    expect(member.textContent).toContain("Your roles do not let you use this tool yet.");
+    expect(member.textContent).toContain("Ask an admin of this workspace");
+  });
+
+  it("tells an admin whose roles open nothing where to map one, never to ask an admin (D-127)", async () => {
+    const { api } = fakeApi({ "/api/library/crm": { ...crm, allowed: false } });
+    const admin = await mount(<LibraryToolPage api={api} go={() => {}} tool="crm" admin />);
+    expect(admin.textContent).not.toMatch(/ask an admin/i);
+    expect(admin.querySelector("a[href='/tools/crm?tab=access']")).toBeTruthy();
+  });
+
   it("adds a tool and sends the person to its setup when it asks for something", async () => {
     const assign = vi.fn<(url: string) => void>();
     vi.stubGlobal("location", { ...window.location, assign });

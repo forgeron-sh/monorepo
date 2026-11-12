@@ -116,25 +116,73 @@ async function memberOf(port: PlatformPort, who: string): Promise<Member> {
 
 const target = z.strictObject({
   person: z.string().min(1).max(200).optional().describe("A member's id or email"),
-  role: z
-    .string()
-    .regex(ROLE)
-    .describe("A workspace role (with `person`), or a role of the tool (with `tool` and `action`)"),
+  role: z.string().regex(ROLE).describe("A workspace role, like admin, member or support"),
   tool: tool.optional(),
   action: z.string().min(1).max(100).optional().describe("An action of the tool, or `view:<name>`"),
+  profile: z
+    .string()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe(
+      "With `tool` and no `action`: the profile of the tool the role is given (grant only)",
+    ),
+  permissions: z
+    .array(z.string().min(1).max(100))
+    .max(100)
+    .optional()
+    .describe("With `tool` and no `action`: a custom set of the tool's permissions (grant only)"),
+  all: z
+    .boolean()
+    .optional()
+    .describe("With `tool` and no `action`: every permission of the tool (grant only)"),
 });
 
-/** `person` names a member, `tool` and `action` name a cell of the matrix: one or the other. */
-function aim(args: z.infer<typeof target>): { person: string } | { tool: string; action: string } {
+type Target = z.infer<typeof target>;
+type Aimed =
+  | { person: string }
+  | { tool: string; action: string }
+  | { tool: string; mapping: Target };
+
+/**
+ * `person` names a member; `tool` and `action` name a cell of the matrix; `tool` alone names the
+ * role's mapping in the tool (D-127). One of the three.
+ */
+function aim(args: Target): Aimed {
   const { person, tool: name, action } = args;
-  if (person !== undefined && name === undefined && action === undefined) return { person };
-  if (person === undefined && name !== undefined && action !== undefined) {
+  const mapping = args.profile !== undefined || args.permissions !== undefined || args.all;
+  if (person !== undefined && name === undefined && action === undefined && !mapping) {
+    return { person };
+  }
+  if (person === undefined && name !== undefined && action !== undefined && !mapping) {
     return { tool: name, action };
   }
-  throw new ToolRefusal("Name a `person`, or a `tool` and an `action`, not both.");
+  if (person === undefined && name !== undefined && action === undefined) {
+    return { tool: name, mapping: args };
+  }
+  throw new ToolRefusal(
+    "Name a `person`; or a `tool` and an `action`; or a `tool` alone with `profile`, `permissions` or `all`.",
+  );
 }
 
-async function setAccess(args: z.infer<typeof target>, port: PlatformPort, grant: boolean) {
+/** What a grant of the mapping gives: exactly one of `profile`, `permissions`, `all`. */
+function grantOf(args: Target):
+  | { kind: "all" }
+  | { kind: "profile"; profile: string }
+  | {
+      kind: "custom";
+      permissions: string[];
+    } {
+  const given = [args.profile !== undefined, args.permissions !== undefined, args.all === true];
+  if (given.filter(Boolean).length !== 1) {
+    throw new ToolRefusal("Give the role one of: a `profile`, `permissions`, or `all: true`.");
+  }
+  if (args.profile !== undefined) return { kind: "profile", profile: args.profile };
+  if (args.permissions !== undefined) return { kind: "custom", permissions: args.permissions };
+  return { kind: "all" };
+}
+
+async function setAccess(args: Target, port: PlatformPort, grant: boolean) {
   const aimed = aim(args);
   if ("person" in aimed) {
     const member = await memberOf(port, aimed.person);
@@ -145,6 +193,17 @@ async function setAccess(args: z.infer<typeof target>, port: PlatformPort, grant
       method: "PATCH",
       path: at(setMemberRolesRoute.path, { id: member.id }),
       body: { roles },
+    });
+  }
+  if ("mapping" in aimed) {
+    if (!grant && (args.profile !== undefined || args.permissions !== undefined || args.all)) {
+      throw new ToolRefusal("A revocation takes the role's access away: give no `profile`.");
+    }
+    return ask(port, {
+      method: "PUT",
+      path: at(putAccessMatrixRoute.path, { tool: aimed.tool }),
+      // A revocation maps the role to nothing in the tool; it stays a workspace role.
+      body: { profiles: [{ role: args.role, grant: grant ? grantOf(args) : { kind: "none" } }] },
     });
   }
   return ask(port, {
@@ -314,7 +373,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     name: "access_list",
     title: "Who has which role",
     description:
-      "With `tool`: the tool's roles × actions matrix. Without: the workspace's members and their roles.",
+      "With `tool`: the tool's profiles, what each workspace role is given in it, and the roles × actions matrix. Without: the workspace's members and their roles.",
     minRole: "admin",
     destructive: false,
     input: z.strictObject({ tool: tool.optional() }),
@@ -332,7 +391,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     name: "access_grant",
     title: "Grant a role",
     description:
-      "Gives a member a workspace role (`person`, `role`), or allows a role an action of a tool (`tool`, `role`, `action`).",
+      "Gives a member a workspace role (`person`, `role`); maps a workspace role to a profile of a tool, custom permissions or all of them (`tool`, `role`, and `profile`, `permissions` or `all`); or allows a role one action (`tool`, `role`, `action`).",
     minRole: "admin",
     destructive: true,
     input: target,
@@ -342,7 +401,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     name: "access_revoke",
     title: "Revoke a role",
     description:
-      "Takes a workspace role from a member (`person`, `role`), or refuses a role an action of a tool (`tool`, `role`, `action`).",
+      "Takes a workspace role from a member (`person`, `role`); maps a workspace role to nothing in a tool (`tool`, `role`); or refuses a role one action (`tool`, `role`, `action`).",
     minRole: "admin",
     destructive: true,
     input: target,

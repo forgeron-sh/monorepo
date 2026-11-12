@@ -54,7 +54,7 @@ describe("loadMembers", () => {
 
   it("offers the base roles and every role people already hold", async () => {
     const view = await loadMembers(async () => served);
-    expect(knownRoles(view)).toEqual(["admin", "developer", "viewer"]);
+    expect(knownRoles(view)).toEqual(["admin", "member", "developer", "viewer"]);
   });
 });
 

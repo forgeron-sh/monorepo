@@ -67,7 +67,8 @@ describeRouteMatrix({
   path: "/api/tools/crm/access-matrix",
   access: "admin",
   forbidden: "The access matrix is for admins.",
-  invalidMessage: "`changes` is 1 to 500 of { role, action, allowed: true, false or null }.",
+  invalidMessage:
+    "Give `profiles` (up to 100 of { role, grant }) or `changes` (up to 500 of { role, action, allowed: true, false or null }).",
   valid: { changes: [{ role: "viewer", action: "deals.list", allowed: true }] },
   invalid: [
     {},
@@ -76,6 +77,8 @@ describeRouteMatrix({
     { changes: [{ role: "viewer", action: "deals.list" }] },
     { changes: [{ role: 1, action: "deals.list", allowed: true }] },
     { changes: Array.from({ length: 501 }, () => ({ role: "r", action: "a", allowed: null })) },
+    { profiles: [] },
+    { profiles: [{ role: "viewer", grant: { kind: "everything" } }] },
   ],
 });
 

@@ -11,7 +11,7 @@ export default defineConfig({
   uses: { crm: "^0.0.0" },
 
   // `management` is specific to this tool: the Monday view needs it, so only this role sees the page.
-  roles: {
-    management: { label: "Management", grants: ["read", "management"] },
+  profiles: {
+    management: { label: "Management", grants: ["read", "management"], default: true },
   },
 });

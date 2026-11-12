@@ -267,8 +267,11 @@ export function Members({
   );
 }
 
-/** Roles every workspace has; the ones its people already hold come on top. */
-const BASE_ROLES = ["admin", "developer"];
+/**
+ * Roles every workspace has; the ones its people already hold come on top. They are the workspace's
+ * own (D-127): a tool never names them, and each tool maps them to its profiles in its Access tab.
+ */
+const BASE_ROLES = ["admin", "member", "developer"];
 export const knownRoles = (view: MembershipView): string[] => [
   ...new Set([
     ...BASE_ROLES,
@@ -309,14 +312,17 @@ function RolePicker({
           ))}
         </div>
       </fieldset>
-      <Field label="Other roles" hint="Role names from your tools, separated by commas.">
+      <Field
+        label="Other roles"
+        hint="Roles of your organisation, like support or sales, separated by commas. Each tool says what they may do in its Access tab."
+      >
         {(control) => (
           <Input
             {...control}
             mono
             value={extra}
             onChange={(e) => onExtra(e.target.value)}
-            placeholder="viewer"
+            placeholder="support"
           />
         )}
       </Field>

@@ -16,7 +16,12 @@ const routes: RouteDef[] = [
       const { LibraryToolPage } = await import("./library-page");
       return {
         default: (p) =>
-          createElement(LibraryToolPage, { api: p.api, go: p.go, tool: p.params.tool! }),
+          createElement(LibraryToolPage, {
+            api: p.api,
+            go: p.go,
+            tool: p.params.tool!,
+            admin: p.ws.person.admin,
+          }),
       };
     },
   },
@@ -34,6 +39,7 @@ const routes: RouteDef[] = [
             go: p.go,
             tool: p.params.tool!,
             pilot: p.params.branch!,
+            admin: p.ws.person.admin,
           }),
       };
     },

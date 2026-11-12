@@ -1,5 +1,5 @@
 import { buildTool } from "@forgeron/compiler";
-import type { Manifest } from "@forgeron/manifest";
+import { defaultMapping, type Manifest } from "@forgeron/manifest";
 import { createLocalHosting } from "@forgeron/hosting/local";
 import { readFile } from "node:fs/promises";
 import type { BuildMigration } from "@forgeron/hosting";
@@ -65,9 +65,20 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
   async function deploy(): Promise<{ name: string; url: string }> {
     const { outDir } = await buildTool(dir);
     const build = await builtFiles(outDir);
-    if (role && !(role in build.manifest.roles)) {
-      const known = Object.keys(build.manifest.roles).join(", ") || "none";
-      throw new UsageError(`--as ${role}: the tool has no such role (roles: ${known}).`);
+    // `--as` is a profile of the tool, or a workspace role read with the default mapping (D-127):
+    // `admin` holds every permission, `member` the default profile.
+    if (
+      role &&
+      !(role in build.manifest.roles) &&
+      !(role in defaultMapping(build.manifest.roles))
+    ) {
+      const known = [
+        ...Object.keys(build.manifest.roles),
+        ...Object.keys(defaultMapping(build.manifest.roles)),
+      ];
+      throw new UsageError(
+        `--as ${role}: the tool has no such profile, and it is not admin or member (choose: ${[...new Set(known)].join(", ")}).`,
+      );
     }
     current = build.manifest;
     const environment = { tool: build.manifest.name, name: "local" as const };

@@ -1,9 +1,10 @@
 // The catalog of a workspace (docs/console-ux.md, "Catalog API", D-061): every tool that has a version,
-// with whether the person may call it. A tool nobody may use is listed too: the card says which role
-// to ask an admin for. The version shown is the one production serves, else the latest published; for
+// with whether the person may call it. A tool nobody may use is listed too: the card says which
+// workspace roles open it (D-127). The version shown is the one production serves, else the latest published; for
 // a branch (D-120), the one its preview serves.
 import {
   mayAccess,
+  resolveAccess,
   type CatalogAsset,
   type CatalogTool,
   type Manifest,
@@ -60,20 +61,34 @@ async function describe(
   branch?: string,
 ): Promise<{ entry: CatalogTool; allowed: Map<string, boolean> }> {
   const { manifest } = s;
-  const roles = manifest.roles ?? {};
-  const who = { roles: caller.roles, access: await registry.roleAccess(s.tool.id) };
+  const profiles = manifest.roles ?? {};
+  // The same check as the runtime's, with what the gateway would forward (D-127): the person's
+  // workspace roles, each mapped to permissions of this tool, and the per-action exceptions.
+  const mapping = await registry.roleProfiles(s.tool.id, manifest);
+  const overrides = await registry.roleAccess(s.tool.id);
+  const who = { roles: caller.roles, ...resolveAccess(caller.roles, mapping, overrides, manifest) };
   const actions = Object.entries(manifest.actions ?? {});
   const allowed = new Map(
-    actions.map(([name, a]) => [name, mayAccess(who, roles, name, a.access)]),
+    actions.map(([name, a]) => [name, mayAccess(who, profiles, name, a.access)]),
   );
-  // The roles worth asking for: those that may call something once the admin's matrix is applied.
-  const asking = Object.entries(roles)
-    .filter(([role]) =>
-      actions.some(([name, a]) =>
-        mayAccess({ roles: [role], access: who.access }, roles, name, a.access),
-      ),
-    )
-    .map(([name, role]) => ({ name, label: role.label ?? name }));
+  // The workspace roles worth asking for: those that may call something in this tool. The label
+  // says what the role is given: the profile's label, or all the permissions.
+  const mapped = [...new Set([...Object.keys(mapping), ...Object.keys(overrides)])].sort();
+  const asking = mapped
+    .filter((role) => {
+      const one = { roles: [role], ...resolveAccess([role], mapping, overrides, manifest) };
+      return actions.some(([name, a]) => mayAccess(one, profiles, name, a.access));
+    })
+    .map((name) => {
+      const grant = mapping[name];
+      const label =
+        grant?.kind === "profile"
+          ? `${name} (${profiles[grant.profile]?.label ?? grant.profile})`
+          : grant?.kind === "all"
+            ? `${name} (all permissions)`
+            : name;
+      return { name, label };
+    });
   const icon = manifest.icon ? files.find((f) => f.path === manifest.icon) : undefined;
   return {
     allowed,

@@ -795,11 +795,13 @@ describe("forgeron dev", () => {
     await done;
   }, 90_000);
 
-  it("refuses a role the tool does not have, naming the ones it has", async () => {
+  it("refuses a name that is neither a profile nor admin or member, naming the choices (D-127)", async () => {
     const dir = await work("dev-bad-role");
     const c = capture(dir);
     expect(await run(["dev", "--port", "0", "--as", "boss"], c.io)).toBe(2);
-    expect(c.errors[0]).toContain("--as boss: the tool has no such role (roles: reader, nobody)");
+    expect(c.errors[0]).toContain(
+      "--as boss: the tool has no such profile, and it is not admin or member (choose: reader, nobody, admin, member)",
+    );
   }, 60_000);
 
   it("refuses a port that is not a port", async () => {

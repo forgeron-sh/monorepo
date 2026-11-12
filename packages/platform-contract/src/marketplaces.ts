@@ -144,6 +144,7 @@ export const MarketplaceToolCardSchema = MarketplaceToolSchema.extend({
   /** For the people who will use it. */
   guide: z.string().nullable(),
   interfaces: z.record(z.string(), z.boolean()),
+  /** The tool's profiles (D-127): what an admin maps the workspace's roles to once installed. */
   roles: z.array(z.strictObject({ name: z.string(), label: z.string() })),
   actions: z.array(
     z.strictObject({ name: z.string(), access: z.string(), description: z.string() }),

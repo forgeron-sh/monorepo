@@ -1,4 +1,4 @@
-import { mayAccess, type Manifest } from "@forgeron/manifest";
+import { heldPermissions, mayAccess, type Manifest } from "@forgeron/manifest";
 import { matchesCron, parseCron, zoneFormatter } from "./cron";
 import type {
   ActionContext,
@@ -164,11 +164,11 @@ export function createEngine(options: RuntimeOptions): Engine {
     platform.log,
   );
 
-  const grants = (user: User): Set<string> =>
-    new Set(user.roles.flatMap((role) => manifest.roles[role]?.grants ?? []));
+  const grants = (user: User): Set<string> => new Set(heldPermissions(user, manifest));
 
   // The one access check, for every interface: a role may call an action if the console says so,
-  // else if one of its levels is the action's. The person may if one of their roles may.
+  // else if the action's permission is among those the role is mapped to (D-127). The person may if
+  // one of their roles may.
   const mayCall = (user: User, name: string, level: string): boolean =>
     mayAccess(user, manifest.roles, name, level);
 

@@ -74,12 +74,13 @@ beforeAll(async () => {
   await registry.createTool({ workspace: "globex", name: "secret" });
 
   // A member who has a role, and one who has none (bob@acme.fr signs in with the domain, roleless).
+  // `member` is mapped to the tool's default profile, `viewer` (D-127).
   await registry.addMember({
     workspace: "acme",
     subject: "carol-subject",
     email: "carol@acme.fr",
     name: "Carol",
-    roles: ["viewer"],
+    roles: ["member"],
   });
 
   env = {
@@ -143,8 +144,8 @@ describe("the catalog through the gateway", () => {
       interfaces: { mcp: true, api: true, cli: true, web: false },
       access: "requestable",
       roles: [
-        { name: "viewer", label: "Viewer" },
-        { name: "sales", label: "sales" },
+        { name: "admin", label: "admin (all permissions)" },
+        { name: "member", label: "member (Viewer)" },
       ],
     });
     expect(tools[0]!.icon).toMatch(

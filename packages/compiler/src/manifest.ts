@@ -142,7 +142,8 @@ export function buildManifest(
     ...(documentation.icon ? { icon: documentation.icon } : {}),
     ...(documentation.docs ? { docs: documentation.docs } : {}),
     interfaces,
-    roles: config.roles ?? {},
+    // `profiles` since D-127; `roles` is its former name. The manifest keeps the key `roles`.
+    roles: config.profiles ?? config.roles ?? {},
     actions,
     views,
     jobs,

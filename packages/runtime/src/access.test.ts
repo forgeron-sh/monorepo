@@ -100,6 +100,13 @@ const people: Record<string, User> = {
     ...user(["reader", "support"]),
     access: { support: { "tickets.reply": false }, reader: { "tickets.reply": true } },
   },
+  // D-127: what the gateway mapped the person's workspace roles to in this tool.
+  mappedSupport: { ...user(["sales"]), permissions: { sales: ["read", "write"] } },
+  // A workspace role named like a profile, mapped to nothing: the name gives nothing.
+  unmappedReader: { ...user(["reader"]), permissions: { reader: [] } },
+  // Without the gateway, `member` is read with the default mapping: the profile with the fewest
+  // permissions here (`reader`, first of the one-permission profiles).
+  member: user(["member"]),
 };
 const bearer = (request: Request) => request.headers.get("authorization")?.slice(7);
 
@@ -155,6 +162,20 @@ async function attempt(as: string, via: "mcp" | "api" | "web", name: string): Pr
   expect(ran).toBe(status === 200);
   return ran;
 }
+
+describe("the mapping of workspace roles to the tool's permissions (D-127)", () => {
+  it("reads the permissions the gateway mapped, on every interface", async () => {
+    for (const via of ["mcp", "api", "web"] as const) {
+      expect(await attempt("mappedSupport", via, "tickets.reply")).toBe(true);
+      expect(await attempt("unmappedReader", via, "tickets.list")).toBe(false);
+    }
+  });
+
+  it("reads a role with the default mapping when no gateway mapped it", async () => {
+    expect(await attempt("member", "api", "tickets.list")).toBe(true);
+    expect(await attempt("member", "api", "tickets.reply")).toBe(false);
+  });
+});
 
 describe("the roles × actions matrix set in the console", () => {
   it("allows a role an action its levels do not give, on every interface", async () => {

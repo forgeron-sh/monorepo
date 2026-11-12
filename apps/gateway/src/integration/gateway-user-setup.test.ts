@@ -80,7 +80,8 @@ function toolWorker(request: Request) {
     baseUrl: request.headers.get("x-forgeron-base-url") ?? "",
     authenticate: (r) => {
       const raw = r.headers.get("x-forgeron-user");
-      return raw ? { ...JSON.parse(raw), roles: ["reader"] } : undefined;
+      // The tool sees the person as a reader, whatever the gateway mapped (D-127).
+      return raw ? { ...JSON.parse(raw), roles: ["reader"], permissions: undefined } : undefined;
     },
     platform: {
       userSecretStore: {

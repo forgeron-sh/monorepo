@@ -448,7 +448,7 @@ describe("what the tools change goes through the console's path, audited via the
     const lines = await audit("reader:tickets.mine");
     expect(lines).toHaveLength(2);
     expect(lines.every((l) => l.via === "Forgeron MCP" && l.actor === root)).toBe(true);
-    // Not both a person and a cell, and a role the tool does not have is refused.
+    // Not both a person and a cell, and an action the tool does not have is refused.
     expect(
       (
         await call(root, "access_grant", {
@@ -460,9 +460,37 @@ describe("what the tools change goes through the console's path, audited via the
       ).error,
     ).toBe(true);
     expect(
-      (await call(root, "access_grant", { tool: "crm", role: "ghost", action: "tickets.mine" }))
+      (await call(root, "access_grant", { tool: "crm", role: "reader", action: "tickets.ghost" }))
         .text,
     ).toMatch(/^404/);
+  });
+
+  it("maps a workspace role to a profile of a tool, and to nothing (D-127)", async () => {
+    const granted = await call(root, "access_grant", {
+      tool: "crm",
+      role: "support",
+      profile: "reader",
+    });
+    expect(granted.error).toBe(false);
+    expect(granted.data.mapping.support).toEqual({ kind: "profile", profile: "reader" });
+    expect(
+      (await call(root, "access_grant", { tool: "crm", role: "audit", permissions: ["read"] })).data
+        .mapping.audit,
+    ).toEqual({ kind: "custom", permissions: ["read"] });
+    const revoked = await call(root, "access_revoke", { tool: "crm", role: "support" });
+    expect(revoked.data.mapping.support).toEqual({ kind: "none" });
+    const lines = await audit("profile:support");
+    expect(lines).toHaveLength(2);
+    expect(lines.every((l) => l.via === "Forgeron MCP" && l.actor === root)).toBe(true);
+    // A grant names exactly one of profile, permissions, all; a profile must be the tool's.
+    expect((await call(root, "access_grant", { tool: "crm", role: "support" })).error).toBe(true);
+    expect(
+      (await call(root, "access_grant", { tool: "crm", role: "support", profile: "ghost" })).text,
+    ).toMatch(/^404/);
+    expect(
+      (await call(root, "access_revoke", { tool: "crm", role: "support", profile: "reader" }))
+        .error,
+    ).toBe(true);
   });
 
   it("approves a pending resource once", async () => {
