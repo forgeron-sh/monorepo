@@ -22,7 +22,7 @@ const team = {
 };
 
 const page = (api: ReturnType<typeof fakeApi>["api"]) =>
-  mount(<TeamsPage api={api} ws={{} as never} go={() => {}} now={() => new Date()} />);
+  mount(<TeamsPage api={api} ws={{} as never} go={() => {}} now={() => new Date()} params={{}} />);
 
 describe("Teams", () => {
   it("lists the teams with their members' names", async () => {
