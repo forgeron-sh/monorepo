@@ -263,6 +263,9 @@ access, roles }`.
 - `access` is `granted` when the person's roles (after the admin's matrix overrides) may call at least one
   action, else `requestable`: the card says which `roles` to ask an admin for. `roles` lists the roles of
   the tool that may call at least one action, `{ name, label }`.
+- The workspace's `admin` role is not one of a tool's roles: an admin with no role of the tool is
+  `requestable` too, as the runtime refuses their call (D-124). Their card tells them to give themselves
+  a role in Members, or to change the matrix in the Access tab, never to ask an admin.
 
 `ToolCard` is a `CatalogTool` plus:
 

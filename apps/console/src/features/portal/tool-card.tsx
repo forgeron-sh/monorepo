@@ -35,6 +35,16 @@ export default function ToolOverview({
   return <ToolCardView card={card.data!} ws={ws} now={now} />;
 }
 
+/** The roles that would let the person in, by their label. */
+function Roles({ roles }: { roles: ToolCardData["roles"] }) {
+  return roles.map((role, i) => (
+    <span key={role.name}>
+      {i > 0 ? ", " : ""}
+      <code className="fp-role">{role.label}</code>
+    </span>
+  ));
+}
+
 export function ToolCardView({
   card,
   ws,
@@ -63,19 +73,30 @@ export function ToolCardView({
         </div>
       ) : null}
 
-      {!granted ? (
+      {!granted && ws.person.admin ? (
+        // Administering the workspace does not let a person call a tool's actions (D-124): only the
+        // tool's roles do, and an admin gives them, to themselves too. Never "ask an admin".
+        <Notice tone="info" title="Your roles do not let you use this tool yet.">
+          Being an admin lets you manage it, not call its actions.{" "}
+          {card.roles.length > 0 ? (
+            <>
+              Give yourself {card.roles.length > 1 ? "one of these roles: " : "the role "}
+              <Roles roles={card.roles} /> in <a href="/members">Members</a>, or change what each
+              role may call in the <a href="?tab=access">Access</a> tab.
+            </>
+          ) : (
+            <>
+              No role of this tool may call an action: allow one in the{" "}
+              <a href="?tab=access">Access</a> tab, then give it to yourself in{" "}
+              <a href="/members">Members</a>.
+            </>
+          )}
+        </Notice>
+      ) : !granted ? (
         <Notice tone="info" title="You do not use this tool yet.">
           Ask an admin of this workspace to give you
           {card.roles.length > 1 ? " one of these roles: " : " the role "}
-          {card.roles.length > 0
-            ? card.roles.map((role, i) => (
-                <span key={role.name}>
-                  {i > 0 ? ", " : ""}
-                  <code className="fp-role">{role.label}</code>
-                </span>
-              ))
-            : "needed"}
-          .
+          {card.roles.length > 0 ? <Roles roles={card.roles} /> : "needed"}.
         </Notice>
       ) : null}
 

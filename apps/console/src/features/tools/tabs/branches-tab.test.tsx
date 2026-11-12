@@ -257,6 +257,77 @@ describe("the branches", () => {
     expect(dialog()).toBeNull();
   });
 
+  describe("a refusal the admin may accept, when the plan did not say it (D-121)", () => {
+    const tick = (label: string) =>
+      click(
+        [...dialog().querySelectorAll("label")]
+          .find((l) => l.textContent === label)!
+          .querySelector("input")!,
+      );
+    // No plan (the platform did not give one), then a refusal on the first try only.
+    const refusing = (error: ApiError) => {
+      let tries = 0;
+      return show(routes, {
+        "POST /promote/plan": () => {
+          throw refusal(405);
+        },
+        "POST /promote": () => {
+          if (tries++ === 0) throw error;
+          return { version: "1.5.1" };
+        },
+      });
+    };
+    const promoteFeat = async (page: HTMLElement) => {
+      await click(byLabel(page, "Actions for feat-export"));
+      await click(button(page, "Promote to production"));
+      await click(button(dialog(), "Promote"));
+    };
+
+    it("offers to put a build with no release in production, and sends it knowingly", async () => {
+      const { page, platform } = await refusing(
+        refusal(422, "production takes a version with a changelog entry.", "NO_ENTRY"),
+      );
+      await promoteFeat(page);
+      const d = dialog();
+      expect(d.textContent).not.toContain("The platform refused.");
+      expect(d.textContent).toContain("This build is not a release.");
+      expect(button(d, "Promote").disabled).toBe(true);
+      await tick("Put it in production without a release");
+      await click(button(d, "Promote"));
+      expect(platform.at(-1)).toMatchObject({
+        path: "/promote",
+        body: { tool: "crm", version: "1.5.1", to: "production", withoutRelease: true },
+      });
+      expect(dialog()).toBeNull();
+    });
+
+    it("offers to approve what the version asks for, and sends the approval", async () => {
+      const { page, platform } = await refusing(
+        refusal(409, "resources.network waits for an admin to approve it.", "PENDING_APPROVAL"),
+      );
+      await promoteFeat(page);
+      const d = dialog();
+      expect(d.textContent).not.toContain("The platform refused.");
+      expect(d.textContent).toContain("This version asks for");
+      expect(d.textContent).toContain("resources.network waits for an admin");
+      expect(button(d, "Promote").disabled).toBe(true);
+      await tick("I approve what it asks for");
+      await click(button(d, "Promote"));
+      expect(platform.at(-1)).toMatchObject({ path: "/promote", body: { approve: true } });
+      expect(dialog()).toBeNull();
+    });
+
+    it("still says why for any other refusal", async () => {
+      const { page } = await refusing(
+        refusal(422, "The changelog declares too little.", "IMPACT_TOO_LOW"),
+      );
+      await promoteFeat(page);
+      expect(dialog().textContent).toContain("The platform refused.");
+      expect(dialog().textContent).toContain("declares too little");
+      expect(dialog().textContent).not.toContain("Put it in production without a release");
+    });
+  });
+
   it("closes a preview only once its name is typed", async () => {
     const { page, platform } = await show();
     await click(byLabel(page, "Actions for feat-export"));

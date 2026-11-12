@@ -278,6 +278,17 @@ describe("the catalog", () => {
     );
   });
 
+  it("gives a workspace admin no access the tool's roles do not give, as the runtime does (D-124)", async () => {
+    await publish(await withDocs(undefined, []), "1.0.0");
+    const admin = (await listCatalog(registry, "acme", { roles: ["admin"] }))[0]!;
+    expect(admin.access).toBe("requestable");
+    expect(admin.roles.map((r) => r.name)).toContain("viewer");
+    // The admin gives themselves a role of the tool, and the card opens.
+    expect((await listCatalog(registry, "acme", { roles: ["admin", "viewer"] }))[0]!.access).toBe(
+      "granted",
+    );
+  });
+
   it("does not list a tool without a version, nor one of another workspace", async () => {
     await registry.createTool({ workspace: "acme", name: "empty" });
     const other = await registry.createTool({ workspace: "other", name: "secret" });

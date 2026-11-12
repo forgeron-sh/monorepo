@@ -1,4 +1,16 @@
 import {
+  cliTokenRoute,
+  closePreviewRoute,
+  createDeployTokenRoute,
+  deployRoute,
+  issueTokenRoute,
+  promoteRoute,
+  promotionPlanRoute,
+  revokeTokenRoute,
+  rollbackRoute,
+  whoamiRoute,
+} from "@forgeron/platform-contract";
+import {
   handleAuthorize,
   handleRegister,
   handleRevoke,
@@ -21,16 +33,23 @@ import { GITHUB_PATHS } from "./platform/github";
 
 export { gatewayBindingsOf, type GatewayEnv } from "./env";
 
-/** The platform routes outside `/console-api` that the Hono app answers (the contract's `bearer` module). */
-const BEARER_PATHS = new Set([
-  "/whoami",
-  "/deploy-tokens",
-  "/deploy",
-  "/promote",
-  "/rollback",
-  "/auth/token",
-  "/auth/token/revoke",
-  "/auth/cli/token",
+/**
+ * The platform routes outside `/console-api` that the Hono app answers (the contract's `bearer` module).
+ * Read from the routes themselves: a path written here by hand was forgotten once (`/promote/plan`).
+ */
+const BEARER_PATHS: ReadonlySet<string> = new Set([
+  ...[
+    whoamiRoute,
+    createDeployTokenRoute,
+    deployRoute,
+    closePreviewRoute,
+    promoteRoute,
+    promotionPlanRoute,
+    rollbackRoute,
+    issueTokenRoute,
+    revokeTokenRoute,
+    cliTokenRoute,
+  ].map((route) => route.path),
   // The workspace's GitHub App (D-123): its creation, its installation and its webhook.
   ...GITHUB_PATHS,
 ]);
@@ -40,7 +59,7 @@ const CONSOLE_CSP =
 
 /**
  * The gateway's request handler. On a workspace origin: `/t/<tool>…` is dispatched to the tool,
- * `/auth/…`, `/whoami`, `/deploy`, `/promote`, `/rollback` and `/deploy-tokens` are the platform's, `/console-api/…` is the
+ * `/auth/…`, `/whoami`, `/deploy`, `/promote`, `/promote/plan`, `/rollback` and `/deploy-tokens` are the platform's, `/console-api/…` is the
  * console's API, and every other path is the console itself. One resolver (`createCaller`) turns a
  * session cookie or an audience-bound token into the person for all of them. The pieces are built
  * in `compose.ts`; this file is the table of routes.

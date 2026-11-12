@@ -176,6 +176,23 @@ describe("Tool card", () => {
     expect(view.querySelector(".fg-btn-primary")).toBeNull();
   });
 
+  it("tells an admin without a role of the tool to give it to themselves, never to ask an admin (D-124)", async () => {
+    const view = await mount(
+      <ToolOverview
+        tool="inventory"
+        ws={ws(true)}
+        api={card("inventory", false)}
+        now={() => NOW}
+      />,
+    );
+    expect(view.textContent).toContain("Your roles do not let you use this tool yet.");
+    expect(view.textContent).toContain("Give yourself one of these roles: Logistics");
+    expect(view.textContent).toContain("in Members");
+    expect(view.textContent).not.toMatch(/ask an admin/i);
+    expect(view.querySelector("a[href='/members']")).toBeTruthy();
+    expect(view.querySelector("a[href='?tab=access']")).toBeTruthy();
+  });
+
   it("shows an error with a retry when the card does not load", async () => {
     const view = await mount(
       <ToolOverview

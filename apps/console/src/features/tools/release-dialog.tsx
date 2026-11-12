@@ -1,6 +1,6 @@
 import { Button, Checkbox, CopyBlock, Dialog, Field, Input, Notice, Textarea } from "@forgeron/ui";
 import { useState } from "react";
-import { explain, type Api } from "../../api";
+import { ApiError, explain, type Api } from "../../api";
 import { useLoad } from "../../use-load";
 import {
   closePreview,
@@ -17,7 +17,8 @@ import { ImpactBadge } from "./components";
 // what the change contains, why, and what is not undone. Both call the platform's own routes with the
 // person's session; the platform checks the changelog and the approvals again and says why it refuses.
 // What a version asks for is approved here, in the same step (D-121): there is no screen of approvals.
-// A build with no release can go too, once the admin says so.
+// A build with no release can go too, once the admin says so. When the plan did not say it and the
+// platform refuses the promotion for one of these two reasons, the dialog offers the same choice.
 
 export interface ReleaseDialogProps {
   kind: "promote" | "rollback";
@@ -71,19 +72,23 @@ export function ReleaseDialog({
   const plan = planned.data;
   const [approve, setApprove] = useState(false);
   const [withoutRelease, setWithoutRelease] = useState(false);
+  // What the platform refused on the last try, when the plan had not said it: the admin may accept it.
+  const [refused, setRefused] = useState<{ noRelease?: true; approval?: string }>({});
   // An approval and a missing release are the admin's to accept here; anything else is fixed elsewhere.
   const asks = plan?.conflicts.filter((c) => c.code === "PENDING_APPROVAL") ?? [];
-  const noRelease = plan?.conflicts.some((c) => c.code === "CHANGELOG_NO_ENTRY") ?? false;
+  const approving = asks.length > 0 || refused.approval !== undefined;
+  const noRelease =
+    (plan?.conflicts.some((c) => c.code === "CHANGELOG_NO_ENTRY") ?? false) ||
+    refused.noRelease === true;
   const problems =
     plan?.conflicts.filter(
       (c) => c.code !== "PENDING_APPROVAL" && c.code !== "CHANGELOG_NO_ENTRY",
     ) ?? [];
   const blocked =
     promoting &&
-    plan !== undefined &&
     (problems.length > 0 ||
-      plan.requiresAllowDestructive ||
-      (asks.length > 0 && !approve) ||
+      plan?.requiresAllowDestructive === true ||
+      (approving && !approve) ||
       (noRelease && !withoutRelease));
   const copy = async () => {
     try {
@@ -107,15 +112,24 @@ export function ReleaseDialog({
           tool,
           version: to,
           reason: reason.trim(),
-          ...(asks.length > 0 && approve ? { approve: true } : {}),
+          ...(approving && approve ? { approve: true } : {}),
           ...(noRelease && withoutRelease ? { withoutRelease: true } : {}),
         });
       } else await rollback(api, { tool, reason: reason.trim() });
       onDone();
     } catch (failure) {
-      setError(
-        explain(failure, "The platform did not answer. Check your connection, then try again."),
-      );
+      // A build with no release, or an approval: the admin's to accept, so the dialog asks for it.
+      const code = failure instanceof ApiError ? failure.code : undefined;
+      if (promoting && code === "NO_ENTRY" && !noRelease) {
+        setRefused((r) => ({ ...r, noRelease: true }));
+      } else if (promoting && code === "PENDING_APPROVAL" && !approving) {
+        const said = failure instanceof ApiError ? failure.detail : undefined;
+        setRefused((r) => ({ ...r, approval: said ?? "" }));
+      } else {
+        setError(
+          explain(failure, "The platform did not answer. Check your connection, then try again."),
+        );
+      }
       setBusy(false);
     }
   };
@@ -206,16 +220,22 @@ export function ReleaseDialog({
             Promoting it again changes nothing.
           </Notice>
         ) : null}
-        {promoting && asks.length > 0 ? (
+        {promoting && approving ? (
           <div className="ft-asks">
             <span className="fc-caption">This version asks for</span>
-            <ul className="ft-entries">
-              {asks.map((a) => (
-                <li key={a.subject} className="fc-mono">
-                  {a.subject}
-                </li>
-              ))}
-            </ul>
+            {asks.length > 0 ? (
+              <ul className="ft-entries">
+                {asks.map((a) => (
+                  <li key={a.subject} className="fc-mono">
+                    {a.subject}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p style={{ margin: 0 }}>
+                {refused.approval || "Something an admin has not approved yet."}
+              </p>
+            )}
             <Checkbox
               label="I approve what it asks for"
               checked={approve}
