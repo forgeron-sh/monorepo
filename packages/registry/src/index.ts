@@ -22,6 +22,7 @@ export {
   isAvailable,
   marketplaceSource,
   mayUseChannel,
+  reachesChannelAlways,
   RegistryError,
   secretEnvironmentOf,
   TEMPLATE_WORKSPACE,

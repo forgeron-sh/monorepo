@@ -141,19 +141,95 @@
   flex: 1;
   min-width: 0;
 }
-/* The branch the page shows (D-120), at the right of the title. */
-.ft-branch-pick {
+/* At the right of the title (D-120, D-129): the channel the page shows, then its publication. */
+.ft-header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
   flex-shrink: 0;
+  max-width: 100%;
 }
-.ft-branch-pick-label {
-  color: var(--ink-muted);
+/* The select is as wide as its value, its chevron right after the text. */
+.ft-channel-pick {
+  appearance: none;
+  field-sizing: content;
+  max-width: 16rem;
+  min-width: 8rem;
+  padding-right: calc(var(--space-3) + 20px);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 16 16'%3E%3Cpath stroke='%23808080' stroke-width='1.5' d='M4 6.5 8 10.5 12 6.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-2) center;
+  text-overflow: ellipsis;
+}
+.ft-publish {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.ft-publish-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
   font-size: 13px;
 }
-.ft-branch-pick .fg-select {
-  max-width: 16rem;
+.ft-publish-who {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A split button: the main action and, glued to its right, a chevron that opens the rest. */
+.ft-split {
+  display: inline-flex;
+  align-items: stretch;
+}
+.ft-split > .fg-btn {
+  border-right-width: 0;
+}
+.ft-split-menu .fg-menu-trigger {
+  justify-content: center;
+  width: 28px;
+  min-height: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+}
+.ft-split-primary .fg-menu-trigger {
+  background: var(--inverse);
+  color: var(--on-inverse);
+  border-color: var(--inverse);
+  border-left-color: color-mix(in srgb, var(--on-inverse) 35%, var(--inverse));
+}
+.ft-split-primary .fg-menu-trigger:hover,
+.ft-split-primary .fg-menu-trigger[aria-expanded="true"] {
+  background: var(--inverse);
+  opacity: 0.88;
+}
+.ft-split-menu .fg-menu-list {
+  left: auto;
+  right: 0;
+}
+.ft-who {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  max-height: 18rem;
+  overflow: auto;
+}
+.ft-who li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+.ft-who li + li {
+  border-top: 1px solid var(--line);
 }
 .ft-branch-band {
   display: flex;
@@ -178,8 +254,9 @@
   .ft-header {
     flex-wrap: wrap;
   }
-  .ft-branch-pick {
+  .ft-header-actions {
     width: 100%;
+    justify-content: flex-start;
   }
 }
 .ft-header-text .fg-page-title,

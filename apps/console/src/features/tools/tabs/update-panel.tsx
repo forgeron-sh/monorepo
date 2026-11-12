@@ -410,7 +410,8 @@ function AddChannel({
         onChange={(e) => setAuto(e.target.checked)}
       />
       <p className="fc-muted" style={{ margin: 0 }}>
-        It gets its own database, empty, and its own access rule (Availability).
+        It gets its own database, empty, and starts as a draft: publish it from the header to share
+        it.
       </p>
       <div style={{ display: "flex", gap: "var(--space-2, 8px)" }}>
         <Button variant="primary" type="submit" disabled={busy || !valid}>

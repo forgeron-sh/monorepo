@@ -20,14 +20,6 @@ registerToolTab({
   load: () => import("./tabs/versions-tab"),
 });
 registerToolTab({
-  id: "availability",
-  scope: "branch",
-  order: 50,
-  title: "Availability",
-  adminOnly: true,
-  load: () => import("./tabs/availability-tab"),
-});
-registerToolTab({
   id: "access",
   scope: "tool",
   order: 60,

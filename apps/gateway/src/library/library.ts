@@ -2,7 +2,13 @@
 // by the dispatcher, the MCP sign-in and the library routes, so the three say the same thing.
 import { missingSetup } from "@forgeron/runtime";
 import type { Manifest } from "@forgeron/manifest";
-import { channelRef, isAvailable, mayUseChannel, type Registry } from "@forgeron/registry";
+import {
+  channelRef,
+  isAvailable,
+  mayUseChannel,
+  reachesChannelAlways,
+  type Registry,
+} from "@forgeron/registry";
 import { channelPath } from "../tool-address";
 
 type Port = Pick<
@@ -66,8 +72,9 @@ export const setupPath = (tool: string) =>
 // `branch` here is the channel's reference: a branch, or `~<name>` for a permanent channel.
 
 /**
- * May this person reach a channel other than production? Admins and developers always may (sdk.md
- * §7); anyone else only when an admin opened the channel to them and they added it to their library.
+ * May this person reach a channel other than production? Admins always may, developers on a branch's
+ * temporary channel (sdk.md §7, D-129); anyone else only when an admin published the channel to them
+ * and they added it to their library.
  */
 export async function pilotAccess(
   registry: Pick<PilotPort, "channelAccessOf" | "isChannelInstalled">,
@@ -75,9 +82,9 @@ export async function pilotAccess(
   branch: string,
   person: LibraryPerson,
 ): Promise<boolean> {
-  if (person.roles.includes("admin") || person.roles.includes("developer")) return true;
+  if (reachesChannelAlways(branch, person)) return true;
   const rule = await registry.channelAccessOf(toolId, branch);
-  if (!rule || !mayUseChannel(rule, person)) return false;
+  if (!rule || !mayUseChannel(rule, person, branch)) return false;
   return registry.isChannelInstalled(toolId, branch, person.id);
 }
 
