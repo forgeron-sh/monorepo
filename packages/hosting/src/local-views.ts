@@ -1,5 +1,4 @@
 import { heldPermissions, mayAccess, viewSubject, type Manifest } from "@forgeron/manifest";
-import type { LocalUser } from "./local";
 
 // The views of a tool in `forgeron dev`. The gateway serves them on a platform (apps/gateway/src/views);
 // here this host plays its part with the same rules: the sandbox CSP, the bootstrap in the page, the
@@ -7,6 +6,14 @@ import type { LocalUser } from "./local";
 
 /** Without `allow-same-origin`: the page has an opaque origin, as it has on the platform. */
 const VIEW_CSP = "sandbox allow-scripts allow-forms allow-popups allow-downloads";
+
+/** Who the page is for: the developer of `forgeron dev`. */
+interface ViewUser {
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
+}
 
 const ASSET_PREFIX = "/_f/views/";
 const TYPES: Record<string, string> = {
@@ -46,7 +53,7 @@ export async function serveLocalView(
   method: string,
   pathname: string,
   manifest: Manifest,
-  user: LocalUser,
+  user: ViewUser,
   read: (file: string) => Promise<Buffer | undefined>,
 ): Promise<LocalViewResult | undefined> {
   const path = pathname.replace(/\/+$/, "") || "/";
