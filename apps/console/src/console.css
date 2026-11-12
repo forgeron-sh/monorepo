@@ -244,12 +244,59 @@ code {
 }
 
 /* First-run checklist */
-.fc-progress {
+.fc-start {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: 40;
+  width: min(420px, calc(100vw - 2 * var(--space-4)));
+  border: 1px solid var(--line-strong);
+  background: var(--surface-raised);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+.fc-start-head {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fc-start-title {
+  font: 600 14px/20px var(--font-sans);
+}
+.fc-start-count {
+  flex: 1;
   color: var(--ink-muted);
+  font-size: 13px;
+}
+.fc-start-chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  margin-top: -4px;
+}
+.fc-start[data-open="false"] .fc-start-chevron {
+  transform: rotate(-135deg);
+  margin-top: 4px;
+}
+.fc-start .fc-steps {
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  border-width: 1px 0 0;
+}
+.fc-start .fc-progress-seg {
+  width: 16px;
+}
+.fc-start .fc-step {
+  padding: var(--space-4);
 }
 .fc-progress-bar {
   display: flex;

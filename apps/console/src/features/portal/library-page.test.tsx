@@ -68,8 +68,13 @@ describe("a tool's page in the person's library (D-118)", () => {
     const view = await mount(<LibraryToolPage api={api} go={go} tool="odoo" />);
     expect(view.textContent).toContain("One step left");
     expect(button(view, "Finish setup").getAttribute("href")).toBe(odoo.setupUrl);
-    await click(button(view, "Remove"));
-    expect(document.body.textContent).toContain("Your saved keys stay in your secrets");
+    await click(view.querySelector('button[aria-label="More actions"]'));
+    await click(
+      [...document.querySelectorAll('[role="menuitem"]')].find(
+        (i) => i.textContent === "Remove from my tools",
+      ),
+    );
+    expect(document.body.textContent).toContain("your saved keys stay in your secrets");
     await click(
       [...document.querySelectorAll("[role=dialog] button")].find(
         (b) => b.textContent === "Remove",
@@ -92,7 +97,12 @@ describe("a pilot in the person's library (D-119)", () => {
     );
     expect(view.textContent).toContain("Odoo gateway · Branch · pilot-a");
     expect(view.textContent).toContain("It has its own data");
-    await click(button(view, "Remove"));
+    await click(view.querySelector('button[aria-label="More actions"]'));
+    await click(
+      [...document.querySelectorAll('[role="menuitem"]')].find(
+        (i) => i.textContent === "Remove from my tools",
+      ),
+    );
     await click(
       [...document.querySelectorAll("[role=dialog] button")].find(
         (b) => b.textContent === "Remove",
