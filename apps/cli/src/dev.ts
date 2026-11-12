@@ -13,7 +13,7 @@ export interface DevSession {
   name: string;
   /** The manifest of the build being served. */
   manifest(): Manifest;
-  /** Where the tool answers: `<url>/mcp`, `<url>/api/<action>`, `<url>/cli`. */
+  /** Where the tool answers: `<url>/mcp`, `<url>/api/<action>`, `<url>/cli`, and its views. */
   url: string;
   /** Builds again and replaces the running build. */
   reload(): Promise<void>;
@@ -47,6 +47,8 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
   const hosting = createLocalHosting({
     // The local database lives on disk: it is still there next time (.forgeron/local is ignored by git).
     persist: join(dir, ".forgeron", "local"),
+    // The built views of the tool: served on the tool's own address, as the platform serves them.
+    viewFile: (file) => readFile(join(dir, ".forgeron", "build", file)).catch(() => undefined),
     ...(options.port === undefined ? {} : { port: options.port }),
     ...(role
       ? {

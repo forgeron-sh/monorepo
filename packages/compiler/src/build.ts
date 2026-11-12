@@ -208,8 +208,62 @@ declare module "@forgeron/sdk" {
   );
 }
 
-// The views run in the browser: one module per view (its default export is the `defineView`
-// object), plus the chunks they share. Serving them, with the CSP and the token, is not the build's job.
+// The views run in the browser: one module per view. Each is built from a generated entry that
+// mounts the view itself: the page the platform serves carries the bootstrap (person, token, base) in
+// `#forgeron-bootstrap`, and this script renders the view with it. The view, the hooks and React are
+// in the same bundle, so there is one copy of React. The default export stays the `defineView` object.
+const MOUNT = "\0forgeron-mount:";
+
+const mountSource = (file: string) => `
+import view from ${JSON.stringify(file)};
+import { createElement } from "react";
+import { createRoot } from "react-dom/client";
+import { ViewHost, createHttpRuntime, createMemoryParams } from "@forgeron/sdk/react";
+
+const holder = typeof document === "undefined" ? null : document.getElementById("forgeron-bootstrap");
+if (holder) {
+  const bootstrap = JSON.parse(holder.textContent || "{}");
+  const memory = createMemoryParams(Object.fromEntries(new URLSearchParams(location.search)));
+  // The URL carries the parameters (a link shares them); a sandboxed page may refuse to write it.
+  const params = {
+    get: memory.get,
+    subscribe: memory.subscribe,
+    set(next) {
+      memory.set(next);
+      try {
+        const search = new URLSearchParams(next).toString();
+        history.replaceState(null, "", location.pathname + (search ? "?" + search : ""));
+      } catch {}
+    },
+  };
+  const runtime = createHttpRuntime(bootstrap, { params });
+  createRoot(document.getElementById("root")).render(createElement(ViewHost, { view, runtime }));
+}
+export default view;
+`;
+
+const mounting = (views: Array<{ name: string; file: string }>) => ({
+  name: "forgeron-mount",
+  resolveId(
+    this: { resolve: (s: string, i?: string, o?: object) => Promise<{ id: string } | null> },
+    source: string,
+    importer?: string,
+  ) {
+    if (source.startsWith(MOUNT)) return source;
+    if (importer?.startsWith(MOUNT)) {
+      const view = views.find((v) => `${MOUNT}${v.name}` === importer);
+      // The generated entry resolves what it imports from the view's own folder.
+      return view ? this.resolve(source, view.file, { skipSelf: true }) : null;
+    }
+    return null;
+  },
+  load(id: string) {
+    if (!id.startsWith(MOUNT)) return null;
+    const view = views.find((v) => `${MOUNT}${v.name}` === id);
+    return view ? mountSource(view.file) : null;
+  },
+});
+
 async function buildViews(
   dir: string,
   outDir: string,
@@ -217,10 +271,10 @@ async function buildViews(
 ): Promise<Record<string, string>> {
   if (views.length === 0) return {};
   const bundle = await rolldown({
-    input: Object.fromEntries(views.map((v) => [v.name, v.file])),
+    input: Object.fromEntries(views.map((v) => [v.name, `${MOUNT}${v.name}`])),
     platform: "browser",
     logLevel: "silent",
-    plugins: [boundary(dir)],
+    plugins: [mounting(views), boundary(dir)],
     transform: { jsx: "react-jsx", define: { "process.env.NODE_ENV": '"production"' } },
   });
   const { output } = await bundle.write({
