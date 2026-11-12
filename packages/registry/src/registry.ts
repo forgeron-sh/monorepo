@@ -14,6 +14,7 @@ import { createIdentityStore } from "./modules/identity-store/public";
 import { createLibrary } from "./modules/library/public";
 import { createMarketplaces } from "./modules/marketplaces/public";
 import { createMembers } from "./modules/members/public";
+import { createTeams } from "./modules/teams/public";
 import { createSecrets } from "./modules/secrets/public";
 import { createTemplates } from "./modules/templates/public";
 import { createUsage } from "./modules/usage/public";
@@ -38,6 +39,8 @@ export type {
 } from "./modules/catalog/public";
 export type { ConnectionInfo, ConnectionTokens } from "./modules/connections/public";
 export type { Invitation, JoinVia, Member, MembershipSettings } from "./modules/members/public";
+export { teamRole } from "./modules/teams/public";
+export type { Team } from "./modules/teams/public";
 export type {
   SecretRequestInfo,
   SecretRequestRefusal,
@@ -68,6 +71,7 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     ...createSecrets(kernel, catalogPort),
     ...createConnections(kernel, catalogPort),
     ...createMembers(kernel),
+    ...createTeams(kernel),
     ...createIdentityStore(kernel),
     ...createApprovals(kernel, catalogPort),
     ...createAudit(kernel),

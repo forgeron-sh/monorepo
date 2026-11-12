@@ -26,6 +26,13 @@ const routes: RouteDef[] = [
     ),
   },
   {
+    path: "/admin/teams",
+    title: "Teams",
+    access: "admin",
+    nav: { group: "admin", label: "Teams", order: 35 },
+    page: () => import("./pages/teams"),
+  },
+  {
     path: "/admin/roles",
     title: "Roles and access",
     access: "admin",

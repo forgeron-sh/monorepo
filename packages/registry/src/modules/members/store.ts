@@ -103,6 +103,12 @@ export function createMembers(kernel: Kernel) {
       if (clean.some((r) => !ROLE.test(r))) {
         throw new RegistryError("INVALID", "A role is a name of letters, digits, - and _.");
       }
+      if (clean.some((r) => r.startsWith("team-"))) {
+        throw new RegistryError(
+          "INVALID",
+          "A role cannot start with team-: that is how a team is named in the access matrix.",
+        );
+      }
       const member = await this.findMember(workspace, id);
       if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
       if (member.roles.includes("admin") && !clean.includes("admin")) {
@@ -153,6 +159,9 @@ export function createMembers(kernel: Kernel) {
           .bind(workspace, id),
         d1
           .prepare(`DELETE FROM "person_secrets" WHERE "workspace" = ? AND "person" = ?`)
+          .bind(workspace, id),
+        d1
+          .prepare(`DELETE FROM "team_members" WHERE "workspace" = ? AND "member_id" = ?`)
           .bind(workspace, id),
         d1.prepare(`DELETE FROM "members" WHERE "workspace" = ? AND "id" = ?`).bind(workspace, id),
         auditStatement(

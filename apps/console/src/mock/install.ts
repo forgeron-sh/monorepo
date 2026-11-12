@@ -43,6 +43,17 @@ export async function installMock(): Promise<void> {
           { id: "m2", email: "bob@acme.example", name: "bob", roles: ["developer"] },
           { id: "m3", email: "claire@acme.example", name: "claire", roles: [] },
         ],
+    teams: (fresh
+      ? []
+      : [
+          {
+            id: "product",
+            name: "Product",
+            description: "Roadmap and design",
+            members: ["m1", "m2"],
+          },
+          { id: "support", name: "Support", description: "", members: ["m3"] },
+        ]) as Array<{ id: string; name: string; description: string; members: string[] }>,
     invitations: fresh
       ? []
       : [
@@ -476,6 +487,7 @@ export async function installMock(): Promise<void> {
     }
     const needAdmin = [
       "/api/members",
+      "/api/teams",
       "/api/invitations",
       "/api/membership-settings",
       "/api/identity-provider",
@@ -570,6 +582,34 @@ export async function installMock(): Promise<void> {
       if (answer) return reply(answer.status, answer.body);
     }
 
+    // Teams (D-132): named groups of members.
+    if (path === "/api/teams" && method === "GET")
+      return reply(200, { teams: state.teams.map((t) => ({ ...t, role: `team-${t.id}` })) });
+    if (path === "/api/teams" && method === "POST") {
+      if (state.teams.some((t) => t.id === body.id))
+        return reply(409, {
+          error: "ALREADY_EXISTS",
+          message: `There is already a team ${body.id}.`,
+        });
+      state.teams.push({
+        id: body.id,
+        name: body.name,
+        description: body.description ?? "",
+        members: body.members ?? [],
+      });
+      return reply(201, { ...state.teams.at(-1)!, role: `team-${body.id}` });
+    }
+    const team = /^\/api\/teams\/([a-z][a-z0-9-]*)$/.exec(path);
+    if (team && method === "PATCH") {
+      const t = state.teams.find((x) => x.id === team[1]);
+      if (!t) return reply(404, { error: "NOT_FOUND", message: "There is no such team." });
+      Object.assign(t, body);
+      return reply(200, { ...t, role: `team-${t.id}` });
+    }
+    if (team && method === "DELETE") {
+      state.teams = state.teams.filter((x) => x.id !== team[1]);
+      return reply(204);
+    }
     if (path === "/api/members" && method === "GET")
       return reply(200, {
         members: state.members,

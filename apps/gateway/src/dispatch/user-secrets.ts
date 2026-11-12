@@ -1,5 +1,5 @@
 import type { Manifest } from "@forgeron/manifest";
-import type { Registry } from "@forgeron/registry";
+import { teamRole, type Registry } from "@forgeron/registry";
 import {
   type ConnectorStep,
   handleSecretsInput,
@@ -30,6 +30,8 @@ export interface UserSecretsContext {
     | "findTool"
     | "listConnections"
     | "listMembers"
+    | "listTeams"
+    | "teamsOfMember"
     | "listPersonSecrets"
     | "readPersonSecret"
     | "readUserSecrets"
@@ -187,19 +189,33 @@ export async function handleUserSecrets(
 
 type Asked = NonNullable<Manifest["resources"]["directory"]>;
 
-/** The people a tool declared it wants (D-131): nothing beyond the fields it named. */
+/** The people and teams a tool declared it wants (D-131, D-132): nothing beyond the fields it named. */
 export function directoryFor(
   asked: Asked,
   members: ReadonlyArray<{ id: string; email: string; name: string; roles: string[] }>,
-): { members: Array<Record<string, unknown>> } {
-  if (!asked.members) return { members: [] };
+  teams: ReadonlyArray<{ id: string; name: string; description: string; members: string[] }> = [],
+): { members: Array<Record<string, unknown>>; teams?: Array<Record<string, unknown>> } {
+  const teamsOf = (id: string) => teams.filter((t) => t.members.includes(id)).map((t) => t.id);
   return {
-    members: members.map((m) => ({
-      id: m.id,
-      email: m.email,
-      name: m.name,
-      ...(asked.roles ? { roles: m.roles } : {}),
-    })),
+    members: asked.members
+      ? members.map((m) => ({
+          id: m.id,
+          email: m.email,
+          name: m.name,
+          ...(asked.roles ? { roles: m.roles } : {}),
+          ...(asked.teams ? { teams: teamsOf(m.id) } : {}),
+        }))
+      : [],
+    ...(asked.teams
+      ? {
+          teams: teams.map((t) => ({
+            id: t.id,
+            name: t.name,
+            ...(t.description ? { description: t.description } : {}),
+            members: asked.members ? t.members : [],
+          })),
+        }
+      : {}),
   };
 }
 
@@ -239,18 +255,25 @@ export async function forwardIdentity(
   // What the person's workspace roles are mapped to in this tool, and the matrix resolved for each
   // action, read at each call so an edit applies at once on every interface (D-039, D-127). A runtime
   // built before D-127 reads only `access`, which says everything.
+  // A team is a subject of that matrix, named `team-<id>` (D-132): the person holds the roles of the
+  // workspace and those of their teams, so a team's profile and exceptions apply with no second path.
+  const teams = record
+    ? await context.registry.teamsOfMember(context.workspace, who.person.id)
+    : [];
+  const roles = [...who.person.roles, ...teams.map(teamRole)];
   const { access, permissions } = record
-    ? await context.registry.accessFor(record.id, who.person.roles)
+    ? await context.registry.accessFor(record.id, roles)
     : { access: {}, permissions: {} };
+  const payload = {
+    id: who.person.id,
+    email: who.person.email,
+    name: who.person.name,
+    roles,
+    access,
+    permissions,
+  };
   const headers: Record<string, string> = {
-    "x-forgeron-user": JSON.stringify({
-      id: who.person.id,
-      email: who.person.email,
-      name: who.person.name,
-      roles: who.person.roles,
-      access,
-      permissions,
-    }),
+    "x-forgeron-user": JSON.stringify(payload),
     "x-forgeron-base-url": `${new URL(request.url).origin}/t/${tool}`,
   };
   if (record) {
@@ -279,9 +302,12 @@ export async function forwardIdentity(
     // What the tool asked to know of the workspace's people (D-131), filtered here to that and no more:
     // the runtime filters again. Only the members of this workspace, never a person's secrets.
     const asked = manifest?.resources?.directory;
+    // The person's own teams only reach a tool that asked for teams.
+    if (asked?.teams) headers["x-forgeron-user"] = JSON.stringify({ ...payload, teams });
     if (asked) {
       const everyone = await context.registry.listMembers(context.workspace);
-      headers["x-forgeron-directory"] = JSON.stringify(directoryFor(asked, everyone));
+      const all = asked.teams ? await context.registry.listTeams(context.workspace) : [];
+      headers["x-forgeron-directory"] = JSON.stringify(directoryFor(asked, everyone, all));
     }
     if (context.connectors && manifest) {
       const connectors = await connectorHeaders(record, manifest, who.person, environment, {
