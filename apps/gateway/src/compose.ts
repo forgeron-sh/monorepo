@@ -39,6 +39,7 @@ import { forwardIdentity } from "./dispatch/user-secrets";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget } from "./dispatch/targets";
 import { toolAddress } from "./tool-address";
+import { workspaceHosts } from "./kernel/workspace";
 
 // The composition of the gateway (D-077). `createModules` builds what lives as long as the Worker:
 // the registry and the identity pieces, once. `createRequestModules` builds what lives as long as one
@@ -92,7 +93,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
   const production =
     env.DISPATCHER !== undefined ||
     env.BASE_DOMAIN === "forgeron.app" ||
-    env.BASE_DOMAIN.endsWith(".forgeron.app");
+    (env.BASE_DOMAIN ?? "").endsWith(".forgeron.app");
   const consoleMail = env.MAIL_MODE === "console" && !production;
   if (env.MAIL_MODE === "console" && production) {
     console.error("MAIL_MODE=console is refused on a production domain: sign-in by email is off.");
@@ -136,9 +137,19 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       };
     })());
 
-  const hostingOf = (workspace: string): Hosting | undefined => {
+  // Which workspace a host serves, and each workspace's primary origin (D-126).
+  const hosts = workspaceHosts(env);
+  /**
+   * The primary origin of a workspace. A workspace served only as the default workspace, with no
+   * mapped host and no base domain, has none: the origin of the request stands in for it.
+   */
+  const originOf = (workspace: string, request?: Request): string =>
+    hosts.primaryOrigin(workspace) ?? (request ? new URL(request.url).origin : "");
+
+  const hostingOf = (workspace: string, request?: Request): Hosting | undefined => {
     if (options.hosting) return options.hosting(workspace);
     if (!env.CLOUDFLARE_ACCOUNT_ID || !env.CLOUDFLARE_API_TOKEN) return undefined;
+    const origin = originOf(workspace, request);
     const common = {
       accountId: env.CLOUDFLARE_ACCOUNT_ID,
       apiToken: env.CLOUDFLARE_API_TOKEN,
@@ -146,7 +157,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       // Production answers at the tool's address; a preview adds `@<branch>`, another permanent
       // channel `~<name>` (D-125).
       url: (worker: string, environment: { branch?: string; channel?: string }) =>
-        toolAddress(`https://${workspace}.${env.BASE_DOMAIN}`, worker, environment),
+        toolAddress(origin, worker, environment),
     };
     if (env.DISPATCHER && env.DISPATCH_NAMESPACE) {
       return createCloudHosting({ ...common, namespace: env.DISPATCH_NAMESPACE });
@@ -159,12 +170,13 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
   const samlOf = async (
     workspace: string,
     config: IdentityConfig,
+    request?: Request,
   ): Promise<SamlProvider | undefined> => {
     // Single sign-on is on when OIDC is (nothing stated, or `oidc` named) or when `saml` is named.
     if (!oidcOn && !methods.includes("saml")) return undefined;
     const saved = await config.getSamlProvider(workspace);
     if (!saved) return undefined;
-    const origin = `https://${workspace}.${env.BASE_DOMAIN}`;
+    const origin = originOf(workspace, request);
     return {
       idpEntityId: saved.idpEntityId,
       ssoUrl: saved.ssoUrl,
@@ -187,9 +199,9 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
     };
   };
 
-  const providerOf = async (workspace: string, config: IdentityConfig) => {
+  const providerOf = async (workspace: string, config: IdentityConfig, request?: Request) => {
     if (!oidcOn) return undefined;
-    const redirectUri = `https://${workspace}.${env.BASE_DOMAIN}/auth/callback`;
+    const redirectUri = `${originOf(workspace, request)}/auth/callback`;
     const saved = await config.getIdentityProvider(workspace, env.SECRETS_KEY !== undefined);
     if (saved) return providerFromConfig(saved, redirectUri);
     return env.OIDC_ISSUER && env.OIDC_CLIENT_ID
@@ -210,6 +222,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       workspace: string,
       clients: Awaited<ReturnType<IdentityConfig["connectorClientsWithSecrets"]>>,
       sealer: SecretBox,
+      origin: string,
     ) =>
       createConsent({
         registry,
@@ -222,7 +235,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
               tokenUrl: c.tokenUrl,
               clientId: c.clientId,
               clientSecret: c.clientSecret,
-              redirectUri: `https://${workspace}.${env.BASE_DOMAIN}${CONSOLE_API}/api/consent/callback`,
+              redirectUri: `${origin}${CONSOLE_API}/api/consent/callback`,
             },
           ]),
         ),
@@ -240,7 +253,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
     const targetOf = (worker: string) =>
       env.DISPATCHER ? namespaceTarget(env.DISPATCHER, worker) : serviceBindingTarget(env, worker);
     const dispatch = createDispatcher({
-      baseDomain: env.BASE_DOMAIN,
+      workspaceOf: hosts.workspaceOf,
       registry: dispatchRegistryOf,
       // Seats are counted once identity tells who called (`identify`); without it nothing is counted.
       ...(identify
@@ -290,9 +303,10 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
                               c.workspace,
                               await config.connectorClientsWithSecrets(c.workspace, types),
                               box,
+                              originOf(c.workspace, c.request),
                             ),
                           consentUrl: (tool: string, environment: string, name: string) =>
-                            `https://${c.workspace}.${env.BASE_DOMAIN}${CONSOLE_API}/api/tools/${tool}/environments/${environment}/consent/${name}`,
+                            `${originOf(c.workspace, c.request)}${CONSOLE_API}/api/tools/${tool}/environments/${environment}/consent/${name}`,
                         },
                       }
                     : {}),
@@ -325,6 +339,8 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
     now,
     platform,
     parts,
+    hosts,
+    originOf,
     hostingOf,
     mailer,
     consoleMail,
@@ -350,7 +366,8 @@ export function createRequestModules(
 ) {
   const { env, options, now, mailer } = modules;
   const { registry, config, box, codes, consentFor, identity, resealer } = parts;
-  const origin = `https://${workspace}.${env.BASE_DOMAIN}`;
+  // The primary origin (D-126): what is mailed, shown and checked. The request may come on another host.
+  const origin = modules.originOf(workspace, request);
 
   // The person comes lazily and at most once: a route that is public, or refused before anyone is
   // asked, never costs a lookup. A CLI token counts: these are the platform's own routes.
@@ -401,7 +418,7 @@ export function createRequestModules(
     ...(box
       ? {
           consent: async () =>
-            consentFor(workspace, await config.connectorClientsWithSecrets(workspace), box),
+            consentFor(workspace, await config.connectorClientsWithSecrets(workspace), box, origin),
         }
       : {}),
     identity: async () => {
@@ -427,11 +444,11 @@ export function createRequestModules(
     ...(notify ? { notify } : {}),
     ...(notifySecretSet ? { notifySecretSet } : {}),
     origin,
-    baseDomain: env.BASE_DOMAIN,
+    ...(env.BASE_DOMAIN ? { baseDomain: env.BASE_DOMAIN } : {}),
     marketplaceFetch: async (u, init) => (options.fetch ?? fetch)(u, init),
     githubFetch: async (u, init) => (options.fetch ?? fetch)(u, init),
     ...(env.OFFICIAL_MARKETPLACE ? { officialMarketplace: env.OFFICIAL_MARKETPLACE } : {}),
-    hosting: modules.hostingOf,
+    hosting: (ws: string) => modules.hostingOf(ws, request),
     ...(identity
       ? {
           bearer: {
@@ -448,11 +465,11 @@ export function createRequestModules(
       },
       oidc: {
         enabled: modules.oidcOn,
-        configured: (await modules.providerOf(workspace, config)) !== undefined,
+        configured: (await modules.providerOf(workspace, config, request)) !== undefined,
       },
       saml: {
         enabled: modules.oidcOn || modules.methods.includes("saml"),
-        configured: (await modules.samlOf(workspace, config)) !== undefined,
+        configured: (await modules.samlOf(workspace, config, request)) !== undefined,
       },
     }),
   });
@@ -556,9 +573,10 @@ export function createRequestModules(
                       workspace,
                       await config.connectorClientsWithSecrets(workspace, types),
                       box,
+                      origin,
                     ),
                   consentUrl: (tool: string, environment: string, name: string) =>
-                    `https://${workspace}.${env.BASE_DOMAIN}${CONSOLE_API}/api/tools/${tool}/environments/${environment}/consent/${name}`,
+                    `${origin}${CONSOLE_API}/api/tools/${tool}/environments/${environment}/consent/${name}`,
                 },
               }
             : {}),
@@ -590,7 +608,9 @@ export function createRequestModules(
     mcpOAuth: identity
       ? () => ({
           workspace,
-          origin,
+          // The host the client talks to (D-126): an MCP client signs in where it connects, with the
+          // session of that host. Its tokens name a tool, not a host, so they work on every host.
+          origin: new URL(request.url).origin,
           secret: identity.secret,
           registry,
           now,
@@ -603,7 +623,7 @@ export function createRequestModules(
       identity && modules.emailOn && mailer
         ? () =>
             createEmailAuth({
-              baseDomain: env.BASE_DOMAIN,
+              workspaceOf: modules.hosts.workspaceOf,
               secret: identity.secret,
               registry,
               codes,
@@ -611,8 +631,8 @@ export function createRequestModules(
               policy: (ws) => modules.policyOf(registry, ws),
               // The "company account" button leads to `/auth/login?method=oidc`: SAML answers it too.
               oidcAvailable: async (ws) =>
-                (await modules.samlOf(ws, config)) !== undefined ||
-                (await modules.providerOf(ws, config)) !== undefined,
+                (await modules.samlOf(ws, config, request)) !== undefined ||
+                (await modules.providerOf(ws, config, request)) !== undefined,
               now,
               sessionTtlSeconds: options.sessionTtlSeconds ?? 8 * 60 * 60,
               ...(modules.consoleMail
@@ -629,10 +649,12 @@ export function createRequestModules(
     auth: identity
       ? () =>
           createAuth({
-            baseDomain: env.BASE_DOMAIN,
+            workspaceOf: modules.hosts.workspaceOf,
+            // Single sign-on runs on the primary origin, where its redirect URI is (D-126).
+            primaryOrigin: (ws) => modules.hosts.primaryOrigin(ws),
             secret: identity.secret,
-            providerFor: (ws) => modules.providerOf(ws, config),
-            samlFor: (ws) => modules.samlOf(ws, config),
+            providerFor: (ws) => modules.providerOf(ws, config, request),
+            samlFor: (ws) => modules.samlOf(ws, config, request),
             samlRequests: createSamlRequests(env.DB),
             resolvePerson: async (ws, who) => {
               const policy = await modules.policyOf(registry, ws);

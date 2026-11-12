@@ -133,7 +133,7 @@ function setup(
     ]),
   );
   const dispatch = createDispatcher({
-    baseDomain: BASE,
+    workspaceOf: (host: string) => workspaceOf(host, BASE),
     registry,
     targets: (w) => targets.get(w),
     ...hooks,
@@ -189,7 +189,7 @@ describe("dispatch", () => {
 
   it("confines what a tool answers: sandboxed, no sniffing, no cookie of its own", async () => {
     const dispatch = createDispatcher({
-      baseDomain: BASE,
+      workspaceOf: (host: string) => workspaceOf(host, BASE),
       registry,
       targets: () => ({
         fetch: () =>
@@ -287,7 +287,11 @@ describe("dispatch", () => {
   });
 
   it("answers 502 when it holds no binding to the tool's Worker", async () => {
-    const dispatch = createDispatcher({ baseDomain: BASE, registry, targets: () => undefined });
+    const dispatch = createDispatcher({
+      workspaceOf: (host: string) => workspaceOf(host, BASE),
+      registry,
+      targets: () => undefined,
+    });
     const response = await dispatch(new Request("https://acme.forgeron.app/t/crm/mcp"));
     expect(response.status).toBe(502);
   });

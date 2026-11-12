@@ -14,8 +14,21 @@ import type { DispatchNamespace } from "./dispatch/targets";
 export interface GatewayEnv {
   /** The platform D1. */
   DB: D1Database;
-  /** `forgeron.app`. */
-  BASE_DOMAIN: string;
+  /**
+   * `forgeron.app`: `<workspace>.<BASE_DOMAIN>` serves that workspace. Optional in self-host when
+   * `WORKSPACE_HOSTS` or `DEFAULT_WORKSPACE` says which hosts are served (D-126).
+   */
+  BASE_DOMAIN?: string;
+  /**
+   * Exact hosts and the workspace each serves (D-126): `host=workspace,host=workspace`. A workspace's
+   * first host here is its primary origin. Checked before the `BASE_DOMAIN` rule.
+   */
+  WORKSPACE_HOSTS?: string;
+  /**
+   * Single-workspace mode (D-126): the workspace that any other host serves, such as the Worker's
+   * `workers.dev` address. Unset: an unknown host serves no workspace, as before.
+   */
+  DEFAULT_WORKSPACE?: string;
   /**
    * Forgeron Cloud: the dispatch namespace the tool Workers are uploaded to (`dispatch_namespaces`
    * in `wrangler.jsonc`). Self-host has none and holds one service binding per Worker instead

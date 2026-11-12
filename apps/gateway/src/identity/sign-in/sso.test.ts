@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createAuth, type AuthOptions } from "./auth";
+import { workspaceOf } from "../../kernel/workspace";
 import { tokenAuthenticator } from "../authn/authenticate";
 import { OidcError, completeLogin, startLogin, type OidcProvider } from "./oidc";
 import { toBase64Url } from "../authn/sealed";
@@ -267,7 +268,7 @@ describe("/auth routes", () => {
   async function setup(member = true) {
     const idp = await simulatedProvider();
     const options: AuthOptions = {
-      baseDomain: "forgeron.app",
+      workspaceOf: (host) => workspaceOf(host, "forgeron.app"),
       secret,
       providerFor: (workspace) => (workspace === "acme" ? provider : undefined),
       resolvePerson: (_workspace, identity) =>

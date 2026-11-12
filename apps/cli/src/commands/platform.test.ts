@@ -43,6 +43,8 @@ function fakeCloudflare(
   const uploaded: Record<string, string>[] = [];
   const records: Array<{ id: string; name: string; proxied: boolean }> = [];
   const routes: Array<{ id: string; pattern: string; script: string }> = [];
+  /** Whether each Worker answers at its workers.dev address. */
+  const workersDev = new Map<string, boolean>();
   const ok = (result: unknown) => Response.json({ success: true, errors: [], result });
   const missing = () =>
     Response.json(
@@ -103,6 +105,11 @@ function fakeCloudflare(
       routes.push({ id: "route-1", pattern: String(body?.pattern), script: String(body?.script) });
       return ok(routes.at(-1));
     }
+    if (method === "GET" && path === "/workers/subdomain") return ok({ subdomain: "acct" });
+    if ((m = path.match(/^\/workers\/scripts\/([^/]+)\/subdomain$/))) {
+      if (method === "POST") workersDev.set(m[1]!, body?.enabled === true);
+      return ok({ enabled: workersDev.get(m[1]!) ?? false, previews_enabled: false });
+    }
     if (method === "GET" && path === "/d1/database") {
       return ok([...databases].map(([uuid, name]) => ({ uuid, name })));
     }
@@ -156,7 +163,7 @@ function fakeCloudflare(
   const useToken = (token: string) => {
     current = token;
   };
-  return { fetcher, calls, databases, records, routes, uploaded, versions, useToken };
+  return { fetcher, calls, databases, records, routes, uploaded, versions, useToken, workersDev };
 }
 
 let dir: string;
@@ -806,6 +813,116 @@ describe("forgeron platform install", () => {
   });
 });
 
+describe("hosts and workers.dev (D-126)", () => {
+  const noDomain = (extra: string[]) => [
+    "install",
+    "--account",
+    "acc-1",
+    "--gateway",
+    "gateway.js",
+    ...extra,
+  ];
+  const plainOf = (cf: ReturnType<typeof fakeCloudflare>, name: string, at = -1) =>
+    cf.versions.at(at)!.find((b) => b.name === name)?.text;
+
+  it("sends --host and --default-workspace to the gateway, and keeps them on a later run", async () => {
+    const cf = fakeCloudflare();
+    const flags = ["--host", "tools.acme.test=acme", "--host", "Other.Acme.Test=acme"];
+    await platform(install([...flags, "--default-workspace", "acme"]), io, { fetch: cf.fetcher });
+    expect(plainOf(cf, "WORKSPACE_HOSTS")).toBe("tools.acme.test=acme,other.acme.test=acme");
+    expect(plainOf(cf, "DEFAULT_WORKSPACE")).toBe("acme");
+    expect(plainOf(cf, "BASE_DOMAIN")).toBe("forgeron.example.test");
+    expect(logs.join("\n")).toContain("primary origin");
+
+    await platform(install(), io, { fetch: cf.fetcher });
+    const second = cf.calls.filter((c) => c.path.endsWith("/versions")).at(-1)!;
+    expect(second.body!.bindings).toEqual(
+      expect.arrayContaining([
+        { type: "inherit", name: "WORKSPACE_HOSTS" },
+        { type: "inherit", name: "DEFAULT_WORKSPACE" },
+      ]),
+    );
+    expect(plainOf(cf, "WORKSPACE_HOSTS")).toBe("tools.acme.test=acme,other.acme.test=acme");
+  });
+
+  it("forgets the mapping and the default with none", async () => {
+    const cf = fakeCloudflare();
+    await platform(install(["--host", "tools.acme.test=acme", "--default-workspace", "acme"]), io, {
+      fetch: cf.fetcher,
+    });
+    await platform(install(["--host", "none", "--default-workspace", "none"]), io, {
+      fetch: cf.fetcher,
+    });
+    expect(plainOf(cf, "WORKSPACE_HOSTS")).toBeUndefined();
+    expect(plainOf(cf, "DEFAULT_WORKSPACE")).toBeUndefined();
+    expect(plainOf(cf, "BASE_DOMAIN")).toBe("forgeron.example.test");
+  });
+
+  it("turns on workers.dev, maps it, keeps the base domain and touches no zone without --domain", async () => {
+    const cf = fakeCloudflare();
+    await platform(install(), io, { fetch: cf.fetcher });
+    const zoneCalls = cf.calls.filter((c) => c.path.startsWith("/zones")).length;
+    logs.length = 0;
+    expect(
+      await platform(noDomain(["--workers-dev", "--host", "workers.dev=acme"]), io, {
+        fetch: cf.fetcher,
+      }),
+    ).toBe(0);
+    expect(cf.calls.filter((c) => c.path.startsWith("/zones")).length).toBe(zoneCalls);
+    expect(cf.workersDev.get("forgeron-gateway")).toBe(true);
+    expect(cf.calls).toContainEqual({
+      method: "POST",
+      path: "/workers/scripts/forgeron-gateway/subdomain",
+      body: { enabled: true, previews_enabled: false },
+    });
+    expect(plainOf(cf, "WORKSPACE_HOSTS")).toBe("forgeron-gateway.acct.workers.dev=acme");
+    // The base domain of the first run is kept: acme.forgeron.example.test still answers.
+    expect(plainOf(cf, "BASE_DOMAIN")).toBe("forgeron.example.test");
+    const out = logs.join("\n");
+    expect(out).toContain("https://forgeron-gateway.acct.workers.dev");
+    expect(out).toContain("No --domain: no DNS record or route");
+    expect(out).not.toContain("serves a workspace only when");
+  });
+
+  it("says the workers.dev address needs a mapping or a default when neither is given", async () => {
+    const cf = fakeCloudflare();
+    await platform(install(["--workers-dev"]), io, { fetch: cf.fetcher });
+    expect(logs.join("\n")).toContain("serves a workspace only when it is mapped");
+  });
+
+  it("serves a first install on workers.dev alone with a default workspace", async () => {
+    const cf = fakeCloudflare();
+    await platform(noDomain(["--workers-dev", "--default-workspace", "acme"]), io, {
+      fetch: cf.fetcher,
+    });
+    expect(plainOf(cf, "DEFAULT_WORKSPACE")).toBe("acme");
+    expect(plainOf(cf, "BASE_DOMAIN")).toBeUndefined();
+    expect(cf.calls.some((c) => c.path.startsWith("/zones"))).toBe(false);
+  });
+
+  it("refuses what would serve nothing, or names a host it cannot be", async () => {
+    const cf = fakeCloudflare();
+    const run = (args: string[]) => platform(args, io, { fetch: cf.fetcher });
+    await expect(run(noDomain([]))).rejects.toThrow(/Usage/);
+    await expect(run(noDomain(["--workers-dev"]))).rejects.toThrow(/A first install needs/);
+    await expect(run(noDomain(["--host", "workers.dev=acme"]))).rejects.toThrow(
+      /add --workers-dev/,
+    );
+    await expect(run(noDomain(["--workers-dev", "--only", "acme"]))).rejects.toThrow(
+      /give --domain/,
+    );
+    await expect(run(install(["--host", "https://x.test=acme"]))).rejects.toThrow(/not a host/);
+    await expect(run(install(["--host", "x.test"]))).rejects.toThrow(/<host>=<workspace>/);
+    await expect(run(install(["--host", "x.test=www"]))).rejects.toThrow(/reserved/);
+    await expect(
+      run(install(["--host", "x.test=acme", "--host", "X.test=globex"])),
+    ).rejects.toThrow(/given twice/);
+    await expect(run(install(["--default-workspace", "No Name"]))).rejects.toThrow(
+      /not a workspace name/,
+    );
+  });
+});
+
 describe("forgeron platform status (D-113)", () => {
   const status = ["status", "--account", "acc-1", "--domain", "forgeron.example.test"];
 
@@ -879,6 +996,35 @@ describe("forgeron platform status (D-113)", () => {
     const out = logs.join("\n");
     expect(out).toContain("not found: run `forgeron platform install`");
     expect(out).toContain("not deployed");
-    await expect(platform(["status", "--account", "acc-1"], io)).rejects.toThrow(/Usage/);
+    await expect(platform(["status", "--domain", "forgeron.example.test"], io)).rejects.toThrow(
+      /Usage/,
+    );
+  });
+  it("shows the hosts and the workers.dev address, and says when it serves no workspace", async () => {
+    const cf = fakeCloudflare();
+    await platform(install(["--workers-dev", "--host", "workers.dev=acme"]), io, {
+      fetch: cf.fetcher,
+    });
+    logs.length = 0;
+    expect(await platform(status, io, { fetch: readable(cf) })).toBe(0);
+    let out = logs.join("\n");
+    expect(out).toContain("WORKSPACE_HOSTS  forgeron-gateway.acct.workers.dev=acme");
+    expect(out).toContain("workers.dev https://forgeron-gateway.acct.workers.dev");
+
+    await platform(install(["--host", "none"]), io, { fetch: cf.fetcher });
+    logs.length = 0;
+    expect(await platform(status, io, { fetch: readable(cf) })).toBe(1);
+    out = logs.join("\n");
+    expect(out).toContain("the workers.dev address serves no workspace");
+  });
+
+  it("checks no route without --domain", async () => {
+    const cf = fakeCloudflare();
+    await platform(install(), io, { fetch: cf.fetcher });
+    logs.length = 0;
+    expect(await platform(["status", "--account", "acc-1"], io, { fetch: readable(cf) })).toBe(0);
+    const out = logs.join("\n");
+    expect(out).not.toContain("Route ");
+    expect(out).toContain("workers.dev off");
   });
 });

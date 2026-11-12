@@ -1,5 +1,4 @@
 import type { EmailCodes, Member, Registry } from "@forgeron/registry";
-import { workspaceOf } from "../../kernel/workspace";
 import type { MailSender } from "../../mail/mail";
 import { errorPage } from "../../pages/errors";
 import { reasonOf, signInPages } from "../../pages/sign-in";
@@ -40,7 +39,8 @@ interface EmailPolicy {
 }
 
 export interface EmailAuthOptions {
-  baseDomain: string;
+  /** The workspace a host serves (D-126). Sign-in by email works on any host the gateway serves. */
+  workspaceOf(host: string): string | undefined;
   secret: string;
   registry: Pick<
     Registry,
@@ -136,7 +136,7 @@ export function createEmailAuth(options: EmailAuthOptions) {
     const path = url.pathname;
     const invite = /^\/auth\/invite\/([^/]+)$/.exec(path);
     if (path !== "/auth/login" && !path.startsWith("/auth/email/") && !invite) return undefined;
-    const workspace = workspaceOf(url.host, options.baseDomain);
+    const workspace = options.workspaceOf(url.host);
     if (!workspace) return undefined;
     const method = request.method;
     const pages = signInPages(workspace, {

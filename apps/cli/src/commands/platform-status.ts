@@ -10,12 +10,11 @@ import { resolveCloudflareCredential } from "./cloudflare-auth";
 // prints a secret: a secret binding shows its name only, and no value is ever read.
 
 export const STATUS_USAGE =
-  "Usage: forgeron platform status --account <id> --domain <base-domain> [--name forgeron] [--auth token|wrangler]";
+  "Usage: forgeron platform status --account <id> [--domain <base-domain>] [--name forgeron] [--auth token|wrangler]";
 
 /** The bindings a working gateway holds, and what each is for. */
 const EXPECTED: Record<string, string> = {
   DB: "the platform database",
-  BASE_DOMAIN: "the domain the gateway serves",
   CLOUDFLARE_ACCOUNT_ID: "the account tools are deployed to",
   GATEWAY_WORKER: "the gateway's own name (it uploads new versions of itself)",
   CLOUDFLARE_API_TOKEN: "the token tools are deployed with",
@@ -25,6 +24,8 @@ const EXPECTED: Record<string, string> = {
 /** Plain values that are safe and useful to print: no secret, no credential. */
 const SHOWN = new Set([
   "BASE_DOMAIN",
+  "WORKSPACE_HOSTS",
+  "DEFAULT_WORKSPACE",
   "CLOUDFLARE_ACCOUNT_ID",
   "GATEWAY_WORKER",
   "SIGN_IN_METHODS",
@@ -57,7 +58,7 @@ export async function platformStatus(
       auth: { type: "string", default: "token" },
     },
   });
-  if (positionals.length > 0 || !values.account || !values.domain) {
+  if (positionals.length > 0 || !values.account) {
     throw new UsageError(STATUS_USAGE);
   }
   const name = values.name as string;
@@ -119,6 +120,12 @@ export async function platformStatus(
     for (const [binding, purpose] of Object.entries(EXPECTED)) {
       if (!have.has(binding)) problem(`${binding} is missing (${purpose}).`);
     }
+    // The hosts it serves (D-126): a base domain, mapped hosts, or a default workspace.
+    if (!["BASE_DOMAIN", "WORKSPACE_HOSTS", "DEFAULT_WORKSPACE"].some((n) => have.has(n))) {
+      problem(
+        "no host is served: BASE_DOMAIN, WORKSPACE_HOSTS and DEFAULT_WORKSPACE are all missing.",
+      );
+    }
     // The console is optional: a gateway installed without `--console` serves the API only.
     if (!have.has("ASSETS"))
       io.log("  note: no console is deployed (pass --console to the install).");
@@ -126,22 +133,72 @@ export async function platformStatus(
     io.log(`  ${tools} tool environment${tools === 1 ? "" : "s"} bound`);
   }
 
-  // The route that sends the traffic to it.
-  io.log(`Route *.${values.domain}/*`);
+  // The workers.dev address (D-126), when it is turned on.
+  const text = (n: string) => bindings.find((b) => b.name === n && b.type === "plain_text")?.text;
+  if (bindings.length > 0) {
+    try {
+      const route = await client.request<{ enabled?: boolean }>(
+        "GET",
+        `/workers/scripts/${worker}/subdomain`,
+      );
+      if (route.enabled) {
+        const { subdomain } = await client.request<{ subdomain?: string }>(
+          "GET",
+          "/workers/subdomain",
+        );
+        const host = `${worker}.${subdomain ?? "?"}.workers.dev`.toLowerCase();
+        io.log(`workers.dev https://${host}`);
+        const mapped = (text("WORKSPACE_HOSTS") ?? "")
+          .split(",")
+          .some((e) => e.startsWith(`${host}=`));
+        if (!mapped && !text("DEFAULT_WORKSPACE")) {
+          problem(
+            "the workers.dev address serves no workspace: map it with --host workers.dev=<workspace>, or set --default-workspace.",
+          );
+        }
+      } else {
+        io.log("workers.dev off");
+      }
+    } catch (error) {
+      if ((error as { status?: number }).status !== 404) {
+        problem(
+          `could not read the workers.dev address: ${(error as Error).message.split("\n")[0]}`,
+        );
+      }
+    }
+  }
+
+  // The route that sends the traffic to it: only asked about with --domain.
+  if (values.domain !== undefined) await checkRoute(client, values.domain, worker, problem, io);
+
+  io.log(
+    problems === 0 ? "Everything is in place." : `${problems} problem${problems === 1 ? "" : "s"}.`,
+  );
+  return problems === 0 ? 0 : 1;
+}
+
+async function checkRoute(
+  client: ReturnType<typeof createCloudflareClient>,
+  domain: string,
+  worker: string,
+  problem: (message: string) => void,
+  io: Io,
+): Promise<void> {
+  io.log(`Route *.${domain}/*`);
   try {
     const zones = await client.requestRoot<Array<{ id: string; name: string }>>(
       "GET",
-      `/zones?name=${encodeURIComponent(values.domain)}&account.id=${encodeURIComponent(values.account)}`,
+      `/zones?name=${encodeURIComponent(domain)}&account.id=${encodeURIComponent(client.accountId)}`,
     );
-    const zone = zones.find((z) => z.name === values.domain);
+    const zone = zones.find((z) => z.name === domain);
     if (!zone) {
-      problem(`the zone ${values.domain} is not on this account (or the token cannot read zones).`);
+      problem(`the zone ${domain} is not on this account (or the token cannot read zones).`);
     } else {
       const routes = await client.requestRoot<Array<{ pattern: string; script?: string }>>(
         "GET",
         `/zones/${zone.id}/workers/routes`,
       );
-      const route = routes.find((r) => r.pattern === `*.${values.domain}/*`);
+      const route = routes.find((r) => r.pattern === `*.${domain}/*`);
       if (!route) problem("no route: run `forgeron platform install`.");
       else if (route.script !== worker)
         problem(`it points to ${route.script ?? "no Worker"}, not ${worker}.`);
@@ -150,9 +207,4 @@ export async function platformStatus(
   } catch (error) {
     problem(`could not read the route: ${(error as Error).message.split("\n")[0]}`);
   }
-
-  io.log(
-    problems === 0 ? "Everything is in place." : `${problems} problem${problems === 1 ? "" : "s"}.`,
-  );
-  return problems === 0 ? 0 : 1;
 }

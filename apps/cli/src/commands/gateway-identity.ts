@@ -214,3 +214,84 @@ export function settingBindings(
   }
   return bindings;
 }
+
+/** What `--host workers.dev=<workspace>` stands for: the gateway's own workers.dev host (D-126). */
+const WORKERS_DEV_HOST = "workers.dev";
+
+const HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+
+/** Flags that say which hosts the gateway serves (D-126). */
+export interface HostFlags {
+  /** `--domain`: `<workspace>.<domain>` serves that workspace. */
+  domain?: string;
+  /** `--host <host>=<workspace>`, repeatable; `none` alone forgets the mapping. */
+  hosts?: string[];
+  /** `--default-workspace <workspace>`; `none` forgets it. */
+  defaultWorkspace?: string;
+  /** The gateway's workers.dev host, when `--workers-dev` is given: what `workers.dev=` stands for. */
+  workersDevHost?: string;
+}
+
+/**
+ * `BASE_DOMAIN`, `WORKSPACE_HOSTS` and `DEFAULT_WORKSPACE` (D-126). Each is given by its flag, else
+ * kept from the previous version, like the identity settings. `none` drops a setting.
+ */
+export function hostSettings(flags: HostFlags, check: (workspace: string) => void): Setting[] {
+  const plain = (name: string, text: string): Setting => ({
+    name,
+    keep: false,
+    given: { type: "plain_text", name, text },
+  });
+  const dropped = (name: string): Setting => ({ name, keep: false });
+  const settings: Setting[] = [];
+
+  if (flags.domain === undefined) settings.push({ name: "BASE_DOMAIN", keep: true });
+  else if (!HOST.test(flags.domain.toLowerCase())) {
+    throw new UsageError("--domain must be a domain, such as forgeron.example.com.");
+  } else settings.push(plain("BASE_DOMAIN", flags.domain.toLowerCase()));
+
+  if (flags.hosts === undefined || flags.hosts.length === 0) {
+    settings.push({ name: "WORKSPACE_HOSTS", keep: true });
+  } else if (flags.hosts.length === 1 && flags.hosts[0] === "none") {
+    settings.push(dropped("WORKSPACE_HOSTS"));
+  } else {
+    const entries: string[] = [];
+    for (const given of flags.hosts) {
+      const [rawHost, rawWorkspace, ...extra] = given.split("=");
+      let host = (rawHost ?? "").trim().toLowerCase().replace(/\.$/, "");
+      const workspace = (rawWorkspace ?? "").trim();
+      if (extra.length > 0 || !host || !workspace) {
+        throw new UsageError("--host is <host>=<workspace>, such as tools.acme.fr=acme.");
+      }
+      if (host === WORKERS_DEV_HOST) {
+        if (!flags.workersDevHost) {
+          throw new UsageError(
+            "--host workers.dev=<workspace> stands for the gateway's workers.dev address: add --workers-dev.",
+          );
+        }
+        host = flags.workersDevHost;
+      }
+      if (!HOST.test(host)) {
+        throw new UsageError(
+          `"${host}" is not a host: give a name such as tools.acme.fr, with no scheme, port or path.`,
+        );
+      }
+      check(workspace);
+      if (entries.some((e) => e.startsWith(`${host}=`))) {
+        throw new UsageError(`The host ${host} is given twice.`);
+      }
+      entries.push(`${host}=${workspace}`);
+    }
+    settings.push(plain("WORKSPACE_HOSTS", entries.join(",")));
+  }
+
+  if (flags.defaultWorkspace === undefined) {
+    settings.push({ name: "DEFAULT_WORKSPACE", keep: true });
+  } else if (flags.defaultWorkspace === "none") {
+    settings.push(dropped("DEFAULT_WORKSPACE"));
+  } else {
+    check(flags.defaultWorkspace);
+    settings.push(plain("DEFAULT_WORKSPACE", flags.defaultWorkspace));
+  }
+  return settings;
+}
