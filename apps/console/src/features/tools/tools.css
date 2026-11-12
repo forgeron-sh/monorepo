@@ -141,6 +141,19 @@
   flex: 1;
   min-width: 0;
 }
+/* A square link, an arrow only: the tool as the person who uses it sees it (D-128). */
+.ft-open-mine {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+}
+/* The tool's name, and next to it whether the channel is a draft or published (D-129). */
+.ft-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
 /* At the right of the title (D-120, D-129): the channel the page shows, then its publication. */
 .ft-header-actions {
   display: flex;
@@ -192,9 +205,9 @@
 }
 .ft-split-menu .fg-menu-trigger {
   justify-content: center;
-  width: 28px;
-  min-height: 28px;
-  height: 28px;
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
   padding: 0;
   border: 1px solid var(--line-strong);
 }
