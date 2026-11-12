@@ -223,4 +223,65 @@ export const catalogMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "build_docs"`), st(`DROP TABLE "docs_blobs"`)],
   },
+  {
+    // Channels (D-125). A permanent channel is where a tool is distributed and takes only releases of
+    // the branch it follows; production is one, an admin may add others (`staging`, `recette`). Each
+    // has its own Worker and database. A temporary channel is a branch's preview, as before: the
+    // `preview` rows stay as they are. SQLite cannot change a CHECK: `environments` is rebuilt with a
+    // third kind, `channel`, and three columns (the channel's name, the branch it follows, whether it
+    // updates by itself). `deployments` is copied aside because dropping `environments` cascades
+    // into it (as 0019 did). Each version keeps the branch whose push made it, so that a channel
+    // finds the releases of its branch even once later pushes moved the branch's preview: filled
+    // here from the previews that served it.
+    name: "0036_channels",
+    fingerprint: "channels-v1",
+    destructive: false,
+    up: [
+      st(`CREATE TABLE "deployments_keep" AS SELECT * FROM "deployments" ORDER BY "rowid"`),
+      st(`DROP TABLE "deployments"`),
+      st(`CREATE TABLE "environments_next" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "name" TEXT NOT NULL CHECK ("name" IN ('preview', 'production', 'channel')),
+  "branch" TEXT NOT NULL DEFAULT '',
+  "channel" TEXT NOT NULL DEFAULT '',
+  "follows" TEXT,
+  "auto_update" INTEGER NOT NULL DEFAULT 0,
+  "version_id" TEXT REFERENCES "versions" ("id") ON DELETE SET NULL,
+  "url" TEXT,
+  "activated_at" TEXT,
+  "created_at" TEXT NOT NULL,
+  UNIQUE ("tool_id", "name", "branch", "channel")
+)`),
+      st(
+        `INSERT INTO "environments_next" ("id", "tool_id", "name", "branch", "version_id", "url", "activated_at", "created_at") SELECT "id", "tool_id", "name", "branch", "version_id", "url", "activated_at", "created_at" FROM "environments"`,
+      ),
+      st(`DROP TABLE "environments"`),
+      st(`ALTER TABLE "environments_next" RENAME TO "environments"`),
+      st(`CREATE INDEX "environments_by_tool" ON "environments" ("tool_id")`),
+      st(`CREATE TABLE "deployments" (
+  "id" TEXT PRIMARY KEY NOT NULL,
+  "tool_id" TEXT NOT NULL REFERENCES "tools" ("id") ON DELETE CASCADE,
+  "environment_id" TEXT NOT NULL REFERENCES "environments" ("id") ON DELETE CASCADE,
+  "version_id" TEXT NOT NULL REFERENCES "versions" ("id") ON DELETE CASCADE,
+  "kind" TEXT NOT NULL CHECK ("kind" IN ('deploy', 'promote', 'rollback')),
+  "actor" TEXT NOT NULL,
+  "created_at" TEXT NOT NULL,
+  "commit_sha" TEXT,
+  "commit_message" TEXT,
+  "commit_author" TEXT
+)`),
+      st(
+        `INSERT INTO "deployments" ("id", "tool_id", "environment_id", "version_id", "kind", "actor", "created_at", "commit_sha", "commit_message", "commit_author") SELECT "id", "tool_id", "environment_id", "version_id", "kind", "actor", "created_at", "commit_sha", "commit_message", "commit_author" FROM "deployments_keep" ORDER BY "rowid"`,
+      ),
+      st(`DROP TABLE "deployments_keep"`),
+      st(`CREATE INDEX "deployments_by_environment" ON "deployments" ("environment_id")`),
+      st(`ALTER TABLE "versions" ADD COLUMN "branch" TEXT`),
+      st(
+        `UPDATE "versions" SET "branch" = (SELECT e."branch" FROM "deployments" d JOIN "environments" e ON e."id" = d."environment_id" WHERE d."version_id" = "versions"."id" AND e."name" = 'preview' AND d."kind" = 'deploy' ORDER BY d."rowid" LIMIT 1)`,
+      ),
+    ],
+    // Nothing to put back without losing the channels.
+    down: [],
+  },
 ];

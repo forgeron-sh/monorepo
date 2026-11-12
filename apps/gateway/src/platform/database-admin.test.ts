@@ -10,7 +10,7 @@ import {
   createRegistry,
   deployBuild,
   migratePlatform,
-  promoteVersion,
+  putOnChannel,
   type Registry,
 } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
@@ -105,7 +105,7 @@ beforeAll(async () => {
   });
   const version = (await registry.findVersion(tool.id, "1.0.0"))!;
   await approveVersion(registry, version.id, "root");
-  await promoteVersion(registry, hosting, {
+  await putOnChannel(registry, hosting, {
     tool,
     version: "1.0.0",
     to: "production",

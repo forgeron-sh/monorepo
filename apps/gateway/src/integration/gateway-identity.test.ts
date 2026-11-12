@@ -173,10 +173,7 @@ describe("the gateway with identity mounted", () => {
         await gateway(
           at(
             "/deploy",
-            json(
-              { environment: "production", version: "1.0.1", build },
-              { authorization: `Bearer ${token}` },
-            ),
+            json({ branch: "main", version: "1.0.1", build }, { authorization: `Bearer ${token}` }),
           ),
         )
       ).status,
@@ -201,13 +198,13 @@ describe("the gateway with identity mounted", () => {
       at(
         "/deploy",
         json(
-          { environment: "production", version: "1.0.1", build },
+          { branch: "main", version: "1.0.1", build },
           { authorization: `Bearer ${deployToken}` },
         ),
       ),
     );
     expect(deploy.status).toBe(200);
-    expect(deployed).toEqual(["production"]);
+    expect(deployed).toEqual(["preview"]);
     expect(
       (await gateway(at("/whoami", { headers: { authorization: `Bearer ${deployToken}` } })))
         .status,

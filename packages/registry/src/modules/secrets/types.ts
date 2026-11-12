@@ -1,18 +1,18 @@
-import type { RegisteredEnvironment } from "../../kernel/errors";
+import type { SecretEnvironment } from "../../kernel/errors";
 
 export type SecretState = "set" | "missing";
 
 /** One secret the tool declares, and whether each environment has it. Never a value. */
 export interface SecretStatus {
   name: string;
-  environments: Record<RegisteredEnvironment, SecretState>;
+  environments: Record<SecretEnvironment, SecretState>;
 }
 
 /** What a person is shown about a link before they type: where the secret goes, never a value. */
 export interface SecretRequestInfo {
   toolId: string;
   tool: string;
-  environment: RegisteredEnvironment;
+  environment: SecretEnvironment;
   name: string;
   expiresAt: string;
 }

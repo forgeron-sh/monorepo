@@ -1,5 +1,10 @@
 import { workerName } from "@forgeron/hosting";
-import type { EnvironmentRecord, Registry as PlatformRegistry } from "@forgeron/registry";
+import {
+  channelRef,
+  hostingTargetOf,
+  type EnvironmentRecord,
+  type Registry as PlatformRegistry,
+} from "@forgeron/registry";
 import type { Registry, ToolEntry } from "./dispatch";
 
 export interface FromRegistryOptions {
@@ -17,11 +22,7 @@ export interface FromRegistryOptions {
 }
 
 const defaultName: NonNullable<FromRegistryOptions["workerNameOf"]> = (tool, environment) =>
-  workerName(tool.workspace, {
-    tool: tool.name,
-    name: environment.name,
-    ...(environment.branch ? { branch: environment.branch } : {}),
-  });
+  workerName(tool.workspace, hostingTargetOf(tool.name, environment));
 
 /**
  * The dispatcher's view of the platform D1: only an environment that serves a version (activated)
@@ -41,10 +42,12 @@ export function dispatchRegistry(
         if (!environment.versionId) continue;
         const worker = nameOf(tool, environment);
         if (!worker) continue;
-        if (environment.name === "preview") {
-          if (environment.branch) entry.previews[environment.branch] = worker;
+        if (environment.name === "production") {
+          entry.production = worker;
         } else {
-          entry[environment.name] = worker;
+          // A branch's temporary channel, or `~<name>` for another permanent channel (D-125).
+          const ref = channelRef(environment);
+          if (ref && ref !== "~") entry.previews[ref] = worker;
         }
       }
       return entry;

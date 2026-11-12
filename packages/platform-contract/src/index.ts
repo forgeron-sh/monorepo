@@ -73,8 +73,6 @@ export {
   createDeployTokenRoute,
   deployRoute,
   issueTokenRoute,
-  promoteRoute,
-  promotionPlanRoute,
   revokeTokenRoute,
   rollbackRoute,
   whoamiRoute,
@@ -116,12 +114,17 @@ export {
   uninstallLibraryToolRoute,
 } from "./library";
 export {
+  addChannelRoute,
   addRepositoryToolRoute,
   AvailableUpdateSchema,
+  ChannelSchema,
   copyBranchDataRoute,
   getToolSourceRoute,
+  putChannelRoute,
   putToolSourceRoute,
+  removeChannelRoute,
   ToolSourceSchema,
+  UpdatePlanSchema,
   updateToolRoute,
 } from "./sources";
 export {

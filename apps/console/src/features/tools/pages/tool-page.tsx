@@ -21,10 +21,11 @@ import "../tools.css";
 // One tool: its header, then the tabs that features registered (`registerToolTab`). The tab is in
 // the address (`?tab=branches`) so that a link opens it; the first one is the default.
 //
-// The page shows production at `/tools/<tool>` and a branch's preview at `/tools/<tool>/tree/<branch>`
-// (D-120), chosen at the right of the header. A tab whose scope is the branch follows it; a tab that
-// is the same for every branch says so on a branch's page. A branch whose preview is gone sends the
-// page back to production, with a word about it.
+// The page shows production at `/tools/<tool>` and another channel at `/tools/<tool>/tree/<ref>`
+// (D-120, D-125): a branch's temporary channel by its branch, a permanent channel by `~<name>`. It is
+// chosen at the right of the header. A tab whose scope is the channel follows it; a tab that is the
+// same for every channel says so. A channel that is gone sends the page back to production, with a
+// word about it.
 
 const loaded = new Map<string, ComponentType<ToolTabProps>>();
 const panel = (tab: ToolTab) => {
@@ -58,8 +59,13 @@ export default function ToolPage({
   const [asked, setAsked] = useState(askedTab);
   const tool = tools.data?.find((t) => t.name === name);
   const previews = tool?.previews.map((p) => p.branch) ?? [];
-  // A branch with no preview (closed, or a mistyped address) is not shown: the page is production's.
-  const gone = askedBranch !== undefined && tool !== undefined && !previews.includes(askedBranch);
+  const channels = tool?.channels.map((c) => `~${c.channel}`) ?? [];
+  // A channel that is gone (closed, removed, or a mistyped address) is not shown: the page is production's.
+  const gone =
+    askedBranch !== undefined &&
+    tool !== undefined &&
+    !previews.includes(askedBranch) &&
+    !channels.includes(askedBranch);
   const branch = gone ? undefined : askedBranch;
   useEffect(() => {
     if (gone) window.history.replaceState(null, "", addressOf(name, undefined));
@@ -114,7 +120,7 @@ export default function ToolPage({
           {tool.summary ? <p className="fg-page-desc">{tool.summary}</p> : null}
         </div>
         <label className="ft-branch-pick">
-          <span className="ft-branch-pick-label">Branch</span>
+          <span className="ft-branch-pick-label">Channel</span>
           <Select
             value={branch ?? ""}
             options={[
@@ -122,23 +128,28 @@ export default function ToolPage({
                 value: "",
                 label: tool.production ? `Production · ${tool.production}` : "Production",
               },
-              ...previews.map((b) => ({ value: b, label: b })),
+              ...tool.channels.map((c) => ({
+                value: `~${c.channel}`,
+                label: `${c.channel} · ${c.version}`,
+              })),
+              ...previews.map((b) => ({ value: b, label: `Branch ${b}` })),
             ]}
             onChange={(e) => go(addressOf(tool.name, e.target.value || undefined))}
           />
         </label>
       </header>
       {gone ? (
-        <Notice tone="warning" title={`The branch ${askedBranch} has no preview anymore.`}>
-          This is production. Deploy the branch again to see it here.
+        <Notice tone="warning" title={`The channel ${askedBranch} is gone.`}>
+          This is production. Push the branch again, or add the channel again, to see it here.
         </Notice>
       ) : null}
       {branch !== undefined ? (
         <div className="ft-branch-band" role="status">
-          <Badge tone="warning">Branch</Badge>
+          <Badge tone="warning">{branch.startsWith("~") ? "Channel" : "Branch"}</Badge>
           <span className="ft-branch-band-text">
-            You are looking at <code>{branch}</code>. What you change in Overview, Architecture,
-            Availability, Database and Secrets is for this branch only, never for production.
+            You are looking at <code>{branch.startsWith("~") ? branch.slice(1) : branch}</code>.
+            What you change in Overview, Architecture, Availability, Database and Secrets is for
+            this channel only, with its own data, never for production.
           </span>
           <Button size="sm" onClick={() => go(addressOf(tool.name, undefined))}>
             Back to production
@@ -153,7 +164,7 @@ export default function ToolPage({
           onChange={select}
         >
           {branch !== undefined && current.scope === "tool" ? (
-            <p className="ft-shared">The same for every branch.</p>
+            <p className="ft-shared">The same for every channel.</p>
           ) : null}
           <Suspense fallback={<Loading shape="block" label={`Loading ${current.title}`} />}>
             {createElement(panel(current), {

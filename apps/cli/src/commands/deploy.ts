@@ -7,15 +7,12 @@ import { UsageError, type Io } from "../io";
 import { platformClient, refusal } from "../platform-client";
 import { ciCredential, deployEndpoint } from "../ci-credential";
 
-const USAGE =
-  "Usage: forgeron deploy [--env preview|production] [--branch <name>] [--allow-destructive]";
-const ENVIRONMENTS = ["preview", "production"];
+const USAGE = "Usage: forgeron deploy [--branch <name>] [--allow-destructive]";
 
-/** `1.5.0+a41f9e0` on production; a preview adds its branch (docs/sdk.md §16). */
-function versionOf(version: string, fingerprint: string, env: string, branch: string | undefined) {
+/** `1.5.0-preview.<branch>+a41f9e0`: a build carries its branch and its commit (docs/sdk.md §16). */
+function versionOf(version: string, fingerprint: string, branch: string) {
   const build = fingerprint.slice(0, 7);
-  if (env !== "preview") return `${version}+${build}`;
-  const slug = (branch ?? "").replace(/[^A-Za-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  const slug = branch.replace(/[^A-Za-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
   return `${version}-preview.${slug}+${build}`;
 }
 
@@ -45,40 +42,36 @@ async function commitOf(io: Io) {
 
 /**
  * `forgeron deploy`: builds the tool, uploads the build to the workspace's gateway with
- * `FORGERON_TOKEN` or GitHub Actions' identity (D-123), and prints where it is served. Without `--env` it is a preview of the branch
- * (`--branch`, or the one GitHub gives CI). The platform builds nothing: this is the build.
+ * `FORGERON_TOKEN` or GitHub Actions' identity (D-123), and prints where it is served. The build goes
+ * to its branch's temporary channel (`--branch`, or the one GitHub gives CI). A release reaches the
+ * permanent channels that follow the branch (D-125): there is no `--env production`. The platform
+ * builds nothing: this is the build.
  */
 export async function deploy(args: string[], io: Io): Promise<number> {
   const { values, positionals } = parseArgs({
     args,
     allowPositionals: true,
     options: {
-      env: { type: "string" },
       branch: { type: "string" },
       "allow-destructive": { type: "boolean" },
     },
   });
   if (positionals.length > 0) throw new UsageError(USAGE);
-  const env = values.env ?? "preview";
-  if (!ENVIRONMENTS.includes(env)) {
-    throw new UsageError(`--env ${env}: one of ${ENVIRONMENTS.join(", ")}.`);
-  }
   const branch = values.branch || ciBranch();
-  if (env === "preview" && !branch) {
-    throw new UsageError("A preview is tied to a branch: pass --branch <name>.");
+  if (!branch) {
+    throw new UsageError("A build goes to its branch: pass --branch <name>.");
   }
   const project = await deployEndpoint(io.cwd);
   const token = await ciCredential(project.endpoint);
 
   const built = await buildTool(io.cwd);
   const build = await readBuild(built.outDir, built.fingerprint);
-  const version = versionOf(built.version, built.fingerprint, env, branch);
+  const version = versionOf(built.version, built.fingerprint, branch);
   const commit = await commitOf(io);
 
   const answer = await platformClient(project.endpoint, token)(addresses.deploy, {
     json: {
-      environment: env as "preview" | "production",
-      ...(env === "preview" ? { branch } : {}),
+      branch,
       version,
       ...(commit ? { commit } : {}),
       ...(values["allow-destructive"] ? { allowDestructive: true } : {}),
@@ -92,8 +85,15 @@ export async function deploy(args: string[], io: Io): Promise<number> {
   const body = answer.body;
 
   io.log(
-    `Deployed ${built.name}@${body?.version ?? version} to ${env}${body?.url ? `: ${body.url}` : ""}`,
+    `Deployed ${built.name}@${body?.version ?? version} to ${branch}${body?.url ? `: ${body.url}` : ""}`,
   );
   if (body?.applied?.length) io.log(`Migrations applied: ${body.applied.join(", ")}`);
+  for (const reached of body?.channels ?? []) {
+    io.log(
+      "version" in reached
+        ? `The channel ${reached.channel} took the release ${reached.version}.`
+        : `The channel ${reached.channel} waits for an admin: ${reached.waiting}`,
+    );
+  }
   return 0;
 }

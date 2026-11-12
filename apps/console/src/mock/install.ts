@@ -63,6 +63,7 @@ export async function installMock(): Promise<void> {
           {
             name: "crm",
             production: "1.4.0",
+            channels: [{ channel: "staging", version: "1.5.0" }],
             previews: [
               { branch: "feat-export", version: "1.5.1" },
               { branch: "feat-contacts-import", version: "1.5.0" },
@@ -88,10 +89,19 @@ export async function installMock(): Promise<void> {
             update: {
               version: "1.5.1",
               branch: "main",
-              release: true,
               changelog: ["Export contacts to CSV", "Faster search with accents"],
               approvals: ["resources.network"],
             },
+            // A permanent channel an admin added (D-125): it follows `staging`.
+            channels: [
+              {
+                name: "staging",
+                follows: "staging",
+                autoUpdate: true,
+                serves: "1.5.0",
+                update: null,
+              },
+            ],
           },
           odoo: {
             kind: "marketplace",
@@ -212,7 +222,7 @@ export async function installMock(): Promise<void> {
       typeof input === "string" ? input : input instanceof URL ? input.href : input.url,
       location.href,
     );
-    const platformRoute = ["/promote", "/rollback", "/deploy"].includes(url.pathname);
+    const platformRoute = ["/rollback", "/deploy"].includes(url.pathname);
     if (!url.pathname.startsWith("/console-api/") && !platformRoute) return realFetch(input, init);
     if (scenario === "slow") await new Promise((r) => setTimeout(r, 3000));
     else await new Promise((r) => setTimeout(r, 120));
@@ -227,22 +237,12 @@ export async function installMock(): Promise<void> {
           error: { code: "FORBIDDEN", message: "Only an administrator can do this." },
         });
       const sent: Json = init?.body ? JSON.parse(String(init.body)) : {};
-      if (path === "/promote") {
-        if (sent.version === "1.5.0" && sent.approve !== true)
-          return reply(409, {
-            error: {
-              code: "PENDING_APPROVAL",
-              message: "1.5.0 asks for a network access an admin has not approved yet.",
-            },
-          });
-        toolsMock.promote(sent);
-        return reply(200, { tool: sent.tool, version: sent.version, environment: "production" });
-      }
       if (path === "/rollback")
         return reply(200, {
           tool: sent.tool,
-          version: toolsMock.rollback(),
-          environment: "production",
+          version: sent.channel ? "1.4.0" : toolsMock.rollback(),
+          environment: sent.environment ?? "production",
+          ...(sent.channel ? { channel: sent.channel } : {}),
         });
       toolsMock.close(sent.branch);
       return reply(200, { tool: sent.tool, branch: sent.branch, removed: true });
@@ -280,7 +280,9 @@ export async function installMock(): Promise<void> {
       const answer = mockLibraryRoute(path, method, admin);
       if (answer) return reply(answer.status, answer.body);
     }
-    const pilotRule = /^\/api\/tools\/([\w-]+)\/previews\/([\w.-]+)\/availability$/.exec(path);
+    const pilotRule = /^\/api\/tools\/([\w-]+)\/previews\/(~?[\w.-]+)\/availability$/.exec(
+      decodeURIComponent(path),
+    );
     if (pilotRule) {
       if (!admin) return reply(403, { error: "FORBIDDEN", message: "This is for admins." });
       const key = `${pilotRule[1]}@${pilotRule[2]}`;
@@ -305,9 +307,9 @@ export async function installMock(): Promise<void> {
           : { mode: "open", roles: [], people: [], updatedAt: null },
       );
     }
-    // Where a tool comes from and its update (D-121).
-    const sourceOf = /^\/api\/tools\/([\w-]+)\/(source|update)$/.exec(path);
-    if (sourceOf && path !== "/api/tools/from-repository/update") {
+    // Where a tool comes from, its permanent channels and their updates (D-121, D-125).
+    const sourceOf = /^\/api\/tools\/([\w-]+)\/(source|update|channels)(?:\/([\w-]+))?$/.exec(path);
+    if (sourceOf && sourceOf[1] !== "from-repository") {
       if (!admin) return reply(403, { error: "FORBIDDEN", message: "This is for admins." });
       const tool = sourceOf[1]!;
       const found = state.tools.find((t) => t.name === tool);
@@ -318,14 +320,67 @@ export async function installMock(): Promise<void> {
         autoUpdate: false,
         update: null,
       });
-      if (sourceOf[2] === "update" && method === "POST") {
-        if (!source.update) return reply(404, { error: "NO_UPDATE", message: "No update waits." });
-        if (found) found.production = source.update.version;
-        source.update = null;
-        return reply(200, { tool, version: found?.production ?? "" });
+      source.channels ??= [];
+      const others: Json[] = source.channels;
+      const address = (name: string) =>
+        `https://${state.workspace}.fabriks.example/t/${tool}${name === "production" ? "" : `~${name}`}/`;
+      const production = (): Json => ({
+        name: "production",
+        ...(source.kind === "repo" ? { follows: source.productionBranch } : {}),
+        autoUpdate: source.autoUpdate,
+        serves: found?.production ?? null,
+        address: address("production"),
+        update: source.update,
+      });
+      const view = (c: Json): Json => ({ ...c, address: address(c.name) });
+      const answer = () => ({
+        ...source,
+        production: found?.production ?? null,
+        channels: [production(), ...others.map(view)],
+      });
+      const [, , what, named] = sourceOf;
+      if (what === "update" && method === "POST") {
+        const channel = body.channel ?? "production";
+        const target = channel === "production" ? source : others.find((c) => c.name === channel);
+        if (!target?.update) return reply(404, { error: "NO_UPDATE", message: "No update waits." });
+        const version = target.update.version;
+        if (channel === "production" && found) found.production = version;
+        else target.serves = version;
+        target.update = null;
+        return reply(200, { tool, channel, version });
+      }
+      if (what === "channels" && !named && method === "POST") {
+        if (others.some((c) => c.name === body.name) || body.name === "production")
+          return reply(409, { error: "ALREADY_EXISTS", message: `There is already ${body.name}.` });
+        const added = {
+          name: String(body.name),
+          ...(body.follows ? { follows: String(body.follows) } : {}),
+          autoUpdate: body.autoUpdate === true,
+          serves: null,
+          update: null,
+        };
+        others.push(added);
+        return reply(201, view(added));
+      }
+      if (what === "channels" && named) {
+        if (named === "production") {
+          if (method === "PUT") {
+            if (body.autoUpdate !== undefined) source.autoUpdate = body.autoUpdate;
+            if (body.follows) source.productionBranch = body.follows;
+          }
+          return reply(200, production());
+        }
+        const channel = others.find((c) => c.name === named);
+        if (!channel) return reply(404, { error: "NOT_FOUND", message: "No such channel." });
+        if (method === "DELETE") {
+          source.channels = others.filter((c) => c.name !== named);
+          return reply(200, { removed: true });
+        }
+        if (method === "PUT") Object.assign(channel, body);
+        return reply(200, view(channel));
       }
       if (method === "PUT") Object.assign(source, body);
-      return reply(200, { ...source, production: found?.production ?? null });
+      return reply(200, answer());
     }
     if (path === "/api/tools/from-repository" && method === "POST") {
       if (!admin) return reply(403, { error: "FORBIDDEN", message: "This is for admins." });

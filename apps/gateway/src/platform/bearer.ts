@@ -3,8 +3,6 @@ import {
   createDeployTokenRoute,
   deployRoute,
   issueTokenRoute,
-  promoteRoute,
-  promotionPlanRoute,
   revokeTokenRoute,
   rollbackRoute,
   whoamiRoute,
@@ -12,14 +10,14 @@ import {
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, MiddlewareHandler } from "hono";
 import { handleCreateDeployToken, handleDeploy } from "../deploy/deploy";
-import { handlePromote, handlePromotePlan, handleRollback } from "../deploy/promote";
+import { handleRollback } from "../deploy/rollback";
 import { handleCliToken } from "../identity/cli-login/cli";
 import { handleIssueToken, handleRevokeToken } from "../identity/authn/issue";
 import { reportDeployment } from "../github/app";
 import type { PlatformEnv } from "./app";
 
 // The routes the CLI and CI call, outside `/console-api` (D-075, FOR-154): `/whoami`, `/deploy-tokens`,
-// `/deploy`, `/promote`, `/rollback`, `/auth/token`, `/auth/token/revoke` and `/auth/cli/token`. They are
+// `/deploy`, `/rollback`, `/auth/token`, `/auth/token/revoke` and `/auth/cli/token`. They are
 // in the contract, so the CLI calls them through the typed client, and they are mounted on the same Hono
 // app. Their checks stay in the handlers because the order is part of what they promise: a deployment
 // token is tried before a session, a refusal says `{ error: { code, message } }` (not the console's
@@ -109,17 +107,12 @@ export function mountBearer(app: OpenAPIHono<PlatformEnv>): void {
       report: (tool, deployed) => reportDeployment(github, tool, deployed),
     });
   });
-  for (const [route, handle] of [
-    [promoteRoute, handlePromote],
-    [promotionPlanRoute, handlePromotePlan],
-    [rollbackRoute, handleRollback],
-  ] as const) {
-    mount(route.path, (c) => {
-      const { context, hosting } = deployment(c);
-      if (!hosting) return Response.json(NOT_CONFIGURED, { status: 501 });
-      return handle(c.req.raw, { ...context, hosting });
-    });
-  }
+  // No promotion between branches (D-125): a permanent channel is updated through the console API.
+  mount(rollbackRoute.path, (c) => {
+    const { context, hosting } = deployment(c);
+    if (!hosting) return Response.json(NOT_CONFIGURED, { status: 501 });
+    return handleRollback(c.req.raw, { ...context, hosting });
+  });
   mount(issueTokenRoute.path, (c) =>
     handleIssueToken(c.req.raw, {
       ...when(c),

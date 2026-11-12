@@ -9,6 +9,7 @@ import {
   type Manifest,
   type ToolCard,
 } from "@forgeron/manifest";
+import { channelRef, isPermanentRef } from "./channels";
 import type { BuildRecord, DocFile, Registry, Tool, VersionRecord } from "./registry";
 
 export interface CatalogCaller {
@@ -34,7 +35,7 @@ async function shown(registry: Registry, tool: Tool, branch?: string): Promise<S
   const environment = (await registry.listEnvironments(tool.id)).find((e) =>
     branch === undefined
       ? e.name === "production" && e.versionId
-      : e.name === "preview" && e.branch === branch && e.versionId,
+      : e.name !== "production" && channelRef(e) === branch && e.versionId,
   );
   const served = environment ? versions.find((v) => v.id === environment.versionId) : undefined;
   // A branch shows what its preview serves, or nothing: never production's version under its name.
@@ -133,8 +134,14 @@ export async function findCard(
       url: assetUrl(tool.name, f.path, f.hash, branch),
     }));
   const exposed = manifest.interfaces;
-  // A branch's preview answers at `/t/<tool>@<branch>/` (D-119).
-  const at = branch === undefined ? tool.name : `${tool.name}@${encodeURIComponent(branch)}`;
+  // A branch's channel answers at `/t/<tool>@<branch>/` (D-119), a permanent one at `/t/<tool>~<name>/`
+  // (D-125): `branch` is the channel's reference.
+  const at =
+    branch === undefined
+      ? tool.name
+      : isPermanentRef(branch)
+        ? `${tool.name}~${encodeURIComponent(branch.slice(1))}`
+        : `${tool.name}@${encodeURIComponent(branch)}`;
   const changelog = (s.build.changelog as { entries?: unknown[] } | null | undefined)?.entries;
   return {
     ...entry,

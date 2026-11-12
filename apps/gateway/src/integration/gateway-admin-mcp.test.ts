@@ -271,7 +271,7 @@ describe("the tools and their minimum role", () => {
     expect((await listed(ana)).sort()).toEqual([...MEMBER].sort());
     expect((await listed(dev)).sort()).toEqual([...DEVELOPER].sort());
     expect((await listed(root)).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(24);
+    expect(TOOLS).toHaveLength(22);
   });
 
   it("marks what changes something with destructiveHint, and nothing else", async () => {
@@ -283,7 +283,6 @@ describe("the tools and their minimum role", () => {
         "access_revoke",
         "resources_approve",
         "tool_install",
-        "tool_promote",
         "tool_rollback",
         "tool_update",
       ].sort(),
@@ -301,8 +300,8 @@ describe("the tools and their minimum role", () => {
         ["access_grant", { person: "ana@acme.test", role: "admin" }],
         ["access_revoke", { person: "root@acme.test", role: "admin" }],
         ["resources_approve", { id: approvalId }],
-        ["tool_promote", { tool: "crm", version: "1.1.0", to: "production" }],
-        ["tool_promote_plan", { tool: "crm", version: "1.1.0", to: "production" }],
+        ["tool_update", { tool: "crm", version: "1.1.0" }],
+        ["tool_source", { tool: "crm" }],
         ["tool_rollback", { tool: "crm", environment: "production" }],
         ["template_list", {}],
         ["marketplace_list", {}],
@@ -353,12 +352,12 @@ describe("the tools and their minimum role", () => {
         roles: ["admin"],
       })
     ).id;
-    expect(await listed(extra)).toContain("tool_promote");
+    expect(await listed(extra)).toContain("tool_update");
     await registry.setMemberRoles("acme", extra, [], root);
-    expect(await listed(extra)).not.toContain("tool_promote");
-    expect(
-      (await call(extra, "tool_promote", { tool: "crm", version: "1.1.0", to: "production" })).text,
-    ).toMatch(/^403/);
+    expect(await listed(extra)).not.toContain("tool_update");
+    expect((await call(extra, "tool_update", { tool: "crm", version: "1.1.0" })).text).toMatch(
+      /^403/,
+    );
     await registry.removeMember("acme", extra, root);
     // And a person removed from the workspace is nobody.
     const gone = await post(await token(extra), { jsonrpc: "2.0", id: 1, method: "tools/list" });
@@ -482,15 +481,27 @@ describe("what the tools change goes through the console's path, audited via the
     );
   });
 
-  it("promotes and rolls back with the caller's identity, audited via the MCP", async () => {
-    const promoted = await call(root, "tool_promote", {
-      tool: "crm",
-      version: "1.1.0",
-      to: "production",
-      reason: "ready",
+  it("updates a permanent channel and rolls it back with the caller's identity, audited via the MCP", async () => {
+    // A release on `main`, the branch production follows (D-125).
+    const crm = (await registry.findTool("acme", "crm"))!;
+    await deployBuild(registry, hosting, {
+      tool: crm,
+      environment: "preview",
+      branch: "main",
+      build: build("fp-main"),
+      version: "1.3.0",
+      actor: "ci",
     });
-    expect(promoted.data.version).toBe("1.1.0");
-    expect((await audit("production:1.1.0")).at(-1)).toMatchObject({
+    const source = await call(root, "tool_source", { tool: "crm" });
+    expect(source.data).toMatchObject({
+      update: { version: "1.3.0", branch: "main", plan: { ok: true } },
+      channels: [{ name: "production", follows: "main", serves: "1.0.0" }],
+    });
+    const stale = await call(root, "tool_update", { tool: "crm", version: "1.1.0" });
+    expect(stale.text).toMatch(/^409 STALE/);
+    const updated = await call(root, "tool_update", { tool: "crm", version: "1.3.0" });
+    expect(updated.data).toEqual({ tool: "crm", channel: "production", version: "1.3.0" });
+    expect((await audit("production:1.3.0")).at(-1)).toMatchObject({
       via: "Forgeron MCP",
       kind: "promotion",
     });
@@ -503,89 +514,28 @@ describe("what the tools change goes through the console's path, audited via the
       actor: "root@acme.test",
     });
     expect(
-      (await call(root, "tool_promote", { tool: "crm", version: "9.9.9", to: "production" })).error,
-    ).toBe(true);
-    expect(
-      (await call(root, "tool_promote", { tool: "crm", version: "1.1.0", to: "preview" })).text,
-    ).toMatch(/branch/);
+      (await call(root, "tool_update", { tool: "crm", version: "1.3.0", channel: "ghost" })).text,
+    ).toMatch(/^404/);
   });
 });
 
-describe("the plan of a promotion through the MCP (D-113)", () => {
-  it("says whether a version can go, and changes nothing", async () => {
-    const before = await auditCount();
-    const plan = await call(root, "tool_promote_plan", {
-      tool: "crm",
-      version: "1.1.0",
-      to: "production",
-    });
-    expect(plan.error).toBe(false);
-    expect(plan.data).toMatchObject({ tool: "crm", version: "1.1.0", ok: true, conflicts: [] });
-    expect(await auditCount()).toBe(before);
-    expect(
-      (await call(root, "tool_promote_plan", { tool: "crm", version: "9.9.9", to: "production" }))
-        .text,
-    ).toMatch(/^404 NOT_FOUND/);
-    // A version or a branch, not both and not neither: the platform says so.
-    expect((await call(root, "tool_promote_plan", { tool: "crm", to: "production" })).text).toMatch(
-      /^400 INVALID/,
-    );
-  });
-
-  it("answers tool_promote with the plan, and moves nothing, when something stops the version", async () => {
-    const tool = (await registry.findTool("acme", "crm"))!;
-    // A version recorded without a changelog entry: production refuses it.
-    const built = await registry.recordBuild(tool.id, {
-      fingerprint: "no-changelog",
-      manifest: { name: "crm", resources: {} },
-      worker: "// no changelog",
-    });
-    await registry.publishVersion(tool.id, built.id, "9.0.0");
-    const answer = await call(root, "tool_promote", {
-      tool: "crm",
-      version: "9.0.0",
-      to: "production",
-    });
-    expect(answer.error).toBe(false);
-    expect(answer.data.promoted).toBe(false);
-    expect(answer.data.plan.conflicts.map((c: any) => c.code)).toEqual(["CHANGELOG_NO_ENTRY"]);
-    expect(answer.data.plan.prompt).toContain("CHANGELOG_NO_ENTRY");
-    const production = (await registry.listEnvironments(tool.id)).find(
-      (e) => e.name === "production",
-    )!;
-    expect((await registry.getVersion(production.versionId!))!.version).not.toBe("9.0.0");
-  });
-});
-
-describe("the plan of a promotion on the workspace origin, as the console and the CLI call it", () => {
-  // The console's Promote dialog asks `POST /promote/plan` with the session cookie; the CLI with its
-  // token. The gateway once sent the path to the console's assets, which refuse a POST (405): the
-  // dialog had no plan and could not offer to promote a build with no release.
-  const plan = (headers: Record<string, string>) =>
-    gateway()(
-      new Request("https://acme.forgeron.app/promote/plan", {
-        method: "POST",
-        headers: { "content-type": "application/json", ...headers },
-        body: JSON.stringify({ tool: "crm", version: "1.1.0", to: "production" }),
-      }),
-    );
-
-  it("answers an administrator's session with the plan", async () => {
-    const cookie = (
-      await openSession(
-        { person: root, workspace: "acme" },
-        { secret: SECRET, ttlSeconds: 600, now },
-      )
-    ).split(";")[0]!;
-    const response = await plan({ cookie });
-    expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ tool: "crm", version: "1.1.0", ok: true });
-  });
-
-  it("answers a token of `forgeron login` with the plan, and refuses a member", async () => {
-    const response = await plan({ authorization: `Bearer ${await token(root)}` });
-    expect(response.status).toBe(200);
-    expect((await plan({ authorization: `Bearer ${await token(ana)}` })).status).toBe(403);
+describe("no promotion between branches (D-125)", () => {
+  it("has no promotion tool, and the workspace origin no promotion route", async () => {
+    expect(TOOLS.map((t) => t.name)).not.toContain("tool_promote");
+    expect(TOOLS.map((t) => t.name)).not.toContain("tool_promote_plan");
+    for (const path of ["/promote", "/promote/plan"]) {
+      const response = await gateway()(
+        new Request(`https://acme.forgeron.app${path}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${await token(root)}`,
+          },
+          body: JSON.stringify({ tool: "crm", version: "1.1.0", to: "production" }),
+        }),
+      );
+      expect([path, response.status === 200]).toEqual([path, false]);
+    }
   });
 });
 

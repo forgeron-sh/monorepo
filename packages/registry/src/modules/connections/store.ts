@@ -1,4 +1,4 @@
-import type { RegisteredEnvironment } from "../../kernel/errors";
+import type { SecretEnvironment } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
 import { text } from "../../kernel/rows";
 import type { ConnectionTokens, ConnectionInfo } from "./types";
@@ -22,7 +22,7 @@ export function createConnections(kernel: Kernel, catalog: CatalogPort) {
     /** Keeps or replaces a person's consent. The tokens are encrypted before the database. */
     async saveConnection(input: {
       toolId: string;
-      environment: RegisteredEnvironment;
+      environment: SecretEnvironment;
       userId: string;
       connector: string;
       scopes: string[];
@@ -52,7 +52,7 @@ DO UPDATE SET "scopes" = excluded."scopes", "expires_at" = excluded."expires_at"
     /** The consents of a tool's environment, for the admin: who consented to what, never a token. */
     async listConnections(
       toolId: string,
-      environment: RegisteredEnvironment,
+      environment: SecretEnvironment,
       filter: { userId?: string } = {},
     ): Promise<ConnectionInfo[]> {
       const rows = await all(
@@ -75,7 +75,7 @@ ORDER BY "user_id", "connector"`,
     /** The admin revokes a person's consent (or the person withdraws it). True if there was one. */
     async revokeConnection(input: {
       toolId: string;
-      environment: RegisteredEnvironment;
+      environment: SecretEnvironment;
       userId: string;
       connector: string;
     }): Promise<boolean> {
@@ -98,7 +98,7 @@ ORDER BY "user_id", "connector"`,
     /** The decrypted tokens, for the connector's session at run time: never for a person or the admin. */
     async readConnection(input: {
       toolId: string;
-      environment: RegisteredEnvironment;
+      environment: SecretEnvironment;
       userId: string;
       connector: string;
     }): Promise<(ConnectionTokens & { expiresAt?: string; scopes: string[] }) | undefined> {

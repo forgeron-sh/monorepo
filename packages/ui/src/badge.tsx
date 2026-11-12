@@ -28,7 +28,11 @@ export function Badge({ tone = "neutral", dot, mono, className, children }: Badg
   );
 }
 
-const ENV_LABEL = { production: "Production", preview: "Preview" } as const;
+/**
+ * Production, another permanent channel (`channel`, its name given as children), or a branch's
+ * temporary channel (`preview`), D-125.
+ */
+const ENV_LABEL = { production: "Production", channel: "Channel", preview: "Branch" } as const;
 
 export interface EnvTagProps {
   env: keyof typeof ENV_LABEL;
@@ -36,7 +40,7 @@ export interface EnvTagProps {
   children?: ReactNode;
 }
 
-/** Environment of a version: shape carries the information, not the tint. */
+/** The channel of a version: shape carries the information, not the tint. */
 export function EnvTag({ env, className, children }: EnvTagProps) {
   return (
     <span className={cx("fg-env", `fg-env-${env}`, className)}>

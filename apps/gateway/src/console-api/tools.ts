@@ -7,8 +7,10 @@ import type { RegisteredEnvironment, Registry } from "@forgeron/registry";
 export interface ToolListing {
   name: string;
   production: string | null;
-  /** One entry per branch with a preview. */
+  /** One entry per branch with a temporary channel. */
   previews: Array<{ branch: string; version: string }>;
+  /** One entry per permanent channel other than production that serves a version (D-125). */
+  channels: Array<{ channel: string; version: string }>;
   /** The tool's description from its manifest: the production version's, else the latest published. */
   summary: string | null;
   /** The latest deployment, to any environment. */
@@ -34,6 +36,7 @@ export async function listTools(
       name: tool.name,
       production: null,
       previews: [],
+      channels: [],
       summary: null,
       lastDeployment: null,
     };
@@ -45,6 +48,8 @@ export async function listTools(
       if (name === "production") {
         entry.production = version;
         served = environment.versionId;
+      } else if (name === "channel" && environment.channel) {
+        entry.channels.push({ channel: environment.channel, version });
       } else if (environment.branch) entry.previews.push({ branch: environment.branch, version });
     }
     const [latest] = await registry.listDeployments(tool.id, 1);

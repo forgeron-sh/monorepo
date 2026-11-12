@@ -15,7 +15,8 @@ const notForYou = json(ErrorSchema, "Not an admin or a developer");
 const noTool = json(ErrorSchema, "No such tool");
 const tool = z.object({ tool: z.string().describe("The tool's name") });
 const impact = z.enum(["none", "patch", "minor", "major"]);
-const environment = z.enum(["production", "preview"]);
+/** `production` and `channel` are permanent channels; `preview` is a branch's temporary channel (D-125). */
+const environment = z.enum(["production", "preview", "channel"]);
 const commit = z.strictObject({
   sha: z.string(),
   message: z.string().optional(),
@@ -25,8 +26,10 @@ const commit = z.strictObject({
 const ToolListingSchema = z.strictObject({
   name: z.string(),
   production: z.string().nullable(),
-  /** One entry per branch with a preview. */
+  /** One entry per branch with a temporary channel. */
   previews: z.array(z.strictObject({ branch: z.string(), version: z.string() })),
+  /** One entry per permanent channel other than production that serves a version (D-125). */
+  channels: z.array(z.strictObject({ channel: z.string(), version: z.string() })).optional(),
   /** The tool's description from its manifest: the production version's, else the latest published. */
   summary: z.string().nullable(),
   /** The latest deployment, to any environment. */
@@ -44,8 +47,12 @@ const DeploymentLineSchema = z.strictObject({
 
 const BranchRowSchema = z.strictObject({
   environment,
-  /** A preview's branch. */
+  /** A temporary channel's branch. */
   branch: z.string().optional(),
+  /** A permanent channel's name, other than production. */
+  channel: z.string().optional(),
+  /** The branch a permanent channel follows. */
+  follows: z.string().optional(),
   /** Only a deployment that went through exists here: a build that failed leaves no row. */
   status: z.literal("ready"),
   version: z.string(),
@@ -54,16 +61,22 @@ const BranchRowSchema = z.strictObject({
   deployedBy: z.string(),
   deployedAt: z.string(),
   url: z.string().optional(),
-  /** What Roll back would serve again; production only. */
+  /** What Roll back would serve again; permanent channels only. */
   rollbackTo: z.string().optional(),
   migrations: z.strictObject({ count: z.number().int(), last: z.string().optional() }),
-  /** The latest deployments of this environment, newest first. */
+  /**
+   * The latest deployments of this channel, newest first. On a temporary channel, its commits as
+   * Forgeron recorded them.
+   */
   deployments: z.array(DeploymentLineSchema),
 });
 
 const BranchesAnswerSchema = z.strictObject({
   tool: z.string(),
   production: BranchRowSchema.nullable(),
+  /** The permanent channels other than production that serve a version. */
+  channels: z.array(BranchRowSchema).optional(),
+  /** The temporary channels, one per branch. */
   branches: z.array(BranchRowSchema),
 });
 
@@ -71,7 +84,17 @@ const VersionRowSchema = z.strictObject({
   version: z.string(),
   publishedAt: z.string(),
   /** Where it is served now. */
-  environments: z.array(z.strictObject({ environment, branch: z.string().optional() })),
+  environments: z.array(
+    z.strictObject({
+      environment,
+      branch: z.string().optional(),
+      channel: z.string().optional(),
+    }),
+  ),
+  /** The branch whose push made it, when known. */
+  branch: z.string().optional(),
+  /** A release (`forgeron release`): only releases reach a permanent channel (D-125). */
+  release: z.boolean().optional(),
   /** What the author wrote; `null` for a version published without a changelog. */
   changelog: z
     .strictObject({
@@ -125,7 +148,8 @@ export const listToolsRoute = defineRoute({
 export const toolBranchesRoute = defineRoute({
   method: "get",
   path: "/api/tools/{tool}/branches",
-  summary: "Production and one preview per branch, with the last deployments of each",
+  summary:
+    "The channels: production, the other permanent ones, and one per branch, with the last deployments of each",
   tags: ["tools"],
   request: { params: tool },
   responses: {
@@ -181,7 +205,13 @@ export const toolManifestRoute = defineRoute({
   tags: ["tools"],
   request: {
     params: tool,
-    query: z.object({ branch: z.string().min(1).optional().describe("A branch with a preview") }),
+    query: z.object({
+      branch: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("A channel other than production: a branch, or `~<name>` for a permanent one"),
+    }),
   },
   responses: {
     200: json(

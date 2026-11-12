@@ -1,4 +1,4 @@
-import { RegistryError, type RegisteredEnvironment } from "../../kernel/errors";
+import { RegistryError, type SecretEnvironment } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
 import type { SecretRequestInfo, SecretRequestRefusal, SecretState, SecretStatus } from "./types";
 import type { Catalog } from "../catalog/public";
@@ -39,7 +39,7 @@ export function createSecrets(kernel: Kernel, catalog: CatalogPort) {
     /** Sets or replaces a secret. The value is encrypted before it reaches the database. */
     async setSecret(
       toolId: string,
-      environment: RegisteredEnvironment,
+      environment: SecretEnvironment,
       name: string,
       value: string,
     ): Promise<void> {
@@ -59,7 +59,7 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
       );
     },
     /** The names of the secrets that are set, never their values. */
-    async secretNames(toolId: string, environment: RegisteredEnvironment): Promise<string[]> {
+    async secretNames(toolId: string, environment: SecretEnvironment): Promise<string[]> {
       return (
         await all(
           `SELECT "name" FROM "secrets" WHERE "tool_id" = ? AND "environment" = ? ORDER BY "name"`,
@@ -85,7 +85,7 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
         preview: new Set(await this.secretNames(toolId, "preview")),
         production: new Set(await this.secretNames(toolId, "production")),
       };
-      const state = (env: RegisteredEnvironment, name: string): SecretState =>
+      const state = (env: SecretEnvironment, name: string): SecretState =>
         set[env].has(name) ? "set" : "missing";
       return declared.map((name) => ({
         name,
@@ -97,7 +97,7 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
     },
     async deleteSecret(
       toolId: string,
-      environment: RegisteredEnvironment,
+      environment: SecretEnvironment,
       name: string,
     ): Promise<void> {
       await write(
@@ -110,7 +110,7 @@ DO UPDATE SET "iv" = excluded."iv", "ciphertext" = excluded."ciphertext", "updat
     /** The decrypted secrets of an environment: for the runtime's `ctx.secrets`, never for a person. */
     async readSecrets(
       toolId: string,
-      environment: RegisteredEnvironment,
+      environment: SecretEnvironment,
     ): Promise<Record<string, string>> {
       const box = secretBox();
       const out: Record<string, string> = {};
@@ -753,7 +753,7 @@ ON CONFLICT ("tool_id", "person", "name") DO UPDATE SET "value" = excluded."valu
      */
     async requestSecret(input: {
       toolId: string;
-      environment: RegisteredEnvironment;
+      environment: SecretEnvironment;
       name: string;
       person: string;
       via?: string;
@@ -811,7 +811,7 @@ WHERE r."token_hash" = ? AND t."workspace" = ?`,
       return {
         toolId: String(row.tool_id),
         tool: String(row.tool),
-        environment: String(row.environment) as RegisteredEnvironment,
+        environment: String(row.environment) as SecretEnvironment,
         name: String(row.name),
         expiresAt: String(row.expires_at),
       };

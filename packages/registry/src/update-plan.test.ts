@@ -12,15 +12,15 @@ import {
   createRegistry,
   deployBuild,
   migratePlatform,
-  planPromotion,
-  promoteVersion,
+  planUpdate,
+  putOnChannel,
   type Registry,
   type Tool,
 } from "./index";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// The plan of a promotion (D-113): read only, and it says every problem at once.
+// The plan of an update (D-113, D-125): read only, and it says every problem at once.
 
 let memory: MemoryD1;
 let registry: Registry;
@@ -117,7 +117,7 @@ async function seedProduction(hosting: Hosting, b: Build, version: string) {
   await deployTo(hosting, "preview", b, version, "seed");
   const published = await registry.findVersion(tool.id, version);
   await approveVersion(registry, published!.id, "root");
-  await promoteVersion(registry, hosting, { tool, version, to: "production", actor: "ely" });
+  await putOnChannel(registry, hosting, { tool, version, to: "production", actor: "ely" });
 }
 
 async function productionDatabase(...applied: BuildMigration[]): Promise<MemoryD1> {
@@ -127,7 +127,7 @@ async function productionDatabase(...applied: BuildMigration[]): Promise<MemoryD
   return d;
 }
 
-describe("planning a promotion", () => {
+describe("planning an update", () => {
   it("says a branch can go when nothing stops it, with what would run and what changes", async () => {
     const init = migration("0001_init");
     const second = migration("0002_stage");
@@ -142,16 +142,16 @@ describe("planning a promotion", () => {
       "feature-x",
     );
 
-    const plan = await planPromotion(registry, hosting, {
+    const plan = await planUpdate(registry, hosting, {
       tool,
-      to: "production",
-      fromBranch: "feature-x",
+      channel: "production",
+      version: "1.1.0",
     });
     expect(plan).toMatchObject({
       tool: "crm",
       version: "1.1.0",
       from: { branch: "feature-x" },
-      to: { environment: "production", currentVersion: "1.0.0" },
+      to: { channel: "production", currentVersion: "1.0.0" },
       alreadyServed: false,
       ok: true,
       conflicts: [],
@@ -177,10 +177,10 @@ describe("planning a promotion", () => {
       "feature-x",
     );
 
-    const plan = await planPromotion(registry, hosting, {
+    const plan = await planUpdate(registry, hosting, {
       tool,
-      to: "production",
-      fromBranch: "feature-x",
+      channel: "production",
+      version: "1.1.0",
     });
     expect(plan.ok).toBe(false);
     expect(plan.conflicts.map((c) => [c.code, c.subject])).toEqual([
@@ -193,6 +193,8 @@ describe("planning a promotion", () => {
     expect(prompt).toContain("MIGRATION_MISSING (0002_other)");
     expect(prompt).toContain("CHANGELOG_NO_ENTRY");
     expect(prompt).toContain("forgeron db status --env production");
+    expect(prompt).toContain("never moves code between branches");
+    expect(prompt).not.toContain("promote");
     expect(prompt).toContain("never edit, delete or renumber a migration");
     expect(prompt).toContain("without showing it to me");
   });
@@ -211,10 +213,10 @@ describe("planning a promotion", () => {
       "1.1.0",
       "b",
     );
-    const plan = await planPromotion(registry, hosting, {
+    const plan = await planUpdate(registry, hosting, {
       tool,
-      to: "production",
-      fromBranch: "b",
+      channel: "production",
+      version: "1.1.0",
     });
     expect(plan.conflicts.map((c) => c.code).sort()).toEqual([
       "MIGRATION_EDITED",
@@ -229,10 +231,10 @@ describe("planning a promotion", () => {
     const hosting = hostWith(production);
     await seedProduction(hosting, build("fp1", { migrations: [init] }), "1.0.0");
     await deployTo(hosting, "preview", build("fp2", { migrations: [init, drop] }), "1.1.0", "b");
-    const plan = await planPromotion(registry, hosting, {
+    const plan = await planUpdate(registry, hosting, {
       tool,
-      to: "production",
-      fromBranch: "b",
+      channel: "production",
+      version: "1.1.0",
     });
     expect(plan.ok).toBe(true);
     expect(plan.requiresAllowDestructive).toBe(true);
@@ -254,31 +256,28 @@ describe("planning a promotion", () => {
       "1.1.0",
       "b",
     );
-    const plan = await planPromotion(registry, hosting, {
+    const plan = await planUpdate(registry, hosting, {
       tool,
-      to: "production",
-      fromBranch: "b",
+      channel: "production",
+      version: "1.1.0",
     });
     expect(plan.migrations.checked).toBe(false);
     expect(plan.conflicts.map((c) => c.code)).toEqual(["PENDING_APPROVAL"]);
     expect(plan.changes.some((c) => c.needsApproval)).toBe(true);
   });
 
-  it("plans by version number, says when it is already served, and refuses what does not exist", async () => {
+  it("says when it is already served, and refuses what does not exist", async () => {
     const hosting = hostWith(await productionDatabase(migration("0001_init")));
     await seedProduction(hosting, build("fp1"), "1.0.0");
     expect(
-      await planPromotion(registry, hosting, { tool, to: "production", version: "1.0.0" }),
+      await planUpdate(registry, hosting, { tool, channel: "production", version: "1.0.0" }),
     ).toMatchObject({ alreadyServed: true, ok: true });
     await expect(
-      planPromotion(registry, hosting, { tool, to: "production", version: "9.9.9" }),
+      planUpdate(registry, hosting, { tool, channel: "production", version: "9.9.9" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(
-      planPromotion(registry, hosting, { tool, to: "production", fromBranch: "ghost" }),
+      planUpdate(registry, hosting, { tool, channel: "staging", version: "1.0.0" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    await expect(
-      planPromotion(registry, hosting, { tool, to: "production" }),
-    ).rejects.toMatchObject({ code: "INVALID" });
   });
 
   it("writes nothing: the target's database and the registry are as they were", async () => {
@@ -296,7 +295,7 @@ describe("planning a promotion", () => {
     const before = JSON.stringify(
       (await production.prepare(`SELECT * FROM "_forgeron_migrations"`).all()).results,
     );
-    await planPromotion(registry, hosting, { tool, to: "production", fromBranch: "b" });
+    await planUpdate(registry, hosting, { tool, channel: "production", version: "1.1.0" });
     expect(
       JSON.stringify(
         (await production.prepare(`SELECT * FROM "_forgeron_migrations"`).all()).results,

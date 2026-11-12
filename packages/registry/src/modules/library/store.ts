@@ -154,20 +154,21 @@ export function createLibrary(kernel: Kernel) {
       return true;
     },
 
-    // ---- pilots (D-119): a branch preview as a tool of its own
-    async previewAvailabilityOf(toolId: string, branch: string): Promise<Availability | undefined> {
+    // ---- channel access (D-119, D-125): who may use a channel other than production, and who added it.
+    // A channel is named by its reference: a branch (a temporary channel) or `~<name>` (a permanent one).
+    async channelAccessOf(toolId: string, channel: string): Promise<Availability | undefined> {
       const row = await first(
-        `SELECT * FROM "preview_availability" WHERE "tool_id" = ? AND "branch" = ?`,
+        `SELECT * FROM "channel_access" WHERE "tool_id" = ? AND "channel" = ?`,
         toolId,
-        branch,
+        channel,
       );
       return row ? toAvailability(row) : undefined;
     },
 
-    /** Who may pilot a branch. Audited on the tool, with the branch. */
-    async setPreviewAvailability(input: {
+    /** Who may use a channel. Audited on the tool, with the channel. */
+    async setChannelAccess(input: {
       toolId: string;
-      branch: string;
+      channel: string;
       mode: AvailabilityMode;
       roles?: string[];
       people?: string[];
@@ -187,19 +188,19 @@ export function createLibrary(kernel: Kernel) {
       await d1.batch([
         d1
           .prepare(
-            `INSERT INTO "preview_availability" ("tool_id", "branch", "mode", "subjects", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT ("tool_id", "branch") DO UPDATE SET "mode" = excluded."mode", "subjects" = excluded."subjects", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+            `INSERT INTO "channel_access" ("tool_id", "channel", "mode", "subjects", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT ("tool_id", "channel") DO UPDATE SET "mode" = excluded."mode", "subjects" = excluded."subjects", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
           )
-          .bind(input.toolId, input.branch, input.mode, JSON.stringify(subjects), input.actor, at),
+          .bind(input.toolId, input.channel, input.mode, JSON.stringify(subjects), input.actor, at),
         auditStatement(
           {
             toolId: input.toolId,
             actor: input.actor,
             ...(input.via ? { via: input.via } : {}),
             kind: "access",
-            subject: `availability@${input.branch}`,
+            subject: `availability@${input.channel}`,
             detail: {
-              event: "pilot-availability-set",
-              branch: input.branch,
+              event: "channel-access-set",
+              channel: input.channel,
               mode: input.mode,
               subjects,
             },
@@ -207,49 +208,49 @@ export function createLibrary(kernel: Kernel) {
           at,
         ),
       ]);
-      return (await this.previewAvailabilityOf(input.toolId, input.branch))!;
+      return (await this.channelAccessOf(input.toolId, input.channel))!;
     },
 
-    /** The pilots a person added: tool and branch. */
-    async pilotsOf(person: string): Promise<Array<{ toolId: string; branch: string }>> {
+    /** The channels other than production a person added: tool and channel reference. */
+    async channelsOf(person: string): Promise<Array<{ toolId: string; channel: string }>> {
       return (
-        await all(`SELECT "tool_id", "branch" FROM "person_previews" WHERE "person" = ?`, person)
-      ).map((r) => ({ toolId: String(r.tool_id), branch: String(r.branch) }));
+        await all(`SELECT "tool_id", "channel" FROM "person_channels" WHERE "person" = ?`, person)
+      ).map((r) => ({ toolId: String(r.tool_id), channel: String(r.channel) }));
     },
 
-    async isPilotInstalled(toolId: string, branch: string, person: string): Promise<boolean> {
+    async isChannelInstalled(toolId: string, channel: string, person: string): Promise<boolean> {
       return (
         (await first(
-          `SELECT 1 FROM "person_previews" WHERE "tool_id" = ? AND "branch" = ? AND "person" = ?`,
+          `SELECT 1 FROM "person_channels" WHERE "tool_id" = ? AND "channel" = ? AND "person" = ?`,
           toolId,
-          branch,
+          channel,
           person,
         )) !== undefined
       );
     },
 
-    async installPilotForPerson(input: {
+    async installChannelForPerson(input: {
       toolId: string;
-      branch: string;
+      channel: string;
       person: string;
       via?: string;
     }): Promise<void> {
-      if (await this.isPilotInstalled(input.toolId, input.branch, input.person)) return;
+      if (await this.isChannelInstalled(input.toolId, input.channel, input.person)) return;
       const at = now();
       await d1.batch([
         d1
           .prepare(
-            `INSERT OR IGNORE INTO "person_previews" ("tool_id", "branch", "person", "installed_at") VALUES (?, ?, ?, ?)`,
+            `INSERT OR IGNORE INTO "person_channels" ("tool_id", "channel", "person", "installed_at") VALUES (?, ?, ?, ?)`,
           )
-          .bind(input.toolId, input.branch, input.person, at),
+          .bind(input.toolId, input.channel, input.person, at),
         auditStatement(
           {
             toolId: input.toolId,
             actor: input.person,
             ...(input.via ? { via: input.via } : {}),
             kind: "access",
-            subject: `library@${input.branch}`,
-            detail: { event: "pilot-added", branch: input.branch },
+            subject: `library@${input.channel}`,
+            detail: { event: "channel-added", channel: input.channel },
           },
           at,
         ),
@@ -257,36 +258,36 @@ export function createLibrary(kernel: Kernel) {
     },
 
     /**
-     * Takes a pilot out of a person's library, with the bindings of their saved secrets to that branch
-     * (`preview:<branch>`). The setup values belong to the tool and stay. Returns whether it was there.
+     * Takes a channel out of a person's library, with the bindings of their saved secrets to it
+     * (`preview:<channel>`). The setup values belong to the tool and stay. Returns whether it was there.
      */
-    async uninstallPilotForPerson(input: {
+    async uninstallChannelForPerson(input: {
       toolId: string;
-      branch: string;
+      channel: string;
       person: string;
       via?: string;
     }): Promise<boolean> {
-      if (!(await this.isPilotInstalled(input.toolId, input.branch, input.person))) return false;
+      if (!(await this.isChannelInstalled(input.toolId, input.channel, input.person))) return false;
       const at = now();
       await d1.batch([
         d1
           .prepare(
-            `DELETE FROM "person_previews" WHERE "tool_id" = ? AND "branch" = ? AND "person" = ?`,
+            `DELETE FROM "person_channels" WHERE "tool_id" = ? AND "channel" = ? AND "person" = ?`,
           )
-          .bind(input.toolId, input.branch, input.person),
+          .bind(input.toolId, input.channel, input.person),
         d1
           .prepare(
             `DELETE FROM "secret_bindings" WHERE "tool_id" = ? AND "person" = ? AND "scope" = ?`,
           )
-          .bind(input.toolId, input.person, `preview:${input.branch}`),
+          .bind(input.toolId, input.person, `preview:${input.channel}`),
         auditStatement(
           {
             toolId: input.toolId,
             actor: input.person,
             ...(input.via ? { via: input.via } : {}),
             kind: "access",
-            subject: `library@${input.branch}`,
-            detail: { event: "pilot-removed", branch: input.branch },
+            subject: `library@${input.channel}`,
+            detail: { event: "channel-removed", channel: input.channel },
           },
           at,
         ),

@@ -26,7 +26,10 @@ export const dbMigrationsRoute = defineRoute({
     params: z.object({ tool }),
     query: z.object({
       env: z.string().optional().describe("`production` (default) or `preview`"),
-      branch: z.string().optional().describe("The preview's branch"),
+      branch: z
+        .string()
+        .optional()
+        .describe("A channel other than production: a branch, or `~<name>` for a permanent one"),
     }),
   },
   responses: {

@@ -1,4 +1,5 @@
-import { Badge, EmptyState, EnvTag } from "@forgeron/ui";
+import { Badge, Checkbox, EmptyState, EnvTag } from "@forgeron/ui";
+import { useState } from "react";
 import { ago } from "../../../format";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
@@ -6,8 +7,9 @@ import { loadVersions, type VersionRow } from "../api";
 import { ImpactBadge } from "../components";
 import type { ToolTabProps } from "../tabs";
 
-// The versions of a tool, newest first, each with what its author wrote and what the manifest says
+// The releases of a tool, newest first, each with what its author wrote and what the manifest says
 // changed compared with the version published before it (sdk.md §16, "Where the changelog is read").
+// Only a release reaches a permanent channel (D-125); the other builds of the branches can be shown.
 
 const KIND = (kind: string) => kind.replace(/[.-]/g, " ");
 
@@ -19,9 +21,15 @@ function Version({ row, now }: { row: VersionRow; now: Date }) {
           <code>{row.version}</code>
         </h3>
         <span className="fc-badges">
+          {row.release ? <Badge tone="success">Release</Badge> : <Badge>Build</Badge>}
+          {row.branch ? (
+            <span className="fc-muted">
+              on <code>{row.branch}</code>
+            </span>
+          ) : null}
           {row.environments.map((e) => (
-            <span key={`${e.environment}/${e.branch ?? ""}`} className="ft-served">
-              <EnvTag env={e.environment} />
+            <span key={`${e.environment}/${e.branch ?? e.channel ?? ""}`} className="ft-served">
+              <EnvTag env={e.environment}>{e.channel}</EnvTag>
               {e.branch ? <code>{e.branch}</code> : null}
             </span>
           ))}
@@ -72,8 +80,9 @@ function Version({ row, now }: { row: VersionRow; now: Date }) {
 
 interface Served {
   key: string;
-  environment: "production" | "preview";
+  environment: "production" | "preview" | "channel";
   branch?: string;
+  channel?: string;
   row: VersionRow;
 }
 
@@ -83,30 +92,32 @@ function served(rows: VersionRow[]): Served[] {
   for (const row of rows) {
     for (const e of row.environments) {
       out.push({
-        key: `${e.environment}/${e.branch ?? ""}`,
+        key: `${e.environment}/${e.branch ?? e.channel ?? ""}`,
         environment: e.environment,
         ...(e.branch ? { branch: e.branch } : {}),
+        ...(e.channel ? { channel: e.channel } : {}),
         row,
       });
     }
   }
-  return out.sort(
-    (a, b) => Number(b.environment === "production") - Number(a.environment === "production"),
-  );
+  // Production first, then the other permanent channels, then the branches.
+  const rank = (s: Served) =>
+    s.environment === "production" ? 0 : s.environment === "channel" ? 1 : 2;
+  return out.sort((a, b) => rank(a) - rank(b));
 }
 
 function Environments({ rows }: { rows: VersionRow[] }) {
   const list = served(rows);
   if (list.length === 0) return null;
   return (
-    <section aria-label="Version of each environment">
-      <h3 className="ft-version-name">Environments</h3>
+    <section aria-label="Version of each channel">
+      <h3 className="ft-version-name">Channels</h3>
       <ul className="ft-versions-list ft-environments">
-        {list.map(({ key, environment, branch, row }) => (
+        {list.map(({ key, environment, branch, channel, row }) => (
           <li key={key} className="ft-version">
             <div className="ft-version-head">
               <span className="ft-served">
-                <EnvTag env={environment} />
+                <EnvTag env={environment}>{channel}</EnvTag>
                 {branch ? <code>{branch}</code> : null}
               </span>
               <code>{row.version}</code>
@@ -139,27 +150,42 @@ function Environments({ rows }: { rows: VersionRow[] }) {
 
 export default function VersionsTab({ tool, api, now }: ToolTabProps) {
   const versions = useLoad(() => loadVersions(api.fetchJson, tool), [api, tool]);
-  if (versions.loading) return <Loading shape="table" label="Loading versions" />;
+  const [builds, setBuilds] = useState(false);
+  if (versions.loading) return <Loading shape="table" label="Loading releases" />;
   if (!versions.data) {
-    return <LoadError what="The versions" error={versions.error} onRetry={versions.reload} />;
+    return <LoadError what="The releases" error={versions.error} onRetry={versions.reload} />;
   }
   if (versions.data.length === 0) {
     return (
       <EmptyState
-        title="No version yet"
-        description="Every deployment publishes a version. Deploy a branch to publish the first one."
+        title="No release yet"
+        description="A release is made on a branch with forgeron change and forgeron release, then pushed. Every push of a branch publishes a build."
       />
     );
   }
+  const shown = builds ? versions.data : versions.data.filter((row) => row.release);
   return (
     <>
       <Environments rows={versions.data} />
-      <h3 className="ft-version-name">All versions</h3>
-      <ul className="ft-versions-list">
-        {versions.data.map((row) => (
-          <Version key={row.version} row={row} now={now()} />
-        ))}
-      </ul>
+      <div className="ft-release-head">
+        <h3 className="ft-version-name">{builds ? "Releases and builds" : "Releases"}</h3>
+        <Checkbox
+          label="Show the builds that are not releases"
+          checked={builds}
+          onChange={(e) => setBuilds(e.target.checked)}
+        />
+      </div>
+      {shown.length === 0 ? (
+        <p className="fc-muted">
+          No release yet: only builds of branches. A permanent channel takes only releases.
+        </p>
+      ) : (
+        <ul className="ft-versions-list">
+          {shown.map((row) => (
+            <Version key={row.version} row={row} now={now()} />
+          ))}
+        </ul>
+      )}
     </>
   );
 }

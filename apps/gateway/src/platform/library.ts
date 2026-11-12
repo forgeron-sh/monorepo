@@ -11,7 +11,14 @@ import {
   putAvailabilityRoute,
   uninstallLibraryToolRoute,
 } from "@forgeron/platform-contract";
-import { findCard, isAvailable, listCatalog, type Availability } from "@forgeron/registry";
+import {
+  channelRef,
+  environmentOfRef,
+  findCard,
+  isAvailable,
+  listCatalog,
+  type Availability,
+} from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import {
@@ -21,6 +28,7 @@ import {
   previewManifest,
   setupPath,
 } from "../library/library";
+import { channelPath } from "../tool-address";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
 // A person's library (D-117): the tools they may add, those they added, how to use one; and, for an
@@ -49,14 +57,17 @@ async function entryOf(c: Context<PlatformEnv>, tool: { name: string; access: st
   };
 }
 
-/** A branch as a pilot for this person, or `undefined` when it is not opened to them (D-119). */
+/**
+ * A channel other than production for this person, or `undefined` when it is not opened to them
+ * (D-119, D-125). `branch` is the channel's reference: a branch, or `~<name>`.
+ */
 async function pilotOf(c: Context<PlatformEnv>, toolId: string, name: string, branch: string) {
   const person = c.get("person");
-  const rule = await c.env.registry.previewAvailabilityOf(toolId, branch);
+  const rule = await c.env.registry.channelAccessOf(toolId, branch);
   if (!rule || !isAvailable(rule, person)) return undefined;
   const manifest = await previewManifest(c.env.registry, toolId, branch);
   if (!manifest) return undefined;
-  const installed = await c.env.registry.isPilotInstalled(toolId, branch, person.id);
+  const installed = await c.env.registry.isChannelInstalled(toolId, branch, person.id);
   const pending = installed
     ? await pilotNeedsSetup(c.env.registry, toolId, branch, person.id)
     : false;
@@ -75,7 +86,7 @@ async function pilotOf(c: Context<PlatformEnv>, toolId: string, name: string, br
   };
 }
 
-const noPilot = { error: "NOT_FOUND", message: "There is no such pilot in your library." };
+const noPilot = { error: "NOT_FOUND", message: "There is no such channel in your library." };
 
 const availabilityBody = (rule: Availability | undefined) =>
   rule
@@ -103,11 +114,14 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
         pilot: null,
       });
     }
-    // Pilots (D-119): each branch an admin opened to this person, as a tool of its own.
+    // Channels other than production (D-119, D-125): each one an admin opened to this person, as a
+    // tool of its own with its own data: the permanent ones (`~<name>`) and the branches.
     for (const record of await c.env.registry.listTools(c.env.workspace)) {
       for (const env of await c.env.registry.listEnvironments(record.id)) {
-        if (env.name !== "preview" || !env.branch || !env.versionId) continue;
-        const pilot = await pilotOf(c, record.id, record.name, env.branch);
+        if (env.name === "production" || !env.versionId) continue;
+        const ref = channelRef(env);
+        if (!ref || ref === "~") continue;
+        const pilot = await pilotOf(c, record.id, record.name, ref);
         if (pilot) tools.push(pilot.entry);
       }
     }
@@ -227,13 +241,11 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     const record = await c.env.registry.findTool(c.env.workspace, tool);
     const pilot = record ? await pilotOf(c, record.id, tool, branch) : undefined;
     if (!record || !pilot) return c.json(noPilot, 404);
-    const env = (await c.env.registry.listEnvironments(record.id)).find(
-      (e) => e.name === "preview" && e.branch === branch,
-    );
+    const env = await environmentOfRef(c.env.registry, record.id, branch);
     const version = env?.versionId ? await c.env.registry.getVersion(env.versionId) : undefined;
     const guide = version ? await c.env.registry.guideOf(record.id, version.buildId) : undefined;
     const usable = pilot.entry.installed;
-    const base = `${c.env.origin}/t/${tool}@${branch}`;
+    const base = `${c.env.origin}${channelPath(tool, branch)}`;
     const i = pilot.manifest.interfaces;
     return c.json(
       {
@@ -257,9 +269,9 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     const record = await c.env.registry.findTool(c.env.workspace, tool);
     const pilot = record ? await pilotOf(c, record.id, tool, branch) : undefined;
     if (!record || !pilot) return c.json(noPilot, 404);
-    await c.env.registry.installPilotForPerson({
+    await c.env.registry.installChannelForPerson({
       toolId: record.id,
-      branch,
+      channel: branch,
       person: person.id,
       ...(c.env.via ? { via: c.env.via } : {}),
     });
@@ -274,9 +286,9 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     const { tool, branch } = c.req.valid("param");
     const record = await c.env.registry.findTool(c.env.workspace, tool);
     const removed = record
-      ? await c.env.registry.uninstallPilotForPerson({
+      ? await c.env.registry.uninstallChannelForPerson({
           toolId: record.id,
-          branch,
+          channel: branch,
           person: c.get("person").id,
           ...(c.env.via ? { via: c.env.via } : {}),
         })
@@ -287,26 +299,21 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
   const previewOf = async (c: Context<PlatformEnv>, tool: string, branch: string) => {
     const record = await c.env.registry.findTool(c.env.workspace, tool);
     if (!record) return undefined;
-    const env = (await c.env.registry.listEnvironments(record.id)).find(
-      (e) => e.name === "preview" && e.branch === branch,
-    );
-    return env ? record : undefined;
+    // A branch's temporary channel, or `~<name>` for a permanent one (D-125).
+    return (await environmentOfRef(c.env.registry, record.id, branch)) ? record : undefined;
   };
 
   app.openapi(platformRoute(getPilotAvailabilityRoute, "admin"), async (c) => {
     const { tool, branch } = c.req.valid("param");
     const record = await previewOf(c, tool, branch);
-    if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such preview." }, 404);
-    return c.json(
-      availabilityBody(await c.env.registry.previewAvailabilityOf(record.id, branch)),
-      200,
-    );
+    if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such channel." }, 404);
+    return c.json(availabilityBody(await c.env.registry.channelAccessOf(record.id, branch)), 200);
   });
 
   app.openapi(platformRoute(putPilotAvailabilityRoute, "admin"), async (c) => {
     const { tool, branch } = c.req.valid("param");
     const record = await previewOf(c, tool, branch);
-    if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such preview." }, 404);
+    if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such channel." }, 404);
     const body = c.req.valid("json");
     if (body.mode === "people") {
       for (const id of body.people ?? []) {
@@ -318,9 +325,9 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
         }
       }
     }
-    const rule = await c.env.registry.setPreviewAvailability({
+    const rule = await c.env.registry.setChannelAccess({
       toolId: record.id,
-      branch,
+      channel: branch,
       mode: body.mode,
       ...(body.roles ? { roles: body.roles } : {}),
       ...(body.people ? { people: body.people } : {}),

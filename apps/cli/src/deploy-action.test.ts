@@ -58,23 +58,21 @@ describe("the deploy action", () => {
     expect(await calls(ctx.log)).toEqual([
       "odoo test token=t0ken",
       "odoo change check token=t0ken",
-      "odoo deploy --env preview token=t0ken",
+      "odoo deploy token=t0ken",
       "crm test token=t0ken",
       "crm change check token=t0ken",
-      "crm deploy --env preview token=t0ken",
+      "crm deploy token=t0ken",
     ]);
   });
 
-  it("deploys to the environment asked, with extra arguments", async () => {
+  it("deploys the branch with extra arguments, and never to an environment named (D-125)", async () => {
     const ctx = await repository(["crm"]);
     runScript(ctx, {
       FORGERON_TOKEN: "t",
       FORGERON_ENV: "production",
       FORGERON_ARGS: "--allow-destructive",
     });
-    expect((await calls(ctx.log)).at(-1)).toBe(
-      "crm deploy --env production --allow-destructive token=t",
-    );
+    expect((await calls(ctx.log)).at(-1)).toBe("crm deploy --allow-destructive token=t");
   });
 
   it("stops at the first failing step: a tool that fails its tests is not deployed", async () => {
@@ -102,7 +100,7 @@ describe("the deploy action", () => {
     expect(await calls(ctx.log)).toEqual([
       "crm test token=none",
       "crm change check token=none",
-      "crm deploy --env preview token=none",
+      "crm deploy token=none",
     ]);
     const close = runScript(ctx, {
       FORGERON_CLOSE: "true",
@@ -143,10 +141,10 @@ echo "$(basename "$PWD") ${tool} $*" >> "${ctx.log}"
       "odoo npm ci",
       "crm test token=t",
       "crm change check token=t",
-      "crm deploy --env preview token=t",
+      "crm deploy token=t",
       "odoo test token=t",
       "odoo change check token=t",
-      "odoo deploy --env preview token=t",
+      "odoo deploy token=t",
     ]);
     // Asked not to, it installs nothing.
     await writeFile(ctx.log, "");

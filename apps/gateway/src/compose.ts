@@ -143,8 +143,9 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       accountId: env.CLOUDFLARE_ACCOUNT_ID,
       apiToken: env.CLOUDFLARE_API_TOKEN,
       workspace,
-      // Production answers at the tool's address; a preview adds `@<branch>` to it.
-      url: (worker: string, environment: { branch?: string }) =>
+      // Production answers at the tool's address; a preview adds `@<branch>`, another permanent
+      // channel `~<name>` (D-125).
+      url: (worker: string, environment: { branch?: string; channel?: string }) =>
         toolAddress(`https://${workspace}.${env.BASE_DOMAIN}`, worker, environment),
     };
     if (env.DISPATCHER && env.DISPATCH_NAMESPACE) {

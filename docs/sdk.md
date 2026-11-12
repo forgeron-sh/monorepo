@@ -220,12 +220,10 @@ The CLI is published as `forgeron` (`npm i -D forgeron`, next to `@forgeron/sdk`
 | `forgeron test`                                                     | Runs Vitest with the Forgeron configuration (alias of `vitest`)                                                                                                                                                                  |
 | `forgeron build`                                                    | Builds the Worker, the manifest, the views and the migrations into `.forgeron/build/`                                                                                                                                            |
 | `forgeron bundle [--out <dir>]`                                     | Builds the tool into one file, `<name>-<version>.forgeron.json`, and prints its SHA-256: what a marketplace attaches to a release (D-115)                                                                                        |
-| `forgeron preview close [--branch <name>]`                          | Tears down the preview of a branch (a deleted branch, a closed pull request); needs `FORGERON_TOKEN`. The branch: `--branch`, else `FORGERON_BRANCH`, else the pull request's                                                    |
-| `forgeron deploy [--env preview\|production] [--allow-destructive]` | Builds, uploads a version, applies migrations, switches traffic. Without `--env`: preview of the current branch                                                                                                                  |
-| `forgeron versions`                                                 | Lists versions and their environments                                                                                                                                                                                            |
-| `forgeron promote <version> --to <env>`                             | Promotes an existing version, without rebuilding                                                                                                                                                                                 |
-| `forgeron promote --from-branch <b> --to production`                | Promotes what a branch's preview serves, after checking the plan: no conflict, it goes; otherwise it prints each conflict and a prompt for an agent (exit 3)                                                                     |
-| `forgeron rollback [--env production]`                              | Goes back to the environment's previous version                                                                                                                                                                                  |
+| `forgeron preview close [--branch <name>]`                          | Tears down the temporary channel of a branch (a deleted branch, a closed pull request); needs `FORGERON_TOKEN`. The branch: `--branch`, else `FORGERON_BRANCH`, else the pull request's                                          |
+| `forgeron deploy [--branch <name>] [--allow-destructive]`           | Builds, uploads a build to the branch's temporary channel, applies migrations, switches traffic. A release reaches the permanent channels that follow the branch (D-125). There is no `--env production`                         |
+| `forgeron versions`                                                 | Lists versions and their channels                                                                                                                                                                                                |
+| `forgeron rollback [--channel <name>]`                              | Puts a permanent channel (production by default) back on the release it served before; `--env preview --branch <b>` for a branch's temporary channel                                                                             |
 | `forgeron logs [--env] [--action <name>] [--job <name>] [--follow]` | Execution log                                                                                                                                                                                                                    |
 | `forgeron jobs run <name> [--env]`                                  | Runs a scheduled task on demand                                                                                                                                                                                                  |
 | `forgeron resources [--diff production]`                            | Shows the requested resources, or what changes compared with an environment                                                                                                                                                      |
@@ -255,14 +253,14 @@ The CLI is published as `forgeron` (`npm i -D forgeron`, next to `@forgeron/sdk`
 
 ### Database
 
-| Command                                       | What it does                                                                                                                                                                                                                         |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `forgeron db generate [--name <name>]`        | Compares `db/schema.ts` with the last snapshot and writes the migration(s)                                                                                                                                                           |
-| `forgeron db migrate [--env]`                 | Applies pending migrations (local by default)                                                                                                                                                                                        |
-| `forgeron db status [--env] [--branch]`       | Applied and pending migrations; on `preview` or `production`, against the version served, with the conflicts (administrators)                                                                                                        |
-| `forgeron db rollback [--env] [--steps 1]`    | Runs the `down` of the latest migrations                                                                                                                                                                                             |
-| `forgeron db seed`                            | Runs `db/seed.ts` on the local database                                                                                                                                                                                              |
-| `forgeron db shell [--env] --sql <statement>` | SQL console. Local: yours. On `preview` or `production` (administrators, `forgeron login`): one statement, read by default; a write needs `--write` and, on production, `--confirm <tool>`; recorded in the audit log before it runs |
+| Command                                                   | What it does                                                                                                                                                                                                                                                                               |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `forgeron db generate [--name <name>]`                    | Compares `db/schema.ts` with the last snapshot and writes the migration(s)                                                                                                                                                                                                                 |
+| `forgeron db migrate [--env]`                             | Applies pending migrations (local by default)                                                                                                                                                                                                                                              |
+| `forgeron db status [--env] [--branch] [--channel]`       | Applied and pending migrations; on `preview` or `production`, against the version served, with the conflicts (administrators)                                                                                                                                                              |
+| `forgeron db rollback [--env] [--steps 1]`                | Runs the `down` of the latest migrations                                                                                                                                                                                                                                                   |
+| `forgeron db seed`                                        | Runs `db/seed.ts` on the local database                                                                                                                                                                                                                                                    |
+| `forgeron db shell [--env] [--channel] --sql <statement>` | SQL console. Local: yours. On a branch, production or another permanent channel (`--channel`, D-125) (administrators, `forgeron login`): one statement, read by default; a write needs `--write` and, on a permanent channel, `--confirm <tool>`; recorded in the audit log before it runs |
 
 ### Secrets and access
 
@@ -388,7 +386,8 @@ https://acme.forgeron.app/t/crm/play             tool's playground
 | `<workspace>`                                   | `[a-z0-9-]`, 3 to 40 characters. Reserved: `www`, `app`, `api`, `docs`, `status`, `console`, `mcp`, `admin`, `auth`, `cdn`, `static`, `play`. |
 | `/t/<tool>`                                     | The tool's `name`. `t` is the only prefix for tools; the other top-level paths (`/mcp`, `/settings`, `/auth`…) belong to the platform.        |
 | `/t/<tool>/mcp`, `/api`, `/cli`, `/play`, `/_f` | Reserved by the platform. A view cannot use these paths; the build refuses it.                                                                |
-| `/t/<tool>@<branch>/…`                          | A preview: same structure, on the branch's version (`/t/crm@feat-export/mcp`).                                                                |
+| `/t/<tool>@<branch>/…`                          | A branch's temporary channel: same structure, on the branch's version (`/t/crm@feat-export/mcp`).                                             |
+| `/t/<tool>~<channel>/…`                         | A permanent channel other than production (D-125): `/t/crm~staging/mcp`. Git refuses `~` in a branch name, so it never clashes with a branch. |
 
 `/t/<tool>/cli` answers depending on the caller. The CLI fetches the command manifest there, as JSON (actions, arguments, options), keeps it in cache and refreshes it at each version; execution then goes through `/t/<tool>/api`. A browser sees a help page there: installation, `forgeron login`, list of commands.
 
@@ -643,18 +642,24 @@ The build fails if: an action has no `access` or `description`, an action name i
 
 Deployment to production additionally fails if the version has no changelog entry, if the declared impact is lower than the detected impact (section 16), or if new resources are awaiting approval.
 
-## 15. Versions, environments, deployment
+## 15. Versions, channels, deployment
 
-| Environment  | Created by                                                  | Database                                | Who has access                                                                                           |
-| ------------ | ----------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `local`      | `forgeron dev`                                              | `.forgeron/local/dev.sqlite`            | the developer                                                                                            |
-| `preview`    | each push to a branch, or `forgeron deploy`                 | one database per branch, `preview.data` | the `admin` roles and the tool's developers; the people an admin opens the branch to, as a pilot (D-119) |
-| `production` | the update of the production branch, or a promotion (D-121) | that of production                      | the tool's roles                                                                                         |
+A **branch** (GitHub) is where people work: Git is the versioning and the history, and Forgeron never moves code between branches. A **channel** (Forgeron) is where a tool is distributed, with its own database and its own access rule (D-125, [lifecycle.md](lifecycle.md)).
 
-- **Version**: see section 16. A build is promoted from one environment to the next without being rebuilt.
-- **Rollback**: `forgeron rollback` puts the previous version back on traffic. Migrations are not rolled back automatically; `forgeron db rollback` does it explicitly.
-- **Audit log**: every deployment, promotion and rollback is recorded (who, when, which version).
-- **Two sources** (D-121, [lifecycle.md](lifecycle.md)): a tool is installed from a **marketplace** (its latest release; a newer one is an update) or added from a **GitHub repository** that holds only it (each pushed branch is a preview; its production branch, `main` by default, is the candidate for production). An admin puts an update in production from the tool's page, approving in the same step what it asks for; a tool may update by itself when a new version asks for nothing new.
+| Channel                                  | Created by                                                         | Takes                                                              | Database                                          | Who has access                                                                  |
+| ---------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `local`                                  | `forgeron dev`                                                     | your working copy                                                  | `.forgeron/local/dev.sqlite`                      | the developer                                                                   |
+| a branch's temporary channel (`preview`) | each push to a branch; removed when the branch is deleted          | every push of its branch, release or not                           | its own, filled by `preview.data` (seed or empty) | admins and developers; the people an admin opens it to (its access rule, D-119) |
+| `production` (permanent, always there)   | the first release of the branch it follows (`main` unless changed) | only the releases of the branch it follows                         | its own                                           | the tool's availability (D-117)                                                 |
+| another permanent channel (`staging`…)   | an admin, on the tool's page                                       | only the releases of the branch it follows (or of the marketplace) | its own: it never touches production's            | admins and developers; the people an admin opens it to (its access rule)        |
+
+- **A release** is a build made by `forgeron change` then `forgeron release` on a branch, with no change pending since (`changelog.json` says `released: true`). A build that is not a release never reaches a permanent channel. Pre-releases (`-rc.N`) are not supported: `forgeron release` numbers `x.y.z` only.
+- **The update**: when a release lands on the branch a permanent channel follows, the channel takes it by itself when it updates by itself and the release asks for nothing new; otherwise it waits for an admin's _Update_, which approves what the release asks for in the same step. A marketplace tool's channels take the marketplace's releases the same way.
+- **Rollback**: `forgeron rollback` puts the release a permanent channel served before back on traffic: no new code. Migrations are not rolled back automatically; `forgeron db rollback` does it explicitly.
+- **Data**: a temporary channel starts empty (seed or empty per `preview.data`); an admin may replace its data by another branch's. A permanent channel's data is never copied, nor replaced.
+- **Secrets**: production has its tool secrets and connections; every other channel uses the `preview` ones, so production's credentials never leave production.
+- **Audit log**: every deployment, update and rollback is recorded (who, when, which version, which channel).
+- **Two sources** (D-121): a tool is installed from a **marketplace** (its latest release; a newer one is an update) or added from a **GitHub repository** that holds only it (each pushed branch is a temporary channel).
 
 ### Publishing from GitHub
 
@@ -685,7 +690,7 @@ For each tool in the repository (section 2), the action installs its dependencie
 
 1. `forgeron test`;
 2. `forgeron change check`;
-3. `forgeron deploy`: build, upload to the gateway, migrations, preview of the branch. Every branch, the production branch included, deploys a preview; production takes the production branch's preview through an update, by an admin or by itself (D-121).
+3. `forgeron deploy`: build, upload to the gateway, migrations, the branch's temporary channel. Every branch, the one production follows included, deploys its temporary channel; when the build is a release, the permanent channels that follow the branch take it, by themselves or through an admin's update (D-125).
 
 **Authentication, with no token** (D-123): with `id-token: write`, `forgeron deploy` and `forgeron preview close` ask GitHub Actions for an identity token whose audience is the workspace's address, and the gateway deploys the tool linked to the repository that runs (by GitHub's number for it, so a rename changes nothing). The workspace comes from `.forgeron/project.json`, or from `FORGERON_ENDPOINT` (the action's `endpoint`). A `FORGERON_TOKEN` (deployment token, section 4) still works, given as the action's `token`, for CI that is not GitHub's.
 
@@ -699,15 +704,15 @@ Every tool has a mandatory **semver** version and **changelog**. Forgeron does n
 
 Three words, three things, so that "every push creates a version" and "the version only changes with `forgeron release`" do not contradict each other:
 
-|                  | Created by                            | Identifier                                                                                                           | Changes when        |
-| ---------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| Build            | each push, or `forgeron deploy`       | the commit (`a41f9e0`)                                                                                               | on every commit     |
-| Version          | `forgeron release`                    | semver (`1.5.0`)                                                                                                     | on every release    |
-| What is deployed | `forgeron deploy`, `forgeron promote` | `v1.5.0+a41f9e0` in production, `1.6.0-preview.<branch>.<n>` in preview (the version the next release would produce) | on every deployment |
+|                  | Created by                      | Identifier                                                                                                         | Changes when        |
+| ---------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| Build            | each push, or `forgeron deploy` | the commit (`a41f9e0`)                                                                                             | on every commit     |
+| Version          | `forgeron release`              | semver (`1.5.0`)                                                                                                   | on every release    |
+| What is deployed | `forgeron deploy`, an update    | `1.5.0-preview.<branch>+a41f9e0`: the version, the branch and the commit; a permanent channel serves the same name | on every deployment |
 
-A push without a release therefore produces a new build of the current version (`v1.5.0+b72c1d4`): it deploys to preview, but not to production if the manifest changed without an entry in `changes/` (see below).
+A push without a release therefore produces a new build of the current version: it deploys to its branch's temporary channel, never to a permanent channel.
 
-A release is **advised, not required** (D-121): an admin may put a build with no changelog entry in production, knowingly (`withoutRelease`, a checkbox in the console); the audit line says so. A release that declares less than what Forgeron detects is still refused. Run `forgeron release` on the production branch only: it consumes `changes/`, so two branches releasing on their own would number the same version twice and conflict at the merge.
+A release is **required** for a permanent channel (D-125, which replaces D-121's `withoutRelease`): a build with no release, or one whose `changes/` still wait for `forgeron release`, is refused there; a release that declares less than what Forgeron detects too. A marketplace's publication is its release. Run `forgeron release` on the branch a permanent channel follows (`main` for production): it consumes `changes/`, so two branches releasing on their own would number the same version twice and conflict at the merge.
 
 ### Where the version lives
 
@@ -755,7 +760,7 @@ One file per change rather than a single file: two branches never step on each o
 | New view, new scheduled task, new resource                            | `minor`        |
 | Description changed, internal code, non-destructive migration         | `patch`        |
 
-If `changes/` is empty while the manifest changed, or if the declared impact is lower than the detected impact, deployment to production is refused. Previews are not blocked.
+If `changes/` is empty while the manifest changed, or if the declared impact is lower than the detected impact, a permanent channel refuses the build. Temporary channels are not blocked.
 
 For other tools, the impact matters: a tool that declares `uses: { crm: "^1.4.0" }` never automatically receives a `2.0.0` version of the CRM.
 
@@ -763,7 +768,7 @@ For other tools, the impact matters: a tool that declares `uses: { crm: "^1.4.0"
 
 `forgeron release` also writes `.forgeron/released.json` (committed): the manifest and the migrations of the version it released. `forgeron change check` and `forgeron build` compare with it, until the platform can serve the last published manifest. Before the first release there is no baseline and nothing is detected. A new migration marked `destructive` counts as `major`.
 
-`changelog.json` holds the pending entries, or those of the last release when none is pending, with `declared` (the strongest bump), `detected` and `pendingApproval`. A host calls `assertDeployable` (`@forgeron/hosting`) before taking a build to production.
+`changelog.json` holds the pending entries, or those of the last release when none is pending, with `declared` (the strongest bump), `detected`, `pendingApproval` and `released` (no change pending, and the version is the one `forgeron release` wrote: the build is a release, D-125). A host calls `assertDeployable` (`@forgeron/hosting`) before taking a build to a permanent channel.
 
 ### `forgeron release`
 
@@ -791,7 +796,7 @@ For other tools, the impact matters: a tool that declares `uses: { crm: "^1.4.0"
 
 ### Where the changelog is read
 
-- **Console**: a tool's page shows the version of each environment and "what it contains" compared with the previous one.
+- **Console**: a tool's page shows the version of each channel and "what it contains" compared with the previous one (the Releases tab).
 - **Admin MCP**: `tool_changelog` ("What has changed in the CRM since 1.3?").
 - **CLI**: `forgeron changelog crm --since 1.3.0`.
 - **Build**: `changelog.json` is published with each version, so that the console, the MCP and dependent tools read it without parsing Markdown.
@@ -811,29 +816,29 @@ In addition to each tool's MCP server, the workspace exposes **a Forgeron MCP se
 
 Each tool calls the platform's own routes with the signed-in person's identity, so it has the guard, the validation and the audit lines of the console. `/mcp` is authenticated with a Bearer token limited to the workspace: a **CLI token** (`forgeron login`, D-079) or an **OAuth token** that an MCP client such as a Claude connector got by signing in at `/oauth/authorize` (D-094: PKCE, one hour, renewed by a refresh token that rotates, revocable); the session cookie and a tool's tokens are refused. An OAuth token is good on `/mcp` only. The same sign-in works for a tool's MCP: `/t/<tool>/mcp` is its own OAuth resource, and the token it gives is for that tool and that path (D-095). A person is offered only the tools their role allows.
 
-| MCP tool                         | What it does                                                                                                                                             | Minimum role in the workspace | Destructive |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
-| `catalog_search`                 | Searches the workspace's catalog of tools                                                                                                                | member                        |             |
-| `catalog_get`                    | A tool's card: what it does, how to connect, what the caller may call                                                                                    | member                        |             |
-| `tools_list`                     | The workspace's tools, their versions per environment                                                                                                    | member                        |             |
-| `tool_get`                       | Tool detail: versions per environment and its card                                                                                                       | member                        |             |
-| `tool_changelog`                 | A tool's changelog, optionally since a version                                                                                                           | developer                     |             |
-| `tool_versions`                  | Versions and environments                                                                                                                                | developer                     |             |
-| `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                                                                                         | developer                     |             |
-| `secret_request`                 | A link where you type a tool's secret yourself; single use, never the value                                                                              | developer                     |             |
-| `usage_report`                   | Authenticated calls per tool and per person over a period, counts only (D-093)                                                                           | admin                         |             |
-| `template_list`                  | The templates of the catalog and the resources each asks for                                                                                             | admin                         |             |
-| `marketplace_list`               | The official catalogue and the marketplaces the workspace added (D-116); adding, syncing or removing one is done in the console                          | admin                         |             |
-| `marketplace_tools`              | What a marketplace offers, with the resources each tool would ask for                                                                                    | admin                         |             |
-| `tool_install_plan`              | What installing a template, or a tool of a marketplace (`marketplace`), would create; returns a plan identifier (15 minutes, single use)                 | admin                         |             |
-| `tool_install`                   | Creates the tool of a plan, once; takes only the plan's identifier                                                                                       | admin                         | yes         |
-| `tool_promote_plan`              | Whether a version, or the version a branch serves, can go to an environment, and what stops it, with a prompt to fix it (D-113)                          | admin                         |             |
-| `tool_promote`                   | Promotes a version, or what a branch serves, after the plan: with conflicts it moves nothing and answers the plan (never allows a destructive migration) | admin                         | yes         |
-| `tool_rollback`                  | Goes back to an environment's previous version                                                                                                           | admin                         | yes         |
-| `resources_pending`              | The versions awaiting a resource approval                                                                                                                | admin                         |             |
-| `resources_approve`              | Approves one pending request for a resource                                                                                                              | admin                         | yes         |
-| `access_list`                    | A tool's roles × actions matrix, or the members and their roles                                                                                          | admin                         |             |
-| `access_grant` · `access_revoke` | Gives or takes a workspace role of a member, or allows or refuses a role an action of a tool (a group is not a subject: D-091)                           | admin                         | yes         |
+| MCP tool                         | What it does                                                                                                                                                                 | Minimum role in the workspace | Destructive |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------- |
+| `catalog_search`                 | Searches the workspace's catalog of tools                                                                                                                                    | member                        |             |
+| `catalog_get`                    | A tool's card: what it does, how to connect, what the caller may call                                                                                                        | member                        |             |
+| `tools_list`                     | The workspace's tools, their versions per environment                                                                                                                        | member                        |             |
+| `tool_get`                       | Tool detail: versions per environment and its card                                                                                                                           | member                        |             |
+| `tool_changelog`                 | A tool's changelog, optionally since a version                                                                                                                               | developer                     |             |
+| `tool_versions`                  | Versions and environments                                                                                                                                                    | developer                     |             |
+| `secrets_status`                 | A tool's secrets that are set or missing, **never their values**                                                                                                             | developer                     |             |
+| `secret_request`                 | A link where you type a tool's secret yourself; single use, never the value                                                                                                  | developer                     |             |
+| `usage_report`                   | Authenticated calls per tool and per person over a period, counts only (D-093)                                                                                               | admin                         |             |
+| `template_list`                  | The templates of the catalog and the resources each asks for                                                                                                                 | admin                         |             |
+| `marketplace_list`               | The official catalogue and the marketplaces the workspace added (D-116); adding, syncing or removing one is done in the console                                              | admin                         |             |
+| `marketplace_tools`              | What a marketplace offers, with the resources each tool would ask for                                                                                                        | admin                         |             |
+| `tool_install_plan`              | What installing a template, or a tool of a marketplace (`marketplace`), would create; returns a plan identifier (15 minutes, single use)                                     | admin                         |             |
+| `tool_install`                   | Creates the tool of a plan, once; takes only the plan's identifier                                                                                                           | admin                         | yes         |
+| `tool_source`                    | Where a tool comes from and its permanent channels: for each, the branch it follows, what it serves and the release waiting, with its plan (D-125)                           | admin                         |             |
+| `tool_update`                    | Puts the release `tool_source` showed on a permanent channel (`channel`, production by default), approving what it asks for when told (never allows a destructive migration) | admin                         | yes         |
+| `tool_rollback`                  | Puts a channel back on the version it served before                                                                                                                          | admin                         | yes         |
+| `resources_pending`              | The versions awaiting a resource approval                                                                                                                                    | admin                         |             |
+| `resources_approve`              | Approves one pending request for a resource                                                                                                                                  | admin                         | yes         |
+| `access_list`                    | A tool's roles × actions matrix, or the members and their roles                                                                                                              | admin                         |             |
+| `access_grant` · `access_revoke` | Gives or takes a workspace role of a member, or allows or refuses a role an action of a tool (a group is not a subject: D-091)                                               | admin                         | yes         |
 
 `tool_changelog` is for developers because the route that carries the changelog is (the version list shows the commits and what changed); a member reads a tool's card.
 

@@ -4,14 +4,26 @@
 import type { Manifest } from "@forgeron/manifest";
 import type { BuildMigration, D1Database, MigrateOptions, MigrateResult } from "./migrate";
 
-export type EnvironmentName = "local" | "preview" | "production";
+/**
+ * Where a tool runs (D-125). `production` and `channel` are permanent channels: they take only
+ * releases and keep their own database. `preview` is a temporary channel, one per pushed branch.
+ */
+export type EnvironmentName = "local" | "preview" | "production" | "channel";
 
-/** One deployment target: a tool in an environment (a preview also has its branch). */
+/**
+ * One deployment target: a tool in an environment. A preview (temporary channel) has its branch; a
+ * permanent channel other than production has its name.
+ */
 export interface Environment {
   tool: string;
   name: EnvironmentName;
   branch?: string;
+  channel?: string;
 }
+
+/** A permanent channel: production, or another one an admin added (D-125). */
+export const isPermanent = (environment: Pick<Environment, "name">): boolean =>
+  environment.name === "production" || environment.name === "channel";
 
 /** What `forgeron build` produces and a host needs: the Worker's code and the manifest. */
 export interface Build {
@@ -59,6 +71,21 @@ export interface BuildChangelog {
   declared: Impact;
   /** The impact found by comparing the manifest with the last release. */
   detected: Impact;
+  /**
+   * The build is exactly a release: made by `forgeron release`, with no change pending since
+   * (D-125). Absent from builds of an older CLI: their entries decide.
+   */
+  released?: boolean;
+}
+
+/**
+ * Is this build a release (D-125)? A build of a newer CLI says so; an older one is a release when its
+ * changelog has entries.
+ */
+export function isRelease(changelog: BuildChangelog | null | undefined): boolean {
+  if (!changelog) return false;
+  if (typeof changelog.released === "boolean") return changelog.released;
+  return Array.isArray(changelog.entries) && changelog.entries.length > 0;
 }
 
 export type BindingKind = "d1" | "kv" | "r2" | "queue";
@@ -135,25 +162,26 @@ export class ChangelogRefusal extends Error {
 }
 
 /**
- * Production takes a build only if the changelog covers the change; a preview is never
- * blocked (sdk.md §14, §16). A host calls it before it uploads.
+ * A permanent channel takes only a release whose changelog covers the change; a preview is never
+ * blocked (sdk.md §14, §16, D-125). A host calls it before it uploads. A marketplace's publication is
+ * its release (`published`): its changelog may list nothing.
  */
 export function assertDeployable(
   environment: Environment,
   build: Build,
-  options: { withoutRelease?: boolean } = {},
+  options: { published?: boolean } = {},
 ): void {
-  if (environment.name !== "production") return;
+  if (!isPermanent(environment)) return;
   const { changelog } = build;
-  if (!changelog || changelog.entries.length === 0) {
-    // A release is advised, not required (D-121): an admin may put a build without one on
-    // production, knowingly. A release that declares too little is still refused below.
-    if (options.withoutRelease) return;
+  if (!options.published && !isRelease(changelog)) {
+    const where =
+      environment.name === "channel" ? `The channel ${environment.channel}` : "Production";
     throw new ChangelogRefusal(
       "NO_ENTRY",
-      `${environment.name} takes a version with a changelog entry: run \`forgeron change\`, then \`forgeron release\`.`,
+      `${where} takes only releases: run \`forgeron change\`, then \`forgeron release\` on the branch it follows.`,
     );
   }
+  if (!changelog) return;
   if (RANK[changelog.declared] < RANK[changelog.detected]) {
     throw new ChangelogRefusal(
       "IMPACT_TOO_LOW",
@@ -162,6 +190,6 @@ export function assertDeployable(
   }
 }
 
-export function environmentKey({ tool, name, branch }: Environment): string {
-  return [tool, name, branch].filter(Boolean).join(":");
+export function environmentKey({ tool, name, branch, channel }: Environment): string {
+  return [tool, name, branch, channel].filter(Boolean).join(":");
 }

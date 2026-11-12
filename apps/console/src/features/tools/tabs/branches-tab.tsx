@@ -5,30 +5,51 @@ import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
 import { loadBranches, loadVersions, type BranchRow, type Status } from "../api";
 import { ActionMenu, BranchGlyph, CommitLine, CopyButton, StatusBadge } from "../components";
-import { ClosePreviewDialog, ReleaseDialog } from "../release-dialog";
+import { ClosePreviewDialog, RemoveChannelDialog, RollbackDialog } from "../release-dialog";
 import type { ToolTabProps } from "../tabs";
 import { UpdatePanel } from "./update-panel";
 
-// Production and one preview per branch (docs/console-ux.md, "Branches"): the deployment list of
-// Vercel, with our vocabulary. A row opens onto its database, its last migration and its recent
-// deployments; promoting and rolling back go through a dialog that says what changes.
+// The channels of a tool (docs/console-ux.md, "Channels", D-125): the permanent ones (production, and
+// the ones an admin added) with their updates, then one temporary channel per pushed branch with its
+// commits. A row opens onto its database, its last migration and its recent deployments. There is no
+// promotion: a permanent channel takes the releases of the branch it follows, and rolls back to a
+// release it served.
 
 type Action =
-  | { kind: "promote"; row: BranchRow }
-  | { kind: "rollback" }
+  | { kind: "rollback"; row: BranchRow }
+  | { kind: "remove"; channel: string }
   | { kind: "close"; row: BranchRow };
 
 const host = (url: string) => url.replace(/^https?:\/\//, "");
 
 export default function BranchesTab(props: ToolTabProps) {
   const [round, setRound] = useState(0);
-  // An update moves production: the list below reads it again.
+  const [removing, setRemoving] = useState<string>();
+  // An update moves a permanent channel: the list below reads it again.
   return (
     <div className="fc-stack">
       {props.ws.person.admin ? (
-        <UpdatePanel tool={props.tool} api={props.api} onUpdated={() => setRound((n) => n + 1)} />
+        <UpdatePanel
+          key={`panel-${round}`}
+          tool={props.tool}
+          api={props.api}
+          onUpdated={() => setRound((n) => n + 1)}
+          onRemove={setRemoving}
+        />
       ) : null}
       <BranchList key={round} {...props} />
+      {removing ? (
+        <RemoveChannelDialog
+          tool={props.tool}
+          channel={removing}
+          api={props.api}
+          onClose={() => setRemoving(undefined)}
+          onDone={() => {
+            setRemoving(undefined);
+            setRound((n) => n + 1);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -64,20 +85,20 @@ function BranchList({ tool, api, ws, now }: ToolTabProps) {
     [data, search, status, author],
   );
 
-  if (branches.loading) return <Loading shape="table" label="Loading branches" />;
+  if (branches.loading) return <Loading shape="table" label="Loading channels" />;
   if (!data) {
-    return <LoadError what="The branches" error={branches.error} onRetry={branches.reload} />;
+    return <LoadError what="The channels" error={branches.error} onRetry={branches.reload} />;
   }
-  if (!data.production && data.branches.length === 0) {
+  if (!data.production && data.channels.length === 0 && data.branches.length === 0) {
     return (
       <EmptyState
         title="Nothing is deployed yet"
-        description="Push a branch: its CI deploys a preview. Production takes the update of its production branch."
+        description="Push a branch: its CI deploys it to a channel of its own. Production takes the releases of the branch it follows."
         action={
           <div className="fc-stack" style={{ textAlign: "start" }}>
             <CopyBlock
-              label="Deploy a preview"
-              value="forgeron deploy --env preview --branch <name>"
+              label="Make a release on the branch production follows"
+              value="forgeron change --type added --bump minor -m '…' && forgeron release && git push --follow-tags"
               prefix="$"
             />
           </div>
@@ -92,33 +113,43 @@ function BranchList({ tool, api, ws, now }: ToolTabProps) {
     versions.reload();
   };
   const filtered = search !== "" || status !== "" || author !== "";
-  const current = data.production?.version ?? null;
+  const rollbackButton = (row: BranchRow) =>
+    admin && row.rollbackTo ? (
+      <Button size="sm" onClick={() => setAction({ kind: "rollback", row })}>
+        Roll back
+      </Button>
+    ) : null;
 
   return (
     <div className="fc-stack">
-      <ul className="ft-rows" aria-label="Production">
+      <ul className="ft-rows" aria-label="Permanent channels">
         {data.production ? (
           <Row
             row={data.production}
             now={now()}
             actions={[]}
-            primary={
-              admin && data.production.rollbackTo ? (
-                <Button size="sm" onClick={() => setAction({ kind: "rollback" })}>
-                  Roll back
-                </Button>
-              ) : null
-            }
+            primary={rollbackButton(data.production)}
           />
         ) : (
           <li className="ft-row ft-row-empty">
             <EnvTag env="production" />
             <span className="fc-muted">
-              Nothing is live yet. Promote a version from a preview below.
+              Nothing is live yet. Production takes the releases of the branch it follows.
             </span>
           </li>
         )}
+        {data.channels.map((row) => (
+          <Row key={row.channel} row={row} now={now()} actions={[]} primary={rollbackButton(row)} />
+        ))}
       </ul>
+
+      <h2 className="fc-section-title" style={{ margin: 0 }}>
+        Branches
+      </h2>
+      <p className="fc-section-hint" style={{ margin: 0 }}>
+        One temporary channel per pushed branch, with its own data. It takes every push and goes
+        when the branch is deleted.
+      </p>
 
       <div className="ft-filters" role="search" aria-label="Filter the branches">
         <Input
@@ -153,11 +184,11 @@ function BranchList({ tool, api, ws, now }: ToolTabProps) {
       {shown.length === 0 ? (
         <p className="fc-muted ft-none">
           {filtered
-            ? "No preview matches these filters."
-            : "No preview yet. Deploy a branch with forgeron deploy --env preview --branch <name>."}
+            ? "No branch matches these filters."
+            : "No branch yet. Push one: its CI deploys it (forgeron deploy --branch <name>)."}
         </p>
       ) : (
-        <ul className="ft-rows" aria-label="Previews">
+        <ul className="ft-rows" aria-label="Branches">
           {shown.map((row) => (
             <Row
               key={row.branch}
@@ -166,13 +197,7 @@ function BranchList({ tool, api, ws, now }: ToolTabProps) {
               primary={null}
               actions={
                 admin
-                  ? [
-                      {
-                        label: "Promote to production",
-                        onSelect: () => setAction({ kind: "promote", row }),
-                      },
-                      { label: "Close preview", onSelect: () => setAction({ kind: "close", row }) },
-                    ]
+                  ? [{ label: "Close channel", onSelect: () => setAction({ kind: "close", row }) }]
                   : []
               }
             />
@@ -180,26 +205,13 @@ function BranchList({ tool, api, ws, now }: ToolTabProps) {
         </ul>
       )}
 
-      {action?.kind === "promote" ? (
-        <ReleaseDialog
-          kind="promote"
+      {action?.kind === "rollback" && action.row.rollbackTo ? (
+        <RollbackDialog
           tool={tool}
           api={api}
-          from={current}
-          to={action.row.version}
-          {...(action.row.branch ? { branch: action.row.branch } : {})}
-          {...(versions.data ? { versions: versions.data } : {})}
-          onClose={() => setAction(undefined)}
-          onDone={done}
-        />
-      ) : null}
-      {action?.kind === "rollback" && data.production?.rollbackTo ? (
-        <ReleaseDialog
-          kind="rollback"
-          tool={tool}
-          api={api}
-          from={current}
-          to={data.production.rollbackTo}
+          channel={action.row.channel ?? "production"}
+          from={action.row.version}
+          to={action.row.rollbackTo}
           {...(versions.data ? { versions: versions.data } : {})}
           onClose={() => setAction(undefined)}
           onDone={done}
@@ -230,7 +242,7 @@ function Row({
   primary: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const name = row.branch ?? "production";
+  const name = row.branch ?? row.channel ?? "production";
   return (
     <li className="ft-row" data-env={row.environment}>
       <div className="ft-row-main">
@@ -244,7 +256,13 @@ function Row({
           <span aria-hidden="true">{open ? "▾" : "▸"}</span>
         </button>
         <div className="ft-cell ft-name">
-          <EnvTag env={row.environment} />
+          <EnvTag env={row.environment}>{row.channel}</EnvTag>
+          {row.follows ? (
+            <span className="ft-branch fc-muted" title={`Follows ${row.follows}`}>
+              <BranchGlyph />
+              <code>{row.follows}</code>
+            </span>
+          ) : null}
           {row.branch ? (
             <span className="ft-branch">
               <BranchGlyph />
@@ -309,7 +327,7 @@ function Row({
             <dd>{row.migrations.last ? <code>{row.migrations.last}</code> : "None"}</dd>
           </div>
           <div className="ft-detail-wide">
-            <dt>Recent deployments</dt>
+            <dt>{row.environment === "preview" ? "Commits" : "Recent deployments"}</dt>
             <dd>
               <ul className="ft-history">
                 {row.deployments.map((d, i) => (
@@ -321,6 +339,8 @@ function Row({
                     <code>{d.version}</code>
                     <span className="fc-muted">{d.actor}</span>
                     {d.commit ? <code title={d.commit.sha}>{d.commit.sha.slice(0, 7)}</code> : null}
+                    {d.commit?.message ? <span>{d.commit.message}</span> : null}
+                    {d.commit?.author ? <span className="fc-muted">{d.commit.author}</span> : null}
                   </li>
                 ))}
               </ul>

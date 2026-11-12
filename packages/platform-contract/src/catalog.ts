@@ -15,7 +15,11 @@ const notFound = json(ErrorSchema, "No such tool or image");
 const registryError = json(ErrorSchema, "The registry refused: `error` is its code");
 const tool = z.string().describe("The tool's name");
 /** A branch with a preview (D-120): the card and images of the version it serves. */
-const branch = z.string().min(1).optional().describe("A branch with a preview");
+const branch = z
+  .string()
+  .min(1)
+  .optional()
+  .describe("A channel other than production: a branch, or `~<name>` for a permanent one");
 
 export const listCatalogRoute = defineRoute({
   method: "get",

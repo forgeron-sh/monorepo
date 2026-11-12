@@ -910,5 +910,106 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0036_channels",
+    "fingerprint": "channels-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"deployments_keep\" AS SELECT * FROM \"deployments\" ORDER BY \"rowid\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"deployments\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"environments_next\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"name\" TEXT NOT NULL CHECK (\"name\" IN ('preview', 'production', 'channel')),\n  \"branch\" TEXT NOT NULL DEFAULT '',\n  \"channel\" TEXT NOT NULL DEFAULT '',\n  \"follows\" TEXT,\n  \"auto_update\" INTEGER NOT NULL DEFAULT 0,\n  \"version_id\" TEXT REFERENCES \"versions\" (\"id\") ON DELETE SET NULL,\n  \"url\" TEXT,\n  \"activated_at\" TEXT,\n  \"created_at\" TEXT NOT NULL,\n  UNIQUE (\"tool_id\", \"name\", \"branch\", \"channel\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"environments_next\" (\"id\", \"tool_id\", \"name\", \"branch\", \"version_id\", \"url\", \"activated_at\", \"created_at\") SELECT \"id\", \"tool_id\", \"name\", \"branch\", \"version_id\", \"url\", \"activated_at\", \"created_at\" FROM \"environments\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"environments\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"environments_next\" RENAME TO \"environments\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"environments_by_tool\" ON \"environments\" (\"tool_id\")",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"deployments\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"environment_id\" TEXT NOT NULL REFERENCES \"environments\" (\"id\") ON DELETE CASCADE,\n  \"version_id\" TEXT NOT NULL REFERENCES \"versions\" (\"id\") ON DELETE CASCADE,\n  \"kind\" TEXT NOT NULL CHECK (\"kind\" IN ('deploy', 'promote', 'rollback')),\n  \"actor\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  \"commit_sha\" TEXT,\n  \"commit_message\" TEXT,\n  \"commit_author\" TEXT\n)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"deployments\" (\"id\", \"tool_id\", \"environment_id\", \"version_id\", \"kind\", \"actor\", \"created_at\", \"commit_sha\", \"commit_message\", \"commit_author\") SELECT \"id\", \"tool_id\", \"environment_id\", \"version_id\", \"kind\", \"actor\", \"created_at\", \"commit_sha\", \"commit_message\", \"commit_author\" FROM \"deployments_keep\" ORDER BY \"rowid\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"deployments_keep\"",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"deployments_by_environment\" ON \"deployments\" (\"environment_id\")",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"versions\" ADD COLUMN \"branch\" TEXT",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"versions\" SET \"branch\" = (SELECT e.\"branch\" FROM \"deployments\" d JOIN \"environments\" e ON e.\"id\" = d.\"environment_id\" WHERE d.\"version_id\" = \"versions\".\"id\" AND e.\"name\" = 'preview' AND d.\"kind\" = 'deploy' ORDER BY d.\"rowid\" LIMIT 1)",
+        "parameters": []
+      }
+    ],
+    "down": []
+  },
+  {
+    "name": "0037_channel_access",
+    "fingerprint": "channel-access-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "ALTER TABLE \"preview_availability\" RENAME TO \"channel_access\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"channel_access\" RENAME COLUMN \"branch\" TO \"channel\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"person_previews\" RENAME TO \"person_channels\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"person_channels\" RENAME COLUMN \"branch\" TO \"channel\"",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "ALTER TABLE \"person_channels\" RENAME COLUMN \"channel\" TO \"branch\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"person_channels\" RENAME TO \"person_previews\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"channel_access\" RENAME COLUMN \"channel\" TO \"branch\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"channel_access\" RENAME TO \"preview_availability\"",
+        "parameters": []
+      }
+    ]
   }
 ]

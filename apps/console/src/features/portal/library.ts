@@ -39,3 +39,7 @@ export async function addPilot(send: SendJson, tool: string, branch: string) {
 export async function removePilot(send: SendJson, tool: string, branch: string) {
   ok(await typedSender(send)(addresses.uninstallPilot, { params: { tool, branch } }));
 }
+
+/** `Channel · staging` for a permanent channel (`~staging`), `Branch · feat` for a branch's (D-125). */
+export const channelLabel = (ref: string) =>
+  ref.startsWith("~") ? `Channel · ${ref.slice(1)}` : `Branch · ${ref}`;

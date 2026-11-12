@@ -3,7 +3,7 @@ import { defineRoute } from "./route";
 
 // The platform routes outside `/console-api`: the ones the CLI and CI call with a Bearer token (a
 // deployment token, or the token of `forgeron login`), or a person's session for the console's own
-// "Promote" and "Close preview". Each answers its refusals as `{ error: { code, message } }`, not as
+// "Roll back" and "Close preview". Each answers its refusals as `{ error: { code, message } }`, not as
 // the console API's `{ error, message }`: this is the shape the CLI reads. The hand-written pages
 // under `/auth/` (sign-in, the CLI's authorization page) are not routes of the API and stay as they are.
 
@@ -26,6 +26,8 @@ const jsonBody = <T extends z.ZodType>(schema: T) => ({
 });
 
 const environment = z.enum(["preview", "production"]);
+/** Where a rollback acts: production, a permanent channel (`channel`), or a branch's preview (D-125). */
+const rollbackEnvironment = z.enum(["preview", "production", "channel"]);
 
 export const whoamiRoute = defineRoute({
   method: "get",
@@ -90,26 +92,38 @@ const deployed = z.strictObject({
   url: z.string().optional(),
   applied: z.array(z.string()),
   /**
-   * After a deployment of a repository tool's production branch (D-121): the version production
-   * took by itself, or why it waits for an admin. Absent when the tool does not update by itself.
+   * After a release on the branch production follows (D-121, D-125): the version production took by
+   * itself, or why it waits for an admin. Absent when production does not update by itself.
    */
   production: z
     .union([z.strictObject({ version: z.string() }), z.strictObject({ waiting: z.string() })])
+    .optional(),
+  /**
+   * After a release on a branch that permanent channels follow (D-125): what each channel that
+   * updates by itself did, production included.
+   */
+  channels: z
+    .array(
+      z.union([
+        z.strictObject({ channel: z.string(), version: z.string() }),
+        z.strictObject({ channel: z.string(), waiting: z.string() }),
+      ]),
+    )
     .optional(),
 });
 
 export const deployRoute = defineRoute({
   method: "post",
   path: "/deploy",
-  summary: "Publish a build of the tool to an environment",
+  summary: "Publish a build of a branch to its temporary channel",
   description:
-    "With the tool's deployment token (`FORGERON_TOKEN`). The tool is the token's, never the body's.",
+    "With the tool's deployment token (`FORGERON_TOKEN`) or GitHub Actions' identity. The tool is the credential's, never the body's. A build goes to its branch's temporary channel only (D-125): a permanent channel takes the releases of the branch it follows, by itself or by an admin's update. `environment: production` is refused.",
   tags: ["cli"],
   request: {
     body: jsonBody(
       z.looseObject({
-        environment,
-        branch: z.string().optional().describe("Required for a preview"),
+        environment: z.literal("preview").optional(),
+        branch: z.string().describe("The branch that was pushed"),
         version: z.string(),
         commit: z
           .strictObject({
@@ -164,130 +178,31 @@ export const closePreviewRoute = defineRoute({
   },
 });
 
-const promotionErrors = {
+const rollbackErrors = {
   400: refusal("The body is not valid"),
   401: refusal("Not signed in, and no deployment token"),
   403: refusal("Not an administrator, or a token for another tool"),
   404: refusal("No such tool, or no such version"),
   409: refusal("A migration is refused, there is nothing to go back to, or an approval is pending"),
   422: refusal("The changelog or the artifact refuses it"),
-  500: refusal("It failed (`PROMOTE_FAILED`)"),
+  500: refusal("It failed (`ROLLBACK_FAILED`)"),
   501: refusal("This gateway has no Cloudflare account to deploy to"),
 };
-
-const planConflict = z.strictObject({
-  code: z.string().describe("`MIGRATION_MISSING`, `CHANGELOG_NO_ENTRY`, `PENDING_APPROVAL`…"),
-  subject: z.string().optional().describe("A migration, a resource"),
-  message: z.string(),
-});
-
-/** The plan of a promotion (D-113): what it would do and what stops it. */
-const promotionPlan = z.strictObject({
-  tool: z.string(),
-  version: z.string().describe("The version that would be promoted"),
-  from: z.strictObject({ branch: z.string() }).optional(),
-  to: z.strictObject({
-    environment: environment,
-    branch: z.string().optional(),
-    currentVersion: z.string().optional(),
-  }),
-  alreadyServed: z.boolean(),
-  ok: z.boolean().describe("No conflict: it can go"),
-  conflicts: z.array(planConflict),
-  requiresAllowDestructive: z.boolean(),
-  migrations: z.strictObject({
-    checked: z.boolean().describe("False when the target's database could not be read"),
-    applied: z.array(z.string()),
-    pending: z.array(z.string()),
-    destructive: z.array(z.string()),
-  }),
-  changes: z.array(
-    z.strictObject({
-      kind: z.string(),
-      subject: z.string(),
-      impact: z.enum(["patch", "minor", "major"]),
-      detail: z.string().optional(),
-      needsApproval: z.literal(true).optional(),
-    }),
-  ),
-  impact: z.enum(["none", "patch", "minor", "major"]),
-  prompt: z.string().optional().describe("For an agent, when `ok` is false"),
-});
-
-export const promotionPlanRoute = defineRoute({
-  method: "post",
-  path: "/promote/plan",
-  summary: "Can this version go to the environment, and what stops it",
-  description:
-    "Read only: the migrations are compared with the target's database without being applied. Name the version, or the branch whose preview serves it. Same callers as a promotion.",
-  tags: ["cli"],
-  request: {
-    body: jsonBody(
-      z.strictObject({
-        tool: z.string().optional(),
-        version: z.string().optional(),
-        fromBranch: z.string().optional().describe("The branch whose preview serves the version"),
-        to: environment,
-        branch: z.string().optional().describe("Required for a preview target"),
-      }),
-    ),
-  },
-  responses: {
-    200: json(promotionPlan, "The plan"),
-    400: refusal("The body is not valid"),
-    401: refusal("Not signed in, and no deployment token"),
-    403: refusal("Not an administrator, or a token for another tool"),
-    404: refusal("No such tool, version or branch"),
-    501: refusal("This gateway has no Cloudflare account to deploy to"),
-  },
-});
-
-export const promoteRoute = defineRoute({
-  method: "post",
-  path: "/promote",
-  summary: "Put a version the tool already has on another environment",
-  description:
-    "With the tool's deployment token, or an administrator by session or by a token of `forgeron login` (who names the `tool`). Nothing is rebuilt.",
-  tags: ["cli"],
-  request: {
-    body: jsonBody(
-      z.strictObject({
-        tool: z.string().optional(),
-        version: z.string().optional().describe("Or `fromBranch`"),
-        fromBranch: z.string().optional().describe("The branch whose preview serves the version"),
-        to: environment,
-        branch: z.string().optional().describe("Required for a preview"),
-        allowDestructive: z.boolean().optional(),
-        reason: z.string().max(500).optional(),
-        approve: z
-          .boolean()
-          .optional()
-          .describe(
-            "An administrator approves, in the same step, what the version asks for (D-121)",
-          ),
-        withoutRelease: z
-          .boolean()
-          .optional()
-          .describe("An administrator puts a build with no release on production, knowingly"),
-      }),
-    ),
-  },
-  responses: { 200: json(deployed, "Promoted"), ...promotionErrors },
-});
 
 export const rollbackRoute = defineRoute({
   method: "post",
   path: "/rollback",
-  summary: "Serve the version an environment served before the current one",
+  summary: "Serve the version a channel served before the current one",
   description:
-    "Who may call it is the same as for a promotion. No migration is applied or rolled back.",
+    "With the tool's deployment token, or an administrator by session or by a token of `forgeron login` (who names the `tool`). The channel goes back to a version it served: no new code (D-125). No migration is applied or rolled back.",
   tags: ["cli"],
   request: {
     body: jsonBody(
       z.strictObject({
         tool: z.string().optional(),
-        environment,
+        environment: rollbackEnvironment,
         branch: z.string().optional().describe("Required for a preview"),
+        channel: z.string().optional().describe("Required for a permanent channel (`channel`)"),
         reason: z.string().max(500).optional(),
       }),
     ),
@@ -297,12 +212,13 @@ export const rollbackRoute = defineRoute({
       z.strictObject({
         tool: z.string(),
         version: z.string(),
-        environment,
+        environment: rollbackEnvironment,
+        channel: z.string().optional(),
         url: z.string().optional(),
       }),
       "Rolled back",
     ),
-    ...promotionErrors,
+    ...rollbackErrors,
   },
 });
 

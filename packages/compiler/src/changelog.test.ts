@@ -95,8 +95,22 @@ describe("forgeron release, then forgeron change check", () => {
     // The build publishes what the release said, structured.
     const built = await buildTool(dir);
     const published = JSON.parse(await readFile(join(built.outDir, "changelog.json"), "utf8"));
-    expect(published).toMatchObject({ version: "1.5.0", declared: "minor", detected: "none" });
+    expect(published).toMatchObject({
+      version: "1.5.0",
+      declared: "minor",
+      detected: "none",
+      released: true,
+    });
     expect(published.entries).toHaveLength(2);
+
+    // A change waiting in changes/ is not a release yet, even with entries (D-125).
+    await addChange(dir, { type: "fixed", bump: "patch", description: "Later." }, day);
+    const pending = JSON.parse(
+      await readFile(join((await buildTool(dir)).outDir, "changelog.json"), "utf8"),
+    );
+    expect(pending).toMatchObject({ version: "1.5.0", released: false });
+    expect(pending.entries).toHaveLength(1);
+    await rm(join(dir, "changes"), { recursive: true });
 
     // Nothing changed since: nothing to declare.
     expect(await checkChanges(dir)).toMatchObject({ ok: true, detected: "none" });

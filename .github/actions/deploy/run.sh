@@ -4,7 +4,6 @@
 # D-004, D-123).
 # Usage: run.sh [root]
 #   FORGERON_CMD      the command line of the CLI (default: npx forgeron@<the version of this action>)
-#   FORGERON_ENV      environment to deploy to (default: preview)
 #   FORGERON_ARGS     extra arguments for `forgeron deploy`, such as --allow-destructive
 #   FORGERON_TOKEN    deployment token. Without it, GitHub Actions' identity is used when the workflow
 #                     has `id-token: write` (ACTIONS_ID_TOKEN_REQUEST_URL); with neither (a pull
@@ -89,9 +88,11 @@ for dir in "${tools[@]}"; do
     "${forgeron[@]}" test
     "${forgeron[@]}" change check
     if can_deploy; then
-      # `Deployed <tool>@<version> to <env>: <address>`: the address goes to the action's output.
+      # `Deployed <tool>@<version> to <branch>: <address>`: the address goes to the action's output.
+      # A build goes to its branch's temporary channel; a release reaches the permanent channels that
+      # follow the branch (D-125).
       out="$(mktemp)"
-      "${forgeron[@]}" deploy --env "${FORGERON_ENV:-preview}" ${extra[@]+"${extra[@]}"} | tee "$out"
+      "${forgeron[@]}" deploy ${extra[@]+"${extra[@]}"} | tee "$out"
       sed -nE 's/^Deployed ([^@ ]+)@[^ ]+ to [^ :]+: (https?:\/\/[^ ]+)$/\1 \2/p' "$out" >>"$deployed"
       rm -f "$out"
     else

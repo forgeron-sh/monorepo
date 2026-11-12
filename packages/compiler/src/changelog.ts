@@ -39,6 +39,11 @@ export interface Changelog {
   detected: Impact;
   /** A resource is awaiting approval before production. */
   pendingApproval: boolean;
+  /**
+   * The build is exactly the last release: no change pending, and the version is the one
+   * `forgeron release` wrote. Only such a build reaches a permanent channel (D-125).
+   */
+  released: boolean;
 }
 
 const CHANGES_DIR = "changes";
@@ -178,5 +183,6 @@ export async function changelogOf(
     declared: strongest(entries),
     detected: impact,
     pendingApproval,
+    released: pending.length === 0 && released?.version === manifest.version && entries.length > 0,
   };
 }

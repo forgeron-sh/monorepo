@@ -57,14 +57,27 @@ describe("assertDeployable", () => {
     expect(() => assertDeployable(env("local"), build())).not.toThrow();
   });
 
-  it("refuses production without a changelog entry", () => {
+  it("refuses a permanent channel a build that is not a release (D-125)", () => {
     expect(() => assertDeployable(env("production"), build())).toThrow(ChangelogRefusal);
     expect(() =>
       assertDeployable(
         env("production"),
         build({ entries: [], declared: "none", detected: "none" }),
       ),
-    ).toThrow("changelog entry");
+    ).toThrow("takes only releases");
+    // Changes still waiting in changes/: entries, but not a release.
+    expect(() =>
+      assertDeployable(
+        { tool: "crm", name: "channel", channel: "staging" },
+        build({ entries: [{}], declared: "patch", detected: "patch", released: false }),
+      ),
+    ).toThrow("The channel staging takes only releases");
+    // A marketplace's publication is its release.
+    expect(() => assertDeployable(env("production"), build(), { published: true })).not.toThrow();
+    // A preview takes anything.
+    expect(() =>
+      assertDeployable({ tool: "crm", name: "preview", branch: "x" }, build()),
+    ).not.toThrow();
   });
 
   it("refuses production when the declared impact is lower", () => {

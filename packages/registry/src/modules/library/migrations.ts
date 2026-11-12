@@ -53,4 +53,26 @@ export const libraryMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "person_previews"`), st(`DROP TABLE "preview_availability"`)],
   },
+  {
+    // Pilot rules become channel access (D-125): who may use a channel other than production, and the
+    // people who added it to their library. A channel is named by its reference: a branch for a
+    // temporary channel, `~<name>` for a permanent one (Git refuses `~` in a branch name, so the two
+    // never clash). The rows keep their meaning: every pilot rule is the access of its branch's
+    // temporary channel. Production's access stays the tool's availability (`tool_availability`).
+    name: "0037_channel_access",
+    fingerprint: "channel-access-v1",
+    destructive: false,
+    up: [
+      st(`ALTER TABLE "preview_availability" RENAME TO "channel_access"`),
+      st(`ALTER TABLE "channel_access" RENAME COLUMN "branch" TO "channel"`),
+      st(`ALTER TABLE "person_previews" RENAME TO "person_channels"`),
+      st(`ALTER TABLE "person_channels" RENAME COLUMN "branch" TO "channel"`),
+    ],
+    down: [
+      st(`ALTER TABLE "person_channels" RENAME COLUMN "channel" TO "branch"`),
+      st(`ALTER TABLE "person_channels" RENAME TO "person_previews"`),
+      st(`ALTER TABLE "channel_access" RENAME COLUMN "channel" TO "branch"`),
+      st(`ALTER TABLE "channel_access" RENAME TO "preview_availability"`),
+    ],
+  },
 ];

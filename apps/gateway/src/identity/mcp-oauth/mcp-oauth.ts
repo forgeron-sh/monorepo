@@ -40,9 +40,9 @@ export interface McpOAuthContext {
     | "findMember"
     | "findTool"
     | "isInstalled"
-    | "isPilotInstalled"
+    | "isChannelInstalled"
     | "isTokenRevoked"
-    | "previewAvailabilityOf"
+    | "channelAccessOf"
     | "readUserSecrets"
     | "readUserSetup"
     | "revokeToken"
@@ -69,7 +69,7 @@ function redirectAllowed(value: string): boolean {
   }
 }
 
-const TOOL_RESOURCE = /^\/t\/([a-z0-9][a-z0-9-]*)(@[^/]+)?\/mcp$/;
+const TOOL_RESOURCE = /^\/t\/([a-z0-9][a-z0-9-]*)(@[^/]+|~[a-z][a-z0-9-]{0,29})?\/mcp$/;
 
 /**
  * What an MCP client asks to be signed in to (`resource`, RFC 8707): the workspace's admin MCP, or
@@ -87,7 +87,9 @@ async function resourceOf(
   // `platform` is the audience of the admin MCP: a tool of that name must never share it.
   if (!tool || tool === PLATFORM_TOOL) return undefined;
   if (!(await context.registry.findTool(context.workspace, tool))) return undefined;
-  const branch = found?.[2]?.slice(1);
+  // `@<branch>` is a temporary channel, `~<name>` a permanent one (D-125): the reference keeps `~`.
+  const suffix = found?.[2];
+  const branch = suffix?.startsWith("~") ? suffix : suffix?.slice(1);
   return { tool, url: resource, ...(branch ? { branch } : {}) };
 }
 
@@ -289,7 +291,8 @@ export async function handleAuthorize(request: Request, context: McpOAuthContext
   // others are sent there, where they add it and come back.
   if (target.tool !== PLATFORM_TOOL) {
     const record = await context.registry.findTool(context.workspace, target.tool);
-    // A pilot's MCP (`/t/<tool>@<branch>/mcp`) is reached by the people who added that pilot (D-119).
+    // The MCP of a channel other than production (`/t/<tool>@<branch>/mcp`, `/t/<tool>~<name>/mcp`)
+    // is reached by the people who added that channel (D-119, D-125).
     const reach = !record
       ? "ok"
       : target.branch !== undefined

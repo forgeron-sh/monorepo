@@ -1,7 +1,7 @@
 // A person's OAuth consent for a delegated connector (docs/sdk.md section 10): the platform sends
 // the person to the provider, keeps the tokens sealed in the registry, refreshes them, and hands
 // the access token to the connector's session. Neutral (WebCrypto and `fetch` only).
-import type { RegisteredEnvironment, Registry } from "./registry";
+import type { SecretEnvironment, Registry } from "./registry";
 import type { SecretBox } from "./secret-box";
 
 /** One identity provider's OAuth client, as the platform registered it. */
@@ -34,7 +34,7 @@ export interface ConsentOptions {
 
 export interface ConsentTarget {
   toolId: string;
-  environment: RegisteredEnvironment;
+  environment: SecretEnvironment;
   userId: string;
   connector: string;
 }

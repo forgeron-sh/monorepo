@@ -4,7 +4,7 @@ import { platformClient } from "./platform-client";
 import { readProject, type ProjectFile } from "./project";
 
 // What a command that talks to a workspace needs (D-113): who the CLI is, which workspace, and which
-// tool. The same rules for promote, the remote database and the admin commands.
+// tool. The same rules for rollback, the remote database and the admin commands.
 
 /**
  * Who the CLI is to the gateway: `FORGERON_TOKEN` (a deployment token, CI) if set, else the token
