@@ -117,6 +117,7 @@ export function createCatalog(kernel: Kernel) {
         changelog?: unknown;
         worker?: string;
         migrations?: unknown;
+        views?: Record<string, string>;
       },
     ): Promise<BuildRecord> {
       await requireTool(toolId);
@@ -128,7 +129,7 @@ export function createCatalog(kernel: Kernel) {
       if (existing) return toBuild(existing);
       const id = newId();
       await write(
-        `INSERT INTO "builds" ("id", "tool_id", "fingerprint", "manifest", "changelog", "worker", "migrations", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO "builds" ("id", "tool_id", "fingerprint", "manifest", "changelog", "worker", "migrations", "views", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         id,
         toolId,
         input.fingerprint,
@@ -136,6 +137,7 @@ export function createCatalog(kernel: Kernel) {
         input.changelog === undefined ? null : JSON.stringify(input.changelog),
         input.worker ?? null,
         input.migrations === undefined ? null : JSON.stringify(input.migrations),
+        input.views === undefined ? null : JSON.stringify(input.views),
         now(),
       );
       return toBuild((await first(`SELECT * FROM "builds" WHERE "id" = ?`, id))!);

@@ -1114,5 +1114,22 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0041_build_views",
+    "fingerprint": "build-views-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "ALTER TABLE \"builds\" ADD COLUMN \"views\" TEXT",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "ALTER TABLE \"builds\" DROP COLUMN \"views\"",
+        "parameters": []
+      }
+    ]
   }
 ]

@@ -284,4 +284,13 @@ export const catalogMigrations: BuildMigration[] = [
     // Nothing to put back without losing the channels.
     down: [],
   },
+  {
+    // The built views of a version (D-134): the files of `views/`, kept as a JSON object (path to text)
+    // so that the gateway serves a tool's pages from the registry, as it serves its docs.
+    name: "0041_build_views",
+    fingerprint: "build-views-v1",
+    destructive: false,
+    up: [st(`ALTER TABLE "builds" ADD COLUMN "views" TEXT`)],
+    down: [st(`ALTER TABLE "builds" DROP COLUMN "views"`)],
+  },
 ];

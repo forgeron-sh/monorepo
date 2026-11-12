@@ -19,6 +19,7 @@ import { looksLikeJwt } from "../identity/authn/jwt";
 import type { Person } from "../kernel/person";
 import { issueToken, verifyToken } from "../identity/authn/tokens";
 import { releaseReached } from "../sources/update";
+import { viewsProblem } from "../views/check";
 
 /** The only scope a deployment token has today. */
 export const DEPLOY_SCOPE = "deploy";
@@ -298,6 +299,10 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   if (manifestName !== caller.tool) {
     return fail(403, "FORBIDDEN", `This token is for "${caller.tool}", not "${manifestName}".`);
   }
+
+  // The views are served on the workspace origin: names and sizes are checked here too (D-134).
+  const views = viewsProblem(uploaded.views);
+  if (typeof views === "string") return fail(400, "INVALID", views);
 
   // The documentation is shown to every member: check it again, whatever the CLI did (D-061).
   const docs = await docsProblem(uploaded.manifest!, uploaded.docs);
