@@ -25,7 +25,7 @@ export function workspaceOf(host: string, baseDomain: string): string | undefine
 }
 
 /** A host as the gateway compares it: lower case, no port, no trailing dot. */
-export const hostKey = (host: string): string =>
+const hostKey = (host: string): string =>
   host.trim().toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
 
 const HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;

@@ -216,7 +216,7 @@ export function settingBindings(
 }
 
 /** What `--host workers.dev=<workspace>` stands for: the gateway's own workers.dev host (D-126). */
-export const WORKERS_DEV_HOST = "workers.dev";
+const WORKERS_DEV_HOST = "workers.dev";
 
 const HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 
