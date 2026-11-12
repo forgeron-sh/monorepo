@@ -8,7 +8,7 @@ import { UsageError } from "./io";
 // they come from `.forgeron/local/directory.json`, or from a small made-up one. Choosing who the
 // developer is (`--user`) is how a test sees a note shared with someone else.
 
-export interface DevPerson {
+interface DevPerson {
   email: string;
   name?: string;
   avatar?: string;
