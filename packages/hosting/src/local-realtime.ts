@@ -16,7 +16,7 @@ import { WebSocketServer } from "ws";
 // publish comes back in the `x-forgeron-realtime` header of their response, which the host reads and
 // removes before the caller sees it.
 
-export const REALTIME_PATH = "/_f/realtime";
+const REALTIME_PATH = "/_f/realtime";
 export const REALTIME_HEADER = "x-forgeron-realtime";
 
 export interface RealtimeUser {

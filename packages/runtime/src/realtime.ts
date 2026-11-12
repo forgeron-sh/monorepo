@@ -13,10 +13,10 @@ export const CHANNEL = /^[a-z][a-z0-9-]{0,39}(?::[A-Za-z0-9_.~-]{1,64})?$/;
 export const channelKey = (channel: string) => channel.split(":")[0]!;
 
 export const MAX_PAYLOAD_BYTES = 8 * 1024;
-export const MAX_CHANNELS_PER_CONNECTION = 50;
+const MAX_CHANNELS_PER_CONNECTION = 50;
 /** What an action may publish in one call, and a page send in one second. */
 export const MAX_PUBLISH_PER_CALL = 20;
-export const MAX_SENDS_PER_SECOND = 30;
+const MAX_SENDS_PER_SECOND = 30;
 
 export interface RealtimePerson {
   id: string;

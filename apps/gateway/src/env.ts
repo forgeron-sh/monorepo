@@ -12,7 +12,7 @@ import type { DispatchNamespace } from "./dispatch/targets";
 
 /** What the gateway Worker is given by its configuration (bindings to fill in `wrangler.jsonc`). */
 /** The part of a Durable Object namespace the gateway uses (the Workers runtime gives the real one). */
-export interface DurableObjectNamespaceLike {
+interface DurableObjectNamespaceLike {
   idFromName(name: string): unknown;
   get(id: unknown): { fetch(request: Request): Response | Promise<Response> };
 }
