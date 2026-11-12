@@ -179,6 +179,23 @@ export function identitySettings(flags: IdentityFlags, env: NodeJS.ProcessEnv): 
   ];
 }
 
+/** `owner/name`: what GitHub accepts as an owner and a repository name. */
+const REPO = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}$/;
+
+/**
+ * `OFFICIAL_MARKETPLACE` (D-116, D-123): the public repository whose tools every workspace finds in
+ * its official catalogue. Given with `--official-marketplace`, else kept from the previous version,
+ * whatever the identity flags say.
+ */
+export function officialMarketplaceSetting(repo: string | undefined): Setting {
+  const name = "OFFICIAL_MARKETPLACE";
+  if (repo === undefined) return { name, keep: true };
+  if (!REPO.test(repo)) {
+    throw new UsageError("--official-marketplace is a GitHub repository: owner/name.");
+  }
+  return { name, keep: false, given: { type: "plain_text", name, text: repo } };
+}
+
 /**
  * The bindings for a version. `existed`: the Worker had a version before, so the settings that can
  * be kept are asked from it; `lost` are the names Cloudflare said it could not supply.

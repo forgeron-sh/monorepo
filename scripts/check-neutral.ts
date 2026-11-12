@@ -6,6 +6,8 @@ const ENTRIES = [
   "packages/sdk/src/index.ts",
   "packages/hosting/src/index.ts",
   "packages/registry/src/index.ts",
+  // The files of a new tool: the gateway makes them in its Worker (D-123).
+  "packages/scaffold/src/index.ts",
 ];
 
 let failed = false;

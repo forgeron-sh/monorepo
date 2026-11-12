@@ -1,5 +1,6 @@
 import type { Identity } from "../authn/identity";
-import { fromBase64Url, toBase64Url } from "../authn/sealed";
+import { fetchJwks, JwtError, verifyRs256 } from "../authn/jwt";
+import { toBase64Url } from "../authn/sealed";
 
 // OpenID Connect, authorization code with PKCE. Microsoft Entra ID and Google Workspace are OIDC
 // providers, as is any OIDC identity provider (their presets are in `presets.ts`); SAML is
@@ -92,23 +93,6 @@ export async function startLogin(
   return { url: url.toString(), login };
 }
 
-interface Jwk {
-  kid?: string;
-  kty: string;
-  alg?: string;
-  use?: string;
-}
-
-const part = (jwt: string, index: number): unknown => {
-  const bytes = fromBase64Url(jwt.split(".")[index] ?? "");
-  if (!bytes) throw new OidcError("The ID token is malformed.");
-  try {
-    return JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    throw new OidcError("The ID token is malformed.");
-  }
-};
-
 /** Checks an ID token: RS256 signature by a key of the provider, issuer, audience, expiry, nonce. */
 async function verifyIdToken(
   idToken: string,
@@ -117,28 +101,14 @@ async function verifyIdToken(
   fetcher: OidcFetch,
   expected: { nonce: string; now: Date },
 ): Promise<Identity> {
-  if (idToken.split(".").length !== 3) throw new OidcError("The ID token is malformed.");
-  const header = part(idToken, 0) as { alg?: string; kid?: string };
-  // Only RS256: never `none`, never a symmetric algorithm the provider's public key could be abused for.
-  if (header.alg !== "RS256") throw new OidcError("The ID token is not signed with RS256.");
-  const jwks = (await getJson(fetcher, discovery.jwks_uri)) as { keys?: Jwk[] };
-  const jwk = jwks.keys?.find((key) => key.kid === header.kid && key.kty === "RSA");
-  if (!jwk) throw new OidcError("The ID token is signed by an unknown key.");
-  const key = await crypto.subtle.importKey(
-    "jwk",
-    jwk,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-  const [h, p, s] = idToken.split(".") as [string, string, string];
-  const signature = fromBase64Url(s);
-  const valid =
-    signature !== undefined &&
-    (await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signature, encoder.encode(`${h}.${p}`)));
-  if (!valid) throw new OidcError("The ID token's signature is not valid.");
-
-  const claims = part(idToken, 1) as Record<string, unknown>;
+  let claims: Record<string, unknown>;
+  try {
+    claims = await verifyRs256(idToken, () => fetchJwks(fetcher, discovery.jwks_uri));
+  } catch (error) {
+    // The sign-in has always said "The ID token…", where the shared check says "The token…".
+    if (!(error instanceof JwtError)) throw error;
+    throw new OidcError(error.message.replace(/^The token/, "The ID token"));
+  }
   if (claims.iss !== provider.issuer)
     throw new OidcError("The ID token comes from another issuer.");
   const audience = claims.aud;

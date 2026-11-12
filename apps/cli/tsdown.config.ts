@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { defineConfig } from "tsdown";
 
 // The published build of the CLI, `forgeron` on npm (D-122): one file for Node, with the platform's
-// own packages inside (compiler, hosting, registry, platform contract, playground). The SDK, the
+// own packages inside (compiler, hosting, registry, platform contract, playground, scaffold). The SDK, the
 // runtime and the manifest stay dependencies: the compiler bundles the runtime and the SDK a tool is
 // built with, resolved from where the CLI is installed.
 const { version } = JSON.parse(readFileSync(new URL("package.json", import.meta.url), "utf8")) as {
@@ -17,6 +17,8 @@ export default defineConfig({
   dts: false,
   clean: true,
   outDir: "dist",
-  noExternal: [/^@forgeron\/(compiler|hosting|platform-contract|playground|registry)(\/|$)/],
+  noExternal: [
+    /^@forgeron\/(compiler|hosting|platform-contract|playground|registry|scaffold)(\/|$)/,
+  ],
   define: { __FORGERON_VERSION__: JSON.stringify(version) },
 });

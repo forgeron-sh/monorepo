@@ -25,6 +25,14 @@ beforeAll(async () => {
         ...(req.headers.authorization ? { authorization: req.headers.authorization } : {}),
         body: JSON.parse(raw || "null"),
       });
+      // GitHub Actions' token service: an identity token for the audience asked.
+      if (req.url?.startsWith("/oidc")) {
+        const ok = req.headers.authorization === "bearer runner-token";
+        res.statusCode = ok ? 200 : 401;
+        const audience = new URL(req.url, "http://x").searchParams.get("audience");
+        res.end(JSON.stringify(ok ? { value: `oidc.${audience}.sig` } : {}));
+        return;
+      }
       res.statusCode = answer.status;
       res.end(JSON.stringify(answer.body));
     });
@@ -37,7 +45,14 @@ afterAll(() => new Promise((resolve) => server.close(resolve)));
 const dirs: string[] = [];
 const saved = { ...process.env };
 afterEach(async () => {
-  for (const key of ["FORGERON_TOKEN", "GITHUB_HEAD_REF", "GITHUB_REF_NAME"]) {
+  for (const key of [
+    "FORGERON_TOKEN",
+    "FORGERON_ENDPOINT",
+    "GITHUB_HEAD_REF",
+    "GITHUB_REF_NAME",
+    "ACTIONS_ID_TOKEN_REQUEST_URL",
+    "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
+  ]) {
     if (saved[key] === undefined) delete process.env[key];
     else process.env[key] = saved[key];
   }
@@ -123,5 +138,29 @@ describe("forgeron preview close", () => {
     const { io, errors } = await linked();
     expect(await run(["preview", "close", "--branch", "x"], io)).toBe(1);
     expect(errors).toEqual(["Not a valid deployment token."]);
+  });
+
+  it("asks GitHub Actions for an identity token for the workspace when there is no token (D-123)", async () => {
+    delete process.env.FORGERON_TOKEN;
+    process.env.ACTIONS_ID_TOKEN_REQUEST_URL = `${endpoint}/oidc?api-version=2.0`;
+    process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN = "runner-token";
+    const { io, logs } = await linked();
+    expect(await run(["preview", "close", "--branch", "feat/a"], io)).toBe(0);
+    const deleted = requests.find((r) => r.method === "DELETE")!;
+    // The audience is the workspace's address.
+    expect(deleted.authorization).toBe(`Bearer oidc.${new URL(endpoint).origin}.sig`);
+    expect(logs).toEqual(["Closed the preview of crm for feat/a."]);
+    // A runner that refuses: a wrong use, said in words.
+    process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN = "wrong";
+    const refused = await linked();
+    expect(await run(["preview", "close", "--branch", "x"], refused.io)).toBe(2);
+  });
+
+  it("takes the workspace from FORGERON_ENDPOINT when the project does not name it", async () => {
+    process.env.FORGERON_TOKEN = "t";
+    process.env.FORGERON_ENDPOINT = endpoint;
+    const { io } = await linked(false);
+    expect(await run(["preview", "close", "--branch", "x"], io)).toBe(0);
+    expect(requests.at(-1)).toMatchObject({ method: "DELETE", path: "/deploy" });
   });
 });

@@ -194,4 +194,18 @@ describe("SignInPage", () => {
     expect(page.textContent).toContain("example.test");
     expect(page.textContent).toContain("forgeron platform install");
   });
+
+  it("shows the gateway's version and commit (D-123)", async () => {
+    const page = await mount(
+      <InstallPage
+        ws={{
+          ...ws(),
+          install: { baseDomain: "example.test", version: "0.2.0", commit: "f95958b0c1a2d3e4" },
+        }}
+      />,
+    );
+    expect(page.textContent).toContain("0.2.0");
+    expect(page.textContent).toContain("f95958b0c1a2");
+    expect(page.textContent).not.toContain("f95958b0c1a2d3e4");
+  });
 });

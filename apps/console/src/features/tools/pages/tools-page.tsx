@@ -16,7 +16,7 @@ import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
 import { loadTools, type ToolRow } from "../api";
 import { ToolIcon } from "../components";
-import { RepositoryDialog } from "../repository-dialog";
+import { NewToolDialog, RepositoryDialog } from "../repository-dialog";
 import "../tools.css";
 
 // The workspace's tools: a table or a grid, searchable. A row opens the tool's page.
@@ -57,6 +57,7 @@ export default function ToolsPage({ api, go, ws, now }: PageProps) {
   const [view, setView] = useState<View>(savedView);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
+  const [making, setMaking] = useState(false);
 
   const choose = (next: View) => {
     setView(next);
@@ -123,14 +124,20 @@ export default function ToolsPage({ api, go, ws, now }: PageProps) {
       description="The tools of this workspace, the version production serves and their previews."
       actions={
         ws.person.admin ? (
-          <Button variant="primary" onClick={() => setAdding(true)}>
-            Add from GitHub
-          </Button>
+          <>
+            <Button onClick={() => setMaking(true)}>New tool</Button>
+            <Button variant="primary" onClick={() => setAdding(true)}>
+              Add from GitHub
+            </Button>
+          </>
         ) : undefined
       }
     >
       {adding ? (
         <RepositoryDialog api={api} onClose={() => setAdding(false)} onAdded={tools.reload} />
+      ) : null}
+      {making ? (
+        <NewToolDialog api={api} onClose={() => setMaking(false)} onAdded={tools.reload} />
       ) : null}
       {tools.loading ? (
         <Loading shape="cards" label="Loading tools" />

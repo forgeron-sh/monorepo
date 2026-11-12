@@ -81,6 +81,11 @@ export interface PlatformBindings {
   canKeepSecrets: boolean;
   /** The `fetch` that reads a marketplace on GitHub (D-116); tests give a simulated GitHub. */
   marketplaceFetch: typeof fetch;
+  /**
+   * The `fetch` that reaches GitHub for the workspace's GitHub App and reads GitHub Actions' keys
+   * (D-123); tests give a simulated GitHub.
+   */
+  githubFetch: typeof fetch;
   /** `owner/name` of the official marketplace, from `OFFICIAL_MARKETPLACE`. */
   officialMarketplace?: string;
   /** The hosting of the workspace, to reach a tool's database; `undefined` where there is none. */

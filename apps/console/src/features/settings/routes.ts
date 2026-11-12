@@ -101,6 +101,13 @@ const routes: RouteDef[] = [
     ),
   },
   {
+    path: "/settings/github",
+    title: "GitHub",
+    access: "admin",
+    settings: { group: "workspace", label: "GitHub" },
+    page: () => import("./pages/github"),
+  },
+  {
     path: "/settings/audit",
     title: "Audit log",
     access: "admin",

@@ -19,6 +19,7 @@
     "@forgeron/playground": "workspace:*",
     "@forgeron/registry": "workspace:*",
     "@forgeron/runtime": "workspace:*",
+    "@forgeron/scaffold": "workspace:*",
     "@forgeron/sdk": "workspace:*",
     "kysely": "0.29.8",
     "miniflare": "4.20260730.0",

@@ -61,6 +61,7 @@ forgeron/
 │   ├── hosting/            # @forgeron/hosting: deployment interface, cloud, self-host and local modes
 │   ├── registry/           # @forgeron/registry: platform D1 schema (migrations) and typed access layer
 │   ├── playground/         # @forgeron/playground: the playground page, for `forgeron play` and /t/<tool>/play
+│   ├── scaffold/           # @forgeron/scaffold: the files of a new tool or marketplace, for `forgeron init` and the gateway (D-123)
 │   ├── ui/                 # @forgeron/ui: design system components and tokens
 │   ├── connector-google-workspace/  # @forgeron/connector-google-workspace
 │   ├── connector-microsoft-365/ # @forgeron/connector-microsoft-365: Microsoft Graph connector
@@ -81,18 +82,19 @@ Templates live in the repository for a specific reason: they are the **SDK's int
 
 ## Packages (`packages/`)
 
-| Package                       | Contents                                                                                                                                                             | Platform                                   | Depends on              |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------- |
-| `@forgeron/sdk`               | `defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`; subpaths `/db`, `/react`, `/testing`                                                                   | neutral (SDK), workerd (testing)           | `runtime`, `manifest`   |
-| `@forgeron/runtime`           | Routing of the four interfaces, access control, `ctx` context, events, jobs                                                                                          | **workerd only**, no `node:*`              | `manifest`              |
-| `@forgeron/compiler`          | Tool discovery, Worker bundle, manifest, views, migrations, fingerprints                                                                                             | Node                                       | `manifest`              |
-| `@forgeron/manifest`          | Zod manifest schema, comparison of two manifests, minimum impact (`sdk.md` §16)                                                                                      | neutral                                    | `zod` only              |
-| `@forgeron/platform-contract` | Route objects of the platform API (`defineRoute`), `ErrorSchema`, `createClient` (typed `fetch` client); read by the gateway, the console and the CLI (D-064, D-075) | neutral, no HTTP library                   | `zod`, `manifest`       |
-| `@forgeron/hosting`           | Deployment interface and its three modes (see "Hosting modes")                                                                                                       | neutral (HTTP calls to the Cloudflare API) | `manifest`              |
-| `@forgeron/registry`          | Platform D1: schema migrations and typed access (tools, builds, versions, environments, approvals, template catalogue, encrypted secrets)                            | neutral                                    | `hosting`               |
-| `@forgeron/playground`        | The playground page (actions, generated forms, what MCP, API and CLI see), served by `forgeron play` and at `/t/<tool>/play`                                         | neutral                                    | none                    |
-| `@forgeron/ui`                | React components aligned with `design-system.md`, tokens from `assets/design-system/tokens.json`                                                                     | browser                                    | `react` (peer)          |
-| `@forgeron/connector-*`       | One third-party client per connector                                                                                                                                 | workerd                                    | `@forgeron/sdk` (types) |
+| Package                       | Contents                                                                                                                                                              | Platform                                   | Depends on              |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------- |
+| `@forgeron/sdk`               | `defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`; subpaths `/db`, `/react`, `/testing`                                                                    | neutral (SDK), workerd (testing)           | `runtime`, `manifest`   |
+| `@forgeron/runtime`           | Routing of the four interfaces, access control, `ctx` context, events, jobs                                                                                           | **workerd only**, no `node:*`              | `manifest`              |
+| `@forgeron/compiler`          | Tool discovery, Worker bundle, manifest, views, migrations, fingerprints                                                                                              | Node                                       | `manifest`              |
+| `@forgeron/manifest`          | Zod manifest schema, comparison of two manifests, minimum impact (`sdk.md` §16)                                                                                       | neutral                                    | `zod` only              |
+| `@forgeron/platform-contract` | Route objects of the platform API (`defineRoute`), `ErrorSchema`, `createClient` (typed `fetch` client); read by the gateway, the console and the CLI (D-064, D-075)  | neutral, no HTTP library                   | `zod`, `manifest`       |
+| `@forgeron/hosting`           | Deployment interface and its three modes (see "Hosting modes")                                                                                                        | neutral (HTTP calls to the Cloudflare API) | `manifest`              |
+| `@forgeron/registry`          | Platform D1: schema migrations and typed access (tools, builds, versions, environments, approvals, template catalogue, encrypted secrets)                             | neutral                                    | `hosting`               |
+| `@forgeron/playground`        | The playground page (actions, generated forms, what MCP, API and CLI see), served by `forgeron play` and at `/t/<tool>/play`                                          | neutral                                    | none                    |
+| `@forgeron/scaffold`          | The files of a new tool or marketplace as pure functions (workflow, AGENTS.md, `docs/lifecycle.md`); bundled into the CLI, used by the gateway, not published (D-123) | neutral, no `node:*`                       | none                    |
+| `@forgeron/ui`                | React components aligned with `design-system.md`, tokens from `assets/design-system/tokens.json`                                                                      | browser                                    | `react` (peer)          |
+| `@forgeron/connector-*`       | One third-party client per connector                                                                                                                                  | workerd                                    | `@forgeron/sdk` (types) |
 
 Design points:
 
@@ -127,6 +129,7 @@ apps/gateway/src/
 ├── registry/           # uses @forgeron/registry: tools, builds, versions, environments, approvals (D1)
 ├── deploy/             # receiving a build, calling @forgeron/hosting, traffic switch
 ├── marketplace/        # reading a marketplace on GitHub, syncing its bundles into the registry (D-116)
+├── github/             # the workspace's GitHub App and GitHub Actions' identity: its client, webhook, commit status (D-123)
 ├── sources/            # where a tool comes from: its update, putting it in production, copying a branch's data (D-121)
 ├── admin-mcp/          # admin MCP tools (sdk.md §17)
 ├── console-api/        # API consumed by apps/console

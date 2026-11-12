@@ -17,6 +17,7 @@ import {
   type GatewayOptions,
 } from "./compose";
 import type { GatewayEnv } from "./env";
+import { GITHUB_PATHS } from "./platform/github";
 
 export { gatewayBindingsOf, type GatewayEnv } from "./env";
 
@@ -30,6 +31,8 @@ const BEARER_PATHS = new Set([
   "/auth/token",
   "/auth/token/revoke",
   "/auth/cli/token",
+  // The workspace's GitHub App (D-123): its creation, its installation and its webhook.
+  ...GITHUB_PATHS,
 ]);
 
 const CONSOLE_CSP =

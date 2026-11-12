@@ -191,6 +191,7 @@ describe("App", () => {
         "Roles and access",
         "Sign-in",
         "Domains",
+        "GitHub",
         "Audit log",
         "Usage and seats",
         "Sealing key",

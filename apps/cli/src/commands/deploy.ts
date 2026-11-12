@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import { readBuild } from "../built";
 import { UsageError, type Io } from "../io";
 import { platformClient, refusal } from "../platform-client";
-import { readProject } from "../project";
+import { ciCredential, deployEndpoint } from "../ci-credential";
 
 const USAGE =
   "Usage: forgeron deploy [--env preview|production] [--branch <name>] [--allow-destructive]";
@@ -44,7 +44,7 @@ async function commitOf(io: Io) {
 
 /**
  * `forgeron deploy`: builds the tool, uploads the build to the workspace's gateway with
- * `FORGERON_TOKEN`, and prints where it is served. Without `--env` it is a preview of the branch
+ * `FORGERON_TOKEN` or GitHub Actions' identity (D-123), and prints where it is served. Without `--env` it is a preview of the branch
  * (`--branch`, or the one GitHub gives CI). The platform builds nothing: this is the build.
  */
 export async function deploy(args: string[], io: Io): Promise<number> {
@@ -66,18 +66,8 @@ export async function deploy(args: string[], io: Io): Promise<number> {
   if (env === "preview" && !branch) {
     throw new UsageError("A preview is tied to a branch: pass --branch <name>.");
   }
-  const token = process.env.FORGERON_TOKEN;
-  if (!token) {
-    throw new UsageError(
-      "FORGERON_TOKEN is not set: create a deployment token with `forgeron token create`.",
-    );
-  }
-  const project = await readProject(io.cwd);
-  if (!project?.endpoint) {
-    throw new UsageError(
-      "This tool is not linked to a workspace: run `forgeron link --workspace <name>` first.",
-    );
-  }
+  const project = await deployEndpoint(io.cwd);
+  const token = await ciCredential(project.endpoint);
 
   const built = await buildTool(io.cwd);
   const build = await readBuild(built.outDir, built.fingerprint);

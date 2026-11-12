@@ -428,6 +428,7 @@ export function createRequestModules(
     origin,
     baseDomain: env.BASE_DOMAIN,
     marketplaceFetch: async (u, init) => (options.fetch ?? fetch)(u, init),
+    githubFetch: async (u, init) => (options.fetch ?? fetch)(u, init),
     ...(env.OFFICIAL_MARKETPLACE ? { officialMarketplace: env.OFFICIAL_MARKETPLACE } : {}),
     hosting: modules.hostingOf,
     ...(identity

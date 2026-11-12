@@ -666,30 +666,30 @@ on:
   push:
     branches: ["**"]
   delete:
+permissions:
+  contents: read
+  id-token: write # GitHub tells Forgeron which repository this is: no secret (D-123)
 jobs:
   deploy:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    permissions: { contents: read }
     steps:
       - uses: actions/checkout@v4
-      - uses: forgeron/deploy-action@v1 # name to be confirmed
-        with:
-          token: ${{ secrets.FORGERON_TOKEN }}
+      - uses: forgeron-sh/monorepo/.github/actions/deploy@v<version>
   close: # the preview of a deleted branch goes
     if: github.event_name == 'delete' && github.event.ref_type == 'branch'
     # same steps, with close: "true" and branch: ${{ github.event.ref }}
 ```
 
-For each tool in the repository (section 2), the action runs:
+For each tool in the repository (section 2), the action installs its dependencies (bun with a `bun.lock`, npm otherwise), then runs, with the CLI of the action's own release:
 
 1. `forgeron test`;
 2. `forgeron change check`;
 3. `forgeron deploy`: build, upload to the gateway, migrations, preview of the branch. Every branch, the production branch included, deploys a preview; production takes the production branch's preview through an update, by an admin or by itself (D-121).
 
-Authentication goes through `FORGERON_TOKEN` (deployment token, section 4); _Add from GitHub_ in the console gives one when it creates the tool. To be studied: GitHub Actions OIDC, so that no secret is stored in the repository.
+**Authentication, with no token** (D-123): with `id-token: write`, `forgeron deploy` and `forgeron preview close` ask GitHub Actions for an identity token whose audience is the workspace's address, and the gateway deploys the tool linked to the repository that runs (by GitHub's number for it, so a rename changes nothing). The workspace comes from `.forgeron/project.json`, or from `FORGERON_ENDPOINT` (the action's `endpoint`). A `FORGERON_TOKEN` (deployment token, section 4) still works, given as the action's `token`, for CI that is not GitHub's.
 
-The **Forgeron GitHub app** comes later. It adds no build on the platform side: it installs the action in the repository, links the discovered tools to the workspace and shows the deployment status in pull requests.
+**The workspace's GitHub App** (D-123): an admin makes it from Settings → GitHub and installs it on an organisation. _Add from GitHub_ then lists the repositories it sees and links one in a click (adding the workflow when the repository has none); _New tool_ makes the repository, as `forgeron init` would, and links it before its first push. The app adds no build on the platform side: it closes the preview of a deleted branch (its webhook) and puts the preview's address beside the commit (a commit status `forgeron/preview`).
 
 ## 16. Versioning and changelog
 

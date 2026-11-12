@@ -124,3 +124,13 @@ export {
   ToolSourceSchema,
   updateToolRoute,
 } from "./sources";
+export {
+  createGithubToolRoute,
+  disconnectGithubRoute,
+  getGithubRoute,
+  GithubInstallationSchema,
+  GithubRepositorySchema,
+  GithubStatusSchema,
+  linkGithubRepositoryRoute,
+  listGithubRepositoriesRoute,
+} from "./github";

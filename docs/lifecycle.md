@@ -32,6 +32,7 @@ A tool comes from one place in a workspace: a marketplace or a repository, not b
 ## Branches (repository tools)
 
 - **Push a branch, get a preview.** Its own Worker, its own database, filled by the tool's seed or left empty (`preview.data`). Nothing is copied from production.
+- **No token in the repository.** The workflow (`.github/workflows/forgeron.yml`) has `id-token: write`: GitHub tells Forgeron which repository runs, and Forgeron deploys the tool linked to it (D-123). A tool is linked when an admin adds it from GitHub, or makes it with "New tool".
 - **Delete the branch, the preview goes**, with its database.
 - **The production branch** (`main` unless the admin chose another) is the candidate for production. Its preview is what an update puts in production.
 - **Data between branches.** A new branch starts with no data. An admin may replace a branch's data by another branch's (the Database tab of the branch). Production's data is never copied, and never replaced.

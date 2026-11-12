@@ -860,5 +860,55 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0034_tool_sources_repo_id",
+    "fingerprint": "tool-sources-repo-id-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "ALTER TABLE \"tool_sources\" ADD COLUMN \"repo_id\" INTEGER",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"tool_sources_repo\" ON \"tool_sources\" (lower(\"repo\"))",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP INDEX \"tool_sources_repo\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"tool_sources\" DROP COLUMN \"repo_id\"",
+        "parameters": []
+      }
+    ]
+  },
+  {
+    "name": "0035_github",
+    "fingerprint": "github-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"github_apps\" (\n  \"workspace\" TEXT PRIMARY KEY NOT NULL,\n  \"app_id\" INTEGER NOT NULL,\n  \"slug\" TEXT NOT NULL,\n  \"client_id\" TEXT NOT NULL,\n  \"owner\" TEXT NOT NULL,\n  \"html_url\" TEXT NOT NULL,\n  \"iv\" TEXT NOT NULL,\n  \"ciphertext\" TEXT NOT NULL,\n  \"created_by\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"github_installations\" (\n  \"workspace\" TEXT NOT NULL,\n  \"installation_id\" INTEGER NOT NULL,\n  \"account\" TEXT NOT NULL,\n  \"account_type\" TEXT NOT NULL,\n  \"created_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"workspace\", \"installation_id\")\n)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"github_installations\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"github_apps\"",
+        "parameters": []
+      }
+    ]
   }
 ]

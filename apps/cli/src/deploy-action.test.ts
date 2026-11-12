@@ -89,7 +89,99 @@ describe("the deploy action", () => {
     const result = runScript(ctx);
     expect(result.status).toBe(0);
     expect(await calls(ctx.log)).toEqual(["crm test token=none", "crm change check token=none"]);
-    expect(result.stdout).toContain("FORGERON_TOKEN is not set");
+    expect(result.stdout).toContain("FORGERON_TOKEN is not set and the workflow has no id-token");
+  });
+
+  it("deploys with GitHub Actions' identity when there is no token (D-123)", async () => {
+    const ctx = await repository(["crm"]);
+    const result = runScript(ctx, {
+      ACTIONS_ID_TOKEN_REQUEST_URL: "https://token.example.test/?api-version=2.0",
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: "runner-token",
+    });
+    expect(result.status).toBe(0);
+    expect(await calls(ctx.log)).toEqual([
+      "crm test token=none",
+      "crm change check token=none",
+      "crm deploy --env preview token=none",
+    ]);
+    const close = runScript(ctx, {
+      FORGERON_CLOSE: "true",
+      ACTIONS_ID_TOKEN_REQUEST_URL: "https://token.example.test/",
+    });
+    expect(close.status).toBe(0);
+    expect((await calls(ctx.log)).at(-1)).toBe("crm preview close token=none");
+  });
+
+  it("installs the tool's dependencies before its tests: bun with a bun.lock, npm otherwise", async () => {
+    const ctx = await repository(["crm", "odoo"]);
+    const bin = join(ctx.root, "bin");
+    await mkdir(bin);
+    for (const tool of ["bun", "npm"]) {
+      await writeFile(
+        join(bin, tool),
+        `#!/usr/bin/env bash
+echo "$(basename "$PWD") ${tool} $*" >> "${ctx.log}"
+`,
+      );
+      chmodSync(join(bin, tool), 0o755);
+    }
+    await writeFile(join(ctx.root, "crm", "package.json"), "{}");
+    await writeFile(join(ctx.root, "crm", "bun.lock"), "");
+    await writeFile(join(ctx.root, "odoo", "package.json"), "{}");
+    await writeFile(join(ctx.root, "odoo", "package-lock.json"), "{}");
+    const result = spawnSync("bash", [script, ctx.root], {
+      env: {
+        PATH: `${bin}:${process.env.PATH ?? ""}`,
+        FORGERON_CMD: ctx.fake,
+        FORGERON_TOKEN: "t",
+      },
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(0);
+    expect(await calls(ctx.log)).toEqual([
+      "crm bun install --frozen-lockfile",
+      "odoo npm ci",
+      "crm test token=t",
+      "crm change check token=t",
+      "crm deploy --env preview token=t",
+      "odoo test token=t",
+      "odoo change check token=t",
+      "odoo deploy --env preview token=t",
+    ]);
+    // Asked not to, it installs nothing.
+    await writeFile(ctx.log, "");
+    spawnSync("bash", [script, ctx.root], {
+      env: {
+        PATH: `${bin}:${process.env.PATH ?? ""}`,
+        FORGERON_CMD: ctx.fake,
+        FORGERON_INSTALL: "false",
+      },
+      encoding: "utf8",
+    });
+    expect((await calls(ctx.log)).some((c) => c.includes("install") || c.includes(" ci"))).toBe(
+      false,
+    );
+  });
+
+  it("runs the CLI of its own release by default", async () => {
+    const ctx = await repository(["crm"]);
+    const bin = join(ctx.root, "bin");
+    await mkdir(bin);
+    await writeFile(
+      join(bin, "npx"),
+      `#!/usr/bin/env bash
+echo "npx $*" >> "${ctx.log}"
+`,
+    );
+    chmodSync(join(bin, "npx"), 0o755);
+    spawnSync("bash", [script, ctx.root], {
+      env: { PATH: `${bin}:${process.env.PATH ?? ""}` },
+      encoding: "utf8",
+    });
+    const { version } = JSON.parse(
+      await readFile(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { version: string };
+    expect((await calls(ctx.log))[0]).toBe(`npx --yes forgeron@${version} test`);
   });
 
   it("hands the address of every deployed tool to the action's output", async () => {
@@ -136,15 +228,16 @@ describe("the deploy action", () => {
     expect(result.stderr).toContain("No tool found");
   });
 
-  it("is an action that hands FORGERON_TOKEN to the script", async () => {
+  it("is an action that hands FORGERON_TOKEN and the endpoint to the script", async () => {
     const text = await readFile(action, "utf8");
     expect(text).toContain("FORGERON_TOKEN: ${{ inputs.token }}");
+    expect(text).toContain("FORGERON_ENDPOINT: ${{ inputs.endpoint }}");
     expect(text).toContain("run.sh");
   });
 });
 
 describe("forgeron init", () => {
-  it("writes the workflow that runs the action with FORGERON_TOKEN", async () => {
+  it("writes the workflow that runs the action with GitHub's identity, no secret (D-123)", async () => {
     const root = await mkdtemp(join(tmpdir(), "forgeron-init-"));
     dirs.push(root);
     const io: Io = {
@@ -159,8 +252,10 @@ describe("forgeron init", () => {
       join(root, "my-tool", ".github", "workflows", "forgeron.yml"),
       "utf8",
     );
-    expect(workflow).toContain("uses: forgeron/deploy-action@v1");
-    expect(workflow).toContain("token: ${{ secrets.FORGERON_TOKEN }}");
+    // The action of the release this CLI belongs to (0.0.0 from the sources).
+    expect(workflow).toContain("uses: forgeron-sh/monorepo/.github/actions/deploy@v0.0.0");
+    expect(workflow).toMatch(/permissions:\n {2}contents: read\n {2}id-token: write/);
+    expect(workflow).not.toContain("secrets.");
     // Each pushed branch, and its deletion (D-121); tags are a marketplace's release, not a preview.
     expect(workflow).toMatch(/on:\n {2}push:\n {4}branches: \["\*\*"\]\n {2}delete:/);
   });
