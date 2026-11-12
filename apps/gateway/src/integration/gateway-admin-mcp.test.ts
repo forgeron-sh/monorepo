@@ -557,6 +557,38 @@ describe("the plan of a promotion through the MCP (D-113)", () => {
   });
 });
 
+describe("the plan of a promotion on the workspace origin, as the console and the CLI call it", () => {
+  // The console's Promote dialog asks `POST /promote/plan` with the session cookie; the CLI with its
+  // token. The gateway once sent the path to the console's assets, which refuse a POST (405): the
+  // dialog had no plan and could not offer to promote a build with no release.
+  const plan = (headers: Record<string, string>) =>
+    gateway()(
+      new Request("https://acme.forgeron.app/promote/plan", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify({ tool: "crm", version: "1.1.0", to: "production" }),
+      }),
+    );
+
+  it("answers an administrator's session with the plan", async () => {
+    const cookie = (
+      await openSession(
+        { person: root, workspace: "acme" },
+        { secret: SECRET, ttlSeconds: 600, now },
+      )
+    ).split(";")[0]!;
+    const response = await plan({ cookie });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ tool: "crm", version: "1.1.0", ok: true });
+  });
+
+  it("answers a token of `forgeron login` with the plan, and refuses a member", async () => {
+    const response = await plan({ authorization: `Bearer ${await token(root)}` });
+    expect(response.status).toBe(200);
+    expect((await plan({ authorization: `Bearer ${await token(ana)}` })).status).toBe(403);
+  });
+});
+
 describe("no secret value, token or credential goes through the MCP", () => {
   it("shows a secret's status and never its value, whatever the tool", async () => {
     const status = (await call(dev, "secrets_status", { tool: "hr" })).data;

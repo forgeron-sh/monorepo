@@ -90,7 +90,7 @@ export function fakeApi(routes: Record<string, unknown>): {
   };
 }
 
-export const refusal = (status: number, detail?: string) =>
-  new ApiError(`${status}${detail ? ` ${detail}` : ""}`, status, detail);
+export const refusal = (status: number, detail?: string, code?: string) =>
+  new ApiError(`${status}${detail ? ` ${detail}` : ""}`, status, detail, code);
 
 export const NOW = new Date("2026-11-03T12:00:00Z");

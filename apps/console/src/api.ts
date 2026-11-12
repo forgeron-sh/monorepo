@@ -11,6 +11,8 @@ export class ApiError extends Error {
     readonly status: number,
     /** What the platform said, when it said something: fit to show a person. */
     readonly detail?: string,
+    /** The platform's code for the refusal (`NO_ENTRY`, `PENDING_APPROVAL`…), when it gave one. */
+    readonly code?: string,
   ) {
     super(message);
   }
@@ -142,13 +144,15 @@ export async function sendPlatform(
   });
   if (!response.ok) {
     const failed = (await response.json().catch(() => undefined)) as
-      | { error?: { message?: unknown } }
+      | { error?: { code?: unknown; message?: unknown } }
       | undefined;
     const detail = typeof failed?.error?.message === "string" ? failed.error.message : undefined;
+    const code = typeof failed?.error?.code === "string" ? failed.error.code : undefined;
     throw new ApiError(
       `${path}: ${response.status}${detail ? ` ${detail}` : ""}`,
       response.status,
       detail,
+      code,
     );
   }
   return response.json();
