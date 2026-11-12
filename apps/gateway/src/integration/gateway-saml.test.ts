@@ -143,7 +143,7 @@ describe("SAML sign-in", () => {
     expect(set).toContain("Secure");
     expect(set).toContain("SameSite=Lax");
     const me = await gateway()(at("/whoami", { headers: { cookie: result.session } }));
-    expect(await me.json()).toMatchObject({ email: "lea@acme.fr", roles: ["developer"] });
+    expect(await me.json()).toMatchObject({ email: "lea@acme.fr", roles: ["developer", "member"] });
   });
 
   it("admits the administrator and a member of an allowed domain, and refuses anyone else", async () => {
@@ -219,7 +219,10 @@ describe("the member policy of the workspace", () => {
     const joined = await signIn("pat@partner.test");
     expect(joined.response.status).toBe(303);
     const me = await gateway()(at("/whoami", { headers: { cookie: joined.session } }));
-    expect(await me.json()).toMatchObject({ email: "pat@partner.test", roles: ["viewer"] });
+    expect(await me.json()).toMatchObject({
+      email: "pat@partner.test",
+      roles: ["viewer", "member"],
+    });
   });
 });
 

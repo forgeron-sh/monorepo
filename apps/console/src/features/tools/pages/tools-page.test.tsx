@@ -31,7 +31,7 @@ describe("the tools list", () => {
   it("opens the tool of a row", async () => {
     const { container, go } = await page({ "/api/tools": tools });
     await click(container.querySelector("tbody tr"));
-    expect(go).toHaveBeenCalledWith("/tools/crm");
+    expect(go).toHaveBeenCalledWith("/admin/tools/crm");
   });
 
   it("searches by name and by summary, and says when nothing matches", async () => {
@@ -51,13 +51,13 @@ describe("the tools list", () => {
     expect(container.querySelector("table")).toBeNull();
     const cards = [...container.querySelectorAll<HTMLAnchorElement>("a.ft-card")];
     expect(cards.map((c) => c.getAttribute("href"))).toEqual([
-      "/tools/crm",
-      "/tools/draft",
-      "/tools/odoo",
+      "/admin/tools/crm",
+      "/admin/tools/draft",
+      "/admin/tools/odoo",
     ]);
     expect(cards[1]!.textContent).toContain("No description.");
     await click(cards[0]);
-    expect(go).toHaveBeenCalledWith("/tools/crm");
+    expect(go).toHaveBeenCalledWith("/admin/tools/crm");
 
     await cleanup();
     const again = await page({ "/api/tools": tools });

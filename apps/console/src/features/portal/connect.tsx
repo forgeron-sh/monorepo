@@ -45,7 +45,7 @@ export function ConnectInstructions({ tool }: { tool: ToolCardData }) {
           <ol className="fp-steps">
             <Step n={1}>
               Create a personal token in{" "}
-              <a href="/settings" className="fp-link">
+              <a href="/settings/security" className="fp-link">
                 Settings, Security
               </a>
               . It is shown once: copy it somewhere safe.

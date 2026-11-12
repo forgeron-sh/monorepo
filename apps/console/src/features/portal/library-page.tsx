@@ -1,6 +1,7 @@
 import { Button, CopyBlock, Dialog, Markdown, Notice, Page, Tabs, ToolIcon } from "@forgeron/ui";
 import { useState, type ReactNode } from "react";
 import { explain, type Api } from "../../api";
+import { pathOf, toolPath } from "../../router";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
 import {
@@ -145,7 +146,7 @@ export function LibraryToolPage({
     try {
       if (pilot) await removePilot(api.sendJson, c.name, pilot);
       else await removeFromLibrary(api.sendJson, c.name);
-      go("/");
+      go(pathOf("myTools"));
     } catch (e) {
       setError(explain(e, `${c.title} could not be removed. Try again.`));
       setBusy(false);
@@ -157,7 +158,7 @@ export function LibraryToolPage({
     <Page
       title={c.pilot ? `${c.title} · ${channelLabel(c.pilot)}` : c.title}
       description={
-        <button type="button" className="fp-link" onClick={() => go("/")}>
+        <button type="button" className="fp-link" onClick={() => go(pathOf("myTools"))}>
           Back to my tools
         </button>
       }
@@ -196,8 +197,7 @@ export function LibraryToolPage({
             {admin ? (
               <>
                 Give one of your roles a profile in the{" "}
-                <a href={`/tools/${encodeURIComponent(c.name)}?tab=access`}>Access</a> tab of{" "}
-                {c.title}.
+                <a href={`${toolPath(c.name)}?tab=access`}>Access</a> tab of {c.title}.
               </>
             ) : (
               <>Ask an admin of this workspace to give your role access to {c.title}.</>

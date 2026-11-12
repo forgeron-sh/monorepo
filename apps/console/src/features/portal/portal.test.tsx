@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { button, cleanup, click, fakeApi, mount, NOW, refusal, type } from "../../test-utils";
 import type { WorkspaceInfo } from "../../workspace";
 import { PortalHome } from "./home";
+import { DiscoverPage, MyToolsPage } from "./tool-lists";
 import { MOCK_TOOLS, mockLibrary, mockToolCard } from "./mock";
 import ToolOverview from "./tool-card";
 
@@ -19,36 +20,44 @@ const ws = (
 });
 const go = () => {};
 
-describe("Home, the person's library (D-117)", () => {
+describe("Home, My tools and Discover (D-117, D-128)", () => {
   const library = (admin = false) => ({ tools: mockLibrary(admin) });
 
-  it("lists the tools the person added and those they may add, with nothing technical", async () => {
+  it("Home shows the person's tools and leads to Discover, with nothing technical", async () => {
     const { api } = fakeApi({ "/api/library": library() });
     const view = await mount(<PortalHome ws={ws(false)} api={api} go={go} />);
     const mine = view.querySelector("[aria-labelledby='my-tools']")!;
     expect(mine.textContent).toContain("CRM");
     expect(mine.textContent).toContain("Odoo gateway");
     expect(mine.textContent).toContain("Setup to finish");
+    expect(mine.querySelector("a[href='/library']")?.textContent).toBe("All my tools");
     const available = view.querySelector("[aria-labelledby='available']")!;
-    expect(available.textContent).toContain("Inventory");
+    // Home only counts them: the list is Discover's.
+    expect(available.textContent).not.toContain("Inventory");
+    expect(available.querySelector("a[href='/discover']")?.textContent).toBe("Discover tools");
+    expect(view.querySelector("input[type=search]")).toBeNull();
     expect(view.textContent).not.toMatch(/v\d+\.\d+|MCP|API|CLI|role/i);
     expect(view.textContent).not.toContain("In this workspace");
   });
 
-  it("sends to the tool's page to use it, or to finish its setup", async () => {
+  it("My tools sends to the tool's page to use it, or to finish its setup", async () => {
     const { api } = fakeApi({ "/api/library": library() });
-    const view = await mount(<PortalHome ws={ws(false)} api={api} go={go} />);
+    const view = await mount(<MyToolsPage ws={ws(false)} api={api} go={go} />);
+    expect(view.querySelector("h1")?.textContent).toBe("My tools");
     expect(button(view, "Use").getAttribute("href")).toBe("/library/crm");
     expect(button(view, "Finish setup").getAttribute("href")).toBe("/library/odoo");
+    expect(view.textContent).not.toContain("Inventory");
   });
 
-  it("adds a tool with a click and opens its page", async () => {
+  it("Discover adds a tool with a click and opens its page", async () => {
     const seen: string[] = [];
     const { api, sent } = fakeApi({
       "/api/library": library(),
       "POST /api/library/inventory": { installed: true, setupUrl: null },
     });
-    const view = await mount(<PortalHome ws={ws(false)} api={api} go={(h) => seen.push(h)} />);
+    const view = await mount(<DiscoverPage ws={ws(false)} api={api} go={(h) => seen.push(h)} />);
+    expect(view.querySelector("h1")?.textContent).toBe("Discover");
+    expect(view.textContent).not.toContain("CRM");
     await click(button(view, "Add"));
     expect(sent.map((s) => `${s.method} ${s.path}`)).toEqual(["POST /api/library/inventory"]);
     expect(seen).toEqual(["/library/inventory"]);
@@ -56,26 +65,36 @@ describe("Home, the person's library (D-117)", () => {
 
   it("filters by what the person types, and says when nothing matches", async () => {
     const { api } = fakeApi({ "/api/library": library() });
-    const view = await mount(<PortalHome ws={ws(false)} api={api} go={go} />);
-    const search = view.querySelector<HTMLInputElement>("input[type=search]")!;
+    const mine = await mount(<MyToolsPage ws={ws(false)} api={api} go={go} />);
+    await type(mine.querySelector<HTMLInputElement>("input[type=search]")!, "equipment");
+    expect(mine.textContent).toContain("No tool of yours matches");
+    await cleanup();
+    const other = await mount(<DiscoverPage ws={ws(false)} api={api} go={go} />);
+    const search = other.querySelector<HTMLInputElement>("input[type=search]")!;
     await type(search, "equipment");
-    expect(view.querySelector("[aria-labelledby='my-tools']")!.textContent).toContain(
-      "No tool of yours matches",
-    );
-    expect(view.querySelector("[aria-labelledby='available']")!.textContent).toContain("Inventory");
+    expect(other.textContent).toContain("Inventory");
     await type(search, "zzz");
-    expect(view.textContent).toContain("No available tool matches");
+    expect(other.textContent).toContain("No available tool matches");
   });
 
-  it("shows an empty state that says what to do, and an error with a retry", async () => {
-    const empty = await mount(
-      <PortalHome ws={ws(false)} api={fakeApi({ "/api/library": { tools: [] } }).api} go={go} />,
-    );
+  it("shows empty states that say what to do, and an error with a retry", async () => {
+    const none = fakeApi({ "/api/library": { tools: [] } }).api;
+    const empty = await mount(<PortalHome ws={ws(false)} api={none} go={go} />);
     expect(empty.textContent).toContain("You have no tool yet");
     expect(empty.textContent).toContain("Ask an admin");
     await cleanup();
+    const nothing = await mount(<DiscoverPage ws={ws(false)} api={none} go={go} />);
+    expect(nothing.textContent).toContain("Nothing new to add");
+    expect(button(nothing, "Open my tools").getAttribute("href")).toBe("/library");
+    await cleanup();
+    const onlyNew = fakeApi({
+      "/api/library": { tools: mockLibrary(false).filter((t) => !t.installed) },
+    }).api;
+    const start = await mount(<MyToolsPage ws={ws(false)} api={onlyNew} go={go} />);
+    expect(button(start, "Discover tools").getAttribute("href")).toBe("/discover");
+    await cleanup();
     const failed = await mount(
-      <PortalHome
+      <MyToolsPage
         ws={ws(false)}
         api={
           fakeApi({
@@ -107,7 +126,8 @@ describe("Home for an admin", () => {
     );
     expect(view.textContent).toContain("In this workspace");
     expect(view.textContent).toContain("Get started");
-    expect(view.querySelector("[aria-labelledby='available']")!.textContent).toContain("Inventory");
+    expect(button(view, "Invite people").getAttribute("href")).toBe("/admin/members?invite");
+    expect(view.querySelector("[aria-labelledby='available']")).toBeTruthy();
   });
 });
 
@@ -159,7 +179,9 @@ describe("Tool card", () => {
     expect(view.textContent).toContain("https://demo.fabriks.example/t/crm/mcp");
     expect(view.textContent).toContain("https://demo.fabriks.example/t/crm/api");
     expect(view.textContent).toContain("forgeron crm --help");
-    expect(view.querySelector("a[href='/settings']")!.textContent).toContain("Settings, Security");
+    expect(view.querySelector("a[href='/settings/security']")!.textContent).toContain(
+      "Settings, Security",
+    );
   });
 
   it("tells a person without access what to ask for, with no primary button", async () => {

@@ -10,12 +10,15 @@ export type { PageProps };
 /** A page is loaded when it is first opened: `() => import("./pages/list")` with a default export. */
 export type LazyPage = () => Promise<{ default: ComponentType<PageProps> }>;
 
-/** The groups of the sidebar, in order. Settings has its own area (`settings`). */
+/**
+ * The groups of the sidebar, in order (D-128): `main` is the person's own space (Home, My tools,
+ * Discover), `admin` the Administration section. Settings has its own area (`settings`).
+ */
 export type NavGroup = "main" | "admin";
 const GROUPS: NavGroup[] = ["main", "admin"];
 
 export interface RouteDef {
-  /** `/tools/:name`: a path; `:name` segments are read into `params`. Two routes never match the same address. */
+  /** `/admin/tools/:name`: a path; `:name` segments are read into `params`. Two routes never match the same address. */
   path: string;
   /** The tab title and the heading of the screen. */
   title: string;
@@ -26,11 +29,13 @@ export interface RouteDef {
   nav?: {
     group: NavGroup;
     label: string;
-    /** The letter after `g`: `g` then `m` goes to Members. One letter, lowercase, unique. */
+    /** The letter after `g`: `g` then `m` goes to My tools. One letter, lowercase, unique. */
     shortcut?: string;
+    /** Its place in the group: low first (default 100, then the order of the table). */
+    order?: number;
   };
   /** Present: the route is a page of the settings area (the area is built by the shell). */
-  settings?: { group: "account" | "workspace" | "administration"; label: string };
+  settings?: { group: "account" | "workspace" | "operations"; label: string };
 }
 
 /** Adapts a page written with its own props to the shell's `PageProps`. */
@@ -46,30 +51,10 @@ const own: RouteDef[] = [
     path: "/",
     title: "Home",
     access: "everyone",
-    nav: { group: "main", label: "Home", shortcut: "h" },
+    nav: { group: "main", label: "Home", shortcut: "h", order: 0 },
     page: adapt(
       () => import("../features/portal/home").then((m) => m.PortalHome),
       ({ ws, api, go }) => ({ ws, api, go }),
-    ),
-  },
-  {
-    path: "/members",
-    title: "Members",
-    access: "admin",
-    nav: { group: "admin", label: "Members", shortcut: "m" },
-    page: adapt(
-      () => import("../members").then((m) => m.MembersPage),
-      ({ api, ws, now }) => ({ api, selfId: ws.person.id, now }),
-    ),
-  },
-  {
-    path: "/audit",
-    title: "Audit log",
-    access: "admin",
-    nav: { group: "admin", label: "Audit log", shortcut: "l" },
-    page: adapt(
-      () => import("../audit-page").then((m) => m.AuditPage),
-      ({ api, ws, now }) => ({ api, admin: ws.person.admin, now }),
     ),
   },
 ];
@@ -80,7 +65,10 @@ const featureModules = import.meta.glob<{ default: RouteDef[] }>("../features/*/
 });
 
 /** Sidebar groups first, in order, then the routes without an item: a feature's item joins its group. */
-const rank = (route: RouteDef) => (route.nav ? GROUPS.indexOf(route.nav.group) : GROUPS.length);
+const rank = (route: RouteDef) =>
+  route.nav
+    ? GROUPS.indexOf(route.nav.group) * 1000 + (route.nav.order ?? 100)
+    : GROUPS.length * 1000;
 
 export const routes: ReadonlyArray<RouteDef> = [
   ...own,

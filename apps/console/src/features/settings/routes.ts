@@ -2,8 +2,8 @@ import { createElement, type ComponentType } from "react";
 import type { PageProps } from "../../shell/page-props";
 import type { LazyPage, RouteDef } from "../../shell/routes";
 
-// The settings area: Account for everyone, Workspace and Administration for admins. The members,
-// sign-in, domains, audit and install screens are the ones the console already had.
+// The settings area: Account for everyone, Workspace and Operations for admins. Members and roles are
+// not settings: they are in the Administration section of the sidebar (D-128).
 
 const adapt =
   <P extends object>(load: () => Promise<ComponentType<P>>, props: (p: PageProps) => P): LazyPage =>
@@ -11,8 +11,6 @@ const adapt =
     const Page = await load();
     return { default: (p) => createElement(Page as ComponentType<object>, props(p)) };
   };
-
-const inviteRequested = () => /[?&]invite\b/.test(window.location.search);
 
 const routes: RouteDef[] = [
   {
@@ -64,23 +62,6 @@ const routes: RouteDef[] = [
     page: () => import("./pages/general"),
   },
   {
-    path: "/settings/members",
-    title: "Members",
-    access: "admin",
-    settings: { group: "workspace", label: "Members" },
-    page: adapt(
-      () => import("../../members").then((m) => m.MembersPage),
-      ({ api, ws, now }) => ({ api, selfId: ws.person.id, now, inviteOnOpen: inviteRequested() }),
-    ),
-  },
-  {
-    path: "/settings/roles",
-    title: "Roles and access",
-    access: "admin",
-    settings: { group: "workspace", label: "Roles and access" },
-    page: () => import("./pages/roles"),
-  },
-  {
     path: "/settings/sign-in",
     title: "Sign-in",
     access: "admin",
@@ -111,7 +92,7 @@ const routes: RouteDef[] = [
     path: "/settings/audit",
     title: "Audit log",
     access: "admin",
-    settings: { group: "administration", label: "Audit log" },
+    settings: { group: "operations", label: "Audit log" },
     page: adapt(
       () => import("../../audit-page").then((m) => m.AuditPage),
       ({ api, ws, now }) => ({ api, admin: ws.person.admin, now }),
@@ -121,14 +102,14 @@ const routes: RouteDef[] = [
     path: "/settings/usage",
     title: "Usage and seats",
     access: "admin",
-    settings: { group: "administration", label: "Usage and seats" },
+    settings: { group: "operations", label: "Usage and seats" },
     page: () => import("./pages/usage"),
   },
   {
     path: "/settings/sealing",
     title: "Sealing key",
     access: "admin",
-    settings: { group: "administration", label: "Sealing key" },
+    settings: { group: "operations", label: "Sealing key" },
     page: adapt(
       () => import("./pages/sealing").then((m) => m.default),
       ({ api }) => ({ api }),
@@ -138,7 +119,7 @@ const routes: RouteDef[] = [
     path: "/settings/install",
     title: "Install information",
     access: "admin",
-    settings: { group: "administration", label: "Install information" },
+    settings: { group: "operations", label: "Install information" },
     page: adapt(
       () => import("../../settings").then((m) => m.InstallPage),
       ({ ws }) => ({ ws }),

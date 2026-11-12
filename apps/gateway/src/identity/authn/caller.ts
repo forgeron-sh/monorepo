@@ -1,3 +1,4 @@
+import { workspaceRoles } from "@forgeron/manifest";
 import type { Member, Registry } from "@forgeron/registry";
 import type { Person } from "../../kernel/person";
 import type { Identity } from "./identity";
@@ -8,6 +9,8 @@ import { audienceOf, parseAudience } from "./audience";
 // The one resolver of "who is calling" for a workspace: a valid session cookie or a valid
 // audience-bound token (issued for this workspace) gives the person and their roles; anything
 // else, a deployment token included, gives nobody. Roles are read now, never frozen in the credential.
+// Every person holds `member` on top of the roles they were given (D-128): this is the one place it is
+// added, so tools, the catalog, the library and the console all see the same roles.
 
 /** The scope of a CLI token (D-028): good on the platform's routes, refused by every tool. */
 export const CLI_SCOPE = "cli";
@@ -22,7 +25,7 @@ const toPerson = (member: Member): Person => ({
   id: member.id,
   email: member.email,
   name: member.name,
-  roles: member.roles,
+  roles: workspaceRoles(member.roles),
 });
 
 export interface CallerOptions {

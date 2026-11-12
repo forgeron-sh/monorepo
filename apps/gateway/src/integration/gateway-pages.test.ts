@@ -315,7 +315,10 @@ describe("the invitation landing", () => {
       /Open https:\/\/acme\.forgeron\.app\/auth\/invite\/[\w-]{32} to accept/,
     );
     expect((await get(linkOf()!)).status).toBe(200);
-    expect(await (await get(linkOf()!)).text()).toContain("no role yet");
+    // Invited with no role, they hold member all the same (D-128).
+    const page = await (await get(linkOf()!)).text();
+    expect(page).not.toContain("no role yet");
+    expect(page).toMatch(/>member</);
   });
 });
 

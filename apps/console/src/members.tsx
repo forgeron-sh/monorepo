@@ -136,31 +136,24 @@ export function Members({
       header: "Roles",
       render: (m) => (
         <span className="fc-badges">
-          {m.roles.length ? (
-            m.roles.map((r) => (
-              <Badge key={r} tone={r === "admin" ? "strong" : "neutral"}>
-                {r}
-              </Badge>
-            ))
-          ) : (
-            <span className="fc-muted">None</span>
-          )}
+          {given(m.roles).map((r) => (
+            <Badge key={r} tone={r === "admin" ? "strong" : "neutral"}>
+              {r}
+            </Badge>
+          ))}
+          {/* Everyone holds `member` without being given it (D-128). */}
+          <span className="fc-muted">member</span>
         </span>
       ),
     },
     {
       key: "status",
       header: "Status",
-      render: (m) =>
-        m.roles.length ? (
-          <Badge tone="success" dot>
-            Active
-          </Badge>
-        ) : (
-          <Badge tone="warning" dot>
-            No role
-          </Badge>
-        ),
+      render: () => (
+        <Badge tone="success" dot>
+          Active
+        </Badge>
+      ),
     },
     ...(onEditRoles || onRemove
       ? [
@@ -192,11 +185,10 @@ export function Members({
       header: "Roles",
       render: (i) => (
         <span className="fc-badges">
-          {i.roles.length ? (
-            i.roles.map((r) => <Badge key={r}>{r}</Badge>)
-          ) : (
-            <span className="fc-muted">None</span>
-          )}
+          {given(i.roles).map((r) => (
+            <Badge key={r}>{r}</Badge>
+          ))}
+          <span className="fc-muted">member</span>
         </span>
       ),
     },
@@ -267,6 +259,10 @@ export function Members({
   );
 }
 
+/** The roles a person was given, without `member`, which everyone holds (D-128). */
+const given = (roles: readonly string[]) => roles.filter((r) => r !== MEMBER);
+const MEMBER = "member";
+
 /**
  * Roles every workspace has; the ones its people already hold come on top. They are the workspace's
  * own (D-127): a tool never names them, and each tool maps them to its profiles in its Access tab.
@@ -299,8 +295,9 @@ function RolePicker({
     <>
       <fieldset className="fc-fieldset">
         <legend className="fc-legend">Roles</legend>
+        <p className="fc-muted">Everyone holds member: it is not given here.</p>
         <div className="fc-roles">
-          {known.map((role) => (
+          {given(known).map((role) => (
             <Checkbox
               key={role}
               label={role}
@@ -369,7 +366,7 @@ export function MembersPage({
   return (
     <Page
       title="Members"
-      description="Who can sign in to this workspace, and with which roles."
+      description="Who can sign in to this workspace, and with which roles. Everyone holds member."
       actions={
         view ? (
           <Button variant="primary" onClick={() => setAsking({ kind: "invite" })}>

@@ -154,7 +154,7 @@ describe("provider configuration", () => {
     expect(person.status).toBe(302);
     expect(person.authorize).toContain("login.microsoftonline.com");
     const me = await gatewayFor()(at("/whoami", { headers: { cookie: person.cookie } }));
-    expect(await me.json()).toMatchObject({ email: "lea@acme.fr", roles: ["developer"] });
+    expect(await me.json()).toMatchObject({ email: "lea@acme.fr", roles: ["developer", "member"] });
 
     // A token from another directory is refused, even with a valid signature.
     const other = await simulatedProvider("x@acme.fr", now, {

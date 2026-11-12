@@ -34,7 +34,7 @@ function Preview() {
               key={tool.name}
               name={tool.name}
               summary={tool.summary}
-              href={`/tools/${tool.name}`}
+              href={`/library/${tool.name}`}
               meta={<Badge mono>{tool.productionVersion ?? "not deployed"}</Badge>}
               footer={<Badge>{tool.access}</Badge>}
             />

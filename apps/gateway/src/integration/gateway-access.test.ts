@@ -188,13 +188,15 @@ describe("the access matrix through the gateway", () => {
       .all();
     const none = { "deals.list": false, "deals.move": false, "view:board": false };
 
-    // `viewer` is a workspace role the tool does not map: holding it gives nothing (D-127).
+    // `viewer` is a workspace role the tool does not map: holding it gives nothing (D-127). Bob also
+    // holds `member` without being given it (D-128), which the tool maps to its default profile.
+    const asMember = { ...none, "deals.list": true };
     seen.length = 0;
     await gateway(at("/t/crm/api/deals.move", { headers: { cookie: bob } }));
     expect(JSON.parse(seen.at(-1)!)).toMatchObject({
-      roles: ["viewer"],
-      permissions: { viewer: [] },
-      access: { viewer: none },
+      roles: ["viewer", "member"],
+      permissions: { viewer: [], member: ["read"] },
+      access: { viewer: none, member: asMember },
     });
 
     const mapped = await gateway(
@@ -229,12 +231,16 @@ describe("the access matrix through the gateway", () => {
     await gateway(at("/t/crm/api/deals.move", { headers: { cookie: bob } }));
     expect(JSON.parse(seen.at(-1)!).access).toEqual({
       viewer: { ...none, "deals.list": true, "deals.move": true },
+      member: asMember,
     });
 
     // Back to the mapping.
     await gateway(put(admin, { role: "viewer", action: "deals.move", allowed: null }));
     await gateway(at("/t/crm/api/deals.move", { headers: { cookie: bob } }));
-    expect(JSON.parse(seen.at(-1)!).access).toEqual({ viewer: { ...none, "deals.list": true } });
+    expect(JSON.parse(seen.at(-1)!).access).toEqual({
+      viewer: { ...none, "deals.list": true },
+      member: asMember,
+    });
   });
 
   it("never lets the client write x-forgeron-user, and sends nothing for an anonymous call", async () => {

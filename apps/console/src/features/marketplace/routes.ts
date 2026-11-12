@@ -4,14 +4,14 @@ import type { RouteDef } from "../../shell/routes";
 // The marketplaces (D-116): what an admin can install, and the technical card of each tool.
 const routes: RouteDef[] = [
   {
-    path: "/marketplace",
+    path: "/admin/marketplace",
     title: "Marketplace",
     access: "admin",
-    nav: { group: "admin", label: "Marketplace", shortcut: "k" },
+    nav: { group: "admin", label: "Marketplace", shortcut: "k", order: 20 },
     page: () => import("./pages/marketplace-page"),
   },
   {
-    path: "/marketplace/:id/:tool",
+    path: "/admin/marketplace/:id/:tool",
     title: "Tool in the marketplace",
     access: "admin",
     page: async () => {

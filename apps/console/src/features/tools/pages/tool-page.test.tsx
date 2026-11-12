@@ -6,7 +6,7 @@ import { branches, pageProps, toolsApi, tools, versions } from "../test-helpers"
 import ToolPage from "./tool-page";
 
 afterEach(cleanup);
-beforeEach(() => window.history.replaceState(null, "", "/tools/crm"));
+beforeEach(() => window.history.replaceState(null, "", "/admin/tools/crm"));
 
 const routes = {
   "/api/tools": tools,
@@ -44,7 +44,7 @@ describe("the tool page", () => {
   });
 
   it("opens the tab the address names, and moves between tabs without leaving the page", async () => {
-    window.history.replaceState(null, "", "/tools/crm?tab=versions");
+    window.history.replaceState(null, "", "/admin/tools/crm?tab=versions");
     const page = await mount(<ToolPage name="crm" {...pageProps(toolsApi(routes).api)} />);
     await flushLazy();
     expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Releases");
@@ -67,7 +67,7 @@ describe("the tool page", () => {
   });
 
   it("shows production by default, and moves to a branch's address, keeping the tab (D-120)", async () => {
-    window.history.replaceState(null, "", "/tools/crm?tab=versions");
+    window.history.replaceState(null, "", "/admin/tools/crm?tab=versions");
     const went: string[] = [];
     const page = await mount(
       <ToolPage name="crm" {...pageProps(toolsApi(routes).api, { go: (h) => went.push(h) })} />,
@@ -85,11 +85,11 @@ describe("the tool page", () => {
       pick.value = "feat-export";
       pick.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    expect(went).toEqual(["/tools/crm/tree/feat-export?tab=versions"]);
+    expect(went).toEqual(["/admin/tools/crm/tree/feat-export?tab=versions"]);
   });
 
   it("on a branch, says so above every tab and marks the tabs that every branch shares", async () => {
-    window.history.replaceState(null, "", "/tools/crm/tree/feat-export?tab=versions");
+    window.history.replaceState(null, "", "/admin/tools/crm/tree/feat-export?tab=versions");
     const went: string[] = [];
     const page = await mount(
       <ToolPage
@@ -107,11 +107,11 @@ describe("the tool page", () => {
     await click(
       [...page.querySelectorAll("button")].find((b) => b.textContent === "Back to production"),
     );
-    expect(went).toEqual(["/tools/crm?tab=versions"]);
+    expect(went).toEqual(["/admin/tools/crm?tab=versions"]);
   });
 
   it("shows a permanent channel by its reference, ~<name> (D-125)", async () => {
-    window.history.replaceState(null, "", "/tools/crm/tree/~staging?tab=versions");
+    window.history.replaceState(null, "", "/admin/tools/crm/tree/~staging?tab=versions");
     const page = await mount(
       <ToolPage name="crm" branch="~staging" {...pageProps(toolsApi(routes).api)} />,
     );
@@ -122,14 +122,14 @@ describe("the tool page", () => {
   });
 
   it("shows production, with a word, for a branch that has no preview anymore", async () => {
-    window.history.replaceState(null, "", "/tools/crm/tree/gone?tab=versions");
+    window.history.replaceState(null, "", "/admin/tools/crm/tree/gone?tab=versions");
     const page = await mount(
       <ToolPage name="crm" branch="gone" {...pageProps(toolsApi(routes).api)} />,
     );
     await flushLazy();
     expect(page.textContent).toContain("The channel gone is gone.");
     expect(page.querySelector(".ft-branch-band")).toBeNull();
-    expect(window.location.pathname).toBe("/tools/crm");
+    expect(window.location.pathname).toBe("/admin/tools/crm");
     expect(window.location.search).toBe("?tab=versions");
   });
 

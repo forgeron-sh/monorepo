@@ -106,7 +106,11 @@ describe("the first administrator", () => {
     expect(session).toMatch(/Path=\//);
     expect(session).not.toMatch(/Domain/);
     const me = await (await whoami(cookiesOf(done))).json();
-    expect(me).toMatchObject({ email: "root@acme.fr", roles: ["admin"], workspace: "acme" });
+    expect(me).toMatchObject({
+      email: "root@acme.fr",
+      roles: ["admin", "member"],
+      workspace: "acme",
+    });
   });
 
   it("stores the code hashed, never in the clear", async () => {
@@ -367,7 +371,7 @@ describe("members, invitations and domains", () => {
 
     const session = await signIn("ada@external.test", "192.0.2.21");
     const me = (await (await whoami(session)).json()) as { roles: string[] };
-    expect(me.roles).toEqual(["developer"]);
+    expect(me.roles).toEqual(["developer", "member"]);
     // Accepted: the invitation is gone, and the audit log says who joined and how.
     expect(await registry.findInvitation("acme", "ada@external.test")).toBeUndefined();
     const audit = (
@@ -424,6 +428,7 @@ describe("members, invitations and domains", () => {
     const session = await signIn("grace@acme.fr", "192.0.2.24");
     expect(((await (await whoami(session)).json()) as { roles: string[] }).roles).toEqual([
       "viewer",
+      "member",
     ]);
     // A lookalike domain, and a subdomain, do not count.
     const before = mail.sent.length;
@@ -631,7 +636,7 @@ describe("beside OpenID Connect", () => {
     expect(callback2.status).toBe(302);
     expect(
       ((await (await whoami(cookiesOf(callback2))).json()) as { roles: string[] }).roles,
-    ).toEqual(["developer"]);
+    ).toEqual(["developer", "member"]);
   });
 
   it("answers 404 for the email routes when email sign-in is not on", async () => {

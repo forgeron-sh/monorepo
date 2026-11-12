@@ -7,8 +7,8 @@ import { ISSUER, simulatedProvider } from "../simulated-idp";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// The catalog through the gateway (FOR-137, D-061): any signed-in member reads it, a person with no role
-// sees the tool as `requestable`, a README is text and never HTML, an image is served from the bundle
+// The catalog through the gateway (FOR-137, D-061): any signed-in member reads it, a person given no role
+// holds `member` (D-128) and sees what the tool maps it to, a README is text and never HTML, an image is served from the bundle
 // with `nosniff` and a CSP, and no path leaves the bundle.
 
 const now = new Date("2026-11-03T10:00:00Z");
@@ -129,7 +129,7 @@ describe("the catalog through the gateway", () => {
     }
   });
 
-  it("lists the tool as requestable for a member with no role, with the roles to ask for", async () => {
+  it("lists the tool as granted to a person given no role: everyone holds member (D-128)", async () => {
     const gateway = gatewayFor();
     const bob = await signInAs("bob@acme.fr");
     const answer = await gateway(at(API, { headers: { cookie: bob } }));
@@ -142,7 +142,7 @@ describe("the catalog through the gateway", () => {
       summary: "Companies and leads.",
       productionVersion: "1.0.0",
       interfaces: { mcp: true, api: true, cli: true, web: false },
-      access: "requestable",
+      access: "granted",
       roles: [
         { name: "admin", label: "admin (all permissions)" },
         { name: "member", label: "member (Viewer)" },

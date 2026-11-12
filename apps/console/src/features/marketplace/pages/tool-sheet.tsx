@@ -12,6 +12,7 @@ import {
 } from "@forgeron/ui";
 import { useState, type ReactNode } from "react";
 import { explain } from "../../../api";
+import { pathOf, toolPath } from "../../../router";
 import type { PageProps } from "../../../shell/page-props";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
@@ -125,7 +126,7 @@ export default function ToolSheet({ api, go, id, tool }: PageProps & { id: strin
     try {
       const done = await installMarketplaceTool(api.sendJson, id, tool);
       // Next: who can use it (D-117). Where it could not go to production, its page says why.
-      go(`/tools/${encodeURIComponent(done.tool)}?tab=availability`);
+      go(`${toolPath(done.tool)}?tab=availability`);
     } catch (e) {
       setError(explain(e, "The tool was not installed. Try again."));
       setBusy(false);
@@ -136,13 +137,13 @@ export default function ToolSheet({ api, go, id, tool }: PageProps & { id: strin
     <Page
       title={c.title}
       description={
-        <button type="button" className="fp-link" onClick={() => go("/marketplace")}>
+        <button type="button" className="fp-link" onClick={() => go(pathOf("marketplace"))}>
           Back to the marketplace
         </button>
       }
       actions={
         c.installed ? (
-          <Button onClick={() => go(`/tools/${encodeURIComponent(c.name)}`)}>Open in Tools</Button>
+          <Button onClick={() => go(toolPath(c.name))}>Open in Tools</Button>
         ) : (
           <Button variant="primary" onClick={() => setConfirming(true)}>
             Install
