@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/forgeron-sh/monorepo/compare/sdk-v0.2.0...sdk-v0.3.0) (2026-11-12)
+
+
+### Miscellaneous Chores
+
+* **sdk:** Synchronize forgeron versions
+
 ## [0.2.0](https://github.com/forgeron-sh/monorepo/compare/sdk-v0.1.1...sdk-v0.2.0) (2026-11-10)
 
 

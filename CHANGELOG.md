@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/forgeron-sh/monorepo/compare/v0.2.0...v0.3.0) (2026-11-12)
+
+
+### Features
+
+* a GitHub App per workspace, and CI that deploys with GitHub Actions' identity (D-123) ([c17fdd1](https://github.com/forgeron-sh/monorepo/commit/c17fdd165992de19461d433c247a61b08571035d))
+* a GitHub App per workspace, and CI that deploys with GitHub Actions' identity (D-123) ([ad399d1](https://github.com/forgeron-sh/monorepo/commit/ad399d1ac76f852aab402a9aabcf988e8e399104))
+
 ## [0.2.0](https://github.com/forgeron-sh/monorepo/compare/v0.1.1...v0.2.0) (2026-11-10)
 
 
