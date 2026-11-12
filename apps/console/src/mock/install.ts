@@ -22,10 +22,11 @@ export async function installMock(): Promise<void> {
   const scenario = new URLSearchParams(location.search).get("mock") ?? "ready";
   const fresh = scenario === "fresh";
   const state = {
-    availability: {} as Record<
-      string,
-      { mode: string; roles?: string[]; people?: string[]; updatedAt: string }
-    >,
+    // Who may use each channel (D-129): crm has no rule (open, as before libraries), inventory is
+    // published to two roles, the others are drafts.
+    availability: {
+      inventory: { mode: "roles", roles: ["developer", "viewer"], updatedAt: iso(-DAY) },
+    } as Record<string, { mode: string; roles?: string[]; people?: string[]; updatedAt: string }>,
     workspace: "demo",
     github: !fresh,
     endpoint: "https://demo.fabriks.example",

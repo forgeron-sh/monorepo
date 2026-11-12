@@ -8,6 +8,7 @@ import {
   createSamlRequests,
   createRegistry,
   createSecretBox,
+  reachesChannelAlways,
   type EmailCodes,
   type IdentityConfig,
   type Invitation,
@@ -277,7 +278,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
             }) => {
               const person = await caller.resolve(c.request, c.workspace);
               if (!person) return false;
-              if (person.roles.includes("admin") || person.roles.includes("developer")) return true;
+              if (reachesChannelAlways(c.branch, person)) return true;
               const tool = await registry.findTool(c.workspace, c.tool);
               return tool ? pilotAccess(registry, tool.id, c.branch, person) : false;
             },

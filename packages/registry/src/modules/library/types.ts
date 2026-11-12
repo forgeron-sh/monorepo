@@ -23,14 +23,25 @@ export const AVAILABILITY_MODES: readonly AvailabilityMode[] = [
 ];
 
 /**
- * May this person use a channel other than production (D-119, D-125)? Admins and developers always
- * may, as before; anyone else only through the rule an admin set on that channel.
+ * Who reaches a channel other than production whatever its rule (D-125, D-129): an admin always; a
+ * developer on a branch's temporary channel only. A permanent channel (`~<name>`) in draft is for
+ * admins alone: a developer uses it once it is published to them, like anyone.
+ */
+export function reachesChannelAlways(ref: string, person: { roles: readonly string[] }): boolean {
+  if (person.roles.includes("admin")) return true;
+  return !ref.startsWith("~") && person.roles.includes("developer");
+}
+
+/**
+ * May this person use a channel other than production (D-119, D-125, D-129)? Those who always reach
+ * it may; anyone else only through the rule an admin set on that channel (its publication).
  */
 export function mayUseChannel(
   rule: Availability | undefined,
   person: { id: string; roles: readonly string[] },
+  ref: string,
 ): boolean {
-  if (person.roles.includes("admin") || person.roles.includes("developer")) return true;
+  if (reachesChannelAlways(ref, person)) return true;
   return rule !== undefined && isAvailable(rule, person);
 }
 

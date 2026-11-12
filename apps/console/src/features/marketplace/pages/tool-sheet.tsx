@@ -126,7 +126,7 @@ export default function ToolSheet({ api, go, id, tool }: PageProps & { id: strin
     try {
       const done = await installMarketplaceTool(api.sendJson, id, tool);
       // Next: who can use it (D-117). Where it could not go to production, its page says why.
-      go(`${toolPath(done.tool)}?tab=availability`);
+      go(toolPath(done.tool));
     } catch (e) {
       setError(explain(e, "The tool was not installed. Try again."));
       setBusy(false);

@@ -14,6 +14,8 @@ const routes = {
   "/api/tools/crm/versions": versions,
   "/api/tools/crm/activity": { entries: [] },
   "/api/tools/crm/secrets-status": { secrets: [] },
+  "/api/tools/crm/availability": { mode: "nobody", roles: [], people: [], updatedAt: "x" },
+  "/api/members": { members: [], invitations: [], settings: { domains: [] } },
 };
 const tabLabels = (c: HTMLElement) =>
   [...c.querySelectorAll('[role="tab"]')].map((t) => t.textContent);
@@ -31,14 +33,7 @@ describe("the tool page", () => {
     await flushLazy();
     expect(page.querySelector("h1")?.textContent).toBe("crm");
     expect(page.textContent).toContain("Companies, contacts and deals.");
-    expect(tabLabels(page)).toEqual([
-      "Channels",
-      "Releases",
-      "Availability",
-      "Access",
-      "Secrets",
-      "Activity",
-    ]);
+    expect(tabLabels(page)).toEqual(["Channels", "Releases", "Access", "Secrets", "Activity"]);
     expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Channels");
     expect(page.textContent).toContain("feat-export");
   });
@@ -58,12 +53,24 @@ describe("the tool page", () => {
     expect(page.textContent).toContain("Nothing has happened yet");
   });
 
+  it("opens the page for the old Availability tab, whose rule is now in the header (D-129)", async () => {
+    window.history.replaceState(null, "", "/admin/tools/crm?tab=availability");
+    const page = await mount(<ToolPage name="crm" {...pageProps(toolsApi(routes).api)} />);
+    await flushLazy();
+    expect(window.location.search).toBe("");
+    expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Channels");
+    expect(page.querySelector(".ft-publish")?.textContent).toContain("Draft");
+    expect(page.querySelector(".ft-branch-pick, .ft-branch-pick-label")).toBeNull();
+  });
+
   it("shows a member none of the admin tabs, the secrets included (D-118)", async () => {
     const page = await mount(
       <ToolPage name="crm" {...pageProps(toolsApi(routes).api, { admin: false })} />,
     );
     await flushLazy();
     expect(tabLabels(page)).toEqual([]);
+    // Who may use the tool is an admin's (D-129).
+    expect(page.querySelector(".ft-publish")).toBeNull();
   });
 
   it("shows production by default, and moves to a branch's address, keeping the tab (D-120)", async () => {
@@ -73,7 +80,7 @@ describe("the tool page", () => {
       <ToolPage name="crm" {...pageProps(toolsApi(routes).api, { go: (h) => went.push(h) })} />,
     );
     await flushLazy();
-    const pick = page.querySelector<HTMLSelectElement>(".ft-branch-pick select")!;
+    const pick = page.querySelector<HTMLSelectElement>("select.ft-channel-pick")!;
     expect([...pick.options].map((o) => o.textContent)).toEqual([
       "Production · 1.4.0",
       "staging · 1.4.0",
@@ -99,7 +106,7 @@ describe("the tool page", () => {
       />,
     );
     await flushLazy();
-    expect(page.querySelector<HTMLSelectElement>(".ft-branch-pick select")!.value).toBe(
+    expect(page.querySelector<HTMLSelectElement>("select.ft-channel-pick")!.value).toBe(
       "feat-export",
     );
     expect(page.querySelector(".ft-branch-band")?.textContent).toContain("feat-export");
@@ -116,7 +123,7 @@ describe("the tool page", () => {
       <ToolPage name="crm" branch="~staging" {...pageProps(toolsApi(routes).api)} />,
     );
     await flushLazy();
-    expect(page.querySelector<HTMLSelectElement>(".ft-branch-pick select")!.value).toBe("~staging");
+    expect(page.querySelector<HTMLSelectElement>("select.ft-channel-pick")!.value).toBe("~staging");
     expect(page.querySelector(".ft-branch-band")?.textContent).toContain("Channel");
     expect(page.querySelector(".ft-branch-band")?.textContent).toContain("staging");
   });

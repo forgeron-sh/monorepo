@@ -120,7 +120,10 @@ keeps the open tab (`?tab=`). On another channel, a band under the header says w
 _Branch_), that what is changed there is for that channel only, with its own data, and offers to go back
 to production. A channel that is gone shows production with a word about it, and the address goes back
 to `/admin/tools/<tool>`. The picker lists production, the other permanent channels with their version, then
-the branches.
+the branches. It has no label: it is as wide as its value, its chevron right after it (D-129).
+
+Right of the picker, for admins, the channel's **publication** (D-129), described below under
+"Publication".
 
 | Tab          | Follows the channel | Content                                                                                     |
 | ------------ | ------------------- | ------------------------------------------------------------------------------------------- |
@@ -128,7 +131,6 @@ the branches.
 | Channels     | no                  | The permanent channels with their updates, then one temporary channel per branch, see below |
 | Releases     | no                  | The releases with their changelog, compared to the previous one; builds on demand           |
 | Architecture | yes                 | A diagram generated from the manifest the channel serves                                    |
-| Availability | yes                 | Who may add the tool (production), or who may use the channel                               |
 | Database     | yes                 | The explorer, on the channel's database                                                     |
 | Access       | no                  | The tool's profiles, what each workspace role is given, the exceptions by action (D-127)    |
 | Secrets      | yes                 | Production: both kinds and what people hold. Another channel: the `preview` secrets it uses |
@@ -201,7 +203,7 @@ after the answer, the marketplaces read more than an hour ago (D-121): no cron.
   version, interfaces, roles, database, outbound hosts, secrets an admin sets, what each person is
   asked for, connectors and what it asks for. _Install_ asks for a confirmation that lists what it asks
   for, with _I approve what it asks for_; the tool is created, approved and put in production where the
-  gateway can deploy, then its Availability tab opens. A newer release shows in its Updates (D-121).
+  gateway can deploy, then its page opens, a draft until an admin publishes it (D-129). A newer release shows in its Updates (D-121).
 - **Remove** a marketplace: its token and what it offers go; the tools installed from it stay.
 
 ## Architecture diagram
@@ -255,14 +257,28 @@ marked _Channel · staging_ for a permanent channel or _Branch · feat_ for a br
 (`/library/<tool>/pilots/<ref>`, `<ref>` being the branch or `~<name>`) that says it has its own data.
 Adding, finishing the setup and removing work as for a tool, apart from it.
 
-### Availability (admin, a tab of the tool page)
+### Publication (admin, the header of the tool page)
 
-Who may add the tool: nobody yet (a tool installed from a marketplace starts there), everyone, some
-workspace roles, or some people. Everyone holds `member` (D-128), so opening the tool to `member` opens
-it to everyone; holding `member` opens no tool by itself. Saving a choice on a tool that had none means each person adds it from
-their library to keep using it; the tab says so. What a person may do in the tool stays the Access tab.
-On another channel (chosen at the top of the page, D-120, D-125), the tab is **who may use that
-channel** instead: admins and developers only until a choice is saved.
+Who may use a channel (D-129), in place of the Availability tab, which is gone (`?tab=availability`
+opens the tool page). Two states, on the existing rule (D-117, D-125; the API is unchanged):
+
+- **Draft** (`nobody`, or a channel with no rule yet): admins only. A branch's temporary channel stays
+  open to developers too (D-125). A tool installed from a marketplace and a new permanent channel start
+  as drafts. The header shows _Draft · Admins only_ and a **split button**: _Publish_, and glued to
+  its right a chevron with _Who has access_.
+- **Published** (`everyone`, `roles` or `people`): the header shows _Published · everyone_, _Published ·
+  developer, support_ or the people's names (their count past two). The main button becomes _Manage
+  sharing_; the chevron holds _Who has access_ and _Unpublish_ (confirmed, it says how many people lose
+  access; their library keeps the tool).
+- **The dialog** (_Publish_ and _Manage sharing_): everyone in the workspace, some roles (every role but
+  `admin` and `member`: admins always have access, and `member` is everyone, D-128), or some people
+  found with a search field. Before saving it says how many people will have access and why (_3 people
+  will have access, of 12: admins, and the people who hold support._).
+- Production with no rule (deployed before libraries) reads _Published · everyone, without adding it_;
+  saving a choice means each person adds it from their library to keep using it, and the dialog says so.
+
+On production the rule is who may add the tool to their library; on another channel, who may add that
+channel as a tool of its own. What a person may do in the tool stays the Access tab.
 
 ### A tool in the library (the member's sheet)
 

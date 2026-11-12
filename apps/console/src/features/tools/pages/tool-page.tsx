@@ -14,6 +14,7 @@ import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
 import { loadTools } from "../api";
 import { ToolIcon } from "../components";
+import { PublishControl } from "../publish";
 import "../register";
 import { toolTabs, type ToolTab, type ToolTabProps } from "../tabs";
 import "../tools.css";
@@ -37,8 +38,16 @@ const panel = (tab: ToolTab) => {
   return component;
 };
 
+/** Tabs that are gone: their address opens the tool page (D-129: who may use it is in the header). */
+const GONE_TABS = new Set(["availability"]);
+
 function askedTab(): string | null {
-  return new URLSearchParams(window.location.search).get("tab");
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  if (tab === null || !GONE_TABS.has(tab)) return tab;
+  const url = new URL(window.location.href);
+  url.searchParams.delete("tab");
+  window.history.replaceState(null, "", url);
+  return null;
 }
 
 /** The address of the tool on a branch, keeping the open tab. */
@@ -119,9 +128,10 @@ export default function ToolPage({
           <h1 className="fg-page-title">{tool.name}</h1>
           {tool.summary ? <p className="fg-page-desc">{tool.summary}</p> : null}
         </div>
-        <label className="ft-branch-pick">
-          <span className="ft-branch-pick-label">Channel</span>
+        <div className="ft-header-actions">
           <Select
+            className="ft-channel-pick"
+            aria-label="Channel"
             value={branch ?? ""}
             options={[
               {
@@ -136,7 +146,15 @@ export default function ToolPage({
             ]}
             onChange={(e) => go(addressOf(tool.name, e.target.value || undefined))}
           />
-        </label>
+          {admin ? (
+            <PublishControl
+              key={branch ?? ""}
+              tool={tool.name}
+              {...(branch !== undefined ? { branch } : {})}
+              api={api}
+            />
+          ) : null}
+        </div>
       </header>
       {gone ? (
         <Notice tone="warning" title={`The channel ${askedBranch} is gone.`}>
@@ -147,8 +165,8 @@ export default function ToolPage({
         <div className="ft-branch-band" role="status">
           <Badge tone="warning">{branch.startsWith("~") ? "Channel" : "Branch"}</Badge>
           <span className="ft-branch-band-text">
-            You are looking at <code>{branch.startsWith("~") ? branch.slice(1) : branch}</code>.
-            What you change in Overview, Architecture, Availability, Database and Secrets is for
+            You are looking at <code>{branch.startsWith("~") ? branch.slice(1) : branch}</code>. Its
+            publication and what you change in Overview, Architecture, Database and Secrets are for
             this channel only, with its own data, never for production.
           </span>
           <Button size="sm" onClick={() => go(addressOf(tool.name, undefined))}>

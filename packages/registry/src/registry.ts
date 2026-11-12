@@ -48,7 +48,12 @@ export { TEMPLATE_WORKSPACE } from "./modules/templates/public";
 export type { AvailableUpdate, PermanentChannel, ToolSource } from "./modules/templates/public";
 export { channelNameProblem } from "./modules/catalog/public";
 export { marketplaceSource } from "./modules/marketplaces/public";
-export { AVAILABILITY_MODES, isAvailable, mayUseChannel } from "./modules/library/public";
+export {
+  AVAILABILITY_MODES,
+  isAvailable,
+  mayUseChannel,
+  reachesChannelAlways,
+} from "./modules/library/public";
 export type { Availability, AvailabilityMode } from "./modules/library/public";
 export type { Marketplace } from "./modules/marketplaces/public";
 export type { GithubApp, GithubAppKeys, GithubInstallation } from "./modules/github/public";
