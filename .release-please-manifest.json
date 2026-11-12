@@ -1,7 +1,7 @@
 {
-  ".": "0.2.0",
-  "packages/manifest": "0.2.0",
-  "packages/runtime": "0.2.0",
-  "packages/sdk": "0.2.0",
-  "apps/cli": "0.2.0"
+  ".": "0.3.0",
+  "packages/manifest": "0.3.0",
+  "packages/runtime": "0.3.0",
+  "packages/sdk": "0.3.0",
+  "apps/cli": "0.3.0"
 }
