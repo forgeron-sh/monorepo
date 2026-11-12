@@ -129,6 +129,7 @@ Rules of the log:
 | D-128 | 12/11/2026 | The console's navigation: the person's space, Administration, Settings, one place per page; everyone holds `member`                                                                                          | Active                                        |
 | D-129 | 12/11/2026 | A channel is a draft (admins only) or published (everyone, roles, people), set in the tool page's header                                                                                                     | Active                                        |
 | D-130 | 12/11/2026 | `forgeron dev` serves a tool's views; the build generates one mount entry per view, with a single React                                                                                                      | Active                                        |
+| D-131 | 12/11/2026 | A tool reads the workspace's people through `ctx.directory`, only what its `resources.directory` asked for and an admin approved                                                                             | Active                                        |
 
 ---
 
@@ -1708,3 +1709,17 @@ Rules of the log:
 - **Rejected**: a separate views origin (D-082); serving the files from the Worker (it holds no static assets); dropping the sandbox in dev (the page would work here and fail on the platform).
 - **Not done**: the platform's gateway still does not serve views (`serveView` is not wired into the dispatcher); the 15-minute token is not renewed; CSS is not bundled (a view carries its own `<style>`); the built-in browser of the desktop app refuses a document served with `CSP: sandbox`, so a test there goes through a proxy that drops that header.
 - **Applied in**: `packages/compiler/src/build.ts`; `packages/hosting/src/{local,local-views}.ts`; `apps/cli/src/{dev.ts,commands/dev.ts}`.
+
+## D-131 — A tool reads the workspace's people through `ctx.directory`, only what it asked for
+
+- **Date**: 12/11/2026 · **Status**: Active · Follows D-127 (roles are the workspace's) and the resource approval of D-096
+- **Decision**:
+  1. **A resource, declared and approved.** `resources.directory: { why, members?, roles?, avatars?, teams? }` (`directory()` in `forgeron.config.ts`). Nothing is open by default: `ctx.user` carries the caller's `id`, `email`, `name` (and `avatar` once a source exists), and the other people, their roles, their pictures and the teams are one flag each. An admin approves them as any resource (the install shows a _Directory_ line).
+  2. **`ctx.directory`**: `me()`, `member(idOrEmail)`, `members({ query?, team?, limit? })`, `teams({ mine? })`, `team(id)`, `inTeam(id)`. A call that needs a flag the tool did not declare is refused (`FORBIDDEN`). The caller is always found by `member()`; nobody else without `members`. At most 500 members per call.
+  3. **Two filters.** The gateway sends the Worker `x-forgeron-directory` only when the tool declared the resource, with the fields it named (members of this workspace only); the runtime filters again by the manifest, so a snapshot that carries too much leaks nothing.
+  4. **The rule belongs to the action.** A tool that shares something with a person checks them with `ctx.directory.member(...)` in the action; a view's suggestions are only a help. A person outside the workspace cannot be invited, whatever a caller sends.
+  5. **Local and tests.** `forgeron dev` reads `.forgeron/local/directory.json` (a small made-up directory without it); `--user <email>` chooses who the developer is, so a note shared with someone is seen from their side. `createTestTool({ directory })` does the same in tests.
+- **Why**: a tool for companies cannot take an email from its caller and trust it: the platform is the one that knows who belongs to the workspace. The notes tool shared a note with any address because it had no way to ask.
+- **Rejected**: giving every tool the whole directory (an enterprise rule is that a tool sees what it needs); a runtime call from the Worker to the gateway (a Worker cannot always reach its own gateway, and each call would need a token); looking people up through the admin MCP (it is the admin's, not the tool's).
+- **Not done**: pictures have no source yet (a member has no avatar column; OIDC `picture` is not stored), so `avatar` is empty on the platform; the snapshot is a header, capped at 500 members, which a very large workspace will outgrow (a bound lookup is the next step); the matrix does not know the directory.
+- **Applied in**: `packages/manifest/src/schema.ts`; `packages/runtime/src/{directory,engine,types}.ts`; `packages/sdk/src/{config,context,testing/tool}.ts`; `packages/compiler/src/{build,check}.ts`; `apps/gateway/src/dispatch/user-secrets.ts`; `packages/hosting/src/local.ts`; `apps/cli/src/{dev,dev-directory,resources}.ts`.

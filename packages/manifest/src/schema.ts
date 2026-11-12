@@ -114,6 +114,24 @@ export const ResourcesSchema = z.strictObject({
     .optional(),
   connectors: z.record(z.string().regex(/^[a-z][a-z0-9-]*$/), ConnectorSchema).optional(),
   network: z.strictObject({ allow: z.array(text), why: text }).optional(),
+  /**
+   * What the tool may know of the workspace's people and teams (D-131, D-132). Nothing by default: the
+   * caller's own name and email are always there; each flag opens one more thing, and an admin approves
+   * them as any resource.
+   */
+  directory: z
+    .strictObject({
+      why: text,
+      /** The other people of the workspace: name and email. */
+      members: z.boolean().optional(),
+      /** Their workspace roles. */
+      roles: z.boolean().optional(),
+      /** Their pictures. */
+      avatars: z.boolean().optional(),
+      /** The workspace's teams, and who is in them. */
+      teams: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 /** What a person gives a tool besides secrets (D-096): a plain value, in clear, `camelCase`. */

@@ -22,12 +22,16 @@ export interface LocalUser {
   id: string;
   email: string;
   name: string;
+  avatar?: string;
   roles: string[];
+  teams?: string[];
 }
 
 export interface LocalHostingOptions {
   /** Who the developer is for the tool. Every role of the tool by default. */
   identity?: (manifest: Manifest) => LocalUser;
+  /** The workspace's people and teams, for a tool that declares `resources.directory` (D-131). */
+  directory?: (manifest: Manifest) => unknown;
   /** The port the environment answers on; free port by default. */
   port?: number;
   host?: string;
@@ -57,6 +61,8 @@ interface Running {
   /** Of the build being served: the server outlives a build. */
   identity: string;
   manifest: Manifest;
+  /** The JSON of `x-forgeron-directory`, for a tool that declares it. */
+  directory?: string;
 }
 
 async function readBody(request: IncomingMessage): Promise<Buffer | undefined> {
@@ -84,6 +90,11 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
     await current.miniflare.dispose();
   }
 
+  const directoryOf = (manifest: Manifest) =>
+    manifest.resources.directory && options.directory
+      ? { directory: JSON.stringify(options.directory(manifest)) }
+      : {};
+
   const miniflareOptions = ({ provisioned, build }: Uploaded) => {
     const named = (kind: string) =>
       provisioned.bindings.filter((b) => b.kind === kind).map((b) => b.name);
@@ -109,6 +120,7 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
       miniflare,
       identity: JSON.stringify(identityOf(uploaded.build.manifest)),
       manifest: uploaded.build.manifest,
+      ...directoryOf(uploaded.build.manifest),
     };
     running.set(key, created);
     return created;
@@ -142,6 +154,8 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
       if (before) await current.miniflare.setOptions(miniflareOptions(uploaded));
       current.identity = JSON.stringify(identityOf(uploaded.build.manifest));
       current.manifest = uploaded.build.manifest;
+      delete current.directory;
+      Object.assign(current, directoryOf(uploaded.build.manifest));
 
       if (!current.server) {
         const server = createServer(async (incoming, outgoing) => {
@@ -153,6 +167,8 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
             }
             // Whatever the caller sent, the identity is the developer's.
             headers["x-forgeron-user"] = current.identity;
+            delete headers["x-forgeron-directory"];
+            if (current.directory) headers["x-forgeron-directory"] = current.directory;
             const pathname = new URL(incoming.url ?? "/", "http://local").pathname;
             // A view's page runs in a sandbox with an opaque origin: its calls are cross-origin.
             if (incoming.method === "OPTIONS" && isViewCall(pathname)) {

@@ -6,7 +6,11 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  /** The person's picture, an address, when the workspace has one (D-131). */
+  avatar?: string;
   roles: string[];
+  /** The ids of the teams the person belongs to (D-132); only with `resources.directory.teams`. */
+  teams?: string[];
   /**
    * What an admin changed in the console, for this person's roles: per role, per action,
    * `true` to allow and `false` to refuse, whatever the role's levels say. The gateway adds it
@@ -19,6 +23,45 @@ export interface User {
    * name, else `admin` holds every permission and `member` the default profile.
    */
   permissions?: Record<string, string[]>;
+}
+
+/** A person of the workspace as a tool sees them (D-131): only the fields its `resources.directory` asks for. */
+export interface DirectoryMember {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  roles?: string[];
+  teams?: string[];
+}
+
+/** A team of the workspace (D-132). */
+export interface DirectoryTeam {
+  id: string;
+  name: string;
+  description?: string;
+  /** The ids of its members. */
+  members: string[];
+}
+
+/** What the gateway hands a call when the tool declared `resources.directory`. */
+export interface DirectorySnapshot {
+  members: DirectoryMember[];
+  teams?: DirectoryTeam[];
+}
+
+/** `ctx.directory`: the people and teams of the workspace the tool may know about (D-131, D-132). */
+export interface Directory {
+  /** The person who calls. */
+  me(): DirectoryMember;
+  /** A member by id or email; `undefined` when nobody of the workspace has it. */
+  member(idOrEmail: string): Promise<DirectoryMember | undefined>;
+  /** The members, optionally those whose name or email contains `query`, or those of one team. */
+  members(options?: { query?: string; team?: string; limit?: number }): Promise<DirectoryMember[]>;
+  team(id: string): Promise<DirectoryTeam | undefined>;
+  teams(options?: { mine?: boolean }): Promise<DirectoryTeam[]>;
+  /** Whether the caller belongs to the team. */
+  inTeam(id: string): boolean;
 }
 
 interface Issue {
@@ -70,6 +113,8 @@ export interface ActionContext {
   emit(event: string, payload?: unknown): void | Promise<void>;
   secrets: Readonly<Record<string, string | undefined>>;
   userSecrets: Readonly<Record<string, string | undefined>>;
+  /** The workspace's people and teams, with `resources.directory` only. */
+  directory: Directory;
   connectors: Readonly<Record<string, unknown>>;
   fetch: Fetch;
   files: unknown;
@@ -176,6 +221,8 @@ export interface Platform {
    */
   userSetup?: Readonly<Record<string, string>>;
   connectors: ActionContext["connectors"];
+  /** The workspace's people and teams, as the gateway filtered them for this tool and this call (D-131). */
+  directory?: DirectorySnapshot;
   /** When set, a delegated connector gets the caller's own token, and a missing consent is asked for on first use. */
   connectorSessions?: ConnectorSessions;
   /**

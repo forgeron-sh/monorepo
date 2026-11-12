@@ -18,7 +18,7 @@ export type {
   JobDefinition,
   ScheduleOptions,
 } from "./events";
-export { bucket, connector, database, defineConfig, field, kv, queue } from "./config";
+export { bucket, connector, database, defineConfig, directory, field, kv, queue } from "./config";
 export type { PlainField, SecretField, ToolConfig, ToolSetup } from "./config";
 export {
   checkConnectorDeclaration,

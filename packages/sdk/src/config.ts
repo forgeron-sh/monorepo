@@ -10,6 +10,7 @@ type Database = NonNullable<Resources["db"]>;
 type Bucket = NonNullable<Resources["files"]>;
 type Cache = NonNullable<Resources["cache"]>;
 type Queue = NonNullable<Resources["queue"]>;
+type Directory = NonNullable<Resources["directory"]>;
 type ConnectorResource = NonNullable<Resources["connectors"]>[string];
 type UserSecret = NonNullable<Resources["userSecrets"]>[string];
 
@@ -93,6 +94,11 @@ export function bucket(options: { maxSize: string; types: string[]; why?: string
 }
 
 export function kv(options: { why?: string } = {}): Cache {
+  return { ...options };
+}
+
+/** The workspace's people and teams the tool may read through `ctx.directory` (D-131). */
+export function directory(options: Directory): Directory {
   return { ...options };
 }
 

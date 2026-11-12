@@ -6,7 +6,8 @@ import { relative } from "node:path";
 // `resources.db` is a build error, not a runtime surprise. The check reads the source of every
 // file that went into the bundle, so it only sees `ctx.<member>`; code that renames `ctx` is not seen.
 
-const USE = /\bctx\.(db|files|cache|secrets|userSecrets|connectors|tools)\b(?:\.([A-Za-z_]\w*))?/g;
+const USE =
+  /\bctx\.(db|files|cache|directory|secrets|userSecrets|connectors|tools)\b(?:\.([A-Za-z_]\w*))?/g;
 
 // Members whose next name is a declared key: `ctx.secrets.API_KEY`.
 const NAMED = new Set(["secrets", "userSecrets", "connectors", "tools"]);
@@ -21,6 +22,7 @@ function declared(manifest: Manifest, member: string): Record<string, unknown> |
     case "db":
     case "files":
     case "cache":
+    case "directory":
       return Boolean(resources[member]);
     case "tools":
       return manifest.uses;
