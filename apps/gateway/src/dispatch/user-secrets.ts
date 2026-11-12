@@ -29,6 +29,7 @@ export interface UserSecretsContext {
     | "bindUserSecret"
     | "findTool"
     | "listConnections"
+    | "findMember"
     | "listMembers"
     | "listTeams"
     | "teamsOfMember"
@@ -192,8 +193,16 @@ type Asked = NonNullable<Manifest["resources"]["directory"]>;
 /** The people and teams a tool declared it wants (D-131, D-132): nothing beyond the fields it named. */
 export function directoryFor(
   asked: Asked,
-  members: ReadonlyArray<{ id: string; email: string; name: string; roles: string[] }>,
+  members: ReadonlyArray<{
+    id: string;
+    email: string;
+    name: string;
+    roles: string[];
+    avatar?: { version: string };
+  }>,
   teams: ReadonlyArray<{ id: string; name: string; description: string; members: string[] }> = [],
+  /** Where the gateway serves pictures: the workspace's origin (D-133). */
+  origin = "",
 ): { members: Array<Record<string, unknown>>; teams?: Array<Record<string, unknown>> } {
   const teamsOf = (id: string) => teams.filter((t) => t.members.includes(id)).map((t) => t.id);
   return {
@@ -202,6 +211,9 @@ export function directoryFor(
           id: m.id,
           email: m.email,
           name: m.name,
+          ...(asked.avatars && m.avatar
+            ? { avatar: `${origin}/avatars/${m.id}?v=${encodeURIComponent(m.avatar.version)}` }
+            : {}),
           ...(asked.roles ? { roles: m.roles } : {}),
           ...(asked.teams ? { teams: teamsOf(m.id) } : {}),
         }))
@@ -303,11 +315,26 @@ export async function forwardIdentity(
     // the runtime filters again. Only the members of this workspace, never a person's secrets.
     const asked = manifest?.resources?.directory;
     // The person's own teams only reach a tool that asked for teams.
-    if (asked?.teams) headers["x-forgeron-user"] = JSON.stringify({ ...payload, teams });
+    // And their own picture, only to a tool that asked for pictures (D-131, D-133).
+    const mine = asked?.avatars
+      ? await context.registry.findMember(context.workspace, who.person.id)
+      : undefined;
+    const picture = mine?.avatar
+      ? `${new URL(request.url).origin}/avatars/${who.person.id}?v=${encodeURIComponent(mine.avatar.version)}`
+      : undefined;
+    if (asked?.teams || picture) {
+      headers["x-forgeron-user"] = JSON.stringify({
+        ...payload,
+        ...(asked?.teams ? { teams } : {}),
+        ...(picture ? { avatar: picture } : {}),
+      });
+    }
     if (asked) {
       const everyone = await context.registry.listMembers(context.workspace);
       const all = asked.teams ? await context.registry.listTeams(context.workspace) : [];
-      headers["x-forgeron-directory"] = JSON.stringify(directoryFor(asked, everyone, all));
+      headers["x-forgeron-directory"] = JSON.stringify(
+        directoryFor(asked, everyone, all, new URL(request.url).origin),
+      );
     }
     if (context.connectors && manifest) {
       const connectors = await connectorHeaders(record, manifest, who.person, environment, {

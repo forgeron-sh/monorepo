@@ -7,7 +7,15 @@ import { ok, typedClient, type FetchJson } from "./api";
 export interface WorkspaceInfo {
   workspace: string;
   endpoint: string;
-  person: { id: string; email: string; name: string; roles: string[]; admin: boolean };
+  person: {
+    id: string;
+    email: string;
+    name: string;
+    roles: string[];
+    admin: boolean;
+    /** Their picture and where it comes from: the one they chose, or their provider's (D-133). */
+    avatar?: { url: string; source: "custom" | "provider" };
+  };
   setup: { members: number; invitations: number; tools: number; deployed: number; called: boolean };
   /** Admins only. */
   signIn?: {
@@ -32,6 +40,17 @@ export async function loadWorkspace(fetchJson: FetchJson): Promise<WorkspaceInfo
       name: String(body.person?.name),
       roles: Array.isArray(body.person?.roles) ? body.person.roles.map(String) : [],
       admin: body.person?.admin === true,
+      ...(body.person?.avatar
+        ? {
+            avatar: {
+              url: String(body.person.avatar.url),
+              source:
+                body.person.avatar.source === "custom"
+                  ? ("custom" as const)
+                  : ("provider" as const),
+            },
+          }
+        : {}),
     },
     setup: {
       members: num(body.setup?.members),

@@ -31,6 +31,8 @@ const WorkspaceSchema = z.strictObject({
     name: z.string(),
     roles: z.array(z.string()),
     admin: z.boolean(),
+    /** The picture the person shows and where it comes from (D-133); absent when they have none. */
+    avatar: z.strictObject({ url: z.string(), source: z.enum(["custom", "provider"]) }).optional(),
   }),
   /** Counts only: what the first-run checklist needs. */
   setup: z.strictObject({
@@ -135,5 +137,44 @@ export const usageRoute = defineRoute({
     400: json(ErrorSchema, "A period that ends before it starts, or longer than a year"),
     401: notSignedIn,
     403: notAdmin,
+  },
+});
+
+export const MAX_AVATAR = 88_040;
+
+export const putAvatarRoute = defineRoute({
+  method: "put",
+  path: "/api/me/avatar",
+  summary: "Set your own picture, or give it back to your provider's with null",
+  tags: ["workspace"],
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            image: z
+              .string()
+              .max(MAX_AVATAR)
+              .regex(/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/)
+              .nullable()
+              .describe("A png, jpeg or webp data URL of 64 KB at most, or null"),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: json(
+      z.strictObject({
+        avatar: z
+          .strictObject({ url: z.string(), source: z.enum(["custom", "provider"]) })
+          .nullable(),
+      }),
+      "The picture now",
+    ),
+    400: json(ErrorSchema, "`image` is a small png, jpeg or webp data URL, or null"),
+    401: notSignedIn,
+    404: json(ErrorSchema, "You are not a member"),
   },
 });

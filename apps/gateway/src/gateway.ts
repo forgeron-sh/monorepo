@@ -16,6 +16,7 @@ import {
   metadata,
 } from "./identity/mcp-oauth/mcp-oauth";
 import { handleMySecrets } from "./my-secrets/my-secrets";
+import { serveAvatar } from "./identity/avatar";
 import { handleCliAuthorize } from "./identity/cli-login/cli";
 import { handleUserSecrets } from "./dispatch/user-secrets";
 import {
@@ -76,6 +77,12 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
       return handleUserSecrets(request, secretsOf[1]!, asked.userSecrets());
     }
     if (url.pathname === "/t" || url.pathname.startsWith("/t/")) return parts.dispatch(request);
+
+    // A member's picture (D-133): public and versioned, for the pages that cannot sign in.
+    const picture = /^\/avatars\/([A-Za-z0-9_-]{1,64})$/.exec(url.pathname);
+    if (picture && (request.method === "GET" || request.method === "HEAD")) {
+      return serveAvatar(parts.registry, workspace, picture[1]!, request.method === "HEAD");
+    }
 
     // The routes the CLI and CI call (D-075): a Bearer token, or a session, and `{ error: { code, message } }`.
     const ownedByPlatform = () => modules.platform.fetch(request, asked.platformBindings("root"));

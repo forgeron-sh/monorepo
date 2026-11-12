@@ -76,7 +76,7 @@ export function PersonMenu({ ws, go }: { ws: WorkspaceInfo; go: (href: string) =
       entries={entries}
       trigger={
         <>
-          <Avatar name={name} />
+          <Avatar name={name} {...(ws.person.avatar ? { src: ws.person.avatar.url } : {})} />
           <span className="fc-trigger-name" title={ws.person.email}>
             {name}
           </span>

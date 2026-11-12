@@ -9,6 +9,8 @@ export interface Member {
   email: string;
   name: string;
   roles: string[];
+  /** Which picture the person has: the one they chose, else their provider's; changes with it (D-133). */
+  avatar?: { source: "custom" | "provider"; version: string };
 }
 
 /** An invitation to join a workspace with these roles, accepted by signing in with the email (D-049). */
@@ -47,4 +49,12 @@ export const toMember = (r: Row): Member => ({
   email: String(r.email),
   name: String(r.name),
   roles: json(r.roles) as string[],
+  ...(r.avatar_custom || r.avatar_provider
+    ? {
+        avatar: {
+          source: r.avatar_custom ? ("custom" as const) : ("provider" as const),
+          version: String(r.avatar_version ?? "0"),
+        },
+      }
+    : {}),
 });

@@ -1073,5 +1073,46 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0040_member_avatars",
+    "fingerprint": "member-avatars-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "ALTER TABLE \"members\" ADD COLUMN \"avatar_provider\" TEXT",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"members\" ADD COLUMN \"avatar_provider_url\" TEXT",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"members\" ADD COLUMN \"avatar_custom\" TEXT",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"members\" ADD COLUMN \"avatar_version\" TEXT",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "ALTER TABLE \"members\" DROP COLUMN \"avatar_version\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"members\" DROP COLUMN \"avatar_custom\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"members\" DROP COLUMN \"avatar_provider_url\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"members\" DROP COLUMN \"avatar_provider\"",
+        "parameters": []
+      }
+    ]
   }
 ]

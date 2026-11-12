@@ -1,4 +1,10 @@
-import { auditRoute, usageRoute, workspaceRoute } from "@forgeron/platform-contract";
+import {
+  auditRoute,
+  putAvatarRoute,
+  usageRoute,
+  workspaceRoute,
+} from "@forgeron/platform-contract";
+import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 import { GATEWAY_COMMIT, GATEWAY_VERSION } from "../version";
@@ -8,10 +14,42 @@ import { GATEWAY_COMMIT, GATEWAY_VERSION } from "../version";
 const MAX_AUDIT = 200;
 const DEFAULT_AUDIT = 50;
 
+/** Where a member's picture is served, with its version so that a change is not hidden by a cache (D-133). */
+export const avatarUrl = (
+  origin: string,
+  id: string,
+  avatar: { version: string } | undefined,
+): string | undefined =>
+  avatar ? `${origin}/avatars/${id}?v=${encodeURIComponent(avatar.version)}` : undefined;
+
 export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
+  app.openapi(platformRoute(putAvatarRoute, "member"), async (c) => {
+    const { registry, workspace, origin } = c.env;
+    const person = c.get("person");
+    try {
+      await registry.setCustomAvatar(workspace, person.id, c.req.valid("json").image, person.id);
+    } catch (error) {
+      if (error instanceof RegistryError) {
+        return c.json(
+          { error: error.code, message: error.message },
+          error.code === "NOT_FOUND" ? 404 : 400,
+        );
+      }
+      throw error;
+    }
+    const member = await registry.findMember(workspace, person.id);
+    const url = avatarUrl(origin, person.id, member?.avatar);
+    return c.json(
+      { avatar: member?.avatar && url ? { url, source: member.avatar.source } : null },
+      200,
+    );
+  });
+
   app.openapi(platformRoute(workspaceRoute, "member"), async (c) => {
     const { registry, workspace, origin, baseDomain, signIn } = c.env;
     const person = c.get("person");
+    const me = await registry.findMember(workspace, person.id);
+    const picture = avatarUrl(origin, person.id, me?.avatar);
 
     const tools = await registry.listTools(workspace);
     let deployed = 0;
@@ -32,6 +70,7 @@ export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
           name: person.name,
           roles: person.roles,
           admin: person.admin,
+          ...(me?.avatar && picture ? { avatar: { url: picture, source: me.avatar.source } } : {}),
         },
         setup: {
           members: (await registry.listMembers(workspace)).length,

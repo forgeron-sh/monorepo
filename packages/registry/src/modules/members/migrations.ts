@@ -104,4 +104,24 @@ export const membersMigrations: BuildMigration[] = [
       st(`DROP TABLE "email_codes"`),
     ],
   },
+  {
+    // Avatars (D-133): the provider's picture, copied when the person signs in (`avatar_provider`, a data
+    // URL, from `avatar_provider_url`), and the picture they chose (`avatar_custom`). Either is served by
+    // the gateway at `/avatars/<id>`; `avatar_version` changes with them so that a cache is not stale.
+    name: "0040_member_avatars",
+    fingerprint: "member-avatars-v1",
+    destructive: false,
+    up: [
+      st(`ALTER TABLE "members" ADD COLUMN "avatar_provider" TEXT`),
+      st(`ALTER TABLE "members" ADD COLUMN "avatar_provider_url" TEXT`),
+      st(`ALTER TABLE "members" ADD COLUMN "avatar_custom" TEXT`),
+      st(`ALTER TABLE "members" ADD COLUMN "avatar_version" TEXT`),
+    ],
+    down: [
+      st(`ALTER TABLE "members" DROP COLUMN "avatar_version"`),
+      st(`ALTER TABLE "members" DROP COLUMN "avatar_custom"`),
+      st(`ALTER TABLE "members" DROP COLUMN "avatar_provider_url"`),
+      st(`ALTER TABLE "members" DROP COLUMN "avatar_provider"`),
+    ],
+  },
 ];
