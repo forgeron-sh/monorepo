@@ -59,7 +59,7 @@ describe("the tool page", () => {
     await flushLazy();
     expect(window.location.search).toBe("");
     expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Channels");
-    expect(page.querySelector(".ft-publish")?.textContent).toContain("Draft");
+    expect(page.querySelector(".ft-header-title")?.textContent).toContain("Draft");
     expect(page.querySelector(".ft-branch-pick, .ft-branch-pick-label")).toBeNull();
   });
 

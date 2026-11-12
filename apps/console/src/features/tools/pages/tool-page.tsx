@@ -10,11 +10,12 @@ import {
 } from "react";
 import type { PageProps } from "../../../shell/page-props";
 import { pathOf, toolPath } from "../../../router";
+import { hrefOf } from "../../../shell/href";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
 import { loadTools } from "../api";
 import { ToolIcon } from "../components";
-import { PublishControl } from "../publish";
+import { PublishBadge, PublishControl, usePublishing } from "../publish";
 import "../register";
 import { toolTabs, type ToolTab, type ToolTabProps } from "../tabs";
 import "../tools.css";
@@ -76,6 +77,7 @@ export default function ToolPage({
     !previews.includes(askedBranch) &&
     !channels.includes(askedBranch);
   const branch = gone ? undefined : askedBranch;
+  const publishing = usePublishing(api, name, branch, admin && tool !== undefined);
   useEffect(() => {
     if (gone) window.history.replaceState(null, "", addressOf(name, undefined));
   }, [gone, name]);
@@ -125,7 +127,12 @@ export default function ToolPage({
       <header className="ft-header">
         <ToolIcon name={tool.name} size={48} />
         <div className="ft-header-text">
-          <h1 className="fg-page-title">{tool.name}</h1>
+          <div className="ft-header-title">
+            <h1 className="fg-page-title">{tool.name}</h1>
+            {admin ? (
+              <PublishBadge publishing={publishing} {...(branch !== undefined ? { branch } : {})} />
+            ) : null}
+          </div>
           {tool.summary ? <p className="fg-page-desc">{tool.summary}</p> : null}
         </div>
         <div className="ft-header-actions">
@@ -152,8 +159,19 @@ export default function ToolPage({
               tool={tool.name}
               {...(branch !== undefined ? { branch } : {})}
               api={api}
+              publishing={publishing}
             />
           ) : null}
+          <Button
+            className="ft-open-mine"
+            href={hrefOf("/library/:tool", { tool: tool.name })}
+            aria-label={`Open ${tool.name} in my tools`}
+            title="Open in my tools"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M5 11 11 5M6 5h5v5" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </Button>
         </div>
       </header>
       {gone ? (

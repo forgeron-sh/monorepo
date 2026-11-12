@@ -132,14 +132,67 @@ export interface PublishControlProps {
   /** The channel the page shows; `undefined` for production. */
   branch?: string;
   api: Api;
+  publishing: Publishing;
 }
 
 type Open = "share" | "who" | "unpublish" | undefined;
 
-/** The channel's state and the split button that publishes it, for an admin. */
-export function PublishControl({ tool, branch, api }: PublishControlProps) {
-  const rule = useLoad(() => loadSharing(api.fetchJson, tool, branch), [api, tool, branch]);
-  const members = useLoad(() => loadMembers(api.fetchJson), [api]);
+export interface Publishing {
+  rule: ReturnType<typeof useLoad<Rule | undefined>>;
+  members: ReturnType<typeof useLoad<MembershipView | undefined>>;
+}
+
+/**
+ * The channel's sharing rule and the workspace's people, read once for the badge next to the title
+ * and the split button on the right. Reads nothing when `enabled` is false (not an admin).
+ */
+export function usePublishing(
+  api: Api,
+  tool: string,
+  branch: string | undefined,
+  enabled: boolean,
+) {
+  const rule = useLoad(
+    () => (enabled ? loadSharing(api.fetchJson, tool, branch) : Promise.resolve(undefined)),
+    [api, tool, branch, enabled],
+  );
+  const members = useLoad(
+    () => (enabled ? loadMembers(api.fetchJson) : Promise.resolve(undefined)),
+    [api, enabled],
+  );
+  return { rule, members } as Publishing;
+}
+
+/** A channel other than production with no rule is a draft; production with none is open (D-117). */
+const isDraft = (rule: Rule, branch: string | undefined) =>
+  rule.mode === "nobody" || (branch !== undefined && rule.mode === "open");
+
+/** Draft or Published, next to the tool's name; who it is shared with is in the menu. */
+export function PublishBadge({ publishing, branch }: { publishing: Publishing; branch?: string }) {
+  const rule = publishing.rule.data;
+  if (!rule) return null;
+  const draft = isDraft(rule, branch);
+  return (
+    <span
+      role="status"
+      title={draft ? alwaysLabel(branch) : sharedWith(rule, publishing.members.data?.members)}
+    >
+      {draft ? (
+        <Badge tone="warning" dot>
+          Draft
+        </Badge>
+      ) : (
+        <Badge tone="success" dot>
+          Published
+        </Badge>
+      )}
+    </span>
+  );
+}
+
+/** The split button that publishes the channel, for an admin. */
+export function PublishControl({ tool, branch, api, publishing }: PublishControlProps) {
+  const { rule, members } = publishing;
   const [open, setOpen] = useState<Open>();
   const [done, setDone] = useState<string>();
 
@@ -150,8 +203,7 @@ export function PublishControl({ tool, branch, api }: PublishControlProps) {
       <span className="ft-publish ft-publish-state fc-muted">Sharing could not be loaded</span>
     );
   }
-  // A channel other than production with no rule is a draft; production with none is open (D-117).
-  const draft = rule.data.mode === "nobody" || (branch !== undefined && rule.data.mode === "open");
+  const draft = isDraft(rule.data, branch);
   const view = members.data;
   const save = async (next: Sharing, message: string) => {
     await saveSharing(api.sendJson, tool, next, branch);
@@ -163,36 +215,12 @@ export function PublishControl({ tool, branch, api }: PublishControlProps) {
 
   return (
     <div className="ft-publish">
-      <span className="ft-publish-state" role="status">
-        {draft ? (
-          <>
-            <Badge tone="warning" dot>
-              Draft
-            </Badge>
-            <span className="fc-muted">{alwaysLabel(branch)}</span>
-          </>
-        ) : (
-          <>
-            <Badge tone="success" dot>
-              Published
-            </Badge>
-            <span className="ft-publish-who" title={sharedWith(rule.data, view?.members)}>
-              {sharedWith(rule.data, view?.members)}
-            </span>
-          </>
-        )}
-      </span>
       <span className="ft-split">
-        <Button
-          size="sm"
-          variant={draft ? "primary" : "secondary"}
-          onClick={() => setOpen("share")}
-          disabled={!view}
-        >
+        <Button variant="primary" onClick={() => setOpen("share")} disabled={!view}>
           {draft ? "Publish" : "Manage sharing"}
         </Button>
         <Menu
-          className={`ft-split-menu ${draft ? "ft-split-primary" : "ft-split-secondary"}`}
+          className="ft-split-menu ft-split-primary"
           label="More sharing actions"
           trigger={<Chevron />}
           entries={[

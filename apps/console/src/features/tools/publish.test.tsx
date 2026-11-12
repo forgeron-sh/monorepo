@@ -1,7 +1,20 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { button, cleanup, click, fakeApi, mount, type } from "../../test-utils";
-import { audience, PublishControl } from "./publish";
+import { audience, PublishBadge, PublishControl, usePublishing } from "./publish";
+import type { Api } from "../../api";
+
+/** The badge next to the title and the control on the right, as the tool page shows them. */
+function Publish({ tool, branch, api }: { tool: string; branch?: string; api: Api }) {
+  const publishing = usePublishing(api, tool, branch, true);
+  const where = branch !== undefined ? { branch } : {};
+  return (
+    <>
+      <PublishBadge publishing={publishing} {...where} />
+      <PublishControl tool={tool} api={api} publishing={publishing} {...where} />
+    </>
+  );
+}
 
 afterEach(cleanup);
 
@@ -24,6 +37,9 @@ const rule = (mode: string, extra: Record<string, unknown> = {}) => ({
   updatedAt: "x",
   ...extra,
 });
+/** What the badge next to the title says about who reaches the channel, on hover. */
+const who = (view: HTMLElement) =>
+  view.querySelector('[role="status"][title]')?.getAttribute("title");
 const dialog = () => document.querySelector<HTMLElement>('[role="dialog"]')!;
 const inDialog = (label: string) =>
   [...dialog().querySelectorAll("button")].find((b) => b.textContent === label);
@@ -39,9 +55,9 @@ describe("the publish control (D-129)", () => {
       "/api/members": members,
       "PUT /api/tools/crm/availability": rule("everyone"),
     });
-    const view = await mount(<PublishControl tool="crm" api={api} />);
+    const view = await mount(<Publish tool="crm" api={api} />);
     expect(view.textContent).toContain("Draft");
-    expect(view.textContent).toContain("Admins only");
+    expect(who(view)).toContain("Admins only");
     await openMenu(view);
     expect(menuItems()).toEqual(["Who has access"]);
     await click(document.querySelector('button[aria-label="More sharing actions"]'));
@@ -60,7 +76,7 @@ describe("the publish control (D-129)", () => {
       "/api/members": members,
       "PUT /api/tools/crm/availability": rule("roles", { roles: ["support"] }),
     });
-    const view = await mount(<PublishControl tool="crm" api={api} />);
+    const view = await mount(<Publish tool="crm" api={api} />);
     await click(button(view, "Publish"));
     await click(dialog().querySelector<HTMLInputElement>("input[value=roles]"));
     const labels = [...dialog().querySelectorAll(".fc-checks label")].map((l) => l.textContent);
@@ -83,7 +99,7 @@ describe("the publish control (D-129)", () => {
       "/api/members": members,
       "PUT /api/tools/crm/availability": rule("people", { people: ["m4"] }),
     });
-    const view = await mount(<PublishControl tool="crm" api={api} />);
+    const view = await mount(<Publish tool="crm" api={api} />);
     await click(button(view, "Publish"));
     await click(dialog().querySelector<HTMLInputElement>("input[value=people]"));
     expect(dialog().textContent).toContain("Type a name or an email");
@@ -102,9 +118,9 @@ describe("the publish control (D-129)", () => {
       "/api/members": members,
       "PUT /api/tools/crm/availability": rule("nobody"),
     });
-    const view = await mount(<PublishControl tool="crm" api={api} />);
+    const view = await mount(<Publish tool="crm" api={api} />);
     expect(view.textContent).toContain("Published");
-    expect(view.textContent).toContain("developer, support");
+    expect(who(view)).toContain("developer, support");
     expect(button(view, "Manage sharing")).toBeTruthy();
     await openMenu(view);
     expect(menuItems()).toEqual(["Who has access", "Unpublish"]);
@@ -123,8 +139,8 @@ describe("the publish control (D-129)", () => {
       "/api/tools/crm/availability": rule("people", { people: ["m2"] }),
       "/api/members": members,
     });
-    const view = await mount(<PublishControl tool="crm" api={api} />);
-    expect(view.textContent).toContain("Bob");
+    const view = await mount(<Publish tool="crm" api={api} />);
+    expect(who(view)).toContain("Bob");
     await openMenu(view);
     await click(
       [...document.querySelectorAll('[role="menuitem"]')].find(
@@ -140,7 +156,7 @@ describe("the publish control (D-129)", () => {
   it("treats a channel with no rule as a draft, open to developers on a branch only", async () => {
     const open = rule("open", { updatedAt: null });
     const permanent = await mount(
-      <PublishControl
+      <Publish
         tool="crm"
         branch="~staging"
         api={
@@ -152,10 +168,10 @@ describe("the publish control (D-129)", () => {
       />,
     );
     expect(permanent.textContent).toContain("Draft");
-    expect(permanent.textContent).toContain("Admins only");
+    expect(who(permanent)).toContain("Admins only");
     await cleanup();
     const branch = await mount(
-      <PublishControl
+      <Publish
         tool="crm"
         branch="feat-x"
         api={
@@ -166,7 +182,7 @@ describe("the publish control (D-129)", () => {
         }
       />,
     );
-    expect(branch.textContent).toContain("Admins and developers");
+    expect(who(branch)).toContain("Admins and developers");
   });
 
   it("shows production with no rule as published to everyone, as before libraries", async () => {
@@ -174,9 +190,9 @@ describe("the publish control (D-129)", () => {
       "/api/tools/crm/availability": rule("open", { updatedAt: null }),
       "/api/members": members,
     });
-    const view = await mount(<PublishControl tool="crm" api={api} />);
+    const view = await mount(<Publish tool="crm" api={api} />);
     expect(view.textContent).toContain("Published");
-    expect(view.textContent).toContain("everyone, without adding it");
+    expect(who(view)).toContain("everyone, without adding it");
     await click(button(view, "Manage sharing"));
     expect(dialog().textContent).toContain("open to everyone without being added");
   });

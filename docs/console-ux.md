@@ -260,21 +260,24 @@ Adding, finishing the setup and removing work as for a tool, apart from it.
 ### Publication (admin, the header of the tool page)
 
 Who may use a channel (D-129), in place of the Availability tab, which is gone (`?tab=availability`
-opens the tool page). Two states, on the existing rule (D-117, D-125; the API is unchanged):
+opens the tool page). Two states, on the existing rule (D-117, D-125; the API is unchanged). The
+state is a badge next to the tool's name (_Draft_ or _Published_; who it reaches is its tooltip and
+_Who has access_). Right of the header, all 32 px high: the channel picker, the split button, always
+filled black, and a square arrow link to the tool in the person's own space (`/library/<tool>`).
 
 - **Draft** (`nobody`, or a channel with no rule yet): admins only. A branch's temporary channel stays
   open to developers too (D-125). A tool installed from a marketplace and a new permanent channel start
-  as drafts. The header shows _Draft · Admins only_ and a **split button**: _Publish_, and glued to
+  as drafts. The badge reads _Draft_ (tooltip _Admins only_) and a **split button**: _Publish_, and glued to
   its right a chevron with _Who has access_.
-- **Published** (`everyone`, `roles` or `people`): the header shows _Published · everyone_, _Published ·
-  developer, support_ or the people's names (their count past two). The main button becomes _Manage
+- **Published** (`everyone`, `roles` or `people`): the badge reads _Published_, its tooltip _everyone_, _developer,
+  support_ or the people's names (their count past two). The main button becomes _Manage
   sharing_; the chevron holds _Who has access_ and _Unpublish_ (confirmed, it says how many people lose
   access; their library keeps the tool).
 - **The dialog** (_Publish_ and _Manage sharing_): everyone in the workspace, some roles (every role but
   `admin` and `member`: admins always have access, and `member` is everyone, D-128), or some people
   found with a search field. Before saving it says how many people will have access and why (_3 people
   will have access, of 12: admins, and the people who hold support._).
-- Production with no rule (deployed before libraries) reads _Published · everyone, without adding it_;
+- Production with no rule (deployed before libraries) reads _Published_ (tooltip _everyone, without adding it_);
   saving a choice means each person adds it from their library to keep using it, and the dialog says so.
 
 On production the rule is who may add the tool to their library; on another channel, who may add that
