@@ -1,5 +1,4 @@
 import { mayAccess, type Manifest } from "@forgeron/manifest";
-import type { User } from "./types";
 
 // Realtime (D-135): channels people subscribe to over a WebSocket, messages the tool's actions publish
 // (`ctx.realtime`) or a page sends, and who is on a channel (presence). This is the part that does not
@@ -17,6 +16,13 @@ const MAX_CHANNELS_PER_CONNECTION = 50;
 /** What an action may publish in one call, and a page send in one second. */
 export const MAX_PUBLISH_PER_CALL = 20;
 const MAX_SENDS_PER_SECOND = 30;
+
+/** Who asks to join, as the access rules read them: the roles, and what an admin changed in the matrix. */
+interface AccessUser {
+  roles: string[];
+  access?: Record<string, Record<string, boolean>>;
+  permissions?: Record<string, string[]>;
+}
 
 export interface RealtimePerson {
   id: string;
@@ -334,7 +340,7 @@ export class RealtimeHub {
  */
 export async function authorizeChannel(input: {
   manifest: Pick<Manifest, "roles" | "realtime">;
-  user: User;
+  user: AccessUser;
   channel: string;
   kind: "subscribe" | "send";
   callAction?: (action: string, input: unknown) => Promise<unknown>;
