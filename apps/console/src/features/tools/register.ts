@@ -7,7 +7,7 @@ registerToolTab({
   id: "branches",
   scope: "tool",
   order: 20,
-  title: "Branches",
+  title: "Channels",
   adminOnly: true,
   load: () => import("./tabs/branches-tab"),
 });
@@ -15,7 +15,7 @@ registerToolTab({
   id: "versions",
   scope: "tool",
   order: 30,
-  title: "Versions",
+  title: "Releases",
   adminOnly: true,
   load: () => import("./tabs/versions-tab"),
 });

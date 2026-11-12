@@ -17,7 +17,10 @@ export interface ToolRow {
   name: string;
   summary: string | null;
   production: string | null;
+  /** One per branch: the temporary channels (D-125). */
   previews: Array<{ branch: string; version: string }>;
+  /** The permanent channels other than production that serve a version. */
+  channels: Array<{ channel: string; version: string }>;
   lastDeployment: { at: string; version: string } | null;
 }
 
@@ -30,8 +33,13 @@ interface DeploymentLine {
 }
 
 export interface BranchRow {
-  environment: "production" | "preview";
+  /** `production` and `channel` are permanent channels; `preview` a branch's temporary one (D-125). */
+  environment: "production" | "preview" | "channel";
   branch?: string;
+  /** A permanent channel's name, other than production. */
+  channel?: string;
+  /** The branch a permanent channel follows. */
+  follows?: string;
   status: Status;
   version: string;
   commit?: Commit;
@@ -45,6 +53,8 @@ export interface BranchRow {
 
 export interface Branches {
   production: BranchRow | null;
+  /** The permanent channels other than production that serve a version. */
+  channels: BranchRow[];
   branches: BranchRow[];
 }
 
@@ -57,7 +67,15 @@ export interface ChangelogEntry {
 export interface VersionRow {
   version: string;
   publishedAt: string;
-  environments: Array<{ environment: "production" | "preview"; branch?: string }>;
+  environments: Array<{
+    environment: "production" | "preview" | "channel";
+    branch?: string;
+    channel?: string;
+  }>;
+  /** The branch whose push made it, when known. */
+  branch?: string;
+  /** A release: only releases reach a permanent channel (D-125). */
+  release: boolean;
   changelog: { entries: ChangelogEntry[]; declared: Impact; detected: Impact } | null;
   previous: string | null;
   changes: Array<{ kind: string; subject: string; impact: string }>;
@@ -100,15 +118,24 @@ export async function loadTools(fetchJson: FetchJson): Promise<ToolRow[]> {
       branch: String(p.branch),
       version: String(p.version),
     })),
+    channels: list<{ channel?: unknown; version?: unknown }>(tool.channels).map((c) => ({
+      channel: String(c.channel),
+      version: String(c.version),
+    })),
     lastDeployment: tool.lastDeployment
       ? { at: String(tool.lastDeployment.at), version: String(tool.lastDeployment.version) }
       : null,
   }));
 }
 
+const environmentOf = (value: unknown): BranchRow["environment"] =>
+  value === "production" || value === "channel" ? value : "preview";
+
 const branchRow = (r: Record<string, any>): BranchRow => ({
-  environment: r.environment === "production" ? "production" : "preview",
+  environment: environmentOf(r.environment),
   ...(text(r.branch) ? { branch: text(r.branch)! } : {}),
+  ...(text(r.channel) ? { channel: text(r.channel)! } : {}),
+  ...(text(r.follows) ? { follows: text(r.follows)! } : {}),
   status: status(r.status),
   version: String(r.version),
   ...commitOf(r.commit),
@@ -133,6 +160,7 @@ export async function loadBranches(fetchJson: FetchJson, tool: string): Promise<
   const body = ok(await typedClient(fetchJson)(addresses.toolBranches, { params: { tool } }));
   return {
     production: body.production ? branchRow(body.production) : null,
+    channels: list<Record<string, any>>(body.channels).map(branchRow),
     branches: list<Record<string, any>>(body.branches).map(branchRow),
   };
 }
@@ -142,10 +170,15 @@ export async function loadVersions(fetchJson: FetchJson, tool: string): Promise<
   return list<Record<string, any>>(body.versions).map((v) => ({
     version: String(v.version),
     publishedAt: String(v.publishedAt),
-    environments: list<{ environment?: unknown; branch?: unknown }>(v.environments).map((e) => ({
-      environment: e.environment === "production" ? "production" : "preview",
+    environments: list<{ environment?: unknown; branch?: unknown; channel?: unknown }>(
+      v.environments,
+    ).map((e) => ({
+      environment: environmentOf(e.environment),
       ...(text(e.branch) ? { branch: text(e.branch)! } : {}),
+      ...(text(e.channel) ? { channel: text(e.channel)! } : {}),
     })),
+    ...(text(v.branch) ? { branch: text(v.branch)! } : {}),
+    release: v.release === true,
     changelog: v.changelog
       ? {
           entries: list<Record<string, unknown>>(v.changelog.entries).map((e) => ({
@@ -187,84 +220,31 @@ function platform(api: Api) {
   return typedPlatform(api.sendPlatform);
 }
 
-/** `POST /promote`: puts a version the tool already has on production, or on a branch's preview. */
-export const promote = async (
-  api: Api,
-  input: {
-    tool: string;
-    version: string;
-    reason: string;
-    /** Approves what the version asks for, in the same step (D-121). */
-    approve?: boolean;
-    /** Takes a build with no release, knowingly (D-121). */
-    withoutRelease?: boolean;
-  },
-) =>
-  ok(
-    await platform(api)(addresses.promote, {
-      json: {
-        tool: input.tool,
-        version: input.version,
-        to: "production",
-        ...(input.reason ? { reason: input.reason } : {}),
-        ...(input.approve ? { approve: true } : {}),
-        ...(input.withoutRelease ? { withoutRelease: true } : {}),
-      },
-    }),
-  );
-
-/** What the dialog shows of a promotion plan (D-113); `undefined` when the platform did not give one. */
-export interface PromotionPlanView {
+/** What the update shows of its plan (D-113, D-125); absent when the platform did not give one. */
+interface UpdatePlanView {
   ok: boolean;
   alreadyServed: boolean;
   conflicts: Array<{ code: string; subject?: string; message: string }>;
   requiresAllowDestructive: boolean;
   migrations: { checked: boolean; pending: string[]; destructive: string[] };
-  changes: Array<{ impact: string; subject: string; detail?: string }>;
   prompt?: string;
 }
 
-/** `POST /promote/plan`: can this version go to production, and what stops it. Nothing moves. */
-export async function promotionPlan(
+/**
+ * `POST /rollback`: a permanent channel serves the version it served before the current one: a
+ * version it served, no new code (D-125). Production unless `channel` names another.
+ */
+export const rollback = async (
   api: Api,
-  input: { tool: string; version: string },
-): Promise<PromotionPlanView | undefined> {
-  const body: Record<string, any> = ok(
-    await platform(api)(addresses.promotionPlan, {
-      json: { tool: input.tool, version: input.version, to: "production" },
-    }),
-  );
-  if (typeof body.ok !== "boolean") return undefined;
-  return {
-    ok: body.ok,
-    alreadyServed: body.alreadyServed === true,
-    conflicts: list<Record<string, any>>(body.conflicts).map((c) => ({
-      code: String(c.code),
-      ...(text(c.subject) ? { subject: text(c.subject)! } : {}),
-      message: String(c.message),
-    })),
-    requiresAllowDestructive: body.requiresAllowDestructive === true,
-    migrations: {
-      checked: body.migrations?.checked === true,
-      pending: list<string>(body.migrations?.pending).map(String),
-      destructive: list<string>(body.migrations?.destructive).map(String),
-    },
-    changes: list<Record<string, any>>(body.changes).map((c) => ({
-      impact: String(c.impact),
-      subject: String(c.subject),
-      ...(text(c.detail) ? { detail: text(c.detail)! } : {}),
-    })),
-    ...(text(body.prompt) ? { prompt: text(body.prompt)! } : {}),
-  };
-}
-
-/** `POST /rollback`: production serves the version it served before the current one. */
-export const rollback = async (api: Api, input: { tool: string; reason: string }) =>
+  input: { tool: string; reason: string; channel?: string },
+) =>
   ok(
     await platform(api)(addresses.rollback, {
       json: {
         tool: input.tool,
-        environment: "production",
+        ...(input.channel && input.channel !== "production"
+          ? { environment: "channel" as const, channel: input.channel }
+          : { environment: "production" as const }),
         ...(input.reason ? { reason: input.reason } : {}),
       },
     }),
@@ -278,7 +258,27 @@ export const closePreview = async (api: Api, input: { tool: string; branch: stri
     }),
   );
 
-/** Where a tool comes from, and the update waiting for it (D-121). */
+/** The release waiting for a permanent channel (D-125). */
+interface UpdateView {
+  version: string;
+  branch?: string;
+  changelog: string[];
+  approvals: string[];
+  plan?: UpdatePlanView;
+}
+
+/** A permanent channel: production, or one an admin added (D-125). */
+export interface ChannelView {
+  name: string;
+  /** The branch whose releases it takes; absent for a marketplace tool. */
+  follows?: string;
+  autoUpdate: boolean;
+  serves: string | null;
+  address: string;
+  update: UpdateView | null;
+}
+
+/** Where a tool comes from, and its permanent channels with their updates (D-121, D-125). */
 export interface ToolSourceView {
   kind: "marketplace" | "repo";
   marketplace?: string;
@@ -286,33 +286,50 @@ export interface ToolSourceView {
   productionBranch: string;
   autoUpdate: boolean;
   production: string | null;
-  update: {
-    version: string;
-    branch?: string;
-    release: boolean;
-    changelog: string[];
-    approvals: string[];
-  } | null;
+  update: UpdateView | null;
+  channels: ChannelView[];
 }
 
 export const loadSource = async (fetchJson: FetchJson, tool: string): Promise<ToolSourceView> =>
   ok(await typedClient(fetchJson)(addresses.getToolSource, { params: { tool } }));
 
-export const saveSource = async (
-  api: Api,
-  tool: string,
-  settings: { autoUpdate?: boolean; productionBranch?: string },
-): Promise<ToolSourceView> =>
-  ok(
-    await typedSender(api.sendJson)(addresses.putToolSource, { params: { tool }, json: settings }),
-  );
-
-/** Puts the waiting update in production, approving and accepting what the admin ticked. */
+/** Puts the waiting release on a permanent channel, approving what the admin ticked. */
 export const updateTool = async (
   api: Api,
   tool: string,
-  input: { version: string; approve?: boolean; withoutRelease?: boolean },
+  input: { version: string; channel?: string; approve?: boolean; allowDestructive?: boolean },
 ) => ok(await typedSender(api.sendJson)(addresses.updateTool, { params: { tool }, json: input }));
+
+/** Adds a permanent channel that follows a branch (D-125). */
+export const addChannel = async (
+  api: Api,
+  tool: string,
+  input: { name: string; follows?: string; autoUpdate?: boolean },
+): Promise<ChannelView> =>
+  ok(await typedSender(api.sendJson)(addresses.addChannel, { params: { tool }, json: input }));
+
+/** Changes the branch a permanent channel follows, or whether it updates by itself. */
+export const saveChannel = async (
+  api: Api,
+  tool: string,
+  channel: string,
+  input: { follows?: string; autoUpdate?: boolean },
+): Promise<ChannelView> =>
+  ok(
+    await typedSender(api.sendJson)(addresses.putChannel, {
+      params: { tool, channel },
+      json: input,
+    }),
+  );
+
+/** Removes a permanent channel with its Worker and its database; its name is typed to confirm. */
+export const removeChannel = async (api: Api, tool: string, channel: string) =>
+  ok(
+    await typedSender(api.sendJson)(addresses.removeChannel, {
+      params: { tool, channel },
+      json: { confirm: channel },
+    }),
+  );
 
 /** Adds a tool that a GitHub repository's CI deploys; the answer holds its token, shown once. */
 export const addRepositoryTool = async (

@@ -21,12 +21,18 @@ function shortHash(text: string): string {
 // A Worker name is at most 63 characters.
 const MAX = 63;
 
-/** The name of the Worker, and of the resources named after it. A preview is named after its branch. */
+/**
+ * The name of the Worker, and of the resources named after it. A preview is named after its branch; a
+ * permanent channel other than production after its name, `channel-<name>` (D-125), which no branch
+ * and no other environment can take.
+ */
 export function workerName(workspace: string, environment: Environment): string {
   const stage =
     environment.name === "preview"
       ? `preview-${slug(environment.branch ?? "")}-${shortHash(environment.branch ?? "")}`
-      : environment.name;
+      : environment.name === "channel"
+        ? `channel-${slug(environment.channel ?? "")}`
+        : environment.name;
   const prefix = `${slug(workspace)}--${slug(environment.tool)}--`;
   const name = `${prefix}${stage}`;
   if (name.length <= MAX) return name;

@@ -22,6 +22,7 @@ afterEach(() => memory.close());
 
 function fakeHosting(failMigrate = false) {
   const calls: string[] = [];
+  const uploaded: Array<{ name: string; channel?: string }> = [];
   const hosting: Hosting = {
     async provision(environment) {
       calls.push("provision");
@@ -29,6 +30,8 @@ function fakeHosting(failMigrate = false) {
     },
     async upload(provisioned, build) {
       calls.push("upload");
+      const { name, channel } = provisioned.environment;
+      uploaded.push({ name, ...(channel ? { channel } : {}) });
       return { provisioned, build };
     },
     async migrate() {
@@ -42,7 +45,7 @@ function fakeHosting(failMigrate = false) {
     },
     async teardown() {},
   };
-  return { hosting, calls };
+  return { hosting, calls, uploaded };
 }
 
 const build = (name = "crm", fingerprint = "fp1"): Build => ({
@@ -89,7 +92,7 @@ const post = (path: string, body: unknown, token?: string) =>
   });
 
 const upload = (over: Record<string, unknown> = {}) => ({
-  environment: "production",
+  branch: "main",
   version: "1.0.0",
   build: build(),
   ...over,
@@ -102,6 +105,84 @@ describe("POST /deploy", () => {
     now: () => now,
     registry,
     hosting,
+  });
+
+  it("refuses production: a permanent channel takes releases of its branch, not builds (D-125)", async () => {
+    const refused = await handleDeploy(
+      post("/deploy", upload({ environment: "production" }), await deploymentToken()),
+      context(),
+    );
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({ error: { code: "NOT_A_BRANCH" } });
+    expect(await registry.listTools("acme")).toEqual([]);
+  });
+
+  it("puts a release of a branch on the permanent channels that follow it and update by themselves", async () => {
+    const token = await deploymentToken();
+    const { hosting, uploaded } = fakeHosting();
+    // The tool exists, from a repository; production and staging follow main and update by themselves.
+    const tool = await registry.createTool({ workspace: "acme", name: "crm" });
+    await registry.linkRepository({
+      toolId: tool.id,
+      repo: "acme/crm",
+      productionBranch: "main",
+      actor: "a",
+    });
+    await registry.setToolSource({ toolId: tool.id, autoUpdate: true, actor: "a" });
+    await registry.addChannel({
+      toolId: tool.id,
+      name: "staging",
+      follows: "main",
+      autoUpdate: true,
+      actor: "a",
+    });
+    await registry.addChannel({ toolId: tool.id, name: "recette", follows: "main", actor: "a" });
+    await registry.addChannel({
+      toolId: tool.id,
+      name: "other",
+      follows: "dev",
+      autoUpdate: true,
+      actor: "a",
+    });
+
+    // Not a release: only the branch's temporary channel takes it.
+    const wip = {
+      ...build("crm", "wip"),
+      changelog: { entries: [], declared: "none", detected: "none" },
+    };
+    const first = await handleDeploy(
+      post("/deploy", upload({ build: wip, version: "1.0.0-wip" }), token),
+      context(hosting),
+    );
+    expect(await first.json()).not.toHaveProperty("channels");
+    expect(uploaded.map((u) => u.name)).toEqual(["preview"]);
+
+    // A release: production and staging take it; recette waits for an admin; other follows dev.
+    const released = {
+      ...build(),
+      changelog: { entries: [{}], declared: "patch", detected: "patch", released: true },
+    };
+    const second = await handleDeploy(
+      post("/deploy", upload({ build: released }), token),
+      context(hosting),
+    );
+    expect(await second.json()).toMatchObject({
+      production: { version: "1.0.0" },
+      channels: [
+        { channel: "production", version: "1.0.0" },
+        { channel: "staging", version: "1.0.0" },
+      ],
+    });
+    expect(uploaded.map((u) => [u.name, u.channel])).toEqual([
+      ["preview", undefined],
+      ["preview", undefined],
+      ["production", undefined],
+      ["channel", "staging"],
+    ]);
+    expect(await registry.availableUpdate(tool.id, "recette")).toEqual({
+      version: "1.0.0",
+      branch: "main",
+    });
   });
 
   it("refuses the pilot, which no longer exists", async () => {
@@ -199,8 +280,8 @@ describe("POST /deploy", () => {
     expect(await response.json()).toEqual({
       tool: "crm",
       version: "1.0.0",
-      environment: "production",
-      url: "https://production.test",
+      environment: "preview",
+      url: "https://preview.test",
       applied: [],
     });
     expect(calls).toEqual(["provision", "upload", "migrate", "activate"]);
@@ -208,7 +289,7 @@ describe("POST /deploy", () => {
 
   it("records who deployed which version, and when", async () => {
     await handleDeploy(post("/deploy", upload(), await deploymentToken()), context());
-    expect(await historyOf("production")).toEqual([
+    expect(await historyOf("preview", "main")).toEqual([
       { actor: "deploy:ci", kind: "deploy", at: now.toISOString(), version: "1.0.0" },
     ]);
   });
@@ -242,7 +323,7 @@ describe("POST /deploy", () => {
     expect(await response.json()).toMatchObject({
       error: { code: "DEPLOY_FAILED", message: "migration failed" },
     });
-    expect(await historyOf("production")).toEqual([]);
+    expect(await historyOf("preview", "main")).toEqual([]);
   });
 
   it("refuses a missing token, a malformed one, an expired one and a forged one", async () => {
@@ -294,7 +375,9 @@ describe("POST /deploy", () => {
     const token = await deploymentToken();
     for (const bad of [
       upload({ environment: "staging" }),
-      upload({ environment: "preview" }),
+      upload({ branch: "" }),
+      upload({ branch: undefined }),
+      upload({ branch: "~staging" }),
       upload({ version: "" }),
       upload({ build: { worker: "x" } }),
     ]) {
@@ -453,7 +536,7 @@ describe("POST /deploy-tokens", () => {
       hosting: fakeHosting().hosting,
     });
     expect(deployed.status).toBe(200);
-    expect(await historyOf("production")).toMatchObject([{ actor: "deploy:ci" }]);
+    expect(await historyOf("preview", "main")).toMatchObject([{ actor: "deploy:ci" }]);
   });
 
   it("is for administrators only", async () => {

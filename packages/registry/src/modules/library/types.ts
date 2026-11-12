@@ -23,10 +23,10 @@ export const AVAILABILITY_MODES: readonly AvailabilityMode[] = [
 ];
 
 /**
- * May this person reach a branch preview (D-119)? Admins and developers always may, as before; anyone
- * else only through a rule an admin set on that branch.
+ * May this person use a channel other than production (D-119, D-125)? Admins and developers always
+ * may, as before; anyone else only through the rule an admin set on that channel.
  */
-export function mayPilot(
+export function mayUseChannel(
   rule: Availability | undefined,
   person: { id: string; roles: readonly string[] },
 ): boolean {

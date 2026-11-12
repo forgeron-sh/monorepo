@@ -1,5 +1,5 @@
 // The public surface of the catalog module: the only file another part of the registry may import.
-export { createCatalog } from "./store";
+export { channelNameProblem, createCatalog } from "./store";
 export type { Catalog } from "./store";
 export type {
   Tool,

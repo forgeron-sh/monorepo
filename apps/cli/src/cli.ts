@@ -14,7 +14,7 @@ import { login, logout, whoami } from "./commands/login";
 import { platform } from "./commands/platform";
 import { play } from "./commands/play";
 import { preview } from "./commands/preview";
-import { promote, rollback } from "./commands/promote";
+import { rollback } from "./commands/rollback";
 import { secrets } from "./commands/secrets";
 import { test } from "./commands/test";
 import { token } from "./commands/token";
@@ -41,7 +41,6 @@ const COMMANDS: Record<string, (args: string[], io: Io) => Promise<number>> = {
   release,
   deploy,
   preview,
-  promote,
   rollback,
   secrets,
   token,
@@ -70,12 +69,9 @@ const USAGE = `Usage: forgeron <command>
   change --type <t> --bump <b> -m ".."  add a change to changes/ (change check: CI)
   secrets set <NAME> [--env] | list [--env]
                                        tool secrets of an environment (the value is typed, never an argument)
-  deploy [--env preview|production]
-                                       build, upload to the gateway with FORGERON_TOKEN
-  promote <version> | --from-branch <b> --to <env>
-                                       put an existing version, or the one a branch serves, on another
-                                       environment; from a branch it checks the plan and says what stops it
-  rollback [--env production]          put the previous version of an environment back on traffic
+  deploy [--branch <name>]             build the branch and send it to its temporary channel (CI); a
+                                       release reaches the permanent channels that follow the branch
+  rollback [--channel <name>]          put the previous version of a permanent channel back on traffic
   preview close [--branch <name>]      tear down the preview of a branch (FORGERON_TOKEN)
   release [--no-git]                   next version, CHANGELOG.md, tag
   token create --name <n> --scope deploy  create a deployment token for CI (FORGERON_TOKEN)

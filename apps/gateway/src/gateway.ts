@@ -4,8 +4,6 @@ import {
   createDeployTokenRoute,
   deployRoute,
   issueTokenRoute,
-  promoteRoute,
-  promotionPlanRoute,
   revokeTokenRoute,
   rollbackRoute,
   whoamiRoute,
@@ -35,7 +33,7 @@ export { gatewayBindingsOf, type GatewayEnv } from "./env";
 
 /**
  * The platform routes outside `/console-api` that the Hono app answers (the contract's `bearer` module).
- * Read from the routes themselves: a path written here by hand was forgotten once (`/promote/plan`).
+ * Read from the routes themselves: a path written here by hand was forgotten once (D-113).
  */
 const BEARER_PATHS: ReadonlySet<string> = new Set([
   ...[
@@ -43,8 +41,6 @@ const BEARER_PATHS: ReadonlySet<string> = new Set([
     createDeployTokenRoute,
     deployRoute,
     closePreviewRoute,
-    promoteRoute,
-    promotionPlanRoute,
     rollbackRoute,
     issueTokenRoute,
     revokeTokenRoute,
@@ -59,7 +55,7 @@ const CONSOLE_CSP =
 
 /**
  * The gateway's request handler. On a workspace origin: `/t/<tool>…` is dispatched to the tool,
- * `/auth/…`, `/whoami`, `/deploy`, `/promote`, `/promote/plan`, `/rollback` and `/deploy-tokens` are the platform's, `/console-api/…` is the
+ * `/auth/…`, `/whoami`, `/deploy`, `/rollback` and `/deploy-tokens` are the platform's, `/console-api/…` is the
  * console's API, and every other path is the console itself. One resolver (`createCaller`) turns a
  * session cookie or an audience-bound token into the person for all of them. The pieces are built
  * in `compose.ts`; this file is the table of routes.

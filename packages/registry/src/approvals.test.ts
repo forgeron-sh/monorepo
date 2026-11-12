@@ -6,7 +6,7 @@ import {
   createRegistry,
   deployBuild,
   migratePlatform,
-  promoteVersion,
+  putOnChannel,
   rejectVersion,
   rollbackEnvironment,
   VIA_FORGERON_MCP,
@@ -116,7 +116,7 @@ describe("approving the resources a version asks for", () => {
     expect(approved.map((a) => a.status)).toEqual(["approved"]);
     expect(await registry.pendingVersions(tool.id)).toEqual([]);
 
-    const result = await promoteVersion(registry, hosting(), {
+    const result = await putOnChannel(registry, hosting(), {
       tool,
       version: "1.0.0",
       to: "production",
@@ -141,7 +141,7 @@ describe("approving the resources a version asks for", () => {
     const preview = await deployTo("preview", "fp1", "1.0.0", network, "feat-a");
     await rejectVersion(registry, preview.version.id, "admin-1");
     await expect(
-      promoteVersion(registry, hosting(), {
+      putOnChannel(registry, hosting(), {
         tool,
         version: "1.0.0",
         to: "production",
@@ -153,7 +153,7 @@ describe("approving the resources a version asks for", () => {
   it("asks nothing for a version that removes a resource or changes nothing", async () => {
     const first = await deployTo("preview", "fp1", "1.0.0", { cache: {}, ...network }, "a");
     await approveVersion(registry, first.version.id, "admin-1");
-    await promoteVersion(registry, hosting(), {
+    await putOnChannel(registry, hosting(), {
       tool,
       version: "1.0.0",
       to: "production",
@@ -168,7 +168,7 @@ describe("approving the resources a version asks for", () => {
   it("is judged against what production serves, not against nothing", async () => {
     const first = await deployTo("preview", "fp1", "1.0.0", network, "a");
     await approveVersion(registry, first.version.id, "admin-1");
-    await promoteVersion(registry, hosting(), {
+    await putOnChannel(registry, hosting(), {
       tool,
       version: "1.0.0",
       to: "production",
@@ -181,7 +181,7 @@ describe("approving the resources a version asks for", () => {
   async function approveAndShip(version: string) {
     const found = (await registry.findVersion(tool.id, version))!;
     await approveVersion(registry, found.id, "admin-1");
-    await promoteVersion(registry, hosting(), { tool, version, to: "production", actor: "ely" });
+    await putOnChannel(registry, hosting(), { tool, version, to: "production", actor: "ely" });
   }
 });
 
@@ -195,7 +195,7 @@ describe("the audit log", () => {
       actor: "sam",
     });
     await deployTo("preview", "fp3", "1.2.0-a", {}, "a");
-    await promoteVersion(registry, hosting(), {
+    await putOnChannel(registry, hosting(), {
       tool,
       version: "1.2.0-a",
       to: "production",

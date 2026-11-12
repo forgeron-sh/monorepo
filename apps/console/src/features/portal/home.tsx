@@ -16,7 +16,14 @@ import { FirstRun, firstRunSteps } from "../../overview";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
 import type { WorkspaceInfo } from "../../workspace";
-import { addPilot, addToLibrary, libraryHref, loadLibrary, type LibraryTool } from "./library";
+import {
+  addPilot,
+  addToLibrary,
+  channelLabel,
+  libraryHref,
+  loadLibrary,
+  type LibraryTool,
+} from "./library";
 
 // Home is the person's library (D-117): the tools they added, and those they may add with a click. An
 // admin sees the same two lists, with a strip of the workspace's numbers (and the first-run checklist
@@ -188,12 +195,15 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
   );
 }
 
-/** A pilot says so, with its branch; a tool still waiting for the person says that too. */
+/**
+ * A channel other than production says so, with its name or its branch (D-125); a tool still waiting
+ * for the person says that too.
+ */
 function Tags({ tool }: { tool: LibraryTool }) {
   if (!tool.pilot && !tool.needsSetup) return null;
   return (
     <>
-      {tool.pilot ? <Badge tone="strong">{`Pilot · ${tool.pilot}`}</Badge> : null}
+      {tool.pilot ? <Badge tone="strong">{channelLabel(tool.pilot)}</Badge> : null}
       {tool.needsSetup ? <Badge tone="warning">Setup to finish</Badge> : null}
     </>
   );

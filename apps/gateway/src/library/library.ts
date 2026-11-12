@@ -2,7 +2,8 @@
 // by the dispatcher, the MCP sign-in and the library routes, so the three say the same thing.
 import { missingSetup } from "@forgeron/runtime";
 import type { Manifest } from "@forgeron/manifest";
-import { isAvailable, mayPilot, type Registry } from "@forgeron/registry";
+import { channelRef, isAvailable, mayUseChannel, type Registry } from "@forgeron/registry";
+import { channelPath } from "../tool-address";
 
 type Port = Pick<
   Registry,
@@ -11,8 +12,8 @@ type Port = Pick<
 
 type PilotPort = Pick<
   Registry,
-  | "previewAvailabilityOf"
-  | "isPilotInstalled"
+  | "channelAccessOf"
+  | "isChannelInstalled"
   | "listEnvironments"
   | "getVersion"
   | "getBuild"
@@ -61,39 +62,40 @@ export const libraryPath = (tool: string) => `/library/${encodeURIComponent(tool
 export const setupPath = (tool: string) =>
   `/t/${encodeURIComponent(tool)}/setup?next=${encodeURIComponent(libraryPath(tool))}`;
 
-// ---- pilots (D-119): a branch preview opened to people, with its own database
+// ---- channels other than production (D-119, D-125): opened to people, each with its own database.
+// `branch` here is the channel's reference: a branch, or `~<name>` for a permanent channel.
 
 /**
- * May this person reach a branch preview? Admins and developers always may (sdk.md §7); anyone else
- * only when an admin opened the branch to them and they added it to their library.
+ * May this person reach a channel other than production? Admins and developers always may (sdk.md
+ * §7); anyone else only when an admin opened the channel to them and they added it to their library.
  */
 export async function pilotAccess(
-  registry: Pick<PilotPort, "previewAvailabilityOf" | "isPilotInstalled">,
+  registry: Pick<PilotPort, "channelAccessOf" | "isChannelInstalled">,
   toolId: string,
   branch: string,
   person: LibraryPerson,
 ): Promise<boolean> {
   if (person.roles.includes("admin") || person.roles.includes("developer")) return true;
-  const rule = await registry.previewAvailabilityOf(toolId, branch);
-  if (!rule || !mayPilot(rule, person)) return false;
-  return registry.isPilotInstalled(toolId, branch, person.id);
+  const rule = await registry.channelAccessOf(toolId, branch);
+  if (!rule || !mayUseChannel(rule, person)) return false;
+  return registry.isChannelInstalled(toolId, branch, person.id);
 }
 
-/** The manifest a branch's preview serves, or `undefined` when the branch has no preview. */
+/** The manifest a channel serves, or `undefined` when it serves nothing. */
 export async function previewManifest(
   registry: Pick<PilotPort, "listEnvironments" | "getVersion" | "getBuild">,
   toolId: string,
   branch: string,
 ): Promise<Manifest | undefined> {
   const env = (await registry.listEnvironments(toolId)).find(
-    (e) => e.name === "preview" && e.branch === branch && e.versionId,
+    (e) => e.name !== "production" && channelRef(e) === branch && e.versionId,
   );
   const version = env?.versionId ? await registry.getVersion(env.versionId) : undefined;
   const build = version ? await registry.getBuild(version.buildId) : undefined;
   return build ? (build.manifest as Manifest) : undefined;
 }
 
-/** Whether the person still has something to give the branch's version before it works. */
+/** Whether the person still has something to give the channel's version before it works. */
 export async function pilotNeedsSetup(
   registry: PilotPort,
   toolId: string,
@@ -114,4 +116,4 @@ const pilotPath = (tool: string, branch: string) =>
   `${libraryPath(tool)}/pilots/${encodeURIComponent(branch)}`;
 
 export const pilotSetupPath = (tool: string, branch: string) =>
-  `/t/${encodeURIComponent(tool)}@${encodeURIComponent(branch)}/setup?next=${encodeURIComponent(pilotPath(tool, branch))}`;
+  `${channelPath(tool, branch)}/setup?next=${encodeURIComponent(pilotPath(tool, branch))}`;

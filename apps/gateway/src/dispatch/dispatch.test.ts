@@ -57,6 +57,12 @@ describe("parseToolPath", () => {
       branch: "feat-export",
       rest: "/mcp",
     });
+    // A permanent channel other than production (D-125): its reference is `~<name>`.
+    expect(parseToolPath("/t/crm~staging/mcp")).toEqual({
+      tool: "crm",
+      branch: "~staging",
+      rest: "/mcp",
+    });
   });
 
   it("refuses what is not a tool path", () => {
@@ -70,6 +76,10 @@ describe("parseToolPath", () => {
       "/t/crm@",
       "/t/crm@a@b",
       "/t/crm@A/x",
+      "/t/crm~",
+      "/t/crm~Staging",
+      "/t/crm~a~b",
+      "/t/crm~1x",
       "/tools/crm",
     ]) {
       expect({ path, parsed: parseToolPath(path) }).toEqual({ path, parsed: undefined });
@@ -83,7 +93,7 @@ const registry: Registry = {
     if (workspace === "acme" && tool === "crm") {
       return {
         production: "acme--crm--production",
-        previews: { "feat-export": "acme--crm--pr-12" },
+        previews: { "feat-export": "acme--crm--pr-12", "~staging": "acme--crm--channel-staging" },
       };
     }
     if (workspace === "acme" && tool === "odoo")
@@ -109,6 +119,7 @@ function setup(
     [
       "acme--crm--production",
       "acme--crm--pr-12",
+      "acme--crm--channel-staging",
       "acme--odoo--production",
       "globex--crm--production",
     ].map((name) => [
@@ -247,6 +258,25 @@ describe("dispatch", () => {
     const none = setup();
     expect((await none.get("https://acme.forgeron.app/t/crm@feat-export/mcp")).status).toBe(403);
     expect(none.targets.get("acme--crm--pr-12")!.fetch).not.toHaveBeenCalled();
+  });
+
+  it("routes ~<name> to a permanent channel, under the same rule (D-125)", async () => {
+    const asked: string[] = [];
+    const allowed = setup({
+      canPreview: (c) => {
+        asked.push(c.branch);
+        return true;
+      },
+    });
+    expect(await allowed.get("https://acme.forgeron.app/t/crm~staging/mcp")).toEqual({
+      status: 200,
+      body: { worker: "acme--crm--channel-staging", path: "/mcp" },
+    });
+    expect(asked).toEqual(["~staging"]);
+    // A branch named like the channel is another channel.
+    expect((await allowed.get("https://acme.forgeron.app/t/crm@staging/mcp")).status).toBe(404);
+    const denied = setup({ canPreview: () => false });
+    expect((await denied.get("https://acme.forgeron.app/t/crm~staging/mcp")).status).toBe(403);
   });
 
   it("never reaches a Worker of another workspace or tool, even if the registry says so", async () => {

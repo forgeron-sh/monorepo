@@ -76,7 +76,7 @@ describe("a pilot in the person's library (D-119)", () => {
     const view = await mount(
       <LibraryToolPage api={api} go={() => {}} tool="odoo" pilot="pilot-a" />,
     );
-    expect(view.textContent).toContain("Odoo gateway · pilot");
+    expect(view.textContent).toContain("Odoo gateway · Branch · pilot-a");
     expect(view.textContent).toContain("It has its own data");
     await click(button(view, "Remove"));
     await click(

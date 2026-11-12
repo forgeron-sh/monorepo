@@ -33,8 +33,11 @@ import type {
 } from "./library";
 import type {
   addRepositoryToolRoute,
+  addChannelRoute,
   copyBranchDataRoute,
   getToolSourceRoute,
+  putChannelRoute,
+  removeChannelRoute,
   putToolSourceRoute,
   updateToolRoute,
 } from "./sources";
@@ -101,8 +104,6 @@ import type {
   createDeployTokenRoute,
   deployRoute,
   issueTokenRoute,
-  promoteRoute,
-  promotionPlanRoute,
   revokeTokenRoute,
   rollbackRoute,
   whoamiRoute,
@@ -217,6 +218,18 @@ export const addresses = {
   updateTool: addressOf<typeof updateToolRoute>({
     method: "post",
     path: "/api/tools/{tool}/update",
+  }),
+  addChannel: addressOf<typeof addChannelRoute>({
+    method: "post",
+    path: "/api/tools/{tool}/channels",
+  }),
+  putChannel: addressOf<typeof putChannelRoute>({
+    method: "put",
+    path: "/api/tools/{tool}/channels/{channel}",
+  }),
+  removeChannel: addressOf<typeof removeChannelRoute>({
+    method: "delete",
+    path: "/api/tools/{tool}/channels/{channel}",
   }),
   addRepositoryTool: addressOf<typeof addRepositoryToolRoute>({
     method: "post",
@@ -410,8 +423,6 @@ export const addresses = {
   }),
   deploy: addressOf<typeof deployRoute>({ method: "post", path: "/deploy" }),
   issueToken: addressOf<typeof issueTokenRoute>({ method: "post", path: "/auth/token" }),
-  promote: addressOf<typeof promoteRoute>({ method: "post", path: "/promote" }),
-  promotionPlan: addressOf<typeof promotionPlanRoute>({ method: "post", path: "/promote/plan" }),
   revokeToken: addressOf<typeof revokeTokenRoute>({ method: "post", path: "/auth/token/revoke" }),
   rollback: addressOf<typeof rollbackRoute>({ method: "post", path: "/rollback" }),
   whoami: addressOf<typeof whoamiRoute>({ method: "get", path: "/whoami" }),

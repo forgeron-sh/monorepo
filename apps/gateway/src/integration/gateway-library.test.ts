@@ -340,3 +340,61 @@ describe("production and pilots (D-119)", () => {
     expect((await callPilot(ben)).status).toBe(403);
   });
 });
+
+describe("a permanent channel's access (D-125)", () => {
+  const callStaging = async (person: string) =>
+    gateway()(
+      new Request(`${ORIGIN}/t/odoo~staging/api/tickets.mine`, {
+        headers: {
+          authorization: `Bearer ${await issueToken({
+            secret: SECRET,
+            person,
+            workspace: "acme",
+            tool: "odoo",
+            ttlSeconds: 86_400,
+            now,
+          })}`,
+        },
+      }),
+    );
+
+  it("has its own rule and library entry, apart from production and from a branch", async () => {
+    const built = await registry.recordBuild(odooId, {
+      fingerprint: "odoo-staging",
+      manifest: manifestOf("odoo"),
+    });
+    const version = await registry.publishVersion(odooId, built.id, "1.3.0", "staging");
+    const staging = await registry.addChannel({
+      toolId: odooId,
+      name: "staging",
+      follows: "staging",
+      actor: root,
+    });
+    await registry.activate(staging.id, version.id, { actor: "test" });
+
+    // Nobody but admins and developers until an admin opens it.
+    expect((await callStaging(ben)).status).toBe(403);
+    expect((await consoleApi(root, "/api/tools/odoo/previews/~staging/availability")).status).toBe(
+      200,
+    );
+    const opened = await consoleApi(root, "/api/tools/odoo/previews/~staging/availability", "PUT", {
+      mode: "people",
+      people: [ben],
+    });
+    expect(opened.status).toBe(200);
+    const library = (await (await consoleApi(ben, "/api/library")).json()) as {
+      tools: Array<{ name: string; pilot: string | null }>;
+    };
+    expect(library.tools.some((t) => t.name === "odoo" && t.pilot === "~staging")).toBe(true);
+
+    const added = await consoleApi(ben, "/api/library/odoo/pilots/~staging", "POST");
+    expect(added.status).toBe(200);
+    // Ben gave the tool's setup already: the setup values belong to the tool.
+    expect(await added.json()).toEqual({ installed: true, setupUrl: null });
+    expect((await callStaging(ben)).status).toBe(200);
+    // Another person was not given it.
+    expect((await callStaging(ana)).status).toBe(403);
+    const card = (await (await consoleApi(ben, "/api/library/odoo/pilots/~staging")).json()) as any;
+    expect(card.use.mcp).toEqual({ url: `${ORIGIN}/t/odoo~staging/mcp` });
+  });
+});

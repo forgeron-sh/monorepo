@@ -6,20 +6,24 @@ import { platformMigrations } from "./migrations";
 export { platformMigrations } from "./migrations";
 export {
   approveVersion,
+  closeChannel,
   closePreview,
   deployBuild,
-  promoteVersion,
+  isReleaseVersion,
+  putOnChannel,
   rejectVersion,
   rollbackEnvironment,
 } from "./deploy";
-export type { DeployBuildInput, DeployedBuild, PromoteInput, RollbackInput } from "./deploy";
+export type { DeployBuildInput, DeployedBuild, PutOnChannelInput, RollbackInput } from "./deploy";
 export {
   AVAILABILITY_MODES,
+  channelNameProblem,
   createRegistry,
   isAvailable,
   marketplaceSource,
-  mayPilot,
+  mayUseChannel,
   RegistryError,
+  secretEnvironmentOf,
   TEMPLATE_WORKSPACE,
   VIA_FORGERON_MCP,
 } from "./registry";
@@ -31,6 +35,7 @@ export type {
   GithubAppKeys,
   GithubInstallation,
   Marketplace,
+  PermanentChannel,
   ToolSource,
 } from "./registry";
 export { docsProblem } from "./docs-check";
@@ -46,14 +51,23 @@ export type {
   OAuthProvider,
 } from "./consent";
 export { createIdentityConfig } from "./identity-config";
-export { planPromotion, promotionPrompt } from "./promote-plan";
+export { planUpdate, updatePrompt } from "./update-plan";
 export type {
   PlanChange,
   PlanConflict,
   PlanConflictCode,
   PlanInput,
-  PromotionPlan,
-} from "./promote-plan";
+  UpdatePlan,
+} from "./update-plan";
+export {
+  channelRef,
+  environmentOfRef,
+  hostingTargetOf,
+  hostingTargetOfRef,
+  isPermanentRef,
+  parseChannelRef,
+  PERMANENT_MARK,
+} from "./channels";
 export { createReseal, type ResealReport } from "./reseal";
 export type {
   ConnectorClientConfig,
@@ -99,6 +113,7 @@ export type {
   SecretState,
   SecretStatus,
   RegisteredEnvironment,
+  SecretEnvironment,
   Tool,
   VersionRecord,
 } from "./registry";

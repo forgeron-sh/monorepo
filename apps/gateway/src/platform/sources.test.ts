@@ -96,6 +96,30 @@ describeRouteMatrix({
   invalid: [{}, { version: "" }, { version: "1.0.0", approve: "yes" }],
 });
 describeRouteMatrix({
+  title: "POST a permanent channel",
+  ...admin,
+  method: "POST",
+  path: "/api/tools/x/channels",
+  valid: { name: "staging", follows: "staging" },
+  invalid: [{}, { name: "Staging" }, { name: "x".repeat(31) }, { name: "ok", autoUpdate: "yes" }],
+});
+describeRouteMatrix({
+  title: "PUT a permanent channel",
+  ...admin,
+  method: "PUT",
+  path: "/api/tools/x/channels/staging",
+  valid: { autoUpdate: true },
+  invalid: [{ autoUpdate: "yes" }, { follows: "" }],
+});
+describeRouteMatrix({
+  title: "DELETE a permanent channel",
+  ...admin,
+  method: "DELETE",
+  path: "/api/tools/x/channels/staging",
+  valid: { confirm: "staging" },
+  invalid: [{}],
+});
+describeRouteMatrix({
   title: "POST a tool from a repository",
   ...admin,
   method: "POST",
@@ -137,12 +161,12 @@ describe("a marketplace tool's update (D-121)", () => {
       kind: "marketplace",
       marketplace: "m1",
       production: null,
-      update: { version: "1.0.0", release: true, approvals: ["resources.network"] },
+      update: { version: "1.0.0", approvals: ["resources.network"] },
     });
     expect((await send("POST", "/api/tools/odoo/update", { version: "1.0.0" })).status).toBe(409);
     const first = await send("POST", "/api/tools/odoo/update", { version: "1.0.0", approve: true });
     expect(first.status).toBe(200);
-    expect(await first.json()).toEqual({ tool: "odoo", version: "1.0.0" });
+    expect(await first.json()).toEqual({ tool: "odoo", channel: "production", version: "1.0.0" });
 
     await offer("1.1.0", {
       network: { allow: ["*.odoo.com"], why: "Odoo" },
@@ -153,7 +177,6 @@ describe("a marketplace tool's update (D-121)", () => {
       production: "1.0.0",
       update: {
         version: "1.1.0",
-        release: true,
         changelog: ["Odoo 1.1.0"],
         approvals: ["resources.secrets.ODOO_KEY"],
       },
@@ -171,16 +194,33 @@ describe("a marketplace tool's update (D-121)", () => {
     source = await (await read("/api/tools/odoo/source")).json();
     expect(source).toMatchObject({ production: "1.1.0", update: null });
     expect((await send("POST", "/api/tools/odoo/update", { version: "1.1.0" })).status).toBe(404);
+
+    // Another permanent channel of a marketplace tool follows the marketplace's releases (D-125).
+    const added = await send("POST", "/api/tools/odoo/channels", { name: "recette" });
+    expect(added.status).toBe(201);
+    expect(await added.json()).toMatchObject({
+      name: "recette",
+      serves: null,
+      address: "https://acme.forgeron.test/t/odoo~recette/",
+      update: { version: "1.1.0" },
+    });
+    const updated = await send("POST", "/api/tools/odoo/update", {
+      version: "1.1.0",
+      channel: "recette",
+    });
+    expect(await updated.json()).toEqual({ tool: "odoo", channel: "recette", version: "1.1.0" });
   });
 });
 
-type Deployed = { production?: { version?: string; waiting?: string } };
+type Deployed = {
+  production?: { version?: string; waiting?: string };
+  channels?: Array<{ channel: string; version?: string; waiting?: string }>;
+};
 const deployRequest = (token: string, branch: string, fingerprint: string, released: boolean) =>
   new Request("https://acme.forgeron.test/deploy", {
     method: "POST",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
     body: JSON.stringify({
-      environment: "preview",
       branch,
       version: `1.0.0-preview.${branch}+${fingerprint}`,
       build: {
@@ -188,14 +228,19 @@ const deployRequest = (token: string, branch: string, fingerprint: string, relea
         worker: `// ${fingerprint}`,
         fingerprint,
         changelog: released
-          ? { entries: [{ description: "A change" }], declared: "patch", detected: "patch" }
-          : { entries: [], declared: "none", detected: "none" },
+          ? {
+              entries: [{ description: "A change" }],
+              declared: "patch",
+              detected: "patch",
+              released: true,
+            }
+          : { entries: [], declared: "none", detected: "none", released: false },
       } as unknown as Build,
     }),
   });
 
-describe("a repository tool (D-121)", () => {
-  it("is added with its token, and production follows its branch by itself or waits", async () => {
+describe("a repository tool's channels (D-121, D-125)", () => {
+  it("is added with its token; each permanent channel takes only the releases of its branch", async () => {
     const added = await send("POST", "/api/tools/from-repository", {
       name: "crm",
       repo: "acme/crm",
@@ -220,45 +265,83 @@ describe("a repository tool (D-121)", () => {
         registry,
         hosting,
       }).then((r) => r.json() as Promise<Deployed>);
-    // A feature branch is a preview, never production's candidate.
+    // A release on a feature branch is that branch's: production does not follow it.
     expect((await deploy("feat", "aaa", true)).production).toBeUndefined();
     let source = await (await read("/api/tools/crm/source")).json();
     expect(source).toMatchObject({ kind: "repo", repo: "acme/crm", update: null });
 
-    // `main` is; the tool does not update by itself yet: the update waits.
+    // A build of `main` that is not a release reaches no permanent channel.
     expect((await deploy("main", "bbb", false)).production).toBeUndefined();
     source = await (await read("/api/tools/crm/source")).json();
-    expect(source).toMatchObject({
-      update: { version: "1.0.0-preview.main+bbb", branch: "main", release: false },
-    });
-    // No release: refused unless the admin takes it knowingly.
-    const refused = await send("POST", "/api/tools/crm/update", {
-      version: "1.0.0-preview.main+bbb",
-    });
-    expect(refused.status).toBe(422);
-    expect(await refused.json()).toMatchObject({ error: "NO_ENTRY" });
+    expect(source).toMatchObject({ update: null });
     expect(
-      (
-        await send("POST", "/api/tools/crm/update", {
-          version: "1.0.0-preview.main+bbb",
-          withoutRelease: true,
-        })
-      ).status,
+      (await send("POST", "/api/tools/crm/update", { version: "1.0.0-preview.main+bbb" })).status,
+    ).toBe(404);
+
+    // A release of `main` waits for the admin's Update, with its plan.
+    await deploy("main", "ccc", true);
+    source = await (await read("/api/tools/crm/source")).json();
+    expect(source).toMatchObject({
+      update: { version: "1.0.0-preview.main+ccc", branch: "main", plan: { ok: true } },
+      channels: [{ name: "production", follows: "main", serves: null }],
+    });
+    expect(
+      (await send("POST", "/api/tools/crm/update", { version: "1.0.0-preview.main+ccc" })).status,
     ).toBe(200);
 
-    // It updates by itself now: a release on `main` goes; a build with no release waits.
-    expect((await send("PUT", "/api/tools/crm/source", { autoUpdate: true })).status).toBe(200);
-    expect((await deploy("main", "ccc", true)).production).toEqual({
-      version: "1.0.0-preview.main+ccc",
+    // A staging channel follows `staging`, updates by itself, and has its own address.
+    const staging = await send("POST", "/api/tools/crm/channels", {
+      name: "staging",
+      follows: "staging",
+      autoUpdate: true,
     });
-    const waiting = (await deploy("main", "ddd", false)).production!;
-    expect(waiting.waiting).toMatch(/changelog entry/);
+    expect(staging.status).toBe(201);
+    expect(await staging.json()).toMatchObject({
+      name: "staging",
+      follows: "staging",
+      autoUpdate: true,
+      serves: null,
+      address: "https://acme.forgeron.test/t/crm~staging/",
+      update: null,
+    });
+    expect(
+      (await send("POST", "/api/tools/crm/channels", { name: "staging", follows: "x" })).status,
+    ).toBe(409);
+    expect((await send("POST", "/api/tools/crm/channels", { name: "qa" })).status).toBe(400);
+    expect(await deploy("staging", "ddd", true)).toMatchObject({
+      channels: [{ channel: "staging", version: "1.0.0-preview.staging+ddd" }],
+    });
+    expect((await deploy("staging", "eee", false)).channels).toBeUndefined();
+
+    // Production updates by itself now: a release on `main` goes; staging is not touched.
+    expect(
+      (await send("PUT", "/api/tools/crm/channels/production", { autoUpdate: true })).status,
+    ).toBe(200);
+    expect((await deploy("main", "fff", true)).production).toEqual({
+      version: "1.0.0-preview.main+fff",
+    });
     source = await (await read("/api/tools/crm/source")).json();
     expect(source).toMatchObject({
       autoUpdate: true,
-      production: "1.0.0-preview.main+ccc",
-      update: { version: "1.0.0-preview.main+ddd", release: false },
+      production: "1.0.0-preview.main+fff",
+      channels: [
+        { name: "production", serves: "1.0.0-preview.main+fff", update: null },
+        { name: "staging", serves: "1.0.0-preview.staging+ddd", update: null },
+      ],
     });
+
+    // A channel is removed, typed to confirm; production never is.
+    expect(
+      (await send("DELETE", "/api/tools/crm/channels/staging", { confirm: "nope" })).status,
+    ).toBe(400);
+    expect(
+      (await send("DELETE", "/api/tools/crm/channels/production", { confirm: "production" }))
+        .status,
+    ).toBe(400);
+    expect(
+      (await send("DELETE", "/api/tools/crm/channels/staging", { confirm: "staging" })).status,
+    ).toBe(200);
+    expect(await registry.findChannel(tool.id, "staging")).toBeUndefined();
   });
 });
 

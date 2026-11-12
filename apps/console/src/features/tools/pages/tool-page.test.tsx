@@ -32,14 +32,14 @@ describe("the tool page", () => {
     expect(page.querySelector("h1")?.textContent).toBe("crm");
     expect(page.textContent).toContain("Companies, contacts and deals.");
     expect(tabLabels(page)).toEqual([
-      "Branches",
-      "Versions",
+      "Channels",
+      "Releases",
       "Availability",
       "Access",
       "Secrets",
       "Activity",
     ]);
-    expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Branches");
+    expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Channels");
     expect(page.textContent).toContain("feat-export");
   });
 
@@ -47,7 +47,7 @@ describe("the tool page", () => {
     window.history.replaceState(null, "", "/tools/crm?tab=versions");
     const page = await mount(<ToolPage name="crm" {...pageProps(toolsApi(routes).api)} />);
     await flushLazy();
-    expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Versions");
+    expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Releases");
     expect(page.textContent).toContain("Compared with");
     const activity = [...page.querySelectorAll('[role="tab"]')].find(
       (t) => t.textContent === "Activity",
@@ -76,7 +76,8 @@ describe("the tool page", () => {
     const pick = page.querySelector<HTMLSelectElement>(".ft-branch-pick select")!;
     expect([...pick.options].map((o) => o.textContent)).toEqual([
       "Production · 1.4.0",
-      "feat-export",
+      "staging · 1.4.0",
+      "Branch feat-export",
     ]);
     expect(pick.value).toBe("");
     expect(page.querySelector(".ft-branch-band")).toBeNull();
@@ -102,11 +103,22 @@ describe("the tool page", () => {
       "feat-export",
     );
     expect(page.querySelector(".ft-branch-band")?.textContent).toContain("feat-export");
-    expect(page.textContent).toContain("The same for every branch.");
+    expect(page.textContent).toContain("The same for every channel.");
     await click(
       [...page.querySelectorAll("button")].find((b) => b.textContent === "Back to production"),
     );
     expect(went).toEqual(["/tools/crm?tab=versions"]);
+  });
+
+  it("shows a permanent channel by its reference, ~<name> (D-125)", async () => {
+    window.history.replaceState(null, "", "/tools/crm/tree/~staging?tab=versions");
+    const page = await mount(
+      <ToolPage name="crm" branch="~staging" {...pageProps(toolsApi(routes).api)} />,
+    );
+    await flushLazy();
+    expect(page.querySelector<HTMLSelectElement>(".ft-branch-pick select")!.value).toBe("~staging");
+    expect(page.querySelector(".ft-branch-band")?.textContent).toContain("Channel");
+    expect(page.querySelector(".ft-branch-band")?.textContent).toContain("staging");
   });
 
   it("shows production, with a word, for a branch that has no preview anymore", async () => {
@@ -115,7 +127,7 @@ describe("the tool page", () => {
       <ToolPage name="crm" branch="gone" {...pageProps(toolsApi(routes).api)} />,
     );
     await flushLazy();
-    expect(page.textContent).toContain("The branch gone has no preview anymore.");
+    expect(page.textContent).toContain("The channel gone is gone.");
     expect(page.querySelector(".ft-branch-band")).toBeNull();
     expect(window.location.pathname).toBe("/tools/crm");
     expect(window.location.search).toBe("?tab=versions");

@@ -3,7 +3,7 @@ import type { PageProps } from "../../shell/page-props";
 import type { WorkspaceInfo } from "../../workspace";
 import { fakeApi } from "../../test-utils";
 
-/** `fakeApi` plus the platform routes (`/promote`, `/rollback`, `/deploy`), recorded the same way. */
+/** `fakeApi` plus the platform routes (`/rollback`, `/deploy`), recorded the same way. */
 export function toolsApi(
   routes: Record<string, unknown>,
   platformRoutes: Record<string, unknown> = {},
@@ -34,6 +34,7 @@ export const tools = {
       summary: "Companies, contacts and deals.",
       production: "1.4.0",
       previews: [{ branch: "feat-export", version: "1.5.1" }],
+      channels: [{ channel: "staging", version: "1.4.0" }],
       lastDeployment: { at: ago(3 * HOUR), version: "1.5.1" },
     },
     { name: "draft", summary: null, production: null, previews: [], lastDeployment: null },
@@ -66,6 +67,21 @@ export const branches = {
       { at: ago(20 * DAY), kind: "deploy", version: "1.3.0", actor: "ci" },
     ],
   },
+  channels: [
+    {
+      environment: "channel",
+      channel: "staging",
+      follows: "staging",
+      status: "ready",
+      version: "1.4.0",
+      deployedBy: "ada@acme.test",
+      deployedAt: ago(2 * DAY),
+      url: "https://demo.test/t/crm~staging",
+      rollbackTo: "1.3.0",
+      migrations: { count: 3, last: "0003_deals" },
+      deployments: [{ at: ago(2 * DAY), kind: "promote", version: "1.4.0", actor: "ada" }],
+    },
+  ],
   branches: [
     {
       environment: "preview",
@@ -101,6 +117,8 @@ export const versions = {
       version: "1.5.1",
       publishedAt: ago(3 * HOUR),
       environments: [{ environment: "preview", branch: "feat-export" }],
+      branch: "feat-export",
+      release: true,
       changelog: {
         entries: [
           { type: "fixed", bump: "patch", description: "The export keeps the column order." },
@@ -115,7 +133,9 @@ export const versions = {
     {
       version: "1.4.0",
       publishedAt: ago(6 * DAY),
-      environments: [{ environment: "production" }],
+      environments: [{ environment: "production" }, { environment: "channel", channel: "staging" }],
+      branch: "main",
+      release: true,
       changelog: null,
       previous: null,
       changes: [],

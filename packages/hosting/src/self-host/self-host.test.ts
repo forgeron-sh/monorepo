@@ -91,6 +91,14 @@ describe("names", () => {
     expect(long.length).toBeLessThanOrEqual(63);
     for (const name of [a, b, long]) expect(name).toMatch(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/);
   });
+
+  it("give a permanent channel its own Worker, apart from production and from a branch (D-125)", () => {
+    const staging = workerName("acme", { tool: "crm", name: "channel", channel: "staging" });
+    expect(staging).toBe("acme--crm--channel-staging");
+    expect(staging).not.toBe(
+      workerName("acme", { tool: "crm", name: "preview", branch: "staging" }),
+    );
+  });
 });
 
 describe("deploying to production", () => {

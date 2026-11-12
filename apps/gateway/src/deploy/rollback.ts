@@ -1,20 +1,15 @@
-// Promoting a version and rolling an environment back (sdk.md §5, §15): `POST /promote` and
-// `POST /rollback`. Both act on a version the registry already holds, so nothing is rebuilt and
-// nothing is uploaded by the caller (D-033). The caller is a deployment token for the tool (CI), or
-// a workspace administrator by session or `forgeron login` token: a developer or a plain member
-// cannot move production.
+// Rolling a channel back (sdk.md §5, §15): `POST /rollback`. The channel serves again a version it
+// served before, from the code the registry holds: nothing is rebuilt, no new code arrives (D-033,
+// D-125). The caller is a deployment token for the tool (CI), or a workspace administrator by session
+// or `forgeron login` token: a developer or a plain member cannot move a permanent channel. There is
+// no promotion between branches any more (D-125): a permanent channel takes the releases of the
+// branch it follows, through its update (`/api/tools/{tool}/update`).
 import { ChangelogRefusal, MigrationError, type Hosting } from "@forgeron/hosting";
-import {
-  planPromotion,
-  promoteVersion,
-  rollbackEnvironment,
-  RegistryError,
-  type RegisteredEnvironment,
-} from "@forgeron/registry";
+import { rollbackEnvironment, RegistryError, type RegisteredEnvironment } from "@forgeron/registry";
 import type { Person } from "../kernel/person";
 import { deployCaller, type CallerContext } from "./deploy";
 
-const ENVIRONMENTS: RegisteredEnvironment[] = ["preview", "production"];
+const ENVIRONMENTS: RegisteredEnvironment[] = ["preview", "production", "channel"];
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -79,10 +74,10 @@ function failed(error: unknown): Response {
       return fail(422, error.code, message);
     }
   }
-  return fail(500, "PROMOTE_FAILED", message);
+  return fail(500, "ROLLBACK_FAILED", message);
 }
 
-/** The common head of both routes: method, caller, body, tool, environment and branch. */
+/** The head of the route: method, caller, body, tool, environment, branch and channel. */
 async function prepare(request: Request, context: PromoteContext, environmentKey: string) {
   if (request.method !== "POST") return fail(405, "METHOD_NOT_ALLOWED", "Use POST.");
   const who = await actorOf(request, context);
@@ -103,6 +98,10 @@ async function prepare(request: Request, context: PromoteContext, environmentKey
   if (branch !== undefined && typeof branch !== "string") {
     return fail(400, "INVALID", "branch: a string.");
   }
+  const { channel } = body;
+  if (environment === "channel" && (typeof channel !== "string" || channel === "")) {
+    return fail(400, "INVALID", "channel: the permanent channel's name.");
+  }
   // A deployment token is for one tool: it cannot act on another, whatever the body says.
   const named = body.tool;
   if (named !== undefined && typeof named !== "string") {
@@ -122,137 +121,25 @@ async function prepare(request: Request, context: PromoteContext, environmentKey
     body,
     environment: environment as RegisteredEnvironment,
     ...(typeof branch === "string" && branch ? { branch } : {}),
+    ...(environment === "channel" && typeof channel === "string" ? { channel } : {}),
     ...(typeof reason === "string" && reason.trim() ? { reason: reason.trim() } : {}),
   };
 }
 
 /**
- * The version to promote: named, or the one a branch's preview serves (`fromBranch`, D-113). Exactly
- * one of the two.
- */
-async function versionToPromote(
-  body: Record<string, unknown>,
-  context: PromoteContext,
-  tool: { id: string; name: string },
-): Promise<string | Response> {
-  const { version, fromBranch } = body;
-  if (version !== undefined && (typeof version !== "string" || version === "")) {
-    return fail(400, "INVALID", "version: the number to promote.");
-  }
-  if (fromBranch !== undefined && (typeof fromBranch !== "string" || fromBranch === "")) {
-    return fail(400, "INVALID", "fromBranch: the branch whose preview serves the version.");
-  }
-  if ((version === undefined) === (fromBranch === undefined)) {
-    return fail(400, "INVALID", "Name the version, or the branch it is served from, not both.");
-  }
-  if (typeof version === "string") return version;
-  const preview = (await context.registry.listEnvironments(tool.id)).find(
-    (e) => e.name === "preview" && e.branch === fromBranch,
-  );
-  const served = preview?.versionId
-    ? await context.registry.getVersion(preview.versionId)
-    : undefined;
-  if (!served) {
-    return fail(
-      404,
-      "NOT_FOUND",
-      `The branch ${String(fromBranch)} has no preview serving a version.`,
-    );
-  }
-  return served.version;
-}
-
-/**
- * `POST /promote/plan` (D-113): can this version go to the environment, and what stops it. Read only:
- * the same callers and the same body as a promotion, and nothing moves.
- */
-export async function handlePromotePlan(request: Request, context: PromoteContext) {
-  const ready = await prepare(request, context, "to");
-  if (ready instanceof Response) return ready;
-  const { tool, body, environment, branch } = ready;
-  const { version, fromBranch } = body;
-  if (version !== undefined && (typeof version !== "string" || version === "")) {
-    return fail(400, "INVALID", "version: the number to promote.");
-  }
-  if (fromBranch !== undefined && (typeof fromBranch !== "string" || fromBranch === "")) {
-    return fail(400, "INVALID", "fromBranch: the branch whose preview serves the version.");
-  }
-  if ((version === undefined) === (fromBranch === undefined)) {
-    return fail(400, "INVALID", "Name the version, or the branch it is served from, not both.");
-  }
-  try {
-    const plan = await planPromotion(context.registry, context.hosting, {
-      tool,
-      to: environment,
-      ...(branch ? { branch } : {}),
-      ...(typeof version === "string" ? { version } : {}),
-      ...(typeof fromBranch === "string" ? { fromBranch } : {}),
-    });
-    return json(200, plan);
-  } catch (error) {
-    return failed(error);
-  }
-}
-
-/**
- * `POST /promote` `{ tool?, version | fromBranch, to, branch?, allowDestructive? }`: puts a version the
- * tool already has on another environment, from the code recorded with its build. The target takes
- * it under the rules of a deployment: the changelog must cover the change (FOR-64), a destructive
- * migration needs `allowDestructive`, and what the version asks for must be approved.
- */
-export async function handlePromote(request: Request, context: PromoteContext) {
-  const ready = await prepare(request, context, "to");
-  if (ready instanceof Response) return ready;
-  const { actor, tool, body, environment, branch, reason } = ready;
-  const { allowDestructive, approve, withoutRelease } = body;
-  // Approving and taking a build with no release are an administrator's, never CI's (D-121).
-  if ((approve === true || withoutRelease === true) && !ready.person) {
-    return fail(
-      403,
-      "FORBIDDEN",
-      "Only an administrator can approve or put a build with no release on production.",
-    );
-  }
-  const named = await versionToPromote(body, context, tool);
-  if (named instanceof Response) return named;
-  try {
-    const promoted = await promoteVersion(context.registry, context.hosting, {
-      tool,
-      version: named,
-      to: environment,
-      ...(branch ? { branch } : {}),
-      ...(allowDestructive === true ? { allowDestructive: true } : {}),
-      ...(approve === true ? { approve: true } : {}),
-      ...(withoutRelease === true ? { withoutRelease: true } : {}),
-      ...(reason ? { reason } : {}),
-      ...(context.via ? { via: context.via } : {}),
-      actor,
-    });
-    return json(200, {
-      tool: tool.name,
-      version: promoted.version.version,
-      environment,
-      url: promoted.activation.url,
-      applied: promoted.applied,
-    });
-  } catch (error) {
-    return failed(error);
-  }
-}
-
-/**
- * `POST /rollback` `{ tool?, environment, branch? }`: the version the environment served before
+ * `POST /rollback` `{ tool?, environment, branch?, channel? }`: the version the channel served before
  * the current one serves again. No migration is applied or rolled back.
  */
 export async function handleRollback(request: Request, context: PromoteContext) {
   const ready = await prepare(request, context, "environment");
   if (ready instanceof Response) return ready;
-  const { actor, tool, environment, branch, reason } = ready;
+  const { actor, tool, environment, branch, channel, reason } = ready;
   try {
     const rolled = await rollbackEnvironment(context.registry, context.hosting, {
       tool,
       environment,
       ...(branch ? { branch } : {}),
+      ...(channel ? { channel } : {}),
       ...(reason ? { reason } : {}),
       ...(context.via ? { via: context.via } : {}),
       actor,
@@ -261,6 +148,7 @@ export async function handleRollback(request: Request, context: PromoteContext) 
       tool: tool.name,
       version: rolled.version.version,
       environment,
+      ...(channel ? { channel } : {}),
       ...(rolled.environment.url ? { url: rolled.environment.url } : {}),
     });
   } catch (error) {

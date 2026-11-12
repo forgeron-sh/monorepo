@@ -7,11 +7,12 @@ import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
 import type { ToolTabProps } from "../tabs";
 
-// Who may add the tool to their library (D-117), and who may pilot each branch (D-119). A tool
-// installed from a marketplace starts with nobody; a tool deployed before libraries is open to
-// everyone without an install, until a rule is saved here. A branch (chosen at the top of the page,
-// D-120) is for admins and developers until it is opened here: the people named then add it as a
-// pilot, a tool of its own with its own data.
+// Who may use each channel of the tool (D-117, D-119, D-125). Production's rule is who may add the
+// tool to their library: a tool installed from a marketplace starts with nobody; a tool deployed
+// before libraries is open to everyone without an install, until a rule is saved here. Another
+// channel (chosen at the top of the page, D-120: a permanent one or a branch) is for admins and
+// developers until it is opened here: the people named then add it as a tool of its own, with its
+// own data.
 // What each person may do in the tool stays the Access tab's roles × actions.
 
 type Mode = "nobody" | "everyone" | "roles" | "people";
@@ -48,10 +49,10 @@ const CHOICES: Array<{ mode: Mode; label: string; hint: string }> = [
   { mode: "people", label: "Some people", hint: "Only the people you pick can add it." },
 ];
 const PILOT_CHOICES: typeof CHOICES = [
-  { mode: "nobody", label: "Admins and developers only", hint: "As every branch." },
-  { mode: "everyone", label: "Everyone in the workspace", hint: "Every member can pilot it." },
-  { mode: "roles", label: "Some roles", hint: "Members with one of these roles can pilot it." },
-  { mode: "people", label: "Some people", hint: "Only the people you pick can pilot it." },
+  { mode: "nobody", label: "Admins and developers only", hint: "As every channel but production." },
+  { mode: "everyone", label: "Everyone in the workspace", hint: "Every member can use it." },
+  { mode: "roles", label: "Some roles", hint: "Members with one of these roles can use it." },
+  { mode: "people", label: "Some people", hint: "Only the people you pick can use it." },
 ];
 
 const toggle = (list: string[], value: string, on: boolean) =>
@@ -72,7 +73,8 @@ export default function AvailabilityTab({ tool, branch, api }: ToolTabProps) {
       <div className="fc-stack">
         <RuleSection tool={tool} api={api} members={members.data} />
         <p className="fc-muted">
-          To let some people pilot a branch, choose the branch at the top of the page.
+          To open another channel (staging, a branch) to some people, choose it at the top of the
+          page.
         </p>
       </div>
     );
@@ -80,12 +82,14 @@ export default function AvailabilityTab({ tool, branch, api }: ToolTabProps) {
   return (
     <section className="fc-section" aria-labelledby="pilots-title">
       <h2 id="pilots-title" className="fc-section-title">
-        Who can pilot this branch
+        {branch.startsWith("~") ? "Who can use this channel" : "Who can use this branch"}
       </h2>
       <p className="fc-section-hint">
         The people you open it to add it from their library as a tool of its own, apart from the one
-        everyone uses, with its own data. Nothing is copied from production. A new version reaches
-        production only when you promote it.
+        everyone uses, with its own data. Nothing is copied from production.{" "}
+        {branch.startsWith("~")
+          ? "It takes the releases of the branch it follows."
+          : "Production takes only releases of the branch it follows: nothing goes there from this branch unless it is released there."}
       </p>
       <RuleSection tool={tool} api={api} members={members.data} branch={branch} />
     </section>
@@ -160,7 +164,7 @@ function AvailabilityForm({
   };
 
   return (
-    <section className="fc-section" aria-label={pilot ? `Who can pilot ${branch}` : undefined}>
+    <section className="fc-section" aria-label={pilot ? `Who can use ${branch}` : undefined}>
       {pilot ? null : (
         <>
           <h2 className="fc-section-title">Who can add this tool</h2>

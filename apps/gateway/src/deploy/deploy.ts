@@ -8,9 +8,9 @@ import {
   closePreview,
   deployBuild,
   docsProblem,
+  isReleaseVersion,
   type DeploymentCommit,
   type Registry,
-  type RegisteredEnvironment,
   type Tool,
 } from "@forgeron/registry";
 import { verifyActionsToken, type ActionsRun } from "../github/actions-oidc";
@@ -18,13 +18,12 @@ import { audienceOf, parseAudience } from "../identity/authn/audience";
 import { looksLikeJwt } from "../identity/authn/jwt";
 import type { Person } from "../kernel/person";
 import { issueToken, verifyToken } from "../identity/authn/tokens";
-import { updateByItself } from "../sources/update";
+import { releaseReached } from "../sources/update";
 
 /** The only scope a deployment token has today. */
 export const DEPLOY_SCOPE = "deploy";
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,39}$/;
-const ENVIRONMENTS: RegisteredEnvironment[] = ["preview", "production"];
 const DAY = 24 * 60 * 60;
 const MAX_DAYS = 365;
 
@@ -241,10 +240,11 @@ export interface DeployContext extends CallerContext {
 }
 
 /**
- * `POST /deploy` `{ environment, branch?, version, build, allowDestructive? }`, with
- * `Authorization: Bearer $FORGERON_TOKEN` or a GitHub Actions identity token. The tool is the
- * credential's, never the body's: a token for `crm` cannot deploy another tool, nor a build whose
- * manifest names another.
+ * `POST /deploy` `{ branch, version, build, allowDestructive? }`, with `Authorization: Bearer
+ * $FORGERON_TOKEN` or a GitHub Actions identity token. The tool is the credential's, never the body's:
+ * a token for `crm` cannot deploy another tool, nor a build whose manifest names another. A build goes
+ * to its branch's temporary channel only (D-125); when it is a release, the permanent channels that
+ * follow the branch and update by themselves take it.
  */
 export async function handleDeploy(request: Request, context: DeployContext): Promise<Response> {
   if (request.method === "DELETE") return handleClosePreview(request, context);
@@ -264,11 +264,23 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   if (commit === null) {
     return fail(400, "INVALID", "commit: { sha, message?, author? } as strings.");
   }
-  if (!ENVIRONMENTS.includes(environment as RegisteredEnvironment)) {
-    return fail(400, "INVALID", `environment: one of ${ENVIRONMENTS.join(", ")}.`);
+  // A permanent channel takes the releases of the branch it follows, never a build sent to it (D-125).
+  if (environment === "production") {
+    return fail(
+      400,
+      "NOT_A_BRANCH",
+      "A build goes to its branch. Production takes the releases of the branch it follows: release on that branch and push (`forgeron release`, then `git push --follow-tags`).",
+    );
   }
-  if (environment === "preview" && (typeof branch !== "string" || branch === "")) {
-    return fail(400, "INVALID", "branch: a preview is tied to a branch.");
+  if (environment !== undefined && environment !== "preview") {
+    return fail(400, "INVALID", "environment: preview, or nothing.");
+  }
+  if (typeof branch !== "string" || branch === "") {
+    return fail(400, "INVALID", "branch: the branch that was pushed.");
+  }
+  // `~` names a permanent channel (`/t/<tool>~<name>`); Git refuses it in a branch name.
+  if (branch.includes("~") || branch.length > 200) {
+    return fail(400, "INVALID", "branch: not a branch name.");
   }
   if (typeof version !== "string" || version === "") {
     return fail(400, "INVALID", "version: the number to publish.");
@@ -299,8 +311,8 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   try {
     const deployed = await deployBuild(registry, context.hosting, {
       tool,
-      environment: environment as RegisteredEnvironment,
-      ...(typeof branch === "string" && branch ? { branch } : {}),
+      environment: "preview",
+      branch,
       actor: caller.actor,
       ...(seed ? { seed } : {}),
       ...(commit ? { commit } : {}),
@@ -308,13 +320,19 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
       version,
       ...(allowDestructive === true ? { allowDestructive: true } : {}),
     });
-    // A repository tool's production branch is the candidate for production (D-121): it goes there
-    // by itself when the tool says so and nothing stops it. Never fails the deployment.
-    const source = environment === "preview" ? await registry.toolSource(tool.id) : undefined;
-    const production =
-      source?.kind === "repo" && branch === source.productionBranch
-        ? await updateByItself(registry, context.hosting, tool, caller.actor)
-        : undefined;
+    // A release reaches the permanent channels that follow its branch (D-125): each that updates by
+    // itself takes it when nothing stops it. Never fails the deployment.
+    const source = await registry.toolSource(tool.id);
+    const channels =
+      source.kind === "repo" && (await isReleaseVersion(registry, deployed.version))
+        ? await releaseReached(registry, context.hosting, tool, branch, caller.actor)
+        : [];
+    const reached = channels.find((c) => c.channel === "production");
+    const production = reached
+      ? "version" in reached
+        ? { version: reached.version }
+        : { waiting: reached.waiting }
+      : undefined;
     // GitHub shows the address beside the commit. Never fails the deployment.
     const sha = commit?.sha ?? caller.run?.sha;
     if (sha && context.report) {
@@ -322,18 +340,19 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
         .report(tool, {
           sha,
           url: deployed.activation.url,
-          environment: environment as string,
-          ...(typeof branch === "string" && branch ? { branch } : {}),
+          environment: "preview",
+          branch,
         })
         .catch(() => undefined);
     }
     return json(200, {
       tool: tool.name,
       version: deployed.version.version,
-      environment: environment,
+      environment: "preview",
       url: deployed.activation.url,
       applied: deployed.applied,
       ...(production ? { production } : {}),
+      ...(channels.length ? { channels } : {}),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -178,6 +178,7 @@ export function createToolsMock(workspaceEndpoint: string, iso: (offset: number)
         return {
           tool,
           production: null,
+          channels: [],
           branches: [],
         };
       }
@@ -185,6 +186,16 @@ export function createToolsMock(workspaceEndpoint: string, iso: (offset: number)
       return {
         tool,
         production: row(tool, "production", prod, 6 * DAY, state.production),
+        // A permanent channel an admin added (D-125), with its own database.
+        channels: [
+          {
+            ...row(tool, "production", "1.5.0", 2 * DAY, ["1.4.0", "1.5.0"]),
+            environment: "channel",
+            channel: "staging",
+            follows: "staging",
+            url: `https://acme.fabriks.example/t/${tool}~staging`,
+          },
+        ],
         branches: state.previews.map((p) =>
           row(tool, "preview", p.version, p.age, p.history, { branch: p.branch, status: p.status }),
         ),
@@ -204,6 +215,8 @@ export function createToolsMock(workspaceEndpoint: string, iso: (offset: number)
           version: v.version,
           publishedAt: iso(-v.age),
           environments: served(v.version),
+          branch: "main",
+          release: true,
           changelog: {
             entries: v.entries,
             declared: v.impact === "none" ? "minor" : v.impact,
@@ -257,20 +270,6 @@ export function createToolsMock(workspaceEndpoint: string, iso: (offset: number)
         },
       ],
     }),
-    promote(body: Json): Response | undefined {
-      if (!VERSIONS.some((v) => v.version === body.version)) return undefined;
-      state.production.push(body.version);
-      state.log.unshift({
-        id: `p${state.log.length}`,
-        at: iso(0),
-        actor: "ada@acme.example",
-        interface: "web",
-        kind: "promotion",
-        subject: `production:${body.version}`,
-        result: "ok",
-      });
-      return undefined;
-    },
     rollback() {
       const now = state.production.at(-1)!;
       const before = [...state.production].reverse().find((v) => v !== now)!;

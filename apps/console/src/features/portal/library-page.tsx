@@ -6,6 +6,7 @@ import { useLoad } from "../../use-load";
 import {
   addPilot,
   addToLibrary,
+  channelLabel,
   loadLibraryCard,
   loadPilotCard,
   removeFromLibrary,
@@ -151,7 +152,7 @@ export function LibraryToolPage({
 
   return (
     <Page
-      title={c.pilot ? `${c.title} · pilot` : c.title}
+      title={c.pilot ? `${c.title} · ${channelLabel(c.pilot)}` : c.title}
       description={
         <button type="button" className="fp-link" onClick={() => go("/")}>
           Back to my tools
@@ -178,9 +179,12 @@ export function LibraryToolPage({
         </div>
         {error ? <Notice tone="danger">{error}</Notice> : null}
         {c.pilot ? (
-          <Notice tone="info" title={`Pilot version · ${c.pilot}`}>
-            A version of {c.title} being prepared, for you to try. It has its own data: nothing you
-            do here reaches the {c.title} everyone uses, and nothing comes from it.
+          <Notice tone="info" title={channelLabel(c.pilot)}>
+            {c.pilot.startsWith("~")
+              ? `A channel of ${c.title} apart from production, opened to you.`
+              : `A version of ${c.title} being prepared, for you to try.`}{" "}
+            It has its own data: nothing you do here reaches the {c.title} everyone uses, and
+            nothing comes from it.
           </Notice>
         ) : null}
         {c.installed && c.needsSetup ? (

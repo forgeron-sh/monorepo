@@ -77,7 +77,7 @@ describe("pilots in the Availability tab (D-119, D-120)", () => {
       },
     });
     const view = await mount(<AvailabilityTab {...tabProps(api, "odoo")} branch="pilot-a" />);
-    expect(view.textContent).toContain("Who can pilot this branch");
+    expect(view.textContent).toContain("Who can use this branch");
     expect(view.textContent).toContain("Admins and developers only");
     expect(view.textContent).not.toContain("Who can add this tool");
     await click(view.querySelector<HTMLInputElement>("input[value=people]"));
@@ -89,14 +89,29 @@ describe("pilots in the Availability tab (D-119, D-120)", () => {
     ]);
   });
 
-  it("points to the branch picker from production", async () => {
+  it("points to the channel picker from production", async () => {
     const { api } = fakeApi({
       "/api/tools/odoo/availability": { mode: "nobody", roles: [], people: [], updatedAt: "x" },
       "/api/members": members,
     });
     const view = await mount(<AvailabilityTab {...tabProps(api, "odoo")} />);
     expect(view.textContent).toContain("Who can add this tool");
-    expect(view.textContent).toContain("choose the branch at the top of the page");
+    expect(view.textContent).toContain("choose it at the top of the page");
     expect(view.querySelector("details")).toBeNull();
+  });
+
+  it("opens a permanent channel by its reference, ~<name> (D-125)", async () => {
+    const { api } = fakeApi({
+      "/api/tools/odoo/previews/~staging/availability": {
+        mode: "open",
+        roles: [],
+        people: [],
+        updatedAt: null,
+      },
+      "/api/members": members,
+    });
+    const view = await mount(<AvailabilityTab {...tabProps(api, "odoo")} branch="~staging" />);
+    expect(view.textContent).toContain("Who can use this channel");
+    expect(view.textContent).toContain("It takes the releases of the branch it follows.");
   });
 });

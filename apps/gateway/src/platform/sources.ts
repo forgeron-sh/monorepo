@@ -1,27 +1,33 @@
 import { ChangelogRefusal, MigrationError } from "@forgeron/hosting";
 import {
+  addChannelRoute,
   addRepositoryToolRoute,
   copyBranchDataRoute,
   getToolSourceRoute,
+  putChannelRoute,
   putToolSourceRoute,
+  removeChannelRoute,
   updateToolRoute,
 } from "@forgeron/platform-contract";
-import { RegistryError, type ToolSource } from "@forgeron/registry";
+import {
+  closeChannel,
+  RegistryError,
+  type Registry,
+  type Tool,
+  type ToolSource,
+} from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { issueToken } from "../identity/authn/tokens";
 import { DEPLOY_SCOPE } from "../deploy/deploy";
-import {
-  describeUpdate,
-  marketplaceIdOf,
-  putUpdateInProduction,
-  UpdateError,
-} from "../sources/update";
+import { describeUpdate, marketplaceIdOf, updateChannel, UpdateError } from "../sources/update";
 import { CopyError, copyDatabase } from "../sources/branch-data";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// Where a tool comes from, and its update (D-121), for admins. The update is put in production with
-// what it asks for approved in the same step: there is no screen of approvals. Adding a tool from a
-// repository creates it with no environment and gives the token its CI deploys with.
+// Where a tool comes from, its permanent channels and their updates (D-121, D-125), for admins. An
+// update puts a release of the branch a channel follows on that channel, with what it asks for
+// approved in the same step: there is no screen of approvals, and no promotion between branches.
+// Adding a tool from a repository creates it with no environment and gives the token its CI deploys
+// with.
 
 const missing = (message: string) => ({ error: "NOT_FOUND", message });
 const NOT_CONFIGURED = {
@@ -40,16 +46,53 @@ const sourceJson = (source: ToolSource) => ({
   autoUpdate: source.autoUpdate,
 });
 
+/** Where a permanent channel answers: `/t/<tool>/`, `/t/<tool>~<name>/` (D-125). */
+const channelAddress = (origin: string, tool: string, channel: string) =>
+  `${origin}/t/${tool}${channel === "production" ? "" : `~${channel}`}/`;
+
+/** One permanent channel as the console reads it, with the release waiting for it. */
+async function channelJson(
+  c: { env: PlatformEnv["Bindings"] },
+  registry: Registry,
+  tool: Tool,
+  source: ToolSource,
+  name: string,
+) {
+  const hosting = c.env.hosting(c.env.workspace);
+  const channel = (await registry.permanentChannels(tool.id)).find((x) => x.name === name)!;
+  const described = await describeUpdate(registry, tool, source, name, hosting);
+  return {
+    name,
+    ...(channel.follows ? { follows: channel.follows } : {}),
+    autoUpdate: channel.autoUpdate,
+    serves: described.production,
+    address: channelAddress(c.env.origin, tool.name, name),
+    update: described.update,
+  };
+}
+
+/** The tool's source and every permanent channel, production first. */
+async function sourceAnswer(c: { env: PlatformEnv["Bindings"] }, registry: Registry, tool: Tool) {
+  const source = await registry.toolSource(tool.id);
+  const channels = [];
+  for (const channel of await registry.permanentChannels(tool.id)) {
+    channels.push(await channelJson(c, registry, tool, source, channel.name));
+  }
+  const production = channels[0]!;
+  return {
+    ...sourceJson(source),
+    production: production.serves,
+    update: production.update,
+    channels,
+  };
+}
+
 export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
   app.openapi(platformRoute(getToolSourceRoute, "admin"), async (c) => {
     const { registry, workspace } = c.env;
     const tool = await registry.findTool(workspace, c.req.valid("param").tool);
     if (!tool) return c.json(missing("There is no such tool."), 404);
-    const source = await registry.toolSource(tool.id);
-    return c.json(
-      { ...sourceJson(source), ...(await describeUpdate(registry, tool, source)) },
-      200,
-    );
+    return c.json(await sourceAnswer(c, registry, tool), 200);
   });
 
   app.openapi(platformRoute(putToolSourceRoute, "admin"), async (c) => {
@@ -57,16 +100,106 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
     const tool = await registry.findTool(workspace, c.req.valid("param").tool);
     if (!tool) return c.json(missing("There is no such tool."), 404);
     const body = c.req.valid("json");
-    const source = await registry.setToolSource({
+    await registry.setToolSource({
       toolId: tool.id,
       ...(body.autoUpdate === undefined ? {} : { autoUpdate: body.autoUpdate }),
       ...(body.productionBranch === undefined ? {} : { productionBranch: body.productionBranch }),
       actor: c.get("person").id,
     });
-    return c.json(
-      { ...sourceJson(source), ...(await describeUpdate(registry, tool, source)) },
-      200,
-    );
+    return c.json(await sourceAnswer(c, registry, tool), 200);
+  });
+
+  app.openapi(platformRoute(addChannelRoute, "admin"), async (c) => {
+    const { registry, workspace } = c.env;
+    const tool = await registry.findTool(workspace, c.req.valid("param").tool);
+    if (!tool) return c.json(missing("There is no such tool."), 404);
+    const body = c.req.valid("json");
+    const source = await registry.toolSource(tool.id);
+    if (source.kind === "repo" && !body.follows) {
+      return c.json(
+        { error: "INVALID", message: "follows: the branch whose releases it takes." },
+        400,
+      );
+    }
+    try {
+      await registry.addChannel({
+        toolId: tool.id,
+        name: body.name,
+        ...(source.kind === "repo" && body.follows ? { follows: body.follows } : {}),
+        ...(body.autoUpdate === undefined ? {} : { autoUpdate: body.autoUpdate }),
+        actor: c.get("person").id,
+        ...(c.env.via ? { via: c.env.via } : {}),
+      });
+    } catch (error) {
+      if (error instanceof RegistryError && error.code === "ALREADY_EXISTS") {
+        return c.json({ error: error.code, message: error.message }, 409);
+      }
+      if (error instanceof RegistryError && error.code === "INVALID") {
+        return c.json({ error: error.code, message: error.message }, 400);
+      }
+      throw error;
+    }
+    return c.json(await channelJson(c, registry, tool, source, body.name), 201);
+  });
+
+  app.openapi(platformRoute(putChannelRoute, "admin"), async (c) => {
+    const { registry, workspace } = c.env;
+    const { tool: name, channel } = c.req.valid("param");
+    const tool = await registry.findTool(workspace, name);
+    if (!tool) return c.json(missing("There is no such tool."), 404);
+    const body = c.req.valid("json");
+    const actor = c.get("person").id;
+    if (channel === "production") {
+      // Production's settings are the source's: the same as `PUT /source`.
+      await registry.setToolSource({
+        toolId: tool.id,
+        ...(body.autoUpdate === undefined ? {} : { autoUpdate: body.autoUpdate }),
+        ...(body.follows === undefined ? {} : { productionBranch: body.follows }),
+        actor,
+      });
+    } else {
+      if (!(await registry.findChannel(tool.id, channel))) {
+        return c.json(missing(`There is no channel ${channel}.`), 404);
+      }
+      await registry.setChannel({
+        toolId: tool.id,
+        name: channel,
+        ...(body.follows === undefined ? {} : { follows: body.follows }),
+        ...(body.autoUpdate === undefined ? {} : { autoUpdate: body.autoUpdate }),
+        actor,
+        ...(c.env.via ? { via: c.env.via } : {}),
+      });
+    }
+    const source = await registry.toolSource(tool.id);
+    return c.json(await channelJson(c, registry, tool, source, channel), 200);
+  });
+
+  app.openapi(platformRoute(removeChannelRoute, "admin"), async (c) => {
+    const { registry, workspace } = c.env;
+    const { tool: name, channel } = c.req.valid("param");
+    const tool = await registry.findTool(workspace, name);
+    if (!tool) return c.json(missing("There is no such tool."), 404);
+    if (channel === "production") {
+      return c.json({ error: "INVALID", message: "Production is never removed." }, 400);
+    }
+    if (c.req.valid("json").confirm !== channel) {
+      return c.json({ error: "NOT_CONFIRMED", message: `Type ${channel} to confirm.` }, 400);
+    }
+    if (!(await registry.findChannel(tool.id, channel))) {
+      return c.json(missing(`There is no channel ${channel}.`), 404);
+    }
+    const hosting = c.env.hosting(workspace);
+    if (!hosting) return c.json(NOT_CONFIGURED, 501);
+    await closeChannel(registry, hosting, tool, channel);
+    await registry.recordAudit({
+      toolId: tool.id,
+      actor: c.get("person").id,
+      ...(c.env.via ? { via: c.env.via } : {}),
+      kind: "access",
+      subject: `channel:${channel}`,
+      detail: { event: "channel-removed" },
+    });
+    return c.json({ removed: true as const }, 200);
   });
 
   app.openapi(platformRoute(updateToolRoute, "admin"), async (c) => {
@@ -76,21 +209,23 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
     const hosting = c.env.hosting(workspace);
     if (!hosting) return c.json(NOT_CONFIGURED, 501);
     const body = c.req.valid("json");
+    const channel = body.channel ?? "production";
     try {
-      const done = await putUpdateInProduction(registry, hosting, tool, {
+      const done = await updateChannel(registry, hosting, tool, {
         actor: c.get("person").email,
+        channel,
         ...(c.env.via ? { via: c.env.via } : {}),
         ...(body.approve ? { approve: true } : {}),
-        ...(body.withoutRelease ? { withoutRelease: true } : {}),
+        ...(body.allowDestructive ? { allowDestructive: true } : {}),
         expected: body.version,
       });
-      return c.json({ tool: tool.name, version: done.version.version }, 200);
+      return c.json({ tool: tool.name, channel, version: done.version.version }, 200);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (error instanceof UpdateError) {
-        return error.code === "NO_UPDATE"
-          ? c.json({ error: error.code, message }, 404)
-          : c.json({ error: error.code, message }, 409);
+        return error.code === "STALE"
+          ? c.json({ error: error.code, message }, 409)
+          : c.json({ error: error.code, message }, 404);
       }
       if (error instanceof ChangelogRefusal) return c.json({ error: error.code, message }, 422);
       if (error instanceof MigrationError) {
@@ -197,5 +332,7 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
   app.all("/api/tools/:tool/branches/:branch/data", methodNotAllowed);
   app.all("/api/tools/:tool/source", methodNotAllowed);
   app.all("/api/tools/:tool/update", methodNotAllowed);
+  app.all("/api/tools/:tool/channels", methodNotAllowed);
+  app.all("/api/tools/:tool/channels/:channel", methodNotAllowed);
   app.all("/api/tools/from-repository", methodNotAllowed);
 }

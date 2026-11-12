@@ -1,10 +1,12 @@
-// Receiving a build, promoting a version, rolling an environment back: each is recorded in the
-// audit log (who, when, which version). The registry is written only for what happened: a build
-// that fails to deploy stays recorded (CI can retry), but the environment keeps pointing at its
-// previous version.
+// Receiving a build on a branch's temporary channel, putting a release on a permanent channel, rolling
+// a channel back: each is recorded in the audit log (who, when, which version). The registry is
+// written only for what happened: a build that fails to deploy stays recorded (CI can retry), but the
+// channel keeps pointing at its previous version (D-125).
 import { diffResourceChanges, type Manifest } from "@forgeron/manifest";
 import {
   deploy,
+  isPermanent,
+  isRelease,
   restore,
   teardownPreview,
   type Build,
@@ -29,8 +31,10 @@ import {
 export interface DeployBuildInput {
   tool: Tool;
   environment: RegisteredEnvironment;
-  /** A preview is tied to a branch. */
+  /** A preview is tied to a branch; the version keeps it (D-125). */
   branch?: string;
+  /** A permanent channel other than production: its name. */
+  channel?: string;
   build: Build;
   /** The number the version is published under. */
   version: string;
@@ -48,7 +52,8 @@ export interface DeployedBuild extends Deployment {
   environment: EnvironmentRecord;
 }
 
-const guarded = (name: RegisteredEnvironment) => name === "production";
+/** A permanent channel: it takes only releases, approved, and keeps its data (D-125). */
+const guarded = (name: RegisteredEnvironment) => isPermanent({ name });
 
 /**
  * What a version asks for that production does not have yet (sdk.md §3): each resource added or
@@ -75,7 +80,7 @@ async function requestApprovals(
   }
 }
 
-/** Production waits for an admin; a preview does not. */
+/** A permanent channel waits for an admin; a preview does not. */
 async function assertApproved(
   registry: Registry,
   environment: RegisteredEnvironment,
@@ -91,10 +96,15 @@ async function assertApproved(
   }
 }
 
-const target = (tool: Tool, name: RegisteredEnvironment, branch?: string) => ({
+/** The key of an environment in the registry: a preview's branch, a channel's name, or none. */
+const keyOf = (name: RegisteredEnvironment, branch?: string, channel?: string) =>
+  name === "preview" ? branch : name === "channel" ? channel : undefined;
+
+const target = (tool: Tool, name: RegisteredEnvironment, branch?: string, channel?: string) => ({
   tool: tool.name,
   name,
-  ...(branch ? { branch } : {}),
+  ...(name === "preview" && branch ? { branch } : {}),
+  ...(name === "channel" && channel ? { channel } : {}),
 });
 
 /** A recorded build, as a host takes it. A build recorded without its code cannot be redeployed. */
@@ -122,7 +132,11 @@ export async function deployBuild(
   const { tool, build } = input;
   const problem = await docsProblem(build.manifest, build.docs);
   if (problem) throw new RegistryError("INVALID_DOCS", problem);
-  const slot = await registry.ensureEnvironment(tool.id, input.environment, input.branch);
+  const slot = await registry.ensureEnvironment(
+    tool.id,
+    input.environment,
+    keyOf(input.environment, input.branch, input.channel),
+  );
   const recorded = await registry.recordBuild(tool.id, {
     fingerprint: build.fingerprint,
     manifest: build.manifest,
@@ -131,13 +145,23 @@ export async function deployBuild(
     ...(build.changelog ? { changelog: build.changelog } : {}),
   });
   if (build.docs) await registry.storeDocs(tool.id, recorded.id, build.docs);
-  const version = await registry.publishVersion(tool.id, recorded.id, input.version);
+  const version = await registry.publishVersion(
+    tool.id,
+    recorded.id,
+    input.version,
+    input.environment === "preview" ? input.branch : undefined,
+  );
   await requestApprovals(registry, tool, version, build.manifest);
   await assertApproved(registry, input.environment, version);
-  const deployment = await deploy(hosting, target(tool, input.environment, input.branch), build, {
-    ...(input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive }),
-    ...(input.seed ? { seed: input.seed } : {}),
-  });
+  const deployment = await deploy(
+    hosting,
+    target(tool, input.environment, input.branch, input.channel),
+    build,
+    {
+      ...(input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive }),
+      ...(input.seed ? { seed: input.seed } : {}),
+    },
+  );
   const environment = await registry.activate(slot.id, version.id, {
     actor: input.actor,
     url: deployment.activation.url,
@@ -146,12 +170,13 @@ export async function deployBuild(
   return { ...deployment, version, environment };
 }
 
-export interface PromoteInput {
+export interface PutOnChannelInput {
   tool: Tool;
   /** The version number, as published. */
   version: string;
-  to: RegisteredEnvironment;
-  branch?: string;
+  /** A permanent channel: production, or another one (`channel` names it). */
+  to: "production" | "channel";
+  channel?: string;
   allowDestructive?: boolean;
   actor: string;
   /** Through which door the call came, when it is not the CLI or the console. */
@@ -163,19 +188,20 @@ export interface PromoteInput {
    * of the update, not a screen. Only a person may pass it, never a deployment token.
    */
   approve?: boolean;
-  /** Production takes a build with no release, knowingly (D-121). */
-  withoutRelease?: boolean;
+  /** A marketplace's publication is its release (D-121): its changelog may list nothing. */
+  published?: boolean;
 }
 
 /**
- * Puts an existing version on another environment, from the code recorded with its build: no
- * rebuild. The target takes it under the same rules as a deployment (changelog, destructive
- * migrations).
+ * Puts a release the tool already has on a permanent channel, from the code recorded with its build:
+ * no rebuild (D-125, the update). The channel takes it under the rules of a permanent channel: a
+ * release that covers the change, approved, and no destructive migration without `allowDestructive`.
+ * Nothing moves between branches: the release was made on the branch the channel follows.
  */
-export async function promoteVersion(
+export async function putOnChannel(
   registry: Registry,
   hosting: Hosting,
-  input: PromoteInput,
+  input: PutOnChannelInput,
 ): Promise<DeployedBuild> {
   const { tool } = input;
   const version = await registry.findVersion(tool.id, input.version);
@@ -184,30 +210,47 @@ export async function promoteVersion(
   }
   const record = await registry.getBuild(version.buildId);
   if (!record) throw new RegistryError("NOT_FOUND", `There is no build ${version.buildId}.`);
-  const slot = await registry.ensureEnvironment(tool.id, input.to, input.branch);
-  if (input.approve && guarded(input.to)) {
-    await approveVersion(registry, version.id, input.actor, input.via);
-  }
+  const slot = await registry.ensureEnvironment(
+    tool.id,
+    input.to,
+    keyOf(input.to, undefined, input.channel),
+  );
+  if (input.approve) await approveVersion(registry, version.id, input.actor, input.via);
   await assertApproved(registry, input.to, version);
-  const deployment = await deploy(hosting, target(tool, input.to, input.branch), buildOf(record), {
-    ...(input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive }),
-    ...(input.withoutRelease ? { withoutRelease: true } : {}),
-  });
+  const deployment = await deploy(
+    hosting,
+    target(tool, input.to, undefined, input.channel),
+    buildOf(record),
+    {
+      ...(input.allowDestructive === undefined ? {} : { allowDestructive: input.allowDestructive }),
+      ...(input.published ? { published: true } : {}),
+    },
+  );
   const environment = await registry.activate(slot.id, version.id, {
     actor: input.actor,
     ...(input.via ? { via: input.via } : {}),
     kind: "promote",
     url: deployment.activation.url,
     ...(input.reason ? { reason: input.reason } : {}),
-    ...(input.withoutRelease && guarded(input.to) ? { withoutRelease: true } : {}),
   });
   return { ...deployment, version, environment };
+}
+
+/** Whether a version is a release: its build's changelog says so (D-125). */
+export async function isReleaseVersion(
+  registry: Registry,
+  version: VersionRecord,
+): Promise<boolean> {
+  const build = await registry.getBuild(version.buildId);
+  return isRelease(build?.changelog as Build["changelog"]);
 }
 
 export interface RollbackInput {
   tool: Tool;
   environment: RegisteredEnvironment;
   branch?: string;
+  /** A permanent channel other than production: its name. */
+  channel?: string;
   actor: string;
   /** Through which door the call came, when it is not the CLI or the console. */
   via?: string;
@@ -216,8 +259,8 @@ export interface RollbackInput {
 }
 
 /**
- * Puts the version the environment served before the current one back on traffic. No migration is
- * rolled back or applied (`forgeron db rollback` is explicit).
+ * Puts the version the channel served before the current one back on traffic: a version it served,
+ * so no new code (D-125). No migration is rolled back or applied (`forgeron db rollback` is explicit).
  */
 export async function rollbackEnvironment(
   registry: Registry,
@@ -225,19 +268,21 @@ export async function rollbackEnvironment(
   input: RollbackInput,
 ): Promise<{ version: VersionRecord; environment: EnvironmentRecord }> {
   const { tool } = input;
-  const slot = await registry.ensureEnvironment(tool.id, input.environment, input.branch);
+  const slot = await registry.ensureEnvironment(
+    tool.id,
+    input.environment,
+    keyOf(input.environment, input.branch, input.channel),
+  );
   const previous = await registry.previousVersion(slot.id);
   if (!previous) {
-    throw new RegistryError(
-      "NO_PREVIOUS",
-      `The ${input.environment} environment has no earlier version.`,
-    );
+    const where = input.channel ? `channel ${input.channel}` : `${input.environment} environment`;
+    throw new RegistryError("NO_PREVIOUS", `The ${where} has no earlier version.`);
   }
   const record = await registry.getBuild(previous.buildId);
   if (!record) throw new RegistryError("NOT_FOUND", `There is no build ${previous.buildId}.`);
   const { activation } = await restore(
     hosting,
-    target(tool, input.environment, input.branch),
+    target(tool, input.environment, input.branch, input.channel),
     buildOf(record),
   );
   const environment = await registry.activate(slot.id, previous.id, {
@@ -262,6 +307,22 @@ export async function closePreview(
     (e) => e.name === "preview" && e.branch === branch,
   );
   if (environment) await registry.removeEnvironment(environment.id);
+}
+
+/**
+ * An admin removes a permanent channel other than production: its Worker and its database go, then
+ * the channel is forgotten with its history (D-125). Production is never removed.
+ */
+export async function closeChannel(
+  registry: Registry,
+  hosting: Hosting,
+  tool: Tool,
+  channel: string,
+): Promise<void> {
+  const environment = await registry.findChannel(tool.id, channel);
+  if (!environment) throw new RegistryError("NOT_FOUND", `There is no channel ${channel}.`);
+  await hosting.teardown({ tool: tool.name, name: "channel", channel });
+  await registry.removeEnvironment(environment.id);
 }
 
 /** An admin accepts everything a version asks for: it can now reach production. */

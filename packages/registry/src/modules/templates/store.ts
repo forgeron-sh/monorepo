@@ -6,6 +6,7 @@
 // The batch writes rows of the catalog and approvals modules on purpose: a half-made install (a tool
 // without its approval requests) would let a promotion skip the approvals, so the rows and the audit
 // line must be one transaction.
+import { isRelease, type BuildChangelog } from "@forgeron/hosting";
 import { diffResourceChanges, type Manifest } from "@forgeron/manifest";
 import { RegistryError } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
@@ -13,6 +14,7 @@ import type { Catalog, Tool } from "../catalog/public";
 import {
   TEMPLATE_WORKSPACE,
   type AvailableUpdate,
+  type PermanentChannel,
   type DescribedTemplate,
   type InstalledTemplate,
   type InstallPlan,
@@ -48,6 +50,7 @@ export type CatalogPort = Pick<
   | "getVersion"
   | "findVersion"
   | "listEnvironments"
+  | "versionsOfBranch"
   | "readmeOf"
   | "guideOf"
 >;
@@ -294,10 +297,13 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
       return row ? toSource(row) : DEFAULT_SOURCE;
     },
 
-    /** The tools of a workspace installed from a catalogue that update by themselves (D-121). */
+    /**
+     * The tools of a workspace installed from a catalogue with a permanent channel that updates by
+     * itself (D-121, D-125): production, or another channel.
+     */
     async autoUpdatingFrom(workspace: string, source: string): Promise<string[]> {
       const rows = await kernel.all(
-        `SELECT t."name" FROM "tool_sources" s JOIN "tools" t ON t."id" = s."tool_id" WHERE t."workspace" = ? AND s."kind" = 'marketplace' AND s."source" = ? AND s."auto_update" = 1 ORDER BY t."name"`,
+        `SELECT t."name" FROM "tool_sources" s JOIN "tools" t ON t."id" = s."tool_id" WHERE t."workspace" = ? AND s."kind" = 'marketplace' AND s."source" = ? AND (s."auto_update" = 1 OR EXISTS (SELECT 1 FROM "environments" e WHERE e."tool_id" = s."tool_id" AND e."name" = 'channel' AND e."auto_update" = 1)) ORDER BY t."name"`,
         workspace,
         source,
       );
@@ -401,42 +407,64 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
     },
 
     /**
-     * The version the tool could move to, or `undefined`. A marketplace tool: the catalogue's latest
-     * version, when the tool does not have it yet. A repository tool: the version the preview of its
-     * production branch serves, when production serves another.
+     * The permanent channels of a tool (D-125): production first, then the ones an admin added, by
+     * name. Production follows the source's production branch; a marketplace tool's channels follow
+     * the marketplace (no branch).
      */
-    async availableUpdate(toolId: string): Promise<AvailableUpdate | undefined> {
+    async permanentChannels(toolId: string): Promise<PermanentChannel[]> {
+      const source = await this.toolSource(toolId);
+      const environments = await catalog.listEnvironments(toolId);
+      const production = environments.find((e) => e.name === "production");
+      const repo = source.kind === "repo";
+      return [
+        {
+          name: "production",
+          ...(repo ? { follows: source.productionBranch } : {}),
+          autoUpdate: source.autoUpdate,
+          ...(production ? { environment: production } : {}),
+        },
+        ...environments
+          .filter((e) => e.name === "channel")
+          .map((e) => ({
+            name: e.channel!,
+            ...(repo && e.follows ? { follows: e.follows } : {}),
+            autoUpdate: e.autoUpdate === true,
+            environment: e,
+          })),
+      ];
+    },
+
+    /**
+     * The release a permanent channel could move to, or `undefined` (D-125). A marketplace tool: the
+     * catalogue's latest version, when the channel does not serve it. A repository tool: the latest
+     * release of the branch the channel follows, when the channel serves another. A build that is not
+     * a release never reaches a permanent channel, whatever the branch's preview serves.
+     */
+    async availableUpdate(
+      toolId: string,
+      channel = "production",
+    ): Promise<AvailableUpdate | undefined> {
+      const found = (await this.permanentChannels(toolId)).find((c) => c.name === channel);
+      if (!found) return undefined;
+      const served = found.environment?.versionId
+        ? await catalog.getVersion(found.environment.versionId)
+        : undefined;
       const source = await this.toolSource(toolId);
       if (source.kind === "marketplace") {
         if (!source.source || !source.sourceTool) return undefined;
         const from = await catalog.findTool(source.source, source.sourceTool);
-        const found = from ? await latest(from.id) : undefined;
-        if (!found) return undefined;
-        if (await catalog.findVersion(toolId, found.version.version)) {
-          // Copied already: an update is waiting only if production does not serve it yet.
-          const production = (await catalog.listEnvironments(toolId)).find(
-            (e) => e.name === "production",
-          );
-          const served = production?.versionId
-            ? await catalog.getVersion(production.versionId)
-            : undefined;
-          return served?.version === found.version.version
-            ? undefined
-            : { version: found.version.version };
-        }
-        return { version: found.version.version };
+        const newest = from ? await latest(from.id) : undefined;
+        if (!newest) return undefined;
+        return served?.version === newest.version.version
+          ? undefined
+          : { version: newest.version.version };
       }
-      const environments = await catalog.listEnvironments(toolId);
-      const preview = environments.find(
-        (e) => e.name === "preview" && e.branch === source.productionBranch && e.versionId,
+      if (!found.follows) return undefined;
+      const release = (await catalog.versionsOfBranch(toolId, found.follows)).find((v) =>
+        isRelease(v.changelog as BuildChangelog | null),
       );
-      if (!preview?.versionId) return undefined;
-      const production = environments.find((e) => e.name === "production");
-      if (production?.versionId === preview.versionId) return undefined;
-      const candidate = await catalog.getVersion(preview.versionId);
-      return candidate
-        ? { version: candidate.version, branch: source.productionBranch }
-        : undefined;
+      if (!release || release.id === served?.id) return undefined;
+      return { version: release.version, branch: found.follows };
     },
 
     /**

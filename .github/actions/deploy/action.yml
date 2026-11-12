@@ -18,10 +18,6 @@ inputs:
       does not name it.
     required: false
     default: ""
-  environment:
-    description: Environment to deploy to (preview or production).
-    required: false
-    default: preview
   args:
     description: Extra arguments for forgeron deploy, such as --allow-destructive.
     required: false
@@ -67,7 +63,6 @@ runs:
         ROOT: ${{ inputs.working-directory }}
         FORGERON_TOKEN: ${{ inputs.token }}
         FORGERON_ENDPOINT: ${{ inputs.endpoint }}
-        FORGERON_ENV: ${{ inputs.environment }}
         FORGERON_ARGS: ${{ inputs.args }}
         FORGERON_CMD: ${{ inputs.command }}
         FORGERON_INSTALL: ${{ inputs.install }}

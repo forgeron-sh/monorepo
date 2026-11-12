@@ -129,7 +129,7 @@ describe("a tool's branches", () => {
 
   it("answers an empty tool", async () => {
     const body = (await (await call("/api/tools/draft/branches"))!.json()) as any;
-    expect(body).toEqual({ tool: "draft", production: null, branches: [] });
+    expect(body).toEqual({ tool: "draft", production: null, channels: [], branches: [] });
   });
 });
 

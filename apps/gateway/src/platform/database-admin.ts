@@ -1,6 +1,7 @@
 import { dbMigrationsRoute, dbQueryRoute, MAX_QUERY_ROWS } from "@forgeron/platform-contract";
 import { checkMigrations, type BuildMigration, type D1Database } from "@forgeron/hosting";
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import { channelRef, environmentOfRef, hostingTargetOf } from "@forgeron/registry";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
 // Operations on a tool's remote database (D-113), for admins: the migrations of an environment against the
@@ -55,9 +56,15 @@ export function mountDatabaseAdmin(app: OpenAPIHono<PlatformEnv>): void {
     const tool = await registry.findTool(workspace, toolName);
     if (!tool)
       return { status: 404 as const, body: note("NOT_FOUND", `There is no tool ${toolName}.`) };
-    const environment = (await registry.listEnvironments(tool.id)).find(
-      (e) => e.name === name && (e.name === "production" ? !branch : e.branch === branch),
-    );
+    // Production, or a channel other than production by its reference: a branch, or `~<name>` (D-125).
+    const environment =
+      name === "production"
+        ? branch
+          ? undefined
+          : (await registry.listEnvironments(tool.id)).find((e) => e.name === "production")
+        : name === "preview" && branch
+          ? await environmentOfRef(registry, tool.id, branch)
+          : undefined;
     if (!environment) {
       return { status: 404 as const, body: note("NOT_FOUND", "There is no such environment.") };
     }
@@ -87,11 +94,7 @@ export function mountDatabaseAdmin(app: OpenAPIHono<PlatformEnv>): void {
     }
     try {
       const db = await within(
-        hosting.openDatabase!({
-          tool: tool.name,
-          name: environment.name,
-          ...(environment.branch ? { branch: environment.branch } : {}),
-        }),
+        hosting.openDatabase!(hostingTargetOf(tool.name, environment)),
         c.env.databaseTimeoutMs ?? STATEMENT_TIMEOUT_MS,
       );
       if (!db)
@@ -106,7 +109,7 @@ export function mountDatabaseAdmin(app: OpenAPIHono<PlatformEnv>): void {
       return c.json(
         {
           environment: environment.name,
-          ...(environment.branch ? { branch: environment.branch } : {}),
+          ...(environment.name === "production" ? {} : { branch: channelRef(environment) }),
           version: version.version,
           ...check,
         },
@@ -141,11 +144,12 @@ export function mountDatabaseAdmin(app: OpenAPIHono<PlatformEnv>): void {
         422,
       );
     }
-    if (writing && environment.name === "production" && body.confirm !== tool.name) {
+    // A permanent channel keeps its data (D-125): a write there is confirmed, as on production.
+    if (writing && environment.name !== "preview" && body.confirm !== tool.name) {
       return c.json(
         note(
           "CONFIRM_REQUIRED",
-          `A write on production needs \`confirm\` set to the tool's name ("${tool.name}").`,
+          `A write on a permanent channel needs \`confirm\` set to the tool's name ("${tool.name}").`,
         ),
         409,
       );
@@ -153,6 +157,7 @@ export function mountDatabaseAdmin(app: OpenAPIHono<PlatformEnv>): void {
     const where = {
       environment: environment.name,
       ...(environment.branch ? { branch: environment.branch } : {}),
+      ...(environment.channel ? { channel: environment.channel } : {}),
     };
     const actor = c.get("person").id;
     // The record comes first: a statement that cannot be recorded is not run. A write keeps its text (an
@@ -183,11 +188,7 @@ export function mountDatabaseAdmin(app: OpenAPIHono<PlatformEnv>): void {
     const timeoutMs = c.env.databaseTimeoutMs ?? STATEMENT_TIMEOUT_MS;
     try {
       const db: D1Database | undefined = await within(
-        hosting.openDatabase!({
-          tool: tool.name,
-          name: environment.name,
-          ...(environment.branch ? { branch: environment.branch } : {}),
-        }),
+        hosting.openDatabase!(hostingTargetOf(tool.name, environment)),
         timeoutMs,
       );
       if (!db)

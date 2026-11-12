@@ -28,8 +28,9 @@ export const LibraryToolSchema = z.strictObject({
   /** Whether the person still has something to give before it works (their own key, an account…). */
   needsSetup: z.boolean(),
   /**
-   * The branch, for a pilot (D-119): a version being tried, with its own data, apart from the tool
-   * everyone uses. `null` for the tool itself.
+   * A channel other than production (D-119, D-125), by its reference: a branch for a temporary
+   * channel, `~<name>` for a permanent one. It has its own data, apart from production. `null` for
+   * the tool itself (production).
    */
   pilot: z.string().nullable(),
 });
@@ -159,27 +160,29 @@ export const putAvailabilityRoute = defineRoute({
   },
 });
 
-// ---- pilots (D-119): a branch preview opened to people, as a tool of its own with its own data
+// ---- channels other than production (D-119, D-125): opened to people, each with its own data. The
+// `{branch}` of these paths is the channel's reference: a branch for a temporary channel, `~<name>`
+// for a permanent one (`~staging`). Git refuses `~` in a branch name, so the two never clash.
 
 const pilotParams = z.object({ tool: z.string(), branch: z.string() });
 
 export const pilotCardRoute = defineRoute({
   method: "get",
   path: "/api/library/{tool}/pilots/{branch}",
-  summary: "How to use a pilot version of a tool, for the person",
+  summary: "How to use a channel of a tool other than production, for the person",
   tags: ["library"],
   request: { params: pilotParams },
   responses: {
     200: json(LibraryCardSchema, "The card"),
     401: notSignedIn,
-    404: json(ErrorSchema, "No such pilot, or the person may not add it"),
+    404: json(ErrorSchema, "No such channel, or the person may not add it"),
   },
 });
 
 export const installPilotRoute = defineRoute({
   method: "post",
   path: "/api/library/{tool}/pilots/{branch}",
-  summary: "Add a pilot version of a tool to the person's library",
+  summary: "Add a channel of a tool other than production to the person's library",
   tags: ["library"],
   request: { params: pilotParams },
   responses: {
@@ -188,14 +191,14 @@ export const installPilotRoute = defineRoute({
       "Added",
     ),
     401: notSignedIn,
-    404: json(ErrorSchema, "No such pilot, or the person may not add it"),
+    404: json(ErrorSchema, "No such channel, or the person may not add it"),
   },
 });
 
 export const uninstallPilotRoute = defineRoute({
   method: "delete",
   path: "/api/library/{tool}/pilots/{branch}",
-  summary: "Remove a pilot version from the person's library",
+  summary: "Remove a channel of a tool from the person's library",
   tags: ["library"],
   request: { params: pilotParams },
   responses: {
@@ -208,21 +211,21 @@ export const uninstallPilotRoute = defineRoute({
 export const getPilotAvailabilityRoute = defineRoute({
   method: "get",
   path: "/api/tools/{tool}/previews/{branch}/availability",
-  summary: "Who may pilot a branch of a tool",
+  summary: "Who may use a channel of a tool other than production",
   tags: ["library"],
   request: { params: pilotParams },
   responses: {
     200: json(AvailabilitySchema, "The rule; `open` means admins and developers only"),
     401: notSignedIn,
     403: json(ErrorSchema, "Not an admin"),
-    404: json(ErrorSchema, "No such tool or preview"),
+    404: json(ErrorSchema, "No such tool or channel"),
   },
 });
 
 export const putPilotAvailabilityRoute = defineRoute({
   method: "put",
   path: "/api/tools/{tool}/previews/{branch}/availability",
-  summary: "Set who may pilot a branch of a tool",
+  summary: "Set who may use a channel of a tool other than production",
   tags: ["library"],
   request: {
     params: pilotParams,
@@ -244,6 +247,6 @@ export const putPilotAvailabilityRoute = defineRoute({
     400: json(ErrorSchema, "Not a rule"),
     401: notSignedIn,
     403: json(ErrorSchema, "Not an admin"),
-    404: json(ErrorSchema, "No such tool or preview"),
+    404: json(ErrorSchema, "No such tool or channel"),
   },
 });

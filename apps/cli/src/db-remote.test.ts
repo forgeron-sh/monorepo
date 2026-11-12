@@ -157,6 +157,19 @@ describe("forgeron db status on a remote environment", () => {
       "/console-api/api/tools/hr/db/migrations?env=preview&branch=feat",
     );
   });
+
+  it("reaches a permanent channel by its name (D-125)", async () => {
+    const { io } = await setup();
+    answers.set("/console-api/api/tools/crm/db/migrations", { status: 200, body: status });
+    expect(await run(["db", "status", "--channel", "staging"], io)).toBe(0);
+    expect(requests.at(-1)!.path).toBe(
+      "/console-api/api/tools/crm/db/migrations?env=preview&branch=%7Estaging",
+    );
+    await expect(run(["db", "status", "--channel", "Bad"], io)).resolves.toBe(2);
+    await expect(run(["db", "status", "--channel", "staging", "--branch", "x"], io)).resolves.toBe(
+      2,
+    );
+  });
 });
 
 describe("forgeron db shell on a remote environment", () => {

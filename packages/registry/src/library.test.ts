@@ -135,25 +135,25 @@ describe("a person's library", () => {
   });
 });
 
-describe("pilots (D-119)", () => {
+describe("channel access (D-119, D-125)", () => {
   it("are kept per branch, apart from the tool, and removed with that branch's bindings only", async () => {
     const tool = await registry.createTool({ workspace: "acme", name: "odoo" });
-    expect(await registry.previewAvailabilityOf(tool.id, "pilot-a")).toBeUndefined();
-    await registry.setPreviewAvailability({
+    expect(await registry.channelAccessOf(tool.id, "pilot-a")).toBeUndefined();
+    await registry.setChannelAccess({
       toolId: tool.id,
-      branch: "pilot-a",
+      channel: "pilot-a",
       mode: "people",
       people: [ben.id],
       actor: root.id,
     });
-    expect(await registry.previewAvailabilityOf(tool.id, "pilot-a")).toMatchObject({
+    expect(await registry.channelAccessOf(tool.id, "pilot-a")).toMatchObject({
       people: [ben.id],
     });
-    expect(await registry.previewAvailabilityOf(tool.id, "pilot-b")).toBeUndefined();
+    expect(await registry.channelAccessOf(tool.id, "pilot-b")).toBeUndefined();
     expect(await registry.availabilityOf(tool.id)).toBeUndefined();
 
-    await registry.installPilotForPerson({ toolId: tool.id, branch: "pilot-a", person: ben.id });
-    expect(await registry.pilotsOf(ben.id)).toEqual([{ toolId: tool.id, branch: "pilot-a" }]);
+    await registry.installChannelForPerson({ toolId: tool.id, channel: "pilot-a", person: ben.id });
+    expect(await registry.channelsOf(ben.id)).toEqual([{ toolId: tool.id, channel: "pilot-a" }]);
     expect(await registry.isInstalled(tool.id, ben.id)).toBe(false);
 
     const secret = await registry.createPersonSecret({
@@ -172,14 +172,33 @@ describe("pilots (D-119)", () => {
       });
     }
     expect(
-      await registry.uninstallPilotForPerson({
+      await registry.uninstallChannelForPerson({
         toolId: tool.id,
-        branch: "pilot-a",
+        channel: "pilot-a",
         person: ben.id,
       }),
     ).toBe(true);
-    expect(await registry.pilotsOf(ben.id)).toEqual([]);
+    expect(await registry.channelsOf(ben.id)).toEqual([]);
     // The binding of the tool itself stays; the pilot's went.
     expect(await registry.readUserSecrets(tool.id, ben.id)).toEqual({ KEY: "test-only-value" });
+  });
+
+  it("names a permanent channel by ~<name>, apart from a branch of the same name", async () => {
+    const tool = await registry.createTool({ workspace: "acme", name: "odoo" });
+    await registry.setChannelAccess({
+      toolId: tool.id,
+      channel: "~staging",
+      mode: "everyone",
+      actor: root.id,
+    });
+    expect(await registry.channelAccessOf(tool.id, "~staging")).toMatchObject({ mode: "everyone" });
+    expect(await registry.channelAccessOf(tool.id, "staging")).toBeUndefined();
+    await registry.installChannelForPerson({
+      toolId: tool.id,
+      channel: "~staging",
+      person: ben.id,
+    });
+    expect(await registry.isChannelInstalled(tool.id, "staging", ben.id)).toBe(false);
+    expect(await registry.channelsOf(ben.id)).toEqual([{ toolId: tool.id, channel: "~staging" }]);
   });
 });

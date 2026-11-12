@@ -1,9 +1,10 @@
 // Dispatch (sdk.md §7, "Addresses" and "Routing on Cloudflare"): `<workspace>.<base domain>` is the
-// workspace, `/t/<tool>[@<branch>]/<rest>` is a tool in an environment. A request reaches the Worker
+// workspace, `/t/<tool>[@<branch>|~<channel>]/<rest>` is a tool on a channel (D-125): production with
+// nothing, a branch's temporary channel with `@`, another permanent channel with `~`. A request reaches the Worker
 // of that tool through a binding the gateway holds, or it is refused. Tool Workers have no public
 // route: the only way to them is `targets`, so nothing here fetches a URL for a tool.
-// Identity is not here: whether the caller may see a preview is asked of the hook
-// `canPreview`, which fails closed when absent.
+// Identity is not here: whether the caller may use a channel other than production is asked of the
+// hook `canPreview`, which fails closed when absent.
 
 import { workspaceOf } from "../kernel/workspace";
 
@@ -13,7 +14,10 @@ export { workspaceOf };
 /** What the registry knows of a tool: the Worker of each environment (`<workspace>--<tool>--…`). */
 export interface ToolEntry {
   production?: string;
-  /** By branch. */
+  /**
+   * The channels other than production, by reference: a branch, or `~<name>` for a permanent channel
+   * (D-125).
+   */
   previews: Record<string, string>;
 }
 
@@ -33,7 +37,10 @@ export interface Caller {
   request: Request;
   /** The environment the call is served from, once it is known (set when the request is forwarded). */
   environment?: "preview" | "production";
-  /** The preview's branch, for a call served from one (D-109). */
+  /**
+   * The channel's reference, for a call served from a channel other than production (D-109, D-125):
+   * a branch, or `~<name>`. Such a call is served with the `preview` secrets.
+   */
   branch?: string;
 }
 
@@ -95,7 +102,7 @@ export interface DispatcherOptions {
    * tool is found and before the request reaches it. Without it a tool sees nobody.
    */
   forward?(caller: Caller): Forwarding | undefined | Promise<Forwarding | undefined>;
-  /** May this caller see a branch preview? Without it, nobody does. */
+  /** May this caller use a channel other than production (`branch` is its reference)? Without it, nobody does. */
   canPreview?(caller: Caller & { branch: string }): boolean | Promise<boolean>;
 }
 
@@ -121,22 +128,35 @@ export function createToolCaller(options: Pick<DispatcherOptions, "registry" | "
 // sdk.md §7: workspace names are `[a-z0-9-]`, 3 to 40 characters (see `kernel/workspace.ts`).
 const TOOL = /^[a-z0-9][a-z0-9-]*$/;
 const BRANCH = /^[a-z0-9][a-z0-9._-]*$/;
+const CHANNEL = /^[a-z][a-z0-9-]{0,29}$/;
 
 export interface ToolPath {
   tool: string;
+  /**
+   * A channel other than production, by reference: the branch after `@`, or `~<name>` for a
+   * permanent channel after `~` (D-125).
+   */
   branch?: string;
   /** The path the tool sees: `/mcp`, `/api/deals.move`, `/` for the tool's root. */
   rest: string;
 }
 
-/** `/t/<tool>[@<branch>]/<rest>`; anything else is not a tool path. */
+/** `/t/<tool>[@<branch>|~<channel>]/<rest>`; anything else is not a tool path. */
 export function parseToolPath(pathname: string): ToolPath | undefined {
   const match = /^\/t\/([^/]+)(\/.*)?$/.exec(pathname);
   if (!match) return undefined;
-  const [name, branch, ...extra] = match[1]!.split("@");
+  const rest = match[2] ?? "/";
+  const head = match[1]!;
+  if (!head.includes("@") && head.includes("~")) {
+    const [name, channel, ...extra] = head.split("~");
+    if (extra.length > 0 || name === undefined || !TOOL.test(name)) return undefined;
+    if (channel === undefined || !CHANNEL.test(channel)) return undefined;
+    return { tool: name, branch: `~${channel}`, rest };
+  }
+  const [name, branch, ...extra] = head.split("@");
   if (extra.length > 0 || name === undefined || !TOOL.test(name)) return undefined;
   if (branch !== undefined && !BRANCH.test(branch)) return undefined;
-  return { tool: name, ...(branch !== undefined ? { branch } : {}), rest: match[2] ?? "/" };
+  return { tool: name, ...(branch !== undefined ? { branch } : {}), rest };
 }
 
 const refuse = (status: number, code: string, message: string) =>
@@ -162,7 +182,7 @@ export function createDispatcher(options: DispatcherOptions) {
       worker = entry.previews[path.branch];
       if (!worker) return refuse(404, "NOT_FOUND", "Not found.");
       if (!(await options.canPreview?.({ ...caller, branch: path.branch }))) {
-        return refuse(403, "FORBIDDEN", "You cannot see this preview.");
+        return refuse(403, "FORBIDDEN", "You cannot use this channel.");
       }
     } else {
       worker = entry.production;

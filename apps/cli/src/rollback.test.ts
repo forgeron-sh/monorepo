@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { run } from "./cli";
 import type { Io } from "./io";
 
-// A workspace endpoint that answers `POST /promote` and `POST /rollback` the way the gateway does.
+// A workspace endpoint that answers `POST /rollback` the way the gateway does.
 let server: Server;
 let endpoint: string;
 const requests: Array<{ path?: string; authorization?: string; body: unknown }> = [];
@@ -45,7 +45,7 @@ afterEach(async () => {
 });
 
 async function setup({ credentials = "person-token", env = undefined as string | undefined } = {}) {
-  const cwd = await mkdtemp(join(tmpdir(), "forgeron-promote-"));
+  const cwd = await mkdtemp(join(tmpdir(), "forgeron-rollback-"));
   const config = await mkdtemp(join(tmpdir(), "forgeron-config-"));
   dirs.push(cwd, config);
   process.env.XDG_CONFIG_HOME = config;
@@ -72,64 +72,13 @@ async function setup({ credentials = "person-token", env = undefined as string |
   return { io, logs, errors };
 }
 
-describe("forgeron promote", () => {
-  it("asks the gateway to promote the version, with the login token", async () => {
-    answer = {
-      status: 200,
-      body: { version: "1.1.0", url: "https://acme.forgeron.app/t/crm", applied: ["0002"] },
-    };
-    const { io, logs } = await setup();
-    expect(await run(["promote", "1.1.0", "--to", "production"], io)).toBe(0);
-    expect(requests).toEqual([
-      {
-        path: "/promote",
-        authorization: "Bearer person-token",
-        body: { tool: "crm", version: "1.1.0", to: "production" },
-      },
-    ]);
-    expect(logs.join("\n")).toContain("Promoted crm@1.1.0 to production");
-    expect(logs.join("\n")).toContain("Migrations applied: 0002");
-  });
-
-  it("prefers FORGERON_TOKEN and passes --allow-destructive", async () => {
-    answer = { status: 200, body: { version: "1.1.0" } };
-    const { io } = await setup({ env: "fgt.ci" });
-    expect(await run(["promote", "1.1.0", "--to", "production", "--allow-destructive"], io)).toBe(
-      0,
-    );
-    expect(requests[0]).toMatchObject({
-      authorization: "Bearer fgt.ci",
-      body: { to: "production", allowDestructive: true },
-    });
-  });
-
-  it("prints the gateway's reason and exits 1 when it refuses", async () => {
-    answer = {
-      status: 422,
-      body: {
-        error: { code: "NO_ENTRY", message: "production takes a version with a changelog entry." },
-      },
-    };
+describe("no promotion (D-125)", () => {
+  it("has no promote command: a permanent channel takes the releases of its branch", async () => {
     const { io, errors } = await setup();
-    expect(await run(["promote", "1.1.0", "--to", "production"], io)).toBe(1);
-    expect(errors).toEqual(["production takes a version with a changelog entry."]);
-  });
-
-  it("is a wrong use without a version, a target, or for the pilot or a group", async () => {
-    const { io } = await setup();
-    expect(await run(["promote", "--to", "production"], io)).toBe(2);
-    expect(await run(["promote", "1.1.0"], io)).toBe(2);
-    expect(await run(["promote", "1.1.0", "--to", "staging"], io)).toBe(2);
-    expect(await run(["promote", "1.1.0", "--to", "pilot"], io)).toBe(2);
-    expect(await run(["promote", "1.1.0", "--to", "production", "--group", "x"], io)).toBe(2);
-    expect(await run(["promote", "1.1.0", "--to", "preview"], io)).toBe(2);
-    expect(requests).toEqual([]);
-  });
-
-  it("asks to sign in when there is no credential", async () => {
-    const { io, errors } = await setup({ credentials: "" });
     expect(await run(["promote", "1.1.0", "--to", "production"], io)).toBe(2);
-    expect(errors[0]).toContain("forgeron login");
+    expect(await run(["promote", "--from-branch", "feat", "--to", "production"], io)).toBe(2);
+    expect(errors[0]).toContain('unknown command "promote"');
+    expect(requests).toEqual([]);
   });
 });
 
@@ -156,6 +105,16 @@ describe("forgeron rollback", () => {
     expect(requests[0]!.body).toEqual({ tool: "crm", environment: "preview", branch: "feat" });
   });
 
+  it("rolls back a permanent channel by its name", async () => {
+    answer = { status: 200, body: { version: "1.0.0" } };
+    const { io, logs } = await setup();
+    expect(await run(["rollback", "--channel", "staging"], io)).toBe(0);
+    expect(requests[0]!.body).toEqual({ tool: "crm", environment: "channel", channel: "staging" });
+    expect(logs.join("\n")).toContain("Rolled back crm on staging to 1.0.0");
+    expect(await run(["rollback", "--channel", "production"], io)).toBe(0);
+    expect(requests[1]!.body).toEqual({ tool: "crm", environment: "production" });
+  });
+
   it("prints the gateway's reason when there is nothing to go back to", async () => {
     answer = {
       status: 409,
@@ -176,13 +135,18 @@ describe("forgeron rollback", () => {
     expect(await run(["rollback", "--env", "staging"], io)).toBe(2);
     expect(await run(["rollback", "--env", "pilot"], io)).toBe(2);
     expect(await run(["rollback", "--env", "preview"], io)).toBe(2);
+    expect(await run(["rollback", "--channel", "Bad Name"], io)).toBe(2);
+    expect(await run(["rollback", "--env", "preview", "--branch", "x", "--channel", "a"], io)).toBe(
+      2,
+    );
   });
 });
 
 describe("forgeron deploy", () => {
-  it("has no pilot and no group", async () => {
+  it("has no environment to choose: a build goes to its branch (D-125)", async () => {
     const { io } = await setup({ env: "fgt.ci" });
     expect(await run(["deploy", "--env", "pilot"], io)).toBe(2);
+    expect(await run(["deploy", "--env", "production"], io)).toBe(2);
     expect(await run(["deploy", "--env", "production", "--group", "early"], io)).toBe(2);
   });
 });

@@ -26,15 +26,27 @@ export interface VersionRecord {
   toolId: string;
   buildId: string;
   version: string;
+  /** The branch whose push made it (D-125); none for a marketplace's copy or an older version. */
+  branch?: string;
   createdAt: string;
 }
 
 export interface EnvironmentRecord {
   id: string;
   toolId: string;
+  /**
+   * `production` and `channel` are permanent channels; `preview` is a temporary channel, one per
+   * branch (D-125).
+   */
   name: RegisteredEnvironment;
-  /** Only a preview has one. */
+  /** Only a preview (temporary channel) has one. */
   branch?: string;
+  /** Only a permanent channel other than production has one: its name. */
+  channel?: string;
+  /** The branch a permanent channel other than production follows (production's is the tool's source). */
+  follows?: string;
+  /** A permanent channel other than production takes a release by itself when it asks for nothing new. */
+  autoUpdate?: boolean;
   versionId?: string;
   url?: string;
   activatedAt?: string;
@@ -93,6 +105,7 @@ export const toVersion = (r: Row): VersionRecord => ({
   toolId: String(r.tool_id),
   buildId: String(r.build_id),
   version: String(r.version),
+  ...(text(r.branch) ? { branch: text(r.branch)! } : {}),
   createdAt: String(r.created_at),
 });
 
@@ -101,6 +114,13 @@ export const toEnvironment = (r: Row): EnvironmentRecord => ({
   toolId: String(r.tool_id),
   name: r.name as RegisteredEnvironment,
   ...(r.branch ? { branch: String(r.branch) } : {}),
+  ...(r.channel ? { channel: String(r.channel) } : {}),
+  ...(r.name === "channel"
+    ? {
+        ...(text(r.follows) ? { follows: text(r.follows)! } : {}),
+        autoUpdate: Number(r.auto_update) === 1,
+      }
+    : {}),
   ...(text(r.version_id) ? { versionId: text(r.version_id) } : {}),
   ...(text(r.url) ? { url: text(r.url) } : {}),
   ...(text(r.activated_at) ? { activatedAt: text(r.activated_at) } : {}),

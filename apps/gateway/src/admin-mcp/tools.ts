@@ -14,8 +14,6 @@ import {
   listTemplatesRoute,
   listToolsRoute,
   planMarketplaceToolRoute,
-  promoteRoute,
-  promotionPlanRoute,
   putAccessMatrixRoute,
   rollbackRoute,
   secretsStatusRoute,
@@ -39,7 +37,7 @@ interface PlatformCall {
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
   body?: unknown;
-  /** `console` for `/console-api/…` routes (the default), `root` for `/promote` and `/rollback`. */
+  /** `console` for `/console-api/…` routes (the default), `root` for `/rollback`. */
   surface?: "console" | "root";
 }
 export type PlatformPort = (call: PlatformCall) => Promise<{ status: number; body: unknown }>;
@@ -62,25 +60,15 @@ const NAME = /^[a-z0-9][a-z0-9-]*$/;
 const ROLE = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/;
 const tool = z.string().regex(NAME).max(60).describe("The tool's name");
 const SECRET_NAME = /^[A-Z][A-Z0-9_]*$/;
-const environment = z.enum(["production", "preview"]);
+/** Production, another permanent channel (`channel`), or a branch's preview (D-125). */
+const environment = z.enum(["production", "channel", "preview"]);
+const channel = z
+  .string()
+  .regex(/^[a-z][a-z0-9-]{0,29}$/)
+  .optional()
+  .describe("A permanent channel other than production (`staging`)");
 const branch = z.string().min(1).max(100).optional();
 const reason = z.string().max(500).optional().describe("Why, in the audit line");
-
-/** A version, or the branch whose preview serves it; the target and its branch (D-113). */
-const planInput = z.strictObject({
-  tool,
-  version: z.string().min(1).max(64).optional().describe("A version number, or `fromBranch`"),
-  fromBranch: branch.describe("The branch whose preview serves the version to promote"),
-  to: environment,
-  branch: branch.describe("The target's branch, for a preview"),
-});
-const promotionBody = (args: z.infer<typeof planInput>) => ({
-  tool: args.tool,
-  to: args.to,
-  ...(args.version ? { version: args.version } : {}),
-  ...(args.fromBranch ? { fromBranch: args.fromBranch } : {}),
-  ...(args.branch ? { branch: args.branch } : {}),
-});
 
 const at = (path: string, params: Record<string, string> = {}) =>
   path.replace(/\{(\w+)\}/g, (_, key: string) => encodeURIComponent(params[key] ?? ""));
@@ -462,7 +450,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     name: "tool_source",
     title: "Read a tool's update",
     description:
-      "Where a tool comes from (a marketplace or a GitHub repository), the version production serves, and the update waiting for it: its version, whether it is a release, its changelog, and what it asks to approve. It changes nothing.",
+      "Where a tool comes from (a marketplace or a GitHub repository) and its permanent channels (production first, then the others an admin added): for each, the branch it follows, the version it serves, and the release waiting for it, with its changelog, what it asks to approve and the plan of what would stop it. Only releases reach a permanent channel. It changes nothing.",
     minRole: "admin",
     destructive: false,
     input: z.strictObject({ tool: z.string().min(1).max(64) }),
@@ -471,70 +459,29 @@ export const TOOLS: readonly ToolDefinition[] = [
   }),
   define({
     name: "tool_update",
-    title: "Put a tool's update in production",
+    title: "Update a permanent channel",
     description:
-      "Puts the update `tool_source` showed in production. `version` is the one it showed: a newer update is refused, read it again. `approve` approves what it asks for; `withoutRelease` takes a build with no release, knowingly. Show the person both before setting them.",
+      "Puts the release `tool_source` showed on a permanent channel: production, or `channel`. `version` is the one it showed: a newer update is refused, read it again. `approve` approves what it asks for: show the person before setting it. Forgeron never moves code between branches: a build that is not a release cannot be put on a permanent channel.",
     minRole: "admin",
     destructive: true,
     input: z.strictObject({
       tool: z.string().min(1).max(64),
       version: z.string().min(1).max(200),
+      channel,
       approve: z.boolean().optional(),
-      withoutRelease: z.boolean().optional(),
     }),
     run: ({ tool, ...body }, port) =>
       ask(port, { method: "POST", path: at(updateToolRoute.path, { tool }), body }),
   }),
   define({
-    name: "tool_promote_plan",
-    title: "Check a promotion",
-    description:
-      "Says whether a version, or the version a branch serves, can go to an environment, and what stops it: a migration the target's database has applied and this version lacks, an edited or out-of-order one, the changelog, an approval. It changes nothing. When something stops it, the answer carries a `prompt` to follow to fix it.",
-    minRole: "admin",
-    destructive: false,
-    input: planInput,
-    run: (args, port) =>
-      ask(port, {
-        method: "POST",
-        path: promotionPlanRoute.path,
-        surface: "root",
-        body: promotionBody(args),
-      }),
-  }),
-  define({
-    name: "tool_promote",
-    title: "Promote a version",
-    description:
-      "Puts a version the tool already has on an environment, or the version a branch serves (`fromBranch`). Production takes traffic. It checks the plan first: when something stops it, nothing moves and the answer is the plan, with the conflicts and a `prompt` to follow.",
-    minRole: "admin",
-    destructive: true,
-    input: planInput.extend({ reason }),
-    // `allowDestructive` (a migration that drops data) is not offered here: it stays in the CLI.
-    run: async (args, port) => {
-      const body = promotionBody(args);
-      const plan = (await ask(port, {
-        method: "POST",
-        path: promotionPlanRoute.path,
-        surface: "root",
-        body,
-      })) as { ok?: boolean };
-      if (plan.ok === false) return { promoted: false, plan };
-      return ask(port, {
-        method: "POST",
-        path: promoteRoute.path,
-        surface: "root",
-        body: { ...body, ...(args.reason ? { reason: args.reason } : {}) },
-      });
-    },
-  }),
-  define({
     name: "tool_rollback",
-    title: "Roll back an environment",
-    description: "Serves again the version an environment served before the current one.",
+    title: "Roll back a channel",
+    description:
+      "Serves again the version a channel served before the current one: production, a permanent channel (`environment: channel` and its `channel`), or a branch's preview. No new code, no migration.",
     minRole: "admin",
     destructive: true,
-    input: z.strictObject({ tool, environment, branch, reason }),
-    run: ({ tool: name, environment: env, branch: on, reason: why }, port) =>
+    input: z.strictObject({ tool, environment, branch, channel, reason }),
+    run: ({ tool: name, environment: env, branch: on, channel: named, reason: why }, port) =>
       ask(port, {
         method: "POST",
         path: rollbackRoute.path,
@@ -543,6 +490,7 @@ export const TOOLS: readonly ToolDefinition[] = [
           tool: name,
           environment: env,
           ...(on ? { branch: on } : {}),
+          ...(named ? { channel: named } : {}),
           ...(why ? { reason: why } : {}),
         },
       }),

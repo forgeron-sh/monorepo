@@ -4,6 +4,7 @@
 // previous version serving (sdk.md §8, point 4).
 import {
   assertDeployable,
+  isPermanent,
   type Activation,
   type Build,
   type Environment,
@@ -28,10 +29,10 @@ export interface DeployOptions {
    * Worker (`seed-marker.ts`).
    */
   seed?: (db: D1Database) => void | Promise<void>;
-  /** Production refuses a destructive migration unless told (`--allow-destructive`). */
+  /** A permanent channel refuses a destructive migration unless told (`--allow-destructive`). */
   allowDestructive?: boolean;
-  /** Production takes a build with no changelog entry (no release), knowingly (D-121). */
-  withoutRelease?: boolean;
+  /** A marketplace's publication is its release (D-121, D-125): its changelog may list nothing. */
+  published?: boolean;
   now?: MigrateOptions["now"];
 }
 
@@ -56,11 +57,11 @@ export async function deploy(
   build: Build,
   options: DeployOptions = {},
 ): Promise<Deployment> {
-  assertDeployable(environment, build, { withoutRelease: options.withoutRelease === true });
+  assertDeployable(environment, build, { published: options.published === true });
   const provisioned = await hosting.provision(environment, build.manifest);
   const uploaded = await hosting.upload(provisioned, build);
-  // A preview owns its database: it may drop what it likes. The others share one.
-  const guarded = environment.name === "production";
+  // A preview owns a throwaway database: it may drop what it likes. A permanent channel's data stays.
+  const guarded = isPermanent(environment);
   const { applied } = await hosting.migrate(uploaded, {
     allowDestructive: options.allowDestructive ?? !guarded,
     ...(options.now ? { now: options.now } : {}),

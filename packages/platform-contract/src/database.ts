@@ -3,8 +3,9 @@ import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
 // The database explorer of the console, read only (docs/console-ux.md, D-059), for admins and
-// developers. The environment is `?env=production` or `?env=preview&branch=<name>` and must be one the
-// registry knows. Every access is written to the audit log before data is sent.
+// developers. The environment is `?env=production` or `?env=preview&branch=<ref>` and must be one the
+// registry knows: `<ref>` is a channel's reference, a branch or `~<name>` for a permanent channel
+// other than production (D-125). Every access is written to the audit log before data is sent.
 //
 // The table definitions are described loosely (`looseObject`: the explorer adds fields as the schema
 // reader learns them); the errors are `{ error, message }` with the explorer's own codes.
@@ -17,7 +18,10 @@ const tool = z.string().describe("The tool's name");
 const table = z.string().describe("The table's name, URL-encoded");
 const environmentQuery = {
   env: z.string().optional().describe("`production` (default) or `preview`"),
-  branch: z.string().optional().describe("The preview's branch"),
+  branch: z
+    .string()
+    .optional()
+    .describe("A channel other than production: a branch, or `~<name>` for a permanent one"),
   platform: z.string().optional().describe("`1` shows the platform's own tables"),
   reveal: z.string().optional().describe("`1` shows masked columns (admins only)"),
 };

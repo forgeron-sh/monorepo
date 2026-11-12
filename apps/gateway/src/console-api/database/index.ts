@@ -5,13 +5,14 @@
 //   GET /api/tools/<tool>/db/tables/<table>          -> { table: definition, rows } (the Definition view)
 //   GET /api/tools/<tool>/db/tables/<table>/rows     -> { columns, rows, total, page, pageSize, hasMore }
 //   GET /api/tools/<tool>/db/tables/<table>/export   -> the rows as CSV, at most MAX_EXPORT_ROWS
-// The environment is `?env=production` or `?env=preview&branch=<name>` and must be one the registry knows.
+// The environment is `?env=production` or `?env=preview&branch=<ref>` and must be one the registry knows:
+// `<ref>` is a branch, or `~<name>` for a permanent channel other than production (D-125).
 // Rows take `page`, `limit` (at most 100), `sort`, `dir=asc|desc` and `filter`, a JSON list of
 // `{ column, op, value }`. `platform=1` shows the platform's own tables, `reveal=1` (admins) the masked columns.
 // The browser never holds a Cloudflare token: the gateway reaches the database through the hosting layer.
 // Every access is written to the audit log (kind `access`, subject `db:<what>[:<table>]`) before data is sent.
 import type { Hosting } from "@forgeron/hosting";
-import type { Registry } from "@forgeron/registry";
+import { channelRef, hostingTargetOf, type Registry } from "@forgeron/registry";
 import {
   countRows,
   loadSchema,
@@ -181,33 +182,38 @@ export async function handleDatabase(
     return json(200, {
       environments: environments
         .filter((e) => e.versionId)
-        .map((e) => ({ name: e.name, ...(e.branch ? { branch: e.branch } : {}) })),
+        .map((e) =>
+          e.name === "production" ? { name: e.name } : { name: "preview", branch: channelRef(e) },
+        ),
     });
   }
 
   const name = url.searchParams.get("env") ?? "production";
   const branch = url.searchParams.get("branch") ?? undefined;
   // Only an environment the registry knows: the client never names a database.
-  const environment = environments.find(
-    (e) => e.name === name && (e.name === "production" ? !branch : e.branch === branch),
-  );
+  const environment =
+    name === "production"
+      ? branch
+        ? undefined
+        : environments.find((e) => e.name === "production")
+      : name === "preview" && branch
+        ? environments.find((e) => e.name !== "production" && channelRef(e) === branch)
+        : undefined;
   if (!environment) return failure(404, "NOT_FOUND", "There is no such environment.");
   const hosting = options.hosting(options.workspace);
   if (!hosting?.openDatabase) {
     return failure(501, "NOT_AVAILABLE", "This install cannot read tool databases.");
   }
-  const target = {
-    name: environment.name,
-    ...(environment.branch ? { branch: environment.branch } : {}),
-  };
+  const target = hostingTargetOf(tool.name, environment);
   const where = {
     environment: environment.name,
     ...(environment.branch ? { branch: environment.branch } : {}),
+    ...(environment.channel ? { channel: environment.channel } : {}),
   };
   const timeoutMs = options.timeoutMs ?? STATEMENT_TIMEOUT_MS;
 
   try {
-    const raw = await within(hosting.openDatabase({ tool: tool.name, ...target }), timeoutMs);
+    const raw = await within(hosting.openDatabase(target), timeoutMs);
     if (!raw) return failure(404, "NO_DATABASE", "This tool has no database in this environment.");
     const db = readOnly(raw);
     const platform = url.searchParams.get("platform") === "1";

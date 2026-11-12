@@ -8,7 +8,7 @@ import {
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handleDeploy, deployCaller } from "../deploy/deploy";
-import { handlePromote } from "../deploy/promote";
+import { handleRollback } from "../deploy/rollback";
 import { issueToken } from "../identity/authn/tokens";
 import { verifyActionsToken } from "./actions-oidc";
 import { reportDeployment } from "./app";
@@ -246,18 +246,18 @@ describe("POST /deploy from GitHub Actions", () => {
     expect(deployed.status).toBe(200);
   });
 
-  it("promotes with a run of the tool's repository", async () => {
+  it("rolls back with a run of the tool's repository", async () => {
     await linked();
     const run = await github.actionsToken({
       repository: "acme-sh/crm",
       repositoryId: 101,
       audience: ORIGIN,
     });
-    const answer = await handlePromote(request(run, { version: "9.9.9" }, "/promote"), {
+    const answer = await handleRollback(request(run, { environment: "production" }, "/rollback"), {
       ...context(),
       authenticate: () => undefined,
     });
-    // The caller is accepted: the version is what is missing.
+    // The caller is accepted: an earlier version is what is missing.
     expect(answer.status).not.toBe(401);
     expect(answer.status).not.toBe(403);
   });

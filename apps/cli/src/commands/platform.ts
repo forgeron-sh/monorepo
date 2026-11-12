@@ -282,11 +282,14 @@ export async function platform(
 
 const TOKEN_BINDING = "CLOUDFLARE_API_TOKEN";
 
-/** `TOOL_<WORKER>` of every environment the registry holds: those a tool deployment bound. */
+/**
+ * `TOOL_<WORKER>` of every environment the registry holds: those a tool deployment bound. Read after the
+ * platform's migrations, so a permanent channel's row has its name (D-125).
+ */
 async function toolBindings(d1: ReturnType<typeof createRestD1>): Promise<string[]> {
   const { results } = await d1
     .prepare(
-      `SELECT t."workspace" AS workspace, t."name" AS tool, e."name" AS environment, e."branch" AS branch FROM "environments" e JOIN "tools" t ON t."id" = e."tool_id"`,
+      `SELECT t."workspace" AS workspace, t."name" AS tool, e."name" AS environment, e."branch" AS branch, e."channel" AS channel FROM "environments" e JOIN "tools" t ON t."id" = e."tool_id"`,
     )
     .all();
   return (
@@ -295,13 +298,15 @@ async function toolBindings(d1: ReturnType<typeof createRestD1>): Promise<string
       tool: string;
       environment: string;
       branch: string;
+      channel?: string | null;
     }>
   ).map((row) =>
     serviceBindingName(
       workerName(row.workspace, {
         tool: row.tool,
-        name: row.environment as "preview" | "production",
+        name: row.environment as "preview" | "production" | "channel",
         ...(row.branch ? { branch: row.branch } : {}),
+        ...(row.channel ? { channel: row.channel } : {}),
       }),
     ),
   );

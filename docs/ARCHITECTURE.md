@@ -140,7 +140,7 @@ These folders will become packages only if the need arises.
 
 ## The platform API
 
-One Hono app (`createPlatform`, `apps/gateway/src/platform`) answers every route of the platform API: the console's under `/console-api` and the CLI's at the root of the workspace (`/whoami`, `/deploy`, `/promote`, `/rollback`, `/deploy-tokens`, `/auth/token`…). A path it does not own gets the gateway's 404. The hand-written pages (`/auth/login`, `/auth/cli`, the sign-in forms), the tools under `/t/` and the personal secrets page are not routes of the API and stay outside it.
+One Hono app (`createPlatform`, `apps/gateway/src/platform`) answers every route of the platform API: the console's under `/console-api` and the CLI's at the root of the workspace (`/whoami`, `/deploy`, `/rollback`, `/deploy-tokens`, `/auth/token`…). A path it does not own gets the gateway's 404. The hand-written pages (`/auth/login`, `/auth/cli`, the sign-in forms), the tools under `/t/` and the personal secrets page are not routes of the API and stay outside it.
 
 - **Where the contract lives**: `packages/platform-contract/src`, one module per area (`members.ts`, `bearer.ts`…). A route is plain data (`defineRoute`: method, path, request and answers as zod schemas); the package has no HTTP library. The gateway serves it, the console and the CLI call it through `createClient` (`@forgeron/platform-contract/client`), which imports no schema.
 - **The OpenAPI document**: `GET /console-api/api/openapi.json`, for a signed-in member, describes the routes under `/console-api` (D-066).
@@ -173,18 +173,20 @@ A single interface, three implementations (`cloud`, `self-host`, `local`). It co
 1. **provision**: create the resources requested by the manifest (one D1 per environment, KV, R2);
 2. **upload**: send a build's Worker with its bindings;
 3. **migrate**: apply the build's migrations to the environment's database;
-4. **activate**: make an environment (production, preview) serve this build;
-5. **teardown**: delete a preview or a tool, along with its resources.
+4. **activate**: make an environment (production, another permanent channel, a branch's preview) serve this build;
+5. **teardown**: delete a preview, a permanent channel or a tool, along with its resources.
 
 The gateway calls this interface when it receives a build; the CLI calls it for `forgeron dev` (`local` mode) and to install the platform in self-host.
 
 ### Naming of Workers and databases
 
-One stable name per tool and per environment, so that publishing a version changes no link:
+One stable name per tool and per channel, so that publishing a version changes no link:
 
 ```text
-<workspace>--<tool>--production      <workspace>--<tool>--pr-<n>
+<workspace>--<tool>--production      <workspace>--<tool>--channel-<name>      <workspace>--<tool>--preview-<branch>-<hash>
 ```
+
+A permanent channel other than production (`staging`, D-125) is `channel-<name>`: no branch and no other environment can take that name. Its database is named after it, so it never shares production's.
 
 In self-host, the gateway is redeployed when a Worker is first bound to it or removed: a tool's first deployment per environment, a new preview branch, a teardown. It is never redeployed for a new version of a Worker that is already bound (D-080).
 
@@ -202,13 +204,13 @@ flowchart LR
   A -->|"build + token"| D["gateway: deploy/"]
   D --> R[("registry")]
   D --> H["@forgeron/hosting<br/>provision · upload · migrate"]
-  H --> PV[branch preview]
-  PV -->|"forgeron release then promote"| PR[production]
+  H --> PV[branch's temporary channel]
+  PV -->|"a release of the branch it follows: update, by itself or by an admin"| PR[production, staging…]
 ```
 
 - **Discovery**: each `forgeron.config.ts` in the repository is a tool (D-006); the action processes them all.
 - **What the gateway receives**: the contents of `.forgeron/build/` (Worker, manifest, migrations, views, changelog), with the code fingerprint.
-- **Promotion**: `activate` on the target environment, without a rebuild.
+- **Update** (D-125): a release of the branch a permanent channel follows goes to that channel, from the recorded code (`activate` without a rebuild). There is no promotion between branches.
 - **Cleanup**: `teardown` of the preview when its branch is merged or deleted. This is essential in self-host (500 Workers per account).
 - **GitHub app**: later, to install the action and show deployments in PRs. It builds nothing.
 
@@ -252,7 +254,7 @@ Taken from siages and the Odoo SDK (D-001), so that all our repositories look al
 
 ## Platform environments
 
-Those of Forgeron itself, not to be confused with a tool's environments (`local`, `preview`, `production`, `sdk.md` §15).
+Those of Forgeron itself, not to be confused with a tool's channels (`local`, a branch's preview, `production` and the other permanent channels, `sdk.md` §15).
 
 | Environment | Gateway                                              | Console               | Site                   |
 | ----------- | ---------------------------------------------------- | --------------------- | ---------------------- |

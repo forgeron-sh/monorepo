@@ -76,7 +76,11 @@ async function syncAndUpdate(c: Context<PlatformEnv>, found: Found & { repo: str
     if (hosting) {
       for (const name of await registry.autoUpdatingFrom(workspace, found.source)) {
         const tool = await registry.findTool(workspace, name);
-        if (tool) await updateByItself(registry, hosting, tool, `marketplace:${found.id}`);
+        if (!tool) continue;
+        // Each permanent channel that updates by itself takes the new release (D-125).
+        for (const channel of await registry.permanentChannels(tool.id)) {
+          await updateByItself(registry, hosting, tool, `marketplace:${found.id}`, channel.name);
+        }
       }
     }
     return report;

@@ -28,7 +28,7 @@ rounded corners. References on Mobbin are linked so each screen can be looked at
   [Plane](https://mobbin.com/screens/675ba224-6259-48bc-9cae-2bd3c712bf55).
 - **Navigation, grouped:** Home, Tools (the tool list; each tool is a child item when the list is short),
   then for admins: Members, Audit log. There is no screen of approvals: what a version asks for is
-  approved in the dialog that installs, updates or promotes it (D-121). Settings is at the bottom of the navigation, not a page
+  approved in the dialog that installs or updates it (D-121, D-125). Settings is at the bottom of the navigation, not a page
   among others.
 - **Bottom of the sidebar: the person's menu.** Avatar, name; opens a popover with theme (system, Forge,
   Atelier), documentation, sign out. No branding line.
@@ -82,52 +82,62 @@ its installations, "Install on GitHub", and a danger zone to disconnect it (it s
 
 ### Tool page
 
-Header: icon, name, summary and, at the right, the **branch** the page shows (D-120): _Production_ at
-`/tools/<tool>`, a branch's preview at `/tools/<tool>/tree/<branch>`. Changing it keeps the open tab
-(`?tab=`). On a branch, a band under the header says which one, that what is changed there is for that
-branch only, and offers to go back to production. A branch whose preview is gone shows production with a
-word about it, and the address goes back to `/tools/<tool>`. The picker lists the branches that have a
-preview.
+Header: icon, name, summary and, at the right, the **channel** the page shows (D-120, D-125):
+_Production_ at `/tools/<tool>`, another channel at `/tools/<tool>/tree/<ref>`, where `<ref>` is a
+branch for a branch's temporary channel and `~<name>` for a permanent channel (`~staging`). Changing it
+keeps the open tab (`?tab=`). On another channel, a band under the header says which one (_Channel_ or
+_Branch_), that what is changed there is for that channel only, with its own data, and offers to go back
+to production. A channel that is gone shows production with a word about it, and the address goes back
+to `/tools/<tool>`. The picker lists production, the other permanent channels with their version, then
+the branches.
 
-| Tab          | Follows the branch | Content                                                                                  |
-| ------------ | ------------------ | ---------------------------------------------------------------------------------------- |
-| Overview     | yes                | The README, guide, version and addresses of the version the branch serves                |
-| Branches     | no                 | Production and the previews, see below                                                   |
-| Versions     | no                 | Versions with their changelog, compared to the previous one                              |
-| Architecture | yes                | A diagram generated from the manifest the branch serves                                  |
-| Availability | yes                | Who may add the tool (production), or who may pilot the branch                           |
-| Database     | yes                | The explorer, on the branch's database                                                   |
-| Access       | no                 | The roles by actions matrix                                                              |
-| Secrets      | yes                | Production: both environments and what people hold. A branch: the previews' secrets only |
-| Activity     | no                 | The tool's audit log                                                                     |
+| Tab          | Follows the channel | Content                                                                                     |
+| ------------ | ------------------- | ------------------------------------------------------------------------------------------- |
+| Overview     | yes                 | The README, guide, version and addresses of the version the channel serves                  |
+| Channels     | no                  | The permanent channels with their updates, then one temporary channel per branch, see below |
+| Releases     | no                  | The releases with their changelog, compared to the previous one; builds on demand           |
+| Architecture | yes                 | A diagram generated from the manifest the channel serves                                    |
+| Availability | yes                 | Who may add the tool (production), or who may use the channel                               |
+| Database     | yes                 | The explorer, on the channel's database                                                     |
+| Access       | no                  | The roles by actions matrix                                                                 |
+| Secrets      | yes                 | Production: both kinds and what people hold. Another channel: the `preview` secrets it uses |
+| Activity     | no                  | The tool's audit log                                                                        |
 
-On a branch, a tab that does not follow it says _The same for every branch._ above its content: it is
-shown, not hidden, so the tabs do not move when the branch changes. Admin-only tabs are not shown to
-members.
+On another channel, a tab that does not follow it says _The same for every channel._ above its content:
+it is shown, not hidden, so the tabs do not move when the channel changes. Admin-only tabs are not shown
+to members.
 
-### Branches
+### Channels
 
-The deployment list of Vercel and the environment settings of Vercel/Cloudflare, with our vocabulary:
+The deployment list of Vercel and the environment settings of Vercel/Cloudflare, with our vocabulary
+(D-125): a branch is where people work, a channel is where the tool is distributed.
 [Vercel deployments](https://mobbin.com/screens/ac75e179-8e00-463a-9cba-b20d424db41c),
 [Vercel environments](https://mobbin.com/screens/11def438-b12a-4f4c-938e-ec13525dd1dd),
 [Vercel instant rollback](https://mobbin.com/screens/f10497e6-9a53-4d09-b1fe-e72cebede2a6).
 
-- On top, for admins, **Updates** (D-121): where the tool comes from (a marketplace, or a GitHub
-  repository and the branch production follows), the version production serves, and the update waiting
-  for it: its version, _Release_ or _Not a release_, its changelog, what it asks for that production
-  does not have. _Update production_ needs the admin to tick _I approve what it asks for_ and, for a
-  build with no release, _Put it in production without a release_. _Update by itself_ lets a new version
-  that asks for nothing new (and is a release) go on its own.
-- First row: **Production**: version, commit, who deployed, when, address, the `Roll back` action.
-- Then one row per **branch** (one preview per branch): branch name with a branch glyph, commit short hash
-  and message, author, age, status dot (ready, building, failed), version, the preview address with copy
-  and open buttons, a menu: Promote to production, Close preview.
-- Filter bar: status, author, branch search. Environments are told apart with `EnvTag` shapes.
-- **Promote** and **Roll back** open a dialog that shows the from and to versions, the changelog entries
-  and the impact (major, minor, patch), asks for a reason, and says that migrations are not rolled back.
-  What the version asks for, and a build with no release, are accepted there with a checkbox each; the
-  other conflicts of the plan still stop it.
-- A branch row expands to show its database, its last migration, and its recent deployments.
+- On top, for admins, **Permanent channels**: where the tool comes from (a marketplace, or a GitHub
+  repository), then one card per permanent channel, production first: the branch it follows, the
+  version it serves, _Update by itself_, and the release waiting for it: its version and branch, its
+  changelog, what it asks for that production does not have, the migrations that will run. _Update
+  <channel>_ needs the admin to tick _I approve what it asks for_ when it asks for something, and _Run
+  it: the data it drops is gone_ for a destructive migration. A conflict of the plan (a migration the
+  channel's database applied and the release lacks, an edited one…) stops it, with _Copy prompt for
+  your agent_ and the command that shows the channel's migrations: it is fixed on the branch, in Git. A
+  channel other than production has _Remove_ (its name typed to confirm; its Worker and database go).
+  _Add a channel_ asks a name (`staging`, lowercase), the branch it follows and whether it updates by
+  itself; it starts empty, with its own access rule.
+- Then the rows of the **permanent channels** that serve something: version, commit, who deployed, when,
+  address, the `Roll back` action (to a release it served before).
+- Then **Branches**, one temporary channel per pushed branch: branch name with a branch glyph, commit short
+  hash and message, author, age, status dot (ready, building, failed), version, the address with copy and
+  open buttons, a menu: Close channel. There is no promotion: a branch reaches production by being merged
+  in Git into the branch production follows, then released there.
+- Filter bar: status, author, branch search. Channels are told apart with `EnvTag` shapes (Production,
+  Channel, Branch).
+- **Roll back** opens a dialog that shows the from and to versions, the changelog entries that leave and
+  the impact, asks for a reason, and says that migrations are not rolled back.
+- A branch row expands to show its database, its last migration, and its commits (the deployments
+  Forgeron recorded: sha, message, author, date).
 
 ## Marketplace
 
@@ -189,20 +199,20 @@ technical: no version, role, action, interface or resource.
 - A tool deployed before libraries (no rule yet) is in the library of everyone who may call it, and
   cannot be removed.
 
-### A pilot
+### A channel other than production
 
-A branch preview an admin opened to some people (D-119) is a tool of its own in their library: a card
-marked _Pilot · branch_, and a page (`/library/<tool>/pilots/<branch>`) that says it is a version being
-prepared, for them to try, with its own data. Adding, finishing the setup and removing work as for a
-tool, apart from it.
+A channel an admin opened to some people (D-119, D-125) is a tool of its own in their library: a card
+marked _Channel · staging_ for a permanent channel or _Branch · feat_ for a branch's, and a page
+(`/library/<tool>/pilots/<ref>`, `<ref>` being the branch or `~<name>`) that says it has its own data.
+Adding, finishing the setup and removing work as for a tool, apart from it.
 
 ### Availability (admin, a tab of the tool page)
 
 Who may add the tool: nobody yet (a tool installed from a marketplace starts there), everyone, some
 workspace roles, or some people. Saving a choice on a tool that had none means each person adds it from
 their library to keep using it; the tab says so. What a person may do in the tool stays the Access tab.
-On a branch (chosen at the top of the page, D-120), the tab is **who may pilot that branch** instead:
-admins and developers only until a choice is saved.
+On another channel (chosen at the top of the page, D-120, D-125), the tab is **who may use that
+channel** instead: admins and developers only until a choice is saved.
 
 ### A tool in the library (the member's sheet)
 

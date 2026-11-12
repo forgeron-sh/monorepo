@@ -1,4 +1,5 @@
 import { diffManifests, type Impact, type Manifest } from "@forgeron/manifest";
+import { isRelease, type BuildChangelog } from "@forgeron/hosting";
 import type {
   DeploymentCommit,
   DeploymentRecord,
@@ -9,7 +10,8 @@ import type {
 } from "@forgeron/registry";
 
 // What a tool's page reads (docs/console-ux.md, "Tool page"), for admins and developers:
-//   GET /api/tools/<name>/branches    production and one preview per branch, with the last deployments
+//   GET /api/tools/<name>/branches    the channels (D-125): production, the other permanent ones, and one
+//                                     temporary channel per branch with its commits, as Forgeron recorded them
 //   GET /api/tools/<name>/versions    the versions, newest first, each with its changelog and what changed
 //                                     compared with the version published before it
 //   GET /api/tools/<name>/activity    the tool's audit lines, newest first (`?limit=n`, default 50, at most 200)
@@ -17,6 +19,8 @@ import type {
 // the team's, not the audience's.
 
 const RECENT = 5;
+/** A temporary channel shows its branch's commits: more of its deployments. */
+const COMMITS = 20;
 const MAX_ACTIVITY = 200;
 const DEFAULT_ACTIVITY = 50;
 
@@ -30,9 +34,13 @@ interface DeploymentLine {
 }
 
 interface BranchRow {
-  environment: "production" | "preview";
-  /** A preview's branch. */
+  environment: "production" | "preview" | "channel";
+  /** A temporary channel's branch. */
   branch?: string;
+  /** A permanent channel's name, other than production. */
+  channel?: string;
+  /** The branch a permanent channel other than production follows. */
+  follows?: string;
   /** Only a deployment that went through exists here: a build that failed leaves no row. */
   status: "ready";
   version: string;
@@ -41,7 +49,7 @@ interface BranchRow {
   deployedBy: string;
   deployedAt: string;
   url?: string;
-  /** What Roll back would serve again; production only. */
+  /** What Roll back would serve again; permanent channels only. */
   rollbackTo?: string;
   migrations: { count: number; last?: string };
   /** The latest deployments of this environment, newest first. */
@@ -51,6 +59,8 @@ interface BranchRow {
 interface BranchesAnswer {
   tool: string;
   production: BranchRow | null;
+  /** The permanent channels other than production that serve a version. */
+  channels: BranchRow[];
   branches: BranchRow[];
 }
 
@@ -58,7 +68,15 @@ interface VersionRow {
   version: string;
   publishedAt: string;
   /** Where it is served now. */
-  environments: Array<{ environment: "production" | "preview"; branch?: string }>;
+  environments: Array<{
+    environment: "production" | "preview" | "channel";
+    branch?: string;
+    channel?: string;
+  }>;
+  /** The branch whose push made it, when known. */
+  branch?: string;
+  /** A release: only releases reach a permanent channel (D-125). */
+  release: boolean;
   /** What the author wrote; `null` for a version published without a changelog. */
   changelog: {
     entries: Array<{ type: string; bump: string; description: string }>;
@@ -113,9 +131,18 @@ async function actors(registry: Pick<Registry, "listMembers">, workspace: string
     (actor.startsWith("deploy:") ? `${actor.slice("deploy:".length)} (deploy token)` : actor);
 }
 
-/** Where a tool is served: `/t/<tool>`, and `/t/<tool>@<branch>` for a preview (dispatch). */
-const addressOf = (origin: string, tool: string, branch?: string) =>
-  `${origin}/t/${tool}${branch ? `@${branch}` : ""}`;
+/**
+ * Where a tool is served: `/t/<tool>`, `/t/<tool>@<branch>` for a temporary channel, `/t/<tool>~<name>`
+ * for another permanent channel (dispatch, D-125).
+ */
+const addressOf = (origin: string, tool: string, environment: EnvironmentRecord) =>
+  `${origin}/t/${tool}${
+    environment.name === "channel"
+      ? `~${environment.channel}`
+      : environment.branch
+        ? `@${environment.branch}`
+        : ""
+  }`;
 
 export async function branches(
   registry: Pick<
@@ -162,35 +189,37 @@ export async function branches(
           .map((m) => m.name)
           .filter((n): n is string => typeof n === "string")
       : [];
-    const previous =
-      environment.name === "production"
-        ? await registry.previousVersion(environment.id)
-        : undefined;
+    const permanent = environment.name !== "preview";
+    const previous = permanent ? await registry.previousVersion(environment.id) : undefined;
     return {
       environment: environment.name,
       ...(environment.branch ? { branch: environment.branch } : {}),
+      ...(environment.channel ? { channel: environment.channel } : {}),
+      ...(environment.follows ? { follows: environment.follows } : {}),
       status: "ready",
       version: version.version,
       ...(commit ? { commit } : {}),
       deployedBy: latest ? who(latest.actor) : "",
       deployedAt: environment.activatedAt ?? latest?.createdAt ?? version.createdAt,
-      url: addressOf(origin, tool.name, environment.branch ?? undefined),
+      url: addressOf(origin, tool.name, environment),
       ...(previous ? { rollbackTo: previous.version } : {}),
       migrations: { count: names.length, ...(names.length ? { last: names.at(-1)! } : {}) },
-      deployments: history.slice(0, RECENT).map(line),
+      deployments: history.slice(0, permanent ? RECENT : COMMITS).map(line),
     };
   };
 
   let production: BranchRow | null = null;
+  const channels: BranchRow[] = [];
   const previews: BranchRow[] = [];
   for (const environment of await registry.listEnvironments(tool.id)) {
     const built = await row(environment);
     if (!built) continue;
     if (environment.name === "production") production = built;
+    else if (environment.name === "channel") channels.push(built);
     else previews.push(built);
   }
   previews.sort((a, b) => (a.deployedAt < b.deployedAt ? 1 : a.deployedAt > b.deployedAt ? -1 : 0));
-  return { tool: tool.name, production, branches: previews };
+  return { tool: tool.name, production, channels, branches: previews };
 }
 
 export async function versionsOf(
@@ -202,7 +231,11 @@ export async function versionsOf(
   for (const e of await registry.listEnvironments(tool.id)) {
     if (!e.versionId) continue;
     const list = served.get(e.versionId) ?? [];
-    list.push({ environment: e.name, ...(e.branch ? { branch: e.branch } : {}) });
+    list.push({
+      environment: e.name,
+      ...(e.branch ? { branch: e.branch } : {}),
+      ...(e.channel ? { channel: e.channel } : {}),
+    });
     served.set(e.versionId, list);
   }
   const rows: VersionRow[] = [];
@@ -213,6 +246,8 @@ export async function versionsOf(
       version: v.version,
       publishedAt: v.createdAt,
       environments: served.get(v.id) ?? [],
+      ...(v.branch ? { branch: v.branch } : {}),
+      release: isRelease(build?.changelog as BuildChangelog | null),
       changelog: changelogOf(build?.changelog),
       previous: before?.version ?? null,
       ...compare(before?.manifest, build?.manifest),

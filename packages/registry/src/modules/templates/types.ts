@@ -1,4 +1,5 @@
 import type { Manifest } from "@forgeron/manifest";
+import type { EnvironmentRecord } from "../catalog/public";
 
 /** The workspace that holds the template catalogue. Not a workspace name (`@` is no part of an address). */
 export const TEMPLATE_WORKSPACE = "@templates";
@@ -57,17 +58,28 @@ export interface ToolSource {
   repo?: string;
   /** GitHub's number for the repository, when it is known (D-123): it survives a rename. */
   repoId?: number;
-  /** The branch whose preview is the candidate for production (a repository tool). */
+  /** The branch whose releases production takes (a repository tool, D-125). */
   productionBranch: string;
-  /** A new version goes to production by itself when it asks for nothing new. */
+  /** A new release goes to production by itself when it asks for nothing new. */
   autoUpdate: boolean;
   /** False for a tool deployed before sources: what is shown is the default. */
   recorded: boolean;
 }
 
+/** A permanent channel of a tool (D-125): production, or one an admin added. */
+export interface PermanentChannel {
+  name: string;
+  /** The branch whose releases it takes (a repository tool); none for a marketplace tool. */
+  follows?: string;
+  /** It takes a release by itself when the release asks for nothing new. */
+  autoUpdate: boolean;
+  /** Its row, once it exists: production has none before its first update. */
+  environment?: EnvironmentRecord;
+}
+
 /** The version a tool could move to, from its source. */
 export interface AvailableUpdate {
   version: string;
-  /** For a repository tool: the branch it is served from. */
+  /** For a repository tool: the branch it was released on. */
   branch?: string;
 }

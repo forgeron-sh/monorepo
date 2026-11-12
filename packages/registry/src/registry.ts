@@ -18,8 +18,8 @@ import { createSecrets } from "./modules/secrets/public";
 import { createTemplates } from "./modules/templates/public";
 import { createUsage } from "./modules/usage/public";
 
-export { RegistryError } from "./kernel/errors";
-export type { RegisteredEnvironment, RegistryErrorCode } from "./kernel/errors";
+export { RegistryError, secretEnvironmentOf } from "./kernel/errors";
+export type { RegisteredEnvironment, RegistryErrorCode, SecretEnvironment } from "./kernel/errors";
 export type { AuditEntry, AuditInterface, AuditKind, AuditResult } from "./kernel/audit";
 export type { RegistryOptions } from "./kernel/kernel";
 export type { AccessCell, AccessMatrix } from "./modules/access/public";
@@ -45,9 +45,10 @@ export type {
   SecretStatus,
 } from "./modules/secrets/public";
 export { TEMPLATE_WORKSPACE } from "./modules/templates/public";
-export type { AvailableUpdate, ToolSource } from "./modules/templates/public";
+export type { AvailableUpdate, PermanentChannel, ToolSource } from "./modules/templates/public";
+export { channelNameProblem } from "./modules/catalog/public";
 export { marketplaceSource } from "./modules/marketplaces/public";
-export { AVAILABILITY_MODES, isAvailable, mayPilot } from "./modules/library/public";
+export { AVAILABILITY_MODES, isAvailable, mayUseChannel } from "./modules/library/public";
 export type { Availability, AvailabilityMode } from "./modules/library/public";
 export type { Marketplace } from "./modules/marketplaces/public";
 export type { GithubApp, GithubAppKeys, GithubInstallation } from "./modules/github/public";

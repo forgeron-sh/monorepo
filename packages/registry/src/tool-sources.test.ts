@@ -122,19 +122,26 @@ describe("where a tool comes from (D-121)", () => {
     expect(linked).toMatchObject({ kind: "repo", repo: "acme/crm", productionBranch: "trunk" });
     expect(await registry.availableUpdate(tool.id)).toBeUndefined();
 
-    for (const v of ["1.0.0", "1.1.0-preview.trunk+abc", "1.2.0-preview.feat+def"]) {
+    const release = { entries: [{}], declared: "minor", detected: "none", released: true };
+    for (const [v, branch, changelog] of [
+      ["1.0.0", undefined, release],
+      ["1.1.0-preview.trunk+abc", "trunk", release],
+      ["1.2.0-preview.feat+def", "feat", release],
+      ["1.1.1-preview.trunk+wip", "trunk", undefined],
+    ] as const) {
       const build = await registry.recordBuild(tool.id, {
         fingerprint: v,
         manifest: { name: "crm", roles: {}, actions: {}, resources: {} },
         worker: "//",
+        ...(changelog ? { changelog } : {}),
       });
-      await registry.publishVersion(tool.id, build.id, v);
+      await registry.publishVersion(tool.id, build.id, v, branch);
     }
     await serve(tool.id, "1.0.0");
     await serve(tool.id, "1.2.0-preview.feat+def", "preview", "feat");
-    // Another branch is not production's candidate.
-    expect(await registry.availableUpdate(tool.id)).toBeUndefined();
-    await serve(tool.id, "1.1.0-preview.trunk+abc", "preview", "trunk");
+    await serve(tool.id, "1.1.1-preview.trunk+wip", "preview", "trunk");
+    // Another branch's release is not production's; trunk's preview serves a build that is not a
+    // release: production is offered trunk's latest release (D-125).
     expect(await registry.availableUpdate(tool.id)).toEqual({
       version: "1.1.0-preview.trunk+abc",
       branch: "trunk",

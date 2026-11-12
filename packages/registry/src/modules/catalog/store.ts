@@ -36,6 +36,21 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** Names a permanent channel may not take: the environments' own words. */
+const RESERVED_CHANNELS = new Set(["production", "preview", "local", "channel"]);
+
+/**
+ * What is wrong with a permanent channel's name, or `undefined` (D-125): lowercase letters, digits and
+ * `-`, starting with a letter, 30 characters at most, not one of the environments' own words.
+ */
+export function channelNameProblem(name: string): string | undefined {
+  if (!/^[a-z][a-z0-9-]{0,29}$/.test(name)) {
+    return "A channel's name: lowercase letters, digits and '-', starting with a letter, 30 at most.";
+  }
+  if (RESERVED_CHANNELS.has(name)) return `${name} is not a name a channel can take.`;
+  return undefined;
+}
+
 export function createCatalog(kernel: Kernel) {
   const { d1, now, newId, all, first, write, auditStatement } = kernel;
   /** The content stored under a hash, whole. */
@@ -230,8 +245,16 @@ export function createCatalog(kernel: Kernel) {
     },
 
     // ---- versions
-    /** Publishes a build under a version number. A version number is used once per tool. */
-    async publishVersion(toolId: string, buildId: string, version: string): Promise<VersionRecord> {
+    /**
+     * Publishes a build under a version number. A version number is used once per tool. `branch` is
+     * the branch whose push made it (D-125): a permanent channel finds its branch's releases by it.
+     */
+    async publishVersion(
+      toolId: string,
+      buildId: string,
+      version: string,
+      branch?: string,
+    ): Promise<VersionRecord> {
       const build = await this.getBuild(buildId);
       if (!build) throw new RegistryError("NOT_FOUND", `There is no build ${buildId}.`);
       if (build.toolId !== toolId) {
@@ -248,11 +271,12 @@ export function createCatalog(kernel: Kernel) {
       }
       const id = newId();
       await write(
-        `INSERT INTO "versions" ("id", "tool_id", "build_id", "version", "created_at") VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO "versions" ("id", "tool_id", "build_id", "version", "branch", "created_at") VALUES (?, ?, ?, ?, ?, ?)`,
         id,
         toolId,
         buildId,
         version,
+        branch ?? null,
         now(),
       );
       return toVersion((await first(`SELECT * FROM "versions" WHERE "id" = ?`, id))!);
@@ -260,6 +284,28 @@ export function createCatalog(kernel: Kernel) {
     async getVersion(id: string): Promise<VersionRecord | undefined> {
       const row = await first(`SELECT * FROM "versions" WHERE "id" = ?`, id);
       return row ? toVersion(row) : undefined;
+    },
+    /**
+     * The versions a branch's pushes made, newest first, with their build's changelog: a permanent
+     * channel looks among them for its next release (D-125).
+     */
+    async versionsOfBranch(
+      toolId: string,
+      branch: string,
+      limit = 100,
+    ): Promise<Array<VersionRecord & { changelog: unknown; manifest: unknown }>> {
+      return (
+        await all(
+          `SELECT v.*, b."changelog" AS "build_changelog", b."manifest" AS "build_manifest" FROM "versions" v JOIN "builds" b ON b."id" = v."build_id" WHERE v."tool_id" = ? AND v."branch" = ? ORDER BY v."created_at" DESC, v."rowid" DESC LIMIT ?`,
+          toolId,
+          branch,
+          limit,
+        )
+      ).map((r) => ({
+        ...toVersion(r),
+        changelog: r.build_changelog ? JSON.parse(String(r.build_changelog)) : null,
+        manifest: r.build_manifest ? JSON.parse(String(r.build_manifest)) : null,
+      }));
     },
     /** Oldest first, in the order they were published. */
     async listVersions(toolId: string): Promise<VersionRecord[]> {
@@ -271,23 +317,32 @@ export function createCatalog(kernel: Kernel) {
       ).map(toVersion);
     },
 
-    // ---- environments
-    /** The environment of a tool, created if needed. A preview needs its branch; the others have none. */
+    // ---- environments: the channels of a tool (D-125)
+    /**
+     * The environment of a tool. Production and a branch's preview are created if needed; a permanent
+     * channel other than production (`key` is its name) only exists once an admin added it
+     * (`addChannel`).
+     */
     async ensureEnvironment(
       toolId: string,
       name: RegisteredEnvironment,
-      branch?: string,
+      key?: string,
     ): Promise<EnvironmentRecord> {
       await requireTool(toolId);
-      if (name === "preview" && !branch) {
+      if (name === "preview" && !key) {
         throw new RegistryError("BRANCH_REQUIRED", "A preview environment is tied to a branch.");
       }
-      const key = name === "preview" ? branch! : "";
+      if (name === "channel") {
+        const channel = await this.findChannel(toolId, key ?? "");
+        if (!channel) throw new RegistryError("NOT_FOUND", `There is no channel ${key ?? ""}.`);
+        return channel;
+      }
+      const branch = name === "preview" ? key! : "";
       const found = await first(
-        `SELECT * FROM "environments" WHERE "tool_id" = ? AND "name" = ? AND "branch" = ?`,
+        `SELECT * FROM "environments" WHERE "tool_id" = ? AND "name" = ? AND "branch" = ? AND "channel" = ''`,
         toolId,
         name,
-        key,
+        branch,
       );
       if (found) return toEnvironment(found);
       const id = newId();
@@ -296,7 +351,7 @@ export function createCatalog(kernel: Kernel) {
         id,
         toolId,
         name,
-        key,
+        branch,
         now(),
       );
       return toEnvironment((await first(`SELECT * FROM "environments" WHERE "id" = ?`, id))!);
@@ -304,10 +359,99 @@ export function createCatalog(kernel: Kernel) {
     async listEnvironments(toolId: string): Promise<EnvironmentRecord[]> {
       return (
         await all(
-          `SELECT * FROM "environments" WHERE "tool_id" = ? ORDER BY "name", "branch"`,
+          `SELECT * FROM "environments" WHERE "tool_id" = ? ORDER BY "name", "branch", "channel"`,
           toolId,
         )
       ).map(toEnvironment);
+    },
+    /** A permanent channel other than production, by its name. */
+    async findChannel(toolId: string, name: string): Promise<EnvironmentRecord | undefined> {
+      const row = await first(
+        `SELECT * FROM "environments" WHERE "tool_id" = ? AND "name" = 'channel' AND "channel" = ?`,
+        toolId,
+        name,
+      );
+      return row ? toEnvironment(row) : undefined;
+    },
+    /**
+     * Adds a permanent channel (D-125): its own Worker and database once a release reaches it. It
+     * follows a branch (a repository tool) or the marketplace (none). Audited.
+     */
+    async addChannel(input: {
+      toolId: string;
+      name: string;
+      follows?: string;
+      autoUpdate?: boolean;
+      actor: string;
+      via?: string;
+    }): Promise<EnvironmentRecord> {
+      await requireTool(input.toolId);
+      const problem = channelNameProblem(input.name);
+      if (problem) throw new RegistryError("INVALID", problem);
+      if (await this.findChannel(input.toolId, input.name)) {
+        throw new RegistryError("ALREADY_EXISTS", `The tool already has a channel ${input.name}.`);
+      }
+      const id = newId();
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "environments" ("id", "tool_id", "name", "branch", "channel", "follows", "auto_update", "created_at") VALUES (?, ?, 'channel', '', ?, ?, ?, ?)`,
+          )
+          .bind(id, input.toolId, input.name, input.follows ?? null, input.autoUpdate ? 1 : 0, at),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.actor,
+            ...(input.via ? { via: input.via } : {}),
+            kind: "access",
+            subject: `channel:${input.name}`,
+            detail: {
+              event: "channel-added",
+              ...(input.follows ? { follows: input.follows } : {}),
+              autoUpdate: input.autoUpdate === true,
+            },
+          },
+          at,
+        ),
+      ]);
+      return toEnvironment((await first(`SELECT * FROM "environments" WHERE "id" = ?`, id))!);
+    },
+    /** Changes the branch a permanent channel follows, or whether it updates by itself. Audited. */
+    async setChannel(input: {
+      toolId: string;
+      name: string;
+      follows?: string;
+      autoUpdate?: boolean;
+      actor: string;
+      via?: string;
+    }): Promise<EnvironmentRecord> {
+      const current = await this.findChannel(input.toolId, input.name);
+      if (!current) throw new RegistryError("NOT_FOUND", `There is no channel ${input.name}.`);
+      const follows = input.follows ?? current.follows;
+      const autoUpdate = input.autoUpdate ?? current.autoUpdate === true;
+      const at = now();
+      await d1.batch([
+        d1
+          .prepare(`UPDATE "environments" SET "follows" = ?, "auto_update" = ? WHERE "id" = ?`)
+          .bind(follows ?? null, autoUpdate ? 1 : 0, current.id),
+        auditStatement(
+          {
+            toolId: input.toolId,
+            actor: input.actor,
+            ...(input.via ? { via: input.via } : {}),
+            kind: "access",
+            subject: `channel:${input.name}`,
+            detail: {
+              event: "channel-settings",
+              ...(follows ? { follows } : {}),
+              autoUpdate,
+            },
+          },
+          at,
+        ),
+      ]);
+      return (await this.findChannel(input.toolId, input.name))!;
     },
     /**
      * Records that the environment serves this version, and writes the line of the audit log, in
@@ -322,10 +466,8 @@ export function createCatalog(kernel: Kernel) {
         kind?: DeploymentKind;
         url?: string;
         commit?: DeploymentCommit;
-        /** Why a person promoted or rolled back: written in the audit line. */
+        /** Why a person updated or rolled back: written in the audit line. */
         reason?: string;
-        /** Production took a build with no release, knowingly (D-121): written in the audit line. */
-        withoutRelease?: boolean;
       },
     ): Promise<EnvironmentRecord> {
       const env = await first(`SELECT * FROM "environments" WHERE "id" = ?`, environmentId);
@@ -364,13 +506,13 @@ export function createCatalog(kernel: Kernel) {
             actor: options.actor,
             ...(options.via ? { via: options.via } : {}),
             kind: DEPLOYMENT_AUDIT[options.kind ?? "deploy"],
-            subject: `${String(env.name)}:${version.version}`,
+            subject: `${env.channel ? `channel:${String(env.channel)}` : String(env.name)}:${version.version}`,
             versionId,
             detail: {
               environment: String(env.name),
               ...(env.branch ? { branch: String(env.branch) } : {}),
+              ...(env.channel ? { channel: String(env.channel) } : {}),
               ...(options.reason ? { reason: options.reason } : {}),
-              ...(options.withoutRelease ? { withoutRelease: true } : {}),
             },
           },
           at,
@@ -418,7 +560,7 @@ export function createCatalog(kernel: Kernel) {
       );
       return row ? toVersion(row) : undefined;
     },
-    /** Forgets an environment (a preview whose branch is gone). */
+    /** Forgets an environment (a preview whose branch is gone, a channel an admin removed). */
     async removeEnvironment(environmentId: string): Promise<void> {
       await write(`DELETE FROM "environments" WHERE "id" = ?`, environmentId);
     },

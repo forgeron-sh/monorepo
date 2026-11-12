@@ -139,6 +139,10 @@
   border: 1px dashed var(--line-strong);
   color: var(--ink-muted);
 }
+.fg-env-channel {
+  border: 1px solid var(--inverse);
+  color: var(--ink);
+}
 .fg-env-mark {
   width: 6px;
   height: 6px;
@@ -150,6 +154,9 @@
 }
 .fg-env-preview .fg-env-mark {
   border: 1.5px dashed currentColor;
+}
+.fg-env-channel .fg-env-mark {
+  border: 1.5px solid currentColor;
 }
 
 /* Label (eyebrow) */

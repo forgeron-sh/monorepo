@@ -22,10 +22,10 @@ import { consoleClient, consoleRefusal, credentialsOf, toolOf, workspaceOf } fro
 const USAGE = `Usage: forgeron db <generate|migrate|status|rollback|seed|shell>
   generate [--name <name>]
   migrate  [--env local]
-  status   [--env local|preview|production] [--branch <name>]
+  status   [--env local|preview|production] [--branch <name>] [--channel <name>]
   rollback [--env local] [--steps 1]
   seed
-  shell    [--env local|preview|production] [--branch <name>] --sql <statement> [--write] [--confirm <tool>]
+  shell    [--env local|preview|production] [--branch <name>] [--channel <name>] --sql <statement> [--write] [--confirm <tool>]
 
 On preview and production (administrators, signed in with \`forgeron login\`): status compares the
 migrations of the version the environment serves with its database; shell runs one statement. A read
@@ -80,6 +80,7 @@ export async function db(args: string[], io: Io): Promise<number> {
       write: { type: "boolean" },
       as: { type: "string" },
       branch: { type: "string" },
+      channel: { type: "string" },
       confirm: { type: "string" },
       tool: { type: "string" },
       endpoint: { type: "string" },
@@ -89,6 +90,16 @@ export async function db(args: string[], io: Io): Promise<number> {
 
   if (sub === "generate") return generate(values.name, io);
 
+  // A permanent channel other than production (D-125) is reached by its reference, `~<name>`.
+  if (values.channel !== undefined) {
+    if (!/^[a-z][a-z0-9-]{0,29}$/.test(values.channel) || values.branch !== undefined) {
+      throw new UsageError(`--channel ${values.channel}: the name of a permanent channel.`);
+    }
+    if (values.channel !== "production") {
+      return remote(sub, "preview", { ...values, branch: `~${values.channel}` }, io);
+    }
+    return remote(sub, "production", values, io);
+  }
   const env = values.env ?? "local";
   if (env !== "local") return remote(sub, env, values, io);
   if (sub === "shell") {

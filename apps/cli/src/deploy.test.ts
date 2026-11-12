@@ -83,8 +83,8 @@ describe("forgeron deploy", () => {
     expect(uploads).toHaveLength(1);
     const [upload] = uploads;
     expect(upload?.authorization).toBe("Bearer fgt.example.token");
+    expect(upload?.body).not.toHaveProperty("environment");
     expect(upload?.body).toMatchObject({
-      environment: "preview",
       branch: "feat/a",
       version: expect.stringMatching(/^\d+\.\d+\.\d+-preview\.feat-a\+[0-9a-f]{7}$/),
       build: {
@@ -93,27 +93,28 @@ describe("forgeron deploy", () => {
         fingerprint: expect.any(String),
       },
     });
-    expect(logs[0]).toContain("Deployed greeter@x to preview: https://acme.test/t/greeter");
+    expect(logs[0]).toContain("Deployed greeter@x to feat/a: https://acme.test/t/greeter");
   });
 
-  it("takes the branch GitHub gives CI, and names production builds with the build only", async () => {
+  it("takes the branch GitHub gives CI, and says which permanent channels took a release", async () => {
     process.env.FORGERON_TOKEN = "t";
     process.env.GITHUB_HEAD_REF = "feat/b";
-    answer = { status: 200, body: {} };
+    answer = {
+      status: 200,
+      body: {
+        channels: [
+          { channel: "production", version: "1.2.0" },
+          { channel: "staging", waiting: "staging waits for an admin to approve: x." },
+        ],
+      },
+    };
     const preview = await linked();
-    expect(await run(["deploy"], preview.io)).toBe(0);
-    expect(uploads[0]?.body.branch).toBe("feat/b");
-
-    const production = await linked();
-    expect(await run(["deploy", "--env", "production", "--allow-destructive"], production.io)).toBe(
-      0,
-    );
-    expect(uploads[1]?.body).toMatchObject({
-      environment: "production",
-      allowDestructive: true,
-      version: expect.stringMatching(/^\d+\.\d+\.\d+\+[0-9a-f]{7}$/),
-    });
-    expect(uploads[1]?.body).not.toHaveProperty("branch");
+    expect(await run(["deploy", "--allow-destructive"], preview.io)).toBe(0);
+    expect(uploads[0]?.body).toMatchObject({ branch: "feat/b", allowDestructive: true });
+    expect(preview.logs.join("\n")).toContain("The channel production took the release 1.2.0.");
+    expect(preview.logs.join("\n")).toContain("The channel staging waits for an admin");
+    // There is no environment to choose: production takes releases of its branch (D-125).
+    expect(await run(["deploy", "--env", "production"], preview.io)).toBe(2);
   });
 
   it("sends the commit of the checkout, for the console's list of branches", async () => {
