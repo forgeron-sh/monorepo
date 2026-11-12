@@ -6,7 +6,7 @@ import type { LocalUser } from "./local";
 // access level checked before anything is rendered, and the built files read from the build folder.
 
 /** Without `allow-same-origin`: the page has an opaque origin, as it has on the platform. */
-export const VIEW_CSP = "sandbox allow-scripts allow-forms allow-popups allow-downloads";
+const VIEW_CSP = "sandbox allow-scripts allow-forms allow-popups allow-downloads";
 
 const ASSET_PREFIX = "/_f/views/";
 const TYPES: Record<string, string> = {
