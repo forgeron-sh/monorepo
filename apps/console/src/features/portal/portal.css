@@ -149,3 +149,15 @@ button.fp-link {
   font: 500 12px/22px var(--font-mono);
   text-align: center;
 }
+
+.fp-back {
+  display: inline-block;
+  margin-bottom: var(--space-4);
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.fp-back:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

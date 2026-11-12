@@ -1,4 +1,5 @@
-import { Badge, Button, CopyBlock, Notice, Page, Stat } from "@forgeron/ui";
+import { useState } from "react";
+import { Badge, Button, CopyBlock, Page, Stat } from "@forgeron/ui";
 import type { FetchJson } from "./api";
 import { pathOf, routeClick } from "./router";
 import { loadTools } from "./features/tools/api";
@@ -18,6 +19,17 @@ const Check = () => (
     />
   </svg>
 );
+
+const OPEN_KEY = "forgeron.console.start";
+
+/** Open unless the person folded it before. */
+function readOpen(): boolean {
+  try {
+    return localStorage.getItem(OPEN_KEY) !== "closed";
+  } catch {
+    return true;
+  }
+}
 
 export interface Step {
   id: "signed-in" | "members" | "deploy" | "call";
@@ -45,11 +57,20 @@ export interface OverviewProps {
   go: (href: string) => void;
 }
 
-/** The first-run checklist: what is done and what to do next. Also drawn on the admin's Home. */
+/** The first-run checklist, a floating panel at the bottom right (position: fixed), gone once done. */
 export function FirstRun({ ws, fetchJson, go }: OverviewProps) {
   const steps = firstRunSteps(ws);
   const next = steps.find((s) => !s.done)?.id;
   const finished = steps.filter((s) => s.done).length;
+  const [open, setOpen] = useState(readOpen);
+  const toggle = () => {
+    setOpen(!open);
+    try {
+      localStorage.setItem(OPEN_KEY, open ? "closed" : "open");
+    } catch {
+      // Storage can be blocked: the panel then simply forgets its state.
+    }
+  };
   // The command of step 4 names a deployed tool when there is one; the list is not needed before.
   const tools = useLoad(
     () => (ws.setup.deployed > 0 ? loadTools(fetchJson) : Promise.resolve([])),
@@ -103,31 +124,32 @@ export function FirstRun({ ws, fetchJson, go }: OverviewProps) {
     }
   };
 
+  if (!next) return null;
+
   return (
-    <>
-      <section className="fc-section" aria-labelledby="start">
-        <div className="fc-section-head">
-          <h2 id="start" className="fc-section-title">
-            {next ? "Get started" : "Setup"}
-          </h2>
-        </div>
-        {next ? null : (
-          <Notice tone="success" title="Your workspace is set up.">
-            Tools are deployed and have been called. Open Tools, under Administration, to see what
-            each channel serves.
-          </Notice>
-        )}
-        <div className="fc-progress" style={next ? undefined : { marginTop: "var(--space-4)" }}>
-          <span className="fc-progress-bar" aria-hidden="true">
-            {steps.map((s) => (
-              <span key={s.id} className="fc-progress-seg" data-done={s.done} />
-            ))}
-          </span>
-          <span>
-            {finished} of {steps.length} steps done
-          </span>
-        </div>
-        <ol className="fc-steps">
+    <aside className="fc-start" data-open={open} aria-labelledby="start">
+      <button
+        type="button"
+        className="fc-start-head"
+        aria-expanded={open}
+        aria-controls="start-panel"
+        onClick={toggle}
+      >
+        <span id="start" className="fc-start-title">
+          Get started
+        </span>
+        <span className="fc-start-count">
+          {finished} of {steps.length} steps done
+        </span>
+        <span className="fc-progress-bar" aria-hidden="true">
+          {steps.map((s) => (
+            <span key={s.id} className="fc-progress-seg" data-done={s.done} />
+          ))}
+        </span>
+        <span className="fc-start-chevron" aria-hidden="true" />
+      </button>
+      {open ? (
+        <ol id="start-panel" className="fc-steps">
           {steps.map((step, index) => (
             <li
               key={step.id}
@@ -154,8 +176,8 @@ export function FirstRun({ ws, fetchJson, go }: OverviewProps) {
             </li>
           ))}
         </ol>
-      </section>
-    </>
+      ) : null}
+    </aside>
   );
 }
 

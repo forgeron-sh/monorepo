@@ -1,7 +1,8 @@
-import { Button, CopyBlock, Dialog, Markdown, Notice, Page, Tabs, ToolIcon } from "@forgeron/ui";
+import { Button, CopyBlock, Dialog, Markdown, Menu, Notice, Page, Tabs } from "@forgeron/ui";
+import { ToolIcon } from "../tools/components";
 import { useState, type ReactNode } from "react";
 import { explain, type Api } from "../../api";
-import { pathOf, toolPath } from "../../router";
+import { pathOf, routeClick, toolPath } from "../../router";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
 import {
@@ -14,11 +15,18 @@ import {
   removePilot,
   type LibraryCard,
 } from "./library";
+import "../tools/tools.css";
 import "./portal.css";
 
 // A tool as the person who uses it sees it (D-118): what it does (its guide), adding it to their
 // library, finishing what it asks of them, how to use it (on the web, in Claude, in a terminal), and
 // removing it. No version, role, action, resource or README: those are the admin's sheet.
+
+const Chevron = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M4 6.5L8 10.5L12 6.5" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+);
 
 const Step = ({ n, children }: { n: number; children: ReactNode }) => (
   <li className="fp-step">
@@ -31,21 +39,17 @@ const Step = ({ n, children }: { n: number; children: ReactNode }) => (
 
 function Use({ card }: { card: LibraryCard }) {
   const { web, mcp, cli } = card.use;
-  if (!web && !mcp && !cli) {
-    return <p className="fc-muted">There is nothing to open for this tool yet.</p>;
+  if (!mcp && !cli) {
+    return (
+      <p className="fc-muted">
+        {web
+          ? `Use ${card.title} in your browser: open it with the button above.`
+          : "There is nothing to open for this tool yet."}
+      </p>
+    );
   }
   return (
     <div className="fp-connect">
-      {web ? (
-        <section aria-labelledby="use-web">
-          <h3 id="use-web" className="fp-h3">
-            In your browser
-          </h3>
-          <Button variant="primary" href={web.url}>
-            Open {card.title}
-          </Button>
-        </section>
-      ) : null}
       {mcp ? (
         <section aria-labelledby="use-claude">
           <h3 id="use-claude" className="fp-h3">
@@ -154,33 +158,63 @@ export function LibraryToolPage({
     }
   };
 
+  const title = c.pilot ? `${c.title} · ${channelLabel(c.pilot)}` : c.title;
+  const web = c.use.web;
+  const entries =
+    c.installed && c.managed
+      ? [
+          {
+            kind: "action" as const,
+            label: "Remove from my tools",
+            tone: "danger" as const,
+            onSelect: () => setRemoving(true),
+          },
+        ]
+      : [];
+  const primary = !c.installed ? (
+    <Button variant="primary" onClick={add} disabled={busy}>
+      {busy ? "Adding…" : "Add to my tools"}
+    </Button>
+  ) : c.setupUrl ? (
+    <Button variant="primary" href={c.setupUrl}>
+      Finish setup
+    </Button>
+  ) : ready && web ? (
+    <Button variant="primary" href={web.url}>
+      Open {c.title}
+    </Button>
+  ) : null;
+
   return (
-    <Page
-      title={c.pilot ? `${c.title} · ${channelLabel(c.pilot)}` : c.title}
-      description={
-        <button type="button" className="fp-link" onClick={() => go(pathOf("myTools"))}>
-          Back to my tools
-        </button>
-      }
-      actions={
-        !c.installed ? (
-          <Button variant="primary" onClick={add} disabled={busy}>
-            {busy ? "Adding…" : "Add to my tools"}
-          </Button>
-        ) : c.setupUrl ? (
-          <Button variant="primary" href={c.setupUrl}>
-            Finish setup
-          </Button>
-        ) : null
-      }
-    >
-      <div className="fp-card">
-        <div className="fp-card-head">
-          <ToolIcon name={c.title} size="lg" />
-          <div className="fp-card-titles">
-            <p className="fp-card-summary">{c.summary}</p>
+    <main className="fg-page ft-page">
+      <a className="fp-back" href={pathOf("myTools")} onClick={routeClick(go)}>
+        <span aria-hidden="true">←</span> My tools
+      </a>
+      <header className="ft-header">
+        <ToolIcon name={c.title} size={48} />
+        <div className="ft-header-text">
+          <div className="ft-header-title">
+            <h1 className="fg-page-title">{title}</h1>
           </div>
+          <p className="fg-page-desc">{c.summary}</p>
         </div>
+        <div className="ft-header-actions">
+          {primary || entries.length ? (
+            <span className="ft-split">
+              {primary}
+              {entries.length ? (
+                <Menu
+                  className={`ft-split-menu${primary ? " ft-split-primary" : ""}`}
+                  label="More actions"
+                  trigger={<Chevron />}
+                  entries={entries}
+                />
+              ) : null}
+            </span>
+          ) : null}
+        </div>
+      </header>
+      <div className="fp-card">
         {error ? <Notice tone="danger">{error}</Notice> : null}
         {c.pilot ? (
           <Notice tone="info" title={channelLabel(c.pilot)}>
@@ -227,21 +261,6 @@ export function LibraryToolPage({
             <p>{c.summary}</p>
           )}
         </Tabs>
-        {c.installed && c.managed ? (
-          <section className="fc-section" aria-labelledby="remove-title">
-            <h2 id="remove-title" className="fc-section-title">
-              Remove from my tools
-            </h2>
-            <p className="fc-section-hint">
-              You can add it again later. Your saved keys stay in your secrets.
-            </p>
-            <div>
-              <Button variant="danger" onClick={() => setRemoving(true)} disabled={busy}>
-                Remove
-              </Button>
-            </div>
-          </section>
-        ) : null}
       </div>
       {removing ? (
         <Dialog
@@ -260,6 +279,6 @@ export function LibraryToolPage({
           }
         />
       ) : null}
-    </Page>
+    </main>
   );
 }

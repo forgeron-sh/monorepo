@@ -75,7 +75,18 @@ describe("Overview", () => {
     expect(member.textContent).toContain("Ask an admin of this workspace to invite them.");
   });
 
-  it("says when everything is done", async () => {
+  it("folds into a pill and remembers it", async () => {
+    localStorage.clear();
+    const { api } = fakeApi({});
+    const page = await mount(<Overview ws={ws()} fetchJson={api.fetchJson} go={() => {}} />);
+    await click(page.querySelector(".fc-start-head"));
+    expect(page.querySelector(".fc-steps")).toBeNull();
+    expect(localStorage.getItem("forgeron.console.start")).toBe("closed");
+    expect(page.textContent).toContain("1 of 4 steps done");
+    localStorage.clear();
+  });
+
+  it("disappears when everything is done", async () => {
     const { api } = fakeApi({ "/api/tools": { tools: [] } });
     const page = await mount(
       <Overview
@@ -84,7 +95,6 @@ describe("Overview", () => {
         go={() => {}}
       />,
     );
-    expect(page.textContent).toContain("Your workspace is set up.");
-    expect(page.textContent).toContain("4 of 4 steps done");
+    expect(page.querySelector(".fc-start")).toBeNull();
   });
 });
