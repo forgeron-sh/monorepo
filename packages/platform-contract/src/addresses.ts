@@ -80,6 +80,13 @@ import type {
   listTemplatesRoute,
 } from "./templates";
 import type { dbMigrationsRoute, dbQueryRoute } from "./database-admin";
+import type {
+  createGithubToolRoute,
+  disconnectGithubRoute,
+  getGithubRoute,
+  linkGithubRepositoryRoute,
+  listGithubRepositoriesRoute,
+} from "./github";
 import type { resealSecretsRoute, secretsStatusRoute } from "./secrets-status";
 import type {
   listToolsRoute,
@@ -423,5 +430,22 @@ export const addresses = {
   withdrawConsent: addressOf<typeof withdrawConsentRoute>({
     method: "delete",
     path: "/api/tools/{tool}/environments/{environment}/consent/{name}",
+  }),
+  getGithub: addressOf<typeof getGithubRoute>({ method: "get", path: "/api/github" }),
+  disconnectGithub: addressOf<typeof disconnectGithubRoute>({
+    method: "delete",
+    path: "/api/github",
+  }),
+  listGithubRepositories: addressOf<typeof listGithubRepositoriesRoute>({
+    method: "get",
+    path: "/api/github/repositories",
+  }),
+  linkGithubRepository: addressOf<typeof linkGithubRepositoryRoute>({
+    method: "post",
+    path: "/api/github/repositories/link",
+  }),
+  createGithubTool: addressOf<typeof createGithubToolRoute>({
+    method: "post",
+    path: "/api/github/tools",
   }),
 };

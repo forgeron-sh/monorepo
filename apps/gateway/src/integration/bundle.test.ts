@@ -5,6 +5,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Miniflare } from "miniflare";
+import { parseAst } from "rolldown/parseAst";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildGateway } from "../../scripts/build";
 
@@ -44,8 +45,20 @@ afterAll(async () => {
 describe("gateway bundle", () => {
   it("is one module that imports nothing but the runtime's own node: modules", async () => {
     const code = await readFile(file, "utf8");
-    const specifiers = [...code.matchAll(/^\s*import\b[^"']*["']([^"']+)["']/gm)].map((m) => m[1]!);
+    // Parsed, not searched: the files of a new tool (`@forgeron/scaffold`) hold `import` lines as text.
+    const specifiers = parseAst(code)
+      .body.filter((n) => n.type === "ImportDeclaration")
+      .map((n) => String(n.source.value));
     expect(specifiers.filter((s) => !s.startsWith("node:"))).toEqual([]);
+  });
+
+  it("carries the release it was built from (D-123), not the placeholders", async () => {
+    const code = await readFile(file, "utf8");
+    const { version } = JSON.parse(
+      await readFile(new URL("../../../../package.json", import.meta.url), "utf8"),
+    ) as { version: string };
+    expect(code).not.toContain("__FORGERON_GATEWAY_VERSION__");
+    expect(code).toContain(JSON.stringify(version));
   });
 
   it("answers 404 for a host outside the base domain", async () => {

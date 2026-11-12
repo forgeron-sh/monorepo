@@ -9,6 +9,7 @@ import { accessMigrations } from "./modules/access/public";
 import { auditMigrations } from "./modules/audit/public";
 import { catalogMigrations } from "./modules/catalog/public";
 import { connectionsMigrations } from "./modules/connections/public";
+import { githubMigrations } from "./modules/github/public";
 import { identityStoreMigrations } from "./modules/identity-store/public";
 import { libraryMigrations } from "./modules/library/public";
 import { marketplacesMigrations } from "./modules/marketplaces/public";
@@ -42,5 +43,6 @@ export const platformMigrations: BuildMigration[] = composeMigrations([
   marketplacesMigrations,
   libraryMigrations,
   usageMigrations,
+  githubMigrations,
   rootMigrations,
 ]);

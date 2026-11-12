@@ -2,13 +2,12 @@ import { VERSION } from "./version";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
+import { VITEST_VERSION, workflow, WORKFLOW_PATH } from "@forgeron/scaffold";
 import { UsageError } from "./io";
 import { writeProject } from "./project";
-import { WORKFLOW, WORKFLOW_PATH } from "./workflow";
 
 /** The SDK a new tool depends on: the one released with this CLI (D-122). */
 export const SDK_VERSION = VERSION;
-export const VITEST_VERSION = "5.0.5";
 
 // Catalog templates are npm packages `@forgeron/template-<name>` (docs/sdk.md §18).
 // `forgeron init --template <name>` reads the registry's metadata, downloads the tarball and unpacks it.
@@ -166,6 +165,6 @@ export async function writeTemplate(
   await mkdir(join(dir, ".forgeron"), { recursive: true });
   await writeFile(join(dir, ".forgeron/.gitignore"), "local/\ngenerated/\nbuild/\n");
   await mkdir(join(dir, WORKFLOW_PATH, ".."), { recursive: true });
-  await writeFile(join(dir, WORKFLOW_PATH), WORKFLOW);
+  await writeFile(join(dir, WORKFLOW_PATH), workflow({ version: VERSION }));
   await writeProject(dir, { tool: name });
 }

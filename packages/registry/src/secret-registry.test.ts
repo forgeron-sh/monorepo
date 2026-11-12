@@ -318,6 +318,8 @@ describe("secrets typed before the registry existed (D-036)", () => {
         "0031_library",
         "0032_pilots",
         "0033_tool_sources",
+        "0034_tool_sources_repo_id",
+        "0035_github",
       ]);
       // The legacy table is gone once the rows are converted (D-110).
       await expect(before.prepare(`SELECT 1 FROM "user_secrets"`).all()).rejects.toBeDefined();

@@ -34,6 +34,7 @@
         "@forgeron/playground": "workspace:*",
         "@forgeron/registry": "workspace:*",
         "@forgeron/runtime": "workspace:*",
+        "@forgeron/scaffold": "workspace:*",
         "@forgeron/sdk": "workspace:*",
         "kysely": "0.29.8",
         "miniflare": "4.20260730.0",
@@ -73,6 +74,7 @@
         "@forgeron/platform-contract": "workspace:*",
         "@forgeron/playground": "workspace:*",
         "@forgeron/registry": "workspace:*",
+        "@forgeron/scaffold": "workspace:*",
         "@hono/zod-openapi": "1.6.3",
         "hono": "4.13.16",
         "zod": "4.6.7",
@@ -204,6 +206,13 @@
         "kysely": "0.29.8",
         "zod": "4.6.7",
       },
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+      },
+    },
+    "packages/scaffold": {
+      "name": "@forgeron/scaffold",
+      "version": "0.0.0",
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
       },
@@ -482,6 +491,8 @@
     "@forgeron/registry": ["@forgeron/registry@workspace:packages/registry"],
 
     "@forgeron/runtime": ["@forgeron/runtime@workspace:packages/runtime"],
+
+    "@forgeron/scaffold": ["@forgeron/scaffold@workspace:packages/scaffold"],
 
     "@forgeron/sdk": ["@forgeron/sdk@workspace:packages/sdk"],
 

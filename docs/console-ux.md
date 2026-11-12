@@ -45,8 +45,8 @@ A full area with its own sidebar, as in Linear: a "Back to app" link on top, the
 | Group                   | Pages                                                                                                                                                                 |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Account                 | Profile, Preferences (theme, language), Security (sessions, tokens, `forgeron login` devices), Connected accounts (the person's connector consents), Personal secrets |
-| Workspace (admins)      | General (name, address), Members, Roles and access, Sign-in (email, OIDC, SAML), Domains                                                                              |
-| Administration (admins) | Audit log, Usage and seats, Install information (version, address, binding health)                                                                                    |
+| Workspace (admins)      | General (name, address), Members, Roles and access, Sign-in (email, OIDC, SAML), Domains, GitHub (the workspace's GitHub App, D-123)                                  |
+| Administration (admins) | Audit log, Usage and seats, Sealing key, Install information (gateway version and commit, address)                                                                    |
 
 A settings page is a column of titled **groups**; a group is a card of **rows**: label and description on
 the left, the control on the right; a row that opens a sub-page ends with a chevron; a **Danger zone** group
@@ -65,6 +65,20 @@ previews, last deployment, status dot. A row opens the tool page.
 repository) and its production branch (`main` by default). The tool is created with no environment and
 nobody may add it yet; the dialog then shows, once, the deployment token to set as the repository's
 `FORGERON_TOKEN`, and the steps: the secret, the workflow `forgeron init` writes, a first push.
+
+With the workspace's **GitHub App** (D-123), the same button lists the repositories its installations
+see: each says whether it holds a tool (`forgeron.config.ts`) and which tool it is already linked to (then
+it cannot be picked). Picking one fills the tool's name and production branch; a checkbox adds the
+workflow when the repository has none. No token is shown: its CI deploys with GitHub's identity. "Use a
+token instead" opens the dialog above.
+
+**New tool** (admins, D-123): a name and an organisation the app is installed on. Forgeron makes a private
+repository with what `forgeron init` writes, links it, and its first push deploys the first preview.
+Without the app, the dialog says to connect GitHub first.
+
+**Settings → GitHub** (admins, D-123): not connected, the organisation (empty for one's own account) and
+"Create the GitHub App", which goes to GitHub with Forgeron's manifest and comes back. Connected, the app,
+its installations, "Install on GitHub", and a danger zone to disconnect it (it stays on GitHub).
 
 ### Tool page
 

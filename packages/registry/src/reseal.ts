@@ -27,7 +27,7 @@ export function createReseal(d1: D1Database, box: SecretBox) {
   return {
     /**
      * Seals again, in this workspace, the secrets of its tools, the versions of its people's secrets,
-     * its connections, its sign-in provider, its connectors' OAuth clients and its marketplaces' read tokens. A value changed while this
+     * its connections, its sign-in provider, its connectors' OAuth clients, its marketplaces' read tokens and its GitHub App's keys. A value changed while this
      * runs is left alone: the update only applies to the value that was read, and a value written
      * meanwhile is already under the current key.
      */
@@ -157,6 +157,16 @@ export function createReseal(d1: D1Database, box: SecretBox) {
               `UPDATE "marketplaces" SET "iv" = ?, "ciphertext" = ? WHERE "workspace" = ? AND "id" = ? AND ${guard}`,
             )
             .bind(sealed.iv, sealed.ciphertext, workspace, r.id, r.iv, r.ciphertext),
+      );
+      await each(
+        await rows(`SELECT "iv", "ciphertext" FROM "github_apps" WHERE "workspace" = ?`, workspace),
+        () => `github-app/${workspace}`,
+        (r, sealed) =>
+          d1
+            .prepare(
+              `UPDATE "github_apps" SET "iv" = ?, "ciphertext" = ? WHERE "workspace" = ? AND ${guard}`,
+            )
+            .bind(sealed.iv, sealed.ciphertext, workspace, r.iv, r.ciphertext),
       );
       return report;
     },

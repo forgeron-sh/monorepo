@@ -2,13 +2,13 @@ import { addresses } from "@forgeron/platform-contract/client";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { platformClient, refusal } from "../platform-client";
-import { readProject } from "../project";
+import { ciCredential, deployEndpoint } from "../ci-credential";
 
 const USAGE = "Usage: forgeron preview close [--branch <name>]";
 
 /**
  * `forgeron preview close`: tears down the preview of a branch (a merged or closed pull request)
- * with `FORGERON_TOKEN`. The branch is `--branch`, or the one GitHub gives CI: on a pull request
+ * with `FORGERON_TOKEN`, or GitHub Actions' identity (D-123). The branch is `--branch`, or the one GitHub gives CI: on a pull request
  * `GITHUB_HEAD_REF`, the same name `forgeron deploy` used. A branch with no preview is not an error.
  */
 export async function preview(args: string[], io: Io): Promise<number> {
@@ -27,18 +27,8 @@ export async function preview(args: string[], io: Io): Promise<number> {
     process.env.GITHUB_HEAD_REF ??
     process.env.GITHUB_REF_NAME;
   if (!branch) throw new UsageError("Which preview? Pass --branch <name>.");
-  const token = process.env.FORGERON_TOKEN;
-  if (!token) {
-    throw new UsageError(
-      "FORGERON_TOKEN is not set: create a deployment token with `forgeron token create`.",
-    );
-  }
-  const project = await readProject(io.cwd);
-  if (!project?.endpoint) {
-    throw new UsageError(
-      "This tool is not linked to a workspace: run `forgeron link --workspace <name>` first.",
-    );
-  }
+  const project = await deployEndpoint(io.cwd);
+  const token = await ciCredential(project.endpoint);
 
   const answer = await platformClient(project.endpoint, token)(addresses.closePreview, {
     json: { branch },
@@ -48,10 +38,11 @@ export async function preview(args: string[], io: Io): Promise<number> {
     return 1;
   }
   // The gateway says `removed` (the CLI used to read `closed`, so it always reported no preview).
+  const tool = project.tool ?? answer.body.tool;
   io.log(
     answer.body.removed
-      ? `Closed the preview of ${project.tool} for ${branch}.`
-      : `${project.tool} had no preview for ${branch}.`,
+      ? `Closed the preview of ${tool} for ${branch}.`
+      : `${tool} had no preview for ${branch}.`,
   );
   return 0;
 }

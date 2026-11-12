@@ -3,19 +3,13 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
-import { writeProject } from "../project";
-import { WORKFLOW, WORKFLOW_PATH } from "../workflow";
 import {
-  CLAUDE_MD,
-  LIFECYCLE,
-  LIFECYCLE_PATH,
   MARKETPLACE_INDEX_PATH,
-  marketplaceAgents,
-  RELEASE_WORKFLOW,
-  RELEASE_WORKFLOW_PATH,
-  toolAgents,
-} from "../scaffold";
-import { fetchTemplate, SDK_VERSION, VITEST_VERSION, writeTemplate } from "../template";
+  marketplaceFiles,
+  repositoryFiles,
+  toolFiles,
+} from "@forgeron/scaffold";
+import { fetchTemplate, SDK_VERSION, writeTemplate } from "../template";
 
 // `forgeron init [name] [--template crm]`: a tool of one action, with its test and its `.forgeron/`,
 // alone in its repository: with its CI workflow, AGENTS.md, CLAUDE.md and docs/lifecycle.md (D-121).
@@ -61,26 +55,7 @@ async function initMarketplace(args: string[], io: Io): Promise<number> {
   }
   const name = parsed.data;
   await emptyDir(dir);
-  await write(dir, {
-    "package.json": `${JSON.stringify(
-      {
-        name,
-        private: true,
-        type: "module",
-        workspaces: ["tools/*"],
-        scripts: { test: "bun run --filter '*' test" },
-      },
-      null,
-      2,
-    )}\n`,
-    [MARKETPLACE_INDEX_PATH]: `${JSON.stringify({ name, title: name, tools: [] }, null, 2)}\n`,
-    [RELEASE_WORKFLOW_PATH]: RELEASE_WORKFLOW,
-    "AGENTS.md": marketplaceAgents(name),
-    "CLAUDE.md": CLAUDE_MD,
-    [LIFECYCLE_PATH]: LIFECYCLE,
-    "tools/.gitkeep": "",
-    ".gitignore": "node_modules/\n.forgeron/bundle/\n",
-  });
+  await write(dir, marketplaceFiles(name));
   io.log(`Created the marketplace ${name} in ${dir}`);
   io.log("  forgeron init <name>   add a tool, in tools/<name>/");
   return 0;
@@ -110,9 +85,7 @@ export async function init(args: string[], io: Io): Promise<number> {
 
   await emptyDir(dir);
   // A tool alone in its repository says how it lives, for an agent and a person (D-121).
-  const repository: Record<string, string> = marketplace
-    ? {}
-    : { "AGENTS.md": toolAgents(name), "CLAUDE.md": CLAUDE_MD, [LIFECYCLE_PATH]: LIFECYCLE };
+  const repository = marketplace ? {} : repositoryFiles(name);
 
   if (values.template) {
     const template = await fetchTemplate(values.template);
@@ -124,53 +97,9 @@ export async function init(args: string[], io: Io): Promise<number> {
     return 0;
   }
 
-  const files: Record<string, string> = {
-    "package.json": `${JSON.stringify(
-      {
-        name,
-        version: "0.1.0",
-        private: true,
-        type: "module",
-        scripts: { build: "forgeron build", dev: "forgeron dev", test: "forgeron test" },
-        dependencies: { "@forgeron/sdk": SDK_VERSION },
-        devDependencies: { forgeron: SDK_VERSION, vitest: VITEST_VERSION },
-      },
-      null,
-      2,
-    )}\n`,
-    "forgeron.config.ts": `import { defineConfig } from "@forgeron/sdk";
-
-export default defineConfig({
-  name: "${name}",
-  title: "${name}",
-  roles: { reader: { grants: ["read"] } },
-});
-`,
-    "actions/ping.ts": `import { action, z } from "@forgeron/sdk";
-
-export default action({
-  description: "Answers pong: a first action to replace.",
-  access: "read",
-  input: z.object({}),
-  run: () => ({ pong: true }),
-});
-`,
-    "tests/ping.test.ts": `import { createTestTool } from "@forgeron/sdk/testing";
-import { expect, it } from "vitest";
-
-it("answers pong", async () => {
-  const tool = await createTestTool();
-  expect(await tool.call("ping")).toEqual({ pong: true });
-});
-`,
-    "changes/.gitkeep": "",
-    ".forgeron/.gitignore": "local/\ngenerated/\nbuild/\n",
-    // A marketplace publishes from its own workflow (release.yml); a repository deploys its branches.
-    ...(marketplace ? {} : { [WORKFLOW_PATH]: WORKFLOW }),
-    ...repository,
-  };
-  await write(dir, files);
-  await writeProject(dir, { tool: name });
+  // A marketplace publishes from its own workflow (release.yml); a repository deploys its branches.
+  // `.forgeron/project.json` names the tool; `forgeron link` adds the workspace.
+  await write(dir, toolFiles({ name, version: SDK_VERSION, repository: !marketplace }));
   if (marketplace) {
     marketplace.tools.push({
       name,

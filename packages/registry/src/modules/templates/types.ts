@@ -53,8 +53,10 @@ export interface ToolSource {
   source?: string;
   /** The tool's name in that catalogue. */
   sourceTool?: string;
-  /** `owner/name`, for a repository tool: shown, never called. */
+  /** `owner/name`, for a repository tool. */
   repo?: string;
+  /** GitHub's number for the repository, when it is known (D-123): it survives a rename. */
+  repoId?: number;
   /** The branch whose preview is the candidate for production (a repository tool). */
   productionBranch: string;
   /** A new version goes to production by itself when it asks for nothing new. */

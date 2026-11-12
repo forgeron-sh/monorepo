@@ -15,7 +15,7 @@ export interface WorkspaceInfo {
     oidc: { enabled: boolean; configured: boolean };
     saml: { enabled: boolean; configured: boolean };
   };
-  install?: { baseDomain: string };
+  install?: { baseDomain: string; version?: string; commit?: string };
 }
 
 const num = (value: unknown) => (typeof value === "number" ? value : 0);
@@ -57,6 +57,12 @@ export async function loadWorkspace(fetchJson: FetchJson): Promise<WorkspaceInfo
       },
     };
   }
-  if (body.install) info.install = { baseDomain: String(body.install.baseDomain) };
+  if (body.install) {
+    info.install = {
+      baseDomain: String(body.install.baseDomain),
+      ...(typeof body.install.version === "string" ? { version: body.install.version } : {}),
+      ...(typeof body.install.commit === "string" ? { commit: body.install.commit } : {}),
+    };
+  }
   return info;
 }

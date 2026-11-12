@@ -10,12 +10,9 @@ import {
   rollbackEnvironment,
   RegistryError,
   type RegisteredEnvironment,
-  type Registry,
 } from "@forgeron/registry";
-import { parseAudience } from "../identity/authn/audience";
 import type { Person } from "../kernel/person";
-import { verifyToken } from "../identity/authn/tokens";
-import { DEPLOY_SCOPE } from "./deploy";
+import { deployCaller, type CallerContext } from "./deploy";
 
 const ENVIRONMENTS: RegisteredEnvironment[] = ["preview", "production"];
 
@@ -27,11 +24,7 @@ const json = (status: number, body: unknown) =>
 const fail = (status: number, code: string, message: string) =>
   json(status, { error: { code, message } });
 
-export interface PromoteContext {
-  workspace: string;
-  secret: string;
-  now(): Date;
-  registry: Registry;
+export interface PromoteContext extends CallerContext {
   hosting: Hosting;
   /** The door the call came through, when it is not the CLI (`VIA_FORGERON_MCP`). */
   via?: string;
@@ -43,21 +36,10 @@ export interface PromoteContext {
 type Actor = { actor: string; tool?: string; person: boolean } | Response;
 
 async function actorOf(request: Request, context: PromoteContext): Promise<Actor> {
-  const token = /^Bearer (\S+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
-  if (token) {
-    const check = await verifyToken(token, {
-      secret: context.secret,
-      now: context.now(),
-      scope: DEPLOY_SCOPE,
-    });
-    if (check.ok) {
-      const audience = parseAudience(check.claims.aud);
-      if (!audience || audience.workspace !== context.workspace) {
-        return fail(403, "FORBIDDEN", "This token was not issued for this workspace.");
-      }
-      return { actor: check.claims.sub, tool: audience.tool, person: false };
-    }
-  }
+  // A deployment token, or a run of the tool's repository (D-123); anything else may be a person's.
+  const caller = await deployCaller(request, context);
+  if (caller.ok) return { actor: caller.actor, tool: caller.tool, person: false };
+  if ("refused" in caller) return caller.refused;
   const person = await context.authenticate(request);
   if (!person) {
     return fail(

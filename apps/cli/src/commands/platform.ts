@@ -16,7 +16,13 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { resolveCloudflareCredential } from "./cloudflare-auth";
-import { identitySettings, KEYS, settingBindings, type IdentityFlags } from "./gateway-identity";
+import {
+  identitySettings,
+  KEYS,
+  officialMarketplaceSetting,
+  settingBindings,
+  type IdentityFlags,
+} from "./gateway-identity";
 import { readAssets } from "./console-assets";
 import { platformStatus, STATUS_USAGE } from "./platform-status";
 
@@ -30,7 +36,7 @@ import { platformStatus, STATUS_USAGE } from "./platform-status";
 // is only ever an API token; see D-026.
 
 const USAGE =
-  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--sign-in email[,oidc] [--mail-from <address> | --mail console]] [--only <workspace>] [--name forgeron] [--auth token|wrangler]";
+  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--official-marketplace <owner/name>] [--sign-in email[,oidc] [--mail-from <address> | --mail console]] [--only <workspace>] [--name forgeron] [--auth token|wrangler]";
 
 interface Named {
   uuid?: string;
@@ -67,6 +73,7 @@ export async function platform(
       "oidc-client-id": { type: "string" },
       "admin-email": { type: "string" },
       "member-email-domains": { type: "string" },
+      "official-marketplace": { type: "string" },
       "sign-in": { type: "string" },
       "mail-from": { type: "string" },
       mail: { type: "string" },
@@ -110,6 +117,8 @@ export async function platform(
     throw new UsageError("--mail console is for test installs: not on the forgeron.app cloud.");
   }
   const settings = identitySettings(flags, process.env);
+  // Apart from sign-in: an install that states its identity again keeps its marketplace.
+  const marketplace = officialMarketplaceSetting(values["official-marketplace"]);
   const assets = values.console ? await readAssets(resolve(io.cwd, values.console)) : undefined;
 
   const client: CloudflareClient = createCloudflareClient({
@@ -188,7 +197,7 @@ export async function platform(
             existed && !lost.has(TOKEN_BINDING)
             ? [{ type: "inherit", name: TOKEN_BINDING }]
             : []),
-        ...settingBindings(settings, existed, lost),
+        ...settingBindings([...settings, marketplace], existed, lost),
         ...bound.filter((n) => !lost.has(n)).map((n) => ({ type: "inherit", name: n })),
       ],
     });
@@ -201,7 +210,9 @@ export async function platform(
   } catch (error) {
     const message = (error as Error).message;
     const lost = new Set(
-      [...settings.map((s) => s.name), ...bound, TOKEN_BINDING].filter((n) => message.includes(n)),
+      [...settings.map((s) => s.name), marketplace.name, ...bound, TOKEN_BINDING].filter((n) =>
+        message.includes(n),
+      ),
     );
     if (!existed || (error as { status?: number }).status !== 400 || lost.size === 0) throw error;
     regenerated = lost;
@@ -252,6 +263,12 @@ export async function platform(
             ? "No identity flag given: the sign-in settings of the previous version are kept, if there were any."
             : "Sign-in is NOT configured: run the install again with --oidc-issuer and --oidc-client-id, or --sign-in email (docs/self-host.md).",
   );
+
+  if (marketplace.given) {
+    io.log(
+      `The official marketplace is ${values["official-marketplace"]} (synced from the console).`,
+    );
+  }
 
   // 4. DNS and route: a proxied record, then `*.<domain>/*` (or `<only>.<domain>/*`) to the gateway.
   await attachRoute(client, values.domain, worker, io, values.only);

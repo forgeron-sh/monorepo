@@ -6,6 +6,7 @@ import { mountConnections } from "./connections";
 import { mountConsent } from "./consent";
 import { mountDatabase } from "./database";
 import { mountDatabaseAdmin } from "./database-admin";
+import { mountGithub } from "./github";
 import { mountIdentity } from "./identity";
 import { mountMembers } from "./members";
 import { mountSecretRequests } from "./secret-requests";
@@ -38,6 +39,7 @@ export function createPlatform() {
   mountLibrary(app);
   mountSources(app);
   mountBearer(app);
+  mountGithub(app);
   mountConsent(app);
 
   // The OpenAPI 3.1 document of what is mounted above, for any signed-in member, like the catalog:

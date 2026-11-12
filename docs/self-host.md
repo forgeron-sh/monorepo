@@ -61,6 +61,7 @@ forgeron platform install --account <account-id> --domain <base-domain> --gatewa
 - `--oidc-issuer`, `--oidc-client-id`, `--admin-email`, `--member-email-domains`: your identity provider (any OIDC provider, D-019) and who may sign in (D-027). Give the issuer and the client id together, and at least one of the admin email and the member domains: without one of them nobody could sign in. They are checked before anything is sent: the issuer is an `https` URL without query or fragment, the client id has no spaces, the email and the domains have the usual shape. Without any of them the gateway has no sign-in, and the command says so.
 - `OIDC_CLIENT_SECRET` (environment variable, never an argument): the client secret, for a confidential client. Leave it unset for a public client (PKCE alone). Like the API token it is sent as a secret binding and never printed.
 - `--sign-in email[,oidc]` and `--mail-from <address>`: sign-in by an emailed code, on its own or beside OIDC (see "Sign-in by email" below). The OIDC flags are then needed only if `oidc` is named. The flag is not `--auth`, which chooses the Cloudflare credential.
+- `--official-marketplace <owner/name>`: the public GitHub repository of the official marketplace (`OFFICIAL_MARKETPLACE`, D-116), for example `forgeron-sh/marketplace`. Kept from one install to the next when not given, whatever the identity flags.
 - `--name`: prefix of the created resources, `forgeron` by default.
 
 The command does, in order:
@@ -136,7 +137,18 @@ This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `
 
 Register this redirect URI at the identity provider, for each workspace: `https://<workspace>.<BASE_DOMAIN>/auth/callback`.
 
-What the gateway serves at a workspace origin once these are set: `/auth/login`, `/auth/callback`, `/auth/logout`, `/auth/saml/metadata` and `POST /auth/saml/acs` (SAML), `POST /auth/token` (a signed-in person's token for one tool, 1 to 30 days), `GET` and `POST /auth/cli` (the page that asks the person to authorize `forgeron login`, D-053) and `POST /auth/cli/token` (`forgeron login`), `GET /auth/invite/<id>` (the page an invitation mail links to), `GET /whoami`, `POST /deploy-tokens` (administrators), `POST /deploy` (a deployment token), `POST /promote` and `POST /rollback` (an administrator or a deployment token, D-033), `/console-api/*`, `/t/<tool>`.
+## The workspace's GitHub App (D-123)
+
+Each workspace makes its own GitHub App from the console (Settings → GitHub): nothing to set on the install, beyond `AUTH_SECRET` and `SECRETS_KEY` (the app's keys are sealed with it). The console sends GitHub a manifest naming these addresses of the workspace, which must be reachable from GitHub:
+
+- `GET /github/app/new?owner=<organisation>`: the page that posts the manifest to GitHub (an admin's session);
+- `GET /github/app/callback`: GitHub comes back with a code, traded once for the app and its keys;
+- `GET /github/app/installed`: GitHub comes back after an installation;
+- `POST /github/webhook`: what GitHub tells the app (a deleted branch, an installation), signed with its webhook secret.
+
+The app asks for contents, workflows, administration and commit statuses in writing, metadata in reading, and the `delete` event. Repositories that deploy with GitHub Actions' identity need nothing from the install either: the gateway reads GitHub's keys at `https://token.actions.githubusercontent.com/.well-known/jwks`.
+
+What the gateway serves at a workspace origin once these are set: `/auth/login`, `/auth/callback`, `/auth/logout`, `/auth/saml/metadata` and `POST /auth/saml/acs` (SAML), `POST /auth/token` (a signed-in person's token for one tool, 1 to 30 days), `GET` and `POST /auth/cli` (the page that asks the person to authorize `forgeron login`, D-053) and `POST /auth/cli/token` (`forgeron login`), `GET /auth/invite/<id>` (the page an invitation mail links to), `GET /whoami`, `POST /deploy-tokens` (administrators), `POST /deploy` (a deployment token, or a GitHub Actions identity token, D-123), `/github/app/…` and `POST /github/webhook` (the workspace's GitHub App), `POST /promote` and `POST /rollback` (an administrator or a deployment token, D-033), `/console-api/*`, `/t/<tool>`.
 
 ## What is not done yet
 

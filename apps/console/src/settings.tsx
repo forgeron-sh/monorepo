@@ -675,6 +675,10 @@ function Install({ ws }: { ws: WorkspaceInfo }) {
           <dd className="fc-mono">{ws.endpoint}</dd>
           <dt>Base domain</dt>
           <dd className="fc-mono">{ws.install?.baseDomain ?? "Unknown"}</dd>
+          <dt>Gateway version</dt>
+          <dd className="fc-mono">{ws.install?.version ?? "Unknown"}</dd>
+          <dt>Gateway commit</dt>
+          <dd className="fc-mono">{ws.install?.commit?.slice(0, 12) ?? "Unknown"}</dd>
           <dt>Signed in as</dt>
           <dd className="fc-mono">{ws.person.email}</dd>
         </dl>

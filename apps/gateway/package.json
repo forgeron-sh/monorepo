@@ -14,6 +14,7 @@
     "@forgeron/platform-contract": "workspace:*",
     "@forgeron/playground": "workspace:*",
     "@forgeron/registry": "workspace:*",
+    "@forgeron/scaffold": "workspace:*",
     "@hono/zod-openapi": "1.6.3",
     "hono": "4.13.16",
     "zod": "4.6.7"

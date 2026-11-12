@@ -145,4 +145,45 @@ describe("where a tool comes from (D-121)", () => {
     await serve(tool.id, "1.1.0-preview.trunk+abc");
     expect(await registry.availableUpdate(tool.id)).toBeUndefined();
   });
+
+  it("finds a repository's tool by GitHub's number first, then by its name without case (D-123)", async () => {
+    const crm = await registry.createTool({ workspace: "acme", name: "crm" });
+    const odoo = await registry.createTool({ workspace: "acme", name: "odoo" });
+    await registry.linkRepository({
+      toolId: crm.id,
+      repo: "Acme-sh/CRM",
+      repoId: 101,
+      productionBranch: "main",
+      actor: "p",
+    });
+    // Linked by hand, before the app: no number.
+    await registry.linkRepository({
+      toolId: odoo.id,
+      repo: "acme-sh/odoo",
+      productionBranch: "main",
+      actor: "p",
+    });
+    expect(await registry.toolSource(crm.id)).toMatchObject({ repo: "Acme-sh/CRM", repoId: 101 });
+
+    const find = (repo: string, repoId?: number) =>
+      registry
+        .toolByRepository("acme", { repo, ...(repoId === undefined ? {} : { repoId }) })
+        .then((t) => t?.name);
+    expect(await find("acme-sh/crm", 101)).toBe("crm");
+    expect(await find("ACME-SH/crm")).toBe("crm");
+    // Renamed on GitHub: the number still finds it.
+    expect(await find("acme-sh/crm-renamed", 101)).toBe("crm");
+    // Deleted and made again under the same name: another repository.
+    expect(await find("acme-sh/crm", 202)).toBeUndefined();
+    // A link with no number takes the name.
+    expect(await find("acme-sh/odoo", 303)).toBe("odoo");
+    expect(await find("acme-sh/nothing")).toBeUndefined();
+    // Another workspace's tools are not found.
+    expect(
+      await registry.toolByRepository("other", { repo: "acme-sh/crm", repoId: 101 }),
+    ).toBeUndefined();
+    // A marketplace tool is no repository's.
+    await offer("mp", "1.0.0");
+    expect(await registry.toolByRepository(SOURCE, { repo: "acme-sh/mp" })).toBeUndefined();
+  });
 });

@@ -1,6 +1,7 @@
 import { auditRoute, usageRoute, workspaceRoute } from "@forgeron/platform-contract";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
+import { GATEWAY_COMMIT, GATEWAY_VERSION } from "../version";
 
 // What the console shell draws (FOR-129) and the workspace's audit log.
 
@@ -39,7 +40,16 @@ export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
           deployed,
           called,
         },
-        ...(person.admin ? { signIn: await signIn(), install: { baseDomain } } : {}),
+        ...(person.admin
+          ? {
+              signIn: await signIn(),
+              install: {
+                baseDomain,
+                version: GATEWAY_VERSION,
+                ...(GATEWAY_COMMIT ? { commit: GATEWAY_COMMIT } : {}),
+              },
+            }
+          : {}),
       },
       200,
     );

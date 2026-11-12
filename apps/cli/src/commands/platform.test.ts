@@ -422,6 +422,27 @@ describe("forgeron platform install", () => {
       expect(JSON.stringify(raw)).not.toContain(first[0]!.text!);
     });
 
+    it("sets the official marketplace, keeps it on a run that does not name it, and checks it", async () => {
+      const cf = fakeCloudflare();
+      await platform(install([...OIDC, "--official-marketplace", "forgeron-sh/marketplace"]), io, {
+        fetch: cf.fetcher,
+      });
+      expect(named(cf, "OFFICIAL_MARKETPLACE")).toEqual({
+        type: "plain_text",
+        name: "OFFICIAL_MARKETPLACE",
+        text: "forgeron-sh/marketplace",
+      });
+      expect(logs.join("\n")).toContain("The official marketplace is forgeron-sh/marketplace");
+      // Run again with identity flags and no marketplace: it is kept, not dropped.
+      await platform(install(OIDC), io, { fetch: cf.fetcher });
+      const raw = cf.calls.filter((c) => c.path.endsWith("/versions")).at(-1)!.body!;
+      expect(raw.bindings).toContainEqual({ type: "inherit", name: "OFFICIAL_MARKETPLACE" });
+      expect(named(cf, "OFFICIAL_MARKETPLACE")?.text).toBe("forgeron-sh/marketplace");
+      await expect(
+        platform(install(["--official-marketplace", "not a repo"]), io, { fetch: cf.fetcher }),
+      ).rejects.toThrow("owner/name");
+    });
+
     describe("tool bindings (D-032)", () => {
       const crm = { workspace: "acme", tool: "crm", environment: "production", branch: "" };
 

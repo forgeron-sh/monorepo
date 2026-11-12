@@ -27,6 +27,9 @@ export type {
   Availability,
   AvailabilityMode,
   AvailableUpdate,
+  GithubApp,
+  GithubAppKeys,
+  GithubInstallation,
   Marketplace,
   ToolSource,
 } from "./registry";

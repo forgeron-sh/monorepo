@@ -15,6 +15,7 @@ import { handleCreateDeployToken, handleDeploy } from "../deploy/deploy";
 import { handlePromote, handlePromotePlan, handleRollback } from "../deploy/promote";
 import { handleCliToken } from "../identity/cli-login/cli";
 import { handleIssueToken, handleRevokeToken } from "../identity/authn/issue";
+import { reportDeployment } from "../github/app";
 import type { PlatformEnv } from "./app";
 
 // The routes the CLI and CI call, outside `/console-api` (D-075, FOR-154): `/whoami`, `/deploy-tokens`,
@@ -35,13 +36,13 @@ const NOT_CONFIGURED = {
 };
 
 /** Answers on `/whoami`… only: `/console-api/whoami` is not a route, and the chain says so. */
-const rootOnly: MiddlewareHandler<PlatformEnv> = async (c, next) => {
+export const rootOnly: MiddlewareHandler<PlatformEnv> = async (c, next) => {
   if (c.env.surface !== "root" || !c.env.bearer) return c.notFound();
   await next();
 };
 
 const deployment = (c: Context<PlatformEnv>) => {
-  const { workspace, registry, now, bearer } = c.env;
+  const { workspace, registry, now, bearer, githubFetch, origin } = c.env;
   const hosting = c.env.hosting(workspace);
   return {
     context: {
@@ -51,6 +52,8 @@ const deployment = (c: Context<PlatformEnv>) => {
       now,
       registry,
       authenticate: () => bearer!.person(),
+      // A run of GitHub Actions names the workspace's address as its audience (D-123).
+      actions: { audience: origin, fetch: githubFetch },
     },
     hosting,
   };
@@ -94,7 +97,17 @@ export function mountBearer(app: OpenAPIHono<PlatformEnv>): void {
   mount(deployRoute.path, (c) => {
     const { context, hosting } = deployment(c);
     if (!hosting) return Response.json(NOT_CONFIGURED, { status: 501 });
-    return handleDeploy(c.req.raw, { ...context, hosting });
+    const github = {
+      registry: c.env.registry,
+      workspace: c.env.workspace,
+      fetch: c.env.githubFetch,
+      now: c.env.now,
+    };
+    return handleDeploy(c.req.raw, {
+      ...context,
+      hosting,
+      report: (tool, deployed) => reportDeployment(github, tool, deployed),
+    });
   });
   for (const [route, handle] of [
     [promoteRoute, handlePromote],

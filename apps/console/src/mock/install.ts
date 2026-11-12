@@ -26,6 +26,7 @@ export async function installMock(): Promise<void> {
       { mode: string; roles?: string[]; people?: string[]; updatedAt: string }
     >,
     workspace: "demo",
+    github: !fresh,
     endpoint: "https://demo.fabriks.example",
     me: {
       id: "m1",
@@ -270,7 +271,7 @@ export async function installMock(): Promise<void> {
                 },
                 saml: { enabled: true, configured: state.provider?.kind === "saml" },
               },
-              install: { baseDomain: "fabriks.example" },
+              install: { baseDomain: "fabriks.example", version: "0.2.0", commit: "f95958b0c1a2" },
             }
           : {}),
       });
@@ -402,9 +403,88 @@ export async function installMock(): Promise<void> {
       "/api/approvals",
       "/api/audit",
       "/api/marketplaces",
+      "/api/github",
     ];
     if (!admin && needAdmin.some((p) => path.startsWith(p)))
       return reply(403, { error: "FORBIDDEN", message: "This is for admins." });
+
+    // The workspace's GitHub App (D-123): connected, installed on one organisation.
+    if (path === "/api/github" && method === "GET") {
+      return reply(200, {
+        available: true,
+        app: state.github
+          ? {
+              slug: "forgeron-demo",
+              owner: "acme-sh",
+              htmlUrl: "https://github.com/apps/forgeron-demo",
+              installUrl: "https://github.com/apps/forgeron-demo/installations/new",
+              createdAt: iso(-3 * DAY),
+            }
+          : null,
+        installations: state.github
+          ? [{ id: 7, account: "acme-sh", accountType: "Organization" }]
+          : [],
+      });
+    }
+    if (path === "/api/github" && method === "DELETE") {
+      state.github = false;
+      return reply(204);
+    }
+    if (path === "/api/github/repositories" && method === "GET") {
+      return reply(200, {
+        repositories: [
+          {
+            repo: "acme-sh/tickets",
+            id: 1,
+            private: true,
+            defaultBranch: "main",
+            forgeron: true,
+            workflow: false,
+            tool: null,
+          },
+          {
+            repo: "acme-sh/crm",
+            id: 2,
+            private: true,
+            defaultBranch: "main",
+            forgeron: true,
+            workflow: true,
+            tool: "crm",
+          },
+          {
+            repo: "acme-sh/website",
+            id: 3,
+            private: false,
+            defaultBranch: "main",
+            forgeron: false,
+            workflow: false,
+            tool: null,
+          },
+        ],
+      });
+    }
+    if (path === "/api/github/repositories/link" && method === "POST") {
+      const input = body as {
+        repo: string;
+        name: string;
+        productionBranch?: string;
+        addWorkflow?: boolean;
+      };
+      return reply(201, {
+        tool: input.name,
+        repo: input.repo,
+        productionBranch: input.productionBranch ?? "main",
+        workflow: input.addWorkflow ? "added" : "missing",
+      });
+    }
+    if (path === "/api/github/tools" && method === "POST") {
+      const input = body as { name: string; owner: string };
+      return reply(201, {
+        tool: input.name,
+        repo: `${input.owner}/${input.name}`,
+        url: `https://github.com/${input.owner}/${input.name}`,
+      });
+    }
 
     if (path.startsWith("/api/marketplaces")) {
       const answer = marketplacesMock.route(path, method, body);

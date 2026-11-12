@@ -540,3 +540,36 @@
   flex-direction: column;
   gap: var(--space-2);
 }
+
+/* The repositories the workspace's GitHub App may see (D-123). */
+.ft-repos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 16rem;
+  overflow-y: auto;
+}
+.ft-repo {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.ft-repo:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.ft-repo.is-chosen {
+  border-color: var(--ink);
+}

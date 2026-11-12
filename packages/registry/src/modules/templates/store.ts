@@ -9,7 +9,7 @@
 import { diffResourceChanges, type Manifest } from "@forgeron/manifest";
 import { RegistryError } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
-import type { Catalog } from "../catalog/public";
+import type { Catalog, Tool } from "../catalog/public";
 import {
   TEMPLATE_WORKSPACE,
   type AvailableUpdate,
@@ -57,6 +57,7 @@ const toSource = (row: Record<string, unknown>): ToolSource => ({
   ...(row.source ? { source: String(row.source) } : {}),
   ...(row.source_tool ? { sourceTool: String(row.source_tool) } : {}),
   ...(row.repo ? { repo: String(row.repo) } : {}),
+  ...(row.repo_id === null || row.repo_id === undefined ? {} : { repoId: Number(row.repo_id) }),
   productionBranch: String(row.production_branch ?? "main"),
   autoUpdate: Number(row.auto_update) === 1,
   recorded: true,
@@ -303,10 +304,14 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
       return rows.map((r) => String(r.name));
     },
 
-    /** The tool is deployed by a repository's CI: which repository, which branch is production's. */
+    /**
+     * The tool is deployed by a repository's CI: which repository (and GitHub's number for it, when
+     * known), which branch is production's.
+     */
     async linkRepository(input: {
       toolId: string;
       repo: string;
+      repoId?: number;
       productionBranch: string;
       actor: string;
     }): Promise<ToolSource> {
@@ -314,9 +319,16 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
       await d1.batch([
         d1
           .prepare(
-            `INSERT INTO "tool_sources" ("tool_id", "kind", "repo", "production_branch", "updated_by", "updated_at") VALUES (?, 'repo', ?, ?, ?, ?) ON CONFLICT ("tool_id") DO UPDATE SET "kind" = 'repo', "source" = NULL, "source_tool" = NULL, "repo" = excluded."repo", "production_branch" = excluded."production_branch", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+            `INSERT INTO "tool_sources" ("tool_id", "kind", "repo", "repo_id", "production_branch", "updated_by", "updated_at") VALUES (?, 'repo', ?, ?, ?, ?, ?) ON CONFLICT ("tool_id") DO UPDATE SET "kind" = 'repo', "source" = NULL, "source_tool" = NULL, "repo" = excluded."repo", "repo_id" = excluded."repo_id", "production_branch" = excluded."production_branch", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
           )
-          .bind(input.toolId, input.repo, input.productionBranch, input.actor, at),
+          .bind(
+            input.toolId,
+            input.repo,
+            input.repoId ?? null,
+            input.productionBranch,
+            input.actor,
+            at,
+          ),
         auditStatement(
           {
             toolId: input.toolId,
@@ -329,6 +341,32 @@ export function createTemplates(kernel: Kernel, catalog: CatalogPort) {
         ),
       ]);
       return this.toolSource(input.toolId);
+    },
+
+    /**
+     * The workspace's tool that a repository deploys (D-123), or `undefined`. GitHub's number wins
+     * over the name: a renamed repository keeps its tool, and a repository deleted then made again
+     * under the same name is not the one that was linked. A link with no number matches by name,
+     * without case, as GitHub does.
+     */
+    async toolByRepository(
+      workspace: string,
+      repository: { repo: string; repoId?: number },
+    ): Promise<Tool | undefined> {
+      const rows = await kernel.all(
+        `SELECT t."name", s."repo_id" FROM "tool_sources" s JOIN "tools" t ON t."id" = s."tool_id" WHERE t."workspace" = ? AND s."kind" = 'repo' AND (lower(s."repo") = lower(?) OR s."repo_id" = ?) ORDER BY t."name"`,
+        workspace,
+        repository.repo,
+        repository.repoId ?? null,
+      );
+      const known = (r: Record<string, unknown>) => r.repo_id !== null && r.repo_id !== undefined;
+      const { repoId } = repository;
+      const row =
+        repoId === undefined
+          ? rows[0]
+          : (rows.find((r) => known(r) && Number(r.repo_id) === repoId) ??
+            rows.find((r) => !known(r)));
+      return row ? catalog.findTool(workspace, String(row.name)) : undefined;
     },
 
     /** Whether new versions go to production by itself, and which branch is production's. */

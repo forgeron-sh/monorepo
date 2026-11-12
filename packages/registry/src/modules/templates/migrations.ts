@@ -56,4 +56,19 @@ export const templatesMigrations: BuildMigration[] = [
     ],
     down: [st(`DROP TABLE "tool_sources"`)],
   },
+  {
+    // A repository tool found by its repository (D-123): GitHub Actions says which repository it runs
+    // for, by name and by number. The number survives a rename; the name is matched without case.
+    name: "0034_tool_sources_repo_id",
+    fingerprint: "tool-sources-repo-id-v1",
+    destructive: false,
+    up: [
+      st(`ALTER TABLE "tool_sources" ADD COLUMN "repo_id" INTEGER`),
+      st(`CREATE INDEX "tool_sources_repo" ON "tool_sources" (lower("repo"))`),
+    ],
+    down: [
+      st(`DROP INDEX "tool_sources_repo"`),
+      st(`ALTER TABLE "tool_sources" DROP COLUMN "repo_id"`),
+    ],
+  },
 ];

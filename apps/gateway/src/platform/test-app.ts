@@ -27,13 +27,18 @@ export function platformCaller(options: {
   notify?: (invitation: Invitation) => Promise<boolean>;
   databaseTimeoutMs?: number;
   marketplaceFetch?: typeof fetch;
+  /** A simulated GitHub, for the workspace's GitHub App and GitHub Actions' keys (D-123). */
+  githubFetch?: typeof fetch;
   officialMarketplace?: string;
   /** The token secret, for a route that issues a token (D-121). */
   tokenSecret?: string;
+  /** `root` for the routes outside `/console-api` (`/github/…`, D-123). */
+  surface?: "console" | "root";
 }) {
   const app = createPlatform();
   return async (request: Request): Promise<Response | undefined> => {
     const response = await app.fetch(request, {
+      ...(options.surface ? { surface: options.surface } : {}),
       identity: async () => {
         const who = options.who();
         return (
@@ -62,6 +67,11 @@ export function platformCaller(options: {
       hosting: options.hosting ?? (() => undefined),
       marketplaceFetch:
         options.marketplaceFetch ??
+        (async () => {
+          throw new Error("No GitHub in this test.");
+        }),
+      githubFetch:
+        options.githubFetch ??
         (async () => {
           throw new Error("No GitHub in this test.");
         }),
