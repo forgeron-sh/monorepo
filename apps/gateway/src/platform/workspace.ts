@@ -15,7 +15,7 @@ const MAX_AUDIT = 200;
 const DEFAULT_AUDIT = 50;
 
 /** Where a member's picture is served, with its version so that a change is not hidden by a cache (D-133). */
-export const avatarUrl = (
+const avatarUrl = (
   origin: string,
   id: string,
   avatar: { version: string } | undefined,

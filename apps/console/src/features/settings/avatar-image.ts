@@ -1,7 +1,7 @@
 // A picture chosen in the profile (D-133): cropped to a square and shrunk in the browser, so that what
 // goes to the platform is a small image (it refuses more than 64 KB), whatever the photo was.
 
-export const AVATAR_SIZE = 128;
+const AVATAR_SIZE = 128;
 
 /** A square of `AVATAR_SIZE` px cut from the middle of the image: webp when the browser can, else jpeg. */
 export async function avatarDataUrl(file: Blob): Promise<string> {
