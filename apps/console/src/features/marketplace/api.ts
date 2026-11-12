@@ -43,4 +43,4 @@ export const marketplaceLabel = (m: MarketplaceRow) =>
   m.official ? "Official" : (m.title ?? m.repo ?? m.id);
 
 export const toolSheetPath = (id: string, tool: string) =>
-  `/marketplace/${encodeURIComponent(id)}/${encodeURIComponent(tool)}`;
+  `/admin/marketplace/${encodeURIComponent(id)}/${encodeURIComponent(tool)}`;

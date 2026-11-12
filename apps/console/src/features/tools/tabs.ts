@@ -9,7 +9,7 @@ export interface ToolTabProps {
   /** The tool's name. */
   tool: string;
   /**
-   * The branch the page shows (`/tools/<tool>/tree/<branch>`, D-120), or `undefined` for production.
+   * The branch the page shows (`/admin/tools/<tool>/tree/<branch>`, D-120, D-128), or `undefined` for production.
    * Only a tab whose `scope` is `"branch"` reads it.
    */
   branch?: string;

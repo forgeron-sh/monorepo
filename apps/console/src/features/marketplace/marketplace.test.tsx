@@ -152,6 +152,6 @@ describe("the technical sheet of a tool", () => {
     await click(document.querySelector("[role=dialog] input[type=checkbox]"));
     await click(confirm());
     expect(sent.map((s) => s.path)).toEqual(["/api/marketplaces/m1/tools/odoo/install"]);
-    expect(go).toHaveBeenCalledWith("/tools/odoo?tab=availability");
+    expect(go).toHaveBeenCalledWith("/admin/tools/odoo?tab=availability");
   });
 });

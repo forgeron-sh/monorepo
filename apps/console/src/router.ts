@@ -8,9 +8,14 @@ import { hrefOf } from "./shell/href";
 /** The address of a screen of the shell, by name; a feature builds its own with `hrefOf`. */
 const PATHS = {
   overview: "/",
-  tools: "/tools",
-  members: "/members",
-  audit: "/audit",
+  myTools: "/library",
+  discover: "/discover",
+  tools: "/admin/tools",
+  marketplace: "/admin/marketplace",
+  members: "/admin/members",
+  invite: "/admin/members?invite",
+  roles: "/admin/roles",
+  audit: "/settings/audit",
   settings: "/settings/profile",
 } as const;
 
@@ -18,8 +23,8 @@ export const pathOf = (id: keyof typeof PATHS) => PATHS[id];
 /** A tool's page: production, or a branch's preview under `/tree/<branch>` (D-120). */
 export const toolPath = (name: string, branch?: string) =>
   branch === undefined
-    ? hrefOf("/tools/:name", { name })
-    : hrefOf("/tools/:name/tree/:branch", { name, branch });
+    ? hrefOf("/admin/tools/:name", { name })
+    : hrefOf("/admin/tools/:name/tree/:branch", { name, branch });
 
 const CHANGE = "forgeron:navigate";
 
@@ -52,6 +57,12 @@ export function useRoute(): [string, (href: string) => void, string] {
     document.getElementById("content")?.focus({ preventScroll: true });
   }, []);
   return [pathname, go, search];
+}
+
+/** Replaces the address without a new history entry: an old address that moved (D-128). */
+export function replaceRoute(href: string) {
+  window.history.replaceState(null, "", href);
+  window.dispatchEvent(new Event(CHANGE));
 }
 
 /** `onClick` for a link: a plain click routes in the page, a modified one opens the link as the browser does. */

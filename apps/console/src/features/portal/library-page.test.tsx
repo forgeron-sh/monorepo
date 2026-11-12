@@ -32,7 +32,7 @@ describe("a tool's page in the person's library (D-118)", () => {
     const { api } = fakeApi({ "/api/library/crm": { ...crm, allowed: false } });
     const admin = await mount(<LibraryToolPage api={api} go={() => {}} tool="crm" admin />);
     expect(admin.textContent).not.toMatch(/ask an admin/i);
-    expect(admin.querySelector("a[href='/tools/crm?tab=access']")).toBeTruthy();
+    expect(admin.querySelector("a[href='/admin/tools/crm?tab=access']")).toBeTruthy();
   });
 
   it("adds a tool and sends the person to its setup when it asks for something", async () => {
@@ -76,7 +76,7 @@ describe("a tool's page in the person's library (D-118)", () => {
       ),
     );
     expect(sent.map((s) => `${s.method} ${s.path}`)).toEqual(["DELETE /api/library/odoo"]);
-    expect(go).toHaveBeenCalledWith("/");
+    expect(go).toHaveBeenCalledWith("/library");
   });
 });
 

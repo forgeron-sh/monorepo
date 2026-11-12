@@ -9,11 +9,15 @@ rounded corners. References on Mobbin are linked so each screen can be looked at
 
 ## Principles
 
-1. **One thing per place.** A person never has to guess where something lives. Workspace-wide things are
-   in Settings, a tool's things are on the tool's page.
+1. **One thing per place.** A person never has to guess where something lives (D-128): what is theirs
+   is in their space (Home, My tools, Discover), what an admin manages is in Administration (Tools,
+   Marketplace, Members, Roles and access), how the workspace is configured and recorded is in
+   Settings, a tool's things are on the tool's page. A page exists in one place only; an address that
+   moved redirects to the new one.
 2. **The sidebar is for navigation, not branding.** No product name, no repeated workspace name.
-3. **Admin and member see the same product.** Members get the member space (below); admins get the same
-   plus the administration pages. A page a person may not use is not shown, never shown disabled.
+3. **Admin and member see the same product.** Everyone gets the member space (below); admins get the
+   same plus the Administration section and the workspace's settings. A page a person may not use is not
+   shown, never shown disabled; its address says the page is for admins.
 4. **Every list has an empty, a loading and an error state, and a way to act from the empty state.**
 5. **Code and identifiers are first-class**: addresses, versions, commit hashes, CLI commands are in
    `mono`, with a copy button.
@@ -26,14 +30,29 @@ rounded corners. References on Mobbin are linked so each screen can be looked at
   Nothing else: no "Forgeron", no second label.
   [Vercel](https://mobbin.com/screens/a8d666ee-3303-4b28-9e1f-06b8dbd63cb6),
   [Plane](https://mobbin.com/screens/675ba224-6259-48bc-9cae-2bd3c712bf55).
-- **Navigation, grouped:** Home, Tools (the tool list; each tool is a child item when the list is short),
-  then for admins: Members, Audit log. There is no screen of approvals: what a version asks for is
-  approved in the dialog that installs or updates it (D-121, D-125). Settings is at the bottom of the navigation, not a page
-  among others.
+- **Navigation, grouped (D-128):**
+
+  | Section                                   | Items                                                                                             | Addresses                                                              |
+  | ----------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+  | The person's space (everyone, no heading) | Home, My tools (the tools they added), Discover (the tools the workspace makes available to them) | `/`, `/library`, `/discover`; a tool `/library/<tool>`                 |
+  | Administration (admins)                   | Tools (every tool of the workspace, the admin's view), Marketplace, Members, Roles and access     | `/admin/tools`, `/admin/marketplace`, `/admin/members`, `/admin/roles` |
+  | Settings (bottom, its own area)           | Account for everyone; Workspace and Operations for admins                                         | `/settings/...`                                                        |
+
+  A developer who is not an admin sees Administration with Tools only (D-118). A person who holds no
+  role but `member` sees their space and Settings, Account. There is no screen of approvals: what a
+  version asks for is approved in the dialog that installs or updates it (D-121, D-125). Settings is at
+  the bottom of the navigation, not a page among others.
+
+- **Moved addresses redirect** (`shell/redirects.ts`), the rest of the address kept (`?tab=`,
+  `?invite`): `/members` and `/settings/members` → `/admin/members`, `/settings/roles` →
+  `/admin/roles`, `/audit` → `/settings/audit`, `/tools/...` → `/admin/tools/...`,
+  `/marketplace/...` → `/admin/marketplace/...`.
 - **Bottom of the sidebar: the person's menu.** Avatar, name; opens a popover with theme (system, Forge,
   Atelier), documentation, sign out. No branding line.
   [Vercel](https://mobbin.com/screens/a8d666ee-3303-4b28-9e1f-06b8dbd63cb6).
-- Collapses to a drawer at phone width; keyboard: `g` then a letter to go to a section, `/` to search.
+- Collapses to a drawer at phone width; keyboard: `g` then a letter to go to a section (`h` Home, `m`
+  My tools, `d` Discover, `t` Tools, `k` Marketplace, `p` Members, `r` Roles and access, `s`
+  Settings), `/` to search.
 
 ## Settings
 
@@ -42,18 +61,30 @@ A full area with its own sidebar, as in Linear: a "Back to app" link on top, the
 [Linear team settings](https://mobbin.com/screens/34342fdd-7c3d-4f23-ab9d-bc1a62ec4fbb),
 [Vercel project settings](https://mobbin.com/screens/11def438-b12a-4f4c-938e-ec13525dd1dd).
 
-| Group                   | Pages                                                                                                                                                                 |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Account                 | Profile, Preferences (theme, language), Security (sessions, tokens, `forgeron login` devices), Connected accounts (the person's connector consents), Personal secrets |
-| Workspace (admins)      | General (name, address: the primary origin, D-126), Members, Roles and access, Sign-in (email, OIDC, SAML), Domains, GitHub (the workspace's GitHub App, D-123)       |
-| Administration (admins) | Audit log, Usage and seats, Sealing key, Install information (gateway version and commit, address)                                                                    |
+| Group               | Pages                                                                                                                                                                 |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account             | Profile, Preferences (theme, language), Security (sessions, tokens, `forgeron login` devices), Connected accounts (the person's connector consents), Personal secrets |
+| Workspace (admins)  | General (name, address: the primary origin, D-126), Sign-in (email, OIDC, SAML), Domains, GitHub (the workspace's GitHub App, D-123)                                  |
+| Operations (admins) | Audit log, Usage and seats, Sealing key, Install information (gateway version and commit, address)                                                                    |
+
+Members and Roles and access are not settings: they are in Administration (D-128). The workspace's audit
+log is in Settings only; a tool's own log is its Activity tab.
 
 A settings page is a column of titled **groups**; a group is a card of **rows**: label and description on
 the left, the control on the right; a row that opens a sub-page ends with a chevron; a **Danger zone** group
 comes last. Source of the pattern: `docs/settings-reference` and `apps/web/src/features/settings` of the
 owner's Linear clone (see "Where to look").
 
+## Administration
+
+For admins (D-128), at `/admin/...`. **Members** lists the people and invitations and changes roles;
+everyone holds `member` without being given it, so the role pickers do not offer it and the list shows
+it beside the given roles. **Roles and access** lists the workspace roles with how many people hold each
+(`member`: everyone) and, per tool, the way to its Access tab.
+
 ## Tools
+
+The admin's view of every tool (`/admin/tools`), in Administration; developers see it too (D-118).
 
 ### List
 
@@ -83,12 +114,12 @@ its installations, "Install on GitHub", and a danger zone to disconnect it (it s
 ### Tool page
 
 Header: icon, name, summary and, at the right, the **channel** the page shows (D-120, D-125):
-_Production_ at `/tools/<tool>`, another channel at `/tools/<tool>/tree/<ref>`, where `<ref>` is a
+_Production_ at `/admin/tools/<tool>`, another channel at `/admin/tools/<tool>/tree/<ref>`, where `<ref>` is a
 branch for a branch's temporary channel and `~<name>` for a permanent channel (`~staging`). Changing it
 keeps the open tab (`?tab=`). On another channel, a band under the header says which one (_Channel_ or
 _Branch_), that what is changed there is for that channel only, with its own data, and offers to go back
 to production. A channel that is gone shows production with a word about it, and the address goes back
-to `/tools/<tool>`. The picker lists production, the other permanent channels with their version, then
+to `/admin/tools/<tool>`. The picker lists production, the other permanent channels with their version, then
 the branches.
 
 | Tab          | Follows the channel | Content                                                                                     |
@@ -108,7 +139,8 @@ the branches.
 1. _Profiles this tool suggests_: each profile with its label, its name, its permissions, and the
    default one marked.
 2. _What each workspace role is given_: a row per workspace role (those of the members, invitations
-   and the base ones, `admin`, `member` first). A select gives the role _No access_, a profile (by its
+   and the base ones, `admin`, `member` first). Everyone holds `member` (D-128): its row is what a
+   person with no other role gets. A select gives the role _No access_, a profile (by its
    label), _Custom permissions_ (then a checkbox per permission of the tool) or _All permissions_; the
    permissions it ends up with are listed. A new tool arrives with `admin`: all, `member`: the default
    profile.
@@ -154,7 +186,7 @@ The deployment list of Vercel and the environment settings of Vercel/Cloudflare,
 
 ## Marketplace
 
-For admins (D-116). One tab per marketplace: **Official** (the platform's catalogue) first, then each
+For admins (D-116), at `/admin/marketplace`. One tab per marketplace: **Official** (the platform's catalogue) first, then each
 GitHub repository the workspace added. A tab says where the marketplace lives, when it was last synced,
 whether it is read with a token, and why the last sync failed; _Sync_ reads its index again and says,
 tool by tool, what was added, already there, not published yet or refused (and why). The tools are
@@ -164,7 +196,7 @@ after the answer, the marketplaces read more than an hour ago (D-121): no cron.
 - **Add a marketplace**: a dialog with the repository (`owner/name`) and, for a private one, a read
   token (GitHub fine-grained, _Contents: read_). The token is sealed and never shown again; a first
   sync runs at once.
-- **The technical sheet** (`/marketplace/<id>/<tool>`): the README, _What its users read_ (the guide,
+- **The technical sheet** (`/admin/marketplace/<id>/<tool>`): the README, _What its users read_ (the guide,
   as a member will see it), the actions with their access level, the changelog; on the right the
   version, interfaces, roles, database, outbound hosts, secrets an admin sets, what each person is
   asked for, connectors and what it asks for. _Install_ asks for a confirmation that lists what it asks
@@ -201,14 +233,18 @@ Modelled on the Supabase table editor and schema visualizer:
 
 ## Member space
 
-What a person sees. They sign in and land on **Home**, their **library** (D-117). Nothing on it is
+What a person sees: their **library** (D-117), in three items of the sidebar (D-128). Nothing on them is
 technical: no version, role, action, interface or resource.
 
-- **My tools**: the tools they added, as cards (icon, title, the tool's `summary`). _Use_ opens the
-  tool's page of the library; a tool that still asks for something (their own key, an account) says
-  _Setup to finish_ and its button is _Finish setup_.
-- **Available to you**: the tools an admin opened to them that they have not added. _Add_ puts the tool
-  in their library and opens its page, where they finish its setup and see how to use it.
+- **Home** (`/`): where they land. Their tools (the first six, with _All my tools_), then, when the
+  workspace offers them tools they have not added, how many and _Discover tools_. An admin also sees
+  the workspace's numbers with _Invite people_, and the first-run checklist until it is done.
+- **My tools** (`/library`): the tools they added, as cards (icon, title, the tool's `summary`), with a
+  search. _Use_ opens the tool's page of the library; a tool that still asks for something (their own
+  key, an account) says _Setup to finish_ and its button is _Finish setup_. Empty, it leads to Discover.
+- **Discover** (`/discover`): the tools an admin opened to them that they have not added, with a search.
+  _Add_ puts the tool in their library and opens its page, where they finish its setup and see how to
+  use it.
 - A tool deployed before libraries (no rule yet) is in the library of everyone who may call it, and
   cannot be removed.
 
@@ -222,7 +258,8 @@ Adding, finishing the setup and removing work as for a tool, apart from it.
 ### Availability (admin, a tab of the tool page)
 
 Who may add the tool: nobody yet (a tool installed from a marketplace starts there), everyone, some
-workspace roles, or some people. Saving a choice on a tool that had none means each person adds it from
+workspace roles, or some people. Everyone holds `member` (D-128), so opening the tool to `member` opens
+it to everyone; holding `member` opens no tool by itself. Saving a choice on a tool that had none means each person adds it from
 their library to keep using it; the tab says so. What a person may do in the tool stays the Access tab.
 On another channel (chosen at the top of the page, D-120, D-125), the tab is **who may use that
 channel** instead: admins and developers only until a choice is saved.
@@ -247,8 +284,8 @@ No version, action, interface name, resource or README.
 
 ### Tool card (the Overview tab)
 
-For admins and developers: the technical sheet (D-118). The Tools screens are theirs; a member reaches
-a tool through their library. The pattern of an app directory:
+For admins and developers: the technical sheet (D-118). The Tools screens (Administration) are theirs; a
+member reaches a tool through their library. The pattern of an app directory:
 [Twenty](https://mobbin.com/screens/5a9b57e5-c736-4000-9772-da12bf1c33f3),
 [GitBook](https://mobbin.com/screens/431254e3-9be9-4945-8e49-6eb1eb8f42c1),
 [Zendesk](https://mobbin.com/screens/5f0e6be7-da0e-415a-ac9b-0ad2df79c0a5),
@@ -330,7 +367,7 @@ version.
 - `apps/console/src/shell`: the shell, the route table, the settings layout. One route table
   (`routes.ts`): a route is a path, a title, who may see it and a lazy page.
 - `apps/console/src/features/<domain>/`: `pages`, `components`, `api.ts` (typed calls to the console API),
-  one folder per domain (tools, members, settings, database, portal). A feature never imports another
+  one folder per domain (tools, admin, settings, database, portal, marketplace). A feature never imports another
   feature's internals; it exports its pages and tabs. The tool page's tabs are a registry
   (`features/tools/tabs.ts`) that features add to.
 - `packages/ui`: presentational components only, stateless, no data fetching, no workspace identity; every
@@ -369,12 +406,12 @@ import type { RouteDef } from "../../shell/routes";
 
 const routes: RouteDef[] = [
   {
-    path: "/tools/:name", // `:name` is read into `params.name`
+    path: "/admin/tools/:name", // `:name` is read into `params.name`
     title: "Tool",
-    access: "everyone", // "everyone" | "member" (holds a role) | "admin"
+    access: "everyone", // "everyone" | "member" | "developer" | "admin"
     page: () => import("./pages/tool-page"),
-    // nav: { group: "main" | "admin", label: "Tools", shortcut: "t" }  // a sidebar item, not for `:` paths
-    // settings: { group: "account" | "workspace" | "administration", label: "Profile" }
+    // nav: { group: "main" | "admin", label: "Tools", shortcut: "t", order: 10 }  // a sidebar item, not for `:` paths
+    // settings: { group: "account" | "workspace" | "operations", label: "Profile" }
   },
 ];
 export default routes;
@@ -409,7 +446,8 @@ comes back; an `adminOnly` tab is neither shown nor loaded for a member.
 `features/<domain>/{pages,components,api.ts,routes.ts,index.ts}`. `index.ts` exports what another feature
 may use (a type, a registry function); anything else is private. `api.ts` holds the typed calls to the
 console API (`/api/...` paths through `api.fetchJson` / `api.sendJson`). The table and the matcher are
-`shell/routes.ts`; `hrefOf("/tools/:name", { name })` builds an address.
+`shell/routes.ts`; `hrefOf("/admin/tools/:name", { name })` builds an address. A page that moves keeps
+its old address working with an entry in `shell/redirects.ts`, never with a second route.
 
 ### The settings area
 

@@ -2,9 +2,9 @@ import { Badge, EmptyState, Page, SettingsGroup, SettingsRow } from "@forgeron/u
 import { loadMembers, knownRoles } from "../../../members";
 import type { PageProps } from "../../../shell/page-props";
 import { LoadError, Loading } from "../../../states";
+import { toolPath, pathOf } from "../../../router";
 import { loadTools } from "../../tools/api";
 import { useLoad } from "../../../use-load";
-import { SettingsStack } from "../components/settings-stack";
 
 const count = (n: number, what: string) => `${n} ${what}${n === 1 ? "" : "s"}`;
 
@@ -22,13 +22,17 @@ export default function RolesPage({ api, go }: PageProps) {
       ) : !view ? (
         <LoadError what="The roles" error={members.error} onRetry={members.reload} />
       ) : (
-        <SettingsStack>
+        <div className="fc-settings">
           <SettingsGroup
             title="Roles"
-            description="Roles belong to the workspace: tools never add any. Change who holds one on the members page."
+            description="Roles belong to the workspace: tools never add any. Everyone holds member; change who holds the others on the members page."
           >
             {knownRoles(view).map((role) => {
-              const holders = view.members.filter((m) => m.roles.includes(role)).length;
+              // Everyone holds `member` without being given it (D-128).
+              const holders =
+                role === "member"
+                  ? view.members.length
+                  : view.members.filter((m) => m.roles.includes(role)).length;
               return (
                 <SettingsRow
                   key={role}
@@ -37,10 +41,10 @@ export default function RolesPage({ api, go }: PageProps) {
                     role === "admin"
                       ? "Manages the workspace; every permission of a new tool."
                       : role === "member"
-                        ? "The default profile of a new tool."
+                        ? "Everyone in the workspace; the default profile of a new tool."
                         : undefined
                   }
-                  href="/settings/members"
+                  href={pathOf("members")}
                   value={count(holders, "member")}
                   onNavigate={(href) => go(href)}
                 />
@@ -56,7 +60,7 @@ export default function RolesPage({ api, go }: PageProps) {
                 <SettingsRow
                   key={tool.name}
                   label={<span className="fc-mono">{tool.name}</span>}
-                  href={`/tools/${encodeURIComponent(tool.name)}`}
+                  href={`${toolPath(tool.name)}?tab=access`}
                   onNavigate={(href) => go(href)}
                   value={<Badge>Access</Badge>}
                 />
@@ -68,7 +72,7 @@ export default function RolesPage({ api, go }: PageProps) {
               />
             )}
           </SettingsGroup>
-        </SettingsStack>
+        </div>
       )}
     </Page>
   );

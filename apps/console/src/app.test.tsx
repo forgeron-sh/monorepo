@@ -48,6 +48,7 @@ const routes = (roles?: string[]) => ({
   "/api/members": { members: [], invitations: [], settings: { domains: [] } },
   "/api/audit": { entries: [] },
   "/api/identity-provider": { provider: null },
+  "/api/library": { tools: [] },
 });
 
 describe("workspace loader", () => {
@@ -71,10 +72,12 @@ describe("App", () => {
     expect(side.textContent).not.toContain("forgeron");
     expect([...side.querySelectorAll("nav a")].map((a) => a.textContent)).toEqual([
       "Home",
+      "My tools",
+      "Discover",
       "Tools",
-      "Members",
-      "Audit log",
       "Marketplace",
+      "Members",
+      "Roles and access",
       "Settings",
     ]);
     expect(side.querySelector(".fg-nav-heading")?.textContent).toBe("Administration");
@@ -134,11 +137,15 @@ describe("App", () => {
         window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
       });
     await press("g");
-    await press("m");
+    await press("p");
     await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Members"));
-    expect(window.location.pathname).toBe("/members");
+    expect(window.location.pathname).toBe("/admin/members");
     await press("m");
-    expect(window.location.pathname).toBe("/members");
+    expect(window.location.pathname).toBe("/admin/members");
+    await press("g");
+    await press("m");
+    await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("My tools"));
+    expect(window.location.pathname).toBe("/library");
     await press("/");
     const dialog = document.querySelector('[role="dialog"]')!;
     expect(dialog).toBeTruthy();
@@ -177,7 +184,7 @@ describe("App", () => {
       expect([...side.querySelectorAll(".fg-nav-heading")].map((h) => h.textContent)).toEqual([
         "Account",
         "Workspace",
-        "Administration",
+        "Operations",
       ]);
       expect([...side.querySelectorAll("nav a")].map((a) => a.textContent)).toEqual([
         "Back to app",
@@ -187,8 +194,6 @@ describe("App", () => {
         "Connected accounts",
         "Personal secrets",
         "General",
-        "Members",
-        "Roles and access",
         "Sign-in",
         "Domains",
         "GitHub",
@@ -209,7 +214,7 @@ describe("App", () => {
         [...page.querySelectorAll(".fg-shell-side .fg-nav-heading")].map((h) => h.textContent),
       ).toEqual(["Account"]);
       await cleanup();
-      window.history.replaceState(null, "", "/settings/members");
+      window.history.replaceState(null, "", "/settings/domains");
       const denied = await mount(<App api={api} now={() => NOW} />);
       expect(denied.textContent).toContain("This page is for admins.");
     });
@@ -226,9 +231,9 @@ describe("App", () => {
       const { api } = fakeApi(routes());
       const page = await mount(<App api={api} now={() => NOW} />);
       await click(page.querySelector('button[aria-label="Workspace"]'));
-      await click(page.querySelector('a[href="/settings/members?invite"]'));
+      await click(page.querySelector('a[href="/admin/members?invite"]'));
       await waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeTruthy());
-      expect(window.location.pathname).toBe("/settings/members");
+      expect(window.location.pathname).toBe("/admin/members");
     });
 
     it("draws rows with a control, and the pages that have no data yet say so", async () => {
@@ -260,11 +265,6 @@ describe("App", () => {
       expect(page.textContent).toContain("https://demo.example.test");
       expect(page.querySelector(".fg-sgroup-danger")).toBeTruthy();
       await click(
-        [...page.querySelectorAll("nav a")].find((a) => a.textContent === "Roles and access"),
-      );
-      await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Roles and access"));
-      await waitFor(() => expect(page.textContent).toContain("1 member"));
-      await click(
         [...page.querySelectorAll("nav a")].find((a) => a.textContent === "Usage and seats"),
       );
       await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Usage and seats"));
@@ -278,16 +278,16 @@ describe("App", () => {
     const link = [...page.querySelectorAll("nav a")].find((a) => a.textContent === "Members");
     await click(link);
     await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Members"));
-    expect(window.location.pathname).toBe("/members");
+    expect(window.location.pathname).toBe("/admin/members");
     expect(page.querySelector('[aria-current="page"]')?.textContent).toBe("Members");
     expect(document.activeElement?.id).toBe("content");
-    window.history.pushState(null, "", "/tools");
+    window.history.pushState(null, "", "/admin/tools");
     window.dispatchEvent(new PopStateEvent("popstate"));
     await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Tools"));
   });
 
   it("opens a deep link, and says so for an unknown path", async () => {
-    window.history.replaceState(null, "", "/audit");
+    window.history.replaceState(null, "", "/settings/audit");
     const { api } = fakeApi(routes());
     const page = await mount(<App api={api} now={() => NOW} />);
     await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Audit log"));
@@ -297,17 +297,80 @@ describe("App", () => {
     expect(lost.textContent).toContain("This page does not exist.");
   });
 
-  it("shows a member only what they may use", async () => {
-    window.history.replaceState(null, "", "/members");
-    const { api, reads } = fakeApi(routes(["developer"]));
+  it("shows a developer their space and Tools, and guards the rest of Administration", async () => {
+    window.history.replaceState(null, "", "/admin/members");
+    const { api, reads } = fakeApi(routes(["developer", "member"]));
     const page = await mount(<App api={api} now={() => NOW} />);
     expect([...page.querySelectorAll("nav a")].map((a) => a.textContent)).toEqual([
       "Home",
+      "My tools",
+      "Discover",
       "Tools",
       "Settings",
     ]);
     expect(page.textContent).toContain("This page is for admins.");
     expect(reads).not.toContain("/api/approvals");
+  });
+
+  it("shows a person with no role but member their own space only (D-128)", async () => {
+    window.history.replaceState(null, "", "/admin/tools");
+    const { api } = fakeApi(routes(["member"]));
+    const page = await mount(<App api={api} now={() => NOW} />);
+    const side = page.querySelector(".fg-shell-side")!;
+    expect([...side.querySelectorAll("nav a")].map((a) => a.textContent)).toEqual([
+      "Home",
+      "My tools",
+      "Discover",
+      "Settings",
+    ]);
+    expect(side.textContent).not.toContain("Administration");
+    expect(page.textContent).toContain("This page is for admins.");
+  });
+
+  it("counts everyone as holding member on Roles and access (D-128)", async () => {
+    window.history.replaceState(null, "", "/admin/roles");
+    const { api } = fakeApi({
+      ...routes(),
+      "/api/members": {
+        members: [
+          { id: "m1", email: "ada@acme.fr", name: "ada", roles: ["admin"] },
+          { id: "m2", email: "bob@acme.fr", name: "bob", roles: [] },
+        ],
+        invitations: [],
+        settings: { domains: [], defaultRole: "", source: "install" },
+      },
+    });
+    const page = await mount(<App api={api} now={() => NOW} />);
+    await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Roles and access"));
+    await waitFor(() => expect(page.textContent).toContain("Everyone in the workspace"));
+    const row = (role: string) =>
+      [...page.querySelectorAll(".fg-srow")].find(
+        (r) => r.querySelector(".fc-mono")?.textContent === role,
+      );
+    expect(row("member")?.textContent).toContain("2 members");
+    expect(row("admin")?.textContent).toContain("1 member");
+    expect(
+      row("member")?.getAttribute("href") ??
+        row("member")?.querySelector("a")?.getAttribute("href"),
+    ).toBe("/admin/members");
+  });
+
+  describe("old addresses (D-128)", () => {
+    it.each([
+      ["/members", "/admin/members", "", "Members"],
+      ["/settings/members", "/admin/members", "?invite", "Members"],
+      ["/settings/roles", "/admin/roles", "", "Roles and access"],
+      ["/audit", "/settings/audit", "", "Audit log"],
+      ["/tools", "/admin/tools", "", "Tools"],
+      ["/marketplace", "/admin/marketplace", "", "Marketplace"],
+    ])("%s goes to %s, keeping the query", async (from, to, query, title) => {
+      window.history.replaceState(null, "", from + query);
+      const { api } = fakeApi({ ...routes(), "/api/marketplaces": { marketplaces: [] } });
+      const page = await mount(<App api={api} now={() => NOW} />);
+      await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe(title));
+      expect(window.location.pathname).toBe(to);
+      expect(window.location.search).toBe(query);
+    });
   });
 
   it("offers to sign in when there is no session", async () => {

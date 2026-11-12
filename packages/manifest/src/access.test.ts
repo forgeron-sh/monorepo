@@ -7,6 +7,7 @@ import {
   mayAccess,
   permissionsOf,
   resolveAccess,
+  workspaceRoles,
 } from "./access";
 import { ManifestSchema } from "./schema";
 import { minimal } from "./fixtures";
@@ -130,5 +131,13 @@ describe("mayAccess", () => {
     ).toEqual(["read", "write"]);
     expect(heldPermissions({ roles: ["admin"] }, tool)).toEqual(["delete", "read", "write"]);
     expect(heldPermissions({ roles: ["member"] }, tool)).toEqual(["read"]);
+  });
+});
+
+describe("workspaceRoles (D-128)", () => {
+  it("adds member to the roles a person was given, once", () => {
+    expect(workspaceRoles([])).toEqual(["member"]);
+    expect(workspaceRoles(["admin"])).toEqual(["admin", "member"]);
+    expect(workspaceRoles(["member", "support"])).toEqual(["member", "support"]);
   });
 });

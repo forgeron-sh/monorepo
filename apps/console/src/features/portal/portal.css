@@ -1,4 +1,4 @@
-/* The member space: Home and the tool card. Tokens only (packages/ui/tokens). */
+/* The member space: Home, My tools, Discover and the tool card. Tokens only (packages/ui/tokens). */
 .fp-search {
   max-width: 360px;
   margin-bottom: var(--space-6);
@@ -9,6 +9,20 @@
   gap: var(--space-3);
   margin: 0;
   padding: 0;
+}
+/* Home's way to Discover (D-128): a line and a button, wrapping on a phone. */
+.fp-discover {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+}
+.fp-discover p {
+  margin: 0;
+  color: var(--ink-muted);
 }
 .fp-ask {
   display: flex;

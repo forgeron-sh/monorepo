@@ -67,7 +67,7 @@ export function FirstRun({ ws, fetchJson, go }: OverviewProps) {
             <p>Add the people who will use your tools. They sign in with their email address.</p>
             {ws.person.admin ? (
               <div>
-                <Button variant="primary" href={pathOf("members")} onClick={routeClick(go)}>
+                <Button variant="primary" href={pathOf("invite")} onClick={routeClick(go)}>
                   Invite people
                 </Button>
               </div>
@@ -113,7 +113,8 @@ export function FirstRun({ ws, fetchJson, go }: OverviewProps) {
         </div>
         {next ? null : (
           <Notice tone="success" title="Your workspace is set up.">
-            Tools are deployed and have been called. Open Tools to see what each environment serves.
+            Tools are deployed and have been called. Open Tools, under Administration, to see what
+            each channel serves.
           </Notice>
         )}
         <div className="fc-progress" style={next ? undefined : { marginTop: "var(--space-4)" }}>

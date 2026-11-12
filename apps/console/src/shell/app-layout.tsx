@@ -8,7 +8,9 @@ import { SearchDialog, type Destination } from "./search-dialog";
 import { useShortcuts } from "./shortcuts";
 
 // The layout of every screen outside the settings area: the sidebar built from the route table, and the
-// content. A page is drawn inside `children`; it never draws the sidebar.
+// content. A page is drawn inside `children`; it never draws the sidebar. The sidebar has the person's
+// own space on top (Home, My tools, Discover), the Administration section for admins (D-128), and
+// Settings at the bottom.
 
 export interface LayoutProps {
   ws: WorkspaceInfo;
@@ -40,11 +42,15 @@ function navItems(
         id: r.path,
         label: r.nav!.label,
         href: r.path,
-        current: r.path === "/" ? pathname === "/" : pathname.startsWith(r.path),
+        current: r.path === "/" ? pathname === "/" : isUnder(pathname, r.path),
         ...(badge ? { badge } : {}),
       };
     });
 }
+
+/** `/admin/tools/crm` is under `/admin/tools`; `/admin/toolsx` is not. */
+const isUnder = (pathname: string, path: string) =>
+  pathname === path || pathname.startsWith(`${path}/`);
 
 /** Where `g` then a letter goes, and what `/` searches: the pages this person may open. */
 function useDestinations(ws: WorkspaceInfo) {
@@ -55,7 +61,11 @@ function useDestinations(ws: WorkspaceInfo) {
       if (!canSee(r.access, ws.person)) continue;
       if (r.nav) {
         if (r.nav.shortcut) shortcuts.push({ key: r.nav.shortcut, href: r.path });
-        destinations.push({ title: r.nav.label, where: "Go to", href: r.path });
+        destinations.push({
+          title: r.nav.label,
+          where: r.nav.group === "admin" ? "Administration" : "Go to",
+          href: r.path,
+        });
       } else if (r.settings) {
         destinations.push({
           title: r.settings.label,
@@ -72,7 +82,7 @@ function useDestinations(ws: WorkspaceInfo) {
 export const GROUP_NAMES = {
   account: "Account",
   workspace: "Workspace",
-  administration: "Administration",
+  operations: "Operations",
 } as const;
 
 /** The phone menu, the shortcuts and the search, shared by the app and the settings layouts. */
@@ -175,7 +185,7 @@ export function AppLayout({ ws, pathname, go, badges = {}, children }: LayoutPro
                 id: "settings",
                 label: "Settings",
                 href: "/settings/profile",
-                current: pathname.startsWith("/settings"),
+                current: isUnder(pathname, "/settings"),
                 icon: <Gear />,
               },
             ]}

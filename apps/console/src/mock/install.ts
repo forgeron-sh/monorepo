@@ -1,7 +1,8 @@
 // A gateway in memory, for the local harness (`VITE_MOCK=1`, the `console-harness` preview): every
 // console route answers from a small state that the writes change. Names, addresses and values are
 // made up; there is no secret in it. Pick a scenario with `?mock=`:
-//   ready (default) · fresh (nothing done yet) · member (not an admin) · signedout · error · slow
+//   ready (default) · fresh (nothing done yet) · member (a developer, not an admin) · person (no
+//   role given: member only, D-128) · signedout · error · slow
 
 import { mockCatalogRoute, mockLibraryRoute } from "../features/portal/mock";
 import { mockDatabase } from "./database";
@@ -32,7 +33,7 @@ export async function installMock(): Promise<void> {
       id: "m1",
       email: "ada@acme.example",
       name: "ada",
-      roles: scenario === "member" ? ["developer"] : ["admin"],
+      roles: scenario === "member" ? ["developer"] : scenario === "person" ? [] : ["admin"],
     },
     members: fresh
       ? [{ id: "m1", email: "ada@acme.example", name: "ada", roles: ["admin"] }]
@@ -274,7 +275,8 @@ export async function installMock(): Promise<void> {
       return reply(200, {
         workspace: state.workspace,
         endpoint: state.endpoint,
-        person: { ...state.me, admin },
+        // The gateway adds `member`, which everyone holds (D-128).
+        person: { ...state.me, roles: [...state.me.roles, "member"], admin },
         setup: {
           members: state.members.length,
           invitations: state.invitations.length,

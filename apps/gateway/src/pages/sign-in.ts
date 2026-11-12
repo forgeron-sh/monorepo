@@ -118,7 +118,8 @@ export function signInPages(
     },
 
     invitation({ inviter, roles, email, expiresAt, next }) {
-      const role = roles.length > 0 ? roles.join(", ") : "no role yet";
+      // Everyone holds `member` (D-128): it is said even when no other role was given.
+      const role = [...roles.filter((r) => r !== "member"), "member"].join(", ");
       return page(
         shell(`Join ${workspace}`, "Invitation"),
         paragraph(`${inviter} invited you to the ${workspace} workspace.`) +

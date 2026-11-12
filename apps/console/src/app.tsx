@@ -1,9 +1,10 @@
 import { Button, Logo, Notice } from "@forgeron/ui";
 import { createElement, lazy, Suspense, useEffect, type ComponentType } from "react";
 import { ApiError, type Api } from "./api";
-import { routeClick, useRoute } from "./router";
+import { replaceRoute, routeClick, useRoute } from "./router";
 import { canSee } from "./shell/access";
 import { AppLayout } from "./shell/app-layout";
+import { movedTo } from "./shell/redirects";
 import { SettingsLayout } from "./shell/settings-layout";
 import { useTheme } from "./shell/theme";
 import { matchRoute, routes, type LazyPage, type PageProps } from "./shell/routes";
@@ -24,8 +25,13 @@ export function App({ api, now = () => new Date() }: AppProps) {
   useTheme();
   const workspace = useLoad(() => loadWorkspace(api.fetchJson), [api]);
   const [pathname, go, search] = useRoute();
+  // An address that moved (D-128) is replaced before anything is drawn for it.
+  const moved = movedTo(pathname, search);
+  useEffect(() => {
+    if (moved) replaceRoute(moved);
+  }, [moved]);
 
-  if (workspace.loading) {
+  if (workspace.loading || moved) {
     return (
       <div className="fc-center">
         <Loading shape="page" label="Loading the console" />
@@ -83,7 +89,8 @@ function Shell({
   go: (href: string) => void;
 }) {
   const match = matchRoute(pathname);
-  const Layout = pathname.startsWith("/settings") ? SettingsLayout : AppLayout;
+  const Layout =
+    pathname === "/settings" || pathname.startsWith("/settings/") ? SettingsLayout : AppLayout;
 
   // The tab title follows the screen.
   useEffect(() => {

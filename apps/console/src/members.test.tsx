@@ -76,7 +76,10 @@ describe("Members", () => {
     const out = renderToStaticMarkup(<Members view={view} selfId="m1" now={NOW} />);
     expect(out).toContain("You");
     expect(out).toContain("Active");
-    expect(out).toContain("No role");
+    // A person given no role holds member all the same (D-128): no "No role" warning.
+    expect(out).not.toContain("No role");
+    expect(out).not.toContain("None");
+    expect(out.match(/>member</g)).toHaveLength(4);
     expect(out).toContain("Pending");
     expect(out).toContain("Expires in 13 days");
     expect(out).toContain("Expired");

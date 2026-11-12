@@ -32,6 +32,15 @@ export const ADMIN_ROLE = "admin";
 /** The workspace role every tool maps to its default profile by default. */
 export const MEMBER_ROLE = "member";
 
+/**
+ * A person's workspace roles (D-128): the ones they were given, plus `member`, which every person of
+ * the workspace holds without being given it. Who may add a tool is still its availability rule, so
+ * holding `member` opens no tool by itself.
+ */
+export function workspaceRoles(given: readonly string[]): string[] {
+  return given.includes(MEMBER_ROLE) ? [...given] : [...given, MEMBER_ROLE];
+}
+
 /** The matrix key of a view: it cannot collide with an action name, which has no colon. */
 export const viewSubject = (name: string): string => `view:${name}`;
 

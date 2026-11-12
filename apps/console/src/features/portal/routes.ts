@@ -7,6 +7,28 @@ registerOverviewTab();
 
 const routes: RouteDef[] = [
   {
+    // The tools the person added (D-128).
+    path: "/library",
+    title: "My tools",
+    access: "everyone",
+    nav: { group: "main", label: "My tools", shortcut: "m", order: 10 },
+    page: async () => {
+      const { MyToolsPage } = await import("./tool-lists");
+      return { default: (p) => createElement(MyToolsPage, { ws: p.ws, api: p.api, go: p.go }) };
+    },
+  },
+  {
+    // The tools the workspace makes available to the person, to add (D-128).
+    path: "/discover",
+    title: "Discover",
+    access: "everyone",
+    nav: { group: "main", label: "Discover", shortcut: "d", order: 20 },
+    page: async () => {
+      const { DiscoverPage } = await import("./tool-lists");
+      return { default: (p) => createElement(DiscoverPage, { ws: p.ws, api: p.api, go: p.go }) };
+    },
+  },
+  {
     // A tool as the person who uses it sees it (D-118): what it does, adding and removing it, its setup,
     // and how to use it. Nothing technical.
     path: "/library/:tool",

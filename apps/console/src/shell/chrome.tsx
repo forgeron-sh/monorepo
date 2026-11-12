@@ -26,7 +26,7 @@ export function WorkspaceSwitcher({ ws, go }: { ws: WorkspaceInfo; go: (href: st
             href: "/settings/workspace",
             onSelect: go,
           },
-          { kind: "link", label: "Invite people", href: "/settings/members?invite", onSelect: go },
+          { kind: "link", label: "Invite people", href: "/admin/members?invite", onSelect: go },
         ] satisfies MenuEntry[])
       : []),
   ];

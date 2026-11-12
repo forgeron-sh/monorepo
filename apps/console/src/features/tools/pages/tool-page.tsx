@@ -21,8 +21,8 @@ import "../tools.css";
 // One tool: its header, then the tabs that features registered (`registerToolTab`). The tab is in
 // the address (`?tab=branches`) so that a link opens it; the first one is the default.
 //
-// The page shows production at `/tools/<tool>` and another channel at `/tools/<tool>/tree/<ref>`
-// (D-120, D-125): a branch's temporary channel by its branch, a permanent channel by `~<name>`. It is
+// The page shows production at `/admin/tools/<tool>` and another channel at
+// `/admin/tools/<tool>/tree/<ref>` (D-120, D-125, D-128): a branch's temporary channel by its branch, a permanent channel by `~<name>`. It is
 // chosen at the right of the header. A tab whose scope is the channel follows it; a tab that is the
 // same for every channel says so. A channel that is gone sends the page back to production, with a
 // word about it.

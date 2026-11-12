@@ -68,7 +68,7 @@ describe("Overview", () => {
     const go = vi.fn<(href: string) => void>();
     const admin = await mount(<Overview ws={ws()} fetchJson={api.fetchJson} go={go} />);
     await click(button(admin, "Invite people"));
-    expect(go).toHaveBeenCalledWith("/members");
+    expect(go).toHaveBeenCalledWith("/admin/members?invite");
     await cleanup();
     const member = await mount(<Overview ws={ws({}, false)} fetchJson={api.fetchJson} go={go} />);
     expect(button(member, "Invite people")).toBeUndefined();
