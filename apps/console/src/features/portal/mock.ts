@@ -219,6 +219,7 @@ export function mockLibraryCard(name: string, admin: boolean, pilot: string | nu
   const base = `https://demo.fabriks.example/t/${name}${pilot ? `@${pilot}` : ""}`;
   return {
     ...tool,
+    allowed: admin || source.access === "granted",
     guide:
       name === "crm"
         ? `# ${tool.title}\n\nAsk Claude about your contacts and deals.\n\n- « Who did I call last week? »\n- « Move the Acme deal to won. »\n\n![Contacts](img/contacts.svg)\n`

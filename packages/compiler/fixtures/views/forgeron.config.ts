@@ -4,5 +4,5 @@ export default defineConfig({
   name: "views",
   title: "Views",
   description: "A tool with two views.",
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { label: "Reader", grants: ["read"], default: true } },
 });

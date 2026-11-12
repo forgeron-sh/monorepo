@@ -42,6 +42,7 @@ const serveAny = (
     person?: Person | null;
     method?: string;
     access?: Record<string, Record<string, boolean>>;
+    permissions?: Record<string, string[]>;
   } = {},
 ) =>
   serveView(new Request(`https://acme.forgeron.app${path}`, { method: options.method }), {
@@ -53,6 +54,7 @@ const serveAny = (
     person: options.person === null ? undefined : (options.person ?? ely),
     assets,
     ...(options.access ? { access: options.access } : {}),
+    ...(options.permissions ? { permissions: options.permissions } : {}),
   });
 
 const bootstrapOf = async (response: Response): Promise<ViewBootstrap> => {
@@ -74,6 +76,16 @@ describe("serveView and the roles × actions matrix", () => {
       403,
     );
     expect((await serve("/settings", { access: { reader: { settings: true } } })).status).toBe(403);
+  });
+
+  it("reads what the gateway mapped the person's roles to, not the profile names (D-127)", async () => {
+    // `reader` is mapped to nothing in this tool: the profile of the same name does not count.
+    expect((await serve("/pipeline", { permissions: { reader: [] } })).status).toBe(403);
+    const mapped = await serve("/settings", { permissions: { reader: ["admin", "read"] } });
+    expect(mapped.status).toBe(200);
+    const bootstrap = await bootstrapOf(mapped);
+    expect(bootstrap.grants).toEqual(["admin", "read"]);
+    expect(bootstrap.callable).toEqual(["deals.delete", "deals.list"]);
   });
 
   it("tells the page which actions the person may call, overrides included", async () => {

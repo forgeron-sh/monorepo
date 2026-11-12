@@ -1,4 +1,10 @@
-import { mayAccess, type AccessOverrides, type Manifest } from "@forgeron/manifest";
+import {
+  heldPermissions,
+  mayAccess,
+  type AccessOverrides,
+  type Manifest,
+  type RolePermissions,
+} from "@forgeron/manifest";
 import { playgroundHtml } from "@forgeron/playground";
 import type { Person } from "../kernel/person";
 
@@ -14,8 +20,10 @@ export interface ServePlaygroundOptions {
   manifest: Manifest;
   /** Who is signed in, from the session; `undefined` if nobody. */
   person: Person | undefined;
-  /** The console's overrides of the matrix for the person's roles (`registry.accessFor`). */
+  /** The matrix resolved for the person's roles (`registry.accessFor`). */
   access?: AccessOverrides;
+  /** The permissions each of the person's roles is mapped to (`registry.accessFor`, D-127). */
+  permissions?: RolePermissions;
 }
 
 // The page has inline script and style, and talks to its own origin only.
@@ -49,12 +57,12 @@ export function servePlayground(
 
   const { person, manifest } = options;
   if (!person) return problem(401, "UNAUTHENTICATED", "Sign in to open the playground.");
-  const grants = new Set(person.roles.flatMap((role) => manifest.roles[role]?.grants ?? []));
-  const who = { roles: person.roles, access: options.access };
+  const who = { roles: person.roles, access: options.access, permissions: options.permissions };
+  const grants = heldPermissions(who, manifest);
   const granted = Object.values(options.access ?? {}).some((cells) =>
     Object.values(cells).includes(true),
   );
-  if (grants.size === 0 && !granted) {
+  if (grants.length === 0 && !granted) {
     return problem(403, "FORBIDDEN", `You have no access to "${manifest.name}".`);
   }
 

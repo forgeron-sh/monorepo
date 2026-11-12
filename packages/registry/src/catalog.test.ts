@@ -242,9 +242,10 @@ describe("the catalog", () => {
       "production",
     );
 
-    const member = await listCatalog(registry, "acme", { roles: ["viewer"] });
-    expect(member).toHaveLength(1);
-    expect(member[0]).toMatchObject({
+    // A new tool gives `admin` every permission (D-127).
+    const admin = await listCatalog(registry, "acme", { roles: ["admin"] });
+    expect(admin).toHaveLength(1);
+    expect(admin[0]).toMatchObject({
       name: "crm",
       title: "CRM",
       summary: "Companies and leads.",
@@ -252,41 +253,59 @@ describe("the catalog", () => {
       interfaces: { mcp: true, api: true, cli: false, web: false },
       access: "granted",
     });
-    expect(member[0]!.icon).toMatch(
+    expect(admin[0]!.icon).toMatch(
       /^\/console-api\/api\/catalog\/crm\/assets\/docs\/icon\.svg\?v=[0-9a-f]{64}$/,
     );
 
-    // No role: the tool is still there, with the roles that open it.
+    // No role: the tool is still there, with the workspace roles that open it. `member` has the
+    // default profile, the one with the fewest permissions here (`nobody`): it opens nothing.
     const nobody = await listCatalog(registry, "acme", { roles: [] });
     expect(nobody[0]).toMatchObject({ name: "crm", access: "requestable" });
-    expect(nobody[0]!.roles).toEqual([
-      { name: "sales", label: "Sales" },
-      { name: "viewer", label: "viewer" },
-    ]);
-    expect((await listCatalog(registry, "acme", { roles: ["nobody"] }))[0]!.access).toBe(
+    expect(nobody[0]!.roles).toEqual([{ name: "admin", label: "admin (all permissions)" }]);
+    expect((await listCatalog(registry, "acme", { roles: ["member"] }))[0]!.access).toBe(
       "requestable",
     );
-  });
-
-  it("follows the admin's matrix: a cell can open or close a role", async () => {
-    await publish(await withDocs(undefined, []), "1.0.0");
-    await registry.setRoleAccess(tool.id, "nobody", "deals.list", true, "ely");
-    expect((await listCatalog(registry, "acme", { roles: ["nobody"] }))[0]!.access).toBe("granted");
-    await registry.setRoleAccess(tool.id, "viewer", "deals.list", false, "ely");
+    // A tool's profile name is not a workspace role: holding a role named `viewer` gives nothing.
     expect((await listCatalog(registry, "acme", { roles: ["viewer"] }))[0]!.access).toBe(
       "requestable",
     );
+    await registry.setRoleProfiles(
+      tool.id,
+      [{ role: "support", grant: { kind: "profile", profile: "sales" } }],
+      "ely",
+    );
+    expect((await listCatalog(registry, "acme", { roles: [] }))[0]!.roles).toEqual([
+      { name: "admin", label: "admin (all permissions)" },
+      { name: "support", label: "support (Sales)" },
+    ]);
   });
 
-  it("gives a workspace admin no access the tool's roles do not give, as the runtime does (D-124)", async () => {
+  it("follows the mapping and the exceptions: either can open or close a role", async () => {
     await publish(await withDocs(undefined, []), "1.0.0");
-    const admin = (await listCatalog(registry, "acme", { roles: ["admin"] }))[0]!;
-    expect(admin.access).toBe("requestable");
-    expect(admin.roles.map((r) => r.name)).toContain("viewer");
-    // The admin gives themselves a role of the tool, and the card opens.
-    expect((await listCatalog(registry, "acme", { roles: ["admin", "viewer"] }))[0]!.access).toBe(
+    await registry.setRoleAccess(tool.id, "member", "deals.list", true, "ely");
+    expect((await listCatalog(registry, "acme", { roles: ["member"] }))[0]!.access).toBe("granted");
+    await registry.setRoleProfiles(
+      tool.id,
+      [{ role: "support", grant: { kind: "profile", profile: "viewer" } }],
+      "ely",
+    );
+    expect((await listCatalog(registry, "acme", { roles: ["support"] }))[0]!.access).toBe(
       "granted",
     );
+    await registry.setRoleAccess(tool.id, "support", "deals.list", false, "ely");
+    expect((await listCatalog(registry, "acme", { roles: ["support"] }))[0]!.access).toBe(
+      "requestable",
+    );
+  });
+
+  it("gives a workspace admin what the mapping says, as the runtime does (D-127)", async () => {
+    await publish(await withDocs(undefined, []), "1.0.0");
+    expect((await listCatalog(registry, "acme", { roles: ["admin"] }))[0]!.access).toBe("granted");
+    // An admin may take the access away from `admin`: the card and the runtime then agree.
+    await registry.setRoleProfiles(tool.id, [{ role: "admin", grant: { kind: "none" } }], "ely");
+    const admin = (await listCatalog(registry, "acme", { roles: ["admin"] }))[0]!;
+    expect(admin.access).toBe("requestable");
+    expect(admin.roles).toEqual([]);
   });
 
   it("does not list a tool without a version, nor one of another workspace", async () => {
@@ -300,7 +319,7 @@ describe("the catalog", () => {
       version: "1.0.0",
       actor: "ci",
     });
-    expect(await listCatalog(registry, "acme", { roles: ["viewer"] })).toEqual([]);
+    expect(await listCatalog(registry, "acme", { roles: ["admin"] })).toEqual([]);
   });
 
   it("shows a tool that only has a preview, without a production version", async () => {
@@ -317,11 +336,16 @@ describe("the catalog", () => {
       ),
       "1.0.0",
     );
+    await registry.setRoleProfiles(
+      tool.id,
+      [{ role: "member", grant: { kind: "profile", profile: "viewer" } }],
+      "ely",
+    );
     const card = (await findCard(
       registry,
       "acme",
       "crm",
-      { roles: ["viewer"] },
+      { roles: ["member"] },
       "https://acme.forgeron.app",
     ))!;
     expect(card.readme).toBe("# CRM\n![a](docs/a.png)");

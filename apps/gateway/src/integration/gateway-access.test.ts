@@ -7,9 +7,9 @@ import { ISSUER, simulatedProvider } from "../simulated-idp";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// The roles × actions matrix through the gateway (FOR-43, D-039): the admin edits it on the console
-// API, the next call to the tool carries the overrides in `x-forgeron-user`, a client cannot write
-// that header, and every edit is in the audit log.
+// The access of a tool through the gateway (FOR-43, D-039, D-127): the admin maps workspace roles to
+// the tool's profiles and sets exceptions on the console API, the next call to the tool carries the
+// result in `x-forgeron-user`, a client cannot write that header, and every edit is in the audit log.
 
 const now = new Date("2026-11-03T10:00:00Z");
 const manifest = {
@@ -102,8 +102,10 @@ describe("the access matrix through the gateway", () => {
     const answer = await gateway(at(path, { headers: { cookie: admin } }));
     expect(answer.status).toBe(200);
     const matrix = (await answer.json()) as { roles: string[]; cells: Record<string, any> };
-    expect(matrix.roles).toEqual(["viewer", "sales"]);
-    expect(matrix.cells.viewer["deals.move"]).toEqual({ default: false, allowed: false });
+    // The tool was never deployed through `deployBuild`: its default mapping is shown all the same.
+    expect(matrix.roles).toEqual(["admin", "member"]);
+    expect(matrix.cells.admin["deals.move"]).toEqual({ default: true, allowed: true });
+    expect(matrix.cells.member["deals.move"]).toEqual({ default: false, allowed: false });
     expect(
       (
         await gateway(
@@ -120,8 +122,19 @@ describe("the access matrix through the gateway", () => {
       (await gateway(put(admin, { role: "viewer", action: "deals.move", allowed: "yes" }))).status,
     ).toBe(400);
     expect(
-      (await gateway(put(admin, { role: "ghost", action: "deals.move", allowed: true }))).status,
+      (await gateway(put(admin, { role: "no space", action: "deals.move", allowed: true }))).status,
     ).toBe(404);
+    const profiles = (role: string, grant: unknown) =>
+      at("/console-api/api/tools/crm/access-matrix", {
+        method: "PUT",
+        headers: { cookie: admin, "content-type": "application/json" },
+        body: JSON.stringify({ profiles: [{ role, grant }] }),
+      });
+    expect((await gateway(profiles("support", { kind: "profile", profile: "ghost" }))).status).toBe(
+      404,
+    );
+    expect((await gateway(profiles("no space", { kind: "all" }))).status).toBe(400);
+    expect((await gateway(profiles("support", { kind: "everything" }))).status).toBe(400);
   });
 
   it("applies several cells together, and none when one is wrong", async () => {
@@ -173,10 +186,36 @@ describe("the access matrix through the gateway", () => {
       .prepare(`UPDATE "members" SET "roles" = ? WHERE "email" = ?`)
       .bind(JSON.stringify(["viewer"]), "bob@acme.fr")
       .all();
+    const none = { "deals.list": false, "deals.move": false, "view:board": false };
 
+    // `viewer` is a workspace role the tool does not map: holding it gives nothing (D-127).
     seen.length = 0;
     await gateway(at("/t/crm/api/deals.move", { headers: { cookie: bob } }));
-    expect(JSON.parse(seen.at(-1)!)).toMatchObject({ roles: ["viewer"], access: {} });
+    expect(JSON.parse(seen.at(-1)!)).toMatchObject({
+      roles: ["viewer"],
+      permissions: { viewer: [] },
+      access: { viewer: none },
+    });
+
+    const mapped = await gateway(
+      at("/console-api/api/tools/crm/access-matrix", {
+        method: "PUT",
+        headers: { cookie: admin, "content-type": "application/json" },
+        body: JSON.stringify({
+          profiles: [{ role: "viewer", grant: { kind: "profile", profile: "viewer" } }],
+        }),
+      }),
+    );
+    expect(mapped.status).toBe(200);
+    expect(((await mapped.json()) as any).mapping.viewer).toEqual({
+      kind: "profile",
+      profile: "viewer",
+    });
+    await gateway(at("/t/crm/api/deals.move", { headers: { cookie: bob } }));
+    expect(JSON.parse(seen.at(-1)!)).toMatchObject({
+      permissions: { viewer: ["read"] },
+      access: { viewer: { ...none, "deals.list": true } },
+    });
 
     const edited = await gateway(
       put(admin, { role: "viewer", action: "deals.move", allowed: true }),
@@ -188,12 +227,14 @@ describe("the access matrix through the gateway", () => {
       allowed: true,
     });
     await gateway(at("/t/crm/api/deals.move", { headers: { cookie: bob } }));
-    expect(JSON.parse(seen.at(-1)!).access).toEqual({ viewer: { "deals.move": true } });
+    expect(JSON.parse(seen.at(-1)!).access).toEqual({
+      viewer: { ...none, "deals.list": true, "deals.move": true },
+    });
 
-    // Back to the manifest's levels.
+    // Back to the mapping.
     await gateway(put(admin, { role: "viewer", action: "deals.move", allowed: null }));
     await gateway(at("/t/crm/api/deals.move", { headers: { cookie: bob } }));
-    expect(JSON.parse(seen.at(-1)!).access).toEqual({});
+    expect(JSON.parse(seen.at(-1)!).access).toEqual({ viewer: { ...none, "deals.list": true } });
   });
 
   it("never lets the client write x-forgeron-user, and sends nothing for an anonymous call", async () => {
@@ -219,7 +260,12 @@ describe("the access matrix through the gateway", () => {
       { role: "viewer", action: "view:board", from: true, to: false },
       { role: "viewer", action: "view:board", from: false, to: true },
     ]);
-    expect(log.some((e) => e.subject.includes("ghost"))).toBe(false);
+    expect(log.filter((e) => e.subject === "profile:viewer").map((e) => e.detail)).toEqual([
+      { role: "viewer", from: { kind: "none" }, to: { kind: "profile", profile: "viewer" } },
+    ]);
+    expect(log.some((e) => e.subject.includes("ghost") || e.subject.includes("support"))).toBe(
+      false,
+    );
     expect(log[0]!.actor).not.toBe("");
   });
 });

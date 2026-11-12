@@ -56,7 +56,8 @@ function toolWorker(request: Request, name: string) {
     baseUrl: request.headers.get("x-forgeron-base-url") ?? "",
     authenticate: (r) => {
       const raw = r.headers.get("x-forgeron-user");
-      return raw ? { ...JSON.parse(raw), roles: ["reader"] } : undefined;
+      // The tool sees the person as a reader, whatever the gateway mapped (D-127).
+      return raw ? { ...JSON.parse(raw), roles: ["reader"], permissions: undefined } : undefined;
     },
     platform: {
       userSecretStore: { read: async () => ({}), write: async () => undefined },
@@ -108,8 +109,9 @@ beforeAll(async () => {
         roles,
       })
     ).id;
-  ana = await member("ana", ["reader", "support"]);
-  ben = await member("ben", ["reader"]);
+  // `member` is mapped to the tools' default profile, `reader` (D-127).
+  ana = await member("ana", ["member", "support"]);
+  ben = await member("ben", ["member"]);
   root = await member("root", ["admin"]);
   env = {
     DB: d1,

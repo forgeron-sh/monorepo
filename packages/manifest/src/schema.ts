@@ -69,9 +69,15 @@ export const EventHandlerSchema = z.strictObject({
   mode: z.enum(["sync", "queue"]),
 });
 
+/**
+ * A profile of the tool (D-127): a named set of the permissions its actions require, which the tool
+ * suggests to the workspace. The manifest keeps it under `roles` so that every build stays readable.
+ * `default` marks the profile the workspace's `member` role is mapped to when the tool arrives.
+ */
 export const RoleSchema = z.strictObject({
   label: text.optional(),
   grants: z.array(AccessLevelSchema),
+  default: z.boolean().optional(),
 });
 
 export const ConnectorSchema = z.strictObject({
@@ -168,6 +174,15 @@ function checkInvariants(manifest: z.infer<typeof ManifestShape>, ctx: z.Refinem
         message: `Action "${name}" duplicates "${first}": action names are compared without case.`,
       });
     }
+  }
+
+  const defaults = Object.entries(manifest.roles).filter(([, profile]) => profile.default);
+  if (defaults.length > 1) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["roles"],
+      message: `Only one profile may be the default: ${defaults.map(([name]) => name).join(", ")}.`,
+    });
   }
 
   const check = manifest.setup?.check;
@@ -271,6 +286,8 @@ export type View = z.infer<typeof ViewSchema>;
 export type Job = z.infer<typeof JobSchema>;
 export type EventHandler = z.infer<typeof EventHandlerSchema>;
 export type Role = z.infer<typeof RoleSchema>;
+/** A tool profile (D-127): the manifest's `roles` entries. */
+export type Profile = Role;
 export type Connector = z.infer<typeof ConnectorSchema>;
 export type Resources = z.infer<typeof ResourcesSchema>;
 export type Setup = z.infer<typeof SetupSchema>;

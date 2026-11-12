@@ -35,7 +35,7 @@ export default function ToolOverview({
   return <ToolCardView card={card.data!} ws={ws} now={now} />;
 }
 
-/** The roles that would let the person in, by their label. */
+/** The workspace roles that open the tool, by their label. */
 function Roles({ roles }: { roles: ToolCardData["roles"] }) {
   return roles.map((role, i) => (
     <span key={role.name}>
@@ -74,29 +74,28 @@ export function ToolCardView({
       ) : null}
 
       {!granted && ws.person.admin ? (
-        // Administering the workspace does not let a person call a tool's actions (D-124): only the
-        // tool's roles do, and an admin gives them, to themselves too. Never "ask an admin".
+        // An admin gives roles their access in the tool's Access tab (D-127): never "ask an admin".
         <Notice tone="info" title="Your roles do not let you use this tool yet.">
-          Being an admin lets you manage it, not call its actions.{" "}
+          What each workspace role is given in this tool is set in its{" "}
+          <a href="?tab=access">Access</a> tab: give one of your roles a profile there.
           {card.roles.length > 0 ? (
             <>
-              Give yourself {card.roles.length > 1 ? "one of these roles: " : "the role "}
-              <Roles roles={card.roles} /> in <a href="/members">Members</a>, or change what each
-              role may call in the <a href="?tab=access">Access</a> tab.
+              {" "}
+              It is open to {card.roles.length > 1 ? "these roles: " : "the role "}
+              <Roles roles={card.roles} />.
             </>
-          ) : (
-            <>
-              No role of this tool may call an action: allow one in the{" "}
-              <a href="?tab=access">Access</a> tab, then give it to yourself in{" "}
-              <a href="/members">Members</a>.
-            </>
-          )}
+          ) : null}
         </Notice>
       ) : !granted ? (
         <Notice tone="info" title="You do not use this tool yet.">
-          Ask an admin of this workspace to give you
-          {card.roles.length > 1 ? " one of these roles: " : " the role "}
-          {card.roles.length > 0 ? <Roles roles={card.roles} /> : "needed"}.
+          Ask an admin of this workspace to give you access to it
+          {card.roles.length > 0 ? (
+            <>
+              : it is open to {card.roles.length > 1 ? "these roles: " : "the role "}
+              <Roles roles={card.roles} />
+            </>
+          ) : null}
+          .
         </Notice>
       ) : null}
 
@@ -189,7 +188,7 @@ export function ToolCardView({
                       ))}
                     </span>
                   ) : (
-                    "Any member"
+                    "No role yet"
                   ),
               },
               ...(card.yourAccess.length > 0

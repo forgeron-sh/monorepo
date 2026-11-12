@@ -198,23 +198,44 @@ export async function installMock(): Promise<void> {
 
   const toolsMock = createToolsMock(state.endpoint, iso);
   const marketplacesMock = createMarketplacesMock(() => new Date());
-  const matrix = (tool: string): Json => ({
-    roles: ["admin", "developer", "viewer"],
-    actions: [`${tool}.contacts.list`, `${tool}.contacts.update`, `${tool}.contacts.delete`],
-    cells: Object.fromEntries(
-      ["admin", "developer", "viewer"].map((role, r) => [
-        role,
-        Object.fromEntries(
-          [`${tool}.contacts.list`, `${tool}.contacts.update`, `${tool}.contacts.delete`].map(
-            (action, a) => {
-              const allowed = a <= 2 - r;
+  // D-127: the tool's profiles, what each workspace role is given, and the matrix that follows.
+  const matrix = (tool: string): Json => {
+    const actions = [`${tool}.contacts.list`, `${tool}.contacts.update`, `${tool}.contacts.delete`];
+    const levels = { [actions[0]!]: "read", [actions[1]!]: "write", [actions[2]!]: "delete" };
+    const given: Record<string, string[]> = {
+      admin: ["delete", "read", "write"],
+      member: ["read"],
+      developer: ["read", "write"],
+    };
+    return {
+      roles: Object.keys(given),
+      actions,
+      views: [],
+      subjects: actions,
+      levels,
+      permissions: ["delete", "read", "write"],
+      profiles: {
+        user: { label: "User", grants: ["read"], default: true },
+        manager: { label: "Manager", grants: ["read", "write"], default: false },
+      },
+      mapping: {
+        admin: { kind: "all" },
+        member: { kind: "profile", profile: "user" },
+        developer: { kind: "profile", profile: "manager" },
+      },
+      cells: Object.fromEntries(
+        Object.entries(given).map(([role, held]) => [
+          role,
+          Object.fromEntries(
+            actions.map((action) => {
+              const allowed = held.includes(levels[action]!);
               return [action, { default: allowed, allowed }];
-            },
+            }),
           ),
-        ),
-      ]),
-    ),
-  });
+        ]),
+      ),
+    };
+  };
 
   const realFetch = window.fetch.bind(window);
   window.fetch = async (input, init) => {

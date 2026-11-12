@@ -176,7 +176,7 @@ describe("Tool card", () => {
     expect(view.querySelector(".fg-btn-primary")).toBeNull();
   });
 
-  it("tells an admin without a role of the tool to give it to themselves, never to ask an admin (D-124)", async () => {
+  it("tells an admin without access to map a role in the Access tab, never to ask an admin (D-127)", async () => {
     const view = await mount(
       <ToolOverview
         tool="inventory"
@@ -186,10 +186,10 @@ describe("Tool card", () => {
       />,
     );
     expect(view.textContent).toContain("Your roles do not let you use this tool yet.");
-    expect(view.textContent).toContain("Give yourself one of these roles: Logistics");
-    expect(view.textContent).toContain("in Members");
-    expect(view.textContent).not.toMatch(/ask an admin/i);
-    expect(view.querySelector("a[href='/members']")).toBeTruthy();
+    expect(view.textContent).toContain("give one of your roles a profile there");
+    expect(view.textContent).toContain("Logistics");
+    expect(view.textContent).not.toMatch(/ask an admin|give yourself/i);
+    expect(view.querySelector("a[href='/members']")).toBeNull();
     expect(view.querySelector("a[href='?tab=access']")).toBeTruthy();
   });
 

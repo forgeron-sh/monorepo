@@ -151,6 +151,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
         managed: entry.managed,
         needsSetup: entry.needsSetup,
         pilot: null,
+        allowed: card.access === "granted",
         guide: card.guide,
         images: Object.fromEntries(card.assets.map((a) => [a.path, a.url])),
         setupUrl: entry.needsSetup ? setupPath(card.name) : null,
@@ -247,9 +248,18 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     const usable = pilot.entry.installed;
     const base = `${c.env.origin}${channelPath(tool, branch)}`;
     const i = pilot.manifest.interfaces;
+    const card = await findCard(
+      c.env.registry,
+      c.env.workspace,
+      tool,
+      { roles: c.get("person").roles },
+      c.env.origin,
+      branch,
+    );
     return c.json(
       {
         ...pilot.entry,
+        allowed: card?.access === "granted",
         guide: guide ?? null,
         images: {},
         setupUrl: pilot.entry.needsSetup ? pilotSetupPath(tool, branch) : null,

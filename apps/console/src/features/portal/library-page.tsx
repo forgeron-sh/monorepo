@@ -87,10 +87,13 @@ export function LibraryToolPage({
   go,
   tool,
   pilot,
+  admin = false,
 }: {
   api: Api;
   go: (href: string) => void;
   tool: string;
+  /** The person is an admin: they set who may use the tool, so they are never told to ask one. */
+  admin?: boolean;
   /** A branch being tried (D-119): the page is that pilot's, not the tool's. */
   pilot?: string;
 }) {
@@ -185,6 +188,20 @@ export function LibraryToolPage({
               : `A version of ${c.title} being prepared, for you to try.`}{" "}
             It has its own data: nothing you do here reaches the {c.title} everyone uses, and
             nothing comes from it.
+          </Notice>
+        ) : null}
+        {c.installed && !c.allowed ? (
+          // What a role may do in a tool is the Access tab's (D-127): an admin sets it there.
+          <Notice tone="info" title="Your roles do not let you use this tool yet.">
+            {admin ? (
+              <>
+                Give one of your roles a profile in the{" "}
+                <a href={`/tools/${encodeURIComponent(c.name)}?tab=access`}>Access</a> tab of{" "}
+                {c.title}.
+              </>
+            ) : (
+              <>Ask an admin of this workspace to give your role access to {c.title}.</>
+            )}
           </Notice>
         ) : null}
         {c.installed && c.needsSetup ? (

@@ -1,4 +1,11 @@
-import { mayAccess, viewSubject, type AccessOverrides, type Manifest } from "@forgeron/manifest";
+import {
+  heldPermissions,
+  mayAccess,
+  viewSubject,
+  type AccessOverrides,
+  type Manifest,
+  type RolePermissions,
+} from "@forgeron/manifest";
 import type { ViewBootstrap } from "@forgeron/runtime";
 import type { Person } from "../kernel/person";
 import { issueToken } from "../identity/authn/tokens";
@@ -36,8 +43,10 @@ export interface ServeViewOptions {
     /** Only the level of each action is read. */
     actions?: Record<string, { access: string }>;
   };
-  /** The console's overrides of the matrix for the person's roles (`registry.accessFor`). */
+  /** The matrix resolved for the person's roles (`registry.accessFor`). */
   access?: AccessOverrides;
+  /** The permissions each of the person's roles is mapped to (`registry.accessFor`, D-127). */
+  permissions?: RolePermissions;
   /** Who is signed in, from the session; `undefined` if nobody. Not needed for the static files. */
   person: Person | undefined;
   assets: ViewAssets;
@@ -126,10 +135,11 @@ export async function serveView(
   }
   const { person } = options;
   if (!person) return problem(401, "UNAUTHENTICATED", "Sign in to open this page.");
-  const grants = new Set(
-    person.roles.flatMap((role) => options.manifest.roles[role]?.grants ?? []),
-  );
-  const who = { roles: person.roles, access: options.access };
+  const who = { roles: person.roles, access: options.access, permissions: options.permissions };
+  const grants = heldPermissions(who, {
+    ...options.manifest,
+    actions: options.manifest.actions ?? {},
+  });
   // Before anything is rendered, or a token issued: the same rule as an action's, with the
   // matrix's overrides (D-043).
   if (!mayAccess(who, options.manifest.roles, viewSubject(name), view.access)) {
@@ -153,7 +163,7 @@ export async function serveView(
     token,
     expiresAt: Math.floor(options.now.getTime() / 1000) + VIEW_TOKEN_TTL_SECONDS,
     user: person,
-    grants: [...grants].sort(),
+    grants,
     // The actions the person may call, matrix included: what `useCanCall` reads to disable controls.
     callable: Object.entries(options.manifest.actions ?? {})
       .filter(([action, entry]) => mayAccess(who, options.manifest.roles, action, entry.access))

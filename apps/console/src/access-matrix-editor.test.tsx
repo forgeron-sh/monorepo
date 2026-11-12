@@ -87,6 +87,58 @@ describe("AccessMatrixEditor", () => {
     expect(fetchJson).toHaveBeenCalledTimes(2);
   });
 
+  it("drafts what a workspace role is given, previews its cells, and saves it (D-127)", async () => {
+    const withProfiles = {
+      ...served,
+      roles: ["member"],
+      cells: { member: { "deals.list": { default: true, allowed: true } } },
+      levels: { "deals.list": "read", "deals.move": "write", "view:board": "write" },
+      permissions: ["read", "write"],
+      profiles: {
+        user: { label: "User", grants: ["read"], default: true },
+        manager: { label: "Manager", grants: ["read", "write"], default: false },
+      },
+      mapping: { member: { kind: "profile", profile: "user" } },
+    };
+    const sent: unknown[] = [];
+    const fetchJson = vi.fn<() => Promise<unknown>>(async () => withProfiles);
+    const sendJson = vi.fn<(path: string, body: unknown) => Promise<unknown>>(async (_p, body) => {
+      sent.push(body);
+      return withProfiles;
+    });
+    act(() =>
+      root.render(
+        createElement(AccessMatrixEditor, {
+          tool: "crm",
+          fetchJson,
+          sendJson,
+          workspaceRoles: ["admin", "member", "support"],
+        }),
+      ),
+    );
+    await flush();
+    expect(container.textContent).toContain("Profiles this tool suggests");
+    expect(container.textContent).toContain("Manager");
+    // The workspace's roles are all there, the ones the tool does not map given nothing.
+    const select = (role: string) =>
+      container.querySelector(`select[aria-label="What ${role} is given"]`) as HTMLSelectElement;
+    expect(select("support").value).toBe("none");
+    expect(select("member").value).toBe("profile:user");
+
+    act(() => {
+      select("member").value = "profile:manager";
+      select("member").dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(saveButton().disabled).toBe(false);
+    // `deals.move` needs `write`: the drafted profile opens it.
+    expect(container.textContent).toContain("write");
+    await act(async () => saveButton().click());
+    await flush();
+    expect(sent).toEqual([
+      { profiles: [{ role: "member", grant: { kind: "profile", profile: "manager" } }] },
+    ]);
+  });
+
   it("says why when it cannot save, and keeps the draft", async () => {
     const fetchJson = async () => served;
     const sendJson = async () => {

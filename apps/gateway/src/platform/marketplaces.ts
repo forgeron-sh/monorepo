@@ -1,4 +1,4 @@
-import type { Manifest } from "@forgeron/manifest";
+import { defaultProfile, type Manifest } from "@forgeron/manifest";
 import {
   addMarketplaceRoute,
   installMarketplaceToolRoute,
@@ -254,9 +254,10 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
         readme: d.readme ?? null,
         guide: d.guide ?? null,
         interfaces: { ...m.interfaces },
+        // The tool's profiles (D-127), the default one marked: what `member` gets once installed.
         roles: Object.entries(m.roles ?? {}).map(([name, role]) => ({
           name,
-          label: role.label ?? name,
+          label: `${role.label ?? name}${name === defaultProfile(m.roles ?? {}) ? " (default)" : ""}`,
         })),
         actions: Object.entries(m.actions ?? {}).map(([name, a]) => ({
           name,

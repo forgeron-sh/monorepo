@@ -48,7 +48,7 @@ function details(card: MarketplaceToolCard) {
     { label: "Published", value: new Date(card.publishedAt).toLocaleDateString() },
     { label: "Interfaces", value: interfaces || "None" },
     {
-      label: "Roles",
+      label: "Profiles",
       value: list(
         card.roles.map((r) => (
           <>

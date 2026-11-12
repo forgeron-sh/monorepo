@@ -12,4 +12,10 @@ export {
   type AccessCell,
   type AccessMatrixData,
   type AccessMatrixProps,
+  ProfileMapping,
+  permissionsFor,
+  type ProfileChange,
+  type ProfileGrant,
+  type ProfileInfo,
+  type ProfileMappingProps,
 } from "./access-matrix";

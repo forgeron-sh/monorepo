@@ -51,7 +51,8 @@ export function toolFiles(options: {
 export default defineConfig({
   name: "${name}",
   title: "${name}",
-  roles: { reader: { grants: ["read"] } },
+  // Profiles: what the tool suggests; an admin maps the workspace's roles to them (D-127).
+  profiles: { user: { label: "User", grants: ["read"], default: true } },
 });
 `,
     "actions/ping.ts": `import { action, z } from "@forgeron/sdk";

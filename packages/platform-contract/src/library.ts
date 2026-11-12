@@ -47,6 +47,12 @@ export const listLibraryRoute = defineRoute({
 });
 
 export const LibraryCardSchema = LibraryToolSchema.extend({
+  /**
+   * Whether the person's workspace roles let them call at least one action of the tool (D-127).
+   * `false`: an admin gives one of their roles a profile in the tool's Access tab; anyone else
+   * asks an admin.
+   */
+  allowed: z.boolean(),
   /** `GUIDE.md`: how to use the tool, written for the person. */
   guide: z.string().nullable(),
   /** The images the guide references: path → address. */

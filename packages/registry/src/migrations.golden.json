@@ -1011,5 +1011,38 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0038_tool_profiles",
+    "fingerprint": "tool-profiles-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"role_profiles\" (\n  \"tool_id\" TEXT NOT NULL REFERENCES \"tools\" (\"id\") ON DELETE CASCADE,\n  \"role\" TEXT NOT NULL,\n  \"kind\" TEXT NOT NULL CHECK (\"kind\" IN ('all', 'profile', 'custom', 'none')),\n  \"profile\" TEXT,\n  \"permissions\" TEXT,\n  \"updated_by\" TEXT NOT NULL,\n  \"updated_at\" TEXT NOT NULL,\n  PRIMARY KEY (\"tool_id\", \"role\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "WITH \"current\" AS (\n  SELECT t.\"id\" AS \"tool_id\", b.\"manifest\" AS \"manifest\"\n  FROM \"tools\" t\n  JOIN \"builds\" b ON b.\"id\" = COALESCE(\n    (SELECT v.\"build_id\" FROM \"environments\" e JOIN \"versions\" v ON v.\"id\" = e.\"version_id\" WHERE e.\"tool_id\" = t.\"id\" AND e.\"name\" = 'production'),\n    (SELECT v.\"build_id\" FROM \"versions\" v WHERE v.\"tool_id\" = t.\"id\" ORDER BY v.\"created_at\" DESC, v.\"rowid\" DESC LIMIT 1)\n  )\n  WHERE json_valid(b.\"manifest\")\n)\nINSERT OR IGNORE INTO \"role_profiles\" (\"tool_id\", \"role\", \"kind\", \"profile\", \"permissions\", \"updated_by\", \"updated_at\")\nSELECT c.\"tool_id\", r.\"key\", 'profile', r.\"key\", NULL, 'forgeron', strftime('%Y-%m-%dT%H:%M:%fZ', 'now')\nFROM \"current\" c, json_each(c.\"manifest\", '$.roles') r",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"role_profiles\" (\"tool_id\", \"role\", \"kind\", \"profile\", \"permissions\", \"updated_by\", \"updated_at\")\nSELECT DISTINCT a.\"tool_id\", a.\"role\", 'profile', a.\"role\", NULL, 'forgeron', strftime('%Y-%m-%dT%H:%M:%fZ', 'now')\nFROM \"role_access\" a",
+        "parameters": []
+      },
+      {
+        "sql": "WITH \"current\" AS (\n  SELECT t.\"id\" AS \"tool_id\", b.\"manifest\" AS \"manifest\"\n  FROM \"tools\" t\n  JOIN \"builds\" b ON b.\"id\" = COALESCE(\n    (SELECT v.\"build_id\" FROM \"environments\" e JOIN \"versions\" v ON v.\"id\" = e.\"version_id\" WHERE e.\"tool_id\" = t.\"id\" AND e.\"name\" = 'production'),\n    (SELECT v.\"build_id\" FROM \"versions\" v WHERE v.\"tool_id\" = t.\"id\" ORDER BY v.\"created_at\" DESC, v.\"rowid\" DESC LIMIT 1)\n  )\n  WHERE json_valid(b.\"manifest\")\n)\nINSERT OR IGNORE INTO \"role_profiles\" (\"tool_id\", \"role\", \"kind\", \"profile\", \"permissions\", \"updated_by\", \"updated_at\")\nSELECT c.\"tool_id\", 'admin', 'all', NULL, NULL, 'forgeron', strftime('%Y-%m-%dT%H:%M:%fZ', 'now')\nFROM \"current\" c",
+        "parameters": []
+      },
+      {
+        "sql": "WITH \"current\" AS (\n  SELECT t.\"id\" AS \"tool_id\", b.\"manifest\" AS \"manifest\"\n  FROM \"tools\" t\n  JOIN \"builds\" b ON b.\"id\" = COALESCE(\n    (SELECT v.\"build_id\" FROM \"environments\" e JOIN \"versions\" v ON v.\"id\" = e.\"version_id\" WHERE e.\"tool_id\" = t.\"id\" AND e.\"name\" = 'production'),\n    (SELECT v.\"build_id\" FROM \"versions\" v WHERE v.\"tool_id\" = t.\"id\" ORDER BY v.\"created_at\" DESC, v.\"rowid\" DESC LIMIT 1)\n  )\n  WHERE json_valid(b.\"manifest\")\n)\nINSERT OR IGNORE INTO \"role_profiles\" (\"tool_id\", \"role\", \"kind\", \"profile\", \"permissions\", \"updated_by\", \"updated_at\")\nSELECT c.\"tool_id\", 'member', 'profile', (\n  SELECT r.\"key\" FROM json_each(c.\"manifest\", '$.roles') r\n  ORDER BY CASE WHEN json_extract(r.\"value\", '$.default') = 1 THEN 0 ELSE 1 END, json_array_length(r.\"value\", '$.grants'), r.\"id\"\n  LIMIT 1\n), NULL, 'forgeron', strftime('%Y-%m-%dT%H:%M:%fZ', 'now')\nFROM \"current\" c\nWHERE EXISTS (SELECT 1 FROM json_each(c.\"manifest\", '$.roles'))",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"role_profiles\"",
+        "parameters": []
+      }
+    ]
   }
 ]

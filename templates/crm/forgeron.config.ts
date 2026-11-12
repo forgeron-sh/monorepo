@@ -8,9 +8,9 @@ export default defineConfig({
   interfaces: { mcp: true, api: true, cli: true, web: true },
 
   // Access levels used by actions. read, write, delete and admin always exist.
-  roles: {
+  profiles: {
     sales: { label: "Sales", grants: ["read", "write"] },
-    support: { label: "Support", grants: ["read"] },
+    support: { label: "Support", grants: ["read"], default: true },
     management: { label: "Management", grants: ["read", "write", "delete"] },
   },
 

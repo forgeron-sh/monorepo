@@ -15,7 +15,7 @@ export default function RolesPage({ api, go }: PageProps) {
   return (
     <Page
       title="Roles and access"
-      description="Who holds which role, and where each tool says what a role may do."
+      description="Who holds which role, and where each tool says what a role is given."
     >
       {members.loading || tools.loading ? (
         <Loading shape="table" label="Loading roles" />
@@ -25,7 +25,7 @@ export default function RolesPage({ api, go }: PageProps) {
         <SettingsStack>
           <SettingsGroup
             title="Roles"
-            description="Roles come from your members and from the tools. Change who holds one on the members page."
+            description="Roles belong to the workspace: tools never add any. Change who holds one on the members page."
           >
             {knownRoles(view).map((role) => {
               const holders = view.members.filter((m) => m.roles.includes(role)).length;
@@ -34,7 +34,11 @@ export default function RolesPage({ api, go }: PageProps) {
                   key={role}
                   label={<span className="fc-mono">{role}</span>}
                   description={
-                    role === "admin" ? "Manages the workspace and every tool." : undefined
+                    role === "admin"
+                      ? "Manages the workspace; every permission of a new tool."
+                      : role === "member"
+                        ? "The default profile of a new tool."
+                        : undefined
                   }
                   href="/settings/members"
                   value={count(holders, "member")}
@@ -45,7 +49,7 @@ export default function RolesPage({ api, go }: PageProps) {
           </SettingsGroup>
           <SettingsGroup
             title="Access by tool"
-            description="Each tool has a matrix of its actions by role."
+            description="Each tool maps the workspace roles to its profiles, in its Access tab."
           >
             {tools.data?.length ? (
               tools.data.map((tool) => (
@@ -54,7 +58,7 @@ export default function RolesPage({ api, go }: PageProps) {
                   label={<span className="fc-mono">{tool.name}</span>}
                   href={`/tools/${encodeURIComponent(tool.name)}`}
                   onNavigate={(href) => go(href)}
-                  value={<Badge>Access matrix</Badge>}
+                  value={<Badge>Access</Badge>}
                 />
               ))
             ) : (

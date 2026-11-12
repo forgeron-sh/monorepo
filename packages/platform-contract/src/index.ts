@@ -9,7 +9,12 @@ export {
   toolManifestRoute,
   toolVersionsRoute,
 } from "./tools";
-export { MAX_ACCESS_CHANGES, getAccessMatrixRoute, putAccessMatrixRoute } from "./access-matrix";
+export {
+  MAX_ACCESS_CHANGES,
+  MAX_PROFILE_CHANGES,
+  getAccessMatrixRoute,
+  putAccessMatrixRoute,
+} from "./access-matrix";
 export { auditRoute, usageRoute, workspaceRoute, type SignIn } from "./workspace";
 export { listConnectionsRoute, revokeConnectionRoute } from "./connections";
 export { MAX_QUERY_ROWS, MAX_SQL, dbMigrationsRoute, dbQueryRoute } from "./database-admin";

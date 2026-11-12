@@ -32,7 +32,7 @@ export const CatalogToolSchema = z.strictObject({
   productionVersion: text.nullable(),
   interfaces: z.record(InterfaceSchema, z.boolean()),
   access: CatalogAccessSchema,
-  /** The roles of the tool that may call at least one action, with their labels: what to ask for. */
+  /** The workspace roles that may call at least one action (D-127), with a label that says what each is given. */
   roles: z.array(z.strictObject({ name: text, label: text })),
 });
 

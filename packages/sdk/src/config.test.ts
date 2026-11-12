@@ -36,6 +36,28 @@ describe("defineConfig", () => {
     );
   });
 
+  it("takes the profiles under `profiles`, or under `roles`, their former name (D-127)", () => {
+    const profiles = { user: { label: "User", grants: ["read"], default: true } };
+    expect(defineConfig({ name: "crm", profiles }).profiles).toBe(profiles);
+    expect(defineConfig({ name: "crm", roles: profiles }).roles).toBe(profiles);
+    expect(() => defineConfig({ name: "crm", profiles, roles: profiles })).toThrow(/once/);
+    expect(() => defineConfig({ name: "crm", profiles: { u: { grants: ["Read"] } } })).toThrow(
+      /pattern/,
+    );
+  });
+
+  it("refuses more than one default profile", () => {
+    expect(() =>
+      defineConfig({
+        name: "crm",
+        profiles: {
+          a: { grants: ["read"], default: true },
+          b: { grants: ["write"], default: true },
+        },
+      }),
+    ).toThrow(/Only one profile may be the default: a, b/);
+  });
+
   it("refuses a malformed name in `uses`", () => {
     expect(() => defineConfig({ name: "crm", uses: { Contacts: "^2.0.0" } })).toThrow(/pattern/);
   });

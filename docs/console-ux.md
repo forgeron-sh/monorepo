@@ -99,9 +99,22 @@ the branches.
 | Architecture | yes                 | A diagram generated from the manifest the channel serves                                    |
 | Availability | yes                 | Who may add the tool (production), or who may use the channel                               |
 | Database     | yes                 | The explorer, on the channel's database                                                     |
-| Access       | no                  | The roles by actions matrix                                                                 |
+| Access       | no                  | The tool's profiles, what each workspace role is given, the exceptions by action (D-127)    |
 | Secrets      | yes                 | Production: both kinds and what people hold. Another channel: the `preview` secrets it uses |
 | Activity     | no                  | The tool's audit log                                                                        |
+
+**The Access tab** (D-127) has three parts, saved together with one **Save changes**:
+
+1. _Profiles this tool suggests_: each profile with its label, its name, its permissions, and the
+   default one marked.
+2. _What each workspace role is given_: a row per workspace role (those of the members, invitations
+   and the base ones, `admin`, `member` first). A select gives the role _No access_, a profile (by its
+   label), _Custom permissions_ (then a checkbox per permission of the tool) or _All permissions_; the
+   permissions it ends up with are listed. A new tool arrives with `admin`: all, `member`: the default
+   profile.
+3. _Exceptions by action_: the roles by actions matrix (D-039). A cell shows what applies, and says
+   when it differs from what the role's mapping gives. Changing a role's mapping in the draft updates
+   the defaults of its cells at once.
 
 On another channel, a tab that does not follow it says _The same for every channel._ above its content:
 it is shown, not hidden, so the tabs do not move when the channel changes. Admin-only tabs are not shown
@@ -226,8 +239,11 @@ channel** instead: admins and developers only until a choice is saved.
   to paste as a custom connector, and the steps), in a terminal (`forgeron login`, then the command).
 - **Remove from my tools**, with a confirmation that says the tool stops working for them and that their
   saved keys stay in their secrets.
+- When the tool is added but the person's roles open nothing in it (`allowed: false`, D-127): a notice.
+  An admin is sent to the tool's Access tab to give one of their roles a profile; anyone else is told
+  to ask an admin.
 
-No version, role, action, interface name, resource or README.
+No version, action, interface name, resource or README.
 
 ### Tool card (the Overview tab)
 
@@ -270,12 +286,14 @@ access, roles }`.
 
 - `title` is the config's `title` or the name; `summary` is the config's `description` or `""`.
 - `icon` is a URL or `null`; `productionVersion` is `null` before the first production deployment.
-- `access` is `granted` when the person's roles (after the admin's matrix overrides) may call at least one
-  action, else `requestable`: the card says which `roles` to ask an admin for. `roles` lists the roles of
-  the tool that may call at least one action, `{ name, label }`.
-- The workspace's `admin` role is not one of a tool's roles: an admin with no role of the tool is
-  `requestable` too, as the runtime refuses their call (D-124). Their card tells them to give themselves
-  a role in Members, or to change the matrix in the Access tab, never to ask an admin.
+- `access` is `granted` when the person's workspace roles, mapped to the tool's permissions (D-127)
+  and with the admin's exceptions, may call at least one action, else `requestable`. `roles` lists the
+  workspace roles that may call at least one action, `{ name, label }`, the label saying what the role
+  is given (`member (User)`, `admin (all permissions)`).
+- The card and the runtime use the same check. An admin whose roles open nothing (an admin took the
+  access away from `admin`) is told to give one of their roles a profile in the Access tab, never to ask
+  an admin; anyone else is told to ask an admin. There is no "give yourself the role" wording: tools
+  have no roles to give.
 
 `ToolCard` is a `CatalogTool` plus:
 

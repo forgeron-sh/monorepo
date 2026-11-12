@@ -25,7 +25,7 @@ A tool comes from one place in a workspace: a marketplace or a repository, not b
 - **Other permanent channels** (`staging`, `recette`…) are added by an admin on the tool's page. They answer at `/t/<tool>~<name>/`.
 - **A permanent channel follows one branch** (production follows `main`, unless the admin chose another) and takes **only the releases** of that branch. A build that is not a release never reaches it.
 - **A temporary channel** is made by each pushed branch and removed when the branch is deleted. It takes every push, with no version needed. It answers at `/t/<tool>@<branch>/` and shows the branch's commits.
-- **Access**: who may use a channel is a rule of its own (nobody, everyone, some roles, some people), set in the Availability tab. Admins and developers always reach a channel other than production. Who can make a temporary channel is who can push to the repository: Forgeron makes no branch.
+- **Access**: who may use a channel is a rule of its own (nobody, everyone, some workspace roles, some people), set in the Availability tab. Admins and developers always reach a channel other than production. What each role may do in the tool is the Access tab: workspace roles mapped to the tool's profiles (D-127). Who can make a temporary channel is who can push to the repository: Forgeron makes no branch.
 
 ## Builds, releases, versions
 
