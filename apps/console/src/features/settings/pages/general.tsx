@@ -10,10 +10,13 @@ export default function GeneralPage({ ws }: PageProps) {
           <SettingsRow label="Name" description="Shown in the workspace menu.">
             <span className="fc-mono">{ws.workspace}</span>
           </SettingsRow>
-          <SettingsRow label="Address" description="Where people sign in and tools are called.">
+          <SettingsRow
+            label="Address"
+            description="The primary address: where people sign in and tools are called, the address in mails and the one CI names."
+          >
             <CopyBlock label="Address" value={ws.endpoint} />
           </SettingsRow>
-          {ws.install ? (
+          {ws.install?.baseDomain ? (
             <SettingsRow
               label="Base domain"
               description="The domain of every address of this install."

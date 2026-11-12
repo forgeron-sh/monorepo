@@ -48,7 +48,8 @@ const WorkspaceSchema = z.strictObject({
   /** For admins. */
   install: z
     .strictObject({
-      baseDomain: z.string(),
+      /** Absent on a self-host that serves mapped hosts only (D-126). */
+      baseDomain: z.string().optional(),
       /** The release the gateway was built from (D-123); `0.0.0` from the sources. */
       version: z.string(),
       /** The commit it was built from, when the build knew it. */

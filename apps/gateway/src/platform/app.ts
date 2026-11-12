@@ -57,10 +57,13 @@ export interface PlatformBindings {
   workspace: string;
   /** The door a call came through when it is not the console (`VIA_FORGERON_MCP`): written in the audit lines. */
   via?: string;
-  /** The workspace's address, `https://acme.forgeron.app`. */
+  /**
+   * The workspace's primary origin (D-126), `https://acme.forgeron.app`: the address shown, mailed and
+   * named as the audience of CI tokens, whatever host the request came on.
+   */
   origin: string;
-  /** The platform's base domain (`forgeron.app`). */
-  baseDomain: string;
+  /** The platform's base domain (`forgeron.app`); absent on a self-host served on mapped hosts only. */
+  baseDomain?: string;
   /** Which sign-in methods are on, for the workspace route. */
   signIn(): Promise<SignIn>;
   /** Domains from the install (`--member-email-domains`): used until an admin saves their own. */

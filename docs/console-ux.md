@@ -45,7 +45,7 @@ A full area with its own sidebar, as in Linear: a "Back to app" link on top, the
 | Group                   | Pages                                                                                                                                                                 |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Account                 | Profile, Preferences (theme, language), Security (sessions, tokens, `forgeron login` devices), Connected accounts (the person's connector consents), Personal secrets |
-| Workspace (admins)      | General (name, address), Members, Roles and access, Sign-in (email, OIDC, SAML), Domains, GitHub (the workspace's GitHub App, D-123)                                  |
+| Workspace (admins)      | General (name, address: the primary origin, D-126), Members, Roles and access, Sign-in (email, OIDC, SAML), Domains, GitHub (the workspace's GitHub App, D-123)       |
 | Administration (admins) | Audit log, Usage and seats, Sealing key, Install information (gateway version and commit, address)                                                                    |
 
 A settings page is a column of titled **groups**; a group is a card of **rows**: label and description on

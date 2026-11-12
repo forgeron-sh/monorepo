@@ -18,7 +18,6 @@ import {
 import { handleMySecrets } from "./my-secrets/my-secrets";
 import { handleCliAuthorize } from "./identity/cli-login/cli";
 import { handleUserSecrets } from "./dispatch/user-secrets";
-import { workspaceOf } from "./dispatch/dispatch";
 import {
   CONSOLE_API,
   createModules,
@@ -65,7 +64,7 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
 
   return async function handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
-    const workspace = workspaceOf(url.host, env.BASE_DOMAIN);
+    const workspace = modules.hosts.workspaceOf(url.host);
     const parts = await modules.parts();
     if (!workspace) return parts.dispatch(request);
     const asked = createRequestModules(modules, parts, request, workspace);

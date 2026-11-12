@@ -17,6 +17,7 @@ import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
 import { resolveCloudflareCredential } from "./cloudflare-auth";
 import {
+  hostSettings,
   identitySettings,
   KEYS,
   officialMarketplaceSetting,
@@ -36,7 +37,7 @@ import { platformStatus, STATUS_USAGE } from "./platform-status";
 // is only ever an API token; see D-026.
 
 const USAGE =
-  "Usage: forgeron platform install --account <id> --domain <base-domain> --gateway <worker.js> [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--official-marketplace <owner/name>] [--sign-in email[,oidc] [--mail-from <address> | --mail console]] [--only <workspace>] [--name forgeron] [--auth token|wrangler]";
+  "Usage: forgeron platform install --account <id> --gateway <worker.js> [--domain <base-domain> [--only <workspace>]] [--host <host>=<workspace>]... [--default-workspace <workspace>] [--workers-dev] [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--official-marketplace <owner/name>] [--sign-in email[,oidc] [--mail-from <address> | --mail console]] [--name forgeron] [--auth token|wrangler]\n       --domain is required unless --workers-dev or --host is given.";
 
 interface Named {
   uuid?: string;
@@ -78,15 +79,27 @@ export async function platform(
       "mail-from": { type: "string" },
       mail: { type: "string" },
       only: { type: "string" },
+      host: { type: "string", multiple: true },
+      "default-workspace": { type: "string" },
+      "workers-dev": { type: "boolean", default: false },
       name: { type: "string", default: "forgeron" },
       auth: { type: "string", default: "token" },
     },
   });
-  if (positionals.length > 0 || !values.account || !values.domain || !values.gateway) {
+  const workersDev = values["workers-dev"] === true;
+  // The gateway is reached by a route of `--domain`, by its workers.dev address, or by hosts the
+  // operator routes to it themselves (`--host`, D-126): one of them is needed.
+  const reached = values.domain !== undefined || workersDev || (values.host ?? []).length > 0;
+  if (positionals.length > 0 || !values.account || !reached || !values.gateway) {
     throw new UsageError(USAGE);
   }
   // `--only acme`: serve `acme.<domain>` alone, not every host of the zone (a zone that has other sites).
-  if (values.only !== undefined) checkWorkspace(values.only);
+  if (values.only !== undefined) {
+    if (values.domain === undefined) {
+      throw new UsageError("--only limits the route of --domain: give --domain with it.");
+    }
+    checkWorkspace(values.only);
+  }
   const name = values.name as string;
   if (!/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(name)) {
     throw new UsageError(`"${name}" is not a usable name: 3 to 40 characters among a-z, 0-9, "-".`);
@@ -113,7 +126,7 @@ export async function platform(
       ? { memberDomains: values["member-email-domains"] }
       : {}),
   };
-  if (flags.mail === "console" && /(^|\.)forgeron\.app$/.test(values.domain)) {
+  if (flags.mail === "console" && /(^|\.)forgeron\.app$/.test(values.domain ?? "")) {
     throw new UsageError("--mail console is for test installs: not on the forgeron.app cloud.");
   }
   const settings = identitySettings(flags, process.env);
@@ -126,6 +139,22 @@ export async function platform(
     apiToken,
     ...(options.fetch ? { fetch: options.fetch } : {}),
   });
+  const worker = `${name}-gateway`;
+
+  // The hosts the gateway serves (D-126). `--host workers.dev=<ws>` names the gateway's own
+  // workers.dev address, read from the account before anything is changed.
+  const workersDevHost = workersDev ? await workersDevHostOf(client, worker) : undefined;
+  const hosts = hostSettings(
+    {
+      ...(values.domain !== undefined ? { domain: values.domain } : {}),
+      ...(values.host !== undefined ? { hosts: values.host } : {}),
+      ...(values["default-workspace"] !== undefined
+        ? { defaultWorkspace: values["default-workspace"] }
+        : {}),
+      ...(workersDevHost ? { workersDevHost } : {}),
+    },
+    checkWorkspace,
+  );
 
   // 1. The platform D1: reused when it exists, so that the command can be run again.
   const database = `${name}-platform`;
@@ -149,12 +178,17 @@ export async function platform(
   if (assets) await saveGatewayAssets(platformD1, assets);
 
   // 3. The gateway Worker, with the D1 and, as a secret, the token it will deploy tools with.
-  const worker = `${name}-gateway`;
   let existed = true;
   try {
     await client.request("GET", `/workers/workers/${worker}`);
   } catch (error) {
     if ((error as { status?: number }).status !== 404) throw error;
+    // A first install must say which hosts it serves: nothing can be kept from a previous version.
+    if (!hosts.some((s) => s.given)) {
+      throw new UsageError(
+        "A first install needs --domain, --host <host>=<workspace> or --default-workspace: the gateway would serve no host.",
+      );
+    }
     await client.request("POST", "/workers/workers", { name: worker });
     existed = false;
   }
@@ -186,7 +220,6 @@ export async function platform(
       bindings: [
         ...(assetsJwt ? [{ type: "assets", name: "ASSETS" }] : []),
         { type: "d1", name: "DB", id: databaseId },
-        { type: "plain_text", name: "BASE_DOMAIN", text: values.domain },
         { type: "plain_text", name: "CLOUDFLARE_ACCOUNT_ID", text: values.account },
         // The gateway's own name, to upload new versions of itself (D-032).
         { type: "plain_text", name: "GATEWAY_WORKER", text: worker },
@@ -197,7 +230,7 @@ export async function platform(
             existed && !lost.has(TOKEN_BINDING)
             ? [{ type: "inherit", name: TOKEN_BINDING }]
             : []),
-        ...settingBindings([...settings, marketplace], existed, lost),
+        ...settingBindings([...settings, marketplace, ...hosts], existed, lost),
         ...bound.filter((n) => !lost.has(n)).map((n) => ({ type: "inherit", name: n })),
       ],
     });
@@ -210,9 +243,13 @@ export async function platform(
   } catch (error) {
     const message = (error as Error).message;
     const lost = new Set(
-      [...settings.map((s) => s.name), marketplace.name, ...bound, TOKEN_BINDING].filter((n) =>
-        message.includes(n),
-      ),
+      [
+        ...settings.map((s) => s.name),
+        marketplace.name,
+        ...hosts.map((s) => s.name),
+        ...bound,
+        TOKEN_BINDING,
+      ].filter((n) => message.includes(n)),
     );
     if (!existed || (error as { status?: number }).status !== 400 || lost.size === 0) throw error;
     regenerated = lost;
@@ -271,7 +308,28 @@ export async function platform(
   }
 
   // 4. DNS and route: a proxied record, then `*.<domain>/*` (or `<only>.<domain>/*`) to the gateway.
-  await attachRoute(client, values.domain, worker, io, values.only);
+  // Without --domain no zone is touched: the gateway is reached at workers.dev or the mapped hosts.
+  if (values.domain !== undefined) {
+    await attachRoute(client, values.domain, worker, io, values.only);
+  } else {
+    io.log("No --domain: no DNS record or route was created or changed.");
+  }
+  if (workersDevHost) {
+    await enableWorkersDev(client, worker);
+    io.log(`The gateway answers at https://${workersDevHost}`);
+    const served = String(hosts.find((s) => s.name === "WORKSPACE_HOSTS")?.given?.text ?? "");
+    if (!served.includes(`${workersDevHost}=`) && values["default-workspace"] === undefined) {
+      io.log(
+        "That address serves a workspace only when it is mapped (--host workers.dev=<workspace>) or a default workspace is set (--default-workspace <workspace>), in this run or kept from a previous one.",
+      );
+    }
+  }
+  const primary = hosts.find((s) => s.name === "WORKSPACE_HOSTS")?.given?.text;
+  if (typeof primary === "string") {
+    io.log(
+      `Hosts served: ${primary.split(",").join(", ")}. A workspace's first host is its primary origin: the address of its tools, mails, GitHub App and CI tokens.`,
+    );
+  }
   io.log(
     assets
       ? `Deployed the console (${assets.length} files) as assets of the gateway.`
@@ -281,6 +339,34 @@ export async function platform(
 }
 
 const TOKEN_BINDING = "CLOUDFLARE_API_TOKEN";
+
+/**
+ * The gateway's workers.dev host, `<worker>.<subdomain>.workers.dev`: the account's subdomain is
+ * read from Cloudflare (`GET /accounts/{id}/workers/subdomain`).
+ */
+async function workersDevHostOf(client: CloudflareClient, worker: string): Promise<string> {
+  let subdomain: string | undefined;
+  try {
+    subdomain = (await client.request<{ subdomain?: string }>("GET", "/workers/subdomain"))
+      .subdomain;
+  } catch (error) {
+    if ((error as { status?: number }).status !== 404) throw error;
+  }
+  if (!subdomain) {
+    throw new UsageError(
+      "This account has no workers.dev subdomain yet: choose one in the Cloudflare dashboard (Workers & Pages), then run the install again.",
+    );
+  }
+  return `${worker}.${subdomain}.workers.dev`.toLowerCase();
+}
+
+/** Turns on the gateway Worker's workers.dev address. Preview addresses stay off: they serve other versions. */
+async function enableWorkersDev(client: CloudflareClient, worker: string): Promise<void> {
+  await client.request("POST", `/workers/scripts/${worker}/subdomain`, {
+    enabled: true,
+    previews_enabled: false,
+  });
+}
 
 /**
  * `TOOL_<WORKER>` of every environment the registry holds: those a tool deployment bound. Read after the

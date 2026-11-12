@@ -1,5 +1,4 @@
 import type { Identity } from "../authn/identity";
-import { workspaceOf } from "../../kernel/workspace";
 import { negotiated } from "../../pages/errors";
 import {
   completeLogin,
@@ -32,7 +31,13 @@ const SAML_PREFIX = "fgm";
 const STATE_SECONDS = 600;
 
 export interface AuthOptions {
-  baseDomain: string;
+  /** The workspace a host serves (D-126). */
+  workspaceOf(host: string): string | undefined;
+  /**
+   * The workspace's primary origin (D-126), where the redirect URI of its provider is. A sign-in
+   * started on another host moves there first. `undefined`: the sign-in stays on the host it is on.
+   */
+  primaryOrigin?(workspace: string): string | undefined;
   secret: string;
   /** The workspace's identity provider; `undefined` if it has none configured. */
   providerFor(workspace: string): OidcProvider | undefined | Promise<OidcProvider | undefined>;
@@ -114,8 +119,21 @@ export function createAuth(options: AuthOptions) {
   return async function auth(request: Request): Promise<Response | undefined> {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/auth/")) return undefined;
-    const workspace = workspaceOf(url.host, options.baseDomain);
+    const workspace = options.workspaceOf(url.host);
     if (!workspace) return failure(request, 404, "NOT_FOUND", "Not found.");
+    // The provider sends the person back to the primary origin: the state cookie must be set there.
+    const primary = options.primaryOrigin?.(workspace);
+    if (
+      url.pathname === "/auth/login" &&
+      request.method === "GET" &&
+      primary &&
+      primary !== url.origin
+    ) {
+      return new Response(null, {
+        status: 302,
+        headers: { location: `${primary}${url.pathname}${url.search}` },
+      });
+    }
 
     if (url.pathname === "/auth/logout") {
       return new Response(null, {

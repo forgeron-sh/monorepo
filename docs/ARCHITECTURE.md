@@ -107,12 +107,12 @@ Design points:
 
 ## The platform (`apps/`)
 
-| App       | Stack                                        | Hosting                                         | Role                                                                                                                                                              |
-| --------- | -------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cli`     | Node, `@forgeron/sdk`, `compiler`, `hosting` | published on npm, run on a workstation or in CI | Tool lifecycle (`sdk.md` §5), platform installation in self-host, calling tool actions                                                                            |
-| `gateway` | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`                    | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
-| `console` | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)   | Shell, first-run checklist, tools, members and invitations, roles × actions, secrets, resource approval, audit log, settings                                      |
-| `site`    | Astro, React islands                         | Worker + static assets                          | Marketing site, public documentation eventually                                                                                                                   |
+| App       | Stack                                        | Hosting                                                           | Role                                                                                                                                                              |
+| --------- | -------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cli`     | Node, `@forgeron/sdk`, `compiler`, `hosting` | published on npm, run on a workstation or in CI                   | Tool lifecycle (`sdk.md` §5), platform installation in self-host, calling tool actions                                                                            |
+| `gateway` | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`, mapped hosts or workers.dev (D-126) | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
+| `console` | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members and invitations, roles × actions, secrets, resource approval, audit log, settings                                      |
+| `site`    | Astro, React islands                         | Worker + static assets                                            | Marketing site, public documentation eventually                                                                                                                   |
 
 `apps/cli` is the only app published on npm: it runs on the developer's machine. It stays in `apps/` because it is a final executable that nothing imports.
 

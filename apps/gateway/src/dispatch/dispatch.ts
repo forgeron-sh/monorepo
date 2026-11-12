@@ -82,8 +82,8 @@ function confined(response: Response, challenge?: string): Response {
 }
 
 export interface DispatcherOptions {
-  /** `forgeron.app`: the workspace is the one label in front of it. */
-  baseDomain: string;
+  /** The workspace a host serves (D-126: a mapped host, `<workspace>.<base domain>`, or the default). */
+  workspaceOf(host: string): string | undefined;
   registry: Registry;
   /** The Worker of that name, or `undefined` if the gateway has no binding to it. */
   targets(worker: string): Target | undefined;
@@ -165,7 +165,7 @@ const refuse = (status: number, code: string, message: string) =>
 export function createDispatcher(options: DispatcherOptions) {
   return async function dispatch(request: Request): Promise<Response> {
     const url = new URL(request.url);
-    const workspace = workspaceOf(url.host, options.baseDomain);
+    const workspace = options.workspaceOf(url.host);
     if (!workspace) return refuse(404, "NOT_FOUND", "Not found.");
     const path = parseToolPath(url.pathname);
     // The workspace's own paths (`/`, `/mcp`, `/settings`…) belong to other parts of the gateway.
