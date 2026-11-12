@@ -1,3 +1,4 @@
+import { ciBranch } from "../ci-branch";
 import { addresses } from "@forgeron/platform-contract/client";
 import { parseArgs } from "node:util";
 import { UsageError, type Io } from "../io";
@@ -21,11 +22,7 @@ export async function preview(args: string[], io: Io): Promise<number> {
   });
   if (positionals.length > 0) throw new UsageError(USAGE);
   // `FORGERON_BRANCH`: the deleted branch's name, which the action passes on (D-121).
-  const branch =
-    values.branch ??
-    (process.env.FORGERON_BRANCH || undefined) ??
-    process.env.GITHUB_HEAD_REF ??
-    process.env.GITHUB_REF_NAME;
+  const branch = values.branch ?? (process.env.FORGERON_BRANCH || undefined) ?? ciBranch();
   if (!branch) throw new UsageError("Which preview? Pass --branch <name>.");
   const project = await deployEndpoint(io.cwd);
   const token = await ciCredential(project.endpoint);

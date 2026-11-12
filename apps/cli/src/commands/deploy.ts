@@ -1,3 +1,4 @@
+import { ciBranch } from "../ci-branch";
 import { buildTool } from "@forgeron/compiler";
 import { addresses } from "@forgeron/platform-contract/client";
 import { parseArgs } from "node:util";
@@ -62,7 +63,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
   if (!ENVIRONMENTS.includes(env)) {
     throw new UsageError(`--env ${env}: one of ${ENVIRONMENTS.join(", ")}.`);
   }
-  const branch = values.branch ?? process.env.GITHUB_HEAD_REF ?? process.env.GITHUB_REF_NAME;
+  const branch = values.branch || ciBranch();
   if (env === "preview" && !branch) {
     throw new UsageError("A preview is tied to a branch: pass --branch <name>.");
   }
