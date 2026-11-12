@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/forgeron-sh/monorepo/compare/runtime-v0.3.0...runtime-v0.3.1) (2026-11-12)
+
+
+### Miscellaneous Chores
+
+* **runtime:** Synchronize forgeron versions
+
 ## [0.3.0](https://github.com/forgeron-sh/monorepo/compare/runtime-v0.2.0...runtime-v0.3.0) (2026-11-12)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/forgeron-sh/monorepo/compare/v0.3.0...v0.3.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **cli:** read the pushed branch when GITHUB_HEAD_REF is empty ([f2f59b8](https://github.com/forgeron-sh/monorepo/commit/f2f59b8bce7e5e644bce2e311943ac249539080a))
+* **cli:** read the pushed branch when GITHUB_HEAD_REF is empty ([07aa3c7](https://github.com/forgeron-sh/monorepo/commit/07aa3c773ed49831f4dcfc63c44d0323fc799784))
+
 ## [0.3.0](https://github.com/forgeron-sh/monorepo/compare/v0.2.0...v0.3.0) (2026-11-12)
 
 
