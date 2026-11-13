@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { BUILT_IN_TEAMS, holds, PLATFORM, type PlatformPermission } from "@forgeron/permissions";
 import { redacted } from "../admin-mcp/server";
 import { TOOLS } from "../admin-mcp/tools";
+import { ADMIN_TOOLS } from "../admin-mcp/tools-admin";
 import { createGateway, type GatewayEnv } from "../gateway";
 import { openSession } from "../identity/authn/session";
 import { issueToken } from "../identity/authn/tokens";
@@ -268,8 +269,25 @@ describe("who may reach /mcp", () => {
 });
 
 describe("the tools and the permission they require", () => {
-  const SIGNED_IN = ["catalog_search", "catalog_get", "tools_list", "tool_get", "team_list"];
-  const TOOLS_READ = ["tool_versions", "tool_changelog", "secrets_status", "tool_source"];
+  const SIGNED_IN = [
+    "catalog_search",
+    "catalog_get",
+    "tools_list",
+    "tool_get",
+    "team_list",
+    "workspace_get",
+    "permissions_list",
+  ];
+  const TOOLS_READ = [
+    "tool_versions",
+    "tool_changelog",
+    "secrets_status",
+    "tool_source",
+    "tool_manifest",
+    "tool_branches",
+    "tool_activity",
+    "tool_ci",
+  ];
   const requiring = (permissions: PlatformPermission[]) =>
     TOOLS.filter((t) => t.requires === "signed-in" || holds(PLATFORM, permissions, t.requires))
       .map((t) => t.name)
@@ -285,7 +303,7 @@ describe("the tools and the permission they require", () => {
     expect(await listed(dev)).not.toContain("access_grant");
     expect(await listed(dev)).not.toContain("resources_approve");
     expect((await listed(root)).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(26);
+    expect(TOOLS).toHaveLength(84);
   });
 
   it("marks what changes something with destructiveHint, and nothing else", async () => {
@@ -302,6 +320,38 @@ describe("the tools and the permission they require", () => {
         "tool_install",
         "tool_rollback",
         "tool_update",
+        "availability_set",
+        "branch_data_copy",
+        "channel_add",
+        "channel_remove",
+        "channel_update",
+        "connection_revoke",
+        "connector_client_remove",
+        "db_query",
+        "github_create_tool",
+        "github_disconnect",
+        "github_link_repository",
+        "identity_provider_remove",
+        "invitation_send",
+        "invitation_withdraw",
+        "marketplace_add",
+        "marketplace_remove",
+        "marketplace_sync",
+        "member_remove",
+        "membership_settings_set",
+        "person_tokens_revoke",
+        "platform_update_start",
+        "preview_availability_set",
+        "preview_close",
+        "secrets_reseal",
+        "team_create",
+        "team_delete",
+        "tool_delete",
+        "tool_source_set",
+        "user_secret_revoke",
+        "user_secrets_revoke",
+        "user_setup_clear",
+        "user_setup_value_clear",
       ].sort(),
     );
     for (const t of tools) {
@@ -845,5 +895,118 @@ describe("usage_report (D-093)", () => {
     ]);
     expect(JSON.stringify(report)).not.toMatch(/token|secret|path/i);
     expect((await call(root, "usage_report", { from: "yesterday" })).error).toBe(true);
+  });
+});
+
+describe("the rest of the console, as tools (D-139)", () => {
+  it("reads the workspace, the permissions, the audit log and a tool's channels", async () => {
+    const workspace = (await call(root, "workspace_get")).data;
+    expect(workspace.person.email).toBe("root@acme.test");
+    const permissions = (await call(ana, "permissions_list")).data;
+    expect(JSON.stringify(permissions)).toContain("tools:write");
+    expect((await call(root, "audit_list", { limit: 5 })).error).toBe(false);
+    const branches = (await call(root, "tool_branches", { tool: "crm" })).data;
+    expect(JSON.stringify(branches)).toContain("feat");
+    expect((await call(root, "tool_manifest", { tool: "crm" })).data.manifest.name).toBe("crm");
+    expect((await call(root, "tool_activity", { tool: "crm", limit: 5 })).error).toBe(false);
+    // A person who may not read the audit log is refused, with the permission named.
+    const refused = await call(dev, "audit_list");
+    expect(refused.error).toBe(true);
+    expect(refused.text).toMatch(/permission/);
+  });
+
+  it("closes a preview, audited via the MCP, and says nothing is removed when it is gone", async () => {
+    const crm = (await registry.findTool("acme", "crm"))!;
+    await deployBuild(registry, hosting, {
+      tool: crm,
+      environment: "preview",
+      branch: "scratch",
+      build: build("fp-scratch"),
+      version: "7.7.7",
+      actor: "ci",
+    });
+    expect(JSON.stringify((await call(root, "tool_branches", { tool: "crm" })).data)).toContain(
+      "scratch",
+    );
+    const closed = await call(root, "preview_close", { tool: "crm", branch: "scratch" });
+    expect(closed.error).toBe(false);
+    expect(closed.data).toMatchObject({ tool: "crm", branch: "scratch", removed: true });
+    expect(JSON.stringify((await call(root, "tool_branches", { tool: "crm" })).data)).not.toContain(
+      "scratch",
+    );
+    // The preview of another branch is untouched, and closing twice is not an error.
+    expect(JSON.stringify((await call(root, "tool_branches", { tool: "crm" })).data)).toContain(
+      "feat",
+    );
+    expect((await call(root, "preview_close", { tool: "crm", branch: "scratch" })).error).toBe(
+      false,
+    );
+    // Production is not a branch: nothing here can close it.
+    expect((await call(ana, "preview_close", { tool: "crm", branch: "feat" })).error).toBe(true);
+  });
+
+  it("creates and deletes a team, and invites and withdraws an address", async () => {
+    const team = await call(root, "team_create", { id: "support", name: "Support", members: [] });
+    expect(team.error).toBe(false);
+    expect(JSON.stringify((await call(root, "team_list")).data)).toContain("support");
+    expect((await call(root, "team_delete", { id: "support" })).error).toBe(false);
+    expect(JSON.stringify((await call(root, "team_list")).data)).not.toContain("support");
+
+    const invited = await call(root, "invitation_send", { email: "new@acme.test", teams: [] });
+    expect(invited.error).toBe(false);
+    expect((await call(root, "invitation_withdraw", { email: "new@acme.test" })).error).toBe(false);
+  });
+
+  it("reads and sets who joins by domain", async () => {
+    const before = (await call(root, "membership_settings_get")).data;
+    const set = await call(root, "membership_settings_set", {
+      domains: ["acme.test"],
+      defaultTeams: [],
+    });
+    expect(set.error).toBe(false);
+    expect((await call(root, "membership_settings_get")).data.domains).toEqual(["acme.test"]);
+    await call(root, "membership_settings_set", {
+      domains: before.domains ?? [],
+      defaultTeams: before.defaultTeams ?? [],
+    });
+  });
+
+  it("will not publish a tool that has no version, and says why", async () => {
+    const refused = await call(root, "availability_set", { tool: "hr", mode: "everyone" });
+    expect(refused.error).toBe(true);
+    expect(refused.text).toMatch(/NO_VERSION/);
+    expect((await call(root, "availability_get", { tool: "hr" })).error).toBe(false);
+  });
+
+  it("will not delete a tool without its name, nor remove a member that is not one", async () => {
+    expect((await call(root, "tool_delete", { tool: "hr", confirm: "not-hr" })).error).toBe(true);
+    expect((await registry.findTool("acme", "hr"))?.name).toBe("hr");
+    expect((await call(root, "member_remove", { id: "nobody" })).text).toMatch(/^404/);
+  });
+
+  it("refuses every tool of this set to a person who holds none of the permissions", async () => {
+    const before = await auditCount();
+    const notRefused: string[] = [];
+    for (const t of ADMIN_TOOLS.filter((x) => x.requires !== "signed-in")) {
+      const refused = await call(ana, t.name, {});
+      if (!refused.error || !/permission/.test(refused.text)) notRefused.push(t.name);
+    }
+    expect(notRefused).toEqual([]);
+    expect(await auditCount()).toBe(before);
+  });
+
+  it("offers a tool of this set only to who holds its permission", async () => {
+    const offered = await listed(dev);
+    expect(offered).toContain("preview_close"); // tools:write, which the developer team holds
+    expect(offered).toContain("db_rows"); // tools:data
+    expect(offered).not.toContain("member_remove"); // members:write
+    expect(offered).not.toContain("platform_update_start"); // platform:update
+    expect(offered).not.toContain("tool_delete"); // tools:delete
+  });
+
+  it("revokes a person's tokens, and removes nothing it was not asked to", async () => {
+    const answer = await call(root, "person_tokens_revoke", { id: viewer });
+    expect(answer.error).toBe(false);
+    expect((await registry.findMember("acme", viewer))?.id).toBe(viewer);
   });
 });
