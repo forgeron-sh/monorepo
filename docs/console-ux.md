@@ -113,7 +113,18 @@ A table or a grid (toggle), searchable: icon, name, one-line summary, production
 previews, last deployment, status dot. A row opens the tool page.
 [Vercel projects](https://mobbin.com/screens/c54df5c8-f72c-406e-bb92-a9a6b116f0a5).
 
-**Add from GitHub** (admins, D-121): the tool's name, its repository (`owner/name`, one tool per
+**Status of a tool with nothing deployed.** A tool added from GitHub has no version until its CI has
+deployed one. Until then the Production and Status cells (table and grid) say what the CI of its
+repository is doing, in place of _Not deployed_: **Importing** (a run is queued or going), **CI failed**
+(the last run failed; the table links to it, the grid does not, the card being a link) or **Waiting for
+CI** (no run seen yet). The runs of the production branch decide, else any run; a cancelled run says
+nothing. _Not deployed_ stays for a tool with no repository, and where the CI cannot be read (no GitHub
+App on the repository, or no permission to read Actions yet). The CI is read once per row, and only for a
+tool with nothing deployed (`GET /api/tools/{tool}/ci`): a tool with a version, even a preview, never
+asks.
+
+**Add from GitHub** (admins, D-121; while its repositories are read the dialog draws a skeleton of the
+list, no sentence): the tool's name, its repository (`owner/name`, one tool per
 repository) and its production branch (`main` by default). The tool is created with no environment and
 nobody may add it yet; the dialog then shows, once, the deployment token to set as the repository's
 `FORGERON_TOKEN`, and the steps: the secret, the workflow `forgeron init` writes, a first push.
@@ -144,13 +155,32 @@ to `/admin/tools/<tool>`. The picker lists production, the other permanent chann
 the branches. It has no label: it is as wide as its value, its chevron right after it (D-129).
 
 Right of the picker, for admins, the channel's **publication** (D-129), described below under
-"Publication".
+"Publication". Its chevron also holds the tool's other actions, see "Header actions".
+
+**Header actions.** There is no arrow button any more. The chevron of the publish split button holds,
+in this order: _Who has access_, _Open in my tools_ (the tool in the person's own space,
+`/library/<tool>`), _View on GitHub_ (when the tool has a repository), a separator, _Unpublish_ (when
+published) and **Delete tool…** (danger, for whoever holds `tools:delete`). A person who may not publish
+but has some of these (only `tools:read`, or `tools:delete`) gets a small square **…** menu in the same
+place, with the items they may use: _Open in my tools_, _View on GitHub_, then _Delete tool…_.
+
+**Delete tool…** asks to type the tool's name, then deletes it for good (`DELETE /api/tools/{tool}`,
+`tools:delete`): every channel's Worker and database goes, production included, then the tool, its
+versions, access, availability, libraries and secrets. The repository on GitHub is not touched, the audit
+log keeps a `tool:deleted` line. If the host fails, nothing is forgotten and it can be tried again. The
+page then goes back to Administration, Tools.
+
+**While nothing is deployed** (a tool just added from GitHub, or whose CI failed) a notice under the
+header says what the CI is doing (**Importing**, **CI failed**, **Waiting for CI**, with a link to the
+run or to the CI tab), and that there is nothing to publish yet. It says _Nothing deployed_ where the CI
+cannot be read.
 
 | Tab          | Follows the channel | Content                                                                                     |
 | ------------ | ------------------- | ------------------------------------------------------------------------------------------- |
 | Overview     | yes                 | The README, guide, version and addresses of the version the channel serves                  |
 | Channels     | no                  | The permanent channels with their updates, then one temporary channel per branch, see below |
 | Releases     | no                  | The releases with their changelog, compared to the previous one; builds on demand           |
+| CI           | no                  | The recent GitHub Actions runs of the tool's repository, newest first, see below            |
 | Architecture | yes                 | A diagram generated from the manifest the channel serves                                    |
 | Database     | yes                 | The explorer, on the channel's database                                                     |
 | Access       | no                  | The tool's profiles, what Everyone and each team is given, the exceptions by action (D-127) |
@@ -173,6 +203,23 @@ Right of the picker, for admins, the channel's **publication** (D-129), describe
 On another channel, a tab that does not follow it says _The same for every channel._ above its content:
 it is shown, not hidden, so the tabs do not move when the channel changes. A tab the person's permissions do not open is
 not shown.
+
+### CI
+
+The recent runs (twenty) of the GitHub Actions of the tool's repository, newest first, for whoever
+holds `tools:read` (`GET /api/tools/{tool}/ci`, read with the workspace's GitHub App). One row per run:
+the workflow's name (a link to the run on GitHub), the branch, the first line of the commit's message,
+who pushed, the status as a badge (_Queued_, _In progress_, _Success_, _Failed_, _Cancelled_), when it
+started and how long it took (blank while it runs). At the top right, _View on GitHub ↗_ (the
+repository's `/actions`), and a line: _A successful run on `<production branch>` deploys a release; on
+another branch, a temporary channel._ While the runs are read, a skeleton of the rows.
+
+Instead of the list, an empty state says why: a tool with no repository (a marketplace tool, or deployed
+from a terminal); a repository the workspace's GitHub App is not installed on (with a link to the
+repository); or **the app may not read Actions yet**. The app asks for `actions: read` since this tab
+exists, but an installation made before has not accepted it until its owner does: GitHub answers 403 or
+404, the route answers `{ state: "no-permission", settingsUrl }`, and the tab says _Allow Forgeron to
+read Actions in the GitHub App's settings_ with a link to the installation's page.
 
 ### Channels
 
@@ -282,17 +329,28 @@ Adding, finishing the setup and removing work as for a tool, apart from it.
 Who may use a channel (D-129), in place of the Availability tab, which is gone (`?tab=availability`
 opens the tool page). Two states, on the existing rule (D-117, D-125; the API is unchanged). The
 state is a badge next to the tool's name (_Draft_ or _Published_; who it reaches is its tooltip and
-_Who has access_). Right of the header, all 32 px high: the channel picker, the split button, always
-filled black, and a square arrow link to the tool in the person's own space (`/library/<tool>`).
+_Who has access_). Right of the header, all 32 px high: the channel picker and the split button, always
+filled black (the tool's other actions are in its chevron, see "Header actions").
 
-- **Draft** (`nobody`, or a channel with no rule yet): people who hold `access:write` only. A branch's
-  temporary channel stays open to those who hold `tools:read` too (D-125, D-136). A tool installed from a marketplace and a new permanent channel start
-  as drafts. The badge reads _Draft_ (tooltip _Only people who manage access_) and a **split button**: _Publish_, and glued to
-  its right a chevron with _Who has access_.
+**Publishing needs a version.** A channel with no version deployed on it (the CI failed or has not run)
+has nothing to publish: _Publish_ is off, with the reason _Nothing to publish yet: no version is
+deployed on this channel._ as its title and in the notice under the header, which links to the CI tab.
+The gateway refuses it too: `PUT /api/tools/{tool}/availability` and
+`PUT /api/tools/{tool}/previews/{branch}/availability` answer `409 NO_VERSION` for a rule other than
+`nobody` while production, or the channel, has no version. Going back to a draft is always allowed.
+
+- **Draft** (`nobody`, or a channel with no rule yet), who reaches it whatever is published (the
+  registry's `reachesChannelAlways` and `isAvailable`, D-136): on **production**, who holds `access:write`
+  (it makes the tool addable); on **another channel**, who holds `tools:publish`, and on a branch's
+  temporary channel (not `~<name>`) who holds `tools:read` too (D-125). `access:write` is not a way into a
+  channel in draft. A tool installed from a marketplace and a new permanent channel start as drafts. The
+  badge reads _Draft_ (tooltip _People who give access_ on production, _People who publish or see tools_ on a
+  branch, _People who publish_ on a permanent channel) and a **split button**: _Publish_, and glued to its
+  right a chevron with _Who has access_ and the tool's other actions.
 - **Published** (`everyone`, `teams` or `people`): the badge reads _Published_, its tooltip _everyone_, _Developers,
   Support_ (team names) or the people's names (their count past two). The main button becomes _Manage
-  sharing_; the chevron holds _Who has access_ and _Unpublish_ (confirmed, it says how many people lose
-  access; their library keeps the tool).
+  sharing_; the chevron holds _Who has access_, the tool's other actions and _Unpublish_ (confirmed, it says
+  how many people lose access; their library keeps the tool).
 - **The dialog** (_Publish_ and _Manage sharing_): everyone in the workspace, some teams (the
   Admins team is not listed: whoever holds `access:write` always has access), or some people
   found with a search field. Before saving it says how many people will have access and why (_3 people

@@ -164,6 +164,7 @@ export const putAvailabilityRoute = defineRoute({
     401: notSignedIn,
     403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool"),
+    409: json(ErrorSchema, "Nothing is deployed to publish (`NO_VERSION`)"),
   },
 });
 
@@ -255,5 +256,6 @@ export const putPilotAvailabilityRoute = defineRoute({
     401: notSignedIn,
     403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool or channel"),
+    409: json(ErrorSchema, "No version is deployed on the channel (`NO_VERSION`)"),
   },
 });

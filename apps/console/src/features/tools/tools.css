@@ -141,11 +141,18 @@
   flex: 1;
   min-width: 0;
 }
-/* A square link, an arrow only: the tool as the person who uses it sees it (D-128). */
-.ft-open-mine {
-  width: 32px;
-  padding: 0;
+/* The tool's other actions for whoever may not publish: a square button with an ellipsis. */
+.ft-actions-menu .fg-menu-trigger {
   justify-content: center;
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+}
+.ft-actions-menu .fg-menu-list {
+  left: auto;
+  right: 0;
 }
 /* The tool's name, and next to it whether the channel is a draft or published (D-129). */
 .ft-header-title {
@@ -662,4 +669,49 @@
 }
 .ft-repo.is-chosen {
   border-color: var(--ink);
+}
+
+/* The list of repositories while it is read: as many rows as the list will have, no text. */
+.ft-repo-skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+}
+
+/* CI tab: the note on what a run does, with the link to GitHub at the right. */
+.ft-ci-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.ft-ci-note {
+  margin: 0;
+  min-width: 0;
+}
+.ft-run-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+.ft-run-message {
+  display: inline-block;
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+td .ft-run-link + .fg-badge,
+.fg-badge + .ft-run-link {
+  margin-inline-start: var(--space-2);
+}
+@media (max-width: 640px) {
+  .ft-ci-head {
+    flex-direction: column;
+  }
 }

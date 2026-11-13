@@ -45,6 +45,7 @@ import type {
   getToolSourceRoute,
   putChannelRoute,
   removeChannelRoute,
+  deleteToolRoute,
   putToolSourceRoute,
   updateToolRoute,
 } from "./sources";
@@ -98,6 +99,7 @@ import type {
   listGithubRepositoriesRoute,
 } from "./github";
 import type { resealSecretsRoute, secretsStatusRoute } from "./secrets-status";
+import type { toolCiRoute } from "./ci";
 import type {
   listToolsRoute,
   toolActivityRoute,
@@ -238,6 +240,8 @@ export const addresses = {
     method: "delete",
     path: "/api/tools/{tool}/channels/{channel}",
   }),
+  deleteTool: addressOf<typeof deleteToolRoute>({ method: "delete", path: "/api/tools/{tool}" }),
+  toolCi: addressOf<typeof toolCiRoute>({ method: "get", path: "/api/tools/{tool}/ci" }),
   addRepositoryTool: addressOf<typeof addRepositoryToolRoute>({
     method: "post",
     path: "/api/tools/from-repository",

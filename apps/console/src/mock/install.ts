@@ -142,6 +142,9 @@ export async function installMock(): Promise<void> {
             previews: [{ branch: "main", version: "0.2.0" }],
           },
           { name: "odoo", production: "2.0.3", previews: [] },
+          // Added from GitHub, nothing deployed yet: the CI is running (tickets) or has failed (payroll).
+          { name: "tickets", production: null, previews: [] },
+          { name: "payroll", production: null, previews: [] },
         ],
     sources: (fresh
       ? {}
@@ -501,6 +504,70 @@ export async function installMock(): Promise<void> {
       if (method === "PUT") Object.assign(source, body);
       return reply(200, answer());
     }
+    // A tool's CI: the recent GitHub Actions runs of its repository (docs/console-ux.md, "CI").
+    const ci = /^\/api\/tools\/([\w-]+)\/ci$/.exec(path);
+    if (ci) {
+      if (!has("tools:read")) return lacking("tools:read");
+      const tool = ci[1]!;
+      const repo = `acme-sh/${tool}`;
+      if (tool === "odoo") return reply(200, { state: "no-repository" });
+      if (tool === "inventory") {
+        return reply(200, {
+          state: "no-permission",
+          repo,
+          settingsUrl: "https://github.com/organizations/acme-sh/settings/installations/7",
+        });
+      }
+      const run = (
+        id: number,
+        status: string,
+        branch: string,
+        message: string,
+        actor: string,
+        started: number,
+        seconds: number | null,
+      ) => ({
+        id,
+        workflow: "forgeron",
+        branch,
+        message,
+        sha: id.toString(16).padStart(40, "0"),
+        actor,
+        status,
+        startedAt: iso(-started),
+        durationSeconds: seconds,
+        url: `https://github.com/${repo}/actions/runs/${id}`,
+      });
+      const runs =
+        tool === "tickets"
+          ? [run(3, "in_progress", "main", "feat: first version", "ada", 40_000, null)]
+          : tool === "payroll"
+            ? [
+                run(5, "failure", "main", "feat: first version", "ada", 3_600_000, 74),
+                run(4, "cancelled", "feat/fix", "ci: try again", "bob", 7_200_000, 12),
+              ]
+            : [
+                run(9, "success", "main", "feat: export contacts as CSV", "claire", 3 * DAY, 131),
+                run(8, "queued", "feat-export", "fix: keep the column order", "bob", 60_000, null),
+                run(7, "failure", "fix-accents-search", "fix: ignore accents", "bob", 2 * DAY, 58),
+                run(6, "success", "main", "feat: deals.move", "ada", 21 * DAY, 120),
+              ];
+      return reply(200, {
+        state: "ok",
+        repo,
+        productionBranch: "main",
+        actionsUrl: `https://github.com/${repo}/actions`,
+        runs,
+      });
+    }
+    const deleted = /^\/api\/tools\/([\w-]+)$/.exec(path);
+    if (deleted && method === "DELETE") {
+      if (!has("tools:delete")) return lacking("tools:delete");
+      if (body.confirm !== deleted[1])
+        return reply(400, { error: "NOT_CONFIRMED", message: `Type ${deleted[1]} to confirm.` });
+      state.tools = state.tools.filter((t) => t.name !== deleted[1]);
+      return reply(200, { deleted: true });
+    }
     if (path === "/api/tools/from-repository" && method === "POST") {
       if (!has("tools:write")) return lacking("tools:write");
       if (state.tools.some((t) => t.name === body.name))
@@ -526,6 +593,16 @@ export async function installMock(): Promise<void> {
     if (availability) {
       if (!has("tools:publish")) return lacking("tools:publish");
       const tool = availability[1]!;
+      if (
+        method === "PUT" &&
+        body.mode !== "nobody" &&
+        !state.tools.find((t) => t.name === tool)?.production
+      ) {
+        return reply(409, {
+          error: "NO_VERSION",
+          message: "Nothing to publish yet: no version is deployed on this channel.",
+        });
+      }
       if (method === "PUT") {
         state.availability[tool] = {
           mode: String(body.mode),

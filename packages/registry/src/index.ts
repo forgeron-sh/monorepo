@@ -8,6 +8,7 @@ export {
   approveVersion,
   closeChannel,
   closePreview,
+  deleteToolEverywhere,
   deployBuild,
   isReleaseVersion,
   putOnChannel,

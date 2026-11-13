@@ -21,6 +21,15 @@ registerToolTab({
   load: () => import("./tabs/versions-tab"),
 });
 registerToolTab({
+  id: "ci",
+  scope: "tool",
+  order: 35,
+  title: "CI",
+  // The runs of the tool's repository, read with the workspace's GitHub App: for whoever sees the tool.
+  requires: "tools:read",
+  load: () => import("./tabs/ci-tab"),
+});
+registerToolTab({
   id: "access",
   scope: "tool",
   order: 60,

@@ -118,6 +118,7 @@ describe("making the app from its manifest", () => {
         workflows: "write",
         statuses: "write",
         administration: "write",
+        actions: "read",
         metadata: "read",
       },
       default_events: ["delete"],

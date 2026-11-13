@@ -68,12 +68,14 @@ function manifestOf(origin: string) {
     setup_on_update: true,
     public: false,
     // Contents and workflows to make a tool's repository and its CI, administration to create the
-    // repository, statuses to show a preview's address beside its commit.
+    // repository, statuses to show a preview's address beside its commit, actions to read the CI runs.
     default_permissions: {
       administration: "write",
       contents: "write",
       workflows: "write",
       statuses: "write",
+      // The CI tab of a tool reads its repository's GitHub Actions runs.
+      actions: "read",
       metadata: "read",
     },
     default_events: ["delete"],

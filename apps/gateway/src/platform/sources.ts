@@ -3,6 +3,7 @@ import {
   addChannelRoute,
   addRepositoryToolRoute,
   copyBranchDataRoute,
+  deleteToolRoute,
   getToolSourceRoute,
   putChannelRoute,
   putToolSourceRoute,
@@ -11,6 +12,7 @@ import {
 } from "@forgeron/platform-contract";
 import {
   closeChannel,
+  deleteToolEverywhere,
   RegistryError,
   type Registry,
   type Tool,
@@ -200,6 +202,30 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
       detail: { event: "channel-removed" },
     });
     return c.json({ removed: true as const }, 200);
+  });
+
+  app.openapi(platformRoute(deleteToolRoute, "tools:delete"), async (c) => {
+    const { registry, workspace } = c.env;
+    const tool = await registry.findTool(workspace, c.req.valid("param").tool);
+    if (!tool) return c.json(missing("There is no such tool."), 404);
+    if (c.req.valid("json").confirm !== tool.name) {
+      return c.json({ error: "NOT_CONFIRMED", message: `Type ${tool.name} to confirm.` }, 400);
+    }
+    const hosting = c.env.hosting(workspace);
+    if (!hosting) return c.json(NOT_CONFIGURED, 501);
+    // Every Worker and database first, production included: a host that fails leaves the tool as it
+    // was. The audit line outlives the tool (it holds no foreign key).
+    const environments = (await registry.listEnvironments(tool.id)).length;
+    await deleteToolEverywhere(registry, hosting, tool);
+    await registry.recordAudit({
+      toolId: tool.id,
+      actor: c.get("person").id,
+      ...(c.env.via ? { via: c.env.via } : {}),
+      kind: "access",
+      subject: "tool:deleted",
+      detail: { event: "tool-deleted", tool: tool.name, environments },
+    });
+    return c.json({ deleted: true as const }, 200);
   });
 
   app.openapi(platformRoute(updateToolRoute, "tools:write"), async (c) => {

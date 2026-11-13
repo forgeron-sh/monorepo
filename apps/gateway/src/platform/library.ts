@@ -37,6 +37,12 @@ import { catalogCaller, methodNotAllowed, platformRoute, type PlatformEnv } from
 
 const missing = { error: "NOT_FOUND", message: "There is no such tool in your library." };
 
+/** Publishing needs a version to publish: a rule other than `nobody` is refused until one is deployed. */
+const noVersion = {
+  error: "NO_VERSION",
+  message: "Nothing to publish yet: no version is deployed on this channel.",
+};
+
 /** One tool of the catalog as the person's library sees it, or `undefined` when they may not add it. */
 async function entryOf(c: Context<PlatformEnv>, tool: { name: string; access: string }) {
   const person = c.get("person");
@@ -224,6 +230,12 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
         }
       }
     }
+    if (body.mode !== "nobody") {
+      const production = (await c.env.registry.listEnvironments(record.id)).find(
+        (e) => e.name === "production",
+      );
+      if (!production?.versionId) return c.json(noVersion, 409);
+    }
     const rule = await c.env.registry.setAvailability({
       toolId: record.id,
       mode: body.mode,
@@ -332,6 +344,10 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
           );
         }
       }
+    }
+    if (body.mode !== "nobody") {
+      const env = await environmentOfRef(c.env.registry, record.id, branch);
+      if (!env?.versionId) return c.json(noVersion, 409);
     }
     const rule = await c.env.registry.setChannelAccess({
       toolId: record.id,

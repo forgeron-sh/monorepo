@@ -250,6 +250,28 @@ export const removeChannelRoute = defineRoute({
   },
 });
 
+export const deleteToolRoute = defineRoute({
+  method: "delete",
+  path: "/api/tools/{tool}",
+  summary:
+    "Delete a tool for good: every environment, production included, with its Worker, its database and its registry rows",
+  tags: ["sources"],
+  request: {
+    params,
+    body: body(
+      z.object({ /** The tool's name, typed by whoever deletes it. */ confirm: z.string() }),
+    ),
+  },
+  responses: {
+    200: json(z.strictObject({ deleted: z.literal(true) }), "Deleted"),
+    400: json(ErrorSchema, "Not confirmed"),
+    401: notSignedIn,
+    403: notAdmin,
+    404: json(ErrorSchema, "No such tool"),
+    501: json(ErrorSchema, "This gateway cannot deploy (`NOT_CONFIGURED`)"),
+  },
+});
+
 export const addRepositoryToolRoute = defineRoute({
   method: "post",
   path: "/api/tools/from-repository",

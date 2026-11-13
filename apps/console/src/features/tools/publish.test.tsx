@@ -176,7 +176,7 @@ describe("the publish control (D-129)", () => {
       />,
     );
     expect(permanent.textContent).toContain("Draft");
-    expect(who(permanent)).toContain("People who give access");
+    expect(who(permanent)).toBe("People who publish");
     await cleanup();
     const branch = await mount(
       <Publish
@@ -191,7 +191,54 @@ describe("the publish control (D-129)", () => {
         }
       />,
     );
-    expect(who(branch)).toContain("People who see tools");
+    expect(who(branch)).toBe("People who publish or see tools");
+  });
+
+  it("turns Publish off, and says why, while the channel has no version", async () => {
+    const { api } = fakeApi({
+      "/api/tools/crm/availability": rule("nobody"),
+      "/api/members": members,
+      "/api/teams": teams,
+    });
+    const publishing = (deployed: boolean) => {
+      function View() {
+        const p = usePublishing(api, "crm", undefined, true);
+        return <PublishControl tool="crm" api={api} publishing={p} deployed={deployed} />;
+      }
+      return <View />;
+    };
+    const view = await mount(publishing(false));
+    expect(button(view, "Publish").disabled).toBe(true);
+    expect(button(view, "Publish").title).toBe(
+      "Nothing to publish yet: no version is deployed on this channel.",
+    );
+    await cleanup();
+    const ready = await mount(publishing(true));
+    expect(button(ready, "Publish").disabled).toBe(false);
+  });
+
+  it("puts the tool's other actions in the chevron menu, around Unpublish", async () => {
+    const { api } = fakeApi({
+      "/api/tools/crm/availability": rule("everyone"),
+      "/api/members": members,
+      "/api/teams": teams,
+    });
+    const entries = {
+      links: [{ kind: "action", label: "Open in my tools", onSelect: () => {} }],
+      danger: [{ kind: "action", label: "Delete tool…", tone: "danger", onSelect: () => {} }],
+    } as const;
+    function View() {
+      const p = usePublishing(api, "crm", undefined, true);
+      return <PublishControl tool="crm" api={api} publishing={p} menu={entries} />;
+    }
+    const view = await mount(<View />);
+    await openMenu(view);
+    expect(menuItems()).toEqual([
+      "Who has access",
+      "Open in my tools",
+      "Unpublish",
+      "Delete tool…",
+    ]);
   });
 
   it("shows production with no rule as published to everyone, as before libraries", async () => {
@@ -215,6 +262,30 @@ describe("audience (D-136)", () => {
     expect(ids(audience(nobody, members.members, TEAMS as never))).toEqual(["m1"]);
     expect(ids(audience(nobody, members.members, TEAMS as never, "~staging"))).toEqual(["m1"]);
     expect(ids(audience(nobody, members.members, TEAMS as never, "feat-x"))).toEqual(["m1", "m3"]);
+  });
+  it("mirrors the registry: tools:publish reaches every channel but production, access:write only production", () => {
+    const only = (id: string, ...effective: string[]) => ({ id, name: id, effective }) as never;
+    const person = (team: string) => [
+      { id: "m9", email: "z@acme.example", name: "Zed", teams: [team] },
+    ];
+    const teams = [
+      only("publisher", "tools:read", "tools:publish"),
+      only("access", "access:read", "access:write"),
+      only("reader", "tools:read"),
+    ];
+    const reach = (team: string, branch?: string) =>
+      ids(audience(nobody, person(team), teams, branch));
+    expect(reach("publisher")).toEqual([]);
+    expect(reach("publisher", "~staging")).toEqual(["m9"]);
+    expect(reach("publisher", "feat-x")).toEqual(["m9"]);
+    expect(reach("access")).toEqual(["m9"]);
+    expect(reach("access", "~staging")).toEqual([]);
+    expect(reach("reader", "feat-x")).toEqual(["m9"]);
+    expect(reach("reader", "~staging")).toEqual([]);
+    expect(reach("reader")).toEqual([]);
+    // Once a rule is set on a channel, whoever gives access passes it, as isAvailable has it.
+    const published = { mode: "teams" as const, teams: ["other"], people: [] };
+    expect(ids(audience(published, person("access"), teams, "~staging"))).toEqual(["m9"]);
   });
   it("adds the members of the teams it names, and everyone when it says so", () => {
     expect(

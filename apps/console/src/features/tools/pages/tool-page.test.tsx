@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
-import { cleanup, click, mount } from "../../../test-utils";
+import { button, cleanup, click, fakeApi, mount, type } from "../../../test-utils";
 import { branches, pageProps, toolsApi, tools, versions } from "../test-helpers";
 import ToolPage from "./tool-page";
 
@@ -34,7 +34,14 @@ describe("the tool page", () => {
     await flushLazy();
     expect(page.querySelector("h1")?.textContent).toBe("crm");
     expect(page.textContent).toContain("Companies, contacts and deals.");
-    expect(tabLabels(page)).toEqual(["Channels", "Releases", "Access", "Secrets", "Activity"]);
+    expect(tabLabels(page)).toEqual([
+      "Channels",
+      "Releases",
+      "CI",
+      "Access",
+      "Secrets",
+      "Activity",
+    ]);
     expect(page.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Channels");
     expect(page.textContent).toContain("feat-export");
   });
@@ -147,5 +154,202 @@ describe("the tool page", () => {
     await cleanup();
     const broken = await mount(<ToolPage name="crm" {...pageProps(toolsApi({}).api)} />);
     expect(broken.textContent).toContain("The tool could not be loaded.");
+  });
+});
+
+// The header's actions (D-136): "Open in my tools" and "View on GitHub" moved into the chevron of the
+// publish button, with "Unpublish" and "Delete tool…"; whoever may not publish has a small menu.
+
+const SOURCE = {
+  kind: "repo",
+  repo: "acme-sh/crm",
+  productionBranch: "main",
+  autoUpdate: false,
+  production: "1.4.0",
+  update: null,
+  channels: [],
+};
+const published = {
+  ...routes,
+  "/api/tools/crm/source": SOURCE,
+  "/api/tools/crm/availability": { mode: "everyone", teams: [], people: [], updatedAt: "x" },
+};
+const menuItems = () =>
+  [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].map((i) => i.textContent);
+const dialog = () => document.querySelector<HTMLElement>('[role="dialog"]')!;
+const openMenu = (page: HTMLElement, label: string) =>
+  click(page.querySelector(`button[aria-label="${label}"]`));
+
+describe("the header's actions", () => {
+  it("has no arrow button any more: the chevron menu holds the tool's actions", async () => {
+    const went: string[] = [];
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const page = await mount(
+      <ToolPage name="crm" {...pageProps(toolsApi(published).api, { go: (h) => went.push(h) })} />,
+    );
+    await flushLazy();
+    expect(page.querySelector(".ft-open-mine")).toBeNull();
+    await openMenu(page, "More sharing actions");
+    expect(menuItems()).toEqual([
+      "Who has access",
+      "Open in my tools",
+      "View on GitHub",
+      "Unpublish",
+      "Delete tool…",
+    ]);
+    await click(
+      [...document.querySelectorAll('[role="menuitem"]')].find(
+        (i) => i.textContent === "View on GitHub",
+      ),
+    );
+    expect(open).toHaveBeenCalledWith(
+      "https://github.com/acme-sh/crm",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    await openMenu(page, "More sharing actions");
+    await click(
+      [...document.querySelectorAll('[role="menuitem"]')].find(
+        (i) => i.textContent === "Open in my tools",
+      ),
+    );
+    expect(went).toEqual([expect.stringContaining("crm")]);
+    open.mockRestore();
+  });
+
+  it("leaves out View on GitHub for a tool with no repository, and Delete tool without tools:delete", async () => {
+    const page = await mount(
+      <ToolPage
+        name="crm"
+        {...pageProps(toolsApi(routes).api, {
+          permissions: ["tools:read", "tools:publish", "access:read"],
+        })}
+      />,
+    );
+    await flushLazy();
+    await openMenu(page, "More sharing actions");
+    expect(menuItems()).toEqual(["Who has access", "Open in my tools"]);
+  });
+
+  it("gives a person who may not publish a small menu with what they may use", async () => {
+    const reader = await mount(
+      <ToolPage
+        name="crm"
+        {...pageProps(toolsApi(published).api, { permissions: ["tools:read"] })}
+      />,
+    );
+    await flushLazy();
+    expect(reader.querySelector(".ft-publish")).toBeNull();
+    await openMenu(reader, "Tool actions");
+    expect(menuItems()).toEqual(["Open in my tools", "View on GitHub"]);
+    await cleanup();
+    const remover = await mount(
+      <ToolPage
+        name="crm"
+        {...pageProps(toolsApi(published).api, { permissions: ["tools:read", "tools:delete"] })}
+      />,
+    );
+    await flushLazy();
+    await openMenu(remover, "Tool actions");
+    expect(menuItems()).toEqual(["Open in my tools", "View on GitHub", "Delete tool…"]);
+  });
+
+  it("deletes the tool for good once its name is typed, then goes back to the tools", async () => {
+    const went: string[] = [];
+    const { api, sent } = fakeApi({ ...published, "DELETE /api/tools/crm": { deleted: true } });
+    const page = await mount(
+      <ToolPage name="crm" {...pageProps(api, { go: (h) => went.push(h) })} />,
+    );
+    await flushLazy();
+    await openMenu(page, "More sharing actions");
+    await click(
+      [...document.querySelectorAll('[role="menuitem"]')].find(
+        (i) => i.textContent === "Delete tool…",
+      ),
+    );
+    expect(dialog().textContent).toContain("Delete crm?");
+    expect(button(dialog(), "Delete tool").disabled).toBe(true);
+    await type(dialog().querySelector("input")!, "cr");
+    expect(button(dialog(), "Delete tool").disabled).toBe(true);
+    await type(dialog().querySelector("input")!, "crm");
+    await click(button(dialog(), "Delete tool"));
+    expect(sent).toContainEqual({
+      method: "DELETE",
+      path: "/api/tools/crm",
+      body: { confirm: "crm" },
+    });
+    expect(went).toEqual(["/admin/tools"]);
+  });
+});
+
+describe("a tool whose first version is not deployed yet", () => {
+  const draftRoutes = (ci: unknown) => ({
+    "/api/tools": tools,
+    "/api/tools/draft/branches": { tool: "draft", production: null, channels: [], branches: [] },
+    "/api/tools/draft/versions": { tool: "draft", versions: [] },
+    "/api/tools/draft/source": { ...SOURCE, repo: "acme-sh/draft", production: null },
+    "/api/tools/draft/ci": ci,
+    "/api/tools/draft/availability": { mode: "nobody", teams: [], people: [], updatedAt: "x" },
+    "/api/members": { members: [], invitations: [], settings: { domains: [], defaultTeams: [] } },
+    "/api/teams": { teams: [] },
+  });
+  const run = (status: string, over: object = {}) => ({
+    id: 5,
+    workflow: "forgeron",
+    branch: "main",
+    message: "feat: first",
+    sha: "a".repeat(40),
+    actor: "ada",
+    status,
+    startedAt: "2026-11-03T11:50:00Z",
+    durationSeconds: null,
+    url: "https://github.com/acme-sh/draft/actions/runs/5",
+    ...over,
+  });
+  const ok = (...runs: object[]) => ({
+    state: "ok",
+    repo: "acme-sh/draft",
+    productionBranch: "main",
+    actionsUrl: "https://github.com/acme-sh/draft/actions",
+    runs,
+  });
+  const show = async (ci: unknown) => {
+    const page = await mount(
+      <ToolPage name="draft" {...pageProps(toolsApi(draftRoutes(ci)).api)} />,
+    );
+    await flushLazy();
+    return page;
+  };
+
+  it("says Importing while the CI runs, and turns Publish off with the reason", async () => {
+    const page = await show(ok(run("in_progress")));
+    expect(page.textContent).toContain("Importing");
+    expect(page.textContent).not.toContain("Not deployed");
+    expect(page.textContent).toContain(
+      "Nothing to publish yet: no version is deployed on this channel.",
+    );
+    expect(button(page, "Publish").disabled).toBe(true);
+    expect(button(page, "View the run ↗").getAttribute("href")).toBe(
+      "https://github.com/acme-sh/draft/actions/runs/5",
+    );
+  });
+
+  it("says CI failed, with the run, when the last run failed", async () => {
+    const page = await show(ok(run("failure", { id: 6 }), run("success", { branch: "feat" })));
+    expect(page.textContent).toContain("CI failed");
+    expect(page.textContent).toContain("The last CI run failed");
+  });
+
+  it("says Waiting for CI when no run was seen, and points to the CI tab", async () => {
+    const page = await show(ok());
+    expect(page.textContent).toContain("Waiting for CI");
+    await click(button(page, "View CI"));
+    expect(window.location.search).toBe("?tab=ci");
+  });
+
+  it("says nothing of the CI where it cannot be read", async () => {
+    const page = await show({ state: "no-permission", repo: "acme-sh/draft", settingsUrl: "x" });
+    expect(page.textContent).not.toContain("Importing");
+    expect(page.textContent).toContain("Nothing deployed");
   });
 });

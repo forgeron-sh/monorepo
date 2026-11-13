@@ -1,6 +1,7 @@
 export { ErrorSchema, type ErrorBody } from "./error";
 export { addressOf, defineRoute, type Address, type ResponseSpec, type RouteSpec } from "./route";
 export { createClient, type Answer, type CallInput } from "./client";
+export { CiAnswerSchema, CiRunSchema, CiStatusSchema, toolCiRoute } from "./ci";
 export { catalogAssetRoute, listCatalogRoute, toolCardRoute } from "./catalog";
 export {
   listToolsRoute,
@@ -139,6 +140,7 @@ export {
   AvailableUpdateSchema,
   ChannelSchema,
   copyBranchDataRoute,
+  deleteToolRoute,
   getToolSourceRoute,
   putChannelRoute,
   putToolSourceRoute,

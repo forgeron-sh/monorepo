@@ -2,6 +2,7 @@ import { mountAccessMatrix } from "./access-matrix";
 import { mountApprovals } from "./approvals";
 import { mountBearer } from "./bearer";
 import { mountCatalog } from "./catalog";
+import { mountCi } from "./ci";
 import { mountConnections } from "./connections";
 import { mountConsent } from "./consent";
 import { mountDatabase } from "./database";
@@ -40,6 +41,7 @@ export function createPlatform() {
   mountMarketplaces(app);
   mountLibrary(app);
   mountSources(app);
+  mountCi(app);
   mountBearer(app);
   mountGithub(app);
   mountConsent(app);

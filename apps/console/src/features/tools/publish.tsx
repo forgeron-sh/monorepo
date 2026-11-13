@@ -1,5 +1,15 @@
 import { addresses } from "@forgeron/platform-contract/client";
-import { Badge, Button, Checkbox, Dialog, Field, Input, Menu, Notice } from "@forgeron/ui";
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Dialog,
+  Field,
+  Input,
+  Menu,
+  Notice,
+  type MenuEntry,
+} from "@forgeron/ui";
 import { useId, useMemo, useState } from "react";
 import {
   explain,
@@ -21,7 +31,8 @@ import { useLoad } from "../../use-load";
 // everyone, to some teams, or to some people (D-136). Production's rule is who may add the tool to
 // their library (D-117); another channel's is who may add that channel as a tool of its own (D-119,
 // D-125). Published to everyone is every person of the workspace. What each person may do in the tool
-// stays the Access tab's.
+// stays the Access tab's. Publishing needs a version to publish: while the channel has none (the CI
+// failed, or has not run), the button is off and says why.
 
 type Mode = "nobody" | "everyone" | "teams" | "people";
 export type Sharing = { mode: Mode; teams: string[]; people: string[] };
@@ -63,13 +74,23 @@ type Member = MembershipView["members"][number];
 /** A branch's temporary channel: those who see tools reach it while it is a draft (D-125, D-129). */
 const isBranch = (branch?: string) => branch !== undefined && !branch.startsWith("~");
 
-/** Who always reaches the channel, whatever is published. */
+/**
+ * Who always reaches the channel, whatever is published, as the registry says it (`reachesChannelAlways`,
+ * `isAvailable`, D-136): production is the tool people add to their library, which whoever gives access
+ * (`access:write`) may always do; every other channel is reached by whoever publishes (`tools:publish`)
+ * and, on a branch's temporary channel, by whoever sees tools (`tools:read`).
+ */
 const alwaysLabel = (branch?: string) =>
-  isBranch(branch) ? "People who see tools" : "People who give access";
+  branch === undefined
+    ? "People who give access"
+    : isBranch(branch)
+      ? "People who publish or see tools"
+      : "People who publish";
 
 /**
- * The people who would reach the channel under a rule: those who always do (who give access, who
- * publish, and on a branch who see tools), and those it names (D-136).
+ * The people who would reach the channel under a rule: those who always do (see `alwaysLabel`), and
+ * those it names. Once a rule is set on a channel other than production, whoever gives access passes
+ * it too, as `mayUseChannel` lets `isAvailable` decide (D-136).
  */
 export function audience(
   rule: Sharing,
@@ -79,6 +100,9 @@ export function audience(
 ): Member[] {
   return members.filter((m) => {
     if (reachesAlways(m, teams, branch)) return true;
+    if (rule.mode !== "nobody" && permissionsOfMember(teams, m.teams).has("access:write")) {
+      return true;
+    }
     switch (rule.mode) {
       case "everyone":
         return true;
@@ -94,11 +118,8 @@ export function audience(
 
 function reachesAlways(m: Member, teams: readonly TeamRow[], branch?: string): boolean {
   const held = permissionsOfMember(teams, m.teams);
-  return (
-    held.has("access:write") ||
-    (branch !== undefined && held.has("tools:publish")) ||
-    (isBranch(branch) && held.has("tools:read"))
-  );
+  if (branch === undefined) return held.has("access:write");
+  return held.has("tools:publish") || (isBranch(branch) && held.has("tools:read"));
 }
 
 /** What the header says after _Published_: who it is shared with. */
@@ -152,13 +173,26 @@ const Chevron = () => (
   </svg>
 );
 
+/** What else the chevron menu holds, from the tool page: the links, then the actions that destroy. */
+export interface ToolMenuEntries {
+  links: ReadonlyArray<MenuEntry>;
+  danger: ReadonlyArray<MenuEntry>;
+}
+
 export interface PublishControlProps {
   tool: string;
   /** The channel the page shows; `undefined` for production. */
   branch?: string;
   api: Api;
   publishing: Publishing;
+  /** Whether a version is deployed on the channel: without one there is nothing to publish. */
+  deployed?: boolean;
+  /** The other entries of the menu: "Open in my tools", "View on GitHub", "Delete tool…". */
+  menu?: ToolMenuEntries;
 }
+
+/** Said where Publish is off, and by the gateway (`NO_VERSION`) if it is asked anyway. */
+export const NO_VERSION = "Nothing to publish yet: no version is deployed on this channel.";
 
 type Open = "share" | "who" | "unpublish" | undefined;
 
@@ -225,7 +259,14 @@ export function PublishBadge({ publishing, branch }: { publishing: Publishing; b
 }
 
 /** The split button that publishes the channel, for whoever holds `tools:publish`. */
-export function PublishControl({ tool, branch, api, publishing }: PublishControlProps) {
+export function PublishControl({
+  tool,
+  branch,
+  api,
+  publishing,
+  deployed = true,
+  menu,
+}: PublishControlProps) {
   const { rule, members, teams } = publishing;
   const [open, setOpen] = useState<Open>();
   const [done, setDone] = useState<string>();
@@ -251,7 +292,12 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
   return (
     <div className="ft-publish">
       <span className="ft-split">
-        <Button variant="primary" onClick={() => setOpen("share")} disabled={!view}>
+        <Button
+          variant="primary"
+          onClick={() => setOpen("share")}
+          disabled={!view || (draft && !deployed)}
+          {...(draft && !deployed ? { title: NO_VERSION } : {})}
+        >
           {draft ? "Publish" : "Manage sharing"}
         </Button>
         <Menu
@@ -260,10 +306,11 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
           trigger={<Chevron />}
           entries={[
             { kind: "action", label: "Who has access", onSelect: () => setOpen("who") },
+            ...(menu?.links ?? []),
+            ...(!draft || (menu?.danger.length ?? 0) > 0 ? ([{ kind: "separator" }] as const) : []),
             ...(draft
               ? []
               : ([
-                  { kind: "separator" },
                   {
                     kind: "action",
                     label: "Unpublish",
@@ -271,6 +318,7 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
                     onSelect: () => setOpen("unpublish"),
                   },
                 ] as const)),
+            ...(menu?.danger ?? []),
           ]}
         />
       </span>

@@ -330,6 +330,23 @@ export async function closeChannel(
   await registry.removeEnvironment(environment.id);
 }
 
+/**
+ * An admin deletes a tool for good: every environment's Worker and database goes (production
+ * included, which `closeChannel` never does), then the tool's rows, which cascade: builds, versions,
+ * environments, approvals, access, availability, libraries, secrets, sources. The audit log keeps
+ * its lines. A host that fails leaves the registry untouched, so the deletion can be tried again.
+ */
+export async function deleteToolEverywhere(
+  registry: Registry,
+  hosting: Hosting,
+  tool: Tool,
+): Promise<void> {
+  for (const environment of await registry.listEnvironments(tool.id)) {
+    await hosting.teardown(target(tool, environment.name, environment.branch, environment.channel));
+  }
+  await registry.deleteTool(tool.id);
+}
+
 /** An admin accepts everything a version asks for: it can now reach production. */
 export async function approveVersion(
   registry: Registry,
