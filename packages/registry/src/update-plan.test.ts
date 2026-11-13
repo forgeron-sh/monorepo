@@ -52,7 +52,7 @@ const manifestWith = (resources: Record<string, unknown>) =>
     name: "crm",
     version: "1.0.0",
     interfaces: { mcp: true, api: true, cli: true, web: true },
-    roles: {},
+    profiles: {},
     actions: {},
     views: {},
     jobs: {},

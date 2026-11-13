@@ -33,7 +33,7 @@ export const listApprovalsRoute = defineRoute({
       "The waiting versions",
     ),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
   },
 });
 
@@ -58,7 +58,7 @@ export const decideApprovalRoute = defineRoute({
     ),
     400: json(ErrorSchema, "`decision` is `approved` or `rejected`"),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such approval in this workspace"),
     409: json(ErrorSchema, "Already decided, or the registry refused"),
   },

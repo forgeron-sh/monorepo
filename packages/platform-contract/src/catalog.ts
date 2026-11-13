@@ -42,7 +42,7 @@ export const toolCardRoute = defineRoute({
   responses: {
     200: json(ToolCardSchema, "The card"),
     401: notSignedIn,
-    403: json(ErrorSchema, "A branch's card is for admins and developers"),
+    403: json(ErrorSchema, "Lacks the permission to see a branch's channel (`tools:read`)"),
     404: notFound,
     500: registryError,
   },
@@ -73,7 +73,7 @@ export const catalogAssetRoute = defineRoute({
       },
     },
     401: notSignedIn,
-    403: json(ErrorSchema, "A branch's images are for admins and developers"),
+    403: json(ErrorSchema, "Lacks the permission to see a branch's channel (`tools:read`)"),
     404: notFound,
     500: registryError,
   },

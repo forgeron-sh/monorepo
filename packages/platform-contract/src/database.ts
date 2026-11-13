@@ -28,7 +28,7 @@ const environmentQuery = {
 const errors = {
   400: json(ErrorSchema, "The query is refused (`error` is its code)"),
   401: json(ErrorSchema, "Not signed in"),
-  403: json(ErrorSchema, "Not an admin or a developer"),
+  403: json(ErrorSchema, "Lacks the permission"),
   404: json(ErrorSchema, "No such tool, environment, database or table"),
   501: json(ErrorSchema, "This install cannot read tool databases"),
   502: json(ErrorSchema, "The database could not be read, or the audit line could not be written"),

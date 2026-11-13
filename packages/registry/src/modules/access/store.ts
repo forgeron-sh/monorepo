@@ -1,16 +1,15 @@
+import { EVERYONE, ADMIN_TEAM, isBuiltInTeam, isSubject, teamOf } from "@forgeron/permissions";
 import { RegistryError } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
 import { json, text, type Row } from "../../kernel/rows";
-import type { AccessMapping, AccessOverrides, Manifest, ProfileGrant } from "@forgeron/manifest";
+import type { AccessGrants, AccessOverrides, Manifest, ProfileGrant } from "@forgeron/manifest";
 import {
-  ADMIN_ROLE,
-  MEMBER_ROLE,
-  defaultMapping,
+  defaultGrants,
   defaultProfile,
   grantPermissions,
   permissionsOf,
   resolveAccess,
-  subjectsOf,
+  subjectsOf as actionsOf,
 } from "@forgeron/manifest";
 import type { AccessMatrix } from "./types";
 import type { Catalog } from "../catalog/public";
@@ -20,9 +19,6 @@ export type CatalogPort = { requireTool: Catalog["requireTool"] } & Pick<
   Catalog["api"],
   "getBuild" | "getVersion" | "listEnvironments" | "listVersions"
 >;
-
-/** A workspace role's name, as the members module checks it. */
-const ROLE = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/;
 
 const toGrant = (row: Row): ProfileGrant => {
   switch (String(row.kind)) {
@@ -37,24 +33,24 @@ const toGrant = (row: Row): ProfileGrant => {
   }
 };
 
-/** `admin` first, then `member`, then the others by name: the order of the Access tab. */
-const byRole = (a: string, b: string): number => {
-  const rank = (r: string) => (r === ADMIN_ROLE ? 0 : r === MEMBER_ROLE ? 1 : 2);
-  return rank(a) - rank(b) || a.localeCompare(b);
-};
-
 export function createAccess(kernel: Kernel, catalog: CatalogPort) {
-  const { d1, now, all, auditStatement } = kernel;
+  const { d1, now, all, first, auditStatement } = kernel;
 
-  const upsert = (toolId: string, role: string, grant: ProfileGrant, actor: string, at: string) =>
+  const upsert = (
+    toolId: string,
+    subject: string,
+    grant: ProfileGrant,
+    actor: string,
+    at: string,
+  ) =>
     d1
       .prepare(
-        `INSERT INTO "role_profiles" ("tool_id", "role", "kind", "profile", "permissions", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT ("tool_id", "role") DO UPDATE SET "kind" = excluded."kind", "profile" = excluded."profile", "permissions" = excluded."permissions", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+        `INSERT INTO "access_grants" ("tool_id", "subject", "kind", "profile", "permissions", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT ("tool_id", "subject") DO UPDATE SET "kind" = excluded."kind", "profile" = excluded."profile", "permissions" = excluded."permissions", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
       )
       .bind(
         toolId,
-        role,
+        subject,
         grant.kind,
         grant.kind === "profile" ? grant.profile : null,
         grant.kind === "custom" ? JSON.stringify([...new Set(grant.permissions)].sort()) : null,
@@ -62,25 +58,47 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
         at,
       );
 
-  /** Does the tool have its mapping written down yet? */
-  const hasMapping = async (toolId: string): Promise<boolean> =>
-    (await all(`SELECT 1 FROM "role_profiles" WHERE "tool_id" = ? LIMIT 1`, toolId)).length > 0;
+  /** Does the tool have its grants written down yet? */
+  const hasGrants = async (toolId: string): Promise<boolean> =>
+    (await all(`SELECT 1 FROM "access_grants" WHERE "tool_id" = ? LIMIT 1`, toolId)).length > 0;
 
   /** The default rows of a tool that has none; a row already there is kept. */
   const seedStatements = (toolId: string, manifest: Manifest, actor: string, at: string) =>
-    Object.entries(defaultMapping(manifest.roles ?? {})).map(([role, grant]) =>
+    Object.entries(defaultGrants(manifest.profiles ?? {})).map(([subject, grant]) =>
       d1
         .prepare(
-          `INSERT OR IGNORE INTO "role_profiles" ("tool_id", "role", "kind", "profile", "permissions", "updated_by", "updated_at") VALUES (?, ?, ?, ?, NULL, ?, ?)`,
+          `INSERT OR IGNORE INTO "access_grants" ("tool_id", "subject", "kind", "profile", "permissions", "updated_by", "updated_at") VALUES (?, ?, ?, ?, NULL, ?, ?)`,
         )
-        .bind(toolId, role, grant.kind, grant.kind === "profile" ? grant.profile : null, actor, at),
+        .bind(
+          toolId,
+          subject,
+          grant.kind,
+          grant.kind === "profile" ? grant.profile : null,
+          actor,
+          at,
+        ),
     );
 
+  /** A subject is `everyone` or a team of the tool's workspace (the built-in ones always are). */
+  const requireSubject = async (toolId: string, subject: string): Promise<void> => {
+    if (!isSubject(subject)) {
+      throw new RegistryError("INVALID", `${subject} is not everyone or a team (team:<id>).`);
+    }
+    const team = teamOf(subject);
+    if (team === undefined || isBuiltInTeam(team)) return;
+    const row = await first(
+      `SELECT 1 AS ok FROM "teams" t JOIN "tools" tl ON tl."workspace" = t."workspace" WHERE tl."id" = ? AND t."id" = ?`,
+      toolId,
+      team,
+    );
+    if (!row) throw new RegistryError("NOT_FOUND", `There is no team ${team}.`);
+  };
+
   return {
-    // ---- the mapping of workspace roles to the tool's profiles (D-127) and the per-action matrix
+    // ---- what each subject (everyone, a team) is given in the tool (D-127, D-136) and the per-action matrix
     /**
      * The manifest the matrix is read from: the version production serves, else the latest one
-     * published. The profiles and actions are those of the code; the mapping moves who may call.
+     * published. The profiles and actions are those of the code; the grants move who may call.
      */
     async currentManifest(toolId: string): Promise<Manifest> {
       const production = (await catalog.listEnvironments(toolId)).find(
@@ -95,66 +113,64 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
       return build.manifest as Manifest;
     },
     /**
-     * What each workspace role is given in the tool. A tool with no row yet (no deployment since
-     * D-127) answers its default mapping, read from `manifest`: the same rows its first deployment
-     * writes.
+     * What each subject is given in the tool. A tool with no row yet answers its default grants,
+     * read from `manifest`: the same rows its first deployment writes.
      */
-    async roleProfiles(toolId: string, manifest?: Manifest): Promise<AccessMapping> {
+    async accessGrants(toolId: string, manifest?: Manifest): Promise<AccessGrants> {
       const rows = await all(
-        `SELECT "role", "kind", "profile", "permissions" FROM "role_profiles" WHERE "tool_id" = ? ORDER BY "role"`,
+        `SELECT "subject", "kind", "profile", "permissions" FROM "access_grants" WHERE "tool_id" = ? ORDER BY "subject"`,
         toolId,
       );
-      if (rows.length > 0) return Object.fromEntries(rows.map((r) => [String(r.role), toGrant(r)]));
+      if (rows.length > 0)
+        return Object.fromEntries(rows.map((r) => [String(r.subject), toGrant(r)]));
       const read = manifest ?? (await this.currentManifest(toolId).catch(() => undefined));
-      return read ? defaultMapping(read.roles ?? {}) : {};
+      return read ? defaultGrants(read.profiles ?? {}) : {};
     },
     /**
-     * Writes the default mapping of a tool (`admin`: all, `member`: the default profile) unless it
-     * has one: called when a version reaches a channel, so a tool arrives with it.
+     * Writes the default grants of a tool (`team:admin`: all, `everyone`: the default profile)
+     * unless it has some: called when a version reaches a channel, so a tool arrives with them.
      */
-    async seedRoleProfiles(toolId: string, manifest: Manifest, actor: string): Promise<void> {
-      if (await hasMapping(toolId)) return;
-      // The rows say who wrote them and when; the changes an admin makes later are audited.
+    async seedAccessGrants(toolId: string, manifest: Manifest, actor: string): Promise<void> {
+      if (await hasGrants(toolId)) return;
+      // The rows say who wrote them and when; the changes made later are audited.
       await d1.batch(seedStatements(toolId, manifest, actor, now()));
     },
-    /** Maps workspace roles to what they are given in the tool: `updateAccess` with profiles only. */
-    async setRoleProfiles(
+    /** Gives subjects what they are given in the tool: `updateAccess` with grants only. */
+    async setAccessGrants(
       toolId: string,
-      profiles: ReadonlyArray<{ role: string; grant: ProfileGrant }>,
+      grants: ReadonlyArray<{ subject: string; grant: ProfileGrant }>,
       actor: string,
       via?: string,
     ): Promise<void> {
-      await this.updateAccess(toolId, { profiles }, actor, via);
+      await this.updateAccess(toolId, { grants }, actor, via);
     },
     /**
-     * Changes the mapping (`profiles`) and the per-action exceptions (`changes`) in one D1 batch with
+     * Changes the grants (`grants`) and the per-action exceptions (`changes`) in one D1 batch with
      * their audit lines: all or none. Everything is checked first, so a bad entry changes nothing.
      * A profile must be one of the tool, custom permissions the tool's, an action one of the tool
-     * (or `view:<name>`). An entry named twice: the last one wins. A cell set to `undefined` goes
-     * back to the mapping. The default rows are written first when the tool has none, so a change
-     * never drops them.
+     * (or `view:<name>`), a subject `everyone` or a team. An entry named twice: the last one wins.
+     * A cell set to `undefined` goes back to the grant. The default rows are written first when the
+     * tool has none, so a change never drops them.
      */
     async updateAccess(
       toolId: string,
       input: {
-        profiles?: ReadonlyArray<{ role: string; grant: ProfileGrant }>;
-        changes?: ReadonlyArray<{ role: string; action: string; allowed: boolean | undefined }>;
+        grants?: ReadonlyArray<{ subject: string; grant: ProfileGrant }>;
+        changes?: ReadonlyArray<{ subject: string; action: string; allowed: boolean | undefined }>;
       },
       actor: string,
       /** Through which door the change came, when it is not the console (`VIA_FORGERON_MCP`). */
       via?: string,
     ): Promise<void> {
       const manifest = await this.currentManifest(toolId);
-      const levels = subjectsOf(manifest);
-      const before = await this.roleProfiles(toolId, manifest);
-      const overrides = await this.roleAccess(toolId);
+      const levels = actionsOf(manifest);
+      const before = await this.accessGrants(toolId, manifest);
+      const overrides = await this.accessExceptions(toolId);
       const known = new Set(permissionsOf(manifest));
       const grants = new Map<string, ProfileGrant>();
-      for (const { role, grant } of input.profiles ?? []) {
-        if (!ROLE.test(role)) {
-          throw new RegistryError("INVALID", "A role is a name of letters, digits, - and _.");
-        }
-        if (grant.kind === "profile" && !manifest.roles?.[grant.profile]) {
+      for (const { subject, grant } of input.grants ?? []) {
+        await requireSubject(toolId, subject);
+        if (grant.kind === "profile" && !manifest.profiles?.[grant.profile]) {
           throw new RegistryError("NOT_FOUND", `The tool has no profile ${grant.profile}.`);
         }
         if (grant.kind === "custom") {
@@ -163,67 +179,65 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
             throw new RegistryError("NOT_FOUND", `The tool has no permission ${unknown}.`);
           }
         }
-        grants.set(role, grant);
+        grants.set(subject, grant);
       }
       const cells = new Map<
         string,
-        { role: string; action: string; allowed: boolean | undefined }
+        { subject: string; action: string; allowed: boolean | undefined }
       >();
       for (const change of input.changes ?? []) {
-        if (!ROLE.test(change.role)) {
-          throw new RegistryError("NOT_FOUND", `There is no role ${change.role}.`);
-        }
+        await requireSubject(toolId, change.subject);
         if (!(change.action in levels)) {
           throw new RegistryError("NOT_FOUND", `The tool has no action ${change.action}.`);
         }
-        cells.set(`${change.role}\u0000${change.action}`, change);
+        cells.set(`${change.subject}\u0000${change.action}`, change);
       }
       if (grants.size === 0 && cells.size === 0) return;
       const at = now();
-      const statements = (await hasMapping(toolId))
+      const statements = (await hasGrants(toolId))
         ? []
         : seedStatements(toolId, manifest, actor, at);
       const after = { ...before, ...Object.fromEntries(grants) };
-      for (const [role, grant] of grants) {
+      for (const [subject, grant] of grants) {
         statements.push(
-          upsert(toolId, role, grant, actor, at),
+          upsert(toolId, subject, grant, actor, at),
           auditStatement(
             {
               toolId,
               actor,
               ...(via ? { via } : {}),
               kind: "access",
-              subject: `profile:${role}`,
-              detail: { role, from: before[role] ?? { kind: "none" }, to: grant },
+              subject: `grant:${subject}`,
+              detail: { subject, from: before[subject] ?? { kind: "none" }, to: grant },
             },
             at,
           ),
         );
       }
-      for (const { role, action, allowed } of cells.values()) {
-        const fallback = grantPermissions(after[role], manifest).includes(levels[action]!);
-        const from = overrides[role]?.[action] ?? fallback;
+      for (const { subject, action, allowed } of cells.values()) {
+        const fallback = grantPermissions(after[subject], manifest).includes(levels[action]!);
+        const from = overrides[subject]?.[action] ?? fallback;
         statements.push(
           allowed === undefined
             ? d1
                 .prepare(
-                  `DELETE FROM "role_access" WHERE "tool_id" = ? AND "role" = ? AND "action" = ?`,
+                  `DELETE FROM "access_exceptions" WHERE "tool_id" = ? AND "subject" = ? AND "action" = ?`,
                 )
-                .bind(toolId, role, action)
+                .bind(toolId, subject, action)
             : d1
                 .prepare(
-                  `INSERT INTO "role_access" ("tool_id", "role", "action", "allowed", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
-         ON CONFLICT ("tool_id", "role", "action") DO UPDATE SET "allowed" = excluded."allowed", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+                  `INSERT INTO "access_exceptions" ("tool_id", "subject", "action", "allowed", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT ("tool_id", "subject", "action") DO UPDATE SET "allowed" = excluded."allowed", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
                 )
-                .bind(toolId, role, action, allowed ? 1 : 0, actor, at),
+                .bind(toolId, subject, action, allowed ? 1 : 0, actor, at),
           auditStatement(
             {
               toolId,
               actor,
               ...(via ? { via } : {}),
               kind: "access",
-              subject: `${role}:${action}`,
-              detail: { role, action, from, to: allowed ?? fallback },
+              subject: `${subject}:${action}`,
+              detail: { subject, action, from, to: allowed ?? fallback },
             },
             at,
           ),
@@ -231,53 +245,75 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
       }
       await d1.batch(statements);
     },
-    /** What an admin set, per role and action: exceptions to the mapping. */
-    async roleAccess(toolId: string): Promise<AccessOverrides> {
+    /** What someone set, per subject and action: exceptions to the grants. */
+    async accessExceptions(toolId: string): Promise<AccessOverrides> {
       const out: AccessOverrides = {};
       for (const row of await all(
-        `SELECT "role", "action", "allowed" FROM "role_access" WHERE "tool_id" = ? ORDER BY "role", "action"`,
+        `SELECT "subject", "action", "allowed" FROM "access_exceptions" WHERE "tool_id" = ? ORDER BY "subject", "action"`,
         toolId,
       )) {
-        (out[String(row.role)] ??= {})[String(row.action)] = Number(row.allowed) === 1;
+        (out[String(row.subject)] ??= {})[String(row.action)] = Number(row.allowed) === 1;
       }
       return out;
     },
     /**
-     * The Access tab: the tool's profiles and permissions, the mapping, and for each mapped role
-     * (or role with an exception) each subject with what the mapping says, what was set, and what
-     * applies.
+     * The Access tab: the tool's profiles and permissions, and for `everyone` and each team (and any
+     * other subject that has a grant or an exception) what its grant says, what was set, and what
+     * applies, for each action and view.
      */
     async accessMatrix(toolId: string): Promise<AccessMatrix> {
       const manifest = await this.currentManifest(toolId);
-      const mapping = await this.roleProfiles(toolId, manifest);
-      const overrides = await this.roleAccess(toolId);
-      const levels = subjectsOf(manifest);
-      const roles = [...new Set([...Object.keys(mapping), ...Object.keys(overrides)])].sort(byRole);
+      const grants = await this.accessGrants(toolId, manifest);
+      const overrides = await this.accessExceptions(toolId);
+      const levels = actionsOf(manifest);
+      const teams = await all(
+        `SELECT t."id", t."name" FROM "teams" t JOIN "tools" tl ON tl."workspace" = t."workspace" WHERE tl."id" = ?`,
+        toolId,
+      );
+      const names = new Map(teams.map((r) => [`team:${String(r.id)}`, String(r.name)]));
+      // The built-in teams are always rows, even in a workspace that has not read them yet.
+      for (const id of [ADMIN_TEAM, "developer"]) {
+        if (!names.has(`team:${id}`))
+          names.set(`team:${id}`, id === ADMIN_TEAM ? "Admins" : "Developers");
+      }
+      const others = [...Object.keys(grants), ...Object.keys(overrides)].filter(
+        (s) => s !== EVERYONE && !names.has(s),
+      );
+      const subjectLabels: Record<string, string> = { [EVERYONE]: "Everyone" };
+      for (const [subject, name] of names) subjectLabels[subject] = name;
+      for (const subject of others) subjectLabels[subject] = subject;
+      const subjects = [
+        EVERYONE,
+        ...[...new Set([...names.keys(), ...others])].sort(
+          (a, b) => subjectLabels[a]!.localeCompare(subjectLabels[b]!) || a.localeCompare(b),
+        ),
+      ];
       const cells: AccessMatrix["cells"] = {};
-      for (const role of roles) {
-        const held = grantPermissions(mapping[role], manifest);
-        cells[role] = {};
-        for (const [subject, level] of Object.entries(levels)) {
+      for (const subject of subjects) {
+        const held = grantPermissions(grants[subject], manifest);
+        cells[subject] = {};
+        for (const [column, level] of Object.entries(levels)) {
           const fallback = held.includes(level);
-          const override = overrides[role]?.[subject];
-          cells[role]![subject] = {
+          const override = overrides[subject]?.[column];
+          cells[subject]![column] = {
             default: fallback,
             ...(override === undefined ? {} : { override }),
             allowed: override ?? fallback,
           };
         }
       }
-      const fallback = defaultProfile(manifest.roles ?? {});
+      const fallback = defaultProfile(manifest.profiles ?? {});
       return {
-        roles,
+        subjects,
+        subjectLabels,
         actions: Object.keys(manifest.actions),
         views: Object.keys(manifest.views ?? {}),
-        subjects: Object.keys(levels),
+        columns: Object.keys(levels),
         cells,
         levels,
         permissions: permissionsOf(manifest),
         profiles: Object.fromEntries(
-          Object.entries(manifest.roles ?? {}).map(([name, p]) => [
+          Object.entries(manifest.profiles ?? {}).map(([name, p]) => [
             name,
             {
               ...(p.label ? { label: p.label } : {}),
@@ -286,26 +322,26 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
             },
           ]),
         ),
-        mapping: Object.fromEntries(roles.map((role) => [role, mapping[role] ?? { kind: "none" }])),
+        grants: Object.fromEntries(subjects.map((s) => [s, grants[s] ?? { kind: "none" }])),
       };
     },
     /**
-     * Sets a cell, effective at once for every interface; `undefined` gives it back to the mapping.
-     * The role is a workspace role, the action (or `view:<name>`) one of the tool.
+     * Sets a cell, effective at once for every interface; `undefined` gives it back to the grant.
+     * The subject is `everyone` or a team, the action (or `view:<name>`) one of the tool.
      */
-    async setRoleAccess(
+    async setAccessException(
       toolId: string,
-      role: string,
+      subject: string,
       action: string,
       allowed: boolean | undefined,
       actor: string,
     ): Promise<void> {
-      await this.setRoleAccessMany(toolId, [{ role, action, allowed }], actor);
+      await this.setAccessExceptions(toolId, [{ subject, action, allowed }], actor);
     },
     /** Sets several cells in one D1 batch with their audit lines: `updateAccess` with cells only. */
-    async setRoleAccessMany(
+    async setAccessExceptions(
       toolId: string,
-      changes: ReadonlyArray<{ role: string; action: string; allowed: boolean | undefined }>,
+      changes: ReadonlyArray<{ subject: string; action: string; allowed: boolean | undefined }>,
       actor: string,
       /** Through which door the change came, when it is not the console (`VIA_FORGERON_MCP`). */
       via?: string,
@@ -314,18 +350,18 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
     },
     /**
      * What the gateway forwards with a person (`permissions` and `access` of the runtime's `User`):
-     * for each of their roles, the permissions it is mapped to, and every subject of the manifest
-     * resolved with the exceptions. A runtime built before D-127 reads only `access`.
+     * for each of their subjects (`subjectsOf(teams)` of `@forgeron/permissions`), the permissions it
+     * is given, and every action of the manifest resolved with the exceptions.
      */
     async accessFor(
       toolId: string,
-      roles: readonly string[],
+      subjects: readonly string[],
       manifest?: Manifest,
     ): Promise<{ permissions: Record<string, string[]>; access: AccessOverrides }> {
       const read = manifest ?? (await this.currentManifest(toolId).catch(() => undefined));
       if (!read) return { permissions: {}, access: {} };
-      const mapping = await this.roleProfiles(toolId, read);
-      return resolveAccess(roles, mapping, await this.roleAccess(toolId), read);
+      const grants = await this.accessGrants(toolId, read);
+      return resolveAccess(subjects, grants, await this.accessExceptions(toolId), read);
     },
   };
 }

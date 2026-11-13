@@ -41,7 +41,9 @@ export const whoamiRoute = defineRoute({
         id: z.string(),
         email: z.string(),
         name: z.string().optional(),
-        roles: z.array(z.string()),
+        teams: z.array(z.string()),
+        /** What the person may do on the platform (D-136), as `/api/workspace` tells it. */
+        permissions: z.array(z.string()),
         workspace: z.string(),
       }),
       "The person and the workspace",
@@ -81,7 +83,7 @@ export const createDeployTokenRoute = defineRoute({
     ),
     400: refusal("The body is not valid"),
     401: refusal("Not signed in"),
-    403: refusal("Not an administrator"),
+    403: refusal("Lacks the permission"),
   },
 });
 
@@ -181,7 +183,7 @@ export const closePreviewRoute = defineRoute({
 const rollbackErrors = {
   400: refusal("The body is not valid"),
   401: refusal("Not signed in, and no deployment token"),
-  403: refusal("Not an administrator, or a token for another tool"),
+  403: refusal("Lacks the permission, or a token for another tool"),
   404: refusal("No such tool, or no such version"),
   409: refusal("A migration is refused, there is nothing to go back to, or an approval is pending"),
   422: refusal("The changelog or the artifact refuses it"),

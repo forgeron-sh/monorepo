@@ -1,7 +1,8 @@
-// A tool's availability and the people's libraries (D-117). An admin decides who may add a tool; a
-// person adds it to their library, gives what its setup asks, and removes it when they are done.
-// Removing it takes away the person's setup values and the bindings of their saved secrets for that
-// tool, in the same batch: the secrets themselves stay on the person's page of secrets (D-106).
+// A tool's availability and the people's libraries (D-117). Those who give access decide who may
+// add a tool; a person adds it to their library, gives what its setup asks, and removes it when
+// they are done. Removing it takes away the person's setup values and the bindings of their saved
+// secrets for that tool, in the same batch: the secrets themselves stay on the person's page of
+// secrets (D-106).
 import { RegistryError } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
 import type { Row } from "../../kernel/rows";
@@ -18,7 +19,7 @@ const toAvailability = (r: Row): Availability => {
   }
   return {
     mode,
-    roles: mode === "roles" ? subjects : [],
+    teams: mode === "teams" ? subjects : [],
     people: mode === "people" ? subjects : [],
     ...(r.updated_by ? { updatedBy: String(r.updated_by) } : {}),
     updatedAt: String(r.updated_at),
@@ -39,7 +40,7 @@ export function createLibrary(kernel: Kernel) {
     async setAvailability(input: {
       toolId: string;
       mode: AvailabilityMode;
-      roles?: string[];
+      teams?: string[];
       people?: string[];
       actor: string;
       via?: string;
@@ -48,8 +49,8 @@ export function createLibrary(kernel: Kernel) {
         throw new RegistryError("INVALID", `${String(input.mode)} is not an availability.`);
       }
       const subjects =
-        input.mode === "roles"
-          ? [...new Set(input.roles ?? [])]
+        input.mode === "teams"
+          ? [...new Set(input.teams ?? [])]
           : input.mode === "people"
             ? [...new Set(input.people ?? [])]
             : [];
@@ -170,7 +171,7 @@ export function createLibrary(kernel: Kernel) {
       toolId: string;
       channel: string;
       mode: AvailabilityMode;
-      roles?: string[];
+      teams?: string[];
       people?: string[];
       actor: string;
       via?: string;
@@ -179,8 +180,8 @@ export function createLibrary(kernel: Kernel) {
         throw new RegistryError("INVALID", `${String(input.mode)} is not an availability.`);
       }
       const subjects =
-        input.mode === "roles"
-          ? [...new Set(input.roles ?? [])]
+        input.mode === "teams"
+          ? [...new Set(input.teams ?? [])]
           : input.mode === "people"
             ? [...new Set(input.people ?? [])]
             : [];

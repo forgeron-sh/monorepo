@@ -250,7 +250,7 @@ describe("clearing and removing", () => {
         subject: "ana",
         email: "ana@acme.test",
         name: "Ana",
-        roles: [],
+        teams: [],
       })
     ).id;
     const admin = (
@@ -259,7 +259,7 @@ describe("clearing and removing", () => {
         subject: "root",
         email: "root@acme.test",
         name: "Root",
-        roles: ["admin"],
+        teams: ["admin"],
       })
     ).id;
     await registry.setUserSecret({ toolId: tool.id, person: ana, name: "KEY", value: "ana-key" });
@@ -326,6 +326,7 @@ describe("secrets typed before the registry existed (D-036)", () => {
         "0039_teams",
         "0040_member_avatars",
         "0041_build_views",
+        "0042_teams_permissions",
       ]);
       // The legacy table is gone once the rows are converted (D-110).
       await expect(before.prepare(`SELECT 1 FROM "user_secrets"`).all()).rejects.toBeDefined();

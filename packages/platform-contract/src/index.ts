@@ -11,7 +11,7 @@ export {
 } from "./tools";
 export {
   MAX_ACCESS_CHANGES,
-  MAX_PROFILE_CHANGES,
+  MAX_GRANT_CHANGES,
   getAccessMatrixRoute,
   putAccessMatrixRoute,
 } from "./access-matrix";
@@ -36,19 +36,20 @@ export {
 } from "./database";
 export {
   MAX_DOMAINS,
-  MAX_ROLES,
+  MAX_TEAMS,
   getMembershipSettingsRoute,
   inviteMemberRoute,
   listMembersRoute,
   putMembershipSettingsRoute,
   removeMemberRoute,
-  setMemberRolesRoute,
+  setMemberTeamsRoute,
   withdrawInvitationRoute,
 } from "./members";
 export {
   TEAM_SLUG,
   createTeamRoute,
   deleteTeamRoute,
+  listPermissionsRoute,
   listTeamsRoute,
   updateTeamRoute,
 } from "./teams";

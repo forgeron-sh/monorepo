@@ -5,7 +5,9 @@ import {
   createRegistry,
   createSecretBox,
   isAvailable,
+  mayUseChannel,
   migratePlatform,
+  reachesChannelAlways,
   TEMPLATE_WORKSPACE,
   type Registry,
 } from "./index";
@@ -24,26 +26,42 @@ beforeEach(async () => {
 });
 afterEach(() => memory.close());
 
-const ana = { id: "p-ana", roles: ["support"] };
-const ben = { id: "p-ben", roles: ["reader"] };
-const root = { id: "p-root", roles: ["admin"] };
+// A person as the rules read them: their teams and their platform permissions.
+const ana = { id: "p-ana", teams: ["support"], permissions: [] };
+const ben = { id: "p-ben", teams: ["reader"], permissions: [] };
+const root = { id: "p-root", teams: ["admin"], permissions: ["*"] };
+const dev = { id: "p-dev", teams: ["developer"], permissions: ["tools:write", "tools:read"] };
 
 describe("who may add a tool (D-117)", () => {
-  it("is everyone for a tool with no rule, and as the rule says otherwise; an admin always may", () => {
+  it("is everyone for a tool with no rule, and as the rule says otherwise; who may give access always may", () => {
     expect(isAvailable(undefined, ben)).toBe(true);
-    const rule = (mode: "nobody" | "everyone" | "roles" | "people", subjects: string[] = []) => ({
+    const rule = (mode: "nobody" | "everyone" | "teams" | "people", subjects: string[] = []) => ({
       mode,
-      roles: mode === "roles" ? subjects : [],
+      teams: mode === "teams" ? subjects : [],
       people: mode === "people" ? subjects : [],
     });
     expect(isAvailable(rule("nobody"), ana)).toBe(false);
     expect(isAvailable(rule("nobody"), root)).toBe(true);
+    expect(isAvailable(rule("nobody"), dev)).toBe(false);
+    expect(isAvailable(rule("nobody"), { ...dev, permissions: ["access:write"] })).toBe(true);
     expect(isAvailable(rule("everyone"), ben)).toBe(true);
-    expect([ana, ben].map((p) => isAvailable(rule("roles", ["support"]), p))).toEqual([
+    expect([ana, ben].map((p) => isAvailable(rule("teams", ["support"]), p))).toEqual([
       true,
       false,
     ]);
     expect([ana, ben].map((p) => isAvailable(rule("people", ["p-ben"]), p))).toEqual([false, true]);
+  });
+
+  it("lets a holder of tools:read reach a branch's channel and tools:publish every channel", () => {
+    expect(reachesChannelAlways("feat/x", dev)).toBe(true);
+    expect(reachesChannelAlways("~beta", dev)).toBe(false);
+    expect(reachesChannelAlways("~beta", { permissions: ["tools:publish"] })).toBe(true);
+    expect(reachesChannelAlways("feat/x", ana)).toBe(false);
+    // Anyone else only through the rule set on the channel.
+    const rule = { mode: "teams" as const, teams: ["support"], people: [] };
+    expect(mayUseChannel(rule, ana, "~beta")).toBe(true);
+    expect(mayUseChannel(rule, ben, "~beta")).toBe(false);
+    expect(mayUseChannel(undefined, ana, "~beta")).toBe(false);
   });
 
   it("keeps the rule, rewrites it, and audits each change", async () => {
@@ -51,13 +69,13 @@ describe("who may add a tool (D-117)", () => {
     expect(await registry.availabilityOf(tool.id)).toBeUndefined();
     await registry.setAvailability({
       toolId: tool.id,
-      mode: "roles",
-      roles: ["support", "support"],
+      mode: "teams",
+      teams: ["support", "support"],
       actor: "p-root",
     });
     expect(await registry.availabilityOf(tool.id)).toMatchObject({
-      mode: "roles",
-      roles: ["support"],
+      mode: "teams",
+      teams: ["support"],
       people: [],
     });
     await registry.setAvailability({
@@ -68,7 +86,7 @@ describe("who may add a tool (D-117)", () => {
     });
     expect(await registry.availabilityOf(tool.id)).toMatchObject({
       mode: "people",
-      roles: [],
+      teams: [],
       people: ["p-ben"],
     });
     expect(await registry.listAudit(tool.id, { kind: "access" })).toHaveLength(2);
@@ -81,7 +99,7 @@ describe("who may add a tool (D-117)", () => {
     const source = await registry.createTool({ workspace: TEMPLATE_WORKSPACE, name: "crm" });
     const build = await registry.recordBuild(source.id, {
       fingerprint: "crm-1",
-      manifest: { name: "crm", roles: {}, actions: {}, resources: {} },
+      manifest: { name: "crm", profiles: {}, actions: {}, resources: {} },
       worker: "// crm",
     });
     await registry.publishVersion(source.id, build.id, "1.0.0");

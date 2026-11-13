@@ -10,7 +10,13 @@ import type {
   dbTableRoute,
   dbTablesRoute,
 } from "./database";
-import type { createTeamRoute, deleteTeamRoute, listTeamsRoute, updateTeamRoute } from "./teams";
+import type {
+  createTeamRoute,
+  deleteTeamRoute,
+  listPermissionsRoute,
+  listTeamsRoute,
+  updateTeamRoute,
+} from "./teams";
 import type {
   deleteConnectorClientRoute,
   deleteIdentityProviderRoute,
@@ -58,7 +64,7 @@ import type {
   listMembersRoute,
   putMembershipSettingsRoute,
   removeMemberRoute,
-  setMemberRolesRoute,
+  setMemberTeamsRoute,
   withdrawInvitationRoute,
 } from "./members";
 import type {
@@ -312,6 +318,10 @@ export const addresses = {
   }),
   putAvatar: addressOf<typeof putAvatarRoute>({ method: "put", path: "/api/me/avatar" }),
   listMembers: addressOf<typeof listMembersRoute>({ method: "get", path: "/api/members" }),
+  listPermissions: addressOf<typeof listPermissionsRoute>({
+    method: "get",
+    path: "/api/permissions",
+  }),
   listTeams: addressOf<typeof listTeamsRoute>({ method: "get", path: "/api/teams" }),
   createTeam: addressOf<typeof createTeamRoute>({ method: "post", path: "/api/teams" }),
   updateTeam: addressOf<typeof updateTeamRoute>({ method: "patch", path: "/api/teams/{id}" }),
@@ -390,7 +400,7 @@ export const addresses = {
     method: "get",
     path: "/api/tools/{tool}/secrets-status",
   }),
-  setMemberRoles: addressOf<typeof setMemberRolesRoute>({
+  setMemberTeams: addressOf<typeof setMemberTeamsRoute>({
     method: "patch",
     path: "/api/members/{id}",
   }),

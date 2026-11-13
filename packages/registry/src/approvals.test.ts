@@ -32,7 +32,7 @@ afterEach(() => memory.close());
 const manifestOf = (resources: object) =>
   ({
     name: "crm",
-    roles: {},
+    profiles: {},
     actions: {},
     views: {},
     jobs: {},

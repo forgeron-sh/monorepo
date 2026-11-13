@@ -18,7 +18,7 @@ const body = <T extends z.ZodType>(schema: T) => ({
   content: { "application/json": { schema } },
 });
 const notSignedIn = json(ErrorSchema, "Not signed in");
-const notAdmin = json(ErrorSchema, "Not an admin");
+const notAdmin = json(ErrorSchema, "Lacks the permission");
 const params = z.object({ tool: z.string() });
 const REPO = /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/;
 const branchName = z.string().min(1).max(200);

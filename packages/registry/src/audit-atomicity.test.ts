@@ -30,7 +30,7 @@ beforeEach(async () => {
   const build = await registry.recordBuild(toolId, {
     fingerprint: "f1",
     manifest: {
-      roles: { sales: { grants: ["read"] } },
+      profiles: { sales: { grants: ["read"] } },
       actions: { "deals.list": { access: "read" } },
       resources: {},
     },
@@ -41,14 +41,14 @@ beforeEach(async () => {
     await registry.joinMember({
       workspace: "acme",
       email: "a@acme.fr",
-      roles: ["admin"],
+      teams: ["admin"],
       via: "admin-email",
     })
   ).id;
   await registry.joinMember({
     workspace: "acme",
     email: "b@acme.fr",
-    roles: ["admin"],
+    teams: ["admin"],
     via: "admin-email",
   });
 });
@@ -64,21 +64,21 @@ describe("a write and its audit line are one batch", () => {
     expect(await registry.listDeployments(toolId)).toEqual([]);
   });
 
-  it("access: a role access change whose audit line fails changes nothing", async () => {
+  it("access: an exception whose audit line fails changes nothing", async () => {
     await arm();
     await expect(
-      registry.setRoleAccess(toolId, "sales", "deals.list", false, "ely"),
+      registry.setAccessException(toolId, "everyone", "deals.list", false, "ely"),
     ).rejects.toThrow(/audit refused/);
-    expect(await registry.roleAccess(toolId)).toEqual({});
+    expect(await registry.accessExceptions(toolId)).toEqual({});
   });
 
-  it("members: a role change and a removal whose audit line fails change nothing", async () => {
+  it("members: a change of teams and a removal whose audit line fails change nothing", async () => {
     await arm();
-    await expect(registry.setMemberRoles("acme", memberId, ["developer"], "ely")).rejects.toThrow(
-      /audit refused/,
-    );
+    await expect(
+      registry.setMemberTeams("acme", memberId, ["developer"], "ely", ["*"]),
+    ).rejects.toThrow(/audit refused/);
     await expect(registry.removeMember("acme", memberId, "ely")).rejects.toThrow(/audit refused/);
-    expect((await registry.findMember("acme", memberId))?.roles).toEqual(["admin"]);
+    expect((await registry.findMember("acme", memberId))?.teams).toEqual(["admin"]);
   });
 
   it("approvals: a decision whose audit line fails leaves the approval pending", async () => {

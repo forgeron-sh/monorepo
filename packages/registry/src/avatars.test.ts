@@ -26,7 +26,7 @@ beforeAll(async () => {
       subject: "ada",
       email: "ada@acme.test",
       name: "Ada",
-      roles: [],
+      teams: [],
     })
   ).id;
 });

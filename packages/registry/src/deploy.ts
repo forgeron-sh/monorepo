@@ -170,7 +170,7 @@ export async function deployBuild(
     ...(input.commit ? { commit: input.commit } : {}),
   });
   // The tool arrives with its default mapping (D-127): `admin` all, `member` the default profile.
-  await registry.seedRoleProfiles(tool.id, build.manifest as Manifest, input.actor);
+  await registry.seedAccessGrants(tool.id, build.manifest as Manifest, input.actor);
   return { ...deployment, version, environment };
 }
 
@@ -237,7 +237,7 @@ export async function putOnChannel(
     url: deployment.activation.url,
     ...(input.reason ? { reason: input.reason } : {}),
   });
-  await registry.seedRoleProfiles(tool.id, record.manifest as Manifest, input.actor);
+  await registry.seedAccessGrants(tool.id, record.manifest as Manifest, input.actor);
   return { ...deployment, version, environment };
 }
 

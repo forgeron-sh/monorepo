@@ -30,7 +30,7 @@ export const secretsStatusRoute = defineRoute({
       "The secrets",
     ),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin or a developer"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool"),
   },
 });
@@ -52,7 +52,7 @@ export const resealSecretsRoute = defineRoute({
       "What was done",
     ),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     409: json(ErrorSchema, "The gateway has no `SECRETS_KEY`"),
   },
 });

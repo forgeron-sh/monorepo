@@ -120,8 +120,6 @@ export type {
   VersionRecord,
 } from "./registry";
 
-export { teamRole } from "./registry";
-
 /** Brings the platform D1 up to the current schema: the pending migrations, one batch each. */
 export function migratePlatform(d1: D1Database, options?: MigrateOptions) {
   return applyMigrations(d1, platformMigrations, options);

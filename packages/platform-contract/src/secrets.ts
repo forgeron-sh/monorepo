@@ -24,7 +24,7 @@ export const listSecretsRoute = defineRoute({
   responses: {
     200: json(z.strictObject({ secrets: z.array(z.string()) }), "The names"),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool or environment"),
   },
 });
@@ -52,7 +52,7 @@ export const setSecretRoute = defineRoute({
     204: { description: "Set" },
     400: json(ErrorSchema, "`value` is a non-empty string (16 KB max), or the body is not JSON"),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool, environment or secret name"),
     500: json(ErrorSchema, "The registry refused: `error` is its code"),
   },

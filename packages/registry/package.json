@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@forgeron/hosting": "workspace:*",
-    "@forgeron/manifest": "workspace:*"
+    "@forgeron/manifest": "workspace:*",
+    "@forgeron/permissions": "workspace:*"
   },
   "devDependencies": {
     "@forgeron/sdk": "workspace:*",

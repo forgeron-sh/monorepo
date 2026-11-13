@@ -25,6 +25,8 @@ export type RegistryErrorCode =
   | "PENDING_APPROVAL"
   | "NO_MANIFEST"
   | "LAST_ADMIN"
+  | "FORBIDDEN"
+  | "PROTECTED"
   | "INVALID"
   | "INVALID_DOCS";
 

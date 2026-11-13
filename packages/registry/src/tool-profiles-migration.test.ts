@@ -8,6 +8,9 @@ vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 // An install from before D-127: tools whose roles shared the workspace's role names, an admin
 // matrix, and a tool with no version. The migration writes each tool's mapping so that everyone
 // keeps what they had, and adds the default mapping: an admin can call `echo` with no manual step.
+// Then D-136 turns the roles into subjects (`0042_teams_permissions`): the whole chain runs here,
+// and the assertions are on what is left, keyed by subject. The builds are stored with `roles`, as
+// they were: the migration of D-136 renames them to `profiles`.
 let memory: MemoryD1;
 let d1: D1Database;
 
@@ -126,78 +129,93 @@ beforeEach(async () => {
 });
 afterEach(() => memory.close());
 
-describe("0038_tool_profiles", () => {
-  it("maps each tool role to the workspace role of the same name, then admin and member", async () => {
+describe("0038_tool_profiles, then 0042_teams_permissions", () => {
+  it("gives each tool role its profile, then the admin team all and everyone the default profile", async () => {
     const registry = createRegistry(d1);
-    expect(await registry.roleProfiles("t-echo")).toEqual({
-      admin: { kind: "all" },
-      member: { kind: "profile", profile: "reader" },
-      reader: { kind: "profile", profile: "reader" },
+    expect(await registry.accessGrants("t-echo")).toEqual({
+      "team:admin": { kind: "all" },
+      everyone: { kind: "profile", profile: "reader" },
+      "team:reader": { kind: "profile", profile: "reader" },
     });
     // A role named like `admin` keeps what it gave: the name wins over the default.
-    expect(await registry.roleProfiles("t-crm")).toEqual({
-      admin: { kind: "profile", profile: "admin" },
-      legacy: { kind: "profile", profile: "legacy" },
-      member: { kind: "profile", profile: "viewer" },
-      sales: { kind: "profile", profile: "sales" },
-      viewer: { kind: "profile", profile: "viewer" },
+    expect(await registry.accessGrants("t-crm")).toEqual({
+      "team:admin": { kind: "profile", profile: "admin" },
+      "team:legacy": { kind: "profile", profile: "legacy" },
+      everyone: { kind: "profile", profile: "viewer" },
+      "team:sales": { kind: "profile", profile: "sales" },
+      "team:viewer": { kind: "profile", profile: "viewer" },
     });
-    expect(await registry.roleProfiles("t-draft")).toEqual({
-      admin: { kind: "all" },
-      big: { kind: "profile", profile: "big" },
-      member: { kind: "profile", profile: "big" },
+    expect(await registry.accessGrants("t-draft")).toEqual({
+      "team:admin": { kind: "all" },
+      "team:big": { kind: "profile", profile: "big" },
+      everyone: { kind: "profile", profile: "big" },
     });
-    expect(await registry.roleProfiles("t-empty")).toEqual({});
+    expect(await registry.accessGrants("t-empty")).toEqual({});
+  });
+
+  it("reads the stored builds' profiles under `profiles`", async () => {
+    const registry = createRegistry(d1);
+    const manifest = (await registry.getBuild("b-v1"))!.manifest as Record<string, unknown>;
+    expect(Object.keys(manifest.profiles as object)).toEqual(["reader"]);
+    expect(manifest.roles).toBeUndefined();
   });
 
   it("lets an admin call echo with no manual step, and keeps a reader's access", async () => {
     const registry = createRegistry(d1);
-    expect(await registry.accessFor("t-echo", ["admin"])).toEqual({
-      permissions: { admin: ["read"] },
-      access: { admin: { echo: true } },
+    expect(await registry.accessFor("t-echo", ["everyone", "team:admin"])).toEqual({
+      permissions: { everyone: ["read"], "team:admin": ["read"] },
+      access: { everyone: { echo: true }, "team:admin": { echo: true } },
     });
-    expect((await registry.accessFor("t-echo", ["reader"])).access.reader).toEqual({ echo: true });
-    const card = await findCard(registry, "acme", "echo", { roles: ["admin"] }, "https://x");
+    expect((await registry.accessFor("t-echo", ["team:reader"])).access["team:reader"]).toEqual({
+      echo: true,
+    });
+    const card = await findCard(
+      registry,
+      "acme",
+      "echo",
+      { subjects: ["team:admin"] },
+      "https://x",
+    );
     expect(card?.access).toBe("granted");
-    // The temporary channel reads the same mapping.
+    // The temporary channel reads the same grants.
     const channel = await findCard(
       registry,
       "acme",
       "echo",
-      { roles: ["admin"] },
+      { subjects: ["team:admin"] },
       "https://x",
       "main",
     );
     expect(channel?.access).toBe("granted");
   });
 
-  it("keeps the admin's matrix as exceptions on top of the mapping", async () => {
+  it("keeps the admin's matrix as exceptions on top of the grants", async () => {
     const registry = createRegistry(d1);
-    expect((await registry.accessFor("t-crm", ["viewer"])).access.viewer).toEqual({
+    expect((await registry.accessFor("t-crm", ["team:viewer"])).access["team:viewer"]).toEqual({
       "deals.list": true,
       "deals.move": true,
       "deals.delete": false,
     });
-    expect((await registry.accessFor("t-crm", ["legacy"])).access.legacy).toEqual({
+    expect((await registry.accessFor("t-crm", ["team:legacy"])).access["team:legacy"]).toEqual({
       "deals.list": true,
       "deals.move": false,
       "deals.delete": false,
     });
-    expect((await registry.accessFor("t-crm", ["admin"])).access.admin).toEqual({
+    expect((await registry.accessFor("t-crm", ["team:admin"])).access["team:admin"]).toEqual({
       "deals.list": true,
       "deals.move": false,
       "deals.delete": true,
     });
   });
 
-  it("writes nothing over the migrated mapping at the next deployment", async () => {
+  it("writes nothing over the migrated grants at the next deployment", async () => {
     const registry = createRegistry(d1);
     const manifestOf = (await registry.getBuild("b-v1"))!.manifest;
-    await registry.seedRoleProfiles("t-echo", manifestOf as never, "ci");
-    expect(Object.keys(await registry.roleProfiles("t-echo"))).toEqual([
-      "admin",
-      "member",
-      "reader",
+    await registry.seedAccessGrants("t-echo", manifestOf as never, "ci");
+    expect(Object.keys(await registry.accessGrants("t-echo")).sort()).toEqual([
+      "everyone",
+      "team:admin",
+      "team:reader",
     ]);
   });
 });

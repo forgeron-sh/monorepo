@@ -16,14 +16,14 @@ beforeEach(async () => {
 });
 afterEach(() => memory.close());
 
-const member = async (subject: string, roles: string[] = []) =>
+const member = async (subject: string, teams: string[] = []) =>
   (
     await registry.addMember({
       workspace: "acme",
       subject,
       email: `${subject}@acme.test`,
       name: subject,
-      roles,
+      teams,
     })
   ).id;
 

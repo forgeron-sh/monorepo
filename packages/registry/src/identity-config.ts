@@ -19,8 +19,8 @@ export interface IdentityProviderConfig {
   emailClaim?: string;
   /** Claim holding the groups, an array of strings; none by default. */
   groupsClaim?: string;
-  /** Role granted at a member's first sign-in for each group they belong to. */
-  groupRoles: Record<string, string>;
+  /** The team a member joins at their first sign-in for each group they belong to: group -> team id. */
+  groupTeams: Record<string, string>;
   updatedBy: string;
   updatedAt: string;
 }
@@ -35,7 +35,7 @@ export interface IdentityProviderInput {
   hostedDomain?: string;
   emailClaim?: string;
   groupsClaim?: string;
-  groupRoles?: Record<string, string>;
+  groupTeams?: Record<string, string>;
 }
 
 /** A workspace's SAML provider (D-050): there is no secret, the certificates are public. */
@@ -47,16 +47,16 @@ export interface SamlProviderConfig {
   emailAttribute?: string;
   groupsAttribute?: string;
   nameAttribute?: string;
-  groupRoles: Record<string, string>;
+  groupTeams: Record<string, string>;
   updatedBy: string;
   updatedAt: string;
 }
 
 export type SamlProviderInput = Omit<
   SamlProviderConfig,
-  "groupRoles" | "updatedBy" | "updatedAt"
+  "groupTeams" | "updatedBy" | "updatedAt"
 > & {
-  groupRoles?: Record<string, string>;
+  groupTeams?: Record<string, string>;
 };
 
 /** The OAuth client of one connector type (`microsoft-365`), as the platform registered it. */
@@ -108,7 +108,7 @@ export function createIdentityConfig(
     ...(text(r.hosted_domain) ? { hostedDomain: text(r.hosted_domain)! } : {}),
     ...(text(r.email_claim) ? { emailClaim: text(r.email_claim)! } : {}),
     ...(text(r.groups_claim) ? { groupsClaim: text(r.groups_claim)! } : {}),
-    groupRoles: JSON.parse(String(r.group_roles)) as Record<string, string>,
+    groupTeams: JSON.parse(String(r.group_teams)) as Record<string, string>,
     updatedBy: String(r.updated_by),
     updatedAt: String(r.updated_at),
   });
@@ -157,9 +157,9 @@ export function createIdentityConfig(
         d1.prepare(`DELETE FROM "saml_providers" WHERE "workspace" = ?`).bind(workspace),
         d1
           .prepare(
-            `INSERT INTO "identity_providers" ("workspace", "kind", "issuer", "client_id", "tenant", "hosted_domain", "email_claim", "groups_claim", "group_roles", "iv", "ciphertext", "updated_by", "updated_at")
+            `INSERT INTO "identity_providers" ("workspace", "kind", "issuer", "client_id", "tenant", "hosted_domain", "email_claim", "groups_claim", "group_teams", "iv", "ciphertext", "updated_by", "updated_at")
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT ("workspace") DO UPDATE SET "kind" = excluded."kind", "issuer" = excluded."issuer", "client_id" = excluded."client_id", "tenant" = excluded."tenant", "hosted_domain" = excluded."hosted_domain", "email_claim" = excluded."email_claim", "groups_claim" = excluded."groups_claim", "group_roles" = excluded."group_roles",
+ON CONFLICT ("workspace") DO UPDATE SET "kind" = excluded."kind", "issuer" = excluded."issuer", "client_id" = excluded."client_id", "tenant" = excluded."tenant", "hosted_domain" = excluded."hosted_domain", "email_claim" = excluded."email_claim", "groups_claim" = excluded."groups_claim", "group_teams" = excluded."group_teams",
   "iv" = COALESCE(excluded."iv", "identity_providers"."iv"), "ciphertext" = COALESCE(excluded."ciphertext", "identity_providers"."ciphertext"),
   "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
           )
@@ -172,7 +172,7 @@ ON CONFLICT ("workspace") DO UPDATE SET "kind" = excluded."kind", "issuer" = exc
             input.hostedDomain ?? null,
             input.emailClaim ?? null,
             input.groupsClaim ?? null,
-            JSON.stringify(input.groupRoles ?? {}),
+            JSON.stringify(input.groupTeams ?? {}),
             sealed?.iv ?? null,
             sealed?.ciphertext ?? null,
             actor,
@@ -204,7 +204,7 @@ ON CONFLICT ("workspace") DO UPDATE SET "kind" = excluded."kind", "issuer" = exc
         ...(text(r.email_attribute) ? { emailAttribute: text(r.email_attribute)! } : {}),
         ...(text(r.groups_attribute) ? { groupsAttribute: text(r.groups_attribute)! } : {}),
         ...(text(r.name_attribute) ? { nameAttribute: text(r.name_attribute)! } : {}),
-        groupRoles: JSON.parse(String(r.group_roles)) as Record<string, string>,
+        groupTeams: JSON.parse(String(r.group_teams)) as Record<string, string>,
         updatedBy: String(r.updated_by),
         updatedAt: String(r.updated_at),
       };
@@ -219,9 +219,9 @@ ON CONFLICT ("workspace") DO UPDATE SET "kind" = excluded."kind", "issuer" = exc
         d1.prepare(`DELETE FROM "identity_providers" WHERE "workspace" = ?`).bind(workspace),
         d1
           .prepare(
-            `INSERT INTO "saml_providers" ("workspace", "idp_entity_id", "sso_url", "certificates", "email_attribute", "groups_attribute", "name_attribute", "group_roles", "updated_by", "updated_at")
+            `INSERT INTO "saml_providers" ("workspace", "idp_entity_id", "sso_url", "certificates", "email_attribute", "groups_attribute", "name_attribute", "group_teams", "updated_by", "updated_at")
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT ("workspace") DO UPDATE SET "idp_entity_id" = excluded."idp_entity_id", "sso_url" = excluded."sso_url", "certificates" = excluded."certificates", "email_attribute" = excluded."email_attribute", "groups_attribute" = excluded."groups_attribute", "name_attribute" = excluded."name_attribute", "group_roles" = excluded."group_roles", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+ON CONFLICT ("workspace") DO UPDATE SET "idp_entity_id" = excluded."idp_entity_id", "sso_url" = excluded."sso_url", "certificates" = excluded."certificates", "email_attribute" = excluded."email_attribute", "groups_attribute" = excluded."groups_attribute", "name_attribute" = excluded."name_attribute", "group_teams" = excluded."group_teams", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
           )
           .bind(
             workspace,
@@ -231,7 +231,7 @@ ON CONFLICT ("workspace") DO UPDATE SET "idp_entity_id" = excluded."idp_entity_i
             input.emailAttribute ?? null,
             input.groupsAttribute ?? null,
             input.nameAttribute ?? null,
-            JSON.stringify(input.groupRoles ?? {}),
+            JSON.stringify(input.groupTeams ?? {}),
             actor,
             now(),
           ),

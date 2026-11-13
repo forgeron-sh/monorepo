@@ -77,7 +77,7 @@ describe("the SAML provider", () => {
         ssoUrl: "https://idp.test/sso",
         certificates: ["CERT"],
         emailAttribute: "mail",
-        groupRoles: { devs: "developer" },
+        groupTeams: { devs: "developer" },
       },
       "a1",
     );
@@ -87,7 +87,7 @@ describe("the SAML provider", () => {
       ssoUrl: "https://idp.test/sso",
       certificates: ["CERT"],
       emailAttribute: "mail",
-      groupRoles: { devs: "developer" },
+      groupTeams: { devs: "developer" },
       updatedBy: "a1",
       updatedAt: now.toISOString(),
     });
