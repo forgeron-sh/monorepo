@@ -279,7 +279,7 @@ In self-host, the domain is the customer's; the same single-subdomain-level rule
 | `sdk` (linked versions)  | `packages/sdk`, `runtime`, `compiler`, `manifest`, `permissions`, `hosting`, `apps/cli` | `sdk-v0.4.0`            |
 | `ui`                     | `packages/ui`                                                                           | `ui-v0.2.0`             |
 | one per connector        | `packages/connector-<name>`                                                             | `connector-odoo-v0.1.0` |
-| `platform`               | `apps/gateway`, `apps/console`, `apps/site`                                             | `platform-v0.3.0`       |
+| the root (no component)  | `apps/gateway`, `apps/console`, `apps/site`, the rest of the repository                 | `v0.7.0` (D-140)        |
 
 Templates (`templates/`) do not go through release-please: they are tools, they use `forgeron release` (D-007) and their tags look like `crm@1.0.0`.
 
