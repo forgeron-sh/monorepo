@@ -248,7 +248,7 @@ describe("the catalog", () => {
       "production",
     );
 
-    // A new tool gives the admin team every permission (D-127, D-136).
+    // A new tool gives the admin team every permission (D-127, D-137).
     const admin = await listCatalog(registry, "acme", ADMIN);
     expect(admin).toHaveLength(1);
     expect(admin[0]).toMatchObject({

@@ -153,7 +153,7 @@ const actions: Record<string, RuntimeAction> = {
   "admin.purge": { input: z.object({}), run: () => ({ purged: true }) },
 };
 
-// A person with the permissions the gateway gave `everyone` in this tool (D-136).
+// A person with the permissions the gateway gave `everyone` in this tool (D-137).
 const given = (...permissions: string[]): User => ({
   id: "u1",
   email: "ely@acme.fr",

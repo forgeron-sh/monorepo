@@ -27,7 +27,7 @@ afterEach(async () => {
   setThemePreference("system");
 });
 
-// What the built-in teams give (D-136): the admin team holds everything, the developer team builds.
+// What the built-in teams give (D-137): the admin team holds everything, the developer team builds.
 const ADMIN: readonly PlatformPermission[] = PLATFORM_PERMISSIONS;
 const DEVELOPER: readonly PlatformPermission[] = PLATFORM_PERMISSIONS.filter((p) =>
   expand(PLATFORM, BUILT_IN_TEAMS.find((t) => t.id === "developer")!.permissions).has(p),
@@ -334,7 +334,7 @@ describe("App", () => {
     expect(lost.textContent).toContain("This page does not exist.");
   });
 
-  it("shows the navigation of the permissions a person holds, and guards the rest (D-136)", async () => {
+  it("shows the navigation of the permissions a person holds, and guards the rest (D-137)", async () => {
     window.history.replaceState(null, "", "/admin/members");
     const { api, reads } = fakeApi(routes(DEVELOPER));
     const page = await mount(<App api={api} now={() => NOW} />);

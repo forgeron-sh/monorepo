@@ -1,7 +1,7 @@
 import type { PlatformPermission } from "@forgeron/permissions";
 import type { Row } from "../../kernel/rows";
 
-/** A group of the workspace's members (D-132): a way to give access, and to say what a person may do on the platform (D-136). */
+/** A group of the workspace's members (D-132): a way to give access, and to say what a person may do on the platform (D-137). */
 export interface Team {
   workspace: string;
   /** Its slug, chosen once: `product`. It is the team's address in tools and in the access matrix. */

@@ -326,7 +326,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
               registry.recordUsage(workspace, tool, personId),
           }
         : {}),
-      // A preview is for who holds `tools:read` or `tools:publish` (sdk.md §7, D-136), and for the people
+      // A preview is for who holds `tools:read` or `tools:publish` (sdk.md §7, D-137), and for the people
       // the branch was opened to who added it to their library: a pilot (D-119).
       ...(caller
         ? {

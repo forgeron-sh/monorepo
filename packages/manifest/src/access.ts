@@ -1,5 +1,5 @@
 // The one access rule, shared by the runtime (actions), the gateway (views, playground) and the
-// registry (catalog, matrix). D-127, D-136: a tool declares permissions (the levels its actions and
+// registry (catalog, matrix). D-127, D-137: a tool declares permissions (the levels its actions and
 // views require) and profiles (named sets of them); the workspace gives each subject (`everyone` or
 // `team:<id>`) a profile, a custom set of permissions, all of them, or nothing. A subject may use
 // an action if the console's per-action matrix says so, else if the action's level is among the
@@ -78,7 +78,7 @@ export function defaultProfile(profiles: Profiles = {}): string | undefined {
 }
 
 /**
- * The grants a tool gets when it arrives (D-136): the admin team is given every permission and
+ * The grants a tool gets when it arrives (D-137): the admin team is given every permission and
  * `everyone` the default profile. They are written down, and someone who gives access edits them in
  * the tool's Access tab.
  */
@@ -157,7 +157,7 @@ export function heldPermissions(who: Who, manifest: AccessShape): string[] {
 }
 
 /**
- * What the gateway forwards with a person (D-136): the permissions each of their subjects is given,
+ * What the gateway forwards with a person (D-137): the permissions each of their subjects is given,
  * and the matrix resolved for every action of the manifest. The resolved matrix is what a runtime
  * built before D-127 reads, so a tool keeps working without a new version.
  */

@@ -3,7 +3,7 @@ import { Checkbox } from "@forgeron/ui";
 import { HELD_HINT } from "../../team-picker";
 import type { PermissionGroup } from "../../teams";
 
-// What a team may do on Forgeron (D-136): one card per group of the catalog, a checkbox per
+// What a team may do on Forgeron (D-137): one card per group of the catalog, a checkbox per
 // permission with its sentence. Checking a write checks, and locks, the reads it implies. What the
 // person who edits does not hold themselves cannot be given or taken away. The admin team holds every
 // permission, now and to come: nothing to tick.

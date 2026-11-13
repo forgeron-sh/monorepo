@@ -4,7 +4,7 @@ import type { PlatformPermission } from "@forgeron/permissions";
 import { teamSummary, type TeamRow } from "./teams";
 
 // A multi-select of teams, built-ins first (the list comes sorted): a checkbox per team with what it
-// may do. A person may only put someone in a team whose permissions they hold themselves (D-136): the
+// may do. A person may only put someone in a team whose permissions they hold themselves (D-137): the
 // others are disabled with the reason.
 
 export const HELD_HINT = "You can only give what you hold";

@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { registerToolTab } from "../tools";
 import type { RouteDef } from "../../shell/routes";
 
-// The Database tab of the tool page: for whoever holds `tools:data` (D-136).
+// The Database tab of the tool page: for whoever holds `tools:data` (D-137).
 registerToolTab({
   id: "database",
   scope: "branch",

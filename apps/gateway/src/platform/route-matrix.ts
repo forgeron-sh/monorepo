@@ -9,7 +9,7 @@ import { lacking, type ConsolePerson, type Requires } from "./app";
 
 // The answers every route of the platform API gives before its own logic runs. Each route's test
 // calls `describeRouteMatrix` once, so the 401, 403, 415 and 400 rules cannot drift route by route.
-// A route says which permission it requires (D-136): nobody is a 401; a person who holds everything
+// A route says which permission it requires (D-137): nobody is a 401; a person who holds everything
 // but that permission is a 403; a person who holds exactly it is let in.
 
 export interface RouteMatrix {

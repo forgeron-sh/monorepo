@@ -66,7 +66,7 @@ export default function ToolPage({
   now,
   go,
 }: PageProps & { name: string; branch?: string }) {
-  // Sharing a channel is for whoever publishes (D-136).
+  // Sharing a channel is for whoever publishes (D-137).
   const mayPublish = can(ws.person, "tools:publish");
   const tools = useLoad(() => loadTools(api.fetchJson), [api]);
   const tabs = useMemo(() => toolTabs(ws.person), [ws.person]);

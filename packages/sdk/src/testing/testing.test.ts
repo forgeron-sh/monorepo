@@ -18,7 +18,7 @@ describe("createTestTool", () => {
     await expect(tool.call("notes.info")).resolves.toMatchObject({ env: "local" });
   });
 
-  it("runs as everyone, with the default grants, unless told otherwise (D-136)", async () => {
+  it("runs as everyone, with the default grants, unless told otherwise (D-137)", async () => {
     const tool = await create();
     await expect(tool.call("notes.info")).resolves.toMatchObject({
       user: { email: "test@example.com", subjects: ["everyone"] },

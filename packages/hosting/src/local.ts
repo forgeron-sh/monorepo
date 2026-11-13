@@ -30,7 +30,7 @@ export interface LocalUser {
   email: string;
   name: string;
   avatar?: string;
-  /** `everyone` and `team:<id>` for each team (D-136). */
+  /** `everyone` and `team:<id>` for each team (D-137). */
   subjects: string[];
   teams?: string[];
   /** What each subject is given in the tool; without it, the default grants (`everyone`: the default profile, `team:admin`: all). */

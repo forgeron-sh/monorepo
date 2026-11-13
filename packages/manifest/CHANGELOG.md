@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0](https://github.com/forgeron-sh/monorepo/compare/manifest-v0.3.1...manifest-v0.4.0) (2026-11-13)
+
+
+### Features
+
+* console navigation in three places, everyone holds member (D-128) ([85846aa](https://github.com/forgeron-sh/monorepo/commit/85846aaaec7ed66d0dfabfbb8241259adf1635a2))
+* console navigation in three places, everyone holds member (D-128) ([028456f](https://github.com/forgeron-sh/monorepo/commit/028456f89448ea2f457497d41ec99ff252e25122))
+* **manifest:** a build carries its contract, a platform refuses what it cannot run (D-136) ([83395dd](https://github.com/forgeron-sh/monorepo/commit/83395dd5d868f2a86962dc7ffa1542391861a0b2))
+* **manifest:** a build carries its contract, a platform refuses what it cannot run (D-136) ([6b0b609](https://github.com/forgeron-sh/monorepo/commit/6b0b609a9975b8b1cd676599a8470c22c466435c))
+* realtime, channels a tool declares, published by actions and followed live (D-135) ([5723bab](https://github.com/forgeron-sh/monorepo/commit/5723babce7c5ab26aee45917152306467248b335))
+* realtime, channels a tool declares, published by actions and followed live (D-135) ([278e5af](https://github.com/forgeron-sh/monorepo/commit/278e5af0dcb9793c01b96e1a16f4c4a424e0891c))
+* **sdk:** ctx.directory, the workspace's people a tool asked for (D-131) ([1991bee](https://github.com/forgeron-sh/monorepo/commit/1991beedfb0e4ffb4ef1ce893e4be7895ecafb9f))
+* **sdk:** ctx.directory, the workspace's people a tool asked for (D-131) ([092dc65](https://github.com/forgeron-sh/monorepo/commit/092dc658c19cab4b2ca14135ef8dd2a23c5e4175))
+* tool profiles mapped to workspace roles, admin all and member default profile (D-127) ([526bbbb](https://github.com/forgeron-sh/monorepo/commit/526bbbbc73bf9ccb9f442c9fc55645c2afe41a44))
+* tool profiles mapped to workspace roles, admin all and member default profile (D-127) ([3553f22](https://github.com/forgeron-sh/monorepo/commit/3553f223f73c34cf878ba0f9bcf371a4e41460e4))
+
 ## [0.3.1](https://github.com/forgeron-sh/monorepo/compare/manifest-v0.3.0...manifest-v0.3.1) (2026-11-12)
 
 

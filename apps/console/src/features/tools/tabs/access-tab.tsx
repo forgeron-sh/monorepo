@@ -2,7 +2,7 @@ import { AccessMatrixEditor } from "../../../access-matrix";
 import { can } from "../../../shell/access";
 import type { ToolTabProps } from "../tabs";
 
-// The Access tab: who may use the tool, Everyone and each team by name (D-136). Seen with
+// The Access tab: who may use the tool, Everyone and each team by name (D-137). Seen with
 // `access:read`, changed with `access:write`.
 export default function AccessTab({ tool, api, ws }: ToolTabProps) {
   return (

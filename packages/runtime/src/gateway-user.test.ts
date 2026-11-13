@@ -9,7 +9,7 @@ describe("readGatewayUser", () => {
     expect(readGatewayUser(raw)).toEqual({ ...person, subjects: ["everyone", "team:sales"] });
   });
 
-  it("reads the roles of a gateway from before D-136 as subjects", () => {
+  it("reads the roles of a gateway from before D-137 as subjects", () => {
     const raw = JSON.stringify({ ...person, roles: ["admin", "member"], access: { admin: {} } });
     expect(readGatewayUser(raw)).toEqual({
       ...person,

@@ -95,7 +95,7 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
   };
 
   return {
-    // ---- what each subject (everyone, a team) is given in the tool (D-127, D-136) and the per-action matrix
+    // ---- what each subject (everyone, a team) is given in the tool (D-127, D-137) and the per-action matrix
     /**
      * The manifest the matrix is read from: the version production serves, else the latest one
      * published. The profiles and actions are those of the code; the grants move who may call.

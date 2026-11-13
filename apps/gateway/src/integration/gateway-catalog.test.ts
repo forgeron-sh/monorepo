@@ -74,7 +74,7 @@ beforeAll(async () => {
   await registry.createTool({ workspace: "globex", name: "secret" });
 
   // A member who is in a team, and one who is in none (bob@acme.fr signs in with the domain).
-  // `everyone` is given the tool's default profile, `viewer` (D-127, D-136).
+  // `everyone` is given the tool's default profile, `viewer` (D-127, D-137).
   await registry.addMember({
     workspace: "acme",
     subject: "carol-subject",
@@ -129,7 +129,7 @@ describe("the catalog through the gateway", () => {
     }
   });
 
-  it("lists the tool as granted to a person in no team: everyone is given the default profile (D-136)", async () => {
+  it("lists the tool as granted to a person in no team: everyone is given the default profile (D-137)", async () => {
     const gateway = gatewayFor();
     const bob = await signInAs("bob@acme.fr");
     const answer = await gateway(at(API, { headers: { cookie: bob } }));

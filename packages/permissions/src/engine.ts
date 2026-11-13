@@ -1,4 +1,4 @@
-// The one engine of permissions (D-136): a catalog of atomic permissions, each of which may imply
+// The one engine of permissions (D-137): a catalog of atomic permissions, each of which may imply
 // others (`members:write` implies `members:read`), and the sets a subject is given. Everything that
 // decides "may this person do that" on the platform reads it; a tool's own access (profiles, the
 // matrix) is the same idea over the permissions the tool declares, in `@forgeron/manifest`.

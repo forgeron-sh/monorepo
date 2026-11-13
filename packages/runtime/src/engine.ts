@@ -170,7 +170,7 @@ export function createEngine(options: RuntimeOptions): Engine {
   const grants = (user: User): Set<string> => new Set(heldPermissions(user, manifest));
 
   // The one access check, for every interface: a subject may call an action if the console says so,
-  // else if the action's permission is among those the subject is given (D-136). The person may if
+  // else if the action's permission is among those the subject is given (D-137). The person may if
   // one of their subjects may.
   const mayCall = (user: User, name: string, level: string): boolean =>
     mayAccess(user, manifest.profiles, name, level);

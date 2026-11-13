@@ -1,7 +1,7 @@
 import { ALL, defineCatalog, expand, minimal, permissionNames } from "./engine";
 import { ADMIN_TEAM, DEVELOPER_TEAM } from "./subjects";
 
-// What a person may do on the platform itself (D-136): administer the workspace, its people and its
+// What a person may do on the platform itself (D-137): administer the workspace, its people and its
 // tools. Each permission is atomic; a write implies its read. A team is given some of them; a person
 // holds the union of their teams'. Using a tool is not here: a tool's own permissions and profiles
 // are given to subjects in the tool's Access tab (`@forgeron/manifest`).

@@ -10,7 +10,7 @@ import { RegistryError, type Team } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { platformRoute, type PlatformEnv } from "./app";
 
-// The workspace's teams (D-132, D-136): named groups of members and what each may do on Forgeron, read
+// The workspace's teams (D-132, D-137): named groups of members and what each may do on Forgeron, read
 // by anyone signed in and changed by who holds `teams:write`. A change of a team's members or
 // permissions is also limited to what the caller holds (anti-escalation): the registry checks it with
 // `actorPermissions` and says `FORBIDDEN`. A team is also a subject of the access matrix, `team:<id>`.

@@ -27,7 +27,7 @@ const audit = async () =>
 
 const admin = (id: string) => ({ actor: id, permissions: ["*"] });
 
-describe("members, invitations and domains (D-049, D-136)", () => {
+describe("members, invitations and domains (D-049, D-137)", () => {
   it("joins a member by email and audits it; two sign-ins at once make one member", async () => {
     const [a, b] = await Promise.all([
       registry.joinMember({

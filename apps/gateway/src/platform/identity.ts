@@ -25,7 +25,7 @@ const connectorType = /^[a-z][a-z0-9-]*$/;
 
 /**
  * Mapping a provider's group to a team puts its people in that team at their first sign-in, so it is a
- * grant of the team's permissions (anti-escalation, D-136): the caller must hold them. Returns what
+ * grant of the team's permissions (anti-escalation, D-137): the caller must hold them. Returns what
  * they lack, empty when they may.
  */
 async function lackedForGroups(

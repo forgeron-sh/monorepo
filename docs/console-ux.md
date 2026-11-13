@@ -15,7 +15,7 @@ rounded corners. References on Mobbin are linked so each screen can be looked at
    Settings, a tool's things are on the tool's page. A page exists in one place only; an address that
    moved redirects to the new one.
 2. **The sidebar is for navigation, not branding.** No product name, no repeated workspace name.
-3. **Everyone sees the same product, as far as their permissions go (D-136).** Everyone gets the member
+3. **Everyone sees the same product, as far as their permissions go (D-137).** Everyone gets the member
    space (below); a person who holds platform permissions gets the Administration pages and the
    workspace's settings those permissions open. A page a person may not use is not shown, never shown
    disabled; its address says which permission it needs. A write control is hidden or disabled without
@@ -80,7 +80,7 @@ owner's Linear clone (see "Where to look").
 
 ## Administration
 
-For people who hold platform permissions (D-128, D-136), at `/admin/...`. There is no Roles page: one
+For people who hold platform permissions (D-128, D-137), at `/admin/...`. There is no Roles page: one
 place for people (Members), one for groups and what they may do (Teams), one per tool for who uses it
 (its Access tab).
 
@@ -105,7 +105,7 @@ Developers. A team's page has:
 
 ## Tools
 
-The view of every tool (`/admin/tools`), in Administration, for people who hold `tools:read` (D-118, D-136).
+The view of every tool (`/admin/tools`), in Administration, for people who hold `tools:read` (D-118, D-137).
 
 ### List
 
@@ -191,7 +191,7 @@ cannot be read.
 
 1. _Profiles this tool suggests_: each profile with its label, its name, its permissions, and the
    default one marked.
-2. _Who uses this tool_ (D-136): a row for **Everyone**, then one per team, by name (never by id).
+2. _Who uses this tool_ (D-137): a row for **Everyone**, then one per team, by name (never by id).
    Everyone is the row a person in no team gets. A select gives the row _No access_, a profile (by its
    label), _Custom permissions_ (then a checkbox per permission of the tool) or _All permissions_; the
    permissions it ends up with are listed. A new tool arrives with Admins: all, Everyone: the default
@@ -340,7 +340,7 @@ The gateway refuses it too: `PUT /api/tools/{tool}/availability` and
 `nobody` while production, or the channel, has no version. Going back to a draft is always allowed.
 
 - **Draft** (`nobody`, or a channel with no rule yet), who reaches it whatever is published (the
-  registry's `reachesChannelAlways` and `isAvailable`, D-136): on **production**, who holds `access:write`
+  registry's `reachesChannelAlways` and `isAvailable`, D-137): on **production**, who holds `access:write`
   (it makes the tool addable); on **another channel**, who holds `tools:publish`, and on a branch's
   temporary channel (not `~<name>`) who holds `tools:read` too (D-125). `access:write` is not a way into a
   channel in draft. A tool installed from a marketplace and a new permanent channel start as drafts. The
@@ -421,7 +421,7 @@ access, subjects }`.
 
 - `title` is the config's `title` or the name; `summary` is the config's `description` or `""`.
 - `icon` is a URL or `null`; `productionVersion` is `null` before the first production deployment.
-- `access` is `granted` when what the person's teams and Everyone are given in the tool (D-127, D-136)
+- `access` is `granted` when what the person's teams and Everyone are given in the tool (D-127, D-137)
   and the admin's exceptions let them call at least one action, else `requestable`. `subjects` lists
   Everyone and the teams that may call at least one action, `{ subject, name, label }`, the name being
   the team's, the label saying what it is given (`Everyone (User)`, `Admins (all permissions)`).

@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.4.0](https://github.com/forgeron-sh/monorepo/compare/v0.3.1...v0.4.0) (2026-11-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* forgeron promote, POST /promote, POST /promote/plan, tool_promote and tool_promote_plan are removed; forgeron deploy has no --env and POST /deploy refuses environment production; a permanent channel refuses a build that is not a release (withoutRelease is gone).
+
+### Features
+
+* channels, permanent ones take only releases of their branch, no promotion (D-125) ([1174d32](https://github.com/forgeron-sh/monorepo/commit/1174d32089b9502ea5afb0f303cc6ed4e42387af))
+* console navigation in three places, everyone holds member (D-128) ([85846aa](https://github.com/forgeron-sh/monorepo/commit/85846aaaec7ed66d0dfabfbb8241259adf1635a2))
+* console navigation in three places, everyone holds member (D-128) ([028456f](https://github.com/forgeron-sh/monorepo/commit/028456f89448ea2f457497d41ec99ff252e25122))
+* **console:** floating get-started panel, tool page header with Open split button (D-130) ([d4cf0d0](https://github.com/forgeron-sh/monorepo/commit/d4cf0d0c92de6baed5c077fc9bd094a11bf554e0))
+* **console:** floating get-started panel, tool page header with Open split button (D-130) ([6908576](https://github.com/forgeron-sh/monorepo/commit/6908576fa9abe8879f84eeb3848e97fec92b6029))
+* **dev:** serve a tool's views in forgeron dev (D-130) ([21d52da](https://github.com/forgeron-sh/monorepo/commit/21d52dad652cd13fc307ee7fbcf4f80024eb0ed0))
+* **dev:** serve a tool's views in forgeron dev, built with a generated mount entry (D-130) ([f048fb2](https://github.com/forgeron-sh/monorepo/commit/f048fb2df1b70d31ba87405fd22f603715fde24a))
+* **gateway:** serve a tool's pages in production, so Open works (D-134) ([6b9f44b](https://github.com/forgeron-sh/monorepo/commit/6b9f44b4648624a85f7c5b5599a6b5ceb1ed999a))
+* **gateway:** serve a tool's pages in production, so Open works (D-134) ([b37e690](https://github.com/forgeron-sh/monorepo/commit/b37e69099b7455df5bb74e85d11264f479a3c4d5))
+* **manifest:** a build carries its contract, a platform refuses what it cannot run (D-136) ([83395dd](https://github.com/forgeron-sh/monorepo/commit/83395dd5d868f2a86962dc7ffa1542391861a0b2))
+* **manifest:** a build carries its contract, a platform refuses what it cannot run (D-136) ([6b0b609](https://github.com/forgeron-sh/monorepo/commit/6b0b609a9975b8b1cd676599a8470c22c466435c))
+* **platform:** member pictures, from the provider or chosen, given to tools that ask (D-133) ([1147f84](https://github.com/forgeron-sh/monorepo/commit/1147f848781ba1e396ee6033497d44ba0dd8a83c))
+* **platform:** member pictures, from the provider or chosen, given to tools that ask (D-133) ([2eb102d](https://github.com/forgeron-sh/monorepo/commit/2eb102d7a7acfa8705adaeb4aa6725a1cc24288d))
+* **platform:** teams, a subject of the access matrix and readable by tools (D-132) ([d205be9](https://github.com/forgeron-sh/monorepo/commit/d205be9ff58a3fe01268a4b582cd00933919c281))
+* **platform:** teams, a subject of the access matrix and readable by tools (D-132) ([f482dbd](https://github.com/forgeron-sh/monorepo/commit/f482dbd5fbe85b4fd794b0e81e07a00cb015ee06))
+* publish a channel from the tool page header, draft or published (D-129) ([eda5d4b](https://github.com/forgeron-sh/monorepo/commit/eda5d4b99c4fda6aeda73088865f4de49f3d8313))
+* publish a channel from the tool page header, draft or published (D-129) ([f0e48c9](https://github.com/forgeron-sh/monorepo/commit/f0e48c9cc391585ff3ce79c24f53b7056a0be36c))
+* realtime, channels a tool declares, published by actions and followed live (D-135) ([5723bab](https://github.com/forgeron-sh/monorepo/commit/5723babce7c5ab26aee45917152306467248b335))
+* realtime, channels a tool declares, published by actions and followed live (D-135) ([278e5af](https://github.com/forgeron-sh/monorepo/commit/278e5af0dcb9793c01b96e1a16f4c4a424e0891c))
+* **sdk:** ctx.directory, the workspace's people a tool asked for (D-131) ([1991bee](https://github.com/forgeron-sh/monorepo/commit/1991beedfb0e4ffb4ef1ce893e4be7895ecafb9f))
+* **sdk:** ctx.directory, the workspace's people a tool asked for (D-131) ([092dc65](https://github.com/forgeron-sh/monorepo/commit/092dc658c19cab4b2ca14135ef8dd2a23c5e4175))
+* serve a workspace on any host, with one primary origin per workspace (D-126) ([88b431a](https://github.com/forgeron-sh/monorepo/commit/88b431aa09fad2cd96c85e95df6e867d8561ad0d))
+* serve a workspace on any host, with one primary origin per workspace (D-126) ([caf9baa](https://github.com/forgeron-sh/monorepo/commit/caf9baa767c0a705b8ac69e6756010df0c3c0622))
+* tool profiles mapped to workspace roles, admin all and member default profile (D-127) ([526bbbb](https://github.com/forgeron-sh/monorepo/commit/526bbbbc73bf9ccb9f442c9fc55645c2afe41a44))
+* tool profiles mapped to workspace roles, admin all and member default profile (D-127) ([3553f22](https://github.com/forgeron-sh/monorepo/commit/3553f223f73c34cf878ba0f9bcf371a4e41460e4))
+
+
+### Bug Fixes
+
+* answer POST /promote/plan on the workspace origin, and let the dialog accept a refusal ([f1d7bcc](https://github.com/forgeron-sh/monorepo/commit/f1d7bccd860e2d8a25d19cebdb81e55c686f1879))
+* **console:** publish badge next to the tool name, black split button, link to my tools (D-129) ([ac73f18](https://github.com/forgeron-sh/monorepo/commit/ac73f18aad859faf3b748242d350a888fb0bb4dc))
+* **console:** publish badge next to the tool name, black split button, link to my tools (D-129) ([38766df](https://github.com/forgeron-sh/monorepo/commit/38766df4a58ab8952e785be2d46bebfe01c0e211))
+* **console:** tell an admin without a tool role how to give one, not to ask an admin (D-124) ([2aaa669](https://github.com/forgeron-sh/monorepo/commit/2aaa669a378dff815d36d40ed6892b62351487ad))
+* **hosting:** break the import cycle between local and local-views ([bc624f7](https://github.com/forgeron-sh/monorepo/commit/bc624f75e7faff8ea8751827d4960c50d03c82ff))
+* **hosting:** keep the view CSP private to the local views ([7c43850](https://github.com/forgeron-sh/monorepo/commit/7c438502a31103d9dc06f4ae86ef1061901c2652))
+* keep realtime constants private ([72c256a](https://github.com/forgeron-sh/monorepo/commit/72c256a580adcfa3643668b559f0eda0c916ac66))
+* keep two helpers private ([773a52d](https://github.com/forgeron-sh/monorepo/commit/773a52d9ab719e1bf668f7eb5f4388efe1e99dd4))
+* promote plan reachable from the console, and an admin's tool card (D-124) ([3ecfc8e](https://github.com/forgeron-sh/monorepo/commit/3ecfc8eff556106bcf9bfe0feaf714efa72a1454))
+* **runtime:** break the import cycle of realtime ([72d533e](https://github.com/forgeron-sh/monorepo/commit/72d533ed4492959a9f2bd010890e41569cee33db))
+* **sdk:** export the directory types ([1d344d4](https://github.com/forgeron-sh/monorepo/commit/1d344d4a6ae49a0ad880bec497169205fb25802d))
+
 ## [0.3.1](https://github.com/forgeron-sh/monorepo/compare/v0.3.0...v0.3.1) (2026-11-12)
 
 

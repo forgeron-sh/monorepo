@@ -5,7 +5,7 @@
 const MOVED: ReadonlyArray<readonly [from: string, to: string]> = [
   ["/members", "/admin/members"],
   ["/settings/members", "/admin/members"],
-  // The Roles and access page is gone (D-136): who may do what is in Teams.
+  // The Roles and access page is gone (D-137): who may do what is in Teams.
   ["/settings/roles", "/admin/teams"],
   ["/admin/roles", "/admin/teams"],
   ["/audit", "/settings/audit"],

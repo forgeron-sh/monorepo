@@ -35,7 +35,7 @@ const WorkspaceSchema = z.strictObject({
     name: z.string(),
     /** The ids of the teams the person is in; everyone is also part of `everyone`, which is not listed. */
     teams: z.array(z.string()),
-    /** What the person may do on the platform (D-136): the console decides with it. */
+    /** What the person may do on the platform (D-137): the console decides with it. */
     permissions: z.array(PlatformPermissionSchema),
     /** The picture the person shows and where it comes from (D-133); absent when they have none. */
     avatar: z.strictObject({ url: z.string(), source: z.enum(["custom", "provider"]) }).optional(),

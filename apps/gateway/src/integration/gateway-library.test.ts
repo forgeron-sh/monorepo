@@ -111,7 +111,7 @@ beforeAll(async () => {
         teams,
       })
     ).id;
-  // `everyone` is given the tools' default profile, `reader` (D-127, D-136).
+  // `everyone` is given the tools' default profile, `reader` (D-127, D-137).
   await registry.createTeam("acme", { id: "support", name: "Support" }, "bootstrap", ["*"]);
   ana = await member("ana", ["support"]);
   ben = await member("ben", []);

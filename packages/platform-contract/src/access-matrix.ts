@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
-// The Access tab of a tool (docs/sdk.md §3, D-039, D-127, D-136): what each subject (`everyone`, or a
+// The Access tab of a tool (docs/sdk.md §3, D-039, D-127, D-137): what each subject (`everyone`, or a
 // team as `team:<id>`) is given in the tool (a profile, a custom set of permissions, all of them, or
 // none) and the per-action exceptions. `action` is an action name or `view:<name>`; a change of
 // `null` gives the cell back to the grant.
@@ -112,7 +112,7 @@ export const putAccessMatrixRoute = defineRoute({
                 )
                 .max(MAX_ACCESS_CHANGES)
                 .optional(),
-              /** What subjects are given in the tool (D-127, D-136), applied before `changes`. */
+              /** What subjects are given in the tool (D-127, D-137), applied before `changes`. */
               grants: z
                 .array(z.object({ subject: z.string(), grant: ProfileGrantSchema }))
                 .max(MAX_GRANT_CHANGES)

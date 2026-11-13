@@ -220,7 +220,7 @@ describe("Tool card", () => {
     expect(view.querySelector(".fg-btn-primary")).toBeNull();
   });
 
-  it("sends a holder of access:write to the Access tab, never to ask someone (D-127, D-136)", async () => {
+  it("sends a holder of access:write to the Access tab, never to ask someone (D-127, D-137)", async () => {
     const view = await mount(
       <ToolOverview
         tool="inventory"

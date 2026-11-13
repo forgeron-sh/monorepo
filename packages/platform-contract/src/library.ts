@@ -49,7 +49,7 @@ export const listLibraryRoute = defineRoute({
 export const LibraryCardSchema = LibraryToolSchema.extend({
   /**
    * Whether the person's subjects (everyone, their teams) let them call at least one action of the
-   * tool (D-127, D-136). `false`: someone who holds `access:write` gives one of their teams a
+   * tool (D-127, D-137). `false`: someone who holds `access:write` gives one of their teams a
    * profile in the tool's Access tab; anyone else asks them.
    */
   allowed: z.boolean(),

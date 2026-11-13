@@ -8,9 +8,9 @@ vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 // An install from before D-127: tools whose roles shared the workspace's role names, an admin
 // matrix, and a tool with no version. The migration writes each tool's mapping so that everyone
 // keeps what they had, and adds the default mapping: an admin can call `echo` with no manual step.
-// Then D-136 turns the roles into subjects (`0042_teams_permissions`): the whole chain runs here,
+// Then D-137 turns the roles into subjects (`0042_teams_permissions`): the whole chain runs here,
 // and the assertions are on what is left, keyed by subject. The builds are stored with `roles`, as
-// they were: the migration of D-136 renames them to `profiles`.
+// they were: the migration of D-137 renames them to `profiles`.
 let memory: MemoryD1;
 let d1: D1Database;
 

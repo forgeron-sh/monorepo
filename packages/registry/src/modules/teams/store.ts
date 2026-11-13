@@ -85,7 +85,7 @@ export function createTeams(kernel: Kernel) {
   };
 
   const api = {
-    // ---- teams (D-132, D-136): named groups of the workspace's members, and what they may do
+    // ---- teams (D-132, D-137): named groups of the workspace's members, and what they may do
     /** Creates the built-in teams the workspace lacks (`admin`, `developer`); idempotent. */
     async ensureBuiltInTeams(workspace: string): Promise<void> {
       const have = new Set(
@@ -117,7 +117,7 @@ export function createTeams(kernel: Kernel) {
       );
     },
     /**
-     * The rule against escalation (D-136): the actor may give, or take away, only permissions they
+     * The rule against escalation (D-137): the actor may give, or take away, only permissions they
      * hold. `actorPermissions` are the platform permissions of the person who acts. Refused with
      * `FORBIDDEN`, naming what they lack.
      */

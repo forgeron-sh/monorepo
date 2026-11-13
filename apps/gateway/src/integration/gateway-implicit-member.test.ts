@@ -8,7 +8,7 @@ import { issueToken } from "../identity/authn/tokens";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// Every person is part of `everyone` (D-136): a person in no team gets what each tool gives `everyone`
+// Every person is part of `everyone` (D-137): a person in no team gets what each tool gives `everyone`
 // (the default profile), only on a tool they may add (its availability, D-117), and an admin's
 // exception on `everyone` still wins. The people and keys are test values; the tool is a stub that
 // records what the gateway forwards.
@@ -114,7 +114,7 @@ const call = async (tool: string) =>
     }),
   );
 
-describe("everyone is a subject of every person (D-136)", () => {
+describe("everyone is a subject of every person (D-137)", () => {
   it("gives a person in no team the profile `everyone` has on a tool they may add", async () => {
     expect((await registry.findMember("acme", cleo))?.teams).toEqual([]);
     expect((await consoleApi(cleo, "/api/library/crm", "POST")).status).toBe(200);

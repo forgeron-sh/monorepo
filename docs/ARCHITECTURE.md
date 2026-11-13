@@ -56,7 +56,7 @@ forgeron/
 │   ├── sdk/                # @forgeron/sdk: defineConfig, action, on, schedule; subpaths db, react, testing
 │   ├── runtime/            # @forgeron/runtime: runs a tool in its Worker, serves MCP / API / CLI / Web
 │   ├── compiler/           # @forgeron/compiler: forgeron build, migration generation and diff
-│   ├── permissions/        # @forgeron/permissions: subjects, teams and the atomic platform permissions, one engine (D-136)
+│   ├── permissions/        # @forgeron/permissions: subjects, teams and the atomic platform permissions, one engine (D-137)
 │   ├── manifest/           # @forgeron/manifest: manifest schema, version diff, semver impact
 │   ├── platform-contract/  # @forgeron/platform-contract: the platform API as route objects (zod), error body, typed client
 │   ├── hosting/            # @forgeron/hosting: deployment interface, cloud, self-host and local modes
@@ -88,7 +88,7 @@ Templates live in the repository for a specific reason: they are the **SDK's int
 | `@forgeron/sdk`               | `defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`; subpaths `/db`, `/react`, `/testing`                                                                    | neutral (SDK), workerd (testing)           | `runtime`, `manifest`   |
 | `@forgeron/runtime`           | Routing of the four interfaces, access control, `ctx` context, events, jobs                                                                                           | **workerd only**, no `node:*`              | `manifest`              |
 | `@forgeron/compiler`          | Tool discovery, Worker bundle, manifest, views, migrations, fingerprints                                                                                              | Node                                       | `manifest`              |
-| `@forgeron/permissions`       | Subjects (`everyone`, `team:<id>`), atomic platform permissions and their implications, anti-escalation (D-136)                                                       | neutral                                    | none                    |
+| `@forgeron/permissions`       | Subjects (`everyone`, `team:<id>`), atomic platform permissions and their implications, anti-escalation (D-137)                                                       | neutral                                    | none                    |
 | `@forgeron/manifest`          | Zod manifest schema, comparison of two manifests, minimum impact (`sdk.md` §16), a tool's access by subject                                                           | neutral                                    | `zod`, `permissions`    |
 | `@forgeron/platform-contract` | Route objects of the platform API (`defineRoute`), `ErrorSchema`, `createClient` (typed `fetch` client); read by the gateway, the console and the CLI (D-064, D-075)  | neutral, no HTTP library                   | `zod`, `manifest`       |
 | `@forgeron/hosting`           | Deployment interface and its three modes (see "Hosting modes")                                                                                                        | neutral (HTTP calls to the Cloudflare API) | `manifest`              |

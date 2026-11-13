@@ -36,11 +36,11 @@ describe("defineConfig", () => {
     );
   });
 
-  it("takes the profiles under `profiles`, and refuses `roles`, their former name (D-136)", () => {
+  it("takes the profiles under `profiles`, and refuses `roles`, their former name (D-137)", () => {
     const profiles = { user: { label: "User", grants: ["read"], default: true } };
     expect(defineConfig({ name: "crm", profiles }).profiles).toBe(profiles);
     expect(() => defineConfig({ name: "crm", roles: profiles } as never)).toThrow(
-      "`roles` is now `profiles` (D-136)",
+      "`roles` is now `profiles` (D-137)",
     );
     expect(() => defineConfig({ name: "crm", profiles: { u: { grants: ["Read"] } } })).toThrow(
       /pattern/,

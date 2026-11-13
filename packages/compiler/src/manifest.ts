@@ -1,4 +1,4 @@
-import { ManifestSchema, type Manifest } from "@forgeron/manifest";
+import { CURRENT_CONTRACT, ManifestSchema, type Manifest } from "@forgeron/manifest";
 import type { ToolConfig } from "@forgeron/sdk";
 import type { LoadedTool } from "./load";
 
@@ -22,6 +22,7 @@ export function buildManifest(
   loaded: LoadedTool,
   version: string,
   documentation: { docs?: Manifest["docs"]; icon?: string } = {},
+  sdkVersion?: string,
 ): Manifest {
   const { config } = loaded;
   // An `interfaces` object lists what is exposed; left out, everything but the web is.
@@ -136,6 +137,8 @@ export function buildManifest(
   const manifest = {
     name: config.name,
     version,
+    // What the build was made with (D-136): every platform checks it before reading the rest.
+    forgeron: { contract: CURRENT_CONTRACT, ...(sdkVersion ? { sdk: sdkVersion } : {}) },
     ...(config.title ? { title: config.title } : {}),
     ...(config.description ? { description: config.description } : {}),
     ...(config.summary ? { summary: config.summary } : {}),

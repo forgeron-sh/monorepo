@@ -11,7 +11,7 @@ import {
 import { ManifestSchema } from "./schema";
 import { minimal } from "./fixtures";
 
-// D-127, D-136: tool permissions, profiles and the grants of subjects.
+// D-127, D-137: tool permissions, profiles and the grants of subjects.
 const tool = {
   profiles: {
     manager: { label: "Manager", grants: ["read", "write"] },

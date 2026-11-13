@@ -4,7 +4,7 @@ import type { PlatformPermission } from "@forgeron/permissions";
 import { testPerson } from "../kernel/test-person";
 import { pilotAccess } from "./library";
 
-// Who reaches a channel other than production (D-125, D-129, D-136): who holds `tools:publish` always;
+// Who reaches a channel other than production (D-125, D-129, D-137): who holds `tools:publish` always;
 // who holds `tools:read` on a branch's temporary channel; a permanent channel in draft (`nobody`, or
 // no rule) is for who publishes alone, and once published, its people reach it after adding it,
 // whoever else they are.

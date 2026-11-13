@@ -21,7 +21,7 @@ describe("a tool's page in the person's library (D-118)", () => {
     expect(view.textContent).not.toMatch(/version|role|action|README|resource/i);
   });
 
-  it("tells a person none of whose teams uses the tool to ask someone who gives access (D-136)", async () => {
+  it("tells a person none of whose teams uses the tool to ask someone who gives access (D-137)", async () => {
     const { api } = fakeApi({ "/api/library/crm": { ...crm, allowed: false } });
     const member = await mount(<LibraryToolPage api={api} go={() => {}} tool="crm" />);
     expect(member.textContent).toContain("None of your teams uses this tool yet.");
@@ -31,7 +31,7 @@ describe("a tool's page in the person's library (D-118)", () => {
     expect(member.textContent).not.toMatch(/\brole/i);
   });
 
-  it("sends a holder of access:write to the Access tab, never to ask someone (D-127, D-136)", async () => {
+  it("sends a holder of access:write to the Access tab, never to ask someone (D-127, D-137)", async () => {
     const { api } = fakeApi({ "/api/library/crm": { ...crm, allowed: false } });
     const admin = await mount(<LibraryToolPage api={api} go={() => {}} tool="crm" givesAccess />);
     expect(admin.textContent).not.toMatch(/ask someone/i);

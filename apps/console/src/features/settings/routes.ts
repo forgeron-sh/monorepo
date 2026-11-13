@@ -3,7 +3,7 @@ import type { PageProps } from "../../shell/page-props";
 import type { LazyPage, RouteDef } from "../../shell/routes";
 
 // The settings area: Account for everyone, Workspace and Operations for whoever holds the permission
-// of each page (D-136). Members and teams are not settings: they are in the Administration section of
+// of each page (D-137). Members and teams are not settings: they are in the Administration section of
 // the sidebar (D-128).
 
 const adapt =

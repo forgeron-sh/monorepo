@@ -11,7 +11,7 @@ import { LoadError, Loading } from "../../../states";
 import { byTeam, loadTeams, teamSummary, type TeamRow } from "../../../teams";
 import { useLoad } from "../../../use-load";
 
-// The workspace's teams (D-132, D-136): named groups of people, and what each may do on Forgeron. A
+// The workspace's teams (D-132, D-137): named groups of people, and what each may do on Forgeron. A
 // team is also how a tool is shared (its Access tab names teams). Anyone signed in reads this list;
 // whoever holds `teams:write` creates and changes teams, within what they hold themselves.
 

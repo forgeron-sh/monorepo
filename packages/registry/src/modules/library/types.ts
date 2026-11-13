@@ -33,7 +33,7 @@ interface Person {
 }
 
 /**
- * Who reaches a channel other than production whatever its rule (D-125, D-129, D-136): a holder of
+ * Who reaches a channel other than production whatever its rule (D-125, D-129, D-137): a holder of
  * `tools:publish` always; a holder of `tools:read` on a branch's temporary channel only. A permanent
  * channel (`~<name>`) in draft is for those who publish alone: the others use it once it is
  * published to them, like anyone.

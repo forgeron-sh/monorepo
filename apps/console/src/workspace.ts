@@ -12,7 +12,7 @@ export interface WorkspaceInfo {
     id: string;
     email: string;
     name: string;
-    /** The ids of the teams the person is in (D-136); everyone is also part of `everyone`, not listed. */
+    /** The ids of the teams the person is in (D-137); everyone is also part of `everyone`, not listed. */
     teams: string[];
     /** What the person may do on the platform: every screen and control is decided with it (`can`). */
     permissions: PlatformPermission[];

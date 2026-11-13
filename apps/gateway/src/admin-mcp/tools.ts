@@ -33,7 +33,7 @@ import { z } from "zod";
 // validation and its audit lines apply), never the registry. A rule of `.dependency-cruiser.cjs`
 // keeps this folder from importing it.
 
-/** What a tool asks of the caller (D-136): any signed-in person, or one platform permission. */
+/** What a tool asks of the caller (D-137): any signed-in person, or one platform permission. */
 type Requires = PlatformPermission | "signed-in";
 
 /** What a tool may ask of the platform: one of its routes, answered as it would to the console. */
@@ -170,7 +170,7 @@ function grantOf(args: Target):
 
 /**
  * With an `action`, one cell of the matrix; without, what the subject is given in the tool as a whole
- * (D-127, D-136).
+ * (D-127, D-137).
  */
 async function setAccess(args: Target, port: PlatformPort, grant: boolean) {
   const mapping = args.profile !== undefined || args.permissions !== undefined || args.all;

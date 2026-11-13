@@ -11,7 +11,7 @@ const all = (extra: Partial<CatalogTool["interfaces"]> = {}) => ({
   ...extra,
 });
 
-/** What a card says of who may use the tool: a team by its name and what it is given (D-136). */
+/** What a card says of who may use the tool: a team by its name and what it is given (D-137). */
 const team = (id: string, label: string) => ({
   subject: `team:${id}`,
   name: id[0]!.toUpperCase() + id.slice(1),

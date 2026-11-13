@@ -1,4 +1,4 @@
-// Who is given something (D-136). There are no roles: a person is in teams, and every person of the
+// Who is given something (D-137). There are no roles: a person is in teams, and every person of the
 // workspace is part of `everyone`. A grant (a tool's profile, a platform permission, an exception of
 // the access matrix) names a subject; a person holds what any of their subjects holds.
 

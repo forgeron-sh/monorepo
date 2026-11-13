@@ -30,7 +30,7 @@ const members = {
   invitations: [],
   settings: { domains: [], defaultTeams: [] },
 };
-// Ada holds every permission, Cleo may see and build tools; Bob and Dan hold none (D-136).
+// Ada holds every permission, Cleo may see and build tools; Bob and Dan hold none (D-137).
 const teams = { teams: TEAMS };
 const rule = (mode: string, extra: Record<string, unknown> = {}) => ({
   mode,
@@ -255,7 +255,7 @@ describe("the publish control (D-129)", () => {
   });
 });
 
-describe("audience (D-136)", () => {
+describe("audience (D-137)", () => {
   const nobody = { mode: "nobody" as const, teams: [], people: [] };
   const ids = (list: Array<{ id: string }>) => list.map((m) => m.id);
   it("always has those who give access, and those who see tools on a branch only", () => {

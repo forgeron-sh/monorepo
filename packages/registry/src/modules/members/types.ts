@@ -8,7 +8,7 @@ export interface Member {
   subject: string;
   email: string;
   name: string;
-  /** The ids of the teams the person is in (D-136), by id. Everyone is also part of `everyone`, which is not stored. */
+  /** The ids of the teams the person is in (D-137), by id. Everyone is also part of `everyone`, which is not stored. */
   teams: string[];
   /** Which picture the person has: the one they chose, else their provider's; changes with it (D-133). */
   avatar?: { source: "custom" | "provider"; version: string };

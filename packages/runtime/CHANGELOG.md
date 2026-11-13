@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0](https://github.com/forgeron-sh/monorepo/compare/runtime-v0.3.1...runtime-v0.4.0) (2026-11-13)
+
+
+### Features
+
+* realtime, channels a tool declares, published by actions and followed live (D-135) ([5723bab](https://github.com/forgeron-sh/monorepo/commit/5723babce7c5ab26aee45917152306467248b335))
+* realtime, channels a tool declares, published by actions and followed live (D-135) ([278e5af](https://github.com/forgeron-sh/monorepo/commit/278e5af0dcb9793c01b96e1a16f4c4a424e0891c))
+* **sdk:** ctx.directory, the workspace's people a tool asked for (D-131) ([1991bee](https://github.com/forgeron-sh/monorepo/commit/1991beedfb0e4ffb4ef1ce893e4be7895ecafb9f))
+* **sdk:** ctx.directory, the workspace's people a tool asked for (D-131) ([092dc65](https://github.com/forgeron-sh/monorepo/commit/092dc658c19cab4b2ca14135ef8dd2a23c5e4175))
+* tool profiles mapped to workspace roles, admin all and member default profile (D-127) ([526bbbb](https://github.com/forgeron-sh/monorepo/commit/526bbbbc73bf9ccb9f442c9fc55645c2afe41a44))
+* tool profiles mapped to workspace roles, admin all and member default profile (D-127) ([3553f22](https://github.com/forgeron-sh/monorepo/commit/3553f223f73c34cf878ba0f9bcf371a4e41460e4))
+
+
+### Bug Fixes
+
+* keep realtime constants private ([72c256a](https://github.com/forgeron-sh/monorepo/commit/72c256a580adcfa3643668b559f0eda0c916ac66))
+* **runtime:** break the import cycle of realtime ([72d533e](https://github.com/forgeron-sh/monorepo/commit/72d533ed4492959a9f2bd010890e41569cee33db))
+
 ## [0.3.1](https://github.com/forgeron-sh/monorepo/compare/runtime-v0.3.0...runtime-v0.3.1) (2026-11-12)
 
 

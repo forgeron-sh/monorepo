@@ -226,7 +226,7 @@ export function LibraryToolPage({
           </Notice>
         ) : null}
         {c.installed && !c.allowed ? (
-          // What a team may do in a tool is the Access tab's (D-127, D-136): whoever gives access sets it there.
+          // What a team may do in a tool is the Access tab's (D-127, D-137): whoever gives access sets it there.
           <Notice tone="info" title="None of your teams uses this tool yet.">
             {givesAccess ? (
               <>

@@ -790,7 +790,7 @@ describe("forgeron dev", () => {
     await done;
   }, 90_000);
 
-  it("refuses a name that is neither a profile nor `all`, naming the choices (D-136)", async () => {
+  it("refuses a name that is neither a profile nor `all`, naming the choices (D-137)", async () => {
     const dir = await work("dev-bad-profile");
     const c = capture(dir);
     expect(await run(["dev", "--port", "0", "--as", "boss"], c.io)).toBe(2);

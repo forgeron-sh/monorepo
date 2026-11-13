@@ -194,7 +194,7 @@ export async function handleUserSecrets(
 }
 
 /**
- * What the gateway tells a tool's Worker about the person, in `x-forgeron-user` (the wire of D-136):
+ * What the gateway tells a tool's Worker about the person, in `x-forgeron-user` (the wire of D-137):
  * the subjects, and what each is given in the tool (`permissions`, `access`).
  */
 export function wireUser(
@@ -210,7 +210,7 @@ export function wireUser(
     name: person.name,
     subjects: person.subjects,
     ...(matrix ? { access: matrix.access, permissions: matrix.permissions } : {}),
-    // legacy (D-136): a runtime built before D-136 reads the same subjects as `roles`, and `access`
+    // legacy (D-137): a runtime built before D-137 reads the same subjects as `roles`, and `access`
     // and `permissions` keyed by them, which read the same way.
     roles: person.subjects,
   };
@@ -292,7 +292,7 @@ export async function forwardIdentity(
   }
   // What each of the person's subjects (`everyone`, their teams) is given in this tool, and the matrix
   // resolved for each action, read at each call so an edit applies at once on every interface (D-039,
-  // D-127, D-136).
+  // D-127, D-137).
   const teams = who.person.teams;
   const { access, permissions } = record
     ? await context.registry.accessFor(record.id, who.person.subjects)

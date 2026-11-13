@@ -4,6 +4,7 @@
 // platform builds nothing: the body is the build CI already made. Each deployment lands in the
 // environment's history (who, when, which version) through `deployBuild`.
 import type { Build, DeployOptions, Hosting } from "@forgeron/hosting";
+import { checkContract } from "@forgeron/manifest";
 import {
   closePreview,
   deployBuild,
@@ -304,6 +305,11 @@ export async function handleDeploy(request: Request, context: DeployContext): Pr
   if (manifestName !== caller.tool) {
     return fail(403, "FORBIDDEN", `This token is for "${caller.tool}", not "${manifestName}".`);
   }
+
+  // A tool made for a newer platform, or for a contract that is gone, is refused with its reason (D-136),
+  // before anything reads the manifest closely: its shape may be one this gateway does not know.
+  const contract = checkContract(uploaded.manifest);
+  if (!contract.ok) return fail(422, "INCOMPATIBLE", contract.message);
 
   // The views are served on the workspace origin: names and sizes are checked here too (D-134).
   const views = viewsProblem(uploaded.views);

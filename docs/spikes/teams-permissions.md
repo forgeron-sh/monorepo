@@ -1,6 +1,6 @@
-# Teams and permissions, no roles (D-136) — implementation spec
+# Teams and permissions, no roles (D-137) — implementation spec
 
-This is the brief every implementation step follows. The decision itself is recorded as D-136 in
+This is the brief every implementation step follows. The decision itself is recorded as D-137 in
 [`DECISIONS.md`](../DECISIONS.md); this file is the detailed shape.
 
 ## Why
@@ -27,7 +27,7 @@ team may do is a set of **atomic permissions**, decided by **one engine**.
 
 The words "role", "roles", `ADMIN_ROLE`, `MEMBER_ROLE`, `workspaceRoles`, `teamRole`, `team-<id>`,
 `minRole`, `defaultRole`, `groupRoles` disappear from the code, the API, the UI and the docs. Only
-two places may still read the old shapes, each in one named function with a comment `legacy (D-136)`:
+two places may still read the old shapes, each in one named function with a comment `legacy (D-137)`:
 the manifest parser (stored builds) and the header the gateway sends to a tool's Worker (runtimes
 already deployed). ARIA `role="…"` attributes are unrelated and stay.
 
@@ -90,15 +90,15 @@ Admin team's permissions cannot be changed (409, `locked`).
   `--as <profile>` path, which now passes the profile's permissions directly (see CLI).
 - `schema.ts`: the manifest key for profiles becomes **`profiles`** (`ProfileSchema`, type `Profile`;
   remove `RoleSchema`/`Role`). `parseManifest`/`ManifestSchema` reads a stored build with `roles` by
-  renaming it to `profiles` before validation (`legacy (D-136)`). `resources.directory.roles` is
+  renaming it to `profiles` before validation (`legacy (D-137)`). `resources.directory.roles` is
   removed (a stored `roles: true` is dropped by the same legacy step). Directory members lose `roles`.
 - `catalog.ts`, `diff.ts` (profile changes are `profile.*` entries), `fixtures.ts`, tests: follow.
 - Runtime `types.ts` `RequestUser`: `subjects: string[]`, `access`, `permissions` (by subject); no
-  `roles`. Reading the request: accept `roles` from an old gateway as `subjects` (`legacy (D-136)`).
+  `roles`. Reading the request: accept `roles` from an old gateway as `subjects` (`legacy (D-137)`).
   `engine.ts`: `mayAccess(user, manifest.profiles, …)`. `directory.ts`: no roles.
 - SDK: `ctx.user.roles` removed; `ctx.user.can(permission)` stays; `ctx.user.teams` stays (only with
   `directory.teams`). `config.ts`: `profiles` only; `roles` refused with a clear error ("`roles` is now
-  `profiles` (D-136)"). `directory()` loses `roles`. Testing: `createTestTool({ as })` identity takes
+  `profiles` (D-137)"). `directory()` loses `roles`. Testing: `createTestTool({ as })` identity takes
   `{ id?, email?, name?, teams?, profile?, permissions? }` — `profile` gives that profile's grants,
   `permissions` gives exactly those, neither gives the default grants for `everyone` + `teams`
   (with `team:admin` → all). `roles` in `as` is a type error.
@@ -110,9 +110,9 @@ Admin team's permissions cannot be changed (409, `locked`).
 ## The wire to a tool's Worker (gateway → runtime)
 
 The gateway forwards `subjects` (`subjectsOf(person.teams)`), `permissions` by subject and `access`
-resolved by subject. For runtimes built before D-136 it also sends the same subjects under `roles`
+resolved by subject. For runtimes built before D-137 it also sends the same subjects under `roles`
 and `access` keyed by them (old `mayAccess` then gives the same answer). One function builds it, with
-the `legacy (D-136)` comment.
+the `legacy (D-137)` comment.
 
 ## Registry (D1) — migration `00NN_teams_permissions` (next number), one-way
 
@@ -202,8 +202,8 @@ tool for who uses it (Access tab). No "Roles" anywhere.
 
 ## Docs
 
-D-136 in `DECISIONS.md` (Replaces D-127's roles, D-128 §5, D-132 §2; status lines of those updated
-"Replaced in part by D-136"). `sdk.md` (Access, `ctx.user`, testing, CLI), `console-ux.md`,
+D-137 in `DECISIONS.md` (Replaces D-127's roles, D-128 §5, D-132 §2; status lines of those updated
+"Replaced in part by D-137"). `sdk.md` (Access, `ctx.user`, testing, CLI), `console-ux.md`,
 `self-host.md`, `lifecycle.md`, `ARCHITECTURE.md` (new package), READMEs, the CHANGELOG is left to
 release-please.
 

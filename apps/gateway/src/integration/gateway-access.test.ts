@@ -7,7 +7,7 @@ import { ISSUER, simulatedProvider } from "../simulated-idp";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// The access of a tool through the gateway (FOR-43, D-039, D-127, D-136): someone who holds
+// The access of a tool through the gateway (FOR-43, D-039, D-127, D-137): someone who holds
 // `access:write` gives subjects (everyone, a team) a profile of the tool and sets exceptions on the console API, the next call to the tool carries the
 // result in `x-forgeron-user`, a client cannot write that header, and every edit is in the audit log.
 
@@ -202,7 +202,7 @@ describe("the access matrix through the gateway", () => {
     await putBobIn("viewers");
     const none = { "deals.list": false, "deals.move": false, "view:board": false };
 
-    // `team:viewers` has no grant in the tool: being in it gives nothing (D-127, D-136). Bob also
+    // `team:viewers` has no grant in the tool: being in it gives nothing (D-127, D-137). Bob also
     // belongs to `everyone`, which the tool gives its default profile.
     const asEveryone = { ...none, "deals.list": true };
     seen.length = 0;
@@ -211,7 +211,7 @@ describe("the access matrix through the gateway", () => {
       subjects: ["everyone", "team:viewers"],
       permissions: { everyone: ["read"], "team:viewers": [] },
       access: { everyone: asEveryone, "team:viewers": none },
-      // legacy (D-136): a runtime built before D-136 reads the subjects as `roles`.
+      // legacy (D-137): a runtime built before D-137 reads the subjects as `roles`.
       roles: ["everyone", "team:viewers"],
     });
 

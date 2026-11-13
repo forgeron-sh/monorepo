@@ -4,7 +4,7 @@ import { Badge, Button, Checkbox, Notice, Select, Table, type TableColumn } from
 import { useEffect, useState } from "react";
 import { Loading } from "./states";
 
-// Who may use a tool (D-127, D-136), changed without a new version (docs/sdk.md section 3). The tool
+// Who may use a tool (D-127, D-137), changed without a new version (docs/sdk.md section 3). The tool
 // suggests profiles (named sets of its permissions); each subject (Everyone, then each team by name)
 // is given a profile, a custom set of permissions, all of them, or nothing. Below, the per-action
 // exceptions: a cell shows what applies, and one that differs from what the subject's grant says (its

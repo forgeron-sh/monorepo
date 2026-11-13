@@ -11,7 +11,7 @@ import { audienceOf, parseAudience } from "./audience";
 // audience-bound token (issued for this workspace) gives the person, their teams and what they may do
 // on the platform; anything else, a deployment token included, gives nobody. Teams and permissions are
 // read now, never frozen in the credential. Every person is part of `everyone` on top of their teams
-// (D-136): `subjectsOf` is the one place it is added, so tools, the catalog, the library and the
+// (D-137): `subjectsOf` is the one place it is added, so tools, the catalog, the library and the
 // console all see the same subjects.
 
 /** The scope of a CLI token (D-028): good on the platform's routes, refused by every tool. */

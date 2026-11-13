@@ -8,7 +8,7 @@ import { TOOLS, ToolRefusal, type PlatformPort, type ToolDefinition } from "./to
 // (`person`), and their permissions are read from them: no tool takes a person to act as. The
 // permission a tool requires is checked here, before the call, and again by the platform's own guard
 // when the tool calls the route, so a tool listed wrongly still cannot do more than the console lets
-// the person do (D-136).
+// the person do (D-137).
 
 const VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 export interface AdminMcpContext {

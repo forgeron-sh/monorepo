@@ -14,7 +14,7 @@ import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 // The people of the workspace and how they get in (D-049). Every change is audited by the registry, in
 // the same batch as the write. A member is never told apart from another by anything but their teams;
 // `admin` is never a default team. Putting a person in a team gives them its permissions, so a change
-// of teams (or an invitation, or a default team) is limited to what the caller holds (D-136): the
+// of teams (or an invitation, or a default team) is limited to what the caller holds (D-137): the
 // registry checks it with `actorPermissions` and says `FORBIDDEN`.
 
 const INVITATION_DAYS = 14;

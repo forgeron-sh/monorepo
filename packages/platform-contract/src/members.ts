@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
-// The people of the workspace and how they get in (D-049, D-136). Every change is audited by the
+// The people of the workspace and how they get in (D-049, D-137). Every change is audited by the
 // registry, in the same batch as the write. A member is never told apart from another by anything but
 // their teams; `admin` is never a default team. Adding a person to a team, or taking them out, is
 // limited to what the caller holds themselves: they may only change a team whose permissions they

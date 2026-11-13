@@ -91,7 +91,7 @@ const user = (subjects: string[], rest: Partial<User> = {}): User => ({
   subjects,
   ...rest,
 });
-// A person with the permissions the gateway gave each of their subjects (D-136).
+// A person with the permissions the gateway gave each of their subjects (D-137).
 const given = (permissions: Record<string, string[]>): User =>
   user(Object.keys(permissions), { permissions });
 const reader = given({ everyone: ["read"] });
@@ -111,7 +111,7 @@ const people: Record<string, User> = {
     ...support,
     access: { "team:support": { "tickets.reply": false }, everyone: { "tickets.reply": true } },
   },
-  // D-136: what the gateway gave the person's subjects in this tool.
+  // D-137: what the gateway gave the person's subjects in this tool.
   mappedSupport: given({ everyone: [], "team:sales": ["read", "write"] }),
   // A team named like a profile, given nothing: the name gives nothing.
   unmappedReader: given({ everyone: [], "team:reader": [] }),
@@ -176,7 +176,7 @@ async function attempt(as: string, via: "mcp" | "api" | "web", name: string): Pr
   return ran;
 }
 
-describe("the permissions given to subjects in the tool (D-136)", () => {
+describe("the permissions given to subjects in the tool (D-137)", () => {
   it("reads the permissions the gateway gave, on every interface", async () => {
     for (const via of ["mcp", "api", "web"] as const) {
       expect(await attempt("mappedSupport", via, "tickets.reply")).toBe(true);

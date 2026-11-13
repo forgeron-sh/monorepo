@@ -79,7 +79,7 @@ export function ToolCardView({
       ) : null}
 
       {!granted && can(ws.person, "access:write") ? (
-        // Whoever gives access does it in the tool's Access tab (D-127, D-136): never "ask someone".
+        // Whoever gives access does it in the tool's Access tab (D-127, D-137): never "ask someone".
         <Notice tone="info" title="None of your teams uses this tool yet.">
           Who may use this tool is set in its <a href="?tab=access">Access</a> tab: give Everyone,
           or one of your teams, a profile there.

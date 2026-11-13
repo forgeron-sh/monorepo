@@ -71,13 +71,13 @@ describe("the tool page", () => {
     expect(page.querySelector(".ft-branch-pick, .ft-branch-pick-label")).toBeNull();
   });
 
-  it("shows a person with no permission none of the administration tabs, the secrets included (D-118, D-136)", async () => {
+  it("shows a person with no permission none of the administration tabs, the secrets included (D-118, D-137)", async () => {
     const page = await mount(
       <ToolPage name="crm" {...pageProps(toolsApi(routes).api, { permissions: [] })} />,
     );
     await flushLazy();
     expect(tabLabels(page)).toEqual([]);
-    // Sharing a channel is for whoever holds tools:publish (D-129, D-136).
+    // Sharing a channel is for whoever holds tools:publish (D-129, D-137).
     expect(page.querySelector(".ft-publish")).toBeNull();
   });
 
@@ -157,7 +157,7 @@ describe("the tool page", () => {
   });
 });
 
-// The header's actions (D-136): "Open in my tools" and "View on GitHub" moved into the chevron of the
+// The header's actions (D-137): "Open in my tools" and "View on GitHub" moved into the chevron of the
 // publish button, with "Unpublish" and "Delete tool…"; whoever may not publish has a small menu.
 
 const SOURCE = {

@@ -1,4 +1,4 @@
-import { ManifestSchema } from "@forgeron/manifest";
+import { CURRENT_CONTRACT, ManifestSchema } from "@forgeron/manifest";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -63,6 +63,12 @@ describe("buildTool", () => {
 
   it("writes a manifest that validates", async () => {
     expect(ManifestSchema.safeParse(await json("manifest.json")).success).toBe(true);
+  });
+
+  it("stamps the contract and the SDK it was made with (D-136)", async () => {
+    const { forgeron } = await json("manifest.json");
+    expect(forgeron.contract).toBe(CURRENT_CONTRACT);
+    expect(forgeron.sdk).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it("names actions after their path, and ignores files starting with an underscore", async () => {

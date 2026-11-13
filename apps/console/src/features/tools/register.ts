@@ -2,7 +2,7 @@ import { registerToolTab } from "./tabs";
 
 // The tabs this feature provides. Other features register theirs the same way (Architecture,
 // Database, Overview): each tab's code loads when it is first opened. `requires` is the platform
-// permission that opens the tab (D-136).
+// permission that opens the tab (D-137).
 
 registerToolTab({
   id: "branches",

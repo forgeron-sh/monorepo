@@ -18,7 +18,7 @@ import {
 import { useLoad } from "../../../use-load";
 import { explicitOf, TeamPermissions } from "../team-permissions";
 
-// One team (D-136): its name, who is in it, and what it may do on Forgeron. Read by anyone signed
+// One team (D-137): its name, who is in it, and what it may do on Forgeron. Read by anyone signed
 // in; changed by whoever holds `teams:write`, within what they hold themselves (the platform checks
 // it again). The tools a team uses are in each tool's Access tab: there is no cheap list of them.
 

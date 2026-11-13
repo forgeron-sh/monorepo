@@ -51,7 +51,7 @@ module.exports = {
       to: { path: "^packages/(?!permissions/)" },
     },
     {
-      // The manifest reaches the permissions engine and nothing else (D-136).
+      // The manifest reaches the permissions engine and nothing else (D-137).
       name: "manifest-is-a-leaf",
       severity: "error",
       from: { path: "^packages/manifest/" },

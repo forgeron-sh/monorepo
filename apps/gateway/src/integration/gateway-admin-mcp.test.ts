@@ -562,7 +562,7 @@ describe("what the tools change goes through the console's path, audited via the
     ).toMatch(/^400 INVALID/);
   });
 
-  it("gives a team a profile of a tool, and nothing (D-127, D-136)", async () => {
+  it("gives a team a profile of a tool, and nothing (D-127, D-137)", async () => {
     const granted = await call(root, "access_grant", {
       tool: "crm",
       subject: "team:developer",

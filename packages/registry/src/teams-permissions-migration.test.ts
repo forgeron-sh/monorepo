@@ -5,7 +5,7 @@ import { createRegistry, platformMigrations } from "./index";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// An install from before D-136: people with workspace roles (`admin`, `member`, `developer`, a typed
+// An install from before D-137: people with workspace roles (`admin`, `member`, `developer`, a typed
 // one, and a D-132 team named `team-product` in the access matrix), invitations, the membership
 // settings, the groups of both identity providers, what the tools give to roles, and who may add a
 // tool. `0042_teams_permissions` turns every role into a team or `everyone` and every row follows.

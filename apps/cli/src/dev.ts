@@ -26,7 +26,7 @@ export interface DevOptions {
   port?: number;
   /** Run as a person given only this profile of the tool (or `all`: every permission), to see what they would see. */
   as?: string;
-  /** The teams of the person who runs, instead of those of the directory (D-136). */
+  /** The teams of the person who runs, instead of those of the directory (D-137). */
   teams?: string[];
   /** Run as this person of `.forgeron/local/directory.json` (D-131). */
   user?: string;
@@ -79,7 +79,7 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
   async function deploy(): Promise<{ name: string; url: string }> {
     const { outDir } = await buildTool(dir);
     const build = await builtFiles(outDir);
-    // `--as` is a profile of the tool, or `all` (D-136).
+    // `--as` is a profile of the tool, or `all` (D-137).
     if (as && as !== "all" && !(as in build.manifest.profiles)) {
       const known = [...Object.keys(build.manifest.profiles), "all"];
       throw new UsageError(

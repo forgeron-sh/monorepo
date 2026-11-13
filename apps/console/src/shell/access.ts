@@ -2,7 +2,7 @@ import { holds, PLATFORM, type PlatformPermission } from "@forgeron/permissions"
 import type { WorkspaceInfo } from "../workspace";
 
 /**
- * Who may see a route (D-136): `signed-in` is any person; otherwise a platform permission the person
+ * Who may see a route (D-137): `signed-in` is any person; otherwise a platform permission the person
  * holds through their teams. A person who may not see a route never sees it in a menu: the screen
  * itself still says why when they type the address.
  */
@@ -10,7 +10,7 @@ export type Access = "signed-in" | PlatformPermission;
 
 type Person = WorkspaceInfo["person"];
 
-/** Whether the person holds the permission: the one place the console asks (D-136). */
+/** Whether the person holds the permission: the one place the console asks (D-137). */
 export const can = (person: Pick<Person, "permissions">, permission: PlatformPermission): boolean =>
   holds(PLATFORM, person.permissions, permission);
 

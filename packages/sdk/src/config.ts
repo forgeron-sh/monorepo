@@ -49,7 +49,7 @@ export interface ToolConfig {
    * gives access picks a profile for everyone and for each team in the tool's Access tab.
    */
   profiles?: Manifest["profiles"];
-  /** Refused since D-136: it is `profiles` now. */
+  /** Refused since D-137: it is `profiles` now. */
   roles?: never;
   /** Everything the tool asks of the platform: what is not declared does not exist at runtime. */
   resources?: Resources;
@@ -73,7 +73,7 @@ export function defineConfig(config: ToolConfig): ToolConfig {
   ToolNameSchema.parse(config.name);
   for (const tool of Object.keys(config.uses ?? {})) ToolNameSchema.parse(tool);
   if ((config as { roles?: unknown }).roles !== undefined) {
-    throw new Error("`roles` is now `profiles` (D-136): rename the key.");
+    throw new Error("`roles` is now `profiles` (D-137): rename the key.");
   }
   const profiles = config.profiles ?? {};
   for (const profile of Object.values(profiles)) {

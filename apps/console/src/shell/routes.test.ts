@@ -62,7 +62,7 @@ describe("the route table", () => {
       ["/admin/members", "Members"],
       ["/admin/teams", "Teams"],
     ]);
-    // Administration is guarded by a platform permission (D-136); Teams is read by anyone signed in.
+    // Administration is guarded by a platform permission (D-137); Teams is read by anyone signed in.
     for (const route of routes.filter((r) => r.path.startsWith("/admin/"))) {
       expect(route.access === "signed-in" || route.access.includes(":")).toBe(true);
       expect(route.settings).toBeUndefined();
@@ -117,7 +117,7 @@ describe("movedTo (D-128)", () => {
   });
 });
 
-describe("canSee (D-136)", () => {
+describe("canSee (D-137)", () => {
   const person = (permissions: PlatformPermission[]) => ({ permissions });
   it("lets anyone signed in see a signed-in route, and a permission its holders", () => {
     expect(canSee("signed-in", person([]))).toBe(true);

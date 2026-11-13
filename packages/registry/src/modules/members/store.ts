@@ -100,7 +100,7 @@ export function createMembers(kernel: Kernel, teams: TeamsPort) {
       return Number(row?.seats ?? 0);
     },
 
-    // ---- members (D-027): the people of a workspace and their teams (D-136)
+    // ---- members (D-027): the people of a workspace and their teams (D-137)
     async findMember(workspace: string, id: string): Promise<Member | undefined> {
       const row = await first(
         `SELECT * FROM "members" WHERE "workspace" = ? AND "id" = ?`,

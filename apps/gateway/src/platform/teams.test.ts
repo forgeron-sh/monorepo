@@ -8,7 +8,7 @@ import { platformCaller } from "./test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// The common answers of the teams routes (D-132, D-136), then what they do: who holds `teams:write` creates,
+// The common answers of the teams routes (D-132, D-137), then what they do: who holds `teams:write` creates,
 // renames and deletes, within what they hold; anyone signed in reads.
 
 let memory: MemoryD1;

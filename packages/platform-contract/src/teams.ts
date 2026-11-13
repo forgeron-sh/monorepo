@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
-// The workspace's teams (D-132, D-136): named groups of members, and what each may do on Forgeron.
+// The workspace's teams (D-132, D-137): named groups of members, and what each may do on Forgeron.
 // Anyone signed in reads them (a tool's directory shows them too); who holds `teams:write` changes
 // them, within what they hold themselves (anti-escalation: `FORBIDDEN`). Each change is audited by
 // the registry. `admin` and `developer` are built into every workspace: they cannot be deleted,

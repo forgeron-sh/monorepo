@@ -28,7 +28,7 @@ const NAMED_ROLES = [
   `SELECT j."value" AS "role" FROM "channel_access" a, ${ELEMENTS('a."subjects"')} j WHERE a."mode" = 'roles' AND j."type" = 'text'`,
 ];
 
-// legacy (D-136): the one step that reads the roles of an install made before teams and permissions.
+// legacy (D-137): the one step that reads the roles of an install made before teams and permissions.
 // Frozen like every migration: its SQL is a snapshot, it imports nothing (the built-in teams and the
 // developer's permissions are written out), and `docs/spikes/teams-permissions.md` says what it does.
 const teamsPermissions: BuildMigration = {

@@ -33,7 +33,7 @@ export const CatalogToolSchema = z.strictObject({
   interfaces: z.record(InterfaceSchema, z.boolean()),
   access: CatalogAccessSchema,
   /**
-   * The subjects that may call at least one action (D-136): `subject` is `everyone` or `team:<id>`,
+   * The subjects that may call at least one action (D-137): `subject` is `everyone` or `team:<id>`,
    * `name` what to show ("Everyone", the team's name), `label` what the subject is given.
    */
   subjects: z.array(z.strictObject({ subject: text, name: text, label: text })),

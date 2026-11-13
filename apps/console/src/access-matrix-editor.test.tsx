@@ -90,7 +90,7 @@ describe("AccessMatrixEditor", () => {
     expect(fetchJson).toHaveBeenCalledTimes(2);
   });
 
-  it("lists Everyone then each team by name, drafts what one is given, and saves it (D-127, D-136)", async () => {
+  it("lists Everyone then each team by name, drafts what one is given, and saves it (D-127, D-137)", async () => {
     const withProfiles = {
       ...served,
       subjects: ["everyone", "team:admin", "team:support"],

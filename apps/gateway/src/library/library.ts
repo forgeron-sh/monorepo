@@ -75,7 +75,7 @@ export const setupPath = (tool: string) =>
 
 /**
  * May this person reach a channel other than production? Whoever holds `tools:publish` always may,
- * and whoever holds `tools:read` on a branch's temporary channel (sdk.md §7, D-129, D-136); anyone
+ * and whoever holds `tools:read` on a branch's temporary channel (sdk.md §7, D-129, D-137); anyone
  * else only when the channel was published to them and they added it to their library.
  */
 export async function pilotAccess(

@@ -10,7 +10,7 @@ export interface User {
   name: string;
   /** The person's picture, an address, when the workspace has one (D-131). */
   avatar?: string;
-  /** Who the person is for access (D-136): `everyone`, and `team:<id>` for each of their teams. */
+  /** Who the person is for access (D-137): `everyone`, and `team:<id>` for each of their teams. */
   subjects: string[];
   /** The ids of the teams the person belongs to (D-132); only with `resources.directory.teams`. */
   teams?: string[];
@@ -21,7 +21,7 @@ export interface User {
    */
   access?: Record<string, Record<string, boolean>>;
   /**
-   * The tool permissions each of the person's subjects is given in the console (D-136). Without it
+   * The tool permissions each of the person's subjects is given in the console (D-137). Without it
    * (`forgeron dev`, tests), a subject is read with the default grants: `team:admin` holds every
    * permission and `everyone` the default profile.
    */

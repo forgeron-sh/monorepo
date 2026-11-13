@@ -246,7 +246,7 @@ describe("the kind of a per-person secret (D-105)", () => {
   );
 });
 
-describe("a manifest stored before D-136", () => {
+describe("a manifest stored before D-137", () => {
   it("reads `roles` as `profiles`", () => {
     const { profiles, ...rest } = crm;
     expect(ManifestSchema.parse({ ...rest, roles: profiles })).toEqual(crm);

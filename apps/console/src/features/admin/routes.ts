@@ -2,7 +2,7 @@ import { createElement, type ComponentType } from "react";
 import type { PageProps } from "../../shell/page-props";
 import type { LazyPage, RouteDef } from "../../shell/routes";
 
-// The people side of the Administration section (D-128, D-136): who is in the workspace, and the
+// The people side of the Administration section (D-128, D-137): who is in the workspace, and the
 // teams: what each may do on Forgeron. The tools and the marketplaces add their own entries to the
 // same section.
 

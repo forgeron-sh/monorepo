@@ -1,6 +1,6 @@
 // The catalog of a workspace (docs/console-ux.md, "Catalog API", D-061): every tool that has a version,
 // with whether the person may call it. A tool nobody may use is listed too: the card says which
-// teams open it (D-127, D-136). The version shown is the one production serves, else the latest published; for
+// teams open it (D-127, D-137). The version shown is the one production serves, else the latest published; for
 // a branch (D-120), the one its preview serves.
 import { EVERYONE } from "@forgeron/permissions";
 import {
@@ -63,7 +63,7 @@ async function describe(
 ): Promise<{ entry: CatalogTool; allowed: Map<string, boolean> }> {
   const { manifest } = s;
   const profiles = manifest.profiles ?? {};
-  // The same check as the runtime's, with what the gateway would forward (D-127, D-136): the
+  // The same check as the runtime's, with what the gateway would forward (D-127, D-137): the
   // person's subjects, each given permissions of this tool, and the per-action exceptions.
   const grants = await registry.accessGrants(s.tool.id, manifest);
   const overrides = await registry.accessExceptions(s.tool.id);

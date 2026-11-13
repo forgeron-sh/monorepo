@@ -22,7 +22,7 @@ export interface ServePlaygroundOptions {
   person: Person | undefined;
   /** The matrix resolved for the person's subjects (`registry.accessFor`). */
   access?: AccessOverrides;
-  /** The permissions each of the person's subjects is given (`registry.accessFor`, D-127, D-136). */
+  /** The permissions each of the person's subjects is given (`registry.accessFor`, D-127, D-137). */
   permissions?: SubjectPermissions;
 }
 

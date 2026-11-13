@@ -25,7 +25,7 @@ export interface ConsolePerson {
   email: string;
   name: string;
   teams: string[];
-  /** What the person may do on the platform, from their teams (D-136). */
+  /** What the person may do on the platform, from their teams (D-137). */
   permissions: PlatformPermission[];
 }
 
@@ -105,7 +105,7 @@ export interface PlatformBindings {
 
 export type PlatformEnv = { Bindings: PlatformBindings; Variables: { person: ConsolePerson } };
 
-/** What a route asks of the caller: any signed-in person, or one platform permission (D-136). */
+/** What a route asks of the caller: any signed-in person, or one platform permission (D-137). */
 export type Requires = PlatformPermission | "signed-in";
 
 /** The 403 message of a route that says nothing of its own: the permission it needs, by its label. */

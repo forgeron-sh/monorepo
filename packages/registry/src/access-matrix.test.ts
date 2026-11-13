@@ -61,7 +61,7 @@ const publish = (fingerprint: string, version: string, branch: string) =>
     actor: "ely",
   });
 
-describe("what subjects are given in a tool (D-127, D-136)", () => {
+describe("what subjects are given in a tool (D-127, D-137)", () => {
   it("gives a new tool its default grants: the admin team all, everyone the default profile", async () => {
     await publish("fp1", "1.0.0", "a");
     expect(await registry.accessGrants(tool.id)).toEqual({

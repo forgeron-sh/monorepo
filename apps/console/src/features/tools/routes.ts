@@ -3,7 +3,7 @@ import type { RouteDef } from "../../shell/routes";
 import "./register";
 
 // The tools' routes, collected by the shell's route table: the admin's view of every tool of the
-// workspace, in the Administration section (D-128), for whoever holds `tools:read` (D-136). Importing `./register` here puts this
+// workspace, in the Administration section (D-128), for whoever holds `tools:read` (D-137). Importing `./register` here puts this
 // feature's tabs in the tab registry as soon as the table is built.
 const routes: RouteDef[] = [
   {

@@ -42,7 +42,7 @@ export const whoamiRoute = defineRoute({
         email: z.string(),
         name: z.string().optional(),
         teams: z.array(z.string()),
-        /** What the person may do on the platform (D-136), as `/api/workspace` tells it. */
+        /** What the person may do on the platform (D-137), as `/api/workspace` tells it. */
         permissions: z.array(z.string()),
         workspace: z.string(),
       }),

@@ -300,6 +300,10 @@ export const RealtimeSchema = z.strictObject({
 const ManifestShape = z.strictObject({
   name: ToolNameSchema,
   version: z.string().regex(SEMVER),
+  /** What the build was made with (D-136); a manifest without it was made before contracts. */
+  forgeron: z
+    .strictObject({ contract: z.number().int().min(1), sdk: z.string().min(1).max(64).optional() })
+    .optional(),
   title: text.optional(),
   description: text.optional(),
   /** One sentence for the people who use the tool, with no technical term (D-115). */
@@ -326,12 +330,12 @@ const ManifestShape = z.strictObject({
 });
 
 /**
- * A build stored before D-136 keeps its profiles under `roles` and may ask for the directory's
+ * A build stored before D-137 keeps its profiles under `roles` and may ask for the directory's
  * `roles`. Both are rewritten here, before validation: `roles` becomes `profiles`, and the
  * directory flag is dropped.
  */
 function readLegacy(input: unknown): unknown {
-  // legacy (D-136)
+  // legacy (D-137)
   if (typeof input !== "object" || input === null || Array.isArray(input)) return input;
   const manifest: Record<string, unknown> = { ...input };
   if ("roles" in manifest) {

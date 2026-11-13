@@ -82,7 +82,7 @@ export interface DevWho {
 }
 
 /**
- * The developer as `--user` names them (D-136). Their teams are `--team`, else those of the directory;
+ * The developer as `--user` names them (D-137). Their teams are `--team`, else those of the directory;
  * without `--user` the developer is also in the admin team, so they may do everything, as before the
  * directory existed. `--as <profile>` gives exactly that profile's permissions, `--as all` every
  * permission of the tool; without `--as` the default grants apply to their subjects.

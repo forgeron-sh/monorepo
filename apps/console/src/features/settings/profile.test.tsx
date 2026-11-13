@@ -74,7 +74,7 @@ describe("Profile picture (D-133)", () => {
   });
 });
 
-describe("Profile teams (D-136)", () => {
+describe("Profile teams (D-137)", () => {
   it("shows the person's teams by name, read-only, and no role", async () => {
     const { api } = fakeApi({
       "/api/teams": {

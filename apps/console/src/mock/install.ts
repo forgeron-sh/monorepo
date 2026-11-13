@@ -2,7 +2,7 @@
 // console route answers from a small state that the writes change. Names, addresses and values are
 // made up; there is no secret in it. Pick a scenario with `?mock=`:
 //   ready (default) · fresh (nothing done yet) · member (in the developer team, not the admin one) ·
-//   person (in no team: what everyone is given, D-136) · signedout · error · slow
+//   person (in no team: what everyone is given, D-137) · signedout · error · slow
 
 import {
   ADMIN_TEAM,
@@ -61,7 +61,7 @@ export async function installMock(): Promise<void> {
           { id: "m2", email: "bob@acme.example", name: "bob" },
           { id: "m3", email: "claire@acme.example", name: "claire" },
         ]) as Array<{ id: string; email: string; name: string }>,
-    // The built-in teams are in every workspace (D-136); the others are the workspace's own. Who is
+    // The built-in teams are in every workspace (D-137); the others are the workspace's own. Who is
     // in a team is kept here, and each person's teams are read from it.
     teams: [
       ...BUILT_IN_TEAMS.map((t) => ({
@@ -266,7 +266,7 @@ export async function installMock(): Promise<void> {
 
   const toolsMock = createToolsMock(state.endpoint, iso);
   const marketplacesMock = createMarketplacesMock(() => new Date());
-  // D-127, D-136: the tool's profiles, what Everyone and each team are given, and the matrix that
+  // D-127, D-137: the tool's profiles, what Everyone and each team are given, and the matrix that
   // follows. Everyone first, then the teams by name.
   const teamsOfPerson = (id: string) => state.teams.filter((t) => t.members.includes(id));
   const matrix = (tool: string): Json => {
@@ -334,7 +334,7 @@ export async function installMock(): Promise<void> {
     const path = platformRoute ? url.pathname : url.pathname.slice("/console-api".length);
     const method = (init?.method ?? "GET").toUpperCase();
     const body: Json = init?.body ? JSON.parse(String(init.body)) : {};
-    // What the person may do (D-136): the permissions of their teams.
+    // What the person may do (D-137): the permissions of their teams.
     const myTeams = teamsOfPerson(state.me.id);
     const mine = expand(
       PLATFORM,
@@ -751,7 +751,7 @@ export async function installMock(): Promise<void> {
         : undefined;
       return reply(200, { avatar: state.avatar ?? null });
     }
-    // Teams (D-132, D-136): named groups of members, and what each may do on Forgeron.
+    // Teams (D-132, D-137): named groups of members, and what each may do on Forgeron.
     const teamView = (t: (typeof state.teams)[number]) => ({
       ...t,
       effective: effectiveOf(t.permissions),
@@ -772,7 +772,7 @@ export async function installMock(): Promise<void> {
           })),
         })),
       });
-    // Giving what you do not hold is refused (D-136).
+    // Giving what you do not hold is refused (D-137).
     const mayGive = (permissions: readonly string[]) => {
       const missing = missingToGrant(PLATFORM, mine, permissions);
       return missing.length === 0

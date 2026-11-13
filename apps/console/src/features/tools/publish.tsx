@@ -28,7 +28,7 @@ import { useLoad } from "../../use-load";
 // Who may use a channel of the tool, at the right of its header (D-129), in place of the old
 // Availability tab. Two states: **Draft**, the rule `nobody` (or no rule on a channel), for the people
 // who give access (and, on a branch's temporary channel, those who see tools, D-125); **Published**, to
-// everyone, to some teams, or to some people (D-136). Production's rule is who may add the tool to
+// everyone, to some teams, or to some people (D-137). Production's rule is who may add the tool to
 // their library (D-117); another channel's is who may add that channel as a tool of its own (D-119,
 // D-125). Published to everyone is every person of the workspace. What each person may do in the tool
 // stays the Access tab's. Publishing needs a version to publish: while the channel has none (the CI
@@ -76,7 +76,7 @@ const isBranch = (branch?: string) => branch !== undefined && !branch.startsWith
 
 /**
  * Who always reaches the channel, whatever is published, as the registry says it (`reachesChannelAlways`,
- * `isAvailable`, D-136): production is the tool people add to their library, which whoever gives access
+ * `isAvailable`, D-137): production is the tool people add to their library, which whoever gives access
  * (`access:write`) may always do; every other channel is reached by whoever publishes (`tools:publish`)
  * and, on a branch's temporary channel, by whoever sees tools (`tools:read`).
  */
@@ -90,7 +90,7 @@ const alwaysLabel = (branch?: string) =>
 /**
  * The people who would reach the channel under a rule: those who always do (see `alwaysLabel`), and
  * those it names. Once a rule is set on a channel other than production, whoever gives access passes
- * it too, as `mayUseChannel` lets `isAvailable` decide (D-136).
+ * it too, as `mayUseChannel` lets `isAvailable` decide (D-137).
  */
 export function audience(
   rule: Sharing,

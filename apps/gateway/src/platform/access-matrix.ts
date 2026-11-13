@@ -9,7 +9,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
 // The Access tab of a tool, for who holds `access:read` / `access:write` (docs/sdk.md §3, D-039, D-127,
-// D-136): what each subject (`everyone`, a team) is given in the tool, and the per-action exceptions. A change is written to the audit log by the
+// D-137): what each subject (`everyone`, a team) is given in the tool, and the per-action exceptions. A change is written to the audit log by the
 // registry and takes effect on the next call, on every interface.
 
 const missing = (name: string) => ({ error: "NOT_FOUND", message: `There is no tool ${name}.` });

@@ -8,7 +8,7 @@ import {
 } from "@forgeron/permissions";
 import { ok, typedClient, type FetchJson } from "./api";
 
-// The workspace's teams and the catalog of what a team may be given on Forgeron (D-136). A person is
+// The workspace's teams and the catalog of what a team may be given on Forgeron (D-137). A person is
 // in any number of teams; what they may do on the platform is the union of their teams'.
 
 export interface TeamRow {

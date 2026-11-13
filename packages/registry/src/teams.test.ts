@@ -23,7 +23,7 @@ beforeAll(async () => {
 });
 afterAll(() => memory.close());
 
-describe("teams (D-132, D-136)", () => {
+describe("teams (D-132, D-137)", () => {
   it("are named groups of the workspace's members, and only of its members", async () => {
     const team = await registry.createTeam(
       "acme",

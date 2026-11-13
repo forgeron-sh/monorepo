@@ -18,7 +18,7 @@ interface ProfileInfo {
 }
 
 /**
- * The Access tab of a tool (D-127, D-136): its profiles and permissions, what each subject (everyone
+ * The Access tab of a tool (D-127, D-137): its profiles and permissions, what each subject (everyone
  * and the teams) is given, and for each of them, for each action, whether it may call it.
  */
 export interface AccessMatrix {

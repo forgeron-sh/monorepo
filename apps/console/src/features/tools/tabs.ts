@@ -23,7 +23,7 @@ export interface ToolTab {
   /** Unique; also the tab's address fragment. */
   id: string;
   title: string;
-  /** Not shown, and not loaded, for a person who does not hold it: `signed-in` or a platform permission (D-136). */
+  /** Not shown, and not loaded, for a person who does not hold it: `signed-in` or a platform permission (D-137). */
   requires: Access;
   /**
    * `"branch"`: what it shows follows the branch chosen in the header (D-120). `"tool"`: the same for

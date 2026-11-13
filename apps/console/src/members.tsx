@@ -22,7 +22,7 @@ import { loadTeams, type TeamRow } from "./teams";
 import { useLoad } from "./use-load";
 import type { WorkspaceInfo } from "./workspace";
 
-// The people of the workspace and how they get in (D-049, D-136): who is a member and in which teams,
+// The people of the workspace and how they get in (D-049, D-137): who is a member and in which teams,
 // who is invited, and which email domains join by themselves. The platform checks the permission
 // of whoever asks (and that they hold what a team gives) and audits every change; this screen only
 // draws what it answers.
