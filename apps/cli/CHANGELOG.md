@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/forgeron-sh/monorepo/compare/forgeron-v0.5.0...forgeron-v0.6.0) (2026-11-13)
+
+
+### Features
+
+* **cli:** releases carry the built platform, the install records its database (D-138) ([04daf43](https://github.com/forgeron-sh/monorepo/commit/04daf4314b1e80ea0552573297a54fc4fb0703d8))
+* update the platform from the console, with a restore point (D-138) ([8d85099](https://github.com/forgeron-sh/monorepo/commit/8d8509939e902a02a85cd418aa1269dd7c06100a))
+
 ## [0.5.0](https://github.com/forgeron-sh/monorepo/compare/forgeron-v0.4.0...forgeron-v0.5.0) (2026-11-13)
 
 
