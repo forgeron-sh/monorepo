@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.2](https://github.com/forgeron-sh/monorepo/compare/v0.7.1...v0.7.2) (2026-11-13)
+
+
+### Bug Fixes
+
+* **hosting:** a tool's D1 is created in the platform's region (D-141) ([47b3965](https://github.com/forgeron-sh/monorepo/commit/47b39650dade50605a32aea5719c2def7288e5ce))
+* **hosting:** a tool's D1 is created in the platform's region (D-141) ([c95e2bf](https://github.com/forgeron-sh/monorepo/commit/c95e2bf7583711a6dbc9ade386a3d93b1444ba0c))
+
 ## [0.7.1](https://github.com/forgeron-sh/monorepo/compare/v0.7.0...v0.7.1) (2026-11-13)
 
 
