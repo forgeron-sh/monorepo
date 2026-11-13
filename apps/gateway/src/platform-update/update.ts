@@ -123,9 +123,12 @@ function blockedByInstall(env: GatewayEnv): UpdateBlocked | undefined {
   return undefined;
 }
 
-/** The command that puts the database back to its restore point. */
-export const restoreCommand = (database: string, bookmark: string) =>
-  `wrangler d1 time-travel restore ${database} --bookmark ${bookmark}`;
+/**
+ * The command that puts the database back to its restore point. wrangler names a database, not its
+ * id: the install names it after the gateway, `<name>-platform` beside `<name>-gateway`.
+ */
+export const restoreCommand = (worker: string, bookmark: string) =>
+  `wrangler d1 time-travel restore ${worker.replace(/-gateway$/, "")}-platform --bookmark ${bookmark}`;
 
 const reason = (error: unknown) =>
   error instanceof Error && error.message ? error.message : "Something went wrong.";
@@ -154,7 +157,7 @@ export function createPlatformUpdates(options: UpdateOptions) {
       ...(run.finishedAt ? { finishedAt: run.finishedAt } : {}),
       ...(run.error ? { error: run.error } : {}),
       ...(run.state === "failed" && run.bookmark && touched && env.PLATFORM_D1_ID
-        ? { restoreCommand: restoreCommand(env.PLATFORM_D1_ID, run.bookmark) }
+        ? { restoreCommand: restoreCommand(String(env.GATEWAY_WORKER), run.bookmark) }
         : {}),
     };
   };

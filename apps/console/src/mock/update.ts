@@ -56,7 +56,7 @@ export function createUpdateMock(search: string) {
             error:
               "Cloudflare refused the new version (simulated). The database may already have changed: restore it to the restore point to go back.",
             restoreCommand:
-              "wrangler d1 time-travel restore db-simulated --bookmark 00000085-0000f3a5-simulated",
+              "wrangler d1 time-travel restore forgeron-platform --bookmark 00000085-0000f3a5-simulated",
           }
         : {}),
     };

@@ -529,7 +529,7 @@ describe("updating", () => {
   });
 
   it("says what was done and how to restore when the deployment fails after the migrations", async () => {
-    const { update, cloudflare, platformId } = await setup();
+    const { update, cloudflare } = await setup();
     // Cloudflare refuses the new version: the Worker is gone from the account.
     cloudflare.workers.delete("forgeron-gateway");
     const started = await update.start("0.6.0", "p1");
@@ -538,9 +538,11 @@ describe("updating", () => {
     expect(run?.steps.map((s) => s.state)).toEqual(["done", "done", "done", "done", "failed"]);
     expect(run?.error).toMatch(/restore/);
     expect(run?.restoreCommand).toBe(
-      `wrangler d1 time-travel restore ${platformId} --bookmark 00000001-bookmark`,
+      `wrangler d1 time-travel restore forgeron-platform --bookmark 00000001-bookmark`,
     );
-    expect(restoreCommand("db", "bm")).toBe("wrangler d1 time-travel restore db --bookmark bm");
+    expect(restoreCommand("forgeron-gateway", "bm")).toBe(
+      "wrangler d1 time-travel restore forgeron-platform --bookmark bm",
+    );
     // The migrations did run, which is why the restore command is given.
     expect(await applied()).toContain("0099_next_release");
     // The failure is on record and in the audit log, and it is what the state says afterwards.

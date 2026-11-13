@@ -104,7 +104,7 @@ What it does, in this order, and records each step in the platform D1 and in the
 When it is done the console says so and offers **Reload**: the console itself changed. If a step fails the panel names it and says what was done. A failure after step 3 means the database may already have changed; the panel then gives the command that puts it back to the restore point, which you run on a computer signed in to the Cloudflare account:
 
 ```sh
-wrangler d1 time-travel restore <database> --bookmark <bookmark>
+wrangler d1 time-travel restore <name>-platform --bookmark <bookmark>
 ```
 
 A restore also drops what was written to the database since the restore point. It does not roll the gateway's code back: if the new version is deployed and misbehaves, redeploy the previous one from Cloudflare's deployments, or install the earlier release with `forgeron platform install`.
