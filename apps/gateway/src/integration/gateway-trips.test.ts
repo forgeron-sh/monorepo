@@ -99,7 +99,10 @@ describe("the trips of a call to a tool (D-146)", () => {
     // Without the batches, each statement was its own trip: here the person and the tool are read in one, then
     // everything the forwarding needs in another. The seat and the usage, written after the answer, are not told.
     expect(first.statements).toBeGreaterThan(15);
-    expect(first.trips).toBe(2);
+    // The person's reads wait for the check of their cookie (crypto): when it ends after the tool's reads left,
+    // they go in a batch of their own, side by side with it, not after it.
+    expect(first.trips).toBeGreaterThanOrEqual(2);
+    expect(first.trips).toBeLessThanOrEqual(3);
     await Promise.all(later);
     const warm = tripsOf(await call());
     // The person's secrets, never kept; the rest is in the memory, checked less than a second ago.
