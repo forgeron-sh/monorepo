@@ -80,7 +80,7 @@ async function requestApprovals(
   }
 }
 
-/** A permanent channel waits for an admin; a preview does not. */
+/** A permanent channel waits for an approval (`tools:approve`); a preview does not. */
 async function assertApproved(
   registry: Registry,
   environment: RegisteredEnvironment,
@@ -91,7 +91,7 @@ async function assertApproved(
   if (waiting.length > 0) {
     throw new RegistryError(
       "PENDING_APPROVAL",
-      `${environment} waits for an admin to approve: ${waiting.map((a) => a.resource).join(", ")}.`,
+      `${environment} waits for someone who approves resources: ${waiting.map((a) => a.resource).join(", ")}.`,
     );
   }
 }

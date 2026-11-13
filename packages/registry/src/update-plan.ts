@@ -140,7 +140,7 @@ export async function planUpdate(
       conflicts.push({
         code: "PENDING_APPROVAL",
         subject: waiting.resource,
-        message: `${waiting.resource} waits for an admin to approve it with the update.`,
+        message: `${waiting.resource} waits for someone who approves resources to approve it with the update.`,
       });
     }
   }
@@ -234,7 +234,7 @@ const ADVICE: Record<PlanConflictCode, string> = {
   CHANGELOG_IMPACT_TOO_LOW:
     "Declare an impact at least as high as the one detected from the manifest in the change entries (`forgeron change --bump ...`), then release and push again.",
   PENDING_APPROVAL:
-    "This release asks for resources production does not have. An administrator approves them with the update (console, Channels, or the admin MCP `tool_update` with approve); this is a human decision.",
+    "This release asks for resources production does not have. Someone who holds `tools:approve` approves them with the update (console, Channels, or the admin MCP `tool_update` with approve); this is a human decision.",
   NO_ARTIFACT:
     "The registry holds this build without its code. Push the branch again so that CI deploys it and the code is recorded.",
 };
@@ -273,7 +273,7 @@ export function updatePrompt(plan: UpdatePlan): string {
   }
   lines.push(
     "",
-    "Useful commands (you are signed in with `forgeron login` as an administrator):",
+    "Useful commands (you are signed in with `forgeron login` as someone who holds `tools:publish` and `tools:approve`):",
     `- forgeron db status ${env}   what the channel's database has applied`,
     `- forgeron db shell ${env} --sql "SELECT ..."   read the channel's data (reads only unless I say otherwise)`,
     "- forgeron db generate   write a new migration from the schema",

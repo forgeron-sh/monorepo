@@ -104,7 +104,7 @@ describe("forgeron deploy", () => {
       body: {
         channels: [
           { channel: "production", version: "1.2.0" },
-          { channel: "staging", waiting: "staging waits for an admin to approve: x." },
+          { channel: "staging", waiting: "staging waits for someone who approves resources: x." },
         ],
       },
     };

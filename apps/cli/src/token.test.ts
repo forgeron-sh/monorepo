@@ -120,11 +120,13 @@ describe("forgeron token create", () => {
   it("shows what the workspace refused, and exits 1", async () => {
     answer = {
       status: 403,
-      body: { error: { message: "Only an administrator can create a deployment token." } },
+      body: {
+        error: { message: "You need the permission “Build tools” to create a deployment token." },
+      },
     };
     const { io, errors } = await setup();
     expect(await run(create, io)).toBe(1);
-    expect(errors).toEqual(["Only an administrator can create a deployment token."]);
+    expect(errors).toEqual(["You need the permission “Build tools” to create a deployment token."]);
   });
 
   it("is a wrong use without a name, with another scope, or with a bad lifetime", async () => {

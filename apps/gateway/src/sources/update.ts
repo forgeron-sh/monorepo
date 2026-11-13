@@ -189,7 +189,7 @@ export async function updateChannel(
 
 /**
  * The update goes by itself when the channel says so (`autoUpdate`) and nothing stops it: no approval
- * to give, migrations that apply. Otherwise it waits for an admin, and the reason is returned. Never
+ * to give, migrations that apply. Otherwise it waits for an update by a person, and the reason is returned. Never
  * throws: a deployment or a sync does not fail because of it.
  */
 export async function updateByItself(
