@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.4](https://github.com/forgeron-sh/monorepo/compare/v0.8.3...v0.8.4) (2026-11-13)
+
+
+### Performance Improvements
+
+* **gateway:** a call's reads go to D1 in one batch, its memory checked by a generation ([247e2da](https://github.com/forgeron-sh/monorepo/commit/247e2da6747890244b65e31166c2a40ca6339fe4))
+* **gateway:** a call's reads go to D1 in one batch, its memory checked by a generation ([26a16b1](https://github.com/forgeron-sh/monorepo/commit/26a16b1d91d98b7bb6e470c74a7c968c77727af6))
+
 ## [0.8.3](https://github.com/forgeron-sh/monorepo/compare/v0.8.2...v0.8.3) (2026-11-13)
 
 
