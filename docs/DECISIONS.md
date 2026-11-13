@@ -128,6 +128,7 @@ Rules of the log:
 | D-127 | 12/11/2026 | Tools declare permissions and suggest profiles; the workspace owns its roles and maps them to each tool (admin: all, member: default profile)                                                                | Active                                        |
 | D-128 | 12/11/2026 | The console's navigation: the person's space, Administration, Settings, one place per page; everyone holds `member`                                                                                          | Active                                        |
 | D-129 | 12/11/2026 | A channel is a draft (admins only) or published (everyone, roles, people), set in the tool page's header                                                                                                     | Active                                        |
+| D-130 | 12/11/2026 | `forgeron dev` serves a tool's views; the build generates one mount entry per view, with a single React                                                                                                      | Active                                        |
 
 ---
 
@@ -1695,3 +1696,15 @@ Rules of the log:
 - **Not done**: the contract and the audit lines keep the word availability and the rule's four modes; neither the CLI nor the admin MCP sets the rule (unchanged); a person outside the rule who added a channel keeps it in their library, refused at the call, as before.
 - **Breaking for**: a developer who used a permanent channel without being given it: an admin publishes it to `developer` to keep that.
 - **Applied in**: `packages/registry/src/modules/library/{types,public}.ts`, `registry.ts`, `index.ts`; `apps/gateway/src/library/library.ts` (and `library.test.ts`), `compose.ts`; `apps/console/src/features/tools/{publish,register,tools.css}.ts(x)`, `pages/tool-page.tsx`, `tabs/update-panel.tsx`, `features/marketplace/pages/tool-sheet.tsx`, `mock/install.ts`; `docs/console-ux.md`, `lifecycle.md`, `sdk.md`.
+
+## D-130 — `forgeron dev` serves a tool's views; the build generates one mount entry per view
+
+- **Date**: 12/11/2026 · **Status**: Active · Completes D-016 (what it listed as not done: the mount script) and D-082 (CORS on `/_f/call`) for the local mode
+- **Decision**:
+  1. **The build mounts the view.** Each view is built from a generated entry that imports the view, reads the page's `#forgeron-bootstrap` JSON and renders `ViewHost` with `createHttpRuntime`. The view, the hooks and React are in one bundle, so there is one copy of React (a view built apart from its host crashed on `useState`). The default export of `views/<name>.js` is still the `defineView` object.
+  2. **The local host plays the gateway's part.** In `forgeron dev`, `GET <view path>` answers the page with the sandbox CSP (D-016), the access level checked first, the bootstrap with the developer's identity, and `/_f/views/<file>` serves the built files. `/_f/call` answers `OPTIONS` and carries CORS headers: a sandboxed page has an opaque origin, so its calls are cross-origin. The dev command prints a `Web` line per view.
+  3. **No token locally**: the Worker trusts its host, which sets the identity (as before for the API).
+- **Why**: a view could be built but never seen: `forgeron dev` listed MCP, API and CLI only, and the platform's gateway does not serve views yet. A developer could not try a page.
+- **Rejected**: a separate views origin (D-082); serving the files from the Worker (it holds no static assets); dropping the sandbox in dev (the page would work here and fail on the platform).
+- **Not done**: the platform's gateway still does not serve views (`serveView` is not wired into the dispatcher); the 15-minute token is not renewed; CSS is not bundled (a view carries its own `<style>`); the built-in browser of the desktop app refuses a document served with `CSP: sandbox`, so a test there goes through a proxy that drops that header.
+- **Applied in**: `packages/compiler/src/build.ts`; `packages/hosting/src/{local,local-views}.ts`; `apps/cli/src/{dev.ts,commands/dev.ts}`.

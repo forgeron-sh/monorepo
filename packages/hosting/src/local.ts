@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { Miniflare } from "miniflare";
 import { applyMigrations, type D1Database } from "./migrate";
+import { corsHeaders, isViewCall, serveLocalView } from "./local-views";
 import {
   bindingsOf,
   environmentKey,
@@ -32,6 +33,8 @@ export interface LocalHostingOptions {
   host?: string;
   /** Where the databases, KV and R2 of the environment are kept on disk. In memory by default. */
   persist?: string;
+  /** Reads a built file of the tool's views (`views/<name>.js`); without it no view is served. */
+  viewFile?: (file: string) => Promise<Buffer | undefined>;
 }
 
 export interface LocalHosting extends Hosting {
@@ -53,6 +56,7 @@ interface Running {
   server?: Server;
   /** Of the build being served: the server outlives a build. */
   identity: string;
+  manifest: Manifest;
 }
 
 async function readBody(request: IncomingMessage): Promise<Buffer | undefined> {
@@ -104,6 +108,7 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
     const created: Running = {
       miniflare,
       identity: JSON.stringify(identityOf(uploaded.build.manifest)),
+      manifest: uploaded.build.manifest,
     };
     running.set(key, created);
     return created;
@@ -136,6 +141,7 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
       // A new build replaces the worker that is running; its database stays.
       if (before) await current.miniflare.setOptions(miniflareOptions(uploaded));
       current.identity = JSON.stringify(identityOf(uploaded.build.manifest));
+      current.manifest = uploaded.build.manifest;
 
       if (!current.server) {
         const server = createServer(async (incoming, outgoing) => {
@@ -147,12 +153,36 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
             }
             // Whatever the caller sent, the identity is the developer's.
             headers["x-forgeron-user"] = current.identity;
+            const pathname = new URL(incoming.url ?? "/", "http://local").pathname;
+            // A view's page runs in a sandbox with an opaque origin: its calls are cross-origin.
+            if (incoming.method === "OPTIONS" && isViewCall(pathname)) {
+              outgoing.writeHead(204, corsHeaders);
+              outgoing.end();
+              return;
+            }
+            if (options.viewFile) {
+              const view = await serveLocalView(
+                incoming.method ?? "GET",
+                pathname,
+                current.manifest,
+                JSON.parse(current.identity) as LocalUser,
+                options.viewFile,
+              );
+              if (view) {
+                outgoing.writeHead(view.status, view.headers);
+                outgoing.end(view.body);
+                return;
+              }
+            }
             const body = await readBody(incoming);
             const response = await current.miniflare.dispatchFetch(
               `http://${incoming.headers.host ?? "localhost"}${incoming.url ?? "/"}`,
               { method: incoming.method ?? "GET", headers, ...(body ? { body } : {}) },
             );
-            outgoing.writeHead(response.status, Object.fromEntries(response.headers));
+            outgoing.writeHead(response.status, {
+              ...Object.fromEntries(response.headers),
+              ...(isViewCall(pathname) ? corsHeaders : {}),
+            });
             outgoing.end(Buffer.from(await response.arrayBuffer()));
           } catch (error) {
             outgoing.writeHead(500, { "content-type": "application/json" });

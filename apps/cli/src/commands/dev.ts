@@ -33,6 +33,9 @@ export async function dev(args: string[], io: Io): Promise<number> {
   io.log(`  MCP  ${session.url}/mcp`);
   io.log(`  API  ${session.url}/api/<action>`);
   io.log(`  CLI  ${session.url}/cli`);
+  for (const view of Object.values(session.manifest().views)) {
+    io.log(`  Web  ${session.url}${view.path === "/" ? "/" : view.path}  (${view.title})`);
+  }
 
   const stopWatching = watchSources(io.cwd, () => {
     session.reload().then(
