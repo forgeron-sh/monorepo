@@ -30,6 +30,7 @@ export async function installMock(): Promise<void> {
     workspace: "demo",
     github: !fresh,
     endpoint: "https://demo.fabriks.example",
+    avatar: undefined as { url: string; source: "custom" | "provider" } | undefined,
     me: {
       id: "m1",
       email: "ada@acme.example",
@@ -288,7 +289,12 @@ export async function installMock(): Promise<void> {
         workspace: state.workspace,
         endpoint: state.endpoint,
         // The gateway adds `member`, which everyone holds (D-128).
-        person: { ...state.me, roles: [...state.me.roles, "member"], admin },
+        person: {
+          ...state.me,
+          roles: [...state.me.roles, "member"],
+          admin,
+          ...(state.avatar ? { avatar: state.avatar } : {}),
+        },
         setup: {
           members: state.members.length,
           invitations: state.invitations.length,
@@ -582,6 +588,13 @@ export async function installMock(): Promise<void> {
       if (answer) return reply(answer.status, answer.body);
     }
 
+    // Your picture (D-133): kept as sent, served from the data URL.
+    if (path === "/api/me/avatar" && method === "PUT") {
+      state.avatar = body.image
+        ? { url: body.image as string, source: "custom" as const }
+        : undefined;
+      return reply(200, { avatar: state.avatar ?? null });
+    }
     // Teams (D-132): named groups of members.
     if (path === "/api/teams" && method === "GET")
       return reply(200, { teams: state.teams.map((t) => ({ ...t, role: `team-${t.id}` })) });

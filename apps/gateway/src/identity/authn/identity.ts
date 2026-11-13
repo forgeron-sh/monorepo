@@ -4,6 +4,8 @@ export interface Identity {
   subject: string;
   email: string;
   name: string;
+  /** The address of the person's picture at the provider, when it states one (D-133). */
+  picture?: string;
   /** The groups the provider states, if a groups claim is configured. */
   groups: string[];
 }

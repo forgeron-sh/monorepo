@@ -1,6 +1,7 @@
 import { workspaceRoles } from "@forgeron/manifest";
 import type { Member, Registry } from "@forgeron/registry";
 import type { Person } from "../../kernel/person";
+import { refreshProviderAvatar } from "../avatar";
 import type { Identity } from "./identity";
 import { readSession } from "./session";
 import { verifyToken } from "./tokens";
@@ -178,17 +179,34 @@ export interface MembershipPolicy {
 export function membership(
   registry: Pick<
     Registry,
-    "addMember" | "findInvitation" | "findMemberByEmail" | "findMemberBySubject" | "joinMember"
+    | "addMember"
+    | "findInvitation"
+    | "findMemberByEmail"
+    | "findMemberBySubject"
+    | "joinMember"
+    | "providerAvatarUrl"
+    | "setProviderAvatar"
   >,
   policy: MembershipPolicy,
+  /** Fetches a provider's picture; the global `fetch` by default (D-133). */
+  fetchImage?: Parameters<typeof refreshProviderAvatar>[4],
 ) {
+  // The provider's picture is copied at each sign-in where it changed: best effort, never a refusal.
+  const withPicture = async <M extends { id: string }>(
+    workspace: string,
+    identity: Identity,
+    member: M,
+  ) => {
+    await refreshProviderAvatar(registry, workspace, member.id, identity.picture, fetchImage);
+    return member;
+  };
   return async (workspace: string, identity: Identity): Promise<{ id: string } | undefined> => {
     const known = await registry.findMemberBySubject(workspace, identity.subject);
-    if (known) return known;
+    if (known) return withPicture(workspace, identity, known);
     const email = identity.email.toLowerCase();
     // The same person who came by email first (D-049): one member, not two.
     const sameEmail = await registry.findMemberByEmail(workspace, email);
-    if (sameEmail) return sameEmail;
+    if (sameEmail) return withPicture(workspace, identity, sameEmail);
     const fromGroups = [
       ...new Set(
         identity.groups.flatMap((group) => {
@@ -214,21 +232,29 @@ export function membership(
     if (!roles) return undefined;
     // An invitation is accepted by signing in with its email, whichever way the provider is.
     if (invitation) {
-      return registry.joinMember({
+      return withPicture(
         workspace,
-        email: identity.email,
-        roles,
-        via: "invitation",
-        subject: identity.subject,
-        name: identity.name,
-      });
+        identity,
+        await registry.joinMember({
+          workspace,
+          email: identity.email,
+          roles,
+          via: "invitation",
+          subject: identity.subject,
+          name: identity.name,
+        }),
+      );
     }
-    return registry.addMember({
+    return withPicture(
       workspace,
-      subject: identity.subject,
-      email: identity.email,
-      name: identity.name,
-      roles,
-    });
+      identity,
+      await registry.addMember({
+        workspace,
+        subject: identity.subject,
+        email: identity.email,
+        name: identity.name,
+        roles,
+      }),
+    );
   };
 }

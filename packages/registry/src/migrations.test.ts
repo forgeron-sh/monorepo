@@ -7,7 +7,7 @@ import { createRegistry } from "./registry";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// `migrations.golden.json` is the platform's list as it was installed (0001 to 0039), taken before the
+// `migrations.golden.json` is the platform's list as it was installed (0001 to 0040), taken before the
 // registry was split into modules. A migration already applied somewhere is never edited, renamed or
 // reordered: when a migration is added, append it to the frozen copy; never change an existing entry.
 const golden = JSON.parse(

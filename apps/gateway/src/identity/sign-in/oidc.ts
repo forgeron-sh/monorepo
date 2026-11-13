@@ -138,6 +138,7 @@ async function verifyIdToken(
     subject: claims.sub,
     email,
     name: typeof claims.name === "string" ? claims.name : email,
+    ...(typeof claims.picture === "string" ? { picture: claims.picture } : {}),
     groups: Array.isArray(groups) ? groups.filter((g): g is string => typeof g === "string") : [],
   };
 }

@@ -4,6 +4,10 @@ import { json, text } from "../../kernel/rows";
 import { toInvitation, toMember } from "./types";
 import type { Member, Invitation, MembershipSettings, JoinVia } from "./types";
 
+/** A picture is a small image kept as a data URL: png, jpeg or webp, 64 KB at most once decoded. */
+const IMAGE = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/;
+const MAX_IMAGE_BASE64 = 88_000;
+
 const ROLE = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/;
 const DOMAIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 
@@ -171,6 +175,84 @@ export function createMembers(kernel: Kernel) {
             kind: "access",
             subject: "member:remove",
             detail: { workspace, member: id, email: member.email, roles: member.roles },
+          },
+          now(),
+        ),
+      ]);
+    },
+    // ---- avatars (D-133)
+    /** The picture the member has, ready to serve; `undefined` when they have none. */
+    async readAvatar(
+      workspace: string,
+      id: string,
+    ): Promise<{ contentType: string; bytes: Uint8Array; version: string } | undefined> {
+      const row = await first(
+        `SELECT "avatar_custom", "avatar_provider", "avatar_version" FROM "members" WHERE "workspace" = ? AND "id" = ?`,
+        workspace,
+        id,
+      );
+      const data = text(row?.avatar_custom) || text(row?.avatar_provider);
+      const found = data ? IMAGE.exec(data) : null;
+      if (!row || !found) return undefined;
+      const binary = atob(found[2]!);
+      return {
+        contentType: found[1]!,
+        bytes: Uint8Array.from(binary, (c) => c.charCodeAt(0)),
+        version: String(row.avatar_version ?? "0"),
+      };
+    },
+    /** The provider address the stored provider picture was copied from. */
+    async providerAvatarUrl(workspace: string, id: string): Promise<string | undefined> {
+      const row = await first(
+        `SELECT "avatar_provider_url" FROM "members" WHERE "workspace" = ? AND "id" = ?`,
+        workspace,
+        id,
+      );
+      return row?.avatar_provider_url ? String(row.avatar_provider_url) : undefined;
+    },
+    /** Keeps the provider's picture, copied by the gateway at sign-in. Not audited: it happens at each sign-in. */
+    async setProviderAvatar(
+      workspace: string,
+      id: string,
+      picture: { url: string; dataUrl: string },
+    ): Promise<void> {
+      if (!IMAGE.test(picture.dataUrl) || picture.dataUrl.length > MAX_IMAGE_BASE64 + 40) {
+        throw new RegistryError("INVALID", "A picture is a png, jpeg or webp of 64 KB at most.");
+      }
+      await write(
+        `UPDATE "members" SET "avatar_provider" = ?, "avatar_provider_url" = ?, "avatar_version" = ? WHERE "workspace" = ? AND "id" = ?`,
+        picture.dataUrl,
+        picture.url,
+        newId(),
+        workspace,
+        id,
+      );
+    },
+    /** The picture the person chose, or `null` to give it back to their provider's. */
+    async setCustomAvatar(
+      workspace: string,
+      id: string,
+      dataUrl: string | null,
+      actor: string,
+    ): Promise<void> {
+      const member = await this.findMember(workspace, id);
+      if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
+      if (dataUrl !== null && (!IMAGE.test(dataUrl) || dataUrl.length > MAX_IMAGE_BASE64 + 40)) {
+        throw new RegistryError("INVALID", "A picture is a png, jpeg or webp of 64 KB at most.");
+      }
+      await d1.batch([
+        d1
+          .prepare(
+            `UPDATE "members" SET "avatar_custom" = ?, "avatar_version" = ? WHERE "workspace" = ? AND "id" = ?`,
+          )
+          .bind(dataUrl, newId(), workspace, id),
+        auditStatement(
+          {
+            actor,
+            interface: "api",
+            kind: "access",
+            subject: "member:avatar",
+            detail: { workspace, member: id, set: dataUrl !== null },
           },
           now(),
         ),

@@ -15,7 +15,14 @@ export {
   getAccessMatrixRoute,
   putAccessMatrixRoute,
 } from "./access-matrix";
-export { auditRoute, usageRoute, workspaceRoute, type SignIn } from "./workspace";
+export {
+  auditRoute,
+  usageRoute,
+  workspaceRoute,
+  type SignIn,
+  MAX_AVATAR,
+  putAvatarRoute,
+} from "./workspace";
 export { listConnectionsRoute, revokeConnectionRoute } from "./connections";
 export { MAX_QUERY_ROWS, MAX_SQL, dbMigrationsRoute, dbQueryRoute } from "./database-admin";
 export { resealSecretsRoute, secretsStatusRoute } from "./secrets-status";

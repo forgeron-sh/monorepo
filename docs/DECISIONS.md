@@ -131,6 +131,7 @@ Rules of the log:
 | D-130 | 12/11/2026 | `forgeron dev` serves a tool's views; the build generates one mount entry per view, with a single React                                                                                                      | Active                                        |
 | D-131 | 12/11/2026 | A tool reads the workspace's people through `ctx.directory`, only what its `resources.directory` asked for and an admin approved                                                                             | Active                                        |
 | D-132 | 12/11/2026 | Teams: named groups of members, a subject of the access matrix (`team-<id>`) and readable by tools with `directory.teams`                                                                                    | Active                                        |
+| D-133 | 12/11/2026 | A member has a picture: their provider's, copied at sign-in, or one they chose; served by the gateway, given to tools that ask                                                                               | Active                                        |
 
 ---
 
@@ -1738,3 +1739,16 @@ Rules of the log:
 - **Rejected**: a second kind of subject beside roles (every reader of the matrix and the mapping would need two paths); making a team a role members hold (it would show in Members, and the identity provider's group mapping would collide); tools reading teams by default (an enterprise tool sees what it asked for).
 - **Not done**: no nested teams, no team owner or lead; the identity provider's groups do not fill teams (D-127's group mapping gives roles); the Access tab shows `team-<id>` rather than the team's name; the admin MCP and the CLI do not manage teams.
 - **Applied in**: `packages/registry/src/modules/teams/`, `migrations.ts` and `migrations.golden.json`, `modules/members/store.ts`; `packages/platform-contract/src/{teams,addresses,index}.ts`; `apps/gateway/src/platform/teams.ts`, `dispatch/user-secrets.ts`; `apps/console/src/features/admin/pages/teams.tsx`, `features/tools/tabs/access-tab.tsx`, `mock/install.ts`.
+
+## D-133 — A member has a picture: their provider's, or one they chose
+
+- **Date**: 12/11/2026 · **Status**: Active · Completes D-131 (`avatars` in `resources.directory` had no source)
+- **Decision**:
+  1. **Two sources, one wins.** The **provider's picture**: at each OIDC sign-in the gateway reads the ID token's standard `picture` claim and, when the address is new, copies the image (https, png, jpeg or webp, 64 KB at most, 3 seconds) into the member's row. The **chosen picture**: a member sets their own in Settings, Profile (the browser crops it to a 128 px square and sends a webp or jpeg data URL, `PUT /api/me/avatar`; `null` gives it back to the provider's). The chosen one wins; removing it falls back to the provider's.
+  2. **Served by the gateway**: `GET /avatars/<member id>?v=<version>`, public and cacheable for good (the version changes with the picture), with a locked-down CSP and `nosniff`. Public because a tool's page is sandboxed and sends no cookie; the member id is random and nothing is listed. Copying the picture keeps the console's CSP (`img-src 'self'`) and does not tell the provider who looks at it.
+  3. **Tools see an address, not bytes.** With `directory.avatars`, `ctx.user.avatar` and each member's `avatar` are absolute `…/avatars/<id>?v=…` addresses; without the flag nothing is sent. Columns `avatar_provider`, `avatar_provider_url`, `avatar_custom`, `avatar_version` on `members` (migration `0040_member_avatars`); setting or clearing the chosen one is audited, the provider's copy is not (it happens at each sign-in).
+  4. **Console**: the `Avatar` component takes a `src`; the account menu and the Profile page show the picture.
+- **Why**: a tool that shows people needs a face, and the platform is the one that knows it. Copying avoids a hot-link to a provider and a CSP hole.
+- **Rejected**: storing the picture's bytes in the directory header (a workspace's pictures would exceed any header); serving it behind the session cookie (a sandboxed page has none); refetching the provider's picture at each request.
+- **Not done**: only OIDC states `picture`: Entra ID gives none in its ID token (a picture needs a Graph call with its own scope), and SAML and email sign-in have none, so those members have initials until they choose one; the Profile page does not refresh the account menu before the next load; an admin cannot set or clear another member's picture; no size other than 128 px.
+- **Applied in**: `packages/registry/src/modules/members/{migrations,store,types}.ts`; `packages/platform-contract/src/{workspace,addresses}.ts`; `apps/gateway/src/identity/{avatar,authn/caller,authn/identity,sign-in/oidc}.ts`, `gateway.ts`, `platform/workspace.ts`, `dispatch/user-secrets.ts`; `packages/ui/src/avatar.tsx`; `apps/console/src/features/settings/`, `shell/chrome.tsx`.

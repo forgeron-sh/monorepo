@@ -115,7 +115,7 @@ import type {
   startConsentRoute,
   withdrawConsentRoute,
 } from "./consent";
-import type { auditRoute, usageRoute, workspaceRoute } from "./workspace";
+import type { auditRoute, putAvatarRoute, usageRoute, workspaceRoute } from "./workspace";
 import { addressOf } from "./route";
 
 // The address of every route of the platform API (method and path), typed from the route: a client
@@ -310,6 +310,7 @@ export const addresses = {
     method: "get",
     path: "/api/connector-clients",
   }),
+  putAvatar: addressOf<typeof putAvatarRoute>({ method: "put", path: "/api/me/avatar" }),
   listMembers: addressOf<typeof listMembersRoute>({ method: "get", path: "/api/members" }),
   listTeams: addressOf<typeof listTeamsRoute>({ method: "get", path: "/api/teams" }),
   createTeam: addressOf<typeof createTeamRoute>({ method: "post", path: "/api/teams" }),

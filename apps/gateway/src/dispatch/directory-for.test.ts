@@ -44,3 +44,21 @@ describe("directoryFor with teams", () => {
     expect(given.teams?.[0]).toMatchObject({ id: "product", members: [] });
   });
 });
+
+describe("directoryFor with pictures", () => {
+  const withAvatar = [{ ...members[0]!, avatar: { version: "v1" } }, members[1]!];
+
+  it("gives the address of a picture only to a tool that asked for pictures", () => {
+    expect(
+      directoryFor({ why: "x", members: true }, withAvatar, [], "https://acme.test").members[0],
+    ).not.toHaveProperty("avatar");
+    const given = directoryFor(
+      { why: "x", members: true, avatars: true },
+      withAvatar,
+      [],
+      "https://acme.test",
+    );
+    expect(given.members[0]).toMatchObject({ avatar: "https://acme.test/avatars/m1?v=v1" });
+    expect(given.members[1]).not.toHaveProperty("avatar");
+  });
+});

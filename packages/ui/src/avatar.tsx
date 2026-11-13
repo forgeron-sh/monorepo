@@ -5,6 +5,8 @@ export interface AvatarProps {
   name: string;
   size?: number;
   className?: string;
+  /** The person's picture, when they have one: it replaces the initials. */
+  src?: string;
 }
 
 const initials = (name: string) => {
@@ -16,15 +18,15 @@ const initials = (name: string) => {
   return letters.toUpperCase();
 };
 
-/** The person's initials in a sharp square; decorative, the name is always written next to it. */
-export function Avatar({ name, size = 24, className }: AvatarProps) {
+/** The person's picture, else their initials, in a sharp square; decorative, the name is always written next to it. */
+export function Avatar({ name, size = 24, className, src }: AvatarProps) {
   return (
     <span
       aria-hidden="true"
       className={cx("fg-avatar", className)}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
     >
-      {initials(name)}
+      {src ? <img src={src} alt="" width={size} height={size} /> : initials(name)}
     </span>
   );
 }
