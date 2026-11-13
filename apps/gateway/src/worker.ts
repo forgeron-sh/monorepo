@@ -3,3 +3,5 @@
 // so the bundle exposes the default handler only; `index.ts` keeps its named exports for the code
 // and tests that import them.
 export { default } from "./index";
+// The Durable Object of realtime (D-135): a named export the runtime instantiates, bound as `REALTIME`.
+export { RealtimeRoom } from "./realtime/room";

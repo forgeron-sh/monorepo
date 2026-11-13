@@ -203,6 +203,16 @@ function checkInvariants(manifest: z.infer<typeof ManifestShape>, ctx: z.Refinem
     });
   }
 
+  for (const [name, channel] of Object.entries(manifest.realtime?.channels ?? {})) {
+    if (channel.authorize !== undefined && !(channel.authorize in manifest.actions)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["realtime", "channels", name, "authorize"],
+        message: `The channel "${name}" is authorized by "${channel.authorize}", which is not an action of the tool.`,
+      });
+    }
+  }
+
   const check = manifest.setup?.check;
   if (check !== undefined && !(check in manifest.actions)) {
     ctx.addIssue({
@@ -268,6 +278,28 @@ export const DocsSchema = z.strictObject({
   assets: z.array(DocAssetSchema),
 });
 
+/** A realtime channel's name (D-135): `note`, and with an instance `note:<id>`. */
+export const ChannelNameSchema = z.string().regex(/^[a-z][a-z0-9-]{0,39}$/);
+
+/**
+ * The realtime channels a tool declares (D-135). Who may listen needs the `access` level; who may send
+ * from a page, the `send` level (none: only the tool's actions publish). `authorize` names an action that
+ * decides, for one instance, whether the caller may join (`note:<id>`): it receives `{ channel, id }`.
+ */
+export const RealtimeSchema = z.strictObject({
+  channels: z.record(
+    ChannelNameSchema,
+    z.strictObject({
+      access: AccessLevelSchema,
+      send: AccessLevelSchema.optional(),
+      /** Whether the people on the channel are listed to each other. */
+      presence: z.boolean().optional(),
+      authorize: ActionNameSchema.optional(),
+      description: text.optional(),
+    }),
+  ),
+});
+
 const ManifestShape = z.strictObject({
   name: ToolNameSchema,
   version: z.string().regex(SEMVER),
@@ -287,6 +319,7 @@ const ManifestShape = z.strictObject({
   roles: z.record(z.string(), RoleSchema),
   actions: z.record(ActionNameSchema, ActionSchema),
   views: z.record(z.string(), ViewSchema),
+  realtime: RealtimeSchema.optional(),
   jobs: z.record(z.string(), JobSchema),
   events: z.record(z.string(), EventHandlerSchema),
   resources: ResourcesSchema,
@@ -308,6 +341,7 @@ export type Role = z.infer<typeof RoleSchema>;
 export type Profile = Role;
 export type Connector = z.infer<typeof ConnectorSchema>;
 export type Resources = z.infer<typeof ResourcesSchema>;
+export type Realtime = z.infer<typeof RealtimeSchema>;
 export type Setup = z.infer<typeof SetupSchema>;
 export type SetupField = z.infer<typeof SetupFieldSchema>;
 export type Docs = z.infer<typeof DocsSchema>;

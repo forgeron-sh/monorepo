@@ -39,6 +39,7 @@ import type { SamlProvider } from "./identity/sign-in/saml";
 import type { Person } from "./kernel/person";
 import { forwardIdentity } from "./dispatch/user-secrets";
 import { serveView } from "./views/serve";
+import { CONTEXT_HEADER, type RoomContext } from "./realtime/room";
 import type { Manifest } from "@forgeron/manifest";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget } from "./dispatch/targets";
@@ -52,6 +53,10 @@ import { workspaceHosts } from "./kernel/workspace";
 
 /** Where the console reads and writes on the workspace origin. */
 export const CONSOLE_API = "/console-api";
+
+/** The room of a tool's channel: one per workspace, tool and channel (D-135). */
+const roomName = (workspace: string, tool: string, branch?: string) =>
+  `${workspace}/${tool}${branch === undefined ? "" : `@${branch}`}`;
 
 /**
  * The build a channel runs (D-134): production, a permanent channel (`~name`) or a branch's temporary
@@ -279,6 +284,36 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
     const dispatchRegistryOf = dispatchRegistry(registry, options);
     const targetOf = (worker: string) =>
       env.DISPATCHER ? namespaceTarget(env.DISPATCHER, worker) : serviceBindingTarget(env, worker);
+    const forwardFor = (c: Caller) =>
+      caller
+        ? forwardIdentity(
+            c.tool,
+            c.request,
+            {
+              registry,
+              workspace: c.workspace,
+              identify: (r) => caller.identify(r, c.workspace),
+              ...(box
+                ? {
+                    // Delegated connectors (D-046): the OAuth clients of the types the tool declares.
+                    connectors: {
+                      consent: async (types: string[]) =>
+                        consentFor(
+                          c.workspace,
+                          await config.connectorClientsWithSecrets(c.workspace, types),
+                          box,
+                          originOf(c.workspace, c.request),
+                        ),
+                      consentUrl: (tool: string, environment: string, name: string) =>
+                        `${originOf(c.workspace, c.request)}${CONSOLE_API}/api/tools/${tool}/environments/${environment}/consent/${name}`,
+                    },
+                  }
+                : {}),
+            },
+            c.environment,
+            c.branch,
+          )
+        : Promise.resolve(undefined);
     const dispatch = createDispatcher({
       workspaceOf: hosts.workspaceOf,
       registry: dispatchRegistryOf,
@@ -374,36 +409,88 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
           }
         : {}),
       // The person and their own per-person secrets go to the tool; a token for another tool stops here.
-      ...(caller
+      ...(caller ? { forward: forwardFor } : {}),
+      // Realtime (D-135): a page's WebSocket goes to the room of the tool's channel, and what actions
+      // published goes there too. Both need the room's Durable Object (`REALTIME`).
+      ...(caller && secret && env.REALTIME
         ? {
-            forward: (c: Caller) =>
-              forwardIdentity(
-                c.tool,
-                c.request,
-                {
-                  registry,
-                  workspace: c.workspace,
-                  identify: (r) => caller.identify(r, c.workspace),
-                  ...(box
-                    ? {
-                        // Delegated connectors (D-046): the OAuth clients of the types the tool declares.
-                        connectors: {
-                          consent: async (types: string[]) =>
-                            consentFor(
-                              c.workspace,
-                              await config.connectorClientsWithSecrets(c.workspace, types),
-                              box,
-                              originOf(c.workspace, c.request),
-                            ),
-                          consentUrl: (tool: string, environment: string, name: string) =>
-                            `${originOf(c.workspace, c.request)}${CONSOLE_API}/api/tools/${tool}/environments/${environment}/consent/${name}`,
-                        },
-                      }
-                    : {}),
-                },
-                c.environment,
-                c.branch,
-              ),
+            realtime: async ({
+              caller: c,
+              request,
+              environment,
+              branch,
+              worker,
+            }: {
+              caller: Caller;
+              request: Request;
+              environment: "preview" | "production";
+              branch?: string;
+              worker: string;
+            }) => {
+              // A browser cannot set a header on a WebSocket: the page's token comes in the address.
+              const token = new URL(request.url).searchParams.get("token");
+              const unauthenticated = () =>
+                Response.json(
+                  {
+                    error: {
+                      code: "UNAUTHENTICATED",
+                      message: "Sign in to follow this tool live.",
+                    },
+                  },
+                  { status: 401 },
+                );
+              if (!token) return unauthenticated();
+              const forwarding = await forwardFor({
+                ...c,
+                request: new Request(request.url, {
+                  headers: { authorization: `Bearer ${token}` },
+                }),
+                environment,
+                ...(branch !== undefined ? { branch } : {}),
+              });
+              if (!forwarding) return unauthenticated();
+              if ("refuse" in forwarding) return forwarding.refuse;
+              const user = JSON.parse(forwarding.headers["x-forgeron-user"] ?? "null") as
+                | RoomContext["user"]
+                | null;
+              if (!user?.id) return unauthenticated();
+              const tool = await registry.findTool(c.workspace, c.tool);
+              const build = tool ? await servedBuild(registry, tool.id, branch) : undefined;
+              const manifest = build?.manifest as Manifest | undefined;
+              if (!manifest?.realtime) {
+                return Response.json(
+                  { error: { code: "NOT_FOUND", message: "This tool has no realtime." } },
+                  { status: 404 },
+                );
+              }
+              const context: RoomContext = {
+                user,
+                manifest: { roles: manifest.roles, realtime: manifest.realtime },
+                worker,
+              };
+              const room = env.REALTIME!.get(
+                env.REALTIME!.idFromName(roomName(c.workspace, c.tool, branch)),
+              );
+              return room.fetch(
+                new Request("https://room/connect", {
+                  headers: { upgrade: "websocket", [CONTEXT_HEADER]: JSON.stringify(context) },
+                }),
+              );
+            },
+            publish: async (
+              c: Caller & { environment: "preview" | "production" },
+              messages: unknown[],
+            ) => {
+              const room = env.REALTIME!.get(
+                env.REALTIME!.idFromName(roomName(c.workspace, c.tool, c.branch)),
+              );
+              await room.fetch(
+                new Request("https://room/publish", {
+                  method: "POST",
+                  body: JSON.stringify(messages),
+                }),
+              );
+            },
           }
         : {}),
       targets: targetOf,

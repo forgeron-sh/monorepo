@@ -56,6 +56,14 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
     // Who the developer is, and the people and teams a tool that asks for them may know (D-131).
     identity: (manifest) => developer(readDevDirectory(dir), manifest, options.user, role),
     directory: () => snapshotOf(readDevDirectory(dir)),
+    // Another person of the directory, for a page opened with `?as=<email>` (D-135): two people at once.
+    identityFor: (manifest, email) => {
+      try {
+        return developer(readDevDirectory(dir), manifest, email, role);
+      } catch {
+        return undefined;
+      }
+    },
   });
 
   let current: Manifest | undefined;

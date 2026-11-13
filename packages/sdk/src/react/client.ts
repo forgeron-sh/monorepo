@@ -1,6 +1,7 @@
 // The browser side of the runtime protocol: what the hooks talk to. The page host (served by the
 // tool's Worker, FOR-56) builds a `ViewRuntime` from the token it injects; tests build their own.
 import type { User } from "../context";
+import type { RealtimeConnection } from "./realtime";
 
 /** The URL search parameters of the page, as the browser sees them. */
 export interface ViewParamsStore {
@@ -18,6 +19,8 @@ export interface ViewRuntime {
   /** Calls an action of the tool and resolves with its output. */
   call(action: string, input: unknown): Promise<unknown>;
   params: ViewParamsStore;
+  /** The page's realtime connection (D-135); absent where a page has none (tests, no WebSocket). */
+  realtime?: RealtimeConnection;
 }
 
 export interface ReadState<T = unknown> {

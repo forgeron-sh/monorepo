@@ -47,6 +47,19 @@ export interface Caller {
 /** What the gateway adds to the request it hands a tool, or the answer that stops it (D-035). */
 export type Forwarding = { headers: Record<string, string> } | { refuse: Response };
 
+/** Where a tool's Worker puts what its actions published (D-135). */
+const PUBLISHED_HEADER = "x-forgeron-realtime";
+
+function decodePublished(raw: string | null): unknown[] {
+  if (!raw) return [];
+  try {
+    const list = JSON.parse(decodeURIComponent(escape(atob(raw)))) as unknown;
+    return Array.isArray(list) ? list.slice(0, 20) : [];
+  } catch {
+    return [];
+  }
+}
+
 /** The headers only the gateway may set: whatever the caller sent under these names is dropped. */
 const INTERNAL_HEADERS = [
   "x-forgeron-user",
@@ -56,6 +69,8 @@ const INTERNAL_HEADERS = [
   "x-forgeron-base-url",
   "x-forgeron-connector-tokens",
   "x-forgeron-connector-consent",
+  "x-forgeron-realtime",
+  "x-forgeron-directory",
 ];
 
 /**
@@ -82,6 +97,7 @@ function confined(response: Response, challenge?: string, cors = false): Respons
   const headers = new Headers(response.headers);
   if (cors) for (const [name, value] of Object.entries(VIEW_CORS)) headers.set(name, value);
   headers.delete("set-cookie");
+  headers.delete(PUBLISHED_HEADER);
   // A tool says nothing about where a client signs in: the gateway does, or nobody does (D-095).
   headers.delete("www-authenticate");
   if (challenge && response.status === 401) headers.set("www-authenticate", challenge);
@@ -128,6 +144,23 @@ export interface DispatcherOptions {
     environment: "preview" | "production";
     branch?: string;
   }): Response | undefined | Promise<Response | undefined>;
+  /**
+   * A page's WebSocket (D-135): `GET …/_f/realtime` with `Upgrade: websocket`. The answer is the upgrade to
+   * the tool's room, or a refusal. Without it the tool has no realtime on this install (`501`).
+   */
+  realtime?(input: {
+    caller: Caller;
+    request: Request;
+    environment: "preview" | "production";
+    branch?: string;
+    /** The tool's Worker for this channel: the room asks it who may join an instance. */
+    worker: string;
+  }): Response | Promise<Response>;
+  /** What the tool's actions published during a call (D-135), to send to the people listening. */
+  publish?(
+    caller: Caller & { environment: "preview" | "production" },
+    messages: unknown[],
+  ): void | Promise<void>;
   /** May this caller use a channel other than production (`branch` is its reference)? Without it, nobody does. */
   canPreview?(caller: Caller & { branch: string }): boolean | Promise<boolean>;
 }
@@ -239,6 +272,26 @@ export function createDispatcher(options: DispatcherOptions) {
     if (request.method === "OPTIONS" && isViewCall(path.rest)) {
       return new Response(null, { status: 204, headers: VIEW_CORS });
     }
+    // A page's WebSocket (D-135): the tool's room, or a refusal.
+    if (
+      path.rest === "/_f/realtime" &&
+      request.headers.get("upgrade")?.toLowerCase() === "websocket"
+    ) {
+      if (!options.realtime) {
+        return refuse(501, "NOT_ENABLED", "Realtime is not enabled on this install.");
+      }
+      return options.realtime({
+        caller: {
+          ...caller,
+          environment,
+          ...(path.branch !== undefined ? { branch: path.branch } : {}),
+        },
+        request,
+        environment,
+        ...(path.branch !== undefined ? { branch: path.branch } : {}),
+        worker,
+      });
+    }
     // The pages of the tool, served by the gateway (D-134).
     const page = await options.views?.({
       caller: {
@@ -274,6 +327,20 @@ export function createDispatcher(options: DispatcherOptions) {
     const challenge = /^\/mcp\/?$/.test(path.rest)
       ? `Bearer resource_metadata="${url.origin}/.well-known/oauth-protected-resource${url.pathname.replace(/\/mcp\/?$/, "")}/mcp"`
       : undefined;
-    return confined(await target.fetch(outgoing), challenge, isViewCall(path.rest));
+    const answered = await target.fetch(outgoing);
+    // What the actions published travels in a header only the gateway reads: it goes to the room, and the
+    // caller never sees it.
+    const published = decodePublished(answered.headers.get(PUBLISHED_HEADER));
+    if (published.length > 0 && options.publish) {
+      try {
+        await options.publish(
+          { ...caller, environment, ...(path.branch !== undefined ? { branch: path.branch } : {}) },
+          published,
+        );
+      } catch {
+        // Telling listeners must never fail the call that was answered.
+      }
+    }
+    return confined(answered, challenge, isViewCall(path.rest));
   };
 }

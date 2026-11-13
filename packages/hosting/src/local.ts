@@ -5,6 +5,12 @@ import { Miniflare } from "miniflare";
 import { applyMigrations, type D1Database } from "./migrate";
 import { corsHeaders, isViewCall, serveLocalView } from "./local-views";
 import {
+  createLocalRealtime,
+  readPublished,
+  REALTIME_HEADER,
+  type RealtimeUser,
+} from "./local-realtime";
+import {
   bindingsOf,
   environmentKey,
   type Activation,
@@ -37,6 +43,11 @@ export interface LocalHostingOptions {
   host?: string;
   /** Where the databases, KV and R2 of the environment are kept on disk. In memory by default. */
   persist?: string;
+  /**
+   * The same person under another email of the directory, for `?as=` and a page's `local:<email>` token:
+   * how two people are tried at once on one machine. `undefined` for an email it does not know.
+   */
+  identityFor?: (manifest: Manifest, email: string) => LocalUser | undefined;
   /** Reads a built file of the tool's views (`views/<name>.js`); without it no view is served. */
   viewFile?: (file: string) => Promise<Buffer | undefined>;
 }
@@ -63,6 +74,8 @@ interface Running {
   manifest: Manifest;
   /** The JSON of `x-forgeron-directory`, for a tool that declares it. */
   directory?: string;
+  /** The realtime hub of this environment (D-135): the sockets and what actions publish. */
+  realtime?: ReturnType<typeof createLocalRealtime>;
 }
 
 async function readBody(request: IncomingMessage): Promise<Buffer | undefined> {
@@ -89,6 +102,12 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
     }
     await current.miniflare.dispose();
   }
+
+  /** The other person a page asked to be, when the directory knows them and they are not the developer. */
+  const identityOther = (running: Running, email: string | undefined): LocalUser | undefined => {
+    if (!email || !options.identityFor) return undefined;
+    return options.identityFor(running.manifest, email);
+  };
 
   const directoryOf = (manifest: Manifest) =>
     manifest.resources.directory && options.directory
@@ -165,8 +184,16 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
               if (value !== undefined)
                 headers[name] = Array.isArray(value) ? value.join(", ") : value;
             }
-            // Whatever the caller sent, the identity is the developer's.
-            headers["x-forgeron-user"] = current.identity;
+            // Whatever the caller sent, the identity is the developer's, or another person of the directory
+            // when the page says so (`?as=<email>`, or its `local:<email>` token): how two people are tried
+            // at once on one machine.
+            const asked = new URL(incoming.url ?? "/", "http://local").searchParams.get("as");
+            const bearer = /^Bearer local:(.+)$/.exec(
+              String(incoming.headers.authorization ?? ""),
+            )?.[1];
+            const other = identityOther(current, asked ?? bearer);
+            const identity = other ? JSON.stringify(other) : current.identity;
+            headers["x-forgeron-user"] = identity;
             delete headers["x-forgeron-directory"];
             if (current.directory) headers["x-forgeron-directory"] = current.directory;
             const pathname = new URL(incoming.url ?? "/", "http://local").pathname;
@@ -181,7 +208,7 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
                 incoming.method ?? "GET",
                 pathname,
                 current.manifest,
-                JSON.parse(current.identity) as LocalUser,
+                JSON.parse(identity) as LocalUser,
                 options.viewFile,
               );
               if (view) {
@@ -195,8 +222,13 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
               `http://${incoming.headers.host ?? "localhost"}${incoming.url ?? "/"}`,
               { method: incoming.method ?? "GET", headers, ...(body ? { body } : {}) },
             );
+            // What the action published (D-135) goes to the people listening, and not to the caller.
+            const published = readPublished(response.headers);
+            if (published.length > 0) current.realtime?.publish(published);
+            const answered = Object.fromEntries(response.headers);
+            delete answered[REALTIME_HEADER];
             outgoing.writeHead(response.status, {
-              ...Object.fromEntries(response.headers),
+              ...answered,
               ...(isViewCall(pathname) ? corsHeaders : {}),
             });
             outgoing.end(Buffer.from(await response.arrayBuffer()));
@@ -204,6 +236,33 @@ export function createLocalHosting(options: LocalHostingOptions = {}): LocalHost
             outgoing.writeHead(500, { "content-type": "application/json" });
             outgoing.end(JSON.stringify({ error: { code: "INTERNAL", message: String(error) } }));
           }
+        });
+        // Realtime (D-135): a page connects a WebSocket to `/_f/realtime`.
+        const callAs = async (user: RealtimeUser, action: string, input: unknown) => {
+          const answer = await current.miniflare.dispatchFetch(
+            `http://local/_f/call/${encodeURIComponent(action)}`,
+            {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                "x-forgeron-user": JSON.stringify(user),
+              },
+              body: JSON.stringify(input ?? {}),
+            },
+          );
+          return answer.ok ? answer.json() : undefined;
+        };
+        current.realtime = createLocalRealtime({
+          manifest: () => current.manifest,
+          userOf: (token) => {
+            const email = /^local:(.+)$/.exec(token ?? "")?.[1];
+            if (!email) return undefined;
+            return (identityOther(current, email) ?? JSON.parse(current.identity)) as RealtimeUser;
+          },
+          callAction: callAs,
+        });
+        server.on("upgrade", (incoming, socket, head) => {
+          if (!current.realtime?.upgrade(incoming, socket, head)) socket.destroy();
         });
         try {
           await new Promise<void>((resolve, reject) => {
