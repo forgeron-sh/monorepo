@@ -58,7 +58,7 @@ function Preview() {
         <p />
         <EmptyState
           title="You do not use a tool yet"
-          description="Ask an admin which tools you can use."
+          description="Ask someone who gives access which tools you can use."
         />
       </section>
 

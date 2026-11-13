@@ -3,6 +3,7 @@ import { Button, EmptyState, Page, Stat } from "@forgeron/ui";
 import type { Api } from "../../api";
 import { FirstRun, firstRunSteps } from "../../overview";
 import { pathOf } from "../../router";
+import { can } from "../../shell/access";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
 import type { WorkspaceInfo } from "../../workspace";
@@ -10,9 +11,9 @@ import { loadLibrary } from "./library";
 import { keyOf, MyToolCard, navigate } from "./tool-lists";
 
 // Home (D-128): where the person starts. Their tools first, to open one at once; then how many tools
-// they can still add, which Discover lists. An admin also sees the workspace's numbers (and the
-// first-run checklist until it is done). The full lists are My tools and Discover; Home only leads
-// to them. Nothing technical: no version, role or interface.
+// they can still add, which Discover lists. Whoever sees members also sees the workspace's numbers
+// (and the first-run checklist until it is done). The full lists are My tools and Discover; Home only
+// leads to them. Nothing technical: no version or interface.
 
 export interface PortalHomeProps {
   ws: WorkspaceInfo;
@@ -28,13 +29,14 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
   const tools = library.data ?? [];
   const mine = tools.filter((t) => t.installed);
   const available = tools.filter((t) => !t.installed).length;
-  const admin = ws.person.admin;
+  const sees = can(ws.person, "members:read");
+  const gives = can(ws.person, "access:write");
 
   return (
     <Page
       title="Home"
       description={
-        admin ? (
+        sees ? (
           <>
             Workspace <span className="fc-mono">{ws.workspace}</span>
           </>
@@ -43,7 +45,7 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
         )
       }
     >
-      {admin ? <AdminStrip ws={ws} api={api} go={go} /> : null}
+      {sees ? <AdminStrip ws={ws} api={api} go={go} /> : null}
 
       {library.loading ? (
         <Loading shape="cards" label="Loading your tools" />
@@ -74,9 +76,9 @@ export function PortalHome({ ws, api, go }: PortalHomeProps) {
                 description={
                   available > 0
                     ? "Add one of the tools your workspace offers you: it takes a click."
-                    : admin
+                    : gives
                       ? "Install a tool from the Marketplace, then choose who can use it."
-                      : "No tool is available to you yet. Ask an admin of this workspace."
+                      : "No tool is available to you yet. Ask someone who gives access to share one with your team."
                 }
               />
             )}
@@ -121,9 +123,11 @@ function AdminStrip({ ws, api, go }: PortalHomeProps) {
           <h2 id="workspace-numbers" className="fc-section-title">
             In this workspace
           </h2>
-          <Button size="sm" variant="ghost" href={pathOf("invite")} onClick={navigate(go)}>
-            Invite people
-          </Button>
+          {can(ws.person, "members:write") ? (
+            <Button size="sm" variant="ghost" href={pathOf("invite")} onClick={navigate(go)}>
+              Invite people
+            </Button>
+          ) : null}
         </div>
         <div className="fc-stats">
           <Stat label="Members" value={String(ws.setup.members)} />

@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
+import { PLATFORM_PERMISSIONS, type PlatformPermission } from "@forgeron/permissions";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DomainsPage,
-  knownRoles,
   loadMembers,
   Members,
   MembersPage,
@@ -20,66 +20,88 @@ import {
   NOW,
   refusal,
   submit,
+  TEAMS,
   type,
 } from "./test-utils";
+import type { WorkspaceInfo } from "./workspace";
 
 afterEach(cleanup);
 
 const served = {
   members: [
-    { id: "m1", email: "ada@acme.fr", name: "ada", roles: ["admin"], secret: "dropped" },
-    { id: "m2", email: "bob@acme.fr", name: "bob", roles: [] },
+    { id: "m1", email: "ada@acme.fr", name: "ada", teams: ["admin"], secret: "dropped" },
+    { id: "m2", email: "bob@acme.fr", name: "bob", teams: ["developer", "support"] },
   ],
   invitations: [
-    { email: "eve@acme.fr", roles: ["developer"], expiresAt: "2026-11-17T10:00:00Z" },
-    { email: "old@acme.fr", roles: [], expiresAt: "2026-11-01T10:00:00Z" },
+    { email: "eve@acme.fr", teams: ["developer"], expiresAt: "2026-11-17T10:00:00Z" },
+    { email: "old@acme.fr", teams: [], expiresAt: "2026-11-01T10:00:00Z" },
   ],
-  settings: { domains: ["acme.fr"], defaultRole: "viewer", source: "console" },
+  settings: { domains: ["acme.fr"], defaultTeams: ["support"], source: "console" },
 };
+
+const person = (
+  permissions: readonly PlatformPermission[] = PLATFORM_PERMISSIONS,
+): WorkspaceInfo["person"] => ({
+  id: "m1",
+  email: "ada@acme.fr",
+  name: "ada",
+  teams: [],
+  permissions: [...permissions],
+});
 
 describe("loadMembers", () => {
   it("keeps what the screen draws and nothing else", async () => {
     const view = await loadMembers(async () => served);
     expect(view.members).toEqual([
-      { id: "m1", email: "ada@acme.fr", name: "ada", roles: ["admin"] },
-      { id: "m2", email: "bob@acme.fr", name: "bob", roles: [] },
+      { id: "m1", email: "ada@acme.fr", name: "ada", teams: ["admin"] },
+      { id: "m2", email: "bob@acme.fr", name: "bob", teams: ["developer", "support"] },
     ]);
-    expect(view).toMatchObject({ domains: ["acme.fr"], defaultRole: "viewer", source: "console" });
+    expect(view).toMatchObject({
+      domains: ["acme.fr"],
+      defaultTeams: ["support"],
+      source: "console",
+    });
     expect(JSON.stringify(view)).not.toContain("dropped");
   });
 
-  it("parses roles and domains typed as a list", () => {
-    expect(parseList(" developer, viewer  admin,, ")).toEqual(["developer", "viewer", "admin"]);
-  });
-
-  it("offers the base roles and every role people already hold", async () => {
-    const view = await loadMembers(async () => served);
-    expect(knownRoles(view)).toEqual(["admin", "member", "developer", "viewer"]);
+  it("parses domains typed as a list", () => {
+    expect(parseList(" acme.fr, acme.com  acme.org,, ")).toEqual([
+      "acme.fr",
+      "acme.com",
+      "acme.org",
+    ]);
   });
 });
 
 describe("Members", () => {
   const view: MembershipView = {
     members: [
-      { id: "m1", email: "ada@acme.fr", name: "ada", roles: ["admin"] },
-      { id: "m2", email: "bob@acme.fr", name: "bob", roles: [] },
+      { id: "m1", email: "ada@acme.fr", name: "ada", teams: ["admin"] },
+      { id: "m2", email: "bob@acme.fr", name: "bob", teams: ["developer", "support"] },
+      { id: "m3", email: "cy@acme.fr", name: "cy", teams: [] },
     ],
     invitations: [
-      { email: "eve@acme.fr", roles: ["developer"], expiresAt: "2026-11-17T10:00:00Z" },
-      { email: "old@acme.fr", roles: [], expiresAt: "2026-11-01T10:00:00Z" },
+      { email: "eve@acme.fr", teams: ["developer"], expiresAt: "2026-11-17T10:00:00Z" },
+      { email: "old@acme.fr", teams: [], expiresAt: "2026-11-01T10:00:00Z" },
     ],
     domains: [],
-    defaultRole: "",
+    defaultTeams: [],
     source: "install",
   };
-  it("draws roles and status, and the expiry of each invitation", () => {
-    const out = renderToStaticMarkup(<Members view={view} selfId="m1" now={NOW} />);
+  it("draws each person's teams as chips by name, and the status and expiry of each invitation", () => {
+    const out = renderToStaticMarkup(
+      <Members view={view} selfId="m1" now={NOW} teams={TEAMS as never} />,
+    );
     expect(out).toContain("You");
     expect(out).toContain("Active");
-    // A person given no role holds member all the same (D-128): no "No role" warning.
-    expect(out).not.toContain("No role");
-    expect(out).not.toContain("None");
-    expect(out.match(/>member</g)).toHaveLength(4);
+    // The admin team is the strong chip; teams show their names, not their ids.
+    expect(out).toContain('fg-badge-strong">Admins<');
+    expect(out).toContain(">Developers<");
+    expect(out).toContain(">Support<");
+    expect(out).not.toContain(">developer<");
+    // A person in no team says so; no role is shown anywhere.
+    expect(out).toContain("No team");
+    expect(out).not.toMatch(/\brole/i);
     expect(out).toContain("Pending");
     expect(out).toContain("Expires in 13 days");
     expect(out).toContain("Expired");
@@ -90,12 +112,12 @@ describe("Members", () => {
       <Members
         view={view}
         now={NOW}
-        onEditRoles={() => {}}
+        onEditTeams={() => {}}
         onRemove={() => {}}
         onWithdraw={() => {}}
       />,
     );
-    expect(out).toContain("Change roles");
+    expect(out).toContain("Change teams");
     expect(out).toContain("Remove");
     expect(out).toContain("Withdraw");
   });
@@ -110,8 +132,11 @@ describe("Members", () => {
 
 describe("MembersPage", () => {
   const open = (routes: Record<string, unknown> = {}) => {
-    const fake = fakeApi({ "/api/members": served, ...routes });
-    return { ...fake, shown: mount(<MembersPage api={fake.api} selfId="m1" now={() => NOW} />) };
+    const fake = fakeApi({ "/api/members": served, "/api/teams": { teams: TEAMS }, ...routes });
+    return {
+      ...fake,
+      shown: mount(<MembersPage api={fake.api} person={person()} now={() => NOW} />),
+    };
   };
 
   it("shows a spinner, then the people", async () => {
@@ -126,27 +151,42 @@ describe("MembersPage", () => {
         throw refusal(500);
       },
     });
-    const page = await mount(<MembersPage api={api} now={() => NOW} />);
+    const page = await mount(<MembersPage api={api} person={person()} now={() => NOW} />);
     expect(page.querySelector("[role=alert]")?.textContent).toContain("could not be loaded");
     expect(button(page, "Try again")).toBeTruthy();
   });
 
-  it("invites with the chosen roles and tells it was sent", async () => {
+  it("draws no write control for someone who only holds members:read", async () => {
+    const { api } = fakeApi({ "/api/members": served, "/api/teams": { teams: TEAMS } });
+    const page = await mount(
+      <MembersPage api={api} person={person(["members:read"])} now={() => NOW} />,
+    );
+    expect(page.textContent).toContain("ada@acme.fr");
+    expect(button(page, "Invite people")).toBeUndefined();
+    expect(button(page, "Change teams")).toBeUndefined();
+    expect(button(page, "Remove")).toBeUndefined();
+    expect(button(page, "Withdraw")).toBeUndefined();
+  });
+
+  it("invites with the chosen teams and tells it was sent", async () => {
     const { sent, shown } = open({ "POST /api/invitations": { notified: true } });
     const page = await shown;
     await click(button(page, "Invite people"));
     const dialog = document.querySelector("[role=dialog]")!;
     await type(field(dialog, "Email address"), "new@acme.fr");
+    // None by default; the built-in teams come first.
+    const boxes = [...dialog.querySelectorAll<HTMLInputElement>("input[type=checkbox]")];
+    expect(boxes.every((b) => !b.checked)).toBe(true);
+    expect(boxes.map((b) => b.closest("label")!.textContent)[0]).toContain("Admins");
     await click(
       [...dialog.querySelectorAll("label")]
-        .find((l) => l.textContent === "developer")!
+        .find((l) => l.textContent?.startsWith("Developers"))!
         .querySelector("input"),
     );
-    await type(field(dialog, "Other roles"), "viewer");
     await click(button(dialog, "Send invitation"));
     expect(sent.at(-1)).toEqual({
       path: "/api/invitations",
-      body: { email: "new@acme.fr", roles: ["developer", "viewer"] },
+      body: { email: "new@acme.fr", teams: ["developer"] },
       method: "POST",
     });
     expect(document.querySelector("[role=dialog]")).toBeNull();
@@ -174,22 +214,48 @@ describe("MembersPage", () => {
     expect(page.querySelector("[role=alert]")?.textContent).toContain("could not be sent");
   });
 
-  it("changes roles from the checkboxes", async () => {
+  it("changes teams from a multi-select, built-in teams first", async () => {
     const { sent, shown } = open({ "PATCH /api/members/m2": {} });
     const page = await shown;
-    await click(button(page.querySelectorAll("tbody tr")[1] as HTMLElement, "Change roles"));
+    await click(button(page.querySelectorAll("tbody tr")[1] as HTMLElement, "Change teams"));
     const dialog = document.querySelector("[role=dialog]")!;
-    await click(
-      [...dialog.querySelectorAll("label")]
-        .find((l) => l.textContent === "developer")!
-        .querySelector("input"),
-    );
-    await click(button(dialog, "Save roles"));
+    expect(dialog.textContent).toContain("Change teams of bob@acme.fr");
+    const labels = [...dialog.querySelectorAll("label")].map((l) => l.textContent ?? "");
+    expect(labels.map((l) => l.split(" ")[0])).toEqual(["Admins", "Developers", "Support"]);
+    // Bob is in Developers and Support: they start checked.
+    const boxes = [...dialog.querySelectorAll<HTMLInputElement>("input[type=checkbox]")];
+    expect(boxes.map((b) => b.checked)).toEqual([false, true, true]);
+    await click(boxes[2]);
+    await click(button(dialog, "Save teams"));
     expect(sent.at(-1)).toEqual({
       path: "/api/members/m2",
-      body: { roles: ["developer"] },
+      body: { teams: ["developer"] },
       method: "PATCH",
     });
+    expect(page.textContent).toContain("Teams of bob@acme.fr saved.");
+  });
+
+  it("does not offer to give what the person does not hold", async () => {
+    const fake = fakeApi({ "/api/members": served, "/api/teams": { teams: TEAMS } });
+    const page = await mount(
+      <MembersPage
+        api={fake.api}
+        person={person(["members:write", "tools:write"])}
+        now={() => NOW}
+      />,
+    );
+    await click(button(page.querySelectorAll("tbody tr")[1] as HTMLElement, "Change teams"));
+    const dialog = document.querySelector("[role=dialog]")!;
+    const box = (name: string) =>
+      [...dialog.querySelectorAll("label")]
+        .find((l) => l.textContent?.startsWith(name))!
+        .querySelector("input")!;
+    // Admins hold everything: not this person's to give. Developers hold tools:write and access:read,
+    // and the person lacks access:read.
+    expect(box("Admins").disabled).toBe(true);
+    expect(box("Developers").disabled).toBe(true);
+    expect(box("Support").disabled).toBe(false);
+    expect(dialog.textContent).toContain("You can only give what you hold");
   });
 
   it("asks before removing, and shows why the platform refused", async () => {
@@ -197,7 +263,7 @@ describe("MembersPage", () => {
       "DELETE /api/members/m1": () => {
         throw refusal(
           409,
-          "The last administrator cannot be removed. Make someone else an admin first.",
+          "The last admin cannot be removed. Add someone else to the Admins team first.",
         );
       },
     });
@@ -208,7 +274,7 @@ describe("MembersPage", () => {
     expect(sent).toEqual([]);
     await click(button(dialog, "Remove member"));
     expect(sent.at(-1)).toEqual({ path: "/api/members/m1", body: undefined, method: "DELETE" });
-    expect(dialog.querySelector("[role=alert]")?.textContent).toContain("last administrator");
+    expect(dialog.querySelector("[role=alert]")?.textContent).toContain("last admin");
     // The dialog stays open, so the person can cancel.
     await click(button(dialog, "Cancel"));
     expect(document.querySelector("[role=dialog]")).toBeNull();
@@ -229,16 +295,18 @@ describe("MembersPage", () => {
 
 describe("MembersPage invite on open", () => {
   it("opens the invite dialog when asked to", async () => {
-    const { api } = fakeApi({ "/api/members": served });
-    const page = await mount(<MembersPage api={api} now={() => NOW} inviteOnOpen />);
+    const { api } = fakeApi({ "/api/members": served, "/api/teams": { teams: TEAMS } });
+    const page = await mount(
+      <MembersPage api={api} person={person()} now={() => NOW} inviteOnOpen />,
+    );
     expect(page.ownerDocument.querySelector('[role="dialog"]')?.textContent).toContain("Invite");
   });
 });
 
 describe("DomainsPage", () => {
   const open = (routes: Record<string, unknown> = {}) => {
-    const fake = fakeApi({ "/api/members": served, ...routes });
-    return { ...fake, shown: mount(<DomainsPage api={fake.api} />) };
+    const fake = fakeApi({ "/api/members": served, "/api/teams": { teams: TEAMS }, ...routes });
+    return { ...fake, shown: mount(<DomainsPage api={fake.api} person={person()} />) };
   };
 
   it("shows who joins by themselves", async () => {
@@ -247,14 +315,23 @@ describe("DomainsPage", () => {
     expect(page.textContent).toContain("Who joins by themselves");
   });
 
-  it("saves the domains and the default role", async () => {
+  it("lets people join with teams, never Admins, and saves them", async () => {
     const { sent, shown } = open({ "PUT /api/membership-settings": {} });
     const page = await shown;
     await type(field(page, "Email domains"), "acme.fr, acme.com");
+    const labels = [...page.querySelectorAll("form label")].map((l) => l.textContent ?? "");
+    expect(page.textContent).toContain("Join with teams");
+    expect(labels.some((l) => l.startsWith("Admins"))).toBe(false);
+    // Support is the saved default; add Developers.
+    await click(
+      [...page.querySelectorAll("form label")]
+        .find((l) => l.textContent?.startsWith("Developers"))!
+        .querySelector("input"),
+    );
     await submit(page.querySelectorAll("form")[0]);
     expect(sent.at(-1)).toEqual({
       path: "/api/membership-settings",
-      body: { domains: ["acme.fr", "acme.com"], defaultRole: "viewer" },
+      body: { domains: ["acme.fr", "acme.com"], defaultTeams: ["support", "developer"] },
       method: "PUT",
     });
     expect(page.textContent).toContain("Saved.");

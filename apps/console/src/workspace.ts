@@ -1,3 +1,4 @@
+import { isPermission, PLATFORM, type PlatformPermission } from "@forgeron/permissions";
 import { addresses } from "@forgeron/platform-contract/client";
 import { ok, typedClient, type FetchJson } from "./api";
 
@@ -11,8 +12,10 @@ export interface WorkspaceInfo {
     id: string;
     email: string;
     name: string;
-    roles: string[];
-    admin: boolean;
+    /** The ids of the teams the person is in (D-136); everyone is also part of `everyone`, not listed. */
+    teams: string[];
+    /** What the person may do on the platform: every screen and control is decided with it (`can`). */
+    permissions: PlatformPermission[];
     /** Their picture and where it comes from: the one they chose, or their provider's (D-133). */
     avatar?: { url: string; source: "custom" | "provider" };
   };
@@ -38,8 +41,12 @@ export async function loadWorkspace(fetchJson: FetchJson): Promise<WorkspaceInfo
       id: String(body.person?.id),
       email: String(body.person?.email),
       name: String(body.person?.name),
-      roles: Array.isArray(body.person?.roles) ? body.person.roles.map(String) : [],
-      admin: body.person?.admin === true,
+      teams: Array.isArray(body.person?.teams) ? body.person.teams.map(String) : [],
+      permissions: Array.isArray(body.person?.permissions)
+        ? body.person.permissions
+            .map(String)
+            .filter((p): p is PlatformPermission => isPermission(PLATFORM, p))
+        : [],
       ...(body.person?.avatar
         ? {
             avatar: {

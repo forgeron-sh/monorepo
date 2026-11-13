@@ -1,13 +1,18 @@
 import { addresses } from "@forgeron/platform-contract/client";
-import { Avatar, Badge, Button, Notice, Page, SettingsGroup, SettingsRow } from "@forgeron/ui";
+import { Avatar, Button, Notice, Page, SettingsGroup, SettingsRow } from "@forgeron/ui";
 import { useRef, useState } from "react";
 import { explain, ok, typedSender } from "../../../api";
 import type { PageProps } from "../../../shell/page-props";
+import { TeamChips } from "../../../members";
+import { loadTeams } from "../../../teams";
+import { useLoad } from "../../../use-load";
 import { avatarDataUrl } from "../avatar-image";
 import { SettingsStack } from "../components/settings-stack";
 
 export default function ProfilePage({ ws, api }: PageProps) {
   const { person } = ws;
+  // Team names are a nicety: without them the chips show the ids.
+  const teams = useLoad(() => loadTeams(api.fetchJson).catch(() => []), [api]);
   const input = useRef<HTMLInputElement>(null);
   // The picture after a change, until the shell reloads the workspace.
   const [avatar, setAvatar] = useState(person.avatar);
@@ -80,20 +85,10 @@ export default function ProfilePage({ ws, api }: PageProps) {
             <span className="fc-mono">{person.email}</span>
           </SettingsRow>
           <SettingsRow
-            label="Roles"
-            description="What an admin gave you. Ask an admin to change them."
+            label="Teams"
+            description="What you may do on Forgeron, and the tools you use, come from your teams. Someone who manages teams changes them."
           >
-            <span className="fc-badges">
-              {person.roles.length ? (
-                person.roles.map((role) => (
-                  <Badge key={role} tone={role === "admin" ? "strong" : "neutral"}>
-                    {role}
-                  </Badge>
-                ))
-              ) : (
-                <Badge>no role</Badge>
-              )}
-            </span>
+            <TeamChips ids={person.teams} teams={teams.data ?? []} />
           </SettingsRow>
         </SettingsGroup>
       </SettingsStack>

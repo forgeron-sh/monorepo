@@ -6,7 +6,7 @@ The console of a workspace: tools, versions, access, secrets.
 
 A sidebar shell with path routing; the screens are the route table (`src/shell/routes.ts`, D-056, D-058). The sidebar (D-128) has a workspace switcher, the person's own space (Home, My tools, Discover), the Administration section, as far as the person's permissions go (Tools, Marketplace, Members, Teams), Settings at the bottom, and the person's menu (theme, documentation, sign out). `g` then a letter goes to a section, `/` searches. A person only sees what they may use; an address that moved redirects to its new place (`src/shell/redirects.ts`).
 
-- Home (`/`): the person's tools and a way to Discover; for an admin, the workspace's numbers and the first-run checklist
+- Home (`/`): the person's tools and a way to Discover; for whoever sees members, the workspace's numbers and the first-run checklist
 - My tools (`/library`), Discover (`/discover`), a tool's page in the library (`/library/<tool>`)
 - Administration (`/admin/...`): Tools (every tool of the workspace: channels, releases, availability, access; for people who hold `tools:read`), Marketplace, Members, Teams (permissions on Forgeron per team)
 - Settings (`/settings/...`, its own sidebar): Account (Profile, Preferences, Security, Connected accounts, Personal secrets), Workspace (General, Sign-in, Domains, GitHub), Operations (Audit log, Usage and seats, Sealing key, Install information). Pages the platform has no data for yet say so.

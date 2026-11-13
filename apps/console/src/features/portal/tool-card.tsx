@@ -3,13 +3,14 @@ import { Badge, Button, DetailList, Markdown, Notice, Tabs } from "@forgeron/ui"
 import { useState } from "react";
 import type { Api } from "../../api";
 import { ago } from "../../format";
+import { can } from "../../shell/access";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
 import type { WorkspaceInfo } from "../../workspace";
 import { imagesOf, interfacesOf, loadToolCard, type ToolCardData } from "./catalog";
 import { ConnectInstructions } from "./connect";
 
-// The tool card: the Overview tab of the tool page, for admins and members alike. The README is the
+// The tool card: the Overview tab of the tool page, for everyone who reads it. The README is the
 // tool's own; the column on the right says what the tool needs from the person and what they may do.
 
 export interface ToolOverviewProps {
@@ -35,15 +36,19 @@ export default function ToolOverview({
   return <ToolCardView card={card.data!} ws={ws} now={now} />;
 }
 
-/** The workspace roles that open the tool, by their label. */
-function Roles({ roles }: { roles: ToolCardData["roles"] }) {
-  return roles.map((role, i) => (
-    <span key={role.name}>
+/** The teams (and Everyone) that open the tool, by name. */
+function Subjects({ subjects }: { subjects: ToolCardData["subjects"] }) {
+  return subjects.map((s, i) => (
+    <span key={s.subject}>
       {i > 0 ? ", " : ""}
-      <code className="fp-role">{role.label}</code>
+      <code className="fp-subject">{s.name}</code>
     </span>
   ));
 }
+
+/** Whether the person is part of the subject: everyone is, a team if they are in it. */
+const isMine = (subject: string, teams: readonly string[]) =>
+  subject === "everyone" || teams.some((t) => subject === `team:${t}`);
 
 export function ToolCardView({
   card,
@@ -73,26 +78,24 @@ export function ToolCardView({
         </div>
       ) : null}
 
-      {!granted && ws.person.admin ? (
-        // An admin gives roles their access in the tool's Access tab (D-127): never "ask an admin".
-        <Notice tone="info" title="Your roles do not let you use this tool yet.">
-          What each workspace role is given in this tool is set in its{" "}
-          <a href="?tab=access">Access</a> tab: give one of your roles a profile there.
-          {card.roles.length > 0 ? (
+      {!granted && can(ws.person, "access:write") ? (
+        // Whoever gives access does it in the tool's Access tab (D-127, D-136): never "ask someone".
+        <Notice tone="info" title="None of your teams uses this tool yet.">
+          Who may use this tool is set in its <a href="?tab=access">Access</a> tab: give Everyone,
+          or one of your teams, a profile there.
+          {card.subjects.length > 0 ? (
             <>
               {" "}
-              It is open to {card.roles.length > 1 ? "these roles: " : "the role "}
-              <Roles roles={card.roles} />.
+              It is open to <Subjects subjects={card.subjects} />.
             </>
           ) : null}
         </Notice>
       ) : !granted ? (
-        <Notice tone="info" title="You do not use this tool yet.">
-          Ask an admin of this workspace to give you access to it
-          {card.roles.length > 0 ? (
+        <Notice tone="info" title="None of your teams uses this tool yet.">
+          Ask someone who gives access to share it with one of your teams
+          {card.subjects.length > 0 ? (
             <>
-              : it is open to {card.roles.length > 1 ? "these roles: " : "the role "}
-              <Roles roles={card.roles} />
+              : it is open to <Subjects subjects={card.subjects} />
             </>
           ) : null}
           .
@@ -173,22 +176,21 @@ export function ToolCardView({
                   ),
               },
               {
-                label: "Roles that may use it",
+                label: "Teams that may use it",
                 value:
-                  card.roles.length > 0 ? (
+                  card.subjects.length > 0 ? (
                     <span className="fc-badges">
-                      {card.roles.map((role) => (
+                      {card.subjects.map((s) => (
                         <Badge
-                          key={role.name}
-                          mono
-                          tone={ws.person.roles.includes(role.name) ? "strong" : "neutral"}
+                          key={s.subject}
+                          tone={isMine(s.subject, ws.person.teams) ? "strong" : "neutral"}
                         >
-                          {role.label}
+                          {s.label ? `${s.name}: ${s.label}` : s.name}
                         </Badge>
                       ))}
                     </span>
                   ) : (
-                    "No role yet"
+                    "None yet"
                   ),
               },
               ...(card.yourAccess.length > 0
@@ -234,7 +236,7 @@ export function ToolCardView({
               ...(card.requiredSecrets.length > 0
                 ? [
                     {
-                      label: "Set by an admin",
+                      label: "Set for the workspace",
                       value: (
                         <ul className="fp-access">
                           {card.requiredSecrets.map((secret) => (

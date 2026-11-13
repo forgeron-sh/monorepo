@@ -94,3 +94,56 @@ export const refusal = (status: number, detail?: string, code?: string) =>
   new ApiError(`${status}${detail ? ` ${detail}` : ""}`, status, detail, code);
 
 export const NOW = new Date("2026-11-03T12:00:00Z");
+
+/** The teams of a workspace as `GET /api/teams` answers them: the built-in ones, then two of its own. */
+export const TEAMS = [
+  {
+    id: "admin",
+    name: "Admins",
+    description: "Administer the workspace",
+    members: ["m1"],
+    builtIn: true,
+    locked: true,
+    permissions: ["*"],
+    effective: [
+      "tools:read",
+      "tools:write",
+      "tools:publish",
+      "tools:approve",
+      "tools:data",
+      "tools:secrets",
+      "tools:delete",
+      "access:read",
+      "access:write",
+      "members:read",
+      "members:write",
+      "teams:write",
+      "marketplace:read",
+      "marketplace:write",
+      "settings:read",
+      "settings:write",
+      "audit:read",
+      "usage:read",
+    ],
+  },
+  {
+    id: "developer",
+    name: "Developers",
+    description: "Build and publish tools",
+    members: ["m2"],
+    builtIn: true,
+    locked: false,
+    permissions: ["tools:write", "access:read"],
+    effective: ["tools:read", "tools:write", "access:read"],
+  },
+  {
+    id: "support",
+    name: "Support",
+    description: "",
+    members: ["m3"],
+    builtIn: false,
+    locked: false,
+    permissions: [],
+    effective: [],
+  },
+];

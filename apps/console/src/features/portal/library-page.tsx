@@ -20,7 +20,7 @@ import "./portal.css";
 
 // A tool as the person who uses it sees it (D-118): what it does (its guide), adding it to their
 // library, finishing what it asks of them, how to use it (on the web, in Claude, in a terminal), and
-// removing it. No version, role, action, resource or README: those are the admin's sheet.
+// removing it. No version, action, resource or README: those are in the tool's page of Administration.
 
 const Chevron = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -92,13 +92,13 @@ export function LibraryToolPage({
   go,
   tool,
   pilot,
-  admin = false,
+  givesAccess = false,
 }: {
   api: Api;
   go: (href: string) => void;
   tool: string;
-  /** The person is an admin: they set who may use the tool, so they are never told to ask one. */
-  admin?: boolean;
+  /** The person holds `access:write`: they set who may use the tool, so they are never told to ask. */
+  givesAccess?: boolean;
   /** A branch being tried (D-119): the page is that pilot's, not the tool's. */
   pilot?: string;
 }) {
@@ -226,15 +226,15 @@ export function LibraryToolPage({
           </Notice>
         ) : null}
         {c.installed && !c.allowed ? (
-          // What a role may do in a tool is the Access tab's (D-127): an admin sets it there.
-          <Notice tone="info" title="Your roles do not let you use this tool yet.">
-            {admin ? (
+          // What a team may do in a tool is the Access tab's (D-127, D-136): whoever gives access sets it there.
+          <Notice tone="info" title="None of your teams uses this tool yet.">
+            {givesAccess ? (
               <>
-                Give one of your roles a profile in the{" "}
+                Give Everyone, or one of your teams, a profile in the{" "}
                 <a href={`${toolPath(c.name)}?tab=access`}>Access</a> tab of {c.title}.
               </>
             ) : (
-              <>Ask an admin of this workspace to give your role access to {c.title}.</>
+              <>Ask someone who gives access to share {c.title} with one of your teams.</>
             )}
           </Notice>
         ) : null}

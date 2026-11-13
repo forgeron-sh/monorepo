@@ -6,7 +6,7 @@ const routes: RouteDef[] = [
   {
     path: "/secret-request",
     title: "Enter a secret",
-    access: "everyone",
+    access: "signed-in",
     page: () => import("./pages/secret-request"),
   },
 ];

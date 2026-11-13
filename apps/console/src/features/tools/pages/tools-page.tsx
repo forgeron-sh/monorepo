@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import type { PageProps } from "../../../shell/page-props";
 import { ago } from "../../../format";
 import { pathOf, routeClick, toolPath } from "../../../router";
+import { can } from "../../../shell/access";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
 import { loadTools, type ToolRow } from "../api";
@@ -123,7 +124,7 @@ export default function ToolsPage({ api, go, ws, now }: PageProps) {
       title="Tools"
       description="The tools of this workspace, the version production serves and their previews."
       actions={
-        ws.person.admin ? (
+        can(ws.person, "tools:write") ? (
           <>
             <Button onClick={() => setMaking(true)}>New tool</Button>
             <Button variant="primary" onClick={() => setAdding(true)}>

@@ -22,12 +22,13 @@ afterEach(() => {
 });
 
 const served = {
-  roles: ["viewer"],
+  subjects: ["team:viewer"],
+  subjectLabels: { "team:viewer": "Viewers" },
   actions: ["deals.list", "deals.move"],
   views: ["board"],
-  subjects: ["deals.list", "deals.move", "view:board"],
+  columns: ["deals.list", "deals.move", "view:board"],
   cells: {
-    viewer: {
+    "team:viewer": {
       "deals.list": { default: true, allowed: true },
       "deals.move": { default: false, allowed: false },
       "view:board": { default: false, override: true, allowed: true },
@@ -51,7 +52,7 @@ describe("AccessMatrixEditor", () => {
       async (_path, body) => {
         sent.push(body);
         current = structuredClone(served);
-        current.cells.viewer["deals.move"] = {
+        current.cells["team:viewer"]["deals.move"] = {
           default: false,
           override: true,
           allowed: true,
@@ -81,24 +82,27 @@ describe("AccessMatrixEditor", () => {
 
     await act(async () => saveButton().click());
     await flush();
-    expect(sent).toEqual([{ changes: [{ role: "viewer", action: "deals.move", allowed: true }] }]);
+    expect(sent).toEqual([
+      { changes: [{ subject: "team:viewer", action: "deals.move", allowed: true }] },
+    ]);
     expect(container.textContent).toContain("Saved.");
     expect(saveButton().disabled).toBe(true);
     expect(fetchJson).toHaveBeenCalledTimes(2);
   });
 
-  it("drafts what a workspace role is given, previews its cells, and saves it (D-127)", async () => {
+  it("lists Everyone then each team by name, drafts what one is given, and saves it (D-127, D-136)", async () => {
     const withProfiles = {
       ...served,
-      roles: ["member"],
-      cells: { member: { "deals.list": { default: true, allowed: true } } },
+      subjects: ["everyone", "team:admin", "team:support"],
+      subjectLabels: { everyone: "Everyone", "team:admin": "Admins", "team:support": "Support" },
+      cells: { everyone: { "deals.list": { default: true, allowed: true } } },
       levels: { "deals.list": "read", "deals.move": "write", "view:board": "write" },
       permissions: ["read", "write"],
       profiles: {
         user: { label: "User", grants: ["read"], default: true },
         manager: { label: "Manager", grants: ["read", "write"], default: false },
       },
-      mapping: { member: { kind: "profile", profile: "user" } },
+      grants: { everyone: { kind: "profile", profile: "user" }, "team:admin": { kind: "all" } },
     };
     const sent: unknown[] = [];
     const fetchJson = vi.fn<() => Promise<unknown>>(async () => withProfiles);
@@ -112,22 +116,26 @@ describe("AccessMatrixEditor", () => {
           tool: "crm",
           fetchJson,
           sendJson,
-          workspaceRoles: ["admin", "member", "support"],
         }),
       ),
     );
     await flush();
     expect(container.textContent).toContain("Profiles this tool suggests");
     expect(container.textContent).toContain("Manager");
-    // The workspace's roles are all there, the ones the tool does not map given nothing.
-    const select = (role: string) =>
-      container.querySelector(`select[aria-label="What ${role} is given"]`) as HTMLSelectElement;
-    expect(select("support").value).toBe("none");
-    expect(select("member").value).toBe("profile:user");
+    // Everyone and each team are rows, by name; a team the tool does not map is given nothing.
+    const select = (who: string) =>
+      container.querySelector(`select[aria-label="What ${who} is given"]`) as HTMLSelectElement;
+    const rows = [...container.querySelectorAll("tbody tr")].map((r) => r.textContent ?? "");
+    expect(rows.some((r) => r.startsWith("Everyone"))).toBe(true);
+    expect(container.textContent).not.toContain("team:support");
+    expect(select("Support").value).toBe("none");
+    expect(select("Admins").value).toBe("all");
+    expect(select("Everyone").value).toBe("profile:user");
+    expect(container.textContent).toContain("gives Admins every permission and Everyone");
 
     act(() => {
-      select("member").value = "profile:manager";
-      select("member").dispatchEvent(new Event("change", { bubbles: true }));
+      select("Everyone").value = "profile:manager";
+      select("Everyone").dispatchEvent(new Event("change", { bubbles: true }));
     });
     expect(saveButton().disabled).toBe(false);
     // `deals.move` needs `write`: the drafted profile opens it.
@@ -135,7 +143,7 @@ describe("AccessMatrixEditor", () => {
     await act(async () => saveButton().click());
     await flush();
     expect(sent).toEqual([
-      { profiles: [{ role: "member", grant: { kind: "profile", profile: "manager" } }] },
+      { grants: [{ subject: "everyone", grant: { kind: "profile", profile: "manager" } }] },
     ]);
   });
 
@@ -151,6 +159,26 @@ describe("AccessMatrixEditor", () => {
     await flush();
     expect(container.textContent).toContain("/api/tools/crm/access-matrix: 403");
     expect(saveButton().disabled).toBe(false);
+  });
+
+  it("only shows the matrix to someone who may not change it (access:read)", async () => {
+    const fetchJson = async () => served;
+    act(() =>
+      root.render(
+        createElement(AccessMatrixEditor, {
+          tool: "crm",
+          fetchJson,
+          sendJson: async () => {},
+          readOnly: true,
+        }),
+      ),
+    );
+    await flush();
+    expect(container.textContent).toContain("Viewers");
+    expect(container.querySelector("select")).toBeNull();
+    expect(cellButtons()).toHaveLength(0);
+    expect(saveButton()).toBeUndefined();
+    expect(container.textContent).toContain("Changing it needs the permission");
   });
 
   it("says it could not load", async () => {

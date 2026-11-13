@@ -19,7 +19,10 @@ import ToolSheet from "./pages/tool-sheet";
 afterEach(cleanup);
 
 const props = (api: PageProps["api"], go = vi.fn<(href: string) => void>()): PageProps => ({
-  ws: { workspace: "acme", person: { admin: true, roles: ["admin"] } } as unknown as WorkspaceInfo,
+  ws: {
+    workspace: "acme",
+    person: { teams: ["admin"], permissions: ["marketplace:write"] },
+  } as unknown as WorkspaceInfo,
   api,
   now: () => NOW,
   go,
@@ -115,7 +118,7 @@ describe("the technical sheet of a tool", () => {
     readme: "# Technical",
     guide: "# For the agents",
     interfaces: { mcp: true, api: false, cli: true, web: false },
-    roles: [{ name: "support", label: "Support" }],
+    profiles: [{ name: "support", label: "Support" }],
     actions: [{ name: "tickets.list", access: "read", description: "Lists tickets." }],
     network: ["*.odoo.com"],
     secrets: [],

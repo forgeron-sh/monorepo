@@ -1,6 +1,7 @@
 import { Badge, Button, CopyBlock, EmptyState, EnvTag, Input, Select } from "@forgeron/ui";
 import { useMemo, useState, type ReactNode } from "react";
 import { ago } from "../../../format";
+import { can } from "../../../shell/access";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
 import { loadBranches, loadVersions, type BranchRow, type Status } from "../api";
@@ -10,7 +11,7 @@ import type { ToolTabProps } from "../tabs";
 import { UpdatePanel } from "./update-panel";
 
 // The channels of a tool (docs/console-ux.md, "Channels", D-125): the permanent ones (production, and
-// the ones an admin added) with their updates, then one temporary channel per pushed branch with its
+// the ones added by whoever builds the tool) with their updates, then one temporary channel per pushed branch with its
 // commits. A row opens onto its database, its last migration and its recent deployments. There is no
 // promotion: a permanent channel takes the releases of the branch it follows, and rolls back to a
 // release it served.
@@ -28,7 +29,7 @@ export default function BranchesTab(props: ToolTabProps) {
   // An update moves a permanent channel: the list below reads it again.
   return (
     <div className="fc-stack">
-      {props.ws.person.admin ? (
+      {can(props.ws.person, "tools:write") ? (
         <UpdatePanel
           key={`panel-${round}`}
           tool={props.tool}
@@ -55,7 +56,9 @@ export default function BranchesTab(props: ToolTabProps) {
 }
 
 function BranchList({ tool, api, ws, now }: ToolTabProps) {
-  const admin = ws.person.admin;
+  // Roll back publishes an older version again; closing a channel is a change of the tool.
+  const mayRollBack = can(ws.person, "tools:publish");
+  const mayClose = can(ws.person, "tools:write");
   const branches = useLoad(() => loadBranches(api.fetchJson, tool), [api, tool]);
   // The changelog is for the dialogs: its failure does not stop the list.
   const versions = useLoad(() => loadVersions(api.fetchJson, tool), [api, tool]);
@@ -114,7 +117,7 @@ function BranchList({ tool, api, ws, now }: ToolTabProps) {
   };
   const filtered = search !== "" || status !== "" || author !== "";
   const rollbackButton = (row: BranchRow) =>
-    admin && row.rollbackTo ? (
+    mayRollBack && row.rollbackTo ? (
       <Button size="sm" onClick={() => setAction({ kind: "rollback", row })}>
         Roll back
       </Button>
@@ -196,7 +199,7 @@ function BranchList({ tool, api, ws, now }: ToolTabProps) {
               now={now()}
               primary={null}
               actions={
-                admin
+                mayClose
                   ? [{ label: "Close channel", onSelect: () => setAction({ kind: "close", row }) }]
                   : []
               }

@@ -10,16 +10,19 @@ import {
 } from "./access-matrix";
 
 describe("loadAccessMatrix", () => {
-  it("asks for the tool and keeps what the screen draws", async () => {
+  it("asks for the tool and keeps what the screen draws: rows by subject, columns, labels", async () => {
     const paths: string[] = [];
     const matrix = await loadAccessMatrix(
       async (path) => (
         paths.push(path),
         {
-          roles: ["sales"],
+          subjects: ["everyone", "team:sales"],
+          subjectLabels: { everyone: "Everyone", "team:sales": "Sales" },
           actions: ["deals.move", "deals.delete"],
+          views: [],
+          columns: ["deals.move", "deals.delete"],
           cells: {
-            sales: {
+            "team:sales": {
               "deals.move": { allowed: true, default: true, internal: "must-not-survive" },
               "deals.delete": { allowed: true, default: false, override: true },
             },
@@ -29,25 +32,26 @@ describe("loadAccessMatrix", () => {
       "crm",
     );
     expect(paths).toEqual(["/api/tools/crm/access-matrix"]);
-    expect(matrix.cells.sales).toEqual({
+    expect(matrix.subjects).toEqual(["everyone", "team:sales"]);
+    expect(matrix.labels).toEqual({ everyone: "Everyone", "team:sales": "Sales" });
+    expect(matrix.cells["team:sales"]).toEqual({
       "deals.move": { allowed: true, default: true, changed: false },
       "deals.delete": { allowed: true, default: false, changed: true, override: true },
     });
     expect(JSON.stringify(matrix)).not.toContain("must-not-survive");
-    // A platform before D-127 sends no profile: none is shown, nothing breaks.
     expect(matrix.profiles).toEqual({});
-    expect(matrix.mapping).toEqual({});
+    expect(matrix.grants).toEqual({});
   });
 
   it("shows the views as columns after the actions", async () => {
     const matrix = await loadAccessMatrix(
       async () => ({
-        roles: ["a"],
+        subjects: ["everyone"],
         actions: ["x"],
         views: ["board"],
-        subjects: ["x", "view:board"],
+        columns: ["x", "view:board"],
         cells: {
-          a: {
+          everyone: {
             x: { allowed: true, default: true },
             "view:board": { allowed: false, default: false },
           },
@@ -55,33 +59,32 @@ describe("loadAccessMatrix", () => {
       }),
       "t",
     );
-    expect(matrix.actions).toEqual(["x", "view:board"]);
+    expect(matrix.columns).toEqual(["x", "view:board"]);
   });
 
   it("treats a missing cell as refused", async () => {
-    const matrix = await loadAccessMatrix(async () => ({ roles: ["a"], actions: ["x"] }), "t");
-    expect(matrix.cells.a!.x).toEqual({ allowed: false, default: false, changed: false });
+    const matrix = await loadAccessMatrix(
+      async () => ({ subjects: ["everyone"], columns: ["x"] }),
+      "t",
+    );
+    expect(matrix.cells.everyone!.x).toEqual({ allowed: false, default: false, changed: false });
   });
-});
 
-const empty = { levels: {}, permissions: [], profiles: {}, mapping: {} };
-
-describe("loadAccessMatrix with profiles (D-127)", () => {
-  it("keeps the profiles, the permissions and what each role is given", async () => {
+  it("keeps the profiles, the permissions and what each subject is given", async () => {
     const matrix = await loadAccessMatrix(
       async () => ({
-        roles: ["admin", "member"],
-        actions: ["deals.move"],
-        subjects: ["deals.move"],
+        subjects: ["everyone", "team:admin"],
+        subjectLabels: { everyone: "Everyone", "team:admin": "Admins" },
+        columns: ["deals.move"],
         levels: { "deals.move": "write" },
         permissions: ["read", "write"],
         profiles: {
           user: { label: "User", grants: ["read"], default: true },
           manager: { grants: ["read", "write"], default: false },
         },
-        mapping: {
-          admin: { kind: "all" },
-          member: { kind: "profile", profile: "user" },
+        grants: {
+          "team:admin": { kind: "all" },
+          everyone: { kind: "profile", profile: "user" },
           odd: { kind: "unknown" },
         },
         cells: {},
@@ -92,59 +95,71 @@ describe("loadAccessMatrix with profiles (D-127)", () => {
       user: { label: "User", grants: ["read"], default: true },
       manager: { grants: ["read", "write"], default: false },
     });
-    expect(matrix.mapping).toEqual({
-      admin: { kind: "all" },
-      member: { kind: "profile", profile: "user" },
+    expect(matrix.grants).toEqual({
+      "team:admin": { kind: "all" },
+      everyone: { kind: "profile", profile: "user" },
       odd: { kind: "none" },
     });
     expect(matrix.levels).toEqual({ "deals.move": "write" });
   });
 });
 
-describe("ProfileMapping", () => {
-  const matrix: AccessMatrixData = {
-    roles: ["admin", "member", "support"],
-    actions: ["deals.move"],
-    cells: {},
-    levels: { "deals.move": "write" },
-    permissions: ["read", "write"],
-    profiles: { user: { label: "User", grants: ["read"], default: true } },
-    mapping: {
-      admin: { kind: "all" },
-      member: { kind: "profile", profile: "user" },
-      support: { kind: "custom", permissions: ["write"] },
-    },
-  };
+const matrixOf = (overrides: Partial<AccessMatrixData> = {}): AccessMatrixData => ({
+  subjects: ["everyone", "team:admin", "team:support"],
+  labels: { everyone: "Everyone", "team:admin": "Admins", "team:support": "Support" },
+  columns: ["deals.move"],
+  cells: {},
+  levels: { "deals.move": "write" },
+  permissions: ["read", "write"],
+  profiles: { user: { label: "User", grants: ["read"], default: true } },
+  grants: {
+    "team:admin": { kind: "all" },
+    everyone: { kind: "profile", profile: "user" },
+    "team:support": { kind: "custom", permissions: ["write"] },
+  },
+  ...overrides,
+});
 
-  it("shows what each workspace role is given, with the profiles by their label", () => {
-    const out = renderToStaticMarkup(<ProfileMapping matrix={matrix} />);
+describe("ProfileMapping", () => {
+  it("names the rows Everyone and each team by name, never by id", () => {
+    const out = renderToStaticMarkup(<ProfileMapping matrix={matrixOf()} />);
+    expect(out).toContain("Everyone");
+    expect(out).toContain("Admins");
+    expect(out).toContain("Support");
+    expect(out).not.toContain("team:");
+    expect(out).not.toMatch(/\brole/i);
+  });
+
+  it("shows what each is given, with the profiles by their label", () => {
+    const out = renderToStaticMarkup(<ProfileMapping matrix={matrixOf()} />);
     expect(out).toContain("All permissions");
     expect(out).toContain("Profile: User (default)");
     expect(out).toContain("Custom permissions");
     expect(out).not.toContain("<select");
   });
 
-  it("offers a select per role, and a checkbox per permission for custom ones", () => {
-    const out = renderToStaticMarkup(<ProfileMapping matrix={matrix} onChange={() => {}} />);
+  it("offers a select per row, and a checkbox per permission for custom ones", () => {
+    const out = renderToStaticMarkup(<ProfileMapping matrix={matrixOf()} onChange={() => {}} />);
     expect(out.match(/<select/g)).toHaveLength(3);
+    expect(out).toContain('aria-label="What Support is given"');
     expect(out.match(/type="checkbox"/g)).toHaveLength(2);
   });
 });
 
 describe("AccessMatrix", () => {
-  const matrix: AccessMatrixData = {
-    roles: ["sales", "viewer"],
-    actions: ["deals.move"],
+  const matrix = matrixOf({
+    subjects: ["everyone", "team:sales"],
+    labels: { everyone: "Everyone", "team:sales": "Sales" },
     cells: {
-      sales: { "deals.move": { allowed: true, default: true, changed: false } },
-      viewer: { "deals.move": { allowed: true, default: false, changed: true } },
+      everyone: { "deals.move": { allowed: true, default: true, changed: false } },
+      "team:sales": { "deals.move": { allowed: true, default: false, changed: true } },
     },
-    ...empty,
-  };
+  });
 
-  it("shows each role against each action, and marks what an admin changed", () => {
+  it("shows each subject by name against each action, and marks what was changed", () => {
     const out = renderToStaticMarkup(<AccessMatrix matrix={matrix} />);
-    expect(out).toContain("sales");
+    expect(out).toContain("Everyone");
+    expect(out).toContain("Sales");
     expect(out).toContain("deals.move");
     expect(out).toContain("(default: refused)");
     expect(out.match(/allowed/g)).toHaveLength(2);
@@ -156,43 +171,48 @@ describe("AccessMatrix", () => {
     expect(out.match(/<button/g)).toHaveLength(2);
   });
 
-  it("says when no workspace role is given anything", () => {
+  it("says when nobody is given anything", () => {
     expect(
-      renderToStaticMarkup(
-        <AccessMatrix matrix={{ roles: [], actions: [], cells: {}, ...empty }} />,
-      ),
-    ).toContain("No workspace role is given anything");
+      renderToStaticMarkup(<AccessMatrix matrix={matrixOf({ subjects: [], columns: [] })} />),
+    ).toContain("Nobody is given anything");
   });
 });
 
 describe("editing", () => {
-  const matrix: AccessMatrixData = {
-    roles: ["viewer"],
-    actions: ["a", "b"],
+  const matrix = matrixOf({
+    subjects: ["team:viewer"],
+    labels: { "team:viewer": "Viewers" },
+    columns: ["a", "b"],
     cells: {
-      viewer: {
+      "team:viewer": {
         a: { allowed: false, default: false, changed: false },
         b: { allowed: true, default: false, changed: true, override: true },
       },
     },
     levels: { a: "read", b: "write" },
-    permissions: ["read", "write"],
     profiles: { manager: { grants: ["read", "write"], default: false } },
-    mapping: { viewer: { kind: "none" } },
-  };
+    grants: { "team:viewer": { kind: "none" } },
+  });
 
-  it("recomputes the defaults of a role whose mapping is drafted, and adds workspace roles", () => {
+  it("recomputes the defaults of a subject whose grant is drafted", () => {
     const drafted = withDraft(
       matrix,
       new Map(),
-      new Map([["viewer", { role: "viewer", grant: { kind: "profile", profile: "manager" } }]]),
-      ["support"],
+      new Map([
+        [
+          "team:viewer",
+          { subject: "team:viewer", grant: { kind: "profile" as const, profile: "manager" } },
+        ],
+      ]),
     );
-    expect(drafted.roles).toEqual(["support", "viewer"]);
-    expect(drafted.mapping.support).toEqual({ kind: "none" });
-    expect(drafted.cells.viewer!.a).toEqual({ allowed: true, default: true, changed: false });
+    expect(drafted.subjects).toEqual(["team:viewer"]);
+    expect(drafted.cells["team:viewer"]!.a).toEqual({
+      allowed: true,
+      default: true,
+      changed: false,
+    });
     // The exception stays: it now equals the default.
-    expect(drafted.cells.viewer!.b).toEqual({
+    expect(drafted.cells["team:viewer"]!.b).toEqual({
       allowed: true,
       default: true,
       changed: false,
@@ -200,46 +220,53 @@ describe("editing", () => {
     });
   });
 
-  it("sends the drafted mapping and cells together", async () => {
+  it("sends the drafted grants by subject", async () => {
     const sent: unknown[] = [];
     await saveAccessMatrix(
       async (path, body) => void sent.push([path, body]),
       "crm",
       matrix,
       [],
-      [{ role: "member", grant: { kind: "all" } }],
+      [{ subject: "everyone", grant: { kind: "all" } }],
     );
     expect(sent).toEqual([
-      ["/api/tools/crm/access-matrix", { profiles: [{ role: "member", grant: { kind: "all" } }] }],
+      [
+        "/api/tools/crm/access-matrix",
+        { grants: [{ subject: "everyone", grant: { kind: "all" } }] },
+      ],
     ]);
   });
 
   it("shows a drafted flip as differing from the default, and a flip back as not", () => {
     const flipped = withDraft(
       matrix,
-      new Map([["viewer\u0000a", { role: "viewer", action: "a", allowed: true }]]),
+      new Map([["team:viewer\u0000a", { subject: "team:viewer", action: "a", allowed: true }]]),
     );
-    expect(flipped.cells.viewer!.a).toEqual({ allowed: true, default: false, changed: true });
+    expect(flipped.cells["team:viewer"]!.a).toEqual({
+      allowed: true,
+      default: false,
+      changed: true,
+    });
     const back = withDraft(
       matrix,
-      new Map([["viewer\u0000b", { role: "viewer", action: "b", allowed: false }]]),
+      new Map([["team:viewer\u0000b", { subject: "team:viewer", action: "b", allowed: false }]]),
     );
-    expect(back.cells.viewer!.b!.changed).toBe(false);
+    expect(back.cells["team:viewer"]!.b!.changed).toBe(false);
   });
 
   it("sends the drafted cells in one request, a cell back at its default as null", async () => {
     const sent: unknown[] = [];
     await saveAccessMatrix(async (path, body) => void sent.push([path, body]), "crm", matrix, [
-      { role: "viewer", action: "a", allowed: true },
-      { role: "viewer", action: "b", allowed: false },
+      { subject: "team:viewer", action: "a", allowed: true },
+      { subject: "team:viewer", action: "b", allowed: false },
     ]);
     expect(sent).toEqual([
       [
         "/api/tools/crm/access-matrix",
         {
           changes: [
-            { role: "viewer", action: "a", allowed: true },
-            { role: "viewer", action: "b", allowed: null },
+            { subject: "team:viewer", action: "a", allowed: true },
+            { subject: "team:viewer", action: "b", allowed: null },
           ],
         },
       ],

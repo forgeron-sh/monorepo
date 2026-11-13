@@ -2,7 +2,7 @@ import { addresses } from "@forgeron/platform-contract/client";
 import { ok, typedClient, typedSender, type FetchJson, type SendJson } from "../../api";
 
 // A person's library (D-117): the calls of Home and of a tool's page in the library, through the
-// contract's typed client. Nothing technical comes back: no version, role, action or resource.
+// contract's typed client. Nothing technical comes back: no version, action or resource.
 
 export async function loadLibrary(fetchJson: FetchJson) {
   return ok(await typedClient(fetchJson)(addresses.listLibrary)).tools;

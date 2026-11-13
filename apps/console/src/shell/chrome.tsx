@@ -1,5 +1,6 @@
 import { Avatar, Logo, Menu, type MenuEntry } from "@forgeron/ui";
 import type { WorkspaceInfo } from "../workspace";
+import { can } from "./access";
 import { THEMES, useThemePreference } from "./theme";
 
 // The two menus of the sidebar: the workspace switcher on top, the person's menu at the bottom.
@@ -17,16 +18,29 @@ export function WorkspaceSwitcher({ ws, go }: { ws: WorkspaceInfo; go: (href: st
   const entries: MenuEntry[] = [
     { kind: "heading", label: "Workspaces" },
     { kind: "radio", label: ws.workspace, checked: true, onSelect: () => {} },
-    ...(ws.person.admin
+    ...(can(ws.person, "settings:read") || can(ws.person, "members:write")
       ? ([
           { kind: "separator" },
-          {
-            kind: "link",
-            label: "Workspace settings",
-            href: "/settings/workspace",
-            onSelect: go,
-          },
-          { kind: "link", label: "Invite people", href: "/admin/members?invite", onSelect: go },
+          ...(can(ws.person, "settings:read")
+            ? ([
+                {
+                  kind: "link",
+                  label: "Workspace settings",
+                  href: "/settings/workspace",
+                  onSelect: go,
+                },
+              ] satisfies MenuEntry[])
+            : []),
+          ...(can(ws.person, "members:write")
+            ? ([
+                {
+                  kind: "link",
+                  label: "Invite people",
+                  href: "/admin/members?invite",
+                  onSelect: go,
+                },
+              ] satisfies MenuEntry[])
+            : []),
         ] satisfies MenuEntry[])
       : []),
   ];

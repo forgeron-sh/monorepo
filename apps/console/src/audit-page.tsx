@@ -2,7 +2,9 @@ import { Badge, EmptyState, Page, Table, type TableColumn } from "@forgeron/ui";
 import { addresses } from "@forgeron/platform-contract/client";
 import { typedClient, ok, type Api, type FetchJson } from "./api";
 import { ago } from "./format";
-import { AdminOnly, Loading, LoadError } from "./states";
+import { can } from "./shell/access";
+import { Loading, LoadError, Requires } from "./states";
+import type { WorkspaceInfo } from "./workspace";
 import { useLoad } from "./use-load";
 
 // The latest audit lines of the workspace's tools: who did what, through which interface, and how it ended.
@@ -75,18 +77,27 @@ function AuditTable({ rows, now }: { rows: ReadonlyArray<AuditRow>; now: Date })
   return <Table columns={columns} rows={rows} rowKey={(r) => r.id} empty="Nothing recorded yet." />;
 }
 
-export function AuditPage({ api, admin, now }: { api: Api; admin: boolean; now: () => Date }) {
+export function AuditPage({
+  api,
+  person,
+  now,
+}: {
+  api: Api;
+  person: WorkspaceInfo["person"];
+  now: () => Date;
+}) {
+  const allowed = can(person, "audit:read");
   const audit = useLoad(
-    () => (admin ? loadAudit(api.fetchJson) : Promise.resolve([])),
-    [api, admin],
+    () => (allowed ? loadAudit(api.fetchJson) : Promise.resolve([])),
+    [api, allowed],
   );
   return (
     <Page
       title="Audit log"
       description="The latest actions, deployments, approvals and access changes of your tools."
     >
-      {!admin ? (
-        <AdminOnly what="The audit log" />
+      {!allowed ? (
+        <Requires permission="audit:read" what="The audit log" />
       ) : audit.loading ? (
         <Loading shape="table" label="Loading the audit log" />
       ) : audit.error && !audit.data ? (

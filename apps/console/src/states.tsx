@@ -1,5 +1,7 @@
 import { Button, Notice, Skeleton, SkeletonGroup, SkeletonText } from "@forgeron/ui";
+import type { PlatformPermission } from "@forgeron/permissions";
 import { explain } from "./api";
+import { askFor, permissionLabel } from "./shell/access";
 
 /** The shape of what a screen is about to show, so the page does not jump when it arrives. */
 export type LoadingShape = "page" | "list" | "table" | "cards" | "form" | "block";
@@ -116,11 +118,11 @@ export function LoadError({
   );
 }
 
-/** A screen only admins may use; the platform refuses anyone else, this says so first. */
-export function AdminOnly({ what }: { what: string }) {
+/** A screen that needs a permission the person does not hold; the platform refuses too, this says so first. */
+export function Requires({ permission, what }: { permission: PlatformPermission; what: string }) {
   return (
-    <Notice tone="info" title={`${what} is for admins.`}>
-      Ask an admin of this workspace to give you the admin role.
+    <Notice tone="info" title={`${what} needs the permission "${permissionLabel(permission)}".`}>
+      {askFor(permission)}
     </Notice>
   );
 }

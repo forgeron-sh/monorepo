@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { PLATFORM_PERMISSIONS } from "@forgeron/permissions";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { firstRunSteps, Overview } from "./overview";
 import { cleanup, click, button, fakeApi, mount } from "./test-utils";
@@ -9,7 +10,13 @@ afterEach(cleanup);
 const ws = (setup: Partial<WorkspaceInfo["setup"]> = {}, admin = true): WorkspaceInfo => ({
   workspace: "demo",
   endpoint: "https://demo.example.test",
-  person: { id: "m1", email: "ada@acme.fr", name: "ada", roles: admin ? ["admin"] : [], admin },
+  person: {
+    id: "m1",
+    email: "ada@acme.fr",
+    name: "ada",
+    teams: admin ? ["admin"] : [],
+    permissions: admin ? [...PLATFORM_PERMISSIONS] : [],
+  },
   setup: { members: 1, invitations: 0, tools: 0, deployed: 0, called: false, ...setup },
 });
 
@@ -63,7 +70,7 @@ describe("Overview", () => {
     expect(page.textContent).toContain("3 of 4 steps done");
   });
 
-  it("sends an admin to Members, and asks a member to ask an admin", async () => {
+  it("sends an admin to Members, and asks someone without members:write to ask", async () => {
     const { api } = fakeApi({});
     const go = vi.fn<(href: string) => void>();
     const admin = await mount(<Overview ws={ws()} fetchJson={api.fetchJson} go={go} />);
@@ -72,7 +79,7 @@ describe("Overview", () => {
     await cleanup();
     const member = await mount(<Overview ws={ws({}, false)} fetchJson={api.fetchJson} go={go} />);
     expect(button(member, "Invite people")).toBeUndefined();
-    expect(member.textContent).toContain("Ask an admin of this workspace to invite them.");
+    expect(member.textContent).toContain("Ask someone who manages members to invite them.");
   });
 
   it("folds into a pill and remembers it", async () => {

@@ -11,7 +11,12 @@ const all = (extra: Partial<CatalogTool["interfaces"]> = {}) => ({
   ...extra,
 });
 
-const role = (name: string) => ({ name, label: name[0]!.toUpperCase() + name.slice(1) });
+/** What a card says of who may use the tool: a team by its name and what it is given (D-136). */
+const team = (id: string, label: string) => ({
+  subject: `team:${id}`,
+  name: id[0]!.toUpperCase() + id.slice(1),
+  label,
+});
 
 export const MOCK_TOOLS: CatalogTool[] = [
   {
@@ -22,7 +27,7 @@ export const MOCK_TOOLS: CatalogTool[] = [
     productionVersion: "1.4.0",
     interfaces: all(),
     access: "granted",
-    roles: [role("developer"), role("sales")],
+    subjects: [team("developer", "Manager"), team("sales", "User")],
   },
   {
     name: "odoo",
@@ -32,7 +37,7 @@ export const MOCK_TOOLS: CatalogTool[] = [
     productionVersion: "2.0.3",
     interfaces: all({ web: false }),
     access: "granted",
-    roles: [role("developer")],
+    subjects: [team("developer", "Manager")],
   },
   {
     name: "inventory",
@@ -42,7 +47,7 @@ export const MOCK_TOOLS: CatalogTool[] = [
     productionVersion: "0.2.0",
     interfaces: all({ cli: false }),
     access: "requestable",
-    roles: [role("logistics"), role("admin")],
+    subjects: [team("logistics", "User"), team("admin", "All")],
   },
   {
     name: "leave",
@@ -52,7 +57,7 @@ export const MOCK_TOOLS: CatalogTool[] = [
     productionVersion: null,
     interfaces: { mcp: true, api: false, cli: false, web: true },
     access: "requestable",
-    roles: [role("hr")],
+    subjects: [team("hr", "User")],
   },
 ];
 
@@ -75,7 +80,7 @@ export const MOCK_README = [
   "",
   "## Before you start",
   "",
-  "- [x] Your admin gave you the `sales` or `developer` role",
+  "- [x] Someone put you in the `sales` or `developer` team",
   "- [x] You are signed in to the console",
   "- [ ] You connected your HubSpot account (asked on first use)",
   "",
@@ -85,7 +90,7 @@ export const MOCK_README = [
   "| --- | --- | --- |",
   "| `crm.contacts.list` | Lists contacts, newest first | everyone |",
   "| `crm.contacts.update` | Changes a contact | sales, developer |",
-  "| `crm.contacts.delete` | Deletes a contact for good | admin |",
+  "| `crm.contacts.delete` | Deletes a contact for good | manager |",
   "",
   "## Use it from the terminal",
   "",
@@ -102,7 +107,7 @@ export const MOCK_README = [
   "});",
   "```",
   "",
-  "> A deleted contact cannot be restored. Ask an admin before you merge a large batch.",
+  "> A deleted contact cannot be restored. Ask your team lead before you merge a large batch.",
   "",
   "More in the [CRM guide](https://example.com/crm-guide) or [below](#actions).",
   "",
@@ -133,13 +138,13 @@ const asset = (tool: string, path: string, size: number) => ({
   url: `/console-api/api/catalog/${tool}/assets/${path}?v=mock`,
 });
 
-export function mockToolCard(name: string, admin = false): ToolCardData | undefined {
+export function mockToolCard(name: string, gives = false): ToolCardData | undefined {
   const tool = MOCK_TOOLS.find((t) => t.name === name);
   if (!tool) return undefined;
-  const allowed = admin || tool.access === "granted";
+  const allowed = gives || tool.access === "granted";
   return {
     ...tool,
-    access: admin ? "granted" : tool.access,
+    access: gives ? "granted" : tool.access,
     readme: name === "crm" ? MOCK_README : `# ${tool.title}\n\n${tool.summary}\n`,
     guide: name === "crm" ? `# ${tool.title}\n\n${tool.summary}\n` : null,
     assets: [asset(name, "img/contacts.svg", 1400), asset(name, "img/merge.svg", 900)],
@@ -158,7 +163,7 @@ export function mockToolCard(name: string, admin = false): ToolCardData | undefi
     yourAccess: [
       { action: `${name}.contacts.list`, allowed },
       { action: `${name}.contacts.update`, allowed },
-      { action: `${name}.contacts.delete`, allowed: admin },
+      { action: `${name}.contacts.delete`, allowed: gives },
     ],
     lastRelease: tool.productionVersion
       ? { version: tool.productionVersion, date: "2026-11-02T09:30:00.000Z", changelog: CHANGELOG }
@@ -167,26 +172,26 @@ export function mockToolCard(name: string, admin = false): ToolCardData | undefi
 }
 
 /** What the platform answers for the catalog routes, for the harness; `undefined` for any other path. */
-export function mockCatalogRoute(path: string, admin: boolean): unknown {
+export function mockCatalogRoute(path: string, gives: boolean): unknown {
   if (path === "/api/catalog") {
-    // An admin may use every tool; a member only the granted ones.
-    return { tools: MOCK_TOOLS.map((t) => (admin ? { ...t, access: "granted" } : t)) };
+    // Whoever gives access may use every tool; the others only the granted ones.
+    return { tools: MOCK_TOOLS.map((t) => (gives ? { ...t, access: "granted" } : t)) };
   }
   const card = /^\/api\/catalog\/([\w-]+)$/.exec(path);
-  return card ? mockToolCard(card[1]!, admin) : undefined;
+  return card ? mockToolCard(card[1]!, gives) : undefined;
 }
 
 /**
  * The library of the harness and the tests (D-117): what the person added (the tools they could call)
- * and what they may add. An admin may add every tool. `odoo` still asks for its setup, and a pilot of
+ * and what they may add. Whoever gives access may add every tool. `odoo` still asks for its setup, and a pilot of
  * it (D-119) is opened to the person.
  */
 const added = new Set(MOCK_TOOLS.filter((t) => t.access === "granted").map((t) => t.name));
 
-export function mockLibrary(admin: boolean) {
+export function mockLibrary(gives: boolean) {
   const tools = MOCK_TOOLS.filter(
     (t) =>
-      t.productionVersion !== null && (admin || t.access === "granted" || t.name === "inventory"),
+      t.productionVersion !== null && (gives || t.access === "granted" || t.name === "inventory"),
   ).map((t) => ({
     name: t.name,
     title: t.title,
@@ -212,14 +217,14 @@ export function mockLibrary(admin: boolean) {
   ];
 }
 
-export function mockLibraryCard(name: string, admin: boolean, pilot: string | null = null) {
-  const tool = mockLibrary(admin).find((t) => t.name === name && t.pilot === pilot);
+export function mockLibraryCard(name: string, gives: boolean, pilot: string | null = null) {
+  const tool = mockLibrary(gives).find((t) => t.name === name && t.pilot === pilot);
   const source = MOCK_TOOLS.find((t) => t.name === name);
   if (!tool || !source) return undefined;
   const base = `https://demo.fabriks.example/t/${name}${pilot ? `@${pilot}` : ""}`;
   return {
     ...tool,
-    allowed: admin || source.access === "granted",
+    allowed: gives || source.access === "granted",
     guide:
       name === "crm"
         ? `# ${tool.title}\n\nAsk Claude about your contacts and deals.\n\n- « Who did I call last week? »\n- « Move the Acme deal to won. »\n\n![Contacts](img/contacts.svg)\n`
@@ -239,16 +244,16 @@ export function mockLibraryCard(name: string, admin: boolean, pilot: string | nu
 }
 
 /** What the harness answers on `/api/library…`, keeping what a person adds or removes. */
-export function mockLibraryRoute(path: string, method: string, admin: boolean) {
+export function mockLibraryRoute(path: string, method: string, gives: boolean) {
   if (path === "/api/library" && method === "GET") {
-    return { status: 200, body: { tools: mockLibrary(admin) } };
+    return { status: 200, body: { tools: mockLibrary(gives) } };
   }
   const one = /^\/api\/library\/([\w-]+)(?:\/pilots\/([\w.-]+))?$/.exec(path);
   if (!one) return undefined;
   const name = one[1]!;
   const pilot = one[2] ?? null;
   const key = pilot ? `${name}@${pilot}` : name;
-  if (!mockLibrary(admin).some((t) => t.name === name && t.pilot === pilot)) {
+  if (!mockLibrary(gives).some((t) => t.name === name && t.pilot === pilot)) {
     return {
       status: 404,
       body: { error: "NOT_FOUND", message: "There is no such tool in your library." },
@@ -263,5 +268,5 @@ export function mockLibraryRoute(path: string, method: string, admin: boolean) {
     added.delete(key);
     return { status: 204, body: undefined };
   }
-  return { status: 200, body: mockLibraryCard(name, admin, pilot) };
+  return { status: 200, body: mockLibraryCard(name, gives, pilot) };
 }

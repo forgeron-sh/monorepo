@@ -2,8 +2,9 @@ import { createElement, type ComponentType } from "react";
 import type { PageProps } from "../../shell/page-props";
 import type { LazyPage, RouteDef } from "../../shell/routes";
 
-// The settings area: Account for everyone, Workspace and Operations for admins. Members and roles are
-// not settings: they are in the Administration section of the sidebar (D-128).
+// The settings area: Account for everyone, Workspace and Operations for whoever holds the permission
+// of each page (D-136). Members and teams are not settings: they are in the Administration section of
+// the sidebar (D-128).
 
 const adapt =
   <P extends object>(load: () => Promise<ComponentType<P>>, props: (p: PageProps) => P): LazyPage =>
@@ -16,55 +17,55 @@ const routes: RouteDef[] = [
   {
     path: "/settings",
     title: "Settings",
-    access: "everyone",
+    access: "signed-in",
     page: () => import("./pages/redirect"),
   },
   {
     path: "/settings/profile",
     title: "Profile",
-    access: "everyone",
+    access: "signed-in",
     settings: { group: "account", label: "Profile" },
     page: () => import("./pages/profile"),
   },
   {
     path: "/settings/preferences",
     title: "Preferences",
-    access: "everyone",
+    access: "signed-in",
     settings: { group: "account", label: "Preferences" },
     page: () => import("./pages/preferences"),
   },
   {
     path: "/settings/security",
     title: "Security",
-    access: "everyone",
+    access: "signed-in",
     settings: { group: "account", label: "Security" },
     page: () => import("./pages/security"),
   },
   {
     path: "/settings/connected-accounts",
     title: "Connected accounts",
-    access: "everyone",
+    access: "signed-in",
     settings: { group: "account", label: "Connected accounts" },
     page: () => import("./pages/connected-accounts"),
   },
   {
     path: "/settings/secrets",
     title: "Personal secrets",
-    access: "everyone",
+    access: "signed-in",
     settings: { group: "account", label: "Personal secrets" },
     page: () => import("./pages/personal-secrets"),
   },
   {
     path: "/settings/workspace",
     title: "General",
-    access: "admin",
+    access: "settings:read",
     settings: { group: "workspace", label: "General" },
     page: () => import("./pages/general"),
   },
   {
     path: "/settings/sign-in",
     title: "Sign-in",
-    access: "admin",
+    access: "settings:read",
     settings: { group: "workspace", label: "Sign-in" },
     page: adapt(
       () => import("../../settings").then((m) => m.SignInPage),
@@ -74,41 +75,41 @@ const routes: RouteDef[] = [
   {
     path: "/settings/domains",
     title: "Domains",
-    access: "admin",
+    access: "members:read",
     settings: { group: "workspace", label: "Domains" },
     page: adapt(
       () => import("../../members").then((m) => m.DomainsPage),
-      ({ api }) => ({ api }),
+      ({ api, ws }) => ({ api, person: ws.person }),
     ),
   },
   {
     path: "/settings/github",
     title: "GitHub",
-    access: "admin",
+    access: "settings:read",
     settings: { group: "workspace", label: "GitHub" },
     page: () => import("./pages/github"),
   },
   {
     path: "/settings/audit",
     title: "Audit log",
-    access: "admin",
+    access: "audit:read",
     settings: { group: "operations", label: "Audit log" },
     page: adapt(
       () => import("../../audit-page").then((m) => m.AuditPage),
-      ({ api, ws, now }) => ({ api, admin: ws.person.admin, now }),
+      ({ api, ws, now }) => ({ api, person: ws.person, now }),
     ),
   },
   {
     path: "/settings/usage",
     title: "Usage and seats",
-    access: "admin",
+    access: "usage:read",
     settings: { group: "operations", label: "Usage and seats" },
     page: () => import("./pages/usage"),
   },
   {
     path: "/settings/sealing",
     title: "Sealing key",
-    access: "admin",
+    access: "settings:read",
     settings: { group: "operations", label: "Sealing key" },
     page: adapt(
       () => import("./pages/sealing").then((m) => m.default),
@@ -118,7 +119,7 @@ const routes: RouteDef[] = [
   {
     path: "/settings/install",
     title: "Install information",
-    access: "admin",
+    access: "settings:read",
     settings: { group: "operations", label: "Install information" },
     page: adapt(
       () => import("../../settings").then((m) => m.InstallPage),

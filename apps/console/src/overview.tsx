@@ -3,6 +3,7 @@ import { Badge, Button, CopyBlock, Page, Stat } from "@forgeron/ui";
 import type { FetchJson } from "./api";
 import { pathOf, routeClick } from "./router";
 import { loadTools } from "./features/tools/api";
+import { can } from "./shell/access";
 import { useLoad } from "./use-load";
 import type { WorkspaceInfo } from "./workspace";
 
@@ -86,14 +87,14 @@ export function FirstRun({ ws, fetchJson, go }: OverviewProps) {
         return (
           <>
             <p>Add the people who will use your tools. They sign in with their email address.</p>
-            {ws.person.admin ? (
+            {can(ws.person, "members:write") ? (
               <div>
                 <Button variant="primary" href={pathOf("invite")} onClick={routeClick(go)}>
                   Invite people
                 </Button>
               </div>
             ) : (
-              <p>Ask an admin of this workspace to invite them.</p>
+              <p>Ask someone who manages members to invite them.</p>
             )}
           </>
         );

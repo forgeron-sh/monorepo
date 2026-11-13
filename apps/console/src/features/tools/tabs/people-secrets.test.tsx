@@ -21,8 +21,8 @@ afterEach(cleanup);
 const VALUE = "typed-by-the-admin-test-value";
 const members = {
   members: [
-    { id: "m1", email: "ada@acme.test", name: "ada", roles: ["admin"] },
-    { id: "m2", email: "bob@acme.test", name: "bob", roles: [] },
+    { id: "m1", email: "ada@acme.test", name: "ada", teams: ["admin"] },
+    { id: "m2", email: "bob@acme.test", name: "bob", teams: [] },
   ],
   invitations: [],
   settings: { domains: [], defaultRole: "", source: "install" },

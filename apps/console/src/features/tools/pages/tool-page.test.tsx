@@ -14,8 +14,9 @@ const routes = {
   "/api/tools/crm/versions": versions,
   "/api/tools/crm/activity": { entries: [] },
   "/api/tools/crm/secrets-status": { secrets: [] },
-  "/api/tools/crm/availability": { mode: "nobody", roles: [], people: [], updatedAt: "x" },
-  "/api/members": { members: [], invitations: [], settings: { domains: [] } },
+  "/api/tools/crm/availability": { mode: "nobody", teams: [], people: [], updatedAt: "x" },
+  "/api/members": { members: [], invitations: [], settings: { domains: [], defaultTeams: [] } },
+  "/api/teams": { teams: [] },
 };
 const tabLabels = (c: HTMLElement) =>
   [...c.querySelectorAll('[role="tab"]')].map((t) => t.textContent);
@@ -63,13 +64,13 @@ describe("the tool page", () => {
     expect(page.querySelector(".ft-branch-pick, .ft-branch-pick-label")).toBeNull();
   });
 
-  it("shows a member none of the admin tabs, the secrets included (D-118)", async () => {
+  it("shows a person with no permission none of the administration tabs, the secrets included (D-118, D-136)", async () => {
     const page = await mount(
-      <ToolPage name="crm" {...pageProps(toolsApi(routes).api, { admin: false })} />,
+      <ToolPage name="crm" {...pageProps(toolsApi(routes).api, { permissions: [] })} />,
     );
     await flushLazy();
     expect(tabLabels(page)).toEqual([]);
-    // Who may use the tool is an admin's (D-129).
+    // Sharing a channel is for whoever holds tools:publish (D-129, D-136).
     expect(page.querySelector(".ft-publish")).toBeNull();
   });
 

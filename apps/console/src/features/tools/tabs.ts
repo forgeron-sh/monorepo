@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import type { Api } from "../../api";
+import { canSee, type Access } from "../../shell/access";
 import type { WorkspaceInfo } from "../../workspace";
 
 // The tabs of the tool page. The page (FOR-130) draws whatever is registered; a feature adds its tab
@@ -22,8 +23,8 @@ export interface ToolTab {
   /** Unique; also the tab's address fragment. */
   id: string;
   title: string;
-  /** Not shown, and not loaded, for a person who is not an admin. */
-  adminOnly: boolean;
+  /** Not shown, and not loaded, for a person who does not hold it: `signed-in` or a platform permission (D-136). */
+  requires: Access;
   /**
    * `"branch"`: what it shows follows the branch chosen in the header (D-120). `"tool"`: the same for
    * every branch; on a branch, the page says so above it.
@@ -43,9 +44,9 @@ export function registerToolTab(tab: ToolTab): void {
 }
 
 /** The tabs a person may see, in order. */
-export function toolTabs(admin: boolean): ToolTab[] {
+export function toolTabs(person: WorkspaceInfo["person"]): ToolTab[] {
   return [...tabs.values()]
-    .filter((tab) => admin || !tab.adminOnly)
+    .filter((tab) => canSee(tab.requires, person))
     .map((tab, index) => ({ tab, index }))
     .sort((a, b) => (a.tab.order ?? 100) - (b.tab.order ?? 100) || a.index - b.index)
     .map(({ tab }) => tab);

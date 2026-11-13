@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { PageProps } from "../../../shell/page-props";
 import { pathOf, toolPath } from "../../../router";
+import { can } from "../../../shell/access";
 import { hrefOf } from "../../../shell/href";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
@@ -63,9 +64,10 @@ export default function ToolPage({
   now,
   go,
 }: PageProps & { name: string; branch?: string }) {
-  const admin = ws.person.admin;
+  // Sharing a channel is for whoever publishes (D-136).
+  const mayPublish = can(ws.person, "tools:publish");
   const tools = useLoad(() => loadTools(api.fetchJson), [api]);
-  const tabs = useMemo(() => toolTabs(admin), [admin]);
+  const tabs = useMemo(() => toolTabs(ws.person), [ws.person]);
   const [asked, setAsked] = useState(askedTab);
   const tool = tools.data?.find((t) => t.name === name);
   const previews = tool?.previews.map((p) => p.branch) ?? [];
@@ -77,7 +79,7 @@ export default function ToolPage({
     !previews.includes(askedBranch) &&
     !channels.includes(askedBranch);
   const branch = gone ? undefined : askedBranch;
-  const publishing = usePublishing(api, name, branch, admin && tool !== undefined);
+  const publishing = usePublishing(api, name, branch, mayPublish && tool !== undefined);
   useEffect(() => {
     if (gone) window.history.replaceState(null, "", addressOf(name, undefined));
   }, [gone, name]);
@@ -129,7 +131,7 @@ export default function ToolPage({
         <div className="ft-header-text">
           <div className="ft-header-title">
             <h1 className="fg-page-title">{tool.name}</h1>
-            {admin ? (
+            {mayPublish ? (
               <PublishBadge publishing={publishing} {...(branch !== undefined ? { branch } : {})} />
             ) : null}
           </div>
@@ -153,7 +155,7 @@ export default function ToolPage({
             ]}
             onChange={(e) => go(addressOf(tool.name, e.target.value || undefined))}
           />
-          {admin ? (
+          {mayPublish ? (
             <PublishControl
               key={branch ?? ""}
               tool={tool.name}

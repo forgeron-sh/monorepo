@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { PLATFORM_PERMISSIONS } from "@forgeron/permissions";
 import { afterEach, describe, expect, it } from "vitest";
 import { button, cleanup, click, fakeApi, mount, NOW, refusal, type } from "../../test-utils";
 import type { WorkspaceInfo } from "../../workspace";
@@ -9,13 +10,18 @@ import ToolOverview from "./tool-card";
 
 afterEach(cleanup);
 
-const ws = (
-  admin: boolean,
-  roles: string[] = admin ? ["admin"] : ["developer"],
-): WorkspaceInfo => ({
+// `admin`: someone of the admin team, who holds every permission; otherwise a person of one team
+// with no platform permission.
+const ws = (admin: boolean): WorkspaceInfo => ({
   workspace: "demo",
   endpoint: "https://demo.example.test",
-  person: { id: "m1", email: "ada@acme.example", name: "ada", roles, admin },
+  person: {
+    id: "m1",
+    email: "ada@acme.example",
+    name: "ada",
+    teams: admin ? ["admin"] : ["developer"],
+    permissions: admin ? [...PLATFORM_PERMISSIONS] : [],
+  },
   setup: { members: 3, invitations: 1, tools: 4, deployed: 2, called: true },
 });
 const go = () => {};
@@ -81,7 +87,7 @@ describe("Home, My tools and Discover (D-117, D-128)", () => {
     const none = fakeApi({ "/api/library": { tools: [] } }).api;
     const empty = await mount(<PortalHome ws={ws(false)} api={none} go={go} />);
     expect(empty.textContent).toContain("You have no tool yet");
-    expect(empty.textContent).toContain("Ask an admin");
+    expect(empty.textContent).toContain("Ask someone who gives access");
     await cleanup();
     const nothing = await mount(<DiscoverPage ws={ws(false)} api={none} go={go} />);
     expect(nothing.textContent).toContain("Nothing new to add");
@@ -150,6 +156,21 @@ describe("Tool card", () => {
     expect(button(view, "Open").getAttribute("href")).toBe("/t/crm/");
   });
 
+  it("names the teams that may use the tool, and marks the person's own", async () => {
+    const view = await mount(
+      <ToolOverview tool="crm" ws={ws(false)} api={card("crm", false)} now={() => NOW} />,
+    );
+    const details = view.querySelector("[aria-label=Details]")!;
+    expect(details.textContent).toContain("Teams that may use it");
+    expect(details.textContent).not.toContain("Roles that may use it");
+    const chips = [...details.querySelectorAll(".fg-badge")].filter((b) =>
+      /^(Developer|Sales):/.test(b.textContent ?? ""),
+    );
+    expect(chips.map((c) => c.textContent)).toEqual(["Developer: Manager", "Sales: User"]);
+    // The person is in the developer team: that one is strong.
+    expect(chips.map((c) => c.classList.contains("fg-badge-strong"))).toEqual([true, false]);
+  });
+
   it("keeps the hostile part of a README inert", async () => {
     const view = await mount(
       <ToolOverview tool="crm" ws={ws(false)} api={card("crm", false)} now={() => NOW} />,
@@ -193,12 +214,13 @@ describe("Tool card", () => {
         now={() => NOW}
       />,
     );
-    expect(view.textContent).toContain("You do not use this tool yet.");
+    expect(view.textContent).toContain("None of your teams uses this tool yet.");
+    expect(view.textContent).toContain("Ask someone who gives access");
     expect(view.textContent).toContain("Logistics");
     expect(view.querySelector(".fg-btn-primary")).toBeNull();
   });
 
-  it("tells an admin without access to map a role in the Access tab, never to ask an admin (D-127)", async () => {
+  it("sends a holder of access:write to the Access tab, never to ask someone (D-127, D-136)", async () => {
     const view = await mount(
       <ToolOverview
         tool="inventory"
@@ -207,10 +229,10 @@ describe("Tool card", () => {
         now={() => NOW}
       />,
     );
-    expect(view.textContent).toContain("Your roles do not let you use this tool yet.");
-    expect(view.textContent).toContain("give one of your roles a profile there");
+    expect(view.textContent).toContain("None of your teams uses this tool yet.");
+    expect(view.textContent).toContain("give Everyone, or one of your teams, a profile there");
     expect(view.textContent).toContain("Logistics");
-    expect(view.textContent).not.toMatch(/ask an admin|give yourself/i);
+    expect(view.textContent).not.toMatch(/ask someone|give yourself/i);
     expect(view.querySelector("a[href='/members']")).toBeNull();
     expect(view.querySelector("a[href='?tab=access']")).toBeTruthy();
   });
