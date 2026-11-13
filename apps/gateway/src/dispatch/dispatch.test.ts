@@ -109,6 +109,7 @@ const registry: Registry = {
 function setup(
   hooks: {
     canPreview?: (c: Caller & { branch: string }) => boolean;
+    viewAsset?: (a: { workspace: string; tool: string; token: string }) => boolean;
     identify?: (c: Caller) => string | undefined | Promise<string | undefined>;
     recordSeat?: (workspace: string, personId: string) => void | Promise<void>;
     recordUsage?: (workspace: string, tool: string, personId: string) => void | Promise<void>;
@@ -142,7 +143,12 @@ function setup(
     const response = await dispatch(new Request(url, init));
     return { status: response.status, body: (await response.json()) as Record<string, unknown> };
   };
-  return { get, seen, targets };
+  /** The status and whether a sandboxed page may read the answer (`access-control-allow-origin`). */
+  const peek = async (url: string) => {
+    const response = await dispatch(new Request(url));
+    return { status: response.status, cors: response.headers.get("access-control-allow-origin") };
+  };
+  return { get, peek, seen, targets };
 }
 
 describe("dispatch", () => {
@@ -239,6 +245,53 @@ describe("dispatch", () => {
     expect((await known.get("https://acme.forgeron.app/t/odoo/mcp")).body.worker).toBe(
       "acme--odoo--production",
     );
+  });
+
+  it("reads a preview's scripts with the token of the page, since a sandboxed page sends no cookie (D-134)", async () => {
+    const hook = vi.fn<(a: { workspace: string; tool: string; token: string }) => boolean>(
+      (a) => a.token === "good",
+    );
+    const { get, seen } = setup({ canPreview: () => false, viewAsset: hook });
+    const ok = await get("https://acme.forgeron.app/t/crm@feat-export/_f/a/good/views/chunks/x.js");
+    expect(ok.status).toBe(200);
+    // The tool and the views see the plain path.
+    expect(ok.body).toEqual({ worker: "acme--crm--pr-12", path: "/_f/views/chunks/x.js" });
+    expect(hook).toHaveBeenCalledWith({ workspace: "acme", tool: "crm", token: "good" });
+    expect(seen.get("acme--crm--pr-12")!.url).toBe(
+      "https://acme.forgeron.app/_f/views/chunks/x.js",
+    );
+  });
+
+  it("refuses a script with a wrong token, and says so in a way the sandboxed page can read", async () => {
+    const { peek, targets } = setup({ canPreview: () => true, viewAsset: () => false });
+    const refused = await peek("https://acme.forgeron.app/t/crm@feat-export/_f/a/bad/views/a.js");
+    expect(refused.status).toBe(403);
+    // Without this header the browser reports a CORS error and hides the refusal.
+    expect(refused.cors).toBe("*");
+    expect(targets.get("acme--crm--pr-12")!.fetch).not.toHaveBeenCalled();
+  });
+
+  it("does not take the token for anything but a script", async () => {
+    const { get, targets } = setup({ canPreview: () => false, viewAsset: () => true });
+    const other = await get("https://acme.forgeron.app/t/crm@feat-export/_f/a/good/api/deals.move");
+    expect(other.status).toBe(403);
+    expect(targets.get("acme--crm--pr-12")!.fetch).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when nothing checks the token", async () => {
+    const { get } = setup({ canPreview: () => true });
+    expect(
+      (await get("https://acme.forgeron.app/t/crm@feat-export/_f/a/any/views/a.js")).status,
+    ).toBe(403);
+  });
+
+  it("says why a script of a channel the person cannot open is refused, in a readable way", async () => {
+    const { peek } = setup({ canPreview: () => false });
+    const refused = await peek("https://acme.forgeron.app/t/crm@feat-export/_f/views/a.js");
+    expect(refused.status).toBe(403);
+    expect(refused.cors).toBe("*");
+    // The rest of the channel is not given that header.
+    expect((await peek("https://acme.forgeron.app/t/crm@feat-export/mcp")).cors).toBeNull();
   });
 
   it("routes a branch to its preview, for those who may see it", async () => {

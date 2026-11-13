@@ -93,6 +93,13 @@ const VIEW_CORS = {
 };
 const isViewCall = (rest: string) => rest.startsWith("/_f/call/");
 
+/** A refusal of a page's script, readable by the sandboxed page that asked (the browser hides the rest). */
+function withViewCors(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set("access-control-allow-origin", "*");
+  return new Response(response.body, { status: response.status, headers });
+}
+
 function confined(response: Response, challenge?: string, cors = false): Response {
   const headers = new Headers(response.headers);
   if (cors) for (const [name, value] of Object.entries(VIEW_CORS)) headers.set(name, value);
@@ -163,6 +170,16 @@ export interface DispatcherOptions {
   ): void | Promise<void>;
   /** May this caller use a channel other than production (`branch` is its reference)? Without it, nobody does. */
   canPreview?(caller: Caller & { branch: string }): boolean | Promise<boolean>;
+  /**
+   * Whether the token in the address of a page's script (`/_f/a/<token>/views/…`) lets it be read. A
+   * sandboxed page sends no cookie, so on a channel other than production the token stands for the
+   * person who was served the page. Fails closed when absent.
+   */
+  viewAsset?(request: {
+    workspace: string;
+    tool: string;
+    token: string;
+  }): boolean | Promise<boolean>;
 }
 
 /**
@@ -226,9 +243,34 @@ export function createDispatcher(options: DispatcherOptions) {
     const url = new URL(request.url);
     const workspace = options.workspaceOf(url.host);
     if (!workspace) return refuse(404, "NOT_FOUND", "Not found.");
-    const path = parseToolPath(url.pathname);
+    let path = parseToolPath(url.pathname);
     // The workspace's own paths (`/`, `/mcp`, `/settings`…) belong to other parts of the gateway.
     if (!path) return refuse(404, "NOT_FOUND", "Not found.");
+
+    // A page's scripts, asked for with the token the page was served with (`/_f/a/<token>/views/…`): a
+    // sandboxed page sends no cookie, so on a channel other than production the token is what says the
+    // person may read them. The tool and the views see the plain path (D-134).
+    const asset = /^\/_f\/a\/([^/]+)(\/views\/.+)$/.exec(path.rest);
+    const isRead = request.method === "GET" || request.method === "HEAD";
+    let tokenGranted = false;
+    if (asset && isRead) {
+      const allowed = await options.viewAsset?.({
+        workspace,
+        tool: path.tool,
+        token: asset[1]!,
+      });
+      if (!allowed) {
+        return withViewCors(
+          refuse(
+            403,
+            "FORBIDDEN",
+            "This script's link is not valid or has expired: reload the page.",
+          ),
+        );
+      }
+      tokenGranted = true;
+      path = { ...path, rest: `/_f${asset[2]}` };
+    }
 
     const entry = await options.registry.find(workspace, path.tool);
     if (!entry) return refuse(404, "NOT_FOUND", "Not found.");
@@ -240,8 +282,11 @@ export function createDispatcher(options: DispatcherOptions) {
       environment = "preview";
       worker = entry.previews[path.branch];
       if (!worker) return refuse(404, "NOT_FOUND", "Not found.");
-      if (!(await options.canPreview?.({ ...caller, branch: path.branch }))) {
-        return refuse(403, "FORBIDDEN", "You cannot use this channel.");
+      if (!tokenGranted && !(await options.canPreview?.({ ...caller, branch: path.branch }))) {
+        const refused = refuse(403, "FORBIDDEN", "You cannot use this channel.");
+        // A script the browser refuses to read for lack of this header is reported as a CORS error,
+        // which hides the reason: say it.
+        return path.rest.startsWith("/_f/views/") ? withViewCors(refused) : refused;
       }
     } else {
       worker = entry.production;
