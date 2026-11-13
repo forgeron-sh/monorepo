@@ -137,6 +137,7 @@ Rules of the log:
 | D-136 | 13/11/2026 | A build carries the contract it was made for; a platform refuses a tool that is ahead of it or whose contract is gone, with the reason                                                                       | Active                                        |
 | D-137 | 13/11/2026 | No roles: teams, `everyone`, atomic platform permissions given to teams, one permission engine                                                                                                               | Active                                        |
 | D-138 | 13/11/2026 | The platform is updated from the console: a release carries the built platform, the gateway takes a restore point, migrates and deploys itself                                                               | Active                                        |
+| D-139 | 13/11/2026 | The admin MCP offers the rest of the console: one tool per route of the platform contract, secrets and tokens left out                                                                                       | Active                                        |
 
 ---
 
@@ -1826,3 +1827,16 @@ Rules of the log:
 - **Why**: updating meant a checkout and every install flag repeated; the person who administers a workspace could not even tell which version ran against which release.
 - **Rejected**: automatic updates (a one-way migration is a human decision); the new gateway migrating on its first request (a failed migration would leave a running gateway on a half-migrated database); building the platform inside the Worker (it cannot run the build); a signature beyond the release's checksum (the release is as trusted as the npm packages the same workflow publishes).
 - **Not done**: rolling back the code from the console (Cloudflare's deployments and the restore command cover it); updating tools.
+
+## D-139 — The admin MCP offers the rest of the console
+
+- **Date**: 13/11/2026 · **Status**: Active · Builds on D-079 (the admin MCP), D-092 (installing in two steps), D-137 (permissions)
+- **Decision**:
+  1. **One tool per route** of the platform contract that an administrator uses and that carries no secret: 58 tools added to the 26 of D-079 (a preview closed, a channel added, a team made, a member removed, an invitation sent, a database read, an audit log read, the platform updated…). A tool's input **is the route's own schema** (path, query and body together), read from `@forgeron/platform-contract` when the gateway starts, so a tool cannot drift from the console; its answer is the route's. `apps/gateway/src/admin-mcp/tools-admin.ts`.
+  2. **The same guard, twice**: each tool names the permission its route requires and is offered only to who holds it; the route checks it again with the person's identity and writes its audit line "via Forgeron MCP". A tool that changes something carries the `destructiveHint`.
+  3. **Left out, on purpose**: everything that takes or gives a secret (D-079 stays true: no secret passes through Claude), what is not JSON or not an administrator's, and what has a safer way in (the two-step install, D-092). The database explorer's `platform` and `reveal` switches are not offered. A `204` answers `{ ok: true }`, a query count (`limit`, `page`) is a number.
+  4. **Closing a preview** is `DELETE /deploy`, which already took a signed-in person who may build tools; the next push of the branch makes a new preview, seeded again.
+- **Why**: debugging a deployed install meant clicking through the console or reading logs; an agent that may be given the same rights as an administrator should reach the same routes, no more, with the same trace.
+- **Rejected**: a tool that returns a sign-in code (D-049 stores it as a hash: it cannot be read back, and keeping it in the clear would weaken the sign-in); one that reads the Worker's logs (the Workers API for it is not used by any part of the platform yet: to decide before building it); setting the sign-in provider or a secret (they carry a secret); a second, hand-written list of tools (it would drift).
+- **Not done**: reading logs; per-tool actions of a person's own library; the CSV export of a table.
+- **Applied in**: `apps/gateway/src/admin-mcp/{kit,tools,tools-admin}.ts`; `apps/gateway/src/integration/gateway-admin-mcp.test.ts`; `docs/sdk.md` §17.

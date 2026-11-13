@@ -292,7 +292,15 @@ describe("signing in an MCP client", () => {
     expect(admin).toMatchObject({ token_type: "Bearer", expires_in: 3600 });
     expect(await toolNames(admin.access_token)).toContain("tool_install");
     const names = await toolNames(member.access_token);
-    expect(names).toEqual(["catalog_search", "catalog_get", "tools_list", "tool_get", "team_list"]);
+    expect(names).toEqual([
+      "catalog_search",
+      "catalog_get",
+      "tools_list",
+      "tool_get",
+      "team_list",
+      "workspace_get",
+      "permissions_list",
+    ]);
     const refused = await mcp(member.access_token, "tools/call", {
       name: "access_grant",
       arguments: { subject: "everyone", tool: "crm", all: true },

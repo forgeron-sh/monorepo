@@ -24,7 +24,8 @@ import {
   updateTeamRoute,
   usageRoute,
 } from "@forgeron/platform-contract";
-import type { PlatformPermission } from "@forgeron/permissions";
+import { ToolRefusal, type PlatformCall, type PlatformPort, type ToolDefinition } from "./kit";
+import { ADMIN_TOOLS } from "./tools-admin";
 import { z } from "zod";
 
 // The tools of the admin MCP (sdk.md §17). A tool is a name, the permission it requires, whether it changes
@@ -33,33 +34,8 @@ import { z } from "zod";
 // validation and its audit lines apply), never the registry. A rule of `.dependency-cruiser.cjs`
 // keeps this folder from importing it.
 
-/** What a tool asks of the caller (D-137): any signed-in person, or one platform permission. */
-type Requires = PlatformPermission | "signed-in";
-
-/** What a tool may ask of the platform: one of its routes, answered as it would to the console. */
-interface PlatformCall {
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  path: string;
-  body?: unknown;
-  /** `console` for `/console-api/…` routes (the default), `root` for `/rollback`. */
-  surface?: "console" | "root";
-}
-export type PlatformPort = (call: PlatformCall) => Promise<{ status: number; body: unknown }>;
-
-/** A refusal the person should read: the platform said no, or the request names nothing real. */
-export class ToolRefusal extends Error {}
-
-export interface ToolDefinition {
-  name: string;
-  title: string;
-  description: string;
-  /** Who may call it, and is offered it: the platform checks the same again when the tool calls a route. */
-  requires: Requires;
-  /** A tool that changes something carries the MCP `destructiveHint`: the client asks first. */
-  destructive: boolean;
-  input: z.ZodObject;
-  run(args: never, port: PlatformPort): Promise<unknown>;
-}
+export { ToolRefusal } from "./kit";
+export type { PlatformPort, ToolDefinition } from "./kit";
 
 const NAME = /^[a-z0-9][a-z0-9-]*$/;
 const SUBJECT = /^(?:everyone|team:[a-z][a-z0-9-]{1,33})$/;
@@ -196,7 +172,7 @@ async function setAccess(args: Target, port: PlatformPort, grant: boolean) {
   });
 }
 
-export const TOOLS: readonly ToolDefinition[] = [
+const CORE_TOOLS: readonly ToolDefinition[] = [
   define({
     name: "catalog_search",
     title: "Search the catalog",
@@ -608,3 +584,6 @@ export const TOOLS: readonly ToolDefinition[] = [
       }),
   }),
 ];
+
+/** Every tool of the admin MCP: the first ones, then the rest of the console (D-139). */
+export const TOOLS: readonly ToolDefinition[] = [...CORE_TOOLS, ...ADMIN_TOOLS];
