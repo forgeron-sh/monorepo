@@ -26,7 +26,9 @@ export type RegistryErrorCode =
   | "NO_MANIFEST"
   | "LAST_ADMIN"
   | "INVALID"
-  | "INVALID_DOCS";
+  | "INVALID_DOCS"
+  /** A build made for a newer platform, or for a contract that is no longer supported (D-136). */
+  | "INCOMPATIBLE";
 
 export class RegistryError extends Error {
   override name = "RegistryError";

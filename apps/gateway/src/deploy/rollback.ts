@@ -70,7 +70,11 @@ function failed(error: unknown): Response {
     if (error.code === "PENDING_APPROVAL" || error.code === "NO_PREVIOUS") {
       return fail(409, error.code, message);
     }
-    if (error.code === "NO_ARTIFACT" || error.code === "BRANCH_REQUIRED") {
+    if (
+      error.code === "NO_ARTIFACT" ||
+      error.code === "BRANCH_REQUIRED" ||
+      error.code === "INCOMPATIBLE"
+    ) {
       return fail(422, error.code, message);
     }
   }

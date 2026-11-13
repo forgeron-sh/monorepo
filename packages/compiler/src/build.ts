@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { rolldown } from "rolldown";
 import { checkResources } from "./check";
 import { discoverTools } from "./discover";
@@ -328,6 +329,22 @@ function connectorPackages(
   });
 }
 
+/** The version of the `@forgeron/sdk` a tool resolves, read from its package.json (stamped in the manifest, D-136). */
+function sdkVersionOf(dir: string): string | undefined {
+  try {
+    let at = dirname(createRequire(join(dir, "package.json")).resolve("@forgeron/sdk"));
+    for (let up = 0; up < 6; up++, at = dirname(at)) {
+      const file = join(at, "package.json");
+      if (!existsSync(file)) continue;
+      const pkg = JSON.parse(readFileSync(file, "utf8")) as { name?: string; version?: string };
+      if (pkg.name === "@forgeron/sdk") return pkg.version;
+    }
+  } catch {
+    // The SDK cannot be found from the tool's folder: the contract alone is stamped.
+  }
+  return undefined;
+}
+
 /** Turns a tool folder into `.forgeron/build/`: the Worker, the manifest and the build record. */
 export async function buildTool(folder: string): Promise<BuildResult> {
   const dir = resolve(folder);
@@ -346,10 +363,15 @@ export async function buildTool(folder: string): Promise<BuildResult> {
   const docs = await collectDocs(dir, loaded.config.icon);
   const docsFile = join(outDir, "docs.json");
   const docsEntries = docsEntry(docs);
-  const manifest = buildManifest(loaded, pkg.version, {
-    ...(docsEntries ? { docs: docsEntries } : {}),
-    ...(docs.icon ? { icon: docs.icon } : {}),
-  });
+  const manifest = buildManifest(
+    loaded,
+    pkg.version,
+    {
+      ...(docsEntries ? { docs: docsEntries } : {}),
+      ...(docs.icon ? { icon: docs.icon } : {}),
+    },
+    sdkVersionOf(dir),
+  );
   if (docsEntries) await writeFile(docsFile, `${JSON.stringify(docs)}\n`);
   await checkResources(dir, loaded.modules, manifest);
   await checkViewActions(dir, loaded.modules, manifest);
