@@ -168,6 +168,13 @@
         "@forgeron/tsconfig": "workspace:*",
       },
     },
+    "packages/permissions": {
+      "name": "@forgeron/permissions",
+      "version": "0.3.1",
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+      },
+    },
     "packages/platform-contract": {
       "name": "@forgeron/platform-contract",
       "version": "0.0.0",
@@ -485,6 +492,8 @@
     "@forgeron/hosting": ["@forgeron/hosting@workspace:packages/hosting"],
 
     "@forgeron/manifest": ["@forgeron/manifest@workspace:packages/manifest"],
+
+    "@forgeron/permissions": ["@forgeron/permissions@workspace:packages/permissions"],
 
     "@forgeron/platform-contract": ["@forgeron/platform-contract@workspace:packages/platform-contract"],
 
