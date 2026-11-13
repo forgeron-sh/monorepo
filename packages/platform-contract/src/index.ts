@@ -39,6 +39,13 @@ export {
   withdrawInvitationRoute,
 } from "./members";
 export {
+  TEAM_SLUG,
+  createTeamRoute,
+  deleteTeamRoute,
+  listTeamsRoute,
+  updateTeamRoute,
+} from "./teams";
+export {
   deleteConnectorClientRoute,
   deleteIdentityProviderRoute,
   getIdentityProviderRoute,

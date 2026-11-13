@@ -59,6 +59,7 @@ describe("the route table", () => {
       ["/admin/tools", "Tools"],
       ["/admin/marketplace", "Marketplace"],
       ["/admin/members", "Members"],
+      ["/admin/teams", "Teams"],
       ["/admin/roles", "Roles and access"],
     ]);
     // Administration is guarded: admins only, and Tools for developers too (D-118).

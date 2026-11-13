@@ -24,3 +24,23 @@ describe("directoryFor", () => {
     });
   });
 });
+
+describe("directoryFor with teams", () => {
+  const teams = [
+    { id: "product", name: "Product", description: "", members: ["m1"] },
+    { id: "sales", name: "Sales", description: "The field", members: ["m2"] },
+  ];
+
+  it("gives teams, and each member's teams, only to a tool that asked for them", () => {
+    expect(directoryFor({ why: "x", members: true }, members, teams).teams).toBeUndefined();
+    const given = directoryFor({ why: "x", members: true, teams: true }, members, teams);
+    expect(given.teams?.map((t) => t.id)).toEqual(["product", "sales"]);
+    expect(given.members[0]).toMatchObject({ teams: ["product"] });
+  });
+
+  it("does not say who is in a team to a tool that did not ask for the members", () => {
+    const given = directoryFor({ why: "x", teams: true }, members, teams);
+    expect(given.members).toEqual([]);
+    expect(given.teams?.[0]).toMatchObject({ id: "product", members: [] });
+  });
+});

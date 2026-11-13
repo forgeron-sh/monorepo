@@ -77,6 +77,7 @@ describe("App", () => {
       "Tools",
       "Marketplace",
       "Members",
+      "Teams",
       "Roles and access",
       "Settings",
     ]);

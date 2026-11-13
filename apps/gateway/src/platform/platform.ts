@@ -9,6 +9,7 @@ import { mountDatabaseAdmin } from "./database-admin";
 import { mountGithub } from "./github";
 import { mountIdentity } from "./identity";
 import { mountMembers } from "./members";
+import { mountTeams } from "./teams";
 import { mountSecretRequests } from "./secret-requests";
 import { mountSecrets } from "./secrets";
 import { mountLibrary } from "./library";
@@ -30,6 +31,7 @@ export function createPlatform() {
   mountDatabase(app);
   mountDatabaseAdmin(app);
   mountMembers(app);
+  mountTeams(app);
   mountIdentity(app);
   mountSecrets(app);
   mountSecretRequests(app);

@@ -15,6 +15,7 @@ import { libraryMigrations } from "./modules/library/public";
 import { marketplacesMigrations } from "./modules/marketplaces/public";
 import { membersMigrations } from "./modules/members/public";
 import { secretsMigrations } from "./modules/secrets/public";
+import { teamsMigrations } from "./modules/teams/public";
 import { templatesMigrations } from "./modules/templates/public";
 import { usageMigrations } from "./modules/usage/public";
 import { rootMigrations } from "./root-migrations";
@@ -38,6 +39,7 @@ export const platformMigrations: BuildMigration[] = composeMigrations([
   auditMigrations,
   accessMigrations,
   membersMigrations,
+  teamsMigrations,
   identityStoreMigrations,
   templatesMigrations,
   marketplacesMigrations,

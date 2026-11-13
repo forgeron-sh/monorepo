@@ -10,6 +10,7 @@ import type {
   dbTableRoute,
   dbTablesRoute,
 } from "./database";
+import type { createTeamRoute, deleteTeamRoute, listTeamsRoute, updateTeamRoute } from "./teams";
 import type {
   deleteConnectorClientRoute,
   deleteIdentityProviderRoute,
@@ -310,6 +311,10 @@ export const addresses = {
     path: "/api/connector-clients",
   }),
   listMembers: addressOf<typeof listMembersRoute>({ method: "get", path: "/api/members" }),
+  listTeams: addressOf<typeof listTeamsRoute>({ method: "get", path: "/api/teams" }),
+  createTeam: addressOf<typeof createTeamRoute>({ method: "post", path: "/api/teams" }),
+  updateTeam: addressOf<typeof updateTeamRoute>({ method: "patch", path: "/api/teams/{id}" }),
+  deleteTeam: addressOf<typeof deleteTeamRoute>({ method: "delete", path: "/api/teams/{id}" }),
   listSecrets: addressOf<typeof listSecretsRoute>({
     method: "get",
     path: "/api/tools/{tool}/environments/{environment}/secrets",
