@@ -56,7 +56,7 @@ export function mayUseChannel(
   ref: string,
 ): boolean {
   if (reachesChannelAlways(ref, person)) return true;
-  return rule !== undefined && isAvailable(rule, person);
+  return rule !== undefined && matchesRule(rule, person);
 }
 
 /**
@@ -66,6 +66,11 @@ export function mayUseChannel(
 export function isAvailable(availability: Availability | undefined, person: Person): boolean {
   if (!availability) return true;
   if (holds(PLATFORM, person.permissions, "access:write")) return true;
+  return matchesRule(availability, person);
+}
+
+/** Whether the rule itself names the person: no permission opens it (`nobody` opens it to no one). */
+function matchesRule(availability: Availability, person: Person): boolean {
   switch (availability.mode) {
     case "everyone":
       return true;

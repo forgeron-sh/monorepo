@@ -62,6 +62,9 @@ describe("who may add a tool (D-117)", () => {
     expect(mayUseChannel(rule, ana, "~beta")).toBe(true);
     expect(mayUseChannel(rule, ben, "~beta")).toBe(false);
     expect(mayUseChannel(undefined, ana, "~beta")).toBe(false);
+    // Giving access to the tool does not open a channel in draft.
+    const gives = { ...ben, permissions: ["access:write"] };
+    expect(mayUseChannel({ mode: "nobody", teams: [], people: [] }, gives, "~beta")).toBe(false);
   });
 
   it("keeps the rule, rewrites it, and audits each change", async () => {
