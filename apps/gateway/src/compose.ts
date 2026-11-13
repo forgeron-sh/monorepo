@@ -45,6 +45,8 @@ import { verifyToken } from "./identity/authn/tokens";
 import { CONTEXT_HEADER, type RoomContext } from "./realtime/room";
 import type { Manifest } from "@forgeron/manifest";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
+import { createHotRegistry } from "./dispatch/hot-registry";
+import { probeD1 } from "./dispatch/d1-probe";
 import { namespaceTarget, serviceBindingTarget } from "./dispatch/targets";
 import { toolAddress } from "./tool-address";
 import { workspaceHosts } from "./kernel/workspace";
@@ -66,22 +68,21 @@ const roomName = (workspace: string, tool: string, branch?: string) =>
  * channel (`branch`). `undefined` when nothing is deployed there.
  */
 async function servedBuild(
-  registry: Pick<Registry, "listEnvironments" | "getVersion" | "getBuild">,
+  registry: Pick<Registry, "servedBuild">,
   toolId: string,
   reference: string | undefined,
 ) {
-  const environments = await registry.listEnvironments(toolId);
-  const environment = environments.find((e) =>
+  // One read for the environment, its version and its build; without the Worker's code and the
+  // migrations, which a page or a call never needs (D-143).
+  return registry.servedBuild(
+    toolId,
     reference === undefined
-      ? e.name === "production"
+      ? { production: true }
       : reference.startsWith("~")
-        ? e.name === "channel" && e.channel === reference.slice(1)
-        : e.name === "preview" && e.branch === reference,
+        ? { channel: reference.slice(1) }
+        : { branch: reference },
+    { omit: ["worker", "migrations"] },
   );
-  const version = environment?.versionId
-    ? await registry.getVersion(environment.versionId)
-    : undefined;
-  return version ? registry.getBuild(version.buildId) : undefined;
 }
 
 /** A page of the shell for a browser, the JSON error for any other client. */
@@ -152,6 +153,8 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
   let built:
     | Promise<{
         registry: Registry;
+        /** The registry for the path of a call: its reads are kept for a few seconds (D-143). */
+        hot: Registry;
         config: IdentityConfig;
         codes: EmailCodes;
         box?: SecretBox;
@@ -163,12 +166,18 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       const box = env.SECRETS_KEY
         ? await createSecretBox(env.SECRETS_KEY, listOf(env.SECRETS_KEY_PREVIOUS))
         : undefined;
+      // What the platform's D1 costs a call is told in `Server-Timing` (D-143).
+      const db = probeD1(env.DB);
+      // One clock for the registry and the gateway: the expiry of a one-time code depends on it.
+      const { tracked, hot } = createHotRegistry(
+        createRegistry(db, { now, ...(box ? { secrets: box } : {}) }),
+      );
       return {
-        // One clock for the registry and the gateway: the expiry of a one-time code depends on it.
-        registry: createRegistry(env.DB, { now, ...(box ? { secrets: box } : {}) }),
-        config: createIdentityConfig(env.DB, { now, ...(box ? { secrets: box } : {}) }),
-        codes: createEmailCodes(env.DB, { now }),
-        ...(box ? { box, resealer: createReseal(env.DB, box) } : {}),
+        registry: tracked,
+        hot,
+        config: createIdentityConfig(db, { now, ...(box ? { secrets: box } : {}) }),
+        codes: createEmailCodes(db, { now }),
+        ...(box ? { box, resealer: createReseal(db, box) } : {}),
       };
     })());
 
@@ -263,7 +272,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
 
   /** The pieces that need the registry (asynchronous when `SECRETS_KEY` is bound): built once. */
   const parts = async () => {
-    const { registry, config, box, codes, resealer } = await getBuilt();
+    const { registry, hot, config, box, codes, resealer } = await getBuilt();
     // The consent exchange for a workspace, with the OAuth clients it is given (sdk.md §10).
     const consentFor = (
       workspace: string,
@@ -289,25 +298,32 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
         fetch: async (u, init) => (options.fetch ?? fetch)(u, init),
         now,
       });
+    // The person is read fresh by the console and by every route that changes something. The path of a call
+    // to a tool reads them from the memory of the registry, a few seconds old at most (D-143).
     const caller = secret ? createCaller({ registry, secret, previousSecrets, now }) : undefined;
+    const callerOnCall = secret
+      ? createCaller({ registry: hot, secret, previousSecrets, now })
+      : undefined;
     const identify =
       options.identify ??
-      (caller
+      (callerOnCall
         ? async (c: { workspace: string; request: Request }) =>
-            (await caller.resolve(c.request, c.workspace))?.id
+            (await callerOnCall.resolve(c.request, c.workspace))?.id
         : undefined);
-    const dispatchRegistryOf = dispatchRegistry(registry, options);
+    const dispatchRegistryOf = dispatchRegistry(hot, options);
+    // A seat is counted once a month: the Worker does not ask the database again for one it has counted.
+    const seated = new Set<string>();
     const targetOf = (worker: string) =>
       env.DISPATCHER ? namespaceTarget(env.DISPATCHER, worker) : serviceBindingTarget(env, worker);
     const forwardFor = (c: Caller) =>
-      caller
+      callerOnCall
         ? forwardIdentity(
             c.tool,
             c.request,
             {
-              registry,
+              registry: hot,
               workspace: c.workspace,
-              identify: (r) => caller.identify(r, c.workspace),
+              identify: (r) => callerOnCall.identify(r, c.workspace),
               ...(box
                 ? {
                     // Delegated connectors (D-046): the OAuth clients of the types the tool declares.
@@ -337,15 +353,19 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       ...(identify
         ? {
             identify,
-            recordSeat: (workspace: string, personId: string) =>
-              registry.recordSeat(workspace, personId),
+            recordSeat: async (workspace: string, personId: string) => {
+              const seat = `${workspace}\u0000${personId}\u0000${now().toISOString().slice(0, 7)}`;
+              if (seated.has(seat)) return;
+              await registry.recordSeat(workspace, personId);
+              seated.add(seat);
+            },
             recordUsage: (workspace: string, tool: string, personId: string) =>
               registry.recordUsage(workspace, tool, personId),
           }
         : {}),
       // A preview is for who holds `tools:read` or `tools:publish` (sdk.md §7, D-137), and for the people
       // the branch was opened to who added it to their library: a pilot (D-119).
-      ...(caller
+      ...(callerOnCall
         ? {
             canPreview: async (c: {
               workspace: string;
@@ -353,11 +373,11 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
               branch: string;
               request: Request;
             }) => {
-              const person = await caller.resolve(c.request, c.workspace);
+              const person = await callerOnCall.resolve(c.request, c.workspace);
               if (!person) return false;
               if (reachesChannelAlways(c.branch, person)) return true;
-              const tool = await registry.findTool(c.workspace, c.tool);
-              return tool ? pilotAccess(registry, tool.id, c.branch, person) : false;
+              const tool = await hot.findTool(c.workspace, c.tool);
+              return tool ? pilotAccess(hot, tool.id, c.branch, person) : false;
             },
           }
         : {}),
@@ -378,7 +398,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
         : {}),
       // The pages of a tool (D-134): served from the build the channel runs, with the sandbox CSP and a
       // short-lived token bound to the tool and the person.
-      ...(caller && secret
+      ...(callerOnCall && secret
         ? {
             views: async ({
               caller: c,
@@ -392,9 +412,9 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
               branch?: string;
             }) => {
               if (request.method !== "GET" && request.method !== "HEAD") return undefined;
-              const tool = await registry.findTool(c.workspace, c.tool);
+              const tool = await hot.findTool(c.workspace, c.tool);
               if (!tool) return undefined;
-              const build = await servedBuild(registry, tool.id, branch);
+              const build = await servedBuild(hot, tool.id, branch);
               if (!build?.views) return undefined;
               const manifest = build.manifest as Manifest;
               // The tool's root opens its first page when the tool has none at `/`.
@@ -403,9 +423,9 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
                 const base = new URL(request.url).pathname.replace(/\/+$/, "");
                 return Response.redirect(new URL(`${base}${pages[0].path}`, request.url), 302);
               }
-              const person = await caller.resolve(request, c.workspace);
+              const person = await callerOnCall.resolve(request, c.workspace);
               const matrix = person
-                ? await registry.accessFor(tool.id, person.subjects)
+                ? await hot.accessFor(tool.id, person.subjects, manifest)
                 : { access: {}, permissions: {} };
               const files = build.views;
               return serveView(
@@ -435,10 +455,11 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
           }
         : {}),
       // The person and their own per-person secrets go to the tool; a token for another tool stops here.
-      ...(caller ? { forward: forwardFor } : {}),
+      ...(callerOnCall ? { forward: forwardFor } : {}),
+      ...(options.defer ? { defer: options.defer } : {}),
       // Realtime (D-135): a page's WebSocket goes to the room of the tool's channel, and what actions
       // published goes there too. Both need the room's Durable Object (`REALTIME`).
-      ...(caller && secret && env.REALTIME
+      ...(callerOnCall && secret && env.REALTIME
         ? {
             realtime: async ({
               caller: c,
@@ -480,8 +501,8 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
                 | RoomContext["user"]
                 | null;
               if (!user?.id) return unauthenticated();
-              const tool = await registry.findTool(c.workspace, c.tool);
-              const build = tool ? await servedBuild(registry, tool.id, branch) : undefined;
+              const tool = await hot.findTool(c.workspace, c.tool);
+              const build = tool ? await servedBuild(hot, tool.id, branch) : undefined;
               const manifest = build?.manifest as Manifest | undefined;
               if (!manifest?.realtime) {
                 return Response.json(

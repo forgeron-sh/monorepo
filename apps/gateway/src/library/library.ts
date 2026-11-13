@@ -100,7 +100,11 @@ export async function previewManifest(
     (e) => e.name !== "production" && channelRef(e) === branch && e.versionId,
   );
   const version = env?.versionId ? await registry.getVersion(env.versionId) : undefined;
-  const build = version ? await registry.getBuild(version.buildId) : undefined;
+  const build = version
+    ? await registry.getBuild(version.buildId, {
+        omit: ["worker", "migrations", "views", "changelog"],
+      })
+    : undefined;
   return build ? (build.manifest as Manifest) : undefined;
 }
 

@@ -113,6 +113,7 @@ function setup(
     identify?: (c: Caller) => string | undefined | Promise<string | undefined>;
     recordSeat?: (workspace: string, personId: string) => void | Promise<void>;
     recordUsage?: (workspace: string, tool: string, personId: string) => void | Promise<void>;
+    defer?: (work: Promise<unknown>) => void;
   } = {},
 ) {
   const seen = new Map<string, Request>();
@@ -324,8 +325,25 @@ describe("dispatch", () => {
     });
     const header = (await timing("https://acme.forgeron.app/t/crm/api/deals.move"))!;
     const steps = header.split(", ").map((part) => part.split(";")[0]);
-    expect(steps).toEqual(["find", "identify", "seat", "views", "forward", "tool", "total"]);
+    expect(steps).toEqual(["identify", "find", "seat", "views", "forward", "tool", "total"]);
     for (const part of header.split(", ")) expect(part).toMatch(/^[\w.]+;dur=\d+\.\d$/);
+  });
+
+  it("counts the seat after the answer when it can, and does not wait for it (D-143)", async () => {
+    const deferred: Promise<unknown>[] = [];
+    let counted = false;
+    const { get } = setup({
+      identify: () => "p1",
+      recordSeat: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        counted = true;
+      },
+      defer: (work) => void deferred.push(work),
+    });
+    expect((await get("https://acme.forgeron.app/t/crm/mcp")).status).toBe(200);
+    expect(counted).toBe(false);
+    await Promise.all(deferred);
+    expect(counted).toBe(true);
   });
 
   it("gives no timing to a call that is refused before it reaches a tool", async () => {

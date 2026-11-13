@@ -165,9 +165,12 @@ export function createTeams(kernel: Kernel) {
       workspace: string,
       memberId: string,
     ): Promise<PlatformPermission[]> {
-      const teams = await this.teamsOfMember(workspace, memberId);
+      const [teams, grants] = await Promise.all([
+        this.teamsOfMember(workspace, memberId),
+        grantsOf(workspace),
+      ]);
       if (teams.length === 0) return [];
-      return platformPermissions(teams, Object.fromEntries(await grantsOf(workspace)));
+      return platformPermissions(teams, Object.fromEntries(grants));
     },
     /**
      * Creates a team. Giving it permissions, or members who then hold them, is limited to what the

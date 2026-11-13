@@ -17,7 +17,7 @@ import type { Catalog } from "../catalog/public";
 /** What this module asks of the catalog: narrow, and only through its public API. */
 export type CatalogPort = { requireTool: Catalog["requireTool"] } & Pick<
   Catalog["api"],
-  "getBuild" | "getVersion" | "listEnvironments" | "listVersions"
+  "getBuild" | "getVersion" | "listEnvironments" | "listVersions" | "servedBuild"
 >;
 
 const toGrant = (row: Row): ProfileGrant => {
@@ -101,14 +101,12 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
      * published. The profiles and actions are those of the code; the grants move who may call.
      */
     async currentManifest(toolId: string): Promise<Manifest> {
-      const production = (await catalog.listEnvironments(toolId)).find(
-        (e) => e.name === "production",
-      );
-      const served = production?.versionId
-        ? await catalog.getVersion(production.versionId)
-        : undefined;
-      const version = served ?? (await catalog.listVersions(toolId)).at(-1);
-      const build = version ? await catalog.getBuild(version.buildId) : undefined;
+      // Only the manifest is read, and in one query when production serves a version (the usual case).
+      const omit = ["worker", "migrations", "views", "changelog"] as const;
+      const served = await catalog.servedBuild(toolId, { production: true }, { omit });
+      if (served) return served.manifest as Manifest;
+      const version = (await catalog.listVersions(toolId)).at(-1);
+      const build = version ? await catalog.getBuild(version.buildId, { omit }) : undefined;
       if (!build) throw new RegistryError("NO_MANIFEST", "The tool has no version yet.");
       return build.manifest as Manifest;
     },
@@ -360,8 +358,11 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
     ): Promise<{ permissions: Record<string, string[]>; access: AccessOverrides }> {
       const read = manifest ?? (await this.currentManifest(toolId).catch(() => undefined));
       if (!read) return { permissions: {}, access: {} };
-      const grants = await this.accessGrants(toolId, read);
-      return resolveAccess(subjects, grants, await this.accessExceptions(toolId), read);
+      const [grants, exceptions] = await Promise.all([
+        this.accessGrants(toolId, read),
+        this.accessExceptions(toolId),
+      ]);
+      return resolveAccess(subjects, grants, exceptions, read);
     },
   };
 }

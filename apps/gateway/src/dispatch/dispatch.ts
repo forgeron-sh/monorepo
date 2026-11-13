@@ -8,6 +8,7 @@
 
 import { workspaceOf } from "../kernel/workspace";
 import { createTimings, timed, type Timings } from "./timing";
+import { d1Entries, withD1Stats } from "./d1-probe";
 
 // Re-exported for the gateway and the tests: the function lives in the kernel (no cycle with identity).
 export { workspaceOf };
@@ -133,6 +134,11 @@ export interface DispatcherOptions {
   identify?(caller: Caller): string | undefined | Promise<string | undefined>;
   /** Counts a person's seat in a workspace. A failure never blocks the call. */
   recordSeat?(workspace: string, personId: string): void | Promise<void>;
+  /**
+   * Runs work after the answer (`ctx.waitUntil`). The counting of seats and usage goes there (D-143): it
+   * tells nothing to the call, so the call does not wait for it. Without it the work is awaited.
+   */
+  defer?(work: Promise<unknown>): void;
   /** Counts one authenticated call to a tool, for the usage report (D-093). A failure never blocks the call. */
   recordUsage?(workspace: string, tool: string, personId: string): void | Promise<void>;
   /**
@@ -242,8 +248,7 @@ const refuse = (status: number, code: string, message: string) =>
   Response.json({ error: { code, message } }, { status });
 
 export function createDispatcher(options: DispatcherOptions) {
-  return async function dispatch(request: Request): Promise<Response> {
-    const timings = createTimings();
+  const serve = async (request: Request, timings: Timings): Promise<Response> => {
     const url = new URL(request.url);
     const workspace = options.workspaceOf(url.host);
     if (!workspace) return refuse(404, "NOT_FOUND", "Not found.");
@@ -276,6 +281,14 @@ export function createDispatcher(options: DispatcherOptions) {
       path = { ...path, rest: `/_f${asset[2]}` };
     }
 
+    // Who calls is asked while the tool is looked up: the two do not depend on each other (D-143). What it
+    // finds is used below, once the tool is known to exist; a failure only means no seat is counted.
+    const identifying =
+      options.identify && options.recordSeat
+        ? timed(timings, "identify", async () =>
+            options.identify!({ workspace, tool: path.tool, request, timings }),
+          ).catch(() => undefined)
+        : undefined;
     const entry = await timed(timings, "find", async () =>
       options.registry.find(workspace, path.tool),
     );
@@ -317,19 +330,20 @@ export function createDispatcher(options: DispatcherOptions) {
     const target = options.targets(worker);
     if (!target) return refuse(502, "UPSTREAM", "The tool is not reachable.");
 
-    // An authenticated call that reaches a tool is a seat of the workspace for the month.
-    if (options.identify && options.recordSeat) {
-      try {
-        const person = await timed(timings, "identify", async () => options.identify!(caller));
-        if (person) {
-          await timed(timings, "seat", async () => {
-            await options.recordSeat!(workspace, person);
-            await options.recordUsage?.(workspace, path.tool, person);
-          });
+    // An authenticated call that reaches a tool is a seat of the workspace for the month. It is counted after
+    // the answer: the caller does not wait for a write that tells it nothing (D-143).
+    const person = await identifying;
+    if (person) {
+      const count = async () => {
+        try {
+          await options.recordSeat!(workspace, person);
+          await options.recordUsage?.(workspace, path.tool, person);
+        } catch {
+          // Counting must never stop a person from working.
         }
-      } catch {
-        // Counting must never stop a person from working.
-      }
+      };
+      if (options.defer) options.defer(count());
+      else await timed(timings, "seat", count);
     }
 
     // The preflight of a view's call carries no token: the answer is the same for everyone.
@@ -370,7 +384,16 @@ export function createDispatcher(options: DispatcherOptions) {
         ...(path.branch !== undefined ? { branch: path.branch } : {}),
       }),
     );
-    if (page) return page;
+    if (page) {
+      // The page is told too: a page that is slow to open is the first thing a person feels (D-143).
+      const headers = new Headers(page.headers);
+      headers.set("server-timing", timings.header());
+      return new Response(page.body, {
+        status: page.status,
+        statusText: page.statusText,
+        headers,
+      });
+    }
 
     const forwarding = await timed(timings, "forward", async () =>
       options.forward?.({
@@ -420,4 +443,11 @@ export function createDispatcher(options: DispatcherOptions) {
     response.headers.set("server-timing", timings.header());
     return response;
   };
+  return (request: Request) =>
+    withD1Stats((stats) =>
+      serve(
+        request,
+        createTimings(undefined, () => d1Entries(stats)),
+      ),
+    );
 }
