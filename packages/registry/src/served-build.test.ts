@@ -101,6 +101,33 @@ describe("the build an environment serves (D-143)", () => {
   });
 });
 
+describe("the build a tool's manifest is read from, in one trip (D-145)", () => {
+  const release = (version: string, fingerprint: string) =>
+    deployBuild(registry, hosting, {
+      tool,
+      environment: "preview",
+      branch: "feat-x",
+      build: { manifest, worker: "//", fingerprint },
+      version,
+      actor: "ely",
+    });
+
+  it("is the latest version published while production serves nothing", async () => {
+    expect(await registry.currentBuild(tool.id)).toBeUndefined();
+    await release("0.0.1", "fp-1");
+    await release("0.0.2", "fp-2");
+    expect((await registry.currentBuild(tool.id))?.fingerprint).toBe("fp-2");
+  });
+
+  it("is what production serves, even when a newer version exists elsewhere", async () => {
+    await publish("production", "fp-prod");
+    await release("0.0.2", "fp-later");
+    const build = await registry.currentBuild(tool.id, { omit: ["worker"] });
+    expect(build?.fingerprint).toBe("fp-prod");
+    expect(build).not.toHaveProperty("worker");
+  });
+});
+
 describe("what a call reads of a tool and its access in one trip (D-143)", () => {
   it("reads the environments of a tool by its workspace and name", async () => {
     await publish("production", "fp-prod");

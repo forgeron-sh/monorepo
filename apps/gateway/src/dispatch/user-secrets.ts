@@ -219,6 +219,19 @@ export function wireUser(
 
 type Asked = NonNullable<Manifest["resources"]["directory"]>;
 
+/** Everything a tool may ask of the directory: what is read ahead for a tool not seen yet. */
+const ALL_OF_IT = { why: "", members: true, avatars: true, teams: true } as Asked;
+/**
+ * What each tool's manifest asked of the directory, as this Worker last read it (`null`: nothing). Only a
+ * hint for what to read ahead (D-145): what is sent is always decided by the manifest of the call.
+ */
+const directoryAsked = new Map<string, Asked | null>();
+const DIRECTORY_HINTS = 500;
+function rememberDirectory(toolId: string, asked: Asked | undefined) {
+  if (directoryAsked.size >= DIRECTORY_HINTS && !directoryAsked.has(toolId)) directoryAsked.clear();
+  directoryAsked.set(toolId, asked ?? null);
+}
+
 /** The people and teams a tool declared it wants (D-131, D-132): nothing beyond the fields it named. */
 export function directoryFor(
   asked: Asked,
@@ -315,9 +328,39 @@ export async function forwardIdentity(
   const setupRead = record
     ? step("f.setup", () => context.registry.readUserSetup(record.id, who.person.id))
     : Promise.resolve({});
+  // The directory is asked at the same time as the manifest that says whether the tool wants it (D-145): a
+  // tool this Worker saw ask for none is not read for, any other is (the first call of a Worker, a tool that
+  // asks). What a read brought and the manifest does not ask for is dropped, never sent.
+  const hint = record ? directoryAsked.get(record.id) : null;
+  const directoryRead = (wanted: { mine: boolean; everyone: boolean; all: boolean }) => ({
+    mine: wanted.mine
+      ? step("f.member", () => context.registry.findMember(context.workspace, who.person.id))
+      : undefined,
+    everyone: wanted.everyone
+      ? step("f.members", () => context.registry.listMembers(context.workspace))
+      : undefined,
+    all: wanted.all
+      ? step("f.teams", () => context.registry.listTeams(context.workspace))
+      : undefined,
+  });
+  const wants = (asked: Asked | undefined) => ({
+    mine: Boolean(asked?.avatars),
+    everyone: Boolean(asked),
+    all: Boolean(asked?.teams),
+  });
+  const ahead = hint === null ? undefined : directoryRead(wants(hint ?? ALL_OF_IT));
   // A refusal below must not leave a read failing unseen.
-  for (const read of [manifestRead, accessRead, libraryRead, secretsRead, setupRead]) {
-    read.catch(() => undefined);
+  for (const read of [
+    manifestRead,
+    accessRead,
+    libraryRead,
+    secretsRead,
+    setupRead,
+    ahead?.mine,
+    ahead?.everyone,
+    ahead?.all,
+  ]) {
+    read?.catch(() => undefined);
   }
 
   const reach = await libraryRead;
@@ -349,16 +392,21 @@ export async function forwardIdentity(
     // What the tool asked to know of the workspace's people (D-131), filtered here to that and no more:
     // the runtime filters again. Only the members of this workspace, never a person's secrets.
     const asked = manifest?.resources?.directory;
+    if (manifest) rememberDirectory(record.id, asked);
     const connectorContext = context.connectors;
-    // Asked together, once the manifest says which: the person's own picture (only to a tool that asked for
-    // pictures, D-131, D-133), the people and the teams (the teams only to a tool that asked for them), and
-    // the connectors' tokens.
+    // What was not asked ahead is asked now, once the manifest says which: the person's own picture (only to a
+    // tool that asked for pictures, D-131, D-133), the people and the teams (the teams only to a tool that
+    // asked for them), and the connectors' tokens.
+    const need = wants(asked);
+    const later = directoryRead({
+      mine: need.mine && !ahead?.mine,
+      everyone: need.everyone && !ahead?.everyone,
+      all: need.all && !ahead?.all,
+    });
     const [mine, everyone, all, connectors] = await Promise.all([
-      asked?.avatars
-        ? step("f.member", () => context.registry.findMember(context.workspace, who.person.id))
-        : undefined,
-      asked ? step("f.members", () => context.registry.listMembers(context.workspace)) : [],
-      asked?.teams ? step("f.teams", () => context.registry.listTeams(context.workspace)) : [],
+      asked?.avatars ? (ahead?.mine ?? later.mine) : undefined,
+      asked ? (ahead?.everyone ?? later.everyone ?? []) : [],
+      asked?.teams ? (ahead?.all ?? later.all ?? []) : [],
       connectorContext && manifest
         ? step("f.connectors", () =>
             connectorHeaders(record, manifest, who.person, environment, {

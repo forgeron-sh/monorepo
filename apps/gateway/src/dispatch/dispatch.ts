@@ -289,16 +289,34 @@ export function createDispatcher(options: DispatcherOptions) {
             options.identify!({ workspace, tool: path.tool, request, timings }),
           ).catch(() => undefined)
         : undefined;
+    const caller: Caller = { workspace, tool: path.tool, request, timings };
+    const environment: "preview" | "production" =
+      path.branch !== undefined ? "preview" : "production";
+    const served = {
+      ...caller,
+      environment,
+      ...(path.branch !== undefined ? { branch: path.branch } : {}),
+    };
+    // A call that can only go to the tool (not a page: those are read; not a preflight; not a WebSocket) is
+    // prepared while the tool is looked up (D-145): what the forwarding reads does not wait for `find`. Its
+    // answer is used only once every check below has passed, so a call refused here sends nothing more than
+    // before; a failure only matters when the call goes that far.
+    const early =
+      options.forward &&
+      request.method !== "GET" &&
+      request.method !== "HEAD" &&
+      request.method !== "OPTIONS" &&
+      request.headers.get("upgrade")?.toLowerCase() !== "websocket"
+        ? timed(timings, "forward", async () => options.forward!(served))
+        : undefined;
+    early?.catch(() => undefined);
     const entry = await timed(timings, "find", async () =>
       options.registry.find(workspace, path.tool),
     );
     if (!entry) return refuse(404, "NOT_FOUND", "Not found.");
 
-    const caller: Caller = { workspace, tool: path.tool, request, timings };
     let worker: string | undefined;
-    let environment: "preview" | "production" = "production";
     if (path.branch !== undefined) {
-      environment = "preview";
       worker = entry.previews[path.branch];
       if (!worker) return refuse(404, "NOT_FOUND", "Not found.");
       // The preflight of a page's call carries no token (the browser sends none) and answers the same to
@@ -395,13 +413,8 @@ export function createDispatcher(options: DispatcherOptions) {
       });
     }
 
-    const forwarding = await timed(timings, "forward", async () =>
-      options.forward?.({
-        ...caller,
-        environment,
-        ...(path.branch !== undefined ? { branch: path.branch } : {}),
-      }),
-    );
+    const forwarding = await (early ??
+      timed(timings, "forward", async () => options.forward?.(served)));
     if (forwarding && "refuse" in forwarding) return forwarding.refuse;
 
     const forwarded = new URL(url);
