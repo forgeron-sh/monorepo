@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1](https://github.com/forgeron-sh/monorepo/compare/v0.7.0...v0.7.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **gateway:** the admin MCP says its version at initialize, as the protocol requires ([acae3d4](https://github.com/forgeron-sh/monorepo/commit/acae3d4f9a87a2dda82bc5cc0167da6a3f020ae8))
+* **gateway:** the admin MCP says its version at initialize, as the protocol requires ([d3265af](https://github.com/forgeron-sh/monorepo/commit/d3265af4379a92b5e76af0047adfba8163f5c66f))
+
 ## [0.7.0](https://github.com/forgeron-sh/monorepo/compare/v0.6.1...v0.7.0) (2026-11-13)
 
 
