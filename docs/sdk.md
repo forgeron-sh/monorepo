@@ -586,7 +586,7 @@ export default defineView({
 | `useCan(level)`                                           | To disable a button; the server checks anyway                      |
 | `useCanCall(action)`                                      | Same, for an action, with the mapping and the console's exceptions |
 
-- Views are React 18+ components, built by `forgeron build` and served by the tool's Worker, behind the SSO.
+- Views are React 18+ components, built by `forgeron build` and served behind the SSO. The build adds a mount entry per view (D-130): the view, the hooks and React are one bundle, and the page's `#forgeron-bootstrap` JSON (the person, their grants, the address of the tool, a token) is what it renders with. `forgeron dev` serves the page at the view's path. `useUser()` carries `avatar` and, with `directory.teams`, the person's `teams` (D-131, D-132). A view is a sandboxed page with no shared stylesheet: it carries its own `<style>`.
 - `@forgeron/ui` provides components aligned with the Forgeron design system (black and white, sharp corners): `Page`, `Table`, `Board`, `Stat`, `BarChart`, `Select`, `Button`… Optional.
 - A view has no direct access to the database: it goes through actions, and therefore through access rights.
 - A page is served with the sandbox CSP and a token of 15 minutes, bound to its tool and its person; `createHttpRuntime` makes the hooks call `/_f/call/<action>` with it. After 15 minutes the hooks fail and the page must be reloaded.
