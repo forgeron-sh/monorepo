@@ -24,10 +24,10 @@ class Server implements RoomSocket {
   }
 }
 
-const context = (id: string, roles = ["member"]): RoomContext => ({
-  user: { id, email: `${id}@acme.fr`, name: id.toUpperCase(), roles },
+const context = (id: string, subjects = ["everyone"]): RoomContext => ({
+  user: { id, email: `${id}@acme.fr`, name: id.toUpperCase(), subjects },
   manifest: {
-    roles: { member: { grants: ["read", "write"], default: true } },
+    profiles: { member: { grants: ["read", "write"], default: true } },
     realtime: {
       channels: {
         notes: { access: "read" },
@@ -101,7 +101,7 @@ describe("a tool channel's room", () => {
     ]);
     expect(asked).toHaveLength(1);
     expect(asked[0]!.url).toBe("https://tool.internal/_f/call/notes.canJoin");
-    expect(JSON.parse(asked[0]!.user!)).toMatchObject({ id: "u1", roles: ["member"] });
+    expect(JSON.parse(asked[0]!.user!)).toMatchObject({ id: "u1", subjects: ["everyone"] });
     expect(asked[0]!.body).toMatchObject({ channel: "note:n1", id: "n1", kind: "subscribe" });
   });
 

@@ -50,7 +50,7 @@ const manifest = {
   name: "crm",
   version: "1.0.0",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: {},
+  profiles: {},
   actions: {},
   views: {},
   jobs: {},
@@ -138,20 +138,17 @@ const query = (body: Record<string, unknown>, who: ConsolePerson | undefined = A
     who,
   );
 
-const admin = {
-  access: "admin" as const,
-  call: through,
-  forbidden: "The database operations are for admins.",
-};
 describeRouteMatrix({
   title: "GET the migrations of an environment",
-  ...admin,
+  access: "tools:data",
+  call: through,
   method: "GET",
   path: "/api/tools/crm/db/migrations",
 });
 describeRouteMatrix({
   title: "POST a statement",
-  ...admin,
+  access: "tools:data",
+  call: through,
   method: "POST",
   path: "/api/tools/crm/db/query",
   invalidMessage: "Invalid input.",

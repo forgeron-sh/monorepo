@@ -1,21 +1,16 @@
 import { z } from "zod";
+import { holds, PLATFORM } from "@forgeron/permissions";
 import type { Person } from "../kernel/person";
-import { TOOLS, ToolRefusal, type PlatformPort, type Role, type ToolDefinition } from "./tools";
+import { TOOLS, ToolRefusal, type PlatformPort, type ToolDefinition } from "./tools";
 
 // The admin MCP at `/mcp` (sdk.md §17, D-079): Streamable HTTP in its simplest form, one JSON
 // answer per POST, no session and no stream. The caller is the person the gateway authenticated
-// (`person`), and their role is read from them: no tool takes a role or a person to act as. The
-// role is checked here, before the call, and again by the platform's own guard when the tool calls
-// the route, so a tool listed wrongly still cannot do more than the console lets the person do.
+// (`person`), and their permissions are read from them: no tool takes a person to act as. The
+// permission a tool requires is checked here, before the call, and again by the platform's own guard
+// when the tool calls the route, so a tool listed wrongly still cannot do more than the console lets
+// the person do (D-136).
 
 const VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
-const LEVEL: Record<Role, number> = { member: 0, developer: 1, admin: 2 };
-const FOR: Record<Role, string> = {
-  member: "any member",
-  developer: "developers and admins",
-  admin: "admins",
-};
-
 export interface AdminMcpContext {
   /** Who the gateway authenticated for this request; `undefined` for nobody. */
   person(): Promise<Person | undefined>;
@@ -23,14 +18,14 @@ export interface AdminMcpContext {
   platform: PlatformPort;
 }
 
-const levelOf = (person: Person): number =>
-  person.roles.includes("admin")
-    ? LEVEL.admin
-    : person.roles.includes("developer")
-      ? LEVEL.developer
-      : LEVEL.member;
+const mayCall = (person: Person, tool: ToolDefinition) =>
+  tool.requires === "signed-in" || holds(PLATFORM, person.permissions, tool.requires);
 
-const mayCall = (person: Person, tool: ToolDefinition) => levelOf(person) >= LEVEL[tool.minRole];
+/** Who a tool is for, in words: what the listing says and what a refusal says. */
+const forWhom = (tool: ToolDefinition) =>
+  tool.requires === "signed-in"
+    ? "any signed-in person"
+    : `people who hold the permission \u201c${PLATFORM.permissions[tool.requires].label}\u201d`;
 
 /** Keys that hold a secret whatever the route: blanked in every answer, a second lock. */
 const SECRET_KEY = /^(value|secret|password|token|clientSecret|apiKey|authorization)$/i;
@@ -66,7 +61,7 @@ function described(tool: ToolDefinition) {
   return {
     name: tool.name,
     title: tool.title,
-    description: `${tool.description} For ${FOR[tool.minRole]}.`,
+    description: `${tool.description} For ${forWhom(tool)}.`,
     inputSchema: z.toJSONSchema(tool.input, { io: "input" }),
     annotations: {
       title: tool.title,
@@ -136,7 +131,7 @@ export function createAdminMcp(context: AdminMcpContext) {
       case "ping":
         return reply({ jsonrpc: "2.0", id, result: {} });
       case "tools/list":
-        // Only what this person may call: a member is not offered an admin tool.
+        // Only what this person may call: a tool is listed only to those who hold its permission.
         return reply({
           jsonrpc: "2.0",
           id,
@@ -149,7 +144,7 @@ export function createAdminMcp(context: AdminMcpContext) {
           return reply({
             jsonrpc: "2.0",
             id,
-            result: text(`403 FORBIDDEN: ${tool.name} is for ${FOR[tool.minRole]}.`, true),
+            result: text(`403 FORBIDDEN: ${tool.name} is for ${forWhom(tool)}.`, true),
           });
         }
         const args = tool.input.safeParse(params.arguments ?? {});

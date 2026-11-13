@@ -3,7 +3,7 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConsolePerson } from "./app";
-import { describeRouteMatrix } from "./route-matrix";
+import { describeRouteMatrix, ADMIN } from "./route-matrix";
 import { platformCaller } from "./test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -31,13 +31,18 @@ const through = async (request: Request, who: ConsolePerson | undefined) => {
   person = who;
   return (await call(request))!;
 };
-const admin = { access: "admin" as const, call: through };
-const revocation = { forbidden: "Revocation is for admins." };
 
-describeRouteMatrix({ title: "GET approvals", ...admin, method: "GET", path: "/api/approvals" });
+describeRouteMatrix({
+  title: "GET approvals",
+  access: "tools:approve",
+  call: through,
+  method: "GET",
+  path: "/api/approvals",
+});
 describeRouteMatrix({
   title: "POST an approval decision",
-  ...admin,
+  access: "tools:approve",
+  call: through,
   method: "POST",
   path: "/api/approvals/apr_1",
   invalidMessage: "`decision` is `approved` or `rejected`.",
@@ -46,38 +51,38 @@ describeRouteMatrix({
 });
 describeRouteMatrix({
   title: "POST revoke a person's tokens",
-  ...admin,
-  ...revocation,
+  access: "tools:approve",
+  call: through,
   method: "POST",
   path: "/api/people/mem_1/tokens/revoke",
   noBody: true,
 });
 describeRouteMatrix({
   title: "GET user-secret holders",
-  ...admin,
-  ...revocation,
+  access: "tools:approve",
+  call: through,
   method: "GET",
   path: "/api/tools/crm/user-secrets",
 });
 describeRouteMatrix({
   title: "DELETE a person's secrets",
-  ...admin,
-  ...revocation,
+  access: "tools:approve",
+  call: through,
   method: "DELETE",
   path: "/api/tools/crm/user-secrets/mem_1",
 });
 describeRouteMatrix({
   title: "DELETE one secret of a person",
-  ...admin,
-  ...revocation,
+  access: "tools:approve",
+  call: through,
   method: "DELETE",
   path: "/api/tools/crm/user-secrets/mem_1/ODOO_KEY",
 });
 
 describeRouteMatrix({
   title: "PUT one secret of a person",
-  ...admin,
-  ...revocation,
+  access: "tools:approve",
+  call: through,
   method: "PUT",
   path: "/api/tools/crm/user-secrets/mem_1/ODOO_KEY",
   invalidMessage: "`value` is a non-empty string (16 KB max).",
@@ -87,8 +92,8 @@ describeRouteMatrix({
 
 describeRouteMatrix({
   title: "POST re-seal the secrets",
-  ...admin,
-  forbidden: "Secrets are for admins.",
+  access: "tools:secrets",
+  call: through,
   method: "POST",
   path: "/api/secrets/reseal",
   noBody: true,
@@ -96,22 +101,22 @@ describeRouteMatrix({
 
 describeRouteMatrix({
   title: "GET user setup",
-  ...admin,
-  ...revocation,
+  access: "tools:approve",
+  call: through,
   method: "GET",
   path: "/api/tools/crm/user-setup",
 });
 describeRouteMatrix({
   title: "DELETE a person's setup",
-  ...admin,
-  ...revocation,
+  access: "tools:approve",
+  call: through,
   method: "DELETE",
   path: "/api/tools/crm/user-setup/mem_1",
 });
 describeRouteMatrix({
   title: "DELETE one value of a person's setup",
-  ...admin,
-  ...revocation,
+  access: "tools:approve",
+  call: through,
   method: "DELETE",
   path: "/api/tools/crm/user-setup/mem_1/firstName",
 });
@@ -122,9 +127,8 @@ describe("the revocation routes", () => {
       id: "p",
       email: "a@acme.test",
       name: "A",
-      admin: true,
-      developer: false,
-      roles: ["admin"],
+      teams: ["admin"],
+      permissions: ADMIN.permissions,
     };
     const res = (await call(
       new Request("https://acme.forgeron.test/api/people/ghost/tokens/revoke", { method: "POST" }),
@@ -139,9 +143,8 @@ describe("re-sealing (D-108)", () => {
     id: "p-admin",
     email: "a@acme.test",
     name: "A",
-    admin: true,
-    developer: false,
-    roles: ["admin"],
+    teams: ["admin"],
+    permissions: ADMIN.permissions,
   };
   const post = () =>
     new Request("https://acme.forgeron.test/api/secrets/reseal", { method: "POST" });
@@ -169,9 +172,8 @@ describe("the user setup routes (D-097)", () => {
     id: "p-admin",
     email: "a@acme.test",
     name: "A",
-    admin: true,
-    developer: false,
-    roles: ["admin"],
+    teams: ["admin"],
+    permissions: ADMIN.permissions,
   };
   const url = (path: string) => `https://acme.forgeron.test${path}`;
 
@@ -183,7 +185,7 @@ describe("the user setup routes (D-097)", () => {
         subject: "ana",
         email: "ana@acme.test",
         name: "Ana",
-        roles: [],
+        teams: [],
       })
     ).id;
     await registry.writeUserSetup({

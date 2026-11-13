@@ -1,6 +1,6 @@
 // Receiving a build from CI (sdk.md §4 and §15): `POST /deploy`, authenticated by a deployment
 // token (`FORGERON_TOKEN`) or by GitHub Actions' identity token (D-123), and `POST /deploy-tokens`,
-// where an administrator issues a deployment token. The
+// where someone who holds `tools:write` issues a deployment token. The
 // platform builds nothing: the body is the build CI already made. Each deployment lands in the
 // environment's history (who, when, which version) through `deployBuild`.
 import type { Build, DeployOptions, Hosting } from "@forgeron/hosting";
@@ -16,6 +16,7 @@ import {
 import { verifyActionsToken, type ActionsRun } from "../github/actions-oidc";
 import { audienceOf, parseAudience } from "../identity/authn/audience";
 import { looksLikeJwt } from "../identity/authn/jwt";
+import { holds, PLATFORM } from "@forgeron/permissions";
 import type { Person } from "../kernel/person";
 import { issueToken, verifyToken } from "../identity/authn/tokens";
 import { releaseReached } from "../sources/update";
@@ -58,7 +59,7 @@ export interface TokenIssuerContext {
 
 /**
  * `POST /deploy-tokens` `{ tool, name, scope: "deploy", days }`: a deployment token for one tool
- * of this workspace, shown once. Only an administrator of the workspace may issue one.
+ * of this workspace, shown once. Only someone who holds `tools:write` may issue one.
  */
 export async function handleCreateDeployToken(
   request: Request,
@@ -67,8 +68,12 @@ export async function handleCreateDeployToken(
   if (request.method !== "POST") return fail(405, "METHOD_NOT_ALLOWED", "Use POST.");
   const person = await context.authenticate(request);
   if (!person) return fail(401, "UNAUTHENTICATED", "Sign in to create a deployment token.");
-  if (!person.roles.includes("admin")) {
-    return fail(403, "FORBIDDEN", "Only an administrator can create a deployment token.");
+  if (!holds(PLATFORM, person.permissions, "tools:write")) {
+    return fail(
+      403,
+      "FORBIDDEN",
+      "Creating a deployment token needs the permission \u201cBuild tools\u201d.",
+    );
   }
 
   const body = await bodyOf(request);
@@ -226,8 +231,8 @@ export interface DeployContext extends CallerContext {
    */
   seed?: (build: Build) => DeployOptions["seed"];
   /**
-   * The person behind the request (session or CLI token). Closing a preview accepts an administrator
-   * of the workspace as well as the tool's deployment token: the console's "Close preview".
+   * The person behind the request (session or CLI token). Closing a preview accepts a person who holds
+   * `tools:write` as well as the tool's deployment token: the console's "Close preview".
    */
   authenticate?(request: Request): Person | undefined | Promise<Person | undefined>;
   /**
@@ -385,8 +390,8 @@ async function handleClosePreview(request: Request, context: DeployContext): Pro
   } else {
     const person = await context.authenticate?.(request);
     if (!person) return fail(401, "UNAUTHENTICATED", MISSING);
-    if (!person.roles.includes("admin")) {
-      return fail(403, "FORBIDDEN", "Only an administrator of the workspace can do this.");
+    if (!holds(PLATFORM, person.permissions, "tools:write")) {
+      return fail(403, "FORBIDDEN", "This needs the permission \u201cBuild tools\u201d.");
     }
     named = body?.tool;
     if (typeof named !== "string" || named === "") {

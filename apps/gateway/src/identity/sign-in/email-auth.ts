@@ -1,3 +1,4 @@
+import { ADMIN_TEAM } from "@forgeron/permissions";
 import type { EmailCodes, Member, Registry } from "@forgeron/registry";
 import type { MailSender } from "../../mail/mail";
 import { errorPage } from "../../pages/errors";
@@ -30,12 +31,12 @@ const EMAIL =
 const encoder = new TextEncoder();
 
 interface EmailPolicy {
-  /** This email becomes an administrator the first time it signs in (`--admin-email`). */
+  /** This email joins the team `admin` the first time it signs in (`--admin-email`). */
   adminEmail?: string;
   /** Emails of these domains join by themselves. */
   domains: string[];
-  /** The role they join with; none when `undefined`. */
-  defaultRole?: string;
+  /** The teams they join; none when `undefined`. */
+  defaultTeams?: string[];
 }
 
 export interface EmailAuthOptions {
@@ -65,9 +66,9 @@ export interface EmailAuthOptions {
 
 type Admission =
   | { kind: "member"; member: Member }
-  | { kind: "invitation"; roles: string[] }
-  | { kind: "admin-email"; roles: string[] }
-  | { kind: "domain"; roles: string[] };
+  | { kind: "invitation"; teams: string[] }
+  | { kind: "admin-email"; teams: string[] }
+  | { kind: "domain"; teams: string[] };
 
 const cookie = (value: string, maxAge: number) =>
   `${COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
@@ -116,12 +117,12 @@ export function createEmailAuth(options: EmailAuthOptions) {
       registry.findInvitation(workspace, email),
     ]);
     if (member) return { kind: "member", member };
-    if (invitation) return { kind: "invitation", roles: invitation.roles };
+    if (invitation) return { kind: "invitation", teams: invitation.teams };
     if (policy.adminEmail && email === policy.adminEmail.toLowerCase()) {
-      return { kind: "admin-email", roles: ["admin"] };
+      return { kind: "admin-email", teams: [ADMIN_TEAM] };
     }
     if (policy.domains.includes(email.split("@")[1] ?? "")) {
-      return { kind: "domain", roles: policy.defaultRole ? [policy.defaultRole] : [] };
+      return { kind: "domain", teams: policy.defaultTeams ?? [] };
     }
     return undefined;
   }
@@ -129,7 +130,7 @@ export function createEmailAuth(options: EmailAuthOptions) {
   const admit = async (workspace: string, email: string, found: Admission): Promise<Member> =>
     found.kind === "member"
       ? found.member
-      : registry.joinMember({ workspace, email, roles: found.roles, via: found.kind });
+      : registry.joinMember({ workspace, email, teams: found.teams, via: found.kind });
 
   return async function emailAuth(request: Request): Promise<Response | undefined> {
     const url = new URL(request.url);
@@ -152,7 +153,7 @@ export function createEmailAuth(options: EmailAuthOptions) {
       if (!found) return pages.invitationInvalid();
       return pages.invitation({
         inviter: found.inviter,
-        roles: found.invitation.roles,
+        teams: found.invitation.teams,
         email: found.invitation.email,
         expiresAt: found.invitation.expiresAt,
         next: undefined,

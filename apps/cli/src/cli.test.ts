@@ -414,7 +414,7 @@ describe("forgeron init", () => {
       const c = await linked();
       status = 403;
       expect(await run(["secrets", "list"], c.io)).toBe(1);
-      expect(c.errors[0]).toContain("admin");
+      expect(c.errors[0]).toContain("tools:secrets");
       delete process.env.FORGERON_TOKEN;
       expect(await run(["secrets", "list"], c.io)).toBe(2);
       expect(await run(["secrets", "list"], capture(await empty()).io)).toBe(2);

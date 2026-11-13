@@ -46,7 +46,8 @@ export interface SignInPages {
   }): Response;
   invitation(input: {
     inviter: string;
-    roles: string[];
+    /** The teams the invitation puts the person in; empty: none. */
+    teams: string[];
     email: string;
     expiresAt: string;
     next: string | undefined;
@@ -117,15 +118,15 @@ export function signInPages(
       );
     },
 
-    invitation({ inviter, roles, email, expiresAt, next }) {
-      // Everyone holds `member` (D-128): it is said even when no other role was given.
-      const role = [...roles.filter((r) => r !== "member"), "member"].join(", ");
+    invitation({ inviter, teams, email, expiresAt, next }) {
       return page(
         shell(`Join ${workspace}`, "Invitation"),
         paragraph(`${inviter} invited you to the ${workspace} workspace.`) +
           facts([
             ["Workspace", workspace],
-            ["Role", role],
+            ...(teams.length > 0
+              ? ([["You join the teams", teams.join(", ")]] as Array<[string, string]>)
+              : []),
             ["Invited by", inviter],
             ["Valid until", expiresAt.slice(0, 10)],
           ]) +

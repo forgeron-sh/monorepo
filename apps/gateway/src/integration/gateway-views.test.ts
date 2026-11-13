@@ -19,7 +19,7 @@ const workerCalls: Array<{ path: string; user: string | null; auth: string | nul
 const manifest = {
   name: "notes",
   version: "1.0.0",
-  roles: { member: { grants: ["read", "write"], default: true } },
+  profiles: { member: { grants: ["read", "write"], default: true } },
   actions: { "notes.list": { access: "read" } },
   views: {
     notes: { title: "Notes", path: "/", access: "read", entry: "views/notes.js" },

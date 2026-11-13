@@ -2,6 +2,7 @@ import type { Manifest } from "@forgeron/manifest";
 import { createRuntime } from "@forgeron/runtime";
 import { describe, expect, it } from "vitest";
 import type { Person } from "../kernel/person";
+import { testPerson } from "../kernel/test-person";
 import { tokenAuthenticator } from "../identity/authn/authenticate";
 import { issueToken } from "../identity/authn/tokens";
 import { servePlayground } from "./serve";
@@ -24,8 +25,8 @@ const manifest = {
   title: "CRM",
   description: "A CRM.",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: {
-    reader: { grants: ["read"] },
+  profiles: {
+    reader: { grants: ["read"], default: true },
     boss: { grants: ["read", "admin"] },
     nobody: { grants: [] },
   },
@@ -38,28 +39,31 @@ const manifest = {
   preview: { data: "seed" },
 } as unknown as Manifest;
 
-const person = (...roles: string[]): Person => ({
-  id: "u1",
-  email: "e@acme.fr",
-  name: "Ely",
-  roles,
-});
-const get = (path: string, who: Person | undefined, method = "GET") =>
+/** A person of the workspace, in these teams: `everyone` reads, `team:admin` holds every permission. */
+const person = (...teams: string[]): Person =>
+  testPerson([], teams, { id: "u1", email: "e@acme.fr", name: "Ely" });
+const get = (
+  path: string,
+  who: Person | undefined,
+  method = "GET",
+  extra: { permissions?: Record<string, string[]> } = {},
+) =>
   servePlayground(new Request(`https://acme.forgeron.app${path}`, { method }), {
     tool: "crm",
     manifest,
     person: who,
+    ...extra,
   });
 
 describe("servePlayground", () => {
   it("leaves any other path to the tool", () => {
-    expect(get("/api/deals.list", person("reader"))).toBeUndefined();
-    expect(get("/playground", person("reader"))).toBeUndefined();
-    expect(get("/play/other", person("reader"))).toBeUndefined();
+    expect(get("/api/deals.list", person())).toBeUndefined();
+    expect(get("/playground", person())).toBeUndefined();
+    expect(get("/play/other", person())).toBeUndefined();
   });
 
   it("serves the page, pointed at this tool, with a CSP that keeps it on its own origin", async () => {
-    const response = get("/play", person("reader"))!;
+    const response = get("/play", person())!;
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/html");
     expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
@@ -72,24 +76,23 @@ describe("servePlayground", () => {
   it("refuses someone who is not signed in, and someone with no access to the tool", async () => {
     for (const path of ["/play", "/play/manifest"]) {
       expect(get(path, undefined)?.status).toBe(401);
-      expect(get(path, person())?.status).toBe(403);
-      expect(get(path, person("nobody"))?.status).toBe(403);
-      expect(get(path, person("ghost"))?.status).toBe(403);
+      // The console gave `everyone` nothing in this tool.
+      expect(get(path, person(), "GET", { permissions: { everyone: [] } })?.status).toBe(403);
     }
   });
 
   it("lists only what the person can run, and none of the platform's business", async () => {
-    const reader = (await get("/play/manifest", person("reader"))!.json()) as Manifest;
+    const reader = (await get("/play/manifest", person())!.json()) as Manifest;
     expect(Object.keys(reader.actions)).toEqual(["deals.list"]);
     expect(reader).not.toHaveProperty("resources");
     expect(reader).not.toHaveProperty("uses");
-    const boss = (await get("/play/manifest", person("boss"))!.json()) as Manifest;
+    const boss = (await get("/play/manifest", person("admin"))!.json()) as Manifest;
     expect(Object.keys(boss.actions)).toEqual(["deals.list", "deals.purge"]);
     expect(boss.name).toBe("crm");
   });
 
   it("only answers GET", () => {
-    expect(get("/play", person("reader"), "POST")?.status).toBe(405);
+    expect(get("/play", person(), "POST")?.status).toBe(405);
   });
 
   // The page's calls go to the tool's runtime, which checks the access level itself.
@@ -109,7 +112,7 @@ describe("servePlayground", () => {
       authenticate: tokenAuthenticator({
         secret,
         now: () => now,
-        resolvePerson: () => person("reader"),
+        resolvePerson: () => person(),
       }),
     });
     const token = await issueToken({

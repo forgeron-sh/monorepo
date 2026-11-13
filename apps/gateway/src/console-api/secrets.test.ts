@@ -8,6 +8,7 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { platformCaller } from "../platform/test-app";
+import { ADMIN, holding } from "../platform/route-matrix";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -20,7 +21,7 @@ let admin = true;
 let anonymous = false;
 
 const call = (method: string, path: string, body?: unknown) =>
-  platformCaller({ registry, who: () => (anonymous ? undefined : { admin }) })(
+  platformCaller({ registry, who: () => (anonymous ? undefined : admin ? ADMIN : holding()) })(
     new Request(`https://acme.forgeron.test${path}`, {
       method,
       ...(body === undefined
@@ -59,7 +60,7 @@ describe("secrets API", () => {
     expect((await call("GET", "/api/tools/crm/environments/pilot/secrets"))?.status).toBe(404);
   });
 
-  it("refuses anonymous callers and non-admins", async () => {
+  it("refuses anonymous callers and those without `tools:secrets`", async () => {
     anonymous = true;
     expect((await call("GET", base))?.status).toBe(401);
     anonymous = false;

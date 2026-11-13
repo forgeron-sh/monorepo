@@ -48,7 +48,7 @@ describe("the provider's picture and its serving", () => {
         subject: "s",
         email: "a@acme.test",
         name: "A",
-        roles: [],
+        teams: [],
       });
       let calls = 0;
       const fetchImage = async () => {

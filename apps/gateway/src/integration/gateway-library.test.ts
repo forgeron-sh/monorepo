@@ -38,7 +38,7 @@ const manifestOf = (name: string): Manifest => ({
   version: "1.0.0",
   summary: `Your ${name} from Claude.`,
   interfaces: { mcp: true, api: true, cli: true, web: false },
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
   actions: { "tickets.mine": action },
   views: {},
   jobs: {},
@@ -57,7 +57,9 @@ function toolWorker(request: Request, name: string) {
     authenticate: (r) => {
       const raw = r.headers.get("x-forgeron-user");
       // The tool sees the person as a reader, whatever the gateway mapped (D-127).
-      return raw ? { ...JSON.parse(raw), roles: ["reader"], permissions: undefined } : undefined;
+      return raw
+        ? { ...JSON.parse(raw), subjects: ["everyone"], permissions: undefined }
+        : undefined;
     },
     platform: {
       userSecretStore: { read: async () => ({}), write: async () => undefined },
@@ -99,19 +101,20 @@ beforeAll(async () => {
   registry = createRegistry(d1, { secrets: await createSecretBox(KEY), now: () => now });
   odooId = await publish("odoo");
   await publish("legacy");
-  const member = async (subject: string, roles: string[]) =>
+  const member = async (subject: string, teams: string[]) =>
     (
       await registry.addMember({
         workspace: "acme",
         subject,
         email: `${subject}@acme.test`,
         name: subject,
-        roles,
+        teams,
       })
     ).id;
-  // `member` is mapped to the tools' default profile, `reader` (D-127).
-  ana = await member("ana", ["member", "support"]);
-  ben = await member("ben", ["member"]);
+  // `everyone` is given the tools' default profile, `reader` (D-127, D-136).
+  await registry.createTeam("acme", { id: "support", name: "Support" }, "bootstrap", ["*"]);
+  ana = await member("ana", ["support"]);
+  ben = await member("ben", []);
   root = await member("root", ["admin"]);
   env = {
     DB: d1,
@@ -186,13 +189,13 @@ describe("a person's library (D-117)", () => {
     expect((await consoleApi(ana, "/api/library/odoo", "POST")).status).toBe(404);
   });
 
-  it("lets an admin open it to a role, through the console API, audited", async () => {
+  it("lets who holds `access:write` open it to a team, through the console API, audited", async () => {
     const set = await consoleApi(root, "/api/tools/odoo/availability", "PUT", {
-      mode: "roles",
-      roles: ["support"],
+      mode: "teams",
+      teams: ["support"],
     });
     expect(set.status).toBe(200);
-    expect(await set.json()).toMatchObject({ mode: "roles", roles: ["support"] });
+    expect(await set.json()).toMatchObject({ mode: "teams", teams: ["support"] });
     expect((await consoleApi(ana, "/api/tools/odoo/availability")).status).toBe(403);
     expect(await names(ana)).toContain("odoo");
     expect(await names(ben)).not.toContain("odoo");

@@ -11,6 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Person } from "../kernel/person";
 import { issueToken } from "../identity/authn/tokens";
 import { handleRollback } from "./rollback";
+import type { PlatformPermission } from "@forgeron/permissions";
+import { testPerson } from "../kernel/test-person";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -59,12 +61,8 @@ function fakeHosting(migrate?: () => Promise<{ applied: string[] }>) {
   return { hosting, calls };
 }
 
-const person = (roles: string[]): Person => ({
-  id: "m1",
-  email: "ada@acme.test",
-  name: "Ada",
-  roles,
-});
+const person = (permissions: PlatformPermission[]): Person =>
+  testPerson(permissions, [], { id: "m1" });
 
 const context = (hosting: Hosting, who?: Person) => ({
   workspace: "acme",
@@ -163,7 +161,7 @@ describe("POST /rollback", () => {
     await seed();
     const response = await handleRollback(
       post("/rollback", { tool: "crm", environment: "production" }, undefined),
-      context(fakeHosting().hosting, person(["admin"])),
+      context(fakeHosting().hosting, person(["tools:publish"])),
     );
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ error: { code: "NO_PREVIOUS" } });
@@ -171,12 +169,12 @@ describe("POST /rollback", () => {
 
   it("keeps the reason in the audit line, and bounds it", async () => {
     const tool = await seed();
-    const admin = person(["admin"]);
+    const publisher = person(["tools:publish"]);
     const { hosting } = fakeHosting();
     await putOnChannel(registry, hosting, { tool, version: "1.2.0", to: "production", actor: "a" });
     const rolled = await handleRollback(
       post("/rollback", { tool: "crm", environment: "production", reason: "Export is broken" }),
-      context(hosting, admin),
+      context(hosting, publisher),
     );
     expect(rolled.status).toBe(200);
     const [line] = await registry.listAudit(tool.id, { limit: 1 });
@@ -187,7 +185,7 @@ describe("POST /rollback", () => {
     for (const reason of [3, "x".repeat(501)]) {
       const refused = await handleRollback(
         post("/rollback", { tool: "crm", environment: "production", reason }),
-        context(hosting, admin),
+        context(hosting, publisher),
       );
       expect(refused.status).toBe(400);
     }
@@ -208,12 +206,12 @@ describe("POST /rollback", () => {
     }
     const missing = await handleRollback(
       post("/rollback", { tool: "crm", environment: "channel" }),
-      context(hosting, person(["admin"])),
+      context(hosting, person(["tools:publish"])),
     );
     expect(missing.status).toBe(400);
     const response = await handleRollback(
       post("/rollback", { tool: "crm", environment: "channel", channel: "staging" }),
-      context(hosting, person(["admin"])),
+      context(hosting, person(["tools:publish"])),
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
@@ -223,16 +221,20 @@ describe("POST /rollback", () => {
     });
     const ghost = await handleRollback(
       post("/rollback", { tool: "crm", environment: "channel", channel: "ghost" }),
-      context(hosting, person(["admin"])),
+      context(hosting, person(["tools:publish"])),
     );
     expect(ghost.status).toBe(404);
   });
 
-  it("is for administrators and deployment tokens only", async () => {
+  it("is for who holds `tools:publish` and deployment tokens only", async () => {
     await seed();
     const body = { tool: "crm", environment: "production" };
     const ctx = (who?: Person) => context(fakeHosting().hosting, who);
     expect((await handleRollback(post("/rollback", body), ctx())).status).toBe(401);
     expect((await handleRollback(post("/rollback", body), ctx(person([])))).status).toBe(403);
+    expect(
+      (await handleRollback(post("/rollback", body), ctx(person(["tools:write", "tools:data"]))))
+        .status,
+    ).toBe(403);
   });
 });

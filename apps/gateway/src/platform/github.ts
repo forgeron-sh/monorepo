@@ -5,6 +5,7 @@ import {
   linkGithubRepositoryRoute,
   listGithubRepositoriesRoute,
 } from "@forgeron/platform-contract";
+import { holds, PLATFORM } from "@forgeron/permissions";
 import { toolFiles, workflow, WORKFLOW_PATH } from "@forgeron/scaffold";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
@@ -17,10 +18,10 @@ import { GATEWAY_VERSION } from "../version";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 import { rootOnly } from "./bearer";
 
-// The workspace's GitHub App (D-123). An admin makes it from the console: `/github/app/new` posts
+// The workspace's GitHub App (D-123). Someone who holds `settings:write` makes it from the console: `/github/app/new` posts
 // GitHub's manifest (what the app is, which permissions, where GitHub calls back), GitHub creates the
 // app and comes back to `/github/app/callback` with a code, traded once for the app and its keys,
-// sealed. The admin then installs it on an organisation or an account (`/github/app/installed`), and
+// sealed. They then install it on an organisation or an account (`/github/app/installed`), and
 // GitHub tells the workspace what happens on its repositories at `/github/webhook`. The console's
 // routes (`/api/github…`) list the repositories it may see, link one to a tool, or make a new one.
 
@@ -79,8 +80,8 @@ function manifestOf(origin: string) {
   };
 }
 
-/** The admin of a browser session, or the page that says why not. */
-async function admin(c: Context<PlatformEnv>): Promise<{ id: string } | Response> {
+/** The person of a browser session who may change the settings, or the page that says why not. */
+async function settingsWriter(c: Context<PlatformEnv>): Promise<{ id: string } | Response> {
   const person = await c.env.identity();
   if (!person) {
     return message(
@@ -90,10 +91,10 @@ async function admin(c: Context<PlatformEnv>): Promise<{ id: string } | Response
       c.env.workspace,
     );
   }
-  if (!person.admin) {
+  if (!holds(PLATFORM, person.permissions, "settings:write")) {
     return message(
       "Not allowed",
-      "Only an administrator can connect GitHub.",
+      "Connecting GitHub needs the permission \u201cChange settings\u201d.",
       403,
       c.env.workspace,
     );
@@ -107,7 +108,7 @@ function mountRoot(app: OpenAPIHono<PlatformEnv>): void {
 
   mount("/github/app/new", async (c) => {
     if (c.req.method !== "GET") return c.json({ error: "METHOD_NOT_ALLOWED" }, 405);
-    const who = await admin(c);
+    const who = await settingsWriter(c);
     if (who instanceof Response) return who;
     if (!c.env.canKeepSecrets) {
       return message(
@@ -145,7 +146,7 @@ function mountRoot(app: OpenAPIHono<PlatformEnv>): void {
 
   mount("/github/app/callback", async (c) => {
     if (c.req.method !== "GET") return c.json({ error: "METHOD_NOT_ALLOWED" }, 405);
-    const who = await admin(c);
+    const who = await settingsWriter(c);
     if (who instanceof Response) return who;
     const claims = await unseal(STATE, c.req.query("state") ?? "", c.env.bearer!.secret);
     const now = c.env.now().getTime() / 1000;
@@ -192,7 +193,7 @@ function mountRoot(app: OpenAPIHono<PlatformEnv>): void {
 
   mount("/github/app/installed", async (c) => {
     if (c.req.method !== "GET") return c.json({ error: "METHOD_NOT_ALLOWED" }, 405);
-    const who = await admin(c);
+    const who = await settingsWriter(c);
     if (who instanceof Response) return who;
     const id = Number(c.req.query("installation_id"));
     if (!Number.isSafeInteger(id) || id <= 0) return backTo(c, "");
@@ -231,7 +232,7 @@ const notConnected = {
 const refusedBy = (error: GithubError) => ({ error: "GITHUB", message: error.message });
 
 function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(getGithubRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(getGithubRoute, "settings:read"), async (c) => {
     const { registry, workspace } = c.env;
     const found = await registry.githubApp(workspace);
     const installations = found ? await registry.listGithubInstallations(workspace) : [];
@@ -257,14 +258,14 @@ function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
     );
   });
 
-  app.openapi(platformRoute(disconnectGithubRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(disconnectGithubRoute, "settings:write"), async (c) => {
     const { registry, workspace } = c.env;
     if (!(await registry.githubApp(workspace))) return c.json(notConnected, 404);
     await registry.removeGithubApp({ workspace, actor: c.get("person").id });
     return c.body(null, 204);
   });
 
-  app.openapi(platformRoute(listGithubRepositoriesRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(listGithubRepositoriesRoute, "tools:write"), async (c) => {
     const { registry, workspace } = c.env;
     const app = await workspaceApp(githubOf(c));
     if (!app) return c.json(notConnected, 404);
@@ -296,7 +297,7 @@ function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
     }
   });
 
-  app.openapi(platformRoute(linkGithubRepositoryRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(linkGithubRepositoryRoute, "tools:write"), async (c) => {
     const { registry, workspace } = c.env;
     const app = await workspaceApp(githubOf(c));
     if (!app) return c.json(notConnected, 404);
@@ -340,7 +341,7 @@ function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
         productionBranch,
         actor,
       });
-      // Nobody may add it to their library until an admin says who (D-117).
+      // Nobody may add it to their library until someone who may give access says who (D-117).
       await registry.setAvailability({ toolId: tool.id, mode: "nobody", actor });
       let state: "added" | "present" | "missing" = "present";
       if (!(await app.api.hasFile(access.token, found.fullName, WORKFLOW_PATH))) {
@@ -366,7 +367,7 @@ function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
     }
   });
 
-  app.openapi(platformRoute(createGithubToolRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(createGithubToolRoute, "tools:write"), async (c) => {
     const { registry, workspace } = c.env;
     const app = await workspaceApp(githubOf(c));
     if (!app) return c.json(notConnected, 404);

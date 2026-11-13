@@ -4,6 +4,9 @@ import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { issueToken } from "../identity/authn/tokens";
 import { handleCreateDeployToken, handleDeploy } from "./deploy";
+import type { PlatformPermission } from "@forgeron/permissions";
+import type { Person } from "../kernel/person";
+import { testPerson } from "../kernel/test-person";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -157,7 +160,7 @@ describe("POST /deploy", () => {
     expect(await first.json()).not.toHaveProperty("channels");
     expect(uploaded.map((u) => u.name)).toEqual(["preview"]);
 
-    // A release: production and staging take it; recette waits for an admin; other follows dev.
+    // A release: production and staging take it; recette waits for approval; other follows dev.
     const released = {
       ...build(),
       changelog: { entries: [{}], declared: "patch", detected: "patch", released: true },
@@ -469,7 +472,7 @@ describe("DELETE /deploy", () => {
     );
   });
 
-  it("lets an administrator of the workspace close a preview, naming the tool", async () => {
+  it("lets a person who holds `tools:write` close a preview, naming the tool", async () => {
     const { hosting } = fakeHosting();
     await handleDeploy(
       post(
@@ -479,15 +482,17 @@ describe("DELETE /deploy", () => {
       ),
       context(hosting),
     );
-    const person = (roles: string[]) => ({ id: "u1", email: "ada@acme.fr", name: "Ada", roles });
+    const person = (permissions: PlatformPermission[]) =>
+      testPerson(permissions, [], { id: "u1", email: "ada@acme.fr" });
     const closeAs = (who: ReturnType<typeof person> | undefined, body: unknown) =>
       handleDeploy(remove(body), { ...context(hosting), authenticate: () => who });
     expect((await closeAs(undefined, { tool: "crm", branch: "feat/a" })).status).toBe(401);
-    expect((await closeAs(person(["developer"]), { tool: "crm", branch: "feat/a" })).status).toBe(
-      403,
-    );
-    expect((await closeAs(person(["admin"]), { branch: "feat/a" })).status).toBe(400);
-    const closed = await closeAs(person(["admin"]), { tool: "crm", branch: "feat/a" });
+    expect(
+      (await closeAs(person(["tools:read", "tools:publish"]), { tool: "crm", branch: "feat/a" }))
+        .status,
+    ).toBe(403);
+    expect((await closeAs(person(["tools:write"]), { branch: "feat/a" })).status).toBe(400);
+    const closed = await closeAs(person(["tools:write"]), { tool: "crm", branch: "feat/a" });
     expect(await closed.json()).toEqual({ tool: "crm", branch: "feat/a", removed: true });
   });
 
@@ -506,9 +511,9 @@ describe("DELETE /deploy", () => {
 });
 
 describe("POST /deploy-tokens", () => {
-  const admin = { id: "u1", email: "ada@acme.fr", name: "Ada", roles: ["admin"] };
-  const member = { ...admin, id: "u2", roles: ["management"] };
-  const issuer = (person?: typeof admin) => ({
+  const builder = testPerson(["tools:write"], [], { id: "u1", email: "ada@acme.fr" });
+  const member = testPerson(["tools:read"], ["management"], { id: "u2", email: "ada@acme.fr" });
+  const issuer = (person?: Person) => ({
     workspace: "acme",
     secret,
     now: () => now,
@@ -517,8 +522,8 @@ describe("POST /deploy-tokens", () => {
   const create = (body: unknown) => post("/deploy-tokens", body);
   const body = { tool: "crm", name: "ci", scope: "deploy", days: 90 };
 
-  it("gives an administrator a deployment token that deploys, once, for that tool", async () => {
-    const response = await handleCreateDeployToken(create(body), issuer(admin));
+  it("gives a person who holds `tools:write` a deployment token that deploys, once, for that tool", async () => {
+    const response = await handleCreateDeployToken(create(body), issuer(builder));
     expect(response.status).toBe(201);
     const created = (await response.json()) as { token: string; expiresAt: string };
     expect(created).toMatchObject({
@@ -539,7 +544,7 @@ describe("POST /deploy-tokens", () => {
     expect(await historyOf("preview", "main")).toMatchObject([{ actor: "deploy:ci" }]);
   });
 
-  it("is for administrators only", async () => {
+  it("is for who holds `tools:write` only", async () => {
     expect((await handleCreateDeployToken(create(body), issuer())).status).toBe(401);
     expect((await handleCreateDeployToken(create(body), issuer(member))).status).toBe(403);
   });
@@ -553,7 +558,7 @@ describe("POST /deploy-tokens", () => {
       { ...body, tool: "crm/api" },
       { ...body, tool: undefined },
     ]) {
-      expect((await handleCreateDeployToken(create(bad), issuer(admin))).status).toBe(400);
+      expect((await handleCreateDeployToken(create(bad), issuer(builder))).status).toBe(400);
     }
   });
 });

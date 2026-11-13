@@ -8,6 +8,8 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { platformCaller } from "../platform/test-app";
+import { ADMIN, holding } from "../platform/route-matrix";
+import type { PlatformPermission } from "@forgeron/permissions";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -16,7 +18,7 @@ const KEY = btoa(String.fromCharCode(...new Uint8Array(32)));
 
 let memory: MemoryD1;
 let registry: Registry;
-let caller: { developer: boolean; admin: boolean } | undefined;
+let caller: { permissions: PlatformPermission[] } | undefined;
 
 const call = (path = "/api/tools/crm/secrets-status", method = "GET") =>
   platformCaller({ registry, who: () => caller })(
@@ -24,7 +26,7 @@ const call = (path = "/api/tools/crm/secrets-status", method = "GET") =>
   );
 
 beforeEach(async () => {
-  caller = { developer: true, admin: false };
+  caller = holding("tools:read");
   memory = await createMemoryD1();
   const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
@@ -54,10 +56,10 @@ describe("secrets status API", () => {
     expect(text).not.toContain("test-only-value");
   });
 
-  it("is for developers and admins", async () => {
-    caller = { developer: false, admin: false };
+  it("is for who holds `tools:read`", async () => {
+    caller = holding();
     expect((await call())?.status).toBe(403);
-    caller = { developer: false, admin: true };
+    caller = ADMIN;
     expect((await call())?.status).toBe(200);
     caller = undefined;
     expect((await call())?.status).toBe(401);

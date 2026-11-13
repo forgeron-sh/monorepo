@@ -10,6 +10,7 @@ import {
 } from "@forgeron/registry";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { BUILT_IN_TEAMS, holds, PLATFORM, type PlatformPermission } from "@forgeron/permissions";
 import { redacted } from "../admin-mcp/server";
 import { TOOLS } from "../admin-mcp/tools";
 import { createGateway, type GatewayEnv } from "../gateway";
@@ -33,7 +34,7 @@ const manifest = {
   name: "crm",
   version: "1.0.0",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
   actions: {
     "tickets.mine": {
       description: "My tickets.",
@@ -79,10 +80,11 @@ const hosting: Hosting = {
 let memory: MemoryD1;
 let registry: Registry;
 let env: GatewayEnv;
-let ana = ""; // a member
-let dev = ""; // a developer
-let root = ""; // an administrator
-let other = ""; // a second administrator
+let ana = ""; // a member, in no team
+let viewer = ""; // in a team that may see tools
+let dev = ""; // in the developer team
+let root = ""; // in the admin team
+let other = ""; // a second member of the admin team
 let approvalId = "";
 
 beforeAll(async () => {
@@ -121,17 +123,25 @@ beforeAll(async () => {
     })
   ).id;
 
-  const member = async (subject: string, roles: string[]) =>
+  const member = async (subject: string, teams: string[]) =>
     (
       await registry.addMember({
         workspace: "acme",
         subject,
         email: `${subject}@acme.test`,
         name: subject,
-        roles,
+        teams,
       })
     ).id;
+  // A team that may see tools and nothing else.
+  await registry.createTeam(
+    "acme",
+    { id: "viewers", name: "Viewers", permissions: ["tools:read"] },
+    "root",
+    ["*"],
+  );
   ana = await member("ana", []);
+  viewer = await member("viewer", ["viewers"]);
   dev = await member("dev", ["developer"]);
   root = await member("root", ["admin"]);
   other = await member("other", ["admin"]);
@@ -257,21 +267,25 @@ describe("who may reach /mcp", () => {
   });
 });
 
-describe("the tools and their minimum role", () => {
-  const MEMBER = ["catalog_search", "catalog_get", "tools_list", "tool_get"];
-  const DEVELOPER = [
-    ...MEMBER,
-    "tool_versions",
-    "tool_changelog",
-    "secrets_status",
-    "secret_request",
-  ];
+describe("the tools and the permission they require", () => {
+  const SIGNED_IN = ["catalog_search", "catalog_get", "tools_list", "tool_get", "team_list"];
+  const TOOLS_READ = ["tool_versions", "tool_changelog", "secrets_status", "tool_source"];
+  const requiring = (permissions: PlatformPermission[]) =>
+    TOOLS.filter((t) => t.requires === "signed-in" || holds(PLATFORM, permissions, t.requires))
+      .map((t) => t.name)
+      .sort();
 
-  it("offers each person the tools their role allows", async () => {
-    expect((await listed(ana)).sort()).toEqual([...MEMBER].sort());
-    expect((await listed(dev)).sort()).toEqual([...DEVELOPER].sort());
+  it("offers each person the tools their permissions allow", async () => {
+    expect((await listed(ana)).sort()).toEqual([...SIGNED_IN].sort());
+    expect((await listed(viewer)).sort()).toEqual([...SIGNED_IN, ...TOOLS_READ].sort());
+    // The developer team is given `tools:write`, `tools:publish`, `tools:data`, `access:read` and
+    // `marketplace:read`: the tools that need more are not offered.
+    const developer = BUILT_IN_TEAMS.find((t) => t.id === "developer")!.permissions;
+    expect((await listed(dev)).sort()).toEqual(requiring(developer as PlatformPermission[]));
+    expect(await listed(dev)).not.toContain("access_grant");
+    expect(await listed(dev)).not.toContain("resources_approve");
     expect((await listed(root)).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(22);
+    expect(TOOLS).toHaveLength(26);
   });
 
   it("marks what changes something with destructiveHint, and nothing else", async () => {
@@ -281,7 +295,10 @@ describe("the tools and their minimum role", () => {
       [
         "access_grant",
         "access_revoke",
+        "member_set_teams",
         "resources_approve",
+        "team_set_members",
+        "team_set_permissions",
         "tool_install",
         "tool_rollback",
         "tool_update",
@@ -293,67 +310,95 @@ describe("the tools and their minimum role", () => {
     }
   });
 
-  it("refuses a member and a developer an admin tool, and changes nothing", async () => {
+  it("refuses a person a tool whose permission they lack, and changes nothing", async () => {
     const before = await auditCount();
-    for (const person of [ana, dev]) {
+    const refused = [
+      ["access_grant", { subject: "everyone", tool: "crm", profile: "reader" }],
+      ["access_revoke", { subject: "everyone", tool: "crm" }],
+      ["member_set_teams", { person: "ana@acme.test", teams: ["admin"] }],
+      ["team_set_members", { team: "admin", members: ["ana@acme.test"] }],
+      ["team_set_permissions", { team: "viewers", permissions: ["*"] }],
+      ["resources_approve", { id: approvalId }],
+      ["resources_pending", {}],
+      ["usage_report", {}],
+    ] as const;
+    // A person with no permission, and one who may only see tools, are refused all of them and the
+    // tools below that need more than `tools:read`.
+    for (const person of [ana, viewer]) {
       for (const [name, args] of [
-        ["access_grant", { person: "ana@acme.test", role: "admin" }],
-        ["access_revoke", { person: "root@acme.test", role: "admin" }],
-        ["resources_approve", { id: approvalId }],
+        ...refused,
         ["tool_update", { tool: "crm", version: "1.1.0" }],
-        ["tool_source", { tool: "crm" }],
         ["tool_rollback", { tool: "crm", environment: "production" }],
         ["template_list", {}],
         ["marketplace_list", {}],
         ["marketplace_tools", { marketplace: "official" }],
-        ["usage_report", {}],
         ["tool_install_plan", { template: "inventory" }],
         ["tool_install", { plan: "anything" }],
-        ["resources_pending", {}],
         ["access_list", {}],
+        ...(person === ana ? ([["tool_source", { tool: "crm" }]] as const) : []),
       ] as const) {
         const answer = await call(person, name, args);
         expect(answer.error, `${person} ${name}`).toBe(true);
         expect(answer.text).toMatch(/^403 FORBIDDEN/);
       }
     }
+    // The developer team holds neither approval, access, members, teams nor usage.
+    for (const [name, args] of refused) {
+      const answer = await call(dev, name, args);
+      expect(answer.error, `dev ${name}`).toBe(true);
+      expect(answer.text).toMatch(/^403 FORBIDDEN/);
+    }
     expect(await auditCount()).toBe(before);
-    expect((await registry.findMember("acme", ana))?.roles).toEqual([]);
+    expect((await registry.findMember("acme", ana))?.teams).toEqual([]);
     expect(
       (await registry.listApprovals((await registry.findTool("acme", "hr"))!.id))[0]!.status,
     ).toBe("pending");
   });
 
-  it("refuses a member a developer tool", async () => {
+  it("names the permission a tool needs in its refusal and in its listing", async () => {
+    expect((await call(ana, "usage_report")).text).toBe(
+      "403 FORBIDDEN: usage_report is for people who hold the permission \u201cSee usage\u201d.",
+    );
+    const tools = (await rpc(await token(root), "tools/list")).result.tools as any[];
+    expect(tools.find((t) => t.name === "usage_report").description).toMatch(
+      /For people who hold the permission \u201cSee usage\u201d\.$/,
+    );
+    expect(tools.find((t) => t.name === "tools_list").description).toMatch(
+      /For any signed-in person\.$/,
+    );
+  });
+
+  it("refuses a member a tool of the tool pages", async () => {
     expect((await call(ana, "tool_versions", { tool: "crm" })).text).toMatch(/^403/);
     expect((await call(ana, "secrets_status", { tool: "hr" })).text).toMatch(/^403/);
+    expect((await call(viewer, "secrets_status", { tool: "hr" })).error).toBe(false);
     expect((await call(dev, "secrets_status", { tool: "hr" })).error).toBe(false);
   });
 
-  it("reads the role from the person, never from an argument, and reads it now", async () => {
-    // No tool takes a role to act as or a person to act for.
+  it("reads the permissions from the person, never from an argument, and reads them now", async () => {
+    // No tool takes an identity to act as or a person to act for.
     for (const t of TOOLS) {
       const properties = Object.keys((t.input.toJSONSchema() as any).properties ?? {});
       expect(properties).not.toContain("as");
       expect(properties).not.toContain("actor");
       expect(properties).not.toContain("caller");
     }
-    const forged = await call(ana, "tools_list", { as: "admin", roles: ["admin"] });
+    const forged = await call(ana, "tools_list", { as: "admin", teams: ["admin"] });
     expect(forged.error).toBe(true);
     expect(forged.text).toMatch(/^400 INVALID/);
 
-    // The token of a person who has lost a role is a token of a person without it.
+    // The token of a person who has left a team is a token of a person without its permissions.
     const extra = (
       await registry.addMember({
         workspace: "acme",
         subject: "temp",
         email: "temp@acme.test",
         name: "temp",
-        roles: ["admin"],
+        teams: ["admin"],
       })
     ).id;
     expect(await listed(extra)).toContain("tool_update");
-    await registry.setMemberRoles("acme", extra, [], root);
+    await registry.setMemberTeams("acme", extra, [], root, ["*"]);
     expect(await listed(extra)).not.toContain("tool_update");
     expect((await call(extra, "tool_update", { tool: "crm", version: "1.1.0" })).text).toMatch(
       /^403/,
@@ -416,36 +461,73 @@ describe("what the tools read", () => {
 });
 
 describe("what the tools change goes through the console's path, audited via the MCP", () => {
-  it("grants and revokes a workspace role for a member, found by email", async () => {
-    const granted = await call(root, "access_grant", { person: "ana@acme.test", role: "sales" });
+  it("changes the teams of a member, found by email", async () => {
+    const granted = await call(root, "member_set_teams", {
+      person: "ana@acme.test",
+      teams: ["viewers"],
+    });
     expect(granted.error).toBe(false);
-    expect((await registry.findMember("acme", ana))?.roles).toEqual(["sales"]);
-    const lines = (await audit("member:roles")).filter((l) => l.via !== null);
+    expect((await registry.findMember("acme", ana))?.teams).toEqual(["viewers"]);
+    const lines = (await audit("member:teams")).filter((l) => l.via !== null);
     expect(lines).toEqual([{ actor: root, via: "Forgeron MCP", kind: "access" }]);
 
-    await call(root, "access_revoke", { person: ana, role: "sales" });
-    expect((await registry.findMember("acme", ana))?.roles).toEqual([]);
+    await call(root, "member_set_teams", { person: ana, teams: [] });
+    expect((await registry.findMember("acme", ana))?.teams).toEqual([]);
     expect(
-      (await call(root, "access_grant", { person: "nobody@acme.test", role: "x" })).text,
+      (await call(root, "member_set_teams", { person: "nobody@acme.test", teams: [] })).text,
     ).toMatch(/^404/);
-    // The registry's own rules hold: the workspace keeps an administrator.
-    await call(root, "access_revoke", { person: other, role: "admin" });
-    expect((await call(root, "access_revoke", { person: root, role: "admin" })).text).toMatch(
+    // The registry's own rules hold: the admin team keeps a member.
+    await call(root, "member_set_teams", { person: other, teams: [] });
+    expect((await call(root, "member_set_teams", { person: root, teams: [] })).text).toMatch(
       /LAST_ADMIN/,
     );
-    await call(root, "access_grant", { person: other, role: "admin" });
+    await call(root, "member_set_teams", { person: other, teams: ["admin"] });
   });
 
-  it("allows and refuses a role an action of a tool, and says so in the audit log", async () => {
+  it("lists the teams, and sets the members and the permissions of one", async () => {
+    const listedTeams = (await call(ana, "team_list")).data.teams as Array<{ id: string }>;
+    expect(listedTeams.map((t) => t.id)).toEqual(
+      expect.arrayContaining(["admin", "developer", "viewers"]),
+    );
     expect(
-      (await call(root, "access_grant", { tool: "crm", role: "reader", action: "tickets.mine" }))
-        .error,
+      (await call(root, "team_set_members", { team: "viewers", members: ["ana@acme.test"] })).data
+        .members,
+    ).toEqual([ana]);
+    const set = await call(root, "team_set_permissions", {
+      team: "viewers",
+      permissions: ["tools:read", "audit:read"],
+    });
+    expect(set.data.permissions).toEqual(["tools:read", "audit:read"]);
+    expect((await audit("team:permissions")).at(-1)).toMatchObject({ via: "Forgeron MCP" });
+    // Back to what the other tests expect.
+    await call(root, "team_set_members", { team: "viewers", members: [viewer] });
+    await call(root, "team_set_permissions", { team: "viewers", permissions: ["tools:read"] });
+    // Within what the caller holds: a developer is not offered the tool, and the route refuses too.
+    expect(
+      (await call(dev, "team_set_permissions", { team: "viewers", permissions: ["*"] })).text,
+    ).toMatch(/^403/);
+  });
+
+  it("allows and refuses a subject an action of a tool, and says so in the audit log", async () => {
+    expect(
+      (
+        await call(root, "access_grant", {
+          tool: "crm",
+          subject: "everyone",
+          action: "tickets.mine",
+        })
+      ).error,
     ).toBe(false);
     expect(
-      (await call(root, "access_revoke", { tool: "crm", role: "reader", action: "tickets.mine" }))
-        .error,
+      (
+        await call(root, "access_revoke", {
+          tool: "crm",
+          subject: "everyone",
+          action: "tickets.mine",
+        })
+      ).error,
     ).toBe(false);
-    const lines = await audit("reader:tickets.mine");
+    const lines = await audit("everyone:tickets.mine");
     expect(lines).toHaveLength(2);
     expect(lines.every((l) => l.via === "Forgeron MCP" && l.actor === root)).toBe(true);
     // Not both a person and a cell, and an action the tool does not have is refused.
@@ -454,41 +536,64 @@ describe("what the tools change goes through the console's path, audited via the
         await call(root, "access_grant", {
           person: ana,
           tool: "crm",
-          role: "reader",
+          subject: "everyone",
           action: "tickets.mine",
         })
       ).error,
     ).toBe(true);
     expect(
-      (await call(root, "access_grant", { tool: "crm", role: "reader", action: "tickets.ghost" }))
-        .text,
+      (
+        await call(root, "access_grant", {
+          tool: "crm",
+          subject: "everyone",
+          action: "tickets.ghost",
+        })
+      ).text,
     ).toMatch(/^404/);
+    // A subject is everyone or a team.
+    expect(
+      (
+        await call(root, "access_grant", {
+          tool: "crm",
+          subject: "support",
+          action: "tickets.mine",
+        })
+      ).text,
+    ).toMatch(/^400 INVALID/);
   });
 
-  it("maps a workspace role to a profile of a tool, and to nothing (D-127)", async () => {
+  it("gives a team a profile of a tool, and nothing (D-127, D-136)", async () => {
     const granted = await call(root, "access_grant", {
       tool: "crm",
-      role: "support",
+      subject: "team:developer",
       profile: "reader",
     });
     expect(granted.error).toBe(false);
-    expect(granted.data.mapping.support).toEqual({ kind: "profile", profile: "reader" });
+    expect(granted.data.grants["team:developer"]).toEqual({ kind: "profile", profile: "reader" });
     expect(
-      (await call(root, "access_grant", { tool: "crm", role: "audit", permissions: ["read"] })).data
-        .mapping.audit,
+      (
+        await call(root, "access_grant", {
+          tool: "crm",
+          subject: "team:viewers",
+          permissions: ["read"],
+        })
+      ).data.grants["team:viewers"],
     ).toEqual({ kind: "custom", permissions: ["read"] });
-    const revoked = await call(root, "access_revoke", { tool: "crm", role: "support" });
-    expect(revoked.data.mapping.support).toEqual({ kind: "none" });
-    const lines = await audit("profile:support");
+    const revoked = await call(root, "access_revoke", { tool: "crm", subject: "team:developer" });
+    expect(revoked.data.grants["team:developer"]).toEqual({ kind: "none" });
+    const lines = await audit("grant:team:developer");
     expect(lines).toHaveLength(2);
     expect(lines.every((l) => l.via === "Forgeron MCP" && l.actor === root)).toBe(true);
     // A grant names exactly one of profile, permissions, all; a profile must be the tool's.
-    expect((await call(root, "access_grant", { tool: "crm", role: "support" })).error).toBe(true);
+    expect((await call(root, "access_grant", { tool: "crm", subject: "everyone" })).error).toBe(
+      true,
+    );
     expect(
-      (await call(root, "access_grant", { tool: "crm", role: "support", profile: "ghost" })).text,
+      (await call(root, "access_grant", { tool: "crm", subject: "everyone", profile: "ghost" }))
+        .text,
     ).toMatch(/^404/);
     expect(
-      (await call(root, "access_revoke", { tool: "crm", role: "support", profile: "reader" }))
+      (await call(root, "access_revoke", { tool: "crm", subject: "everyone", profile: "reader" }))
         .error,
     ).toBe(true);
   });

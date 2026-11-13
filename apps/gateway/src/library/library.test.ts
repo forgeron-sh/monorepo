@@ -1,15 +1,23 @@
 import type { Availability } from "@forgeron/registry";
 import { describe, expect, it } from "vitest";
+import type { PlatformPermission } from "@forgeron/permissions";
+import { testPerson } from "../kernel/test-person";
 import { pilotAccess } from "./library";
 
-// Who reaches a channel other than production (D-125, D-129): an admin always; a developer on a
-// branch's temporary channel; a permanent channel in draft (`nobody`, or no rule) is for admins only,
-// and once published, its people reach it after adding it, a developer like anyone.
+// Who reaches a channel other than production (D-125, D-129, D-136): who holds `tools:publish` always;
+// who holds `tools:read` on a branch's temporary channel; a permanent channel in draft (`nobody`, or
+// no rule) is for who publishes alone, and once published, its people reach it after adding it,
+// whoever else they are.
 
+const person = (id: string, teams: string[], permissions: PlatformPermission[]) => ({
+  id,
+  teams,
+  permissions: testPerson(permissions).permissions,
+});
 const people = {
-  admin: { id: "a", email: "a@acme.test", name: "a", roles: ["admin", "member"] },
-  developer: { id: "d", email: "d@acme.test", name: "d", roles: ["developer", "member"] },
-  member: { id: "m", email: "m@acme.test", name: "m", roles: ["member"] },
+  publisher: person("p", ["admin"], ["tools:publish"]),
+  reader: person("r", ["developer"], ["tools:read"]),
+  member: person("m", [], []),
 };
 
 const registry = (rule: Availability | undefined, installed: string[] = []) => ({
@@ -17,42 +25,38 @@ const registry = (rule: Availability | undefined, installed: string[] = []) => (
   isChannelInstalled: async (_tool: string, _ref: string, person: string) =>
     installed.includes(person),
 });
-const rule = (mode: Availability["mode"], roles: string[] = []): Availability => ({
+const rule = (mode: Availability["mode"], teams: string[] = []): Availability => ({
   mode,
-  roles,
+  teams,
   people: [],
 });
 
 describe("pilotAccess (D-129)", () => {
-  it("keeps a branch's temporary channel open to admins and developers", async () => {
-    for (const who of [people.admin, people.developer]) {
+  it("keeps a branch's temporary channel open to who holds `tools:read`", async () => {
+    for (const who of [people.publisher, people.reader]) {
       expect(await pilotAccess(registry(undefined), "t", "feat-x", who)).toBe(true);
     }
     expect(await pilotAccess(registry(undefined), "t", "feat-x", people.member)).toBe(false);
   });
 
-  it("keeps a permanent channel in draft for admins alone", async () => {
+  it("keeps a permanent channel in draft for who holds `tools:publish` alone", async () => {
     for (const draft of [undefined, rule("nobody")]) {
-      expect(await pilotAccess(registry(draft), "t", "~staging", people.admin)).toBe(true);
-      expect(await pilotAccess(registry(draft, ["d"]), "t", "~staging", people.developer)).toBe(
-        false,
-      );
+      expect(await pilotAccess(registry(draft), "t", "~staging", people.publisher)).toBe(true);
+      expect(await pilotAccess(registry(draft, ["r"]), "t", "~staging", people.reader)).toBe(false);
       expect(await pilotAccess(registry(draft, ["m"]), "t", "~staging", people.member)).toBe(false);
     }
   });
 
   it("lets the people it is published to in, once they added it", async () => {
-    const toDevelopers = rule("roles", ["developer"]);
-    expect(await pilotAccess(registry(toDevelopers), "t", "~staging", people.developer)).toBe(
-      false,
+    const toDevelopers = rule("teams", ["developer"]);
+    expect(await pilotAccess(registry(toDevelopers), "t", "~staging", people.reader)).toBe(false);
+    expect(await pilotAccess(registry(toDevelopers, ["r"]), "t", "~staging", people.reader)).toBe(
+      true,
     );
-    expect(
-      await pilotAccess(registry(toDevelopers, ["d"]), "t", "~staging", people.developer),
-    ).toBe(true);
     expect(await pilotAccess(registry(toDevelopers, ["m"]), "t", "~staging", people.member)).toBe(
       false,
     );
-    // Everyone holds member (D-128): published to everyone is every person of the workspace.
+    // Published to everyone is every person of the workspace, in a team or not.
     expect(
       await pilotAccess(registry(rule("everyone"), ["m"]), "t", "~staging", people.member),
     ).toBe(true);

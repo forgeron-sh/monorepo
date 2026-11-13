@@ -32,7 +32,7 @@ export function consentPage(input: ConsentInput): Response {
         ["Workspace", input.workspace],
         ["The answer goes to", input.address],
         ...(input.tool ? ([["Tool", input.tool]] as Array<[string, string]>) : []),
-        ["It may", "Do what your role allows here, and no more"],
+        ["It may", "Do what your permissions allow here, and no more"],
         ["Access lasts", "One hour, renewed until you revoke it or 30 days pass"],
       ]) +
       `<form method="post" action="/oauth/authorize">${hiddenFields(input.fields)}` +

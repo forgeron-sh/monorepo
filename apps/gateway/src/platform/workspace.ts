@@ -4,6 +4,7 @@ import {
   usageRoute,
   workspaceRoute,
 } from "@forgeron/platform-contract";
+import { holds, PLATFORM } from "@forgeron/permissions";
 import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
@@ -23,7 +24,7 @@ const avatarUrl = (
   avatar ? `${origin}/avatars/${id}?v=${encodeURIComponent(avatar.version)}` : undefined;
 
 export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(putAvatarRoute, "member"), async (c) => {
+  app.openapi(platformRoute(putAvatarRoute, "signed-in"), async (c) => {
     const { registry, workspace, origin } = c.env;
     const person = c.get("person");
     try {
@@ -45,7 +46,7 @@ export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
     );
   });
 
-  app.openapi(platformRoute(workspaceRoute, "member"), async (c) => {
+  app.openapi(platformRoute(workspaceRoute, "signed-in"), async (c) => {
     const { registry, workspace, origin, baseDomain, signIn } = c.env;
     const person = c.get("person");
     const me = await registry.findMember(workspace, person.id);
@@ -68,8 +69,8 @@ export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
           id: person.id,
           email: person.email,
           name: person.name,
-          roles: person.roles,
-          admin: person.admin,
+          teams: person.teams,
+          permissions: person.permissions,
           ...(me?.avatar && picture ? { avatar: { url: picture, source: me.avatar.source } } : {}),
         },
         setup: {
@@ -79,7 +80,7 @@ export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
           deployed,
           called,
         },
-        ...(person.admin
+        ...(holds(PLATFORM, person.permissions, "settings:read")
           ? {
               signIn: await signIn(),
               install: {
@@ -95,7 +96,7 @@ export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
   });
 
   // `detail` is not sent: the console shows who did what and when, not payloads. `limit` is lenient.
-  app.openapi(platformRoute(auditRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(auditRoute, "audit:read"), async (c) => {
     const { registry, workspace } = c.env;
     const asked = Number(c.req.valid("query").limit ?? DEFAULT_AUDIT);
     const limit = Number.isInteger(asked) && asked > 0 ? Math.min(asked, MAX_AUDIT) : DEFAULT_AUDIT;
@@ -120,7 +121,7 @@ export function mountWorkspace(app: OpenAPIHono<PlatformEnv>): void {
   });
 
   // Usage (D-093): counts only, per tool and per person. The period is at most a year of UTC days.
-  app.openapi(platformRoute(usageRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(usageRoute, "usage:read"), async (c) => {
     const { registry, workspace } = c.env;
     const asked = c.req.valid("query");
     const day = 86_400_000;

@@ -1,4 +1,4 @@
-// Copying a branch's data into another branch (D-121): an admin starts a branch from the data of
+// Copying a branch's data into another branch (D-121): someone who holds `tools:data` starts a branch from the data of
 // another one. Never production's, either way: that is the caller's rule. Both databases must be on
 // the same migrations; the target's tables are emptied, then filled with the source's rows, parents
 // before children. The platform's own tables (`_forgeron_*`, `_cf_*`, `sqlite_*`) are left alone.

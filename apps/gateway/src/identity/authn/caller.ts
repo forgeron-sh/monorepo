@@ -1,4 +1,4 @@
-import { workspaceRoles } from "@forgeron/manifest";
+import { ADMIN_TEAM, subjectsOf } from "@forgeron/permissions";
 import type { Member, Registry } from "@forgeron/registry";
 import type { Person } from "../../kernel/person";
 import { refreshProviderAvatar } from "../avatar";
@@ -8,10 +8,11 @@ import { verifyToken } from "./tokens";
 import { audienceOf, parseAudience } from "./audience";
 
 // The one resolver of "who is calling" for a workspace: a valid session cookie or a valid
-// audience-bound token (issued for this workspace) gives the person and their roles; anything
-// else, a deployment token included, gives nobody. Roles are read now, never frozen in the credential.
-// Every person holds `member` on top of the roles they were given (D-128): this is the one place it is
-// added, so tools, the catalog, the library and the console all see the same roles.
+// audience-bound token (issued for this workspace) gives the person, their teams and what they may do
+// on the platform; anything else, a deployment token included, gives nobody. Teams and permissions are
+// read now, never frozen in the credential. Every person is part of `everyone` on top of their teams
+// (D-136): `subjectsOf` is the one place it is added, so tools, the catalog, the library and the
+// console all see the same subjects.
 
 /** The scope of a CLI token (D-028): good on the platform's routes, refused by every tool. */
 export const CLI_SCOPE = "cli";
@@ -21,13 +22,6 @@ export const MCP_SCOPE = "mcp";
 
 /** A tool's MCP path, `/t/<tool>/mcp` or `/t/<tool>@<branch>/mcp`: the only place an `mcp` tool token works. */
 const TOOL_MCP = /^\/t\/([a-z0-9][a-z0-9-]*)(?:@[^/]+)?\/mcp\/?$/;
-
-const toPerson = (member: Member): Person => ({
-  id: member.id,
-  email: member.email,
-  name: member.name,
-  roles: workspaceRoles(member.roles),
-});
 
 export interface CallerOptions {
   registry: Pick<
@@ -39,6 +33,7 @@ export interface CallerOptions {
     | "findMemberBySubject"
     | "isTokenRevoked"
     | "joinMember"
+    | "platformPermissionsOf"
   >;
   secret: string;
   /** Keys tokens were signed with before a rotation (`AUTH_SECRET_PREVIOUS`, D-035). */
@@ -53,6 +48,14 @@ export interface Resolved {
 }
 
 export function createCaller(options: CallerOptions) {
+  const toPerson = async (member: Member): Promise<Person> => ({
+    id: member.id,
+    email: member.email,
+    name: member.name,
+    teams: member.teams,
+    subjects: subjectsOf(member.teams),
+    permissions: await options.registry.platformPermissionsOf(member.workspace, member.id),
+  });
   const personOf = async (workspace: string, id: string) => {
     const member = await options.registry.findMember(workspace, id);
     return member ? toPerson(member) : undefined;
@@ -159,22 +162,22 @@ export function createCaller(options: CallerOptions) {
 }
 
 export interface MembershipPolicy {
-  /** This email becomes an administrator at its first sign-in. */
+  /** This email joins the team `admin` at its first sign-in. */
   adminEmail?: string;
-  /** Anyone signing in with an email of one of these domains becomes a member, with no role. */
+  /** Anyone signing in with an email of one of these domains becomes a member, in no team. */
   memberDomains: string[];
-  /** The role a person joining by domain gets (D-049); none when `undefined`. */
-  defaultRole?: string;
+  /** The teams a person joining by domain joins (D-049); none when empty or `undefined`. */
+  defaultTeams?: string[];
   /**
-   * The role each group of the provider grants (D-041). A person in one of these groups is
-   * admitted; roles are set at the first sign-in only, and read from the registry afterwards.
+   * The team each group of the provider puts a person in (D-041). A person in one of these groups is
+   * admitted; teams are set at the first sign-in only, and read from the registry afterwards.
    */
-  groupRoles?: Record<string, string>;
+  groupTeams?: Record<string, string>;
 }
 
 /**
  * `resolvePerson` of the sign-in (D-027): an existing member by their provider subject; else the
- * administrator named by the policy; else a member of an allowed email domain; else nobody.
+ * email named by the policy, who joins the team `admin`; else a member of an allowed email domain; else nobody.
  */
 export function membership(
   registry: Pick<
@@ -210,26 +213,24 @@ export function membership(
     const fromGroups = [
       ...new Set(
         identity.groups.flatMap((group) => {
-          const role = policy.groupRoles?.[group];
-          return role ? [role] : [];
+          const team = policy.groupTeams?.[group];
+          return team ? [team] : [];
         }),
       ),
     ];
     const invitation = await registry.findInvitation(workspace, email);
     const base = invitation
-      ? invitation.roles
+      ? invitation.teams
       : policy.adminEmail && email === policy.adminEmail.toLowerCase()
-        ? ["admin"]
+        ? [ADMIN_TEAM]
         : policy.memberDomains.includes(email.split("@")[1] ?? "")
-          ? policy.defaultRole
-            ? [policy.defaultRole]
-            : []
+          ? (policy.defaultTeams ?? [])
           : undefined;
-    const roles =
+    const teams =
       base === undefined && fromGroups.length === 0
         ? undefined
         : [...new Set([...(base ?? []), ...fromGroups])];
-    if (!roles) return undefined;
+    if (!teams) return undefined;
     // An invitation is accepted by signing in with its email, whichever way the provider is.
     if (invitation) {
       return withPicture(
@@ -238,7 +239,7 @@ export function membership(
         await registry.joinMember({
           workspace,
           email: identity.email,
-          roles,
+          teams,
           via: "invitation",
           subject: identity.subject,
           name: identity.name,
@@ -253,7 +254,7 @@ export function membership(
         subject: identity.subject,
         email: identity.email,
         name: identity.name,
-        roles,
+        teams,
       }),
     );
   };

@@ -29,10 +29,10 @@ import {
   setupPath,
 } from "../library/library";
 import { channelPath } from "../tool-address";
-import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
+import { catalogCaller, methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// A person's library (D-117): the tools they may add, those they added, how to use one; and, for an
-// admin, who may add a tool. A tool with no rule predates libraries: it is in everyone's library who
+// A person's library (D-117): the tools they may add, those they added, how to use one; and, for who
+// holds `access:read` / `access:write`, who may add a tool. A tool with no rule predates libraries: it is in everyone's library who
 // may call it, and cannot be removed. A member only ever sees tools that serve production.
 
 const missing = { error: "NOT_FOUND", message: "There is no such tool in your library." };
@@ -90,16 +90,14 @@ const noPilot = { error: "NOT_FOUND", message: "There is no such channel in your
 
 const availabilityBody = (rule: Availability | undefined) =>
   rule
-    ? { mode: rule.mode, roles: rule.roles, people: rule.people, updatedAt: rule.updatedAt ?? null }
-    : { mode: "open" as const, roles: [], people: [], updatedAt: null };
+    ? { mode: rule.mode, teams: rule.teams, people: rule.people, updatedAt: rule.updatedAt ?? null }
+    : { mode: "open" as const, teams: [], people: [], updatedAt: null };
 
 export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(listLibraryRoute, "member"), async (c) => {
+  app.openapi(platformRoute(listLibraryRoute, "signed-in"), async (c) => {
     const person = c.get("person");
     const tools = [];
-    for (const tool of await listCatalog(c.env.registry, c.env.workspace, {
-      roles: person.roles,
-    })) {
+    for (const tool of await listCatalog(c.env.registry, c.env.workspace, catalogCaller(person))) {
       if (tool.productionVersion === null) continue;
       const entry = await entryOf(c, tool);
       if (!entry) continue;
@@ -114,7 +112,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
         pilot: null,
       });
     }
-    // Channels other than production (D-119, D-125): each one an admin opened to this person, as a
+    // Channels other than production (D-119, D-125): each one opened to this person by someone who may give access, as a
     // tool of its own with its own data: the permanent ones (`~<name>`) and the branches.
     for (const record of await c.env.registry.listTools(c.env.workspace)) {
       for (const env of await c.env.registry.listEnvironments(record.id)) {
@@ -128,14 +126,14 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ tools }, 200);
   });
 
-  app.openapi(platformRoute(libraryCardRoute, "member"), async (c) => {
+  app.openapi(platformRoute(libraryCardRoute, "signed-in"), async (c) => {
     const person = c.get("person");
     const name = c.req.valid("param").tool;
     const card = await findCard(
       c.env.registry,
       c.env.workspace,
       name,
-      { roles: person.roles },
+      catalogCaller(person),
       c.env.origin,
     );
     const entry = card && card.productionVersion !== null ? await entryOf(c, card) : undefined;
@@ -165,14 +163,14 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     );
   });
 
-  app.openapi(platformRoute(installLibraryToolRoute, "member"), async (c) => {
+  app.openapi(platformRoute(installLibraryToolRoute, "signed-in"), async (c) => {
     const person = c.get("person");
     const name = c.req.valid("param").tool;
     const card = await findCard(
       c.env.registry,
       c.env.workspace,
       name,
-      { roles: person.roles },
+      catalogCaller(person),
       c.env.origin,
     );
     const entry = card && card.productionVersion !== null ? await entryOf(c, card) : undefined;
@@ -188,7 +186,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ installed: true as const, setupUrl: pending ? setupPath(name) : null }, 200);
   });
 
-  app.openapi(platformRoute(uninstallLibraryToolRoute, "member"), async (c) => {
+  app.openapi(platformRoute(uninstallLibraryToolRoute, "signed-in"), async (c) => {
     const person = c.get("person");
     const record = await c.env.registry.findTool(c.env.workspace, c.req.valid("param").tool);
     if (!record) return c.json(missing, 404);
@@ -206,13 +204,13 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     return removed ? c.body(null, 204) : c.json(missing, 404);
   });
 
-  app.openapi(platformRoute(getAvailabilityRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(getAvailabilityRoute, "access:read"), async (c) => {
     const record = await c.env.registry.findTool(c.env.workspace, c.req.valid("param").tool);
     if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such tool." }, 404);
     return c.json(availabilityBody(await c.env.registry.availabilityOf(record.id)), 200);
   });
 
-  app.openapi(platformRoute(putAvailabilityRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(putAvailabilityRoute, "access:write"), async (c) => {
     const record = await c.env.registry.findTool(c.env.workspace, c.req.valid("param").tool);
     if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such tool." }, 404);
     const body = c.req.valid("json");
@@ -229,7 +227,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     const rule = await c.env.registry.setAvailability({
       toolId: record.id,
       mode: body.mode,
-      ...(body.roles ? { roles: body.roles } : {}),
+      ...(body.teams ? { teams: body.teams } : {}),
       ...(body.people ? { people: body.people } : {}),
       actor: c.get("person").id,
       ...(c.env.via ? { via: c.env.via } : {}),
@@ -237,7 +235,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     return c.json(availabilityBody(rule), 200);
   });
 
-  app.openapi(platformRoute(pilotCardRoute, "member"), async (c) => {
+  app.openapi(platformRoute(pilotCardRoute, "signed-in"), async (c) => {
     const { tool, branch } = c.req.valid("param");
     const record = await c.env.registry.findTool(c.env.workspace, tool);
     const pilot = record ? await pilotOf(c, record.id, tool, branch) : undefined;
@@ -252,7 +250,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
       c.env.registry,
       c.env.workspace,
       tool,
-      { roles: c.get("person").roles },
+      catalogCaller(c.get("person")),
       c.env.origin,
       branch,
     );
@@ -273,7 +271,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     );
   });
 
-  app.openapi(platformRoute(installPilotRoute, "member"), async (c) => {
+  app.openapi(platformRoute(installPilotRoute, "signed-in"), async (c) => {
     const { tool, branch } = c.req.valid("param");
     const person = c.get("person");
     const record = await c.env.registry.findTool(c.env.workspace, tool);
@@ -292,7 +290,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     );
   });
 
-  app.openapi(platformRoute(uninstallPilotRoute, "member"), async (c) => {
+  app.openapi(platformRoute(uninstallPilotRoute, "signed-in"), async (c) => {
     const { tool, branch } = c.req.valid("param");
     const record = await c.env.registry.findTool(c.env.workspace, tool);
     const removed = record
@@ -313,14 +311,14 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
     return (await environmentOfRef(c.env.registry, record.id, branch)) ? record : undefined;
   };
 
-  app.openapi(platformRoute(getPilotAvailabilityRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(getPilotAvailabilityRoute, "access:read"), async (c) => {
     const { tool, branch } = c.req.valid("param");
     const record = await previewOf(c, tool, branch);
     if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such channel." }, 404);
     return c.json(availabilityBody(await c.env.registry.channelAccessOf(record.id, branch)), 200);
   });
 
-  app.openapi(platformRoute(putPilotAvailabilityRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(putPilotAvailabilityRoute, "access:write"), async (c) => {
     const { tool, branch } = c.req.valid("param");
     const record = await previewOf(c, tool, branch);
     if (!record) return c.json({ error: "NOT_FOUND", message: "There is no such channel." }, 404);
@@ -339,7 +337,7 @@ export function mountLibrary(app: OpenAPIHono<PlatformEnv>): void {
       toolId: record.id,
       channel: branch,
       mode: body.mode,
-      ...(body.roles ? { roles: body.roles } : {}),
+      ...(body.teams ? { teams: body.teams } : {}),
       ...(body.people ? { people: body.people } : {}),
       actor: c.get("person").id,
       ...(c.env.via ? { via: c.env.via } : {}),

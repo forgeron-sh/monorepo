@@ -71,17 +71,18 @@ const send = (method: string, path: string, body: unknown) =>
     ADMIN,
   );
 const read = (path: string) => as(new Request(url(path)), ADMIN);
-const admin = { access: "admin" as const, call: as };
 
 describeRouteMatrix({
   title: "GET a tool's source",
-  ...admin,
+  access: "tools:read",
+  call: as,
   method: "GET",
   path: "/api/tools/x/source",
 });
 describeRouteMatrix({
   title: "PUT a tool's source",
-  ...admin,
+  access: "tools:write",
+  call: as,
   method: "PUT",
   path: "/api/tools/x/source",
   valid: { autoUpdate: true },
@@ -89,7 +90,8 @@ describeRouteMatrix({
 });
 describeRouteMatrix({
   title: "POST a tool's update",
-  ...admin,
+  access: "tools:write",
+  call: as,
   method: "POST",
   path: "/api/tools/x/update",
   valid: { version: "1.0.0" },
@@ -97,7 +99,8 @@ describeRouteMatrix({
 });
 describeRouteMatrix({
   title: "POST a permanent channel",
-  ...admin,
+  access: "tools:write",
+  call: as,
   method: "POST",
   path: "/api/tools/x/channels",
   valid: { name: "staging", follows: "staging" },
@@ -105,7 +108,8 @@ describeRouteMatrix({
 });
 describeRouteMatrix({
   title: "PUT a permanent channel",
-  ...admin,
+  access: "tools:write",
+  call: as,
   method: "PUT",
   path: "/api/tools/x/channels/staging",
   valid: { autoUpdate: true },
@@ -113,7 +117,8 @@ describeRouteMatrix({
 });
 describeRouteMatrix({
   title: "DELETE a permanent channel",
-  ...admin,
+  access: "tools:write",
+  call: as,
   method: "DELETE",
   path: "/api/tools/x/channels/staging",
   valid: { confirm: "staging" },
@@ -121,7 +126,8 @@ describeRouteMatrix({
 });
 describeRouteMatrix({
   title: "POST a tool from a repository",
-  ...admin,
+  access: "tools:write",
+  call: as,
   method: "POST",
   path: "/api/tools/from-repository",
   valid: { name: "matrix", repo: "acme/matrix" },
@@ -135,7 +141,7 @@ async function offer(version: string, resources: object) {
     (await registry.createTool({ workspace: SOURCE, name: "odoo" }));
   const build = await registry.recordBuild(tool.id, {
     fingerprint: `odoo-${version}`,
-    manifest: { name: "odoo", roles: {}, actions: {}, resources },
+    manifest: { name: "odoo", profiles: {}, actions: {}, resources },
     worker: `// odoo ${version}`,
     changelog: {
       entries: [{ description: `Odoo ${version}` }],
@@ -224,7 +230,7 @@ const deployRequest = (token: string, branch: string, fingerprint: string, relea
       branch,
       version: `1.0.0-preview.${branch}+${fingerprint}`,
       build: {
-        manifest: { name: "crm", roles: {}, actions: {}, resources: {} },
+        manifest: { name: "crm", profiles: {}, actions: {}, resources: {} },
         worker: `// ${fingerprint}`,
         fingerprint,
         changelog: released
@@ -347,7 +353,8 @@ describe("a repository tool's channels (D-121, D-125)", () => {
 
 describeRouteMatrix({
   title: "POST a branch's data",
-  ...admin,
+  access: "tools:data",
+  call: as,
   method: "POST",
   path: "/api/tools/x/branches/b/data",
   valid: { from: "a", confirm: "x" },
@@ -374,7 +381,7 @@ describe("copying a branch's data (D-121)", () => {
     const tool = await registry.createTool({ workspace: "acme", name: "notes" });
     const build = await registry.recordBuild(tool.id, {
       fingerprint: "n1",
-      manifest: { name: "notes", roles: {}, actions: {}, resources: {} },
+      manifest: { name: "notes", profiles: {}, actions: {}, resources: {} },
       worker: "//",
     });
     const version = await registry.publishVersion(tool.id, build.id, "1.0.0");

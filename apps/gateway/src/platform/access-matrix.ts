@@ -1,24 +1,23 @@
 import {
   getAccessMatrixRoute,
   MAX_ACCESS_CHANGES,
-  MAX_PROFILE_CHANGES,
+  MAX_GRANT_CHANGES,
   putAccessMatrixRoute,
 } from "@forgeron/platform-contract";
 import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// The Access tab of a tool, for admins (docs/sdk.md §3, D-039, D-127): what each workspace role is
-// given in the tool, and the per-action exceptions. A change is written to the audit log by the
+// The Access tab of a tool, for who holds `access:read` / `access:write` (docs/sdk.md §3, D-039, D-127,
+// D-136): what each subject (`everyone`, a team) is given in the tool, and the per-action exceptions. A change is written to the audit log by the
 // registry and takes effect on the next call, on every interface.
 
-const FORBIDDEN = "The access matrix is for admins.";
 const missing = (name: string) => ({ error: "NOT_FOUND", message: `There is no tool ${name}.` });
 const status = (code: string) =>
   code === "NOT_FOUND" ? 404 : code === "NO_MANIFEST" ? 409 : code === "INVALID" ? 400 : 500;
 
 export function mountAccessMatrix(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(getAccessMatrixRoute, "admin", FORBIDDEN), async (c) => {
+  app.openapi(platformRoute(getAccessMatrixRoute, "access:read"), async (c) => {
     const { registry, workspace } = c.env;
     const name = c.req.valid("param").tool;
     const tool = await registry.findTool(workspace, name);
@@ -34,7 +33,7 @@ export function mountAccessMatrix(app: OpenAPIHono<PlatformEnv>): void {
   });
 
   app.openapi(
-    platformRoute(putAccessMatrixRoute, "admin", FORBIDDEN),
+    platformRoute(putAccessMatrixRoute, "access:write"),
     async (c) => {
       const { registry, workspace } = c.env;
       const name = c.req.valid("param").tool;
@@ -45,9 +44,9 @@ export function mountAccessMatrix(app: OpenAPIHono<PlatformEnv>): void {
         await registry.updateAccess(
           tool.id,
           {
-            ...(body.profiles ? { profiles: body.profiles } : {}),
+            ...(body.grants ? { grants: body.grants } : {}),
             changes: (body.changes ?? []).map((change) => ({
-              role: change.role,
+              subject: change.subject,
               action: change.action,
               allowed: change.allowed ?? undefined,
             })),
@@ -70,7 +69,7 @@ export function mountAccessMatrix(app: OpenAPIHono<PlatformEnv>): void {
         : c.json(
             {
               error: "INVALID",
-              message: `Give \`profiles\` (up to ${MAX_PROFILE_CHANGES} of { role, grant }) or \`changes\` (up to ${MAX_ACCESS_CHANGES} of { role, action, allowed: true, false or null }).`,
+              message: `Give \`grants\` (up to ${MAX_GRANT_CHANGES} of { subject, grant }) or \`changes\` (up to ${MAX_ACCESS_CHANGES} of { subject, action, allowed: true, false or null }).`,
             },
             400,
           ),

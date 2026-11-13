@@ -8,10 +8,11 @@
 // The environment is `?env=production` or `?env=preview&branch=<ref>` and must be one the registry knows:
 // `<ref>` is a branch, or `~<name>` for a permanent channel other than production (D-125).
 // Rows take `page`, `limit` (at most 100), `sort`, `dir=asc|desc` and `filter`, a JSON list of
-// `{ column, op, value }`. `platform=1` shows the platform's own tables, `reveal=1` (admins) the masked columns.
+// `{ column, op, value }`. `platform=1` shows the platform's own tables, `reveal=1` the masked columns (both need `tools:data`).
 // The browser never holds a Cloudflare token: the gateway reaches the database through the hosting layer.
 // Every access is written to the audit log (kind `access`, subject `db:<what>[:<table>]`) before data is sent.
 import type { Hosting } from "@forgeron/hosting";
+import { holds, PLATFORM } from "@forgeron/permissions";
 import { channelRef, hostingTargetOf, type Registry } from "@forgeron/registry";
 import {
   countRows,
@@ -45,9 +46,7 @@ export interface DatabaseApiOptions {
   workspace: string;
   hosting(workspace: string): Hosting | undefined;
   /** The caller, resolved by identity: `undefined` is anonymous. */
-  caller(
-    request: Request,
-  ): Promise<{ admin: boolean; developer?: boolean; id?: string } | undefined>;
+  caller(request: Request): Promise<{ permissions: readonly string[]; id?: string } | undefined>;
   timeoutMs?: number;
 }
 
@@ -172,9 +171,13 @@ export async function handleDatabase(
       ...(detail === undefined ? {} : { detail }),
     });
   const [, , what, table, view] = match;
-  if (!(caller.admin || caller.developer) || !caller.id) {
+  if (!holds(PLATFORM, caller.permissions, "tools:data") || !caller.id) {
     await audit(`db:${what}${table ? `:${decodeURIComponent(table)}` : ""}`, "denied");
-    return failure(403, "FORBIDDEN", "The database is for admins and developers.");
+    return failure(
+      403,
+      "FORBIDDEN",
+      "The database needs the permission \u201cQuery tool data\u201d.",
+    );
   }
 
   const environments = await options.registry.listEnvironments(tool.id);
@@ -218,9 +221,6 @@ export async function handleDatabase(
     const db = readOnly(raw);
     const platform = url.searchParams.get("platform") === "1";
     const reveal = url.searchParams.get("reveal") === "1";
-    if (reveal && !caller.admin) {
-      return failure(403, "FORBIDDEN", "Only an admin can show masked columns.");
-    }
     const schema = await within(loadSchema(db, { includePlatform: platform }), timeoutMs);
 
     if (what === "tables" && !table) {

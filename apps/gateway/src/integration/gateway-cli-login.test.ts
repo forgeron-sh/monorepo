@@ -142,7 +142,7 @@ describe("forgeron login against the gateway", () => {
     expect(await me.json()).toMatchObject({
       email: "ely@acme.fr",
       workspace: "acme",
-      roles: ["admin", "member"],
+      teams: ["admin"],
     });
     // A CLI token is the person on the platform, never a way into a tool.
     const tool = await gateway(

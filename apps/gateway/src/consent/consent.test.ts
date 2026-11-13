@@ -11,6 +11,8 @@ import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { platformCaller } from "../platform/test-app";
 import { handleConsent } from "./consent";
+import { ADMIN } from "../platform/route-matrix";
+import type { PlatformPermission } from "@forgeron/permissions";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -21,7 +23,7 @@ let memory: MemoryD1;
 let registry: Registry;
 let consent: Consent;
 let person: { id: string } | undefined;
-let admin: { admin: boolean } | undefined;
+let admin: { permissions: PlatformPermission[] } | undefined;
 
 const connectors = {
   microsoft: { type: "microsoft-365", mode: "delegated", scopes: ["Mail.Send"], why: "x" },
@@ -30,7 +32,7 @@ const connectors = {
 
 beforeEach(async () => {
   person = { id: "ada@example.test" };
-  admin = { admin: true };
+  admin = { permissions: ADMIN.permissions };
   memory = await createMemoryD1();
   const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
@@ -199,8 +201,8 @@ describe("connections routes", () => {
     expect((await listed!.json()) as unknown).toEqual({ connections: [] });
   });
 
-  it("is for admins only", async () => {
-    admin = { admin: false };
+  it("is for who holds `members:read` only", async () => {
+    admin = { permissions: [] };
     expect((await adminCall("GET", `${base}/connections`))?.status).toBe(403);
     admin = undefined;
     expect((await adminCall("GET", `${base}/connections`))?.status).toBe(401);

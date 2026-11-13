@@ -30,7 +30,7 @@ const manifest: Manifest = {
   name: "crm",
   version: "1.0.0",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
   actions: {
     "tickets.mine": {
       description: "My tickets.",
@@ -66,7 +66,9 @@ function toolWorker(request: Request) {
     authenticate: (r) => {
       const raw = r.headers.get("x-forgeron-user");
       // The tool sees the person as a reader, whatever the gateway mapped (D-127).
-      return raw ? { ...JSON.parse(raw), roles: ["reader"], permissions: undefined } : undefined;
+      return raw
+        ? { ...JSON.parse(raw), subjects: ["everyone"], permissions: undefined }
+        : undefined;
     },
     platform: {
       userSecretStore: {
@@ -101,14 +103,14 @@ beforeAll(async () => {
     const production = await registry.ensureEnvironment(tool.id, "production");
     await registry.activate(production.id, version.id, { actor: "test" });
   }
-  const member = async (subject: string, roles: string[]) =>
+  const member = async (subject: string, teams: string[]) =>
     (
       await registry.addMember({
         workspace: "acme",
         subject,
         email: `${subject}@acme.test`,
         name: subject,
-        roles,
+        teams,
       })
     ).id;
   ana = await member("ana", []);
@@ -166,7 +168,7 @@ describe("audience at the gateway", () => {
     await call("/t/crm/secrets", token, json({ ODOO_API_KEY: "test-only-value" }));
     seen.length = 0;
     const response = await call("/t/crm/api/tickets.mine", token, {
-      headers: { "x-forgeron-user": JSON.stringify({ id: "forged", roles: ["admin"] }) },
+      headers: { "x-forgeron-user": JSON.stringify({ id: "forged", subjects: ["team:admin"] }) },
     });
     expect(response.status).toBe(200);
     expect(seen).toEqual([{ user: ana, secrets: { ODOO_API_KEY: "test-only-value" } }]);
@@ -185,7 +187,7 @@ describe("audience at the gateway", () => {
 
   it("nobody can pass as someone through the header alone", async () => {
     const response = await call("/t/crm/api/tickets.mine", undefined, {
-      headers: { "x-forgeron-user": JSON.stringify({ id: ana, roles: ["admin"] }) },
+      headers: { "x-forgeron-user": JSON.stringify({ id: ana, subjects: ["team:admin"] }) },
     });
     expect(response.status).toBe(401);
   });
@@ -328,7 +330,7 @@ describe("per-person secrets on first use", () => {
         subject: "cat",
         email: "cat@acme.test",
         name: "cat",
-        roles: [],
+        teams: [],
       })
     ).id;
     expect((await call("/t/crm/api/tickets.mine", await tokenFor(cat, "crm"))).status).toBe(428);
@@ -370,7 +372,7 @@ describe("per-person secrets on first use", () => {
         subject: "cat2",
         email: "cat2@acme.test",
         name: "cat2",
-        roles: [],
+        teams: [],
       })
     ).id;
     const put = (token: string, who: string, field = "ODOO_API_KEY") =>
@@ -412,7 +414,7 @@ describe("per-person secrets on first use", () => {
         subject: "dana",
         email: "dana@acme.test",
         name: "dana",
-        roles: [],
+        teams: [],
       })
     ).id;
     const mail = memoryMailSender();
@@ -474,7 +476,7 @@ describe("rotating the sealing key (D-100)", () => {
         subject: "rot",
         email: "rot@acme.test",
         name: "rot",
-        roles: [],
+        teams: [],
       })
     ).id;
     const tool = (await registry.findTool("acme", "crm"))!;

@@ -3,12 +3,14 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { platformCaller } from "../platform/test-app";
+import { ADMIN, holding } from "../platform/route-matrix";
+import type { PlatformPermission } from "@forgeron/permissions";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 let memory: MemoryD1;
 let registry: Registry;
-let caller: { admin: boolean; developer: boolean } | undefined = { admin: true, developer: false };
+let caller: { permissions: PlatformPermission[] } | undefined = ADMIN;
 
 const call = (path: string, method = "GET") =>
   platformCaller({ registry, who: () => caller })(
@@ -20,7 +22,7 @@ const manifest = (actions: string[]) => ({
   version: "1.0.0",
   description: "Companies and contacts.",
   interfaces: { mcp: true, api: true, cli: true, web: false },
-  roles: {},
+  profiles: {},
   views: {},
   jobs: {},
   events: {},
@@ -164,15 +166,15 @@ describe("a tool's activity", () => {
 });
 
 describe("access", () => {
-  it("lets a developer read, refuses a plain member and an anonymous caller", async () => {
-    caller = { admin: false, developer: true };
+  it("lets who holds `tools:read` read, refuses a plain member and an anonymous caller", async () => {
+    caller = holding("tools:read");
     expect((await call("/api/tools/crm/branches"))!.status).toBe(200);
-    caller = { admin: false, developer: false };
+    caller = holding();
     expect((await call("/api/tools/crm/branches"))!.status).toBe(403);
     expect((await call("/api/tools/crm/activity"))!.status).toBe(403);
     caller = undefined;
     expect((await call("/api/tools/crm/versions"))!.status).toBe(401);
-    caller = { admin: true, developer: false };
+    caller = ADMIN;
   });
 
   it("answers 404 for an unknown tool, 405 for a write, and ignores other routes", async () => {

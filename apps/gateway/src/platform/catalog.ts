@@ -1,8 +1,16 @@
 import { catalogAssetRoute, listCatalogRoute, toolCardRoute } from "@forgeron/platform-contract";
 import { isSafeDocPath } from "@forgeron/manifest";
+import { holds, PLATFORM } from "@forgeron/permissions";
 import { findAsset, findCard, listCatalog, RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { memberOnly, methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
+import {
+  catalogCaller,
+  memberOnly,
+  methodNotAllowed,
+  platformRoute,
+  type ConsolePerson,
+  type PlatformEnv,
+} from "./app";
 
 // The catalog API (docs/console-ux.md, "Catalog API", D-061) served from the contract. A README
 // leaves as a JSON string of markdown and is never turned into HTML here. An image leaves with a
@@ -21,10 +29,10 @@ const TOOL = "[a-z0-9-]+";
 const missing = (message: string) => ({ error: "NOT_FOUND", message });
 const TEAM_ONLY = {
   error: "FORBIDDEN",
-  message: "A branch's card is for admins and developers.",
+  message: "A branch's card needs the permission \u201cSee tools\u201d.",
 } as const;
 /** A branch's preview (D-120) is the team's until a pilot opens it, and pilots read it from their library. */
-const team = (person: { admin: boolean; developer: boolean }) => person.admin || person.developer;
+const team = (person: ConsolePerson) => holds(PLATFORM, person.permissions, "tools:read");
 const failed = (error: RegistryError) => ({ error: error.code, message: error.message });
 
 /** The decoded path of an image, or `undefined` if it is not a plain path inside the bundle. */
@@ -38,24 +46,27 @@ function assetPath(raw: string): string | undefined {
 }
 
 export function mountCatalog(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(listCatalogRoute, "member"), async (c) => {
+  app.openapi(platformRoute(listCatalogRoute, "signed-in"), async (c) => {
     try {
       const { registry, workspace } = c.env;
-      return c.json({ tools: await listCatalog(registry, workspace, c.get("person")) }, 200);
+      return c.json(
+        { tools: await listCatalog(registry, workspace, catalogCaller(c.get("person"))) },
+        200,
+      );
     } catch (error) {
       if (error instanceof RegistryError) return c.json(failed(error), 500);
       throw error;
     }
   });
 
-  app.openapi(platformRoute(toolCardRoute, "member"), async (c) => {
+  app.openapi(platformRoute(toolCardRoute, "signed-in"), async (c) => {
     try {
       const { registry, workspace, origin } = c.env;
       const { tool } = c.req.valid("param");
       const { branch } = c.req.valid("query");
       const person = c.get("person");
       if (branch !== undefined && !team(person)) return c.json(TEAM_ONLY, 403);
-      const card = await findCard(registry, workspace, tool, person, origin, branch);
+      const card = await findCard(registry, workspace, tool, catalogCaller(person), origin, branch);
       return card ? c.json(card, 200) : c.json(missing(`There is no tool ${tool}.`), 404);
     } catch (error) {
       if (error instanceof RegistryError) return c.json(failed(error), 500);

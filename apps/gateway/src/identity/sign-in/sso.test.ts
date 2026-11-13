@@ -250,7 +250,7 @@ describe("session cookie", () => {
     const authenticate = tokenAuthenticator({
       secret,
       now: () => now,
-      resolvePerson: (id) => ({ id, email: "e", name: "n", roles: ["reader"] }),
+      resolvePerson: (id) => ({ id, email: "e", name: "n", subjects: ["everyone"] }),
     });
     const cookie = cookieOf(requestWith(header), SESSION_COOKIE)!;
     expect(await authenticate(requestWith(header))).toBeUndefined();

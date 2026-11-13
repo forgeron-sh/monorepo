@@ -36,7 +36,7 @@ describeRouteMatrix({
   call: through,
   method: "GET",
   path: "/api/tools",
-  access: "member",
+  access: "signed-in",
 });
 for (const leaf of ["branches", "versions", "activity"]) {
   describeRouteMatrix({
@@ -44,7 +44,7 @@ for (const leaf of ["branches", "versions", "activity"]) {
     call: through,
     method: "GET",
     path: `/api/tools/crm/${leaf}`,
-    access: "developer",
+    access: "tools:read",
   });
 }
 describeRouteMatrix({
@@ -52,8 +52,7 @@ describeRouteMatrix({
   call: through,
   method: "GET",
   path: "/api/tools/crm/manifest",
-  access: "developer",
-  forbidden: "The manifest is for developers and admins.",
+  access: "tools:read",
 });
 
 describe("the tool routes", () => {
@@ -62,9 +61,8 @@ describe("the tool routes", () => {
       id: "p",
       email: "p@acme.test",
       name: "P",
-      admin: false,
-      developer: false,
-      roles: [],
+      teams: [],
+      permissions: [],
     };
     expect(
       (await call(new Request("https://acme.forgeron.test/api/tools/ghost/versions")))!.status,
@@ -73,9 +71,8 @@ describe("the tool routes", () => {
       id: "p",
       email: "p@acme.test",
       name: "P",
-      admin: false,
-      developer: true,
-      roles: ["developer"],
+      teams: ["developer"],
+      permissions: ["tools:read"],
     };
     const res = (await call(new Request("https://acme.forgeron.test/api/tools/ghost/versions")))!;
     expect(res.status).toBe(404);

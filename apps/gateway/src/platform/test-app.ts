@@ -9,7 +9,7 @@ import { createPlatform } from "./platform";
 
 /**
  * The platform app as a test calls it: the person is whatever `who()` says at that moment (fields left
- * out are `false` or empty) and a request for a path Hono does not own answers `undefined`.
+ * out are empty: a person who holds nothing) and a request for a path Hono does not own answers `undefined`.
  */
 export function platformCaller(options: {
   registry: Registry;
@@ -46,9 +46,8 @@ export function platformCaller(options: {
             id: "p-test",
             email: "p@acme.test",
             name: "P",
-            admin: false,
-            developer: false,
-            roles: [],
+            teams: [],
+            permissions: [],
             ...who,
           }
         );

@@ -6,10 +6,11 @@ import type { Person } from "../kernel/person";
 import { tokenAuthenticator } from "../identity/authn/authenticate";
 import { verifyToken } from "../identity/authn/tokens";
 import { serveView, VIEW_CSP, VIEW_TOKEN_TTL_SECONDS, type ViewAssets } from "./serve";
+import { testPerson } from "../kernel/test-person";
 
 const secret = "test-secret-not-a-real-one";
 const now = new Date("2026-11-03T10:00:00Z");
-const ely: Person = { id: "u1", email: "ely@acme.fr", name: "Ely", roles: ["reader"] };
+const ely: Person = testPerson([], [], { id: "u1", email: "ely@acme.fr", name: "Ely" });
 
 const view = (path: string, access: string, entry?: string) => ({
   title: "Pipeline",
@@ -18,7 +19,7 @@ const view = (path: string, access: string, entry?: string) => ({
   ...(entry ? { entry } : {}),
 });
 const manifest = {
-  roles: { reader: { grants: ["read"] }, boss: { grants: ["read", "admin"] } },
+  profiles: { reader: { grants: ["read"] }, boss: { grants: ["read", "admin"] } },
   actions: {
     "deals.list": { access: "read" },
     "deals.delete": { access: "admin" },
@@ -63,25 +64,27 @@ const bootstrapOf = async (response: Response): Promise<ViewBootstrap> => {
   return JSON.parse(json![1]!) as ViewBootstrap;
 };
 
-describe("serveView and the roles × actions matrix", () => {
+describe("serveView and the subjects × actions matrix", () => {
   const serve = async (...args: Parameters<typeof serveAny>) => (await serveAny(...args))!;
 
-  it("opens a view to a role the console granted, and shuts one it refused", async () => {
-    const granted = await serve("/settings", { access: { reader: { "view:settings": true } } });
+  it("opens a view to a subject the console granted, and shuts one it refused", async () => {
+    const granted = await serve("/settings", { access: { everyone: { "view:settings": true } } });
     expect(granted.status).toBe(200);
-    const refused = await serve("/pipeline", { access: { reader: { "view:pipeline": false } } });
+    const refused = await serve("/pipeline", { access: { everyone: { "view:pipeline": false } } });
     expect(refused.status).toBe(403);
-    // An override of another role, or of an action of the same name, changes nothing.
-    expect((await serve("/settings", { access: { boss: { "view:settings": true } } })).status).toBe(
+    // An override of another subject, or of an action of the same name, changes nothing.
+    expect(
+      (await serve("/settings", { access: { "team:boss": { "view:settings": true } } })).status,
+    ).toBe(403);
+    expect((await serve("/settings", { access: { everyone: { settings: true } } })).status).toBe(
       403,
     );
-    expect((await serve("/settings", { access: { reader: { settings: true } } })).status).toBe(403);
   });
 
-  it("reads what the gateway mapped the person's roles to, not the profile names (D-127)", async () => {
-    // `reader` is mapped to nothing in this tool: the profile of the same name does not count.
-    expect((await serve("/pipeline", { permissions: { reader: [] } })).status).toBe(403);
-    const mapped = await serve("/settings", { permissions: { reader: ["admin", "read"] } });
+  it("reads what the gateway gave the person's subjects, not the profile names (D-127)", async () => {
+    // `everyone` is given nothing in this tool: the profile named `reader` does not count.
+    expect((await serve("/pipeline", { permissions: { everyone: [] } })).status).toBe(403);
+    const mapped = await serve("/settings", { permissions: { everyone: ["admin", "read"] } });
     expect(mapped.status).toBe(200);
     const bootstrap = await bootstrapOf(mapped);
     expect(bootstrap.grants).toEqual(["admin", "read"]);
@@ -90,10 +93,10 @@ describe("serveView and the roles × actions matrix", () => {
 
   it("tells the page which actions the person may call, overrides included", async () => {
     expect((await bootstrapOf(await serve("/pipeline"))).callable).toEqual(["deals.list"]);
-    const wider = await serve("/pipeline", { access: { reader: { "deals.delete": true } } });
+    const wider = await serve("/pipeline", { access: { everyone: { "deals.delete": true } } });
     const widerBootstrap = await bootstrapOf(wider);
     expect(widerBootstrap.callable).toEqual(["deals.delete", "deals.list"]);
-    const narrower = await serve("/pipeline", { access: { reader: { "deals.list": false } } });
+    const narrower = await serve("/pipeline", { access: { everyone: { "deals.list": false } } });
     expect((await bootstrapOf(narrower)).callable).toEqual([]);
     // What the page's runtime answers is what the bootstrap says.
     const runtime = createHttpRuntime(widerBootstrap, { params: createMemoryParams() });
@@ -131,7 +134,13 @@ describe("serveView", () => {
     const denied = await serve("/settings");
     expect(denied?.status).toBe(403);
     expect(await denied?.text()).not.toContain("fgt.");
-    expect((await serve("/settings", { person: { ...ely, roles: ["boss"] } }))?.status).toBe(200);
+    expect(
+      (
+        await serve("/settings", {
+          person: testPerson([], ["admin"], { id: "u1", email: "ely@acme.fr", name: "Ely" }),
+        })
+      )?.status,
+    ).toBe(200);
     expect((await serve("/unbuilt"))?.status).toBe(404);
   });
 
@@ -149,7 +158,7 @@ describe("serveView", () => {
       tool: "crm",
       view: "pipeline",
       base: "/t/crm",
-      user: ely,
+      user: { id: "u1", email: "ely@acme.fr", name: "Ely", subjects: ["everyone"] },
       grants: ["read"],
       expiresAt: now.getTime() / 1000 + VIEW_TOKEN_TTL_SECONDS,
     });
@@ -226,7 +235,7 @@ describe("the token of a view", () => {
       title: name,
       description: name,
       interfaces: { mcp: true, api: true, cli: true, web: true },
-      roles: { reader: { grants: ["read"] } },
+      profiles: { reader: { grants: ["read"] } },
       actions: { "deals.list": action },
       views: {},
       jobs: {},
@@ -269,7 +278,12 @@ describe("the token of a view", () => {
     const bootstrap = await pageToken();
     const runtime = hooksOf(bootstrap, "crm");
     expect(await runtime.call("deals.list", {})).toEqual({ tool: "crm" });
-    expect(runtime.user).toEqual(ely);
+    expect(runtime.user).toEqual({
+      id: "u1",
+      email: "ely@acme.fr",
+      name: "Ely",
+      subjects: ["everyone"],
+    });
     expect(runtime.can("read")).toBe(true);
     expect(runtime.can("admin")).toBe(false);
   });

@@ -4,7 +4,7 @@ import {
   viewSubject,
   type AccessOverrides,
   type Manifest,
-  type RolePermissions,
+  type SubjectPermissions,
 } from "@forgeron/manifest";
 import type { ViewBootstrap } from "@forgeron/runtime";
 import type { Person } from "../kernel/person";
@@ -39,14 +39,14 @@ export interface ServeViewOptions {
   tool: string;
   /** Where the tool is mounted on the workspace origin; `/t/<tool>` by default. */
   base?: string;
-  manifest: Pick<Manifest, "views" | "roles"> & {
+  manifest: Pick<Manifest, "views" | "profiles"> & {
     /** Only the level of each action is read. */
     actions?: Record<string, { access: string }>;
   };
-  /** The matrix resolved for the person's roles (`registry.accessFor`). */
+  /** The matrix resolved for the person's subjects (`registry.accessFor`). */
   access?: AccessOverrides;
-  /** The permissions each of the person's roles is mapped to (`registry.accessFor`, D-127). */
-  permissions?: RolePermissions;
+  /** The permissions each of the person's subjects is given (`registry.accessFor`, D-127, D-136). */
+  permissions?: SubjectPermissions;
   /** Who is signed in, from the session; `undefined` if nobody. Not needed for the static files. */
   person: Person | undefined;
   assets: ViewAssets;
@@ -135,14 +135,18 @@ export async function serveView(
   }
   const { person } = options;
   if (!person) return problem(401, "UNAUTHENTICATED", "Sign in to open this page.");
-  const who = { roles: person.roles, access: options.access, permissions: options.permissions };
+  const who = {
+    subjects: person.subjects,
+    access: options.access,
+    permissions: options.permissions,
+  };
   const grants = heldPermissions(who, {
     ...options.manifest,
     actions: options.manifest.actions ?? {},
   });
   // Before anything is rendered, or a token issued: the same rule as an action's, with the
   // matrix's overrides (D-043).
-  if (!mayAccess(who, options.manifest.roles, viewSubject(name), view.access)) {
+  if (!mayAccess(who, options.manifest.profiles, viewSubject(name), view.access)) {
     return problem(403, "FORBIDDEN", `This page needs the "${view.access}" access level.`);
   }
   if (!view.entry) return problem(404, "NOT_FOUND", "This view was not built.");
@@ -162,11 +166,11 @@ export async function serveView(
     base,
     token,
     expiresAt: Math.floor(options.now.getTime() / 1000) + VIEW_TOKEN_TTL_SECONDS,
-    user: person,
+    user: { id: person.id, email: person.email, name: person.name, subjects: person.subjects },
     grants,
     // The actions the person may call, matrix included: what `useCanCall` reads to disable controls.
     callable: Object.entries(options.manifest.actions ?? {})
-      .filter(([action, entry]) => mayAccess(who, options.manifest.roles, action, entry.access))
+      .filter(([action, entry]) => mayAccess(who, options.manifest.profiles, action, entry.access))
       .map(([action]) => action)
       .sort(),
   };

@@ -118,16 +118,16 @@ describe("forgeron admin", () => {
 
     logs.length = 0;
     set("GET /console-api/api/members", 200, {
-      members: [{ id: "m1", email: "ada@acme.test", name: "ada", roles: ["admin"] }],
-      invitations: [{ email: "eve@acme.test", roles: [], expiresAt: "2026-11-24T10:00:00Z" }],
-      settings: { domains: [], defaultRole: "", source: "install" },
+      members: [{ id: "m1", email: "ada@acme.test", name: "ada", teams: ["admin"] }],
+      invitations: [{ email: "eve@acme.test", teams: [], expiresAt: "2026-11-24T10:00:00Z" }],
+      settings: { domains: [], defaultTeams: [], source: "install" },
     });
     expect(await run(["admin", "members", "list"], io)).toBe(0);
     expect(logs.join("\n")).toContain("ada@acme.test");
     expect(logs.join("\n")).toContain("invited  eve@acme.test");
   });
 
-  it("decides an approval, invites, changes roles and removes, with what each route takes", async () => {
+  it("decides an approval, invites, changes teams and removes, with what each route takes", async () => {
     const { io, logs } = await setup();
     set("POST /console-api/api/approvals/apr_1", 200, { id: "apr_1", status: "approved" });
     expect(await run(["admin", "approvals", "approve", "apr_1"], io)).toBe(0);
@@ -137,19 +137,55 @@ describe("forgeron admin", () => {
 
     set("POST /console-api/api/invitations", 201, { email: "eve@acme.test" });
     expect(
-      await run(["admin", "members", "invite", "eve@acme.test", "--role", "developer, reader"], io),
+      await run(
+        ["admin", "members", "invite", "eve@acme.test", "--team", "developer", "--team", "ops"],
+        io,
+      ),
     ).toBe(0);
     expect(requests.at(-1)!.body).toEqual({
       email: "eve@acme.test",
-      roles: ["developer", "reader"],
+      teams: ["developer", "ops"],
     });
 
-    set("PATCH /console-api/api/members/m2", 200, { id: "m2", roles: ["developer"] });
-    expect(await run(["admin", "members", "roles", "m2", "--set", "developer"], io)).toBe(0);
-    expect(requests.at(-1)!.body).toEqual({ roles: ["developer"] });
+    set("PATCH /console-api/api/members/m2", 200, { id: "m2", teams: ["developer"] });
+    expect(await run(["admin", "members", "teams", "m2", "--set", "developer"], io)).toBe(0);
+    expect(requests.at(-1)!.body).toEqual({ teams: ["developer"] });
     set("DELETE /console-api/api/members/m2", 204);
     expect(await run(["admin", "members", "remove", "m2"], io)).toBe(0);
     expect(logs.join("\n")).toContain("Removed m2.");
+  });
+
+  it("lists the teams, and sets what a team may do", async () => {
+    const { io, logs } = await setup();
+    set("GET /console-api/api/teams", 200, {
+      teams: [
+        {
+          id: "admin",
+          name: "Admins",
+          description: "",
+          members: ["m1"],
+          builtIn: true,
+          locked: true,
+          permissions: ["*"],
+          effective: [],
+        },
+      ],
+    });
+    expect(await run(["admin", "teams", "list"], io)).toBe(0);
+    expect(logs.join("\n")).toMatch(/ID\s+NAME\s+MEMBERS\s+PERMISSIONS\s+admin\s+Admins\s+1\s+\*/);
+    set("PATCH /console-api/api/teams/ops", 200, {
+      id: "ops",
+      name: "Ops",
+      description: "",
+      members: [],
+      builtIn: false,
+      locked: false,
+      permissions: ["tools:write"],
+      effective: ["tools:read", "tools:write"],
+    });
+    expect(await run(["admin", "teams", "permissions", "ops", "--set", "tools:write"], io)).toBe(0);
+    expect(requests.at(-1)!.body).toEqual({ permissions: ["tools:write"] });
+    expect(await run(["admin", "teams", "permissions", "ops"], io)).toBe(2);
   });
 
   it("lists who holds a tool's secrets by name, revokes one or all, and shows no value", async () => {
@@ -234,7 +270,7 @@ describe("forgeron admin", () => {
     expect(await run(["admin"], io)).toBe(2);
     expect(await run(["admin", "tools", "frobnicate"], io)).toBe(2);
     expect(await run(["admin", "approvals", "approve"], io)).toBe(2);
-    expect(await run(["admin", "members", "roles", "m2"], io)).toBe(2);
+    expect(await run(["admin", "members", "teams", "m2"], io)).toBe(2);
     delete process.env.FORGERON_ENDPOINT;
     expect(await run(["admin", "tools", "list"], io)).toBe(2);
   });

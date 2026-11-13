@@ -14,7 +14,8 @@ const USAGE = `Usage: forgeron admin <area> <verb> [--endpoint <url>]
 
   tools list
   approvals list | approve <id> | reject <id>
-  members list | invite <email> [--role <name>,...] | roles <id> --set <name>,... | remove <id>
+  members list | invite <email> [--team <id>]... | teams <id> --set <id>,... | remove <id>
+  teams list | permissions <id> --set <permission>,...     (* is every permission)
   audit [--limit <n>]
   user-secrets list --tool <name> | revoke --tool <name> --person <id> [--name <SECRET>]
   user-secrets set --tool <name> --person <id> --name <SECRET>     (the value is typed, never an argument)
@@ -29,7 +30,7 @@ const FLAGS = {
   tool: { type: "string" },
   person: { type: "string" },
   name: { type: "string" },
-  role: { type: "string" },
+  team: { type: "string", multiple: true },
   set: { type: "string" },
   limit: { type: "string" },
 } as const;
@@ -117,12 +118,12 @@ export async function admin(args: string[], io: Io): Promise<number> {
       if (answer.status !== 200) return refused(answer);
       table(
         io,
-        ["ID", "EMAIL", "ROLES"],
-        answer.body.members.map((m) => [m.id, m.email, m.roles.join(",") || "-"]),
+        ["ID", "EMAIL", "TEAMS"],
+        answer.body.members.map((m) => [m.id, m.email, m.teams.join(",") || "-"]),
       );
       for (const i of answer.body.invitations) {
         io.log(
-          `invited  ${i.email}  ${i.roles.join(",") || "-"}  until ${i.expiresAt.slice(0, 10)}`,
+          `invited  ${i.email}  ${i.teams.join(",") || "-"}  until ${i.expiresAt.slice(0, 10)}`,
         );
       }
       return 0;
@@ -130,22 +131,49 @@ export async function admin(args: string[], io: Io): Promise<number> {
     case "members invite": {
       const email = one("an email address");
       const answer = await client(addresses.inviteMember, {
-        json: { email, ...(values.role ? { roles: list(values.role) } : {}) },
+        json: { email, ...(values.team?.length ? { teams: values.team.flatMap(list) } : {}) },
       });
       if (answer.status !== 201) return refused(answer);
       io.log(`Invited ${email}.`);
       return 0;
     }
-    case "members roles": {
+    case "members teams": {
       const id = one("a member id");
       if (values.set === undefined)
-        throw new UsageError("--set <name>,...: the roles the member has.");
-      const answer = await client(addresses.setMemberRoles, {
+        throw new UsageError("--set <id>,...: the teams the member is in.");
+      const answer = await client(addresses.setMemberTeams, {
         params: { id },
-        json: { roles: list(values.set) },
+        json: { teams: list(values.set) },
       });
       if (answer.status !== 200) return refused(answer);
-      io.log(`${id}: ${list(values.set).join(", ") || "no role"}.`);
+      io.log(`${id}: ${list(values.set).join(", ") || "no team"}.`);
+      return 0;
+    }
+    case "teams list": {
+      const answer = await client(addresses.listTeams);
+      if (answer.status !== 200) return refused(answer);
+      table(
+        io,
+        ["ID", "NAME", "MEMBERS", "PERMISSIONS"],
+        answer.body.teams.map((t) => [
+          t.id,
+          t.name,
+          String(t.members.length),
+          t.permissions.join(",") || "-",
+        ]),
+      );
+      return 0;
+    }
+    case "teams permissions": {
+      const id = one("a team id");
+      if (values.set === undefined)
+        throw new UsageError("--set <permission>,...: what the team may do on Forgeron.");
+      const answer = await client(addresses.updateTeam, {
+        params: { id },
+        json: { permissions: list(values.set) },
+      });
+      if (answer.status !== 200) return refused(answer);
+      io.log(`${id}: ${answer.body.permissions.join(", ") || "no permission"}.`);
       return 0;
     }
     case "members remove": {
