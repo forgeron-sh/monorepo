@@ -12,6 +12,10 @@ permissions:
   contents: write
   pull-requests: write
 
+# Every job after release-please checks out the release's tag, not the commit that started the run: runs
+# wait for each other (`concurrency`), so the run of a commit merged before the release PR can be the one
+# that creates the release, and its own commit is then older than the release (v0.8.2 was built from the
+# code and version of 0.8.1 that way).
 jobs:
   release-please:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -42,10 +46,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ needs.release-please.outputs.tag_name }}
       # GITHUB_TOKEN cannot push changes to .github/workflows: the step may fail without blocking the deployment.
       - name: Advance staging
         continue-on-error: true
-        run: git push origin "${GITHUB_SHA}:refs/heads/staging"
+        run: git push origin "HEAD:refs/heads/staging"
 
   deploy-staging:
     needs: [release-please, promote-staging]
@@ -55,6 +60,7 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     with:
       environment: staging
+      ref: ${{ needs.release-please.outputs.tag_name }}
     secrets: inherit
 
   # The npm packages (D-086, D-122): built, installed from their archives and used as a developer
@@ -72,6 +78,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: ./.github/actions/setup
       - run: bun run packages:build
       - run: bun run packages:smoke
@@ -88,6 +96,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: ./.github/actions/setup
       - run: bun run --cwd apps/gateway build
       - run: bun run --cwd apps/console build

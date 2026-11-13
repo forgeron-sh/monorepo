@@ -9,6 +9,11 @@ on:
         description: Target environment (staging or production)
         required: true
         type: string
+      ref:
+        description: What to deploy (a tag); the commit that started the run when empty
+        required: false
+        type: string
+        default: ""
 
 # Environment: the pushed branch, or the input when the workflow is called by Release.
 
@@ -30,6 +35,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
       - uses: ./.github/actions/setup
       - name: Migrate the platform D1
         run: bun run --cwd packages/registry migrate
