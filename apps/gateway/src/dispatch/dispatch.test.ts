@@ -144,8 +144,8 @@ function setup(
     return { status: response.status, body: (await response.json()) as Record<string, unknown> };
   };
   /** The status and whether a sandboxed page may read the answer (`access-control-allow-origin`). */
-  const peek = async (url: string) => {
-    const response = await dispatch(new Request(url));
+  const peek = async (url: string, init?: RequestInit) => {
+    const response = await dispatch(new Request(url, init));
     return { status: response.status, cors: response.headers.get("access-control-allow-origin") };
   };
   return { get, peek, seen, targets };
@@ -269,6 +269,25 @@ describe("dispatch", () => {
     // Without this header the browser reports a CORS error and hides the refusal.
     expect(refused.cors).toBe("*");
     expect(targets.get("acme--crm--pr-12")!.fetch).not.toHaveBeenCalled();
+  });
+
+  it("answers the preflight of a page's call on a preview, which carries no token, and checks the call itself (D-134)", async () => {
+    const { peek, targets } = setup({ canPreview: () => false });
+    const url = "https://acme.forgeron.app/t/crm@feat-export/_f/call/deals.list";
+    const preflight = await peek(url, {
+      method: "OPTIONS",
+      headers: { origin: "null", "access-control-request-method": "POST" },
+    });
+    expect(preflight).toEqual({ status: 204, cors: "*" });
+    // The call is the one that is refused, and the page can read why.
+    const call = await peek(url, { method: "POST" });
+    expect(call).toEqual({ status: 403, cors: "*" });
+    expect(targets.get("acme--crm--pr-12")!.fetch).not.toHaveBeenCalled();
+    // The preflight of something that is not a page's call is still not answered.
+    const other = await peek("https://acme.forgeron.app/t/crm@feat-export/mcp", {
+      method: "OPTIONS",
+    });
+    expect(other.status).toBe(403);
   });
 
   it("does not take the token for anything but a script", async () => {

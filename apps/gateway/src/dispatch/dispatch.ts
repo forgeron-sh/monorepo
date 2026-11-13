@@ -282,11 +282,20 @@ export function createDispatcher(options: DispatcherOptions) {
       environment = "preview";
       worker = entry.previews[path.branch];
       if (!worker) return refuse(404, "NOT_FOUND", "Not found.");
-      if (!tokenGranted && !(await options.canPreview?.({ ...caller, branch: path.branch }))) {
+      // The preflight of a page's call carries no token (the browser sends none) and answers the same to
+      // everyone: it tells nothing, the call that follows is the one that is checked.
+      const preflight = request.method === "OPTIONS" && isViewCall(path.rest);
+      if (
+        !tokenGranted &&
+        !preflight &&
+        !(await options.canPreview?.({ ...caller, branch: path.branch }))
+      ) {
         const refused = refuse(403, "FORBIDDEN", "You cannot use this channel.");
-        // A script the browser refuses to read for lack of this header is reported as a CORS error,
-        // which hides the reason: say it.
-        return path.rest.startsWith("/_f/views/") ? withViewCors(refused) : refused;
+        // What the browser refuses to read for lack of this header is reported as a CORS error, which
+        // hides the reason: say it, for the scripts and the calls of a page.
+        return path.rest.startsWith("/_f/views/") || isViewCall(path.rest)
+          ? withViewCors(refused)
+          : refused;
       }
     } else {
       worker = entry.production;
