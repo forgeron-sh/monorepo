@@ -113,7 +113,7 @@ Design points:
 | --------- | -------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cli`     | Node, `@forgeron/sdk`, `compiler`, `hosting` | published on npm, run on a workstation or in CI                   | Tool lifecycle (`sdk.md` §5), platform installation in self-host, calling tool actions                                                                            |
 | `gateway` | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`, mapped hosts or workers.dev (D-126) | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
-| `console` | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members and invitations, roles × actions, secrets, resource approval, audit log, settings                                      |
+| `console` | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members, teams and their permissions, access by team × action, secrets, resource approval, audit log, settings                 |
 | `site`    | Astro, React islands                         | Worker + static assets                                            | Marketing site, public documentation eventually                                                                                                                   |
 
 `apps/cli` is the only app published on npm: it runs on the developer's machine. It stays in `apps/` because it is a final executable that nothing imports.
@@ -310,7 +310,7 @@ flowchart LR
 3. **SDK + runtime + `forgeron dev`** (`local` mode of `hosting`) on a tool without a database: the Odoo gateway, a template then, since moved to a tools repository of its own (D-114). Output: a working local MCP.
 4. **Database and migrations** (`@forgeron/sdk/db`, generator) with the `crm` template.
 5. **Gateway + self-host `hosting`**: dispatch, identity (company SSO through OIDC, sessions, audience tokens), registry, preview deployment on a regular Cloudflare account. **Gate 1** (Odoo gateway in internal production) needs this step.
-6. **Platform**: console, environments and promotion, per-action access by role, per-person secrets, usage log (gate 2: first pilot customer).
+6. **Platform**: console, environments and promotion, per-action access by team, per-person secrets, usage log (gate 2: first pilot customer).
 7. **Catalog and connectors**: templates, Microsoft 365, Google Workspace, Odoo (gate 3: public launch).
 8. **Cloud `hosting`** (Workers for Platforms), React views, subscription and support.
 

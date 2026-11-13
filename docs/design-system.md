@@ -14,7 +14,7 @@ Forgeron is the platform where companies forge, version and host their internal 
 
 - The interface is in English. Plain, direct tone. Short sentences, in the second person ("you").
 - Terms developers use stay as they are: commit, branch, preview, build, MCP, API, SSO, SDK. We write "tool" or "internal tool" for the object.
-- Fixed vocabulary: **workspace** (the company), **tool**, **action** (what the SDK defines, e.g. `crm.contacts.update`), **interface** (MCP, API, Web, CLI), **version**, **environment** (Production, Preview), **access**, **role**.
+- Fixed vocabulary: **workspace** (the company), **tool**, **action** (what the SDK defines, e.g. `crm.contacts.update`), **interface** (MCP, API, Web, CLI), **version**, **environment** (Production, Preview), **access**, **team**.
 - The forge register is used sparingly: the verb "forge" appears only in marketing headlines ("Forge your tools."), never in action labels. A button says "Deploy", not "Forge".
 - Buttons: an imperative verb, no period. Error messages: what happened, then what to do ("The build failed at the test step. Open the logs.").
 - No emoji in the interface or in the documentation.

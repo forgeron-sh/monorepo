@@ -11,13 +11,15 @@ rounded corners. References on Mobbin are linked so each screen can be looked at
 
 1. **One thing per place.** A person never has to guess where something lives (D-128): what is theirs
    is in their space (Home, My tools, Discover), what an admin manages is in Administration (Tools,
-   Marketplace, Members, Roles and access), how the workspace is configured and recorded is in
+   Marketplace, Members, Teams), how the workspace is configured and recorded is in
    Settings, a tool's things are on the tool's page. A page exists in one place only; an address that
    moved redirects to the new one.
 2. **The sidebar is for navigation, not branding.** No product name, no repeated workspace name.
-3. **Admin and member see the same product.** Everyone gets the member space (below); admins get the
-   same plus the Administration section and the workspace's settings. A page a person may not use is not
-   shown, never shown disabled; its address says the page is for admins.
+3. **Everyone sees the same product, as far as their permissions go (D-136).** Everyone gets the member
+   space (below); a person who holds platform permissions gets the Administration pages and the
+   workspace's settings those permissions open. A page a person may not use is not shown, never shown
+   disabled; its address says which permission it needs. A write control is hidden or disabled without
+   the matching write permission.
 4. **Every list has an empty, a loading and an error state, and a way to act from the empty state.**
 5. **Code and identifiers are first-class**: addresses, versions, commit hashes, CLI commands are in
    `mono`, with a copy button.
@@ -32,26 +34,27 @@ rounded corners. References on Mobbin are linked so each screen can be looked at
   [Plane](https://mobbin.com/screens/675ba224-6259-48bc-9cae-2bd3c712bf55).
 - **Navigation, grouped (D-128):**
 
-  | Section                                   | Items                                                                                             | Addresses                                                              |
-  | ----------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-  | The person's space (everyone, no heading) | Home, My tools (the tools they added), Discover (the tools the workspace makes available to them) | `/`, `/library`, `/discover`; a tool `/library/<tool>`                 |
-  | Administration (admins)                   | Tools (every tool of the workspace, the admin's view), Marketplace, Members, Roles and access     | `/admin/tools`, `/admin/marketplace`, `/admin/members`, `/admin/roles` |
-  | Settings (bottom, its own area)           | Account for everyone; Workspace and Operations for admins                                         | `/settings/...`                                                        |
+  | Section                                   | Items                                                                                                         | Addresses                                                              |
+  | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+  | The person's space (everyone, no heading) | Home, My tools (the tools they added), Discover (the tools the workspace makes available to them)             | `/`, `/library`, `/discover`; a tool `/library/<tool>`                 |
+  | Administration (by permission)            | Tools (`tools:read`), Marketplace (`marketplace:read`), Members (`members:read`), Teams (everyone, read-only) | `/admin/tools`, `/admin/marketplace`, `/admin/members`, `/admin/teams` |
+  | Settings (bottom, its own area)           | Account for everyone; Workspace (`settings:read`) and Operations (`audit:read`, `usage:read`)                 | `/settings/...`                                                        |
 
-  A developer who is not an admin sees Administration with Tools only (D-118). A person who holds no
-  role but `member` sees their space and Settings, Account. There is no screen of approvals: what a
+  The navigation shows the pages the person may open: a member of the Developers team, who holds
+  `tools:read`, sees Administration with Tools only (D-118). A person in no team with a permission sees
+  their space and Settings, Account. There is no screen of approvals: what a
   version asks for is approved in the dialog that installs or updates it (D-121, D-125). Settings is at
   the bottom of the navigation, not a page among others.
 
 - **Moved addresses redirect** (`shell/redirects.ts`), the rest of the address kept (`?tab=`,
-  `?invite`): `/members` and `/settings/members` → `/admin/members`, `/settings/roles` →
-  `/admin/roles`, `/audit` → `/settings/audit`, `/tools/...` → `/admin/tools/...`,
+  `?invite`): `/members` and `/settings/members` → `/admin/members`, `/admin/roles` and `/settings/roles` →
+  `/admin/teams`, `/audit` → `/settings/audit`, `/tools/...` → `/admin/tools/...`,
   `/marketplace/...` → `/admin/marketplace/...`.
 - **Bottom of the sidebar: the person's menu.** Avatar, name; opens a popover with theme (system, Forge,
   Atelier), documentation, sign out. No branding line.
   [Vercel](https://mobbin.com/screens/a8d666ee-3303-4b28-9e1f-06b8dbd63cb6).
 - Collapses to a drawer at phone width; keyboard: `g` then a letter to go to a section (`h` Home, `m`
-  My tools, `d` Discover, `t` Tools, `k` Marketplace, `p` Members, `r` Roles and access, `s`
+  My tools, `d` Discover, `t` Tools, `k` Marketplace, `p` Members, `e` Teams, `s`
   Settings), `/` to search.
 
 ## Settings
@@ -61,13 +64,13 @@ A full area with its own sidebar, as in Linear: a "Back to app" link on top, the
 [Linear team settings](https://mobbin.com/screens/34342fdd-7c3d-4f23-ab9d-bc1a62ec4fbb),
 [Vercel project settings](https://mobbin.com/screens/11def438-b12a-4f4c-938e-ec13525dd1dd).
 
-| Group               | Pages                                                                                                                                                                 |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Account             | Profile, Preferences (theme, language), Security (sessions, tokens, `forgeron login` devices), Connected accounts (the person's connector consents), Personal secrets |
-| Workspace (admins)  | General (name, address: the primary origin, D-126), Sign-in (email, OIDC, SAML), Domains, GitHub (the workspace's GitHub App, D-123)                                  |
-| Operations (admins) | Audit log, Usage and seats, Sealing key, Install information (gateway version and commit, address)                                                                    |
+| Group                                   | Pages                                                                                                                                                                 |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account                                 | Profile, Preferences (theme, language), Security (sessions, tokens, `forgeron login` devices), Connected accounts (the person's connector consents), Personal secrets |
+| Workspace (`settings:read`)             | General (name, address: the primary origin, D-126), Sign-in (email, OIDC, SAML), Domains, GitHub (the workspace's GitHub App, D-123)                                  |
+| Operations (`audit:read`, `usage:read`) | Audit log, Usage and seats, Sealing key, Install information (gateway version and commit, address)                                                                    |
 
-Members and Roles and access are not settings: they are in Administration (D-128). The workspace's audit
+Members and Teams are not settings: they are in Administration (D-128). The workspace's audit
 log is in Settings only; a tool's own log is its Activity tab.
 
 A settings page is a column of titled **groups**; a group is a card of **rows**: label and description on
@@ -77,14 +80,32 @@ owner's Linear clone (see "Where to look").
 
 ## Administration
 
-For admins (D-128), at `/admin/...`. **Members** lists the people and invitations and changes roles;
-everyone holds `member` without being given it, so the role pickers do not offer it and the list shows
-it beside the given roles. **Roles and access** lists the workspace roles with how many people hold each
-(`member`: everyone) and, per tool, the way to its Access tab.
+For people who hold platform permissions (D-128, D-136), at `/admin/...`. There is no Roles page: one
+place for people (Members), one for groups and what they may do (Teams), one per tool for who uses it
+(its Access tab).
+
+**Members** (`members:read`) lists the people with their **teams as chips**; the Admins chip is the
+admin badge. _Change teams_ opens a multi-select of teams (the built-in ones first), checked as a change
+of each team added or removed (nobody gives what they do not hold). _Invite_ takes an email and teams
+(none by default). Signing in by domain says which teams the person joins.
+
+**Teams** (everyone signed in reads it; `teams:write` edits) lists each team with its name, how many
+members, a one-line summary of what it may do (_Administers everything_, _Builds and publishes tools_,
+_Uses tools only_ when it holds no platform permission) and a _Built in_ badge for Admins and
+Developers. A team's page has:
+
+- **Members**: add and remove people. The Admins team is never left empty.
+- **Permissions on Forgeron**: one card per group of the catalog (Tools, Access to tools, Members and
+  teams, Marketplaces, Workspace, Operations), a checkbox per permission with its description. Checking
+  a write checks, and disables, the read it implies. A permission the viewer does not hold is disabled
+  with the tooltip _You can only give what you hold_. The Admins team shows _Every permission, now and
+  to come_ and no checkbox: it is locked.
+- **Tools this team uses**: the tools whose grants name this team, with the profile; read-only, each
+  links to the tool's Access tab.
 
 ## Tools
 
-The admin's view of every tool (`/admin/tools`), in Administration; developers see it too (D-118).
+The view of every tool (`/admin/tools`), in Administration, for people who hold `tools:read` (D-118, D-136).
 
 ### List
 
@@ -132,7 +153,7 @@ Right of the picker, for admins, the channel's **publication** (D-129), describe
 | Releases     | no                  | The releases with their changelog, compared to the previous one; builds on demand           |
 | Architecture | yes                 | A diagram generated from the manifest the channel serves                                    |
 | Database     | yes                 | The explorer, on the channel's database                                                     |
-| Access       | no                  | The tool's profiles, what each workspace role is given, the exceptions by action (D-127)    |
+| Access       | no                  | The tool's profiles, what Everyone and each team is given, the exceptions by action (D-127) |
 | Secrets      | yes                 | Production: both kinds and what people hold. Another channel: the `preview` secrets it uses |
 | Activity     | no                  | The tool's audit log                                                                        |
 
@@ -140,19 +161,18 @@ Right of the picker, for admins, the channel's **publication** (D-129), describe
 
 1. _Profiles this tool suggests_: each profile with its label, its name, its permissions, and the
    default one marked.
-2. _What each workspace role is given_: a row per workspace role (those of the members, invitations
-   and the base ones, `admin`, `member` first). Everyone holds `member` (D-128): its row is what a
-   person with no other role gets. A select gives the role _No access_, a profile (by its
+2. _Who uses this tool_ (D-136): a row for **Everyone**, then one per team, by name (never by id).
+   Everyone is the row a person in no team gets. A select gives the row _No access_, a profile (by its
    label), _Custom permissions_ (then a checkbox per permission of the tool) or _All permissions_; the
-   permissions it ends up with are listed. A new tool arrives with `admin`: all, `member`: the default
-   profile.
-3. _Exceptions by action_: the roles by actions matrix (D-039). A cell shows what applies, and says
-   when it differs from what the role's mapping gives. Changing a role's mapping in the draft updates
-   the defaults of its cells at once.
+   permissions it ends up with are listed. A new tool arrives with Admins: all, Everyone: the default
+   profile. A person holds the union of what Everyone and their teams are given.
+3. _Exceptions by action_: the actions by rows matrix (D-039), with the same rows. A cell shows what
+   applies, and says when it differs from what the row's grant gives. Changing a row's grant in the
+   draft updates the defaults of its cells at once.
 
 On another channel, a tab that does not follow it says _The same for every channel._ above its content:
-it is shown, not hidden, so the tabs do not move when the channel changes. Admin-only tabs are not shown
-to members.
+it is shown, not hidden, so the tabs do not move when the channel changes. A tab the person's permissions do not open is
+not shown.
 
 ### Channels
 
@@ -200,7 +220,7 @@ after the answer, the marketplaces read more than an hour ago (D-121): no cron.
   sync runs at once.
 - **The technical sheet** (`/admin/marketplace/<id>/<tool>`): the README, _What its users read_ (the guide,
   as a member will see it), the actions with their access level, the changelog; on the right the
-  version, interfaces, roles, database, outbound hosts, secrets an admin sets, what each person is
+  version, interfaces, profiles, database, outbound hosts, secrets an admin sets, what each person is
   asked for, connectors and what it asks for. _Install_ asks for a confirmation that lists what it asks
   for, with _I approve what it asks for_; the tool is created, approved and put in production where the
   gateway can deploy, then its page opens, a draft until an admin publishes it (D-129). A newer release shows in its Updates (D-121).
@@ -230,13 +250,13 @@ Modelled on the Supabase table editor and schema visualizer:
   key), paging, sorting, a filter bar, a row detail drawer, copy and export as CSV.
 - A "Definition" view of a table (columns, indexes, foreign keys) and a schema view (tables and their
   relations).
-- **Read only**, admins and the tool's developers, row limits, every access written to the audit log,
+- **Read only**, for people who hold `tools:data`, row limits, every access written to the audit log,
   personal data columns are masked by default.
 
 ## Member space
 
 What a person sees: their **library** (D-117), in three items of the sidebar (D-128). Nothing on them is
-technical: no version, role, action, interface or resource.
+technical: no version, profile, action, interface or resource.
 
 - **Home** (`/`): where they land. Their tools (the first six, with _All my tools_), then, when the
   workspace offers them tools they have not added, how many and _Discover tools_. An admin also sees
@@ -265,18 +285,18 @@ state is a badge next to the tool's name (_Draft_ or _Published_; who it reaches
 _Who has access_). Right of the header, all 32 px high: the channel picker, the split button, always
 filled black, and a square arrow link to the tool in the person's own space (`/library/<tool>`).
 
-- **Draft** (`nobody`, or a channel with no rule yet): admins only. A branch's temporary channel stays
-  open to developers too (D-125). A tool installed from a marketplace and a new permanent channel start
-  as drafts. The badge reads _Draft_ (tooltip _Admins only_) and a **split button**: _Publish_, and glued to
+- **Draft** (`nobody`, or a channel with no rule yet): people who hold `access:write` only. A branch's
+  temporary channel stays open to those who hold `tools:read` too (D-125, D-136). A tool installed from a marketplace and a new permanent channel start
+  as drafts. The badge reads _Draft_ (tooltip _Only people who manage access_) and a **split button**: _Publish_, and glued to
   its right a chevron with _Who has access_.
-- **Published** (`everyone`, `roles` or `people`): the badge reads _Published_, its tooltip _everyone_, _developer,
-  support_ or the people's names (their count past two). The main button becomes _Manage
+- **Published** (`everyone`, `teams` or `people`): the badge reads _Published_, its tooltip _everyone_, _Developers,
+  Support_ (team names) or the people's names (their count past two). The main button becomes _Manage
   sharing_; the chevron holds _Who has access_ and _Unpublish_ (confirmed, it says how many people lose
   access; their library keeps the tool).
-- **The dialog** (_Publish_ and _Manage sharing_): everyone in the workspace, some roles (every role but
-  `admin` and `member`: admins always have access, and `member` is everyone, D-128), or some people
+- **The dialog** (_Publish_ and _Manage sharing_): everyone in the workspace, some teams (the
+  Admins team is not listed: whoever holds `access:write` always has access), or some people
   found with a search field. Before saving it says how many people will have access and why (_3 people
-  will have access, of 12: admins, and the people who hold support._).
+  will have access, of 12: the people who manage access, and the people in Support._).
 - Production with no rule (deployed before libraries) reads _Published_ (tooltip _everyone, without adding it_);
   saving a choice means each person adds it from their library to keep using it, and the dialog says so.
 
@@ -295,15 +315,16 @@ channel as a tool of its own. What a person may do in the tool stays the Access 
   to paste as a custom connector, and the steps), in a terminal (`forgeron login`, then the command).
 - **Remove from my tools**, with a confirmation that says the tool stops working for them and that their
   saved keys stay in their secrets.
-- When the tool is added but the person's roles open nothing in it (`allowed: false`, D-127): a notice.
-  An admin is sent to the tool's Access tab to give one of their roles a profile; anyone else is told
-  to ask an admin.
+- When the tool is added but none of the person's teams, nor Everyone, opens anything in it
+  (`allowed: false`, D-127): a notice. A person who holds `access:write` is sent to the tool's Access
+  tab to give one of their teams a profile; anyone else is told that none of their teams uses this tool
+  yet, and to ask someone who manages access.
 
 No version, action, interface name, resource or README.
 
 ### Tool card (the Overview tab)
 
-For admins and developers: the technical sheet (D-118). The Tools screens (Administration) are theirs; a
+For people who hold `tools:read`: the technical sheet (D-118). The Tools screens (Administration) are theirs; a
 member reaches a tool through their library. The pattern of an app directory:
 [Twenty](https://mobbin.com/screens/5a9b57e5-c736-4000-9772-da12bf1c33f3),
 [GitBook](https://mobbin.com/screens/431254e3-9be9-4945-8e49-6eb1eb8f42c1),
@@ -314,7 +335,7 @@ member reaches a tool through their library. The pattern of an app directory:
 - Left column: the README, rendered markdown: headings, lists, tables, code blocks, links, **images** of
   the tool's repository. Tabs "About", "What its users read" (the guide, when there is one) and "How to
   install".
-- Right column: details: version, last release, interfaces (MCP, API, CLI, Web), roles that may use it,
+- Right column: details: version, last release, interfaces (MCP, API, CLI, Web), teams that may use it (names, and _Everyone_ when Everyone has a grant),
   required secrets and connectors (what the person will be asked for), links (repository, docs).
 - The README is the tool's `README.md` and the images it references; they are collected at build and
   stored with the version. Rendering never executes anything: no raw HTML, no scripts, images only from
@@ -338,18 +359,18 @@ Any other method on a catalog route is `405` (even for someone not signed in); `
 the headers without the body.
 
 `CatalogTool`: `{ name, title, summary, icon, productionVersion, interfaces: { mcp, api, cli, web },
-access, roles }`.
+access, subjects }`.
 
 - `title` is the config's `title` or the name; `summary` is the config's `description` or `""`.
 - `icon` is a URL or `null`; `productionVersion` is `null` before the first production deployment.
-- `access` is `granted` when the person's workspace roles, mapped to the tool's permissions (D-127)
-  and with the admin's exceptions, may call at least one action, else `requestable`. `roles` lists the
-  workspace roles that may call at least one action, `{ name, label }`, the label saying what the role
-  is given (`member (User)`, `admin (all permissions)`).
-- The card and the runtime use the same check. An admin whose roles open nothing (an admin took the
-  access away from `admin`) is told to give one of their roles a profile in the Access tab, never to ask
-  an admin; anyone else is told to ask an admin. There is no "give yourself the role" wording: tools
-  have no roles to give.
+- `access` is `granted` when what the person's teams and Everyone are given in the tool (D-127, D-136)
+  and the admin's exceptions let them call at least one action, else `requestable`. `subjects` lists
+  Everyone and the teams that may call at least one action, `{ subject, name, label }`, the name being
+  the team's, the label saying what it is given (`Everyone (User)`, `Admins (all permissions)`).
+- The card and the runtime use the same check. A person who holds `access:write` whose teams open
+  nothing (someone took the access away from Admins) is told to give one of their teams a profile in
+  the Access tab, never to ask someone else; anyone else is told that none of their teams uses this
+  tool yet. There is no "give yourself a role" wording: a tool has no roles to give.
 
 `ToolCard` is a `CatalogTool` plus:
 
@@ -427,7 +448,7 @@ const routes: RouteDef[] = [
   {
     path: "/admin/tools/:name", // `:name` is read into `params.name`
     title: "Tool",
-    access: "everyone", // "everyone" | "member" | "developer" | "admin"
+    access: "signed-in", // "signed-in" | a platform permission, like "tools:read"
     page: () => import("./pages/tool-page"),
     // nav: { group: "main" | "admin", label: "Tools", shortcut: "t", order: 10 }  // a sidebar item, not for `:` paths
     // settings: { group: "account" | "workspace" | "operations", label: "Profile" }
@@ -439,7 +460,7 @@ export default routes;
 `routes.ts` is loaded when the console starts: keep it to route definitions and tab registrations, and
 import pages lazily. `shortcut` is the letter after `g` (`g` then `t`); letters are unique across the table
 (a test checks it). A person who may not see a route does not get its menu item, and the address answers
-"This page is for admins."
+"This page needs the permission Manage teams." (the permission's label)
 
 ### A tool page tab
 
@@ -449,7 +470,7 @@ import { registerToolTab } from "../tools"; // in features/<domain>/routes.ts
 registerToolTab({
   id: "architecture",
   title: "Architecture",
-  adminOnly: false,
+  requires: "tools:read", // optional: a platform permission; none means anyone who sees the tool
   scope: "branch", // "branch": follows the branch of the page (D-120); "tool": the same for every branch
   order: 40, // optional: low first (default 100, then registration order)
   load: () => import("./components/architecture-tab"), // default export taking ToolTabProps
@@ -457,8 +478,8 @@ registerToolTab({
 ```
 
 `ToolTabProps` is `{ tool, branch?, ws, api, now }`; `branch` is given to a `"branch"` tab on a branch's
-page only, so `undefined` means production. The tool page (FOR-130) calls `toolTabs(admin)` and draws what
-comes back; an `adminOnly` tab is neither shown nor loaded for a member.
+page only, so `undefined` means production. The tool page (FOR-130) calls `toolTabs(person)` and draws what
+comes back; a tab with a `requires` permission the person does not hold is neither shown nor loaded.
 
 ### Folders
 
@@ -471,8 +492,8 @@ its old address working with an entry in `shell/redirects.ts`, never with a seco
 ### The settings area
 
 A route with `settings: { group, label }` is a page of the settings area (the shell draws its sidebar and
-the "Back to app" link); `access` decides whether a person sees it, so Account pages are `everyone` and
-the others `admin`. `features/settings/routes.ts` holds the pages of D-058. A settings page is a `Page`
+the "Back to app" link); `access` decides whether a person sees it, so Account pages are `signed-in` and
+the others need a permission (`settings:read`, `audit:read`, `usage:read`). `features/settings/routes.ts` holds the pages of D-058. A settings page is a `Page`
 holding a `SettingsStack` of `SettingsGroup`s (titled cards) of `SettingsRow`s (`@forgeron/ui`); a Danger
 zone is a `SettingsGroup tone="danger"`, last. A page for which the platform has no data yet shows an
 `EmptyState` saying so, never invented values.

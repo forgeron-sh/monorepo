@@ -50,7 +50,7 @@ export default defineConfig({
   // Dependencies: the tool calls the actions of these tools, with a minimum version
   uses: { crm: "^1.4.0" },
 
-  roles: {
+  profiles: {
     management: { label: "Management", grants: ["read"] },
   },
 });

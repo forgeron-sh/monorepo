@@ -57,7 +57,7 @@ The type determines the next version (see [Versions and changelog](#versions-and
 
 ## CI/CD
 
-| Branch       | Role                             | Trigger                                |
+| Branch       | Use                              | Trigger                                |
 | ------------ | -------------------------------- | -------------------------------------- |
 | `main`       | Integration, CI on every PR      | `.github/workflows/ci.yml`             |
 | `staging`    | Cloudflare staging deployment    | merge → `.github/workflows/deploy.yml` |

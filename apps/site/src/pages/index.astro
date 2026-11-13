@@ -23,7 +23,7 @@ const deployments = [
   { version: "v1.4.0", message: "deals.move action with history", meta: "a41f9e0 · Mon", env: "production", state: "success" },
 ] as const;
 
-const roles = ["Sales", "Support", "Management"];
+const teams = ["Sales", "Support", "Management"];
 const permissions = [
   { name: "contacts.read", kind: "Read", grants: [true, true, true] },
   { name: "contacts.update", kind: "Write", grants: [true, false, true] },
@@ -183,7 +183,7 @@ const viewCode = [
           <Label>Access</Label>
           <h2 class="display-block">Who can do what, action by action.</h2>
           <p class="muted">
-            Permissions are declared in the SDK and set in the dashboard. Sign-in through your company
+            Permissions are declared in the SDK and given to teams in the dashboard. Sign-in through your company
             SSO, with a log of who uses which tool.
           </p>
         </div>
@@ -192,7 +192,7 @@ const viewCode = [
             <thead>
               <tr>
                 <th scope="col" style="text-align: left;" class="text-caption">Action</th>
-                {roles.map((r) => <th scope="col" class="text-caption">{r}</th>)}
+                {teams.map((t) => <th scope="col" class="text-caption">{t}</th>)}
               </tr>
             </thead>
             <tbody>
