@@ -4,7 +4,7 @@
 // index, the documentation against the manifest), then recorded in the marketplace's hidden workspace
 // with the calls a deployment uses. A tool refused does not stop the others.
 import { BUNDLE_FORMAT, type BuildDocs } from "@forgeron/hosting";
-import { ManifestSchema, type MarketplaceTool } from "@forgeron/manifest";
+import { checkContract, ManifestSchema, type MarketplaceTool } from "@forgeron/manifest";
 import { docsProblem, type Registry } from "@forgeron/registry";
 import { downloadAsset, MarketplaceError, readIndex, type GitHubReader } from "./github";
 
@@ -53,6 +53,8 @@ async function checkBundle(entry: MarketplaceTool, bytes: Uint8Array) {
   if (!build || typeof build.worker !== "string" || typeof build.fingerprint !== "string") {
     throw new MarketplaceError("the file has no Worker or no fingerprint");
   }
+  const contract = checkContract(build.manifest);
+  if (!contract.ok) throw new MarketplaceError(contract.message);
   const manifest = ManifestSchema.safeParse(build.manifest);
   if (!manifest.success) throw new MarketplaceError("the manifest is not valid");
   if (manifest.data.name !== entry.name || manifest.data.version !== entry.version) {

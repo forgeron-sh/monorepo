@@ -2,7 +2,7 @@
 // a channel back: each is recorded in the audit log (who, when, which version). The registry is
 // written only for what happened: a build that fails to deploy stays recorded (CI can retry), but the
 // channel keeps pointing at its previous version (D-125).
-import { diffResourceChanges, type Manifest } from "@forgeron/manifest";
+import { checkContract, diffResourceChanges, type Manifest } from "@forgeron/manifest";
 import {
   deploy,
   isPermanent,
@@ -131,6 +131,8 @@ export async function deployBuild(
   input: DeployBuildInput,
 ): Promise<DeployedBuild> {
   const { tool, build } = input;
+  const contract = checkContract(build.manifest);
+  if (!contract.ok) throw new RegistryError("INCOMPATIBLE", contract.message);
   const problem = await docsProblem(build.manifest, build.docs);
   if (problem) throw new RegistryError("INVALID_DOCS", problem);
   const slot = await registry.ensureEnvironment(

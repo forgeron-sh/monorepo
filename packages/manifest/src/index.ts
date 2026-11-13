@@ -5,3 +5,4 @@ export * from "./access";
 export * from "./catalog";
 export * from "./docs";
 export * from "./marketplace";
+export * from "./compat";

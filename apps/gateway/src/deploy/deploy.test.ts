@@ -287,6 +287,29 @@ describe("POST /deploy", () => {
     expect(calls).toEqual(["provision", "upload", "migrate", "activate"]);
   });
 
+  it("refuses a build made for a newer platform, with its reason, and records nothing (D-136)", async () => {
+    const { hosting, calls } = fakeHosting();
+    const ahead = {
+      ...build(),
+      manifest: {
+        name: "crm",
+        resources: {},
+        forgeron: { contract: 99, sdk: "9.0.0" },
+        somethingThisGatewayDoesNotKnow: true,
+      } as unknown as Build["manifest"],
+    };
+    const response = await handleDeploy(
+      post("/deploy", upload({ build: ahead }), await deploymentToken()),
+      context(hosting),
+    );
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: { code: "INCOMPATIBLE", message: expect.stringContaining("contract 99 (SDK 9.0.0)") },
+    });
+    expect(calls).toEqual([]);
+    expect(await registry.findTool("acme", "crm")).toBeUndefined();
+  });
+
   it("records who deployed which version, and when", async () => {
     await handleDeploy(post("/deploy", upload(), await deploymentToken()), context());
     expect(await historyOf("preview", "main")).toEqual([
