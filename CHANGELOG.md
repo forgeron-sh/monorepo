@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0](https://github.com/forgeron-sh/monorepo/compare/v0.7.2...v0.8.0) (2026-11-13)
+
+
+### Features
+
+* **gateway:** the time of a call to a tool is told step by step, in Server-Timing (D-142) ([6967453](https://github.com/forgeron-sh/monorepo/commit/69674533a687dbc802fe49d7356ef596d9f14854))
+* **gateway:** the time of a call to a tool is told step by step, in Server-Timing (D-142) ([4841533](https://github.com/forgeron-sh/monorepo/commit/48415337a9855833168e4f4cf9ec726e9b3af11b))
+
 ## [0.7.2](https://github.com/forgeron-sh/monorepo/compare/v0.7.1...v0.7.2) (2026-11-13)
 
 
