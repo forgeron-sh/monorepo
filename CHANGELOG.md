@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1](https://github.com/forgeron-sh/monorepo/compare/v0.8.0...v0.8.1) (2026-11-13)
+
+
+### Performance Improvements
+
+* **gateway:** a call to a tool reads the registry once and remembers it (D-143) ([ad9d765](https://github.com/forgeron-sh/monorepo/commit/ad9d7655a8287495b0d6925a65e978c2e92a995b))
+* **gateway:** a call to a tool reads the registry once and remembers it (D-143) ([7214652](https://github.com/forgeron-sh/monorepo/commit/7214652c42be6a7066a452fc7da970d14ee583f0))
+
 ## [0.8.0](https://github.com/forgeron-sh/monorepo/compare/v0.7.2...v0.8.0) (2026-11-13)
 
 
