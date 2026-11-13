@@ -35,6 +35,8 @@ const SHOWN = new Set([
   "MEMBER_EMAIL_DOMAINS",
   "OIDC_ISSUER",
   "OIDC_CLIENT_ID",
+  "PLATFORM_D1_ID",
+  "UPDATE_REPOSITORY",
 ]);
 
 interface Binding {

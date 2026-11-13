@@ -28,6 +28,8 @@ const tokenProvider: Provider = {
   },
 };
 
+const TOKEN_LINE = /^[A-Za-z0-9._~+/=-]{16,}$/;
+
 /** The OAuth access token of the wrangler session: short-lived, so never the gateway's secret. */
 const wranglerProvider: Provider = {
   async resolve(io, env) {
@@ -41,13 +43,16 @@ const wranglerProvider: Provider = {
     } catch {
       throw notLoggedIn;
     }
-    const lines = result.stdout
+    // wrangler 4 prints a banner (` ⛅️ wrangler 4.x`, a `───` line) before the token: the token is the
+    // last line that looks like one (a single word of token characters), whatever precedes it.
+    const token = result.stdout
       .split(/\r?\n/)
       .map((line) => line.trim())
-      .filter(Boolean);
-    if (result.code !== 0 || lines.length !== 1) throw notLoggedIn;
+      .filter((line) => TOKEN_LINE.test(line))
+      .at(-1);
+    if (result.code !== 0 || !token) throw notLoggedIn;
     return {
-      installToken: lines[0]!,
+      installToken: token,
       ...(env.GATEWAY_CLOUDFLARE_API_TOKEN
         ? { gatewayToken: env.GATEWAY_CLOUDFLARE_API_TOKEN }
         : {}),

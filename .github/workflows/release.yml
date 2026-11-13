@@ -21,6 +21,9 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       # Any release: the npm packages are released with the platform, under one version (D-122).
       releases_created: ${{ steps.release.outputs.releases_created }}
+      # The root component's version and tag (`v<version>`): the platform artifact is attached to it.
+      version: ${{ steps.release.outputs.version }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - id: release
         uses: googleapis/release-please-action@v4
@@ -73,3 +76,24 @@ jobs:
       - run: bun run packages:build
       - run: bun run packages:smoke
       - run: bun scripts/publish.ts
+
+  # The platform artifact (D-138): the built gateway, console and migrations, with their checksum,
+  # attached to the platform's release so that a self-hosted gateway can update itself from the console.
+  platform-artifact:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: bun run --cwd apps/gateway build
+      - run: bun run --cwd apps/console build
+      - run: bun run platform:artifact
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh release upload "$TAG" dist/forgeron-platform.json dist/forgeron-platform.json.sha256 --clobber

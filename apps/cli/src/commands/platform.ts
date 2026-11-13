@@ -22,6 +22,7 @@ import {
   KEYS,
   officialMarketplaceSetting,
   settingBindings,
+  updateRepositorySetting,
   type IdentityFlags,
 } from "./gateway-identity";
 import { readAssets } from "./console-assets";
@@ -37,7 +38,7 @@ import { platformStatus, STATUS_USAGE } from "./platform-status";
 // is only ever an API token; see D-026.
 
 const USAGE =
-  "Usage: forgeron platform install --account <id> --gateway <worker.js> [--domain <base-domain> [--only <workspace>]] [--host <host>=<workspace>]... [--default-workspace <workspace>] [--workers-dev] [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--official-marketplace <owner/name>] [--sign-in email[,oidc] [--mail-from <address> | --mail console]] [--name forgeron] [--auth token|wrangler]\n       --domain is required unless --workers-dev or --host is given.";
+  "Usage: forgeron platform install --account <id> --gateway <worker.js> [--domain <base-domain> [--only <workspace>]] [--host <host>=<workspace>]... [--default-workspace <workspace>] [--workers-dev] [--console <dir>] [--oidc-issuer <url> --oidc-client-id <id> [--admin-email <email>] [--member-email-domains <d1,d2>]] [--official-marketplace <owner/name>] [--update-repository <owner/name>] [--sign-in email[,oidc] [--mail-from <address> | --mail console]] [--name forgeron] [--auth token|wrangler]\n       --domain is required unless --workers-dev or --host is given.";
 
 interface Named {
   uuid?: string;
@@ -75,6 +76,7 @@ export async function platform(
       "admin-email": { type: "string" },
       "member-email-domains": { type: "string" },
       "official-marketplace": { type: "string" },
+      "update-repository": { type: "string" },
       "sign-in": { type: "string" },
       "mail-from": { type: "string" },
       mail: { type: "string" },
@@ -132,6 +134,7 @@ export async function platform(
   const settings = identitySettings(flags, process.env);
   // Apart from sign-in: an install that states its identity again keeps its marketplace.
   const marketplace = officialMarketplaceSetting(values["official-marketplace"]);
+  const updateRepository = updateRepositorySetting(values["update-repository"]);
   const assets = values.console ? await readAssets(resolve(io.cwd, values.console)) : undefined;
 
   const client: CloudflareClient = createCloudflareClient({
@@ -223,6 +226,8 @@ export async function platform(
         { type: "plain_text", name: "CLOUDFLARE_ACCOUNT_ID", text: values.account },
         // The gateway's own name, to upload new versions of itself (D-032).
         { type: "plain_text", name: "GATEWAY_WORKER", text: worker },
+        // The platform D1's id, to take its restore point when the console updates the platform (D-138).
+        { type: "plain_text", name: "PLATFORM_D1_ID", text: databaseId },
         ...(gatewayToken
           ? [{ type: "secret_text", name: "CLOUDFLARE_API_TOKEN", text: gatewayToken }]
           : // Run again without a token to give: the one the gateway already holds is kept, as the keys
@@ -230,7 +235,7 @@ export async function platform(
             existed && !lost.has(TOKEN_BINDING)
             ? [{ type: "inherit", name: TOKEN_BINDING }]
             : []),
-        ...settingBindings([...settings, marketplace, ...hosts], existed, lost),
+        ...settingBindings([...settings, marketplace, updateRepository, ...hosts], existed, lost),
         ...bound.filter((n) => !lost.has(n)).map((n) => ({ type: "inherit", name: n })),
       ],
     });
@@ -246,6 +251,7 @@ export async function platform(
       [
         ...settings.map((s) => s.name),
         marketplace.name,
+        updateRepository.name,
         ...hosts.map((s) => s.name),
         ...bound,
         TOKEN_BINDING,
@@ -304,6 +310,12 @@ export async function platform(
   if (marketplace.given) {
     io.log(
       `The official marketplace is ${values["official-marketplace"]} (synced from the console).`,
+    );
+  }
+
+  if (updateRepository.given) {
+    io.log(
+      `Updates come from the releases of ${values["update-repository"]} (offered in the console).`,
     );
   }
 

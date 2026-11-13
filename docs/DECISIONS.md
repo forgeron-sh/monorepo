@@ -135,6 +135,8 @@ Rules of the log:
 | D-134 | 12/11/2026 | The platform serves a tool's pages: a build carries its views, the gateway serves them sandboxed with a token, and "Open" works                                                                              | Active                                        |
 | D-135 | 12/11/2026 | Realtime: channels a tool declares, messages its actions publish, presence, over a WebSocket; access is the tool's rule                                                                                      | Active                                        |
 | D-136 | 13/11/2026 | A build carries the contract it was made for; a platform refuses a tool that is ahead of it or whose contract is gone, with the reason                                                                       | Active                                        |
+| D-137 | 13/11/2026 | No roles: teams, `everyone`, atomic platform permissions given to teams, one permission engine                                                                                                               | Active                                        |
+| D-138 | 13/11/2026 | The platform is updated from the console: a release carries the built platform, the gateway takes a restore point, migrates and deploys itself                                                               | Active                                        |
 
 ---
 
@@ -1810,3 +1812,15 @@ Rules of the log:
 - **Why**: roles and teams were two ways to say "a group of people", with two screens and a computed `member` role; a person in several groups is the normal case. Teams are the one group; permissions say what a group may do on Forgeron, profiles what it may do in a tool.
 - **Rejected**: keeping roles beside teams (two vocabularies for one thing); an `admin` flag on a person (it would be the role again, and could not be split); coarse permissions per page (a manager who invites people would also change the sign-in); letting a team manager give any permission (anyone with `teams:write` could make themselves admin). 8. **A new contract (3).** The manifest's key changes (`profiles`) and the wire carries subjects, which a platform of contract 2 cannot read: `CONTRACTS` gains contract 3 (D-136), stamped by the SDK that ships this decision. Builds of contracts 1 and 2 keep running (the migration rewrites stored builds; the legacy readers cover the rest).
 - **Not done**: nested teams; the identity provider's groups fill teams only at the first sign-in, as roles did.
+
+## D-138 — The platform updates itself from the console, with a restore point
+
+- **Date**: 13/11/2026 · **Status**: Active · Builds on D-032 (the gateway uploads new versions of itself), D-122 and D-123 (releases), D-137 (permissions) · Detailed shape: [`spikes/self-update.md`](spikes/self-update.md)
+- **Decision**:
+  1. **A release carries the built platform**: `forgeron-platform.json` (the gateway's code, the console, the platform's migrations, the version and commit) and its sha256, attached to the release `v<version>` by the release workflow.
+  2. **The console shows the version and what is newer** (Settings › Operations › Install information): the latest release of `UPDATE_REPOSITORY` (default `forgeron-sh/monorepo`), its notes, the migrations it will apply.
+  3. **One click updates**, for a holder of the new permission `platform:update`: the gateway downloads the artifact and checks its hash, takes a **Time Travel restore point** of its D1 (no restore point, no update), applies the new migrations, keeps the new code and console, uploads a new version of itself with every binding inherited and deploys it. Each step is recorded and audited; a failure says how to restore.
+  4. **Never a downgrade, one update at a time, off on the cloud** (its operator updates it) and when `SELF_UPDATE=off`. The install records `PLATFORM_D1_ID`, so the first update of an install made before this decision is still `forgeron platform install`.
+- **Why**: updating meant a checkout and every install flag repeated; the person who administers a workspace could not even tell which version ran against which release.
+- **Rejected**: automatic updates (a one-way migration is a human decision); the new gateway migrating on its first request (a failed migration would leave a running gateway on a half-migrated database); building the platform inside the Worker (it cannot run the build); a signature beyond the release's checksum (the release is as trusted as the npm packages the same workflow publishes).
+- **Not done**: rolling back the code from the console (Cloudflare's deployments and the restore command cover it); updating tools.

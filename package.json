@@ -28,7 +28,8 @@
     "templates:check": "bun scripts/check-templates.ts",
     "tokens:check": "bun run --cwd packages/ui tokens:check",
     "packages:build": "bun run --cwd packages/permissions tsdown && bun run --cwd packages/manifest tsdown && bun run --cwd packages/runtime tsdown && bun run --cwd packages/sdk tsdown && bun run --cwd apps/cli tsdown && bun scripts/pack.ts",
-    "packages:smoke": "bun scripts/smoke-packages.ts"
+    "packages:smoke": "bun scripts/smoke-packages.ts",
+    "platform:artifact": "bun scripts/platform-artifact.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
