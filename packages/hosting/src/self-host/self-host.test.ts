@@ -123,6 +123,64 @@ describe("deploying to production", () => {
     expect(await tables()).toContain("a");
   });
 
+  describe("where a tool's database lives (D-141)", () => {
+    const toolDatabase = () => [...cloud.databases.values()].find((d) => d.name.endsWith("--db"))!;
+    const near = (id: string) =>
+      createSelfHostHosting({
+        accountId: "acct",
+        apiToken: "test-token",
+        workspace: "acme",
+        fetch: cloud.fetch,
+        url: (name) => `https://${name}.example.test`,
+        d1NearDatabase: id,
+      });
+    const platformIn = async (region: string) => {
+      cloud.defaultRegion = region;
+      await cloud.fetch("https://api.cloudflare.com/client/v4/accounts/acct/d1/database", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: "Bearer t" },
+        body: JSON.stringify({ name: "forgeron-platform" }),
+      });
+      return [...cloud.databases].find(([, d]) => d.name === "forgeron-platform")![0];
+    };
+
+    it("is created in the platform's region, so that a query does not cross an ocean", async () => {
+      const platform = await platformIn("WEUR");
+      cloud.defaultRegion = "ENAM"; // what Cloudflare picks by itself, from where the call came
+      await near(platform).provision(production, manifest);
+      expect(toolDatabase().hint).toBe("weur");
+      expect(toolDatabase().region).toBe("WEUR");
+    });
+
+    it("sends no hint when nothing says where the platform is, as before", async () => {
+      await hosting.provision(production, manifest);
+      expect(toolDatabase().hint).toBeUndefined();
+      expect(toolDatabase().region).toBe("ENAM");
+    });
+
+    it("creates the database anyway when the platform's region cannot be read", async () => {
+      const platform = await platformIn("WEUR");
+      cloud.unreadable.add(platform);
+      await near(platform).provision(production, manifest);
+      expect(toolDatabase().hint).toBeUndefined();
+    });
+
+    it("sends no hint for a region Cloudflare does not take", async () => {
+      const platform = await platformIn("ELSEWHERE");
+      await near(platform).provision(production, manifest);
+      expect(toolDatabase().hint).toBeUndefined();
+    });
+
+    it("reads the platform's region once, however many databases follow", async () => {
+      const platform = await platformIn("EEUR");
+      const hosting2 = near(platform);
+      await hosting2.provision(production, manifest);
+      await hosting2.provision({ tool: "crm", name: "preview", branch: "feat" }, manifest);
+      const reads = cloud.calls.filter((c) => c === `GET /d1/database/${platform}`);
+      expect(reads).toHaveLength(1);
+    });
+  });
+
   it("migrates before it switches traffic", async () => {
     await deploy(
       hosting,

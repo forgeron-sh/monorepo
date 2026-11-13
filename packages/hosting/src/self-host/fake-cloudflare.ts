@@ -14,7 +14,14 @@ interface Version {
 export class FakeCloudflare {
   readonly calls: string[] = [];
   readonly workers = new Map<string, { versions: Version[]; deployed?: string }>();
-  readonly databases = new Map<string, { name: string; d1?: D1Database }>();
+  readonly databases = new Map<
+    string,
+    { name: string; d1?: D1Database; region?: string; hint?: unknown }
+  >();
+  /** The region the next database is said to run in, whatever the hint (what Cloudflare picks by itself). */
+  defaultRegion = "ENAM";
+  /** Make the read of a database fail (its id): the region cannot be known. */
+  readonly unreadable = new Set<string>();
   /** The Time Travel bookmarks handed out, by database id, oldest first. */
   readonly bookmarks: { database: string; bookmark: string }[] = [];
   /** A database whose Time Travel is refused (its id): the bookmark call fails with this status. */
@@ -129,8 +136,24 @@ export class FakeCloudflare {
       const name = String(body?.name);
       const uuid = this.id("db");
       const d1 = this.backing(name);
-      this.databases.set(uuid, { name, ...(d1 ? { d1 } : {}) });
+      const hint = body?.primary_location_hint;
+      this.databases.set(uuid, {
+        name,
+        ...(d1 ? { d1 } : {}),
+        region: typeof hint === "string" ? hint.toUpperCase() : this.defaultRegion,
+        ...(hint === undefined ? {} : { hint }),
+      });
       return { uuid, name };
+    }
+    if ((m = path.match(/^\/d1\/database\/([^/]+)$/)) && method === "GET") {
+      const found = this.databases.get(m[1]!);
+      if (!found) throw this.fail(404, "no such database");
+      if (this.unreadable.has(m[1]!)) throw this.fail(500, "cannot read this database");
+      return {
+        uuid: m[1],
+        name: found.name,
+        running_in_region: found.region ?? this.defaultRegion,
+      };
     }
     if ((m = path.match(/^\/d1\/database\/([^/]+)\/time_travel\/bookmark$/)) && method === "GET") {
       if (!this.databases.has(m[1]!)) throw this.fail(404, "no such database");

@@ -44,7 +44,9 @@ const base64 = (text: string) => {
 export function createSelfHostHosting(options: SelfHostOptions): Hosting {
   const client = createCloudflareClient(options);
   const nameOf = (environment: Environment) => workerName(options.workspace, environment);
-  const resources = cloudflareResources(client, "self-host");
+  const resources = cloudflareResources(client, "self-host", {
+    ...(options.d1NearDatabase ? { nearDatabase: options.d1NearDatabase } : {}),
+  });
 
   return {
     async provision(environment, manifest): Promise<Provisioned> {

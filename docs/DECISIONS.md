@@ -139,6 +139,7 @@ Rules of the log:
 | D-138 | 13/11/2026 | The platform is updated from the console: a release carries the built platform, the gateway takes a restore point, migrates and deploys itself                                                               | Active                                        |
 | D-139 | 13/11/2026 | The admin MCP offers the rest of the console: one tool per route of the platform contract, secrets and tokens left out                                                                                       | Active                                        |
 | D-140 | 13/11/2026 | The platform's release has no release-please component, so that it is tagged `v<version>` whoever else changes in the same release                                                                           | Active                                        |
+| D-141 | 13/11/2026 | A tool's D1 is created in the region of the platform's D1, so that its queries do not cross an ocean                                                                                                         | Active                                        |
 
 ---
 
@@ -1850,3 +1851,12 @@ Rules of the log:
 - **Rejected**: giving the root a component in its tag (`platform-v0.7.0`): the deploy action of a tool's repository is referenced as `.../actions/deploy@v<version>`, and the root's tag is that; a step that creates the plain tag next to it would be one more thing to break; tagging by hand after each release (what 0.6.1 needed).
 - **Not done**: the root is **not** in the linked group (release-please skips a path whose component is empty in a tag-less config: `LinkedVersions.preconfigure`). A release of the packages with no change at the root would give the CLI a version with no `v<version>` tag for the action it writes into new tools' workflows. Today almost every change touches the root (docs, decisions); the day one does not, the root has to be made to follow.
 - **Applied in**: `release-please-config.json`; `scripts/release-config.test.ts`; `docs/ARCHITECTURE.md`.
+
+## D-141 — A tool's database is created next to the platform's
+
+- **Date**: 13/11/2026 · **Status**: Active · Builds on D-029 (self-host resources), D-138 (the platform update)
+- **Decision**: when the gateway creates a tool's D1 (a preview, a channel, production) it passes `primary_location_hint`, the region the **platform's own D1** runs in (`running_in_region` of `PLATFORM_D1_ID`, read once, lower-cased, and only if it is one of `wnam`, `enam`, `weur`, `eeur`, `apac`, `oc`). A region that cannot be read, or is not one of those, sends no hint: the creation goes on as before. `@forgeron/hosting`: `d1NearDatabase`, in both self-host and cloud.
+- **Why**: without a hint Cloudflare places a new D1 where the API request came from. The tool `notes` was given a database in `ENAM` while the gateway answers from Paris and the platform's D1 is in `WEUR`: each query of the tool crossed the Atlantic (about 100 ms), so `items.add` (three queries) took ~380 ms inside the tool, and a call ~1 s in all. The measure: tail of the gateway and of the tool's Worker on the same calls (CPU 3 to 6 ms in the tool, 30 to 45 ms in the gateway: the time was spent waiting for databases).
+- **Rejected**: a fixed region in the install (a self-host in Asia would be wrong, and the platform's D1 already says where the install lives); asking the person (nobody knows what `weur` is); moving a D1 afterwards (Cloudflare cannot).
+- **Not done**: a database that already exists stays where it is (a D1 does not move): a preview is closed and deployed again from a new commit (the registry refuses a version it already has), production needs a copy of its data into a new database. **The gateway's own ~550 ms of waiting around each call is not changed**: it queries the platform's D1 several times in sequence (the tool, the person, their rights, the directory, the seat and usage counts, some of them writes it waits for); to measure per step before touching it.
+- **Applied in**: `packages/hosting/src/{resources,self-host/{index,cloudflare,fake-cloudflare},cloud/index}.ts`; `apps/gateway/src/compose.ts`.
