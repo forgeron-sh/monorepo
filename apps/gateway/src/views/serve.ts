@@ -21,6 +21,15 @@ export const VIEW_CSP = "sandbox allow-scripts allow-forms allow-popups allow-do
 /** How long the token injected into a page lives. */
 export const VIEW_TOKEN_TTL_SECONDS = 15 * 60;
 
+/**
+ * The scope of the token in the address of a page's scripts on a channel that is not production. The
+ * page is sandboxed: its script requests carry no cookie, so the gateway cannot tell who asks. The
+ * page, served to a person who may open it, names the right to read its scripts in their address
+ * (`/_f/a/<token>/views/…`, in the path so that the imports between files keep it). The token is
+ * good for these files and for nothing else.
+ */
+export const VIEW_ASSET_SCOPE = "view-asset";
+
 interface ViewAsset {
   body: string | ArrayBuffer | ReadableStream;
   contentType: string;
@@ -50,6 +59,8 @@ export interface ServeViewOptions {
   /** Who is signed in, from the session; `undefined` if nobody. Not needed for the static files. */
   person: Person | undefined;
   assets: ViewAssets;
+  /** A channel other than production: the page's scripts are asked for with a token in their address. */
+  assetToken?: boolean;
 }
 
 const ASSET_PREFIX = "/_f/views/";
@@ -72,7 +83,13 @@ const jsonForHtml = (value: unknown) => JSON.stringify(value).replaceAll("<", "\
 const escapeAttribute = (text: string) =>
   text.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
 
-function pageOf(bootstrap: ViewBootstrap, title: string, entry: string): string {
+function pageOf(
+  bootstrap: ViewBootstrap,
+  title: string,
+  entry: string,
+  assetToken?: string,
+): string {
+  const scripts = assetToken ? `${bootstrap.base}/_f/a/${assetToken}` : `${bootstrap.base}/_f`;
   return [
     "<!doctype html>",
     '<html lang="en">',
@@ -81,7 +98,7 @@ function pageOf(bootstrap: ViewBootstrap, title: string, entry: string): string 
     `<title>${title.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</title>`,
     '<div id="root"></div>',
     `<script id="forgeron-bootstrap" type="application/json">${jsonForHtml(bootstrap)}</script>`,
-    `<script type="module" src="${escapeAttribute(`${bootstrap.base}/_f/${entry}`)}"></script>`,
+    `<script type="module" src="${escapeAttribute(`${scripts}/${entry}`)}"></script>`,
   ].join("\n");
 }
 
@@ -174,8 +191,19 @@ export async function serveView(
       .map(([action]) => action)
       .sort(),
   };
+  const assetToken = options.assetToken
+    ? await issueToken({
+        secret: options.secret,
+        person: person.id,
+        workspace: options.workspace,
+        tool: options.tool,
+        ttlSeconds: VIEW_TOKEN_TTL_SECONDS,
+        now: options.now,
+        scope: VIEW_ASSET_SCOPE,
+      })
+    : undefined;
   return secured(
-    new Response(pageOf(bootstrap, view.title, view.entry), {
+    new Response(pageOf(bootstrap, view.title, view.entry, assetToken), {
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
     }),
   );

@@ -5,7 +5,13 @@ import { audienceOf } from "../identity/authn/audience";
 import type { Person } from "../kernel/person";
 import { tokenAuthenticator } from "../identity/authn/authenticate";
 import { verifyToken } from "../identity/authn/tokens";
-import { serveView, VIEW_CSP, VIEW_TOKEN_TTL_SECONDS, type ViewAssets } from "./serve";
+import {
+  serveView,
+  VIEW_ASSET_SCOPE,
+  VIEW_CSP,
+  VIEW_TOKEN_TTL_SECONDS,
+  type ViewAssets,
+} from "./serve";
 import { testPerson } from "../kernel/test-person";
 
 const secret = "test-secret-not-a-real-one";
@@ -44,6 +50,7 @@ const serveAny = (
     method?: string;
     access?: Record<string, Record<string, boolean>>;
     permissions?: Record<string, string[]>;
+    assetToken?: boolean;
   } = {},
 ) =>
   serveView(new Request(`https://acme.forgeron.app${path}`, { method: options.method }), {
@@ -56,6 +63,7 @@ const serveAny = (
     assets,
     ...(options.access ? { access: options.access } : {}),
     ...(options.permissions ? { permissions: options.permissions } : {}),
+    ...(options.assetToken ? { assetToken: true } : {}),
   });
 
 const bootstrapOf = async (response: Response): Promise<ViewBootstrap> => {
@@ -177,6 +185,29 @@ describe("serveView", () => {
         now: new Date(now.getTime() + VIEW_TOKEN_TTL_SECONDS * 1000),
       }),
     ).toEqual({ ok: false, reason: "expired" });
+  });
+
+  it("asks for its scripts at the production address, with no token, there (cacheable)", async () => {
+    const html = await (await serveAny("/pipeline"))!.text();
+    expect(html).toContain('src="/t/crm/_f/views/pipeline.js"');
+  });
+
+  it("names a token in the address of its scripts on another channel, good for scripts only (D-134)", async () => {
+    const html = await (await serveAny("/pipeline", { assetToken: true }))!.text();
+    const src = /src="\/t\/crm\/_f\/a\/([^/"]+)\/views\/pipeline\.js"/.exec(html);
+    expect(src).not.toBeNull();
+    const token = src![1]!;
+    const audience = audienceOf("acme", "crm");
+    expect(
+      await verifyToken(token, { secret, now, audience, scope: VIEW_ASSET_SCOPE }),
+    ).toMatchObject({
+      ok: true,
+    });
+    // It is not a person's token: no API accepts it.
+    expect(await verifyToken(token, { secret, now, audience })).toEqual({
+      ok: false,
+      reason: "scope",
+    });
   });
 
   it("cannot be broken out of by what the person is called", async () => {

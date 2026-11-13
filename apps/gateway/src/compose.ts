@@ -37,7 +37,9 @@ import { providerFromConfig } from "./identity/sign-in/presets";
 import type { SamlProvider } from "./identity/sign-in/saml";
 import type { Person } from "./kernel/person";
 import { forwardIdentity, wireUser } from "./dispatch/user-secrets";
-import { serveView } from "./views/serve";
+import { VIEW_ASSET_SCOPE, serveView } from "./views/serve";
+import { audienceOf } from "./identity/authn/audience";
+import { verifyToken } from "./identity/authn/tokens";
 import { CONTEXT_HEADER, type RoomContext } from "./realtime/room";
 import type { Manifest } from "@forgeron/manifest";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
@@ -344,6 +346,21 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
             },
           }
         : {}),
+      // The scripts of a page on a channel other than production: the token the page was served with (D-134).
+      ...(secret
+        ? {
+            viewAsset: async (a: { workspace: string; tool: string; token: string }) =>
+              (
+                await verifyToken(a.token, {
+                  secret,
+                  previousSecrets,
+                  now: now(),
+                  audience: audienceOf(a.workspace, a.tool),
+                  scope: VIEW_ASSET_SCOPE,
+                })
+              ).ok,
+          }
+        : {}),
       // The pages of a tool (D-134): served from the build the channel runs, with the sandbox CSP and a
       // short-lived token bound to the tool and the person.
       ...(caller && secret
@@ -385,6 +402,8 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
                   tool: c.tool,
                   // `/t/crm`, `/t/crm@feat-x`, `/t/crm~staging`: where the tool is on the workspace origin.
                   base: /^\/t\/[^/]+/.exec(new URL(request.url).pathname)?.[0] ?? `/t/${c.tool}`,
+                  // Its scripts are asked for without a cookie: the token in their address says who may.
+                  assetToken: branch !== undefined,
                   manifest,
                   access: matrix.access,
                   permissions: matrix.permissions,
