@@ -133,12 +133,15 @@ export function createTeams(kernel: Kernel) {
     /** Built-in teams first, then by name. */
     async listTeams(workspace: string): Promise<Team[]> {
       await this.ensureBuiltInTeams(workspace);
-      const rows = await all(
-        `SELECT * FROM "teams" WHERE "workspace" = ? ORDER BY "built_in" DESC, "name"`,
-        workspace,
-      );
-      const members = await membersOf(workspace);
-      const grants = await grantsOf(workspace);
+      // The teams, their members and what they were given are asked together (D-143).
+      const [rows, members, grants] = await Promise.all([
+        all(
+          `SELECT * FROM "teams" WHERE "workspace" = ? ORDER BY "built_in" DESC, "name"`,
+          workspace,
+        ),
+        membersOf(workspace),
+        grantsOf(workspace),
+      ]);
       return rows.map((r) => build(r, members.get(String(r.id)) ?? [], grants));
     },
     async findTeam(workspace: string, id: string): Promise<Team | undefined> {

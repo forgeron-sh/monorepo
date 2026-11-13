@@ -1,7 +1,7 @@
 import { ADMIN_TEAM, isTeamId } from "@forgeron/permissions";
 import { RegistryError } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
-import { json, text, type Row } from "../../kernel/rows";
+import { json, text } from "../../kernel/rows";
 import type { TeamsPort } from "../teams/public";
 import { toInvitation, toMember } from "./types";
 import type { Member, Invitation, MembershipSettings, JoinVia } from "./types";
@@ -24,9 +24,8 @@ export function createMembers(kernel: Kernel, teams: TeamsPort) {
         id,
       )
     ).map((r) => String(r.team_id));
-  /** The members of the rows, with their teams (one read for the whole workspace). */
-  const withTeams = async (workspace: string, rows: Row[]): Promise<Member[]> => {
-    if (rows.length === 0) return [];
+  /** The teams of each member of the workspace (one read for the whole workspace). */
+  const teamsByMember = async (workspace: string): Promise<Map<string, string[]>> => {
     const byMember = new Map<string, string[]>();
     for (const r of await all(
       `SELECT "team_id", "member_id" FROM "team_members" WHERE "workspace" = ? ORDER BY "team_id"`,
@@ -36,7 +35,7 @@ export function createMembers(kernel: Kernel, teams: TeamsPort) {
       list.push(String(r.team_id));
       byMember.set(String(r.member_id), list);
     }
-    return rows.map((r) => toMember(r, byMember.get(String(r.id)) ?? []));
+    return byMember;
   };
   /** The teams of the workspace among these ids: an id that is no team (deleted since) is left out. */
   const knownTeams = async (workspace: string, ids: readonly string[]): Promise<string[]> => {
@@ -153,10 +152,12 @@ export function createMembers(kernel: Kernel, teams: TeamsPort) {
     },
 
     async listMembers(workspace: string): Promise<Member[]> {
-      return withTeams(
-        workspace,
-        await all(`SELECT * FROM "members" WHERE "workspace" = ? ORDER BY "email"`, workspace),
-      );
+      // The members and their teams are asked together: neither read needs the other (D-143).
+      const [rows, byMember] = await Promise.all([
+        all(`SELECT * FROM "members" WHERE "workspace" = ? ORDER BY "email"`, workspace),
+        teamsByMember(workspace),
+      ]);
+      return rows.map((r) => toMember(r, byMember.get(String(r.id)) ?? []));
     },
 
     // ---- members, invitations and allowed domains (D-049). Every change writes its audit line in
