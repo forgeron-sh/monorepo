@@ -327,6 +327,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
             },
             c.environment,
             c.branch,
+            c.timings,
           )
         : Promise.resolve(undefined);
     const dispatch = createDispatcher({

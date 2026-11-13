@@ -7,6 +7,7 @@
 // hook `canPreview`, which fails closed when absent.
 
 import { workspaceOf } from "../kernel/workspace";
+import { createTimings, timed, type Timings } from "./timing";
 
 // Re-exported for the gateway and the tests: the function lives in the kernel (no cycle with identity).
 export { workspaceOf };
@@ -42,6 +43,8 @@ export interface Caller {
    * a branch, or `~<name>`. Such a call is served with the `preview` secrets.
    */
   branch?: string;
+  /** The clock of this call, for the `Server-Timing` header (D-142). */
+  timings?: Timings;
 }
 
 /** What the gateway adds to the request it hands a tool, or the answer that stops it (D-035). */
@@ -240,6 +243,7 @@ const refuse = (status: number, code: string, message: string) =>
 
 export function createDispatcher(options: DispatcherOptions) {
   return async function dispatch(request: Request): Promise<Response> {
+    const timings = createTimings();
     const url = new URL(request.url);
     const workspace = options.workspaceOf(url.host);
     if (!workspace) return refuse(404, "NOT_FOUND", "Not found.");
@@ -272,10 +276,12 @@ export function createDispatcher(options: DispatcherOptions) {
       path = { ...path, rest: `/_f${asset[2]}` };
     }
 
-    const entry = await options.registry.find(workspace, path.tool);
+    const entry = await timed(timings, "find", async () =>
+      options.registry.find(workspace, path.tool),
+    );
     if (!entry) return refuse(404, "NOT_FOUND", "Not found.");
 
-    const caller: Caller = { workspace, tool: path.tool, request };
+    const caller: Caller = { workspace, tool: path.tool, request, timings };
     let worker: string | undefined;
     let environment: "preview" | "production" = "production";
     if (path.branch !== undefined) {
@@ -288,7 +294,9 @@ export function createDispatcher(options: DispatcherOptions) {
       if (
         !tokenGranted &&
         !preflight &&
-        !(await options.canPreview?.({ ...caller, branch: path.branch }))
+        !(await timed(timings, "preview", async () =>
+          options.canPreview?.({ ...caller, branch: path.branch! }),
+        ))
       ) {
         const refused = refuse(403, "FORBIDDEN", "You cannot use this channel.");
         // What the browser refuses to read for lack of this header is reported as a CORS error, which
@@ -312,10 +320,12 @@ export function createDispatcher(options: DispatcherOptions) {
     // An authenticated call that reaches a tool is a seat of the workspace for the month.
     if (options.identify && options.recordSeat) {
       try {
-        const person = await options.identify(caller);
+        const person = await timed(timings, "identify", async () => options.identify!(caller));
         if (person) {
-          await options.recordSeat(workspace, person);
-          await options.recordUsage?.(workspace, path.tool, person);
+          await timed(timings, "seat", async () => {
+            await options.recordSeat!(workspace, person);
+            await options.recordUsage?.(workspace, path.tool, person);
+          });
         }
       } catch {
         // Counting must never stop a person from working.
@@ -347,24 +357,28 @@ export function createDispatcher(options: DispatcherOptions) {
       });
     }
     // The pages of the tool, served by the gateway (D-134).
-    const page = await options.views?.({
-      caller: {
+    const page = await timed(timings, "views", async () =>
+      options.views?.({
+        caller: {
+          ...caller,
+          environment,
+          ...(path.branch !== undefined ? { branch: path.branch } : {}),
+        },
+        request,
+        rest: path.rest,
+        environment,
+        ...(path.branch !== undefined ? { branch: path.branch } : {}),
+      }),
+    );
+    if (page) return page;
+
+    const forwarding = await timed(timings, "forward", async () =>
+      options.forward?.({
         ...caller,
         environment,
         ...(path.branch !== undefined ? { branch: path.branch } : {}),
-      },
-      request,
-      rest: path.rest,
-      environment,
-      ...(path.branch !== undefined ? { branch: path.branch } : {}),
-    });
-    if (page) return page;
-
-    const forwarding = await options.forward?.({
-      ...caller,
-      environment,
-      ...(path.branch !== undefined ? { branch: path.branch } : {}),
-    });
+      }),
+    );
     if (forwarding && "refuse" in forwarding) return forwarding.refuse;
 
     const forwarded = new URL(url);
@@ -381,20 +395,29 @@ export function createDispatcher(options: DispatcherOptions) {
     const challenge = /^\/mcp\/?$/.test(path.rest)
       ? `Bearer resource_metadata="${url.origin}/.well-known/oauth-protected-resource${url.pathname.replace(/\/mcp\/?$/, "")}/mcp"`
       : undefined;
-    const answered = await target.fetch(outgoing);
+    const answered = await timed(timings, "tool", async () => target.fetch(outgoing));
     // What the actions published travels in a header only the gateway reads: it goes to the room, and the
     // caller never sees it.
     const published = decodePublished(answered.headers.get(PUBLISHED_HEADER));
     if (published.length > 0 && options.publish) {
       try {
-        await options.publish(
-          { ...caller, environment, ...(path.branch !== undefined ? { branch: path.branch } : {}) },
-          published,
+        await timed(timings, "publish", async () =>
+          options.publish!(
+            {
+              ...caller,
+              environment,
+              ...(path.branch !== undefined ? { branch: path.branch } : {}),
+            },
+            published,
+          ),
         );
       } catch {
         // Telling listeners must never fail the call that was answered.
       }
     }
-    return confined(answered, challenge, isViewCall(path.rest));
+    const response = confined(answered, challenge, isViewCall(path.rest));
+    // Where the time of this call went, step by step (D-142): for who reads the headers of their own calls.
+    response.headers.set("server-timing", timings.header());
+    return response;
   };
 }
