@@ -89,7 +89,12 @@ const PHRASES: Record<string, (has: (p: PlatformPermission) => boolean) => strin
   Workspace: (has) =>
     has("settings:write") ? "changes settings" : has("settings:read") ? "sees settings" : undefined,
   Operations: (has) =>
-    has("audit:read") || has("usage:read") ? "reads audit and usage" : undefined,
+    [
+      has("audit:read") || has("usage:read") ? "reads audit and usage" : undefined,
+      has("platform:update") ? "updates the platform" : undefined,
+    ]
+      .filter(Boolean)
+      .join(", ") || undefined,
 };
 
 /** One line on what a team may do on Forgeron; "Uses tools only" when it has no platform permission. */

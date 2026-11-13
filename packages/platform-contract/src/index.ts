@@ -24,6 +24,18 @@ export {
   MAX_AVATAR,
   putAvatarRoute,
 } from "./workspace";
+export {
+  UPDATE_BLOCKED_CODES,
+  UPDATE_STEP_NAMES,
+  UpdateRunSchema,
+  UpdateStepSchema,
+  getPlatformUpdateRoute,
+  getPlatformUpdateRunRoute,
+  startPlatformUpdateRoute,
+  type UpdateBlocked,
+  type UpdateRun,
+  type UpdateState,
+} from "./platform-update";
 export { listConnectionsRoute, revokeConnectionRoute } from "./connections";
 export { MAX_QUERY_ROWS, MAX_SQL, dbMigrationsRoute, dbQueryRoute } from "./database-admin";
 export { resealSecretsRoute, secretsStatusRoute } from "./secrets-status";

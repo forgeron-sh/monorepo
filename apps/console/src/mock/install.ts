@@ -3,6 +3,7 @@
 // made up; there is no secret in it. Pick a scenario with `?mock=`:
 //   ready (default) · fresh (nothing done yet) · member (in the developer team, not the admin one) ·
 //   person (in no team: what everyone is given, D-137) · signedout · error · slow
+// The platform update (D-138) ends as `?update=` says: ok (default) · failed · blocked · current.
 
 import {
   ADMIN_TEAM,
@@ -19,6 +20,7 @@ import {
 import { mockCatalogRoute, mockLibraryRoute } from "../features/portal/mock";
 import { mockDatabase } from "./database";
 import { createMarketplacesMock } from "./marketplaces";
+import { createUpdateMock } from "./update";
 import { createToolsMock } from "./tools";
 
 type Json = Record<string, any>;
@@ -39,6 +41,7 @@ const reply = (status: number, body?: unknown) =>
 export async function installMock(): Promise<void> {
   const scenario = new URLSearchParams(location.search).get("mock") ?? "ready";
   const fresh = scenario === "fresh";
+  const updateMock = createUpdateMock(location.search);
   const state = {
     // Who may use each channel (D-129): crm has no rule (open, as before libraries), inventory is
     // published to two teams, the others are drafts.
@@ -393,7 +396,11 @@ export async function installMock(): Promise<void> {
                 },
                 saml: { enabled: true, configured: state.provider?.kind === "saml" },
               },
-              install: { baseDomain: "fabriks.example", version: "0.2.0", commit: "f95958b0c1a2" },
+              install: {
+                baseDomain: "fabriks.example",
+                version: updateMock.version(),
+                commit: "f95958b0c1a2",
+              },
             }
           : {}),
       });
@@ -657,9 +664,12 @@ export async function installMock(): Promise<void> {
       ["/api/audit", "audit:read"],
       ["/api/marketplaces", "marketplace:read"],
       ["/api/github", "settings:read"],
+      ["/api/platform/update", method === "POST" ? "platform:update" : "settings:read"],
     ];
     const need = needs.find(([p]) => path.startsWith(p));
     if (need && !has(need[1])) return lacking(need[1]);
+    const update = updateMock.route(path, method, body);
+    if (update) return reply(update.status, update.body);
 
     // The workspace's GitHub App (D-123): connected, installed on one organisation.
     if (path === "/api/github" && method === "GET") {

@@ -64,11 +64,11 @@ A full area with its own sidebar, as in Linear: a "Back to app" link on top, the
 [Linear team settings](https://mobbin.com/screens/34342fdd-7c3d-4f23-ab9d-bc1a62ec4fbb),
 [Vercel project settings](https://mobbin.com/screens/11def438-b12a-4f4c-938e-ec13525dd1dd).
 
-| Group                                   | Pages                                                                                                                                                                 |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Account                                 | Profile, Preferences (theme, language), Security (sessions, tokens, `forgeron login` devices), Connected accounts (the person's connector consents), Personal secrets |
-| Workspace (`settings:read`)             | General (name, address: the primary origin, D-126), Sign-in (email, OIDC, SAML), Domains, GitHub (the workspace's GitHub App, D-123)                                  |
-| Operations (`audit:read`, `usage:read`) | Audit log, Usage and seats, Sealing key, Install information (gateway version and commit, address)                                                                    |
+| Group                                                      | Pages                                                                                                                                                                 |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account                                                    | Profile, Preferences (theme, language), Security (sessions, tokens, `forgeron login` devices), Connected accounts (the person's connector consents), Personal secrets |
+| Workspace (`settings:read`)                                | General (name, address: the primary origin, D-126), Sign-in (email, OIDC, SAML), Domains, GitHub (the workspace's GitHub App, D-123)                                  |
+| Operations (`audit:read`, `usage:read`, `platform:update`) | Audit log, Usage and seats, Sealing key, Install information (gateway version and commit, address, Updates)                                                           |
 
 Members and Teams are not settings: they are in Administration (D-128). The workspace's audit
 log is in Settings only; a tool's own log is its Activity tab.
@@ -77,6 +77,20 @@ A settings page is a column of titled **groups**; a group is a card of **rows**:
 the left, the control on the right; a row that opens a sub-page ends with a chevron; a **Danger zone** group
 comes last. Source of the pattern: `docs/settings-reference` and `apps/web/src/features/settings` of the
 owner's Linear clone (see "Where to look").
+
+### Install information and Updates (D-138)
+
+Install information (`settings:read`) shows where the workspace runs (address, base domain, gateway version and commit), then an **Updates** panel, then how to change the install.
+
+- **Up to date**: a badge, the version and its release date. Nothing to click.
+- **A newer release**: "**v0.6.0** is available", its date, a link to the release on GitHub, its notes (markdown, rendered with `@forgeron/ui`'s `Markdown`), and the migrations it will apply, in a warning that says a migration cannot be undone except by restoring the restore point. The button **Update to v0.6.0** is there for whoever holds `platform:update` (it implies `settings:read`); anyone else is told which permission to ask for.
+- **Confirmation dialog**: what happens, in order (download and check, restore point, migrate, keep the new code, deploy), that without a restore point nothing changes, that migrations cannot be undone except by restoring it, and that **every workspace on this platform is updated**. Buttons: Cancel (focused), Update to v0.6.0.
+- **Live steps**: the five steps as a numbered list, each with its state (Waiting, Running, Done, Failed) and its message, the console polling the run every two seconds. It goes on if the person leaves, and picks the run up again when the page opens during one. While the platform switches versions it may not answer for a moment: the panel says it is waiting and asks again.
+- **Success**: "Forgeron is now v0.6.0" and **Reload**, because the console itself changed.
+- **Failure**: the step that stopped and why. After the migrations, the restore command with its bookmark in a copy block (`wrangler d1 time-travel restore <database> --bookmark <bookmark>`) and a sentence that the database may already have changed; before them, "Nothing was changed on the platform". The button comes back to try again.
+- **Blocked**: a title in plain words and the platform's sentence, instead of a button: turned off (`SELF_UPDATE=off`), Forgeron Cloud (updated for you), not installed by `forgeron platform install`, "Run `forgeron platform install` once more: this install does not know its database id yet", no Cloudflare account on the install, GitHub or the release could not be read, the release carries no platform artifact.
+
+In the local harness, `?update=ok|failed|blocked|current` picks how the simulated update ends.
 
 ## Administration
 

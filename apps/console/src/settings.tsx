@@ -21,6 +21,7 @@ import {
   type FetchJson,
   type SendJson,
 } from "./api";
+import { UpdatesPanel } from "./features/settings/updates";
 import { can } from "./shell/access";
 import { Loading, LoadError, Requires } from "./states";
 import { useLoad } from "./use-load";
@@ -123,11 +124,11 @@ export function SignInPage({ api, ws }: SettingsPageProps) {
 }
 
 /** The install: its address and how to change it. */
-export function InstallPage({ ws }: { ws: WorkspaceInfo }) {
+export function InstallPage({ api, ws }: SettingsPageProps) {
   return (
     <Page title="Install information" description="Where this workspace runs and how to change it.">
       {can(ws.person, "settings:read") ? (
-        <Install ws={ws} />
+        <Install api={api} ws={ws} />
       ) : (
         <Requires permission="settings:read" what="Install information" />
       )}
@@ -680,7 +681,7 @@ function RemoveProvider({
   );
 }
 
-function Install({ ws }: { ws: WorkspaceInfo }) {
+function Install({ api, ws }: SettingsPageProps) {
   return (
     <div className="fc-methods">
       <section className="fc-panel" aria-label="This install">
@@ -699,6 +700,7 @@ function Install({ ws }: { ws: WorkspaceInfo }) {
           <dd className="fc-mono">{ws.person.email}</dd>
         </dl>
       </section>
+      <UpdatesPanel api={api} ws={ws} />
       <section className="fc-panel fc-stack" aria-label="Change the install">
         <h2 className="fc-method-title">Change the install</h2>
         <p className="fc-muted" style={{ margin: 0 }}>

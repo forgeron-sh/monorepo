@@ -39,6 +39,12 @@ export interface GatewayBindings {
   bind(toolWorker: string): Promise<boolean>;
   /** Removes the binding of a tool Worker. `false` if the gateway has none. */
   unbind(toolWorker: string): Promise<boolean>;
+  /**
+   * Uploads the gateway as it is now stored (its code and console in the platform D1), every binding
+   * it holds carried over and none added, and deploys it at 100 %. The platform updating itself
+   * (D-138) stores the new code first and then calls this: the same path as a tool being bound.
+   */
+  redeploy(): Promise<void>;
 }
 
 const base64 = (text: string) => {
@@ -94,6 +100,10 @@ export function createGatewayBindings(
       if (names.includes(name)) return false;
       await redeploy(names, [{ type: "service", name, service: toolWorker }]);
       return true;
+    },
+
+    async redeploy() {
+      await redeploy(await options.bindings(), []);
     },
 
     async unbind(toolWorker) {

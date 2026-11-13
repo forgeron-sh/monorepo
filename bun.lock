@@ -22,7 +22,7 @@
     },
     "apps/cli": {
       "name": "@forgeron/cli",
-      "version": "0.3.1",
+      "version": "0.5.0",
       "bin": {
         "forgeron": "./src/index.ts",
       },
@@ -164,7 +164,7 @@
     },
     "packages/manifest": {
       "name": "@forgeron/manifest",
-      "version": "0.3.1",
+      "version": "0.5.0",
       "dependencies": {
         "@forgeron/permissions": "workspace:*",
         "zod": "4.6.7",
@@ -175,7 +175,7 @@
     },
     "packages/permissions": {
       "name": "@forgeron/permissions",
-      "version": "0.3.1",
+      "version": "0.5.0",
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
       },
@@ -216,7 +216,7 @@
     },
     "packages/runtime": {
       "name": "@forgeron/runtime",
-      "version": "0.3.1",
+      "version": "0.5.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
         "kysely": "0.29.8",
@@ -235,7 +235,7 @@
     },
     "packages/sdk": {
       "name": "@forgeron/sdk",
-      "version": "0.3.1",
+      "version": "0.5.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
         "@forgeron/permissions": "workspace:*",

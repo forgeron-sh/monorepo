@@ -15,6 +15,10 @@ export class FakeCloudflare {
   readonly calls: string[] = [];
   readonly workers = new Map<string, { versions: Version[]; deployed?: string }>();
   readonly databases = new Map<string, { name: string; d1?: D1Database }>();
+  /** The Time Travel bookmarks handed out, by database id, oldest first. */
+  readonly bookmarks: { database: string; bookmark: string }[] = [];
+  /** A database whose Time Travel is refused (its id): the bookmark call fails with this status. */
+  readonly noTimeTravel = new Set<string>();
   readonly namespaces = new Map<string, string>();
   readonly buckets = new Set<string>();
   readonly dispatchNamespaces = new Set<string>();
@@ -127,6 +131,13 @@ export class FakeCloudflare {
       const d1 = this.backing(name);
       this.databases.set(uuid, { name, ...(d1 ? { d1 } : {}) });
       return { uuid, name };
+    }
+    if ((m = path.match(/^\/d1\/database\/([^/]+)\/time_travel\/bookmark$/)) && method === "GET") {
+      if (!this.databases.has(m[1]!)) throw this.fail(404, "no such database");
+      if (this.noTimeTravel.has(m[1]!)) throw this.fail(403, "Time Travel is not available");
+      const bookmark = `0000${String(this.bookmarks.length + 1).padStart(4, "0")}-bookmark`;
+      this.bookmarks.push({ database: m[1]!, bookmark });
+      return { bookmark };
     }
     if ((m = path.match(/^\/d1\/database\/([^/]+)\/query$/)) && method === "POST") {
       const d1 = this.databases.get(m[1]!)?.d1;

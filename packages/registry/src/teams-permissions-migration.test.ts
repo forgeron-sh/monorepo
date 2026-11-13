@@ -126,7 +126,8 @@ beforeEach(async () => {
     at,
   );
 
-  applied = (await applyMigrations(d1, platformMigrations)).applied;
+  // Up to this migration: the ones after it (a later module's) are not what is tested here.
+  applied = (await applyMigrations(d1, platformMigrations.slice(0, index + 1))).applied;
 });
 afterEach(() => memory.close());
 

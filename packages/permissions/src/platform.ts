@@ -97,6 +97,11 @@ export const PLATFORM = defineCatalog({
     label: "See usage",
     description: "See the workspace's usage and seats.",
   },
+  "platform:update": {
+    label: "Update Forgeron",
+    description: "Update this platform to a newer release, with a restore point of its database.",
+    implies: ["settings:read"],
+  },
 });
 
 export type PlatformPermission = keyof typeof PLATFORM.permissions;
@@ -122,7 +127,7 @@ export const PLATFORM_GROUPS: readonly { label: string; permissions: PlatformPer
   { label: "Members and teams", permissions: ["members:read", "members:write", "teams:write"] },
   { label: "Marketplaces", permissions: ["marketplace:read", "marketplace:write"] },
   { label: "Workspace", permissions: ["settings:read", "settings:write"] },
-  { label: "Operations", permissions: ["audit:read", "usage:read"] },
+  { label: "Operations", permissions: ["audit:read", "usage:read", "platform:update"] },
 ];
 
 /** What a team built into every workspace is given when it is created. */

@@ -6,6 +6,7 @@ import type { ConsolePerson } from "./app";
 /** Marks the 404 the tests give for a path that is no route (the gateway gives its own page). */
 export const NOT_A_ROUTE = "x-test-not-a-route";
 import { createPlatform } from "./platform";
+import { createPlatformUpdates, type PlatformUpdate } from "../platform-update/update";
 
 /**
  * The platform app as a test calls it: the person is whatever `who()` says at that moment (fields left
@@ -32,6 +33,8 @@ export function platformCaller(options: {
   officialMarketplace?: string;
   /** The token secret, for a route that issues a token (D-121). */
   tokenSecret?: string;
+  /** The platform updating itself (D-138); by default one that is off. */
+  update?: PlatformUpdate;
   /** `root` for the routes outside `/console-api` (`/github/…`, D-123). */
   surface?: "console" | "root";
 }) {
@@ -64,6 +67,14 @@ export function platformCaller(options: {
       now: options.now ?? (() => new Date()),
       ...(options.notify ? { notify: options.notify } : {}),
       hosting: options.hosting ?? (() => undefined),
+      update:
+        options.update ??
+        createPlatformUpdates({
+          env: { DB: undefined as never, SELF_UPDATE: "off" },
+          fetch: () => fetch,
+          now: () => new Date(),
+          current: { version: "0.0.0" },
+        }).of(options.registry),
       marketplaceFetch:
         options.marketplaceFetch ??
         (async () => {

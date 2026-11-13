@@ -14,6 +14,7 @@ import { identityStoreMigrations } from "./modules/identity-store/public";
 import { libraryMigrations } from "./modules/library/public";
 import { marketplacesMigrations } from "./modules/marketplaces/public";
 import { membersMigrations } from "./modules/members/public";
+import { platformUpdatesMigrations } from "./modules/platform-updates/public";
 import { secretsMigrations } from "./modules/secrets/public";
 import { teamsMigrations } from "./modules/teams/public";
 import { templatesMigrations } from "./modules/templates/public";
@@ -46,5 +47,6 @@ export const platformMigrations: BuildMigration[] = composeMigrations([
   libraryMigrations,
   usageMigrations,
   githubMigrations,
+  platformUpdatesMigrations,
   rootMigrations,
 ]);

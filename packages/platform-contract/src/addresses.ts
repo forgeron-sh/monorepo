@@ -123,6 +123,11 @@ import type {
   startConsentRoute,
   withdrawConsentRoute,
 } from "./consent";
+import type {
+  getPlatformUpdateRoute,
+  getPlatformUpdateRunRoute,
+  startPlatformUpdateRoute,
+} from "./platform-update";
 import type { auditRoute, putAvatarRoute, usageRoute, workspaceRoute } from "./workspace";
 import { addressOf } from "./route";
 
@@ -395,6 +400,18 @@ export const addresses = {
   setUserSecret: addressOf<typeof setUserSecretRoute>({
     method: "put",
     path: "/api/tools/{tool}/user-secrets/{person}/{name}",
+  }),
+  getPlatformUpdate: addressOf<typeof getPlatformUpdateRoute>({
+    method: "get",
+    path: "/api/platform/update",
+  }),
+  getPlatformUpdateRun: addressOf<typeof getPlatformUpdateRunRoute>({
+    method: "get",
+    path: "/api/platform/update/runs/{id}",
+  }),
+  startPlatformUpdate: addressOf<typeof startPlatformUpdateRoute>({
+    method: "post",
+    path: "/api/platform/update",
   }),
   resealSecrets: addressOf<typeof resealSecretsRoute>({
     method: "post",

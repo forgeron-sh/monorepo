@@ -12,6 +12,7 @@ import type {
 } from "@forgeron/registry";
 import type { MiddlewareHandler } from "hono";
 import type { Person } from "../kernel/person";
+import type { PlatformUpdate } from "../platform-update/update";
 
 // The platform API under `/console-api` as one Hono app (D-064, FOR-150). Routes move here one
 // handler at a time: Hono answers the paths it owns, and for any other path it answers 404 with
@@ -99,6 +100,8 @@ export interface PlatformBindings {
   officialMarketplace?: string;
   /** The hosting of the workspace, to reach a tool's database; `undefined` where there is none. */
   hosting(workspace: string): Hosting | undefined;
+  /** The platform updating itself from the console (D-138): what is newer, the run, its steps. */
+  update: PlatformUpdate;
   /** How long the explorer waits for a statement (default 10 s); tests shorten it. */
   databaseTimeoutMs?: number;
 }

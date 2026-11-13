@@ -197,6 +197,20 @@ export function officialMarketplaceSetting(repo: string | undefined): Setting {
 }
 
 /**
+ * `UPDATE_REPOSITORY` (D-138): the GitHub repository whose releases the console offers to update the
+ * platform to. Given with `--update-repository`, else kept from the previous version (the gateway
+ * defaults to the official repository when it has none).
+ */
+export function updateRepositorySetting(repo: string | undefined): Setting {
+  const name = "UPDATE_REPOSITORY";
+  if (repo === undefined) return { name, keep: true };
+  if (!REPO.test(repo)) {
+    throw new UsageError("--update-repository is a GitHub repository: owner/name.");
+  }
+  return { name, keep: false, given: { type: "plain_text", name, text: repo } };
+}
+
+/**
  * The bindings for a version. `existed`: the Worker had a version before, so the settings that can
  * be kept are asked from it; `lost` are the names Cloudflare said it could not supply.
  */

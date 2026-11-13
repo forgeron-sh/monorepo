@@ -450,6 +450,31 @@ describe("forgeron platform install", () => {
       ).rejects.toThrow("owner/name");
     });
 
+    it("binds the platform D1's id, and sets UPDATE_REPOSITORY, keeps it, and checks it (D-138)", async () => {
+      const cf = fakeCloudflare();
+      await platform(install([...OIDC, "--update-repository", "acme/forgeron"]), io, {
+        fetch: cf.fetcher,
+      });
+      expect(named(cf, "PLATFORM_D1_ID")).toEqual({
+        type: "plain_text",
+        name: "PLATFORM_D1_ID",
+        text: "db-1",
+      });
+      expect(named(cf, "UPDATE_REPOSITORY")).toEqual({
+        type: "plain_text",
+        name: "UPDATE_REPOSITORY",
+        text: "acme/forgeron",
+      });
+      expect(logs.join("\n")).toContain("Updates come from the releases of acme/forgeron");
+      await platform(install(OIDC), io, { fetch: cf.fetcher });
+      const raw = cf.calls.filter((c) => c.path.endsWith("/versions")).at(-1)!.body!;
+      expect(raw.bindings).toContainEqual({ type: "inherit", name: "UPDATE_REPOSITORY" });
+      expect(named(cf, "PLATFORM_D1_ID")?.text).toBe("db-1");
+      await expect(
+        platform(install(["--update-repository", "not a repo"]), io, { fetch: cf.fetcher }),
+      ).rejects.toThrow("owner/name");
+    });
+
     describe("tool bindings (D-032)", () => {
       const crm = { workspace: "acme", tool: "crm", environment: "production", branch: "" };
 
@@ -726,6 +751,18 @@ describe("forgeron platform install", () => {
       expect(output).not.toContain(SESSION);
     });
 
+    it("takes the token after the banner wrangler 4 prints, and the last line that looks like one", async () => {
+      delete process.env.CLOUDFLARE_API_TOKEN;
+      io.capture = vi.fn<NonNullable<Io["capture"]>>(async () => ({
+        code: 0,
+        stdout: ` ⛅️ wrangler 4.12.0\n───────────────────\n${SESSION}\n`,
+      }));
+      const cf = fakeCloudflare(SESSION);
+      expect(await platform(install(["--auth", "wrangler"]), io, { fetch: cf.fetcher })).toBe(0);
+      expect(JSON.stringify(cf.calls)).not.toContain(SESSION);
+      expect([...logs, ...errors].join("\n")).not.toContain(SESSION);
+    });
+
     it("stores GATEWAY_CLOUDFLARE_API_TOKEN as the gateway's secret when given", async () => {
       process.env.GATEWAY_CLOUDFLARE_API_TOKEN = GATEWAY;
       const cf = fakeCloudflare(SESSION);
@@ -779,7 +816,7 @@ describe("forgeron platform install", () => {
         },
         async () => ({ code: 1, stdout: SESSION }),
         async () => ({ code: 0, stdout: "" }),
-        async () => ({ code: 0, stdout: `${SESSION}\nother` }),
+        async () => ({ code: 0, stdout: " ⛅️ wrangler 4.12.0\n───────────\nnot logged in\n" }),
       ]) {
         io.capture = capture;
         const failure = await platform(install(["--auth", "wrangler"]), io, {
