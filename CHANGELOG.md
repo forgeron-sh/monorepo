@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/forgeron-sh/monorepo/compare/v0.6.0...v0.6.1) (2026-11-13)
+
+
+### Bug Fixes
+
+* **gateway:** the preflight of a page's call is answered on a preview too (D-134) ([de5e775](https://github.com/forgeron-sh/monorepo/commit/de5e7751db270209627c3dcd4a3622594821e42a))
+* **gateway:** the preflight of a page's call is answered on a preview too (D-134) ([1bc491e](https://github.com/forgeron-sh/monorepo/commit/1bc491e35148dc7f7308c6569149acabb92beb3b))
+
 ## [0.6.0](https://github.com/forgeron-sh/monorepo/compare/v0.5.0...v0.6.0) (2026-11-13)
 
 
