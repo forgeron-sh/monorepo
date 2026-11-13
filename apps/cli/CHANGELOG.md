@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.4.0](https://github.com/forgeron-sh/monorepo/compare/forgeron-v0.3.1...forgeron-v0.4.0) (2026-11-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* forgeron promote, POST /promote, POST /promote/plan, tool_promote and tool_promote_plan are removed; forgeron deploy has no --env and POST /deploy refuses environment production; a permanent channel refuses a build that is not a release (withoutRelease is gone).
+
+### Features
+
+* channels, permanent ones take only releases of their branch, no promotion (D-125) ([1174d32](https://github.com/forgeron-sh/monorepo/commit/1174d32089b9502ea5afb0f303cc6ed4e42387af))
+* **dev:** serve a tool's views in forgeron dev (D-130) ([21d52da](https://github.com/forgeron-sh/monorepo/commit/21d52dad652cd13fc307ee7fbcf4f80024eb0ed0))
+* **dev:** serve a tool's views in forgeron dev, built with a generated mount entry (D-130) ([f048fb2](https://github.com/forgeron-sh/monorepo/commit/f048fb2df1b70d31ba87405fd22f603715fde24a))
+* **gateway:** serve a tool's pages in production, so Open works (D-134) ([6b9f44b](https://github.com/forgeron-sh/monorepo/commit/6b9f44b4648624a85f7c5b5599a6b5ceb1ed999a))
+* **gateway:** serve a tool's pages in production, so Open works (D-134) ([b37e690](https://github.com/forgeron-sh/monorepo/commit/b37e69099b7455df5bb74e85d11264f479a3c4d5))
+* realtime, channels a tool declares, published by actions and followed live (D-135) ([5723bab](https://github.com/forgeron-sh/monorepo/commit/5723babce7c5ab26aee45917152306467248b335))
+* realtime, channels a tool declares, published by actions and followed live (D-135) ([278e5af](https://github.com/forgeron-sh/monorepo/commit/278e5af0dcb9793c01b96e1a16f4c4a424e0891c))
+* **sdk:** ctx.directory, the workspace's people a tool asked for (D-131) ([1991bee](https://github.com/forgeron-sh/monorepo/commit/1991beedfb0e4ffb4ef1ce893e4be7895ecafb9f))
+* **sdk:** ctx.directory, the workspace's people a tool asked for (D-131) ([092dc65](https://github.com/forgeron-sh/monorepo/commit/092dc658c19cab4b2ca14135ef8dd2a23c5e4175))
+* serve a workspace on any host, with one primary origin per workspace (D-126) ([88b431a](https://github.com/forgeron-sh/monorepo/commit/88b431aa09fad2cd96c85e95df6e867d8561ad0d))
+* serve a workspace on any host, with one primary origin per workspace (D-126) ([caf9baa](https://github.com/forgeron-sh/monorepo/commit/caf9baa767c0a705b8ac69e6756010df0c3c0622))
+* tool profiles mapped to workspace roles, admin all and member default profile (D-127) ([526bbbb](https://github.com/forgeron-sh/monorepo/commit/526bbbbc73bf9ccb9f442c9fc55645c2afe41a44))
+* tool profiles mapped to workspace roles, admin all and member default profile (D-127) ([3553f22](https://github.com/forgeron-sh/monorepo/commit/3553f223f73c34cf878ba0f9bcf371a4e41460e4))
+
+
+### Bug Fixes
+
+* **sdk:** export the directory types ([1d344d4](https://github.com/forgeron-sh/monorepo/commit/1d344d4a6ae49a0ad880bec497169205fb25802d))
+
 ## [0.3.1](https://github.com/forgeron-sh/monorepo/compare/forgeron-v0.3.0...forgeron-v0.3.1) (2026-11-12)
 
 
