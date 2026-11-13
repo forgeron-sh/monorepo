@@ -14,7 +14,11 @@ export interface Timings {
 export const timed = <T>(timings: Timings | undefined, step: string, run: () => Promise<T>) =>
   timings ? timings.time(step, run) : run();
 
-export function createTimings(now: () => number = () => performance.now()): Timings {
+export function createTimings(
+  now: () => number = () => performance.now(),
+  /** More entries for the header, read when it is made (what the database cost, D-143). */
+  extra: () => string[] = () => [],
+): Timings {
   const started = now();
   const steps = new Map<string, { ms: number; calls: number }>();
   return {
@@ -32,6 +36,7 @@ export function createTimings(now: () => number = () => performance.now()): Timi
         ([step, { ms, calls }]) =>
           `${step};dur=${ms.toFixed(1)}${calls > 1 ? `;desc="${calls} times"` : ""}`,
       );
+      parts.push(...extra());
       parts.push(`total;dur=${(now() - started).toFixed(1)}`);
       return parts.join(", ");
     },

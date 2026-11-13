@@ -48,29 +48,50 @@ export interface Resolved {
 }
 
 export function createCaller(options: CallerOptions) {
-  const toPerson = async (member: Member): Promise<Person> => ({
+  const toPerson = (member: Member, permissions: Person["permissions"]): Person => ({
     id: member.id,
     email: member.email,
     name: member.name,
     teams: member.teams,
     subjects: subjectsOf(member.teams),
-    permissions: await options.registry.platformPermissionsOf(member.workspace, member.id),
+    permissions,
   });
+  // The member and what their teams were given are read together: both are asked for by the same id.
   const personOf = async (workspace: string, id: string) => {
-    const member = await options.registry.findMember(workspace, id);
-    return member ? toPerson(member) : undefined;
+    const [member, permissions] = await Promise.all([
+      options.registry.findMember(workspace, id),
+      options.registry.platformPermissionsOf(workspace, id),
+    ]);
+    return member ? toPerson(member, permissions) : undefined;
   };
+  // A request is resolved once: the dispatcher, the preview check, the pages and the forwarding each ask who
+  // calls, and they ask about the same request.
+  const resolved = new WeakMap<Request, Map<string, Promise<Resolved | undefined>>>();
 
   return {
     /**
      * The person behind a request to this workspace, by session cookie, else by Bearer token, with
      * the audience the token was issued for. A revoked token is nobody (D-035).
      */
-    async identify(
+    identify(
       request: Request,
       workspace: string,
       /** Also accept a CLI token (`forgeron login`): for the platform's own routes only. */
       platform = false,
+    ): Promise<Resolved | undefined> {
+      const asked = resolved.get(request) ?? new Map<string, Promise<Resolved | undefined>>();
+      resolved.set(request, asked);
+      const key = `${workspace}\u0000${platform}`;
+      const known = asked.get(key);
+      if (known) return known;
+      const answer = this.identifyOnce(request, workspace, platform);
+      asked.set(key, answer);
+      return answer;
+    },
+    async identifyOnce(
+      request: Request,
+      workspace: string,
+      platform: boolean,
     ): Promise<Resolved | undefined> {
       const now = options.now();
       const session = await readSession(request, { secret: options.secret, workspace, now });
@@ -99,8 +120,11 @@ export function createCaller(options: CallerOptions) {
       }
       if (!check.ok || parseAudience(check.claims.aud)?.workspace !== workspace) return undefined;
       const { sub, jti, iat, aud } = check.claims;
-      if (await options.registry.isTokenRevoked(workspace, sub, jti, iat)) return undefined;
-      const person = await personOf(workspace, sub);
+      const [revoked, person] = await Promise.all([
+        options.registry.isTokenRevoked(workspace, sub, jti, iat),
+        personOf(workspace, sub),
+      ]);
+      if (revoked) return undefined;
       return person ? { person, audience: aud } : undefined;
     },
     /** The person behind a request, by session cookie, else by Bearer token. */

@@ -51,6 +51,24 @@ export function channelNameProblem(name: string): string | undefined {
   return undefined;
 }
 
+/** The columns of a build, and the ones a reader may leave out of the read. */
+const BUILD_COLUMNS = [
+  "id",
+  "tool_id",
+  "fingerprint",
+  "manifest",
+  "changelog",
+  "worker",
+  "migrations",
+  "views",
+  "created_at",
+] as const;
+export type BuildColumn = "changelog" | "worker" | "migrations" | "views";
+const buildColumns = (omit: readonly BuildColumn[] = []) =>
+  BUILD_COLUMNS.filter((c) => !(omit as readonly string[]).includes(c))
+    .map((c) => `"${c}"`)
+    .join(", ");
+
 export function createCatalog(kernel: Kernel) {
   const { d1, now, newId, all, first, write, auditStatement } = kernel;
   /** The content stored under a hash, whole. */
@@ -241,8 +259,46 @@ export function createCatalog(kernel: Kernel) {
       if (base64 === undefined) return undefined;
       return { ...file, bytes: Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)) };
     },
-    async getBuild(id: string): Promise<BuildRecord | undefined> {
-      const row = await first(`SELECT * FROM "builds" WHERE "id" = ?`, id);
+    /**
+     * A build. The Worker's code, the migrations and the views are large and most readers want the
+     * manifest only: `omit` leaves a column out of the read, so it is not carried from the database
+     * (`worker` alone is hundreds of kilobytes). Without `omit` the whole row is read.
+     */
+    async getBuild(
+      id: string,
+      options: { omit?: readonly BuildColumn[] } = {},
+    ): Promise<BuildRecord | undefined> {
+      const row = await first(
+        `SELECT ${buildColumns(options.omit)} FROM "builds" WHERE "id" = ?`,
+        id,
+      );
+      return row ? toBuild(row) : undefined;
+    },
+    /**
+     * The build an environment serves, in one read instead of three (environment, version, build):
+     * production, a permanent channel (`channel`) or a branch's temporary channel (`branch`).
+     * `undefined` when nothing is deployed there.
+     */
+    async servedBuild(
+      toolId: string,
+      served: { production: true } | { channel: string } | { branch: string },
+      options: { omit?: readonly BuildColumn[] } = {},
+    ): Promise<BuildRecord | undefined> {
+      const where =
+        "production" in served
+          ? [`e."name" = 'production'`]
+          : "channel" in served
+            ? [`e."name" = 'channel' AND e."channel" = ?`, served.channel]
+            : [`e."name" = 'preview' AND e."branch" = ?`, served.branch];
+      const columns = buildColumns(options.omit)
+        .split(", ")
+        .map((c) => `b.${c}`)
+        .join(", ");
+      const row = await first(
+        `SELECT ${columns} FROM "environments" e JOIN "versions" v ON v."id" = e."version_id" JOIN "builds" b ON b."id" = v."build_id" WHERE e."tool_id" = ? AND ${where[0]} LIMIT 1`,
+        toolId,
+        ...where.slice(1),
+      );
       return row ? toBuild(row) : undefined;
     },
 

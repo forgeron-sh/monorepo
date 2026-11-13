@@ -102,12 +102,12 @@ export function createMembers(kernel: Kernel, teams: TeamsPort) {
 
     // ---- members (D-027): the people of a workspace and their teams (D-137)
     async findMember(workspace: string, id: string): Promise<Member | undefined> {
-      const row = await first(
-        `SELECT * FROM "members" WHERE "workspace" = ? AND "id" = ?`,
-        workspace,
-        id,
-      );
-      return row ? toMember(row, await teamsOf(workspace, id)) : undefined;
+      // The member and their teams are read together: both are asked for by the same id.
+      const [row, teams] = await Promise.all([
+        first(`SELECT * FROM "members" WHERE "workspace" = ? AND "id" = ?`, workspace, id),
+        teamsOf(workspace, id),
+      ]);
+      return row ? toMember(row, teams) : undefined;
     },
     /** Who the identity provider's `subject` is in this workspace, if they are a member. */
     async findMemberBySubject(workspace: string, subject: string): Promise<Member | undefined> {

@@ -278,73 +278,106 @@ export async function forwardIdentity(
   const refused = wrongAudience(context.workspace, tool, who.audience);
   if (refused) return { refuse: refused };
   const record = await step("f.tool", () => context.registry.findTool(context.workspace, tool));
-  // A tool with a rule is reached only by the people who added it to their library and may still use
-  // it (D-117). A preview is for who holds `tools:read` already (`canPreview`).
-  if (record && environment === "production") {
-    const reach = await step("f.library", () =>
-      libraryAccess(context.registry, record.id, who.person),
-    );
-    if (reach !== "ok") {
-      return {
-        refuse: refuse(
-          403,
-          reach === "unavailable" ? "NOT_AVAILABLE" : "NOT_IN_LIBRARY",
-          reach === "unavailable"
-            ? `"${tool}" is not available to you: ask someone who can give access.`
-            : `Add "${tool}" to your library first: ${libraryPath(tool)}`,
-        ),
-      };
-    }
-  }
+  // Everything the call needs of the tool is asked at once (D-143): a read waits for the database, not for
+  // the one before it. The answers are used below in the order the rules need them, so a person the library
+  // refuses never gets anything else.
+  const subjects = who.person.subjects;
+  const none = { access: {}, permissions: {} };
+  const manifestRead = record
+    ? step("f.manifest", () => context.registry.currentManifest(record.id)).catch(
+        // No published version: no connector, no directory.
+        () => undefined as Manifest | undefined,
+      )
+    : Promise.resolve(undefined as Manifest | undefined);
   // What each of the person's subjects (`everyone`, their teams) is given in this tool, and the matrix
   // resolved for each action, read at each call so an edit applies at once on every interface (D-039,
-  // D-127, D-137).
+  // D-127, D-137): within the few seconds the registry keeps it (D-143).
+  const accessRead =
+    record === undefined
+      ? Promise.resolve(none)
+      : manifestRead.then((manifest) =>
+          manifest
+            ? step("f.access", () => context.registry.accessFor(record.id, subjects, manifest))
+            : none,
+        );
+  // A tool with a rule is reached only by the people who added it to their library and may still use
+  // it (D-117). A preview is for who holds `tools:read` already (`canPreview`).
+  const libraryRead =
+    record && environment === "production"
+      ? step("f.library", () => libraryAccess(context.registry, record.id, who.person))
+      : Promise.resolve("ok" as const);
+  // The secret of the most specific scope that fits where this call is served (D-109). Never kept by the
+  // registry's memory: read at each call.
+  const secretsRead: Promise<Record<string, string>> = record
+    ? step("f.secrets", () =>
+        context.registry.readUserSecrets(record.id, who.person.id, {
+          environment,
+          ...(branch !== undefined ? { branch } : {}),
+        }),
+      ).catch(() => ({}))
+    : Promise.resolve({});
+  const setupRead = record
+    ? step("f.setup", () => context.registry.readUserSetup(record.id, who.person.id))
+    : Promise.resolve({});
+  // A refusal below must not leave a read failing unseen.
+  for (const read of [manifestRead, accessRead, libraryRead, secretsRead, setupRead]) {
+    read.catch(() => undefined);
+  }
+
+  const reach = await libraryRead;
+  if (reach !== "ok") {
+    return {
+      refuse: refuse(
+        403,
+        reach === "unavailable" ? "NOT_AVAILABLE" : "NOT_IN_LIBRARY",
+        reach === "unavailable"
+          ? `"${tool}" is not available to you: ask someone who can give access.`
+          : `Add "${tool}" to your library first: ${libraryPath(tool)}`,
+      ),
+    };
+  }
   const teams = who.person.teams;
-  const { access, permissions } = record
-    ? await step("f.access", () => context.registry.accessFor(record.id, who.person.subjects))
-    : { access: {}, permissions: {} };
+  const { access, permissions } = await accessRead;
   const payload = wireUser(who.person, { access, permissions });
   const headers: Record<string, string> = {
     "x-forgeron-user": JSON.stringify(payload),
     "x-forgeron-base-url": `${new URL(request.url).origin}/t/${tool}`,
   };
   if (record) {
-    let own: Record<string, string> = {};
-    try {
-      // The secret of the most specific scope that fits where this call is served (D-109).
-      own = await step("f.secrets", () =>
-        context.registry.readUserSecrets(record.id, who.person.id, {
-          environment,
-          ...(branch !== undefined ? { branch } : {}),
-        }),
-      );
-    } catch {
-      // No platform key bound: the tool then sees none, and asks for them (428).
-    }
+    const own = await secretsRead;
     if (Object.keys(own).length > 0) headers["x-forgeron-user-secrets"] = JSON.stringify(own);
     // The person's plain values, always sent when the gateway knows the tool: an empty object tells the
     // tool that the gateway is the one keeping them, so a required field left out is asked for (D-097).
-    headers["x-forgeron-user-setup"] = JSON.stringify(
-      await step("f.setup", () => context.registry.readUserSetup(record.id, who.person.id)),
-    );
-    let manifest: Manifest | undefined;
-    try {
-      manifest = await step("f.manifest", () => context.registry.currentManifest(record.id));
-    } catch {
-      // No published version: no connector, no directory.
-    }
+    headers["x-forgeron-user-setup"] = JSON.stringify(await setupRead);
+    const manifest = await manifestRead;
     // What the tool asked to know of the workspace's people (D-131), filtered here to that and no more:
     // the runtime filters again. Only the members of this workspace, never a person's secrets.
     const asked = manifest?.resources?.directory;
-    // The person's own teams only reach a tool that asked for teams.
-    // And their own picture, only to a tool that asked for pictures (D-131, D-133).
-    const mine = asked?.avatars
-      ? await step("f.member", () => context.registry.findMember(context.workspace, who.person.id))
-      : undefined;
+    const connectorContext = context.connectors;
+    // Asked together, once the manifest says which: the person's own picture (only to a tool that asked for
+    // pictures, D-131, D-133), the people and the teams (the teams only to a tool that asked for them), and
+    // the connectors' tokens.
+    const [mine, everyone, all, connectors] = await Promise.all([
+      asked?.avatars
+        ? step("f.member", () => context.registry.findMember(context.workspace, who.person.id))
+        : undefined,
+      asked ? step("f.members", () => context.registry.listMembers(context.workspace)) : [],
+      asked?.teams ? step("f.teams", () => context.registry.listTeams(context.workspace)) : [],
+      connectorContext && manifest
+        ? step("f.connectors", () =>
+            connectorHeaders(record, manifest, who.person, environment, {
+              registry: context.registry,
+              workspace: context.workspace,
+              ...connectorContext,
+            }),
+          )
+        : undefined,
+    ]);
     const picture = mine?.avatar
       ? `${new URL(request.url).origin}/avatars/${who.person.id}?v=${encodeURIComponent(mine.avatar.version)}`
       : undefined;
     if (asked?.teams || picture) {
+      // The person's own teams only reach a tool that asked for teams.
       headers["x-forgeron-user"] = JSON.stringify({
         ...payload,
         ...(asked?.teams ? { teams } : {}),
@@ -352,25 +385,11 @@ export async function forwardIdentity(
       });
     }
     if (asked) {
-      const everyone = await step("f.members", () =>
-        context.registry.listMembers(context.workspace),
-      );
-      const all = asked.teams
-        ? await step("f.teams", () => context.registry.listTeams(context.workspace))
-        : [];
       headers["x-forgeron-directory"] = JSON.stringify(
         directoryFor(asked, everyone, all, new URL(request.url).origin),
       );
     }
-    const connectorContext = context.connectors;
-    if (connectorContext && manifest) {
-      const connectors = await step("f.connectors", () =>
-        connectorHeaders(record, manifest, who.person, environment, {
-          registry: context.registry,
-          workspace: context.workspace,
-          ...connectorContext,
-        }),
-      );
+    if (connectors) {
       if ("refuse" in connectors) return connectors;
       Object.assign(headers, connectors.headers);
     }
