@@ -729,6 +729,7 @@ export function createRequestModules(
           let caller: Promise<Person | undefined> | undefined;
           const person = () => (caller ??= identity.caller.mcpBearer(request, workspace));
           return createAdminMcp({
+            version: GATEWAY_VERSION,
             person,
             platform: async (call) => {
               const response = await modules.platform.fetch(

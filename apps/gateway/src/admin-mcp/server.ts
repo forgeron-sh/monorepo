@@ -16,6 +16,8 @@ export interface AdminMcpContext {
   person(): Promise<Person | undefined>;
   /** The platform's routes, called as that person. */
   platform: PlatformPort;
+  /** The release this gateway runs: the protocol wants a version in `serverInfo`. */
+  version: string;
 }
 
 const mayCall = (person: Person, tool: ToolDefinition) =>
@@ -124,7 +126,8 @@ export function createAdminMcp(context: AdminMcpContext) {
           result: {
             protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
             capabilities: { tools: { listChanged: false } },
-            serverInfo: { name: "forgeron", title: "Forgeron" },
+            // `version` is required by the protocol: a client that validates the answer (Claude Code) refuses a server without it.
+            serverInfo: { name: "forgeron", title: "Forgeron", version: context.version },
           },
         });
       }

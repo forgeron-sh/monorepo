@@ -782,6 +782,13 @@ describe("the protocol", () => {
     const init = await rpc(bearer, "initialize", { protocolVersion: "2025-06-18" });
     expect(init.result.protocolVersion).toBe("2025-06-18");
     expect(init.result.capabilities).toEqual({ tools: { listChanged: false } });
+    // The protocol requires a version in `serverInfo`, and Claude Code refuses a server without it.
+    expect(init.result.serverInfo).toEqual({
+      name: "forgeron",
+      title: "Forgeron",
+      version: expect.any(String),
+    });
+    expect(init.result.serverInfo.version).not.toBe("");
     expect((await rpc(bearer, "ping")).result).toEqual({});
     const note = await post(bearer, { jsonrpc: "2.0", method: "notifications/initialized" });
     expect(note.status).toBe(202);
