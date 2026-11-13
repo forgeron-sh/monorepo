@@ -91,6 +91,18 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     ...createUsage(kernel),
     ...createGithub(kernel),
     ...createPlatformUpdates(kernel),
+    /**
+     * The registry's generation (D-146): raised after a change, so that a memory of reads is checked with
+     * one small read. `0` on a database that has no generation yet.
+     */
+    async readRegistryGeneration(): Promise<number> {
+      const row = await kernel.first(`SELECT "n" FROM "registry_generation" WHERE "id" = 1`);
+      return Number(row?.n ?? 0);
+    },
+    /** Raises the registry's generation: every memory of reads made before it is out of date. */
+    async bumpRegistryGeneration(): Promise<void> {
+      await kernel.write(`UPDATE "registry_generation" SET "n" = "n" + 1 WHERE "id" = 1`);
+    },
   };
 }
 

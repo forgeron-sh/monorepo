@@ -8,7 +8,7 @@
 
 import { workspaceOf } from "../kernel/workspace";
 import { createTimings, timed, type Timings } from "./timing";
-import { d1Entries, withD1Stats } from "./d1-probe";
+import { apartFromD1Stats, d1Entries, withD1Stats } from "./d1-probe";
 
 // Re-exported for the gateway and the tests: the function lives in the kernel (no cycle with identity).
 export { workspaceOf };
@@ -360,7 +360,8 @@ export function createDispatcher(options: DispatcherOptions) {
           // Counting must never stop a person from working.
         }
       };
-      if (options.defer) options.defer(count());
+      // Counted apart: the call does not wait for it, its `Server-Timing` does not tell it (D-146).
+      if (options.defer) options.defer(apartFromD1Stats(count));
       else await timed(timings, "seat", count);
     }
 

@@ -1384,5 +1384,26 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0044_registry_generation",
+    "fingerprint": "registry-generation-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"registry_generation\" (\n  \"id\" INTEGER PRIMARY KEY NOT NULL CHECK (\"id\" = 1),\n  \"n\" INTEGER NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT INTO \"registry_generation\" (\"id\", \"n\") VALUES (1, 0)",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"registry_generation\"",
+        "parameters": []
+      }
+    ]
   }
 ]

@@ -150,3 +150,96 @@ describe("the registry of the path of a call (D-143)", () => {
     expect(calls).toEqual(["currentManifest t1"]);
   });
 });
+
+describe("a memory checked against the registry's generation (D-146)", () => {
+  /** The fake registry, with a generation that every write through the gateway raises. */
+  function generational() {
+    const base = fake();
+    let n = 0;
+    const raw = Object.assign(base.raw, {
+      async readRegistryGeneration() {
+        base.calls.push("generation");
+        return n;
+      },
+      async bumpRegistryGeneration() {
+        n += 1;
+      },
+    });
+    return {
+      ...base,
+      registry: raw as unknown as Registry,
+      /** A change made elsewhere: another Worker, through its own memory. */
+      elsewhere: () => {
+        n += 1;
+      },
+    };
+  }
+  const reads = (calls: string[]) => calls.filter((c) => c !== "generation");
+
+  it("keeps an answer for minutes while the generation does not move", async () => {
+    let clock = 0;
+    const { registry, calls } = generational();
+    const { hot } = createHotRegistry(registry, { now: () => clock });
+    await hot.findTool("acme", "crm");
+    clock = 4 * 60_000;
+    await hot.findTool("acme", "crm");
+    expect(reads(calls)).toEqual(["findTool acme/crm"]);
+    clock = 5 * 60_000;
+    await hot.findTool("acme", "crm");
+    expect(reads(calls)).toHaveLength(2);
+  });
+
+  it("reads again once another Worker changed something, past the seconds of D-143", async () => {
+    let clock = 0;
+    const { registry, calls, elsewhere } = generational();
+    const { hot } = createHotRegistry(registry, { now: () => clock });
+    await hot.findTool("acme", "crm");
+    elsewhere();
+    clock = 9_999;
+    // Within the seconds of D-143: used as it is, no question at all.
+    await hot.findTool("acme", "crm");
+    expect(calls).toEqual(["findTool acme/crm", "generation"]);
+    clock = 10_000;
+    await hot.findTool("acme", "crm");
+    expect(reads(calls)).toHaveLength(2);
+  });
+
+  it("checks the generation at most once a second, and only past the seconds of D-143", async () => {
+    let clock = 0;
+    const { registry, calls } = generational();
+    const { hot } = createHotRegistry(registry, { now: () => clock });
+    await Promise.all([hot.findTool("acme", "crm"), hot.accessFor("t1", ["everyone"])]);
+    expect(calls.filter((c) => c === "generation")).toHaveLength(1);
+    clock = 20_000;
+    await Promise.all([hot.findTool("acme", "crm"), hot.accessFor("t1", ["everyone"])]);
+    expect(calls.filter((c) => c === "generation")).toHaveLength(2);
+    expect(reads(calls)).toHaveLength(2);
+  });
+
+  it("raises the generation after a write through it, so that the other Workers read again", async () => {
+    let clock = 0;
+    const { registry, calls } = generational();
+    const mine = createHotRegistry(registry, { now: () => clock });
+    const other = createHotRegistry(registry, { now: () => clock });
+    await other.hot.findTool("acme", "crm");
+    await mine.tracked.deleteTool("t1");
+    clock = 10_000;
+    expect(await other.hot.findTool("acme", "crm")).toBeUndefined();
+    expect(reads(calls).filter((c) => c.startsWith("findTool"))).toHaveLength(2);
+  });
+
+  it("goes back to the seconds of D-143 when the generation cannot be read", async () => {
+    let clock = 0;
+    const { registry, calls } = generational();
+    (
+      registry as unknown as { readRegistryGeneration: () => Promise<number> }
+    ).readRegistryGeneration = async () => {
+      throw new Error("no such table: registry_generation");
+    };
+    const { hot } = createHotRegistry(registry, { now: () => clock });
+    await hot.findTool("acme", "crm");
+    clock = 10_000;
+    await hot.findTool("acme", "crm");
+    expect(reads(calls)).toHaveLength(2);
+  });
+});
