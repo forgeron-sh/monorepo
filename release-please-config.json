@@ -6,7 +6,7 @@
   "changelog-path": "CHANGELOG.md",
   "include-component-in-tag": true,
   "packages": {
-    ".": { "component": "platform", "include-component-in-tag": false },
+    ".": { "package-name": "", "include-component-in-tag": false },
     "packages/permissions": { "component": "permissions" },
     "packages/manifest": { "component": "manifest" },
     "packages/runtime": { "component": "runtime" },
@@ -17,7 +17,7 @@
     {
       "type": "linked-versions",
       "groupName": "forgeron",
-      "components": ["platform", "permissions", "manifest", "runtime", "sdk", "forgeron"]
+      "components": ["permissions", "manifest", "runtime", "sdk", "forgeron"]
     }
   ]
 }

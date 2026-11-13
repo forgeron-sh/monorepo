@@ -138,6 +138,7 @@ Rules of the log:
 | D-137 | 13/11/2026 | No roles: teams, `everyone`, atomic platform permissions given to teams, one permission engine                                                                                                               | Active                                        |
 | D-138 | 13/11/2026 | The platform is updated from the console: a release carries the built platform, the gateway takes a restore point, migrates and deploys itself                                                               | Active                                        |
 | D-139 | 13/11/2026 | The admin MCP offers the rest of the console: one tool per route of the platform contract, secrets and tokens left out                                                                                       | Active                                        |
+| D-140 | 13/11/2026 | The platform's release has no release-please component, so that it is tagged `v<version>` whoever else changes in the same release                                                                           | Active                                        |
 
 ---
 
@@ -1840,3 +1841,12 @@ Rules of the log:
 - **Rejected**: a tool that returns a sign-in code (D-049 stores it as a hash: it cannot be read back, and keeping it in the clear would weaken the sign-in); one that reads the Worker's logs (the Workers API for it is not used by any part of the platform yet: to decide before building it); setting the sign-in provider or a secret (they carry a secret); a second, hand-written list of tools (it would drift).
 - **Not done**: reading logs; per-tool actions of a person's own library; the CSV export of a table.
 - **Applied in**: `apps/gateway/src/admin-mcp/{kit,tools,tools-admin}.ts`; `apps/gateway/src/integration/gateway-admin-mcp.test.ts`; `docs/sdk.md` §17.
+
+## D-140 — The platform's release has no release-please component
+
+- **Date**: 13/11/2026 · **Status**: Active · Builds on D-122 (released together), D-138 (the platform artifact)
+- **Decision**: in `release-please-config.json` the root path has **no `component`** (`"package-name": ""`, `include-component-in-tag: false`), and `platform` leaves the linked versions' list. Its release is tagged `v<version>`, whatever else is released. `scripts/release-config.test.ts` keeps it so.
+- **Why**: a release PR whose body has **one section and no component** is read by release-please as a standalone release: it compares the component of the PR's branch (none) with the one configured for the path. With `"component": "platform"` on the root they differ, so release-please logs `PR component: undefined does not match configured component: platform`, tags nothing, and the PR stays `autorelease: pending`: no `v<version>`, no GitHub release, no `platform-artifact` job (the console then says the release cannot be installed from it), and **every later release PR is refused** (`untagged, merged release PRs outstanding`). A root-only change (a gateway fix) makes exactly that body: it happened with 0.6.1. Replayed against release-please 17.3.0 on the body of a real release PR: the old config gives no release, the new one `v0.7.0`.
+- **Rejected**: giving the root a component in its tag (`platform-v0.7.0`): the deploy action of a tool's repository is referenced as `.../actions/deploy@v<version>`, and the root's tag is that; a step that creates the plain tag next to it would be one more thing to break; tagging by hand after each release (what 0.6.1 needed).
+- **Not done**: the root is **not** in the linked group (release-please skips a path whose component is empty in a tag-less config: `LinkedVersions.preconfigure`). A release of the packages with no change at the root would give the CLI a version with no `v<version>` tag for the action it writes into new tools' workflows. Today almost every change touches the root (docs, decisions); the day one does not, the root has to be made to follow.
+- **Applied in**: `release-please-config.json`; `scripts/release-config.test.ts`; `docs/ARCHITECTURE.md`.
