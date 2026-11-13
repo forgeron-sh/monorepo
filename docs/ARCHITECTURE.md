@@ -132,6 +132,7 @@ apps/gateway/src/
 ├── deploy/             # receiving a build, calling @forgeron/hosting, traffic switch
 ├── marketplace/        # reading a marketplace on GitHub, syncing its bundles into the registry (D-116)
 ├── github/             # the workspace's GitHub App and GitHub Actions' identity: its client, webhook, commit status (D-123)
+├── platform-update/    # the platform updating itself from the console: the release, its artifact, the run (D-138)
 ├── sources/            # where a tool comes from: its update, putting it in production, copying a branch's data (D-121)
 ├── admin-mcp/          # admin MCP tools (sdk.md §17)
 ├── console-api/        # API consumed by apps/console

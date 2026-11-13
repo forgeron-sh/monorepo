@@ -161,6 +161,18 @@ describe("binding a tool Worker to the gateway", () => {
   });
 });
 
+describe("uploading the gateway as it is stored (D-138)", () => {
+  it("uploads a new version with every binding carried over and none added, and deploys it", async () => {
+    await gateway.redeploy();
+    expect(gatewayUploads()).toHaveLength(1);
+    const sent = cloud.uploads.at(-1)!;
+    expect(sent.bindings).toEqual(known.map((name) => ({ type: "inherit", name })));
+    expect(JSON.stringify(sent)).not.toContain(SECRET);
+    expect(cloud.workers.get(GATEWAY)!.deployed).toBe(gatewayVersions().at(-1)!.id);
+    expect(cloud.calls.at(-1)).toBe(`POST /workers/scripts/${GATEWAY}/deployments`);
+  });
+});
+
 describe("tearing a tool Worker down", () => {
   it("removes its binding, and only that one, before the Worker is deleted", async () => {
     await deploy(hosting, production, build("v1"));

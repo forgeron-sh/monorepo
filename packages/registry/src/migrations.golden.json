@@ -1359,5 +1359,30 @@
       }
     ],
     "down": []
+  },
+  {
+    "name": "0043_platform_updates",
+    "fingerprint": "platform-updates-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "CREATE TABLE \"platform_updates\" (\n  \"id\" TEXT PRIMARY KEY NOT NULL,\n  \"from_version\" TEXT NOT NULL,\n  \"to_version\" TEXT NOT NULL,\n  \"state\" TEXT NOT NULL CHECK (\"state\" IN ('running', 'succeeded', 'failed')),\n  \"steps\" TEXT NOT NULL,\n  \"bookmark\" TEXT,\n  \"actor\" TEXT NOT NULL,\n  \"started_at\" TEXT NOT NULL,\n  \"finished_at\" TEXT,\n  \"error\" TEXT\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE UNIQUE INDEX \"platform_updates_one_running\" ON \"platform_updates\" (\"state\") WHERE \"state\" = 'running'",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE INDEX \"platform_updates_by_start\" ON \"platform_updates\" (\"started_at\")",
+        "parameters": []
+      }
+    ],
+    "down": [
+      {
+        "sql": "DROP TABLE \"platform_updates\"",
+        "parameters": []
+      }
+    ]
   }
 ]

@@ -106,6 +106,15 @@ export interface GatewayEnv {
    * syncs into the template catalogue `@templates`. Unset: the official catalogue is filled another way.
    */
   OFFICIAL_MARKETPLACE?: string;
+  /**
+   * Self-host, set by `forgeron platform install` (D-138): the id of the platform D1, which the
+   * update asks Cloudflare for a Time Travel restore point of. An install made before it has none.
+   */
+  PLATFORM_D1_ID?: string;
+  /** Where the releases an update installs come from (`owner/name`); `forgeron-sh/monorepo` when unset. */
+  UPDATE_REPOSITORY?: string;
+  /** `off` turns the update from the console off (D-138). Always off on the cloud. */
+  SELF_UPDATE?: string;
   /** The service bindings of self-host, and whatever else the Worker is given. */
   [binding: string]: unknown;
 }
@@ -115,7 +124,11 @@ export interface GatewayEnv {
  * (D-029, D-032). It needs to know its own name (`GATEWAY_WORKER`, set by `platform install`) and
  * holds its code in the platform D1; without either, nothing is bound, as before.
  */
-export function gatewayBindingsOf(env: GatewayEnv): GatewayBindings | undefined {
+export function gatewayBindingsOf(
+  env: GatewayEnv,
+  /** The `fetch` that reaches Cloudflare: the platform's own by default, a simulated account in tests. */
+  options: { fetch?: typeof fetch } = {},
+): GatewayBindings | undefined {
   if (
     typeof env.GATEWAY_WORKER !== "string" ||
     !env.CLOUDFLARE_ACCOUNT_ID ||
@@ -127,6 +140,7 @@ export function gatewayBindingsOf(env: GatewayEnv): GatewayBindings | undefined 
     createCloudflareClient({
       accountId: env.CLOUDFLARE_ACCOUNT_ID,
       apiToken: env.CLOUDFLARE_API_TOKEN,
+      ...(options.fetch ? { fetch: options.fetch } : {}),
     }),
     {
       worker: env.GATEWAY_WORKER,

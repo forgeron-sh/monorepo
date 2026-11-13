@@ -123,7 +123,7 @@ const routes: RouteDef[] = [
     settings: { group: "operations", label: "Install information" },
     page: adapt(
       () => import("../../settings").then((m) => m.InstallPage),
-      ({ ws }) => ({ ws }),
+      ({ api, ws }) => ({ api, ws }),
     ),
   },
 ];

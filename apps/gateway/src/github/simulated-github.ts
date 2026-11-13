@@ -63,6 +63,17 @@ export interface SimulatedRun {
   html_url: string;
 }
 
+/** A release of a simulated public repository: what `GET /repos/{repo}/releases` lists, and its files. */
+export interface SimulatedRelease {
+  tag: string;
+  body: string;
+  draft: boolean;
+  prerelease: boolean;
+  publishedAt: string;
+  /** The files attached to the release, by name. */
+  files: Record<string, string | Uint8Array>;
+}
+
 export async function simulatedGithub(options: { now: () => Date; account?: string }) {
   const account = options.account ?? "acme-sh";
   const actions = await rsa();
@@ -86,6 +97,10 @@ export async function simulatedGithub(options: { now: () => Date; account?: stri
     runs: new Map<string, SimulatedRun[]>(),
     /** Whether the app may read Actions: an installation made before it asked for it may not. */
     actionsAllowed: true,
+    /** The releases of each public repository (lower case `owner/name`), in the order added. */
+    releases: new Map<string, SimulatedRelease[]>(),
+    /** The `authorization` header of every request for releases or their files: none is ever sent (D-138). */
+    releaseAuthorizations: [] as (string | null)[],
     statuses: [] as { repo: string; sha: string; body: Record<string, unknown> }[],
     calls: [] as string[],
     webhookSecret: "simulated-webhook-secret",
@@ -105,6 +120,24 @@ export async function simulatedGithub(options: { now: () => Date; account?: stri
     };
     state.repositories.set(fullName.toLowerCase(), repo);
     return repo;
+  };
+
+  /** Adds a release to a public repository, and the files it carries. */
+  const addRelease = (
+    repository: string,
+    release: Partial<SimulatedRelease> & { tag: string },
+  ): SimulatedRelease => {
+    const added: SimulatedRelease = {
+      body: "",
+      draft: false,
+      prerelease: false,
+      publishedAt: options.now().toISOString(),
+      files: {},
+      ...release,
+    };
+    const key = repository.toLowerCase();
+    state.releases.set(key, [...(state.releases.get(key) ?? []), added]);
+    return added;
   };
 
   /** A GitHub Actions identity token for a run of `repository`, for `audience`. */
@@ -163,7 +196,41 @@ export async function simulatedGithub(options: { now: () => Date; account?: stri
     if (url.origin === ACTIONS_ISSUER && route === "/.well-known/jwks") {
       return Response.json({ keys: [actionsJwk] });
     }
+    // Public releases, as anyone reads them with no token (D-138): the list, then each file.
+    if (url.origin === "https://github.com") {
+      state.releaseAuthorizations.push(request.headers.get("authorization"));
+      m = /^\/([^/]+\/[^/]+)\/releases\/download\/([^/]+)\/([^/]+)$/.exec(route);
+      const file = m
+        ? state.releases.get(m[1]!.toLowerCase())?.find((r) => r.tag === decodeURIComponent(m![2]!))
+            ?.files[decodeURIComponent(m[3]!)]
+        : undefined;
+      return file === undefined
+        ? new Response("Not Found", { status: 404 })
+        : new Response(file, {
+            headers: {
+              "content-length": String(
+                typeof file === "string" ? new TextEncoder().encode(file).length : file.length,
+              ),
+            },
+          });
+    }
     if (url.origin !== "https://api.github.com") return new Response("nope", { status: 404 });
+    if ((m = /^\/repos\/([^/]+\/[^/]+)\/releases$/.exec(route)) && request.method === "GET") {
+      state.releaseAuthorizations.push(request.headers.get("authorization"));
+      const list = state.releases.get(decodeURIComponent(m[1]!).toLowerCase());
+      if (!list) return Response.json({ message: "Not Found" }, { status: 404 });
+      return Response.json(
+        list.map((r) => ({
+          tag_name: r.tag,
+          draft: r.draft,
+          prerelease: r.prerelease,
+          published_at: r.publishedAt,
+          html_url: `https://github.com/${m![1]}/releases/tag/${r.tag}`,
+          body: r.body,
+          assets: Object.keys(r.files).map((name) => ({ name })),
+        })),
+      );
+    }
 
     if ((m = /^\/app-manifests\/([^/]+)\/conversions$/.exec(route)) && request.method === "POST") {
       if (!state.codes.delete(m[1]!))
@@ -324,5 +391,5 @@ export async function simulatedGithub(options: { now: () => Date; account?: stri
     });
   };
 
-  return { fetch: fetcher, state, actionsToken, addRepository, deliver, pem, appJwk };
+  return { fetch: fetcher, state, actionsToken, addRepository, addRelease, deliver, pem, appJwk };
 }

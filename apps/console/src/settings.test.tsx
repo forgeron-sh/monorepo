@@ -27,6 +27,8 @@ const ws = (patch: Partial<WorkspaceInfo> = {}): WorkspaceInfo => ({
   ...patch,
 });
 
+const UP_TO_DATE = { current: { version: "0.2.0" }, available: false };
+
 const CERT = "-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----";
 
 describe("loadProvider", () => {
@@ -212,14 +214,17 @@ describe("SignInPage", () => {
   });
 
   it("shows the install", async () => {
-    const page = await mount(<InstallPage ws={ws()} />);
+    const { api } = fakeApi({ "/api/platform/update": UP_TO_DATE });
+    const page = await mount(<InstallPage api={api} ws={ws()} />);
     expect(page.textContent).toContain("example.test");
     expect(page.textContent).toContain("forgeron platform install");
   });
 
   it("shows the gateway's version and commit (D-123)", async () => {
+    const { api } = fakeApi({ "/api/platform/update": UP_TO_DATE });
     const page = await mount(
       <InstallPage
+        api={api}
         ws={{
           ...ws(),
           install: { baseDomain: "example.test", version: "0.2.0", commit: "f95958b0c1a2d3e4" },

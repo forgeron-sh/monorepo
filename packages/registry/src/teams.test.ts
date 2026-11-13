@@ -68,7 +68,7 @@ describe("teams (D-132, D-137)", () => {
       permissions: ["*"],
       members: [ada],
     });
-    expect(admin?.effective).toHaveLength(18);
+    expect(admin?.effective).toHaveLength(19);
     expect(developer).toMatchObject({ id: "developer", builtIn: true, locked: false });
     expect(developer?.permissions).toContain("tools:publish");
     await expect(

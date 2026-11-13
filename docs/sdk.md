@@ -153,26 +153,27 @@ The tool's version is not in the config: it comes from `package.json` and only c
 
 Using a tool is one thing; administering the workspace is another. The platform has its own **atomic permissions**. A team is given some of them, and a person holds the union of their teams'. Every platform route, the admin MCP's tools and the console's navigation read them. A write implies its read.
 
-| Permission          | What it opens                                                                                                    |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `tools:read`        | See tools: every tool, its channels, releases, logs and database schema                                          |
-| `tools:write`       | Build tools: create a tool, link or create from a GitHub repository, deploy drafts, change channels and settings |
-| `tools:publish`     | Publish tools: publish a channel's version to the people who use it, or roll it back                             |
-| `tools:approve`     | Approve what tools ask for: secrets, connectors, network and directory, and revoke them                          |
-| `tools:data`        | Query tool data: run queries on a tool's database, copy data between its channels                                |
-| `tools:secrets`     | Set tool secrets: set and reseal the secrets a tool runs with                                                    |
-| `tools:delete`      | Delete tools: a tool for good, with its channels, data and access                                                |
-| `access:read`       | See access: who may use each tool, and with which profile                                                        |
-| `access:write`      | Give access: change which teams may use a tool, with which profile, and its exceptions                           |
-| `members:read`      | See members: the members, the pending invitations and who joins by domain                                        |
-| `members:write`     | Manage members: invite and remove members, set who joins by domain, revoke connections                           |
-| `teams:write`       | Manage teams: create, rename and delete teams, change who is in them and what they may do                        |
-| `marketplace:read`  | See marketplaces: browse the workspace's marketplaces and their tools                                            |
-| `marketplace:write` | Manage marketplaces: add, sync and remove marketplaces, and install their tools                                  |
-| `settings:read`     | See settings: general, sign-in, domains, GitHub                                                                  |
-| `settings:write`    | Change settings: sign-in and its provider, domains, GitHub, connector clients                                    |
-| `audit:read`        | Read the audit log: every change made on the workspace, and by whom                                              |
-| `usage:read`        | See usage: the workspace's usage and seats                                                                       |
+| Permission          | What it opens                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `tools:read`        | See tools: every tool, its channels, releases, logs and database schema                                                  |
+| `tools:write`       | Build tools: create a tool, link or create from a GitHub repository, deploy drafts, change channels and settings         |
+| `tools:publish`     | Publish tools: publish a channel's version to the people who use it, or roll it back                                     |
+| `tools:approve`     | Approve what tools ask for: secrets, connectors, network and directory, and revoke them                                  |
+| `tools:data`        | Query tool data: run queries on a tool's database, copy data between its channels                                        |
+| `tools:secrets`     | Set tool secrets: set and reseal the secrets a tool runs with                                                            |
+| `tools:delete`      | Delete tools: a tool for good, with its channels, data and access                                                        |
+| `access:read`       | See access: who may use each tool, and with which profile                                                                |
+| `access:write`      | Give access: change which teams may use a tool, with which profile, and its exceptions                                   |
+| `members:read`      | See members: the members, the pending invitations and who joins by domain                                                |
+| `members:write`     | Manage members: invite and remove members, set who joins by domain, revoke connections                                   |
+| `teams:write`       | Manage teams: create, rename and delete teams, change who is in them and what they may do                                |
+| `marketplace:read`  | See marketplaces: browse the workspace's marketplaces and their tools                                                    |
+| `marketplace:write` | Manage marketplaces: add, sync and remove marketplaces, and install their tools                                          |
+| `settings:read`     | See settings: general, sign-in, domains, GitHub                                                                          |
+| `settings:write`    | Change settings: sign-in and its provider, domains, GitHub, connector clients                                            |
+| `audit:read`        | Read the audit log: every change made on the workspace, and by whom                                                      |
+| `usage:read`        | See usage: the workspace's usage and seats                                                                               |
+| `platform:update`   | Update Forgeron: update this platform to a newer release, with a restore point of its database (implies `settings:read`) |
 
 Two teams are built into every workspace and cannot be deleted. **Admins** (`admin`) holds every permission, now and to come (`*`): it is locked, and it is never left empty. **Developers** (`developer`) builds, deploys and publishes tools (`tools:write`, `tools:publish`, `tools:data`, `access:read`, `marketplace:read`); its permissions can be edited. An admin creates any other team and chooses what it holds.
 

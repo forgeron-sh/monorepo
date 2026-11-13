@@ -101,6 +101,20 @@ describe("the platform catalog", () => {
     expect(platformPermissions(["nobody"], grants)).toEqual([]);
   });
 
+  it("lets a person update the platform with settings:read, in Operations, and admins through *", () => {
+    expect(holds(PLATFORM, ["platform:update"], "settings:read")).toBe(true);
+    expect(holds(PLATFORM, ["platform:update"], "settings:write")).toBe(false);
+    expect(holds(PLATFORM, ["settings:write"], "platform:update")).toBe(false);
+    expect(PLATFORM_GROUPS.find((g) => g.label === "Operations")?.permissions).toContain(
+      "platform:update",
+    );
+    expect(PLATFORM.permissions["platform:update"].label).toBe("Update Forgeron");
+    const grants = Object.fromEntries(BUILT_IN_TEAMS.map((t) => [t.id, t.permissions]));
+    expect(platformPermissions(["admin"], grants)).toContain("platform:update");
+    expect(platformPermissions(["developer"], grants)).not.toContain("platform:update");
+    expect(minimal(PLATFORM, ["settings:read", "platform:update"])).toEqual(["platform:update"]);
+  });
+
   it("makes every write imply its read", () => {
     const pairs = PLATFORM_PERMISSIONS.filter((p) => p.endsWith(":write"))
       .map((p) => [p, p.replace(/:write$/, ":read")] as const)

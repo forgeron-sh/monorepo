@@ -124,6 +124,7 @@ export const TEAMS = [
       "settings:write",
       "audit:read",
       "usage:read",
+      "platform:update",
     ],
   },
   {

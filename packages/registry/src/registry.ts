@@ -14,6 +14,7 @@ import { createIdentityStore } from "./modules/identity-store/public";
 import { createLibrary } from "./modules/library/public";
 import { createMarketplaces } from "./modules/marketplaces/public";
 import { createMembers } from "./modules/members/public";
+import { createPlatformUpdates } from "./modules/platform-updates/public";
 import { createTeams } from "./modules/teams/public";
 import { createSecrets } from "./modules/secrets/public";
 import { createTemplates } from "./modules/templates/public";
@@ -59,6 +60,14 @@ export {
 export type { Availability, AvailabilityMode } from "./modules/library/public";
 export type { Marketplace } from "./modules/marketplaces/public";
 export type { GithubApp, GithubAppKeys, GithubInstallation } from "./modules/github/public";
+export { UPDATE_STEPS } from "./modules/platform-updates/public";
+export type {
+  UpdateRun,
+  UpdateRunState,
+  UpdateStep,
+  UpdateStepName,
+  UpdateStepState,
+} from "./modules/platform-updates/public";
 
 export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   const kernel = createKernel(d1, options);
@@ -81,6 +90,7 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
     ...createLibrary(kernel),
     ...createUsage(kernel),
     ...createGithub(kernel),
+    ...createPlatformUpdates(kernel),
   };
 }
 

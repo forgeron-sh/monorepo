@@ -27,6 +27,7 @@ export {
   RegistryError,
   secretEnvironmentOf,
   TEMPLATE_WORKSPACE,
+  UPDATE_STEPS,
   VIA_FORGERON_MCP,
 } from "./registry";
 export type {
@@ -39,6 +40,11 @@ export type {
   Marketplace,
   PermanentChannel,
   ToolSource,
+  UpdateRun,
+  UpdateRunState,
+  UpdateStep,
+  UpdateStepName,
+  UpdateStepState,
 } from "./registry";
 export { docsProblem } from "./docs-check";
 export { listCatalog, findCard, findAsset, assetUrl } from "./catalog";

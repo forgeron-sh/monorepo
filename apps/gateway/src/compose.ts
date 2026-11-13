@@ -21,6 +21,8 @@ import { createCloudHosting, createSelfHostHosting, type Hosting } from "@forger
 import { gatewayBindingsOf, type GatewayEnv } from "./env";
 import type { PlatformBindings } from "./platform/app";
 import { createPlatform } from "./platform/platform";
+import { createPlatformUpdates } from "./platform-update/update";
+import { GATEWAY_COMMIT, GATEWAY_VERSION } from "./version";
 import {
   createDispatcher,
   createToolCaller,
@@ -167,6 +169,16 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
         ...(box ? { box, resealer: createReseal(env.DB, box) } : {}),
       };
     })());
+
+  // The platform updating itself (D-138): built once, it keeps the latest release in memory.
+  const updates = createPlatformUpdates({
+    env,
+    fetch: () => options.fetch ?? fetch,
+    now,
+    ...(options.defer ? { defer: options.defer } : {}),
+    current: { version: GATEWAY_VERSION, ...(GATEWAY_COMMIT ? { commit: GATEWAY_COMMIT } : {}) },
+    gateway: (fetcher) => gatewayBindingsOf(env, { fetch: fetcher }),
+  });
 
   // Which workspace a host serves, and each workspace's primary origin (D-126).
   const hosts = workspaceHosts(env);
@@ -507,6 +519,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
     options,
     now,
     platform,
+    updates,
     parts,
     hosts,
     originOf,
@@ -617,6 +630,7 @@ export function createRequestModules(
     githubFetch: async (u, init) => (options.fetch ?? fetch)(u, init),
     ...(env.OFFICIAL_MARKETPLACE ? { officialMarketplace: env.OFFICIAL_MARKETPLACE } : {}),
     hosting: (ws: string) => modules.hostingOf(ws, request),
+    update: modules.updates.of(registry),
     ...(identity
       ? {
           bearer: {

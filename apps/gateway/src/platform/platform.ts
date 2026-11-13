@@ -15,6 +15,7 @@ import { mountSecretRequests } from "./secret-requests";
 import { mountSecrets } from "./secrets";
 import { mountLibrary } from "./library";
 import { mountMarketplaces } from "./marketplaces";
+import { mountPlatformUpdate } from "./platform-update";
 import { mountSources } from "./sources";
 import { mountTemplates } from "./templates";
 import { mountTools } from "./tools";
@@ -27,6 +28,7 @@ export function createPlatform() {
   mountCatalog(app);
   mountTools(app);
   mountWorkspace(app);
+  mountPlatformUpdate(app);
   mountAccessMatrix(app);
   mountConnections(app);
   mountDatabase(app);

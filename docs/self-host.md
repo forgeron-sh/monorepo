@@ -89,6 +89,32 @@ Running it again is safe: the D1 and the Worker are reused, and a new version of
 
 `forgeron platform status --account <id> [--domain <base-domain>] [--name forgeron] [--auth token|wrangler]` reads, and changes nothing: whether the platform database exists and which migrations are applied or pending, which bindings the gateway holds (a secret shows its name only; a plain value is shown for a short list of safe ones: the domain, the mapped hosts, the default workspace, the sign-in methods, the admin address), how many tool environments are bound, the workers.dev address when it is on (a problem when it serves no workspace), and, with `--domain`, whether `*.<domain>/*` points to the gateway. One of `BASE_DOMAIN`, `WORKSPACE_HOSTS` and `DEFAULT_WORKSPACE` must be set. It exits 1 when something is missing or pending, and says what to run. The credential rules are the install's (D-026).
 
+## Updating (D-138)
+
+A platform is updated from its console, by someone who holds the permission **Update Forgeron** (`platform:update`, the admin team has it): **Settings, Operations, Install information, Updates**. The panel shows the version that runs, the latest release of the repository the install updates from, its notes, and the migrations it will apply. **Update to v&lt;version&gt;** asks for a confirmation and then shows each step as it happens. It updates the whole platform, so **every workspace** on it, not only the one you are in.
+
+What it does, in this order, and records each step in the platform D1 and in the audit log:
+
+1. downloads the release's `forgeron-platform.json` and its `.sha256` and checks the hash, the format, the version and the size (at most 20 MB); a release that fails is refused and nothing is changed;
+2. asks Cloudflare for a **D1 Time Travel restore point** of the platform database (`GET /accounts/<account>/d1/database/<id>/time_travel/bookmark`); without a restore point the update stops before anything changes;
+3. applies the release's migrations to the database, as `forgeron platform install` does before it deploys;
+4. keeps the new gateway and console in the platform D1;
+5. uploads a new version of the gateway Worker, the same way it does when a tool is bound (D-032: every binding carried over, the tool bindings included, the console's files uploaded again) and deploys it at 100 %.
+
+When it is done the console says so and offers **Reload**: the console itself changed. If a step fails the panel names it and says what was done. A failure after step 3 means the database may already have changed; the panel then gives the command that puts it back to the restore point, which you run on a computer signed in to the Cloudflare account:
+
+```sh
+wrangler d1 time-travel restore <database> --bookmark <bookmark>
+```
+
+A restore also drops what was written to the database since the restore point. It does not roll the gateway's code back: if the new version is deployed and misbehaves, redeploy the previous one from Cloudflare's deployments, or install the earlier release with `forgeron platform install`.
+
+- **One update at a time, never a downgrade.** A second update while one runs is refused; so is the version that runs, or an older one. The update goes on after the request has answered; a run that stops without ending (a Worker's work after its answer is cut short after 30 seconds) is ended as failed after ten minutes, with its restore point on record.
+- **The first time is still the CLI.** An install made before this feature does not know its database id (`PLATFORM_D1_ID`): the panel says so, and one more `forgeron platform install` fixes it. After that, updates come from the console.
+- **`SELF_UPDATE=off`** turns the panel's button off. It is always off on Forgeron Cloud (a `BASE_DOMAIN` ending in `forgeron.app`, or a dispatch namespace), whose operator updates it.
+- **`UPDATE_REPOSITORY`** (`owner/name`, default `forgeron-sh/monorepo`) says where releases come from: the highest `v<major>.<minor>.<patch>` release that is neither a draft nor a prerelease. The gateway reads GitHub's public REST API with no token and keeps the answer ten minutes; the repository must be public and its release must carry the two files. When GitHub cannot be read, the panel says so and offers nothing.
+- The Cloudflare API token needs D1 edit rights, which the install's token has, for the restore point.
+
 ## Serving a workspace on any address (D-126)
 
 By default a workspace answers at `https://<workspace>.<BASE_DOMAIN>`. Two settings add other hosts:
@@ -163,6 +189,9 @@ This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `
 | `DISPATCHER`            | dispatch namespace   | Forgeron Cloud only: the namespace tool Workers are uploaded to.                                                                                                                                                                                                                                                                                                  |
 | `DISPATCH_NAMESPACE`    | var                  | Forgeron Cloud only: the name of that namespace, for `POST /deploy`.                                                                                                                                                                                                                                                                                              |
 | `OFFICIAL_MARKETPLACE`  | var, optional        | `owner/name` of the public GitHub repository of the official marketplace (D-116): an admin's _Sync_ of the official tab reads it into the template catalogue. Unset: the official catalogue is not synced from GitHub.                                                                                                                                            |
+| `PLATFORM_D1_ID`        | var                  | The platform D1's id, set by `forgeron platform install` (D-138): what the update asks Cloudflare for a restore point of. An install made before it has none and is installed once more before it can update from the console.                                                                                                                                    |
+| `UPDATE_REPOSITORY`     | var, optional        | `owner/name` of the public GitHub repository the platform's releases come from (D-138). Default `forgeron-sh/monorepo`.                                                                                                                                                                                                                                           |
+| `SELF_UPDATE`           | var, optional        | `off` turns the update from the console off (D-138). Always off on Forgeron Cloud.                                                                                                                                                                                                                                                                                |
 | `TOOL_<WORKER>`         | service binding      | Self-host: one per tool Worker (D-017).                                                                                                                                                                                                                                                                                                                           |
 | `ASSETS`                | assets               | The built console, when there is one.                                                                                                                                                                                                                                                                                                                             |
 
