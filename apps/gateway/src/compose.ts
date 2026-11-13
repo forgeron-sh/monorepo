@@ -198,6 +198,8 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
     const common = {
       accountId: env.CLOUDFLARE_ACCOUNT_ID,
       apiToken: env.CLOUDFLARE_API_TOKEN,
+      // The tools' databases are created in the platform's region (D-141).
+      ...(env.PLATFORM_D1_ID ? { d1NearDatabase: env.PLATFORM_D1_ID } : {}),
       workspace,
       // Production answers at the tool's address; a preview adds `@<branch>`, another permanent
       // channel `~<name>` (D-125).

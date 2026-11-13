@@ -58,7 +58,9 @@ export async function ensureDispatchNamespace(
 
 export function createCloudHosting(options: CloudOptions): Hosting {
   const client = createCloudflareClient(options);
-  const resources = cloudflareResources(client, "cloud");
+  const resources = cloudflareResources(client, "cloud", {
+    ...(options.d1NearDatabase ? { nearDatabase: options.d1NearDatabase } : {}),
+  });
   const nameOf = (environment: Environment) => workerName(options.workspace, environment);
   const script = (worker: string) =>
     `/workers/dispatch/namespaces/${encodeURIComponent(options.namespace)}/scripts/${encodeURIComponent(worker)}`;

@@ -7,6 +7,8 @@ export interface CloudflareOptions {
   apiToken: string;
   fetch?: typeof fetch;
   baseUrl?: string;
+  /** The D1 whose region a tool's D1 is created in (the platform's): see `ResourceOptions`. */
+  d1NearDatabase?: string;
 }
 
 export class CloudflareError extends Error {

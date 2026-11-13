@@ -11,7 +11,37 @@ interface Named {
   title?: string;
 }
 
-export function cloudflareResources(client: CloudflareClient, mode: string) {
+/** The regions Cloudflare accepts for where a D1 lives (`primary_location_hint`), as `running_in_region` spells them. */
+const D1_REGIONS = new Set(["wnam", "enam", "weur", "eeur", "apac", "oc"]);
+
+export interface ResourceOptions {
+  /**
+   * The id of a D1 to place the tools' D1s next to (D-141): without a hint Cloudflare puts a new database
+   * where its API request came from, which was North America for a gateway that answers in Europe, and
+   * every query of a tool then crossed the Atlantic (about 100 ms each).
+   */
+  nearDatabase?: string;
+}
+
+export function cloudflareResources(
+  client: CloudflareClient,
+  mode: string,
+  options: ResourceOptions = {},
+) {
+  // Read once, when the first database is created. Never fails the creation: no hint is Cloudflare's own choice.
+  let hint: Promise<string | undefined> | undefined;
+  const placement = (): Promise<string | undefined> => {
+    if (!options.nearDatabase) return Promise.resolve(undefined);
+    hint ??= client
+      .request<{ running_in_region?: string }>("GET", `/d1/database/${options.nearDatabase}`)
+      .then((d) => {
+        const region = d.running_in_region?.toLowerCase();
+        return region && D1_REGIONS.has(region) ? region : undefined;
+      })
+      .catch(() => undefined);
+    return hint;
+  };
+
   const found = async <T>(path: string, pick: (r: T) => Named[], name: string, key: keyof Named) =>
     pick(await client.request<T>("GET", path)).find((r) => r[key] === name);
 
@@ -23,8 +53,14 @@ export function cloudflareResources(client: CloudflareClient, mode: string) {
       "name",
     );
     if (existing?.uuid) return { id: existing.uuid, fresh: false };
+    const region = await placement();
     return {
-      id: (await client.request<Named>("POST", "/d1/database", { name })).uuid!,
+      id: (
+        await client.request<Named>("POST", "/d1/database", {
+          name,
+          ...(region ? { primary_location_hint: region } : {}),
+        })
+      ).uuid!,
       fresh: true,
     };
   }
