@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/forgeron-sh/monorepo/compare/v0.6.1...v0.7.0) (2026-11-13)
+
+
+### Features
+
+* **gateway:** the admin MCP offers the rest of the console, a tool per route (D-139) ([8c4eed0](https://github.com/forgeron-sh/monorepo/commit/8c4eed060ea76079441d2d726d312843aa186c3c))
+* **gateway:** the admin MCP offers the rest of the console, a tool per route (D-139) ([eaeec24](https://github.com/forgeron-sh/monorepo/commit/eaeec24334619ecb679afe705e91ae5afb714257))
+
+
+### Bug Fixes
+
+* **ci:** the platform's release has no release-please component, so it is tagged (D-140) ([b545c3f](https://github.com/forgeron-sh/monorepo/commit/b545c3fc88072b4626a3a235456f40838ef46852))
+* **ci:** the platform's release has no release-please component, so it is tagged (D-140) ([f943c48](https://github.com/forgeron-sh/monorepo/commit/f943c48aa7131b3cf50b639fee0061c88db2c0fd))
+
 ## [0.6.1](https://github.com/forgeron-sh/monorepo/compare/v0.6.0...v0.6.1) (2026-11-13)
 
 
