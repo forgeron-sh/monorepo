@@ -181,6 +181,24 @@ WHERE json_valid("manifest") AND json_type("manifest", '$.roles') = 'object' AND
 
 // The migrations of the stores that are not modules yet (gateway code and assets, identity config,
 // SAML): they keep their global numbers and move into a module when they get one.
+/**
+ * The registry's generation (D-146): one number, raised after every change made through the gateway, so that
+ * what a Worker keeps in memory is checked against one small read instead of expiring after seconds.
+ */
+const registryGeneration: BuildMigration = {
+  name: "0044_registry_generation",
+  fingerprint: "registry-generation-v1",
+  destructive: false,
+  up: [
+    st(`CREATE TABLE "registry_generation" (
+  "id" INTEGER PRIMARY KEY NOT NULL CHECK ("id" = 1),
+  "n" INTEGER NOT NULL
+)`),
+    st(`INSERT INTO "registry_generation" ("id", "n") VALUES (1, 0)`),
+  ],
+  down: [st(`DROP TABLE "registry_generation"`)],
+};
+
 export const rootMigrations: BuildMigration[] = [
   {
     // The gateway's own `worker.js` (D-032): `forgeron platform install` stores it here so that the
@@ -284,4 +302,5 @@ export const rootMigrations: BuildMigration[] = [
     down: [st(`DROP TABLE "gateway_assets"`)],
   },
   teamsPermissions,
+  registryGeneration,
 ];

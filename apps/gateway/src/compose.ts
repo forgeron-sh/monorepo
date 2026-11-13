@@ -166,8 +166,9 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
       const box = env.SECRETS_KEY
         ? await createSecretBox(env.SECRETS_KEY, listOf(env.SECRETS_KEY_PREVIOUS))
         : undefined;
-      // What the platform's D1 costs a call is told in `Server-Timing` (D-143).
-      const db = probeD1(env.DB);
+      // What the platform's D1 costs a call is told in `Server-Timing` (D-143); the reads a call starts together
+      // go to D1 in one batch (D-146).
+      const db = probeD1(env.DB, { together: true });
       // One clock for the registry and the gateway: the expiry of a one-time code depends on it.
       const { tracked, hot } = createHotRegistry(
         createRegistry(db, { now, ...(box ? { secrets: box } : {}) }),
