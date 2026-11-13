@@ -34,7 +34,7 @@ import { z } from "zod";
 // keeps this folder from importing it.
 
 /** What a tool asks of the caller (D-136): any signed-in person, or one platform permission. */
-export type Requires = PlatformPermission | "signed-in";
+type Requires = PlatformPermission | "signed-in";
 
 /** What a tool may ask of the platform: one of its routes, answered as it would to the console. */
 interface PlatformCall {

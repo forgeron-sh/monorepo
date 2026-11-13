@@ -54,7 +54,7 @@ export interface WorkflowRun {
 }
 
 /** GitHub's `status` and `conclusion` of a run in the five states the console knows. */
-export function runStatus(status: unknown, conclusion: unknown): WorkflowRun["status"] {
+function runStatus(status: unknown, conclusion: unknown): WorkflowRun["status"] {
   if (status === "completed") {
     if (conclusion === "success" || conclusion === "neutral") return "success";
     return conclusion === "cancelled" || conclusion === "skipped" ? "cancelled" : "failure";

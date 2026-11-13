@@ -61,7 +61,7 @@ export const holding = (...permissions: PlatformPermission[]): ConsolePerson => 
 });
 
 /** A person who holds every permission but the ones that give `permission`. */
-export const holdingAllBut = (permission: PlatformPermission): ConsolePerson => ({
+const holdingAllBut = (permission: PlatformPermission): ConsolePerson => ({
   id: "p-almost",
   email: "x@acme.test",
   name: "X",

@@ -174,7 +174,7 @@ const Chevron = () => (
 );
 
 /** What else the chevron menu holds, from the tool page: the links, then the actions that destroy. */
-export interface ToolMenuEntries {
+interface ToolMenuEntries {
   links: ReadonlyArray<MenuEntry>;
   danger: ReadonlyArray<MenuEntry>;
 }

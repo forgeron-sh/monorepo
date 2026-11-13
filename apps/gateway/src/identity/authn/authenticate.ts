@@ -2,7 +2,7 @@ import type { Person } from "../../kernel/person";
 import { verifyToken, type TokenClaims } from "./tokens";
 
 /** What a tool's runtime is told of a person behind a token: who they are, and their subjects. */
-export type AuthenticatedPerson = Pick<Person, "id" | "email" | "name" | "subjects">;
+type AuthenticatedPerson = Pick<Person, "id" | "email" | "name" | "subjects">;
 
 export interface AuthenticatorOptions {
   secret: string;
