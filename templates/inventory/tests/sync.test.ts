@@ -1,6 +1,6 @@
 import { mockFetch } from "@forgeron/sdk/testing";
 import { describe, expect, it } from "vitest";
-import { admin, createTestTool } from "./helpers";
+import { manager, createTestTool } from "./helpers";
 
 const FIRST =
   "GET https://graph.microsoft.com/v1.0/sites/acme.sharepoint.com:/sites/fleet:/lists/Equipments/items?expand=fields";
@@ -24,7 +24,7 @@ function sharepoint() {
 
 async function withFleet(fetch = sharepoint()) {
   const tool = await createTestTool({
-    as: admin,
+    as: manager,
     fetch,
     secrets: { SHAREPOINT_TOKEN: "test-token" },
   });
@@ -62,7 +62,7 @@ describe("jobs/sync-sharepoint", () => {
     const { tool } = await withFleet();
     await tool.runJob("sync-sharepoint");
     const later = await createTestTool({
-      as: admin,
+      as: manager,
       fetch: mockFetch({
         [FIRST]: { value: [{ id: "sp-1", fields: { NextCheck: null } }] },
       }),
@@ -98,7 +98,7 @@ describe("jobs/sync-sharepoint", () => {
   it("fails without leaving a half-done run when SharePoint refuses", async () => {
     const { tool } = await withFleet(mockFetch({ [FIRST]: { status: 401 } }));
     const failing = await createTestTool({
-      as: admin,
+      as: manager,
       fetch: mockFetch({ [FIRST]: reply401() }),
       secrets: { SHAREPOINT_TOKEN: "bad" },
     });
@@ -107,7 +107,7 @@ describe("jobs/sync-sharepoint", () => {
   });
 
   it("needs its secret", async () => {
-    const tool = await createTestTool({ as: admin, fetch: sharepoint() });
+    const tool = await createTestTool({ as: manager, fetch: sharepoint() });
     await expect(tool.runJob("sync-sharepoint")).rejects.toThrow(/SHAREPOINT_TOKEN/);
   });
 });

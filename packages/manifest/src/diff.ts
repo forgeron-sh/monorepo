@@ -13,11 +13,11 @@ export type ChangeKind =
   | "tool.interface-added"
   | "tool.interface-removed"
   | "tool.preview-changed"
-  | "role.added"
-  | "role.removed"
-  | "role.grant-added"
-  | "role.grant-removed"
-  | "role.label-changed"
+  | "profile.added"
+  | "profile.removed"
+  | "profile.grant-added"
+  | "profile.grant-removed"
+  | "profile.label-changed"
   | "action.added"
   | "action.removed"
   | "action.description-changed"
@@ -139,7 +139,7 @@ export function diffManifests(previous: Manifest, next: Manifest): ManifestDiff 
   };
 
   diffTool(previous, next, add);
-  diffRoles(previous.roles, next.roles, add);
+  diffProfiles(previous.profiles, next.profiles, add);
   diffKeyed(previous.actions, next.actions, {
     added: (name) => add("action.added", `actions.${name}`, "minor"),
     removed: (name) => add("action.removed", `actions.${name}`, "major"),
@@ -267,15 +267,15 @@ function diffTool(previous: Manifest, next: Manifest, add: Add): void {
 }
 
 // Fewer grants means people lose something they had; more grants only adds.
-function diffRoles(previous: Manifest["roles"], next: Manifest["roles"], add: Add): void {
+function diffProfiles(previous: Manifest["profiles"], next: Manifest["profiles"], add: Add): void {
   diffKeyed(previous, next, {
-    added: (name) => add("role.added", `roles.${name}`, "minor"),
-    removed: (name) => add("role.removed", `roles.${name}`, "major"),
+    added: (name) => add("profile.added", `profiles.${name}`, "minor"),
+    removed: (name) => add("profile.removed", `profiles.${name}`, "major"),
     both: (name, before, after) => {
       const { added, removed } = setDiff(before.grants, after.grants);
-      for (const level of removed) add("role.grant-removed", `roles.${name}`, "major", level);
-      for (const level of added) add("role.grant-added", `roles.${name}`, "minor", level);
-      if (before.label !== after.label) add("role.label-changed", `roles.${name}`, "patch");
+      for (const level of removed) add("profile.grant-removed", `profiles.${name}`, "major", level);
+      for (const level of added) add("profile.grant-added", `profiles.${name}`, "minor", level);
+      if (before.label !== after.label) add("profile.label-changed", `profiles.${name}`, "patch");
     },
   });
 }

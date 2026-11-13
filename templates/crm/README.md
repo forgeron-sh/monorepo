@@ -16,13 +16,13 @@ Companies, contacts and sales leads of the team, in one place you can ask Claude
 
 ## Permissions
 
-| Role         | May                                |
+| Profile      | May                                |
 | ------------ | ---------------------------------- |
 | `support`    | Read companies, contacts and leads |
 | `sales`      | Read, create and update            |
 | `management` | The same, and delete a lead        |
 
-An administrator can change these in the access matrix of the tool. Without a role, ask an administrator for one.
+Whoever gives access can change these for everyone or for a team in the tool's Access tab. If you cannot use the tool, ask them to give your team a profile.
 
 ## For developers
 
@@ -30,7 +30,7 @@ This is the template `crm`.
 
 Companies, contacts and leads, usable from Claude.
 
-Specification: [`docs/examples/01-crm.md`](../../docs/examples/01-crm.md). This folder follows the mandatory shape of a tool (`docs/sdk.md` §2). It is the integration test of the database layer: schema, migrations, typed `ctx.db`, events and roles.
+Specification: [`docs/examples/01-crm.md`](../../docs/examples/01-crm.md). This folder follows the mandatory shape of a tool (`docs/sdk.md` §2). It is the integration test of the database layer: schema, migrations, typed `ctx.db`, events and profiles.
 
 | Action             | Access   | What it does                                               |
 | ------------------ | -------- | ---------------------------------------------------------- |
@@ -44,7 +44,7 @@ Specification: [`docs/examples/01-crm.md`](../../docs/examples/01-crm.md). This 
 | `deals.move`       | `write`  | Moves a lead to another stage and emits `deal.moved`       |
 | `deals.delete`     | `delete` | Deletes a lead and its history (asks for confirmation)     |
 
-`events/deal-history.ts` handles `deal.moved` and writes who moved the lead, from where, to where, into `deal_events`. Roles: `sales` read and write, `support` read only, `management` also delete.
+`events/deal-history.ts` handles `deal.moved` and writes who moved the lead, from where, to where, into `deal_events`. Profiles: `sales` read and write, `support` read only, `management` also delete.
 
 `deals.create` and `contacts.create` are not in the example, which assumes a seed (`db/seed.ts`, not available yet): without them nothing could be created.
 

@@ -17,9 +17,9 @@ const MAX_CHANNELS_PER_CONNECTION = 50;
 export const MAX_PUBLISH_PER_CALL = 20;
 const MAX_SENDS_PER_SECOND = 30;
 
-/** Who asks to join, as the access rules read them: the roles, and what an admin changed in the matrix. */
+/** Who asks to join, as the access rules read them: the subjects, and what was changed in the matrix. */
 interface AccessUser {
-  roles: string[];
+  subjects: string[];
   access?: Record<string, Record<string, boolean>>;
   permissions?: Record<string, string[]>;
 }
@@ -339,7 +339,7 @@ export class RealtimeHub {
  * agrees. `callAction` runs an action of the tool as that person.
  */
 export async function authorizeChannel(input: {
-  manifest: Pick<Manifest, "roles" | "realtime">;
+  manifest: Pick<Manifest, "profiles" | "realtime">;
   user: AccessUser;
   channel: string;
   kind: "subscribe" | "send";
@@ -352,7 +352,7 @@ export async function authorizeChannel(input: {
   const level = kind === "send" ? declared.send : declared.access;
   if (level === undefined)
     return "Nobody sends on this channel from a page: only the tool publishes.";
-  if (!mayAccess(user, manifest.roles, `channel:${key}`, level)) {
+  if (!mayAccess(user, manifest.profiles, `channel:${key}`, level)) {
     return `This channel needs the "${level}" access level.`;
   }
   if (declared.authorize && channel.includes(":")) {

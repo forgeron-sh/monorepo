@@ -10,7 +10,7 @@ const manifest: Manifest = {
   version: "1.0.0",
   title: "Mail",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
   actions: {
     "mail.send": {
       description: "Send a mail.",
@@ -40,7 +40,7 @@ const manifest: Manifest = {
   preview: { data: "seed" },
 } as unknown as Manifest;
 
-const ana: User = { id: "u1", email: "ana@acme.test", name: "Ana", roles: ["reader"] };
+const ana: User = { id: "u1", email: "ana@acme.test", name: "Ana", subjects: ["everyone"] };
 
 function setup(tokens: Record<string, string>) {
   let seen: unknown;

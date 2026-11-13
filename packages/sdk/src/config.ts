@@ -44,13 +44,13 @@ export interface ToolConfig {
   interfaces?: Partial<Manifest["interfaces"]>;
   /**
    * The tool's profiles (D-127): named sets of the permissions its actions require (`access`), which
-   * the tool suggests to the workspace. Mark one `default: true`: the workspace's `member` role is
-   * mapped to it when the tool arrives (else the profile with the fewest permissions). A tool never
-   * names the workspace's roles: an admin maps them to profiles in the tool's Access tab.
+   * the tool suggests to the workspace. Mark one `default: true`: `everyone` is given it when the
+   * tool arrives (else the profile with the fewest permissions). A tool never names a team: whoever
+   * gives access picks a profile for everyone and for each team in the tool's Access tab.
    */
-  profiles?: Manifest["roles"];
-  /** @deprecated Since D-127, `profiles`: the same entries, read as profiles. */
-  roles?: Manifest["roles"];
+  profiles?: Manifest["profiles"];
+  /** Refused since D-136: it is `profiles` now. */
+  roles?: never;
   /** Everything the tool asks of the platform: what is not declared does not exist at runtime. */
   resources?: Resources;
   /**
@@ -65,22 +65,17 @@ export interface ToolConfig {
   preview?: Manifest["preview"];
 }
 
-/** The tool's profiles, whichever key declares them: `profiles`, or `roles` before D-127. */
-function profilesOf(config: Pick<ToolConfig, "profiles" | "roles">): Manifest["roles"] {
-  return config.profiles ?? config.roles ?? {};
-}
-
 /**
- * Declares a tool. Throws if the name or a permission is malformed, if both `profiles` and `roles`
- * are given, or if more than one profile is the default.
+ * Declares a tool. Throws if the name or a permission is malformed, if `roles` is given (it is
+ * `profiles` now), or if more than one profile is the default.
  */
 export function defineConfig(config: ToolConfig): ToolConfig {
   ToolNameSchema.parse(config.name);
   for (const tool of Object.keys(config.uses ?? {})) ToolNameSchema.parse(tool);
-  if (config.profiles && config.roles) {
-    throw new Error("Declare the profiles once: `profiles` (`roles` is its former name).");
+  if ((config as { roles?: unknown }).roles !== undefined) {
+    throw new Error("`roles` is now `profiles` (D-136): rename the key.");
   }
-  const profiles = profilesOf(config);
+  const profiles = config.profiles ?? {};
   for (const profile of Object.values(profiles)) {
     for (const level of profile.grants) AccessLevelSchema.parse(level);
   }

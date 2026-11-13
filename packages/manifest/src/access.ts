@@ -1,52 +1,41 @@
 // The one access rule, shared by the runtime (actions), the gateway (views, playground) and the
-// registry (catalog, matrix). D-127: a tool declares permissions (the levels its actions and views
-// require) and profiles (named sets of them); the workspace maps each of its roles to a profile, a
-// custom set of permissions, all of them, or nothing. A role may use a subject if the console's
-// per-action matrix says so, else if the subject's level is among the role's permissions. The
-// person may if one of their roles may. A subject is an action name, or `view:<name>` for a view.
+// registry (catalog, matrix). D-127, D-136: a tool declares permissions (the levels its actions and
+// views require) and profiles (named sets of them); the workspace gives each subject (`everyone` or
+// `team:<id>`) a profile, a custom set of permissions, all of them, or nothing. A subject may use
+// an action if the console's per-action matrix says so, else if the action's level is among the
+// subject's permissions. The person may if one of their subjects may. An action is named by its
+// name, or `view:<name>` for a view.
 
-/** The overrides of the matrix that apply to a person: `role -> subject -> allowed`. */
+import { ADMIN_TEAM, EVERYONE, teamSubject } from "@forgeron/permissions";
+
+/** The overrides of the matrix that apply to a person: `subject -> action -> allowed`. */
 export type AccessOverrides = Record<string, Record<string, boolean>>;
 
-/** The tool permissions each of a person's workspace roles is mapped to: `role -> permissions`. */
-export type RolePermissions = Record<string, readonly string[]>;
+/** The tool permissions each of a person's subjects is given: `subject -> permissions`. */
+export type SubjectPermissions = Record<string, readonly string[]>;
 
-/** The profiles a tool declares (the manifest's `roles`). */
+/** The profiles a tool declares (the manifest's `profiles`). */
 export type Profiles = Record<
   string,
   { label?: string; grants: readonly string[]; default?: boolean }
 >;
 
-/** What a workspace role is given in a tool (D-127). */
+/** What a subject is given in a tool (D-127). */
 export type ProfileGrant =
   | { kind: "all" }
   | { kind: "profile"; profile: string }
   | { kind: "custom"; permissions: string[] }
   | { kind: "none" };
 
-/** The mapping of a tool: workspace role -> what it is given. A role not in it is given nothing. */
-export type AccessMapping = Record<string, ProfileGrant>;
-
-/** The workspace role every tool maps to all of its permissions by default. */
-export const ADMIN_ROLE = "admin";
-/** The workspace role every tool maps to its default profile by default. */
-export const MEMBER_ROLE = "member";
-
-/**
- * A person's workspace roles (D-128): the ones they were given, plus `member`, which every person of
- * the workspace holds without being given it. Who may add a tool is still its availability rule, so
- * holding `member` opens no tool by itself.
- */
-export function workspaceRoles(given: readonly string[]): string[] {
-  return given.includes(MEMBER_ROLE) ? [...given] : [...given, MEMBER_ROLE];
-}
+/** The grants of a tool: subject -> what it is given. A subject not in it is given nothing. */
+export type AccessGrants = Record<string, ProfileGrant>;
 
 /** The matrix key of a view: it cannot collide with an action name, which has no colon. */
 export const viewSubject = (name: string): string => `view:${name}`;
 
 interface AccessShape {
   /** Optional only for a manifest stored before it was checked (tests, very old builds). */
-  roles?: Profiles;
+  profiles?: Profiles;
   actions?: Record<string, { access: string }>;
   views?: Record<string, { access: string }>;
 }
@@ -68,7 +57,7 @@ export function permissionsOf(manifest: AccessShape): string[] {
   return [
     ...new Set([
       ...Object.values(subjectsOf(manifest)),
-      ...Object.values(manifest.roles ?? {}).flatMap((p) => p.grants),
+      ...Object.values(manifest.profiles ?? {}).flatMap((p) => p.grants),
     ]),
   ].sort();
 }
@@ -89,14 +78,15 @@ export function defaultProfile(profiles: Profiles = {}): string | undefined {
 }
 
 /**
- * The mapping a tool gets when it arrives (D-127): `admin` is given every permission and `member`
- * the default profile. It is written down, and an admin edits it in the tool's Access tab.
+ * The grants a tool gets when it arrives (D-136): the admin team is given every permission and
+ * `everyone` the default profile. They are written down, and someone who gives access edits them in
+ * the tool's Access tab.
  */
-export function defaultMapping(profiles: Profiles = {}): AccessMapping {
+export function defaultGrants(profiles: Profiles = {}): AccessGrants {
   const fallback = defaultProfile(profiles);
   return {
-    [ADMIN_ROLE]: { kind: "all" },
-    ...(fallback ? { [MEMBER_ROLE]: { kind: "profile", profile: fallback } } : {}),
+    [teamSubject(ADMIN_TEAM)]: { kind: "all" },
+    ...(fallback ? { [EVERYONE]: { kind: "profile", profile: fallback } } : {}),
   };
 }
 
@@ -107,7 +97,7 @@ export function grantPermissions(grant: ProfileGrant | undefined, manifest: Acce
     case "all":
       return permissionsOf(manifest);
     case "profile":
-      return [...(manifest.roles?.[grant.profile]?.grants ?? [])];
+      return [...(manifest.profiles?.[grant.profile]?.grants ?? [])];
     case "custom":
       return [...grant.permissions];
     case "none":
@@ -116,76 +106,77 @@ export function grantPermissions(grant: ProfileGrant | undefined, manifest: Acce
 }
 
 /**
- * Without the gateway (`forgeron dev --as`, tests), a role is read with the default mapping: the
- * profile of that name, else `admin` gets every permission and `member` the default profile.
+ * Without the gateway (`forgeron dev`, tests), a subject is read with the default grants: the admin
+ * team gets every permission and `everyone` the default profile. A run that wants a given profile
+ * passes its permissions in `Who.permissions`.
  */
-function localPermissions(role: string, profiles: Profiles): readonly string[] | "all" {
-  const own = profiles[role];
-  if (own) return own.grants;
-  const grant = defaultMapping(profiles)[role];
+function localPermissions(subject: string, profiles: Profiles): readonly string[] | "all" {
+  const grant = defaultGrants(profiles)[subject];
   if (!grant) return [];
   if (grant.kind === "all") return "all";
   return grant.kind === "profile" ? (profiles[grant.profile]?.grants ?? []) : [];
 }
 
-interface Who {
-  roles: readonly string[];
-  /** The console's per-action matrix for the person's roles. */
+export interface Who {
+  /** `everyone` and one `team:<id>` per team of the person. */
+  subjects: readonly string[];
+  /** The console's per-action matrix for the person's subjects. */
   access?: AccessOverrides | undefined;
-  /** The permissions the gateway mapped each role to; without it, the default mapping is read. */
-  permissions?: RolePermissions | undefined;
+  /** The permissions the gateway gave each subject; without it, the default grants are read. */
+  permissions?: SubjectPermissions | undefined;
 }
 
-function roleHas(who: Who, profiles: Profiles, role: string, level: string): boolean {
-  if (who.permissions) return (who.permissions[role] ?? []).includes(level);
-  const local = localPermissions(role, profiles);
+function subjectHas(who: Who, profiles: Profiles, subject: string, level: string): boolean {
+  if (who.permissions) return (who.permissions[subject] ?? []).includes(level);
+  const local = localPermissions(subject, profiles);
   return local === "all" || local.includes(level);
 }
 
-export function mayAccess(who: Who, profiles: Profiles, subject: string, level: string): boolean {
-  return who.roles.some(
-    (role) => who.access?.[role]?.[subject] ?? roleHas(who, profiles, role, level),
+/** `action` is an action's name or `view:<name>`; `level` the permission it requires. */
+export function mayAccess(who: Who, profiles: Profiles, action: string, level: string): boolean {
+  return who.subjects.some(
+    (subject) => who.access?.[subject]?.[action] ?? subjectHas(who, profiles, subject, level),
   );
 }
 
 /**
- * The permissions a person holds in a tool, all roles together: what `ctx.user.can` and a view's
+ * The permissions a person holds in a tool, all subjects together: what `ctx.user.can` and a view's
  * `useCan` read. It never decides a call: `mayAccess` does.
  */
 export function heldPermissions(who: Who, manifest: AccessShape): string[] {
   const held = new Set<string>();
-  for (const role of who.roles) {
+  for (const subject of who.subjects) {
     if (who.permissions) {
-      for (const p of who.permissions[role] ?? []) held.add(p);
+      for (const p of who.permissions[subject] ?? []) held.add(p);
       continue;
     }
-    const local = localPermissions(role, manifest.roles ?? {});
+    const local = localPermissions(subject, manifest.profiles ?? {});
     for (const p of local === "all" ? permissionsOf(manifest) : local) held.add(p);
   }
   return [...held].sort();
 }
 
 /**
- * What the gateway forwards with a person (D-127): the permissions each of their roles is mapped to,
- * and the matrix resolved for every subject of the manifest. The resolved matrix is what a runtime
+ * What the gateway forwards with a person (D-136): the permissions each of their subjects is given,
+ * and the matrix resolved for every action of the manifest. The resolved matrix is what a runtime
  * built before D-127 reads, so a tool keeps working without a new version.
  */
 export function resolveAccess(
-  roles: readonly string[],
-  mapping: AccessMapping,
+  subjects: readonly string[],
+  grants: AccessGrants,
   overrides: AccessOverrides,
   manifest: AccessShape,
 ): { permissions: Record<string, string[]>; access: AccessOverrides } {
-  const subjects = subjectsOf(manifest);
+  const actions = subjectsOf(manifest);
   const permissions: Record<string, string[]> = {};
   const access: AccessOverrides = {};
-  for (const role of new Set(roles)) {
-    const held = grantPermissions(mapping[role], manifest);
-    permissions[role] = held;
-    access[role] = Object.fromEntries(
-      Object.entries(subjects).map(([subject, level]) => [
-        subject,
-        overrides[role]?.[subject] ?? held.includes(level),
+  for (const subject of new Set(subjects)) {
+    const held = grantPermissions(grants[subject], manifest);
+    permissions[subject] = held;
+    access[subject] = Object.fromEntries(
+      Object.entries(actions).map(([action, level]) => [
+        action,
+        overrides[subject]?.[action] ?? held.includes(level),
       ]),
     );
   }

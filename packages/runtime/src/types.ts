@@ -10,19 +10,20 @@ export interface User {
   name: string;
   /** The person's picture, an address, when the workspace has one (D-131). */
   avatar?: string;
-  roles: string[];
+  /** Who the person is for access (D-136): `everyone`, and `team:<id>` for each of their teams. */
+  subjects: string[];
   /** The ids of the teams the person belongs to (D-132); only with `resources.directory.teams`. */
   teams?: string[];
   /**
-   * What an admin changed in the console, for this person's roles: per role, per action,
-   * `true` to allow and `false` to refuse, whatever the role's levels say. The gateway adds it
-   * with the roles, so the change reaches every interface with no new version (docs/sdk.md §3).
+   * What someone who gives access changed in the console, for this person's subjects: per subject,
+   * per action, `true` to allow and `false` to refuse, whatever the subject's levels say. The gateway
+   * adds it with the subjects, so the change reaches every interface with no new version (docs/sdk.md §3).
    */
   access?: Record<string, Record<string, boolean>>;
   /**
-   * The tool permissions each of the person's workspace roles is mapped to in the console (D-127).
-   * Without it (`forgeron dev`, tests), a role is read with the default mapping: the profile of that
-   * name, else `admin` holds every permission and `member` the default profile.
+   * The tool permissions each of the person's subjects is given in the console (D-136). Without it
+   * (`forgeron dev`, tests), a subject is read with the default grants: `team:admin` holds every
+   * permission and `everyone` the default profile.
    */
   permissions?: Record<string, string[]>;
 }
@@ -33,7 +34,6 @@ export interface DirectoryMember {
   email: string;
   name: string;
   avatar?: string;
-  roles?: string[];
   teams?: string[];
 }
 

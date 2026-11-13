@@ -51,7 +51,7 @@ export function toolFiles(options: {
 export default defineConfig({
   name: "${name}",
   title: "${name}",
-  // Profiles: what the tool suggests; an admin maps the workspace's roles to them (D-127).
+  // Profiles: what the tool suggests; whoever gives access picks one for everyone and for each team (D-136).
   profiles: { user: { label: "User", grants: ["read"], default: true } },
 });
 `,

@@ -245,3 +245,21 @@ describe("the kind of a per-person secret (D-105)", () => {
     },
   );
 });
+
+describe("a manifest stored before D-136", () => {
+  it("reads `roles` as `profiles`", () => {
+    const { profiles, ...rest } = crm;
+    expect(ManifestSchema.parse({ ...rest, roles: profiles })).toEqual(crm);
+  });
+
+  it("drops the directory's `roles`", () => {
+    const resources = { ...crm.resources, directory: { why: "Names", members: true, roles: true } };
+    const parsed = ManifestSchema.parse({ ...crm, resources });
+    expect(parsed.resources.directory).toEqual({ why: "Names", members: true });
+  });
+
+  it("keeps `profiles` when both are there", () => {
+    const parsed = ManifestSchema.parse({ ...crm, roles: { old: { grants: ["read"] } } });
+    expect(Object.keys(parsed.profiles)).toEqual(Object.keys(crm.profiles));
+  });
+});

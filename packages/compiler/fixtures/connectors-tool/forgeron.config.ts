@@ -5,7 +5,7 @@ export default defineConfig({
   title: "Inbox",
   description: "Reads the caller's own mail and calendar.",
   interfaces: { mcp: true, api: true, cli: true },
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
   resources: {
     connectors: {
       google: connector("google-workspace", {

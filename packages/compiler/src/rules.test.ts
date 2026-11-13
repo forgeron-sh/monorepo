@@ -33,7 +33,7 @@ describe("an action without a description or an access level", () => {
     const worker = (await import(/* @vite-ignore */ `file://${built.outDir}/worker.js`)) as {
       default: { fetch(request: Request, env?: unknown): Promise<Response> };
     };
-    const user = JSON.stringify({ id: "p1", email: "a@acme.test", name: "A", roles: [] });
+    const user = JSON.stringify({ id: "p1", email: "a@acme.test", name: "A", subjects: [] });
     const check = (body: unknown, marker = true, path = "/_f/setup-check") =>
       worker.default.fetch(
         new Request(`https://acme.forgeron.app${path}`, {
@@ -45,7 +45,7 @@ describe("an action without a description or an access level", () => {
           body: JSON.stringify(body),
         }),
       );
-    // No role is asked: the platform is the caller, not the person.
+    // No access level is asked: the platform is the caller, not the person.
     expect(
       await (await check({ setup: { firstName: "Ana" }, secrets: { ODOO_API_KEY: "ok" } })).json(),
     ).toEqual({
@@ -65,7 +65,12 @@ describe("an action without a description or an access level", () => {
     const asAction = await worker.default.fetch(
       new Request("https://acme.forgeron.app/api/setup.check", {
         headers: {
-          "x-forgeron-user": JSON.stringify({ id: "p1", email: "", name: "", roles: ["reader"] }),
+          "x-forgeron-user": JSON.stringify({
+            id: "p1",
+            email: "",
+            name: "",
+            subjects: ["everyone"],
+          }),
         },
       }),
     );
@@ -228,7 +233,7 @@ describe("a setup (D-096)", () => {
               id: "p1",
               email: "a@acme.test",
               name: "A",
-              roles: ["reader"],
+              subjects: ["everyone"],
             }),
             "x-forgeron-base-url": "https://acme.forgeron.app/t/setup",
             ...headers,

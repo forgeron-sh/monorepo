@@ -11,7 +11,7 @@ function runtimeOf(
   const state = { search: overrides.search ?? {} };
   const listeners = new Set<() => void>();
   return {
-    user: { id: "u1", email: "a@b.c", name: "Ada", roles: ["read"] },
+    user: { id: "u1", email: "a@b.c", name: "Ada" },
     can: (level) => level === "read",
     canCall: (action) => action === "deals.list",
     call: vi.fn<Call>(async () => null),

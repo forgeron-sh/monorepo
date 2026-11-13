@@ -4,7 +4,7 @@ import { serveLocalView } from "./local-views";
 
 const manifest = {
   name: "notes",
-  roles: { member: { grants: ["read", "write"], default: true } },
+  profiles: { member: { grants: ["read", "write"], default: true } },
   actions: { "notes.list": { access: "read" }, "notes.create": { access: "write" } },
   views: {
     notes: { title: "Notes", path: "/", access: "read", entry: "views/notes.js" },
@@ -12,7 +12,13 @@ const manifest = {
   },
   resources: {},
 } as unknown as Manifest;
-const user = { id: "u1", email: "ely@acme.fr", name: "Ely", roles: ["member"], teams: ["product"] };
+const user = {
+  id: "u1",
+  email: "ely@acme.fr",
+  name: "Ely",
+  subjects: ["everyone"],
+  teams: ["product"],
+};
 const files = new Map([["views/notes.js", Buffer.from("export default 1")]]);
 const read = async (file: string) => files.get(file);
 

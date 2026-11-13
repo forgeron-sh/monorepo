@@ -17,7 +17,7 @@ const manifest = (events: Manifest["events"], jobs: Manifest["jobs"] = {}): Mani
   name: "shop",
   version: "1.0.0",
   interfaces: { mcp: true, api: true, cli: true, web: false },
-  roles: { staff: { grants: ["write"] } },
+  profiles: { staff: { grants: ["write"] } },
   actions: {
     "orders.place": {
       description: "Places an order.",
@@ -37,7 +37,7 @@ const manifest = (events: Manifest["events"], jobs: Manifest["jobs"] = {}): Mani
   preview: { data: "seed" },
 });
 
-const staff: User = { id: "u1", email: "a@shop.fr", name: "Ana", roles: ["staff"] };
+const staff: User = { id: "u1", email: "a@shop.fr", name: "Ana", subjects: ["everyone"] };
 
 function setup(options: {
   events?: Record<string, RuntimeEvent>;
@@ -323,7 +323,7 @@ describe("scheduled tasks", () => {
     });
     await runtime.runJob("nightly");
     expect(seen).toEqual({
-      user: { id: "tool:shop", email: "", name: "tool:shop", roles: [], setup: {} },
+      user: { id: "tool:shop", email: "", name: "tool:shop", subjects: [], setup: {} },
       interface: "job",
       input: undefined,
       userSecrets: {},

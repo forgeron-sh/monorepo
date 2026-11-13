@@ -173,7 +173,10 @@ describe("the realtime hub", () => {
 
 describe("authorizeChannel", () => {
   const manifest = {
-    roles: { member: { grants: ["read", "write"], default: true }, viewer: { grants: ["read"] } },
+    profiles: {
+      member: { grants: ["read", "write"], default: true },
+      viewer: { grants: ["read"] },
+    },
     realtime: {
       channels: {
         notes: { access: "read" },
@@ -182,39 +185,46 @@ describe("authorizeChannel", () => {
       },
     },
   } as unknown as Manifest;
-  const user = (roles: string[]) => ({ id: "u1", email: "e@x.fr", name: "E", roles });
+  // A person who is given a profile's permissions as `everyone`.
+  const user = (profile: "member" | "viewer") => ({
+    id: "u1",
+    email: "e@x.fr",
+    name: "E",
+    subjects: ["everyone"],
+    permissions: { everyone: [...manifest.profiles[profile]!.grants] },
+  });
   const ask = (
     channel: string,
-    roles: string[],
+    profile: "member" | "viewer",
     kind: "subscribe" | "send",
     answer: unknown = true,
   ) =>
     authorizeChannel({
       manifest,
-      user: user(roles),
+      user: user(profile),
       channel,
       kind,
       callAction: async () => answer,
     });
 
   it("needs the channel declared and the level it asks", async () => {
-    expect(await ask("notes", ["viewer"], "subscribe")).toBe(true);
-    expect(await ask("ghost", ["member"], "subscribe")).toContain("no channel");
-    expect(await ask("admin", ["member"], "subscribe")).toContain("admin");
+    expect(await ask("notes", "viewer", "subscribe")).toBe(true);
+    expect(await ask("ghost", "member", "subscribe")).toContain("no channel");
+    expect(await ask("admin", "member", "subscribe")).toContain("admin");
   });
 
   it("lets a page send only when the channel says who may, with its own level", async () => {
-    expect(await ask("notes", ["member"], "send")).toContain("only the tool publishes");
-    expect(await ask("note:n1", ["viewer"], "send")).toContain("write");
-    expect(await ask("note:n1", ["member"], "send")).toBe(true);
+    expect(await ask("notes", "member", "send")).toContain("only the tool publishes");
+    expect(await ask("note:n1", "viewer", "send")).toContain("write");
+    expect(await ask("note:n1", "member", "send")).toBe(true);
   });
 
   it("asks the tool's action for an instance, and refuses when it says no or fails", async () => {
-    expect(await ask("note:n1", ["member"], "subscribe", { allowed: true })).toBe(true);
-    expect(await ask("note:n1", ["member"], "subscribe", false)).toContain("does not let you in");
+    expect(await ask("note:n1", "member", "subscribe", { allowed: true })).toBe(true);
+    expect(await ask("note:n1", "member", "subscribe", false)).toContain("does not let you in");
     const failing = await authorizeChannel({
       manifest,
-      user: user(["member"]),
+      user: user("member"),
       channel: "note:n1",
       kind: "subscribe",
       callAction: async () => {
@@ -222,6 +232,6 @@ describe("authorizeChannel", () => {
       },
     });
     expect(failing).toContain("does not let you in");
-    expect(await ask("note", ["member"], "subscribe")).toBe(true);
+    expect(await ask("note", "member", "subscribe")).toBe(true);
   });
 });

@@ -15,7 +15,6 @@ export function describeResources(manifest: Manifest): string[] {
     const d = resources.directory;
     const what = [
       d.members && "the other people of the workspace",
-      d.roles && "their roles",
       d.avatars && "their pictures",
       d.teams && "the teams",
     ].filter(Boolean);

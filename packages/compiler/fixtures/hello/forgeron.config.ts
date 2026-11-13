@@ -5,7 +5,7 @@ export default defineConfig({
   title: "Hello",
   description: "A tool of a few files.",
   interfaces: { mcp: true, api: true, cli: true },
-  roles: {
+  profiles: {
     reader: { grants: ["read"] },
     support: { grants: ["read", "write"] },
   },

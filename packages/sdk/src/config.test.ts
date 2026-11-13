@@ -15,7 +15,7 @@ describe("defineConfig", () => {
       network: { allow: ["*.odoo.com"], why: "Calls to the Odoo API" },
       cache: kv(),
     },
-    roles: { support: { label: "Support", grants: ["read", "write"] } },
+    profiles: { support: { label: "Support", grants: ["read", "write"] } },
   };
 
   it("returns the config it was given", () => {
@@ -30,17 +30,18 @@ describe("defineConfig", () => {
     expect(() => defineConfig({ name })).toThrow(/pattern/);
   });
 
-  it("refuses a malformed access level in a role", () => {
-    expect(() => defineConfig({ name: "crm", roles: { sales: { grants: ["Read"] } } })).toThrow(
+  it("refuses a malformed access level in a profile", () => {
+    expect(() => defineConfig({ name: "crm", profiles: { sales: { grants: ["Read"] } } })).toThrow(
       /pattern/,
     );
   });
 
-  it("takes the profiles under `profiles`, or under `roles`, their former name (D-127)", () => {
+  it("takes the profiles under `profiles`, and refuses `roles`, their former name (D-136)", () => {
     const profiles = { user: { label: "User", grants: ["read"], default: true } };
     expect(defineConfig({ name: "crm", profiles }).profiles).toBe(profiles);
-    expect(defineConfig({ name: "crm", roles: profiles }).roles).toBe(profiles);
-    expect(() => defineConfig({ name: "crm", profiles, roles: profiles })).toThrow(/once/);
+    expect(() => defineConfig({ name: "crm", roles: profiles } as never)).toThrow(
+      "`roles` is now `profiles` (D-136)",
+    );
     expect(() => defineConfig({ name: "crm", profiles: { u: { grants: ["Read"] } } })).toThrow(
       /pattern/,
     );

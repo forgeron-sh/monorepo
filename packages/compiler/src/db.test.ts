@@ -91,7 +91,7 @@ describe("the seed of a built tool in a new preview", () => {
     "CREATE TABLE companies (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at TEXT); " +
     "CREATE TABLE deals (id TEXT PRIMARY KEY, company_id TEXT, title TEXT, stage TEXT, updated_at TEXT); " +
     'CREATE TABLE "_forgeron_seed" ("status" TEXT NOT NULL, "detail" TEXT)';
-  const user = JSON.stringify({ id: "u1", email: "a@b.c", name: "A", roles: ["sales"] });
+  const user = JSON.stringify({ id: "u1", email: "a@b.c", name: "A", subjects: ["everyone"] });
   const call = (worker: Worker, env: unknown) =>
     worker.default.fetch(
       new Request("https://tool.test/api/deals.list", { headers: { "x-forgeron-user": user } }),

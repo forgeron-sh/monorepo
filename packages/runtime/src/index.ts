@@ -1,5 +1,6 @@
 // Runs a tool in its Worker: MCP / API / CLI / Web routing, access, ctx context. workerd only.
 export { createRuntime, type Runtime, type SetupCheck } from "./runtime";
+export { readGatewayUser } from "./gateway-user";
 export { toolName } from "./mcp";
 export {
   CHANNEL,

@@ -8,7 +8,7 @@ const base: Manifest = {
   name: "hr",
   version: "1.0.0",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: {},
+  profiles: {},
   actions: {},
   views: {},
   jobs: {},
@@ -27,7 +27,7 @@ const store: Parameters<typeof handleSecretsInput>[3] = {
   read: async () => ({}),
   write: async () => {},
 };
-const user = { id: "p1", email: "p@acme.test", name: "P", roles: [] };
+const user = { id: "p1", email: "p@acme.test", name: "P", subjects: [] };
 const get = (manifest: Manifest, extras: Parameters<typeof handleSecretsInput>[6]) =>
   handleSecretsInput(
     new Request("https://acme.forgeron.app/t/hr/secrets"),

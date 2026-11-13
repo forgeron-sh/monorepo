@@ -6,7 +6,7 @@ import monday from "../views/monday";
 
 function runtime(search: Record<string, string>, levels: string[]): ViewRuntime {
   return {
-    user: { id: "u", email: "mia@acme.fr", name: "Mia", roles: ["management"] },
+    user: { id: "u", email: "mia@acme.fr", name: "Mia" },
     can: (level) => levels.includes(level),
     canCall: () => true,
     call: async () => null,

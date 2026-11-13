@@ -10,7 +10,7 @@ export default defineConfig({
   // The dashboard has no data of its own: it calls the actions of the CRM with the person's identity.
   uses: { crm: "^0.0.0" },
 
-  // `management` is specific to this tool: the Monday view needs it, so only this role sees the page.
+  // `management` is specific to this tool: the Monday view needs it, so only the people given this profile see the page.
   profiles: {
     management: { label: "Management", grants: ["read", "management"], default: true },
   },

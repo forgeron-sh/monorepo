@@ -8,8 +8,8 @@ export const createTestTool = (options: TestToolOptions = {}) => create({ dir, .
 
 export const NOW = "2026-11-03T09:00:00Z";
 
-export const management = { email: "mia@acme.fr", roles: ["management"] };
-export const nobody = { email: "sam@acme.fr", roles: [] };
+export const management = { email: "mia@acme.fr", profile: "management" };
+export const nobody = { email: "sam@acme.fr", permissions: [] };
 
 const deal = (id: string, over: Partial<Deal>): Deal => ({
   id,

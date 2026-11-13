@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@forgeron/manifest": "workspace:*",
+    "@forgeron/permissions": "workspace:*",
     "@forgeron/runtime": "workspace:*",
     "kysely": "0.29.8",
     "miniflare": "4.20260730.0",

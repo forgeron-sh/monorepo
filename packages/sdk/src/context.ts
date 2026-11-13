@@ -16,7 +16,6 @@ export interface User {
   name: string;
   /** The person's picture, when the workspace has one (D-131). */
   avatar?: string;
-  roles: string[];
   /** The ids of the teams the person belongs to; only with `resources.directory.teams` (D-132). */
   teams?: string[];
 }
@@ -33,7 +32,6 @@ export interface DirectoryMember {
   email: string;
   name: string;
   avatar?: string;
-  roles?: string[];
   teams?: string[];
 }
 

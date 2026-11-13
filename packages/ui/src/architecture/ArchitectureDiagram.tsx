@@ -19,7 +19,7 @@ const KIND_LABELS: Record<DiagramNode["kind"], string> = {
   "user-secret": "Personal secret",
   connector: "Connector",
   host: "Outbound host",
-  role: "Role",
+  profile: "Profile",
   event: "Event",
   task: "Task",
   tool: "Tool",
@@ -144,7 +144,7 @@ function List({ layout, id }: { layout: DiagramLayout; id: string }) {
 
 /**
  * The architecture of a tool, drawn from its manifest: interfaces, action groups with their access
- * level, resources, roles, events, tasks and the tools it uses. A static SVG that scales to its
+ * level, resources, profiles, events, tasks and the tools it uses. A static SVG that scales to its
  * container; every node can be focused and reads as a sentence. A text list says the same, and takes
  * the diagram's place when the container is narrow.
  */

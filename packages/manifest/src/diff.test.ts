@@ -259,11 +259,11 @@ describe("what breaks an existing caller", () => {
       (m) => (m.interfaces.web = false),
       "tool.interface-removed",
     ],
-    ["a role dropped", (m) => delete m.roles.commercial, "role.removed"],
+    ["a profile dropped", (m) => delete m.profiles.commercial, "profile.removed"],
     [
-      "a grant taken from a role",
-      (m) => (m.roles.direction!.grants = ["read"]),
-      "role.grant-removed",
+      "a grant taken from a profile",
+      (m) => (m.profiles.direction!.grants = ["read"]),
+      "profile.grant-removed",
     ],
     ["the tool renamed", (m) => (m.name = "crm2"), "tool.renamed"],
   ])("%s is a major", (_, mutate, kind) => {
@@ -279,9 +279,9 @@ describe("what breaks an existing caller", () => {
       "action.rate-limit-changed",
     ],
     [
-      "a grant added to a role",
-      (m) => m.roles.commercial!.grants.push("delete"),
-      "role.grant-added",
+      "a grant added to a profile",
+      (m) => m.profiles.commercial!.grants.push("delete"),
+      "profile.grant-added",
     ],
     ["a schedule changed", (m) => (m.jobs["monday-summary"]!.cron = "0 8 * * 1"), "job.changed"],
     ["a dependency range changed", (m) => (m.uses.contacts = "^3.0.0"), "uses.range-changed"],

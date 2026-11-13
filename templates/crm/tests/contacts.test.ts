@@ -56,7 +56,7 @@ describe("contacts.search", () => {
     expect(await tool.call("contacts.search", { query: "an", limit: 1 })).toHaveLength(1);
   });
 
-  it("is open to read-only roles", async () => {
+  it("is open to read-only profiles", async () => {
     const tool = await withContacts();
     expect(names(await tool.as(support).call("contacts.search", { query: "Durand" }))).toEqual([
       "Durand",
@@ -85,7 +85,7 @@ describe("contacts.create", () => {
     ).rejects.toMatchObject({ code: "INVALID" });
   });
 
-  it("is refused to read-only roles", async () => {
+  it("is refused to read-only profiles", async () => {
     const tool = await createTestTool({ as: support });
     await expect(tool.call("contacts.create", durand)).rejects.toMatchObject({ code: "FORBIDDEN" });
   });

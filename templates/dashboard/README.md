@@ -15,11 +15,11 @@ One page for the Monday meeting, computed from the CRM without copying its data.
 
 ## Permissions
 
-| Role         | May                                |
+| Profile      | May                                |
 | ------------ | ---------------------------------- |
 | `management` | Open the page and read the figures |
 
-The tool needs the CRM tool to be installed in the workspace. Without the `management` role, ask an administrator for it.
+The tool needs the CRM tool to be installed in the workspace. If you cannot open the page, ask whoever gives access to give your team the `management` profile.
 
 ## For developers
 
@@ -35,7 +35,7 @@ Specification: [`docs/examples/04-dashboard.md`](../../docs/examples/04-dashboar
 | `sales.stale`   | `read` | Open leads with no activity for `days` (30 by default), the oldest first   |
 | `sales.owners`  | `read` | Salespeople who own leads, for the filter                                  |
 
-`views/monday.tsx` is listed in the manifest at `/monday` and restricted to the `management` role (a level specific to this tool, granted only by that role): amount won this month, leads by stage, leads with no activity for 30 days. The filter is the `owner` parameter of the URL (`/monday?owner=ely@acme.fr`), so a link shares it. The same figures are the actions above, so Claude (`dashboard_sales_summary`) and the CLI get them too.
+`views/monday.tsx` is listed in the manifest at `/monday` and restricted to the `management` level (specific to this tool, granted only by the `management` profile): amount won this month, leads by stage, leads with no activity for 30 days. The filter is the `owner` parameter of the URL (`/monday?owner=ely@acme.fr`), so a link shares it. The same figures are the actions above, so Claude (`dashboard_sales_summary`) and the CLI get them too.
 
 The dashboard has no database. Every figure is read from the CRM with `ctx.tools.crm.call("deals.list", …)`, which runs with the person's identity: if the CRM refuses them, the action fails and nothing is shown.
 

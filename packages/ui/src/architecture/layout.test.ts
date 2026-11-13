@@ -79,9 +79,13 @@ describe("layoutArchitecture", () => {
     });
   }
 
-  it("crm: roles, an event handler, a database and the interfaces' edges", () => {
+  it("crm: profiles, an event handler, a database and the interfaces' edges", () => {
     const layout = layoutArchitecture(crm);
-    expect(ids(layout, "role:")).toEqual(["role:management", "role:sales", "role:support"]);
+    expect(ids(layout, "profile:")).toEqual([
+      "profile:management",
+      "profile:sales",
+      "profile:support",
+    ]);
     expect(ids(layout, "event:")).toEqual(["event:deal-history"]);
     expect(layout.nodes.find((n) => n.id === "event:deal-history")?.subtitle).toBe(
       "on deal.moved · sync",
@@ -125,7 +129,7 @@ describe("layoutArchitecture", () => {
       "interfaces",
       "actions",
       "resources",
-      "roles",
+      "profiles",
       "events",
       "tasks",
     ]);
@@ -154,7 +158,7 @@ describe("layoutArchitecture", () => {
     const layout = layoutArchitecture({
       ...crm,
       actions: {},
-      roles: {},
+      profiles: {},
       events: {},
       jobs: {},
       uses: {},

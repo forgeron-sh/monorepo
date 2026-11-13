@@ -35,7 +35,7 @@ describe("companies.upsert", () => {
     expect(await tool.call("companies.list", {})).toHaveLength(2);
   });
 
-  it("is refused to read-only roles", async () => {
+  it("is refused to read-only profiles", async () => {
     const tool = await createTestTool({ as: support });
     await expect(tool.call("companies.upsert", { name: "Acme" })).rejects.toMatchObject({
       code: "FORBIDDEN",
@@ -64,7 +64,7 @@ describe("companies.list", () => {
     expect(await tool.call("companies.list", { limit: 2 })).toHaveLength(2);
   });
 
-  it("is open to read-only roles", async () => {
+  it("is open to read-only profiles", async () => {
     const tool = await createTestTool({ as: support });
     expect(await tool.call("companies.list", {})).toEqual([]);
   });

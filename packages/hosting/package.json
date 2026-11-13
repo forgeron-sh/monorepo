@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@forgeron/manifest": "workspace:*",
+    "@forgeron/permissions": "workspace:*",
     "@forgeron/runtime": "workspace:*",
     "miniflare": "4.20260730.0",
     "ws": "8.21.0"

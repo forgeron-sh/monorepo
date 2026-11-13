@@ -16,11 +16,11 @@ Equipment across sites, fed by CSV imports and a nightly SharePoint synchronizat
 
 ## Permissions
 
-| Role         | May                                              |
+| Profile      | May                                              |
 | ------------ | ------------------------------------------------ |
 | `reader`     | Read sites, equipment and the history of imports |
 | `technician` | Read, create and update, attach files            |
-| `admin`      | The same, delete, and import a CSV               |
+| `manager`    | The same, delete, and import a CSV               |
 
 The nightly synchronization needs the `SHAREPOINT_TOKEN` secret, set by an administrator.
 
@@ -45,7 +45,7 @@ Specification: [`docs/examples/03-data-hub.md`](../../docs/examples/03-data-hub.
 
 `jobs/sync-sharepoint.ts` runs at 2 am Paris time. It reads the SharePoint list through Microsoft Graph, links rows to their SharePoint item (`external_id`, or the `ref` when not linked yet) and updates `next_check`. `events/sync-history.ts` handles `inventory.synced` and writes one row per import or synchronization into `sync_runs`.
 
-Roles: `technician` read and write, `reader` read only, `admin` also `delete` and the tool-specific `import` level.
+Profiles: `technician` read and write, `reader` read only, `manager` also `delete` and the tool-specific `import` level.
 
 ### Differences from the example
 

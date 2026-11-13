@@ -729,19 +729,14 @@ describe("forgeron db", () => {
   });
 
   describe("the shell outside local", () => {
-    it("is read-only unless --write and the admin role", () => {
-      const read = { write: false, role: undefined };
+    it("is read-only unless --write; the platform checks who may write", () => {
+      const read = { write: false };
       expect(() => checkShell("production", "SELECT 1", read)).not.toThrow();
       expect(() => checkShell("production", "DELETE FROM things", read)).toThrow("read-only");
       expect(() => checkShell("production", "SELECT 1; DROP TABLE things", read)).toThrow(
         "read-only",
       );
-      expect(() =>
-        checkShell("production", "DELETE FROM things", { write: true, role: "reader" }),
-      ).toThrow("admin role");
-      expect(() =>
-        checkShell("production", "DELETE FROM things", { write: true, role: "admin" }),
-      ).not.toThrow();
+      expect(() => checkShell("production", "DELETE FROM things", { write: true })).not.toThrow();
       expect(() => checkShell("local", "DELETE FROM things", read)).not.toThrow();
     });
 
@@ -786,7 +781,7 @@ describe("forgeron dev", () => {
     await expect(fetch(url)).rejects.toThrow(/fetch failed/);
   }, 90_000);
 
-  it("runs as a role: a person who may call nothing sees no tool", async () => {
+  it("runs as a profile: a person who may call nothing sees no tool", async () => {
     const dir = await work("dev-as");
     const { c, url, done } = await serve(["--port", "0", "--as", "nobody"], dir);
     expect(c.logs[0]).toContain('as "nobody"');
@@ -795,12 +790,12 @@ describe("forgeron dev", () => {
     await done;
   }, 90_000);
 
-  it("refuses a name that is neither a profile nor admin or member, naming the choices (D-127)", async () => {
-    const dir = await work("dev-bad-role");
+  it("refuses a name that is neither a profile nor `all`, naming the choices (D-136)", async () => {
+    const dir = await work("dev-bad-profile");
     const c = capture(dir);
     expect(await run(["dev", "--port", "0", "--as", "boss"], c.io)).toBe(2);
     expect(c.errors[0]).toContain(
-      "--as boss: the tool has no such profile, and it is not admin or member (choose: reader, nobody, admin, member)",
+      "--as boss: the tool has no such profile (choose: reader, nobody, all)",
     );
   }, 60_000);
 

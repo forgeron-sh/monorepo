@@ -3,7 +3,7 @@ import type { Directory, DirectoryMember, DirectorySnapshot, DirectoryTeam, User
 
 // `ctx.directory` (D-131, D-132). The gateway hands a call the part of the workspace's directory the
 // tool declared (`resources.directory`); this filters it once more by that declaration, so a snapshot
-// that carries too much still leaks nothing: roles only with `roles`, pictures only with `avatars`,
+// that carries too much still leaks nothing: pictures only with `avatars`,
 // the other people only with `members`, teams only with `teams`.
 
 const refused = (what: string) =>
@@ -25,7 +25,6 @@ export function createDirectory(
     email: m.email,
     name: m.name,
     ...(may.avatars && m.avatar ? { avatar: m.avatar } : {}),
-    ...(may.roles && m.roles ? { roles: m.roles } : {}),
     ...(may.teams && m.teams ? { teams: m.teams } : {}),
   });
   const everyone = (snapshot?.members ?? []).map(shape);
@@ -36,7 +35,6 @@ export function createDirectory(
     email: user.email,
     name: user.name,
     ...(may.avatars && user.avatar ? { avatar: user.avatar } : {}),
-    ...(may.roles ? { roles: user.roles } : {}),
     ...(may.teams ? { teams: [...mine] } : {}),
   };
   return {

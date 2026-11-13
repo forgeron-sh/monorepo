@@ -5,7 +5,7 @@ export default defineConfig({
   title: "Chatty",
   description: "Declares a connector nobody built.",
   interfaces: { mcp: true, api: true, cli: true },
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
   resources: {
     connectors: {
       slack: connector("slack", { mode: "application", scopes: [], why: "Post updates" }),
