@@ -87,14 +87,14 @@ export function createTeams(kernel: Kernel) {
   const api = {
     // ---- teams (D-132, D-137): named groups of the workspace's members, and what they may do
     /** Creates the built-in teams the workspace lacks (`admin`, `developer`); idempotent. */
-    async ensureBuiltInTeams(workspace: string): Promise<void> {
+    async ensureBuiltInTeams(workspace: string): Promise<boolean> {
       const have = new Set(
         (
           await all(`SELECT "id" FROM "teams" WHERE "workspace" = ? AND "built_in" = 1`, workspace)
         ).map((r) => String(r.id)),
       );
       const missing = BUILT_IN_TEAMS.filter((t) => !have.has(t.id));
-      if (missing.length === 0) return;
+      if (missing.length === 0) return false;
       const at = now();
       await d1.batch(
         missing.flatMap((t) => [
@@ -115,6 +115,7 @@ export function createTeams(kernel: Kernel) {
           ),
         ]),
       );
+      return true;
     },
     /**
      * The rule against escalation (D-137): the actor may give, or take away, only permissions they
@@ -132,16 +133,19 @@ export function createTeams(kernel: Kernel) {
     },
     /** Built-in teams first, then by name. */
     async listTeams(workspace: string): Promise<Team[]> {
-      await this.ensureBuiltInTeams(workspace);
-      // The teams, their members and what they were given are asked together (D-143).
-      const [rows, members, grants] = await Promise.all([
-        all(
-          `SELECT * FROM "teams" WHERE "workspace" = ? ORDER BY "built_in" DESC, "name"`,
-          workspace,
-        ),
-        membersOf(workspace),
-        grantsOf(workspace),
-      ]);
+      // The check of the built-in teams and the reads are asked together (D-143). The check only writes the
+      // first time a workspace is read: then the reads are made again, to see what it created.
+      const read = () =>
+        Promise.all([
+          all(
+            `SELECT * FROM "teams" WHERE "workspace" = ? ORDER BY "built_in" DESC, "name"`,
+            workspace,
+          ),
+          membersOf(workspace),
+          grantsOf(workspace),
+        ]);
+      const [created, early] = await Promise.all([this.ensureBuiltInTeams(workspace), read()]);
+      const [rows, members, grants] = created ? await read() : early;
       return rows.map((r) => build(r, members.get(String(r.id)) ?? [], grants));
     },
     async findTeam(workspace: string, id: string): Promise<Team | undefined> {

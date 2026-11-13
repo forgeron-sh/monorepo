@@ -422,6 +422,19 @@ export function createCatalog(kernel: Kernel) {
         )
       ).map(toEnvironment);
     },
+    /**
+     * The environments of a tool known by its workspace and name, so that the tool and its environments
+     * can be read together: one trip for both instead of the tool first (D-143).
+     */
+    async environmentsOfTool(workspace: string, name: string): Promise<EnvironmentRecord[]> {
+      return (
+        await all(
+          `SELECT e.* FROM "environments" e JOIN "tools" t ON t."id" = e."tool_id" WHERE t."workspace" = ? AND t."name" = ? ORDER BY e."name", e."branch", e."channel"`,
+          workspace,
+          name,
+        )
+      ).map(toEnvironment);
+    },
     /** A permanent channel other than production, by its name. */
     async findChannel(toolId: string, name: string): Promise<EnvironmentRecord | undefined> {
       const row = await first(

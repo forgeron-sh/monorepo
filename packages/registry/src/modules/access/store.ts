@@ -36,6 +36,12 @@ const toGrant = (row: Row): ProfileGrant => {
 export function createAccess(kernel: Kernel, catalog: CatalogPort) {
   const { d1, now, all, first, auditStatement } = kernel;
 
+  const grantRowsOf = (toolId: string) =>
+    all(
+      `SELECT "subject", "kind", "profile", "permissions" FROM "access_grants" WHERE "tool_id" = ? ORDER BY "subject"`,
+      toolId,
+    );
+
   const upsert = (
     toolId: string,
     subject: string,
@@ -115,10 +121,7 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
      * read from `manifest`: the same rows its first deployment writes.
      */
     async accessGrants(toolId: string, manifest?: Manifest): Promise<AccessGrants> {
-      const rows = await all(
-        `SELECT "subject", "kind", "profile", "permissions" FROM "access_grants" WHERE "tool_id" = ? ORDER BY "subject"`,
-        toolId,
-      );
+      const rows = await grantRowsOf(toolId);
       if (rows.length > 0)
         return Object.fromEntries(rows.map((r) => [String(r.subject), toGrant(r)]));
       const read = manifest ?? (await this.currentManifest(toolId).catch(() => undefined));
@@ -356,12 +359,18 @@ export function createAccess(kernel: Kernel, catalog: CatalogPort) {
       subjects: readonly string[],
       manifest?: Manifest,
     ): Promise<{ permissions: Record<string, string[]>; access: AccessOverrides }> {
-      const read = manifest ?? (await this.currentManifest(toolId).catch(() => undefined));
-      if (!read) return { permissions: {}, access: {} };
-      const [grants, exceptions] = await Promise.all([
-        this.accessGrants(toolId, read),
+      // The manifest, the grants and the exceptions are read together: none needs another's answer to be
+      // asked (D-143). The manifest only stands in when the tool has no grant of its own yet.
+      const [read, grantRows, exceptions] = await Promise.all([
+        manifest ?? this.currentManifest(toolId).catch(() => undefined),
+        grantRowsOf(toolId),
         this.accessExceptions(toolId),
       ]);
+      if (!read) return { access: {}, permissions: {} };
+      const grants: AccessGrants =
+        grantRows.length > 0
+          ? Object.fromEntries(grantRows.map((r) => [String(r.subject), toGrant(r)]))
+          : defaultGrants(read.profiles ?? {});
       return resolveAccess(subjects, grants, exceptions, read);
     },
   };

@@ -131,4 +131,22 @@ describe("the registry of the path of a call (D-143)", () => {
     await expect(hot.findTool("acme", "crm")).rejects.toThrow("D1 is down");
     expect(await hot.findTool("acme", "crm")).toEqual({ id: "t1" });
   });
+
+  it("shares what a method reads of its own with the same read made at the same time", async () => {
+    const calls: string[] = [];
+    const raw = {
+      async currentManifest(toolId: string) {
+        calls.push(`currentManifest ${toolId}`);
+        return { profiles: {} };
+      },
+      async accessFor(this: Registry, toolId: string) {
+        // As the registry does: it reads the manifest of its own, through `this`.
+        await this.currentManifest(toolId);
+        return { access: {}, permissions: {} };
+      },
+    } as unknown as Registry;
+    const { hot } = createHotRegistry(raw);
+    await Promise.all([hot.currentManifest("t1"), hot.accessFor("t1", ["everyone"])]);
+    expect(calls).toEqual(["currentManifest t1"]);
+  });
 });

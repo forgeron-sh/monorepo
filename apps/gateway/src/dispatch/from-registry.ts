@@ -35,10 +35,14 @@ export function dispatchRegistry(
   const nameOf = options.workerNameOf ?? defaultName;
   return {
     async find(workspace, name) {
-      const tool = await registry.findTool(workspace, name);
+      // The tool and its environments are asked together, by name: one trip, not two (D-143).
+      const [tool, environments] = await Promise.all([
+        registry.findTool(workspace, name),
+        registry.environmentsOfTool(workspace, name),
+      ]);
       if (!tool) return undefined;
       const entry: ToolEntry = { previews: {} };
-      for (const environment of await registry.listEnvironments(tool.id)) {
+      for (const environment of environments) {
         if (!environment.versionId) continue;
         const worker = nameOf(tool, environment);
         if (!worker) continue;
