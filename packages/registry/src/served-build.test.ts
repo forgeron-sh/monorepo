@@ -100,3 +100,37 @@ describe("the build an environment serves (D-143)", () => {
     expect(await registry.currentManifest(tool.id)).toEqual(manifest);
   });
 });
+
+describe("what a call reads of a tool and its access in one trip (D-143)", () => {
+  it("reads the environments of a tool by its workspace and name", async () => {
+    await publish("production", "fp-prod");
+    await publish("preview", "fp-prev", "feat-x");
+    const environments = await registry.environmentsOfTool("acme", "crm");
+    expect(environments.map((e) => e.name).sort()).toEqual(["preview", "production"]);
+    expect(await registry.environmentsOfTool("acme", "missing")).toEqual([]);
+    expect(await registry.environmentsOfTool("globex", "crm")).toEqual([]);
+  });
+
+  it("resolves the access of a person without being handed the manifest", async () => {
+    await publish("production", "fp-prod");
+    const read = await registry.accessFor(tool.id, ["everyone"]);
+    expect(read.permissions.everyone).toContain("read");
+    // Handed the manifest, the answer is the same.
+    expect(await registry.accessFor(tool.id, ["everyone"], manifest)).toEqual(read);
+    // A tool that has no version yet has nothing to resolve.
+    const empty = await registry.createTool({ workspace: "acme", name: "empty" });
+    expect(await registry.accessFor(empty.id, ["everyone"])).toEqual({
+      access: {},
+      permissions: {},
+    });
+  });
+
+  it("lists the teams of a workspace that has never been read, built-in ones included", async () => {
+    const teams = await registry.listTeams("fresh");
+    expect(teams.map((t) => t.id).sort()).toEqual(["admin", "developer"]);
+    expect((await registry.listTeams("fresh")).map((t) => t.id).sort()).toEqual([
+      "admin",
+      "developer",
+    ]);
+  });
+});

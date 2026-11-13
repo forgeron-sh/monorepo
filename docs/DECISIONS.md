@@ -142,6 +142,7 @@ Rules of the log:
 | D-141 | 13/11/2026 | A tool's D1 is created in the region of the platform's D1, so that its queries do not cross an ocean                                                                                                         | Active                                        |
 | D-142 | 13/11/2026 | The time of a call to a tool is told step by step in `Server-Timing`                                                                                                                                         | Active                                        |
 | D-143 | 13/11/2026 | The path of a call to a tool reads the registry once, together and from a memory of a few seconds, and counts seats after the answer                                                                         | Active                                        |
+| D-144 | 13/11/2026 | A cold call reads the tool, its access and its directory in fewer trips; what changes is not shared through KV                                                                                               | Active                                        |
 
 ---
 
@@ -1887,3 +1888,16 @@ Rules of the log:
 - **Consequences**: a person removed from a team, a revoked token or a tool deployed in another instance of the Worker takes up to 5 s (identity) or 10 s (catalog) to be seen on the path of a call. What is cached is shared by reference: nothing on that path may modify what the registry returned.
 - **Not verified**: the gain on a real install. It is read in `Server-Timing` before and after; no figure is announced here.
 - **Applied in**: `apps/gateway/src/dispatch/{hot-registry,d1-probe,dispatch,user-secrets,timing}.ts`; `apps/gateway/src/identity/authn/caller.ts`; `apps/gateway/src/compose.ts`; `packages/registry/src/modules/{catalog,access,members,teams}/store.ts`.
+
+## D-144 — A cold call makes fewer trips; what changes is not shared through KV
+
+- **Date**: 13/11/2026 · **Status**: Active · Builds on D-143
+- **Decision**: after D-143 the call measured 277 ms (tool 97 ms), with 22 reads of D1 on a cold Worker, 4.3 ms of SQL in 411 ms waited, served by `WEUR primary`: what is left is the road, so what is left is the number of trips on a cold Worker. Now:
+  1. **The tool and its environments are read together by name** (`environmentsOfTool`, `dispatchRegistry.find`): one trip instead of two.
+  2. **`accessFor` reads the manifest, the grants and the exceptions together** (the manifest only stands in when the tool has no grant of its own): one trip instead of two. `forwardIdentity` asks for it at once, without waiting for the manifest.
+  3. **A read a method makes of its own is shared** (the hot registry calls its methods with itself as `this`): the manifest that `forwardIdentity` and `accessFor` both ask for is one read, not two.
+  4. **`listTeams` asks the check of the built-in teams and its three reads together**, and reads again only when the check created something (the first time a workspace is read).
+- **Why**: each trip is about 13 to 18 ms of road; the SQL is 1 % of the wait.
+- **Rejected**: **a shared KV for the registry's reads.** KV is eventually consistent: a value written in one place is seen elsewhere after up to a minute, and its read cache holds at least 30 s. Who a person is, what their team may do, a revoked token, the version an environment serves and the access matrix would then change for a minute in some places and at once in others; a deployment made from the panel would not be seen by the person who tests it right after. What is immutable (a build by its id) is the only thing KV could hold without that cost, and it is a small part of a cold call: a read of D1 of the same size is of the order of the KV read it would replace, with an install to change (a namespace created and bound on `platform install` and on each update, D-138). Not built until a measure says it is worth that. The memory of the Worker (D-143) already shares what is read within seconds.
+- **Not done**: Smart Placement and D1 read replicas (account switches, to try against `d1.where`); a timing from inside the tool's Worker (the tool's own reads are 97 ms of which nothing is told; the runtime shares one database handle across requests, so a per-call counter is a change of the runtime, not of the wrapper); a runtime built once instead of once per call for a tool that declares secrets, setup or a directory (CPU, not a trip, not measured).
+- **Applied in**: `packages/registry/src/modules/{catalog,access,teams}/store.ts`; `apps/gateway/src/dispatch/{from-registry,hot-registry,user-secrets}.ts`.

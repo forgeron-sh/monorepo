@@ -295,11 +295,7 @@ export async function forwardIdentity(
   const accessRead =
     record === undefined
       ? Promise.resolve(none)
-      : manifestRead.then((manifest) =>
-          manifest
-            ? step("f.access", () => context.registry.accessFor(record.id, subjects, manifest))
-            : none,
-        );
+      : step("f.access", () => context.registry.accessFor(record.id, subjects));
   // A tool with a rule is reached only by the people who added it to their library and may still use
   // it (D-117). A preview is for who holds `tools:read` already (`canPreview`).
   const libraryRead =

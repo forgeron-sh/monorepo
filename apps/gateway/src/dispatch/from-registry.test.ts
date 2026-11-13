@@ -18,6 +18,7 @@ const platform = (environments: EnvironmentRecord[]) =>
   ({
     findTool: async () => tool,
     listEnvironments: async () => environments,
+    environmentsOfTool: async () => environments,
   }) as unknown as PlatformRegistry;
 
 describe("dispatchRegistry", () => {
@@ -50,5 +51,13 @@ describe("dispatchRegistry", () => {
       platform([environment({ name: "preview", branch: "x", versionId: undefined })]),
     ).find("demo", "crm");
     expect(entry?.previews).toEqual({});
+  });
+
+  it("answers nothing for a tool that does not exist", async () => {
+    const none = {
+      findTool: async () => undefined,
+      environmentsOfTool: async () => [],
+    } as unknown as PlatformRegistry;
+    expect(await dispatchRegistry(none).find("demo", "missing")).toBeUndefined();
   });
 });

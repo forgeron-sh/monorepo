@@ -32,6 +32,7 @@ const IDENTITY = [
 const CATALOG = [
   "findTool",
   "listEnvironments",
+  "environmentsOfTool",
   "getVersion",
   "getBuild",
   "servedBuild",
@@ -142,7 +143,7 @@ export function createHotRegistry(
     return pending;
   };
 
-  const hot = new Proxy(registry, {
+  const hot: Registry = new Proxy(registry, {
     get(_target, name) {
       const value = Reflect.get(tracked, name, tracked) as unknown;
       if (typeof value !== "function") return value;
@@ -150,8 +151,10 @@ export function createHotRegistry(
       return ttl === undefined
         ? (value as (...a: unknown[]) => unknown).bind(tracked)
         : (...args: unknown[]) =>
+            // `this` is the hot registry: what a method reads of its own (`accessFor` reads the manifest)
+            // is shared with the same read made at the same time, not asked again.
             answer(name as string, ttl, args, () =>
-              (value as (...a: unknown[]) => unknown).apply(tracked, args),
+              (value as (...a: unknown[]) => unknown).apply(hot, args),
             );
     },
   });
