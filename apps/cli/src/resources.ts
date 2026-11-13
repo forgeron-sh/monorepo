@@ -11,6 +11,16 @@ export function describeResources(manifest: Manifest): string[] {
     row(`File storage (${resources.files.maxSize})`, resources.files.why);
   }
   if (resources.cache) row("Cache", resources.cache.why);
+  if (resources.directory) {
+    const d = resources.directory;
+    const what = [
+      d.members && "the other people of the workspace",
+      d.roles && "their roles",
+      d.avatars && "their pictures",
+      d.teams && "the teams",
+    ].filter(Boolean);
+    row(`Directory (${what.length ? what.join(", ") : "you only"})`, d.why);
+  }
   if (resources.queue) row("Queue", resources.queue.why);
   for (const [name, secret] of Object.entries(resources.secrets ?? {})) {
     row(`Secret ${name}`, secret.why);

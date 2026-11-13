@@ -554,6 +554,8 @@ resources: { connectors: {
 
 **Files** (`resources.files`): `ctx.files.put(file, { prefix })`, `get(key)`, `text(file)`, `delete(key)`, `signedUrl(key, { expiresIn })`. R2 storage, one namespace per tool and environment, never public.
 
+**Directory** (`resources.directory`, D-131): the workspace's people, without the tool holding any of them. `ctx.user` always has `id`, `email`, `name` and, when the workspace has one, `avatar`. The rest is asked for in the config and approved by an admin like any resource: `directory({ why, members?, roles?, avatars?, teams? })`. Then `ctx.directory.me()`, `member(idOrEmail)` (`undefined` when nobody of the workspace has it), `members({ query?, team?, limit? })`, and with `teams`, `teams({ mine? })`, `team(id)`, `inTeam(id)`. Without a flag the call is refused (`FORBIDDEN`), and the gateway hands the Worker only the fields the tool declared. Check a person against `ctx.directory.member(...)` in the action that shares something: a view's suggestions are a convenience, the action is the rule. In `forgeron dev`, the people come from `.forgeron/local/directory.json` (`{ members: [{ email, name, roles, avatar }], teams: [{ id, name, members: [email] }] }`, a made-up one without it) and `--user <email>` chooses who the developer is; in tests, `createTestTool({ directory: { members, teams } })`.
+
 **Cache**: `ctx.cache.get / set / getOrSet(key, { ttl, scope }, fn) / delete`. `scope: "user"` by default; `"tool"` for reference data that is identical for everyone.
 
 ## 11. Views

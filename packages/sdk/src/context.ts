@@ -14,7 +14,43 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  /** The person's picture, when the workspace has one (D-131). */
+  avatar?: string;
   roles: string[];
+  /** The ids of the teams the person belongs to; only with `resources.directory.teams` (D-132). */
+  teams?: string[];
+}
+
+/** A person of the workspace as `ctx.directory` gives them: the fields `resources.directory` asks for. */
+export interface DirectoryMember {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  roles?: string[];
+  teams?: string[];
+}
+
+export interface DirectoryTeam {
+  id: string;
+  name: string;
+  description?: string;
+  members: string[];
+}
+
+/** `ctx.directory`: the people and teams of the workspace, with `resources.directory` (D-131, D-132). */
+export interface Directory {
+  /** The person who calls. */
+  me(): DirectoryMember;
+  /** A member by id or email; `undefined` when nobody of the workspace has it. Needs `members`. */
+  member(idOrEmail: string): Promise<DirectoryMember | undefined>;
+  /** The members, those matching `query` in name or email, or those of one team. Needs `members`. */
+  members(options?: { query?: string; team?: string; limit?: number }): Promise<DirectoryMember[]>;
+  /** Needs `teams`. */
+  team(id: string): Promise<DirectoryTeam | undefined>;
+  teams(options?: { mine?: boolean }): Promise<DirectoryTeam[]>;
+  /** Whether the caller belongs to the team. */
+  inTeam(id: string): boolean;
 }
 
 /** The person of an action, with the plain values they gave the tool's `setup` (D-097). */
@@ -102,6 +138,8 @@ export interface Context<Input = unknown> {
   emit(event: string, payload?: unknown): void | Promise<void>;
   secrets: Readonly<Record<string, string | undefined>>;
   userSecrets: Readonly<Record<string, string | undefined>>;
+  /** The workspace's people and teams, with `resources.directory` only. */
+  directory: Directory;
   /** One entry per `resources.connectors`: the official client when there is one, and `fetch`. */
   connectors: ContextConnectors;
   fetch: Fetch;

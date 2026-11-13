@@ -1,5 +1,6 @@
 import { heldPermissions, mayAccess, type Manifest } from "@forgeron/manifest";
 import { matchesCron, parseCron, zoneFormatter } from "./cron";
+import { createDirectory } from "./directory";
 import type {
   ActionContext,
   ErrorCode,
@@ -381,6 +382,7 @@ export function createEngine(options: RuntimeOptions): Engine {
         emit: emitter(user, queued, 0),
         secrets: platform.secrets,
         userSecrets,
+        directory: createDirectory(manifest.resources.directory, platform.directory, user),
         connectors,
         fetch: outbound,
         files: platform.files,
@@ -445,6 +447,7 @@ export function createEngine(options: RuntimeOptions): Engine {
         emit: emitter(user, queued, 0),
         secrets: platform.secrets,
         userSecrets: {},
+        directory: createDirectory(manifest.resources.directory, undefined, user),
         connectors: platform.connectors,
         fetch: outbound,
         files: platform.files,

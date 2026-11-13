@@ -4,6 +4,7 @@ import { createLocalHosting } from "@forgeron/hosting/local";
 import { readFile } from "node:fs/promises";
 import type { BuildMigration } from "@forgeron/hosting";
 import { join } from "node:path";
+import { developer, readDevDirectory, snapshotOf } from "./dev-directory";
 import { UsageError } from "./io";
 
 // `forgeron dev`: builds the tool, runs it in workerd through the local hosting, and serves its
@@ -24,6 +25,8 @@ export interface DevOptions {
   port?: number;
   /** Run as a person who has only this role, to see what they would see. */
   role?: string;
+  /** Run as this person of `.forgeron/local/directory.json` (D-131). */
+  user?: string;
 }
 
 async function builtFiles(outDir: string) {
@@ -50,16 +53,9 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
     // The built views of the tool: served on the tool's own address, as the platform serves them.
     viewFile: (file) => readFile(join(dir, ".forgeron", "build", file)).catch(() => undefined),
     ...(options.port === undefined ? {} : { port: options.port }),
-    ...(role
-      ? {
-          identity: () => ({
-            id: "dev",
-            email: "dev@localhost",
-            name: `Local developer (${role})`,
-            roles: [role],
-          }),
-        }
-      : {}),
+    // Who the developer is, and the people and teams a tool that asks for them may know (D-131).
+    identity: (manifest) => developer(readDevDirectory(dir), manifest, options.user, role),
+    directory: () => snapshotOf(readDevDirectory(dir)),
   });
 
   let current: Manifest | undefined;

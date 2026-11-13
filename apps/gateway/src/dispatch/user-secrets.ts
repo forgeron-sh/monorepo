@@ -29,6 +29,7 @@ export interface UserSecretsContext {
     | "bindUserSecret"
     | "findTool"
     | "listConnections"
+    | "listMembers"
     | "listPersonSecrets"
     | "readPersonSecret"
     | "readUserSecrets"
@@ -184,6 +185,24 @@ export async function handleUserSecrets(
   );
 }
 
+type Asked = NonNullable<Manifest["resources"]["directory"]>;
+
+/** The people a tool declared it wants (D-131): nothing beyond the fields it named. */
+export function directoryFor(
+  asked: Asked,
+  members: ReadonlyArray<{ id: string; email: string; name: string; roles: string[] }>,
+): { members: Array<Record<string, unknown>> } {
+  if (!asked.members) return { members: [] };
+  return {
+    members: members.map((m) => ({
+      id: m.id,
+      email: m.email,
+      name: m.name,
+      ...(asked.roles ? { roles: m.roles } : {}),
+    })),
+  };
+}
+
 /**
  * What the tool's runtime is given for a call: who the person is, where they enter secrets, and
  * their own per-person secrets (nobody else's). A token for another tool is refused here, before
@@ -251,22 +270,27 @@ export async function forwardIdentity(
     headers["x-forgeron-user-setup"] = JSON.stringify(
       await context.registry.readUserSetup(record.id, who.person.id),
     );
-    if (context.connectors) {
-      let manifest: Manifest | undefined;
-      try {
-        manifest = await context.registry.currentManifest(record.id);
-      } catch {
-        // No published version: no connector either.
-      }
-      if (manifest) {
-        const connectors = await connectorHeaders(record, manifest, who.person, environment, {
-          registry: context.registry,
-          workspace: context.workspace,
-          ...context.connectors,
-        });
-        if ("refuse" in connectors) return connectors;
-        Object.assign(headers, connectors.headers);
-      }
+    let manifest: Manifest | undefined;
+    try {
+      manifest = await context.registry.currentManifest(record.id);
+    } catch {
+      // No published version: no connector, no directory.
+    }
+    // What the tool asked to know of the workspace's people (D-131), filtered here to that and no more:
+    // the runtime filters again. Only the members of this workspace, never a person's secrets.
+    const asked = manifest?.resources?.directory;
+    if (asked) {
+      const everyone = await context.registry.listMembers(context.workspace);
+      headers["x-forgeron-directory"] = JSON.stringify(directoryFor(asked, everyone));
+    }
+    if (context.connectors && manifest) {
+      const connectors = await connectorHeaders(record, manifest, who.person, environment, {
+        registry: context.registry,
+        workspace: context.workspace,
+        ...context.connectors,
+      });
+      if ("refuse" in connectors) return connectors;
+      Object.assign(headers, connectors.headers);
     }
   }
   return { headers };

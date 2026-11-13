@@ -21,6 +21,29 @@ export interface TestIdentity {
   userSecrets?: Record<string, string>;
   /** The plain values the person gave the tool's `setup` (`ctx.user.setup`, D-097). */
   setup?: Record<string, string>;
+  avatar?: string;
+}
+
+/** A person of the test workspace: what `ctx.directory` reads, filled in from the email. */
+export interface TestMember {
+  email: string;
+  name?: string;
+  id?: string;
+  avatar?: string;
+  roles?: string[];
+}
+
+export interface TestTeam {
+  id: string;
+  name: string;
+  description?: string;
+  /** The emails of its members. */
+  members: string[];
+}
+
+export interface TestDirectory {
+  members: TestMember[];
+  teams?: TestTeam[];
 }
 
 export interface EmittedEvent {
@@ -44,6 +67,8 @@ export interface TestToolOptions {
   /** Freezes `ctx.now()`. */
   now?: string | Date;
   env?: Environment;
+  /** The workspace's people and teams (`ctx.directory`, D-131). The caller is added when missing. */
+  directory?: TestDirectory;
   /** Stubs of the tools in `uses`, by tool then action. */
   tools?: Record<string, Record<string, (input: unknown) => unknown>>;
 }
@@ -148,11 +173,37 @@ export async function createTestTool<DB = any>(
       ...options.as,
       ...given,
     };
+    const idOf = (email: string) => `user:${email}`;
+    const teamsOf = (email: string) =>
+      (options.directory?.teams ?? []).filter((t) => t.members.includes(email)).map((t) => t.id);
     const user = {
-      id: identity.id ?? `user:${identity.email}`,
+      id: identity.id ?? idOf(identity.email),
       email: identity.email,
       name: identity.name ?? identity.email,
+      ...(identity.avatar ? { avatar: identity.avatar } : {}),
       roles: identity.roles,
+      ...(options.directory ? { teams: teamsOf(identity.email) } : {}),
+    };
+    const snapshot = options.directory && {
+      members: [
+        ...options.directory.members,
+        ...(options.directory.members.some((m) => m.email === identity.email)
+          ? []
+          : [{ email: identity.email }]),
+      ].map((m) => ({
+        id: m.id ?? idOf(m.email),
+        email: m.email,
+        name: m.name ?? m.email,
+        ...(m.avatar ? { avatar: m.avatar } : {}),
+        roles: m.roles ?? ["member"],
+        teams: teamsOf(m.email),
+      })),
+      teams: (options.directory.teams ?? []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        ...(t.description ? { description: t.description } : {}),
+        members: t.members.map(idOf),
+      })),
     };
     // The engine hides an unexpected exception from the caller and logs it: keep it for the test.
     const thrown: unknown[] = [];
@@ -165,6 +216,7 @@ export async function createTestTool<DB = any>(
         // Given, the plain values are the person's and a required field left out is asked for (428).
         ...(identity.setup ? { userSetup: identity.setup } : {}),
         connectors: options.connectors ?? {},
+        ...(snapshot ? { directory: snapshot } : {}),
         fetch: options.fetch ?? noFetch,
         cache: memoryCache(user.id, cache),
         ...(db ? { db } : {}),
