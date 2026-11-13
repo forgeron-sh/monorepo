@@ -33,7 +33,7 @@ async function offer(source: string, name: string, version: string, resources: o
     (await registry.createTool({ workspace: source, name }));
   const build = await registry.recordBuild(tool.id, {
     fingerprint: `${name}-${version}`,
-    manifest: { name, roles: {}, actions: {}, resources },
+    manifest: { name, profiles: {}, actions: {}, resources },
     worker: `// ${name} ${version}`,
     changelog: { entries: [], declared: "none", detected: "none" },
   });

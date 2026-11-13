@@ -81,6 +81,13 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "permissions-is-a-leaf",
+    files: {
+      [`packages/permissions/src/${F}.ts`]: `import "../../manifest/src/${F}_target.ts";\n`,
+      [`packages/manifest/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "platform-contract-imports-schemas-only",
     files: {
       [`packages/platform-contract/src/${F}.ts`]: `import "../../hosting/src/${F}_target.ts";\n`,

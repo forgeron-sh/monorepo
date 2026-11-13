@@ -34,7 +34,7 @@ export const createSecretRequestRoute = defineRoute({
       "The link, shown once, and when it stops working",
     ),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin or a developer"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool, environment or secret name"),
     500: json(ErrorSchema, "The registry refused: `error` is its code"),
   },

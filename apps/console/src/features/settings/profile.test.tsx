@@ -15,8 +15,8 @@ const ws = (avatar?: WorkspaceInfo["person"]["avatar"]): WorkspaceInfo => ({
     id: "m1",
     email: "ada@acme.fr",
     name: "Ada Lovelace",
-    roles: ["admin"],
-    admin: true,
+    teams: ["admin", "support"],
+    permissions: [],
     ...(avatar ? { avatar } : {}),
   },
   setup: { members: 1, invitations: 0, tools: 0, deployed: 0, called: false },
@@ -71,5 +71,30 @@ describe("Profile picture (D-133)", () => {
       path: "/api/me/avatar",
       body: { image: "data:image/webp;base64,AAAA" },
     });
+  });
+});
+
+describe("Profile teams (D-137)", () => {
+  it("shows the person's teams by name, read-only, and no role", async () => {
+    const { api } = fakeApi({
+      "/api/teams": {
+        teams: [
+          { id: "admin", name: "Admins" },
+          { id: "support", name: "Support" },
+        ],
+      },
+    });
+    const view = await page(ws(), api);
+    const chips = [...view.querySelectorAll(".fg-badge")].map((b) => b.textContent);
+    expect(chips).toEqual(["Admins", "Support"]);
+    expect(view.textContent).toContain("Teams");
+    expect(view.textContent).not.toMatch(/\brole/i);
+    // Without the list of teams the ids are shown rather than nothing.
+    await cleanup();
+    const bare = await page(ws(), fakeApi({}).api);
+    expect([...bare.querySelectorAll(".fg-badge")].map((b) => b.textContent)).toEqual([
+      "admin",
+      "support",
+    ]);
   });
 });

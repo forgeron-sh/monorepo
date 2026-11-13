@@ -87,3 +87,92 @@ describe("the tools list", () => {
     expect(container.querySelectorAll("tbody tr")).toHaveLength(3);
   });
 });
+
+// A tool added from GitHub says what its CI is doing until its first version is deployed.
+describe("a tool with nothing deployed yet", () => {
+  const run = (status: string, over: object = {}) => ({
+    id: 1,
+    workflow: "forgeron",
+    branch: "main",
+    message: "feat: first",
+    sha: "a".repeat(40),
+    actor: "ada",
+    status,
+    startedAt: "2026-11-03T11:50:00Z",
+    durationSeconds: null,
+    url: "https://github.com/acme-sh/draft/actions/runs/1",
+    ...over,
+  });
+  const ci = (...runs: object[]) => ({
+    state: "ok",
+    repo: "acme-sh/draft",
+    productionBranch: "main",
+    actionsUrl: "https://github.com/acme-sh/draft/actions",
+    runs,
+  });
+  const draftRow = (container: HTMLElement) => container.querySelectorAll("tbody tr")[1]!;
+
+  it("says Importing while a run goes, CI failed with the run, Waiting for CI with no run", async () => {
+    for (const [answer, word] of [
+      [ci(run("in_progress")), "Importing"],
+      [ci(run("queued")), "Importing"],
+      [ci(run("failure")), "CI failed"],
+      [ci(), "Waiting for CI"],
+      [ci(run("cancelled")), "Waiting for CI"],
+    ] as const) {
+      const { container } = await page({ "/api/tools": tools, "/api/tools/draft/ci": answer });
+      expect(draftRow(container).textContent).toContain(word);
+      expect(draftRow(container).textContent).not.toContain("Not deployed");
+      await cleanup();
+    }
+    const { container } = await page({
+      "/api/tools": tools,
+      "/api/tools/draft/ci": ci(run("failure")),
+    });
+    const link = draftRow(container).querySelector<HTMLAnchorElement>("a.ft-run-link")!;
+    expect(link.getAttribute("href")).toBe("https://github.com/acme-sh/draft/actions/runs/1");
+  });
+
+  it("looks at the production branch's runs first, and ignores another branch's failure", async () => {
+    const { container } = await page({
+      "/api/tools": tools,
+      "/api/tools/draft/ci": ci(
+        run("failure", { branch: "feat-x" }),
+        run("in_progress", { branch: "main", id: 2 }),
+      ),
+    });
+    expect(draftRow(container).textContent).toContain("Importing");
+  });
+
+  it("reads the CI of the tools that have nothing deployed only", async () => {
+    const { api, reads } = toolsApi({ "/api/tools": tools, "/api/tools/draft/ci": ci() });
+    await mount(<ToolsPage {...pageProps(api)} />);
+    expect(reads.filter((r) => r.endsWith("/ci"))).toEqual(["/api/tools/draft/ci"]);
+  });
+
+  it("keeps Not deployed for a tool with no repository, or whose CI cannot be read", async () => {
+    for (const answer of [
+      { state: "no-repository" },
+      { state: "no-app", repo: "acme-sh/draft" },
+      { state: "no-permission", repo: "acme-sh/draft", settingsUrl: "https://github.com/x" },
+    ]) {
+      const { container } = await page({ "/api/tools": tools, "/api/tools/draft/ci": answer });
+      expect(draftRow(container).textContent).toContain("Not deployed");
+      await cleanup();
+    }
+    // The CI route failing changes nothing either.
+    const { container } = await page({ "/api/tools": tools });
+    expect(draftRow(container).textContent).toContain("Not deployed");
+  });
+
+  it("says it in the grid as well", async () => {
+    const { container } = await page({
+      "/api/tools": tools,
+      "/api/tools/draft/ci": ci(run("in_progress")),
+    });
+    await click(button(container, "Grid"));
+    const card = container.querySelectorAll("a.ft-card")[1]!;
+    expect(card.textContent).toContain("Importing");
+    expect(card.textContent).not.toContain("Not deployed");
+  });
+});

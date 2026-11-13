@@ -18,7 +18,7 @@ const body = <T extends z.ZodType>(schema: T) => ({
   content: { "application/json": { schema } },
 });
 const notSignedIn = json(ErrorSchema, "Not signed in");
-const notAdmin = json(ErrorSchema, "Not an admin");
+const notAdmin = json(ErrorSchema, "Lacks the permission");
 const params = z.object({ tool: z.string() });
 const REPO = /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/;
 const branchName = z.string().min(1).max(200);
@@ -246,6 +246,28 @@ export const removeChannelRoute = defineRoute({
     401: notSignedIn,
     403: notAdmin,
     404: json(ErrorSchema, "No such tool or channel"),
+    501: json(ErrorSchema, "This gateway cannot deploy (`NOT_CONFIGURED`)"),
+  },
+});
+
+export const deleteToolRoute = defineRoute({
+  method: "delete",
+  path: "/api/tools/{tool}",
+  summary:
+    "Delete a tool for good: every environment, production included, with its Worker, its database and its registry rows",
+  tags: ["sources"],
+  request: {
+    params,
+    body: body(
+      z.object({ /** The tool's name, typed by whoever deletes it. */ confirm: z.string() }),
+    ),
+  },
+  responses: {
+    200: json(z.strictObject({ deleted: z.literal(true) }), "Deleted"),
+    400: json(ErrorSchema, "Not confirmed"),
+    401: notSignedIn,
+    403: notAdmin,
+    404: json(ErrorSchema, "No such tool"),
     501: json(ErrorSchema, "This gateway cannot deploy (`NOT_CONFIGURED`)"),
   },
 });

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { admin, createTestTool, reader, technician } from "./helpers";
+import { manager, createTestTool, reader, technician } from "./helpers";
 
 type Page = { items: Array<{ ref: string; city: string }>; nextCursor: string | null };
 
 async function fleet() {
-  const tool = await createTestTool({ as: admin });
+  const tool = await createTestTool({ as: manager });
   await tool.call("sites.create", { name: "Nantes depot", city: "Nantes" });
   await tool.call("sites.create", { name: "Lyon workshop", city: "Lyon" });
   const rows = ["ref,type,site,next_check"];

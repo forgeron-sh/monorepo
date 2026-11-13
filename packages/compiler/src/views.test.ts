@@ -54,8 +54,8 @@ describe("buildTool with views", () => {
       },
       "board/index": { path: "/board", entry: "views/board/index.js" },
     });
-    // `profiles` (D-127) lands in the manifest's `roles`, the default one marked.
-    expect(manifest.roles).toEqual({
+    // `profiles` (D-127) land in the manifest, the default one marked.
+    expect(manifest.profiles).toEqual({
       reader: { label: "Reader", grants: ["read"], default: true },
     });
   });

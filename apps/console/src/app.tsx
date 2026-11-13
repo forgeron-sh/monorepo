@@ -2,7 +2,8 @@ import { Button, Logo, Notice } from "@forgeron/ui";
 import { createElement, lazy, Suspense, useEffect, type ComponentType } from "react";
 import { ApiError, type Api } from "./api";
 import { replaceRoute, routeClick, useRoute } from "./router";
-import { canSee } from "./shell/access";
+import { askFor, canSee, permissionLabel } from "./shell/access";
+import type { PlatformPermission } from "@forgeron/permissions";
 import { AppLayout } from "./shell/app-layout";
 import { movedTo } from "./shell/redirects";
 import { SettingsLayout } from "./shell/settings-layout";
@@ -103,8 +104,8 @@ function Shell({
     <Layout ws={ws} pathname={pathname} go={go}>
       {!match ? (
         <NotFound go={go} />
-      ) : !canSee(match.route.access, ws.person) ? (
-        <NotAdmin go={go} />
+      ) : match.route.access !== "signed-in" && !canSee(match.route.access, ws.person) ? (
+        <NotAllowed go={go} access={match.route.access} />
       ) : (
         <Suspense fallback={<Loading shape="page" label={`Loading ${match.route.title}`} />}>
           <RouteScreen
@@ -140,19 +141,19 @@ function NotFound({ go }: { go: (href: string) => void }) {
   );
 }
 
-function NotAdmin({ go }: { go: (href: string) => void }) {
+function NotAllowed({ go, access }: { go: (href: string) => void; access: PlatformPermission }) {
   return (
     <main className="fg-page">
       <Notice
         tone="info"
-        title="This page is for admins."
+        title={`This page needs the permission "${permissionLabel(access)}".`}
         action={
           <Button size="sm" href="/" onClick={routeClick(go)}>
             Open the home page
           </Button>
         }
       >
-        Ask an admin of this workspace to give you the admin role.
+        {askFor(access)}
       </Notice>
     </main>
   );

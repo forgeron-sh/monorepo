@@ -13,9 +13,7 @@ import { readProject, type ProjectFile } from "./project";
 export async function credentialsOf(io: Io): Promise<string> {
   const token = process.env.FORGERON_TOKEN || (await readCredentials(process.env, io.keychain));
   if (!token) {
-    throw new UsageError(
-      "Not signed in: run `forgeron login` (an administrator), or set FORGERON_TOKEN.",
-    );
+    throw new UsageError("Not signed in: run `forgeron login`, or set FORGERON_TOKEN.");
   }
   return token;
 }
@@ -58,7 +56,7 @@ export function consoleRefusal(answer: { status: number; body: unknown }): strin
   const body = answer.body as { error?: unknown; message?: unknown } | undefined;
   if (answer.status === 401) return "Not signed in: run `forgeron login`.";
   if (answer.status === 403 && typeof body?.message !== "string") {
-    return "This is for administrators of the workspace.";
+    return "Your teams do not give you the permission for this.";
   }
   return typeof body?.message === "string"
     ? body.message

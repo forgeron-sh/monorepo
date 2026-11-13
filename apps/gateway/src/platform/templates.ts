@@ -9,15 +9,15 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { goLiveAfterInstall } from "../sources/update";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// The template catalogue and its installation (D-081), for admins. The registry audits the install
+// The template catalogue and its installation (D-081), for who holds `tools:write`. The registry audits the install
 // in the same batch as the tool; the actor is the person, and `via` the door when it is the MCP.
 
 export function mountTemplates(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(listTemplatesRoute, "admin"), async (c) =>
+  app.openapi(platformRoute(listTemplatesRoute, "tools:write"), async (c) =>
     c.json({ templates: await c.env.registry.listTemplates() }, 200),
   );
 
-  app.openapi(platformRoute(installTemplateRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(installTemplateRoute, "tools:write"), async (c) => {
     try {
       const installed = await c.env.registry.installTemplate({
         workspace: c.env.workspace,
@@ -55,7 +55,7 @@ export function mountTemplates(app: OpenAPIHono<PlatformEnv>): void {
   });
 
   // The two-step install of the admin MCP (D-092): a plan, then the plan's identifier and nothing else.
-  app.openapi(platformRoute(createInstallPlanRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(createInstallPlanRoute, "tools:write"), async (c) => {
     try {
       const plan = await c.env.registry.createInstallPlan({
         workspace: c.env.workspace,
@@ -85,7 +85,7 @@ export function mountTemplates(app: OpenAPIHono<PlatformEnv>): void {
     }
   });
 
-  app.openapi(platformRoute(installFromPlanRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(installFromPlanRoute, "tools:write"), async (c) => {
     try {
       const done = await c.env.registry.installFromPlan({
         workspace: c.env.workspace,

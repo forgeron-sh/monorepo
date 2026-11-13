@@ -39,7 +39,6 @@ export type {
 } from "./modules/catalog/public";
 export type { ConnectionInfo, ConnectionTokens } from "./modules/connections/public";
 export type { Invitation, JoinVia, Member, MembershipSettings } from "./modules/members/public";
-export { teamRole } from "./modules/teams/public";
 export type { Team } from "./modules/teams/public";
 export type {
   SecretRequestInfo,
@@ -66,12 +65,13 @@ export function createRegistry(d1: D1Database, options: RegistryOptions = {}) {
   const catalog = createCatalog(kernel);
   // What the other modules ask of the catalog: `requireTool` and its methods, by name.
   const catalogPort = { requireTool: catalog.requireTool, ...catalog.api };
+  const teams = createTeams(kernel);
   return {
     ...catalog.api,
     ...createSecrets(kernel, catalogPort),
     ...createConnections(kernel, catalogPort),
-    ...createMembers(kernel),
-    ...createTeams(kernel),
+    ...createMembers(kernel, teams),
+    ...teams,
     ...createIdentityStore(kernel),
     ...createApprovals(kernel, catalogPort),
     ...createAudit(kernel),

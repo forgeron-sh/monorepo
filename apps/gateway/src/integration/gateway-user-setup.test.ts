@@ -27,7 +27,7 @@ const manifest: Manifest = {
   name: "crm",
   version: "1.0.0",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
   actions: {
     "setup.check": {
       description: "Checks a setup.",
@@ -81,7 +81,9 @@ function toolWorker(request: Request) {
     authenticate: (r) => {
       const raw = r.headers.get("x-forgeron-user");
       // The tool sees the person as a reader, whatever the gateway mapped (D-127).
-      return raw ? { ...JSON.parse(raw), roles: ["reader"], permissions: undefined } : undefined;
+      return raw
+        ? { ...JSON.parse(raw), subjects: ["everyone"], permissions: undefined }
+        : undefined;
     },
     platform: {
       userSecretStore: {
@@ -150,14 +152,14 @@ beforeAll(async () => {
   const hrVersion = await registry.publishVersion(hr.id, hrBuilt.id, "1.0.0");
   const hrProduction = await registry.ensureEnvironment(hr.id, "production");
   await registry.activate(hrProduction.id, hrVersion.id, { actor: "test" });
-  const member = async (subject: string, roles: string[]) =>
+  const member = async (subject: string, teams: string[]) =>
     (
       await registry.addMember({
         workspace: "acme",
         subject,
         email: `${subject}@acme.test`,
         name: subject,
-        roles,
+        teams,
       })
     ).id;
   ana = await member("ana", []);
@@ -340,7 +342,7 @@ describe("a tool's check of its setup (D-101)", () => {
         subject: "cara",
         email: "cara@acme.test",
         name: "cara",
-        roles: [],
+        teams: [],
       })
     ).id;
   });
@@ -444,7 +446,7 @@ describe("offering a saved secret to a second tool (D-105)", () => {
           subject,
           email: `${subject}@acme.test`,
           name: subject,
-          roles: [],
+          teams: [],
         })
       ).id;
     dan = await add("dan");
@@ -546,7 +548,7 @@ describe("offering a saved secret to a second tool (D-105)", () => {
         subject: "gina",
         email: "gina@acme.test",
         name: "gina",
-        roles: [],
+        teams: [],
       })
     ).id;
     // A key Odoo no longer accepts, saved earlier (set here without going through the check).
@@ -607,7 +609,7 @@ describe("a person's own page of secrets (D-106)", () => {
           subject,
           email: `${subject}@acme.test`,
           name: subject,
-          roles: [],
+          teams: [],
         })
       ).id;
     hana = await add("hana");
@@ -817,7 +819,7 @@ describe("a different secret for a preview or a branch (D-109)", () => {
         subject: "devon",
         email: "devon@acme.test",
         name: "devon",
-        roles: ["developer"],
+        teams: ["developer"],
       })
     ).id;
     cookie = (

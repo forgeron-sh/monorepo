@@ -6,7 +6,7 @@ The React components of the design system, and its tokens (generated from `asset
 
 `Badge`, `EnvTag`, `Button`, `Label`, `Logo`, plus the view building blocks:
 
-| Component                                   | Role                                                                                                     |
+| Component                                   | Use                                                                                                      |
 | ------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `Page`                                      | View layout: title, description, actions, content                                                        |
 | `Table`                                     | Typed columns and rows, optional clickable (keyboard-focusable) rows, empty text                         |

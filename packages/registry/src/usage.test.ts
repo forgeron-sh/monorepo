@@ -24,7 +24,7 @@ describe("usage (D-093)", () => {
         subject: "ana",
         email: "ana@acme.test",
         name: "Ana",
-        roles: [],
+        teams: [],
       })
     ).id;
     await registry.recordUsage("acme", "crm", ana);

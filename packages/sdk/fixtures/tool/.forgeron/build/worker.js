@@ -18,7 +18,7 @@ export const manifest = {
   version: "1.0.0",
   // Only MCP: a test must still be able to call every action.
   interfaces: { mcp: true, api: false, cli: false, web: false },
-  roles: { reader: { grants: ["read"] }, editor: { grants: ["read", "write"] } },
+  profiles: { reader: { grants: ["read"] }, editor: { grants: ["read", "write"] } },
   actions: {
     "notes.info": action("read", "GET"),
     "notes.add": action("write", "POST"),

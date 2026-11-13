@@ -27,7 +27,7 @@ beforeAll(async () => {
     subject: "s1",
     email: "ada@acme.test",
     name: "Ada",
-    roles: [],
+    teams: [],
   });
   me = { ...MEMBER, id, email: "ada@acme.test", name: "Ada" };
   call = platformCaller({ registry, who: () => person, installDomains: ["acme.test"] });
@@ -44,7 +44,7 @@ describeRouteMatrix({
   call: through,
   method: "PUT",
   path: "/api/me/avatar",
-  access: "member",
+  access: "signed-in",
   valid: { image: null },
   invalid: [
     {},

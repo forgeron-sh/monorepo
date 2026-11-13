@@ -17,6 +17,11 @@ export interface Published {
 
 export const PUBLISHED: Published[] = [
   {
+    dir: "packages/permissions",
+    description:
+      "The Forgeron permissions engine: subjects, teams and atomic platform permissions.",
+  },
+  {
     dir: "packages/manifest",
     description: "The Forgeron manifest: its schema, and the comparison of two versions of a tool.",
   },

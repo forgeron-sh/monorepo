@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { createGateway, type GatewayEnv } from "../gateway";
 import { memoryMailSender } from "../mail/mail";
 import { simulatedProvider } from "../simulated-idp";
+import { PLATFORM_PERMISSIONS } from "@forgeron/permissions";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
@@ -90,7 +91,7 @@ const whoami = async (cookie: string) =>
   gateway()(new Request(`${ORIGIN}/whoami`, { headers: { cookie } }));
 
 describe("the first administrator", () => {
-  it("signs in with --admin-email, gets the admin role and a session like any provider's", async () => {
+  it("signs in with --admin-email, joins the admin team and gets a session like any provider's", async () => {
     const asked = await requestCode("Root@Acme.fr");
     expect(asked.status).toBe(200);
     expect(mail.sent.at(-1)).toMatchObject({ to: "root@acme.fr" });
@@ -108,9 +109,11 @@ describe("the first administrator", () => {
     const me = await (await whoami(cookiesOf(done))).json();
     expect(me).toMatchObject({
       email: "root@acme.fr",
-      roles: ["admin", "member"],
+      teams: ["admin"],
       workspace: "acme",
     });
+    // The permissions come from the teams: the admin team holds every one.
+    expect((me as { permissions: string[] }).permissions).toEqual(PLATFORM_PERMISSIONS);
   });
 
   it("stores the code hashed, never in the clear", async () => {
@@ -337,7 +340,7 @@ describe("abuse", () => {
 
 describe("members, invitations and domains", () => {
   let admin = "";
-  it("an admin lists, and a non-admin is refused", async () => {
+  it("who holds `members:read` lists, and anonymous is refused", async () => {
     admin = await signIn("root@acme.fr", "192.0.2.20");
     const list = await gateway()(
       new Request(`${ORIGIN}/console-api/api/members`, json("GET", undefined, admin)),
@@ -345,16 +348,16 @@ describe("members, invitations and domains", () => {
     expect(list.status).toBe(200);
     const body = (await list.json()) as { members: Array<{ email: string }>; settings: unknown };
     expect(body.members.map((m) => m.email)).toContain("root@acme.fr");
-    expect(body.settings).toMatchObject({ domains: [], source: "install" });
+    expect(body.settings).toMatchObject({ domains: [], defaultTeams: [], source: "install" });
     expect((await gateway()(new Request(`${ORIGIN}/console-api/api/members`))).status).toBe(401);
   });
 
-  it("an invited email joins with its role by signing in, once", async () => {
+  it("an invited email joins with its teams by signing in, once", async () => {
     const before = mail.sent.length;
     const invited = await gateway()(
       new Request(
         `${ORIGIN}/console-api/api/invitations`,
-        json("POST", { email: "Ada@External.test", roles: ["developer"] }, admin),
+        json("POST", { email: "Ada@External.test", teams: ["developer"] }, admin),
       ),
     );
     expect(invited.status).toBe(201);
@@ -364,14 +367,16 @@ describe("members, invitations and domains", () => {
     const dup = await gateway()(
       new Request(
         `${ORIGIN}/console-api/api/invitations`,
-        json("POST", { email: "root@acme.fr", roles: [] }, admin),
+        json("POST", { email: "root@acme.fr", teams: [] }, admin),
       ),
     );
     expect(dup.status).toBe(409);
 
     const session = await signIn("ada@external.test", "192.0.2.21");
-    const me = (await (await whoami(session)).json()) as { roles: string[] };
-    expect(me.roles).toEqual(["developer", "member"]);
+    const me = (await (await whoami(session)).json()) as { teams: string[]; permissions: string[] };
+    expect(me.teams).toEqual(["developer"]);
+    expect(me.permissions).toContain("tools:publish");
+    expect(me.permissions).not.toContain("members:write");
     // Accepted: the invitation is gone, and the audit log says who joined and how.
     expect(await registry.findInvitation("acme", "ada@external.test")).toBeUndefined();
     const audit = (
@@ -387,15 +392,17 @@ describe("members, invitations and domains", () => {
   it("an expired or withdrawn invitation lets nobody in and mails nothing", async () => {
     await registry.inviteMember("acme", {
       email: "late@external.test",
-      roles: [],
+      teams: [],
       invitedBy: "x",
       expiresAt: new Date(clock.getTime() + 1000),
+      actorPermissions: ["*"],
     });
     await registry.inviteMember("acme", {
       email: "gone@external.test",
-      roles: [],
+      teams: [],
       invitedBy: "x",
       expiresAt: new Date(clock.getTime() + 100000),
+      actorPermissions: ["*"],
     });
     const withdrawn = await gateway()(
       new Request(
@@ -412,23 +419,22 @@ describe("members, invitations and domains", () => {
     clock = new Date(clock.getTime() - 5000);
   });
 
-  it("an address of an allowed domain joins by itself with the default role; others do not", async () => {
+  it("an address of an allowed domain joins by itself in the default teams; others do not", async () => {
     const saved = await gateway()(
       new Request(
         `${ORIGIN}/console-api/api/membership-settings`,
-        json("PUT", { domains: ["Acme.fr"], defaultRole: "viewer" }, admin),
+        json("PUT", { domains: ["Acme.fr"], defaultTeams: ["developer"] }, admin),
       ),
     );
     expect(saved.status).toBe(200);
     expect(await saved.json()).toMatchObject({
       domains: ["acme.fr"],
-      defaultRole: "viewer",
+      defaultTeams: ["developer"],
       source: "console",
     });
     const session = await signIn("grace@acme.fr", "192.0.2.24");
-    expect(((await (await whoami(session)).json()) as { roles: string[] }).roles).toEqual([
-      "viewer",
-      "member",
+    expect(((await (await whoami(session)).json()) as { teams: string[] }).teams).toEqual([
+      "developer",
     ]);
     // A lookalike domain, and a subdomain, do not count.
     const before = mail.sent.length;
@@ -437,9 +443,9 @@ describe("members, invitations and domains", () => {
     expect(mail.sent.length).toBe(before);
   });
 
-  it("refuses admin as a default role and a bad domain", async () => {
+  it("refuses the admin team as a default team and a bad domain", async () => {
     for (const body of [
-      { domains: ["acme.fr"], defaultRole: "admin" },
+      { domains: ["acme.fr"], defaultTeams: ["admin"] },
       { domains: ["not a domain"] },
       { domains: ["a@b.fr"] },
     ]) {
@@ -450,16 +456,16 @@ describe("members, invitations and domains", () => {
     }
   });
 
-  it("changes a role and removes a member, and a removed member's session stops at once", async () => {
+  it("changes the teams and removes a member, and a removed member's session stops at once", async () => {
     const grace = (await registry.findMemberByEmail("acme", "grace@acme.fr"))!;
     const session = await signIn("grace@acme.fr", "192.0.2.27");
     const patched = await gateway()(
       new Request(
         `${ORIGIN}/console-api/api/members/${grace.id}`,
-        json("PATCH", { roles: ["developer", "viewer"] }, admin),
+        json("PATCH", { teams: ["developer"] }, admin),
       ),
     );
-    expect(((await patched.json()) as { roles: string[] }).roles).toEqual(["developer", "viewer"]);
+    expect(((await patched.json()) as { teams: string[] }).teams).toEqual(["developer"]);
     expect((await whoami(session)).status).toBe(200);
     const removed = await gateway()(
       new Request(
@@ -473,12 +479,12 @@ describe("members, invitations and domains", () => {
     expect(await registry.findMemberByEmail("acme", "grace@acme.fr")).toBeUndefined();
   });
 
-  it("is not for non-admins, and keeps the last administrator", async () => {
+  it("is not for who lacks `members:write`, and keeps the last administrator", async () => {
     const dev = await signIn("ada@external.test", "192.0.2.28");
     const denied = await gateway()(
       new Request(
         `${ORIGIN}/console-api/api/invitations`,
-        json("POST", { email: "x@y.test", roles: ["admin"] }, dev),
+        json("POST", { email: "x@y.test", teams: ["admin"] }, dev),
       ),
     );
     expect(denied.status).toBe(403);
@@ -486,7 +492,7 @@ describe("members, invitations and domains", () => {
     const demote = await gateway()(
       new Request(
         `${ORIGIN}/console-api/api/members/${root.id}`,
-        json("PATCH", { roles: [] }, admin),
+        json("PATCH", { teams: [] }, admin),
       ),
     );
     expect(demote.status).toBe(409);
@@ -499,7 +505,7 @@ describe("members, invitations and domains", () => {
       new Request(`${ORIGIN}/console-api/api/invitations`, {
         method: "POST",
         headers: { cookie: admin, "content-type": "text/plain" },
-        body: JSON.stringify({ email: "z@y.test", roles: [] }),
+        body: JSON.stringify({ email: "z@y.test", teams: [] }),
       }),
     );
     expect(form415.status).toBe(415);
@@ -621,9 +627,10 @@ describe("beside OpenID Connect", () => {
 
     await registry.inviteMember("acme", {
       email: "olga@acme.fr",
-      roles: ["developer"],
+      teams: ["developer"],
       invitedBy: byEmail.id,
       expiresAt: new Date(clock.getTime() + 100000),
+      actorPermissions: ["*"],
     });
     const idp2 = await simulatedProvider("olga@acme.fr", clock);
     const gw2 = gateway(both, idp2.fetcher);
@@ -635,8 +642,8 @@ describe("beside OpenID Connect", () => {
     );
     expect(callback2.status).toBe(302);
     expect(
-      ((await (await whoami(cookiesOf(callback2))).json()) as { roles: string[] }).roles,
-    ).toEqual(["developer", "member"]);
+      ((await (await whoami(cookiesOf(callback2))).json()) as { teams: string[] }).teams,
+    ).toEqual(["developer"]);
   });
 
   it("answers 404 for the email routes when email sign-in is not on", async () => {
@@ -691,7 +698,7 @@ describe("console mail mode (D-051)", () => {
     log.mockRestore();
   });
 
-  it("logs an invitation (address and roles), never a code", async () => {
+  it("logs an invitation (address and teams), never a code", async () => {
     const lines: string[] = [];
     const { gateway: g, log } = gw({ ...consoleEnv, BASE_DOMAIN: "example.com" }, lines);
     const origin = "https://acme.example.com";
@@ -709,12 +716,12 @@ describe("console mail mode (D-051)", () => {
     const invited = await g(
       new Request(
         `${origin}/console-api/api/invitations`,
-        json("POST", { email: "new@x.test", roles: ["developer"] }, cookiesOf(done)),
+        json("POST", { email: "new@x.test", teams: ["developer"] }, cookiesOf(done)),
       ),
     );
     expect(invited.status).toBe(201);
     expect(lines.map((l) => JSON.parse(l))).toEqual([
-      { event: "invitation", address: "new@x.test", roles: ["developer"] },
+      { event: "invitation", address: "new@x.test", teams: ["developer"] },
     ]);
     log.mockRestore();
   });

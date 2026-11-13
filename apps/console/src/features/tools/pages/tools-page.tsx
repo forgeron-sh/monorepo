@@ -12,10 +12,12 @@ import { useMemo, useState } from "react";
 import type { PageProps } from "../../../shell/page-props";
 import { ago } from "../../../format";
 import { pathOf, routeClick, toolPath } from "../../../router";
+import { can } from "../../../shell/access";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
 import { loadTools, type ToolRow } from "../api";
 import { ToolIcon } from "../components";
+import { IMPORTING_LABEL, useImporting, type Importing } from "../ci";
 import { NewToolDialog, RepositoryDialog } from "../repository-dialog";
 import "../tools.css";
 
@@ -32,8 +34,23 @@ function savedView(): View {
   }
 }
 
-/** Live (a version serves production), preview only, or nothing deployed. */
-function State({ tool }: { tool: ToolRow }) {
+/** What a tool with nothing deployed says: what its CI is doing, or "Not deployed" with no repository. */
+const nothingLabel = (importing: Importing | undefined) =>
+  importing ? IMPORTING_LABEL[importing.kind] : "Not deployed";
+
+/**
+ * Live (a version serves production), preview only, or nothing deployed: then, for a tool added from
+ * GitHub, what its CI is doing (Importing, CI failed with a link to the run, Waiting for CI).
+ */
+function State({
+  tool,
+  importing,
+  link,
+}: {
+  tool: ToolRow;
+  importing?: Importing;
+  link?: boolean;
+}) {
   if (tool.production) {
     return (
       <Badge tone="success" dot>
@@ -41,10 +58,25 @@ function State({ tool }: { tool: ToolRow }) {
       </Badge>
     );
   }
-  return tool.previews.length > 0 ? (
-    <Badge dot>Preview only</Badge>
-  ) : (
-    <Badge dot>Not deployed</Badge>
+  if (tool.previews.length > 0) return <Badge dot>Preview only</Badge>;
+  if (!importing) return <Badge dot>Not deployed</Badge>;
+  return (
+    <>
+      <Badge tone={importing.kind === "failed" ? "danger" : "warning"} dot>
+        {IMPORTING_LABEL[importing.kind]}
+      </Badge>
+      {link && importing.kind === "failed" ? (
+        <a
+          className="ft-run-link"
+          href={importing.runUrl}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+        >
+          View the run ↗
+        </a>
+      ) : null}
+    </>
   );
 }
 
@@ -54,6 +86,7 @@ const previews = (tool: ToolRow) =>
 export default function ToolsPage({ api, go, ws, now }: PageProps) {
   const workspace = ws.workspace;
   const tools = useLoad(() => loadTools(api.fetchJson), [api]);
+  const importing = useImporting(api, tools.data);
   const [view, setView] = useState<View>(savedView);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
@@ -99,7 +132,7 @@ export default function ToolsPage({ api, go, ws, now }: PageProps) {
         t.production ? (
           <Badge mono>{t.production}</Badge>
         ) : (
-          <span className="fc-muted">Not deployed</span>
+          <span className="fc-muted">{nothingLabel(importing[t.name])}</span>
         ),
     },
     { key: "previews", header: "Previews", render: (t) => t.previews.length },
@@ -115,7 +148,11 @@ export default function ToolsPage({ api, go, ws, now }: PageProps) {
           <span className="fc-muted">Never</span>
         ),
     },
-    { key: "state", header: "Status", render: (t) => <State tool={t} /> },
+    {
+      key: "state",
+      header: "Status",
+      render: (t) => <State tool={t} importing={importing[t.name]} link />,
+    },
   ];
 
   return (
@@ -123,7 +160,7 @@ export default function ToolsPage({ api, go, ws, now }: PageProps) {
       title="Tools"
       description="The tools of this workspace, the version production serves and their previews."
       actions={
-        ws.person.admin ? (
+        can(ws.person, "tools:write") ? (
           <>
             <Button onClick={() => setMaking(true)}>New tool</Button>
             <Button variant="primary" onClick={() => setAdding(true)}>
@@ -207,7 +244,7 @@ export default function ToolsPage({ api, go, ws, now }: PageProps) {
                   <a className="ft-card" href={toolPath(t.name)} onClick={routeClick(go)}>
                     <span className="ft-card-head">
                       <ToolIcon name={t.name} size={36} />
-                      <State tool={t} />
+                      <State tool={t} importing={importing[t.name]} />
                     </span>
                     <span className="ft-tool-name">{t.name}</span>
                     <span className="ft-tool-summary">{t.summary ?? "No description."}</span>
@@ -215,7 +252,7 @@ export default function ToolsPage({ api, go, ws, now }: PageProps) {
                       {t.production ? (
                         <Badge mono>{t.production}</Badge>
                       ) : (
-                        <span>Not deployed</span>
+                        <span>{nothingLabel(importing[t.name])}</span>
                       )}
                       <span>{previews(t)}</span>
                       <span>

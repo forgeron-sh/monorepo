@@ -1,6 +1,7 @@
 export { ErrorSchema, type ErrorBody } from "./error";
 export { addressOf, defineRoute, type Address, type ResponseSpec, type RouteSpec } from "./route";
 export { createClient, type Answer, type CallInput } from "./client";
+export { CiAnswerSchema, CiRunSchema, CiStatusSchema, toolCiRoute } from "./ci";
 export { catalogAssetRoute, listCatalogRoute, toolCardRoute } from "./catalog";
 export {
   listToolsRoute,
@@ -11,7 +12,7 @@ export {
 } from "./tools";
 export {
   MAX_ACCESS_CHANGES,
-  MAX_PROFILE_CHANGES,
+  MAX_GRANT_CHANGES,
   getAccessMatrixRoute,
   putAccessMatrixRoute,
 } from "./access-matrix";
@@ -36,19 +37,20 @@ export {
 } from "./database";
 export {
   MAX_DOMAINS,
-  MAX_ROLES,
+  MAX_TEAMS,
   getMembershipSettingsRoute,
   inviteMemberRoute,
   listMembersRoute,
   putMembershipSettingsRoute,
   removeMemberRoute,
-  setMemberRolesRoute,
+  setMemberTeamsRoute,
   withdrawInvitationRoute,
 } from "./members";
 export {
   TEAM_SLUG,
   createTeamRoute,
   deleteTeamRoute,
+  listPermissionsRoute,
   listTeamsRoute,
   updateTeamRoute,
 } from "./teams";
@@ -138,6 +140,7 @@ export {
   AvailableUpdateSchema,
   ChannelSchema,
   copyBranchDataRoute,
+  deleteToolRoute,
   getToolSourceRoute,
   putChannelRoute,
   putToolSourceRoute,

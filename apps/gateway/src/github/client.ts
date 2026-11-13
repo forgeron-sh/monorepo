@@ -37,6 +37,58 @@ export interface ConvertedApp {
   htmlUrl: string;
 }
 
+/** A GitHub Actions run, as the console shows it. */
+export interface WorkflowRun {
+  id: number;
+  workflow: string;
+  branch: string;
+  /** The commit's message, first line. */
+  message: string;
+  sha: string;
+  actor: string;
+  status: "queued" | "in_progress" | "success" | "failure" | "cancelled";
+  startedAt: string;
+  /** Seconds, once it has finished. */
+  durationSeconds: number | null;
+  url: string;
+}
+
+/** GitHub's `status` and `conclusion` of a run in the five states the console knows. */
+function runStatus(status: unknown, conclusion: unknown): WorkflowRun["status"] {
+  if (status === "completed") {
+    if (conclusion === "success" || conclusion === "neutral") return "success";
+    return conclusion === "cancelled" || conclusion === "skipped" ? "cancelled" : "failure";
+  }
+  return status === "in_progress" ? "in_progress" : "queued";
+}
+
+const runOf = (r: Record<string, unknown>): WorkflowRun => {
+  const status = runStatus(r.status, r.conclusion);
+  const started = String(r.run_started_at ?? r.created_at ?? "");
+  const ended = Date.parse(String(r.updated_at ?? ""));
+  const begun = Date.parse(started);
+  const finished = status === "success" || status === "failure" || status === "cancelled";
+  return {
+    id: Number(r.id),
+    workflow: String(r.name ?? "Workflow"),
+    branch: String(r.head_branch ?? ""),
+    message: String((r.head_commit as { message?: unknown } | null)?.message ?? "").split("\n")[0]!,
+    sha: String(r.head_sha ?? ""),
+    actor: String(
+      (r.triggering_actor as { login?: unknown } | null)?.login ??
+        (r.actor as { login?: unknown } | null)?.login ??
+        "",
+    ),
+    status,
+    startedAt: started,
+    durationSeconds:
+      finished && Number.isFinite(ended) && Number.isFinite(begun)
+        ? Math.max(0, Math.round((ended - begun) / 1000))
+        : null,
+    url: String(r.html_url ?? ""),
+  };
+};
+
 const path = (repo: string) => repo.split("/").map(encodeURIComponent).join("/");
 
 /** The app's own JWT: valid for nine minutes, from a minute ago (GitHub allows ten, and some skew). */
@@ -206,6 +258,24 @@ export function githubApi(fetcher: typeof fetch) {
         body: { sha: commit.sha },
       });
       return commit.sha;
+    },
+
+    /**
+     * The latest GitHub Actions runs of a repository, newest first. Needs the app's `actions: read`
+     * permission: without it GitHub answers 403 or 404, which the caller maps (a `GithubError`).
+     */
+    async workflowRuns(
+      token: string,
+      repo: string,
+      options: { branch?: string; limit?: number } = {},
+    ): Promise<WorkflowRun[]> {
+      const query = new URLSearchParams({ per_page: String(options.limit ?? 20) });
+      if (options.branch) query.set("branch", options.branch);
+      const r = await call<{ workflow_runs?: Record<string, unknown>[] }>(
+        `/repos/${path(repo)}/actions/runs?${query}`,
+        { token },
+      );
+      return (r?.workflow_runs ?? []).map(runOf);
     },
 
     /** A commit status: what GitHub shows beside the commit, with a link. */

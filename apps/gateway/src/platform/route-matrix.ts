@@ -1,8 +1,16 @@
+import {
+  holds,
+  PLATFORM,
+  PLATFORM_PERMISSIONS,
+  type PlatformPermission,
+} from "@forgeron/permissions";
 import { describe, expect, it } from "vitest";
-import type { Access, ConsolePerson } from "./app";
+import { lacking, type ConsolePerson, type Requires } from "./app";
 
 // The answers every route of the platform API gives before its own logic runs. Each route's test
 // calls `describeRouteMatrix` once, so the 401, 403, 415 and 400 rules cannot drift route by route.
+// A route says which permission it requires (D-137): nobody is a 401; a person who holds everything
+// but that permission is a 403; a person who holds exactly it is let in.
 
 export interface RouteMatrix {
   title: string;
@@ -11,10 +19,11 @@ export interface RouteMatrix {
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   /** A concrete address of the route, with a path like `/api/members/m1`. */
   path: string;
-  access: Access;
+  /** The permission the route requires, or `signed-in` for any signed-in person. */
+  access: Requires;
   /** A `POST` that takes no body (a revocation): no 415, no 400. */
   noBody?: boolean;
-  /** The 403's message when the route words it its own way. */
+  /** The 403's message when the route words it its own way (default: the permission's label). */
   forbidden?: string;
   /** The 400's message when the route words it its own way (default `Invalid input.`). */
   invalidMessage?: string;
@@ -24,31 +33,41 @@ export interface RouteMatrix {
   valid?: unknown;
 }
 
+/** A signed-in person in no team: they hold no permission. */
 export const MEMBER: ConsolePerson = {
   id: "p-member",
   email: "m@acme.test",
   name: "M",
-  admin: false,
-  developer: false,
-  roles: [],
+  teams: [],
+  permissions: [],
 };
+
+/** A member of the admin team: every permission. */
 export const ADMIN: ConsolePerson = {
   id: "p-admin",
   email: "a@acme.test",
   name: "A",
-  admin: true,
-  developer: false,
-  roles: ["admin"],
+  teams: ["admin"],
+  permissions: [...PLATFORM_PERMISSIONS],
 };
 
-const DEVELOPER: ConsolePerson = {
-  id: "p-dev",
-  email: "d@acme.test",
-  name: "D",
-  admin: false,
-  developer: true,
-  roles: ["developer"],
-};
+/** A person who holds exactly these permissions (and what they imply). */
+export const holding = (...permissions: PlatformPermission[]): ConsolePerson => ({
+  id: "p-holder",
+  email: "h@acme.test",
+  name: "H",
+  teams: ["holders"],
+  permissions: PLATFORM_PERMISSIONS.filter((p) => holds(PLATFORM, permissions, p)),
+});
+
+/** A person who holds every permission but the ones that give `permission`. */
+const holdingAllBut = (permission: PlatformPermission): ConsolePerson => ({
+  id: "p-almost",
+  email: "x@acme.test",
+  name: "X",
+  teams: ["almost"],
+  permissions: PLATFORM_PERMISSIONS.filter((p) => !holds(PLATFORM, [p], permission)),
+});
 
 const url = (path: string) => `https://acme.forgeron.test${path}`;
 const json = (m: RouteMatrix, body: unknown) =>
@@ -62,7 +81,7 @@ const json = (m: RouteMatrix, body: unknown) =>
 
 export function describeRouteMatrix(m: RouteMatrix): void {
   const write = m.method !== "GET" && m.method !== "DELETE" && !m.noBody;
-  const asAllowed = m.access === "admin" ? ADMIN : m.access === "developer" ? DEVELOPER : MEMBER;
+  const asAllowed = m.access === "signed-in" ? MEMBER : holding(m.access);
   describe(`${m.title}: common answers`, () => {
     it("401 UNAUTHENTICATED for nobody, never cached", async () => {
       const res = await m.call(json(m, m.valid ?? {}), undefined);
@@ -71,21 +90,27 @@ export function describeRouteMatrix(m: RouteMatrix): void {
       expect(await res.json()).toEqual({ error: "UNAUTHENTICATED" });
     });
 
-    it.runIf(m.access !== "member")("403 FORBIDDEN for a member without the role", async () => {
-      const res = await m.call(json(m, m.valid ?? {}), MEMBER);
-      expect(res.status).toBe(403);
-      expect(res.headers.get("cache-control")).toBe("no-store");
-      expect(await res.json()).toEqual({
-        error: "FORBIDDEN",
-        message:
-          m.forbidden ??
-          (m.access === "admin" ? "This is for admins." : "This is for admins and developers."),
-      });
-    });
+    it.runIf(m.access !== "signed-in")(
+      "403 FORBIDDEN for a person without the permission",
+      async () => {
+        const wanted = m.access as PlatformPermission;
+        const message = m.forbidden ?? lacking(wanted);
+        for (const who of [MEMBER, holdingAllBut(wanted)]) {
+          const res = await m.call(json(m, m.valid ?? {}), who);
+          expect(res.status).toBe(403);
+          expect(res.headers.get("cache-control")).toBe("no-store");
+          expect(await res.json()).toEqual({ error: "FORBIDDEN", message });
+        }
+      },
+    );
 
-    it.runIf(m.access === "developer")("lets an admin who is not a developer in", async () => {
-      const res = await m.call(json(m, m.valid ?? {}), ADMIN);
-      expect([401, 403]).not.toContain(res.status);
+    it("lets in the person who holds the permission, and an admin", async () => {
+      for (const who of [asAllowed, ADMIN]) {
+        const res = await Promise.resolve(m.call(json(m, m.valid ?? {}), who)).catch(
+          () => undefined,
+        );
+        expect([401, 403]).not.toContain(res?.status);
+      }
     });
 
     it.runIf(m.method !== "GET")(

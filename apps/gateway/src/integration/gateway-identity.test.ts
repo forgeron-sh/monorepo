@@ -145,7 +145,7 @@ describe("the gateway with identity mounted", () => {
     const gateway = gatewayFor();
 
     const me = await gateway(at("/whoami", { headers: { cookie } }));
-    expect(await me.json()).toMatchObject({ email: "ely@acme.fr", roles: ["admin", "member"] });
+    expect(await me.json()).toMatchObject({ email: "ely@acme.fr", teams: ["admin"] });
 
     const tools = await gateway(at("/console-api/api/tools", { headers: { cookie } }));
     expect(tools.status).toBe(200);
@@ -218,12 +218,13 @@ describe("the gateway with identity mounted", () => {
     ).toBe(401);
   });
 
-  it("makes a member of an allowed domain, given no role (member only, D-128), who cannot create a deployment token", async () => {
+  it("makes a member of an allowed domain, in no team, who cannot create a deployment token", async () => {
     const { status, cookie } = await signInAs("anna@acme.fr");
     expect(status).toBe(302);
     const gateway = gatewayFor();
     expect(await (await gateway(at("/whoami", { headers: { cookie } }))).json()).toMatchObject({
-      roles: ["member"],
+      teams: [],
+      permissions: [],
     });
     const refused = await gateway(
       at("/deploy-tokens", json({ tool: "crm", name: "ci", scope: "deploy", days: 1 }, { cookie })),

@@ -1131,5 +1131,233 @@
         "parameters": []
       }
     ]
+  },
+  {
+    "name": "0042_teams_permissions",
+    "fingerprint": "teams-permissions-v1",
+    "destructive": false,
+    "up": [
+      {
+        "sql": "ALTER TABLE \"teams\" ADD COLUMN \"built_in\" INTEGER NOT NULL DEFAULT 0",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"team_permissions\" (\n  \"workspace\" TEXT NOT NULL,\n  \"team_id\" TEXT NOT NULL,\n  \"permission\" TEXT NOT NULL,\n  PRIMARY KEY (\"workspace\", \"team_id\", \"permission\")\n)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"_role_teams\" (\"role\" TEXT PRIMARY KEY NOT NULL, \"team\" TEXT, \"subject\" TEXT NOT NULL)",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"_held_roles\" (\"workspace\" TEXT NOT NULL, \"role\" TEXT NOT NULL, PRIMARY KEY (\"workspace\", \"role\"))",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT m.\"workspace\", j.\"value\" FROM \"members\" m, json_each(CASE WHEN json_valid(m.\"roles\") THEN m.\"roles\" ELSE '[]' END) j WHERE j.\"type\" = 'text'",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT i.\"workspace\", j.\"value\" FROM \"invitations\" i, json_each(CASE WHEN json_valid(i.\"roles\") THEN i.\"roles\" ELSE '[]' END) j WHERE j.\"type\" = 'text'",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT \"workspace\", \"default_role\" FROM \"membership_settings\" WHERE \"default_role\" IS NOT NULL",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT p.\"workspace\", j.\"value\" FROM \"identity_providers\" p, json_each(CASE WHEN json_valid(p.\"group_roles\") THEN p.\"group_roles\" ELSE '{}' END) j WHERE j.\"type\" = 'text'",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT p.\"workspace\", j.\"value\" FROM \"saml_providers\" p, json_each(CASE WHEN json_valid(p.\"group_roles\") THEN p.\"group_roles\" ELSE '{}' END) j WHERE j.\"type\" = 'text'",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\")\nSELECT DISTINCT \"role\", NULL, '' FROM \"_held_roles\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\") SELECT DISTINCT \"role\", NULL, '' FROM (SELECT \"role\" AS \"role\" FROM \"role_profiles\")",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\") SELECT DISTINCT \"role\", NULL, '' FROM (SELECT \"role\" AS \"role\" FROM \"role_access\")",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\") SELECT DISTINCT \"role\", NULL, '' FROM (SELECT j.\"value\" AS \"role\" FROM \"tool_availability\" a, json_each(CASE WHEN json_valid(a.\"subjects\") THEN a.\"subjects\" ELSE '[]' END) j WHERE a.\"mode\" = 'roles' AND j.\"type\" = 'text')",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\") SELECT DISTINCT \"role\", NULL, '' FROM (SELECT j.\"value\" AS \"role\" FROM \"channel_access\" a, json_each(CASE WHEN json_valid(a.\"subjects\") THEN a.\"subjects\" ELSE '[]' END) j WHERE a.\"mode\" = 'roles' AND j.\"type\" = 'text')",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"_role_teams\" SET \"team\" = CASE\n  WHEN \"role\" = 'admin' THEN 'admin'\n  WHEN \"role\" = 'developer' THEN 'developer'\n  WHEN \"role\" = 'member' THEN NULL\n  WHEN substr(\"role\", 1, 5) = 'team-' THEN substr(\"role\", 6)\n  ELSE substr(lower(replace(\"role\", '_', '-')), 1, 34)\nEND",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"_role_teams\" SET \"team\" = \"team\" || '-team'\nWHERE \"team\" = 'everyone' OR (\"team\" IN ('admin', 'developer') AND \"role\" NOT IN ('admin', 'developer') AND substr(\"role\", 1, 5) <> 'team-')",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"_role_teams\" SET \"team\" = \"team\" || '-' WHERE length(\"team\") < 2",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"_role_teams\" SET \"subject\" = CASE WHEN \"team\" IS NULL THEN 'everyone' ELSE 'team:' || \"team\" END",
+        "parameters": []
+      },
+      {
+        "sql": "CREATE TABLE \"_workspaces\" (\"workspace\" TEXT PRIMARY KEY NOT NULL)",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_workspaces\" (\"workspace\") SELECT \"workspace\" FROM \"members\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_workspaces\" (\"workspace\") SELECT \"workspace\" FROM \"invitations\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_workspaces\" (\"workspace\") SELECT \"workspace\" FROM \"teams\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_workspaces\" (\"workspace\") SELECT \"workspace\" FROM \"tools\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"teams\" (\"workspace\", \"id\", \"name\", \"description\", \"created_at\", \"built_in\")\nSELECT w.\"workspace\", 'admin', 'Admins', 'Administer the workspace: every permission, now and to come.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM \"_workspaces\" w",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"teams\" (\"workspace\", \"id\", \"name\", \"description\", \"created_at\", \"built_in\")\nSELECT w.\"workspace\", 'developer', 'Developers', 'Build, deploy and publish the workspace''s tools.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM \"_workspaces\" w",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"teams\" SET \"built_in\" = 1 WHERE \"id\" IN ('admin', 'developer')",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"team_permissions\" (\"workspace\", \"team_id\", \"permission\")\nSELECT w.\"workspace\", 'admin', '*' FROM \"_workspaces\" w",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"team_permissions\" (\"workspace\", \"team_id\", \"permission\")\nSELECT w.\"workspace\", 'developer', p.\"value\" FROM \"_workspaces\" w,\n  json_each('[\"tools:write\",\"tools:publish\",\"tools:data\",\"access:read\",\"marketplace:read\"]') p",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"teams\" (\"workspace\", \"id\", \"name\", \"description\", \"created_at\", \"built_in\")\nSELECT held.\"workspace\", rt.\"team\", held.\"role\", '', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 0\nFROM \"_held_roles\" held\nJOIN \"_role_teams\" rt ON rt.\"role\" = held.\"role\"\nWHERE rt.\"team\" IS NOT NULL AND substr(held.\"role\", 1, 5) <> 'team-'\nORDER BY held.\"workspace\", held.\"role\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"team_members\" (\"workspace\", \"team_id\", \"member_id\")\nSELECT m.\"workspace\", rt.\"team\", m.\"id\"\nFROM \"members\" m, json_each(CASE WHEN json_valid(m.\"roles\") THEN m.\"roles\" ELSE '[]' END) j\nJOIN \"_role_teams\" rt ON rt.\"role\" = j.\"value\"\nJOIN \"teams\" t ON t.\"workspace\" = m.\"workspace\" AND t.\"id\" = rt.\"team\"\nWHERE j.\"type\" = 'text' AND rt.\"team\" IS NOT NULL",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"members\" DROP COLUMN \"roles\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"invitations\" RENAME COLUMN \"roles\" TO \"teams\"",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"invitations\" SET \"teams\" = (\n  SELECT json_group_array(\"team\") FROM (\n    SELECT DISTINCT rt.\"team\" AS \"team\" FROM json_each(CASE WHEN json_valid(\"invitations\".\"teams\") THEN \"invitations\".\"teams\" ELSE '[]' END) j\n    JOIN \"_role_teams\" rt ON rt.\"role\" = j.\"value\" WHERE rt.\"team\" IS NOT NULL ORDER BY rt.\"team\"\n  )\n)",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"membership_settings\" RENAME COLUMN \"default_role\" TO \"default_teams\"",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"membership_settings\" SET \"default_teams\" = COALESCE(\n  (SELECT json_array(rt.\"team\") FROM \"_role_teams\" rt WHERE rt.\"role\" = \"membership_settings\".\"default_teams\" AND rt.\"team\" IS NOT NULL),\n  '[]'\n)",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"identity_providers\" RENAME COLUMN \"group_roles\" TO \"group_teams\"",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"identity_providers\" SET \"group_teams\" = (\n  SELECT COALESCE(json_group_object(j.\"key\", rt.\"team\"), '{}')\n  FROM json_each(CASE WHEN json_valid(\"identity_providers\".\"group_teams\") THEN \"identity_providers\".\"group_teams\" ELSE '{}' END) j\n  JOIN \"_role_teams\" rt ON rt.\"role\" = j.\"value\" WHERE rt.\"team\" IS NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"saml_providers\" RENAME COLUMN \"group_roles\" TO \"group_teams\"",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"saml_providers\" SET \"group_teams\" = (\n  SELECT COALESCE(json_group_object(j.\"key\", rt.\"team\"), '{}')\n  FROM json_each(CASE WHEN json_valid(\"saml_providers\".\"group_teams\") THEN \"saml_providers\".\"group_teams\" ELSE '{}' END) j\n  JOIN \"_role_teams\" rt ON rt.\"role\" = j.\"value\" WHERE rt.\"team\" IS NOT NULL\n)",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"role_profiles\" RENAME TO \"access_grants\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"access_grants\" RENAME COLUMN \"role\" TO \"subject\"",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE OR IGNORE \"access_grants\" SET \"subject\" = (SELECT rt.\"subject\" FROM \"_role_teams\" rt WHERE rt.\"role\" = \"access_grants\".\"subject\")",
+        "parameters": []
+      },
+      {
+        "sql": "DELETE FROM \"access_grants\" WHERE \"subject\" <> 'everyone' AND \"subject\" NOT LIKE 'team:%'",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"role_access\" RENAME TO \"access_exceptions\"",
+        "parameters": []
+      },
+      {
+        "sql": "ALTER TABLE \"access_exceptions\" RENAME COLUMN \"role\" TO \"subject\"",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE OR IGNORE \"access_exceptions\" SET \"subject\" = (SELECT rt.\"subject\" FROM \"_role_teams\" rt WHERE rt.\"role\" = \"access_exceptions\".\"subject\")",
+        "parameters": []
+      },
+      {
+        "sql": "DELETE FROM \"access_exceptions\" WHERE \"subject\" <> 'everyone' AND \"subject\" NOT LIKE 'team:%'",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"tool_availability\" SET \"mode\" = 'everyone', \"subjects\" = '[]'\nWHERE \"mode\" = 'roles' AND EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(\"tool_availability\".\"subjects\") THEN \"tool_availability\".\"subjects\" ELSE '[]' END) j WHERE j.\"value\" = 'member')",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"tool_availability\" SET \"mode\" = 'teams', \"subjects\" = (\n  SELECT json_group_array(\"team\") FROM (\n    SELECT DISTINCT rt.\"team\" AS \"team\" FROM json_each(CASE WHEN json_valid(\"tool_availability\".\"subjects\") THEN \"tool_availability\".\"subjects\" ELSE '[]' END) j\n    JOIN \"_role_teams\" rt ON rt.\"role\" = j.\"value\" WHERE rt.\"team\" IS NOT NULL ORDER BY rt.\"team\"\n  )\n) WHERE \"mode\" = 'roles'",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"channel_access\" SET \"mode\" = 'everyone', \"subjects\" = '[]'\nWHERE \"mode\" = 'roles' AND EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(\"channel_access\".\"subjects\") THEN \"channel_access\".\"subjects\" ELSE '[]' END) j WHERE j.\"value\" = 'member')",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"channel_access\" SET \"mode\" = 'teams', \"subjects\" = (\n  SELECT json_group_array(\"team\") FROM (\n    SELECT DISTINCT rt.\"team\" AS \"team\" FROM json_each(CASE WHEN json_valid(\"channel_access\".\"subjects\") THEN \"channel_access\".\"subjects\" ELSE '[]' END) j\n    JOIN \"_role_teams\" rt ON rt.\"role\" = j.\"value\" WHERE rt.\"team\" IS NOT NULL ORDER BY rt.\"team\"\n  )\n) WHERE \"mode\" = 'roles'",
+        "parameters": []
+      },
+      {
+        "sql": "UPDATE \"builds\" SET \"manifest\" = json_remove(json_set(\"manifest\", '$.profiles', json(json_extract(\"manifest\", '$.roles'))), '$.roles')\nWHERE json_valid(\"manifest\") AND json_type(\"manifest\", '$.roles') = 'object' AND json_type(\"manifest\", '$.profiles') IS NULL",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"_role_teams\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"_held_roles\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"_workspaces\"",
+        "parameters": []
+      }
+    ],
+    "down": []
   }
 ]

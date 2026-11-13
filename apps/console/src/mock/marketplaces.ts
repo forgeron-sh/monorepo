@@ -87,7 +87,7 @@ export function createMarketplacesMock(now: () => Date) {
     readme: tool.name === "odoo" ? ODOO_README : `# ${tool.title}\n\n${tool.summary}\n`,
     guide: tool.name === "odoo" ? ODOO_GUIDE : null,
     interfaces: { mcp: true, api: tool.name !== "odoo", cli: true, web: false },
-    roles:
+    profiles:
       tool.name === "odoo"
         ? [
             { name: "support", label: "Support" },

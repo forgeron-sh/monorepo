@@ -27,14 +27,16 @@ type PilotPort = Pick<
   | "readUserSetup"
 >;
 
+/** A person as the library reads them: who they are, their teams and what they may do on the platform. */
 export interface LibraryPerson {
   id: string;
-  roles: readonly string[];
+  teams: readonly string[];
+  permissions: readonly string[];
 }
 
 /**
  * `ok` for a tool with no rule (open as before) or one in the person's library that they may still
- * use; otherwise why not: `unavailable` (an admin has not opened it to them) or `not-installed`.
+ * use; otherwise why not: `unavailable` (no one has opened it to them) or `not-installed`.
  */
 export async function libraryAccess(
   registry: Port,
@@ -72,9 +74,9 @@ export const setupPath = (tool: string) =>
 // `branch` here is the channel's reference: a branch, or `~<name>` for a permanent channel.
 
 /**
- * May this person reach a channel other than production? Admins always may, developers on a branch's
- * temporary channel (sdk.md §7, D-129); anyone else only when an admin published the channel to them
- * and they added it to their library.
+ * May this person reach a channel other than production? Whoever holds `tools:publish` always may,
+ * and whoever holds `tools:read` on a branch's temporary channel (sdk.md §7, D-129, D-137); anyone
+ * else only when the channel was published to them and they added it to their library.
  */
 export async function pilotAccess(
   registry: Pick<PilotPort, "channelAccessOf" | "isChannelInstalled">,

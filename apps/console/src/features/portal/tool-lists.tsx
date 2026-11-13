@@ -3,6 +3,7 @@ import { Badge, Button, EmptyState, Field, Input, Notice, Page, ToolCard } from 
 import { useState, type MouseEvent } from "react";
 import { explain, type Api } from "../../api";
 import { pathOf } from "../../router";
+import { can } from "../../shell/access";
 import { Loading, LoadError } from "../../states";
 import { useLoad } from "../../use-load";
 import type { WorkspaceInfo } from "../../workspace";
@@ -17,7 +18,7 @@ import {
 
 // The person's own space (D-117, D-128): My tools, the tools they added, and Discover, the tools the
 // workspace makes available to them that they have not added. Both read the same library; nothing on
-// them is technical: no version, role or interface.
+// them is technical: no version or interface.
 
 export interface LibraryPageProps {
   ws: WorkspaceInfo;
@@ -109,9 +110,9 @@ export function MyToolsPage({ ws, api, go }: LibraryPageProps) {
           description={
             available > 0
               ? "Add one of the tools your workspace offers you: it takes a click."
-              : ws.person.admin
+              : can(ws.person, "access:write")
                 ? "Install a tool from the Marketplace, then choose who can use it."
-                : "No tool is available to you yet. Ask an admin of this workspace."
+                : "No tool is available to you yet. Ask someone who gives access to share one with your team."
           }
           {...(available > 0
             ? {
@@ -183,9 +184,9 @@ export function DiscoverPage({ ws, api, go }: LibraryPageProps) {
         <EmptyState
           title="Nothing new to add"
           description={
-            ws.person.admin
+            can(ws.person, "access:write")
               ? "Every tool open to you is in My tools. Install more from the Marketplace, then choose who can use them."
-              : "Every tool open to you is in My tools. Ask an admin when you need another one."
+              : "Every tool open to you is in My tools. Ask someone who gives access when you need another one."
           }
           action={
             <Button href={pathOf("myTools")} onClick={navigate(go)}>

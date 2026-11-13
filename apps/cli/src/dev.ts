@@ -1,5 +1,6 @@
 import { buildTool } from "@forgeron/compiler";
-import { defaultMapping, type Manifest } from "@forgeron/manifest";
+import type { Manifest } from "@forgeron/manifest";
+import { isTeamId } from "@forgeron/permissions";
 import { createLocalHosting } from "@forgeron/hosting/local";
 import { readFile } from "node:fs/promises";
 import type { BuildMigration } from "@forgeron/hosting";
@@ -23,8 +24,10 @@ export interface DevSession {
 
 export interface DevOptions {
   port?: number;
-  /** Run as a person who has only this role, to see what they would see. */
-  role?: string;
+  /** Run as a person given only this profile of the tool (or `all`: every permission), to see what they would see. */
+  as?: string;
+  /** The teams of the person who runs, instead of those of the directory (D-137). */
+  teams?: string[];
   /** Run as this person of `.forgeron/local/directory.json` (D-131). */
   user?: string;
 }
@@ -46,7 +49,11 @@ async function builtFiles(outDir: string) {
 }
 
 export async function startDev(dir: string, options: DevOptions = {}): Promise<DevSession> {
-  const { role } = options;
+  const { as, teams } = options;
+  for (const team of teams ?? []) {
+    if (!isTeamId(team))
+      throw new UsageError(`--team ${team}: not a team id (lower case letters, digits and "-").`);
+  }
   const hosting = createLocalHosting({
     // The local database lives on disk: it is still there next time (.forgeron/local is ignored by git).
     persist: join(dir, ".forgeron", "local"),
@@ -54,12 +61,13 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
     viewFile: (file) => readFile(join(dir, ".forgeron", "build", file)).catch(() => undefined),
     ...(options.port === undefined ? {} : { port: options.port }),
     // Who the developer is, and the people and teams a tool that asks for them may know (D-131).
-    identity: (manifest) => developer(readDevDirectory(dir), manifest, options.user, role),
+    identity: (manifest) =>
+      developer(readDevDirectory(dir), manifest, { user: options.user, as, teams }),
     directory: () => snapshotOf(readDevDirectory(dir)),
     // Another person of the directory, for a page opened with `?as=<email>` (D-135): two people at once.
     identityFor: (manifest, email) => {
       try {
-        return developer(readDevDirectory(dir), manifest, email, role);
+        return developer(readDevDirectory(dir), manifest, { user: email, as, teams });
       } catch {
         return undefined;
       }
@@ -71,19 +79,11 @@ export async function startDev(dir: string, options: DevOptions = {}): Promise<D
   async function deploy(): Promise<{ name: string; url: string }> {
     const { outDir } = await buildTool(dir);
     const build = await builtFiles(outDir);
-    // `--as` is a profile of the tool, or a workspace role read with the default mapping (D-127):
-    // `admin` holds every permission, `member` the default profile.
-    if (
-      role &&
-      !(role in build.manifest.roles) &&
-      !(role in defaultMapping(build.manifest.roles))
-    ) {
-      const known = [
-        ...Object.keys(build.manifest.roles),
-        ...Object.keys(defaultMapping(build.manifest.roles)),
-      ];
+    // `--as` is a profile of the tool, or `all` (D-137).
+    if (as && as !== "all" && !(as in build.manifest.profiles)) {
+      const known = [...Object.keys(build.manifest.profiles), "all"];
       throw new UsageError(
-        `--as ${role}: the tool has no such profile, and it is not admin or member (choose: ${[...new Set(known)].join(", ")}).`,
+        `--as ${as}: the tool has no such profile (choose: ${known.join(", ")}).`,
       );
     }
     current = build.manifest;

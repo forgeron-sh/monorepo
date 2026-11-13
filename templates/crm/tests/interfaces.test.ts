@@ -16,7 +16,7 @@ async function toolsOf(person: Parameters<typeof createTestTool>[0]) {
 }
 
 describe("MCP", () => {
-  it("shows each role the tools it may call, and nobody the others", async () => {
+  it("shows each profile the tools it may call, and nobody the others", async () => {
     const read = ["crm_companies_list", "crm_contacts_search", "crm_deals_list"];
     const write = [
       "crm_companies_upsert",
@@ -66,7 +66,7 @@ describe("MCP", () => {
     ]);
   });
 
-  it("refuses a read-only role over MCP too, as a tool error", async () => {
+  it("refuses a read-only profile over MCP too, as a tool error", async () => {
     const tool = await createTestTool({ as: support });
     const response = await tool.fetch(
       "/mcp",

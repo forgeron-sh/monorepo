@@ -11,6 +11,7 @@
     "tsdown": "tsdown"
   },
   "dependencies": {
+    "@forgeron/permissions": "workspace:*",
     "zod": "4.6.7"
   },
   "devDependencies": {

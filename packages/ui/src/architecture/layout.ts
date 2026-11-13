@@ -7,7 +7,7 @@ import type { Interface, Manifest } from "@forgeron/manifest";
 //   - which interfaces the tool offers, and which of them each action is exposed on: an edge from an
 //     interface to a group of actions when one of the group's actions is exposed on it;
 //   - the resources the tool declares, the events it handles, its scheduled tasks, the tools it uses
-//     and its roles.
+//     and its profiles.
 // The manifest does not say which action touches which resource (nor which tables the database has),
 // so no such edge is drawn: an invented line is worse than none.
 
@@ -22,7 +22,7 @@ export type NodeKind =
   | "user-secret"
   | "connector"
   | "host"
-  | "role"
+  | "profile"
   | "event"
   | "task"
   | "tool";
@@ -353,7 +353,7 @@ export function layoutArchitecture(manifest: Manifest): DiagramLayout {
     });
   }
 
-  // Below: roles, events and tasks, the tools it uses.
+  // Below: profiles, events and tasks, the tools it uses.
   const resourcesBottom =
     resources.length > 0 ? top + resources.length * (RESOURCE_H + GAP) - GAP : top;
   const interfacesBottom = top + INTERFACE_ORDER.length * (INTERFACE_H + GAP) - GAP;
@@ -389,19 +389,19 @@ export function layoutArchitecture(manifest: Manifest): DiagramLayout {
 
   bottom(
     0,
-    "roles",
-    "Roles",
-    Object.keys(manifest.roles)
+    "profiles",
+    "Profiles",
+    Object.keys(manifest.profiles)
       .sort(byName)
       .map((name) => {
-        const role = manifest.roles[name]!;
-        const grants = role.grants.join(", ") || "no access";
+        const profile = manifest.profiles[name]!;
+        const grants = profile.grants.join(", ") || "no access";
         return {
-          id: `role:${name}`,
-          kind: "role" as const,
-          title: role.label ?? name,
+          id: `profile:${name}`,
+          kind: "profile" as const,
+          title: profile.label ?? name,
           subtitle: grants,
-          text: `Role ${role.label ?? name}${role.label ? ` (${name})` : ""}: ${role.grants.length ? `grants ${grants}` : "grants no access level"}.`,
+          text: `Profile ${profile.label ?? name}${profile.label ? ` (${name})` : ""}: ${profile.grants.length ? `grants ${grants}` : "grants no access level"}.`,
         };
       }),
   );
@@ -479,7 +479,7 @@ export function layoutArchitecture(manifest: Manifest): DiagramLayout {
   );
 
   // Reading order, for the text list: left to right, then top to bottom.
-  const order = ["interfaces", "actions", "resources", "roles", "events", "tasks", "uses"];
+  const order = ["interfaces", "actions", "resources", "profiles", "events", "tasks", "uses"];
   sections.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 
   return { width: WIDTH, height: bandBottom, sections, nodes, edges };

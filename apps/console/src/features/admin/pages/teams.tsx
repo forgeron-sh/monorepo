@@ -1,39 +1,19 @@
-import {
-  Badge,
-  Button,
-  Checkbox,
-  Dialog,
-  EmptyState,
-  Field,
-  Input,
-  Notice,
-  Page,
-  Table,
-  type TableColumn,
-} from "@forgeron/ui";
+import { Badge, Button, Dialog, EmptyState, Field, Input, Notice, Page, Table } from "@forgeron/ui";
+import type { TableColumn } from "@forgeron/ui";
 import { addresses } from "@forgeron/platform-contract/client";
 import { useState } from "react";
-import { explain, ok, typedClient, typedSender, type Api } from "../../../api";
-import { loadMembers, type MemberRow } from "../../../members";
+import { explain, ok, typedSender, type Api } from "../../../api";
+import { hrefOf } from "../../../shell/href";
+import { routeClick } from "../../../router";
+import { can } from "../../../shell/access";
 import type { PageProps } from "../../../shell/page-props";
 import { LoadError, Loading } from "../../../states";
+import { byTeam, loadTeams, teamSummary, type TeamRow } from "../../../teams";
 import { useLoad } from "../../../use-load";
 
-// The workspace's teams (D-132): named groups of members. A team is a way to give access (it appears
-// in a tool's Access tab like a role) and what a tool shows of "my team". An admin creates and
-// changes them; the platform refuses anyone else and audits every change.
-
-interface TeamRow {
-  id: string;
-  name: string;
-  description: string;
-  members: string[];
-  role: string;
-}
-
-export async function loadTeams(fetchJson: Api["fetchJson"]): Promise<TeamRow[]> {
-  return ok(await typedClient(fetchJson)(addresses.listTeams)).teams;
-}
+// The workspace's teams (D-132, D-137): named groups of people, and what each may do on Forgeron. A
+// team is also how a tool is shared (its Access tab names teams). Anyone signed in reads this list;
+// whoever holds `teams:write` creates and changes teams, within what they hold themselves.
 
 const slugOf = (name: string) =>
   name
@@ -45,91 +25,54 @@ const slugOf = (name: string) =>
     .replace(/^[^a-z]+/, "")
     .slice(0, 34);
 
-function TeamDialog({
-  team,
-  members,
+const count = (n: number) => (n === 1 ? "1 member" : `${n} members`);
+
+function NewTeamDialog({
   api,
   onClose,
-  onSaved,
+  onCreated,
 }: {
-  /** `undefined`: a new team. */
-  team?: TeamRow;
-  members: MemberRow[];
   api: Api;
   onClose: () => void;
-  onSaved: () => void;
+  onCreated: (id: string) => void;
 }) {
-  const [name, setName] = useState(team?.name ?? "");
-  const [id, setId] = useState(team?.id ?? "");
+  const [name, setName] = useState("");
+  const [id, setId] = useState("");
   const [idTouched, setIdTouched] = useState(false);
-  const [description, setDescription] = useState(team?.description ?? "");
-  const [picked, setPicked] = useState<string[]>(team?.members ?? []);
+  const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const save = async () => {
+  const create = async () => {
     setBusy(true);
     setError(undefined);
     try {
-      const send = typedSender(api.sendJson);
-      if (team) {
-        ok(
-          await send(addresses.updateTeam, {
-            params: { id: team.id },
-            json: { name, description, members: picked },
-          }),
-        );
-      } else {
-        ok(await send(addresses.createTeam, { json: { id, name, description, members: picked } }));
-      }
-      onSaved();
+      ok(
+        await typedSender(api.sendJson)(addresses.createTeam, { json: { id, name, description } }),
+      );
+      onCreated(id);
     } catch (e) {
-      setError(explain(e, "The team was not saved. Try again."));
+      setError(explain(e, "The team was not created. Try again."));
       setBusy(false);
-    }
-  };
-  const remove = async () => {
-    setBusy(true);
-    try {
-      ok(await typedSender(api.sendJson)(addresses.deleteTeam, { params: { id: team!.id } }));
-      onSaved();
-    } catch (e) {
-      setError(explain(e, "The team was not deleted. Try again."));
-      setBusy(false);
-      setConfirmDelete(false);
     }
   };
 
   return (
     <Dialog
-      title={team ? `Team ${team.name}` : "New team"}
-      description={
-        team
-          ? `Its address is ${team.id}; in a tool's Access tab it is called ${team.role}.`
-          : "A team is a group of the workspace's members: give it access to a tool, or let a tool show its own space."
-      }
+      title="New team"
+      description="A team is a group of people. Give it what it may do on Forgeron, and share tools with it in their Access tab."
       onClose={() => !busy && onClose()}
       footer={
         <>
-          {team ? (
-            <Button
-              variant="danger"
-              onClick={() => (confirmDelete ? void remove() : setConfirmDelete(true))}
-              disabled={busy}
-            >
-              {confirmDelete ? "Delete for good" : "Delete"}
-            </Button>
-          ) : null}
           <Button onClick={onClose} disabled={busy}>
             Cancel
           </Button>
           <Button
             variant="primary"
-            onClick={() => void save()}
-            disabled={busy || !name.trim() || (!team && !id)}
+            onClick={() => void create()}
+            disabled={busy || !name.trim() || !id}
           >
-            {busy ? "Saving…" : team ? "Save" : "Create team"}
+            {busy ? "Creating…" : "Create team"}
           </Button>
         </>
       }
@@ -140,28 +83,27 @@ function TeamDialog({
             {...control}
             value={name}
             placeholder="Product"
+            data-autofocus
             onChange={(e) => {
               setName(e.target.value);
-              if (!team && !idTouched) setId(slugOf(e.target.value));
+              if (!idTouched) setId(slugOf(e.target.value));
             }}
           />
         )}
       </Field>
-      {team ? null : (
-        <Field label="Address" hint="Chosen once: lower case letters, digits and -.">
-          {(control) => (
-            <Input
-              {...control}
-              className="fc-mono"
-              value={id}
-              onChange={(e) => {
-                setIdTouched(true);
-                setId(e.target.value);
-              }}
-            />
-          )}
-        </Field>
-      )}
+      <Field label="Address" hint="Chosen once: lower case letters, digits and -.">
+        {(control) => (
+          <Input
+            {...control}
+            className="fc-mono"
+            value={id}
+            onChange={(e) => {
+              setIdTouched(true);
+              setId(e.target.value);
+            }}
+          />
+        )}
+      </Field>
       <Field label="Description">
         {(control) => (
           <Input
@@ -171,94 +113,81 @@ function TeamDialog({
           />
         )}
       </Field>
-      <fieldset className="fc-fieldset">
-        <legend className="fc-legend">Members</legend>
-        <div className="fc-checks">
-          {members.map((m) => (
-            <Checkbox
-              key={m.id}
-              label={`${m.name} (${m.email})`}
-              checked={picked.includes(m.id)}
-              onChange={(e) =>
-                setPicked(e.target.checked ? [...picked, m.id] : picked.filter((x) => x !== m.id))
-              }
-            />
-          ))}
-        </div>
-      </fieldset>
       {error ? <Notice tone="danger">{error}</Notice> : null}
     </Dialog>
   );
 }
 
-export default function TeamsPage({ api }: PageProps) {
+export default function TeamsPage({ api, ws, go }: PageProps) {
   const teams = useLoad(() => loadTeams(api.fetchJson), [api]);
-  const members = useLoad(() => loadMembers(api.fetchJson), [api]);
-  const [editing, setEditing] = useState<TeamRow | "new">();
+  const [creating, setCreating] = useState(false);
+  const writes = can(ws.person, "teams:write");
 
-  const people = members.data?.members ?? [];
+  const open = (t: TeamRow) => go(hrefOf("/admin/teams/:id", { id: t.id }));
   const columns: Array<TableColumn<TeamRow>> = [
     {
       key: "name",
       header: "Team",
       render: (t) => (
         <span>
-          {t.name} <span className="fc-mono fc-muted">{t.id}</span>
+          <a
+            href={hrefOf("/admin/teams/:id", { id: t.id })}
+            onClick={(e) => {
+              e.stopPropagation();
+              routeClick(go)(e);
+            }}
+          >
+            {t.name}
+          </a>{" "}
+          {t.builtIn ? <Badge>Built in</Badge> : <span className="fc-mono fc-muted">{t.id}</span>}
         </span>
       ),
     },
+    { key: "members", header: "Members", render: (t) => count(t.members.length) },
     {
-      key: "members",
-      header: "Members",
-      render: (t) => (
-        <span className="fc-badges">
-          {t.members.length === 0 ? <span className="fc-muted">Nobody yet</span> : null}
-          {t.members.slice(0, 5).map((id) => (
-            <Badge key={id}>{people.find((m) => m.id === id)?.name ?? id}</Badge>
-          ))}
-          {t.members.length > 5 ? <Badge>+{t.members.length - 5}</Badge> : null}
-        </span>
-      ),
+      key: "can",
+      header: "On Forgeron",
+      render: (t) => <span className="fc-muted">{teamSummary(t)}</span>,
     },
   ];
 
   return (
     <Page
       title="Teams"
-      description="Groups of members: give a team access to a tool, or let a tool show a team's own space."
+      description="Groups of people: what each may do on Forgeron, and who a tool is shared with. A person is in as many teams as they need."
       actions={
-        <Button variant="primary" onClick={() => setEditing("new")} disabled={!members.data}>
-          New team
-        </Button>
+        writes ? (
+          <Button variant="primary" onClick={() => setCreating(true)}>
+            New team
+          </Button>
+        ) : undefined
       }
     >
-      {teams.loading || members.loading ? (
+      {teams.loading ? (
         <Loading shape="table" label="Loading teams" />
-      ) : !teams.data || !members.data ? (
-        <LoadError what="The teams" error={teams.error ?? members.error} onRetry={teams.reload} />
+      ) : !teams.data ? (
+        <LoadError what="The teams" error={teams.error} onRetry={teams.reload} />
       ) : (
         <Table
           columns={columns}
-          rows={teams.data}
+          rows={[...teams.data].sort(byTeam)}
           rowKey={(t) => t.id}
-          onRowClick={(t) => setEditing(t)}
+          onRowClick={open}
           empty={
             <EmptyState
               title="No team yet"
-              description="Create one, then give it access to a tool in the tool's Access tab."
+              description="Create one, then share a tool with it in the tool's Access tab."
             />
           }
         />
       )}
-      {editing && members.data ? (
-        <TeamDialog
-          {...(editing === "new" ? {} : { team: editing })}
-          members={members.data.members}
+      {creating ? (
+        <NewTeamDialog
           api={api}
-          onClose={() => setEditing(undefined)}
-          onSaved={() => {
-            setEditing(undefined);
-            teams.reload();
+          onClose={() => setCreating(false)}
+          onCreated={(id) => {
+            setCreating(false);
+            go(hrefOf("/admin/teams/:id", { id }));
           }}
         />
       ) : null}

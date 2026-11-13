@@ -3,14 +3,19 @@ import { describe, expect, it } from "vitest";
 import { createDirectory } from "./directory";
 import type { DirectorySnapshot, User } from "./types";
 
-const me: User = { id: "u1", email: "ely@acme.fr", name: "Ely", roles: ["member"], teams: ["t1"] };
+const me: User = {
+  id: "u1",
+  email: "ely@acme.fr",
+  name: "Ely",
+  subjects: ["everyone", "team:t1"],
+  teams: ["t1"],
+};
 const snapshot: DirectorySnapshot = {
   members: [
     {
       id: "u1",
       email: "ely@acme.fr",
       name: "Ely",
-      roles: ["member"],
       avatar: "https://x/e.png",
       teams: ["t1"],
     },
@@ -18,7 +23,6 @@ const snapshot: DirectorySnapshot = {
       id: "u2",
       email: "sam@acme.fr",
       name: "Sam Martin",
-      roles: ["admin"],
       avatar: "https://x/s.png",
       teams: ["t2"],
     },
@@ -47,11 +51,11 @@ describe("ctx.directory", () => {
       { id: "u2", email: "sam@acme.fr", name: "Sam Martin" },
     ]);
     const full = createDirectory(
-      decl({ why: "invite", members: true, roles: true, avatars: true }),
+      decl({ why: "invite", members: true, avatars: true }),
       snapshot,
       me,
     );
-    expect((await full.member("SAM@acme.fr"))?.roles).toEqual(["admin"]);
+    expect((await full.member("SAM@acme.fr"))?.teams).toBeUndefined();
     expect((await full.member("u2"))?.avatar).toBe("https://x/s.png");
   });
 

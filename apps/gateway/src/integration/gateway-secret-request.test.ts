@@ -38,14 +38,14 @@ beforeAll(async () => {
   await migratePlatform(d1);
   registry = createRegistry(d1, { secrets: await createSecretBox(KEY), now: () => now });
   toolId = (await registry.createTool({ workspace: "acme", name: "hr" })).id;
-  const member = async (subject: string, roles: string[]) =>
+  const member = async (subject: string, teams: string[]) =>
     (
       await registry.addMember({
         workspace: "acme",
         subject,
         email: `${subject}@acme.test`,
         name: subject,
-        roles,
+        teams,
       })
     ).id;
   ana = await member("ana", []);

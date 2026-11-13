@@ -25,6 +25,8 @@ export type RegistryErrorCode =
   | "PENDING_APPROVAL"
   | "NO_MANIFEST"
   | "LAST_ADMIN"
+  | "FORBIDDEN"
+  | "PROTECTED"
   | "INVALID"
   | "INVALID_DOCS"
   /** A build made for a newer platform, or for a contract that is no longer supported (D-136). */

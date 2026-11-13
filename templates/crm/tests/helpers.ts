@@ -6,9 +6,9 @@ import { createTestTool as create, type TestToolOptions } from "@forgeron/sdk/te
 const dir = new URL("..", import.meta.url).pathname;
 export const createTestTool = (options: TestToolOptions = {}) => create({ dir, ...options });
 
-export const sales = { email: "ely@acme.fr", roles: ["sales"] };
-export const support = { email: "sam@acme.fr", roles: ["support"] };
-export const management = { email: "mia@acme.fr", roles: ["management"] };
+export const sales = { email: "ely@acme.fr", profile: "sales" };
+export const support = { email: "sam@acme.fr", profile: "support" };
+export const management = { email: "mia@acme.fr", profile: "management" };
 
 type Tool = Awaited<ReturnType<typeof createTestTool>>;
 

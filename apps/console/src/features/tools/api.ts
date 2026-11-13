@@ -215,6 +215,22 @@ export async function loadActivity(fetchJson: FetchJson, tool: string): Promise<
   }));
 }
 
+/** The recent GitHub Actions runs of a tool's repository, or why they cannot be read (`state`). */
+export const loadCi = async (fetchJson: FetchJson, tool: string) =>
+  ok(await typedClient(fetchJson)(addresses.toolCi, { params: { tool }, query: {} }));
+
+export type CiAnswer = Awaited<ReturnType<typeof loadCi>>;
+export type CiRun = Extract<CiAnswer, { state: "ok" }>["runs"][number];
+
+/** Deletes a tool for good, every environment included; its name is typed to confirm. */
+export const deleteTool = async (api: Api, tool: string) =>
+  ok(
+    await typedSender(api.sendJson)(addresses.deleteTool, {
+      params: { tool },
+      json: { confirm: tool },
+    }),
+  );
+
 function platform(api: Api) {
   if (!api.sendPlatform) throw new Error("This console cannot reach the platform routes.");
   return typedPlatform(api.sendPlatform);

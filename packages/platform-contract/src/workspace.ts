@@ -1,3 +1,4 @@
+import { PLATFORM, type PlatformPermission } from "@forgeron/permissions";
 import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
@@ -9,7 +10,10 @@ const json = <T extends z.ZodType>(schema: T, description: string) => ({
   content: { "application/json": { schema } },
 });
 const notSignedIn = json(ErrorSchema, "Not signed in");
-const notAdmin = json(ErrorSchema, "Not an admin");
+const PlatformPermissionSchema = z.enum(
+  Object.keys(PLATFORM.permissions) as [PlatformPermission, ...PlatformPermission[]],
+);
+const notAdmin = json(ErrorSchema, "Lacks the permission");
 
 const method = z.strictObject({ enabled: z.boolean(), configured: z.boolean() });
 
@@ -29,8 +33,10 @@ const WorkspaceSchema = z.strictObject({
     id: z.string(),
     email: z.string(),
     name: z.string(),
-    roles: z.array(z.string()),
-    admin: z.boolean(),
+    /** The ids of the teams the person is in; everyone is also part of `everyone`, which is not listed. */
+    teams: z.array(z.string()),
+    /** What the person may do on the platform (D-137): the console decides with it. */
+    permissions: z.array(PlatformPermissionSchema),
     /** The picture the person shows and where it comes from (D-133); absent when they have none. */
     avatar: z.strictObject({ url: z.string(), source: z.enum(["custom", "provider"]) }).optional(),
   }),

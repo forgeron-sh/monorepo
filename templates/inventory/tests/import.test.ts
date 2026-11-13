@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { admin, createTestTool, CSV, technician, twoSites } from "./helpers";
+import { manager, createTestTool, CSV, technician, twoSites } from "./helpers";
 
 type Report = {
   rows: number;
@@ -12,7 +12,7 @@ type Report = {
 
 describe("equipments.import", () => {
   it("only reports by default (dry run), and writes nothing", async () => {
-    const tool = await createTestTool({ as: admin });
+    const tool = await createTestTool({ as: manager });
     await twoSites(tool);
     const report = (await tool.call("equipments.import", { csv: CSV })) as Report;
     expect(report).toEqual({
@@ -27,7 +27,7 @@ describe("equipments.import", () => {
   });
 
   it("imports the rows, matching sites by name without case, with extra columns as attributes", async () => {
-    const tool = await createTestTool({ as: admin });
+    const tool = await createTestTool({ as: manager });
     await twoSites(tool);
     const report = (await tool.call("equipments.import", { csv: CSV, dryRun: false })) as Report;
     expect(report.applied).toBe(true);
@@ -46,7 +46,7 @@ describe("equipments.import", () => {
   });
 
   it("updates equipment that has the same ref, and records the run", async () => {
-    const tool = await createTestTool({ as: admin });
+    const tool = await createTestTool({ as: manager });
     await twoSites(tool);
     await tool.call("equipments.import", { csv: CSV, dryRun: false });
     const again = (await tool.call("equipments.import", {
@@ -64,7 +64,7 @@ describe("equipments.import", () => {
   });
 
   it("refuses the whole file when a row is wrong, and says which", async () => {
-    const tool = await createTestTool({ as: admin });
+    const tool = await createTestTool({ as: manager });
     await twoSites(tool);
     const csv = [
       "ref,type,site,next_check",
@@ -86,7 +86,7 @@ describe("equipments.import", () => {
   });
 
   it("reads quoted fields and CRLF line ends", async () => {
-    const tool = await createTestTool({ as: admin });
+    const tool = await createTestTool({ as: manager });
     await tool.call("sites.create", { name: "Paris, HQ", city: "Paris" });
     const csv = 'ref,type,site\r\nX1,"air, handler","Paris, HQ"\r\n';
     expect(await tool.call("equipments.import", { csv, dryRun: false })).toMatchObject({

@@ -149,7 +149,7 @@ export function useParams<Values = Record<string, string>>(): [
   return [values, setValues];
 }
 
-/** The signed-in person and their roles. */
+/** The signed-in person. */
 export function useUser(): User {
   return useViewContext("useUser").runtime.user;
 }

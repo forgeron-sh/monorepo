@@ -33,78 +33,79 @@ const through = async (request: Request, who: ConsolePerson | undefined) => {
 
 describeRouteMatrix({
   title: "GET /api/workspace",
+  access: "signed-in",
   call: through,
   method: "GET",
   path: "/api/workspace",
-  access: "member",
 });
 describeRouteMatrix({
   title: "GET /api/audit",
+  access: "audit:read",
   call: through,
   method: "GET",
   path: "/api/audit",
-  access: "admin",
 });
 describeRouteMatrix({
   title: "GET /api/usage",
+  access: "usage:read",
   call: through,
   method: "GET",
   path: "/api/usage",
-  access: "admin",
 });
 describeRouteMatrix({
   title: "GET /api/tools/crm/access-matrix",
+  access: "access:read",
   call: through,
   method: "GET",
   path: "/api/tools/crm/access-matrix",
-  access: "admin",
-  forbidden: "The access matrix is for admins.",
 });
 describeRouteMatrix({
   title: "PUT /api/tools/crm/access-matrix",
+  access: "access:write",
   call: through,
   method: "PUT",
   path: "/api/tools/crm/access-matrix",
-  access: "admin",
-  forbidden: "The access matrix is for admins.",
   invalidMessage:
-    "Give `profiles` (up to 100 of { role, grant }) or `changes` (up to 500 of { role, action, allowed: true, false or null }).",
-  valid: { changes: [{ role: "viewer", action: "deals.list", allowed: true }] },
+    "Give `grants` (up to 100 of { subject, grant }) or `changes` (up to 500 of { subject, action, allowed: true, false or null }).",
+  valid: { changes: [{ subject: "everyone", action: "deals.list", allowed: true }] },
   invalid: [
     {},
     { changes: [] },
     { changes: "all" },
-    { changes: [{ role: "viewer", action: "deals.list" }] },
-    { changes: [{ role: 1, action: "deals.list", allowed: true }] },
-    { changes: Array.from({ length: 501 }, () => ({ role: "r", action: "a", allowed: null })) },
-    { profiles: [] },
-    { profiles: [{ role: "viewer", grant: { kind: "everything" } }] },
+    { changes: [{ subject: "everyone", action: "deals.list" }] },
+    { changes: [{ subject: 1, action: "deals.list", allowed: true }] },
+    {
+      changes: Array.from({ length: 501 }, () => ({
+        subject: "everyone",
+        action: "a",
+        allowed: null,
+      })),
+    },
+    { grants: [] },
+    { grants: [{ subject: "everyone", grant: { kind: "everything" } }] },
   ],
 });
 
 describeRouteMatrix({
   title: "GET connections",
+  access: "members:read",
   call: through,
   method: "GET",
   path: "/api/tools/crm/environments/production/connections",
-  access: "admin",
-  forbidden: "Connections are for admins.",
 });
 describeRouteMatrix({
   title: "DELETE one connection",
+  access: "members:write",
   call: through,
   method: "DELETE",
   path: "/api/tools/crm/environments/production/connections/ada%40example.test/microsoft-365",
-  access: "admin",
-  forbidden: "Connections are for admins.",
 });
 describeRouteMatrix({
   title: "GET secrets-status",
+  access: "tools:read",
   call: through,
   method: "GET",
   path: "/api/tools/crm/secrets-status",
-  access: "developer",
-  forbidden: "Secrets status is for developers and admins.",
 });
 
 describe("the connections routes", () => {
@@ -113,9 +114,8 @@ describe("the connections routes", () => {
       id: "p",
       email: "a@acme.test",
       name: "A",
-      admin: true,
-      developer: false,
-      roles: ["admin"],
+      teams: ["admin"],
+      permissions: ADMIN.permissions,
     };
     const base = "https://acme.forgeron.test/api/tools/crm/environments";
     expect((await call(new Request(`${base}/staging/connections`)))!.status).toBe(404);
@@ -131,14 +131,13 @@ describe("the connections routes", () => {
 });
 
 describe("the access matrix", () => {
-  it("answers 404 for an unknown tool to an admin, and 405 to a method it does not take", async () => {
+  it("answers 404 for an unknown tool to who holds `access:read`, and 405 to a method it does not take", async () => {
     person = {
       id: "p",
       email: "a@acme.test",
       name: "A",
-      admin: true,
-      developer: false,
-      roles: ["admin"],
+      teams: ["admin"],
+      permissions: ADMIN.permissions,
     };
     const ghost = (await call(
       new Request("https://acme.forgeron.test/api/tools/ghost/access-matrix"),

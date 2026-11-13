@@ -15,16 +15,15 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { LONGEST_TOKEN_SECONDS } from "../identity/authn/issue";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// The versions that wait for an admin (docs/sdk.md §3) and the admin's revocations (D-035, D-036), for
-// admins. The registry audits a decision and refuses a second one. A value never comes out.
+// The versions that wait for approval (docs/sdk.md §3) and the revocations (D-035, D-036), for who
+// holds `tools:approve`. The registry audits a decision and refuses a second one. A value never comes out.
 
-const REVOCATION_FORBIDDEN = "Revocation is for admins.";
 const SECRET_NAME = /^[A-Z][A-Z0-9_]*$/;
 const SETUP_NAME = /^[a-z][a-zA-Z0-9]{0,39}$/;
 const noTool = (name: string) => ({ error: "NOT_FOUND", message: `There is no tool ${name}.` });
 
 export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(listApprovalsRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(listApprovalsRoute, "tools:approve"), async (c) => {
     const { registry, workspace } = c.env;
     const versions = [];
     for (const tool of await registry.listTools(workspace)) {
@@ -41,7 +40,7 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
   });
 
   app.openapi(
-    platformRoute(decideApprovalRoute, "admin"),
+    platformRoute(decideApprovalRoute, "tools:approve"),
     async (c) => {
       const { registry, workspace } = c.env;
       const id = c.req.valid("param").id;
@@ -74,7 +73,7 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
         : c.json({ error: "INVALID", message: "`decision` is `approved` or `rejected`." }, 400),
   );
 
-  app.openapi(platformRoute(revokePersonTokensRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
+  app.openapi(platformRoute(revokePersonTokensRoute, "tools:approve"), async (c) => {
     const { registry, workspace } = c.env;
     const person = c.req.valid("param").id;
     if (!(await registry.findMember(workspace, person))) {
@@ -84,18 +83,15 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ revoked: "all" as const, person }, 200);
   });
 
-  app.openapi(
-    platformRoute(listUserSecretHoldersRoute, "admin", REVOCATION_FORBIDDEN),
-    async (c) => {
-      const { registry, workspace } = c.env;
-      const name = c.req.valid("param").tool;
-      const tool = await registry.findTool(workspace, name);
-      if (!tool) return c.json(noTool(name), 404);
-      return c.json({ holders: await registry.userSecretHolders(tool.id) }, 200);
-    },
-  );
+  app.openapi(platformRoute(listUserSecretHoldersRoute, "tools:approve"), async (c) => {
+    const { registry, workspace } = c.env;
+    const name = c.req.valid("param").tool;
+    const tool = await registry.findTool(workspace, name);
+    if (!tool) return c.json(noTool(name), 404);
+    return c.json({ holders: await registry.userSecretHolders(tool.id) }, 200);
+  });
 
-  app.openapi(platformRoute(revokeUserSecretsRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
+  app.openapi(platformRoute(revokeUserSecretsRoute, "tools:approve"), async (c) => {
     const { registry, workspace } = c.env;
     const { tool: name, person } = c.req.valid("param");
     const tool = await registry.findTool(workspace, name);
@@ -103,7 +99,7 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ revoked: await registry.revokeUserSecrets(tool.id, person) }, 200);
   });
 
-  app.openapi(platformRoute(revokeUserSecretRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
+  app.openapi(platformRoute(revokeUserSecretRoute, "tools:approve"), async (c) => {
     const { registry, workspace } = c.env;
     const { tool: name, person, name: secret } = c.req.valid("param");
     const tool = await registry.findTool(workspace, name);
@@ -114,9 +110,9 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ revoked: await registry.revokeUserSecrets(tool.id, person, secret) }, 200);
   });
 
-  // An admin types a person's secret (D-107): audited with a line the person sees, never read back.
+  // Someone who holds `tools:approve` types a person's secret (D-107): audited with a line the person sees, never read back.
   app.openapi(
-    platformRoute(setUserSecretRoute, "admin", REVOCATION_FORBIDDEN),
+    platformRoute(setUserSecretRoute, "tools:approve"),
     async (c) => {
       const { registry, workspace } = c.env;
       const { tool: name, person, name: field } = c.req.valid("param");
@@ -154,8 +150,8 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
         : c.json({ error: "INVALID", message: "`value` is a non-empty string (16 KB max)." }, 400),
   );
 
-  // The plain values of a tool's setup (D-097): in clear, so the admin may read and clear them.
-  app.openapi(platformRoute(listUserSetupRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
+  // The plain values of a tool's setup (D-097): in clear, so they may read and clear them.
+  app.openapi(platformRoute(listUserSetupRoute, "tools:approve"), async (c) => {
     const { registry, workspace } = c.env;
     const name = c.req.valid("param").tool;
     const tool = await registry.findTool(workspace, name);
@@ -174,7 +170,7 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
     );
   });
 
-  app.openapi(platformRoute(clearUserSetupRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
+  app.openapi(platformRoute(clearUserSetupRoute, "tools:approve"), async (c) => {
     const { registry, workspace } = c.env;
     const { tool: name, person } = c.req.valid("param");
     const tool = await registry.findTool(workspace, name);
@@ -182,7 +178,7 @@ export function mountApprovals(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ revoked: await registry.clearUserSetup(tool.id, person) }, 200);
   });
 
-  app.openapi(platformRoute(clearUserSetupValueRoute, "admin", REVOCATION_FORBIDDEN), async (c) => {
+  app.openapi(platformRoute(clearUserSetupValueRoute, "tools:approve"), async (c) => {
     const { registry, workspace } = c.env;
     const { tool: name, person, name: field } = c.req.valid("param");
     const tool = await registry.findTool(workspace, name);

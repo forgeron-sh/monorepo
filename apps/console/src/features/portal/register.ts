@@ -6,7 +6,7 @@ export function registerOverviewTab(): void {
     id: "overview",
     scope: "branch",
     title: "Overview",
-    adminOnly: false,
+    requires: "signed-in",
     order: 0,
     load: () => import("./tool-card"),
   });

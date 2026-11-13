@@ -32,9 +32,9 @@ const boom = defineRoute({
 });
 
 const app = createPlatformApp();
-app.openapi(platformRoute(readThing, "member"), (c) => c.json({ name: "a" }, 200));
-app.openapi(platformRoute(saveThing, "admin"), (c) => c.json(c.req.valid("json"), 200));
-app.openapi(platformRoute(boom, "member"), () => {
+app.openapi(platformRoute(readThing, "signed-in"), (c) => c.json({ name: "a" }, 200));
+app.openapi(platformRoute(saveThing, "settings:write"), (c) => c.json(c.req.valid("json"), 200));
+app.openapi(platformRoute(boom, "signed-in"), () => {
   throw new Error("registry down");
 });
 
@@ -48,14 +48,14 @@ describeRouteMatrix({
   call,
   method: "GET",
   path: "/api/__thing",
-  access: "member",
+  access: "signed-in",
 });
 describeRouteMatrix({
   title: "PUT /api/__thing",
   call,
   method: "PUT",
   path: "/api/__thing",
-  access: "admin",
+  access: "settings:write",
   valid: { name: "a" },
   invalid: [{ name: "" }, { name: 1 }, { name: "a", extra: true }, "text", null],
 });

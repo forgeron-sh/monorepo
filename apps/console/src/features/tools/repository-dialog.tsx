@@ -8,6 +8,8 @@ import {
   Input,
   Notice,
   Select,
+  Skeleton,
+  SkeletonGroup,
 } from "@forgeron/ui";
 import { useState } from "react";
 import { explain, type Api } from "../../api";
@@ -41,6 +43,22 @@ export function RepositoryDialog(props: { api: Api; onClose: () => void; onAdded
     <AppRepositoryDialog {...props} onByHand={() => setByHand(true)} />
   ) : (
     <TokenRepositoryDialog {...props} />
+  );
+}
+
+/** The list of repositories while GitHub is read: the rows it will have, as a skeleton. */
+function RepositoriesSkeleton() {
+  return (
+    <SkeletonGroup label="Loading the repositories">
+      <div className="ft-repos" aria-hidden="true">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="ft-repo-skeleton">
+            <Skeleton width={`${46 - i * 6}%`} />
+            <Skeleton width={96} height={20} />
+          </div>
+        ))}
+      </div>
+    </SkeletonGroup>
   );
 }
 
@@ -138,7 +156,7 @@ function AppRepositoryDialog({
       }
     >
       {repositories.loading ? (
-        <p className="fc-muted">Reading the repositories…</p>
+        <RepositoriesSkeleton />
       ) : !repositories.data ? (
         <Notice tone="danger">{explain(repositories.error, "GitHub could not be read.")}</Notice>
       ) : repositories.data.length === 0 ? (
@@ -282,7 +300,12 @@ export function NewToolDialog({
       }
     >
       {github.loading ? (
-        <p className="fc-muted">Reading GitHub…</p>
+        <SkeletonGroup label="Reading GitHub">
+          <Skeleton width={120} height={12} />
+          <Skeleton height={32} />
+          <Skeleton width={120} height={12} />
+          <Skeleton height={32} />
+        </SkeletonGroup>
       ) : owners.length === 0 ? (
         <Notice tone="info" title="Connect GitHub first">
           Create the workspace&apos;s GitHub App and install it on an organisation, in Settings,

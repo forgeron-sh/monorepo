@@ -69,16 +69,16 @@ export interface GatewayEnv {
    */
   SECRETS_KEY_PREVIOUS?: string;
   /**
-   * The identity provider's issuer URL (OIDC, D-019). A provider an admin saved in the platform
+   * The identity provider's issuer URL (OIDC, D-019). A provider saved in the platform
    * (`/console-api/api/identity-provider`, D-041) wins over these; with neither, `/auth` answers 404.
    */
   OIDC_ISSUER?: string;
   OIDC_CLIENT_ID?: string;
   /** Secret. Optional: a public client uses PKCE alone. */
   OIDC_CLIENT_SECRET?: string;
-  /** The email that becomes the administrator of a workspace at its first sign-in (D-027). */
+  /** The email that joins the team `admin` of a workspace at its first sign-in (D-027). */
   ADMIN_EMAIL?: string;
-  /** Comma-separated email domains whose people become members at sign-in, with no role (D-027). */
+  /** Comma-separated email domains whose people become members at sign-in, in no team (D-027). */
   MEMBER_EMAIL_DOMAINS?: string;
   /**
    * How people sign in, comma-separated: `email` (D-049, needs `SEND_EMAIL` and `MAIL_FROM`) and/or

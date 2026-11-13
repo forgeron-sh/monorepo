@@ -12,7 +12,10 @@ interface ViewUser {
   id: string;
   email: string;
   name: string;
-  roles: string[];
+  avatar?: string;
+  subjects: string[];
+  teams?: string[];
+  permissions?: Record<string, string[]>;
 }
 
 const ASSET_PREFIX = "/_f/views/";
@@ -79,9 +82,9 @@ export async function serveLocalView(
   const [name, view] = found;
   if (method !== "GET") return json(405, "METHOD_NOT_ALLOWED", "Use GET.");
 
-  const who = { roles: user.roles };
+  const who = { subjects: user.subjects, permissions: user.permissions };
   const shape = { ...manifest, actions: manifest.actions ?? {} };
-  if (!mayAccess(who, manifest.roles, viewSubject(name), view.access)) {
+  if (!mayAccess(who, manifest.profiles, viewSubject(name), view.access)) {
     return json(403, "FORBIDDEN", `This page needs the "${view.access}" access level.`);
   }
   if (!view.entry) return json(404, "NOT_FOUND", "This view was not built.");
@@ -94,10 +97,16 @@ export async function serveLocalView(
     // No token locally: the Worker trusts the host, which gives it the developer's identity.
     token: `local:${user.email}`,
     expiresAt: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
-    user,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      ...(user.avatar ? { avatar: user.avatar } : {}),
+      ...(user.teams ? { teams: user.teams } : {}),
+    },
     grants: heldPermissions(who, shape),
     callable: Object.entries(manifest.actions ?? {})
-      .filter(([action, entry]) => mayAccess(who, manifest.roles, action, entry.access))
+      .filter(([action, entry]) => mayAccess(who, manifest.profiles, action, entry.access))
       .map(([action]) => action)
       .sort(),
   };

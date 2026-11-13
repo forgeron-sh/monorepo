@@ -21,7 +21,8 @@ import {
   type FetchJson,
   type SendJson,
 } from "./api";
-import { AdminOnly, Loading, LoadError } from "./states";
+import { can } from "./shell/access";
+import { Loading, LoadError, Requires } from "./states";
 import { useLoad } from "./use-load";
 import type { WorkspaceInfo } from "./workspace";
 
@@ -39,7 +40,7 @@ export type Provider =
       hostedDomain?: string;
       emailClaim?: string;
       groupsClaim?: string;
-      groupRoles: Record<string, string>;
+      groupTeams: Record<string, string>;
     }
   | {
       kind: "saml";
@@ -49,7 +50,7 @@ export type Provider =
       emailAttribute?: string;
       groupsAttribute?: string;
       nameAttribute?: string;
-      groupRoles: Record<string, string>;
+      groupTeams: Record<string, string>;
     };
 
 const opt = (value: unknown) => (typeof value === "string" && value ? value : undefined);
@@ -61,9 +62,9 @@ export async function loadProvider(fetchJson: FetchJson): Promise<Provider | nul
   };
   const p = body.provider;
   if (!p) return null;
-  const groupRoles =
-    typeof p.groupRoles === "object" && p.groupRoles !== null
-      ? (Object.fromEntries(Object.entries(p.groupRoles).map(([k, v]) => [k, String(v)])) as Record<
+  const groupTeams =
+    typeof p.groupTeams === "object" && p.groupTeams !== null
+      ? (Object.fromEntries(Object.entries(p.groupTeams).map(([k, v]) => [k, String(v)])) as Record<
           string,
           string
         >)
@@ -77,7 +78,7 @@ export async function loadProvider(fetchJson: FetchJson): Promise<Provider | nul
       ...(opt(p.emailAttribute) ? { emailAttribute: opt(p.emailAttribute)! } : {}),
       ...(opt(p.groupsAttribute) ? { groupsAttribute: opt(p.groupsAttribute)! } : {}),
       ...(opt(p.nameAttribute) ? { nameAttribute: opt(p.nameAttribute)! } : {}),
-      groupRoles,
+      groupTeams,
     };
   }
   const kind = p.kind === "entra" || p.kind === "google" ? p.kind : "oidc";
@@ -89,7 +90,7 @@ export async function loadProvider(fetchJson: FetchJson): Promise<Provider | nul
     ...(opt(p.hostedDomain) ? { hostedDomain: opt(p.hostedDomain)! } : {}),
     ...(opt(p.emailClaim) ? { emailClaim: opt(p.emailClaim)! } : {}),
     ...(opt(p.groupsClaim) ? { groupsClaim: opt(p.groupsClaim)! } : {}),
-    groupRoles,
+    groupTeams,
   };
 }
 
@@ -108,20 +109,28 @@ export interface SettingsPageProps {
   ws: WorkspaceInfo;
 }
 
-/** How people sign in: email code, single sign-on. For an admin. */
+/** How people sign in: email code, single sign-on. Seen with `settings:read`, changed with `settings:write`. */
 export function SignInPage({ api, ws }: SettingsPageProps) {
   return (
     <Page title="Sign-in" description="How people sign in to this workspace.">
-      {ws.person.admin ? <SignIn api={api} ws={ws} /> : <AdminOnly what="Sign-in" />}
+      {can(ws.person, "settings:read") ? (
+        <SignIn api={api} ws={ws} />
+      ) : (
+        <Requires permission="settings:read" what="Sign-in" />
+      )}
     </Page>
   );
 }
 
-/** The install: its address and how to change it. For an admin. */
+/** The install: its address and how to change it. */
 export function InstallPage({ ws }: { ws: WorkspaceInfo }) {
   return (
     <Page title="Install information" description="Where this workspace runs and how to change it.">
-      {ws.person.admin ? <Install ws={ws} /> : <AdminOnly what="Install information" />}
+      {can(ws.person, "settings:read") ? (
+        <Install ws={ws} />
+      ) : (
+        <Requires permission="settings:read" what="Install information" />
+      )}
     </Page>
   );
 }
@@ -159,8 +168,15 @@ function SignIn({ api, ws }: { api: Api; ws: WorkspaceInfo }) {
   const saved = provider.data ?? undefined;
   const oidcSaved = saved && saved.kind !== "saml";
   const samlSaved = saved?.kind === "saml";
+  const writes = can(ws.person, "settings:write");
   return (
     <div className="fc-methods">
+      {writes ? null : (
+        <Notice tone="info">
+          You can see how people sign in. Changing it needs the permission &quot;Change
+          settings&quot;: ask someone who manages teams.
+        </Notice>
+      )}
       <Method title="Email code" state={email?.enabled ? on() : off()}>
         {email?.enabled && email.mail === "email" ? (
           <p className="fc-muted" style={{ margin: 0 }}>
@@ -198,7 +214,7 @@ function SignIn({ api, ws }: { api: Api; ws: WorkspaceInfo }) {
         />
       ) : null}
       {!provider.loading && !(provider.error && !provider.data) ? (
-        <>
+        <fieldset className="fc-fieldset fc-methods" disabled={!writes}>
           <Method
             title="OpenID Connect"
             state={
@@ -228,7 +244,7 @@ function SignIn({ api, ws }: { api: Api; ws: WorkspaceInfo }) {
               onChanged={provider.reload}
             />
           </Method>
-        </>
+        </fieldset>
       ) : null}
     </div>
   );
@@ -320,8 +336,8 @@ function OidcForm({
                   ...(kind === "google" ? { hostedDomain: hostedDomain.trim() } : {}),
                   ...(emailClaim.trim() ? { emailClaim: emailClaim.trim() } : {}),
                   ...(groupsClaim.trim() ? { groupsClaim: groupsClaim.trim() } : {}),
-                  ...(saved && Object.keys(saved.groupRoles).length
-                    ? { groupRoles: saved.groupRoles }
+                  ...(saved && Object.keys(saved.groupTeams).length
+                    ? { groupTeams: saved.groupTeams }
                     : {}),
                 },
               }),
@@ -528,8 +544,8 @@ function SamlForm({
                   ...(emailAttribute.trim() ? { emailAttribute: emailAttribute.trim() } : {}),
                   ...(groupsAttribute.trim() ? { groupsAttribute: groupsAttribute.trim() } : {}),
                   ...(nameAttribute.trim() ? { nameAttribute: nameAttribute.trim() } : {}),
-                  ...(saved && Object.keys(saved.groupRoles).length
-                    ? { groupRoles: saved.groupRoles }
+                  ...(saved && Object.keys(saved.groupTeams).length
+                    ? { groupTeams: saved.groupTeams }
                     : {}),
                 },
               }),

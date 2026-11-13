@@ -11,7 +11,7 @@ import type { Context } from "hono";
 import { handleDatabase } from "../console-api/database/index";
 import type { PlatformEnv } from "./app";
 
-// The database explorer (D-059, docs/console-ux.md), read only, for admins and developers. The routes
+// The database explorer (D-059, docs/console-ux.md), read only, for who holds `tools:data`. The routes
 // are in the contract and in the OpenAPI document; the explorer's own checks stay in `handleDatabase`
 // because their order is part of what it promises: it looks the tool up first and writes a `denied`
 // audit line before it answers 403, so a refusal is on the record, and its answers carry a message

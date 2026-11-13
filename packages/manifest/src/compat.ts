@@ -37,9 +37,15 @@ export const CONTRACTS: readonly ContractRecord[] = [
   },
   {
     contract: 2,
-    sdk: ">=0.4.0",
+    sdk: "0.4.x",
     status: "supported",
     note: "ctx.directory, teams, member pictures, pages in production and realtime channels (D-130 to D-135).",
+  },
+  {
+    contract: 3,
+    sdk: ">=0.5.0",
+    status: "supported",
+    note: "No roles: `profiles` in the manifest, subjects (`everyone`, `team:<id>`) on the wire (D-137).",
   },
 ];
 

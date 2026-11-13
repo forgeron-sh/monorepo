@@ -8,7 +8,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// Entering a secret from a link (docs/sdk.md §17, D-083). The link is asked for by a developer (or by
+// Entering a secret from a link (docs/sdk.md §17, D-083). The link is asked for by someone who holds `tools:write` (or by
 // the admin MCP for them) and used by the same person, signed in, on the console page. A value is
 // read from the body of `fulfil`, handed to the registry and dropped: it is in no answer and no line.
 
@@ -31,39 +31,32 @@ async function signedInOnThePage(c: Context<PlatformEnv>): Promise<boolean> {
 const NOT_SIGNED_IN = { error: "UNAUTHENTICATED" } as const;
 
 export function mountSecretRequests(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(
-    platformRoute(
-      createSecretRequestRoute,
-      "developer",
-      "Asking for a link to enter a secret is for developers and admins.",
-    ),
-    async (c) => {
-      const { registry, workspace, origin, via } = c.env;
-      const { tool: toolName, environment, name } = c.req.valid("param");
-      const tool = await registry.findTool(workspace, toolName);
-      if (!tool) return c.json(missing(`There is no tool ${toolName}.`), 404);
-      if (!isEnvironment(environment)) return c.json(missing("There is no such environment."), 404);
-      if (!SECRET_NAME.test(name)) return c.json(missing("There is no such secret name."), 404);
-      try {
-        const { token, expiresAt } = await registry.requestSecret({
-          toolId: tool.id,
-          environment,
-          name,
-          person: c.get("person").id,
-          ...(via ? { via } : {}),
-        });
-        // The token is in the fragment: a browser does not send it to any server, so no access log
-        // of the gateway, a proxy or a CDN ever holds it.
-        return c.json({ url: `${origin}/secret-request#${token}`, expiresAt }, 201);
-      } catch (error) {
-        if (error instanceof RegistryError) return c.json({ error: error.code }, 500);
-        throw error;
-      }
-    },
-  );
+  app.openapi(platformRoute(createSecretRequestRoute, "tools:write"), async (c) => {
+    const { registry, workspace, origin, via } = c.env;
+    const { tool: toolName, environment, name } = c.req.valid("param");
+    const tool = await registry.findTool(workspace, toolName);
+    if (!tool) return c.json(missing(`There is no tool ${toolName}.`), 404);
+    if (!isEnvironment(environment)) return c.json(missing("There is no such environment."), 404);
+    if (!SECRET_NAME.test(name)) return c.json(missing("There is no such secret name."), 404);
+    try {
+      const { token, expiresAt } = await registry.requestSecret({
+        toolId: tool.id,
+        environment,
+        name,
+        person: c.get("person").id,
+        ...(via ? { via } : {}),
+      });
+      // The token is in the fragment: a browser does not send it to any server, so no access log
+      // of the gateway, a proxy or a CDN ever holds it.
+      return c.json({ url: `${origin}/secret-request#${token}`, expiresAt }, 201);
+    } catch (error) {
+      if (error instanceof RegistryError) return c.json({ error: error.code }, 500);
+      throw error;
+    }
+  });
 
   app.openapi(
-    platformRoute(lookupSecretRequestRoute, "member"),
+    platformRoute(lookupSecretRequestRoute, "signed-in"),
     async (c) => {
       if (!(await signedInOnThePage(c))) return c.json(NOT_SIGNED_IN, 401);
       const { registry, workspace } = c.env;
@@ -82,7 +75,7 @@ export function mountSecretRequests(app: OpenAPIHono<PlatformEnv>): void {
   );
 
   app.openapi(
-    platformRoute(fulfilSecretRequestRoute, "member"),
+    platformRoute(fulfilSecretRequestRoute, "signed-in"),
     async (c) => {
       if (!(await signedInOnThePage(c))) return c.json(NOT_SIGNED_IN, 401);
       const { registry, workspace, via } = c.env;

@@ -5,5 +5,5 @@ export default defineConfig({
   title: "Docs tool",
   description: "A tool with a README.",
   icon: "docs/icon.svg",
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
 });

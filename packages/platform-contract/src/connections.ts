@@ -32,7 +32,7 @@ export const listConnectionsRoute = defineRoute({
   responses: {
     200: json(z.strictObject({ connections: z.array(ConnectionSchema) }), "The consents"),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool or environment"),
   },
 });
@@ -54,7 +54,7 @@ export const revokeConnectionRoute = defineRoute({
     204: { description: "Revoked, and written to the audit log" },
     400: json(ErrorSchema, "The person is not a valid URL-encoded id"),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool, environment or consent"),
   },
 });

@@ -53,7 +53,7 @@ const byWords = (h: SecretView["history"][number]): string =>
   h.via === "legacy"
     ? "before versions were kept"
     : h.via === "admin"
-      ? "by an administrator"
+      ? "by someone who manages tools"
       : "by you";
 
 const form = (fields: Record<string, string>, inner: string): string =>
@@ -147,7 +147,7 @@ export function mySecretsPage(input: MySecretsInput): Response {
 
   const intro =
     paragraph(
-      "These are the secrets you gave this workspace's tools. A value is never shown, here or anywhere: to change one, give a new value. An administrator can help you set one, and you will see it here when they do.",
+      "These are the secrets you gave this workspace's tools. A value is never shown, here or anywhere: to change one, give a new value. Someone who manages tools can help you set one, and you will see it here when they do.",
       "lead",
     ) +
     (secrets.length

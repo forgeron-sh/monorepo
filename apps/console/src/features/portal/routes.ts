@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { can } from "../../shell/access";
 import type { RouteDef } from "../../shell/routes";
 import { registerOverviewTab } from "./register";
 
@@ -10,7 +11,7 @@ const routes: RouteDef[] = [
     // The tools the person added (D-128).
     path: "/library",
     title: "My tools",
-    access: "everyone",
+    access: "signed-in",
     nav: { group: "main", label: "My tools", shortcut: "m", order: 10 },
     page: async () => {
       const { MyToolsPage } = await import("./tool-lists");
@@ -21,7 +22,7 @@ const routes: RouteDef[] = [
     // The tools the workspace makes available to the person, to add (D-128).
     path: "/discover",
     title: "Discover",
-    access: "everyone",
+    access: "signed-in",
     nav: { group: "main", label: "Discover", shortcut: "d", order: 20 },
     page: async () => {
       const { DiscoverPage } = await import("./tool-lists");
@@ -33,7 +34,7 @@ const routes: RouteDef[] = [
     // and how to use it. Nothing technical.
     path: "/library/:tool",
     title: "Tool",
-    access: "everyone",
+    access: "signed-in",
     page: async () => {
       const { LibraryToolPage } = await import("./library-page");
       return {
@@ -42,7 +43,7 @@ const routes: RouteDef[] = [
             api: p.api,
             go: p.go,
             tool: p.params.tool!,
-            admin: p.ws.person.admin,
+            givesAccess: can(p.ws.person, "access:write"),
           }),
       };
     },
@@ -51,7 +52,7 @@ const routes: RouteDef[] = [
     // A pilot (D-119): a branch's version opened to some people, with its own data.
     path: "/library/:tool/pilots/:branch",
     title: "Pilot",
-    access: "everyone",
+    access: "signed-in",
     page: async () => {
       const { LibraryToolPage } = await import("./library-page");
       return {
@@ -61,7 +62,7 @@ const routes: RouteDef[] = [
             go: p.go,
             tool: p.params.tool!,
             pilot: p.params.branch!,
-            admin: p.ws.person.admin,
+            givesAccess: can(p.ws.person, "access:write"),
           }),
       };
     },

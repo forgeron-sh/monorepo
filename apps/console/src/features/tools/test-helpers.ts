@@ -1,3 +1,4 @@
+import { PLATFORM_PERMISSIONS, type PlatformPermission } from "@forgeron/permissions";
 import type { Api } from "../../api";
 import type { PageProps } from "../../shell/page-props";
 import type { WorkspaceInfo } from "../../workspace";
@@ -144,19 +145,26 @@ export const versions = {
   ],
 };
 
-const ws = (admin = true): WorkspaceInfo => ({
+/** A person who holds these platform permissions (every one by default, as the admin team does). */
+const ws = (permissions: readonly PlatformPermission[] = PLATFORM_PERMISSIONS): WorkspaceInfo => ({
   workspace: "demo",
   endpoint: "https://demo.test",
-  person: { id: "m1", email: "ada@acme.test", name: "Ada", roles: admin ? ["admin"] : [], admin },
+  person: {
+    id: "m1",
+    email: "ada@acme.test",
+    name: "Ada",
+    teams: permissions.length === PLATFORM_PERMISSIONS.length ? ["admin"] : [],
+    permissions: [...permissions],
+  },
   setup: { members: 1, invitations: 0, tools: 3, deployed: 2, called: false },
 });
 
 /** What the shell hands a page. */
 export const pageProps = (
   api: Api,
-  options: { admin?: boolean; go?: (href: string) => void } = {},
+  options: { permissions?: readonly PlatformPermission[]; go?: (href: string) => void } = {},
 ): PageProps => ({
-  ws: ws(options.admin ?? true),
+  ws: ws(options.permissions),
   api,
   now: () => NOW,
   go: options.go ?? (() => {}),
@@ -164,9 +172,13 @@ export const pageProps = (
 });
 
 /** What the shell hands a tab. */
-export const tabProps = (api: Api, tool = "crm", admin = true) => ({
+export const tabProps = (
+  api: Api,
+  tool = "crm",
+  permissions: readonly PlatformPermission[] = PLATFORM_PERMISSIONS,
+) => ({
   tool,
   api,
-  ws: ws(admin),
+  ws: ws(permissions),
   now: () => NOW,
 });

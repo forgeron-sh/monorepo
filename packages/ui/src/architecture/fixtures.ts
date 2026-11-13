@@ -16,7 +16,7 @@ export const crm: Manifest = {
     cli: true,
     web: true,
   },
-  roles: {
+  profiles: {
     sales: {
       label: "Sales",
       grants: ["read", "write"],
@@ -198,7 +198,7 @@ export const dashboard: Manifest = {
     cli: true,
     web: true,
   },
-  roles: {
+  profiles: {
     management: {
       label: "Management",
       grants: ["read", "management"],
@@ -293,7 +293,7 @@ export const inventory: Manifest = {
     cli: true,
     web: false,
   },
-  roles: {
+  profiles: {
     technician: {
       label: "Technician",
       grants: ["read", "write"],
@@ -484,7 +484,7 @@ export const odooGateway: Manifest = {
     cli: true,
     web: false,
   },
-  roles: {
+  profiles: {
     support: {
       label: "Support",
       grants: ["read", "write"],

@@ -4,6 +4,7 @@ import { audienceOf, parseAudience } from "./audience";
 import type { Person } from "../../kernel/person";
 import { tokenAuthenticator } from "./authenticate";
 import { issueToken, verifyToken } from "./tokens";
+import { testPerson } from "../../kernel/test-person";
 
 const secret = "test-secret-not-a-real-one";
 const now = new Date("2026-11-03T10:00:00Z");
@@ -117,12 +118,7 @@ describe("tokens", () => {
 });
 
 // The runtime of a tool behind the gateway's authenticator, on the three interfaces a token reaches.
-const person = (roles: string[]): Person => ({
-  id: "u1",
-  email: "ely@acme.fr",
-  name: "Ely",
-  roles,
-});
+const person = (): Person => testPerson([], [], { id: "u1", email: "ely@acme.fr", name: "Ely" });
 const action = {
   description: "List.",
   access: "read",
@@ -139,7 +135,7 @@ const manifest = (name: string) =>
     title: name,
     description: name,
     interfaces: { mcp: true, api: true, cli: true, web: true },
-    roles: { reader: { grants: ["read"] } },
+    profiles: { reader: { grants: ["read"], default: true } },
     actions: { "deals.list": action },
     views: {},
     jobs: {},
@@ -160,7 +156,7 @@ function toolRuntime(tool: string) {
     authenticate: tokenAuthenticator({
       secret,
       now: () => now,
-      resolvePerson: (id) => (id === "u1" ? person(["reader"]) : undefined),
+      resolvePerson: (id) => (id === "u1" ? person() : undefined),
     }),
   });
   return { runtime, run };

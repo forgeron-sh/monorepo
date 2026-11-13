@@ -27,10 +27,10 @@ const manifest: Manifest = {
   title: "Odoo gateway",
   description: "Odoo tickets.",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: {
+  profiles: {
     reader: { grants: ["read"] },
     support: { grants: ["read", "write"] },
-    admin: { grants: ["admin"] },
+    manager: { grants: ["admin"] },
   },
   actions: {
     "tickets.list": action(
@@ -84,29 +84,42 @@ const actions: Record<string, RuntimeAction> = Object.fromEntries(
   ]),
 );
 
-const user = (roles: string[]): User => ({ id: "u1", email: "ely@acme.fr", name: "Ely", roles });
+const user = (subjects: string[], rest: Partial<User> = {}): User => ({
+  id: "u1",
+  email: "ely@acme.fr",
+  name: "Ely",
+  subjects,
+  ...rest,
+});
+// A person with the permissions the gateway gave each of their subjects (D-137).
+const given = (permissions: Record<string, string[]>): User =>
+  user(Object.keys(permissions), { permissions });
+const reader = given({ everyone: ["read"] });
+const support = given({ everyone: ["read"], "team:support": ["read", "write"] });
 const people: Record<string, User> = {
-  reader: user(["reader"]),
-  support: user(["support"]),
-  admin: user(["admin"]),
+  reader,
+  support,
+  admin: given({ everyone: ["admin"] }),
   nobody: user([]),
-  // What an admin set in the console, forwarded with the roles (no new version).
-  readerMayReply: { ...user(["reader"]), access: { reader: { "tickets.reply": true } } },
-  supportMayNotReply: { ...user(["support"]), access: { support: { "tickets.reply": false } } },
-  // The override of a role the person does not hold changes nothing for them.
-  readerOtherRole: { ...user(["reader"]), access: { support: { "tickets.reply": true } } },
-  // One role refused by the console, another that may by level: the person may.
-  twoRoles: {
-    ...user(["reader", "support"]),
-    access: { support: { "tickets.reply": false }, reader: { "tickets.reply": true } },
+  // What was set in the console, forwarded with the subjects (no new version).
+  readerMayReply: { ...reader, access: { everyone: { "tickets.reply": true } } },
+  supportMayNotReply: { ...support, access: { "team:support": { "tickets.reply": false } } },
+  // The override of a subject the person is not part of changes nothing for them.
+  readerOtherSubject: { ...reader, access: { "team:support": { "tickets.reply": true } } },
+  // One subject refused by the console, another that may by level: the person may.
+  twoSubjects: {
+    ...support,
+    access: { "team:support": { "tickets.reply": false }, everyone: { "tickets.reply": true } },
   },
-  // D-127: what the gateway mapped the person's workspace roles to in this tool.
-  mappedSupport: { ...user(["sales"]), permissions: { sales: ["read", "write"] } },
-  // A workspace role named like a profile, mapped to nothing: the name gives nothing.
-  unmappedReader: { ...user(["reader"]), permissions: { reader: [] } },
-  // Without the gateway, `member` is read with the default mapping: the profile with the fewest
+  // D-137: what the gateway gave the person's subjects in this tool.
+  mappedSupport: given({ everyone: [], "team:sales": ["read", "write"] }),
+  // A team named like a profile, given nothing: the name gives nothing.
+  unmappedReader: given({ everyone: [], "team:reader": [] }),
+  // Without the gateway, `everyone` is read with the default grants: the profile with the fewest
   // permissions here (`reader`, first of the one-permission profiles).
-  member: user(["member"]),
+  everyone: user(["everyone"]),
+  // And the admin team with every permission.
+  adminTeam: user(["everyone", "team:admin"]),
 };
 const bearer = (request: Request) => request.headers.get("authorization")?.slice(7);
 
@@ -163,42 +176,44 @@ async function attempt(as: string, via: "mcp" | "api" | "web", name: string): Pr
   return ran;
 }
 
-describe("the mapping of workspace roles to the tool's permissions (D-127)", () => {
-  it("reads the permissions the gateway mapped, on every interface", async () => {
+describe("the permissions given to subjects in the tool (D-137)", () => {
+  it("reads the permissions the gateway gave, on every interface", async () => {
     for (const via of ["mcp", "api", "web"] as const) {
       expect(await attempt("mappedSupport", via, "tickets.reply")).toBe(true);
       expect(await attempt("unmappedReader", via, "tickets.list")).toBe(false);
     }
   });
 
-  it("reads a role with the default mapping when no gateway mapped it", async () => {
-    expect(await attempt("member", "api", "tickets.list")).toBe(true);
-    expect(await attempt("member", "api", "tickets.reply")).toBe(false);
+  it("reads a subject with the default grants when no gateway gave any", async () => {
+    expect(await attempt("everyone", "api", "tickets.list")).toBe(true);
+    expect(await attempt("everyone", "api", "tickets.reply")).toBe(false);
+    expect(await attempt("adminTeam", "api", "tickets.reply")).toBe(true);
+    expect(await attempt("adminTeam", "mcp", "admin.purge")).toBe(true);
   });
 });
 
-describe("the roles × actions matrix set in the console", () => {
-  it("allows a role an action its levels do not give, on every interface", async () => {
+describe("the subjects × actions matrix set in the console", () => {
+  it("allows a subject an action its levels do not give, on every interface", async () => {
     for (const via of ["mcp", "api", "web"] as const) {
       expect(await attempt("readerMayReply", via, "tickets.reply")).toBe(true);
-      // Only that cell changed: the same role still cannot do what it was never given.
+      // Only that cell changed: the same subject still cannot do what it was never given.
       expect(await attempt("readerMayReply", via, "tickets.crash")).toBe(true);
     }
   });
 
-  it("refuses a role an action its levels give, on every interface", async () => {
+  it("refuses a subject an action its levels give, on every interface", async () => {
     for (const via of ["mcp", "api", "web"] as const) {
       expect(await attempt("supportMayNotReply", via, "tickets.reply")).toBe(false);
       expect(await attempt("supportMayNotReply", via, "tickets.list")).toBe(true);
     }
   });
 
-  it("ignores the override of a role the person does not hold", async () => {
-    expect(await attempt("readerOtherRole", "api", "tickets.reply")).toBe(false);
+  it("ignores the override of a subject the person is not part of", async () => {
+    expect(await attempt("readerOtherSubject", "api", "tickets.reply")).toBe(false);
   });
 
-  it("lets the person do what any of their roles may", async () => {
-    expect(await attempt("twoRoles", "api", "tickets.reply")).toBe(true);
+  it("lets the person do what any of their subjects may", async () => {
+    expect(await attempt("twoSubjects", "api", "tickets.reply")).toBe(true);
   });
 
   it("lists on MCP only the actions the matrix allows", async () => {

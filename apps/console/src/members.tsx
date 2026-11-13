@@ -1,7 +1,6 @@
 import {
   Badge,
   Button,
-  Checkbox,
   Dialog,
   EmptyState,
   Field,
@@ -11,27 +10,34 @@ import {
   Table,
   type TableColumn,
 } from "@forgeron/ui";
+import { ADMIN_TEAM } from "@forgeron/permissions";
 import { useState } from "react";
 import { addresses } from "@forgeron/platform-contract/client";
 import { explain, ok, typedClient, typedSender, type Api, type SendJson } from "./api";
 import { expiry } from "./format";
+import { can } from "./shell/access";
 import { Loading, LoadError } from "./states";
+import { TeamPicker } from "./team-picker";
+import { loadTeams, type TeamRow } from "./teams";
 import { useLoad } from "./use-load";
+import type { WorkspaceInfo } from "./workspace";
 
-// The people of the workspace and how they get in (D-049): who is a member and with which roles,
-// who is invited, and which email domains join by themselves. The platform refuses anyone but an
-// admin and audits every change; this screen only draws what it answers.
+// The people of the workspace and how they get in (D-049, D-137): who is a member and in which teams,
+// who is invited, and which email domains join by themselves. The platform checks the permission
+// of whoever asks (and that they hold what a team gives) and audits every change; this screen only
+// draws what it answers.
 
 export interface MemberRow {
   id: string;
   email: string;
   name: string;
-  roles: string[];
+  /** The ids of its teams. */
+  teams: string[];
 }
 
 export interface InvitationRow {
   email: string;
-  roles: string[];
+  teams: string[];
   expiresAt: string;
 }
 
@@ -39,8 +45,9 @@ export interface MembershipView {
   members: MemberRow[];
   invitations: InvitationRow[];
   domains: string[];
-  defaultRole: string;
-  /** `console` once an admin saved the domains, `install` while they are the install's. */
+  /** The teams a person who joins by domain is put in. */
+  defaultTeams: string[];
+  /** `console` once someone saved the domains, `install` while they are the install's. */
   source: string;
 }
 
@@ -59,38 +66,38 @@ export async function loadMembers(
       id: String(m.id),
       email: String(m.email),
       name: String(m.name),
-      roles: strings(m.roles),
+      teams: strings(m.teams),
     })),
     invitations: (body.invitations ?? []).map((i) => ({
       email: String(i.email),
-      roles: strings(i.roles),
+      teams: strings(i.teams),
       expiresAt: String(i.expiresAt),
     })),
     domains: strings(body.settings?.domains),
-    defaultRole: typeof body.settings?.defaultRole === "string" ? body.settings.defaultRole : "",
+    defaultTeams: strings(body.settings?.defaultTeams),
     source: String(body.settings?.source ?? "install"),
   };
 }
 
-/** `a, b` → `["a", "b"]`: roles and domains are typed as a comma-separated list. */
+/** `a, b` → `["a", "b"]`: domains are typed as a comma-separated list. */
 export const parseList = (text: string): string[] =>
   text
     .split(/[,\s]+/)
     .map((t) => t.trim())
     .filter(Boolean);
 
-const inviteMember = async (send: Send, email: string, roles: string[]) =>
-  ok(await typedSender(send)(addresses.inviteMember, { json: { email, roles } }));
-const changeRoles = async (send: Send, id: string, roles: string[]) =>
-  ok(await typedSender(send)(addresses.setMemberRoles, { params: { id }, json: { roles } }));
+const inviteMember = async (send: Send, email: string, teams: string[]) =>
+  ok(await typedSender(send)(addresses.inviteMember, { json: { email, teams } }));
+const changeTeams = async (send: Send, id: string, teams: string[]) =>
+  ok(await typedSender(send)(addresses.setMemberTeams, { params: { id }, json: { teams } }));
 const removeMember = async (send: Send, id: string) =>
   ok(await typedSender(send)(addresses.removeMember, { params: { id } }));
 const withdrawInvitation = async (send: Send, email: string) =>
   ok(await typedSender(send)(addresses.withdrawInvitation, { params: { email } }));
-const saveDomains = async (send: Send, domains: string[], defaultRole: string) =>
+const saveDomains = async (send: Send, domains: string[], defaultTeams: string[]) =>
   ok(
     await typedSender(send)(addresses.putMembershipSettings, {
-      json: { domains, defaultRole: defaultRole || null },
+      json: { domains, defaultTeams },
     }),
   );
 
@@ -99,8 +106,10 @@ export interface MembersProps {
   /** Whose row is "you": the caller's own id. */
   selfId?: string;
   now: Date;
+  /** The workspace's teams, to name the chips. */
+  teams?: readonly TeamRow[];
   /** Called with a member to edit or remove; the screen only draws the buttons when given. */
-  onEditRoles?: (member: MemberRow) => void;
+  onEditTeams?: (member: MemberRow) => void;
   onRemove?: (member: MemberRow) => void;
   onWithdraw?: (invitation: InvitationRow) => void;
   onInvite?: () => void;
@@ -110,7 +119,8 @@ export function Members({
   view,
   selfId,
   now,
-  onEditRoles,
+  teams = [],
+  onEditTeams,
   onRemove,
   onWithdraw,
   onInvite,
@@ -132,19 +142,9 @@ export function Members({
       ),
     },
     {
-      key: "roles",
-      header: "Roles",
-      render: (m) => (
-        <span className="fc-badges">
-          {given(m.roles).map((r) => (
-            <Badge key={r} tone={r === "admin" ? "strong" : "neutral"}>
-              {r}
-            </Badge>
-          ))}
-          {/* Everyone holds `member` without being given it (D-128). */}
-          <span className="fc-muted">member</span>
-        </span>
-      ),
+      key: "teams",
+      header: "Teams",
+      render: (m) => <TeamChips ids={m.teams} teams={teams} />,
     },
     {
       key: "status",
@@ -155,16 +155,16 @@ export function Members({
         </Badge>
       ),
     },
-    ...(onEditRoles || onRemove
+    ...(onEditTeams || onRemove
       ? [
           {
             key: "actions",
             header: "",
             render: (m: MemberRow) => (
               <div className="fc-cell-actions">
-                {onEditRoles ? (
-                  <Button variant="ghost" size="sm" onClick={() => onEditRoles(m)}>
-                    Change roles
+                {onEditTeams ? (
+                  <Button variant="ghost" size="sm" onClick={() => onEditTeams(m)}>
+                    Change teams
                   </Button>
                 ) : null}
                 {onRemove ? (
@@ -181,16 +181,9 @@ export function Members({
   const invitations: Array<TableColumn<InvitationRow>> = [
     { key: "email", header: "Invited", mono: true },
     {
-      key: "roles",
-      header: "Roles",
-      render: (i) => (
-        <span className="fc-badges">
-          {given(i.roles).map((r) => (
-            <Badge key={r}>{r}</Badge>
-          ))}
-          <span className="fc-muted">member</span>
-        </span>
-      ),
+      key: "teams",
+      header: "Teams",
+      render: (i) => <TeamChips ids={i.teams} teams={teams} />,
     },
     {
       key: "expiresAt",
@@ -259,95 +252,44 @@ export function Members({
   );
 }
 
-/** The roles a person was given, without `member`, which everyone holds (D-128). */
-const given = (roles: readonly string[]) => roles.filter((r) => r !== MEMBER);
-const MEMBER = "member";
-
-/**
- * Roles every workspace has; the ones its people already hold come on top. They are the workspace's
- * own (D-127): a tool never names them, and each tool maps them to its profiles in its Access tab.
- */
-const BASE_ROLES = ["admin", "member", "developer"];
-export const knownRoles = (view: MembershipView): string[] => [
-  ...new Set([
-    ...BASE_ROLES,
-    ...view.members.flatMap((m) => m.roles),
-    ...view.invitations.flatMap((i) => i.roles),
-    ...(view.defaultRole ? [view.defaultRole] : []),
-  ]),
-];
-
-/** A checkbox per known role, and a field for the others. */
-function RolePicker({
-  known,
-  value,
-  extra,
-  onChange,
-  onExtra,
-}: {
-  known: string[];
-  value: string[];
-  extra: string;
-  onChange: (roles: string[]) => void;
-  onExtra: (text: string) => void;
-}) {
+/** The teams of a person as chips: the admin team is the strong one; none is said, not hidden. */
+export function TeamChips({ ids, teams }: { ids: readonly string[]; teams: readonly TeamRow[] }) {
+  if (ids.length === 0) return <span className="fc-muted">No team</span>;
   return (
-    <>
-      <fieldset className="fc-fieldset">
-        <legend className="fc-legend">Roles</legend>
-        <p className="fc-muted">Everyone holds member: it is not given here.</p>
-        <div className="fc-roles">
-          {given(known).map((role) => (
-            <Checkbox
-              key={role}
-              label={role}
-              checked={value.includes(role)}
-              onChange={(e) =>
-                onChange(e.target.checked ? [...value, role] : value.filter((r) => r !== role))
-              }
-            />
-          ))}
-        </div>
-      </fieldset>
-      <Field
-        label="Other roles"
-        hint="Roles of your organisation, like support or sales, separated by commas. Each tool says what they may do in its Access tab."
-      >
-        {(control) => (
-          <Input
-            {...control}
-            mono
-            value={extra}
-            onChange={(e) => onExtra(e.target.value)}
-            placeholder="support"
-          />
-        )}
-      </Field>
-    </>
+    <span className="fc-badges">
+      {ids.map((id) => (
+        <Badge key={id} tone={id === ADMIN_TEAM ? "strong" : "neutral"}>
+          {teams.find((t) => t.id === id)?.name ?? id}
+        </Badge>
+      ))}
+    </span>
   );
 }
 
 type Asking =
   | { kind: "invite" }
-  | { kind: "roles"; member: MemberRow }
+  | { kind: "teams"; member: MemberRow }
   | { kind: "remove"; member: MemberRow };
 
-/** The members screen: the lists, the invite and role dialogs, and who joins by themselves. For an admin. */
+/** The members screen: the lists, the invite and teams dialogs. Changes need `members:write`. */
 export function MembersPage({
   api,
-  selfId,
+  person,
   now,
   inviteOnOpen = false,
 }: {
   api: Api;
-  selfId?: string;
+  /** Who looks: their id is "you", their permissions say what they may change. */
+  person: WorkspaceInfo["person"];
   now: () => Date;
   /** Opens the invite dialog as the screen opens ("Invite people" in the workspace menu). */
   inviteOnOpen?: boolean;
 }) {
   const loaded = useLoad(() => loadMembers(api.fetchJson), [api]);
+  const teamList = useLoad(() => loadTeams(api.fetchJson), [api]);
+  const writes = can(person, "members:write");
   const [asking, setAsking] = useState<Asking | undefined>(
-    inviteOnOpen ? { kind: "invite" } : undefined,
+    inviteOnOpen && writes ? { kind: "invite" } : undefined,
   );
   const [notice, setNotice] = useState<{ tone: "success" | "warning" | "danger"; text: string }>();
 
@@ -363,12 +305,13 @@ export function MembersPage({
   };
 
   const view = loaded.data;
+  const teams = teamList.data ?? [];
   return (
     <Page
       title="Members"
-      description="Who can sign in to this workspace, and with which roles. Everyone holds member."
+      description="Who can sign in to this workspace, and the teams they are in. What a team may do is set in Teams."
       actions={
-        view ? (
+        view && writes ? (
           <Button variant="primary" onClick={() => setAsking({ kind: "invite" })}>
             Invite people
           </Button>
@@ -388,24 +331,29 @@ export function MembersPage({
         <>
           <Members
             view={view}
-            {...(selfId ? { selfId } : {})}
+            selfId={person.id}
             now={now()}
-            onInvite={() => setAsking({ kind: "invite" })}
-            onEditRoles={(member) => setAsking({ kind: "roles", member })}
-            onRemove={(member) => setAsking({ kind: "remove", member })}
-            onWithdraw={(i) =>
-              void run(
-                () => withdrawInvitation(api.sendJson, i.email),
-                `Invitation to ${i.email} withdrawn.`,
-              )
-            }
+            teams={teams}
+            {...(writes
+              ? {
+                  onInvite: () => setAsking({ kind: "invite" }),
+                  onEditTeams: (member: MemberRow) => setAsking({ kind: "teams", member }),
+                  onRemove: (member: MemberRow) => setAsking({ kind: "remove", member }),
+                  onWithdraw: (i: InvitationRow) =>
+                    void run(
+                      () => withdrawInvitation(api.sendJson, i.email),
+                      `Invitation to ${i.email} withdrawn.`,
+                    ),
+                }
+              : {})}
           />
           {asking?.kind === "invite" ? (
             <InviteDialog
-              known={knownRoles(view)}
+              teams={teams}
+              actor={person.permissions}
               onClose={() => setAsking(undefined)}
-              send={async (email, roles) => {
-                const answer = (await inviteMember(api.sendJson, email, roles)) as
+              send={async (email, picked) => {
+                const answer = (await inviteMember(api.sendJson, email, picked)) as
                   | { notified?: boolean }
                   | undefined;
                 setAsking(undefined);
@@ -421,15 +369,16 @@ export function MembersPage({
               }}
             />
           ) : null}
-          {asking?.kind === "roles" ? (
-            <RolesDialog
+          {asking?.kind === "teams" ? (
+            <TeamsDialog
               member={asking.member}
-              known={knownRoles(view)}
+              teams={teams}
+              actor={person.permissions}
               onClose={() => setAsking(undefined)}
-              send={async (roles) => {
-                await changeRoles(api.sendJson, asking.member.id, roles);
+              send={async (picked) => {
+                await changeTeams(api.sendJson, asking.member.id, picked);
                 setAsking(undefined);
-                setNotice({ tone: "success", text: `Roles of ${asking.member.email} saved.` });
+                setNotice({ tone: "success", text: `Teams of ${asking.member.email} saved.` });
                 loaded.reload();
               }}
             />
@@ -470,21 +419,20 @@ function useSubmit(send: () => Promise<unknown>) {
 }
 
 function InviteDialog({
-  known,
+  teams,
+  actor,
   onClose,
   send,
 }: {
-  known: string[];
+  teams: readonly TeamRow[];
+  actor: WorkspaceInfo["person"]["permissions"];
   onClose: () => void;
-  send: (email: string, roles: string[]) => Promise<unknown>;
+  send: (email: string, teams: string[]) => Promise<unknown>;
 }) {
   const [email, setEmail] = useState("");
-  const [roles, setRoles] = useState<string[]>([]);
-  const [extra, setExtra] = useState("");
+  const [picked, setPicked] = useState<string[]>([]);
   const [bad, setBad] = useState<string>();
-  const { busy, error, submit } = useSubmit(() =>
-    send(email.trim(), [...new Set([...roles, ...parseList(extra)])]),
-  );
+  const { busy, error, submit } = useSubmit(() => send(email.trim(), picked));
   return (
     <Dialog
       title="Invite people"
@@ -524,38 +472,38 @@ function InviteDialog({
           />
         )}
       </Field>
-      <RolePicker
-        known={known}
-        value={roles}
-        extra={extra}
-        onChange={setRoles}
-        onExtra={setExtra}
+      <TeamPicker
+        teams={teams}
+        value={picked}
+        onChange={setPicked}
+        actor={actor}
+        legend="Teams they join"
+        hint="None by default: they use the tools given to everyone."
       />
       {error ? <Notice tone="danger">{error}</Notice> : null}
     </Dialog>
   );
 }
 
-function RolesDialog({
+function TeamsDialog({
   member,
-  known,
+  teams,
+  actor,
   onClose,
   send,
 }: {
   member: MemberRow;
-  known: string[];
+  teams: readonly TeamRow[];
+  actor: WorkspaceInfo["person"]["permissions"];
   onClose: () => void;
-  send: (roles: string[]) => Promise<unknown>;
+  send: (teams: string[]) => Promise<unknown>;
 }) {
-  const [roles, setRoles] = useState(member.roles.filter((r) => known.includes(r)));
-  const [extra, setExtra] = useState("");
-  const { busy, error, submit } = useSubmit(() =>
-    send([...new Set([...roles, ...parseList(extra)])]),
-  );
+  const [picked, setPicked] = useState(member.teams);
+  const { busy, error, submit } = useSubmit(() => send(picked));
   return (
     <Dialog
-      title={`Change roles of ${member.email}`}
-      description="Roles are read at every call: the change applies at once."
+      title={`Change teams of ${member.email}`}
+      description="What a person may do is read at every call: the change applies at once."
       onClose={() => !busy && onClose()}
       footer={
         <>
@@ -563,18 +511,12 @@ function RolesDialog({
             Cancel
           </Button>
           <Button variant="primary" disabled={busy} onClick={() => void submit()}>
-            Save roles
+            Save teams
           </Button>
         </>
       }
     >
-      <RolePicker
-        known={known}
-        value={roles}
-        extra={extra}
-        onChange={setRoles}
-        onExtra={setExtra}
-      />
+      <TeamPicker teams={teams} value={picked} onChange={setPicked} actor={actor} />
       {error ? <Notice tone="danger">{error}</Notice> : null}
     </Dialog>
   );
@@ -613,18 +555,25 @@ function RemoveDialog({
 
 export function DomainsForm({
   view,
+  teams,
+  actor,
+  readOnly = false,
   api,
   onSaved,
 }: {
   view: MembershipView;
+  teams: readonly TeamRow[];
+  actor: WorkspaceInfo["person"]["permissions"];
+  /** Without `members:write`: shown, not changed. */
+  readOnly?: boolean;
   api: Api;
   onSaved: () => void;
 }) {
   const [domains, setDomains] = useState(view.domains.join(", "));
-  const [defaultRole, setDefaultRole] = useState(view.defaultRole);
+  const [defaultTeams, setDefaultTeams] = useState(view.defaultTeams);
   const [saved, setSaved] = useState(false);
   const { busy, error, submit } = useSubmit(async () => {
-    await saveDomains(api.sendJson, parseList(domains), defaultRole.trim());
+    await saveDomains(api.sendJson, parseList(domains), defaultTeams);
     setSaved(true);
     onSaved();
   });
@@ -657,29 +606,29 @@ export function DomainsForm({
                 {...control}
                 mono
                 value={domains}
+                disabled={readOnly}
                 onChange={(e) => setDomains(e.target.value)}
                 placeholder="acme.fr"
               />
             )}
           </Field>
-          <Field label="Default role" hint="Given to people who join this way. Never admin.">
-            {(control) => (
-              <Input
-                {...control}
-                mono
-                value={defaultRole}
-                onChange={(e) => setDefaultRole(e.target.value)}
-                placeholder="none"
-              />
-            )}
-          </Field>
         </div>
+        <TeamPicker
+          teams={teams}
+          value={defaultTeams}
+          onChange={setDefaultTeams}
+          actor={actor}
+          legend="Join with teams"
+          hint="The teams people who join this way are put in. None by default. Never Admins."
+          hide={[ADMIN_TEAM]}
+          disabled={readOnly}
+        />
         {error ? <Notice tone="danger">{error}</Notice> : null}
         {saved && !error ? (
           <Notice tone="success">Saved. It applies from the next sign-in.</Notice>
         ) : null}
         <div className="fc-form-actions">
-          <Button type="submit" variant="primary" disabled={busy}>
+          <Button type="submit" variant="primary" disabled={busy || readOnly}>
             Save domains
           </Button>
         </div>
@@ -688,20 +637,24 @@ export function DomainsForm({
   );
 }
 
-/** Who joins by themselves: the allowed email domains and the role they get. For an admin. */
-export function DomainsPage({ api }: { api: Api }) {
+/** Who joins by themselves: the allowed email domains and the teams they join with. */
+export function DomainsPage({ api, person }: { api: Api; person: WorkspaceInfo["person"] }) {
   const loaded = useLoad(() => loadMembers(api.fetchJson), [api]);
+  const teams = useLoad(() => loadTeams(api.fetchJson), [api]);
   const view = loaded.data;
   return (
     <Page title="Domains" description="Email domains whose people join this workspace on sign-in.">
-      {loaded.loading ? (
+      {loaded.loading || teams.loading ? (
         <Loading shape="list" label="Loading domains" />
       ) : loaded.error && !view ? (
         <LoadError what="The domains" error={loaded.error} onRetry={loaded.reload} />
       ) : view ? (
         <DomainsForm
-          key={view.domains.join(",") + view.defaultRole}
+          key={view.domains.join(",") + view.defaultTeams.join(",")}
           view={view}
+          teams={teams.data ?? []}
+          actor={person.permissions}
+          readOnly={!can(person, "members:write")}
           api={api}
           onSaved={loaded.reload}
         />

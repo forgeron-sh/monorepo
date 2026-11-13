@@ -120,9 +120,9 @@ describe("buildTool", () => {
     });
   });
 
-  it("carries roles, resources and scheduled tasks", async () => {
+  it("carries profiles, resources and scheduled tasks", async () => {
     const manifest = await json("manifest.json");
-    expect(manifest.roles.support.grants).toEqual(["read", "write"]);
+    expect(manifest.profiles.support.grants).toEqual(["read", "write"]);
     expect(manifest.resources.network.allow).toEqual(["api.example.com"]);
     expect(manifest.jobs).toEqual({ nightly: { cron: "0 2 * * *", timezone: "Europe/Paris" } });
   });
@@ -155,7 +155,7 @@ describe("buildTool", () => {
               id: "u1",
               email: "a@b.c",
               name: "A",
-              roles: ["reader"],
+              subjects: ["everyone"],
             }),
           },
         }),
@@ -179,12 +179,12 @@ describe("buildTool", () => {
   });
 
   it("builds a Worker that `createTestTool` can run, with the platform of a test", async () => {
-    const tool = await createTestTool({ dir: result.dir, as: { roles: ["support"] } });
+    const tool = await createTestTool({ dir: result.dir, as: { profile: "support" } });
     expect(await tool.call("ping")).toEqual({ pong: true });
     expect(await tool.call("tickets.greet", { name: "Ely", loud: true })).toEqual({
       message: "HELLO, ELY!",
     });
-    // `tickets.purge` needs "delete", which no role of the tool grants.
+    // `tickets.purge` needs "delete", which no profile of the tool grants.
     await expect(tool.call("tickets.purge", { id: "1" })).rejects.toMatchObject({
       code: "FORBIDDEN",
     });

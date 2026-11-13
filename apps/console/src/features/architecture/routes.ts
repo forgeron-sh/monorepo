@@ -6,8 +6,8 @@ registerToolTab({
   id: "architecture",
   scope: "branch",
   title: "Architecture",
-  // The manifest route answers developers and admins only.
-  adminOnly: true,
+  // The manifest route answers whoever holds `tools:read`.
+  requires: "tools:read",
   order: 40,
   load: () => import("./ArchitectureTab"),
 });

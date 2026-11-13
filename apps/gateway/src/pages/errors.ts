@@ -23,7 +23,7 @@ const WORDS: Record<number, Words> = {
   403: {
     title: "You do not have access",
     happened: "Your account is not allowed to open this page.",
-    todo: "Ask a workspace administrator for access.",
+    todo: "Ask someone who manages the workspace for access.",
   },
   404: {
     title: "This page does not exist",
@@ -43,7 +43,7 @@ const WORDS: Record<number, Words> = {
   500: {
     title: "Something went wrong",
     happened: "The gateway failed to answer your request.",
-    todo: "Try again in a moment. If it keeps failing, tell a workspace administrator.",
+    todo: "Try again in a moment. If it keeps failing, tell someone who manages the workspace.",
   },
   502: {
     title: "A service did not answer",

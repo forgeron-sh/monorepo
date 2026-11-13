@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { directoryFor } from "./user-secrets";
 
 const members = [
-  { id: "m1", email: "ely@acme.fr", name: "Ely", roles: ["admin"] },
-  { id: "m2", email: "sam@acme.fr", name: "Sam", roles: ["member"] },
+  { id: "m1", email: "ely@acme.fr", name: "Ely" },
+  { id: "m2", email: "sam@acme.fr", name: "Sam" },
 ];
 
 describe("directoryFor", () => {
@@ -11,16 +11,11 @@ describe("directoryFor", () => {
     expect(directoryFor({ why: "x" }, members)).toEqual({ members: [] });
   });
 
-  it("hands names and emails, and roles only when asked", () => {
+  it("hands names and emails only", () => {
     expect(directoryFor({ why: "x", members: true }, members).members[0]).toEqual({
       id: "m1",
       email: "ely@acme.fr",
       name: "Ely",
-    });
-    expect(
-      directoryFor({ why: "x", members: true, roles: true }, members).members[1],
-    ).toMatchObject({
-      roles: ["member"],
     });
   });
 });

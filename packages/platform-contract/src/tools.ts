@@ -11,7 +11,7 @@ const json = <T extends z.ZodType>(schema: T, description: string) => ({
   content: { "application/json": { schema } },
 });
 const notSignedIn = json(ErrorSchema, "Not signed in");
-const notForYou = json(ErrorSchema, "Not an admin or a developer");
+const notForYou = json(ErrorSchema, "Lacks the permission");
 const noTool = json(ErrorSchema, "No such tool");
 const tool = z.object({ tool: z.string().describe("The tool's name") });
 const impact = z.enum(["none", "patch", "minor", "major"]);
@@ -219,7 +219,7 @@ export const toolManifestRoute = defineRoute({
       "The manifest (`@forgeron/manifest`)",
     ),
     401: notSignedIn,
-    403: json(ErrorSchema, "Not an admin or a developer"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(
       ErrorSchema,
       "No such tool, no version published yet, or no preview for the branch (`NO_MANIFEST`)",

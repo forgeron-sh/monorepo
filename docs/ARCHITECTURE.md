@@ -56,6 +56,7 @@ forgeron/
 │   ├── sdk/                # @forgeron/sdk: defineConfig, action, on, schedule; subpaths db, react, testing
 │   ├── runtime/            # @forgeron/runtime: runs a tool in its Worker, serves MCP / API / CLI / Web
 │   ├── compiler/           # @forgeron/compiler: forgeron build, migration generation and diff
+│   ├── permissions/        # @forgeron/permissions: subjects, teams and the atomic platform permissions, one engine (D-137)
 │   ├── manifest/           # @forgeron/manifest: manifest schema, version diff, semver impact
 │   ├── platform-contract/  # @forgeron/platform-contract: the platform API as route objects (zod), error body, typed client
 │   ├── hosting/            # @forgeron/hosting: deployment interface, cloud, self-host and local modes
@@ -87,7 +88,8 @@ Templates live in the repository for a specific reason: they are the **SDK's int
 | `@forgeron/sdk`               | `defineConfig`, `action`, `on`, `schedule`, `z`, `ToolError`; subpaths `/db`, `/react`, `/testing`                                                                    | neutral (SDK), workerd (testing)           | `runtime`, `manifest`   |
 | `@forgeron/runtime`           | Routing of the four interfaces, access control, `ctx` context, events, jobs                                                                                           | **workerd only**, no `node:*`              | `manifest`              |
 | `@forgeron/compiler`          | Tool discovery, Worker bundle, manifest, views, migrations, fingerprints                                                                                              | Node                                       | `manifest`              |
-| `@forgeron/manifest`          | Zod manifest schema, comparison of two manifests, minimum impact (`sdk.md` §16)                                                                                       | neutral                                    | `zod` only              |
+| `@forgeron/permissions`       | Subjects (`everyone`, `team:<id>`), atomic platform permissions and their implications, anti-escalation (D-137)                                                       | neutral                                    | none                    |
+| `@forgeron/manifest`          | Zod manifest schema, comparison of two manifests, minimum impact (`sdk.md` §16), a tool's access by subject                                                           | neutral                                    | `zod`, `permissions`    |
 | `@forgeron/platform-contract` | Route objects of the platform API (`defineRoute`), `ErrorSchema`, `createClient` (typed `fetch` client); read by the gateway, the console and the CLI (D-064, D-075)  | neutral, no HTTP library                   | `zod`, `manifest`       |
 | `@forgeron/hosting`           | Deployment interface and its three modes (see "Hosting modes")                                                                                                        | neutral (HTTP calls to the Cloudflare API) | `manifest`              |
 | `@forgeron/registry`          | Platform D1: schema migrations and typed access (tools, builds, versions, environments, approvals, template catalogue, encrypted secrets)                             | neutral                                    | `hosting`               |
@@ -111,7 +113,7 @@ Design points:
 | --------- | -------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cli`     | Node, `@forgeron/sdk`, `compiler`, `hosting` | published on npm, run on a workstation or in CI                   | Tool lifecycle (`sdk.md` §5), platform installation in self-host, calling tool actions                                                                            |
 | `gateway` | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`, mapped hosts or workers.dev (D-126) | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
-| `console` | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members and invitations, roles × actions, secrets, resource approval, audit log, settings                                      |
+| `console` | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members, teams and their permissions, access by team × action, secrets, resource approval, audit log, settings                 |
 | `site`    | Astro, React islands                         | Worker + static assets                                            | Marketing site, public documentation eventually                                                                                                                   |
 
 `apps/cli` is the only app published on npm: it runs on the developer's machine. It stays in `apps/` because it is a final executable that nothing imports.
@@ -224,14 +226,15 @@ Checked by `bun run deps` (dependency-cruiser, `.dependency-cruiser.cjs`) in CI.
 - a template only uses the public API (`@forgeron/sdk`, `@forgeron/ui`, connectors);
 - `@forgeron/runtime` imports no `node:*` (`runtime-stays-on-workers`) and no compiler, types aside (`runtime-does-not-import-compiler`);
 - `@forgeron/sdk` imports neither the compiler nor `hosting` (`sdk-stays-light`): a tool never ships a build or deployment tool;
-- `@forgeron/manifest` depends on no other package of the repository;
+- `@forgeron/permissions` depends on no other package of the repository (`permissions-is-a-leaf`);
+- `@forgeron/manifest` depends on no other package of the repository but `permissions` (`manifest-is-a-leaf`);
 - `@forgeron/ui` does not import the SDK;
 - the registry has one door, `@forgeron/registry` (`registry-door-is-index`): nothing outside the package imports a file under `packages/registry/src/` other than `index.ts`;
 - inside the registry, a module (`modules/<domain>/`) is imported through its `public.ts` only, by another module (`module-uses-public-api`) and by the rest of the package (`registry-root-uses-module-public-api`); the registry's `kernel/` imports no module (`kernel-is-generic`);
 - the gateway's `kernel/` (`Person`, `workspaceOf`) imports nothing else of the gateway (`gateway-kernel-is-a-leaf`); `dispatch/` and `pages/` never import `identity/` and `identity/` never imports `dispatch/` (`identity-is-below-dispatch-and-pages`, `identity-does-not-import-dispatch`): folder cycles that the file-level `no-cycles` cannot see;
 - the gateway wires its areas in `compose.ts` (`createModules` once, `createRequestModules` per request) and `gateway.ts` is the table of routes; an area takes the narrow port it uses (`Pick<Registry, …>`) and never imports `compose.ts` (`gateway-compose-is-the-root`);
 - inside `identity/`, `authn/` imports neither `sign-in/` nor `cli-login/` (`identity-authn-is-a-leaf`) and those two do not import each other (`identity-sign-in-and-cli-login-are-apart`).
-- `@forgeron/platform-contract` imports no package of the repository but `manifest` (`platform-contract-imports-schemas-only`); its only npm dependency is `zod`, which knip enforces (an import that `package.json` does not list fails).
+- `@forgeron/platform-contract` imports no package of the repository but `manifest` and `permissions` (`platform-contract-imports-schemas-only`); its only npm dependency is `zod`, which knip enforces (an import that `package.json` does not list fails).
 
 ## Tooling
 
@@ -270,12 +273,12 @@ In self-host, the domain is the customer's; the same single-subdomain-level rule
 
 ### Versions
 
-| release-please component | Paths                                                                    | Tag                     |
-| ------------------------ | ------------------------------------------------------------------------ | ----------------------- |
-| `sdk` (linked versions)  | `packages/sdk`, `runtime`, `compiler`, `manifest`, `hosting`, `apps/cli` | `sdk-v0.4.0`            |
-| `ui`                     | `packages/ui`                                                            | `ui-v0.2.0`             |
-| one per connector        | `packages/connector-<name>`                                              | `connector-odoo-v0.1.0` |
-| `platform`               | `apps/gateway`, `apps/console`, `apps/site`                              | `platform-v0.3.0`       |
+| release-please component | Paths                                                                                   | Tag                     |
+| ------------------------ | --------------------------------------------------------------------------------------- | ----------------------- |
+| `sdk` (linked versions)  | `packages/sdk`, `runtime`, `compiler`, `manifest`, `permissions`, `hosting`, `apps/cli` | `sdk-v0.4.0`            |
+| `ui`                     | `packages/ui`                                                                           | `ui-v0.2.0`             |
+| one per connector        | `packages/connector-<name>`                                                             | `connector-odoo-v0.1.0` |
+| `platform`               | `apps/gateway`, `apps/console`, `apps/site`                                             | `platform-v0.3.0`       |
 
 Templates (`templates/`) do not go through release-please: they are tools, they use `forgeron release` (D-007) and their tags look like `crm@1.0.0`.
 
@@ -307,7 +310,7 @@ flowchart LR
 3. **SDK + runtime + `forgeron dev`** (`local` mode of `hosting`) on a tool without a database: the Odoo gateway, a template then, since moved to a tools repository of its own (D-114). Output: a working local MCP.
 4. **Database and migrations** (`@forgeron/sdk/db`, generator) with the `crm` template.
 5. **Gateway + self-host `hosting`**: dispatch, identity (company SSO through OIDC, sessions, audience tokens), registry, preview deployment on a regular Cloudflare account. **Gate 1** (Odoo gateway in internal production) needs this step.
-6. **Platform**: console, environments and promotion, per-action access by role, per-person secrets, usage log (gate 2: first pilot customer).
+6. **Platform**: console, environments and promotion, per-action access by team, per-person secrets, usage log (gate 2: first pilot customer).
 7. **Catalog and connectors**: templates, Microsoft 365, Google Workspace, Odoo (gate 3: public launch).
 8. **Cloud `hosting`** (Workers for Platforms), React views, subscription and support.
 

@@ -71,10 +71,9 @@ export const EventHandlerSchema = z.strictObject({
 
 /**
  * A profile of the tool (D-127): a named set of the permissions its actions require, which the tool
- * suggests to the workspace. The manifest keeps it under `roles` so that every build stays readable.
- * `default` marks the profile the workspace's `member` role is mapped to when the tool arrives.
+ * suggests to the workspace. `default` marks the profile `everyone` is given when the tool arrives.
  */
-export const RoleSchema = z.strictObject({
+export const ProfileSchema = z.strictObject({
   label: text.optional(),
   grants: z.array(AccessLevelSchema),
   default: z.boolean().optional(),
@@ -124,8 +123,6 @@ export const ResourcesSchema = z.strictObject({
       why: text,
       /** The other people of the workspace: name and email. */
       members: z.boolean().optional(),
-      /** Their workspace roles. */
-      roles: z.boolean().optional(),
       /** Their pictures. */
       avatars: z.boolean().optional(),
       /** The workspace's teams, and who is in them. */
@@ -194,11 +191,11 @@ function checkInvariants(manifest: z.infer<typeof ManifestShape>, ctx: z.Refinem
     }
   }
 
-  const defaults = Object.entries(manifest.roles).filter(([, profile]) => profile.default);
+  const defaults = Object.entries(manifest.profiles).filter(([, profile]) => profile.default);
   if (defaults.length > 1) {
     ctx.addIssue({
       code: "custom",
-      path: ["roles"],
+      path: ["profiles"],
       message: `Only one profile may be the default: ${defaults.map(([name]) => name).join(", ")}.`,
     });
   }
@@ -320,7 +317,7 @@ const ManifestShape = z.strictObject({
     cli: z.boolean(),
     web: z.boolean(),
   }),
-  roles: z.record(z.string(), RoleSchema),
+  profiles: z.record(z.string(), ProfileSchema),
   actions: z.record(ActionNameSchema, ActionSchema),
   views: z.record(z.string(), ViewSchema),
   realtime: RealtimeSchema.optional(),
@@ -332,7 +329,31 @@ const ManifestShape = z.strictObject({
   preview: z.strictObject({ data: z.enum(["seed", "empty", "snapshot"]) }),
 });
 
-export const ManifestSchema = ManifestShape.superRefine(checkInvariants);
+/**
+ * A build stored before D-137 keeps its profiles under `roles` and may ask for the directory's
+ * `roles`. Both are rewritten here, before validation: `roles` becomes `profiles`, and the
+ * directory flag is dropped.
+ */
+function readLegacy(input: unknown): unknown {
+  // legacy (D-137)
+  if (typeof input !== "object" || input === null || Array.isArray(input)) return input;
+  const manifest: Record<string, unknown> = { ...input };
+  if ("roles" in manifest) {
+    if (!("profiles" in manifest)) manifest.profiles = manifest.roles;
+    delete manifest.roles;
+  }
+  const resources = manifest.resources;
+  if (typeof resources === "object" && resources !== null && !Array.isArray(resources)) {
+    const directory = (resources as Record<string, unknown>).directory;
+    if (typeof directory === "object" && directory !== null && "roles" in directory) {
+      const { roles: _dropped, ...rest } = directory as Record<string, unknown>;
+      manifest.resources = { ...resources, directory: rest };
+    }
+  }
+  return manifest;
+}
+
+export const ManifestSchema = z.preprocess(readLegacy, ManifestShape.superRefine(checkInvariants));
 
 export type AccessLevel = z.infer<typeof AccessLevelSchema>;
 export type Interface = z.infer<typeof InterfaceSchema>;
@@ -340,9 +361,8 @@ export type Action = z.infer<typeof ActionSchema>;
 export type View = z.infer<typeof ViewSchema>;
 export type Job = z.infer<typeof JobSchema>;
 export type EventHandler = z.infer<typeof EventHandlerSchema>;
-export type Role = z.infer<typeof RoleSchema>;
-/** A tool profile (D-127): the manifest's `roles` entries. */
-export type Profile = Role;
+/** A tool profile (D-127): the manifest's `profiles` entries. */
+export type Profile = z.infer<typeof ProfileSchema>;
 export type Connector = z.infer<typeof ConnectorSchema>;
 export type Resources = z.infer<typeof ResourcesSchema>;
 export type Realtime = z.infer<typeof RealtimeSchema>;

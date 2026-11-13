@@ -7,7 +7,7 @@ export interface MailMessage {
   text: string;
   /** What the message carries, for a sender that does not send mail (`consoleMailSender`). */
   code?: string;
-  invitation?: { roles: string[] };
+  invitation?: { teams: string[] };
   /** A notice to a person, for a sender that does not send mail: what happened, never a value (D-111). */
   notice?: string;
 }
@@ -46,7 +46,7 @@ export function consoleMailSender(log: (line: string) => void = console.log): Ma
           JSON.stringify({
             event: "invitation",
             address: message.to,
-            roles: message.invitation.roles,
+            teams: message.invitation.teams,
           }),
         );
       }

@@ -2,33 +2,41 @@ import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
-// The people of the workspace and how they get in (D-049), for admins. Every change is audited by the
+// The people of the workspace and how they get in (D-049, D-137). Every change is audited by the
 // registry, in the same batch as the write. A member is never told apart from another by anything but
-// their roles; `admin` is never a default role.
+// their teams; `admin` is never a default team. Adding a person to a team, or taking them out, is
+// limited to what the caller holds themselves: they may only change a team whose permissions they
+// have (`FORBIDDEN` otherwise).
 
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
   description,
   content: { "application/json": { schema } },
 });
 const notSignedIn = json(ErrorSchema, "Not signed in");
-const notAdmin = json(ErrorSchema, "Not an admin");
+const notAllowed = json(ErrorSchema, "Lacks the permission");
+const notAllowedToGive = json(
+  ErrorSchema,
+  "Lacks the permission, or does not hold the permissions of a team named (`FORBIDDEN`)",
+);
 const registryRefusal = json(ErrorSchema, "The registry refused: `error` is its code");
 
-export const MAX_ROLES = 20;
+export const MAX_TEAMS = 20;
 export const MAX_DOMAINS = 50;
-const roles = z.array(z.string()).max(MAX_ROLES);
+const teams = z.array(z.string()).max(MAX_TEAMS);
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const MemberSchema = z.strictObject({
   id: z.string(),
   email: z.string(),
   name: z.string(),
-  roles: z.array(z.string()),
+  /** The ids of the teams the person is in; everyone is also part of `everyone`, which is not listed. */
+  teams: z.array(z.string()),
 });
 const MembershipSettingsSchema = z.strictObject({
-  /** The domains whose addresses join by themselves; from the install until an admin saves their own. */
+  /** The domains whose addresses join by themselves; from the install until someone saves their own. */
   domains: z.array(z.string()),
-  defaultRole: z.string().optional(),
+  /** The teams a person who joins by domain is put in. Never `admin`. */
+  defaultTeams: z.array(z.string()),
   source: z.enum(["console", "install"]),
 });
 
@@ -44,7 +52,7 @@ export const listMembersRoute = defineRoute({
         invitations: z.array(
           z.strictObject({
             email: z.string(),
-            roles: z.array(z.string()),
+            teams: z.array(z.string()),
             invitedBy: z.string(),
             expiresAt: z.string(),
           }),
@@ -54,26 +62,28 @@ export const listMembersRoute = defineRoute({
       "The people",
     ),
     401: notSignedIn,
-    403: notAdmin,
+    403: notAllowed,
   },
 });
 
-export const setMemberRolesRoute = defineRoute({
+export const setMemberTeamsRoute = defineRoute({
   method: "patch",
   path: "/api/members/{id}",
-  summary: "Change a member's roles",
+  summary: "Change the teams a member is in",
+  description:
+    "Replaces the member's teams. Each team added or removed is a change of who holds its permissions: the caller needs the permission to change members and to hold the team's permissions themselves.",
   tags: ["members"],
   request: {
     params: z.object({ id: z.string() }),
-    body: { required: true, content: { "application/json": { schema: z.object({ roles }) } } },
+    body: { required: true, content: { "application/json": { schema: z.object({ teams }) } } },
   },
   responses: {
     200: json(MemberSchema, "The member now"),
-    400: json(ErrorSchema, "`roles` is a list of role names"),
+    400: json(ErrorSchema, "`teams` is a list of team ids"),
     401: notSignedIn,
-    403: notAdmin,
+    403: notAllowedToGive,
     404: json(ErrorSchema, "No such member"),
-    409: registryRefusal,
+    409: json(ErrorSchema, "The registry refused (the last admin cannot leave the admin team)"),
   },
 });
 
@@ -86,7 +96,7 @@ export const removeMemberRoute = defineRoute({
   responses: {
     204: { description: "Removed" },
     401: notSignedIn,
-    403: notAdmin,
+    403: notAllowed,
     404: json(ErrorSchema, "No such member"),
     409: json(ErrorSchema, "The registry refused (the last admin cannot be removed)"),
   },
@@ -107,7 +117,7 @@ export const inviteMemberRoute = defineRoute({
               .string()
               .refine((v) => v.trim().length <= 254 && EMAIL.test(v.trim()))
               .describe("An address; trimmed and lower-cased"),
-            roles: roles.optional(),
+            teams: teams.optional(),
           }),
         },
       },
@@ -118,17 +128,17 @@ export const inviteMemberRoute = defineRoute({
       z.strictObject({
         invitation: z.strictObject({
           email: z.string(),
-          roles: z.array(z.string()),
+          teams: z.array(z.string()),
           expiresAt: z.string(),
         }),
-        /** `false` when no mail could be sent: the admin gives the link themselves. */
+        /** `false` when no mail could be sent: whoever invited gives the link themselves. */
         notified: z.boolean(),
       }),
       "The invitation",
     ),
-    400: json(ErrorSchema, "`email` and `roles` (a list of role names) are required"),
+    400: json(ErrorSchema, "`email` is required, `teams` a list of team ids"),
     401: notSignedIn,
-    403: notAdmin,
+    403: notAllowedToGive,
     409: registryRefusal,
   },
 });
@@ -142,7 +152,7 @@ export const withdrawInvitationRoute = defineRoute({
   responses: {
     204: { description: "Withdrawn" },
     401: notSignedIn,
-    403: notAdmin,
+    403: notAllowed,
     404: json(ErrorSchema, "No such invitation"),
   },
 });
@@ -150,19 +160,19 @@ export const withdrawInvitationRoute = defineRoute({
 export const getMembershipSettingsRoute = defineRoute({
   method: "get",
   path: "/api/membership-settings",
-  summary: "Who joins by email domain, and with which role",
+  summary: "Who joins by email domain, and in which teams",
   tags: ["members"],
   responses: {
     200: json(MembershipSettingsSchema, "The settings"),
     401: notSignedIn,
-    403: notAdmin,
+    403: notAllowed,
   },
 });
 
 export const putMembershipSettingsRoute = defineRoute({
   method: "put",
   path: "/api/membership-settings",
-  summary: "Set who joins by email domain, and with which role",
+  summary: "Set who joins by email domain, and in which teams",
   tags: ["members"],
   request: {
     body: {
@@ -171,7 +181,8 @@ export const putMembershipSettingsRoute = defineRoute({
         "application/json": {
           schema: z.object({
             domains: z.array(z.string()).max(MAX_DOMAINS),
-            defaultRole: z.string().nullable().optional(),
+            /** None: nobody is put in a team. Never `admin`. */
+            defaultTeams: teams.optional(),
           }),
         },
       },
@@ -179,9 +190,9 @@ export const putMembershipSettingsRoute = defineRoute({
   },
   responses: {
     200: json(MembershipSettingsSchema, "The settings now"),
-    400: json(ErrorSchema, "`domains` is a list of domains; `defaultRole` a role name or null"),
+    400: json(ErrorSchema, "`domains` is a list of domains; `defaultTeams` a list of team ids"),
     401: notSignedIn,
-    403: notAdmin,
+    403: notAllowedToGive,
     409: registryRefusal,
   },
 });

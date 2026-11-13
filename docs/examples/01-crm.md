@@ -8,7 +8,7 @@ A sales team of fifteen people is dropping the CRM modules of its ERP. It wants:
 - to search and update all of this **from Claude** ("Which leads does Durand have in negotiation?", "Move the Acme lead to won");
 - a **history** of stage changes, to know who did what;
 - a visual **pipeline** for the Monday meeting;
-- three roles: sales can read and edit, support can only read, management can also delete.
+- three profiles: sales can read and edit, support can only read, management can also delete; the admin gives them to the teams that use the tool.
 
 Six months later, management will ask for a **currency** on the lead amount, while the database already contains data.
 
@@ -19,7 +19,7 @@ Six months later, management will ask for a **currency** on the lead amount, whi
 | Store relational data                              | A TypeScript schema (`db/schema.ts`), one D1 database per environment, typed queries with Kysely |
 | Evolve the database without losing data            | Migrations generated from the schema, editable, versioned and applied at deploy time             |
 | Expose operations to Claude, the API, the terminal | Actions in `actions/`, one per file; the path gives the name                                     |
-| Distinguish read, write, delete                    | A required `access` on every action, and roles declared in the config                            |
+| Distinguish read, write, delete                    | A required `access` on every action, and profiles declared in the config                         |
 | Keep a history                                     | Events emitted by actions (`ctx.emit`) and a handler that writes them to the database            |
 | Display a pipeline                                 | A React view in `views/`, fed by the same actions                                                |
 | Check that everything works                        | Vitest and a test context provided by `forgeron/testing`                                         |
@@ -77,7 +77,8 @@ export default defineConfig({
   interfaces: { mcp: true, api: true, cli: true, web: true },
 
   // Access levels used by actions. read, write, delete and admin always exist.
-  roles: {
+  // Profiles: what the tool suggests; the admin gives them to Everyone and to teams.
+  profiles: {
     sales: { label: "Sales", grants: ["read", "write"] },
     support: { label: "Support", grants: ["read"] },
     management: { label: "Management", grants: ["read", "write", "delete"] },
@@ -89,7 +90,7 @@ export default defineConfig({
 });
 ```
 
-The `grants` of roles are **defaults**. The workspace admin can adjust them action by action in the console, without redeploying.
+The `grants` of profiles are **defaults**. The workspace admin gives a profile to Everyone or to a team in the tool's Access tab, and can adjust it action by action, without redeploying.
 
 ## The schema
 
@@ -394,7 +395,7 @@ describe("deals.move", () => {
   it("records the history", async () => {
     const tool = await createTestTool({
       seed: true,
-      as: { email: "ely@acme.fr", roles: ["sales"] },
+      as: { email: "ely@acme.fr", profile: "sales" },
     });
     const [deal] = await tool.call("deals.list", {});
     await tool.call("deals.move", { id: deal.id, stage: "won" });
@@ -404,7 +405,7 @@ describe("deals.move", () => {
   });
 
   it("rejects support", async () => {
-    const tool = await createTestTool({ seed: true, as: { roles: ["support"] } });
+    const tool = await createTestTool({ seed: true, as: { profile: "support" } });
     await expect(tool.call("deals.move", { id: "x", stage: "won" })).rejects.toThrow("FORBIDDEN");
   });
 });

@@ -4,13 +4,12 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { channelRef, environmentOfRef, hostingTargetOf } from "@forgeron/registry";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// Operations on a tool's remote database (D-113), for admins: the migrations of an environment against the
+// Operations on a tool's remote database (D-113), for who holds `tools:data`: the migrations of an environment against the
 // version it serves, and one SQL statement run on it. The browser never names a database: the environment
 // must be one the registry knows, and the gateway reaches it through the hosting layer. Every statement is
 // audited BEFORE it runs, and a statement that cannot be audited is not run.
 
 const STATEMENT_TIMEOUT_MS = 10_000;
-const FORBIDDEN = "The database operations are for admins.";
 const note = (code: string, message: string) => ({ error: code, message });
 
 /** Statements that read. Anything else is a write, and takes `write: true`. */
@@ -78,7 +77,7 @@ export function mountDatabaseAdmin(app: OpenAPIHono<PlatformEnv>): void {
     return { tool, environment, hosting };
   }
 
-  app.openapi(platformRoute(dbMigrationsRoute, "admin", FORBIDDEN), async (c) => {
+  app.openapi(platformRoute(dbMigrationsRoute, "tools:data"), async (c) => {
     const { tool: toolName } = c.req.valid("param");
     const { env = "production", branch } = c.req.valid("query");
     const found = await target(c, toolName, env, branch);
@@ -123,7 +122,7 @@ export function mountDatabaseAdmin(app: OpenAPIHono<PlatformEnv>): void {
     }
   });
 
-  app.openapi(platformRoute(dbQueryRoute, "admin", FORBIDDEN), async (c) => {
+  app.openapi(platformRoute(dbQueryRoute, "tools:data"), async (c) => {
     const { tool: toolName } = c.req.valid("param");
     const body = c.req.valid("json");
     const env = body.env ?? "production";
@@ -160,8 +159,8 @@ export function mountDatabaseAdmin(app: OpenAPIHono<PlatformEnv>): void {
       ...(environment.channel ? { channel: environment.channel } : {}),
     };
     const actor = c.get("person").id;
-    // The record comes first: a statement that cannot be recorded is not run. A write keeps its text (an
-    // admin answers for it, up to 1,000 characters); a read keeps only a hash and a length (the values in
+    // The record comes first: a statement that cannot be recorded is not run. A write keeps its text (the
+    // person answers for it, up to 1,000 characters); a read keeps only a hash and a length (the values in
     // its text could be anyone's).
     try {
       await c.env.registry.recordAudit({

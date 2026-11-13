@@ -3,7 +3,7 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConsolePerson } from "./app";
-import { describeRouteMatrix } from "./route-matrix";
+import { describeRouteMatrix, ADMIN } from "./route-matrix";
 import { platformCaller } from "./test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -29,7 +29,7 @@ beforeAll(async () => {
       subject: "s1",
       email: "ada@acme.test",
       name: "Ada",
-      roles: [],
+      teams: [],
     })
   ).id;
   call = platformCaller({ registry, who: () => person, installDomains: ["acme.test"] });
@@ -43,76 +43,76 @@ const through = async (request: Request, who: ConsolePerson | undefined) => {
 
 describeRouteMatrix({
   title: "GET /api/members",
+  access: "members:read",
   call: through,
   method: "GET",
   path: "/api/members",
-  access: "admin",
 });
 describeRouteMatrix({
   title: "PATCH /api/members/<id>",
+  access: "members:write",
   call: through,
   method: "PATCH",
   get path() {
     return `/api/members/${memberId}`;
   },
-  access: "admin",
-  invalidMessage: "`roles` is a list of role names.",
-  valid: { roles: ["dev"] },
+  invalidMessage: "`teams` is a list of team ids.",
+  valid: { teams: [] },
   invalid: [
     {},
-    { roles: "dev" },
-    { roles: [1] },
-    { roles: Array.from({ length: 21 }, () => "r") },
+    { teams: "dev" },
+    { teams: [1] },
+    { teams: Array.from({ length: 21 }, () => "r") },
     [],
   ],
 });
 describeRouteMatrix({
   title: "DELETE /api/members/<id>",
+  access: "members:write",
   call: through,
   method: "DELETE",
   path: "/api/members/m-gone",
-  access: "admin",
 });
 describeRouteMatrix({
   title: "POST /api/invitations",
+  access: "members:write",
   call: through,
   method: "POST",
   path: "/api/invitations",
-  access: "admin",
-  invalidMessage: "`email` and `roles` (a list of role names) are required.",
-  valid: { email: "new@acme.test", roles: [] },
+  invalidMessage: "`email` is required, `teams` a list of team ids.",
+  valid: { email: "new@acme.test", teams: [] },
   invalid: [
     {},
     { email: "not an address" },
     { email: "a@b" },
     { email: "x".repeat(250) + "@acme.test" },
-    { email: "new@acme.test", roles: "dev" },
-    { email: "new@acme.test", roles: null },
+    { email: "new@acme.test", teams: "dev" },
+    { email: "new@acme.test", teams: null },
   ],
 });
 describeRouteMatrix({
   title: "DELETE /api/invitations/<email>",
+  access: "members:write",
   call: through,
   method: "DELETE",
   path: "/api/invitations/gone%40acme.test",
-  access: "admin",
 });
 describeRouteMatrix({
   title: "GET /api/membership-settings",
+  access: "members:read",
   call: through,
   method: "GET",
   path: "/api/membership-settings",
-  access: "admin",
 });
 describeRouteMatrix({
   title: "PUT /api/membership-settings",
+  access: "members:write",
   call: through,
   method: "PUT",
   path: "/api/membership-settings",
-  access: "admin",
-  invalidMessage: "`domains` is a list of domains; `defaultRole` a role name or null.",
+  invalidMessage: "`domains` is a list of domains; `defaultTeams` a list of team ids.",
   valid: { domains: ["x.test"] },
-  invalid: [{}, { domains: "x.test" }, { domains: [1] }, { domains: ["x.test"], defaultRole: 3 }],
+  invalid: [{}, { domains: "x.test" }, { domains: [1] }, { domains: ["x.test"], defaultTeams: 3 }],
 });
 
 describe("the members routes", () => {
@@ -121,9 +121,8 @@ describe("the members routes", () => {
       id: "p",
       email: "a@acme.test",
       name: "A",
-      admin: true,
-      developer: false,
-      roles: ["admin"],
+      teams: ["admin"],
+      permissions: ADMIN.permissions,
     };
     // A workspace of its own: the matrix above saved settings for `acme`.
     const fresh = platformCaller({
@@ -139,32 +138,33 @@ describe("the members routes", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    // The settings come from the install until an admin saves their own.
+    // The settings come from the install until someone who manages members saves their own.
     expect(await (await at("/api/membership-settings"))!.json()).toEqual({
       domains: ["acme.test"],
+      defaultTeams: [],
       source: "install",
     });
-    // A role name is trimmed, an unknown member is a 404, another method a 405.
+    // A team id is trimmed, an unknown member is a 404, another method a 405.
     const put = await at(
       "/api/membership-settings",
-      json("PUT", { domains: [" x.test "], defaultRole: "dev" }),
+      json("PUT", { domains: [" x.test "], defaultTeams: [" developer "] }),
     );
     expect(await put!.json()).toEqual({
       domains: ["x.test"],
-      defaultRole: "dev",
+      defaultTeams: ["developer"],
       source: "console",
     });
-    expect((await at("/api/members/ghost", json("PATCH", { roles: [] })))!.status).toBe(404);
+    expect((await at("/api/members/ghost", json("PATCH", { teams: [] })))!.status).toBe(404);
     expect((await at("/api/invitations/none%40acme.test", { method: "DELETE" }))!.status).toBe(404);
     expect((await at("/api/members/x", { method: "PUT" }))!.status).toBe(405);
     // An invitation is lower-cased, valid for 14 days, and says whether the mail went.
     const invited = await at(
       "/api/invitations",
-      json("POST", { email: " New@Acme.test ", roles: [" dev "] }),
+      json("POST", { email: " New@Acme.test ", teams: [" developer "] }),
     );
     expect(invited!.status).toBe(201);
     expect(await invited!.json()).toEqual({
-      invitation: { email: "new@acme.test", roles: ["dev"], expiresAt: expect.any(String) },
+      invitation: { email: "new@acme.test", teams: ["developer"], expiresAt: expect.any(String) },
       notified: false,
     });
   });

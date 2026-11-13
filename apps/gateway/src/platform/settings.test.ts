@@ -3,7 +3,7 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ConsolePerson } from "./app";
-import { describeRouteMatrix } from "./route-matrix";
+import { describeRouteMatrix, ADMIN } from "./route-matrix";
 import { platformCaller } from "./test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -30,76 +30,80 @@ const through = async (request: Request, who: ConsolePerson | undefined) => {
   person = who;
   return (await call(request))!;
 };
-const admin = { access: "admin" as const, call: through };
 
 describeRouteMatrix({
   title: "GET identity-provider",
-  ...admin,
+  access: "settings:read",
+  call: through,
   method: "GET",
   path: "/api/identity-provider",
 });
 describeRouteMatrix({
   title: "PUT identity-provider",
-  ...admin,
+  access: "settings:write",
+  call: through,
   method: "PUT",
   path: "/api/identity-provider",
   valid: { kind: "google", clientId: "x" },
 });
 describeRouteMatrix({
   title: "DELETE identity-provider",
-  ...admin,
+  access: "settings:write",
+  call: through,
   method: "DELETE",
   path: "/api/identity-provider",
 });
 describeRouteMatrix({
   title: "GET connector-clients",
-  ...admin,
+  access: "settings:read",
+  call: through,
   method: "GET",
   path: "/api/connector-clients",
 });
 describeRouteMatrix({
   title: "PUT connector-client",
-  ...admin,
+  access: "settings:write",
+  call: through,
   method: "PUT",
   path: "/api/connector-clients/microsoft-365",
   valid: { clientId: "x" },
 });
 describeRouteMatrix({
   title: "DELETE connector-client",
-  ...admin,
+  access: "settings:write",
+  call: through,
   method: "DELETE",
   path: "/api/connector-clients/microsoft-365",
 });
 describeRouteMatrix({
   title: "GET secrets",
-  ...admin,
+  access: "tools:secrets",
+  call: through,
   method: "GET",
   path: "/api/tools/crm/environments/production/secrets",
-  forbidden: "Secrets are for admins.",
 });
 describeRouteMatrix({
   title: "PUT a secret",
-  ...admin,
+  access: "tools:secrets",
+  call: through,
   method: "PUT",
   path: "/api/tools/crm/environments/production/secrets/ODOO_KEY",
-  forbidden: "Secrets are for admins.",
   invalidMessage: "`value` is a non-empty string (16 KB max).",
   valid: { value: "x" },
   invalid: [{}, { value: "" }, { value: 1 }, { value: "x".repeat(16 * 1024 + 1) }],
 });
 describeRouteMatrix({
   title: "POST a request to enter a secret",
-  access: "developer",
+  access: "tools:write",
   call: through,
   method: "POST",
   path: "/api/tools/crm/environments/production/secrets/ODOO_KEY/request",
-  forbidden: "Asking for a link to enter a secret is for developers and admins.",
   noBody: true,
 });
 const TOKEN = "t".repeat(43);
 describeRouteMatrix({
   title: "POST lookup of a secret request",
-  access: "member",
+  access: "signed-in",
   call: through,
   method: "POST",
   path: "/api/secret-requests/lookup",
@@ -109,7 +113,7 @@ describeRouteMatrix({
 });
 describeRouteMatrix({
   title: "POST fulfilment of a secret request",
-  access: "member",
+  access: "signed-in",
   call: through,
   method: "POST",
   path: "/api/secret-requests/fulfil",
@@ -129,9 +133,8 @@ describe("the identity and secrets routes", () => {
       id: "p",
       email: "a@acme.test",
       name: "A",
-      admin: true,
-      developer: false,
-      roles: ["admin"],
+      teams: ["admin"],
+      permissions: ADMIN.permissions,
     };
     const bad = (await call(
       new Request("https://acme.forgeron.test/api/identity-provider", {

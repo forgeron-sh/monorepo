@@ -4,8 +4,8 @@ import { defineRoute } from "./route";
 
 // A person's library of tools (D-117), and who may add a tool to it. A member lists what is in their
 // library and what they may add, adds a tool (then gives what its setup asks), reads how to use it and
-// removes it. An admin decides, per tool, who may add it. Nothing here is technical: no version, role,
-// action or resource reaches a member's screens.
+// removes it. Whoever gives access decides, per tool, who may add it. Nothing here is technical: no
+// version, team permission, action or resource reaches a member's screens.
 
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
   description,
@@ -48,9 +48,9 @@ export const listLibraryRoute = defineRoute({
 
 export const LibraryCardSchema = LibraryToolSchema.extend({
   /**
-   * Whether the person's workspace roles let them call at least one action of the tool (D-127).
-   * `false`: an admin gives one of their roles a profile in the tool's Access tab; anyone else
-   * asks an admin.
+   * Whether the person's subjects (everyone, their teams) let them call at least one action of the
+   * tool (D-127, D-137). `false`: someone who holds `access:write` gives one of their teams a
+   * profile in the tool's Access tab; anyone else asks them.
    */
   allowed: z.boolean(),
   /** `GUIDE.md`: how to use the tool, written for the person. */
@@ -116,8 +116,9 @@ export const uninstallLibraryToolRoute = defineRoute({
 
 export const AvailabilitySchema = z.strictObject({
   /** `open`: the tool has no rule yet, everyone reaches it with no install. */
-  mode: z.enum(["open", "nobody", "everyone", "roles", "people"]),
-  roles: z.array(z.string()),
+  mode: z.enum(["open", "nobody", "everyone", "teams", "people"]),
+  /** For `teams`: the ids of the teams whose members may add the tool. */
+  teams: z.array(z.string()),
   /** Member ids. */
   people: z.array(z.string()),
   updatedAt: z.string().nullable(),
@@ -132,7 +133,7 @@ export const getAvailabilityRoute = defineRoute({
   responses: {
     200: json(AvailabilitySchema, "The rule"),
     401: notSignedIn,
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool"),
   },
 });
@@ -149,8 +150,8 @@ export const putAvailabilityRoute = defineRoute({
       content: {
         "application/json": {
           schema: z.object({
-            mode: z.enum(["nobody", "everyone", "roles", "people"]),
-            roles: z.array(z.string().min(1).max(64)).max(100).optional(),
+            mode: z.enum(["nobody", "everyone", "teams", "people"]),
+            teams: z.array(z.string().min(1).max(64)).max(100).optional(),
             people: z.array(z.string().min(1).max(64)).max(1000).optional(),
           }),
         },
@@ -161,8 +162,9 @@ export const putAvailabilityRoute = defineRoute({
     200: json(AvailabilitySchema, "The rule now"),
     400: json(ErrorSchema, "Not a rule"),
     401: notSignedIn,
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool"),
+    409: json(ErrorSchema, "Nothing is deployed to publish (`NO_VERSION`)"),
   },
 });
 
@@ -221,9 +223,9 @@ export const getPilotAvailabilityRoute = defineRoute({
   tags: ["library"],
   request: { params: pilotParams },
   responses: {
-    200: json(AvailabilitySchema, "The rule; `open` means admins and developers only"),
+    200: json(AvailabilitySchema, "The rule; `open` means the people who hold `tools:read` only"),
     401: notSignedIn,
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool or channel"),
   },
 });
@@ -240,8 +242,8 @@ export const putPilotAvailabilityRoute = defineRoute({
       content: {
         "application/json": {
           schema: z.object({
-            mode: z.enum(["nobody", "everyone", "roles", "people"]),
-            roles: z.array(z.string().min(1).max(64)).max(100).optional(),
+            mode: z.enum(["nobody", "everyone", "teams", "people"]),
+            teams: z.array(z.string().min(1).max(64)).max(100).optional(),
             people: z.array(z.string().min(1).max(64)).max(1000).optional(),
           }),
         },
@@ -252,7 +254,8 @@ export const putPilotAvailabilityRoute = defineRoute({
     200: json(AvailabilitySchema, "The rule now"),
     400: json(ErrorSchema, "Not a rule"),
     401: notSignedIn,
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such tool or channel"),
+    409: json(ErrorSchema, "No version is deployed on the channel (`NO_VERSION`)"),
   },
 });

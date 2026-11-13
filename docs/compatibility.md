@@ -18,7 +18,8 @@ A tool and the platform that runs it are released apart. What binds them is a **
 | Contract | SDK       | Status    | Brought                                                                                 |
 | -------- | --------- | --------- | --------------------------------------------------------------------------------------- |
 | 1        | `<0.4.0`  | supported | builds made before the contract was stamped                                             |
-| 2        | `>=0.4.0` | supported | `ctx.directory`, teams, member pictures, pages in production, realtime (D-130 to D-135) |
+| 2        | `0.4.x`   | supported | `ctx.directory`, teams, member pictures, pages in production, realtime (D-130 to D-135) |
+| 3        | `>=0.5.0` | supported | no roles: `profiles` in the manifest, subjects on the wire (D-137)                      |
 
 The SDK column is the range to give to someone who must change it; check it against the release when a contract is added.
 

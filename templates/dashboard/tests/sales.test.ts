@@ -8,7 +8,7 @@ type Summary = {
 };
 type Stale = { days: number; items: Array<{ id: string; owner_email: string }> };
 
-const tool = (as = management, tools: Parameters<typeof createTestTool>[0] = {}) =>
+const tool = (as: object = management, tools: Parameters<typeof createTestTool>[0] = {}) =>
   createTestTool({ as, now: NOW, tools: crm, ...tools });
 
 describe("sales.summary", () => {

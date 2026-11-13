@@ -42,7 +42,7 @@ const crm = {
   name: "crm",
   version: "1.0.0",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: {},
+  profiles: {},
   actions: {},
   views: {},
   jobs: {},
@@ -64,14 +64,14 @@ beforeAll(async () => {
   const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
   registry = createRegistry(d1, { now: () => clock, secrets: await createSecretBox(KEY) });
-  const member = async (subject: string, roles: string[]) =>
+  const member = async (subject: string, teams: string[]) =>
     (
       await registry.addMember({
         workspace: "acme",
         subject,
         email: `${subject}@acme.test`,
         name: subject,
-        roles,
+        teams,
       })
     ).id;
   ana = await member("ana", []);
@@ -286,19 +286,19 @@ describe("signing in an MCP client", () => {
     expect(page.headers.get("location")).toBeNull();
   });
 
-  it("gives the administrator the whole admin MCP and a member only the member tools", async () => {
+  it("gives the administrator the whole admin MCP and a member only the signed-in tools", async () => {
     const admin = await tokensOf((await connect("root")).traded);
     const member = await tokensOf((await connect("ana")).traded);
     expect(admin).toMatchObject({ token_type: "Bearer", expires_in: 3600 });
     expect(await toolNames(admin.access_token)).toContain("tool_install");
     const names = await toolNames(member.access_token);
-    expect(names).toEqual(["catalog_search", "catalog_get", "tools_list", "tool_get"]);
+    expect(names).toEqual(["catalog_search", "catalog_get", "tools_list", "tool_get", "team_list"]);
     const refused = await mcp(member.access_token, "tools/call", {
       name: "access_grant",
-      arguments: { person: "ana@acme.test", role: "admin" },
+      arguments: { subject: "everyone", tool: "crm", all: true },
     });
     expect(refused.body.error ?? refused.body.result?.isError).toBeTruthy();
-    expect((await registry.findMember("acme", ana))?.roles).toEqual([]);
+    expect((await registry.findMember("acme", ana))?.teams).toEqual([]);
   });
 
   it("refuses the access token everywhere but the admin MCP", async () => {

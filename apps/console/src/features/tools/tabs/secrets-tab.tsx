@@ -1,4 +1,5 @@
 import { CopyBlock } from "@forgeron/ui";
+import { can } from "../../../shell/access";
 import { loadSecretsStatus, SecretsStatus } from "../../../secrets-status";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
@@ -21,7 +22,7 @@ export default function SecretsTab(props: ToolTabProps) {
         <>
           <SecretsStatus rows={secrets.data ?? []} />
           <CopyBlock label="Set a secret" value="forgeron secrets set <NAME>" prefix="$" />
-          <PeopleSecrets {...props} />
+          {can(props.ws.person, "tools:approve") ? <PeopleSecrets {...props} /> : null}
         </>
       ) : (
         <>

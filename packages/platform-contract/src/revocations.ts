@@ -12,7 +12,7 @@ const json = <T extends z.ZodType>(schema: T, description: string) => ({
 const tool = z.string().describe("The tool's name");
 const person = z.string().describe("The person's id, URL-encoded");
 const notSignedIn = json(ErrorSchema, "Not signed in");
-const notAdmin = json(ErrorSchema, "Not an admin");
+const notAdmin = json(ErrorSchema, "Lacks the permission");
 
 export const revokePersonTokensRoute = defineRoute({
   method: "post",

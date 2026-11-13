@@ -24,7 +24,7 @@ async function offer(name: string, version: string, resources: object = {}) {
     (await registry.createTool({ workspace: SOURCE, name }));
   const build = await registry.recordBuild(tool.id, {
     fingerprint: `${name}-${version}`,
-    manifest: { name, roles: {}, actions: {}, resources },
+    manifest: { name, profiles: {}, actions: {}, resources },
     worker: `// ${name} ${version}`,
     changelog: { entries: [], declared: "none", detected: "none" },
   });
@@ -131,7 +131,7 @@ describe("where a tool comes from (D-121)", () => {
     ] as const) {
       const build = await registry.recordBuild(tool.id, {
         fingerprint: v,
-        manifest: { name: "crm", roles: {}, actions: {}, resources: {} },
+        manifest: { name: "crm", profiles: {}, actions: {}, resources: {} },
         worker: "//",
         ...(changelog ? { changelog } : {}),
       });

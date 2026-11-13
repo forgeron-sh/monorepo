@@ -1,11 +1,12 @@
 // Rolling a channel back (sdk.md §5, §15): `POST /rollback`. The channel serves again a version it
 // served before, from the code the registry holds: nothing is rebuilt, no new code arrives (D-033,
-// D-125). The caller is a deployment token for the tool (CI), or a workspace administrator by session
-// or `forgeron login` token: a developer or a plain member cannot move a permanent channel. There is
+// D-125). The caller is a deployment token for the tool (CI), or a person by session
+// or `forgeron login` token who holds `tools:publish`: a person who only builds tools cannot move a permanent channel. There is
 // no promotion between branches any more (D-125): a permanent channel takes the releases of the
 // branch it follows, through its update (`/api/tools/{tool}/update`).
 import { ChangelogRefusal, MigrationError, type Hosting } from "@forgeron/hosting";
 import { rollbackEnvironment, RegistryError, type RegisteredEnvironment } from "@forgeron/registry";
+import { holds, PLATFORM } from "@forgeron/permissions";
 import type { Person } from "../kernel/person";
 import { deployCaller, type CallerContext } from "./deploy";
 
@@ -27,7 +28,7 @@ export interface PromoteContext extends CallerContext {
   authenticate(request: Request): Person | undefined | Promise<Person | undefined>;
 }
 
-/** Who acts, and on which tool: a deployment token carries its tool, an administrator names one. */
+/** Who acts, and on which tool: a deployment token carries its tool, a person names one. */
 type Actor = { actor: string; tool?: string; person: boolean } | Response;
 
 async function actorOf(request: Request, context: PromoteContext): Promise<Actor> {
@@ -43,8 +44,8 @@ async function actorOf(request: Request, context: PromoteContext): Promise<Actor
       "Sign in with `forgeron login`, or send a deployment token as FORGERON_TOKEN.",
     );
   }
-  if (!person.roles.includes("admin")) {
-    return fail(403, "FORBIDDEN", "Only an administrator of the workspace can do this.");
+  if (!holds(PLATFORM, person.permissions, "tools:publish")) {
+    return fail(403, "FORBIDDEN", "This needs the permission \u201cPublish tools\u201d.");
   }
   return { actor: person.email, person: true };
 }

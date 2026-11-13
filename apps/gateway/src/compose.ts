@@ -9,7 +9,6 @@ import {
   createRegistry,
   createSecretBox,
   reachesChannelAlways,
-  teamRole,
   type EmailCodes,
   type IdentityConfig,
   type Invitation,
@@ -37,7 +36,7 @@ import { createCaller, membership } from "./identity/authn/caller";
 import { providerFromConfig } from "./identity/sign-in/presets";
 import type { SamlProvider } from "./identity/sign-in/saml";
 import type { Person } from "./kernel/person";
-import { forwardIdentity } from "./dispatch/user-secrets";
+import { forwardIdentity, wireUser } from "./dispatch/user-secrets";
 import { serveView } from "./views/serve";
 import { CONTEXT_HEADER, type RoomContext } from "./realtime/room";
 import type { Manifest } from "@forgeron/manifest";
@@ -198,7 +197,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
     return createSelfHostHosting({ ...common, ...(gateway ? { gateway } : {}) });
   };
 
-  // The SAML provider an admin saved (D-050); it wins over any OIDC provider, saved or from bindings.
+  // The SAML provider saved (D-050); it wins over any OIDC provider, saved or from bindings.
   const samlOf = async (
     workspace: string,
     config: IdentityConfig,
@@ -221,13 +220,13 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
     };
   };
 
-  /** Who may join by themselves: what an admin saved, else what the install stated (D-049). */
+  /** Who may join by themselves: what was saved in the console, else what the install stated (D-049). */
   const policyOf = async (registry: Pick<Registry, "getMembershipSettings">, workspace: string) => {
     const saved = await registry.getMembershipSettings(workspace);
     return {
       ...(env.ADMIN_EMAIL ? { adminEmail: env.ADMIN_EMAIL } : {}),
       domains: saved?.domains ?? installDomains,
-      ...(saved?.defaultRole ? { defaultRole: saved.defaultRole } : {}),
+      ...(saved?.defaultTeams.length ? { defaultTeams: saved.defaultTeams } : {}),
     };
   };
 
@@ -327,8 +326,8 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
               registry.recordUsage(workspace, tool, personId),
           }
         : {}),
-      // A preview is for the workspace's administrators and developers (sdk.md §7), and for the people
-      // an admin opened the branch to who added it to their library: a pilot (D-119).
+      // A preview is for who holds `tools:read` or `tools:publish` (sdk.md §7, D-137), and for the people
+      // the branch was opened to who added it to their library: a pilot (D-119).
       ...(caller
         ? {
             canPreview: async (c: {
@@ -373,16 +372,9 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
                 return Response.redirect(new URL(`${base}${pages[0].path}`, request.url), 302);
               }
               const person = await caller.resolve(request, c.workspace);
-              const roles = person
-                ? [
-                    ...person.roles,
-                    ...(await registry.teamsOfMember(c.workspace, person.id)).map(teamRole),
-                  ]
-                : [];
-              const matrix =
-                person && roles.length > 0
-                  ? await registry.accessFor(tool.id, roles)
-                  : { access: {}, permissions: {} };
+              const matrix = person
+                ? await registry.accessFor(tool.id, person.subjects)
+                : { access: {}, permissions: {} };
               const files = build.views;
               return serveView(
                 new Request(new URL(rest, request.url), { method: request.method }),
@@ -396,7 +388,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
                   manifest,
                   access: matrix.access,
                   permissions: matrix.permissions,
-                  person: person ? { ...person, roles } : undefined,
+                  person,
                   assets: {
                     read: async (file) =>
                       file in files
@@ -465,7 +457,7 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
               }
               const context: RoomContext = {
                 user,
-                manifest: { roles: manifest.roles, realtime: manifest.realtime },
+                manifest: { profiles: manifest.profiles, realtime: manifest.realtime },
                 worker,
               };
               const room = env.REALTIME!.get(
@@ -561,23 +553,23 @@ export function createRequestModules(
         await mailer.send({
           to: invitation.email,
           subject: `You are invited to ${workspace}`,
-          invitation: { roles: invitation.roles },
-          text: `You are invited to join ${workspace}${invitation.roles.length ? ` as ${invitation.roles.join(", ")}` : ""}.\n\nOpen ${invitationLink(origin, await invitationId(identity!.secret, invitation))} to accept, then sign in with this email address. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
+          invitation: { teams: invitation.teams },
+          text: `You are invited to join ${workspace}${invitation.teams.length ? `, in the teams ${invitation.teams.join(", ")}` : ""}.\n\nOpen ${invitationLink(origin, await invitationId(identity!.secret, invitation))} to accept, then sign in with this email address. The invitation is valid until ${invitation.expiresAt.slice(0, 10)}.`,
         });
         return true;
       }
     : undefined;
 
-  // Tells a person that an administrator set one of their secrets (D-111): a short mail with no value.
+  // Tells a person that someone set one of their secrets (D-111): a short mail with no value.
   const notifySecretSet = mailer
     ? async (person: string, toolName: string, field: string) => {
         const member = await registry.findMember(workspace, person);
         if (!member) return false;
         await mailer.send({
           to: member.email,
-          subject: `An administrator set a secret for you in ${workspace}`,
-          notice: "secret set by an administrator",
-          text: `An administrator of ${workspace} set your secret ${field} for the tool ${toolName}.\n\nYou can see it, change it or delete it on ${origin}/my/secrets. The value is never shown. If you did not expect this, tell your administrator.`,
+          subject: `Someone set a secret for you in ${workspace}`,
+          notice: "secret set by someone else",
+          text: `Someone who manages the tools of ${workspace} set your secret ${field} for the tool ${toolName}.\n\nYou can see it, change it or delete it on ${origin}/my/secrets. The value is never shown. If you did not expect this, tell the people who administer ${workspace}.`,
         });
         return true;
       }
@@ -591,7 +583,7 @@ export function createRequestModules(
     surface,
     notFound: () => notFound(request),
     // A person's OAuth consent for a delegated connector (sdk.md §10): the OAuth clients are the
-    // workspace's, set by an admin; tokens are sealed and never leave the registry.
+    // workspace's, set by someone who holds `settings:write`; tokens are sealed and never leave the registry.
     ...(box
       ? {
           consent: async () =>
@@ -605,9 +597,8 @@ export function createRequestModules(
             id: person.id,
             email: person.email,
             name: person.name,
-            admin: person.roles.includes("admin"),
-            developer: person.roles.includes("developer"),
-            roles: person.roles,
+            teams: person.teams,
+            permissions: person.permissions,
           }
         : undefined;
     },
@@ -674,12 +665,7 @@ export function createRequestModules(
           headers: {
             "content-type": "application/json",
             "x-forgeron-setup-check": "1",
-            "x-forgeron-user": JSON.stringify({
-              id: person.id,
-              email: person.email,
-              name: person.name,
-              roles: person.roles,
-            }),
+            "x-forgeron-user": JSON.stringify(wireUser(person)),
             "x-forgeron-base-url": `${origin}/t/${tool}`,
           },
           body: JSON.stringify(candidate),
@@ -838,10 +824,10 @@ export function createRequestModules(
               return membership(registry, {
                 ...(policy.adminEmail ? { adminEmail: policy.adminEmail } : {}),
                 memberDomains: policy.domains,
-                ...(policy.defaultRole ? { defaultRole: policy.defaultRole } : {}),
-                groupRoles:
-                  (await config.getIdentityProvider(ws))?.groupRoles ??
-                  (await config.getSamlProvider(ws))?.groupRoles ??
+                ...(policy.defaultTeams ? { defaultTeams: policy.defaultTeams } : {}),
+                groupTeams:
+                  (await config.getIdentityProvider(ws))?.groupTeams ??
+                  (await config.getSamlProvider(ws))?.groupTeams ??
                   {},
               })(ws, who);
             },

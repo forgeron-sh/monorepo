@@ -1,14 +1,15 @@
 import { registerToolTab } from "./tabs";
 
 // The tabs this feature provides. Other features register theirs the same way (Architecture,
-// Database, Overview): each tab's code loads when it is first opened.
+// Database, Overview): each tab's code loads when it is first opened. `requires` is the platform
+// permission that opens the tab (D-137).
 
 registerToolTab({
   id: "branches",
   scope: "tool",
   order: 20,
   title: "Channels",
-  adminOnly: true,
+  requires: "tools:read",
   load: () => import("./tabs/branches-tab"),
 });
 registerToolTab({
@@ -16,15 +17,24 @@ registerToolTab({
   scope: "tool",
   order: 30,
   title: "Releases",
-  adminOnly: true,
+  requires: "tools:read",
   load: () => import("./tabs/versions-tab"),
+});
+registerToolTab({
+  id: "ci",
+  scope: "tool",
+  order: 35,
+  title: "CI",
+  // The runs of the tool's repository, read with the workspace's GitHub App: for whoever sees the tool.
+  requires: "tools:read",
+  load: () => import("./tabs/ci-tab"),
 });
 registerToolTab({
   id: "access",
   scope: "tool",
   order: 60,
   title: "Access",
-  adminOnly: true,
+  requires: "access:read",
   load: () => import("./tabs/access-tab"),
 });
 registerToolTab({
@@ -32,8 +42,8 @@ registerToolTab({
   scope: "branch",
   order: 70,
   title: "Secrets",
-  // It lists who holds which secret: an admin's screen (D-118). A person's own are on their library.
-  adminOnly: true,
+  // It lists who holds which secret: for whoever sets them (D-118). A person's own are on their library.
+  requires: "tools:secrets",
   load: () => import("./tabs/secrets-tab"),
 });
 registerToolTab({
@@ -41,6 +51,6 @@ registerToolTab({
   scope: "tool",
   order: 80,
   title: "Activity",
-  adminOnly: true,
+  requires: "tools:read",
   load: () => import("./tabs/activity-tab"),
 });

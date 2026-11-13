@@ -9,13 +9,13 @@ import type {
   VersionRecord,
 } from "@forgeron/registry";
 
-// What a tool's page reads (docs/console-ux.md, "Tool page"), for admins and developers:
+// What a tool's page reads (docs/console-ux.md, "Tool page"), for who holds `tools:read`:
 //   GET /api/tools/<name>/branches    the channels (D-125): production, the other permanent ones, and one
 //                                     temporary channel per branch with its commits, as Forgeron recorded them
 //   GET /api/tools/<name>/versions    the versions, newest first, each with its changelog and what changed
 //                                     compared with the version published before it
 //   GET /api/tools/<name>/activity    the tool's audit lines, newest first (`?limit=n`, default 50, at most 200)
-// A member without the developer role is refused: the commits, authors and audit lines of a tool are
+// A person without that permission is refused: the commits, authors and audit lines of a tool are
 // the team's, not the audience's.
 
 const RECENT = 5;

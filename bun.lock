@@ -30,6 +30,7 @@
         "@forgeron/compiler": "workspace:*",
         "@forgeron/hosting": "workspace:*",
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/permissions": "workspace:*",
         "@forgeron/platform-contract": "workspace:*",
         "@forgeron/playground": "workspace:*",
         "@forgeron/registry": "workspace:*",
@@ -50,6 +51,7 @@
       "name": "@forgeron/console",
       "version": "0.0.0",
       "dependencies": {
+        "@forgeron/permissions": "workspace:*",
         "@forgeron/platform-contract": "workspace:*",
         "@forgeron/ui": "workspace:*",
         "react": "19.3.1",
@@ -71,6 +73,7 @@
         "@cloudflare/workers-oauth-provider": "1.2.4",
         "@forgeron/hosting": "workspace:*",
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/permissions": "workspace:*",
         "@forgeron/platform-contract": "workspace:*",
         "@forgeron/playground": "workspace:*",
         "@forgeron/registry": "workspace:*",
@@ -148,6 +151,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/permissions": "workspace:*",
         "@forgeron/runtime": "workspace:*",
         "miniflare": "4.20260730.0",
         "ws": "8.21.0",
@@ -162,8 +166,16 @@
       "name": "@forgeron/manifest",
       "version": "0.3.1",
       "dependencies": {
+        "@forgeron/permissions": "workspace:*",
         "zod": "4.6.7",
       },
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+      },
+    },
+    "packages/permissions": {
+      "name": "@forgeron/permissions",
+      "version": "0.3.1",
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
       },
@@ -173,6 +185,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/permissions": "workspace:*",
         "zod": "4.6.7",
       },
       "devDependencies": {
@@ -193,6 +206,7 @@
       "dependencies": {
         "@forgeron/hosting": "workspace:*",
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/permissions": "workspace:*",
       },
       "devDependencies": {
         "@forgeron/sdk": "workspace:*",
@@ -224,6 +238,7 @@
       "version": "0.3.1",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
+        "@forgeron/permissions": "workspace:*",
         "@forgeron/runtime": "workspace:*",
         "kysely": "0.29.8",
         "miniflare": "4.20260730.0",
@@ -485,6 +500,8 @@
     "@forgeron/hosting": ["@forgeron/hosting@workspace:packages/hosting"],
 
     "@forgeron/manifest": ["@forgeron/manifest@workspace:packages/manifest"],
+
+    "@forgeron/permissions": ["@forgeron/permissions@workspace:packages/permissions"],
 
     "@forgeron/platform-contract": ["@forgeron/platform-contract@workspace:packages/platform-contract"],
 

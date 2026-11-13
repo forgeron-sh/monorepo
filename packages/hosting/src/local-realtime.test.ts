@@ -27,7 +27,7 @@ export default {
 const manifest = {
   name: "notes",
   version: "1.0.0",
-  roles: { member: { grants: ["read", "write"], default: true } },
+  profiles: { member: { grants: ["read", "write"], default: true } },
   actions: {},
   views: {},
   resources: {},
@@ -49,9 +49,11 @@ afterEach(async () => {
 
 const start = async () => {
   hosting = createLocalHosting({
-    identity: () => ({ id: "dev", email: "dev@localhost", name: "Dev", roles: ["member"] }),
+    identity: () => ({ id: "dev", email: "dev@localhost", name: "Dev", subjects: ["everyone"] }),
     identityFor: (_m, email) =>
-      email === "sam@acme.fr" ? { id: "sam", email, name: "Sam", roles: ["member"] } : undefined,
+      email === "sam@acme.fr"
+        ? { id: "sam", email, name: "Sam", subjects: ["everyone"] }
+        : undefined,
   });
   const provisioned = await hosting.provision(environment, manifest);
   const { url } = await hosting.activate(await hosting.upload(provisioned, build));

@@ -3,12 +3,14 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { platformCaller } from "../platform/test-app";
+import { ADMIN, holding } from "../platform/route-matrix";
+import type { PlatformPermission } from "@forgeron/permissions";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 let memory: MemoryD1;
 let registry: Registry;
-let caller: { developer: boolean; admin: boolean; roles?: string[] } | undefined;
+let caller: { permissions: PlatformPermission[] } | undefined;
 
 const call = (path = "/api/tools/crm/manifest", method = "GET") =>
   platformCaller({ registry, who: () => caller })(
@@ -16,7 +18,7 @@ const call = (path = "/api/tools/crm/manifest", method = "GET") =>
   );
 
 beforeEach(async () => {
-  caller = { developer: true, admin: false };
+  caller = holding("tools:read");
   memory = await createMemoryD1();
   const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
@@ -53,11 +55,11 @@ describe("manifest API", () => {
     });
   });
 
-  it("is for developers and admins", async () => {
+  it("is for who holds `tools:read`", async () => {
     await publish("crm", "1.0.0", { name: "crm" });
-    caller = { developer: false, admin: false };
+    caller = holding();
     expect((await call())?.status).toBe(403);
-    caller = { developer: false, admin: true };
+    caller = ADMIN;
     expect((await call())?.status).toBe(200);
     caller = undefined;
     expect((await call())?.status).toBe(401);
@@ -79,7 +81,7 @@ describe("a branch's page (D-120)", () => {
     name: "crm",
     version,
     interfaces: { mcp: true, api: false, cli: false, web: false },
-    roles: {},
+    profiles: {},
     actions: {},
     views: {},
     jobs: {},
@@ -113,7 +115,7 @@ describe("a branch's page (D-120)", () => {
 
   it("answers the branch's card to the team only, with the preview's address", async () => {
     await withPreview();
-    caller = { developer: true, admin: false, roles: [] };
+    caller = holding("tools:read");
     const card = await call(`/api/catalog/crm?branch=${branch}`);
     expect(card?.status).toBe(200);
     expect(await card!.json()).toMatchObject({
@@ -121,7 +123,7 @@ describe("a branch's page (D-120)", () => {
       connect: { mcp: { url: `https://acme.forgeron.test/t/crm@${branch}/mcp` } },
     });
     expect((await call("/api/catalog/crm?branch=nope"))?.status).toBe(404);
-    caller = { developer: false, admin: false, roles: [] };
+    caller = holding();
     expect((await call(`/api/catalog/crm?branch=${branch}`))?.status).toBe(403);
     expect((await call(`/api/catalog/crm/assets/x.png?branch=${branch}`))?.status).toBe(403);
     const production = await call("/api/catalog/crm");

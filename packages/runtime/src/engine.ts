@@ -169,11 +169,11 @@ export function createEngine(options: RuntimeOptions): Engine {
 
   const grants = (user: User): Set<string> => new Set(heldPermissions(user, manifest));
 
-  // The one access check, for every interface: a role may call an action if the console says so,
-  // else if the action's permission is among those the role is mapped to (D-127). The person may if
-  // one of their roles may.
+  // The one access check, for every interface: a subject may call an action if the console says so,
+  // else if the action's permission is among those the subject is given (D-137). The person may if
+  // one of their subjects may.
   const mayCall = (user: User, name: string, level: string): boolean =>
-    mayAccess(user, manifest.roles, name, level);
+    mayAccess(user, manifest.profiles, name, level);
 
   // A call from a task or another tool does not go through an interface: it is not hidden by `interfaces`.
   const exposed = (name: string, via: CallSource): RuntimeAction | undefined => {
@@ -445,7 +445,7 @@ export function createEngine(options: RuntimeOptions): Engine {
         id: `tool:${manifest.name}`,
         email: "",
         name: `tool:${manifest.name}`,
-        roles: [],
+        subjects: [],
       };
       const queued: QueuedDelivery[] = [];
       await job.handler({

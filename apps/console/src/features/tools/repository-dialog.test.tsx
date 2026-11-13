@@ -104,6 +104,17 @@ describe("adding a tool with the workspace's GitHub App (D-123)", () => {
     expect(dialog().textContent).not.toContain("FORGERON_TOKEN");
   });
 
+  it("draws a skeleton of the list while the repositories are read, not a sentence", async () => {
+    const { api } = fakeApi({
+      "/api/github": APP,
+      "/api/github/repositories": () => new Promise(() => {}),
+    });
+    await mount(<RepositoryDialog api={api} onClose={() => {}} onAdded={() => {}} />);
+    expect(dialog().querySelectorAll(".fg-skeleton").length).toBeGreaterThan(0);
+    expect(dialog().querySelector('[role="status"]')?.textContent).toBe("Loading the repositories");
+    expect(dialog().textContent).not.toContain("Reading the repositories");
+  });
+
   it("still offers the token, by hand", async () => {
     const { api } = fakeApi({
       "/api/github": APP,
@@ -132,6 +143,13 @@ describe("a new tool (D-123)", () => {
       { method: "POST", path: "/api/github/tools", body: { name: "tickets", owner: "acme-sh" } },
     ]);
     expect(dialog().textContent).toContain("tickets is made");
+  });
+
+  it("draws a skeleton of the form while GitHub is read", async () => {
+    const { api } = fakeApi({ "/api/github": () => new Promise(() => {}) });
+    await mount(<NewToolDialog api={api} onClose={() => {}} onAdded={() => {}} />);
+    expect(dialog().querySelectorAll(".fg-skeleton").length).toBeGreaterThan(0);
+    expect(dialog().textContent).not.toContain("Reading GitHub…");
   });
 
   it("says to connect GitHub when no organisation has the app", async () => {

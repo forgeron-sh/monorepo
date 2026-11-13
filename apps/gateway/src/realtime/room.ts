@@ -25,12 +25,12 @@ export interface RoomContext {
     email: string;
     name: string;
     avatar?: string;
-    roles: string[];
+    subjects: string[];
     teams?: string[];
     access?: Record<string, Record<string, boolean>>;
     permissions?: Record<string, string[]>;
   };
-  manifest: Pick<Manifest, "roles" | "realtime">;
+  manifest: Pick<Manifest, "profiles" | "realtime">;
   /** The tool's Worker for this channel, to ask its `authorize` action. */
   worker: string;
 }

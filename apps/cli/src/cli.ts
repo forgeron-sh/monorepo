@@ -55,15 +55,16 @@ const USAGE = `Usage: forgeron <command>
   link --workspace <name>              link the tool to a workspace
   login [--workspace <name>]           sign in through the workspace SSO in the browser
   logout | whoami                      forget the stored token | show who it is
-  dev [--as <role>] [--port 8787]      run the tool locally
-  play [--template <name>] [--as <role>] [--port 8788]
+  dev [--as <profile>|all] [--team <id>]... [--port 8787]
+                                       run the tool locally
+  play [--template <name>] [--as <profile>|all] [--team <id>]... [--port 8788]
                                        open the playground of the tool, or of a template without installing it
   platform install --account <id> --domain <d> --gateway <worker.js>
                                        install the platform on your Cloudflare account (self-host)
   db generate|migrate|status|rollback|seed|shell
                                        the database: migrations, seed, SQL; status and shell also on
-                                       --env preview|production (administrators)
-  admin <area> <verb>                  the workspace's admin operations: tools, approvals, members, audit,
+                                       --env preview|production (needs tools:write)
+  admin <area> <verb>                  the workspace's admin operations: tools, approvals, members, teams, audit,
                                        people's secrets, re-sealing (forgeron admin for details)
   api <METHOD> <path>                  call any route of the console API with your token, like gh api
   change --type <t> --bump <b> -m ".."  add a change to changes/ (change check: CI)

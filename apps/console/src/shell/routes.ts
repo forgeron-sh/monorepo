@@ -22,7 +22,7 @@ export interface RouteDef {
   path: string;
   /** The tab title and the heading of the screen. */
   title: string;
-  /** Who may see it; for anyone else the shell says the page is for admins. */
+  /** Who may see it: any signed-in person, or those who hold a platform permission (D-137). */
   access: Access;
   page: LazyPage;
   /** Present: the route has an item in the sidebar. A route with parameters has none. */
@@ -50,7 +50,7 @@ const own: RouteDef[] = [
   {
     path: "/",
     title: "Home",
-    access: "everyone",
+    access: "signed-in",
     nav: { group: "main", label: "Home", shortcut: "h", order: 0 },
     page: adapt(
       () => import("../features/portal/home").then((m) => m.PortalHome),

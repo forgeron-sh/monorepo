@@ -72,7 +72,7 @@ export interface BuildResult {
 const BUILD_DIR = [".forgeron", "build"];
 
 // The Worker's entry. Identity is the gateway's job: it forwards the person it resolved in
-// `x-forgeron-user` (a JSON `{ id, email, name, roles }`), and only the gateway can call a tool Worker.
+// `x-forgeron-user` (a JSON `{ id, email, name, subjects }`), and only the gateway can call a tool Worker.
 function workerEntry(
   runtimePath: string,
   manifestPath: string,
@@ -87,7 +87,7 @@ function workerEntry(
 ): string {
   const q = JSON.stringify;
   return [
-    `import { createDb, createRuntime } from ${q(runtimePath)};`,
+    `import { createDb, createRuntime, readGatewayUser } from ${q(runtimePath)};`,
     ...(connectors.length > 0 ? [`import { createConnectorClient } from ${q(sdkPath)};`] : []),
     ...connectors.map((c, i) => `import connector${i} from ${q(c.file)};`),
     `import manifest from ${q(manifestPath)};`,
@@ -102,9 +102,7 @@ function workerEntry(
     `const events = { ${events.map((e, i) => `${q(e.name)}: event${i}`).join(", ")} };`,
     `const jobs = { ${jobs.map((j, i) => `${q(j.name)}: job${i}`).join(", ")} };`,
     `function gatewayIdentity(request) {`,
-    `  const raw = request.headers.get("x-forgeron-user");`,
-    `  if (!raw) return undefined;`,
-    `  try { return JSON.parse(raw); } catch { return undefined; }`,
+    `  return readGatewayUser(request.headers.get("x-forgeron-user"));`,
     `}`,
     `// What the platform adds to \`ctx\` (secrets, fetch, clock…) comes in through \`options\`: tests use it too.`,
     `// A connector's client is built from the package the tool installed (D-048) and the session of the call.`,

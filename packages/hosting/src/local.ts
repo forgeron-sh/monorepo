@@ -1,4 +1,5 @@
 import type { Manifest } from "@forgeron/manifest";
+import { ADMIN_TEAM, subjectsOf } from "@forgeron/permissions";
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { Miniflare } from "miniflare";
@@ -29,12 +30,15 @@ export interface LocalUser {
   email: string;
   name: string;
   avatar?: string;
-  roles: string[];
+  /** `everyone` and `team:<id>` for each team (D-137). */
+  subjects: string[];
   teams?: string[];
+  /** What each subject is given in the tool; without it, the default grants (`everyone`: the default profile, `team:admin`: all). */
+  permissions?: Record<string, string[]>;
 }
 
 export interface LocalHostingOptions {
-  /** Who the developer is for the tool. Every role of the tool by default. */
+  /** Who the developer is for the tool. In the admin team by default: every permission of the tool. */
   identity?: (manifest: Manifest) => LocalUser;
   /** The workspace's people and teams, for a tool that declares `resources.directory` (D-131). */
   directory?: (manifest: Manifest) => unknown;
@@ -59,11 +63,12 @@ export interface LocalHosting extends Hosting {
 
 const COMPATIBILITY_DATE = "2026-07-01";
 
-const everyRole = (manifest: Manifest): LocalUser => ({
+const admin = (): LocalUser => ({
   id: "dev",
   email: "dev@localhost",
   name: "Local developer",
-  roles: Object.keys(manifest.roles),
+  subjects: subjectsOf([ADMIN_TEAM]),
+  teams: [ADMIN_TEAM],
 });
 
 interface Running {
@@ -86,7 +91,7 @@ async function readBody(request: IncomingMessage): Promise<Buffer | undefined> {
 
 export function createLocalHosting(options: LocalHostingOptions = {}): LocalHosting {
   const running = new Map<string, Running>();
-  const identityOf = options.identity ?? everyRole;
+  const identityOf = options.identity ?? admin;
   const host = options.host ?? "127.0.0.1";
 
   async function stop(key: string): Promise<void> {

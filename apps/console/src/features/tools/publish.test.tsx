@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { button, cleanup, click, fakeApi, mount, type } from "../../test-utils";
+import { button, cleanup, click, fakeApi, mount, TEAMS, type } from "../../test-utils";
 import { audience, PublishBadge, PublishControl, usePublishing } from "./publish";
 import type { Api } from "../../api";
 
@@ -22,17 +22,19 @@ afterEach(cleanup);
 
 const members = {
   members: [
-    { id: "m1", email: "ada@acme.example", name: "Ada", roles: ["admin"] },
-    { id: "m2", email: "bob@acme.example", name: "Bob", roles: ["support"] },
-    { id: "m3", email: "cleo@acme.example", name: "Cleo", roles: ["developer"] },
-    { id: "m4", email: "dan@acme.example", name: "Dan", roles: [] },
+    { id: "m1", email: "ada@acme.example", name: "Ada", teams: ["admin"] },
+    { id: "m2", email: "bob@acme.example", name: "Bob", teams: ["support"] },
+    { id: "m3", email: "cleo@acme.example", name: "Cleo", teams: ["developer"] },
+    { id: "m4", email: "dan@acme.example", name: "Dan", teams: [] },
   ],
   invitations: [],
-  settings: { domains: [], defaultRole: "" },
+  settings: { domains: [], defaultTeams: [] },
 };
+// Ada holds every permission, Cleo may see and build tools; Bob and Dan hold none (D-137).
+const teams = { teams: TEAMS };
 const rule = (mode: string, extra: Record<string, unknown> = {}) => ({
   mode,
-  roles: [],
+  teams: [],
   people: [],
   updatedAt: "x",
   ...extra,
@@ -53,11 +55,12 @@ describe("the publish control (D-129)", () => {
     const { api, sent } = fakeApi({
       "/api/tools/crm/availability": rule("nobody"),
       "/api/members": members,
+      "/api/teams": teams,
       "PUT /api/tools/crm/availability": rule("everyone"),
     });
     const view = await mount(<Publish tool="crm" api={api} />);
     expect(view.textContent).toContain("Draft");
-    expect(who(view)).toContain("Admins only");
+    expect(who(view)).toContain("People who give access");
     await openMenu(view);
     expect(menuItems()).toEqual(["Who has access"]);
     await click(document.querySelector('button[aria-label="More sharing actions"]'));
@@ -70,33 +73,35 @@ describe("the publish control (D-129)", () => {
     ]);
   });
 
-  it("publishes to roles, counting who they reach, and never offers admin or member", async () => {
+  it("publishes to teams, counting who they reach, and never offers the admin team", async () => {
     const { api, sent } = fakeApi({
       "/api/tools/crm/availability": rule("nobody"),
       "/api/members": members,
-      "PUT /api/tools/crm/availability": rule("roles", { roles: ["support"] }),
+      "/api/teams": teams,
+      "PUT /api/tools/crm/availability": rule("teams", { teams: ["support"] }),
     });
     const view = await mount(<Publish tool="crm" api={api} />);
     await click(button(view, "Publish"));
-    await click(dialog().querySelector<HTMLInputElement>("input[value=roles]"));
+    await click(dialog().querySelector<HTMLInputElement>("input[value=teams]"));
     const labels = [...dialog().querySelectorAll(".fc-checks label")].map((l) => l.textContent);
-    expect(labels).toEqual(["developer", "support"]);
+    expect(labels).toEqual(["Developers", "Support"]);
     expect(inDialog("Publish")?.hasAttribute("disabled")).toBe(true);
     const support = [...dialog().querySelectorAll("label")].find(
-      (l) => l.textContent === "support",
+      (l) => l.textContent === "Support",
     );
     await click(support!.querySelector("input"));
     expect(dialog().textContent).toContain(
-      "2 people will have access, of 4: admins, and the people who hold support.",
+      "2 people will have access, of 4: people who give access, and the members of Support.",
     );
     await click(inDialog("Publish"));
-    expect(sent[0]!.body).toEqual({ mode: "roles", roles: ["support"] });
+    expect(sent[0]!.body).toEqual({ mode: "teams", teams: ["support"] });
   });
 
   it("finds people by a search and publishes to them", async () => {
     const { api, sent } = fakeApi({
       "/api/tools/crm/availability": rule("nobody"),
       "/api/members": members,
+      "/api/teams": teams,
       "PUT /api/tools/crm/availability": rule("people", { people: ["m4"] }),
     });
     const view = await mount(<Publish tool="crm" api={api} />);
@@ -114,13 +119,14 @@ describe("the publish control (D-129)", () => {
 
   it("says who it is published to, manages the sharing, and unpublishes after a confirmation", async () => {
     const { api, sent } = fakeApi({
-      "/api/tools/crm/availability": rule("roles", { roles: ["developer", "support"] }),
+      "/api/tools/crm/availability": rule("teams", { teams: ["developer", "support"] }),
       "/api/members": members,
+      "/api/teams": teams,
       "PUT /api/tools/crm/availability": rule("nobody"),
     });
     const view = await mount(<Publish tool="crm" api={api} />);
     expect(view.textContent).toContain("Published");
-    expect(who(view)).toContain("developer, support");
+    expect(who(view)).toContain("Developers, Support");
     expect(button(view, "Manage sharing")).toBeTruthy();
     await openMenu(view);
     expect(menuItems()).toEqual(["Who has access", "Unpublish"]);
@@ -129,7 +135,7 @@ describe("the publish control (D-129)", () => {
         (i) => i.textContent === "Unpublish",
       ),
     );
-    expect(dialog().textContent).toContain("2 people other than admins will lose access");
+    expect(dialog().textContent).toContain("2 people will lose access");
     await click(inDialog("Unpublish"));
     expect(sent[0]!.body).toEqual({ mode: "nobody" });
   });
@@ -138,6 +144,7 @@ describe("the publish control (D-129)", () => {
     const { api } = fakeApi({
       "/api/tools/crm/availability": rule("people", { people: ["m2"] }),
       "/api/members": members,
+      "/api/teams": teams,
     });
     const view = await mount(<Publish tool="crm" api={api} />);
     expect(who(view)).toContain("Bob");
@@ -153,7 +160,7 @@ describe("the publish control (D-129)", () => {
     expect(dialog().textContent).not.toContain("Dan");
   });
 
-  it("treats a channel with no rule as a draft, open to developers on a branch only", async () => {
+  it("treats a channel with no rule as a draft, open to those who see tools on a branch only", async () => {
     const open = rule("open", { updatedAt: null });
     const permanent = await mount(
       <Publish
@@ -163,12 +170,13 @@ describe("the publish control (D-129)", () => {
           fakeApi({
             "/api/tools/crm/previews/~staging/availability": open,
             "/api/members": members,
+            "/api/teams": teams,
           }).api
         }
       />,
     );
     expect(permanent.textContent).toContain("Draft");
-    expect(who(permanent)).toContain("Admins only");
+    expect(who(permanent)).toBe("People who publish");
     await cleanup();
     const branch = await mount(
       <Publish
@@ -178,17 +186,66 @@ describe("the publish control (D-129)", () => {
           fakeApi({
             "/api/tools/crm/previews/feat-x/availability": open,
             "/api/members": members,
+            "/api/teams": teams,
           }).api
         }
       />,
     );
-    expect(who(branch)).toContain("Admins and developers");
+    expect(who(branch)).toBe("People who publish or see tools");
+  });
+
+  it("turns Publish off, and says why, while the channel has no version", async () => {
+    const { api } = fakeApi({
+      "/api/tools/crm/availability": rule("nobody"),
+      "/api/members": members,
+      "/api/teams": teams,
+    });
+    const publishing = (deployed: boolean) => {
+      function View() {
+        const p = usePublishing(api, "crm", undefined, true);
+        return <PublishControl tool="crm" api={api} publishing={p} deployed={deployed} />;
+      }
+      return <View />;
+    };
+    const view = await mount(publishing(false));
+    expect(button(view, "Publish").disabled).toBe(true);
+    expect(button(view, "Publish").title).toBe(
+      "Nothing to publish yet: no version is deployed on this channel.",
+    );
+    await cleanup();
+    const ready = await mount(publishing(true));
+    expect(button(ready, "Publish").disabled).toBe(false);
+  });
+
+  it("puts the tool's other actions in the chevron menu, around Unpublish", async () => {
+    const { api } = fakeApi({
+      "/api/tools/crm/availability": rule("everyone"),
+      "/api/members": members,
+      "/api/teams": teams,
+    });
+    const entries = {
+      links: [{ kind: "action", label: "Open in my tools", onSelect: () => {} }],
+      danger: [{ kind: "action", label: "Delete tool…", tone: "danger", onSelect: () => {} }],
+    } as const;
+    function View() {
+      const p = usePublishing(api, "crm", undefined, true);
+      return <PublishControl tool="crm" api={api} publishing={p} menu={entries} />;
+    }
+    const view = await mount(<View />);
+    await openMenu(view);
+    expect(menuItems()).toEqual([
+      "Who has access",
+      "Open in my tools",
+      "Unpublish",
+      "Delete tool…",
+    ]);
   });
 
   it("shows production with no rule as published to everyone, as before libraries", async () => {
     const { api } = fakeApi({
       "/api/tools/crm/availability": rule("open", { updatedAt: null }),
       "/api/members": members,
+      "/api/teams": teams,
     });
     const view = await mount(<Publish tool="crm" api={api} />);
     expect(view.textContent).toContain("Published");
@@ -198,15 +255,50 @@ describe("the publish control (D-129)", () => {
   });
 });
 
-describe("audience", () => {
-  it("always has the admins, and developers on a branch only", () => {
-    const nobody = { mode: "nobody" as const, roles: [], people: [] };
-    expect(audience(nobody, members.members).map((m) => m.id)).toEqual(["m1"]);
-    expect(audience(nobody, members.members, "~staging").map((m) => m.id)).toEqual(["m1"]);
-    expect(audience(nobody, members.members, "feat-x").map((m) => m.id)).toEqual(["m1", "m3"]);
-    // Everyone holds member (D-128).
+describe("audience (D-137)", () => {
+  const nobody = { mode: "nobody" as const, teams: [], people: [] };
+  const ids = (list: Array<{ id: string }>) => list.map((m) => m.id);
+  it("always has those who give access, and those who see tools on a branch only", () => {
+    expect(ids(audience(nobody, members.members, TEAMS as never))).toEqual(["m1"]);
+    expect(ids(audience(nobody, members.members, TEAMS as never, "~staging"))).toEqual(["m1"]);
+    expect(ids(audience(nobody, members.members, TEAMS as never, "feat-x"))).toEqual(["m1", "m3"]);
+  });
+  it("mirrors the registry: tools:publish reaches every channel but production, access:write only production", () => {
+    const only = (id: string, ...effective: string[]) => ({ id, name: id, effective }) as never;
+    const person = (team: string) => [
+      { id: "m9", email: "z@acme.example", name: "Zed", teams: [team] },
+    ];
+    const teams = [
+      only("publisher", "tools:read", "tools:publish"),
+      only("access", "access:read", "access:write"),
+      only("reader", "tools:read"),
+    ];
+    const reach = (team: string, branch?: string) =>
+      ids(audience(nobody, person(team), teams, branch));
+    expect(reach("publisher")).toEqual([]);
+    expect(reach("publisher", "~staging")).toEqual(["m9"]);
+    expect(reach("publisher", "feat-x")).toEqual(["m9"]);
+    expect(reach("access")).toEqual(["m9"]);
+    expect(reach("access", "~staging")).toEqual([]);
+    expect(reach("reader", "feat-x")).toEqual(["m9"]);
+    expect(reach("reader", "~staging")).toEqual([]);
+    expect(reach("reader")).toEqual([]);
+    // Once a rule is set on a channel, whoever gives access passes it, as isAvailable has it.
+    const published = { mode: "teams" as const, teams: ["other"], people: [] };
+    expect(ids(audience(published, person("access"), teams, "~staging"))).toEqual(["m9"]);
+  });
+  it("adds the members of the teams it names, and everyone when it says so", () => {
     expect(
-      audience({ mode: "roles", roles: ["member"], people: [] }, members.members),
+      ids(
+        audience(
+          { mode: "teams", teams: ["support"], people: [] },
+          members.members,
+          TEAMS as never,
+        ),
+      ),
+    ).toEqual(["m1", "m2"]);
+    expect(
+      audience({ mode: "everyone", teams: [], people: [] }, members.members, TEAMS as never),
     ).toHaveLength(4);
   });
 });

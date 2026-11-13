@@ -9,7 +9,7 @@ import { DOC_IMAGE_TYPES, InterfaceSchema, ToolNameSchema } from "./schema";
 
 const text = z.string();
 
-/** Whether the person's roles let them call at least one action: `requestable` means ask an admin. */
+/** Whether the person's teams let them call at least one action: `requestable` means ask someone who gives access. */
 export const CatalogAccessSchema = z.enum(["granted", "requestable"]);
 
 /** An asset of the card: `url` is ready to use in an `<img>` and carries the hash (immutable). */
@@ -32,8 +32,11 @@ export const CatalogToolSchema = z.strictObject({
   productionVersion: text.nullable(),
   interfaces: z.record(InterfaceSchema, z.boolean()),
   access: CatalogAccessSchema,
-  /** The workspace roles that may call at least one action (D-127), with a label that says what each is given. */
-  roles: z.array(z.strictObject({ name: text, label: text })),
+  /**
+   * The subjects that may call at least one action (D-137): `subject` is `everyone` or `team:<id>`,
+   * `name` what to show ("Everyone", the team's name), `label` what the subject is given.
+   */
+  subjects: z.array(z.strictObject({ subject: text, name: text, label: text })),
 });
 
 export const CatalogResponseSchema = z.strictObject({ tools: z.array(CatalogToolSchema) });

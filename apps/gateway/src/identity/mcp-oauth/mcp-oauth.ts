@@ -303,7 +303,7 @@ export async function handleAuthorize(request: Request, context: McpOAuthContext
     if (reach === "unavailable") {
       return errorPage(403, {
         workspace: context.workspace,
-        detail: "This tool is not available to you. Ask an admin.",
+        detail: "This tool is not available to you. Ask someone who can give access.",
       });
     }
     if (reach === "not-installed") {

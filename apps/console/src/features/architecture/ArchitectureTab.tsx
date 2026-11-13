@@ -17,8 +17,8 @@ function isManifest(value: unknown): value is Manifest {
   const object = (v: unknown) => typeof v === "object" && v !== null;
   return (
     typeof m.name === "string" &&
-    ["interfaces", "roles", "actions", "views", "jobs", "events", "resources", "uses"].every((k) =>
-      object(m[k]),
+    ["interfaces", "profiles", "actions", "views", "jobs", "events", "resources", "uses"].every(
+      (k) => object(m[k]),
     )
   );
 }

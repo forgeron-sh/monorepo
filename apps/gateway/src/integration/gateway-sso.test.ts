@@ -114,7 +114,7 @@ describe("provider configuration", () => {
             clientId: "forgeron",
             clientSecret: "entra-secret-for-tests",
             tenant: TENANT,
-            groupRoles: { "grp-devs": "developer" },
+            groupTeams: { "grp-devs": "developer" },
           },
           admin,
         ),
@@ -145,7 +145,7 @@ describe("provider configuration", () => {
     expect(denied.status).toBe(403);
   });
 
-  it("signs in through Entra: the tenant is enforced, the UPN is the email, groups give roles", async () => {
+  it("signs in through Entra: the tenant is enforced, the UPN is the email, groups give teams", async () => {
     const idp = await simulatedProvider("lea@acme.fr", now, {
       issuer: ENTRA,
       claims: { tid: TENANT, preferred_username: "lea@acme.fr", groups: ["grp-devs", "other"] },
@@ -154,7 +154,7 @@ describe("provider configuration", () => {
     expect(person.status).toBe(302);
     expect(person.authorize).toContain("login.microsoftonline.com");
     const me = await gatewayFor()(at("/whoami", { headers: { cookie: person.cookie } }));
-    expect(await me.json()).toMatchObject({ email: "lea@acme.fr", roles: ["developer", "member"] });
+    expect(await me.json()).toMatchObject({ email: "lea@acme.fr", teams: ["developer"] });
 
     // A token from another directory is refused, even with a valid signature.
     const other = await simulatedProvider("x@acme.fr", now, {

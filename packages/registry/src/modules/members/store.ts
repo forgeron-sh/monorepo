@@ -1,6 +1,8 @@
+import { ADMIN_TEAM, isTeamId } from "@forgeron/permissions";
 import { RegistryError } from "../../kernel/errors";
 import type { Kernel } from "../../kernel/kernel";
-import { json, text } from "../../kernel/rows";
+import { json, text, type Row } from "../../kernel/rows";
+import type { TeamsPort } from "../teams/public";
 import { toInvitation, toMember } from "./types";
 import type { Member, Invitation, MembershipSettings, JoinVia } from "./types";
 
@@ -8,11 +10,71 @@ import type { Member, Invitation, MembershipSettings, JoinVia } from "./types";
 const IMAGE = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/;
 const MAX_IMAGE_BASE64 = 88_000;
 
-const ROLE = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/;
 const DOMAIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 
-export function createMembers(kernel: Kernel) {
+export function createMembers(kernel: Kernel, teams: TeamsPort) {
   const { d1, now, newId, all, first, write, auditStatement } = kernel;
+
+  /** The teams of one member, by id. */
+  const teamsOf = async (workspace: string, id: string): Promise<string[]> =>
+    (
+      await all(
+        `SELECT "team_id" FROM "team_members" WHERE "workspace" = ? AND "member_id" = ? ORDER BY "team_id"`,
+        workspace,
+        id,
+      )
+    ).map((r) => String(r.team_id));
+  /** The members of the rows, with their teams (one read for the whole workspace). */
+  const withTeams = async (workspace: string, rows: Row[]): Promise<Member[]> => {
+    if (rows.length === 0) return [];
+    const byMember = new Map<string, string[]>();
+    for (const r of await all(
+      `SELECT "team_id", "member_id" FROM "team_members" WHERE "workspace" = ? ORDER BY "team_id"`,
+      workspace,
+    )) {
+      const list = byMember.get(String(r.member_id)) ?? [];
+      list.push(String(r.team_id));
+      byMember.set(String(r.member_id), list);
+    }
+    return rows.map((r) => toMember(r, byMember.get(String(r.id)) ?? []));
+  };
+  /** The teams of the workspace among these ids: an id that is no team (deleted since) is left out. */
+  const knownTeams = async (workspace: string, ids: readonly string[]): Promise<string[]> => {
+    const unique = [...new Set(ids)].filter(isTeamId);
+    if (unique.length === 0) return [];
+    await teams.ensureBuiltInTeams(workspace);
+    const rows = await all(`SELECT "id" FROM "teams" WHERE "workspace" = ?`, workspace);
+    const exist = new Set(rows.map((r) => String(r.id)));
+    return unique.filter((id) => exist.has(id));
+  };
+  /** Refuses a team that is not one of the workspace, and one the actor may not put people in. */
+  const requireTeams = async (
+    workspace: string,
+    ids: readonly string[],
+    actorPermissions: readonly string[],
+  ): Promise<string[]> => {
+    const unique = [...new Set(ids)];
+    const known = await knownTeams(workspace, unique);
+    const unknown = unique.find((id) => !known.includes(id));
+    if (unknown !== undefined) {
+      throw new RegistryError("INVALID", `${unknown} is not a team of ${workspace}.`);
+    }
+    for (const id of unique) {
+      teams.requireMayGrant(actorPermissions, (await teams.findTeam(workspace, id))!.permissions);
+    }
+    return unique;
+  };
+  /** The members of the admin team other than this one. */
+  const otherAdmins = async (workspace: string, except: string): Promise<number> =>
+    (
+      await all(
+        `SELECT "member_id" FROM "team_members" WHERE "workspace" = ? AND "team_id" = ? AND "member_id" <> ?`,
+        workspace,
+        ADMIN_TEAM,
+        except,
+      )
+    ).length;
+
   return {
     // ---- seats (D-024: a person with an authenticated call in the workspace, per UTC month)
     /**
@@ -38,14 +100,14 @@ export function createMembers(kernel: Kernel) {
       return Number(row?.seats ?? 0);
     },
 
-    // ---- members (D-027): the people of a workspace and their roles
+    // ---- members (D-027): the people of a workspace and their teams (D-137)
     async findMember(workspace: string, id: string): Promise<Member | undefined> {
       const row = await first(
         `SELECT * FROM "members" WHERE "workspace" = ? AND "id" = ?`,
         workspace,
         id,
       );
-      return row ? toMember(row) : undefined;
+      return row ? toMember(row, await teamsOf(workspace, id)) : undefined;
     },
     /** Who the identity provider's `subject` is in this workspace, if they are a member. */
     async findMemberBySubject(workspace: string, subject: string): Promise<Member | undefined> {
@@ -54,33 +116,47 @@ export function createMembers(kernel: Kernel) {
         workspace,
         subject,
       );
-      return row ? toMember(row) : undefined;
+      return row ? toMember(row, await teamsOf(workspace, String(row.id))) : undefined;
     },
+    /** Adds a person, in these teams; a team of the list that does not exist is left out. */
     async addMember(input: {
       workspace: string;
       subject: string;
       email: string;
       name: string;
-      roles: string[];
+      teams: readonly string[];
     }): Promise<Member> {
-      const member: Member = { ...input, id: newId() };
-      await write(
-        `INSERT INTO "members" ("workspace", "id", "subject", "email", "name", "roles", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        member.workspace,
-        member.id,
-        member.subject,
-        member.email,
-        member.name,
-        JSON.stringify(member.roles),
-        now(),
-      );
+      const memberTeams = await knownTeams(input.workspace, input.teams);
+      const member: Member = {
+        workspace: input.workspace,
+        subject: input.subject,
+        email: input.email,
+        name: input.name,
+        teams: memberTeams,
+        id: newId(),
+      };
+      await d1.batch([
+        d1
+          .prepare(
+            `INSERT INTO "members" ("workspace", "id", "subject", "email", "name", "created_at") VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(member.workspace, member.id, member.subject, member.email, member.name, now()),
+        ...memberTeams.map((team) =>
+          d1
+            .prepare(
+              `INSERT INTO "team_members" ("workspace", "team_id", "member_id") VALUES (?, ?, ?)`,
+            )
+            .bind(member.workspace, team, member.id),
+        ),
+      ]);
       return member;
     },
 
     async listMembers(workspace: string): Promise<Member[]> {
-      return (
-        await all(`SELECT * FROM "members" WHERE "workspace" = ? ORDER BY "email"`, workspace)
-      ).map(toMember);
+      return withTeams(
+        workspace,
+        await all(`SELECT * FROM "members" WHERE "workspace" = ? ORDER BY "email"`, workspace),
+      );
     },
 
     // ---- members, invitations and allowed domains (D-049). Every change writes its audit line in
@@ -92,55 +168,73 @@ export function createMembers(kernel: Kernel) {
         workspace,
         email.toLowerCase(),
       );
-      return row ? toMember(row) : undefined;
+      return row ? toMember(row, await teamsOf(workspace, String(row.id))) : undefined;
     },
-    /** Replaces a member's roles. The last administrator cannot lose the role. */
-    async setMemberRoles(
+    /**
+     * Replaces the teams a member is in. Each team added or removed is a change of who holds its
+     * permissions: the actor (`actorPermissions`, their platform permissions) may only make it for a
+     * team whose permissions they hold. The last member of `admin` cannot leave it.
+     */
+    async setMemberTeams(
       workspace: string,
       id: string,
-      roles: readonly string[],
+      teamIds: readonly string[],
       actor: string,
+      actorPermissions: readonly string[],
       /** Through which door the change came, when it is not the console (`VIA_FORGERON_MCP`). */
       via?: string,
     ): Promise<Member> {
-      const clean = [...new Set(roles)];
-      if (clean.some((r) => !ROLE.test(r))) {
-        throw new RegistryError("INVALID", "A role is a name of letters, digits, - and _.");
-      }
-      if (clean.some((r) => r.startsWith("team-"))) {
-        throw new RegistryError(
-          "INVALID",
-          "A role cannot start with team-: that is how a team is named in the access matrix.",
-        );
-      }
       const member = await this.findMember(workspace, id);
       if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
-      if (member.roles.includes("admin") && !clean.includes("admin")) {
+      const wanted = [...new Set(teamIds)].sort();
+      const known = await knownTeams(workspace, wanted);
+      const unknown = wanted.find((t) => !known.includes(t));
+      if (unknown !== undefined) {
+        throw new RegistryError("INVALID", `${unknown} is not a team of ${workspace}.`);
+      }
+      const changed = [
+        ...wanted.filter((t) => !member.teams.includes(t)),
+        ...member.teams.filter((t) => !wanted.includes(t)),
+      ];
+      for (const team of changed) {
+        teams.requireMayGrant(
+          actorPermissions,
+          (await teams.findTeam(workspace, team))!.permissions,
+        );
+      }
+      if (member.teams.includes(ADMIN_TEAM) && !wanted.includes(ADMIN_TEAM)) {
         await this.requireOtherAdmin(workspace, id);
       }
       await d1.batch([
         d1
-          .prepare(`UPDATE "members" SET "roles" = ? WHERE "workspace" = ? AND "id" = ?`)
-          .bind(JSON.stringify(clean), workspace, id),
+          .prepare(`DELETE FROM "team_members" WHERE "workspace" = ? AND "member_id" = ?`)
+          .bind(workspace, id),
+        ...wanted.map((team) =>
+          d1
+            .prepare(
+              `INSERT INTO "team_members" ("workspace", "team_id", "member_id") VALUES (?, ?, ?)`,
+            )
+            .bind(workspace, team, id),
+        ),
         auditStatement(
           {
             actor,
             interface: "api",
             ...(via ? { via } : {}),
             kind: "access",
-            subject: "member:roles",
-            detail: { workspace, member: id, email: member.email, from: member.roles, to: clean },
+            subject: "member:teams",
+            detail: { workspace, member: id, email: member.email, from: member.teams, to: wanted },
           },
           now(),
         ),
       ]);
-      return { ...member, roles: clean };
+      return { ...member, teams: wanted };
     },
     /** Removes a member. Their sessions and tokens stop working at once. */
     async removeMember(workspace: string, id: string, actor: string): Promise<void> {
       const member = await this.findMember(workspace, id);
       if (!member) throw new RegistryError("NOT_FOUND", `${id} is not a member of ${workspace}.`);
-      if (member.roles.includes("admin")) await this.requireOtherAdmin(workspace, id);
+      if (member.teams.includes(ADMIN_TEAM)) await this.requireOtherAdmin(workspace, id);
       // What the person gave the workspace's tools goes with them (D-097): their plain values and
       // their sealed secrets. The rows are the secrets module's, written here in the same batch so
       // that a removed person never leaves personal data behind.
@@ -174,7 +268,7 @@ export function createMembers(kernel: Kernel) {
             interface: "api",
             kind: "access",
             subject: "member:remove",
-            detail: { workspace, member: id, email: member.email, roles: member.roles },
+            detail: { workspace, member: id, email: member.email, teams: member.teams },
           },
           now(),
         ),
@@ -259,24 +353,28 @@ export function createMembers(kernel: Kernel) {
       ]);
     },
     async requireOtherAdmin(workspace: string, except: string): Promise<void> {
-      const others = (await this.listMembers(workspace)).filter(
-        (m) => m.id !== except && m.roles.includes("admin"),
-      );
-      if (others.length === 0) {
+      if ((await otherAdmins(workspace, except)) === 0) {
         throw new RegistryError("LAST_ADMIN", "A workspace needs at least one administrator.");
       }
     },
 
-    /** Invites an email with roles; inviting it again replaces the invitation and its expiry. */
+    /**
+     * Invites an email into teams (none: a person of everyone only); inviting it again replaces the
+     * invitation and its expiry. Like a change of teams, it is limited to what the inviter holds
+     * (`actorPermissions`).
+     */
     async inviteMember(
       workspace: string,
-      input: { email: string; roles: readonly string[]; invitedBy: string; expiresAt: Date },
+      input: {
+        email: string;
+        teams: readonly string[];
+        invitedBy: string;
+        expiresAt: Date;
+        actorPermissions: readonly string[];
+      },
     ): Promise<Invitation> {
       const email = input.email.trim().toLowerCase();
-      const roles = [...new Set(input.roles)];
-      if (roles.some((r) => !ROLE.test(r))) {
-        throw new RegistryError("INVALID", "A role is a name of letters, digits, - and _.");
-      }
+      const invitedTeams = await requireTeams(workspace, input.teams, input.actorPermissions);
       if (await this.findMemberByEmail(workspace, email)) {
         throw new RegistryError("ALREADY_EXISTS", `${email} is already a member.`);
       }
@@ -284,7 +382,7 @@ export function createMembers(kernel: Kernel) {
       const invitation: Invitation = {
         workspace,
         email,
-        roles,
+        teams: invitedTeams,
         invitedBy: input.invitedBy,
         createdAt: at,
         expiresAt: input.expiresAt.toISOString(),
@@ -292,17 +390,24 @@ export function createMembers(kernel: Kernel) {
       await d1.batch([
         d1
           .prepare(
-            `INSERT INTO "invitations" ("workspace", "email", "roles", "invited_by", "created_at", "expires_at") VALUES (?, ?, ?, ?, ?, ?)
-         ON CONFLICT ("workspace", "email") DO UPDATE SET "roles" = excluded."roles", "invited_by" = excluded."invited_by", "created_at" = excluded."created_at", "expires_at" = excluded."expires_at"`,
+            `INSERT INTO "invitations" ("workspace", "email", "teams", "invited_by", "created_at", "expires_at") VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT ("workspace", "email") DO UPDATE SET "teams" = excluded."teams", "invited_by" = excluded."invited_by", "created_at" = excluded."created_at", "expires_at" = excluded."expires_at"`,
           )
-          .bind(workspace, email, JSON.stringify(roles), input.invitedBy, at, invitation.expiresAt),
+          .bind(
+            workspace,
+            email,
+            JSON.stringify(invitedTeams),
+            input.invitedBy,
+            at,
+            invitation.expiresAt,
+          ),
         auditStatement(
           {
             actor: input.invitedBy,
             interface: "api",
             kind: "access",
             subject: "member:invite",
-            detail: { workspace, email, roles },
+            detail: { workspace, email, teams: invitedTeams },
           },
           at,
         ),
@@ -365,37 +470,38 @@ export function createMembers(kernel: Kernel) {
     async joinMember(input: {
       workspace: string;
       email: string;
-      roles: readonly string[];
+      /** The teams the person joins; one that does not exist (deleted since) is left out. */
+      teams: readonly string[];
       via: JoinVia;
       /** A provider's own id for the person; `email:<address>` when they came by email alone. */
       subject?: string;
       name?: string;
     }): Promise<Member> {
       const email = input.email.toLowerCase();
+      const memberTeams = await knownTeams(input.workspace, input.teams);
       const member: Member = {
         workspace: input.workspace,
         id: newId(),
         subject: input.subject ?? `email:${email}`,
         email,
         name: input.name ?? email.split("@")[0] ?? email,
-        roles: [...input.roles],
+        teams: memberTeams,
       };
       const at = now();
       try {
         await d1.batch([
           d1
             .prepare(
-              `INSERT INTO "members" ("workspace", "id", "subject", "email", "name", "roles", "created_at") VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO "members" ("workspace", "id", "subject", "email", "name", "created_at") VALUES (?, ?, ?, ?, ?, ?)`,
             )
-            .bind(
-              member.workspace,
-              member.id,
-              member.subject,
-              member.email,
-              member.name,
-              JSON.stringify(member.roles),
-              at,
-            ),
+            .bind(member.workspace, member.id, member.subject, member.email, member.name, at),
+          ...memberTeams.map((team) =>
+            d1
+              .prepare(
+                `INSERT INTO "team_members" ("workspace", "team_id", "member_id") VALUES (?, ?, ?)`,
+              )
+              .bind(member.workspace, team, member.id),
+          ),
           ...(input.via === "invitation"
             ? [
                 d1
@@ -409,7 +515,7 @@ export function createMembers(kernel: Kernel) {
               interface: "web",
               kind: "access",
               subject: "member:join",
-              detail: { workspace: input.workspace, email, roles: member.roles, via: input.via },
+              detail: { workspace: input.workspace, email, teams: memberTeams, via: input.via },
             },
             at,
           ),
@@ -429,48 +535,51 @@ export function createMembers(kernel: Kernel) {
         workspace,
       );
       if (!row) return undefined;
-      const defaultRole = text(row.default_role);
       return {
         domains: json(row.domains) as string[],
-        ...(defaultRole ? { defaultRole } : {}),
+        defaultTeams: (json(row.default_teams) as string[] | null) ?? [],
       };
     },
-    /** Saves the allowed domains and default role as a whole; `admin` is never a default role. */
+    /**
+     * Saves the allowed domains and the teams their people join as a whole. `admin` is never a
+     * default team, and the actor may only name teams whose permissions they hold
+     * (`actorPermissions`).
+     */
     async setMembershipSettings(
       workspace: string,
       settings: MembershipSettings,
       actor: string,
+      actorPermissions: readonly string[],
     ): Promise<MembershipSettings> {
       const domains = [...new Set(settings.domains.map((d) => d.trim().toLowerCase()))];
       if (domains.some((d) => !DOMAIN.test(d))) {
         throw new RegistryError("INVALID", "Domains look like acme.fr (no @, no spaces).");
       }
-      if (settings.defaultRole !== undefined) {
-        if (!ROLE.test(settings.defaultRole) || settings.defaultRole === "admin") {
-          throw new RegistryError("INVALID", "The default role is a role name other than admin.");
-        }
+      if (settings.defaultTeams.includes(ADMIN_TEAM)) {
+        throw new RegistryError("INVALID", "People who join by domain cannot join the admin team.");
       }
+      const defaultTeams = await requireTeams(workspace, settings.defaultTeams, actorPermissions);
       const before = await this.getMembershipSettings(workspace);
       const at = now();
       await d1.batch([
         d1
           .prepare(
-            `INSERT INTO "membership_settings" ("workspace", "domains", "default_role", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT ("workspace") DO UPDATE SET "domains" = excluded."domains", "default_role" = excluded."default_role", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
+            `INSERT INTO "membership_settings" ("workspace", "domains", "default_teams", "updated_by", "updated_at") VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT ("workspace") DO UPDATE SET "domains" = excluded."domains", "default_teams" = excluded."default_teams", "updated_by" = excluded."updated_by", "updated_at" = excluded."updated_at"`,
           )
-          .bind(workspace, JSON.stringify(domains), settings.defaultRole ?? null, actor, at),
+          .bind(workspace, JSON.stringify(domains), JSON.stringify(defaultTeams), actor, at),
         auditStatement(
           {
             actor,
             interface: "api",
             kind: "access",
             subject: "member:domains",
-            detail: { workspace, from: before ?? null, to: { ...settings, domains } },
+            detail: { workspace, from: before ?? null, to: { domains, defaultTeams } },
           },
           at,
         ),
       ]);
-      return { domains, ...(settings.defaultRole ? { defaultRole: settings.defaultRole } : {}) };
+      return { domains, defaultTeams };
     },
   };
 }

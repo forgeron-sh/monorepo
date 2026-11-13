@@ -118,6 +118,7 @@ describe("making the app from its manifest", () => {
         workflows: "write",
         statuses: "write",
         administration: "write",
+        actions: "read",
         metadata: "read",
       },
       default_events: ["delete"],
@@ -437,35 +438,34 @@ describe("the console's GitHub", () => {
   });
 });
 
-const matrix = { access: "admin" as const };
 const as = async (request: Request, who: ConsolePerson | undefined) => {
   person = who;
   return (await caller("console")(request))!;
 };
 describeRouteMatrix({
   title: "GET /api/github",
-  ...matrix,
+  access: "settings:read",
   call: as,
   method: "GET",
   path: "/api/github",
 });
 describeRouteMatrix({
   title: "DELETE /api/github",
-  ...matrix,
+  access: "settings:write",
   call: as,
   method: "DELETE",
   path: "/api/github",
 });
 describeRouteMatrix({
   title: "GET /api/github/repositories",
-  ...matrix,
+  access: "tools:write",
   call: as,
   method: "GET",
   path: "/api/github/repositories",
 });
 describeRouteMatrix({
   title: "POST /api/github/repositories/link",
-  ...matrix,
+  access: "tools:write",
   call: as,
   method: "POST",
   path: "/api/github/repositories/link",
@@ -474,7 +474,7 @@ describeRouteMatrix({
 });
 describeRouteMatrix({
   title: "POST /api/github/tools",
-  ...matrix,
+  access: "tools:write",
   call: as,
   method: "POST",
   path: "/api/github/tools",

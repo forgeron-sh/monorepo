@@ -17,7 +17,7 @@ import { MarketplaceError } from "../marketplace/github";
 import { syncMarketplace } from "../marketplace/sync";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// The marketplaces of a workspace (D-116), for admins. `official` is the platform's catalogue
+// The marketplaces of a workspace (D-116), for who holds `marketplace:read` / `marketplace:write`. `official` is the platform's catalogue
 // (`@templates`, D-081), synced from `OFFICIAL_MARKETPLACE` when it is set; any other id is a GitHub
 // repository the workspace added, whose tools live in `@mp:<id>`. Installing copies a tool into the
 // workspace with the template install (one batch, audited, approvals pending).
@@ -103,7 +103,7 @@ async function later(c: Context<PlatformEnv>, work: () => Promise<unknown>) {
 }
 
 export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(listMarketplacesRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(listMarketplacesRoute, "marketplace:read"), async (c) => {
     const added = await c.env.registry.listMarketplaces(c.env.workspace);
     // No cron (D-121): opening the marketplaces syncs those read more than an hour ago, after the
     // answer, so a new release and the updates that go by themselves come without a click.
@@ -145,7 +145,7 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
     );
   });
 
-  app.openapi(platformRoute(addMarketplaceRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(addMarketplaceRoute, "marketplace:write"), async (c) => {
     const body = c.req.valid("json");
     try {
       const m = await c.env.registry.addMarketplace({
@@ -179,7 +179,7 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
     }
   });
 
-  app.openapi(platformRoute(removeMarketplaceRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(removeMarketplaceRoute, "marketplace:write"), async (c) => {
     const { id } = c.req.valid("param");
     if (id === OFFICIAL || !(await c.env.registry.findMarketplace(c.env.workspace, id))) {
       return c.json(missing(), 404);
@@ -193,7 +193,7 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
     return c.body(null, 204);
   });
 
-  app.openapi(platformRoute(syncMarketplaceRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(syncMarketplaceRoute, "marketplace:write"), async (c) => {
     const { id } = c.req.valid("param");
     const found = await locate(c, id, true);
     if (!found) return c.json(missing(), 404);
@@ -215,7 +215,7 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
     }
   });
 
-  app.openapi(platformRoute(listMarketplaceToolsRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(listMarketplaceToolsRoute, "marketplace:read"), async (c) => {
     const found = await locate(c, c.req.valid("param").id);
     if (!found) return c.json(missing(), 404);
     const tools = [];
@@ -234,7 +234,7 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ tools }, 200);
   });
 
-  app.openapi(platformRoute(marketplaceToolCardRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(marketplaceToolCardRoute, "marketplace:read"), async (c) => {
     const { id, tool } = c.req.valid("param");
     const found = await locate(c, id);
     const d = found ? await c.env.registry.describeTemplate(tool, found.source) : undefined;
@@ -254,10 +254,10 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
         readme: d.readme ?? null,
         guide: d.guide ?? null,
         interfaces: { ...m.interfaces },
-        // The tool's profiles (D-127), the default one marked: what `member` gets once installed.
-        roles: Object.entries(m.roles ?? {}).map(([name, role]) => ({
+        // The tool's profiles (D-127), the default one marked: what `everyone` gets once installed.
+        profiles: Object.entries(m.profiles ?? {}).map(([name, profile]) => ({
           name,
-          label: `${role.label ?? name}${name === defaultProfile(m.roles ?? {}) ? " (default)" : ""}`,
+          label: `${profile.label ?? name}${name === defaultProfile(m.profiles ?? {}) ? " (default)" : ""}`,
         })),
         actions: Object.entries(m.actions ?? {}).map(([name, a]) => ({
           name,
@@ -278,7 +278,7 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
     );
   });
 
-  app.openapi(platformRoute(installMarketplaceToolRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(installMarketplaceToolRoute, "marketplace:write"), async (c) => {
     const { id, tool } = c.req.valid("param");
     const found = await locate(c, id);
     if (!found) return c.json(missing(), 404);
@@ -320,7 +320,7 @@ export function mountMarketplaces(app: OpenAPIHono<PlatformEnv>): void {
     }
   });
 
-  app.openapi(platformRoute(planMarketplaceToolRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(planMarketplaceToolRoute, "marketplace:write"), async (c) => {
     const { id, tool } = c.req.valid("param");
     const found = await locate(c, id);
     if (!found) return c.json(missing(), 404);

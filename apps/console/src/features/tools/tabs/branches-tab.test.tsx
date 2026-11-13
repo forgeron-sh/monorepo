@@ -140,7 +140,7 @@ describe("the channels (D-125)", () => {
     ]);
   });
 
-  it("hides Roll back when production has no earlier version, and the menu from a non-admin", async () => {
+  it("hides Roll back when production has no earlier version, and the menu from someone who cannot change the tool", async () => {
     const lone = {
       ...branches,
       production: { ...branches.production, rollbackTo: undefined },
@@ -150,7 +150,7 @@ describe("the channels (D-125)", () => {
     expect(button(page, "Roll back")).toBeUndefined();
     await cleanup();
     const fake = toolsApi(routes);
-    const member = await mount(<BranchesTab {...tabProps(fake.api, "crm", false)} />);
+    const member = await mount(<BranchesTab {...tabProps(fake.api, "crm", [])} />);
     expect(member.querySelector('[aria-label="Actions for feat-export"]')).toBeNull();
   });
 

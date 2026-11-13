@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { PLATFORM_PERMISSIONS } from "@forgeron/permissions";
 import { afterEach, describe, expect, it } from "vitest";
 import { InstallPage, loadProvider, SignInPage, splitCertificates } from "./settings";
 import { button, cleanup, click, fakeApi, field, mount, refusal, submit, type } from "./test-utils";
@@ -9,7 +10,13 @@ afterEach(cleanup);
 const ws = (patch: Partial<WorkspaceInfo> = {}): WorkspaceInfo => ({
   workspace: "demo",
   endpoint: "https://demo.example.test",
-  person: { id: "m1", email: "ada@acme.fr", name: "ada", roles: ["admin"], admin: true },
+  person: {
+    id: "m1",
+    email: "ada@acme.fr",
+    name: "ada",
+    teams: ["admin"],
+    permissions: [...PLATFORM_PERMISSIONS],
+  },
   setup: { members: 1, invitations: 0, tools: 0, deployed: 0, called: false },
   signIn: {
     email: { enabled: true, mail: "console" },
@@ -31,10 +38,10 @@ describe("loadProvider", () => {
         clientId: "c",
         tenant: "t",
         clientSecret: "leaked",
-        groupRoles: { g: "r" },
+        groupTeams: { g: "r" },
       },
     }));
-    expect(oidc).toEqual({ kind: "entra", clientId: "c", tenant: "t", groupRoles: { g: "r" } });
+    expect(oidc).toEqual({ kind: "entra", clientId: "c", tenant: "t", groupTeams: { g: "r" } });
     const saml = await loadProvider(async () => ({
       provider: { kind: "saml", idpEntityId: "e", ssoUrl: "https://i", certificates: [CERT] },
     }));
@@ -46,15 +53,30 @@ describe("loadProvider", () => {
 });
 
 describe("SignInPage", () => {
-  it("is for admins", async () => {
+  it("needs settings:read, and says what to ask for", async () => {
     const { api } = fakeApi({});
     const page = await mount(
       <SignInPage
         api={api}
-        ws={ws({ person: { id: "m2", email: "b", name: "b", roles: [], admin: false } })}
+        ws={ws({ person: { id: "m2", email: "b", name: "b", teams: [], permissions: [] } })}
       />,
     );
-    expect(page.textContent).toContain("Sign-in is for admins.");
+    expect(page.textContent).toContain('Sign-in needs the permission "See settings".');
+    expect(page.textContent).toContain('Ask someone who manages teams for "See settings".');
+  });
+
+  it("shows how people sign in to someone who may only read, with the forms disabled", async () => {
+    const { api } = fakeApi({ "/api/identity-provider": { provider: null } });
+    const page = await mount(
+      <SignInPage
+        api={api}
+        ws={ws({
+          person: { id: "m2", email: "b", name: "b", teams: [], permissions: ["settings:read"] },
+        })}
+      />,
+    );
+    expect(page.textContent).toContain('Changing it needs the permission "Change settings"');
+    expect(page.querySelector("fieldset[disabled]")).toBeTruthy();
   });
 
   it("says how email sign-in works, and warns about the console mail mode", async () => {
@@ -107,14 +129,14 @@ describe("SignInPage", () => {
     expect(page.textContent).toContain("OpenID Connect saved.");
   });
 
-  it("keeps the saved secret when the field is empty, and keeps the group roles", async () => {
+  it("keeps the saved secret when the field is empty, and keeps the group teams", async () => {
     const { api, sent } = fakeApi({
       "/api/identity-provider": {
         provider: {
           kind: "google",
           clientId: "c",
           hostedDomain: "acme.fr",
-          groupRoles: { g: "admin" },
+          groupTeams: { g: "admin" },
         },
       },
       "PUT /api/identity-provider": {},
@@ -126,7 +148,7 @@ describe("SignInPage", () => {
       kind: "google",
       clientId: "c",
       hostedDomain: "acme.fr",
-      groupRoles: { g: "admin" },
+      groupTeams: { g: "admin" },
     });
   });
 
@@ -171,7 +193,7 @@ describe("SignInPage", () => {
           idpEntityId: "e",
           ssoUrl: "https://i",
           certificates: [CERT],
-          groupRoles: {},
+          groupTeams: {},
         },
       },
       "DELETE /api/identity-provider": undefined,

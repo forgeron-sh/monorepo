@@ -3,17 +3,16 @@ import { RegistryError } from "@forgeron/registry";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// The secrets of a tool in one environment (docs/sdk.md §5), for admins. A value goes in and never
+// The secrets of a tool in one environment (docs/sdk.md §5), for who holds `tools:secrets`. A value goes in and never
 // comes out: the answers carry names.
 
-const FORBIDDEN = "Secrets are for admins.";
 const SECRET_NAME = /^[A-Z][A-Z0-9_]*$/;
 const missing = (message: string) => ({ error: "NOT_FOUND", message });
 const isEnvironment = (name: string): name is "preview" | "production" =>
   name === "preview" || name === "production";
 
 export function mountSecrets(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(listSecretsRoute, "admin", FORBIDDEN), async (c) => {
+  app.openapi(platformRoute(listSecretsRoute, "tools:secrets"), async (c) => {
     const { registry, workspace } = c.env;
     const { tool: name, environment } = c.req.valid("param");
     const tool = await registry.findTool(workspace, name);
@@ -23,7 +22,7 @@ export function mountSecrets(app: OpenAPIHono<PlatformEnv>): void {
   });
 
   app.openapi(
-    platformRoute(setSecretRoute, "admin", FORBIDDEN),
+    platformRoute(setSecretRoute, "tools:secrets"),
     async (c) => {
       const { registry, workspace } = c.env;
       const { tool: toolName, environment, name } = c.req.valid("param");
@@ -45,8 +44,8 @@ export function mountSecrets(app: OpenAPIHono<PlatformEnv>): void {
         : c.json({ error: "INVALID", message: "`value` is a non-empty string (16 KB max)." }, 400),
   );
 
-  // Sealing again under the current key (D-108): counts only, for the workspace's admins.
-  app.openapi(platformRoute(resealSecretsRoute, "admin", FORBIDDEN), async (c) => {
+  // Sealing again under the current key (D-108): counts only, for who holds `tools:secrets`.
+  app.openapi(platformRoute(resealSecretsRoute, "tools:secrets"), async (c) => {
     const { reseal, workspace } = c.env;
     if (!reseal) {
       return c.json({ error: "NO_SECRET_KEY", message: "The gateway has no `SECRETS_KEY`." }, 409);

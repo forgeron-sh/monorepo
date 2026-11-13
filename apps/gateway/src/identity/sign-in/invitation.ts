@@ -33,7 +33,7 @@ export async function findInvitationById(
   for (const invitation of await registry.listInvitations(workspace)) {
     if ((await invitationId(secret, invitation)) !== id) continue;
     const inviter = await registry.findMember(workspace, invitation.invitedBy);
-    return { invitation, inviter: inviter?.name || inviter?.email || "A workspace administrator" };
+    return { invitation, inviter: inviter?.name || inviter?.email || "Someone from the workspace" };
   }
   return undefined;
 }

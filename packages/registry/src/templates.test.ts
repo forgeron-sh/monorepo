@@ -24,7 +24,7 @@ afterEach(() => memory.close());
 
 const manifest = (name: string, resources: object) => ({
   name,
-  roles: {},
+  profiles: {},
   actions: {},
   resources,
 });

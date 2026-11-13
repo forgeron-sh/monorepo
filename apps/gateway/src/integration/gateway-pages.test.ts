@@ -248,16 +248,16 @@ describe("the invitation landing", () => {
   beforeAll(async () => {
     admin = await signIn("root@acme.fr", "203.0.113.70");
   });
-  const invite = (email: string, roles: string[]) =>
+  const invite = (email: string, teams: string[]) =>
     gateway()(
       new Request(`${ORIGIN}/console-api/api/invitations`, {
         method: "POST",
         headers: { "content-type": "application/json", cookie: admin },
-        body: JSON.stringify({ email, roles }),
+        body: JSON.stringify({ email, teams }),
       }),
     );
 
-  it("names who invited the person, to which workspace and with which role", async () => {
+  it("names who invited the person, to which workspace and with which teams", async () => {
     expect((await invite("ada@external.test", ["developer"])).status).toBe(201);
     const link = linkOf()!;
     expect(link).toBeDefined();
@@ -268,7 +268,7 @@ describe("the invitation landing", () => {
     const html = await expectShell(landing);
     expect(html).toContain("<title>Join acme · Forgeron</title>");
     expect(html).toMatch(/invited you to the acme workspace/);
-    expect(html).toMatch(/Role<\/dt><dd>developer/);
+    expect(html).toMatch(/You join the teams<\/dt><dd>developer/);
     expect(html).toMatch(/Invited by<\/dt><dd>root</);
     expect(html).toContain('value="ada@external.test" readonly');
     // The id alone opens nothing: no cookie is set, and no session comes of it.
@@ -284,12 +284,12 @@ describe("the invitation landing", () => {
   });
 
   it("is the same page for a link that is wrong, expired, withdrawn or replaced", async () => {
-    expect((await invite("eve@external.test", ["viewer"])).status).toBe(201);
+    expect((await invite("eve@external.test", ["developer"])).status).toBe(201);
     const first = linkOf()!;
     expect((await get(first)).status).toBe(200);
     // Inviting again replaces the invitation: the old link stops working.
     clock = new Date(clock.getTime() + 1000);
-    expect((await invite("eve@external.test", ["viewer"])).status).toBe(201);
+    expect((await invite("eve@external.test", ["developer"])).status).toBe(201);
     expect(linkOf()).not.toBe(first);
     const replaced = await get(first);
     const wrongId = await get("/auth/invite/not-a-real-id");
@@ -315,10 +315,9 @@ describe("the invitation landing", () => {
       /Open https:\/\/acme\.forgeron\.app\/auth\/invite\/[\w-]{32} to accept/,
     );
     expect((await get(linkOf()!)).status).toBe(200);
-    // Invited with no role, they hold member all the same (D-128).
+    // Invited in no team: the page says nothing of teams.
     const page = await (await get(linkOf()!)).text();
-    expect(page).not.toContain("no role yet");
-    expect(page).toMatch(/>member</);
+    expect(page).not.toContain("You join the teams");
   });
 });
 

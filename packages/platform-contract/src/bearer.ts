@@ -41,7 +41,9 @@ export const whoamiRoute = defineRoute({
         id: z.string(),
         email: z.string(),
         name: z.string().optional(),
-        roles: z.array(z.string()),
+        teams: z.array(z.string()),
+        /** What the person may do on the platform (D-137), as `/api/workspace` tells it. */
+        permissions: z.array(z.string()),
         workspace: z.string(),
       }),
       "The person and the workspace",
@@ -54,8 +56,7 @@ export const createDeployTokenRoute = defineRoute({
   method: "post",
   path: "/deploy-tokens",
   summary: "A deployment token for one tool, shown once",
-  description:
-    "Only an administrator of the workspace, by session or by a token of `forgeron login`.",
+  description: "A person who holds `tools:write`, by session or by a token of `forgeron login`.",
   tags: ["cli"],
   request: {
     body: jsonBody(
@@ -81,7 +82,7 @@ export const createDeployTokenRoute = defineRoute({
     ),
     400: refusal("The body is not valid"),
     401: refusal("Not signed in"),
-    403: refusal("Not an administrator"),
+    403: refusal("Lacks the permission"),
   },
 });
 
@@ -93,7 +94,7 @@ const deployed = z.strictObject({
   applied: z.array(z.string()),
   /**
    * After a release on the branch production follows (D-121, D-125): the version production took by
-   * itself, or why it waits for an admin. Absent when production does not update by itself.
+   * itself, or why it waits for an approval. Absent when production does not update by itself.
    */
   production: z
     .union([z.strictObject({ version: z.string() }), z.strictObject({ waiting: z.string() })])
@@ -117,7 +118,7 @@ export const deployRoute = defineRoute({
   path: "/deploy",
   summary: "Publish a build of a branch to its temporary channel",
   description:
-    "With the tool's deployment token (`FORGERON_TOKEN`) or GitHub Actions' identity. The tool is the credential's, never the body's. A build goes to its branch's temporary channel only (D-125): a permanent channel takes the releases of the branch it follows, by itself or by an admin's update. `environment: production` is refused.",
+    "With the tool's deployment token (`FORGERON_TOKEN`) or GitHub Actions' identity. The tool is the credential's, never the body's. A build goes to its branch's temporary channel only (D-125): a permanent channel takes the releases of the branch it follows, by itself or by an update of someone who holds `tools:write`. `environment: production` is refused.",
   tags: ["cli"],
   request: {
     body: jsonBody(
@@ -160,7 +161,7 @@ export const closePreviewRoute = defineRoute({
   path: "/deploy",
   summary: "Remove the preview of a branch",
   description:
-    "With the tool's deployment token, or an administrator by session (who names the `tool`). Removing a preview that is already gone succeeds.",
+    "With the tool's deployment token, or a person who holds `tools:write` by session (who names the `tool`). Removing a preview that is already gone succeeds.",
   tags: ["cli"],
   request: {
     body: jsonBody(z.strictObject({ branch: z.string(), tool: z.string().optional() })),
@@ -181,7 +182,7 @@ export const closePreviewRoute = defineRoute({
 const rollbackErrors = {
   400: refusal("The body is not valid"),
   401: refusal("Not signed in, and no deployment token"),
-  403: refusal("Not an administrator, or a token for another tool"),
+  403: refusal("Lacks the permission, or a token for another tool"),
   404: refusal("No such tool, or no such version"),
   409: refusal("A migration is refused, there is nothing to go back to, or an approval is pending"),
   422: refusal("The changelog or the artifact refuses it"),
@@ -194,7 +195,7 @@ export const rollbackRoute = defineRoute({
   path: "/rollback",
   summary: "Serve the version a channel served before the current one",
   description:
-    "With the tool's deployment token, or an administrator by session or by a token of `forgeron login` (who names the `tool`). The channel goes back to a version it served: no new code (D-125). No migration is applied or rolled back.",
+    "With the tool's deployment token, or a person who holds `tools:publish`, by session or by a token of `forgeron login` (who names the `tool`). The channel goes back to a version it served: no new code (D-125). No migration is applied or rolled back.",
   tags: ["cli"],
   request: {
     body: jsonBody(

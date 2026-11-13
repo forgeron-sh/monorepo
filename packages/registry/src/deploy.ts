@@ -80,7 +80,7 @@ async function requestApprovals(
   }
 }
 
-/** A permanent channel waits for an admin; a preview does not. */
+/** A permanent channel waits for an approval (`tools:approve`); a preview does not. */
 async function assertApproved(
   registry: Registry,
   environment: RegisteredEnvironment,
@@ -91,7 +91,7 @@ async function assertApproved(
   if (waiting.length > 0) {
     throw new RegistryError(
       "PENDING_APPROVAL",
-      `${environment} waits for an admin to approve: ${waiting.map((a) => a.resource).join(", ")}.`,
+      `${environment} waits for someone who approves resources: ${waiting.map((a) => a.resource).join(", ")}.`,
     );
   }
 }
@@ -172,7 +172,7 @@ export async function deployBuild(
     ...(input.commit ? { commit: input.commit } : {}),
   });
   // The tool arrives with its default mapping (D-127): `admin` all, `member` the default profile.
-  await registry.seedRoleProfiles(tool.id, build.manifest as Manifest, input.actor);
+  await registry.seedAccessGrants(tool.id, build.manifest as Manifest, input.actor);
   return { ...deployment, version, environment };
 }
 
@@ -239,7 +239,7 @@ export async function putOnChannel(
     url: deployment.activation.url,
     ...(input.reason ? { reason: input.reason } : {}),
   });
-  await registry.seedRoleProfiles(tool.id, record.manifest as Manifest, input.actor);
+  await registry.seedAccessGrants(tool.id, record.manifest as Manifest, input.actor);
   return { ...deployment, version, environment };
 }
 
@@ -330,6 +330,23 @@ export async function closeChannel(
   if (!environment) throw new RegistryError("NOT_FOUND", `There is no channel ${channel}.`);
   await hosting.teardown({ tool: tool.name, name: "channel", channel });
   await registry.removeEnvironment(environment.id);
+}
+
+/**
+ * An admin deletes a tool for good: every environment's Worker and database goes (production
+ * included, which `closeChannel` never does), then the tool's rows, which cascade: builds, versions,
+ * environments, approvals, access, availability, libraries, secrets, sources. The audit log keeps
+ * its lines. A host that fails leaves the registry untouched, so the deletion can be tried again.
+ */
+export async function deleteToolEverywhere(
+  registry: Registry,
+  hosting: Hosting,
+  tool: Tool,
+): Promise<void> {
+  for (const environment of await registry.listEnvironments(tool.id)) {
+    await hosting.teardown(target(tool, environment.name, environment.branch, environment.channel));
+  }
+  await registry.deleteTool(tool.id);
 }
 
 /** An admin accepts everything a version asks for: it can now reach production. */

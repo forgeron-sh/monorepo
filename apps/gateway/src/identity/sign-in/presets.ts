@@ -1,3 +1,4 @@
+import { isTeamId } from "@forgeron/permissions";
 import type {
   IdentityProviderConfig,
   IdentityProviderInput,
@@ -11,7 +12,6 @@ import type { OidcProvider } from "./oidc";
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
-const ROLE = /^[a-z][a-z0-9-]{0,39}$/;
 
 const GOOGLE_ISSUER = "https://accounts.google.com";
 const entraIssuer = (tenant: string) => `https://login.microsoftonline.com/${tenant}/v2.0`;
@@ -100,21 +100,21 @@ export function parseIdentityProviderInput(
     if (!claim) return { message: `\`${key}\` must be a claim name.` };
     input[key] = claim;
   }
-  if (b.groupRoles !== undefined) {
+  if (b.groupTeams !== undefined) {
     const entries =
-      typeof b.groupRoles === "object" && b.groupRoles !== null
-        ? Object.entries(b.groupRoles)
+      typeof b.groupTeams === "object" && b.groupTeams !== null
+        ? Object.entries(b.groupTeams)
         : undefined;
     if (!entries || entries.length > 100)
-      return { message: "`groupRoles` must map groups to roles." };
-    const roles: Record<string, string> = {};
-    for (const [group, role] of entries) {
-      if (!group || group.length > 256 || typeof role !== "string" || !ROLE.test(role)) {
-        return { message: "`groupRoles` must map a group to a role name." };
+      return { message: "`groupTeams` must map groups to teams." };
+    const teams: Record<string, string> = {};
+    for (const [group, team] of entries) {
+      if (!group || group.length > 256 || typeof team !== "string" || !isTeamId(team)) {
+        return { message: "`groupTeams` must map a group to a team id." };
       }
-      roles[group] = role;
+      teams[group] = team;
     }
-    input.groupRoles = roles;
+    input.groupTeams = teams;
   }
   return { input };
 }
@@ -160,21 +160,21 @@ export async function parseSamlProviderInput(
     if (!attribute) return { message: `\`${key}\` must be an attribute name.` };
     input[key] = attribute;
   }
-  if (b.groupRoles !== undefined) {
+  if (b.groupTeams !== undefined) {
     const entries =
-      typeof b.groupRoles === "object" && b.groupRoles !== null
-        ? Object.entries(b.groupRoles)
+      typeof b.groupTeams === "object" && b.groupTeams !== null
+        ? Object.entries(b.groupTeams)
         : undefined;
     if (!entries || entries.length > 100)
-      return { message: "`groupRoles` must map groups to roles." };
-    const roles: Record<string, string> = {};
-    for (const [group, role] of entries) {
-      if (!group || group.length > 256 || typeof role !== "string" || !ROLE.test(role)) {
-        return { message: "`groupRoles` must map a group to a role name." };
+      return { message: "`groupTeams` must map groups to teams." };
+    const teams: Record<string, string> = {};
+    for (const [group, team] of entries) {
+      if (!group || group.length > 256 || typeof team !== "string" || !isTeamId(team)) {
+        return { message: "`groupTeams` must map a group to a team id." };
       }
-      roles[group] = role;
+      teams[group] = team;
     }
-    input.groupRoles = roles;
+    input.groupTeams = teams;
   }
   return { input };
 }

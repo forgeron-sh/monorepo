@@ -1,4 +1,4 @@
-import { Badge, Button, Notice, Page, Select, Tabs } from "@forgeron/ui";
+import { Badge, Button, Menu, Notice, Page, Select, Tabs, type MenuEntry } from "@forgeron/ui";
 import {
   createElement,
   lazy,
@@ -10,12 +10,15 @@ import {
 } from "react";
 import type { PageProps } from "../../../shell/page-props";
 import { pathOf, toolPath } from "../../../router";
+import { can } from "../../../shell/access";
 import { hrefOf } from "../../../shell/href";
 import { Loading, LoadError } from "../../../states";
 import { useLoad } from "../../../use-load";
-import { loadTools } from "../api";
+import { loadCi, loadSource, loadTools } from "../api";
+import { IMPORTING_LABEL, importingOf, nothingDeployed } from "../ci";
 import { ToolIcon } from "../components";
-import { PublishBadge, PublishControl, usePublishing } from "../publish";
+import { DeleteToolDialog } from "../delete-tool-dialog";
+import { NO_VERSION, PublishBadge, PublishControl, usePublishing } from "../publish";
 import "../register";
 import { toolTabs, type ToolTab, type ToolTabProps } from "../tabs";
 import "../tools.css";
@@ -63,11 +66,25 @@ export default function ToolPage({
   now,
   go,
 }: PageProps & { name: string; branch?: string }) {
-  const admin = ws.person.admin;
+  // Sharing a channel is for whoever publishes (D-137).
+  const mayPublish = can(ws.person, "tools:publish");
   const tools = useLoad(() => loadTools(api.fetchJson), [api]);
-  const tabs = useMemo(() => toolTabs(admin), [admin]);
+  const tabs = useMemo(() => toolTabs(ws.person), [ws.person]);
   const [asked, setAsked] = useState(askedTab);
+  const [deleting, setDeleting] = useState(false);
   const tool = tools.data?.find((t) => t.name === name);
+  // Where the tool comes from, for "View on GitHub"; a tool that comes from nowhere has no repository.
+  const source = useLoad(() => loadSource(api.fetchJson, name).catch(() => undefined), [api, name]);
+  const repo = source.data?.repo;
+  // Until its first version is deployed, what the repository's CI is doing.
+  const empty = tool !== undefined && nothingDeployed(tool);
+  const ci = useLoad(
+    () =>
+      empty && repo
+        ? loadCi(api.fetchJson, name).catch(() => undefined)
+        : Promise.resolve(undefined),
+    [api, name, empty, repo],
+  );
   const previews = tool?.previews.map((p) => p.branch) ?? [];
   const channels = tool?.channels.map((c) => `~${c.channel}`) ?? [];
   // A channel that is gone (closed, removed, or a mistyped address) is not shown: the page is production's.
@@ -77,7 +94,7 @@ export default function ToolPage({
     !previews.includes(askedBranch) &&
     !channels.includes(askedBranch);
   const branch = gone ? undefined : askedBranch;
-  const publishing = usePublishing(api, name, branch, admin && tool !== undefined);
+  const publishing = usePublishing(api, name, branch, mayPublish && tool !== undefined);
   useEffect(() => {
     if (gone) window.history.replaceState(null, "", addressOf(name, undefined));
   }, [gone, name]);
@@ -122,6 +139,38 @@ export default function ToolPage({
   }
 
   const current = tabs.find((t) => t.id === asked) ?? tabs[0];
+  // Publishing needs a version on the channel the page shows.
+  const deployed =
+    branch === undefined
+      ? !!tool.production
+      : previews.includes(branch) || channels.includes(branch);
+  const importing = importingOf(ci.data);
+  const openMine = hrefOf("/library/:tool", { tool: tool.name });
+  const menu = {
+    links: [
+      { kind: "link", label: "Open in my tools", href: openMine, onSelect: go },
+      ...(repo
+        ? ([
+            {
+              kind: "action",
+              label: "View on GitHub",
+              onSelect: () =>
+                window.open(`https://github.com/${repo}`, "_blank", "noopener,noreferrer"),
+            },
+          ] as const)
+        : []),
+    ] as MenuEntry[],
+    danger: can(ws.person, "tools:delete")
+      ? ([
+          {
+            kind: "action",
+            label: "Delete tool…",
+            tone: "danger",
+            onSelect: () => setDeleting(true),
+          },
+        ] as MenuEntry[])
+      : ([] as MenuEntry[]),
+  };
   return (
     <main className="fg-page ft-page">
       <header className="ft-header">
@@ -129,7 +178,7 @@ export default function ToolPage({
         <div className="ft-header-text">
           <div className="ft-header-title">
             <h1 className="fg-page-title">{tool.name}</h1>
-            {admin ? (
+            {mayPublish ? (
               <PublishBadge publishing={publishing} {...(branch !== undefined ? { branch } : {})} />
             ) : null}
           </div>
@@ -153,27 +202,57 @@ export default function ToolPage({
             ]}
             onChange={(e) => go(addressOf(tool.name, e.target.value || undefined))}
           />
-          {admin ? (
+          {mayPublish ? (
             <PublishControl
               key={branch ?? ""}
               tool={tool.name}
               {...(branch !== undefined ? { branch } : {})}
               api={api}
               publishing={publishing}
+              deployed={deployed}
+              menu={menu}
             />
-          ) : null}
-          <Button
-            className="ft-open-mine"
-            href={hrefOf("/library/:tool", { tool: tool.name })}
-            aria-label={`Open ${tool.name} in my tools`}
-            title="Open in my tools"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M5 11 11 5M6 5h5v5" stroke="currentColor" strokeWidth="1.5" />
-            </svg>
-          </Button>
+          ) : (
+            // Whoever may not publish still has the tool's other actions: a small menu.
+            <Menu
+              className="ft-actions-menu"
+              label="Tool actions"
+              trigger={<span aria-hidden="true">…</span>}
+              entries={[
+                ...menu.links,
+                ...(menu.danger.length > 0 ? ([{ kind: "separator" }] as const) : []),
+                ...menu.danger,
+              ]}
+            />
+          )}
         </div>
       </header>
+      {!deployed ? (
+        <Notice
+          tone={importing?.kind === "failed" ? "danger" : "info"}
+          title={importing ? IMPORTING_LABEL[importing.kind] : "Nothing deployed"}
+          action={
+            importing?.kind === "failed" || importing?.kind === "importing" ? (
+              <Button size="sm" href={importing.runUrl} target="_blank" rel="noreferrer">
+                View the run ↗
+              </Button>
+            ) : repo ? (
+              <Button size="sm" onClick={() => select("ci")}>
+                View CI
+              </Button>
+            ) : undefined
+          }
+        >
+          {importing?.kind === "importing"
+            ? `The CI of ${repo} is building and deploying the first version: it shows up here when it is deployed. `
+            : importing?.kind === "failed"
+              ? "The last CI run failed, so no version was deployed. Fix it and push again. "
+              : importing?.kind === "waiting"
+                ? `No CI run has been seen yet on ${repo}. Push to it, and check that it has the Forgeron workflow. `
+                : ""}
+          {NO_VERSION}
+        </Notice>
+      ) : null}
       {gone ? (
         <Notice tone="warning" title={`The channel ${askedBranch} is gone.`}>
           This is production. Push the branch again, or add the channel again, to see it here.
@@ -191,6 +270,14 @@ export default function ToolPage({
             Back to production
           </Button>
         </div>
+      ) : null}
+      {deleting ? (
+        <DeleteToolDialog
+          api={api}
+          tool={tool.name}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => go(pathOf("tools"))}
+        />
       ) : null}
       {current ? (
         <Tabs

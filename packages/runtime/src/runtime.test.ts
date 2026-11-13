@@ -27,10 +27,10 @@ const manifest: Manifest = {
   title: "Odoo gateway",
   description: "Odoo tickets.",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: {
+  profiles: {
     reader: { grants: ["read"] },
     support: { grants: ["read", "write"] },
-    admin: { grants: ["admin"] },
+    manager: { grants: ["admin"] },
   },
   actions: {
     "tickets.list": action(
@@ -153,13 +153,20 @@ const actions: Record<string, RuntimeAction> = {
   "admin.purge": { input: z.object({}), run: () => ({ purged: true }) },
 };
 
-const user = (roles: string[]): User => ({ id: "u1", email: "ely@acme.fr", name: "Ely", roles });
+// A person with the permissions the gateway gave `everyone` in this tool (D-137).
+const given = (...permissions: string[]): User => ({
+  id: "u1",
+  email: "ely@acme.fr",
+  name: "Ely",
+  subjects: ["everyone"],
+  permissions: { everyone: permissions },
+});
 const bearer = (request: Request) => request.headers.get("authorization")?.slice(7);
 const people: Record<string, User> = {
-  reader: user(["reader"]),
-  support: user(["support"]),
-  admin: user(["support", "admin"]),
-  nobody: user([]),
+  reader: given("read"),
+  support: given("read", "write"),
+  admin: given("read", "write", "admin"),
+  nobody: { ...given(), subjects: [] },
 };
 
 function build(overrides: Partial<Parameters<typeof createRuntime>[0]> = {}) {
@@ -238,7 +245,7 @@ describe("API", () => {
     expect(await response.json()).toMatchObject({ error: { code: "FORBIDDEN" } });
   });
 
-  it("refuses a person with no role", async () => {
+  it("refuses a person who is part of nothing", async () => {
     expect((await call("nobody", "/api/tickets.list")).status).toBe(403);
   });
 

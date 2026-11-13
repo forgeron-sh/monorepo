@@ -9,6 +9,7 @@
     "harness": "VITE_MOCK=1 vite --port 5174 --strictPort"
   },
   "dependencies": {
+    "@forgeron/permissions": "workspace:*",
     "@forgeron/platform-contract": "workspace:*",
     "@forgeron/ui": "workspace:*",
     "react": "19.3.1"

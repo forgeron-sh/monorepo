@@ -11,7 +11,7 @@ describe("the built tool", () => {
       entry: "views/monday.js",
       params: { properties: { owner: { type: "string" } } },
     });
-    expect(manifest.roles.management.grants).toContain("management");
+    expect(manifest.profiles.management.grants).toContain("management");
   });
 
   it("answers the view's calls through /_f/call, with the person's access", async () => {

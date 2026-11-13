@@ -1,4 +1,6 @@
-import type { Manifest } from "@forgeron/manifest";
+import type { LocalUser } from "@forgeron/hosting/local";
+import { permissionsOf, type Manifest } from "@forgeron/manifest";
+import { ADMIN_TEAM, EVERYONE, subjectsOf } from "@forgeron/permissions";
 import type { DirectorySnapshot } from "@forgeron/runtime";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -12,7 +14,6 @@ interface DevPerson {
   email: string;
   name?: string;
   avatar?: string;
-  roles?: string[];
 }
 
 export interface DevDirectoryFile {
@@ -23,11 +24,12 @@ export interface DevDirectoryFile {
 
 const SAMPLE: DevDirectoryFile = {
   members: [
-    { email: "dev@localhost", name: "Local developer", roles: ["admin"] },
-    { email: "sam@acme.fr", name: "Sam Martin", roles: ["member"] },
-    { email: "mia@acme.fr", name: "Mia Dupont", roles: ["member", "manager"] },
+    { email: "dev@localhost", name: "Local developer" },
+    { email: "sam@acme.fr", name: "Sam Martin" },
+    { email: "mia@acme.fr", name: "Mia Dupont" },
   ],
   teams: [
+    { id: "admin", name: "Admins", members: ["dev@localhost"] },
     { id: "product", name: "Product", members: ["dev@localhost", "sam@acme.fr"] },
     { id: "sales", name: "Sales", members: ["mia@acme.fr"] },
   ],
@@ -60,7 +62,6 @@ export function snapshotOf(file: DevDirectoryFile): DirectorySnapshot {
       email: m.email,
       name: m.name ?? m.email,
       ...(m.avatar ? { avatar: m.avatar } : {}),
-      roles: m.roles ?? ["member"],
       teams: teamsOf(m.email),
     })),
     teams: (file.teams ?? []).map((t) => ({
@@ -72,28 +73,47 @@ export function snapshotOf(file: DevDirectoryFile): DirectorySnapshot {
   };
 }
 
-/** The developer as `--user` names them, with the roles of the directory (or `--as`). */
-export function developer(
-  file: DevDirectoryFile,
-  manifest: Manifest,
-  user: string | undefined,
-  role: string | undefined,
-) {
-  const email = user ?? "dev@localhost";
+/** Who `forgeron dev` runs as: `--user`, `--team`, and `--as`. */
+export interface DevWho {
+  user?: string | undefined;
+  /** A profile of the tool, or `all`: only what it gives, whatever the teams say. */
+  as?: string | undefined;
+  teams?: readonly string[] | undefined;
+}
+
+/**
+ * The developer as `--user` names them (D-137). Their teams are `--team`, else those of the directory;
+ * without `--user` the developer is also in the admin team, so they may do everything, as before the
+ * directory existed. `--as <profile>` gives exactly that profile's permissions, `--as all` every
+ * permission of the tool; without `--as` the default grants apply to their subjects.
+ */
+export function developer(file: DevDirectoryFile, manifest: Manifest, who: DevWho): LocalUser {
+  const email = who.user ?? "dev@localhost";
   const person = file.members.find((m) => m.email === email);
-  if (user && !person) {
+  if (who.user && !person) {
     throw new UsageError(
-      `--user ${user}: not in the directory (${file.members.map((m) => m.email).join(", ")}). Add them to .forgeron/local/directory.json.`,
+      `--user ${who.user}: not in the directory (${file.members.map((m) => m.email).join(", ")}). Add them to .forgeron/local/directory.json.`,
     );
   }
-  const teams = snapshotOf(file).members.find((m) => m.email === email)?.teams ?? [];
+  const own = snapshotOf(file).members.find((m) => m.email === email)?.teams ?? [];
+  const named = who.teams ?? [];
+  const teams = named.length
+    ? [...named]
+    : who.user || who.as !== undefined
+      ? own
+      : [...new Set([...own, ADMIN_TEAM])];
+  let permissions: Record<string, string[]> | undefined;
+  if (who.as === "all") permissions = { [EVERYONE]: permissionsOf(manifest) };
+  else if (who.as !== undefined) {
+    permissions = { [EVERYONE]: [...(manifest.profiles[who.as]?.grants ?? [])] };
+  }
   return {
     id: idOf(email),
     email,
-    name: person?.name ?? (role ? `Local developer (${role})` : "Local developer"),
+    name: person?.name ?? (who.as ? `Local developer (${who.as})` : "Local developer"),
     ...(person?.avatar ? { avatar: person.avatar } : {}),
-    // Without `--user` the developer holds every role of the tool, as before the directory existed.
-    roles: role ? [role] : user ? (person?.roles ?? []) : Object.keys(manifest.roles),
+    subjects: subjectsOf(teams),
+    ...(permissions ? { permissions } : {}),
     ...(manifest.resources.directory?.teams ? { teams } : {}),
   };
 }

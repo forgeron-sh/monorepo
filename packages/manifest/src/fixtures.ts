@@ -7,7 +7,7 @@ export const crm: Manifest = {
   title: "CRM",
   description: "Companies, contacts and leads.",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: {
+  profiles: {
     commercial: { label: "Sales", grants: ["read", "write"] },
     direction: { label: "Management", grants: ["read", "write", "delete"] },
   },
@@ -65,7 +65,7 @@ export const minimal: Manifest = {
   name: "odoo-gateway",
   version: "0.1.0",
   interfaces: { mcp: true, api: true, cli: true, web: false },
-  roles: {},
+  profiles: {},
   actions: {},
   views: {},
   jobs: {},

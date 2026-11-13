@@ -5,6 +5,7 @@ import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { platformCaller } from "../../platform/test-app";
 import { assertSelect, rowsStatement, taggedColumns, type TableInfo } from "./sql";
+import type { PlatformPermission } from "@forgeron/permissions";
 
 // A database that refuses what D1 refuses: any read of a `_cf_*` table, and `pragma_*` on one,
 // answers "not authorized" (the `_cf_KV` table every D1 database holds). Checked by SQLite's own
@@ -71,7 +72,7 @@ let platform: MemoryD1;
 let tool: MemoryD1;
 let preview: MemoryD1;
 let registry: Registry;
-let caller: { admin: boolean; developer?: boolean; id?: string } | undefined;
+let caller: { permissions: PlatformPermission[]; id?: string } | undefined;
 let opened: string[] = [];
 let slow = 0;
 
@@ -142,13 +143,13 @@ afterAll(() => {
   preview.close();
 });
 
-const admin = () => (caller = { admin: true, developer: false, id: "mem_admin" });
+const admin = () => (caller = { permissions: ["tools:data"], id: "mem_admin" });
 
 describe("who may look", () => {
-  it("refuses an anonymous caller, a plain member, and writes the refusal down", async () => {
+  it("refuses an anonymous caller, someone without `tools:data`, and writes the refusal down", async () => {
     caller = undefined;
     expect((await get("tables")).status).toBe(401);
-    caller = { admin: false, developer: false, id: "mem_plain" };
+    caller = { permissions: ["tools:write", "tools:read"], id: "mem_plain" };
     expect((await get("tables")).status).toBe(403);
     expect((await audit()).some((a) => a.result === "denied" && a.subject === "db:tables")).toBe(
       true,
@@ -156,9 +157,11 @@ describe("who may look", () => {
     expect(opened).toEqual([]);
   });
 
-  it("lets a developer in, but not reveal what is masked", async () => {
-    caller = { admin: false, developer: true, id: "mem_dev" };
+  it("lets in who holds `tools:data`, and refuses who only sees tools", async () => {
+    caller = { permissions: ["tools:data", "tools:read"], id: "mem_dev" };
     expect((await get("tables")).status).toBe(200);
+    expect((await get("tables/contacts/rows?reveal=1")).status).toBe(200);
+    caller = { permissions: ["tools:read"], id: "mem_reader" };
     expect((await get("tables/contacts/rows?reveal=1")).status).toBe(403);
   });
 
@@ -297,7 +300,7 @@ describe("the rows", () => {
     }
   });
 
-  it("shows the masked values to an admin who asks, and says so in the audit log", async () => {
+  it("shows the masked values to who holds `tools:data` and asks, and says so in the audit log", async () => {
     admin();
     const { body } = await get("tables/contacts/rows?limit=1&reveal=1&sort=visits");
     expect(body.rows[0][body.columns.findIndex((c: any) => c.name === "notes")]).toBe(

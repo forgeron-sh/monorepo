@@ -42,7 +42,7 @@ beforeAll(async () => {
       emailAttribute: "email",
       groupsAttribute: "groups",
       nameAttribute: "displayName",
-      groupRoles: { devs: "developer" },
+      groupTeams: { devs: "developer" },
     },
     "bootstrap",
   );
@@ -143,7 +143,7 @@ describe("SAML sign-in", () => {
     expect(set).toContain("Secure");
     expect(set).toContain("SameSite=Lax");
     const me = await gateway()(at("/whoami", { headers: { cookie: result.session } }));
-    expect(await me.json()).toMatchObject({ email: "lea@acme.fr", roles: ["developer", "member"] });
+    expect(await me.json()).toMatchObject({ email: "lea@acme.fr", teams: ["developer"] });
   });
 
   it("admits the administrator and a member of an allowed domain, and refuses anyone else", async () => {
@@ -208,11 +208,12 @@ describe("SAML sign-in", () => {
 });
 
 describe("the member policy of the workspace", () => {
-  it("applies to SAML sign-ins: saved domains and the default role replace the install's", async () => {
+  it("applies to SAML sign-ins: saved domains and the default teams replace the install's", async () => {
     await createRegistry(env.DB).setMembershipSettings(
       "acme",
-      { domains: ["partner.test"], defaultRole: "viewer" },
+      { domains: ["partner.test"], defaultTeams: ["developer"] },
       "root",
+      ["*"],
     );
     // acme.fr was the install's domain: the saved policy replaces it.
     expect((await signIn("late@acme.fr")).response.status).toBe(403);
@@ -221,7 +222,7 @@ describe("the member policy of the workspace", () => {
     const me = await gateway()(at("/whoami", { headers: { cookie: joined.session } }));
     expect(await me.json()).toMatchObject({
       email: "pat@partner.test",
-      roles: ["viewer", "member"],
+      teams: ["developer"],
     });
   });
 });
@@ -231,7 +232,7 @@ describe("SAML provider configuration", () => {
   const put = (body: unknown) =>
     gateway()(at("/console-api/api/identity-provider", send("PUT", body, admin)));
 
-  it("is read and edited by an admin only", async () => {
+  it("is read and edited by who holds `settings:read` / `settings:write` only", async () => {
     admin = (await signIn("root@acme.fr", { assertionId: "_c1" })).session;
     expect((await gateway()(at("/console-api/api/identity-provider"))).status).toBe(401);
     const member = (await signIn("dev@acme.fr", { assertionId: "_c2" })).session;
@@ -246,7 +247,7 @@ describe("SAML provider configuration", () => {
     expect(provider).toMatchObject({
       kind: "saml",
       idpEntityId: idp.entityId,
-      groupRoles: { devs: "developer" },
+      groupTeams: { devs: "developer" },
     });
   });
 
@@ -263,7 +264,7 @@ describe("SAML provider configuration", () => {
     expect(garbage.status).toBe(400);
     expect(((await garbage.json()) as { message: string }).message).toMatch(/certificate/);
     expect((await put({ ...good, idpEntityId: "" })).status).toBe(400);
-    expect((await put({ ...good, groupRoles: { devs: "Not A Role" } })).status).toBe(400);
+    expect((await put({ ...good, groupTeams: { devs: "Not A Team" } })).status).toBe(400);
   });
 
   it("saves a new provider, audits it without any secret, and applies it at the next sign-in", async () => {

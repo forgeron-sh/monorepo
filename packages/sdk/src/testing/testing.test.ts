@@ -3,6 +3,7 @@ import { ToolError } from "../index";
 import { createTestTool, mockFetch, reply } from "./index";
 
 const dir = new URL("../../fixtures/tool", import.meta.url).pathname;
+const upstream = () => mockFetch({ "POST https://api.example.com/notes": { id: 1 } });
 const create = (options: Parameters<typeof createTestTool>[0] = {}) =>
   createTestTool({ dir, ...options });
 
@@ -17,17 +18,47 @@ describe("createTestTool", () => {
     await expect(tool.call("notes.info")).resolves.toMatchObject({ env: "local" });
   });
 
-  it("runs as every role of the tool unless told otherwise", async () => {
+  it("runs as everyone, with the default grants, unless told otherwise (D-137)", async () => {
     const tool = await create();
     await expect(tool.call("notes.info")).resolves.toMatchObject({
-      user: { email: "test@example.com", roles: ["reader", "editor"] },
+      user: { email: "test@example.com", subjects: ["everyone"] },
     });
+    // `everyone` has the default profile (`reader`): it reads, it does not write.
+    await expect(tool.call("notes.add", { text: "x" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("gives the admin team every permission, and any other team the default grants only", async () => {
+    const admin = await create({ as: { teams: ["admin"] }, fetch: upstream() });
+    await expect(admin.call("notes.info")).resolves.toMatchObject({
+      user: { subjects: ["everyone", "team:admin"], teams: ["admin"] },
+    });
+    await expect(admin.call("notes.add", { text: "x" })).resolves.toBeDefined();
+    const sales = await create({ as: { teams: ["sales"] } });
+    await expect(sales.call("notes.add", { text: "x" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("gives the grants of a profile, or exactly the permissions it is given", async () => {
+    const editor = await create({ as: { profile: "editor" }, fetch: upstream() });
+    await expect(editor.call("notes.add", { text: "x" })).resolves.toBeDefined();
+    const exact = await create({ as: { permissions: ["write"] }, fetch: upstream() });
+    await expect(exact.call("notes.add", { text: "x" })).resolves.toBeDefined();
+    await expect(exact.call("notes.info")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      create({ as: { profile: "nope" } }).then((t) => t.call("notes.info")),
+    ).rejects.toThrow(/no profile "nope"/);
+    await expect(
+      create({ as: { profile: "editor", permissions: [] } }).then((t) => t.call("notes.info")),
+    ).rejects.toThrow(/not both/);
   });
 
   it("gives the action what the test provided", async () => {
     const tool = await create({
       secrets: { API_KEY: "k" },
-      as: { email: "ely@acme.fr", roles: ["reader"], userSecrets: { LOGIN: "ely" } },
+      as: { email: "ely@acme.fr", profile: "reader", userSecrets: { LOGIN: "ely" } },
       env: "preview",
     });
     expect(await tool.call("notes.info")).toMatchObject({
@@ -45,7 +76,7 @@ describe("createTestTool", () => {
 
   describe("access and validation", () => {
     it("checks access", async () => {
-      const tool = await create({ as: { roles: ["reader"] } });
+      const tool = await create({ as: { profile: "reader" } });
       await expect(tool.call("notes.add", { text: "x" })).rejects.toMatchObject({
         name: "ToolError",
         code: "FORBIDDEN",
@@ -53,7 +84,7 @@ describe("createTestTool", () => {
     });
 
     it("validates the input", async () => {
-      const tool = await create({ as: { roles: ["editor"] } });
+      const tool = await create({ as: { profile: "editor" } });
       const error = await tool.call("notes.add", { text: "" }).catch((e: unknown) => e);
       expect(error).toBeInstanceOf(ToolError);
       expect(error).toMatchObject({ code: "INVALID" });
@@ -82,25 +113,23 @@ describe("createTestTool", () => {
 
   describe("as", () => {
     it("calls as another person, without changing the first", async () => {
-      const tool = await create({ as: { roles: ["editor"] } });
-      const reader = tool.as({ roles: ["reader"] });
+      const tool = await create({ as: { profile: "editor" } });
+      const reader = tool.as({ profile: "reader" });
       await expect(reader.call("notes.add", { text: "x" })).rejects.toMatchObject({
         code: "FORBIDDEN",
       });
-      expect(await tool.call("notes.info")).toMatchObject({ user: { roles: ["editor"] } });
+      expect(await tool.call("notes.info")).toMatchObject({ user: { subjects: ["everyone"] } });
     });
 
     it("keeps what the test gave, and replaces what it overrides", async () => {
-      const tool = await create({ as: { email: "a@x.fr", roles: ["reader"] } });
-      expect(await tool.as({ roles: ["editor"] }).call("notes.info")).toMatchObject({
-        user: { email: "a@x.fr", roles: ["editor"] },
+      const tool = await create({ as: { email: "a@x.fr", profile: "reader" } });
+      expect(await tool.as({ profile: "editor" }).call("notes.info")).toMatchObject({
+        user: { email: "a@x.fr" },
       });
     });
 
     it("shares the emitted events", async () => {
-      const tool = await create({
-        fetch: mockFetch({ "POST https://api.example.com/notes": { id: 1 } }),
-      });
+      const tool = await create({ as: { profile: "editor" }, fetch: upstream() });
       await tool.as({ email: "b@x.fr" }).call("notes.add", { text: "x" });
       expect(tool.events).toEqual([{ event: "note.added", payload: { id: 1 } }]);
     });
@@ -108,7 +137,7 @@ describe("createTestTool", () => {
 
   describe("fetch", () => {
     it("sends a request through the interfaces, as the person of the test", async () => {
-      const tool = await create({ as: { email: "ely@acme.fr", roles: ["reader"] } });
+      const tool = await create({ as: { email: "ely@acme.fr", profile: "reader" } });
       const response = await tool.fetch("/mcp", {
         method: "POST",
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
@@ -120,8 +149,8 @@ describe("createTestTool", () => {
     });
 
     it("follows `as`", async () => {
-      const tool = await create({ as: { roles: ["reader"] } });
-      const editor = tool.as({ roles: ["editor"] });
+      const tool = await create({ as: { profile: "reader" } });
+      const editor = tool.as({ profile: "editor" });
       const list = async (t: typeof tool) => {
         const response = await t.fetch("/mcp", {
           method: "POST",
@@ -158,7 +187,7 @@ describe("createTestTool", () => {
   describe("upstreams", () => {
     it("reaches the upstream through mockFetch and records the events", async () => {
       const fetch = mockFetch({ "POST https://api.example.com/notes": { id: 7, text: "x" } });
-      const tool = await create({ fetch });
+      const tool = await create({ as: { profile: "editor" }, fetch });
       expect(await tool.call("notes.add", { text: "x" })).toEqual({ id: 7, text: "x" });
       expect(tool.events).toEqual([{ event: "note.added", payload: { id: 7 } }]);
       expect(fetch.calls[0]).toMatchObject({
@@ -169,14 +198,14 @@ describe("createTestTool", () => {
     });
 
     it("fails when no upstream was provided, rather than reaching the network", async () => {
-      const tool = await create();
+      const tool = await create({ as: { profile: "editor" } });
       await expect(tool.call("notes.add", { text: "x" })).rejects.toThrow(/mockFetch/);
     });
 
     it("still filters the hosts by the tool's network resources", async () => {
       // The route exists, but the tool never declared this host: that is what is tested.
       const fetch = mockFetch({ "GET https://evil.test/": { leaked: true } });
-      const tool = await create({ fetch });
+      const tool = await create({ as: { profile: "editor" }, fetch });
       await expect(tool.call("notes.leak")).rejects.toMatchObject({ code: "FORBIDDEN" });
       expect(fetch.calls).toHaveLength(0);
     });

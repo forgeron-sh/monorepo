@@ -42,7 +42,7 @@ describe("deals.create and deals.list", () => {
     const { deal } = await aLead(tool);
     await tool.call("deals.move", { id: deal, stage: "won" });
     await tool
-      .as({ email: "other@acme.fr", roles: ["sales"] })
+      .as({ email: "other@acme.fr", profile: "sales" })
       .call("deals.create", { company_id: (await aLead(tool, "Other")).company, title: "Theirs" });
 
     const stages = (await tool.call("deals.list", { stage: "won" })) as Array<{ title: string }>;
@@ -79,7 +79,7 @@ describe("deals.move", () => {
     const { deal } = await aLead(tool);
     await tool.call("deals.move", { id: deal, stage: "proposal" });
     await tool
-      .as({ email: "lou@acme.fr", roles: ["sales"] })
+      .as({ email: "lou@acme.fr", profile: "sales" })
       .call("deals.move", { id: deal, stage: "won" });
     expect(await history(tool)).toEqual([
       { from_stage: "lead", to_stage: "proposal", by_email: "ely@acme.fr" },
@@ -155,7 +155,7 @@ describe("deals.delete", () => {
   });
 });
 
-describe("the three roles", () => {
+describe("the three profiles", () => {
   it("sales read and write, and cannot delete", async () => {
     const tool = await createTestTool({ as: sales });
     const { deal } = await aLead(tool);
@@ -192,8 +192,8 @@ describe("the three roles", () => {
     expect(await tool.call("deals.delete", { id: deal })).toEqual({ deleted: deal });
   });
 
-  it("a person with no role can do nothing", async () => {
-    const tool = await createTestTool({ as: { roles: [] } });
+  it("a person who is given nothing can do nothing", async () => {
+    const tool = await createTestTool({ as: { permissions: [] } });
     await expect(tool.call("deals.list", {})).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

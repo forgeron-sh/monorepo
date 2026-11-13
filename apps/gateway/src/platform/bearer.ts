@@ -74,7 +74,14 @@ export function mountBearer(app: OpenAPIHono<PlatformEnv>): void {
     const person = await c.env.bearer!.person();
     return person
       ? Response.json(
-          { ...person, workspace: c.env.workspace },
+          {
+            id: person.id,
+            email: person.email,
+            name: person.name,
+            teams: person.teams,
+            permissions: person.permissions,
+            workspace: c.env.workspace,
+          },
           { headers: { "cache-control": "no-store" } },
         )
       : Response.json(

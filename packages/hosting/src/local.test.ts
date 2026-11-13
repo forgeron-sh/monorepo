@@ -22,7 +22,7 @@ export default {
 const manifest = {
   name: "crm",
   version: "1.0.0",
-  roles: { support: { grants: ["read"] }, admin: { grants: ["admin"] } },
+  profiles: { support: { grants: ["read"] }, manager: { grants: ["admin"] } },
   resources: { cache: {} },
 } as unknown as Manifest;
 
@@ -80,28 +80,29 @@ describe("local hosting", () => {
     expect(answer).toMatchObject({ method: "POST", body: '{"jsonrpc":"2.0"}' });
   });
 
-  it("stands in for the gateway: the developer has every role of the tool", async () => {
+  it("stands in for the gateway: the developer is in the admin team", async () => {
     const { url } = await deploy("v1");
     expect((await get(url)).user).toEqual({
       id: "dev",
       email: "dev@localhost",
       name: "Local developer",
-      roles: ["support", "admin"],
+      subjects: ["everyone", "team:admin"],
+      teams: ["admin"],
     });
   });
 
   it("does not let the caller choose the identity", async () => {
     const { url } = await deploy("v1");
-    const spoofed = JSON.stringify({ id: "root", email: "r@x", name: "R", roles: ["root"] });
+    const spoofed = JSON.stringify({ id: "root", email: "r@x", name: "R", subjects: ["root"] });
     const answer = await get(url, { headers: { "x-forgeron-user": spoofed } });
     expect(answer.user).toMatchObject({ id: "dev" });
   });
 
   it("takes another identity when asked", async () => {
     const { url } = await deploy("v1", {
-      identity: () => ({ id: "u9", email: "u@x.fr", name: "U", roles: ["support"] }),
+      identity: () => ({ id: "u9", email: "u@x.fr", name: "U", subjects: ["everyone"] }),
     });
-    expect((await get(url)).user).toMatchObject({ id: "u9", roles: ["support"] });
+    expect((await get(url)).user).toMatchObject({ id: "u9", subjects: ["everyone"] });
   });
 
   it("replaces the running build when a new one is activated", async () => {

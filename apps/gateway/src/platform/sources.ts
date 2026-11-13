@@ -3,6 +3,7 @@ import {
   addChannelRoute,
   addRepositoryToolRoute,
   copyBranchDataRoute,
+  deleteToolRoute,
   getToolSourceRoute,
   putChannelRoute,
   putToolSourceRoute,
@@ -11,6 +12,7 @@ import {
 } from "@forgeron/platform-contract";
 import {
   closeChannel,
+  deleteToolEverywhere,
   RegistryError,
   type Registry,
   type Tool,
@@ -23,7 +25,7 @@ import { describeUpdate, marketplaceIdOf, updateChannel, UpdateError } from "../
 import { CopyError, copyDatabase } from "../sources/branch-data";
 import { methodNotAllowed, platformRoute, type PlatformEnv } from "./app";
 
-// Where a tool comes from, its permanent channels and their updates (D-121, D-125), for admins. An
+// Where a tool comes from, its permanent channels and their updates (D-121, D-125), for who holds `tools:write` (or `tools:read`, to look). An
 // update puts a release of the branch a channel follows on that channel, with what it asks for
 // approved in the same step: there is no screen of approvals, and no promotion between branches.
 // Adding a tool from a repository creates it with no environment and gives the token its CI deploys
@@ -88,14 +90,14 @@ async function sourceAnswer(c: { env: PlatformEnv["Bindings"] }, registry: Regis
 }
 
 export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
-  app.openapi(platformRoute(getToolSourceRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(getToolSourceRoute, "tools:read"), async (c) => {
     const { registry, workspace } = c.env;
     const tool = await registry.findTool(workspace, c.req.valid("param").tool);
     if (!tool) return c.json(missing("There is no such tool."), 404);
     return c.json(await sourceAnswer(c, registry, tool), 200);
   });
 
-  app.openapi(platformRoute(putToolSourceRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(putToolSourceRoute, "tools:write"), async (c) => {
     const { registry, workspace } = c.env;
     const tool = await registry.findTool(workspace, c.req.valid("param").tool);
     if (!tool) return c.json(missing("There is no such tool."), 404);
@@ -109,7 +111,7 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
     return c.json(await sourceAnswer(c, registry, tool), 200);
   });
 
-  app.openapi(platformRoute(addChannelRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(addChannelRoute, "tools:write"), async (c) => {
     const { registry, workspace } = c.env;
     const tool = await registry.findTool(workspace, c.req.valid("param").tool);
     if (!tool) return c.json(missing("There is no such tool."), 404);
@@ -142,7 +144,7 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
     return c.json(await channelJson(c, registry, tool, source, body.name), 201);
   });
 
-  app.openapi(platformRoute(putChannelRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(putChannelRoute, "tools:write"), async (c) => {
     const { registry, workspace } = c.env;
     const { tool: name, channel } = c.req.valid("param");
     const tool = await registry.findTool(workspace, name);
@@ -174,7 +176,7 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
     return c.json(await channelJson(c, registry, tool, source, channel), 200);
   });
 
-  app.openapi(platformRoute(removeChannelRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(removeChannelRoute, "tools:write"), async (c) => {
     const { registry, workspace } = c.env;
     const { tool: name, channel } = c.req.valid("param");
     const tool = await registry.findTool(workspace, name);
@@ -202,7 +204,31 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
     return c.json({ removed: true as const }, 200);
   });
 
-  app.openapi(platformRoute(updateToolRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(deleteToolRoute, "tools:delete"), async (c) => {
+    const { registry, workspace } = c.env;
+    const tool = await registry.findTool(workspace, c.req.valid("param").tool);
+    if (!tool) return c.json(missing("There is no such tool."), 404);
+    if (c.req.valid("json").confirm !== tool.name) {
+      return c.json({ error: "NOT_CONFIRMED", message: `Type ${tool.name} to confirm.` }, 400);
+    }
+    const hosting = c.env.hosting(workspace);
+    if (!hosting) return c.json(NOT_CONFIGURED, 501);
+    // Every Worker and database first, production included: a host that fails leaves the tool as it
+    // was. The audit line outlives the tool (it holds no foreign key).
+    const environments = (await registry.listEnvironments(tool.id)).length;
+    await deleteToolEverywhere(registry, hosting, tool);
+    await registry.recordAudit({
+      toolId: tool.id,
+      actor: c.get("person").id,
+      ...(c.env.via ? { via: c.env.via } : {}),
+      kind: "access",
+      subject: "tool:deleted",
+      detail: { event: "tool-deleted", tool: tool.name, environments },
+    });
+    return c.json({ deleted: true as const }, 200);
+  });
+
+  app.openapi(platformRoute(updateToolRoute, "tools:write"), async (c) => {
     const { registry, workspace } = c.env;
     const tool = await registry.findTool(workspace, c.req.valid("param").tool);
     if (!tool) return c.json(missing("There is no such tool."), 404);
@@ -238,7 +264,7 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
     }
   });
 
-  app.openapi(platformRoute(addRepositoryToolRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(addRepositoryToolRoute, "tools:write"), async (c) => {
     const { registry, workspace, bearer, now } = c.env;
     if (!bearer) {
       return c.json({ error: "NOT_CONFIGURED", message: "This gateway cannot issue tokens." }, 501);
@@ -254,7 +280,7 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
     const productionBranch = body.productionBranch ?? "main";
     const tool = await registry.createTool({ workspace, name: body.name });
     await registry.linkRepository({ toolId: tool.id, repo: body.repo, productionBranch, actor });
-    // Nobody may add it to their library until an admin says who (D-117).
+    // Nobody may add it to their library until someone who may give access says who (D-117).
     await registry.setAvailability({ toolId: tool.id, mode: "nobody", actor });
     const at = now();
     const token = await issueToken({
@@ -278,7 +304,7 @@ export function mountSources(app: OpenAPIHono<PlatformEnv>): void {
     );
   });
 
-  app.openapi(platformRoute(copyBranchDataRoute, "admin"), async (c) => {
+  app.openapi(platformRoute(copyBranchDataRoute, "tools:data"), async (c) => {
     const { registry, workspace } = c.env;
     const { tool: name, branch } = c.req.valid("param");
     const tool = await registry.findTool(workspace, name);

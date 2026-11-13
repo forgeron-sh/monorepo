@@ -144,7 +144,7 @@ describe("the primary origin", () => {
       new Request(`${WORKERS_DEV}/console-api/api/invitations`, {
         method: "POST",
         headers: { "content-type": "application/json", cookie: session },
-        body: JSON.stringify({ email: "ada@external.test", roles: ["developer"] }),
+        body: JSON.stringify({ email: "ada@external.test", teams: ["developer"] }),
       }),
     );
     expect(invited.status).toBe(201);

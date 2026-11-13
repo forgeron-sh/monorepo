@@ -16,7 +16,7 @@ const json = <T extends z.ZodType>(schema: T, description: string) => ({
   content: { "application/json": { schema } },
 });
 const notSignedIn = json(ErrorSchema, "Not signed in");
-const notAdmin = json(ErrorSchema, "Not an admin");
+const notAdmin = json(ErrorSchema, "Lacks the permission");
 const noSecretKey = json(ErrorSchema, "The gateway has no secret key (`NOT_CONFIGURED`)");
 
 const provider = z.looseObject({ kind: z.string() });

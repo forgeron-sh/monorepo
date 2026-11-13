@@ -1,20 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
-  defaultMapping,
+  defaultGrants,
   defaultProfile,
   grantPermissions,
   heldPermissions,
   mayAccess,
   permissionsOf,
   resolveAccess,
-  workspaceRoles,
 } from "./access";
 import { ManifestSchema } from "./schema";
 import { minimal } from "./fixtures";
 
-// D-127: tool permissions, profiles and the mapping of workspace roles.
+// D-127, D-137: tool permissions, profiles and the grants of subjects.
 const tool = {
-  roles: {
+  profiles: {
     manager: { label: "Manager", grants: ["read", "write"] },
     user: { label: "User", grants: ["read"] },
   },
@@ -28,8 +27,8 @@ const tool = {
 
 describe("profiles", () => {
   it("names the default profile: the one marked, else the fewest permissions, first on a tie", () => {
-    expect(defaultProfile(tool.roles)).toBe("user");
-    expect(defaultProfile({ ...tool.roles, manager: { grants: ["read"], default: true } })).toBe(
+    expect(defaultProfile(tool.profiles)).toBe("user");
+    expect(defaultProfile({ ...tool.profiles, manager: { grants: ["read"], default: true } })).toBe(
       "manager",
     );
     expect(defaultProfile({ a: { grants: ["read"] }, b: { grants: ["write"] } })).toBe("a");
@@ -43,21 +42,21 @@ describe("profiles", () => {
   it("refuses a manifest with two default profiles", () => {
     const two = {
       ...minimal,
-      roles: { a: { grants: ["read"], default: true }, b: { grants: ["read"], default: true } },
+      profiles: { a: { grants: ["read"], default: true }, b: { grants: ["read"], default: true } },
     };
     expect(ManifestSchema.safeParse(two).success).toBe(false);
-    const one = { ...minimal, roles: { a: { grants: ["read"], default: true } } };
+    const one = { ...minimal, profiles: { a: { grants: ["read"], default: true } } };
     expect(ManifestSchema.safeParse(one).success).toBe(true);
   });
 });
 
-describe("the mapping", () => {
-  it("gives admin every permission and member the default profile", () => {
-    expect(defaultMapping(tool.roles)).toEqual({
-      admin: { kind: "all" },
-      member: { kind: "profile", profile: "user" },
+describe("the grants", () => {
+  it("gives the admin team every permission and everyone the default profile", () => {
+    expect(defaultGrants(tool.profiles)).toEqual({
+      "team:admin": { kind: "all" },
+      everyone: { kind: "profile", profile: "user" },
     });
-    expect(defaultMapping({})).toEqual({ admin: { kind: "all" } });
+    expect(defaultGrants({})).toEqual({ "team:admin": { kind: "all" } });
   });
 
   it("resolves a grant to permissions; a profile the tool lost gives nothing", () => {
@@ -72,20 +71,25 @@ describe("the mapping", () => {
     expect(grantPermissions(undefined, tool)).toEqual([]);
   });
 
-  it("resolves every subject for the person's roles, exceptions first", () => {
-    const mapping = { support: { kind: "profile", profile: "user" } } as const;
+  it("resolves every action for the person's subjects, exceptions first", () => {
+    const grants = { "team:support": { kind: "profile", profile: "user" } } as const;
     expect(
-      resolveAccess(["support", "sales"], mapping, { support: { "deals.move": true } }, tool),
+      resolveAccess(
+        ["team:support", "team:sales"],
+        grants,
+        { "team:support": { "deals.move": true } },
+        tool,
+      ),
     ).toEqual({
-      permissions: { support: ["read"], sales: [] },
+      permissions: { "team:support": ["read"], "team:sales": [] },
       access: {
-        support: {
+        "team:support": {
           "deals.list": true,
           "deals.move": true,
           "deals.delete": false,
           "view:board": false,
         },
-        sales: {
+        "team:sales": {
           "deals.list": false,
           "deals.move": false,
           "deals.delete": false,
@@ -97,47 +101,56 @@ describe("the mapping", () => {
 });
 
 describe("mayAccess", () => {
-  it("reads the permissions the gateway mapped, never the profile names, when it has them", () => {
-    const who = { roles: ["user"], permissions: { user: [] } };
-    expect(mayAccess(who, tool.roles, "deals.list", "read")).toBe(false);
-    const support = { roles: ["support"], permissions: { support: ["read", "write"] } };
-    expect(mayAccess(support, tool.roles, "deals.move", "write")).toBe(true);
-    expect(mayAccess(support, tool.roles, "deals.delete", "delete")).toBe(false);
-  });
-
-  it("without the gateway, reads a role with the default mapping: profile, admin, member", () => {
-    expect(mayAccess({ roles: ["manager"] }, tool.roles, "deals.move", "write")).toBe(true);
-    expect(mayAccess({ roles: ["admin"] }, tool.roles, "deals.delete", "delete")).toBe(true);
-    expect(mayAccess({ roles: ["member"] }, tool.roles, "deals.list", "read")).toBe(true);
-    expect(mayAccess({ roles: ["member"] }, tool.roles, "deals.move", "write")).toBe(false);
-    expect(mayAccess({ roles: ["stranger"] }, tool.roles, "deals.list", "read")).toBe(false);
-    // A profile named `admin` is that profile, not every permission.
-    const named = { admin: { grants: ["read"] } };
-    expect(mayAccess({ roles: ["admin"] }, named, "deals.delete", "delete")).toBe(false);
-  });
-
-  it("lets an exception win over the mapping, either way", () => {
-    const who = {
-      roles: ["admin"],
-      permissions: { admin: ["delete", "read", "write"] },
-      access: { admin: { "deals.delete": false } },
+  it("reads the permissions the gateway gave, never the profile names, when it has them", () => {
+    const who = { subjects: ["everyone"], permissions: { everyone: [] } };
+    expect(mayAccess(who, tool.profiles, "deals.list", "read")).toBe(false);
+    const support = {
+      subjects: ["everyone", "team:support"],
+      permissions: { everyone: [], "team:support": ["read", "write"] },
     };
-    expect(mayAccess(who, tool.roles, "deals.delete", "delete")).toBe(false);
+    expect(mayAccess(support, tool.profiles, "deals.move", "write")).toBe(true);
+    expect(mayAccess(support, tool.profiles, "deals.delete", "delete")).toBe(false);
   });
 
-  it("says which permissions the person holds, all roles together", () => {
+  it("without the gateway, reads a subject with the default grants: admin team, everyone", () => {
+    expect(mayAccess({ subjects: ["team:admin"] }, tool.profiles, "deals.delete", "delete")).toBe(
+      true,
+    );
+    expect(mayAccess({ subjects: ["everyone"] }, tool.profiles, "deals.list", "read")).toBe(true);
+    expect(mayAccess({ subjects: ["everyone"] }, tool.profiles, "deals.move", "write")).toBe(false);
+    expect(mayAccess({ subjects: ["team:sales"] }, tool.profiles, "deals.list", "read")).toBe(
+      false,
+    );
+    // A team named like a profile is a team, not that profile.
+    expect(mayAccess({ subjects: ["team:manager"] }, tool.profiles, "deals.move", "write")).toBe(
+      false,
+    );
+  });
+
+  it("lets an exception win over the grants, either way", () => {
+    const who = {
+      subjects: ["team:admin"],
+      permissions: { "team:admin": ["delete", "read", "write"] },
+      access: { "team:admin": { "deals.delete": false } },
+    };
+    expect(mayAccess(who, tool.profiles, "deals.delete", "delete")).toBe(false);
+  });
+
+  it("says which permissions the person holds, all subjects together", () => {
     expect(
-      heldPermissions({ roles: ["a", "b"], permissions: { a: ["read"], b: ["write"] } }, tool),
+      heldPermissions(
+        {
+          subjects: ["team:a", "team:b"],
+          permissions: { "team:a": ["read"], "team:b": ["write"] },
+        },
+        tool,
+      ),
     ).toEqual(["read", "write"]);
-    expect(heldPermissions({ roles: ["admin"] }, tool)).toEqual(["delete", "read", "write"]);
-    expect(heldPermissions({ roles: ["member"] }, tool)).toEqual(["read"]);
-  });
-});
-
-describe("workspaceRoles (D-128)", () => {
-  it("adds member to the roles a person was given, once", () => {
-    expect(workspaceRoles([])).toEqual(["member"]);
-    expect(workspaceRoles(["admin"])).toEqual(["admin", "member"]);
-    expect(workspaceRoles(["member", "support"])).toEqual(["member", "support"]);
+    expect(heldPermissions({ subjects: ["team:admin"] }, tool)).toEqual([
+      "delete",
+      "read",
+      "write",
+    ]);
+    expect(heldPermissions({ subjects: ["everyone"] }, tool)).toEqual(["read"]);
   });
 });

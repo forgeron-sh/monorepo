@@ -31,7 +31,7 @@ export const listTemplatesRoute = defineRoute({
       "The templates",
     ),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
   },
 });
 
@@ -56,7 +56,7 @@ export const installTemplateRoute = defineRoute({
       "The tool, created, approved and, where the gateway can deploy, in production",
     ),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such template"),
     409: json(ErrorSchema, "The workspace already has a tool of that name"),
   },
@@ -82,7 +82,7 @@ export const createInstallPlanRoute = defineRoute({
   responses: {
     201: json(plan, "The plan"),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such template"),
     409: json(ErrorSchema, "The workspace already has a tool of that name"),
   },
@@ -107,7 +107,7 @@ export const installFromPlanRoute = defineRoute({
       "The tool, created, approved and, where the gateway can deploy, in production",
     ),
     401: json(ErrorSchema, "Not signed in"),
-    403: json(ErrorSchema, "Not an admin"),
+    403: json(ErrorSchema, "Lacks the permission"),
     404: json(ErrorSchema, "No such plan, or it is another person's or another workspace's"),
     409: json(ErrorSchema, "The plan was already used, or its template has a newer version"),
     410: json(ErrorSchema, "The plan expired"),

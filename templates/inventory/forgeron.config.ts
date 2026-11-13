@@ -8,11 +8,11 @@ export default defineConfig({
 
   interfaces: { mcp: true, api: true, cli: true },
 
-  // `import` is specific to this tool: citing it in a role is enough for it to exist.
+  // `import` is specific to this tool: citing it in a profile is enough for it to exist.
   profiles: {
     technician: { label: "Technician", grants: ["read", "write"] },
     reader: { label: "Reader", grants: ["read"], default: true },
-    admin: { label: "Administrator", grants: ["read", "write", "delete", "import"] },
+    manager: { label: "Manager", grants: ["read", "write", "delete", "import"] },
   },
 
   resources: {

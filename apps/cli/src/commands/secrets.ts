@@ -56,7 +56,8 @@ export async function secrets(args: string[], io: Io): Promise<number> {
     );
   }
   const token = process.env.FORGERON_TOKEN;
-  if (!token) throw new UsageError("Set FORGERON_TOKEN to an admin token of the workspace.");
+  if (!token)
+    throw new UsageError("Set FORGERON_TOKEN to a token of someone who holds `tools:secrets`.");
   const base = `${project.endpoint.replace(/\/+$/, "")}/api/tools/${project.tool}/environments/${environment}/secrets`;
   const headers = { authorization: `Bearer ${token}` };
 
@@ -90,9 +91,11 @@ async function call(pending: Promise<Response>): Promise<unknown> {
       `Cannot reach the workspace: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  if (response.status === 401)
-    throw new Error("The token was refused: it is missing, expired or not an admin's.");
-  if (response.status === 403) throw new Error("Only an admin can manage secrets.");
+  if (response.status === 401) throw new Error("The token was refused: it is missing or expired.");
+  if (response.status === 403)
+    throw new Error(
+      "Managing secrets needs the permission \u201cSet tool secrets\u201d (`tools:secrets`).",
+    );
   if (response.status === 404)
     throw new Error("The workspace does not know this tool: deploy it first.");
   if (!response.ok) throw new Error(`The workspace answered ${response.status}.`);

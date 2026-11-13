@@ -3,5 +3,5 @@ import { defineConfig } from "@forgeron/sdk";
 export default defineConfig({
   name: "greeter",
   title: "Greeter",
-  roles: { reader: { grants: ["read"] }, nobody: { grants: [] } },
+  profiles: { reader: { grants: ["read"] }, nobody: { grants: [] } },
 });

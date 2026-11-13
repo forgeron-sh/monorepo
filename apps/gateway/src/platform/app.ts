@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { holds, PLATFORM, subjectsOf, type PlatformPermission } from "@forgeron/permissions";
 import type { RouteSpec, SignIn } from "@forgeron/platform-contract";
 import { HTTPException } from "hono/http-exception";
 import type { Hosting } from "@forgeron/hosting";
@@ -23,10 +24,15 @@ export interface ConsolePerson {
   id: string;
   email: string;
   name: string;
-  admin: boolean;
-  developer: boolean;
-  roles: string[];
+  teams: string[];
+  /** What the person may do on the platform, from their teams (D-137). */
+  permissions: PlatformPermission[];
 }
+
+/** The person as the catalog reads them: their subjects (`everyone` and a `team:<id>` each). */
+export const catalogCaller = (person: { teams: readonly string[] }) => ({
+  subjects: subjectsOf(person.teams),
+});
 
 /** What the routes outside `/console-api` need: the token secret and who is calling. */
 interface BearerBindings {
@@ -66,13 +72,13 @@ export interface PlatformBindings {
   baseDomain?: string;
   /** Which sign-in methods are on, for the workspace route. */
   signIn(): Promise<SignIn>;
-  /** Domains from the install (`--member-email-domains`): used until an admin saves their own. */
+  /** Domains from the install (`--member-email-domains`): used until the people who manage members save their own. */
   installDomains: string[];
   now(): Date;
   /** Tells an invited address where to sign in. Best effort: `false` when it could not be sent. */
   notify?(invitation: Invitation): Promise<boolean>;
   /**
-   * Tells a person that an administrator set one of their secrets (D-111): the tool and the field, never
+   * Tells a person that someone set one of their secrets (D-111): the tool and the field, never
    * a value. Best effort: `false` when nothing was sent. Absent where the gateway cannot send mail.
    */
   notifySecretSet?(person: string, tool: string, field: string): Promise<boolean>;
@@ -99,13 +105,12 @@ export interface PlatformBindings {
 
 export type PlatformEnv = { Bindings: PlatformBindings; Variables: { person: ConsolePerson } };
 
-/** Who may call a route: any signed-in member, an admin or a developer, or an admin. */
-export type Access = "member" | "developer" | "admin";
+/** What a route asks of the caller: any signed-in person, or one platform permission (D-137). */
+export type Requires = PlatformPermission | "signed-in";
 
-const FORBIDDEN: Record<Exclude<Access, "member">, string> = {
-  admin: "This is for admins.",
-  developer: "This is for admins and developers.",
-};
+/** The 403 message of a route that says nothing of its own: the permission it needs, by its label. */
+export const lacking = (permission: PlatformPermission): string =>
+  `This needs the permission \u201c${PLATFORM.permissions[permission].label}\u201d.`;
 
 const answer = (status: 400 | 401 | 403 | 415, error: string, message?: string) =>
   Response.json(message ? { error, message } : { error }, {
@@ -113,14 +118,14 @@ const answer = (status: 400 | 401 | 403 | 415, error: string, message?: string) 
     headers: { "cache-control": "no-store" },
   });
 
-/** 401 for nobody, 403 for a member on an admin route: the order of the hand-written handlers. */
+/** 401 for nobody, 403 for a person without the permission: the order of the hand-written handlers. */
 const guard =
-  (access: Access, forbidden?: string): MiddlewareHandler<PlatformEnv> =>
+  (requires: Requires, forbidden?: string): MiddlewareHandler<PlatformEnv> =>
   async (c, next) => {
     const person = await c.env.identity();
     if (!person) return answer(401, "UNAUTHENTICATED");
-    if (access !== "member" && !person.admin && (access === "admin" || !person.developer)) {
-      return answer(403, "FORBIDDEN", forbidden ?? FORBIDDEN[access]);
+    if (requires !== "signed-in" && !holds(PLATFORM, person.permissions, requires)) {
+      return answer(403, "FORBIDDEN", forbidden ?? lacking(requires));
     }
     c.set("person", person);
     await next();
@@ -160,12 +165,12 @@ const jsonOnly: MiddlewareHandler<PlatformEnv> = async (c, next) => {
 };
 
 /**
- * A contract route with its guards: identity, role, then JSON-only on a route that takes a body.
+ * A contract route with its guards: identity, permission, then JSON-only on a route that takes a body.
  * Pass the result to `app.openapi(…, handler)`.
  */
 export function platformRoute<const R extends RouteSpec>(
   spec: R,
-  access: Access,
+  requires: Requires,
   /** The `message` of the 403, when a route says it in its own words. */
   forbidden?: string,
 ) {
@@ -175,15 +180,15 @@ export function platformRoute<const R extends RouteSpec>(
   return createRoute({
     ...spec,
     middleware: [
-      guard(access, forbidden),
+      guard(requires, forbidden),
       ...(changes ? [sameOriginOnly] : []),
       ...(hasBody ? [jsonOnly] : []),
     ],
   });
 }
 
-/** Signed in, any role: for a route that is not in the contract (the OpenAPI document). */
-export const memberOnly = guard("member");
+/** Signed in, whatever the permissions: for a route that is not in the contract (the OpenAPI document). */
+export const memberOnly = guard("signed-in");
 
 /** 405 for a method a path does not take, before anyone is asked who they are (as the old handlers did). */
 export const methodNotAllowed: MiddlewareHandler<PlatformEnv> = async (c) =>

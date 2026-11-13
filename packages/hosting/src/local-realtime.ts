@@ -24,7 +24,7 @@ export interface RealtimeUser {
   email: string;
   name: string;
   avatar?: string;
-  roles: string[];
+  subjects: string[];
   teams?: string[];
   access?: Record<string, Record<string, boolean>>;
   permissions?: Record<string, string[]>;

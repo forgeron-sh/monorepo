@@ -14,7 +14,7 @@ const PATHS = {
   marketplace: "/admin/marketplace",
   members: "/admin/members",
   invite: "/admin/members?invite",
-  roles: "/admin/roles",
+  teams: "/admin/teams",
   audit: "/settings/audit",
   settings: "/settings/profile",
 } as const;

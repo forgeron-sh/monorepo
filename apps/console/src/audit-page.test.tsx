@@ -38,10 +38,18 @@ describe("loadAudit", () => {
   });
 });
 
+const reader = {
+  id: "m1",
+  email: "ada@acme.fr",
+  name: "ada",
+  teams: [],
+  permissions: ["audit:read" as const],
+};
+
 describe("AuditPage", () => {
   it("lists who did what, when, and how it ended", async () => {
     const { api } = fakeApi({ "/api/audit": { entries } });
-    const page = await mount(<AuditPage api={api} admin now={() => NOW} />);
+    const page = await mount(<AuditPage api={api} person={reader} now={() => NOW} />);
     expect(page.textContent).toContain("ada@acme.fr");
     expect(page.textContent).toContain("5 minutes ago");
     expect(page.textContent).toContain("crm.contacts.delete");
@@ -49,13 +57,16 @@ describe("AuditPage", () => {
   });
   it("says there is nothing yet", async () => {
     const { api } = fakeApi({ "/api/audit": { entries: [] } });
-    const page = await mount(<AuditPage api={api} admin now={() => NOW} />);
+    const page = await mount(<AuditPage api={api} person={reader} now={() => NOW} />);
     expect(page.textContent).toContain("Nothing recorded yet");
   });
-  it("tells a non-admin it is for admins without asking", async () => {
+  it("tells someone without audit:read what to ask for, without asking the platform", async () => {
     const { api, reads } = fakeApi({});
-    const page = await mount(<AuditPage api={api} admin={false} now={() => NOW} />);
-    expect(page.textContent).toContain("The audit log is for admins.");
+    const page = await mount(
+      <AuditPage api={api} person={{ ...reader, permissions: [] }} now={() => NOW} />,
+    );
+    expect(page.textContent).toContain('The audit log needs the permission "Read the audit log".');
+    expect(page.textContent).toContain("Ask someone who manages teams");
     expect(reads).toEqual([]);
   });
   it("says what happened when it fails", async () => {
@@ -64,7 +75,7 @@ describe("AuditPage", () => {
         throw refusal(500);
       },
     });
-    const page = await mount(<AuditPage api={api} admin now={() => NOW} />);
+    const page = await mount(<AuditPage api={api} person={reader} now={() => NOW} />);
     expect(page.querySelector("[role=alert]")?.textContent).toContain("could not be loaded");
   });
 });

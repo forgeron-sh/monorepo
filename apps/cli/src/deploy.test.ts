@@ -104,7 +104,7 @@ describe("forgeron deploy", () => {
       body: {
         channels: [
           { channel: "production", version: "1.2.0" },
-          { channel: "staging", waiting: "staging waits for an admin to approve: x." },
+          { channel: "staging", waiting: "staging waits for someone who approves resources: x." },
         ],
       },
     };
@@ -112,7 +112,7 @@ describe("forgeron deploy", () => {
     expect(await run(["deploy", "--allow-destructive"], preview.io)).toBe(0);
     expect(uploads[0]?.body).toMatchObject({ branch: "feat/b", allowDestructive: true });
     expect(preview.logs.join("\n")).toContain("The channel production took the release 1.2.0.");
-    expect(preview.logs.join("\n")).toContain("The channel staging waits for an admin");
+    expect(preview.logs.join("\n")).toContain("The channel staging waits for approval");
     // There is no environment to choose: production takes releases of its branch (D-125).
     expect(await run(["deploy", "--env", "production"], preview.io)).toBe(2);
   });

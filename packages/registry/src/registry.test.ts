@@ -283,7 +283,7 @@ describe("members", () => {
       subject: "sub-1",
       email: "ely@acme.fr",
       name: "Ely",
-      roles: ["admin"],
+      teams: ["admin"],
     });
     expect(await registry.findMember("acme", added.id)).toEqual(added);
     expect(await registry.findMemberBySubject("acme", "sub-1")).toEqual(added);
@@ -292,7 +292,7 @@ describe("members", () => {
   });
 
   it("refuses the same identity twice in a workspace", async () => {
-    const input = { workspace: "acme", subject: "s", email: "a@a.fr", name: "A", roles: [] };
+    const input = { workspace: "acme", subject: "s", email: "a@a.fr", name: "A", teams: [] };
     await registry.addMember(input);
     await expect(registry.addMember(input)).rejects.toThrow(/UNIQUE/);
   });

@@ -26,7 +26,7 @@ beforeAll(async () => {
   const tool = await registry.createTool({ workspace: TEMPLATE_WORKSPACE, name: "crm" });
   const build = await registry.recordBuild(tool.id, {
     fingerprint: "crm-1",
-    manifest: { name: "crm", roles: {}, actions: {}, resources: { db: { why: "deals" } } },
+    manifest: { name: "crm", profiles: {}, actions: {}, resources: { db: { why: "deals" } } },
     worker: "// crm",
   });
   await registry.publishVersion(tool.id, build.id, "1.2.0");
@@ -34,7 +34,7 @@ beforeAll(async () => {
   const other = await registry.createTool({ workspace: TEMPLATE_WORKSPACE, name: "inventory" });
   const stock = await registry.recordBuild(other.id, {
     fingerprint: "inventory-1",
-    manifest: { name: "inventory", roles: {}, actions: {}, resources: {} },
+    manifest: { name: "inventory", profiles: {}, actions: {}, resources: {} },
     worker: "// inventory",
   });
   await registry.publishVersion(other.id, stock.id, "0.4.0");
@@ -46,12 +46,18 @@ const through = async (request: Request, who: ConsolePerson | undefined) => {
   person = who;
   return (await call(request))!;
 };
-const admin = { access: "admin" as const, call: through };
 
-describeRouteMatrix({ title: "GET templates", ...admin, method: "GET", path: "/api/templates" });
+describeRouteMatrix({
+  title: "GET templates",
+  access: "tools:write",
+  call: through,
+  method: "GET",
+  path: "/api/templates",
+});
 describeRouteMatrix({
   title: "POST install a template",
-  ...admin,
+  access: "tools:write",
+  call: through,
   method: "POST",
   path: "/api/templates/crm/install",
   noBody: true,
@@ -59,14 +65,16 @@ describeRouteMatrix({
 
 describeRouteMatrix({
   title: "POST plan the install of a template",
-  ...admin,
+  access: "tools:write",
+  call: through,
   method: "POST",
   path: "/api/templates/crm/install-plan",
   noBody: true,
 });
 describeRouteMatrix({
   title: "POST install from a plan",
-  ...admin,
+  access: "tools:write",
+  call: through,
   method: "POST",
   path: "/api/install-plans/no-such-plan/install",
   noBody: true,
@@ -125,7 +133,7 @@ describe("the install plan routes (D-092)", () => {
     const held = await registry.createTool({ workspace: TEMPLATE_WORKSPACE, name: "held" });
     const b = await registry.recordBuild(held.id, {
       fingerprint: "held-1",
-      manifest: { name: "held", roles: {}, actions: {}, resources: {} },
+      manifest: { name: "held", profiles: {}, actions: {}, resources: {} },
       worker: "// held",
     });
     await registry.publishVersion(held.id, b.id, "1.0.0");
@@ -136,7 +144,7 @@ describe("the install plan routes (D-092)", () => {
     const t = await registry.createTool({ workspace: TEMPLATE_WORKSPACE, name: "plated" });
     const b = await registry.recordBuild(t.id, {
       fingerprint: "plated-1",
-      manifest: { name: "plated", roles: {}, actions: {}, resources: { db: { why: "rows" } } },
+      manifest: { name: "plated", profiles: {}, actions: {}, resources: { db: { why: "rows" } } },
       worker: "// plated",
     });
     await registry.publishVersion(t.id, b.id, "2.0.0");

@@ -27,7 +27,7 @@ const USAGE = `Usage: forgeron db <generate|migrate|status|rollback|seed|shell>
   seed
   shell    [--env local|preview|production] [--branch <name>] [--channel <name>] --sql <statement> [--write] [--confirm <tool>]
 
-On preview and production (administrators, signed in with \`forgeron login\`): status compares the
+On preview and production (a person who holds the tools:data permission, signed in with \`forgeron login\`): status compares the
 migrations of the version the environment serves with its database; shell runs one statement. A read
 runs as it is; a write needs --write, and on production --confirm <tool> (the tool's name). Every
 statement is recorded in the audit log before it runs. Outside a tool's folder: --tool and --endpoint.`;
@@ -45,21 +45,16 @@ async function builtMigrations(dir: string): Promise<BuildMigration[]> {
 }
 
 /**
- * The shell is read-only outside local; writing there takes `--write` and the `admin` role (sdk.md §5).
+ * The shell is read-only outside local; writing there takes `--write`, and the person the token belongs
+ * to must hold `tools:data`, which the platform checks (sdk.md §5).
  * Local is the developer's own database: they may write.
  */
-export function checkShell(
-  env: string,
-  sql: string,
-  options: { write: boolean; role: string | undefined },
-): void {
+export function checkShell(env: string, sql: string, options: { write: boolean }): void {
   if (env === "local") return;
   const reads = READ_ONLY.test(sql) && !sql.includes(";");
   if (reads) return;
   if (!options.write)
     throw new UsageError(`This statement writes: ${env} is read-only unless you pass --write.`);
-  if (options.role !== "admin")
-    throw new UsageError(`Writing on ${env} takes the admin role (--as admin).`);
 }
 
 /** `forgeron db ...` (docs/sdk.md §5). */
@@ -78,7 +73,6 @@ export async function db(args: string[], io: Io): Promise<number> {
       steps: { type: "string" },
       sql: { type: "string" },
       write: { type: "boolean" },
-      as: { type: "string" },
       branch: { type: "string" },
       channel: { type: "string" },
       confirm: { type: "string" },
@@ -105,7 +99,7 @@ export async function db(args: string[], io: Io): Promise<number> {
   if (sub === "shell") {
     if (values.sql === undefined)
       throw new UsageError("forgeron db shell: pass --sql <statement>.");
-    checkShell(env, values.sql, { write: values.write === true, role: values.as });
+    checkShell(env, values.sql, { write: values.write === true });
   }
   const database = await openLocalDatabase(join(io.cwd, ".forgeron", "local"));
   try {

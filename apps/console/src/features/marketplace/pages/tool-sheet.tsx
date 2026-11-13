@@ -51,7 +51,7 @@ function details(card: MarketplaceToolCard) {
     {
       label: "Profiles",
       value: list(
-        card.roles.map((r) => (
+        card.profiles.map((r) => (
           <>
             {r.label} {mono(`(${r.name})`)}
           </>
@@ -61,7 +61,7 @@ function details(card: MarketplaceToolCard) {
     { label: "Database", value: card.database ? "Yes, its own" : "No" },
     { label: "Outbound hosts", value: list(card.network.map(mono)) },
     {
-      label: "Secrets an admin sets",
+      label: "Secrets set for the workspace",
       value: list(
         card.secrets.map((s) => (
           <>

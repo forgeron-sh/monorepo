@@ -44,10 +44,18 @@ module.exports = {
       to: { path: "^packages/(compiler|hosting)/" },
     },
     {
+      // The engine of permissions is below everything that reads it: no package of ours.
+      name: "permissions-is-a-leaf",
+      severity: "error",
+      from: { path: "^packages/permissions/" },
+      to: { path: "^packages/(?!permissions/)" },
+    },
+    {
+      // The manifest reaches the permissions engine and nothing else (D-137).
       name: "manifest-is-a-leaf",
       severity: "error",
       from: { path: "^packages/manifest/" },
-      to: { path: "^packages/(?!manifest/)" },
+      to: { path: "^packages/(?!manifest/|permissions/)" },
     },
     {
       // The contract is data that a server, the console and the CLI all read: no other package of ours
@@ -56,7 +64,7 @@ module.exports = {
       name: "platform-contract-imports-schemas-only",
       severity: "error",
       from: { path: "^packages/platform-contract/" },
-      to: { path: "^packages/(?!platform-contract/|manifest/)" },
+      to: { path: "^packages/(?!platform-contract/|manifest/|permissions/)" },
     },
     {
       name: "ui-does-not-import-sdk",

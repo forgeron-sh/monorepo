@@ -1,4 +1,5 @@
 import type { Manifest } from "@forgeron/manifest";
+import { subjectsOf } from "@forgeron/permissions";
 import {
   createDb,
   type Db,
@@ -19,11 +20,18 @@ import { createMemoryD1 } from "./memory-d1";
 // `createTestTool` runs the tool the way it will be deployed: it loads the Worker that
 // `forgeron build` wrote to `.forgeron/build/`, and gives it a test platform (docs/sdk.md §13).
 
+/**
+ * Who calls in a test (D-137). A person is part of `everyone` and of their `teams` (ids). What they
+ * may do in the tool: the grants of `profile` (a profile of the tool), exactly `permissions`, or,
+ * with neither, the default grants: `everyone` the default profile, and the `admin` team everything.
+ */
 export interface TestIdentity {
-  email: string;
+  email?: string;
   name?: string;
   id?: string;
-  roles: string[];
+  teams?: string[];
+  profile?: string;
+  permissions?: string[];
   userSecrets?: Record<string, string>;
   /** The plain values the person gave the tool's `setup` (`ctx.user.setup`, D-097). */
   setup?: Record<string, string>;
@@ -36,7 +44,6 @@ export interface TestMember {
   name?: string;
   id?: string;
   avatar?: string;
-  roles?: string[];
 }
 
 export interface TestTeam {
@@ -60,7 +67,7 @@ export interface EmittedEvent {
 export interface TestToolOptions {
   /** The tool folder; the current directory by default. It must have been built. */
   dir?: string;
-  /** Who calls. Every role of the tool by default; `tool.as(...)` changes it. */
+  /** Who calls. The default grants for everyone by default; `tool.as(...)` changes it. */
   as?: Partial<TestIdentity>;
   /** Tool secrets (`ctx.secrets`). */
   secrets?: Record<string, string>;
@@ -119,6 +126,9 @@ interface BuiltWorker {
   seed?: SeedDefinition;
 }
 
+const profilesOf = (manifest: Manifest): string =>
+  Object.keys(manifest.profiles).join(", ") || "it declares none";
+
 function currentDirectory(): string {
   const { process } = globalThis as { process?: { cwd(): string } };
   if (!process) throw new Error("createTestTool needs `dir`: there is no current directory here.");
@@ -176,35 +186,45 @@ export async function createTestTool<DB = any>(
   }
 
   const make = (given: Partial<TestIdentity>): TestTool<DB> => {
-    const identity: TestIdentity = {
-      email: "test@example.com",
-      roles: Object.keys(worker.manifest.roles),
-      ...options.as,
-      ...given,
-    };
-    const idOf = (email: string) => `user:${email}`;
-    const teamsOf = (email: string) =>
-      (options.directory?.teams ?? []).filter((t) => t.members.includes(email)).map((t) => t.id);
+    const identity: TestIdentity = { ...options.as, ...given };
+    const email = identity.email ?? "test@example.com";
+    const idOf = (address: string) => `user:${address}`;
+    const teamsOf = (address: string) =>
+      (options.directory?.teams ?? []).filter((t) => t.members.includes(address)).map((t) => t.id);
+    const teams = [...new Set([...(identity.teams ?? []), ...teamsOf(email)])];
+    if (identity.profile !== undefined && identity.permissions !== undefined) {
+      throw new Error("Give `profile` or `permissions`, not both.");
+    }
+    let permissions: Record<string, string[]> | undefined;
+    if (identity.profile !== undefined) {
+      const profile = worker.manifest.profiles[identity.profile];
+      if (!profile) {
+        throw new Error(
+          `The tool has no profile "${identity.profile}": ${profilesOf(worker.manifest)}.`,
+        );
+      }
+      permissions = { everyone: [...profile.grants] };
+    } else if (identity.permissions) {
+      permissions = { everyone: [...identity.permissions] };
+    }
     const user = {
-      id: identity.id ?? idOf(identity.email),
-      email: identity.email,
-      name: identity.name ?? identity.email,
+      id: identity.id ?? idOf(email),
+      email,
+      name: identity.name ?? email,
       ...(identity.avatar ? { avatar: identity.avatar } : {}),
-      roles: identity.roles,
-      ...(options.directory ? { teams: teamsOf(identity.email) } : {}),
+      subjects: subjectsOf(teams),
+      ...(permissions ? { permissions } : {}),
+      ...(options.directory || identity.teams ? { teams } : {}),
     };
     const snapshot = options.directory && {
       members: [
         ...options.directory.members,
-        ...(options.directory.members.some((m) => m.email === identity.email)
-          ? []
-          : [{ email: identity.email }]),
+        ...(options.directory.members.some((m) => m.email === email) ? [] : [{ email }]),
       ].map((m) => ({
         id: m.id ?? idOf(m.email),
         email: m.email,
         name: m.name ?? m.email,
         ...(m.avatar ? { avatar: m.avatar } : {}),
-        roles: m.roles ?? ["member"],
         teams: teamsOf(m.email),
       })),
       teams: (options.directory.teams ?? []).map((t) => ({

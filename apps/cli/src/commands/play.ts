@@ -43,7 +43,7 @@ async function stageTemplate(templateName: string): Promise<{ dir: string; versi
   return { dir, version: template.version };
 }
 
-/** `forgeron play [--template <name>] [--as <role>] [--port 8788] [--no-open]`: the playground of the tool, until stopped. */
+/** `forgeron play [--template <name>] [--as <profile>|all] [--team <id>]... [--port 8788] [--no-open]`: the playground of the tool, until stopped. */
 export async function play(args: string[], io: Io): Promise<number> {
   const { values, positionals } = parseArgs({
     args,
@@ -51,13 +51,14 @@ export async function play(args: string[], io: Io): Promise<number> {
     options: {
       template: { type: "string" },
       as: { type: "string" },
+      team: { type: "string", multiple: true },
       port: { type: "string" },
       "no-open": { type: "boolean" },
     },
   });
   if (positionals.length > 0)
     throw new UsageError(
-      "Usage: forgeron play [--template <name>] [--as <role>] [--port 8788] [--no-open]",
+      "Usage: forgeron play [--template <name>] [--as <profile>|all] [--team <id>]... [--port 8788] [--no-open]",
     );
   const port = values.port === undefined ? DEFAULT_PORT : Number(values.port);
   if (!Number.isInteger(port) || port < 0 || port > 65535) {
@@ -82,13 +83,18 @@ export async function play(args: string[], io: Io): Promise<number> {
 async function serve(
   dir: string,
   port: number,
-  values: { as?: string | undefined; "no-open"?: boolean | undefined },
+  values: {
+    as?: string | undefined;
+    team?: string[] | undefined;
+    "no-open"?: boolean | undefined;
+  },
   io: Io,
   template: string | undefined,
 ): Promise<number> {
   const session = await startPlay(dir, {
     playPort: port,
-    ...(values.as ? { role: values.as } : {}),
+    ...(values.as ? { as: values.as } : {}),
+    ...(values.team ? { teams: values.team } : {}),
   }).catch((error: unknown) => {
     if (error instanceof Error && (error as NodeJS.ErrnoException).code === "EADDRINUSE") {
       throw new UsageError(`Port ${port} is already in use: pick another with --port.`);

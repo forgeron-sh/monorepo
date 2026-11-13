@@ -48,6 +48,21 @@ export interface SimulatedRepository {
   commits: { sha: string; message: string; files: Record<string, string> }[];
 }
 
+/** A GitHub Actions run of a simulated repository, as GitHub's REST API names its fields. */
+export interface SimulatedRun {
+  id: number;
+  name: string;
+  head_branch: string;
+  head_sha: string;
+  head_commit: { message: string };
+  actor: { login: string };
+  status: "queued" | "in_progress" | "completed";
+  conclusion: "success" | "failure" | "cancelled" | null;
+  run_started_at: string;
+  updated_at: string;
+  html_url: string;
+}
+
 export async function simulatedGithub(options: { now: () => Date; account?: string }) {
   const account = options.account ?? "acme-sh";
   const actions = await rsa();
@@ -67,6 +82,10 @@ export async function simulatedGithub(options: { now: () => Date; account?: stri
       [7, { account, type: "Organization" }],
     ]),
     repositories: new Map<string, SimulatedRepository>(),
+    /** The runs of each repository (lower case `owner/name`), newest first. */
+    runs: new Map<string, SimulatedRun[]>(),
+    /** Whether the app may read Actions: an installation made before it asked for it may not. */
+    actionsAllowed: true,
     statuses: [] as { repo: string; sha: string; body: Record<string, unknown> }[],
     calls: [] as string[],
     webhookSecret: "simulated-webhook-secret",
@@ -256,6 +275,20 @@ export async function simulatedGithub(options: { now: () => Date; account?: stri
       Object.assign(repo.files, made.files);
       repo.commits.push({ sha: String(input.sha), ...made });
       return Response.json({ object: { sha: input.sha } });
+    }
+    if (rest === "actions/runs") {
+      if (!state.actionsAllowed) {
+        return Response.json(
+          { message: "Resource not accessible by integration" },
+          { status: 403 },
+        );
+      }
+      const branch = url.searchParams.get("branch");
+      const limit = Number(url.searchParams.get("per_page") ?? 30);
+      const runs = (state.runs.get(repo.fullName.toLowerCase()) ?? [])
+        .filter((r) => !branch || r.head_branch === branch)
+        .slice(0, limit);
+      return Response.json({ total_count: runs.length, workflow_runs: runs });
     }
     if ((m = /^statuses\/([0-9a-f]+)$/.exec(rest)) && request.method === "POST") {
       state.statuses.push({ repo: repo.fullName, sha: m[1]!, body: await body() });

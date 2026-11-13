@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { canSee } from "./access";
+import { PLATFORM_PERMISSIONS, type PlatformPermission } from "@forgeron/permissions";
+import { askFor, can, canSee } from "./access";
 import { hrefOf } from "./href";
 import { toolPath } from "../router";
 import { movedTo } from "./redirects";
@@ -7,9 +8,9 @@ import { matchRoute, routes, type RouteDef } from "./routes";
 
 const page: RouteDef["page"] = async () => ({ default: () => null });
 const table: RouteDef[] = [
-  { path: "/", title: "Home", access: "everyone", page },
-  { path: "/tools", title: "Tools", access: "everyone", page },
-  { path: "/tools/:name", title: "Tool", access: "everyone", page },
+  { path: "/", title: "Home", access: "signed-in", page },
+  { path: "/tools", title: "Tools", access: "signed-in", page },
+  { path: "/tools/:name", title: "Tool", access: "signed-in", page },
 ];
 
 describe("matchRoute", () => {
@@ -60,13 +61,20 @@ describe("the route table", () => {
       ["/admin/marketplace", "Marketplace"],
       ["/admin/members", "Members"],
       ["/admin/teams", "Teams"],
-      ["/admin/roles", "Roles and access"],
     ]);
-    // Administration is guarded: admins only, and Tools for developers too (D-118).
+    // Administration is guarded by a platform permission (D-137); Teams is read by anyone signed in.
     for (const route of routes.filter((r) => r.path.startsWith("/admin/"))) {
-      expect(route.access === "admin" || route.access === "developer").toBe(true);
+      expect(route.access === "signed-in" || route.access.includes(":")).toBe(true);
       expect(route.settings).toBeUndefined();
     }
+    expect(routes.find((r) => r.path === "/admin/tools")!.access).toBe("tools:read");
+    expect(routes.find((r) => r.path === "/admin/members")!.access).toBe("members:read");
+    expect(routes.find((r) => r.path === "/admin/marketplace")!.access).toBe("marketplace:read");
+    // No page is called roles, and no shortcut is left for them.
+    expect(routes.some((r) => /roles/i.test(r.path + r.title))).toBe(false);
+    const keys = routes.flatMap((r) => (r.nav?.shortcut ? [r.nav.shortcut] : []));
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(keys).not.toContain("r");
     const titles = routes.filter((r) => r.nav || r.settings).map((r) => r.title);
     expect(new Set(titles).size).toBe(titles.length);
   });
@@ -76,7 +84,8 @@ describe("movedTo (D-128)", () => {
   it("sends every old address to its new place, keeping the rest of it", () => {
     expect(movedTo("/members")).toBe("/admin/members");
     expect(movedTo("/settings/members", "?invite")).toBe("/admin/members?invite");
-    expect(movedTo("/settings/roles")).toBe("/admin/roles");
+    expect(movedTo("/settings/roles")).toBe("/admin/teams");
+    expect(movedTo("/admin/roles")).toBe("/admin/teams");
     expect(movedTo("/audit")).toBe("/settings/audit");
     expect(movedTo("/tools")).toBe("/admin/tools");
     expect(movedTo("/tools/crm", "?tab=access")).toBe("/admin/tools/crm?tab=access");
@@ -97,6 +106,7 @@ describe("movedTo (D-128)", () => {
       "/members",
       "/settings/members",
       "/settings/roles",
+      "/admin/roles",
       "/audit",
       "/tools",
       "/marketplace",
@@ -107,19 +117,37 @@ describe("movedTo (D-128)", () => {
   });
 });
 
-describe("canSee", () => {
-  const person = (roles: string[]) => ({
-    id: "m",
-    email: "a@b.c",
-    name: "a",
-    roles,
-    admin: roles.includes("admin"),
+describe("canSee (D-137)", () => {
+  const person = (permissions: PlatformPermission[]) => ({ permissions });
+  it("lets anyone signed in see a signed-in route, and a permission its holders", () => {
+    expect(canSee("signed-in", person([]))).toBe(true);
+    expect(canSee("members:read", person([]))).toBe(false);
+    expect(canSee("members:read", person(["members:read"]))).toBe(true);
+    expect(canSee("tools:read", person(["members:read"]))).toBe(false);
   });
-  it("tells everyone, member and admin; the gateway gives everyone member (D-128)", () => {
-    expect(canSee("everyone", person([]))).toBe(true);
-    expect(canSee("member", person([]))).toBe(false);
-    expect(canSee("member", person(["developer"]))).toBe(true);
-    expect(canSee("admin", person(["developer"]))).toBe(false);
-    expect(canSee("admin", person(["admin"]))).toBe(true);
+  it("reads what a permission implies", () => {
+    expect(canSee("members:read", person(["members:write"]))).toBe(true);
+    expect(canSee("tools:read", person(["tools:publish"]))).toBe(true);
+    expect(can(person(["tools:read"]), "tools:publish")).toBe(false);
+  });
+  it("asks no role of anyone: a page is for a permission, and says which", () => {
+    expect(askFor("members:write")).toBe('Ask someone who manages teams for "Manage members".');
+  });
+});
+
+describe("the sidebar and the shortcuts follow the permissions", () => {
+  const visible = (permissions: PlatformPermission[]) =>
+    routes.filter((r) => r.nav && canSee(r.access, { permissions })).map((r) => r.nav!.label);
+  it("shows Teams to everyone, read-only, and the rest to those who hold the permission", () => {
+    expect(visible([])).toEqual(["Home", "My tools", "Discover", "Teams"]);
+    expect(visible(["tools:read", "members:read"])).toEqual([
+      "Home",
+      "My tools",
+      "Discover",
+      "Tools",
+      "Members",
+      "Teams",
+    ]);
+    expect(visible(PLATFORM_PERMISSIONS as PlatformPermission[])).toContain("Marketplace");
   });
 });

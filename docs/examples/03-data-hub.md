@@ -74,15 +74,15 @@ export default defineConfig({
     },
   },
 
-  roles: {
+  profiles: {
     technician: { grants: ["read", "write"] },
     reader: { grants: ["read"] },
-    admin: { grants: ["read", "write", "delete", "import"] }, // "import": a tool-specific level
+    manager: { grants: ["read", "write", "delete", "import"] }, // "import": a tool-specific level
   },
 });
 ```
 
-`import` is an access level **specific to the tool**. Citing it in a role is enough for it to exist; the console displays it like the others.
+`import` is an access level **specific to the tool**. Citing it in a profile is enough for it to exist; the console displays it like the others.
 
 ## The schema
 
@@ -341,6 +341,6 @@ export default migration({
 - `ctx.files`: R2 storage with prefixes and signed URLs; never a public URL by default.
 - `jobs/` + `schedule()`: cron jobs with a time zone, run under the tool's identity.
 - Connectors in two modes: `delegated` (on behalf of the person) and `application` (on behalf of the tool).
-- Custom access levels (`import`) declared simply in roles.
+- Custom access levels (`import`) declared simply in profiles.
 - `paginate`: the standard shape of lists (`limit`, `cursor` → `items`, `nextCursor`).
 - Destructive migrations: flagged, split into two steps, refused in production without explicit consent.

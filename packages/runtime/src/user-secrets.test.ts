@@ -9,7 +9,7 @@ const manifest: Manifest = {
   version: "1.0.0",
   title: "Odoo gateway",
   interfaces: { mcp: true, api: true, cli: true, web: true },
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
   actions: {
     "tickets.mine": {
       description: "My tickets.",
@@ -37,8 +37,8 @@ const manifest: Manifest = {
   preview: { data: "seed" },
 };
 
-const ana: User = { id: "u1", email: "ana@acme.test", name: "Ana", roles: ["reader"] };
-const ben: User = { id: "u2", email: "ben@acme.test", name: "Ben", roles: ["reader"] };
+const ana: User = { id: "u1", email: "ana@acme.test", name: "Ana", subjects: ["everyone"] };
+const ben: User = { id: "u2", email: "ben@acme.test", name: "Ben", subjects: ["everyone"] };
 
 function setup() {
   const data = new Map<string, Record<string, string>>();

@@ -1,5 +1,15 @@
 import { addresses } from "@forgeron/platform-contract/client";
-import { Badge, Button, Checkbox, Dialog, Field, Input, Menu, Notice } from "@forgeron/ui";
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Dialog,
+  Field,
+  Input,
+  Menu,
+  Notice,
+  type MenuEntry,
+} from "@forgeron/ui";
 import { useId, useMemo, useState } from "react";
 import {
   explain,
@@ -10,23 +20,26 @@ import {
   type FetchJson,
   type SendJson,
 } from "../../api";
-import { knownRoles, loadMembers, type MembershipView } from "../../members";
+import { ADMIN_TEAM } from "@forgeron/permissions";
+import { loadMembers, type MembershipView } from "../../members";
+import { loadTeams, permissionsOfMember, type TeamRow } from "../../teams";
 import { useLoad } from "../../use-load";
 
 // Who may use a channel of the tool, at the right of its header (D-129), in place of the old
-// Availability tab. Two states: **Draft**, the rule `nobody` (or no rule on a channel), for admins
-// only (and developers on a branch's temporary channel, D-125); **Published**, to everyone, to some
-// workspace roles, or to some people. Production's rule is who may add the tool to their library
-// (D-117); another channel's is who may add that channel as a tool of its own (D-119, D-125).
-// Everyone holds `member` (D-128): published to everyone is every person of the workspace. What each
-// person may do in the tool stays the Access tab's.
+// Availability tab. Two states: **Draft**, the rule `nobody` (or no rule on a channel), for the people
+// who give access (and, on a branch's temporary channel, those who see tools, D-125); **Published**, to
+// everyone, to some teams, or to some people (D-137). Production's rule is who may add the tool to
+// their library (D-117); another channel's is who may add that channel as a tool of its own (D-119,
+// D-125). Published to everyone is every person of the workspace. What each person may do in the tool
+// stays the Access tab's. Publishing needs a version to publish: while the channel has none (the CI
+// failed, or has not run), the button is off and says why.
 
-type Mode = "nobody" | "everyone" | "roles" | "people";
-export type Sharing = { mode: Mode; roles: string[]; people: string[] };
+type Mode = "nobody" | "everyone" | "teams" | "people";
+export type Sharing = { mode: Mode; teams: string[]; people: string[] };
 
 const json = (rule: Sharing) => ({
   mode: rule.mode,
-  ...(rule.mode === "roles" ? { roles: rule.roles } : {}),
+  ...(rule.mode === "teams" ? { teams: rule.teams } : {}),
   ...(rule.mode === "people" ? { people: rule.people } : {}),
 });
 
@@ -43,7 +56,7 @@ type Rule = Awaited<ReturnType<typeof loadSharing>>;
 /** A saved rule as a choice: production with no rule (`open`) reaches everyone. */
 const asSharing = (rule: Rule): Sharing => ({
   mode: rule.mode === "open" ? "everyone" : rule.mode,
-  roles: rule.roles,
+  teams: rule.teams,
   people: rule.people,
 });
 
@@ -58,24 +71,43 @@ async function saveSharing(send: SendJson, tool: string, rule: Sharing, branch?:
 
 type Member = MembershipView["members"][number];
 
-/** A branch's temporary channel: developers reach it while it is a draft (D-125, D-129). */
+/** A branch's temporary channel: those who see tools reach it while it is a draft (D-125, D-129). */
 const isBranch = (branch?: string) => branch !== undefined && !branch.startsWith("~");
 
-/** Who always reaches the channel, whatever is published. */
+/**
+ * Who always reaches the channel, whatever is published, as the registry says it (`reachesChannelAlways`,
+ * `isAvailable`, D-137): production is the tool people add to their library, which whoever gives access
+ * (`access:write`) may always do; every other channel is reached by whoever publishes (`tools:publish`)
+ * and, on a branch's temporary channel, by whoever sees tools (`tools:read`).
+ */
 const alwaysLabel = (branch?: string) =>
-  isBranch(branch) ? "Admins and developers" : "Admins only";
+  branch === undefined
+    ? "People who give access"
+    : isBranch(branch)
+      ? "People who publish or see tools"
+      : "People who publish";
 
-/** The people who would reach the channel under a rule: admins always, and those it names. */
-export function audience(rule: Sharing, members: readonly Member[], branch?: string): Member[] {
+/**
+ * The people who would reach the channel under a rule: those who always do (see `alwaysLabel`), and
+ * those it names. Once a rule is set on a channel other than production, whoever gives access passes
+ * it too, as `mayUseChannel` lets `isAvailable` decide (D-137).
+ */
+export function audience(
+  rule: Sharing,
+  members: readonly Member[],
+  teams: readonly TeamRow[],
+  branch?: string,
+): Member[] {
   return members.filter((m) => {
-    if (m.roles.includes("admin")) return true;
-    if (isBranch(branch) && m.roles.includes("developer")) return true;
+    if (reachesAlways(m, teams, branch)) return true;
+    if (rule.mode !== "nobody" && permissionsOfMember(teams, m.teams).has("access:write")) {
+      return true;
+    }
     switch (rule.mode) {
       case "everyone":
         return true;
-      case "roles":
-        // Everyone holds `member` (D-128), given or not.
-        return rule.roles.some((r) => r === "member" || m.roles.includes(r));
+      case "teams":
+        return rule.teams.some((t) => m.teams.includes(t));
       case "people":
         return rule.people.includes(m.id);
       default:
@@ -84,15 +116,23 @@ export function audience(rule: Sharing, members: readonly Member[], branch?: str
   });
 }
 
+function reachesAlways(m: Member, teams: readonly TeamRow[], branch?: string): boolean {
+  const held = permissionsOfMember(teams, m.teams);
+  if (branch === undefined) return held.has("access:write");
+  return held.has("tools:publish") || (isBranch(branch) && held.has("tools:read"));
+}
+
 /** What the header says after _Published_: who it is shared with. */
-function sharedWith(rule: Rule, members?: readonly Member[]): string {
+function sharedWith(rule: Rule, members?: readonly Member[], teams?: readonly TeamRow[]): string {
   switch (rule.mode) {
     case "open":
       return "everyone, without adding it";
     case "everyone":
       return "everyone";
-    case "roles":
-      return rule.roles.join(", ") || "no role";
+    case "teams":
+      return (
+        rule.teams.map((id) => teams?.find((t) => t.id === id)?.name ?? id).join(", ") || "no team"
+      );
     case "people": {
       if (members && rule.people.length <= 2) {
         const names = rule.people.map((id) => members.find((m) => m.id === id)?.name ?? id);
@@ -108,13 +148,19 @@ function sharedWith(rule: Rule, members?: readonly Member[]): string {
 const peopleCount = (n: number) => (n === 1 ? "1 person" : `${n} people`);
 
 /** What the dialog says before saving: how many people get access, and why. */
-function confirmation(rule: Sharing, reach: number, total: number, branch?: string): string {
-  const always = isBranch(branch) ? "admins and developers" : "admins";
+function confirmation(
+  rule: Sharing,
+  reach: number,
+  total: number,
+  teams: readonly TeamRow[],
+  branch?: string,
+): string {
+  const always = alwaysLabel(branch).toLowerCase();
   const count = reach === 1 ? "1 person will" : `${reach} people will`;
   if (rule.mode === "everyone") return `${count} have access: everyone in the workspace.`;
   const who =
-    rule.mode === "roles"
-      ? `the people who hold ${rule.roles.join(" or ")}`
+    rule.mode === "teams"
+      ? `the members of ${rule.teams.map((id) => teams.find((t) => t.id === id)?.name ?? id).join(" or ")}`
       : rule.people.length === 1
         ? "the person you picked"
         : `the ${rule.people.length} people you picked`;
@@ -127,24 +173,38 @@ const Chevron = () => (
   </svg>
 );
 
+/** What else the chevron menu holds, from the tool page: the links, then the actions that destroy. */
+interface ToolMenuEntries {
+  links: ReadonlyArray<MenuEntry>;
+  danger: ReadonlyArray<MenuEntry>;
+}
+
 export interface PublishControlProps {
   tool: string;
   /** The channel the page shows; `undefined` for production. */
   branch?: string;
   api: Api;
   publishing: Publishing;
+  /** Whether a version is deployed on the channel: without one there is nothing to publish. */
+  deployed?: boolean;
+  /** The other entries of the menu: "Open in my tools", "View on GitHub", "Delete tool…". */
+  menu?: ToolMenuEntries;
 }
+
+/** Said where Publish is off, and by the gateway (`NO_VERSION`) if it is asked anyway. */
+export const NO_VERSION = "Nothing to publish yet: no version is deployed on this channel.";
 
 type Open = "share" | "who" | "unpublish" | undefined;
 
 export interface Publishing {
   rule: ReturnType<typeof useLoad<Rule | undefined>>;
   members: ReturnType<typeof useLoad<MembershipView | undefined>>;
+  teams: ReturnType<typeof useLoad<TeamRow[] | undefined>>;
 }
 
 /**
  * The channel's sharing rule and the workspace's people, read once for the badge next to the title
- * and the split button on the right. Reads nothing when `enabled` is false (not an admin).
+ * and the split button on the right. Reads nothing when `enabled` is false (the person does not publish).
  */
 export function usePublishing(
   api: Api,
@@ -160,7 +220,11 @@ export function usePublishing(
     () => (enabled ? loadMembers(api.fetchJson) : Promise.resolve(undefined)),
     [api, enabled],
   );
-  return { rule, members } as Publishing;
+  const teams = useLoad(
+    () => (enabled ? loadTeams(api.fetchJson) : Promise.resolve(undefined)),
+    [api, enabled],
+  );
+  return { rule, members, teams } as Publishing;
 }
 
 /** A channel other than production with no rule is a draft; production with none is open (D-117). */
@@ -175,7 +239,11 @@ export function PublishBadge({ publishing, branch }: { publishing: Publishing; b
   return (
     <span
       role="status"
-      title={draft ? alwaysLabel(branch) : sharedWith(rule, publishing.members.data?.members)}
+      title={
+        draft
+          ? alwaysLabel(branch)
+          : sharedWith(rule, publishing.members.data?.members, publishing.teams.data)
+      }
     >
       {draft ? (
         <Badge tone="warning" dot>
@@ -190,9 +258,16 @@ export function PublishBadge({ publishing, branch }: { publishing: Publishing; b
   );
 }
 
-/** The split button that publishes the channel, for an admin. */
-export function PublishControl({ tool, branch, api, publishing }: PublishControlProps) {
-  const { rule, members } = publishing;
+/** The split button that publishes the channel, for whoever holds `tools:publish`. */
+export function PublishControl({
+  tool,
+  branch,
+  api,
+  publishing,
+  deployed = true,
+  menu,
+}: PublishControlProps) {
+  const { rule, members, teams } = publishing;
   const [open, setOpen] = useState<Open>();
   const [done, setDone] = useState<string>();
 
@@ -205,6 +280,7 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
   }
   const draft = isDraft(rule.data, branch);
   const view = members.data;
+  const teamList = teams.data ?? [];
   const save = async (next: Sharing, message: string) => {
     await saveSharing(api.sendJson, tool, next, branch);
     setOpen(undefined);
@@ -216,7 +292,12 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
   return (
     <div className="ft-publish">
       <span className="ft-split">
-        <Button variant="primary" onClick={() => setOpen("share")} disabled={!view}>
+        <Button
+          variant="primary"
+          onClick={() => setOpen("share")}
+          disabled={!view || (draft && !deployed)}
+          {...(draft && !deployed ? { title: NO_VERSION } : {})}
+        >
           {draft ? "Publish" : "Manage sharing"}
         </Button>
         <Menu
@@ -225,10 +306,11 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
           trigger={<Chevron />}
           entries={[
             { kind: "action", label: "Who has access", onSelect: () => setOpen("who") },
+            ...(menu?.links ?? []),
+            ...(!draft || (menu?.danger.length ?? 0) > 0 ? ([{ kind: "separator" }] as const) : []),
             ...(draft
               ? []
               : ([
-                  { kind: "separator" },
                   {
                     kind: "action",
                     label: "Unpublish",
@@ -236,6 +318,7 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
                     onSelect: () => setOpen("unpublish"),
                   },
                 ] as const)),
+            ...(menu?.danger ?? []),
           ]}
         />
       </span>
@@ -249,6 +332,7 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
           title={draft ? `Publish ${where}` : `Manage sharing of ${where}`}
           rule={rule.data}
           view={view}
+          teams={teamList}
           branch={branch}
           legacy={!draft && rule.data.mode === "open"}
           action={draft ? "Publish" : "Save sharing"}
@@ -260,6 +344,7 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
         <WhoDialog
           rule={draft ? { ...rule.data, mode: "nobody" } : rule.data}
           members={view?.members ?? []}
+          teams={teamList}
           branch={branch}
           onClose={() => setOpen(undefined)}
         />
@@ -269,14 +354,14 @@ export function PublishControl({ tool, branch, api, publishing }: PublishControl
           where={where}
           count={
             view
-              ? audience(asSharing(rule.data), view.members, branch).filter(
-                  (m) => !m.roles.includes("admin"),
+              ? audience(asSharing(rule.data), view.members, teamList, branch).filter(
+                  (m) => !reachesAlways(m, teamList, branch),
                 ).length
               : 0
           }
           branch={branch}
           onClose={() => setOpen(undefined)}
-          confirm={() => save({ mode: "nobody", roles: [], people: [] }, "Back to draft.")}
+          confirm={() => save({ mode: "nobody", teams: [], people: [] }, "Back to draft.")}
         />
       ) : null}
     </div>
@@ -287,6 +372,7 @@ function ShareDialog({
   title,
   rule,
   view,
+  teams,
   branch,
   legacy,
   action,
@@ -296,24 +382,25 @@ function ShareDialog({
   title: string;
   rule: Rule;
   view: MembershipView;
+  teams: readonly TeamRow[];
   branch?: string;
   legacy: boolean;
   action: string;
   onClose: () => void;
   save: (rule: Sharing) => Promise<void>;
 }) {
-  const start: Mode = rule.mode === "roles" || rule.mode === "people" ? rule.mode : "everyone";
+  const start: Mode = rule.mode === "teams" || rule.mode === "people" ? rule.mode : "everyone";
   const [mode, setMode] = useState<Mode>(start);
-  const [roles, setRoles] = useState<string[]>(rule.roles);
+  const [picked, setPicked] = useState<string[]>(rule.teams);
   const [people, setPeople] = useState<string[]>(rule.people);
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const name = useId();
-  // `admin` always reaches the channel; `member` is everyone (D-128).
-  const offered = knownRoles(view).filter((r) => r !== "admin" && r !== "member");
-  const next: Sharing = { mode, roles, people };
-  const reach = audience(next, view.members, branch);
+  // Admins always reach the channel: they are not offered.
+  const offered = teams.filter((t) => t.id !== ADMIN_TEAM);
+  const next: Sharing = { mode, teams: picked, people };
+  const reach = audience(next, view.members, teams, branch);
   const found = useMemo(() => {
     const q = query.trim().toLowerCase();
     return view.members.filter(
@@ -322,7 +409,7 @@ function ShareDialog({
     );
   }, [query, people, view.members]);
   const empty =
-    (mode === "roles" && roles.length === 0) || (mode === "people" && people.length === 0);
+    (mode === "teams" && picked.length === 0) || (mode === "people" && people.length === 0);
 
   const submit = async () => {
     setBusy(true);
@@ -364,7 +451,7 @@ function ShareDialog({
         {(
           [
             ["everyone", "Everyone in the workspace", "Every person of the workspace."],
-            ["roles", "Some roles", "The people who hold one of these roles."],
+            ["teams", "Some teams", "The members of the teams you pick."],
             ["people", "Some people", "Only the people you pick."],
           ] as const
         ).map(([value, label, hint]) => (
@@ -382,22 +469,22 @@ function ShareDialog({
           </label>
         ))}
       </fieldset>
-      {mode === "roles" ? (
+      {mode === "teams" ? (
         offered.length > 0 ? (
           <div className="fc-checks">
-            {offered.map((r) => (
+            {offered.map((t) => (
               <Checkbox
-                key={r}
-                label={r}
-                checked={roles.includes(r)}
+                key={t.id}
+                label={t.name}
+                checked={picked.includes(t.id)}
                 onChange={(e) =>
-                  setRoles(e.target.checked ? [...roles, r] : roles.filter((x) => x !== r))
+                  setPicked(e.target.checked ? [...picked, t.id] : picked.filter((x) => x !== t.id))
                 }
               />
             ))}
           </div>
         ) : (
-          <p className="fc-muted">No role other than admin and member yet: give one in Members.</p>
+          <p className="fc-muted">No team other than Admins yet: create one in Teams.</p>
         )
       ) : null}
       {mode === "people" ? (
@@ -437,10 +524,10 @@ function ShareDialog({
       ) : null}
       <Notice tone={empty ? "warning" : "info"}>
         {empty
-          ? mode === "roles"
-            ? "Pick at least one role."
+          ? mode === "teams"
+            ? "Pick at least one team."
             : "Pick at least one person."
-          : confirmation(next, reach.length, view.members.length, branch)}
+          : confirmation(next, reach.length, view.members.length, teams, branch)}
       </Notice>
       {error ? <Notice tone="danger">{error}</Notice> : null}
     </Dialog>
@@ -450,22 +537,24 @@ function ShareDialog({
 function WhoDialog({
   rule,
   members,
+  teams,
   branch,
   onClose,
 }: {
   rule: Rule;
   members: readonly Member[];
+  teams: readonly TeamRow[];
   branch?: string;
   onClose: () => void;
 }) {
-  const reach = audience(asSharing(rule), members, branch);
+  const reach = audience(asSharing(rule), members, teams, branch);
   return (
     <Dialog
       title="Who has access"
       description={
         rule.mode === "nobody"
           ? `A draft: ${alwaysLabel(branch).toLowerCase()}.`
-          : `Published to ${sharedWith(rule, members)}. Admins always have access.`
+          : `Published to ${sharedWith(rule, members, teams)}. ${alwaysLabel(branch)} always have access.`
       }
       onClose={onClose}
       footer={<Button onClick={onClose}>Close</Button>}
@@ -477,7 +566,7 @@ function WhoDialog({
             <span>
               {m.name} <span className="fc-mono fc-muted">{m.email}</span>
             </span>
-            {m.roles.includes("admin") ? <Badge tone="strong">admin</Badge> : null}
+            {reachesAlways(m, teams, branch) ? <Badge tone="strong">Always</Badge> : null}
           </li>
         ))}
       </ul>
@@ -528,8 +617,8 @@ function UnpublishDialog({
     >
       <p>
         {count === 0
-          ? "Nobody but admins has access now."
-          : `${peopleCount(count)} other than admins will lose access at their next call. It stays in their library, and works again if you publish it to them.`}
+          ? `Nobody but ${alwaysLabel(branch).toLowerCase()} has access now.`
+          : `${peopleCount(count)} will lose access at their next call. It stays in their library, and works again if you publish it to them.`}
       </p>
       {error ? <Notice tone="danger">{error}</Notice> : null}
     </Dialog>

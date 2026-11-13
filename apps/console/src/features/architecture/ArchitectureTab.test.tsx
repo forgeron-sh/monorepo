@@ -71,9 +71,16 @@ describe("ArchitectureTab", () => {
 });
 
 describe("the tool page tabs", () => {
-  it("has the Architecture tab for admins, loading the component, and not for members", async () => {
-    expect(toolTabs(false).some((t) => t.id === "architecture")).toBe(false);
-    const tab = toolTabs(true).find((t) => t.id === "architecture")!;
+  it("has the Architecture tab for whoever holds tools:read, loading the component", async () => {
+    const person = (permissions: ToolTabProps["ws"]["person"]["permissions"]) => ({
+      id: "m",
+      email: "a@b.c",
+      name: "a",
+      teams: [],
+      permissions,
+    });
+    expect(toolTabs(person([])).some((t) => t.id === "architecture")).toBe(false);
+    const tab = toolTabs(person(["tools:read"])).find((t) => t.id === "architecture")!;
     expect(tab.title).toBe("Architecture");
     expect((await tab.load()).default).toBe(ArchitectureTab);
   });

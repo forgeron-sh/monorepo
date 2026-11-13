@@ -33,26 +33,31 @@ const as = async (request: Request, who: ConsolePerson | undefined) => {
 
 describeRouteMatrix({
   title: "GET the library",
-  access: "member",
+  access: "signed-in",
   call: as,
   method: "GET",
   path: "/api/library",
 });
 describeRouteMatrix({
   title: "GET a tool's availability",
-  access: "admin",
+  access: "access:read",
   call: as,
   method: "GET",
   path: "/api/tools/crm/availability",
 });
 describeRouteMatrix({
   title: "PUT a tool's availability",
-  access: "admin",
+  access: "access:write",
   call: as,
   method: "PUT",
   path: "/api/tools/crm/availability",
   valid: { mode: "everyone" },
-  invalid: [{}, { mode: "all" }, { mode: "roles", roles: "support" }],
+  invalid: [
+    {},
+    { mode: "all" },
+    { mode: "members", teams: ["support"] },
+    { mode: "teams", teams: "support" },
+  ],
 });
 
 describe("the availability routes", () => {
@@ -62,7 +67,7 @@ describe("the availability routes", () => {
       await (await as(new Request(url("/api/tools/fresh/availability")), ADMIN)).json(),
     ).toEqual({
       mode: "open",
-      roles: [],
+      teams: [],
       people: [],
       updatedAt: null,
     });

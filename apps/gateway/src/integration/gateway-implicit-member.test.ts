@@ -8,9 +8,9 @@ import { issueToken } from "../identity/authn/tokens";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// Every person holds `member` (D-128): a person given no role gets what each tool maps `member` to
+// Every person is part of `everyone` (D-137): a person in no team gets what each tool gives `everyone`
 // (the default profile), only on a tool they may add (its availability, D-117), and an admin's
-// exception on `member` still wins. The people and keys are test values; the tool is a stub that
+// exception on `everyone` still wins. The people and keys are test values; the tool is a stub that
 // records what the gateway forwards.
 
 const SECRET = "test-secret-not-a-real-one";
@@ -19,7 +19,7 @@ const now = new Date("2026-11-12T10:00:00Z");
 const manifest = (name: string) => ({
   name,
   interfaces: { mcp: true, api: true, cli: true, web: false },
-  roles: { user: { grants: ["read"] }, manager: { grants: ["read", "write"] } },
+  profiles: { user: { grants: ["read"] }, manager: { grants: ["read", "write"] } },
   actions: { "deals.list": { access: "read" }, "deals.move": { access: "write" } },
   views: {},
   resources: {},
@@ -49,17 +49,17 @@ beforeAll(async () => {
     await registry.activate(production.id, version.id, { actor: "test" });
     ids[name] = tool.id;
   }
-  const add = async (subject: string, roles: string[]) =>
+  const add = async (subject: string, teams: string[]) =>
     (
       await registry.addMember({
         workspace: "acme",
         subject,
         email: `${subject}@acme.test`,
         name: subject,
-        roles,
+        teams,
       })
     ).id;
-  // Cleo was given no role at all; root is the admin.
+  // Cleo is in no team; root is the admin.
   cleo = await add("cleo", []);
   root = await add("root", ["admin"]);
   await registry.setAvailability({ toolId: ids.crm!, mode: "everyone", actor: root });
@@ -114,16 +114,16 @@ const call = async (tool: string) =>
     }),
   );
 
-describe("everyone holds member (D-128)", () => {
-  it("gives a person with no role the member profile on a tool they may add", async () => {
-    expect((await registry.findMember("acme", cleo))?.roles).toEqual([]);
+describe("everyone is a subject of every person (D-137)", () => {
+  it("gives a person in no team the profile `everyone` has on a tool they may add", async () => {
+    expect((await registry.findMember("acme", cleo))?.teams).toEqual([]);
     expect((await consoleApi(cleo, "/api/library/crm", "POST")).status).toBe(200);
     seen.length = 0;
     expect((await call("crm")).status).toBe(200);
     expect(JSON.parse(seen.at(-1)!)).toMatchObject({
-      roles: ["member"],
-      permissions: { member: ["read"] },
-      access: { member: { "deals.list": true, "deals.move": false } },
+      subjects: ["everyone"],
+      permissions: { everyone: ["read"] },
+      access: { everyone: { "deals.list": true, "deals.move": false } },
     });
   });
 
@@ -139,25 +139,26 @@ describe("everyone holds member (D-128)", () => {
     expect(seen).toEqual([]);
   });
 
-  it("lets an admin's exception on member win over the profile", async () => {
+  it("lets an exception on `everyone` win over the profile", async () => {
     const put = await consoleApi(root, "/api/tools/crm/access-matrix", "PUT", {
-      changes: [{ role: "member", action: "deals.list", allowed: false }],
+      changes: [{ subject: "everyone", action: "deals.list", allowed: false }],
     });
     expect(put.status).toBe(200);
     await call("crm");
     expect(JSON.parse(seen.at(-1)!).access).toEqual({
-      member: { "deals.list": false, "deals.move": false },
+      everyone: { "deals.list": false, "deals.move": false },
     });
   });
 
-  it("keeps the stored roles as they were given: member is added when the person is read", async () => {
+  it("keeps the stored teams as they were given: `everyone` is not stored", async () => {
     const members = (await (await consoleApi(root, "/api/members")).json()) as {
-      members: Array<{ id: string; roles: string[] }>;
+      members: Array<{ id: string; teams: string[] }>;
     };
-    expect(members.members.find((m) => m.id === cleo)?.roles).toEqual([]);
+    expect(members.members.find((m) => m.id === cleo)?.teams).toEqual([]);
     const me = (await (await consoleApi(cleo, "/api/workspace")).json()) as {
-      person: { roles: string[] };
+      person: { teams: string[]; permissions: string[] };
     };
-    expect(me.person.roles).toEqual(["member"]);
+    expect(me.person.teams).toEqual([]);
+    expect(me.person.permissions).toEqual([]);
   });
 });

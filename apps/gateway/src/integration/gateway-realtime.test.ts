@@ -24,7 +24,7 @@ const room: Array<{
 const manifest = {
   name: "notes",
   version: "1.0.0",
-  roles: { member: { grants: ["read", "write"], default: true } },
+  profiles: { member: { grants: ["read", "write"], default: true } },
   actions: { "notes.list": { access: "read" }, "notes.add": { access: "write" } },
   views: { notes: { title: "Notes", path: "/", access: "read", entry: "views/notes.js" } },
   realtime: { channels: { notes: { access: "read" } } },
@@ -141,7 +141,7 @@ describe("realtime through the gateway", () => {
     const context = JSON.parse(room[0]!.headers["x-forgeron-room-context"]!);
     expect(context.user).toMatchObject({
       email: "ely@acme.fr",
-      roles: expect.arrayContaining(["admin"]),
+      subjects: expect.arrayContaining(["team:admin"]),
     });
     expect(context.manifest.realtime.channels.notes.access).toBe("read");
     expect(context.worker).toBe("acme--notes--production");

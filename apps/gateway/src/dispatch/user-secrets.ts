@@ -1,5 +1,5 @@
 import type { Manifest } from "@forgeron/manifest";
-import { teamRole, type Registry } from "@forgeron/registry";
+import type { Registry } from "@forgeron/registry";
 import {
   type ConnectorStep,
   handleSecretsInput,
@@ -169,7 +169,12 @@ export async function handleUserSecrets(
   return handleSecretsInput(
     request,
     manifest,
-    { id: who.person.id, email: who.person.email, name: who.person.name, roles: who.person.roles },
+    {
+      id: who.person.id,
+      email: who.person.email,
+      name: who.person.name,
+      subjects: who.person.subjects,
+    },
     store,
     `${url.origin}/t/${tool}`,
     ({ title, eyebrow, body, status }) =>
@@ -188,6 +193,29 @@ export async function handleUserSecrets(
   );
 }
 
+/**
+ * What the gateway tells a tool's Worker about the person, in `x-forgeron-user` (the wire of D-137):
+ * the subjects, and what each is given in the tool (`permissions`, `access`).
+ */
+export function wireUser(
+  person: Pick<Person, "id" | "email" | "name" | "subjects">,
+  matrix?: {
+    access: Record<string, Record<string, boolean>>;
+    permissions: Record<string, string[]>;
+  },
+) {
+  return {
+    id: person.id,
+    email: person.email,
+    name: person.name,
+    subjects: person.subjects,
+    ...(matrix ? { access: matrix.access, permissions: matrix.permissions } : {}),
+    // legacy (D-137): a runtime built before D-137 reads the same subjects as `roles`, and `access`
+    // and `permissions` keyed by them, which read the same way.
+    roles: person.subjects,
+  };
+}
+
 type Asked = NonNullable<Manifest["resources"]["directory"]>;
 
 /** The people and teams a tool declared it wants (D-131, D-132): nothing beyond the fields it named. */
@@ -197,7 +225,6 @@ export function directoryFor(
     id: string;
     email: string;
     name: string;
-    roles: string[];
     avatar?: { version: string };
   }>,
   teams: ReadonlyArray<{ id: string; name: string; description: string; members: string[] }> = [],
@@ -214,7 +241,6 @@ export function directoryFor(
           ...(asked.avatars && m.avatar
             ? { avatar: `${origin}/avatars/${m.id}?v=${encodeURIComponent(m.avatar.version)}` }
             : {}),
-          ...(asked.roles ? { roles: m.roles } : {}),
           ...(asked.teams ? { teams: teamsOf(m.id) } : {}),
         }))
       : [],
@@ -249,7 +275,7 @@ export async function forwardIdentity(
   if (refused) return { refuse: refused };
   const record = await context.registry.findTool(context.workspace, tool);
   // A tool with a rule is reached only by the people who added it to their library and may still use
-  // it (D-117). A preview is for admins and developers already (`canPreview`).
+  // it (D-117). A preview is for who holds `tools:read` already (`canPreview`).
   if (record && environment === "production") {
     const reach = await libraryAccess(context.registry, record.id, who.person);
     if (reach !== "ok") {
@@ -258,32 +284,20 @@ export async function forwardIdentity(
           403,
           reach === "unavailable" ? "NOT_AVAILABLE" : "NOT_IN_LIBRARY",
           reach === "unavailable"
-            ? `"${tool}" is not available to you: ask an admin.`
+            ? `"${tool}" is not available to you: ask someone who can give access.`
             : `Add "${tool}" to your library first: ${libraryPath(tool)}`,
         ),
       };
     }
   }
-  // What the person's workspace roles are mapped to in this tool, and the matrix resolved for each
-  // action, read at each call so an edit applies at once on every interface (D-039, D-127). A runtime
-  // built before D-127 reads only `access`, which says everything.
-  // A team is a subject of that matrix, named `team-<id>` (D-132): the person holds the roles of the
-  // workspace and those of their teams, so a team's profile and exceptions apply with no second path.
-  const teams = record
-    ? await context.registry.teamsOfMember(context.workspace, who.person.id)
-    : [];
-  const roles = [...who.person.roles, ...teams.map(teamRole)];
+  // What each of the person's subjects (`everyone`, their teams) is given in this tool, and the matrix
+  // resolved for each action, read at each call so an edit applies at once on every interface (D-039,
+  // D-127, D-137).
+  const teams = who.person.teams;
   const { access, permissions } = record
-    ? await context.registry.accessFor(record.id, roles)
+    ? await context.registry.accessFor(record.id, who.person.subjects)
     : { access: {}, permissions: {} };
-  const payload = {
-    id: who.person.id,
-    email: who.person.email,
-    name: who.person.name,
-    roles,
-    access,
-    permissions,
-  };
+  const payload = wireUser(who.person, { access, permissions });
   const headers: Record<string, string> = {
     "x-forgeron-user": JSON.stringify(payload),
     "x-forgeron-base-url": `${new URL(request.url).origin}/t/${tool}`,

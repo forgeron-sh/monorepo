@@ -1,4 +1,11 @@
 // @vitest-environment jsdom
+import {
+  BUILT_IN_TEAMS,
+  expand,
+  PLATFORM,
+  PLATFORM_PERMISSIONS,
+  type PlatformPermission,
+} from "@forgeron/permissions";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -20,10 +27,23 @@ afterEach(async () => {
   setThemePreference("system");
 });
 
-const workspace = (roles: string[] = ["admin"]) => ({
+// What the built-in teams give (D-137): the admin team holds everything, the developer team builds.
+const ADMIN: readonly PlatformPermission[] = PLATFORM_PERMISSIONS;
+const DEVELOPER: readonly PlatformPermission[] = PLATFORM_PERMISSIONS.filter((p) =>
+  expand(PLATFORM, BUILT_IN_TEAMS.find((t) => t.id === "developer")!.permissions).has(p),
+);
+const NOBODY: readonly PlatformPermission[] = [];
+
+const workspace = (permissions: readonly PlatformPermission[] = ADMIN) => ({
   workspace: "demo",
   endpoint: "https://demo.example.test",
-  person: { id: "m1", email: "ada@acme.fr", name: "ada", roles, admin: roles.includes("admin") },
+  person: {
+    id: "m1",
+    email: "ada@acme.fr",
+    name: "ada",
+    teams: permissions === ADMIN ? ["admin"] : permissions === DEVELOPER ? ["developer"] : [],
+    permissions,
+  },
   setup: { members: 1, invitations: 0, tools: 0, deployed: 0, called: false },
   signIn: {
     email: { enabled: true, mail: "email" },
@@ -32,8 +52,9 @@ const workspace = (roles: string[] = ["admin"]) => ({
   },
   install: { baseDomain: "example.test" },
 });
-const routes = (roles?: string[]) => ({
-  "/api/workspace": workspace(roles),
+const routes = (permissions?: readonly PlatformPermission[]) => ({
+  "/api/workspace": workspace(permissions),
+  "/api/teams": { teams: [] },
   "/api/approvals": {
     versions: [
       {
@@ -53,8 +74,15 @@ const routes = (roles?: string[]) => ({
 
 describe("workspace loader", () => {
   it("keeps what the shell draws", async () => {
-    const info = await loadWorkspace(async () => ({ ...workspace(), extra: "dropped" }));
-    expect(info.person.admin).toBe(true);
+    const info = await loadWorkspace(async () => ({
+      ...workspace(),
+      person: { ...workspace().person, permissions: [...ADMIN, "tools:fly"], admin: true },
+      extra: "dropped",
+    }));
+    expect(info.person.teams).toEqual(["admin"]);
+    expect(info.person.permissions).toEqual(PLATFORM_PERMISSIONS);
+    expect(info.person).not.toHaveProperty("admin");
+    expect(info.person).not.toHaveProperty("roles");
     expect(info.signIn?.email.mail).toBe("email");
     expect(JSON.stringify(info)).not.toContain("dropped");
   });
@@ -78,7 +106,6 @@ describe("App", () => {
       "Marketplace",
       "Members",
       "Teams",
-      "Roles and access",
       "Settings",
     ]);
     expect(side.querySelector(".fg-nav-heading")?.textContent).toBe("Administration");
@@ -90,7 +117,7 @@ describe("App", () => {
     expect(side.querySelector('a[href="/auth/logout"]')).toBeNull();
   });
 
-  it("opens the workspace menu with settings and invite for an admin only", async () => {
+  it("opens the workspace menu with settings and invite for those who hold the permissions", async () => {
     const { api } = fakeApi(routes());
     const page = await mount(<App api={api} now={() => NOW} />);
     await click(page.querySelector('button[aria-label="Workspace"]'));
@@ -103,7 +130,7 @@ describe("App", () => {
       "Invite people",
     ]);
     await cleanup();
-    const member = fakeApi(routes(["developer"]));
+    const member = fakeApi(routes(DEVELOPER));
     const other = await mount(<App api={member.api} now={() => NOW} />);
     await click(other.querySelector('button[aria-label="Workspace"]'));
     expect(
@@ -137,6 +164,14 @@ describe("App", () => {
       act(async () => {
         window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
       });
+    // The shortcut of Roles and access is gone; Teams has its own.
+    await press("g");
+    await press("r");
+    expect(window.location.pathname).toBe("/");
+    await press("g");
+    await press("e");
+    await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Teams"));
+    expect(window.location.pathname).toBe("/admin/teams");
     await press("g");
     await press("p");
     await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Members"));
@@ -208,7 +243,7 @@ describe("App", () => {
 
     it("shows a member the Account group only, and refuses a workspace page", async () => {
       window.history.replaceState(null, "", "/settings/profile");
-      const { api } = fakeApi(routes(["developer"]));
+      const { api } = fakeApi(routes(DEVELOPER));
       const page = await mount(<App api={api} now={() => NOW} />);
       await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Profile"));
       expect(
@@ -217,7 +252,8 @@ describe("App", () => {
       await cleanup();
       window.history.replaceState(null, "", "/settings/domains");
       const denied = await mount(<App api={api} now={() => NOW} />);
-      expect(denied.textContent).toContain("This page is for admins.");
+      expect(denied.textContent).toContain('This page needs the permission "See members".');
+      expect(denied.textContent).toContain('Ask someone who manages teams for "See members".');
     });
 
     it("opens the first page from /settings", async () => {
@@ -250,14 +286,14 @@ describe("App", () => {
       expect(page.textContent).toContain("Nothing to show yet");
     });
 
-    it("tells the workspace, its roles and its usage from the platform's answers", async () => {
+    it("tells the workspace, its teams and its usage from the platform's answers", async () => {
       window.history.replaceState(null, "", "/settings/workspace");
       const { api } = fakeApi({
         ...routes(),
         "/api/members": {
-          members: [{ id: "m1", email: "ada@acme.fr", name: "ada", roles: ["admin"] }],
+          members: [{ id: "m1", email: "ada@acme.fr", name: "ada", teams: ["admin"] }],
           invitations: [],
-          settings: { domains: [], defaultRole: "", source: "install" },
+          settings: { domains: [], defaultTeams: [], source: "install" },
         },
         "/api/tools": { tools: [] },
       });
@@ -298,69 +334,72 @@ describe("App", () => {
     expect(lost.textContent).toContain("This page does not exist.");
   });
 
-  it("shows a developer their space and Tools, and guards the rest of Administration", async () => {
+  it("shows the navigation of the permissions a person holds, and guards the rest (D-137)", async () => {
     window.history.replaceState(null, "", "/admin/members");
-    const { api, reads } = fakeApi(routes(["developer", "member"]));
+    const { api, reads } = fakeApi(routes(DEVELOPER));
     const page = await mount(<App api={api} now={() => NOW} />);
+    // A developer builds and publishes: Tools and Marketplace; Teams is read by everyone.
     expect([...page.querySelectorAll("nav a")].map((a) => a.textContent)).toEqual([
       "Home",
       "My tools",
       "Discover",
       "Tools",
+      "Marketplace",
+      "Teams",
       "Settings",
     ]);
-    expect(page.textContent).toContain("This page is for admins.");
+    expect(page.textContent).toContain('This page needs the permission "See members".');
     expect(reads).not.toContain("/api/approvals");
+    expect(reads).not.toContain("/api/members");
   });
 
-  it("shows a person with no role but member their own space only (D-128)", async () => {
+  it("shows someone in no team their own space and the teams, read-only", async () => {
     window.history.replaceState(null, "", "/admin/tools");
-    const { api } = fakeApi(routes(["member"]));
+    const { api } = fakeApi(routes(NOBODY));
     const page = await mount(<App api={api} now={() => NOW} />);
     const side = page.querySelector(".fg-shell-side")!;
     expect([...side.querySelectorAll("nav a")].map((a) => a.textContent)).toEqual([
       "Home",
       "My tools",
       "Discover",
+      "Teams",
       "Settings",
     ]);
-    expect(side.textContent).not.toContain("Administration");
-    expect(page.textContent).toContain("This page is for admins.");
+    expect(page.textContent).toContain('This page needs the permission "See tools".');
+    expect(page.textContent).not.toMatch(/\brole/i);
   });
 
-  it("counts everyone as holding member on Roles and access (D-128)", async () => {
-    window.history.replaceState(null, "", "/admin/roles");
+  it("opens a team's page for anyone signed in, with the controls of those who may change it", async () => {
+    window.history.replaceState(null, "", "/admin/teams/support");
+    const team = {
+      id: "support",
+      name: "Support",
+      description: "",
+      members: [],
+      builtIn: false,
+      locked: false,
+      permissions: [],
+      effective: [],
+    };
     const { api } = fakeApi({
-      ...routes(),
-      "/api/members": {
-        members: [
-          { id: "m1", email: "ada@acme.fr", name: "ada", roles: ["admin"] },
-          { id: "m2", email: "bob@acme.fr", name: "bob", roles: [] },
-        ],
-        invitations: [],
-        settings: { domains: [], defaultRole: "", source: "install" },
-      },
+      ...routes(NOBODY),
+      "/api/teams": { teams: [team] },
+      "/api/permissions": { groups: [] },
     });
     const page = await mount(<App api={api} now={() => NOW} />);
-    await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Roles and access"));
-    await waitFor(() => expect(page.textContent).toContain("Everyone in the workspace"));
-    const row = (role: string) =>
-      [...page.querySelectorAll(".fg-srow")].find(
-        (r) => r.querySelector(".fc-mono")?.textContent === role,
-      );
-    expect(row("member")?.textContent).toContain("2 members");
-    expect(row("admin")?.textContent).toContain("1 member");
-    expect(
-      row("member")?.getAttribute("href") ??
-        row("member")?.querySelector("a")?.getAttribute("href"),
-    ).toBe("/admin/members");
+    await waitFor(() => expect(page.querySelector("h1")?.textContent).toBe("Support"));
+    expect(page.textContent).toContain("Permissions on Forgeron");
+    expect([...page.querySelectorAll("button")].some((b) => b.textContent === "Save changes")).toBe(
+      false,
+    );
   });
 
   describe("old addresses (D-128)", () => {
     it.each([
       ["/members", "/admin/members", "", "Members"],
       ["/settings/members", "/admin/members", "?invite", "Members"],
-      ["/settings/roles", "/admin/roles", "", "Roles and access"],
+      ["/settings/roles", "/admin/teams", "", "Teams"],
+      ["/admin/roles", "/admin/teams", "", "Teams"],
       ["/audit", "/settings/audit", "", "Audit log"],
       ["/tools", "/admin/tools", "", "Tools"],
       ["/marketplace", "/admin/marketplace", "", "Marketplace"],

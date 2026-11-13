@@ -7,7 +7,7 @@ import { ISSUER, simulatedProvider } from "../simulated-idp";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
-// The catalog through the gateway (FOR-137, D-061): any signed-in member reads it, a person given no role
+// The catalog through the gateway (FOR-137, D-061): any signed-in member reads it, a person in no team
 // holds `member` (D-128) and sees what the tool maps it to, a README is text and never HTML, an image is served from the bundle
 // with `nosniff` and a CSP, and no path leaves the bundle.
 
@@ -47,7 +47,7 @@ beforeAll(async () => {
       description: "Companies and leads.",
       icon: "docs/icon.svg",
       interfaces: { mcp: true, api: true, cli: true, web: false },
-      roles: {
+      profiles: {
         viewer: { label: "Viewer", grants: ["read"] },
         sales: { grants: ["read", "write"] },
       },
@@ -73,14 +73,14 @@ beforeAll(async () => {
   // A tool of another workspace, with the same name: never visible here.
   await registry.createTool({ workspace: "globex", name: "secret" });
 
-  // A member who has a role, and one who has none (bob@acme.fr signs in with the domain, roleless).
-  // `member` is mapped to the tool's default profile, `viewer` (D-127).
+  // A member who is in a team, and one who is in none (bob@acme.fr signs in with the domain).
+  // `everyone` is given the tool's default profile, `viewer` (D-127, D-137).
   await registry.addMember({
     workspace: "acme",
     subject: "carol-subject",
     email: "carol@acme.fr",
     name: "Carol",
-    roles: ["member"],
+    teams: ["developer"],
   });
 
   env = {
@@ -129,7 +129,7 @@ describe("the catalog through the gateway", () => {
     }
   });
 
-  it("lists the tool as granted to a person given no role: everyone holds member (D-128)", async () => {
+  it("lists the tool as granted to a person in no team: everyone is given the default profile (D-137)", async () => {
     const gateway = gatewayFor();
     const bob = await signInAs("bob@acme.fr");
     const answer = await gateway(at(API, { headers: { cookie: bob } }));
@@ -143,9 +143,9 @@ describe("the catalog through the gateway", () => {
       productionVersion: "1.0.0",
       interfaces: { mcp: true, api: true, cli: true, web: false },
       access: "granted",
-      roles: [
-        { name: "admin", label: "admin (all permissions)" },
-        { name: "member", label: "member (Viewer)" },
+      subjects: [
+        { subject: "everyone", name: "Everyone", label: "Everyone (Viewer)" },
+        { subject: "team:admin", name: "Admins", label: "Admins (all permissions)" },
       ],
     });
     expect(tools[0]!.icon).toMatch(
@@ -153,7 +153,7 @@ describe("the catalog through the gateway", () => {
     );
   });
 
-  it("says granted to a person whose role may call an action, and which ones", async () => {
+  it("says granted to a person who may call an action, and which ones", async () => {
     const gateway = gatewayFor();
     const carol = await signInAs("carol@acme.fr");
     const card = (await (

@@ -38,7 +38,7 @@ async function bundleOf(name: string, version: string) {
     summary: "Your tickets from Claude.",
     docs: { readme: await file(readme), guide: await file(guide), assets: [] },
     interfaces: { mcp: true, api: false, cli: true, web: false },
-    roles: { support: { label: "Support", grants: ["read"] } },
+    profiles: { support: { label: "Support", grants: ["read"] } },
     actions: {},
     views: {},
     jobs: {},
@@ -130,17 +130,18 @@ const post = (path: string, body?: unknown) =>
       ? {}
       : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
   });
-const admin = { access: "admin" as const, call: as };
 
 describeRouteMatrix({
   title: "GET marketplaces",
-  ...admin,
+  access: "marketplace:read",
+  call: as,
   method: "GET",
   path: "/api/marketplaces",
 });
 describeRouteMatrix({
   title: "POST add a marketplace",
-  ...admin,
+  access: "marketplace:write",
+  call: as,
   method: "POST",
   path: "/api/marketplaces",
   valid: { repo: "matrix/repo" },
@@ -148,7 +149,8 @@ describeRouteMatrix({
 });
 describeRouteMatrix({
   title: "GET what the official marketplace offers",
-  ...admin,
+  access: "marketplace:read",
+  call: as,
   method: "GET",
   path: "/api/marketplaces/official/tools",
 });
@@ -221,7 +223,7 @@ describe("the marketplace routes (D-116)", () => {
       readme: "# odoo, technical",
       guide: "# odoo for you",
       network: ["*.odoo.com"],
-      roles: [{ name: "support", label: "Support (default)" }],
+      profiles: [{ name: "support", label: "Support (default)" }],
       database: false,
     });
 

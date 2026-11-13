@@ -17,7 +17,7 @@ const person = JSON.stringify({
   id: "ada",
   email: "ada@example.test",
   name: "Ada",
-  roles: ["reader"],
+  subjects: ["everyone"],
 });
 const gateway = (action: string, headers: Record<string, string> = {}) =>
   new Request(`https://inbox.test/api/${action}`, {

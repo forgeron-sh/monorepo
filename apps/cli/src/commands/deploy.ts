@@ -92,7 +92,7 @@ export async function deploy(args: string[], io: Io): Promise<number> {
     io.log(
       "version" in reached
         ? `The channel ${reached.channel} took the release ${reached.version}.`
-        : `The channel ${reached.channel} waits for an admin: ${reached.waiting}`,
+        : `The channel ${reached.channel} waits for approval: ${reached.waiting}`,
     );
   }
   return 0;

@@ -3,25 +3,25 @@ import type { D1Database } from "@forgeron/hosting";
 import { createMemoryD1, type MemoryD1 } from "@forgeron/sdk/testing/d1";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SignIn } from "@forgeron/platform-contract";
+import { ADMIN, holding } from "../platform/route-matrix";
 import { platformCaller } from "../platform/test-app";
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 let memory: MemoryD1;
 let registry: Registry;
-let roles: string[] | undefined;
+/** Who is signed in: a member of the admin team, of the developer team, or nobody. */
+let team: "admin" | "developer" | undefined;
 let toolId: string;
 
+const permissions = () =>
+  team === "admin"
+    ? ADMIN.permissions
+    : holding("tools:write", "tools:publish", "tools:data", "access:read", "marketplace:read")
+        .permissions;
 const person = () =>
-  roles
-    ? {
-        id: "p1",
-        email: "ada@acme.test",
-        name: "Ada",
-        roles,
-        admin: roles.includes("admin"),
-        developer: roles.includes("developer"),
-      }
+  team
+    ? { id: "p1", email: "ada@acme.test", name: "Ada", teams: [team], permissions: permissions() }
     : undefined;
 const signIn = async (): Promise<SignIn> => ({
   email: { enabled: true, mail: "console" },
@@ -36,16 +36,16 @@ const workspace = (path = "/api/workspace", method = "GET") =>
 const approvals = (path: string, init?: RequestInit) =>
   platformCaller({
     registry,
-    who: () => (roles ? { id: "p1", roles, admin: roles.includes("admin") } : undefined),
+    who: person,
   })(req(path, init));
 const audit = (path = "/api/audit", method = "GET") =>
   platformCaller({
     registry,
-    who: () => (roles ? { roles, admin: roles.includes("admin") } : undefined),
+    who: person,
   })(req(path, { method }));
 
 beforeEach(async () => {
-  roles = ["admin"];
+  team = "admin";
   memory = await createMemoryD1();
   const d1 = memory as unknown as D1Database;
   await migratePlatform(d1);
@@ -60,7 +60,7 @@ describe("workspace API", () => {
     expect(empty).toMatchObject({
       workspace: "acme",
       endpoint: "https://acme.forgeron.test",
-      person: { email: "ada@acme.test", admin: true },
+      person: { email: "ada@acme.test", teams: ["admin"], permissions: ADMIN.permissions },
       setup: { tools: 1, deployed: 0, called: false, invitations: 0 },
       signIn: { email: { mail: "console" } },
       install: { baseDomain: "forgeron.test" },
@@ -85,18 +85,18 @@ describe("workspace API", () => {
     expect(done.setup.called).toBe(true);
   });
 
-  it("keeps sign-in and install details for admins", async () => {
-    roles = ["developer"];
+  it("keeps sign-in and install details for who holds `settings:read`", async () => {
+    team = "developer";
     const body = await read(await workspace());
-    expect(body.person.admin).toBe(false);
+    expect(body.person.permissions).not.toContain("settings:read");
     expect(body.signIn).toBeUndefined();
     expect(body.install).toBeUndefined();
   });
 
   it("refuses anonymous callers and other methods, ignores other routes", async () => {
-    roles = undefined;
+    team = undefined;
     expect((await workspace())?.status).toBe(401);
-    roles = ["admin"];
+    team = "admin";
     expect((await workspace("/api/workspace", "POST"))?.status).toBe(405);
     expect(await workspace("/api/other")).toBeUndefined();
   });
@@ -143,7 +143,7 @@ describe("approvals API", () => {
     expect((await read(await approvals("/api/approvals"))).versions).toEqual([]);
   });
 
-  it("is for admins and answers 404 to an unknown request", async () => {
+  it("is for who holds `tools:approve` and answers 404 to an unknown request", async () => {
     expect(
       (
         await approvals("/api/approvals/nope", {
@@ -153,11 +153,11 @@ describe("approvals API", () => {
         })
       )?.status,
     ).toBe(404);
-    roles = ["developer"];
+    team = "developer";
     expect((await approvals("/api/approvals"))?.status).toBe(403);
-    roles = undefined;
+    team = undefined;
     expect((await approvals("/api/approvals"))?.status).toBe(401);
-    roles = ["admin"];
+    team = "admin";
     expect((await approvals("/api/approvals", { method: "DELETE" }))?.status).toBe(405);
   });
 });
@@ -184,12 +184,12 @@ describe("audit API", () => {
     expect(body.entries[0].detail).toBeUndefined();
   });
 
-  it("is for admins", async () => {
-    roles = ["developer"];
+  it("is for who holds `audit:read`", async () => {
+    team = "developer";
     expect((await audit())?.status).toBe(403);
-    roles = undefined;
+    team = undefined;
     expect((await audit())?.status).toBe(401);
-    roles = ["admin"];
+    team = "admin";
     expect((await audit("/api/audit", "POST"))?.status).toBe(405);
   });
 });

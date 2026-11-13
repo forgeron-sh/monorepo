@@ -2,7 +2,7 @@ import { defineConfig, field } from "@forgeron/sdk";
 
 export default defineConfig({
   name: "setup",
-  roles: { reader: { grants: ["read"] } },
+  profiles: { reader: { grants: ["read"] } },
   setup: {
     fields: {
       firstName: field.text({ label: "First name" }),

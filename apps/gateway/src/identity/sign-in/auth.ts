@@ -42,7 +42,7 @@ export interface AuthOptions {
   /** The workspace's identity provider; `undefined` if it has none configured. */
   providerFor(workspace: string): OidcProvider | undefined | Promise<OidcProvider | undefined>;
   /**
-   * Maps what the provider says to a person of the workspace (id and roles live there):
+   * Maps what the provider says to a person of the workspace (id and teams live there):
    * `undefined` if this identity is not a member, who is then refused.
    */
   resolvePerson(
