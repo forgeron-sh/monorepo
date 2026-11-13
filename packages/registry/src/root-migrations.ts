@@ -2,11 +2,31 @@ import type { BuildMigration } from "@forgeron/hosting";
 import { st } from "./kernel/sql";
 
 /** The workspaces the install knows: where a built-in team is needed. */
-const WORKSPACES = `SELECT "workspace" FROM "members" UNION SELECT "workspace" FROM "invitations" UNION SELECT "workspace" FROM "teams" UNION SELECT "workspace" FROM "tools"`;
+const WORKSPACE_SOURCES = ["members", "invitations", "teams", "tools"];
 
 /** The role names a JSON array holds, ignoring a value that is not valid JSON or not a string. */
 const ELEMENTS = (column: string) =>
   `json_each(CASE WHEN json_valid(${column}) THEN ${column} ELSE '[]' END)`;
+
+/**
+ * Where a role is held, one SELECT of (workspace, role) each. They are inserted one statement per
+ * source: workerd's SQLite refuses a compound SELECT with many terms (the in-memory D1 does not).
+ */
+const HELD_ROLES = [
+  `SELECT m."workspace", j."value" FROM "members" m, ${ELEMENTS('m."roles"')} j WHERE j."type" = 'text'`,
+  `SELECT i."workspace", j."value" FROM "invitations" i, ${ELEMENTS('i."roles"')} j WHERE j."type" = 'text'`,
+  `SELECT "workspace", "default_role" FROM "membership_settings" WHERE "default_role" IS NOT NULL`,
+  `SELECT p."workspace", j."value" FROM "identity_providers" p, json_each(CASE WHEN json_valid(p."group_roles") THEN p."group_roles" ELSE '{}' END) j WHERE j."type" = 'text'`,
+  `SELECT p."workspace", j."value" FROM "saml_providers" p, json_each(CASE WHEN json_valid(p."group_roles") THEN p."group_roles" ELSE '{}' END) j WHERE j."type" = 'text'`,
+];
+
+/** The role names that are not held by a member but named by a tool's rows. */
+const NAMED_ROLES = [
+  `SELECT "role" AS "role" FROM "role_profiles"`,
+  `SELECT "role" AS "role" FROM "role_access"`,
+  `SELECT j."value" AS "role" FROM "tool_availability" a, ${ELEMENTS('a."subjects"')} j WHERE a."mode" = 'roles' AND j."type" = 'text'`,
+  `SELECT j."value" AS "role" FROM "channel_access" a, ${ELEMENTS('a."subjects"')} j WHERE a."mode" = 'roles' AND j."type" = 'text'`,
+];
 
 // legacy (D-136): the one step that reads the roles of an install made before teams and permissions.
 // Frozen like every migration: its SQL is a snapshot, it imports nothing (the built-in teams and the
@@ -33,18 +53,19 @@ const teamsPermissions: BuildMigration = {
     st(
       `CREATE TABLE "_role_teams" ("role" TEXT PRIMARY KEY NOT NULL, "team" TEXT, "subject" TEXT NOT NULL)`,
     ),
+    st(
+      `CREATE TABLE "_held_roles" ("workspace" TEXT NOT NULL, "role" TEXT NOT NULL, PRIMARY KEY ("workspace", "role"))`,
+    ),
+    ...HELD_ROLES.map((select) =>
+      st(`INSERT OR IGNORE INTO "_held_roles" ("workspace", "role") ${select}`),
+    ),
     st(`INSERT OR IGNORE INTO "_role_teams" ("role", "team", "subject")
-SELECT DISTINCT "role", NULL, '' FROM (
-  SELECT j."value" AS "role" FROM "members" m, ${ELEMENTS('m."roles"')} j WHERE j."type" = 'text'
-  UNION SELECT j."value" FROM "invitations" i, ${ELEMENTS('i."roles"')} j WHERE j."type" = 'text'
-  UNION SELECT "default_role" FROM "membership_settings" WHERE "default_role" IS NOT NULL
-  UNION SELECT j."value" FROM "identity_providers" p, json_each(CASE WHEN json_valid(p."group_roles") THEN p."group_roles" ELSE '{}' END) j WHERE j."type" = 'text'
-  UNION SELECT j."value" FROM "saml_providers" p, json_each(CASE WHEN json_valid(p."group_roles") THEN p."group_roles" ELSE '{}' END) j WHERE j."type" = 'text'
-  UNION SELECT "role" FROM "role_profiles"
-  UNION SELECT "role" FROM "role_access"
-  UNION SELECT j."value" FROM "tool_availability" a, ${ELEMENTS('a."subjects"')} j WHERE a."mode" = 'roles' AND j."type" = 'text'
-  UNION SELECT j."value" FROM "channel_access" a, ${ELEMENTS('a."subjects"')} j WHERE a."mode" = 'roles' AND j."type" = 'text'
-)`),
+SELECT DISTINCT "role", NULL, '' FROM "_held_roles"`),
+    ...NAMED_ROLES.map((select) =>
+      st(
+        `INSERT OR IGNORE INTO "_role_teams" ("role", "team", "subject") SELECT DISTINCT "role", NULL, '' FROM (${select})`,
+      ),
+    ),
     st(`UPDATE "_role_teams" SET "team" = CASE
   WHEN "role" = 'admin' THEN 'admin'
   WHEN "role" = 'developer' THEN 'developer'
@@ -59,29 +80,27 @@ WHERE "team" = 'everyone' OR ("team" IN ('admin', 'developer') AND "role" NOT IN
       `UPDATE "_role_teams" SET "subject" = CASE WHEN "team" IS NULL THEN 'everyone' ELSE 'team:' || "team" END`,
     ),
 
+    st(`CREATE TABLE "_workspaces" ("workspace" TEXT PRIMARY KEY NOT NULL)`),
+    ...WORKSPACE_SOURCES.map((table) =>
+      st(`INSERT OR IGNORE INTO "_workspaces" ("workspace") SELECT "workspace" FROM "${table}"`),
+    ),
     // The two built-in teams of every workspace; a team that already has the id becomes the built-in.
     st(`INSERT OR IGNORE INTO "teams" ("workspace", "id", "name", "description", "created_at", "built_in")
-SELECT w."workspace", 'admin', 'Admins', 'Administer the workspace: every permission, now and to come.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM (${WORKSPACES}) w`),
+SELECT w."workspace", 'admin', 'Admins', 'Administer the workspace: every permission, now and to come.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM "_workspaces" w`),
     st(`INSERT OR IGNORE INTO "teams" ("workspace", "id", "name", "description", "created_at", "built_in")
-SELECT w."workspace", 'developer', 'Developers', 'Build, deploy and publish the workspace''s tools.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM (${WORKSPACES}) w`),
+SELECT w."workspace", 'developer', 'Developers', 'Build, deploy and publish the workspace''s tools.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM "_workspaces" w`),
     st(`UPDATE "teams" SET "built_in" = 1 WHERE "id" IN ('admin', 'developer')`),
     st(`INSERT OR IGNORE INTO "team_permissions" ("workspace", "team_id", "permission")
-SELECT w."workspace", 'admin', '*' FROM (${WORKSPACES}) w`),
+SELECT w."workspace", 'admin', '*' FROM "_workspaces" w`),
     st(`INSERT OR IGNORE INTO "team_permissions" ("workspace", "team_id", "permission")
-SELECT w."workspace", 'developer', p."value" FROM (${WORKSPACES}) w,
+SELECT w."workspace", 'developer', p."value" FROM "_workspaces" w,
   json_each('["tools:write","tools:publish","tools:data","access:read","marketplace:read"]') p`),
 
     // A team for every other role someone holds, is invited with, joins with by default, or is
     // given by a group of the identity provider; it is named like the role and has no permission.
     st(`INSERT OR IGNORE INTO "teams" ("workspace", "id", "name", "description", "created_at", "built_in")
 SELECT held."workspace", rt."team", held."role", '', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 0
-FROM (
-  SELECT m."workspace" AS "workspace", j."value" AS "role" FROM "members" m, ${ELEMENTS('m."roles"')} j WHERE j."type" = 'text'
-  UNION SELECT i."workspace", j."value" FROM "invitations" i, ${ELEMENTS('i."roles"')} j WHERE j."type" = 'text'
-  UNION SELECT "workspace", "default_role" FROM "membership_settings" WHERE "default_role" IS NOT NULL
-  UNION SELECT p."workspace", j."value" FROM "identity_providers" p, json_each(CASE WHEN json_valid(p."group_roles") THEN p."group_roles" ELSE '{}' END) j WHERE j."type" = 'text'
-  UNION SELECT p."workspace", j."value" FROM "saml_providers" p, json_each(CASE WHEN json_valid(p."group_roles") THEN p."group_roles" ELSE '{}' END) j WHERE j."type" = 'text'
-) held
+FROM "_held_roles" held
 JOIN "_role_teams" rt ON rt."role" = held."role"
 WHERE rt."team" IS NOT NULL AND substr(held."role", 1, 5) <> 'team-'
 ORDER BY held."workspace", held."role"`),
@@ -153,6 +172,8 @@ WHERE "mode" = 'roles' AND EXISTS (SELECT 1 FROM ${ELEMENTS(`"${table}"."subject
     st(`UPDATE "builds" SET "manifest" = json_remove(json_set("manifest", '$.profiles', json(json_extract("manifest", '$.roles'))), '$.roles')
 WHERE json_valid("manifest") AND json_type("manifest", '$.roles') = 'object' AND json_type("manifest", '$.profiles') IS NULL`),
     st(`DROP TABLE "_role_teams"`),
+    st(`DROP TABLE "_held_roles"`),
+    st(`DROP TABLE "_workspaces"`),
   ],
   // One way: the roles are gone, and what a team holds cannot be told back into one.
   down: [],

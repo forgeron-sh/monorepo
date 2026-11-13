@@ -1150,7 +1150,47 @@
         "parameters": []
       },
       {
-        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\")\nSELECT DISTINCT \"role\", NULL, '' FROM (\n  SELECT j.\"value\" AS \"role\" FROM \"members\" m, json_each(CASE WHEN json_valid(m.\"roles\") THEN m.\"roles\" ELSE '[]' END) j WHERE j.\"type\" = 'text'\n  UNION SELECT j.\"value\" FROM \"invitations\" i, json_each(CASE WHEN json_valid(i.\"roles\") THEN i.\"roles\" ELSE '[]' END) j WHERE j.\"type\" = 'text'\n  UNION SELECT \"default_role\" FROM \"membership_settings\" WHERE \"default_role\" IS NOT NULL\n  UNION SELECT j.\"value\" FROM \"identity_providers\" p, json_each(CASE WHEN json_valid(p.\"group_roles\") THEN p.\"group_roles\" ELSE '{}' END) j WHERE j.\"type\" = 'text'\n  UNION SELECT j.\"value\" FROM \"saml_providers\" p, json_each(CASE WHEN json_valid(p.\"group_roles\") THEN p.\"group_roles\" ELSE '{}' END) j WHERE j.\"type\" = 'text'\n  UNION SELECT \"role\" FROM \"role_profiles\"\n  UNION SELECT \"role\" FROM \"role_access\"\n  UNION SELECT j.\"value\" FROM \"tool_availability\" a, json_each(CASE WHEN json_valid(a.\"subjects\") THEN a.\"subjects\" ELSE '[]' END) j WHERE a.\"mode\" = 'roles' AND j.\"type\" = 'text'\n  UNION SELECT j.\"value\" FROM \"channel_access\" a, json_each(CASE WHEN json_valid(a.\"subjects\") THEN a.\"subjects\" ELSE '[]' END) j WHERE a.\"mode\" = 'roles' AND j.\"type\" = 'text'\n)",
+        "sql": "CREATE TABLE \"_held_roles\" (\"workspace\" TEXT NOT NULL, \"role\" TEXT NOT NULL, PRIMARY KEY (\"workspace\", \"role\"))",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT m.\"workspace\", j.\"value\" FROM \"members\" m, json_each(CASE WHEN json_valid(m.\"roles\") THEN m.\"roles\" ELSE '[]' END) j WHERE j.\"type\" = 'text'",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT i.\"workspace\", j.\"value\" FROM \"invitations\" i, json_each(CASE WHEN json_valid(i.\"roles\") THEN i.\"roles\" ELSE '[]' END) j WHERE j.\"type\" = 'text'",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT \"workspace\", \"default_role\" FROM \"membership_settings\" WHERE \"default_role\" IS NOT NULL",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT p.\"workspace\", j.\"value\" FROM \"identity_providers\" p, json_each(CASE WHEN json_valid(p.\"group_roles\") THEN p.\"group_roles\" ELSE '{}' END) j WHERE j.\"type\" = 'text'",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_held_roles\" (\"workspace\", \"role\") SELECT p.\"workspace\", j.\"value\" FROM \"saml_providers\" p, json_each(CASE WHEN json_valid(p.\"group_roles\") THEN p.\"group_roles\" ELSE '{}' END) j WHERE j.\"type\" = 'text'",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\")\nSELECT DISTINCT \"role\", NULL, '' FROM \"_held_roles\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\") SELECT DISTINCT \"role\", NULL, '' FROM (SELECT \"role\" AS \"role\" FROM \"role_profiles\")",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\") SELECT DISTINCT \"role\", NULL, '' FROM (SELECT \"role\" AS \"role\" FROM \"role_access\")",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\") SELECT DISTINCT \"role\", NULL, '' FROM (SELECT j.\"value\" AS \"role\" FROM \"tool_availability\" a, json_each(CASE WHEN json_valid(a.\"subjects\") THEN a.\"subjects\" ELSE '[]' END) j WHERE a.\"mode\" = 'roles' AND j.\"type\" = 'text')",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_role_teams\" (\"role\", \"team\", \"subject\") SELECT DISTINCT \"role\", NULL, '' FROM (SELECT j.\"value\" AS \"role\" FROM \"channel_access\" a, json_each(CASE WHEN json_valid(a.\"subjects\") THEN a.\"subjects\" ELSE '[]' END) j WHERE a.\"mode\" = 'roles' AND j.\"type\" = 'text')",
         "parameters": []
       },
       {
@@ -1170,11 +1210,31 @@
         "parameters": []
       },
       {
-        "sql": "INSERT OR IGNORE INTO \"teams\" (\"workspace\", \"id\", \"name\", \"description\", \"created_at\", \"built_in\")\nSELECT w.\"workspace\", 'admin', 'Admins', 'Administer the workspace: every permission, now and to come.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM (SELECT \"workspace\" FROM \"members\" UNION SELECT \"workspace\" FROM \"invitations\" UNION SELECT \"workspace\" FROM \"teams\" UNION SELECT \"workspace\" FROM \"tools\") w",
+        "sql": "CREATE TABLE \"_workspaces\" (\"workspace\" TEXT PRIMARY KEY NOT NULL)",
         "parameters": []
       },
       {
-        "sql": "INSERT OR IGNORE INTO \"teams\" (\"workspace\", \"id\", \"name\", \"description\", \"created_at\", \"built_in\")\nSELECT w.\"workspace\", 'developer', 'Developers', 'Build, deploy and publish the workspace''s tools.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM (SELECT \"workspace\" FROM \"members\" UNION SELECT \"workspace\" FROM \"invitations\" UNION SELECT \"workspace\" FROM \"teams\" UNION SELECT \"workspace\" FROM \"tools\") w",
+        "sql": "INSERT OR IGNORE INTO \"_workspaces\" (\"workspace\") SELECT \"workspace\" FROM \"members\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_workspaces\" (\"workspace\") SELECT \"workspace\" FROM \"invitations\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_workspaces\" (\"workspace\") SELECT \"workspace\" FROM \"teams\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"_workspaces\" (\"workspace\") SELECT \"workspace\" FROM \"tools\"",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"teams\" (\"workspace\", \"id\", \"name\", \"description\", \"created_at\", \"built_in\")\nSELECT w.\"workspace\", 'admin', 'Admins', 'Administer the workspace: every permission, now and to come.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM \"_workspaces\" w",
+        "parameters": []
+      },
+      {
+        "sql": "INSERT OR IGNORE INTO \"teams\" (\"workspace\", \"id\", \"name\", \"description\", \"created_at\", \"built_in\")\nSELECT w.\"workspace\", 'developer', 'Developers', 'Build, deploy and publish the workspace''s tools.', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1 FROM \"_workspaces\" w",
         "parameters": []
       },
       {
@@ -1182,15 +1242,15 @@
         "parameters": []
       },
       {
-        "sql": "INSERT OR IGNORE INTO \"team_permissions\" (\"workspace\", \"team_id\", \"permission\")\nSELECT w.\"workspace\", 'admin', '*' FROM (SELECT \"workspace\" FROM \"members\" UNION SELECT \"workspace\" FROM \"invitations\" UNION SELECT \"workspace\" FROM \"teams\" UNION SELECT \"workspace\" FROM \"tools\") w",
+        "sql": "INSERT OR IGNORE INTO \"team_permissions\" (\"workspace\", \"team_id\", \"permission\")\nSELECT w.\"workspace\", 'admin', '*' FROM \"_workspaces\" w",
         "parameters": []
       },
       {
-        "sql": "INSERT OR IGNORE INTO \"team_permissions\" (\"workspace\", \"team_id\", \"permission\")\nSELECT w.\"workspace\", 'developer', p.\"value\" FROM (SELECT \"workspace\" FROM \"members\" UNION SELECT \"workspace\" FROM \"invitations\" UNION SELECT \"workspace\" FROM \"teams\" UNION SELECT \"workspace\" FROM \"tools\") w,\n  json_each('[\"tools:write\",\"tools:publish\",\"tools:data\",\"access:read\",\"marketplace:read\"]') p",
+        "sql": "INSERT OR IGNORE INTO \"team_permissions\" (\"workspace\", \"team_id\", \"permission\")\nSELECT w.\"workspace\", 'developer', p.\"value\" FROM \"_workspaces\" w,\n  json_each('[\"tools:write\",\"tools:publish\",\"tools:data\",\"access:read\",\"marketplace:read\"]') p",
         "parameters": []
       },
       {
-        "sql": "INSERT OR IGNORE INTO \"teams\" (\"workspace\", \"id\", \"name\", \"description\", \"created_at\", \"built_in\")\nSELECT held.\"workspace\", rt.\"team\", held.\"role\", '', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 0\nFROM (\n  SELECT m.\"workspace\" AS \"workspace\", j.\"value\" AS \"role\" FROM \"members\" m, json_each(CASE WHEN json_valid(m.\"roles\") THEN m.\"roles\" ELSE '[]' END) j WHERE j.\"type\" = 'text'\n  UNION SELECT i.\"workspace\", j.\"value\" FROM \"invitations\" i, json_each(CASE WHEN json_valid(i.\"roles\") THEN i.\"roles\" ELSE '[]' END) j WHERE j.\"type\" = 'text'\n  UNION SELECT \"workspace\", \"default_role\" FROM \"membership_settings\" WHERE \"default_role\" IS NOT NULL\n  UNION SELECT p.\"workspace\", j.\"value\" FROM \"identity_providers\" p, json_each(CASE WHEN json_valid(p.\"group_roles\") THEN p.\"group_roles\" ELSE '{}' END) j WHERE j.\"type\" = 'text'\n  UNION SELECT p.\"workspace\", j.\"value\" FROM \"saml_providers\" p, json_each(CASE WHEN json_valid(p.\"group_roles\") THEN p.\"group_roles\" ELSE '{}' END) j WHERE j.\"type\" = 'text'\n) held\nJOIN \"_role_teams\" rt ON rt.\"role\" = held.\"role\"\nWHERE rt.\"team\" IS NOT NULL AND substr(held.\"role\", 1, 5) <> 'team-'\nORDER BY held.\"workspace\", held.\"role\"",
+        "sql": "INSERT OR IGNORE INTO \"teams\" (\"workspace\", \"id\", \"name\", \"description\", \"created_at\", \"built_in\")\nSELECT held.\"workspace\", rt.\"team\", held.\"role\", '', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 0\nFROM \"_held_roles\" held\nJOIN \"_role_teams\" rt ON rt.\"role\" = held.\"role\"\nWHERE rt.\"team\" IS NOT NULL AND substr(held.\"role\", 1, 5) <> 'team-'\nORDER BY held.\"workspace\", held.\"role\"",
         "parameters": []
       },
       {
@@ -1287,6 +1347,14 @@
       },
       {
         "sql": "DROP TABLE \"_role_teams\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"_held_roles\"",
+        "parameters": []
+      },
+      {
+        "sql": "DROP TABLE \"_workspaces\"",
         "parameters": []
       }
     ],

@@ -1,6 +1,6 @@
 import type { Manifest } from "@forgeron/manifest";
 
-/** What the admin sees before installing (docs/sdk.md §3): one block per requested resource. */
+/** What the person who approves sees before installing (docs/sdk.md §3): one block per requested resource. */
 export function describeResources(manifest: Manifest): string[] {
   const { resources, jobs, views } = manifest;
   const lines = [`${manifest.title ?? manifest.name} v${manifest.version} requests:`];

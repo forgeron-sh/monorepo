@@ -13,7 +13,7 @@ const DEFAULT_DAYS = 90;
 /**
  * `forgeron token create --name ci --scope deploy`: asks the workspace for a deployment token for
  * this tool and prints it once. It goes into the CI secret `FORGERON_TOKEN` (sdk.md §4, §15).
- * Creating one takes an administrator's credentials, not another deployment token.
+ * Creating one takes a signed-in person's credentials with the permission for it, not another deployment token.
  */
 export async function token(args: string[], io: Io): Promise<number> {
   const [sub, ...rest] = args;
