@@ -121,6 +121,7 @@ function buildOf(record: BuildRecord): Build {
     fingerprint: record.fingerprint,
     ...(record.migrations ? { migrations: record.migrations as BuildMigration[] } : {}),
     ...(record.changelog ? { changelog: record.changelog as NonNullable<Build["changelog"]> } : {}),
+    ...(record.views ? { views: record.views } : {}),
   };
 }
 
@@ -143,6 +144,7 @@ export async function deployBuild(
     worker: build.worker,
     ...(build.migrations ? { migrations: build.migrations } : {}),
     ...(build.changelog ? { changelog: build.changelog } : {}),
+    ...(build.views ? { views: build.views } : {}),
   });
   if (build.docs) await registry.storeDocs(tool.id, recorded.id, build.docs);
   const version = await registry.publishVersion(

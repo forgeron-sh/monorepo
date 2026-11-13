@@ -18,6 +18,8 @@ export interface BuildRecord {
   /** The Worker's code, kept so that a version can be promoted or restored without a rebuild. */
   worker?: string;
   migrations?: unknown;
+  /** The built views, path (`views/pipeline.js`) to code (D-134). */
+  views?: Record<string, string>;
   createdAt: string;
 }
 
@@ -97,6 +99,7 @@ export const toBuild = (r: Row): BuildRecord => ({
   changelog: json(r.changelog),
   ...(text(r.worker) !== undefined ? { worker: text(r.worker) } : {}),
   ...(text(r.migrations) !== undefined ? { migrations: json(r.migrations) } : {}),
+  ...(text(r.views) !== undefined ? { views: json(r.views) as Record<string, string> } : {}),
   createdAt: String(r.created_at),
 });
 

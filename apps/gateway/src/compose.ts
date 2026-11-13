@@ -9,6 +9,7 @@ import {
   createRegistry,
   createSecretBox,
   reachesChannelAlways,
+  teamRole,
   type EmailCodes,
   type IdentityConfig,
   type Invitation,
@@ -37,6 +38,8 @@ import { providerFromConfig } from "./identity/sign-in/presets";
 import type { SamlProvider } from "./identity/sign-in/saml";
 import type { Person } from "./kernel/person";
 import { forwardIdentity } from "./dispatch/user-secrets";
+import { serveView } from "./views/serve";
+import type { Manifest } from "@forgeron/manifest";
 import { dispatchRegistry, type FromRegistryOptions } from "./dispatch/from-registry";
 import { namespaceTarget, serviceBindingTarget } from "./dispatch/targets";
 import { toolAddress } from "./tool-address";
@@ -49,6 +52,29 @@ import { workspaceHosts } from "./kernel/workspace";
 
 /** Where the console reads and writes on the workspace origin. */
 export const CONSOLE_API = "/console-api";
+
+/**
+ * The build a channel runs (D-134): production, a permanent channel (`~name`) or a branch's temporary
+ * channel (`branch`). `undefined` when nothing is deployed there.
+ */
+async function servedBuild(
+  registry: Pick<Registry, "listEnvironments" | "getVersion" | "getBuild">,
+  toolId: string,
+  reference: string | undefined,
+) {
+  const environments = await registry.listEnvironments(toolId);
+  const environment = environments.find((e) =>
+    reference === undefined
+      ? e.name === "production"
+      : reference.startsWith("~")
+        ? e.name === "channel" && e.channel === reference.slice(1)
+        : e.name === "preview" && e.branch === reference,
+  );
+  const version = environment?.versionId
+    ? await registry.getVersion(environment.versionId)
+    : undefined;
+  return version ? registry.getBuild(version.buildId) : undefined;
+}
 
 /** A page of the shell for a browser, the JSON error for any other client. */
 export const notFound = (request: Request) =>
@@ -281,6 +307,69 @@ export function createModules(env: GatewayEnv, options: GatewayOptions) {
               if (reachesChannelAlways(c.branch, person)) return true;
               const tool = await registry.findTool(c.workspace, c.tool);
               return tool ? pilotAccess(registry, tool.id, c.branch, person) : false;
+            },
+          }
+        : {}),
+      // The pages of a tool (D-134): served from the build the channel runs, with the sandbox CSP and a
+      // short-lived token bound to the tool and the person.
+      ...(caller && secret
+        ? {
+            views: async ({
+              caller: c,
+              request,
+              rest,
+              branch,
+            }: {
+              caller: Caller;
+              request: Request;
+              rest: string;
+              branch?: string;
+            }) => {
+              if (request.method !== "GET" && request.method !== "HEAD") return undefined;
+              const tool = await registry.findTool(c.workspace, c.tool);
+              if (!tool) return undefined;
+              const build = await servedBuild(registry, tool.id, branch);
+              if (!build?.views) return undefined;
+              const manifest = build.manifest as Manifest;
+              // The tool's root opens its first page when the tool has none at `/`.
+              const pages = Object.values(manifest.views ?? {});
+              if (rest === "/" && !pages.some((v) => v.path === "/") && pages[0]) {
+                const base = new URL(request.url).pathname.replace(/\/+$/, "");
+                return Response.redirect(new URL(`${base}${pages[0].path}`, request.url), 302);
+              }
+              const person = await caller.resolve(request, c.workspace);
+              const roles = person
+                ? [
+                    ...person.roles,
+                    ...(await registry.teamsOfMember(c.workspace, person.id)).map(teamRole),
+                  ]
+                : [];
+              const matrix =
+                person && roles.length > 0
+                  ? await registry.accessFor(tool.id, roles)
+                  : { access: {}, permissions: {} };
+              const files = build.views;
+              return serveView(
+                new Request(new URL(rest, request.url), { method: request.method }),
+                {
+                  secret,
+                  now: now(),
+                  workspace: c.workspace,
+                  tool: c.tool,
+                  // `/t/crm`, `/t/crm@feat-x`, `/t/crm~staging`: where the tool is on the workspace origin.
+                  base: /^\/t\/[^/]+/.exec(new URL(request.url).pathname)?.[0] ?? `/t/${c.tool}`,
+                  manifest,
+                  access: matrix.access,
+                  permissions: matrix.permissions,
+                  person: person ? { ...person, roles } : undefined,
+                  assets: {
+                    read: async (file) =>
+                      file in files
+                        ? { body: files[file]!, contentType: "text/javascript; charset=utf-8" }
+                        : undefined,
+                  },
+                },
+              );
             },
           }
         : {}),

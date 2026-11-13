@@ -66,8 +66,21 @@ const INTERNAL_HEADERS = [
  */
 const TOOL_SANDBOX = "sandbox allow-scripts allow-forms allow-popups allow-downloads";
 
-function confined(response: Response, challenge?: string): Response {
+/**
+ * A view's page is sandboxed, so its calls to the tool (`/_f/call/<action>`) come from an opaque origin:
+ * cross-origin, with an `Authorization` header and no cookie. The token is what authenticates them.
+ */
+const VIEW_CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "authorization, content-type",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-max-age": "600",
+};
+const isViewCall = (rest: string) => rest.startsWith("/_f/call/");
+
+function confined(response: Response, challenge?: string, cors = false): Response {
   const headers = new Headers(response.headers);
+  if (cors) for (const [name, value] of Object.entries(VIEW_CORS)) headers.set(name, value);
   headers.delete("set-cookie");
   // A tool says nothing about where a client signs in: the gateway does, or nobody does (D-095).
   headers.delete("www-authenticate");
@@ -102,6 +115,19 @@ export interface DispatcherOptions {
    * tool is found and before the request reaches it. Without it a tool sees nobody.
    */
   forward?(caller: Caller): Forwarding | undefined | Promise<Forwarding | undefined>;
+  /**
+   * Answers a tool's pages (D-134): the page of a view, and the built files it loads. Called for a
+   * request the gateway serves itself, before the Worker is reached; `undefined` leaves it to the
+   * Worker. Without it a tool has no page.
+   */
+  views?(input: {
+    caller: Caller;
+    request: Request;
+    /** The path the tool sees (`/`, `/pipeline`, `/_f/views/pipeline.js`). */
+    rest: string;
+    environment: "preview" | "production";
+    branch?: string;
+  }): Response | undefined | Promise<Response | undefined>;
   /** May this caller use a channel other than production (`branch` is its reference)? Without it, nobody does. */
   canPreview?(caller: Caller & { branch: string }): boolean | Promise<boolean>;
 }
@@ -209,6 +235,24 @@ export function createDispatcher(options: DispatcherOptions) {
       }
     }
 
+    // The preflight of a view's call carries no token: the answer is the same for everyone.
+    if (request.method === "OPTIONS" && isViewCall(path.rest)) {
+      return new Response(null, { status: 204, headers: VIEW_CORS });
+    }
+    // The pages of the tool, served by the gateway (D-134).
+    const page = await options.views?.({
+      caller: {
+        ...caller,
+        environment,
+        ...(path.branch !== undefined ? { branch: path.branch } : {}),
+      },
+      request,
+      rest: path.rest,
+      environment,
+      ...(path.branch !== undefined ? { branch: path.branch } : {}),
+    });
+    if (page) return page;
+
     const forwarding = await options.forward?.({
       ...caller,
       environment,
@@ -230,6 +274,6 @@ export function createDispatcher(options: DispatcherOptions) {
     const challenge = /^\/mcp\/?$/.test(path.rest)
       ? `Bearer resource_metadata="${url.origin}/.well-known/oauth-protected-resource${url.pathname.replace(/\/mcp\/?$/, "")}/mcp"`
       : undefined;
-    return confined(await target.fetch(outgoing), challenge);
+    return confined(await target.fetch(outgoing), challenge, isViewCall(path.rest));
   };
 }

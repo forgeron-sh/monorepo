@@ -34,6 +34,11 @@ export interface Build {
   fingerprint: string;
   /** `db/migrations/`, in the order they apply. */
   migrations?: BuildMigration[];
+  /**
+   * The built views, path under the build folder (`views/pipeline.js`) to code: what the gateway serves at
+   * the tool's pages (D-134). Absent for a tool with no view.
+   */
+  views?: Record<string, string>;
   /** `changelog.json`: what production checks before accepting the build (sdk.md §16). */
   changelog?: BuildChangelog;
   /** The README and the images it references (D-061); the manifest has their hashes. */

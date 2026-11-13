@@ -31,6 +31,8 @@ const hex = async (bytes: Uint8Array) =>
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
+import { viewsProblem } from "../views/check";
+
 /** The bundle's build, or why it is refused. */
 async function checkBundle(entry: MarketplaceTool, bytes: Uint8Array) {
   if ((await hex(bytes)) !== entry.sha256) {
@@ -59,6 +61,8 @@ async function checkBundle(entry: MarketplaceTool, bytes: Uint8Array) {
   const docs = build.docs as BuildDocs | undefined;
   const problem = await docsProblem(manifest.data, docs);
   if (problem) throw new MarketplaceError(problem);
+  const views = viewsProblem(build.views);
+  if (typeof views === "string") throw new MarketplaceError(views);
   return {
     manifest: manifest.data,
     worker: build.worker,
@@ -66,6 +70,7 @@ async function checkBundle(entry: MarketplaceTool, bytes: Uint8Array) {
     migrations: build.migrations,
     changelog: build.changelog,
     docs,
+    views,
   };
 }
 
@@ -110,6 +115,7 @@ export async function syncMarketplace(
         worker: build.worker,
         ...(build.migrations !== undefined ? { migrations: build.migrations } : {}),
         ...(build.changelog !== undefined ? { changelog: build.changelog } : {}),
+        ...(build.views ? { views: build.views } : {}),
       });
       if (build.docs) await registry.storeDocs(tool.id, recorded.id, build.docs);
       await registry.publishVersion(tool.id, recorded.id, entry.version);
