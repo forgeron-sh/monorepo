@@ -140,6 +140,7 @@ Rules of the log:
 | D-139 | 13/11/2026 | The admin MCP offers the rest of the console: one tool per route of the platform contract, secrets and tokens left out                                                                                       | Active                                        |
 | D-140 | 13/11/2026 | The platform's release has no release-please component, so that it is tagged `v<version>` whoever else changes in the same release                                                                           | Active                                        |
 | D-141 | 13/11/2026 | A tool's D1 is created in the region of the platform's D1, so that its queries do not cross an ocean                                                                                                         | Active                                        |
+| D-142 | 13/11/2026 | The time of a call to a tool is told step by step in `Server-Timing`                                                                                                                                         | Active                                        |
 
 ---
 
@@ -1860,3 +1861,12 @@ Rules of the log:
 - **Rejected**: a fixed region in the install (a self-host in Asia would be wrong, and the platform's D1 already says where the install lives); asking the person (nobody knows what `weur` is); moving a D1 afterwards (Cloudflare cannot).
 - **Not done**: a database that already exists stays where it is (a D1 does not move): a preview is closed and deployed again from a new commit (the registry refuses a version it already has), production needs a copy of its data into a new database. **The gateway's own ~550 ms of waiting around each call is not changed**: it queries the platform's D1 several times in sequence (the tool, the person, their rights, the directory, the seat and usage counts, some of them writes it waits for); to measure per step before touching it.
 - **Applied in**: `packages/hosting/src/{resources,self-host/{index,cloudflare,fake-cloudflare},cloud/index}.ts`; `apps/gateway/src/compose.ts`.
+
+## D-142 — The time of a call is told step by step
+
+- **Date**: 13/11/2026 · **Status**: Active · Builds on D-141 (where a tool's database is)
+- **Decision**: every answer that came from a tool carries a `Server-Timing` header (`find;dur=12.3, identify;dur=…, seat;dur=…, views;dur=…, forward;dur=…, tool;dur=…, total;dur=…`), made by `apps/gateway/src/dispatch/timing.ts`. `forward` is told apart by what `forwardIdentity` reads (`f.identify`, `f.tool`, `f.library`, `f.access`, `f.secrets`, `f.setup`, `f.manifest`, `f.member`, `f.members`, `f.teams`, `f.connectors`); a step that runs again adds up and is counted (`desc="3 times"`). A call refused before it reaches a tool carries none. Read it in the browser: Network, the call, Timing, Server Timing.
+- **Why**: a call of ~1 s with 30 to 60 ms of CPU waits, and nothing said on what. Measured with a tail on the gateway and on the tool's Worker: the tool took ~400 ms (its D1 was an ocean away, D-141, now ~90 ms) and the gateway still adds 600 to 800 ms around it. By reading the code, the gateway resolves the same person three times per call (`canPreview`, the seat count, `forwardIdentity`) and `forwardIdentity` makes about ten reads one after the other: a guess, until this says it.
+- **Rejected**: a log line for each call (it would sit in the logs of every install, read by nobody); a sampling profiler (a Worker's clock moves only when it waits, which is what this measures anyway); changing the sequence of reads first (the gain would be a guess).
+- **Not done**: what these numbers show is not acted on here: no read is moved, merged or put off. Browsers do not give a page the header of a cross-origin call unless it is exposed; it is read in the developer tools, not by the page.
+- **Applied in**: `apps/gateway/src/dispatch/{timing,dispatch,user-secrets}.ts`; `apps/gateway/src/compose.ts`.

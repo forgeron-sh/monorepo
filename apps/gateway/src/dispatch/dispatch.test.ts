@@ -143,12 +143,15 @@ function setup(
     const response = await dispatch(new Request(url, init));
     return { status: response.status, body: (await response.json()) as Record<string, unknown> };
   };
+  /** The `Server-Timing` header of an answer (D-142). */
+  const timing = async (url: string, init?: RequestInit) =>
+    (await dispatch(new Request(url, init))).headers.get("server-timing");
   /** The status and whether a sandboxed page may read the answer (`access-control-allow-origin`). */
   const peek = async (url: string, init?: RequestInit) => {
     const response = await dispatch(new Request(url, init));
     return { status: response.status, cors: response.headers.get("access-control-allow-origin") };
   };
-  return { get, peek, seen, targets };
+  return { get, peek, timing, seen, targets };
 }
 
 describe("dispatch", () => {
@@ -311,6 +314,24 @@ describe("dispatch", () => {
     expect(refused.cors).toBe("*");
     // The rest of the channel is not given that header.
     expect((await peek("https://acme.forgeron.app/t/crm@feat-export/mcp")).cors).toBeNull();
+  });
+
+  it("says where the time of a call went, step by step, in Server-Timing (D-142)", async () => {
+    const { timing } = setup({
+      identify: () => "p1",
+      recordSeat: () => undefined,
+      recordUsage: () => undefined,
+    });
+    const header = (await timing("https://acme.forgeron.app/t/crm/api/deals.move"))!;
+    const steps = header.split(", ").map((part) => part.split(";")[0]);
+    expect(steps).toEqual(["find", "identify", "seat", "views", "forward", "tool", "total"]);
+    for (const part of header.split(", ")) expect(part).toMatch(/^[\w.]+;dur=\d+\.\d$/);
+  });
+
+  it("gives no timing to a call that is refused before it reaches a tool", async () => {
+    const { timing } = setup();
+    expect(await timing("https://acme.forgeron.app/t/nope/mcp")).toBeNull();
+    expect(await timing("https://acme.forgeron.app/t/crm@feat-export/mcp")).toBeNull();
   });
 
   it("routes a branch to its preview, for those who may see it", async () => {
