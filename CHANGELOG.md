@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/forgeron-sh/monorepo/compare/v0.4.0...v0.5.0) (2026-11-13)
+
+
+### Features
+
+* teams and permissions instead of roles, one permission engine (D-137) ([b5275e6](https://github.com/forgeron-sh/monorepo/commit/b5275e6cc320482c7a6c1742833b4c544e00e392))
+
 ## [0.4.0](https://github.com/forgeron-sh/monorepo/compare/v0.3.1...v0.4.0) (2026-11-13)
 
 
