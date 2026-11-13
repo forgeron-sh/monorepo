@@ -301,6 +301,25 @@ export function createCatalog(kernel: Kernel) {
       );
       return row ? toBuild(row) : undefined;
     },
+    /**
+     * The build production serves, else the one of the latest version published (by date, then by order
+     * of writing): a tool that only has previews still has a manifest. One read, where reading the
+     * environment, then the versions, then the build took three trips (D-145).
+     */
+    async currentBuild(
+      toolId: string,
+      options: { omit?: readonly BuildColumn[] } = {},
+    ): Promise<BuildRecord | undefined> {
+      const columns = buildColumns(options.omit)
+        .split(", ")
+        .map((c) => `b.${c}`)
+        .join(", ");
+      const row = await first(
+        `SELECT ${columns} FROM "versions" v JOIN "builds" b ON b."id" = v."build_id" LEFT JOIN "environments" e ON e."tool_id" = v."tool_id" AND e."name" = 'production' AND e."version_id" = v."id" WHERE v."tool_id" = ? ORDER BY (e."version_id" IS NULL), v."created_at" DESC, v."rowid" DESC LIMIT 1`,
+        toolId,
+      );
+      return row ? toBuild(row) : undefined;
+    },
 
     // ---- versions
     /**

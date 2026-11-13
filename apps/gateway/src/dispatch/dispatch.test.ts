@@ -407,6 +407,58 @@ describe("dispatch", () => {
     expect(response.status).toBe(502);
   });
 
+  describe("a call prepared while the tool is looked up (D-145)", () => {
+    const build = (found: ToolEntry | undefined) => {
+      const order: string[] = [];
+      const target = {
+        fetch: vi.fn<(request: Request) => Response>(() => Response.json({ ok: true })),
+      };
+      const dispatch = createDispatcher({
+        workspaceOf: (host: string) => workspaceOf(host, BASE),
+        registry: {
+          async find() {
+            order.push("find:start");
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            order.push("find:end");
+            return found;
+          },
+        },
+        targets: () => target,
+        forward: async () => {
+          order.push("forward:start");
+          return { headers: { "x-forgeron-user": "{}" } };
+        },
+      });
+      return { dispatch, order, target };
+    };
+    const tool = { production: "acme--crm--production", previews: {} };
+
+    it("starts the forwarding of a call before the tool is found", async () => {
+      const { dispatch, order, target } = build(tool);
+      const response = await dispatch(
+        new Request("https://acme.forgeron.app/t/crm/mcp", { method: "POST", body: "{}" }),
+      );
+      expect(response.status).toBe(200);
+      expect(order.indexOf("forward:start")).toBeLessThan(order.indexOf("find:end"));
+      expect(target.fetch.mock.calls[0]![0].headers.get("x-forgeron-user")).toBe("{}");
+    });
+
+    it("waits for the tool before preparing a read, which may be a page", async () => {
+      const { dispatch, order } = build(tool);
+      await dispatch(new Request("https://acme.forgeron.app/t/crm/api/deals.list"));
+      expect(order).toEqual(["find:start", "find:end", "forward:start"]);
+    });
+
+    it("sends nothing it prepared for a tool that does not exist", async () => {
+      const { dispatch, target } = build(undefined);
+      const response = await dispatch(
+        new Request("https://acme.forgeron.app/t/crm/mcp", { method: "POST", body: "{}" }),
+      );
+      expect(response.status).toBe(404);
+      expect(target.fetch).not.toHaveBeenCalled();
+    });
+  });
+
   describe("seats", () => {
     it("counts the authenticated person of a call that reaches a tool", async () => {
       const recordSeat = vi.fn<(workspace: string, personId: string) => void>();
