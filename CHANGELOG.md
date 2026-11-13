@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.3](https://github.com/forgeron-sh/monorepo/compare/v0.8.2...v0.8.3) (2026-11-13)
+
+
+### Performance Improvements
+
+* **gateway:** a call is prepared while its tool is looked up, its directory with its manifest ([e8b30a9](https://github.com/forgeron-sh/monorepo/commit/e8b30a9779125d4f36c1bbba46641d9c7a57f256))
+* **gateway:** a call is prepared while its tool is looked up, its directory with its manifest ([20dc929](https://github.com/forgeron-sh/monorepo/commit/20dc92956c4d9c8638dd447647c1345d9810da3f))
+
 ## [0.8.2](https://github.com/forgeron-sh/monorepo/compare/v0.8.1...v0.8.2) (2026-11-13)
 
 
