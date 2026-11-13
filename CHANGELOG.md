@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.2](https://github.com/forgeron-sh/monorepo/compare/v0.8.1...v0.8.2) (2026-11-13)
+
+
+### Performance Improvements
+
+* **gateway:** a cold call reads the tool, its access and its teams in fewer trips ([e086a83](https://github.com/forgeron-sh/monorepo/commit/e086a83c1e7c7f64df138aaf196f37dd054e55cf))
+* **gateway:** a cold call reads the tool, its access and its teams in fewer trips ([cffbdba](https://github.com/forgeron-sh/monorepo/commit/cffbdba9ea8f20a01bf1ba3e438fad8f2f7aa053))
+* **registry:** the directory reads its members, teams and grants together ([0e75a60](https://github.com/forgeron-sh/monorepo/commit/0e75a6007c33d060170e0e28c59b0b69f09859a8))
+* **registry:** the directory reads its members, teams and grants together ([83edf56](https://github.com/forgeron-sh/monorepo/commit/83edf5692039ed6ec86147c22b31e315d8f295f5))
+
 ## [0.8.1](https://github.com/forgeron-sh/monorepo/compare/v0.8.0...v0.8.1) (2026-11-13)
 
 
