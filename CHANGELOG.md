@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.0](https://github.com/forgeron-sh/monorepo/compare/v0.5.0...v0.6.0) (2026-11-13)
+
+
+### Features
+
+* **cli:** releases carry the built platform, the install records its database (D-138) ([04daf43](https://github.com/forgeron-sh/monorepo/commit/04daf4314b1e80ea0552573297a54fc4fb0703d8))
+* **console:** see the platform's version and update it from Install information (D-138) ([594da41](https://github.com/forgeron-sh/monorepo/commit/594da413c43df38b380e643050a9ffce52c8c86e))
+* update the platform from the console, with a restore point (D-138) ([8d85099](https://github.com/forgeron-sh/monorepo/commit/8d8509939e902a02a85cd418aa1269dd7c06100a))
+
+
+### Bug Fixes
+
+* **gateway:** a preview's view scripts load without a cookie, by the token of their page (D-134) ([ba155ee](https://github.com/forgeron-sh/monorepo/commit/ba155ee17f87b098aef0ff3a9af0f896de306209))
+* **gateway:** a preview's view scripts load without a cookie, by the token of their page (D-134) ([790f6c7](https://github.com/forgeron-sh/monorepo/commit/790f6c7b908b0d7d7b0a970e4a41528ead00b741))
+* **gateway:** the restore command names the database as wrangler expects (D-138) ([e68b509](https://github.com/forgeron-sh/monorepo/commit/e68b5099266b053bad11a1ad84cf663a54f130a8))
+
 ## [0.5.0](https://github.com/forgeron-sh/monorepo/compare/v0.4.0...v0.5.0) (2026-11-13)
 
 
