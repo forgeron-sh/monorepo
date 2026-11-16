@@ -1454,6 +1454,9 @@ const resources = [
     margin: 0;
     aspect-ratio: 2.9 / 1;
     min-height: 300px;
+    /* A definite width: with `auto`, the aspect ratio turns the minimum height into a width of
+       870 px, and the hero overflows the page on any screen narrower than that. */
+    width: 100%;
     border-bottom: 1px solid var(--line);
     overflow: hidden;
     background: var(--bg-sunk);
