@@ -1,0 +1,21 @@
+{
+  "name": "@forgeron/font",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@forgeron/icons": "workspace:*",
+    "astro": "7.4.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.12",
+    "@forgeron/tsconfig": "workspace:*",
+    "@types/node": "24.19.2"
+  }
+}

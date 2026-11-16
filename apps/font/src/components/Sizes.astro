@@ -1,0 +1,17 @@
+---
+/** The cascade: one line at each sharp size of Regular. */
+const sizes = [10, 20, 30, 40, 50, 70];
+---
+
+<div class="waterfall" aria-label="Forgeron Sans Regular at sharp sizes">
+  {
+    sizes.map((size) => (
+      <div class="wf-row">
+        <span class="wf-size t-mono dim">{size} px</span>
+        <span class="wf-text" style={`font-size:${size}px`}>
+          Sphinx of black quartz, judge my vow
+        </span>
+      </div>
+    ))
+  }
+</div>
