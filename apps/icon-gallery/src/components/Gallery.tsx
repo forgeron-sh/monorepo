@@ -1,0 +1,312 @@
+import type { IconManifestEntry, IconVariant } from "@forgeron/icons";
+import { categories, getIcon, manifest } from "@forgeron/icons/catalog";
+import { Icon } from "@forgeron/icons/react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import {
+  countByCategory,
+  EMPTY_QUERY,
+  filterEntries,
+  queryFromSearch,
+  searchFromQuery,
+  type GalleryQuery,
+  type SourceFilter,
+  type StatusFilter,
+} from "../lib/search";
+import { IconDetail } from "./IconDetail";
+import { fig, StubMark } from "./parts";
+
+const PAGE = 240;
+const TOTALS = countByCategory(manifest, categories);
+
+function Seg<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: readonly { value: T; label: string; disabled?: boolean }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="seg" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={value === o.value}
+          disabled={o.disabled}
+          onClick={() => onChange(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Tile({
+  entry,
+  variant,
+  onOpen,
+}: {
+  entry: IconManifestEntry;
+  variant: IconVariant;
+  onOpen: (name: string) => void;
+}) {
+  const icon = getIcon(entry.name);
+  return (
+    <li>
+      <button
+        type="button"
+        className={entry.implemented ? "tile" : "tile is-stub"}
+        onClick={() => onOpen(entry.name)}
+        title={entry.description}
+      >
+        <span className="tile-fig t-mono">{fig(entry.name).slice(4)}</span>
+        <span
+          className={entry.implemented ? "led ok tile-led" : "led tile-led"}
+          aria-hidden="true"
+        />
+        <span className="tile-art">
+          {icon && entry.implemented ? (
+            <Icon icon={icon} variant={entry.variants.duo ? variant : "mono"} size={36} />
+          ) : (
+            <StubMark size={30} />
+          )}
+        </span>
+        <span className="tile-name">{entry.name}</span>
+        <span className="sr-only">{entry.implemented ? "drawn" : "stub, not drawn yet"}</span>
+      </button>
+    </li>
+  );
+}
+
+/** The query in the address bar when the page opens (the island renders on the client only). */
+const initial = () => queryFromSearch(window.location.search);
+
+export default function Gallery() {
+  const [query, setQuery] = useState<GalleryQuery>(() => {
+    const { icon: _icon, ...q } = initial();
+    return q;
+  });
+  const [variant, setVariant] = useState<IconVariant>("duo");
+  const [open, setOpen] = useState<string | null>(() => initial().icon);
+  const search = useRef<HTMLInputElement>(null);
+  const sentinel = useRef<HTMLLIElement>(null);
+  const deferredText = useDeferredValue(query.text);
+  // How many tiles are shown, for this query only: a new query starts again from one page.
+  const key = JSON.stringify({ ...query, text: deferredText });
+  const [page, setPage] = useState({ key, limit: PAGE });
+  const limit = page.key === key ? page.limit : PAGE;
+
+  // The address bar holds the query: the coverage page links to a category this way.
+  useEffect(() => {
+    const next = `${window.location.pathname}${searchFromQuery({ ...query, icon: open })}`;
+    window.history.replaceState(null, "", next);
+  }, [query, open]);
+
+  const results = useMemo(
+    () => filterEntries(manifest, { ...query, text: deferredText }),
+    [query, deferredText],
+  );
+
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e?.isIntersecting) setPage({ key, limit: limit + PAGE });
+      },
+      { rootMargin: "800px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [key, limit]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const typing = (e.target as HTMLElement | null)?.closest("input, textarea, select");
+      if (e.key === "/" && !typing && !open) {
+        e.preventDefault();
+        search.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const update = useCallback(
+    (patch: Partial<GalleryQuery>) => setQuery((q) => ({ ...q, ...patch })),
+    [],
+  );
+  const done = manifest.filter((e) => e.implemented).length;
+  const shown = results.slice(0, limit);
+  const category = TOTALS.find((c) => c.id === query.category);
+  const move = (step: number) => {
+    const i = results.findIndex((e) => e.name === open);
+    const next = results[(i + step + results.length) % results.length];
+    if (next) setOpen(next.name);
+  };
+
+  return (
+    <div className="gallery">
+      <aside className="side" aria-label="Filters">
+        <div className="side-block">
+          <span className="side-label t-mono dim">Status</span>
+          <Seg<StatusFilter>
+            label="Status"
+            value={query.status}
+            onChange={(status) => update({ status })}
+            options={[
+              { value: "all", label: "All" },
+              { value: "drawn", label: "Drawn" },
+              { value: "stub", label: "Stubs" },
+            ]}
+          />
+        </div>
+        <div className="side-block">
+          <span className="side-label t-mono dim">Variant</span>
+          <Seg<IconVariant>
+            label="Variant"
+            value={variant}
+            onChange={setVariant}
+            options={[
+              { value: "mono", label: "Mono" },
+              { value: "duo", label: "Duo" },
+            ]}
+          />
+        </div>
+        <div className="side-block">
+          <span className="side-label t-mono dim">Name from</span>
+          <Seg<SourceFilter>
+            label="Name from"
+            value={query.source}
+            onChange={(source) => update({ source })}
+            options={[
+              { value: "all", label: "All" },
+              { value: "hugeicons", label: "Hugeicons" },
+              { value: "forgeron", label: "Own" },
+            ]}
+          />
+        </div>
+        <nav className="side-block side-cats" aria-label="Categories">
+          <span className="side-label t-mono dim">Categories</span>
+          <ul>
+            <li>
+              <button
+                type="button"
+                className="cat"
+                aria-current={query.category === null ? "true" : undefined}
+                onClick={() => update({ category: null })}
+              >
+                <span className="cat-name">All icons</span>
+                <span className="cat-count t-mono">{manifest.length}</span>
+                <span className="cat-bar" aria-hidden="true">
+                  <span style={{ width: `${(done / manifest.length) * 100}%` }} />
+                </span>
+              </button>
+            </li>
+            {TOTALS.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  className="cat"
+                  aria-current={query.category === c.id ? "true" : undefined}
+                  onClick={() => update({ category: query.category === c.id ? null : c.id })}
+                >
+                  <span className="cat-name">{c.label}</span>
+                  <span className="cat-count t-mono">
+                    {c.done > 0 ? <span className="accent">{c.done}</span> : null}
+                    {c.done > 0 ? <span className="dim">/</span> : null}
+                    {c.total}
+                  </span>
+                  <span className="cat-bar" aria-hidden="true">
+                    <span
+                      style={{
+                        width: `${Math.max(c.done > 0 ? 3 : 0, (c.done / c.total) * 100)}%`,
+                      }}
+                    />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <p className="side-note t-small">
+          Categories and labels are our own taxonomy, derived from the names. Hugeicons publishes
+          none that we could verify.
+        </p>
+      </aside>
+
+      <section className="results" aria-label="Icons">
+        <div className="bar">
+          <label className="search">
+            <span className="search-icon" aria-hidden="true">
+              {(() => {
+                const s = getIcon("search-01");
+                return s ? <Icon icon={s} size={18} /> : null;
+              })()}
+            </span>
+            <span className="sr-only">Search icons by name or label</span>
+            <input
+              ref={search}
+              type="search"
+              placeholder="Search 6,000 names, labels, aliases…"
+              value={query.text}
+              onChange={(e) => update({ text: e.target.value })}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <kbd className="t-mono dim">/</kbd>
+          </label>
+          <div className="bar-meta t-mono">
+            {category ? (
+              <button type="button" className="chip on" onClick={() => update({ category: null })}>
+                {category.label} ×
+              </button>
+            ) : null}
+            <span className="dim">
+              <span className="muted">{results.length.toLocaleString("en")}</span> results
+            </span>
+          </div>
+        </div>
+
+        {results.length === 0 ? (
+          <div className="empty dots-bg">
+            <StubMark size={48} />
+            <p className="f-title f-h4">No icon matches.</p>
+            <p className="t-small">Try another word, or clear the filters.</p>
+            <button type="button" className="btn btn-sm" onClick={() => setQuery(EMPTY_QUERY)}>
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <ul className="grid">
+            {shown.map((entry) => (
+              <Tile key={entry.name} entry={entry} variant={variant} onOpen={setOpen} />
+            ))}
+            {shown.length < results.length ? (
+              <li ref={sentinel} className="grid-more" aria-hidden="true" />
+            ) : null}
+          </ul>
+        )}
+      </section>
+
+      {open ? (
+        <IconDetail
+          name={open}
+          variant={variant}
+          onVariant={setVariant}
+          onClose={() => setOpen(null)}
+          onMove={move}
+          onCategory={(id) => {
+            setOpen(null);
+            update({ category: id });
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}

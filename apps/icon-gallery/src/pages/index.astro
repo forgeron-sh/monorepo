@@ -1,0 +1,26 @@
+---
+import { manifest } from "@forgeron/icons/catalog";
+import Gallery from "../components/Gallery";
+import Layout from "../components/Layout.astro";
+import SectionHead from "../components/SectionHead.astro";
+
+const done = manifest.filter((e) => e.implemented).length;
+const own = manifest.filter((e) => e.source === "forgeron").length;
+---
+
+<Layout title="Forgeron icons — gallery" description="Every icon of @forgeron/icons, drawn or still a stub." page="gallery">
+  <section class="rail hero">
+    <SectionHead index="/0.1" label="Gallery" meta={`${manifest.length.toLocaleString("en")} names · ${done} drawn · ${own} own`}>
+      <h1 class="f-title f-h1">Every icon,<br />one grid.</h1>
+      <p class="t-lead">
+        The Hugeicons list of names, plus our own, drawn on a 12-pixel grid in two tones. A name with no drawing
+        yet is a stub: it is in the catalog, and renders nothing.
+      </p>
+    </SectionHead>
+    <canvas class="hero-dither" data-dither data-px="4" aria-hidden="true"></canvas>
+  </section>
+  <div class="rail spacer t-mono dim"><span>/0.1 → Catalog</span><span>[ Search · filter · open ]</span></div>
+  <section class="rail">
+    <Gallery client:only="react" />
+  </section>
+</Layout>
