@@ -289,7 +289,7 @@ export const MinusPlusCircle01Icon: StubIcon = { name: "minus-plus-circle-01", i
 export const MinusPlusCircle02Icon: StubIcon = { name: "minus-plus-circle-02", implemented: false };
 export const MinusPlusSquare01Icon: StubIcon = { name: "minus-plus-square-01", implemented: false };
 export const MinusPlusSquare02Icon: StubIcon = { name: "minus-plus-square-02", implemented: false };
-export const MinusSignIcon: StubIcon = { name: "minus-sign", implemented: false };
+export { default as MinusSignIcon } from "../drawn/minus-sign";
 export const MinusSignCircleIcon: StubIcon = { name: "minus-sign-circle", implemented: false };
 export const MinusSignSquareIcon: StubIcon = { name: "minus-sign-square", implemented: false };
 export const MirrorIcon: StubIcon = { name: "mirror", implemented: false };

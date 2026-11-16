@@ -132,10 +132,22 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     labels: ["logs", "audit", "queue", "lines"],
     description: "Lines of a log, one of them highlighted.",
   },
+  "minus-sign": {
+    reference:
+      "Hugeicons `minus-sign` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["collapse", "close", "subtract"],
+    description: "Minus sign: the bar of the plus sign, for a collapse toggle.",
+  },
   mcp: {
     category: "ai",
     labels: ["model context protocol", "claude", "agent", "connector"],
     description: "Plug of the Model Context Protocol: tools used from an AI assistant.",
+  },
+  "plus-sign": {
+    reference:
+      "Hugeicons `plus-sign` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["add", "expand", "open"],
+    description: "Plus sign: two crossing bars, for an expand toggle.",
   },
   rollback: {
     category: "development",

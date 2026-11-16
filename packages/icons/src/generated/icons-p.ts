@@ -262,7 +262,7 @@ export const PlusMinusCircle01Icon: StubIcon = { name: "plus-minus-circle-01", i
 export const PlusMinusCircle02Icon: StubIcon = { name: "plus-minus-circle-02", implemented: false };
 export const PlusMinusSquare01Icon: StubIcon = { name: "plus-minus-square-01", implemented: false };
 export const PlusMinusSquare02Icon: StubIcon = { name: "plus-minus-square-02", implemented: false };
-export const PlusSignIcon: StubIcon = { name: "plus-sign", implemented: false };
+export { default as PlusSignIcon } from "../drawn/plus-sign";
 export const PlusSignCircleIcon: StubIcon = { name: "plus-sign-circle", implemented: false };
 export const PlusSignSquareIcon: StubIcon = { name: "plus-sign-square", implemented: false };
 export const Png01Icon: StubIcon = { name: "png-01", implemented: false };

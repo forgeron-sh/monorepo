@@ -16,6 +16,8 @@ import {
   LockIcon,
   LogIcon,
   McpIcon,
+  MinusSignIcon,
+  PlusSignIcon,
   RollbackIcon,
   Settings01Icon,
   Shield01Icon,
@@ -660,7 +662,10 @@ const resources = [
               <summary>
                 <span class="text-eyebrow accent">Q.0{i + 1}</span>
                 <span class="text-title-3">{f.q}</span>
-                <span class="faq-plus text-eyebrow" aria-hidden="true">+</span>
+                <span class="faq-mark" aria-hidden="true">
+                  <Icon icon={PlusSignIcon} variant="mono" className="faq-closed" />
+                  <Icon icon={MinusSignIcon} variant="mono" className="faq-opened" />
+                </span>
               </summary>
               <p class="text-small muted">{f.a}</p>
             </details>
@@ -1311,13 +1316,25 @@ const resources = [
   .faq summary:hover {
     background: var(--bg-raised);
   }
-  .faq details[open] .faq-plus {
-    transform: rotate(45deg);
+  /* The toggle mark: a pixel plus that becomes a pixel minus in ember. The two icons swap in
+     place, whole, with no rotation (pixels switch on or off). */
+  .faq-mark {
+    display: grid;
+    width: 24px;
+    height: 24px;
+  }
+  .faq-mark :global(.fg-icon) {
+    grid-area: 1 / 1;
+  }
+  .faq details[open] .faq-mark {
     color: var(--accent);
   }
-  .faq-plus {
-    font-size: 18px;
-    transition: transform 0.2s;
+  .faq-mark :global(.faq-opened),
+  .faq details[open] .faq-mark :global(.faq-closed) {
+    visibility: hidden;
+  }
+  .faq details[open] .faq-mark :global(.faq-opened) {
+    visibility: visible;
   }
   .faq details p {
     padding: 0 var(--gutter) 28px calc(var(--gutter) + 96px);
