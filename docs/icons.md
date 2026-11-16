@@ -41,7 +41,7 @@ Look at the review sheet, not at the rows.
 
 ## Grid and sizes
 
-**Decision (2026-11-16): the base grid stays 12×12.** A 16×16 grid is allowed for a brand mark whose aspect ratio does not fit 12 (today: `cloudflare`). No 24×24 grid.
+**Decision (2026-11-16): the base grid stays 12×12.** A 16×16 grid is allowed for a brand mark whose aspect ratio or detail does not fit 12 (today: `cloudflare`, `github`). No 24×24 grid.
 
 **How it was decided.** The same subjects (a cog, a brand cloud, an arrow, a document, a user) were drawn on 12, 16 and 24-pixel grids and compared at 16, 24 and 48 px, in the gallery's `/grids` page (study drawings in `apps/icon-gallery/src/lib/grid-study.ts`, not exported). What was seen and measured:
 
@@ -184,6 +184,8 @@ A third-party mark is drawn to be **recognised**, not reinterpreted.
 5. **Record** the `trademark` note in `CURATED` and keep the brand's colours out of the data (tones come from the consumer).
 
 **Cloudflare, 2026-11-16.** What makes the mark: a large round dome right of centre, a smaller bump on its left and a low tail; a thin cut that runs from the left into the gap between the two clouds; a smaller, lighter cloud on the right whose top is highest at its left. The old drawing was a straight raster: no bump, a nine-pixel slot, a block on the right. The new one keeps the dome (a standard eight-pixel circle top), marks the bump with a one-pixel notch, shortens the cut to eight pixels ending in the gap, and puts the small cloud in the secondary tone, which reads as the logo's lighter orange at the default 40% opacity. The small cloud is still more a stepped block than a quarter circle at 48 px: that is the limit of four pixels.
+
+**GitHub, 2026-11-17.** The mark is round (1:1), so the ratio alone would fit 12, but on 12 the cell-centre sample of `simple-icons:github` is a ring with a hole: the ears and the tail fall below one pixel. It uses 16. What makes the mark: a disc, the Octocat cut out of it with two pointed ears, a wide head, the tail curling in on the lower left and the body running out at the bottom edge. The first redraw kept the ears as one-pixel notches: next to the reference at 16 and 24 px they disappeared and the rim looked heavy on top. The adopted one makes the ears two pixels tall and the rim two rows thick above them. The tail is a two-pixel arm under a one-pixel gap: at 48 px it reads more as a notch than a curl, the limit of the grid. Monotone. GitHub's own logo guidelines were not read for this change: whether a pixel rendition is acceptable is the owner's decision, as for Cloudflare.
 
 **Trademark caution.** Cloudflare's trademark page (read 2026-11-16) says that using its logo needs prior written permission, outside its web badges, and forbids modifying the marks. A pixel rendition is a modification. Whether the package may ship `cloudflare` is a decision for the owner, not for this guide.
 

@@ -102,6 +102,15 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     labels: ["branch", "commits"],
     description: "Two branches turning into one stem, with their commits.",
   },
+  github: {
+    category: "brands",
+    labels: ["git", "repository", "source", "octocat", "logo"],
+    description: "The GitHub mark: the Octocat cut out of a round disc.",
+    reference:
+      "simple-icons:github (Iconify, 2026-11-17): rasterised to 16×16, then redrawn by hand (2026-11-17, docs/icons.md).",
+    trademark:
+      "GitHub and the Octocat logo are trademarks of GitHub, Inc., used here only to refer to GitHub.",
+  },
   globe: {
     labels: ["web", "world", "network"],
     description: "Globe: a meridian and the equator.",
