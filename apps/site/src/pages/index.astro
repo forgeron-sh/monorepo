@@ -11,6 +11,7 @@ import {
   DatabaseIcon,
   DeployIcon,
   GitBranchIcon,
+  GithubIcon,
   Key01Icon,
   LockIcon,
   LogIcon,
@@ -173,7 +174,7 @@ const resources = [
         <a href="#host">Host</a>
       </div>
       <div class="nav-actions">
-        <Button href={GITHUB} size="sm">GitHub</Button>
+        <Button href={GITHUB} size="sm"><Icon icon={GithubIcon} size={16} variant="mono" />GitHub</Button>
         <Button href="#start" size="sm" variant="primary" marker>Get started</Button>
       </div>
     </div>
@@ -697,7 +698,7 @@ const resources = [
       </div>
       <div>
         <span class="text-eyebrow dim">Open source</span>
-        <a href={GITHUB}>GitHub</a><a href={GITHUB}>License · Apache-2.0</a><a href={GITHUB}>Changelog</a>
+        <a href={GITHUB} class="foot-gh"><Icon icon={GithubIcon} size={16} variant="mono" />GitHub</a><a href={GITHUB}>License · Apache-2.0</a><a href={GITHUB}>Changelog</a>
       </div>
     </section>
   </main>
@@ -1355,6 +1356,11 @@ const resources = [
   }
   .foot-cols a:hover {
     color: var(--ink);
+  }
+  .foot-gh {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
   @media (max-width: 760px) {
     .foot-cols {
