@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
+import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { button, cleanup, click, fakeApi, mount, type } from "../../test-utils";
 import { NewToolDialog, RepositoryDialog } from "./repository-dialog";
 
 afterEach(cleanup);
+
+/** Chooses an option of a React-controlled `<select>`. */
+const choosing = (select: HTMLSelectElement, value: string) =>
+  act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(select, value);
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
 
 describe("adding a tool from GitHub (D-121)", () => {
   it("creates the tool and shows its token once, with the steps", async () => {
@@ -60,6 +68,7 @@ const repo = (name: string, over: object = {}) => ({
   forgeron: true,
   workflow: false,
   tool: null,
+  deployedOn: null,
   ...over,
 });
 const dialog = () => document.querySelector<HTMLElement>('[role="dialog"]')!;
@@ -77,6 +86,9 @@ describe("adding a tool with the workspace's GitHub App (D-123)", () => {
         repo: "acme-sh/CRM-Tool",
         productionBranch: "main",
         workflow: "added",
+        deployedOn: null,
+        pullRequest: null,
+        pullRequestError: null,
       },
     });
     await mount(<RepositoryDialog api={api} onClose={() => {}} onAdded={() => added++} />);
@@ -102,6 +114,61 @@ describe("adding a tool with the workspace's GitHub App (D-123)", () => {
     expect(dialog().textContent).toContain("crm-tool is added");
     expect(dialog().textContent).toContain("The workflow was added");
     expect(dialog().textContent).not.toContain("FORGERON_TOKEN");
+  });
+
+  it("makes the admin decide when the repository deploys to another platform, then says what is left", async () => {
+    const { api, sent } = fakeApi({
+      "/api/github": APP,
+      "/api/github/repositories": {
+        repositories: [repo("notes", { workflow: true, deployedOn: "https://old.forgeron.test" })],
+      },
+      "POST /api/github/repositories/link": {
+        tool: "notes",
+        repo: "acme-sh/notes",
+        productionBranch: "main",
+        workflow: "present",
+        deployedOn: "https://old.forgeron.test",
+        pullRequest: "https://github.com/acme-sh/notes/pull/1",
+        pullRequestError: null,
+      },
+    });
+    await mount(<RepositoryDialog api={api} onClose={() => {}} onAdded={() => {}} />);
+    await click(dialog().querySelector<HTMLButtonElement>('[role="option"]')!);
+    expect(dialog().textContent).toContain("deploys to another platform");
+    expect(dialog().textContent).toContain("https://old.forgeron.test");
+    // Nothing is preselected: Add waits for the choice.
+    expect(button(dialog(), "Add").disabled).toBe(true);
+    const select = dialog().querySelector<HTMLSelectElement>("select")!;
+    await choosing(select, "pull-request");
+    expect(button(dialog(), "Add").disabled).toBe(false);
+    await click(button(dialog(), "Add"));
+    expect(sent).toEqual([
+      {
+        method: "POST",
+        path: "/api/github/repositories/link",
+        body: {
+          repo: "acme-sh/notes",
+          name: "notes",
+          productionBranch: "main",
+          otherPlatform: "pull-request",
+        },
+      },
+    ]);
+    expect(dialog().textContent).toContain("still deploys to https://old.forgeron.test");
+    expect(dialog().querySelector<HTMLAnchorElement>("a")!.href).toBe(
+      "https://github.com/acme-sh/notes/pull/1",
+    );
+  });
+
+  it("asks nothing more for a repository that does not deploy elsewhere", async () => {
+    const { api } = fakeApi({
+      "/api/github": APP,
+      "/api/github/repositories": { repositories: [repo("crm", { workflow: true })] },
+    });
+    await mount(<RepositoryDialog api={api} onClose={() => {}} onAdded={() => {}} />);
+    await click(dialog().querySelector<HTMLButtonElement>('[role="option"]')!);
+    expect(dialog().textContent).not.toContain("another platform");
+    expect(button(dialog(), "Add").disabled).toBe(false);
   });
 
   it("draws a skeleton of the list while the repositories are read, not a sentence", async () => {

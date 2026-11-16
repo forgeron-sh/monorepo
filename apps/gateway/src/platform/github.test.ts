@@ -116,6 +116,7 @@ describe("making the app from its manifest", () => {
       default_permissions: {
         contents: "write",
         workflows: "write",
+        pull_requests: "write",
         statuses: "write",
         administration: "write",
         actions: "read",
@@ -302,6 +303,7 @@ describe("the console's GitHub", () => {
         forgeron: true,
         workflow: false,
         tool: null,
+        deployedOn: null,
       },
       {
         repo: "acme-sh/odoo",
@@ -311,6 +313,7 @@ describe("the console's GitHub", () => {
         forgeron: true,
         workflow: true,
         tool: "odoo",
+        deployedOn: null,
       },
       {
         repo: "acme-sh/site",
@@ -320,6 +323,7 @@ describe("the console's GitHub", () => {
         forgeron: false,
         workflow: false,
         tool: null,
+        deployedOn: null,
       },
     ]);
   });
@@ -339,6 +343,9 @@ describe("the console's GitHub", () => {
       repo: "acme-sh/crm",
       productionBranch: "main",
       workflow: "added",
+      deployedOn: null,
+      pullRequest: null,
+      pullRequestError: null,
     });
     const tool = (await registry.findTool("acme", "crm"))!;
     expect(await registry.toolSource(tool.id)).toMatchObject({ repo: "acme-sh/crm", repoId: 101 });
@@ -502,5 +509,129 @@ describe("through the gateway", () => {
     expect(await hook.json()).toMatchObject({ error: { code: "NOT_FOUND" } });
     const page = await gateway(new Request("https://acme.forgeron.app/github/app/new"));
     expect(page.status).toBe(401);
+  });
+});
+
+describe("a repository that deploys to another platform (D-147)", () => {
+  const OTHER = "https://old.forgeron.test";
+  const OTHER_WORKFLOW = `jobs:
+  deploy:
+    steps:
+      - uses: forgeron-sh/monorepo/.github/actions/deploy@v0.0.0
+        with:
+          endpoint: ${OTHER}
+  close:
+    steps:
+      - uses: forgeron-sh/monorepo/.github/actions/deploy@v0.0.0
+        with:
+          close: "true"
+          endpoint: "${OTHER}" # the first platform
+`;
+  const link = (extra: object = {}) =>
+    api("POST", "/api/github/repositories/link", {
+      repo: "acme-sh/notes",
+      name: "notes",
+      ...extra,
+    });
+  const addNotes = (workflow: string) => {
+    const repo = github.addRepository(
+      "acme-sh/notes",
+      { "forgeron.config.ts": "x", ".github/workflows/forgeron.yml": workflow },
+      201,
+    );
+    repo.commits.push({ sha: "c".repeat(40), message: "first", files: {} });
+    return repo;
+  };
+
+  it("says in the list which other platform a repository deploys to", async () => {
+    await connect();
+    addNotes(OTHER_WORKFLOW);
+    github.addRepository(
+      "acme-sh/here",
+      { "forgeron.config.ts": "x", ".github/workflows/forgeron.yml": `endpoint: ${ORIGIN}\n` },
+      202,
+    );
+    const listed = (await (await api("GET", "/api/github/repositories")).json()) as {
+      repositories: { repo: string; deployedOn: string | null }[];
+    };
+    expect(listed.repositories.map((r) => [r.repo, r.deployedOn])).toEqual([
+      ["acme-sh/notes", OTHER],
+      ["acme-sh/here", null],
+    ]);
+  });
+
+  it("refuses to link it until the admin decides, and changes nothing", async () => {
+    await connect();
+    const repo = addNotes(OTHER_WORKFLOW);
+    const refused = await link();
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toMatchObject({ error: "DEPLOYED_ELSEWHERE" });
+    expect(await registry.findTool("acme", "notes")).toBeUndefined();
+    expect(repo.pulls).toEqual([]);
+    expect(repo.branches.size).toBe(0);
+  });
+
+  it("names the other platform in the refusal", async () => {
+    await connect();
+    addNotes(OTHER_WORKFLOW);
+    const body = (await (await link()).json()) as { message: string };
+    expect(body.message).toContain(OTHER);
+  });
+
+  it("links it as it is when the admin says so, leaving the workflow", async () => {
+    await connect();
+    const repo = addNotes(OTHER_WORKFLOW);
+    const linked = await link({ otherPlatform: "link" });
+    expect(linked.status).toBe(201);
+    expect(await linked.json()).toMatchObject({
+      tool: "notes",
+      workflow: "present",
+      deployedOn: OTHER,
+      pullRequest: null,
+      pullRequestError: null,
+    });
+    expect(await registry.findTool("acme", "notes")).toBeDefined();
+    expect(repo.files[".github/workflows/forgeron.yml"]).toBe(OTHER_WORKFLOW);
+    expect(repo.pulls).toEqual([]);
+  });
+
+  it("opens a pull request that points every endpoint here, and never commits to the default branch", async () => {
+    await connect();
+    const repo = addNotes(OTHER_WORKFLOW);
+    const linked = await link({ otherPlatform: "pull-request" });
+    expect(linked.status).toBe(201);
+    const done = (await linked.json()) as { pullRequest: string; pullRequestError: null };
+    expect(done.pullRequest).toBe("https://github.com/acme-sh/notes/pull/1");
+    expect(done.pullRequestError).toBeNull();
+    expect(repo.files[".github/workflows/forgeron.yml"]).toBe(OTHER_WORKFLOW);
+    expect(repo.commits).toHaveLength(1);
+    const branch = repo.branches.get("forgeron/switch-platform")!;
+    const changed = branch.files[".github/workflows/forgeron.yml"]!;
+    expect(changed).not.toContain(OTHER);
+    expect(changed.match(new RegExp(`endpoint: ${ORIGIN}`, "g"))).toHaveLength(2);
+    expect(changed).toContain(`endpoint: ${ORIGIN} # the first platform`);
+    expect(changed).toContain('close: "true"');
+    expect(repo.pulls).toMatchObject([{ head: "forgeron/switch-platform", base: "main" }]);
+    expect(repo.pulls[0]!.body).toContain(OTHER);
+  });
+
+  it("links the tool and tells why when the pull request cannot be opened", async () => {
+    await connect();
+    const repo = addNotes(OTHER_WORKFLOW);
+    repo.branches.set("forgeron/switch-platform", { sha: "d".repeat(40), files: {} });
+    const linked = await link({ otherPlatform: "pull-request" });
+    expect(linked.status).toBe(201);
+    const done = (await linked.json()) as { pullRequest: null; pullRequestError: string };
+    expect(done.pullRequest).toBeNull();
+    expect(done.pullRequestError).toContain("forgeron/switch-platform");
+    expect(await registry.findTool("acme", "notes")).toBeDefined();
+  });
+
+  it("does not ask when the workflow names this platform, or no platform", async () => {
+    await connect();
+    addNotes(`endpoint: ${ORIGIN}\n`);
+    const linked = await link();
+    expect(linked.status).toBe(201);
+    expect(await linked.json()).toMatchObject({ deployedOn: null, pullRequest: null });
   });
 });

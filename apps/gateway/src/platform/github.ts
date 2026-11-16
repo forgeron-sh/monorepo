@@ -6,7 +6,13 @@ import {
   listGithubRepositoriesRoute,
 } from "@forgeron/platform-contract";
 import { holds, PLATFORM } from "@forgeron/permissions";
-import { toolFiles, workflow, WORKFLOW_PATH } from "@forgeron/scaffold";
+import {
+  retargetWorkflow,
+  toolFiles,
+  workflow,
+  workflowEndpoints,
+  WORKFLOW_PATH,
+} from "@forgeron/scaffold";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import { workspaceApp, type GithubContext } from "../github/app";
@@ -73,6 +79,8 @@ function manifestOf(origin: string) {
       administration: "write",
       contents: "write",
       workflows: "write",
+      // The pull request that points a repository's workflow at this platform (D-147).
+      pull_requests: "write",
       statuses: "write",
       // The CI tab of a tool reads its repository's GitHub Actions runs.
       actions: "read",
@@ -231,6 +239,13 @@ const notConnected = {
   error: "NOT_CONNECTED",
   message: "This workspace has no GitHub App: connect GitHub in Settings first.",
 };
+/** The branch the pull request that points a workflow at this platform comes from (D-147). */
+const SWITCH_BRANCH = "forgeron/switch-platform";
+
+/** Another platform a workflow deploys to: its first `endpoint` that is not `origin`, or `null` (D-147). */
+const elsewhere = (text: string | undefined, origin: string): string | null =>
+  workflowEndpoints(text ?? "").find((e) => e !== new URL(origin).origin) ?? null;
+
 const refusedBy = (error: GithubError) => ({ error: "GITHUB", message: error.message });
 
 function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
@@ -276,9 +291,9 @@ function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
       for (const installation of app.installations) {
         const token = await app.installationToken(installation.installationId);
         for (const repo of await app.api.repositories(token)) {
-          const [forgeron, hasWorkflow, tool] = await Promise.all([
+          const [forgeron, workflowText, tool] = await Promise.all([
             app.api.hasFile(token, repo.fullName, "forgeron.config.ts"),
-            app.api.hasFile(token, repo.fullName, WORKFLOW_PATH),
+            app.api.fileText(token, repo.fullName, WORKFLOW_PATH),
             registry.toolByRepository(workspace, { repo: repo.fullName, repoId: repo.id }),
           ]);
           repositories.push({
@@ -287,8 +302,9 @@ function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
             private: repo.private,
             defaultBranch: repo.defaultBranch,
             forgeron,
-            workflow: hasWorkflow,
+            workflow: workflowText !== undefined,
             tool: tool?.name ?? null,
+            deployedOn: elsewhere(workflowText, c.env.origin),
           });
         }
       }
@@ -333,6 +349,19 @@ function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
           409,
         );
       }
+      // A repository whose CI deploys to another platform would keep deploying there once linked here:
+      // the admin says what to do before anything is made (D-147).
+      const workflowText = await app.api.fileText(access.token, found.fullName, WORKFLOW_PATH);
+      const deployedOn = elsewhere(workflowText, c.env.origin);
+      if (deployedOn && !body.otherPlatform) {
+        return c.json(
+          {
+            error: "DEPLOYED_ELSEWHERE",
+            message: `${found.fullName} deploys to ${deployedOn}, not to this platform: its workflow names that address. Link it anyway, or have a pull request point its workflow here.`,
+          },
+          409,
+        );
+      }
       const actor = c.get("person").id;
       const productionBranch = body.productionBranch ?? found.defaultBranch;
       const tool = await registry.createTool({ workspace, name: body.name });
@@ -346,7 +375,39 @@ function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
       // Nobody may add it to their library until someone who may give access says who (D-117).
       await registry.setAvailability({ toolId: tool.id, mode: "nobody", actor });
       let state: "added" | "present" | "missing" = "present";
-      if (!(await app.api.hasFile(access.token, found.fullName, WORKFLOW_PATH))) {
+      let pullRequest: string | null = null;
+      let pullRequestError: string | null = null;
+      if (deployedOn && body.otherPlatform === "pull-request" && workflowText !== undefined) {
+        // A pull request, never a commit to a branch: the repository's owners read it and merge it.
+        // The tool is linked whatever happens here; a refusal is told, not thrown.
+        try {
+          await app.api.createBranch(
+            access.token,
+            found.fullName,
+            SWITCH_BRANCH,
+            found.defaultBranch,
+          );
+          await app.api.commitFiles(
+            access.token,
+            found.fullName,
+            SWITCH_BRANCH,
+            { [WORKFLOW_PATH]: retargetWorkflow(workflowText, c.env.origin) },
+            `ci: deploy to ${new URL(c.env.origin).host}`,
+          );
+          pullRequest = await app.api.openPullRequest(access.token, found.fullName, {
+            title: `ci: deploy to ${new URL(c.env.origin).host}`,
+            body: `This repository's workflow deployed to ${deployedOn}. It is now a tool of ${c.env.origin}: this changes the \`endpoint\` of \`${WORKFLOW_PATH}\` to that address.\n\nMerge it when ${deployedOn} should stop receiving this repository's deployments.`,
+            head: SWITCH_BRANCH,
+            base: found.defaultBranch,
+          });
+        } catch (error) {
+          if (!(error instanceof GithubError)) throw error;
+          pullRequestError =
+            error.status === 422
+              ? `The branch ${SWITCH_BRANCH} exists already: delete or merge it, then change the workflow's endpoint to ${c.env.origin}.`
+              : error.message;
+        }
+      } else if (workflowText === undefined) {
         state = "missing";
         if (body.addWorkflow) {
           await app.api.commitFiles(
@@ -360,7 +421,15 @@ function mountConsole(app: OpenAPIHono<PlatformEnv>): void {
         }
       }
       return c.json(
-        { tool: tool.name, repo: found.fullName, productionBranch, workflow: state },
+        {
+          tool: tool.name,
+          repo: found.fullName,
+          productionBranch,
+          workflow: state,
+          deployedOn,
+          pullRequest,
+          pullRequestError,
+        },
         201,
       );
     } catch (error) {

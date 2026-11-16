@@ -46,6 +46,10 @@ export interface SimulatedRepository {
   files: Record<string, string>;
   /** The commits made through the git API, newest last. */
   commits: { sha: string; message: string; files: Record<string, string> }[];
+  /** The other branches, by name: their head and what their commits changed. */
+  branches: Map<string, { sha: string; files: Record<string, string> }>;
+  /** The pull requests opened, newest last. */
+  pulls: { title: string; body: string; head: string; base: string; url: string }[];
 }
 
 /** A GitHub Actions run of a simulated repository, as GitHub's REST API names its fields. */
@@ -117,6 +121,8 @@ export async function simulatedGithub(options: { now: () => Date; account?: stri
       defaultBranch: "main",
       files,
       commits: [],
+      branches: new Map(),
+      pulls: [],
     };
     state.repositories.set(fullName.toLowerCase(), repo);
     return repo;
@@ -310,12 +316,44 @@ export async function simulatedGithub(options: { now: () => Date; account?: stri
     if (rest.startsWith("contents/")) {
       const file = rest.slice("contents/".length);
       return file in repo.files
-        ? Response.json({ path: file, type: "file" })
+        ? Response.json({
+            path: file,
+            type: "file",
+            encoding: "base64",
+            content: btoa(String.fromCharCode(...new TextEncoder().encode(repo.files[file]!))),
+          })
         : Response.json({ message: "Not Found" }, { status: 404 });
     }
-    const head = () => repo.commits.at(-1)!.sha;
+    const head = () => repo.commits.at(-1)?.sha ?? sha();
     if (rest === `git/ref/heads/${repo.defaultBranch}`) {
       return Response.json({ object: { sha: head() } });
+    }
+    if (
+      (m = /^git\/ref\/heads\/(.+)$/.exec(rest)) &&
+      repo.branches.has(decodeURIComponent(m[1]!))
+    ) {
+      return Response.json({ object: { sha: repo.branches.get(decodeURIComponent(m[1]!))!.sha } });
+    }
+    if (rest === "git/refs" && request.method === "POST") {
+      const input = await body();
+      const name = String(input.ref).replace(/^refs\/heads\//, "");
+      if (name === repo.defaultBranch || repo.branches.has(name)) {
+        return Response.json({ message: "Reference already exists" }, { status: 422 });
+      }
+      repo.branches.set(name, { sha: String(input.sha), files: {} });
+      return Response.json({ ref: input.ref }, { status: 201 });
+    }
+    if (rest === "pulls" && request.method === "POST") {
+      const input = await body();
+      const url = `https://github.com/${repo.fullName}/pull/${repo.pulls.length + 1}`;
+      repo.pulls.push({
+        title: String(input.title),
+        body: String(input.body),
+        head: String(input.head),
+        base: String(input.base),
+        url,
+      });
+      return Response.json({ html_url: url }, { status: 201 });
     }
     if ((m = /^git\/commits\/([0-9a-f]+)$/.exec(rest))) {
       return Response.json({ sha: m[1], tree: { sha: `tree-${m[1]}` } });
@@ -341,6 +379,14 @@ export async function simulatedGithub(options: { now: () => Date; account?: stri
       const made = commits.get(String(input.sha))!;
       Object.assign(repo.files, made.files);
       repo.commits.push({ sha: String(input.sha), ...made });
+      return Response.json({ object: { sha: input.sha } });
+    }
+    if ((m = /^git\/refs\/heads\/(.+)$/.exec(rest)) && request.method === "PATCH") {
+      const branch = repo.branches.get(decodeURIComponent(m[1]!));
+      if (!branch) return Response.json({ message: "Not Found" }, { status: 404 });
+      const input = await body();
+      branch.sha = String(input.sha);
+      Object.assign(branch.files, commits.get(branch.sha)!.files);
       return Response.json({ object: { sha: input.sha } });
     }
     if (rest === "actions/runs") {

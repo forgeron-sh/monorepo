@@ -200,6 +200,53 @@ export function githubApi(fetcher: typeof fetch) {
       );
     },
 
+    /** A text file of a repository, on its default branch (or `ref`); `undefined` when it is not there. */
+    async fileText(
+      token: string,
+      repo: string,
+      file: string,
+      ref?: string,
+    ): Promise<string | undefined> {
+      const query = ref ? `?ref=${encodeURIComponent(ref)}` : "";
+      const r = await call<{ content?: unknown; encoding?: unknown }>(
+        `/repos/${path(repo)}/contents/${file}${query}`,
+        { token, ok404: true },
+      );
+      if (r === undefined) return undefined;
+      if (r.encoding !== "base64" || typeof r.content !== "string") return "";
+      return new TextDecoder().decode(
+        Uint8Array.from(atob(r.content.replace(/\s/g, "")), (c) => c.charCodeAt(0)),
+      );
+    },
+
+    /** A new branch, starting at the head of `from` (D-147). */
+    async createBranch(token: string, repo: string, branch: string, from: string): Promise<void> {
+      const base = `/repos/${path(repo)}`;
+      const head = (await call<{ object: { sha: string } }>(
+        `${base}/git/ref/heads/${encodeURIComponent(from)}`,
+        { token },
+      ))!;
+      await call(`${base}/git/refs`, {
+        token,
+        method: "POST",
+        body: { ref: `refs/heads/${branch}`, sha: head.object.sha },
+      });
+    },
+
+    /** Opens a pull request, and returns its address. */
+    async openPullRequest(
+      token: string,
+      repo: string,
+      input: { title: string; body: string; head: string; base: string },
+    ): Promise<string> {
+      const r = (await call<{ html_url?: unknown }>(`/repos/${path(repo)}/pulls`, {
+        token,
+        method: "POST",
+        body: input,
+      }))!;
+      return String(r.html_url ?? "");
+    },
+
     /**
      * A new repository in an organisation, with a first commit (GitHub's README) so that files can be
      * added through the git API: an empty repository has no branch to add them to.

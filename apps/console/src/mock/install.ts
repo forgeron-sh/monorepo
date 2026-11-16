@@ -704,6 +704,7 @@ export async function installMock(): Promise<void> {
             forgeron: true,
             workflow: false,
             tool: null,
+            deployedOn: null,
           },
           {
             repo: "acme-sh/crm",
@@ -713,6 +714,7 @@ export async function installMock(): Promise<void> {
             forgeron: true,
             workflow: true,
             tool: "crm",
+            deployedOn: null,
           },
           {
             repo: "acme-sh/website",
@@ -722,6 +724,7 @@ export async function installMock(): Promise<void> {
             forgeron: false,
             workflow: false,
             tool: null,
+            deployedOn: null,
           },
         ],
       });
@@ -738,6 +741,9 @@ export async function installMock(): Promise<void> {
         repo: input.repo,
         productionBranch: input.productionBranch ?? "main",
         workflow: input.addWorkflow ? "added" : "missing",
+        deployedOn: null,
+        pullRequest: null,
+        pullRequestError: null,
       });
     }
     if (path === "/api/github/tools" && method === "POST") {

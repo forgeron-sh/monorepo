@@ -5,4 +5,10 @@ export { CLAUDE_MD, marketplaceAgents, toolAgents } from "./agents";
 export { LIFECYCLE, LIFECYCLE_PATH } from "./lifecycle";
 export { MARKETPLACE_INDEX_PATH, marketplaceFiles } from "./marketplace";
 export { PROJECT_PATH, projectFile, repositoryFiles, toolFiles, VITEST_VERSION } from "./tool";
-export { deployAction, workflow, WORKFLOW_PATH } from "./workflow";
+export {
+  deployAction,
+  retargetWorkflow,
+  workflow,
+  workflowEndpoints,
+  WORKFLOW_PATH,
+} from "./workflow";
