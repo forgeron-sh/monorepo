@@ -1,6 +1,6 @@
 # @forgeron/site
 
-The `forgeron.app` marketing site.
+The `forgeron.sh` marketing site.
 
 ## Planned content
 
