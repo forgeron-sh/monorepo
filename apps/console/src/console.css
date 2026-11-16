@@ -40,7 +40,7 @@ code {
 }
 .fc-center h1 {
   margin: 0;
-  font: 600 28px/34px var(--font-display);
+  font: 600 28px/34px var(--font-sans);
   letter-spacing: -0.02em;
 }
 .fc-center p {
@@ -79,7 +79,7 @@ code {
   cursor: pointer;
 }
 .fc-search:hover {
-  background: var(--surface-hover);
+  background: var(--bg-raised);
   color: var(--ink);
 }
 .fc-search:focus-visible {
@@ -213,7 +213,7 @@ code {
   gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid var(--line);
-  background: var(--surface-raised);
+  background: var(--bg-raised);
 }
 .fc-skeleton-field {
   display: flex;
@@ -228,7 +228,7 @@ code {
 .fc-panel {
   padding: var(--space-6);
   border: 1px solid var(--line);
-  background: var(--surface-raised);
+  background: var(--bg-raised);
 }
 .fc-form-actions {
   display: flex;
@@ -251,7 +251,7 @@ code {
   z-index: 40;
   width: min(420px, calc(100vw - 2 * var(--space-4)));
   border: 1px solid var(--line-strong);
-  background: var(--surface-raised);
+  background: var(--bg-raised);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
 }
 .fc-start-head {
@@ -315,7 +315,7 @@ code {
   padding: 0;
   list-style: none;
   border: 1px solid var(--line);
-  background: var(--surface-raised);
+  background: var(--bg-raised);
 }
 .fc-step {
   display: grid;
@@ -337,9 +337,9 @@ code {
   color: var(--ink-muted);
 }
 .fc-step[data-done="true"] .fc-step-mark {
-  background: var(--inverse);
-  border-color: var(--inverse);
-  color: var(--on-inverse);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
 }
 .fc-step[data-next="true"] .fc-step-mark {
   border-color: var(--ink);
@@ -499,7 +499,7 @@ code {
   margin: 0;
   padding: 0;
   border: 1px solid var(--line);
-  background: var(--surface-raised);
+  background: var(--bg-raised);
   max-height: 60vh;
   overflow: auto;
 }
@@ -520,15 +520,15 @@ code {
   cursor: pointer;
 }
 .fc-db-table:hover {
-  background: var(--surface-hover);
+  background: var(--bg-raised);
 }
 .fc-db-table:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 .fc-db-table[aria-current="true"] {
-  background: var(--inverse);
-  color: var(--on-inverse);
+  background: var(--ink);
+  color: var(--bg);
 }
 .fc-db-table-name {
   overflow: hidden;
@@ -637,7 +637,7 @@ code {
 .fc-db-card {
   padding: var(--space-4);
   border: 1px solid var(--line);
-  background: var(--surface-raised);
+  background: var(--bg-raised);
 }
 .fc-db-card-title {
   display: flex;

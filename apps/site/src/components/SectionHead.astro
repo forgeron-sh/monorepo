@@ -1,0 +1,20 @@
+---
+import { PixelText, Tag } from "@forgeron/ui";
+
+interface Props {
+  /** The section's coordinate, `/0.1`, drawn in the pixel face. */
+  index: string;
+  label: string;
+  meta?: string;
+}
+const { index, label, meta } = Astro.props;
+---
+
+<header class="sec-head">
+  <div class="sec-index"><PixelText text={index} label={index} /></div>
+  <div class="sec-title">
+    <Tag strong={label} />
+    <slot />
+  </div>
+  {meta && <span class="sec-meta text-eyebrow">{meta}</span>}
+</header>

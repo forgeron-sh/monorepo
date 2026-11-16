@@ -1,12 +1,13 @@
 ---
-import "@forgeron/ui/styles.css";
-import "../styles/site.css";
+import "./lab.css";
 
 interface Props {
   title: string;
   description: string;
+  /** Extra class on <body class={variant}>: "v2" opts into the roomier spacing of landing C. */
+  variant?: string;
 }
-const { title, description } = Astro.props;
+const { title, description, variant } = Astro.props;
 ---
 
 <!doctype html>
@@ -14,17 +15,22 @@ const { title, description } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" href="/fonts/ForgeSans-Medium.otf" as="font" type="font/otf" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Silkscreen&display=swap"
     />
   </head>
-  <body>
+  <body class={variant}>
     <slot />
+    <script>
+      import "../../illustrations/canvas";
+    </script>
   </body>
 </html>

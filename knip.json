@@ -38,6 +38,13 @@
       ]
     },
     "apps/site": {
+      "ignore": ["src/explorations/**"],
+      "ignoreDependencies": ["@astrojs/check"]
+    },
+    "apps/icon-gallery": {
+      "ignoreDependencies": ["@astrojs/check"]
+    },
+    "apps/font": {
       "ignoreDependencies": ["@astrojs/check"]
     },
     "apps/cli": {

@@ -1,0 +1,36 @@
+---
+import "@forgeron/ui/tokens.css";
+import "@forgeron/ui/atoms.css";
+import "../styles/site.css";
+import pixelMedium from "@forgeron/ui/fonts/ForgeSans-Medium.otf?url";
+
+interface Props {
+  title: string;
+  description: string;
+  /** Class on <body>: `home` gives the home page its roomier gutter. */
+  bodyClass?: string;
+}
+const { title, description, bodyClass } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" href={pixelMedium} as="font" type="font/otf" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Silkscreen&display=swap"
+    />
+  </head>
+  <body class={bodyClass}>
+    <slot />
+  </body>
+</html>

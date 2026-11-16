@@ -12,6 +12,18 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "apps/console", "harness"],
       "port": 5174
+    },
+    {
+      "name": "icon-gallery",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/icon-gallery", "dev"],
+      "port": 5179
+    },
+    {
+      "name": "font",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/font", "dev"],
+      "port": 5180
     }
   ]
 }

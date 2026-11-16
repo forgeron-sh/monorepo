@@ -1,0 +1,766 @@
+---
+import LabLayout from "./lab/LabLayout.astro";
+import Icon from "./lab/Icon.astro";
+import Logo from "./lab/Logo.astro";
+import PixelTitle from "./lab/PixelTitle.astro";
+import SectionHead from "./lab/SectionHead.astro";
+import { ICON_NAMES } from "./lab/icons";
+import { bayer8, pixelLogo, pixelText } from "./lab/pixel";
+
+const colors = [
+  { name: "bg", hex: "#0a0a0a", role: "Fond de page. Toujours noir." },
+  { name: "bg-raised", hex: "#111111", role: "Survol de cellule, panneau." },
+  { name: "bg-sunk", hex: "#050505", role: "Code, terminal, champ." },
+  { name: "line", hex: "#1c1c1c", role: "Filets, grille, rails." },
+  { name: "line-strong", hex: "#2e2e2e", role: "Bordure de contrôle, grille iso." },
+  { name: "ink-dim", hex: "#5e5e5e", role: "Index, méta, trame des faces." },
+  { name: "ink-muted", hex: "#8f8f8f", role: "Texte courant secondaire." },
+  { name: "ink", hex: "#ededed", role: "Titres, arêtes, pixels pleins." },
+  { name: "accent", hex: "#ff4f1f", role: "Braise. Un seul usage fort par écran." },
+];
+
+/** A dither swatch: an 8×8 Bayer pattern tiled on 16×16 cells at the given density. */
+function ramp(density: number, n = 16) {
+  let d = "";
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (bayer8(x, y) < density) d += `M${x} ${y}h1v1h-1z`;
+  return `<svg viewBox="0 0 ${n} ${n}" fill="currentColor" shape-rendering="crispEdges"><path d="${d}"/></svg>`;
+}
+const charset = [
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  "abcdefghijklmnopqrstuvwxyz",
+  "0123456789 .,:;!?'\"-_+=*/\\()[]<>%&#@$€",
+  "ÉÈÊËÀÂÔÛÙÜÎÇ éèêëàâôûùüîïç · → ← ↓ × ° ■",
+];
+const steps = Array.from({ length: 17 }, (_, i) => i / 16);
+
+const logos = [
+  { label: "Plein · 12 px", svg: pixelLogo(12) },
+  { label: "Plein · 16 px", svg: pixelLogo(16) },
+  { label: "Plein · 24 px", svg: pixelLogo(24) },
+  { label: "Trame · 32 px", svg: pixelLogo(32, "dither") },
+  { label: "Fondu · 40 px", svg: pixelLogo(40, "fade") },
+];
+
+const shaders = [
+  { id: "ember", name: "Braise", use: "Hero. Chaleur qui monte, réagit au pointeur." },
+  { id: "globe", name: "Globe", use: "Hébergement, réseau, portée." },
+  { id: "dissolve", name: "Dissolution", use: "CTA, transitions de section." },
+  { id: "field", name: "Champ", use: "Fond discret de cellule." },
+];
+
+const scenes = [
+  { id: "stack", name: "Pile éclatée", use: "Architecture en couches. Calque actif en braise.", cycle: 2 },
+  { id: "network", name: "Passerelle", use: "Un outil, quatre interfaces. Paquets en mouvement." },
+  { id: "blocks", name: "Îlot", use: "Environnements : preview, production, slot libre." },
+  { id: "module", name: "Module éclaté", use: "SDK, anatomie d'un outil." },
+  { id: "cube", name: "Cube sur grille", use: "Unité seule : une version, un template." },
+  { id: "pipeline", name: "Pipeline", use: "Dépôt → previews empilées (fantômes) → production." },
+  { id: "bars", name: "Histogramme iso", use: "Usage, activité. Gabarit max en pointillés." },
+];
+---
+
+<LabLayout title="Lab — Forgeron design system" description="Forgeron design system v0.1: black, grain, dither, pixel type.">
+  <nav class="nav">
+    <div class="rail">
+      <a href="/lab"><Logo /></a>
+      <div class="nav-links t-mono">
+        <a href="#marque">/0.1 Marque</a>
+        <a href="#couleur">/0.2 Couleur</a>
+        <a href="#type">/0.3 Type</a>
+        <a href="#trame">/0.4 Trame</a>
+        <a href="#illus">/0.5 Illustrations</a>
+        <a href="#composants">/0.6 Composants</a>
+        <a href="#forge-sans">/0.7 Forge Sans</a>
+        <a href="#icones">/0.8 Icônes</a>
+      </div>
+      <div class="nav-actions">
+        <a class="btn btn-sm" href="/lab/landing-b">Landing B</a>
+        <a class="btn btn-sm" href="/lab/landing-c">Landing C</a>
+        <a class="btn btn-sm btn-primary" href="/lab/landing-a"><span class="sq"></span>Landing A</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="rail">
+    <!-- Cover -->
+    <section class="ds-cover">
+      <canvas data-shader="dissolve" data-px="6" data-accent="off" aria-hidden="true"></canvas>
+      <div class="ds-cover-inner pad">
+        <div class="ds-cover-top">
+          <span class="tag"><b>Forgeron</b> lab</span>
+          <span class="t-mono dim">Design system · v0.1 · 2026-11</span>
+        </div>
+        <PixelTitle as="h1" class="t-hero" text={"Forged\nin black."} />
+        <p class="t-lead">
+          Noir, grain, trame ordonnée et pixels. Moins de texte, plus de dessin technique. Chaque section est
+          une pièce numérotée, comme sur un plan d'atelier.
+        </p>
+      </div>
+    </section>
+
+    <!-- Principles -->
+    <section class="grid12 hr ds-principles">
+      <div>
+        <span class="t-mono accent">P.01</span>
+        <h3 class="t-title">Noir d'abord</h3>
+        <p class="t-small">Fond #0a0a0a partout. Le blanc est réservé aux arêtes et aux titres, la braise à une seule chose par écran.</p>
+      </div>
+      <div>
+        <span class="t-mono accent">P.02</span>
+        <h3 class="t-title">Trame, jamais de dégradé</h3>
+        <p class="t-small">Toute valeur intermédiaire passe par une trame de Bayer 4×4 ou 8×8. Pas de flou, pas d'ombre portée, pas de gradient lisse.</p>
+      </div>
+      <div>
+        <span class="t-mono accent">P.03</span>
+        <h3 class="t-title">Dessiner plutôt qu'expliquer</h3>
+        <p class="t-small">Une section = un index, un titre de six mots, une illustration. Le paragraphe est l'exception.</p>
+      </div>
+      <div>
+        <span class="t-mono accent">P.04</span>
+        <h3 class="t-title">Plan d'atelier</h3>
+        <p class="t-small">Rails verticaux, filets 1 px, repères en croix aux coins, index /0.x, méta entre crochets.</p>
+      </div>
+    </section>
+
+    <!-- 0.1 Brand -->
+    <section id="marque">
+      <SectionHead index="/0.1" label="Marque" meta="Enclume · 132 u">
+        <PixelTitle as="h2" class="t-h2" text={"L'enclume en pixels"} />
+      </SectionHead>
+      <div class="ds-logos">
+        {
+          logos.map((l) => (
+            <figure class="ticks">
+              <div class="ds-logo-art" set:html={l.svg} />
+              <figcaption class="t-mono dim">{l.label}</figcaption>
+            </figure>
+          ))
+        }
+      </div>
+      <div class="ds-lockups hr">
+        <div class="ticks"><Logo size={22} /><span class="t-mono dim">Nav · 22 px</span></div>
+        <div class="ticks"><Logo size={40} /><span class="t-mono dim">Lockup · 40 px</span></div>
+        <div class="ticks ds-wide">
+          <div class="ds-word" set:html={pixelText("forgeron")} />
+          <span class="t-mono dim">Mot-symbole · bitmap 5×7, 1 colonne d'approche</span>
+        </div>
+      </div>
+      <p class="pad t-small ds-note">
+        L'enclume est échantillonnée depuis le tracé vectoriel d'origine (coverage ≥ 50 % par cellule). En dessous de
+        12 px de grille la morsure gauche disparaît : 12 est le minimum.
+      </p>
+    </section>
+
+    <!-- 0.2 Color -->
+    <section id="couleur">
+      <SectionHead index="/0.2" label="Couleur" meta="9 tokens">
+        <PixelTitle as="h2" class="t-h2" text={"Noir, os, braise"} />
+      </SectionHead>
+      <div class="ds-colors">
+        {
+          colors.map((c) => (
+            <div class="ds-color">
+              <div class="ds-swatch" style={`background:${c.hex}`} />
+              <div class="ds-color-meta">
+                <span class="t-mono">--{c.name}</span>
+                <span class="t-mono dim">{c.hex}</span>
+                <p class="t-small">{c.role}</p>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+      <div class="ds-ratio pad">
+        <div style="flex: 86"><span class="t-mono">Noir · 86 %</span></div>
+        <div style="flex: 10"><span class="t-mono">Os · 10 %</span></div>
+        <div style="flex: 4"><span class="t-mono">Braise</span></div>
+      </div>
+    </section>
+
+    <!-- 0.3 Type -->
+    <section id="type">
+      <SectionHead index="/0.3" label="Typographie" meta="3 familles">
+        <PixelTitle as="h2" class="t-h2" text={"Pixels carrés"} />
+      </SectionHead>
+      <div class="ds-type">
+        <div class="ds-type-row">
+          <div class="t-mono dim">Display · bitmap 5×7<br />SVG, 1em = 7 px · clamp 36 → 98</div>
+          <PixelTitle as="p" class="t-hero" text="Forge your tools" />
+        </div>
+        <div class="ds-type-row">
+          <div class="t-mono dim">Titre de section · bitmap 5×7<br />clamp 26 → 49</div>
+          <PixelTitle as="p" class="t-h2" text="MCP · API · Web · CLI" />
+        </div>
+        <div class="ds-type-row">
+          <div class="t-mono dim">Index · mot-symbole<br />même face, en braise</div>
+          <div class="ds-bitmap" set:html={pixelText("/0.1 /0.2 /0.3 2026")} />
+        </div>
+        <div class="ds-type-row">
+          <div class="t-mono dim">Micro · Silkscreen 11</div>
+          <div class="t-bit" style="font-size: 16px; line-height: 24px">Preview ready · v1.5.0-rc.2 · 4 min ago</div>
+        </div>
+        <div class="ds-type-row">
+          <div class="t-mono dim">Labels · Geist Mono 12<br />capitales, +2 %</div>
+          <div class="t-mono" style="font-size: 14px">[ Interfaces ] — tools/crm/forgeron.config.ts</div>
+        </div>
+        <div class="ds-type-row">
+          <div class="t-mono dim">Texte · Geist 15 / 17</div>
+          <p class="t-lead" style="max-width: 60ch">
+            Write a tool once. It's versioned, deployed and exposed over MCP, API, web and CLI, behind your
+            company's SSO.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 0.4 Dither -->
+    <section id="trame">
+      <SectionHead index="/0.4" label="Trame & shaders" meta="Bayer 8×8 · WebGL">
+        <PixelTitle as="h2" class="t-h2" text={"Grain et trame"} />
+      </SectionHead>
+      <div class="ds-ramp pad">
+        {
+          steps.map((s) => (
+            <figure>
+              <div class="ds-ramp-sw" set:html={ramp(s)} />
+              <figcaption class="t-mono dim">{Math.round(s * 100)}</figcaption>
+            </figure>
+          ))
+        }
+      </div>
+      <div class="bento ds-shaders">
+        {
+          shaders.map((s) => (
+            <article class="cell c3 r2">
+              <div class="art">
+                <canvas data-shader={s.id} data-px={s.id === "dissolve" ? 5 : 4} aria-hidden="true" />
+              </div>
+              <div class="copy hr">
+                <span class="tag">
+                  <b>{s.name}</b> data-shader="{s.id}"
+                </span>
+                <p class="t-small">{s.use}</p>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+      <p class="pad t-small ds-note">
+        Grain : bruit fractal SVG en <code>body::after</code>, opacité 6 %, fixe. Taille de pixel des shaders : 4 px (cellule),
+        5–6 px (pleine largeur), avec un interstice de 16 % au-delà de 4 px.
+      </p>
+    </section>
+
+    <!-- 0.5 Illustrations -->
+    <section id="illus">
+      <SectionHead index="/0.5" label="Illustrations" meta="Iso 2:1 · rendu 1/3">
+        <PixelTitle as="h2" class="t-h2" text={"Dessin technique"} />
+      </SectionHead>
+      <div class="bento ds-illus">
+        {
+          scenes.map((s, i) => (
+            <article class={`cell ${i === 0 ? "c2 r3" : i === 1 ? "c4 r2" : i >= 5 ? "c3 r2" : "c2 r2"}`}>
+              <span class="corner t-mono dim">FIG.0{i + 1}</span>
+              <div class="art">
+                <canvas data-iso={s.id} data-cycle={s.cycle} aria-hidden="true" />
+              </div>
+              <div class="copy">
+                <span class="tag">
+                  <b>{s.name}</b> data-iso="{s.id}"
+                </span>
+                <p class="t-small">{s.use}</p>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+      <ul class="ds-rules pad">
+        <li><span class="t-mono accent">R.01</span> Projection iso 2:1, unité paire : toutes les arêtes tombent sur la grille de pixels.</li>
+        <li><span class="t-mono accent">R.02</span> Faces : dessus 6 %, gauche 20 %, droite 42 % de trame. Arêtes pleines en os.</li>
+        <li><span class="t-mono accent">R.03</span> Un seul objet en braise : le sujet de la section.</li>
+        <li><span class="t-mono accent">R.04</span> Liens et projections en pointillés 2 px, sol en grille pointillée.</li>
+        <li><span class="t-mono accent">R.05</span> États (vide, chargement, à venir) : même objet, contour pointillé seul.</li>
+        <li><span class="t-mono accent">R.06</span> Étiquettes en HTML, reliées par un trait et un carré de 6 px — jamais dans le raster.</li>
+      </ul>
+    </section>
+
+    <!-- 0.6 Components -->
+    <section id="composants">
+      <SectionHead index="/0.6" label="Composants" meta="Angles vifs · 1 px">
+        <PixelTitle as="h2" class="t-h2" text={"Pièces détachées"} />
+      </SectionHead>
+      <div class="ds-comps">
+        <div class="ticks ds-comp">
+          <span class="t-mono dim">Boutons</span>
+          <div class="ds-row">
+            <a class="btn btn-primary" href="#composants"><span class="sq"></span>Get started</a>
+            <a class="btn btn-ink" href="#composants">Read the docs</a>
+            <a class="btn" href="#composants">GitHub</a>
+            <a class="btn btn-sm" href="#composants">Small</a>
+          </div>
+        </div>
+        <div class="ticks ds-comp">
+          <span class="t-mono dim">Méta & puces</span>
+          <div class="ds-row">
+            <span class="tag"><b>Interfaces</b></span>
+            <span class="tag">v1.4.1</span>
+            <span class="chip on">MCP</span>
+            <span class="chip">API</span>
+            <span class="chip">Web</span>
+            <span class="chip">CLI</span>
+          </div>
+          <div class="ds-row">
+            <span class="t-bit"><span class="led ok"></span> Production</span>
+            <span class="t-bit"><span class="led warn"></span> Preview</span>
+            <span class="t-bit"><span class="led hot"></span> Building</span>
+            <span class="t-bit"><span class="led"></span> Idle</span>
+          </div>
+        </div>
+        <div class="ticks ds-comp">
+          <span class="t-mono dim">Commande</span>
+          <span class="cmd"><span class="p">$</span>npx forgeron init</span>
+        </div>
+        <div class="ticks ds-comp">
+          <span class="t-mono dim">Fiche technique</span>
+          <dl class="spec t-mono">
+            <dt>Runtime</dt><dd>Cloudflare Workers</dd>
+            <dt>Interfaces</dt><dd>MCP · API · Web · CLI</dd>
+            <dt>License</dt><dd>Apache-2.0</dd>
+          </dl>
+        </div>
+      </div>
+      <div class="ds-sechead-demo">
+        <span class="pad t-mono dim" style="display:block;padding-top:24px;">En-tête de section</span>
+        <SectionHead index="/0.7" label="Exemple" meta="[ 07 / 09 ]">
+          <PixelTitle as="h2" class="t-h3" text={"Index · titre · méta"} />
+        </SectionHead>
+      </div>
+    </section>
+
+    <!-- 0.7 Forge Sans -->
+    <section id="forge-sans">
+      <SectionHead index="/0.7" label="Forge Sans" meta="Regular · Bold · OTF">
+        <h2 class="f-title f-h2">Forge Sans</h2>
+      </SectionHead>
+      <div class="fs-hero pad">
+        <p class="f-title f-hero" style="text-transform: none">AaGgSs 07</p>
+        <dl class="spec t-mono">
+          <dt>Grille</dt><dd>5 px de chasse, 11 rangs</dd>
+          <dt>Hauteurs</dt><dd>capitales 7 · x 5 · jambages 2</dd>
+          <dt>Graisses</dt><dd>Regular 1 px · Medium 1,5 px (titres) · Bold 2 px</dd>
+          <dt>Pixel</dt><dd>0,1 em — tailles par pas de 10 px</dd>
+          <dt>Fichiers</dt><dd>/fonts/ForgeSans-*.otf</dd>
+        </dl>
+      </div>
+      <div class="fs-weights">
+        <div>
+          <span class="t-mono dim">Titre · Medium capitales · 60</span>
+          <p class="f-title f-h2">Write actions, not plumbing.</p>
+        </div>
+        <div>
+          <span class="t-mono dim">Texte · Regular · 30</span>
+          <p class="f-text" style="font-size: 30px">Une seule définition, quatre interfaces : MCP, API, Web et CLI.</p>
+        </div>
+        <div>
+          <span class="t-mono dim">Bold · 20 · étiquettes, chiffres</span>
+          <p class="f-text" style="font-weight: 700">forgeron deploy → v1.4.1 · preview ready · 4 min ago</p>
+        </div>
+      </div>
+      <div class="fs-charset pad">
+        {charset.map((line) => <p class="f-text fs-line">{line}</p>)}
+      </div>
+      <p class="pad t-small ds-note">
+        Générée depuis la même table de glyphes que le mot-symbole et les index (<code>@forgeron/blueprint</code>, <code>core/font.ts</code>) :
+        les contours suivent les pixels, sans courbe. Les titres de la landing C l'utilisent en texte réel
+        (sélectionnable, retour à la ligne natif).
+      </p>
+    </section>
+
+    <!-- 0.8 Icons -->
+    <section id="icones">
+      <SectionHead index="/0.8" label="Icônes" meta={`${ICON_NAMES.length} · 12×12 · duotone`}>
+        <h2 class="f-title f-h2">Icônes signal</h2>
+      </SectionHead>
+      <div class="ic-grid">
+        {
+          ICON_NAMES.map((n) => (
+            <figure class="ticks">
+              <Icon name={n} size={48} />
+              <figcaption class="t-mono dim">{n}</figcaption>
+            </figure>
+          ))
+        }
+      </div>
+      <div class="ic-sizes pad">
+        <span class="t-mono dim">Tailles · multiples de 12</span>
+        <div class="ds-row">
+          <Icon name="anvil" size={12} />
+          <Icon name="anvil" size={24} />
+          <Icon name="anvil" size={36} />
+          <Icon name="anvil" size={48} />
+          <Icon name="anvil" size={96} />
+        </div>
+      </div>
+      <ul class="ds-rules pad">
+        <li><span class="t-mono accent">I.01</span> Grille 12×12, pixels pleins, aucun anti-crénelage.</li>
+        <li><span class="t-mono accent">I.02</span> Deux tons : blanc pour la structure, signal pour ce qui agit ou alerte.</li>
+        <li><span class="t-mono accent">I.03</span> Le signal marque une seule chose : l'action, l'état ou l'alerte.</li>
+        <li><span class="t-mono accent">I.04</span> Affichage en 12, 24, 36 ou 48 px uniquement.</li>
+      </ul>
+    </section>
+
+    <section class="ds-next grid12 hr">
+      <a href="/lab/landing-a" class="ds-next-card">
+        <span class="t-mono dim">Exemple A</span>
+        <PixelTitle as="span" class="t-h3" text={"Foundry →"} />
+        <span class="t-small">Hero braise, pile éclatée, bento façon expo.</span>
+      </a>
+      <a href="/lab/landing-c" class="ds-next-card">
+        <span class="t-mono dim">Exemple C · v0.2</span>
+        <PixelTitle as="span" class="t-h3" text={"Foundry v2 →"} />
+        <span class="t-small">A + portes schématiques, Forge Sans, plus d'espace et de sections.</span>
+      </a>
+      <a href="/lab/landing-b" class="ds-next-card">
+        <span class="t-mono dim">Exemple B</span>
+        <PixelTitle as="span" class="t-h3" text={"Spec sheet →"} />
+        <span class="t-small">Affiche, fiche technique, cartes tramées.</span>
+      </a>
+    </section>
+  </main>
+</LabLayout>
+
+<style>
+  .ds-cover {
+    position: relative;
+    min-height: 560px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+  .ds-cover canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.9;
+  }
+  .ds-cover-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 32px;
+    padding-bottom: 56px;
+    width: 100%;
+  }
+  .ds-cover-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 120px;
+  }
+  .ds-principles > div {
+    grid-column: span 3;
+    padding: 32px var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-right: 1px solid var(--line);
+  }
+  .ds-principles > div:last-child {
+    border-right: 0;
+  }
+  @media (max-width: 900px) {
+    .ds-principles > div {
+      grid-column: span 6;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+  @media (max-width: 560px) {
+    .ds-principles > div {
+      grid-column: span 12;
+    }
+  }
+  .ds-logos {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .ds-logos figure {
+    padding: 32px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    border-right: 1px solid var(--line);
+  }
+  .ds-logo-art {
+    width: 100%;
+    max-width: 120px;
+    aspect-ratio: 1;
+  }
+  .ds-logo-art :global(svg),
+  .ds-word :global(svg),
+  .ds-ramp-sw :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  @media (max-width: 900px) {
+    .ds-logos {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  .ds-lockups {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .ds-lockups > div {
+    overflow: hidden;
+    padding: 32px var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: space-between;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .ds-wide {
+    grid-column: span 2;
+  }
+  .ds-word {
+    height: 56px;
+    width: calc(56px * 47 / 7);
+    max-width: 100%;
+  }
+  @media (max-width: 760px) {
+    .ds-lockups {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ds-wide {
+      grid-column: span 1;
+    }
+    .ds-word {
+      height: auto;
+      aspect-ratio: 47 / 7;
+    }
+  }
+  .ds-note {
+    padding-top: 20px;
+    padding-bottom: 8px;
+    max-width: 80ch;
+  }
+  .ds-colors {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  .ds-color {
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .ds-swatch {
+    height: 120px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ds-color-meta {
+    padding: 14px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ds-ratio {
+    display: flex;
+    height: 72px;
+    margin: 24px 0;
+    gap: 0;
+  }
+  .ds-ratio > div {
+    padding: 8px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .ds-ratio > div:nth-child(1) {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+  }
+  .ds-ratio > div:nth-child(2) {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .ds-ratio > div:nth-child(3) {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .ds-type-row {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 24px;
+    align-items: center;
+    padding: 28px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .ds-bitmap {
+    height: 28px;
+    max-width: 100%;
+  }
+  .ds-bitmap :global(svg) {
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    display: block;
+  }
+  @media (max-width: 760px) {
+    .ds-type-row {
+      grid-template-columns: 1fr;
+    }
+  }
+  .ds-ramp {
+    display: grid;
+    grid-template-columns: repeat(17, 1fr);
+    gap: 6px;
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+  .ds-ramp figure {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ds-ramp-sw {
+    aspect-ratio: 1;
+    border: 1px solid var(--line);
+    image-rendering: pixelated;
+  }
+  @media (max-width: 760px) {
+    .ds-ramp {
+      grid-template-columns: repeat(6, 1fr);
+    }
+  }
+  .ds-shaders,
+  .ds-illus {
+    border-top: 1px solid var(--line);
+  }
+  .ds-rules {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 32px;
+    padding-top: 24px;
+    padding-bottom: 24px;
+    color: var(--ink-muted);
+    font-size: 14px;
+  }
+  @media (max-width: 760px) {
+    .ds-rules {
+      grid-template-columns: 1fr;
+    }
+  }
+  .ds-comps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .ds-comp {
+    padding: 28px var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .ds-comp .spec {
+    width: 100%;
+  }
+  .ds-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  @media (max-width: 760px) {
+    .ds-comps {
+      grid-template-columns: 1fr;
+    }
+  }
+  .ds-next a {
+    grid-column: span 4;
+    padding: 40px var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-right: 1px solid var(--line);
+    transition: background 0.2s;
+  }
+  .ds-next a:hover {
+    background: var(--bg-raised);
+  }
+  @media (max-width: 760px) {
+    .ds-next a {
+      grid-column: span 12;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+  .fs-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+    gap: 48px;
+    align-items: center;
+    padding-top: 56px;
+    padding-bottom: 56px;
+    border-bottom: 1px solid var(--line);
+  }
+  .fs-weights > div {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    gap: 24px;
+    align-items: center;
+    padding: 32px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .fs-charset {
+    padding-top: 32px;
+    padding-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-wrap: anywhere;
+  }
+  .fs-line {
+    font-size: 30px;
+  }
+  .ic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    border-bottom: 1px solid var(--line);
+  }
+  .ic-grid figure {
+    padding: 28px 12px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .ic-sizes {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 32px;
+    padding-bottom: 8px;
+  }
+  .ic-sizes .ds-row {
+    align-items: flex-end;
+    gap: 24px;
+  }
+  @media (max-width: 760px) {
+    .fs-hero,
+    .fs-weights > div {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .fs-line {
+      font-size: 20px;
+    }
+  }
+</style>

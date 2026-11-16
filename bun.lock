@@ -22,7 +22,7 @@
     },
     "apps/cli": {
       "name": "@forgeron/cli",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "bin": {
         "forgeron": "./src/index.ts",
       },
@@ -66,6 +66,19 @@
         "vite": "8.3.5",
       },
     },
+    "apps/font": {
+      "name": "@forgeron/font",
+      "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/icons": "workspace:*",
+        "astro": "7.4.5",
+      },
+      "devDependencies": {
+        "@astrojs/check": "0.9.12",
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/node": "24.19.2",
+      },
+    },
     "apps/gateway": {
       "name": "@forgeron/gateway",
       "version": "0.0.0",
@@ -90,11 +103,30 @@
         "miniflare": "4.20260730.0",
       },
     },
+    "apps/icon-gallery": {
+      "name": "@forgeron/icon-gallery",
+      "version": "0.0.0",
+      "dependencies": {
+        "@astrojs/react": "7.1.2",
+        "@forgeron/icons": "workspace:*",
+        "astro": "7.4.5",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+      },
+      "devDependencies": {
+        "@astrojs/check": "0.9.12",
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+      },
+    },
     "apps/site": {
       "name": "@forgeron/site",
       "version": "0.0.0",
       "dependencies": {
         "@astrojs/react": "7.1.2",
+        "@forgeron/blueprint": "workspace:*",
+        "@forgeron/icons": "workspace:*",
         "@forgeron/ui": "workspace:*",
         "astro": "7.4.5",
         "react": "19.3.1",
@@ -106,6 +138,24 @@
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
       },
+    },
+    "packages/blueprint": {
+      "name": "@forgeron/blueprint",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "jsdom": "30.1.3",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+      },
+      "peerDependencies": {
+        "react": "19.3.1",
+      },
+      "optionalPeers": [
+        "react",
+      ],
     },
     "packages/compiler": {
       "name": "@forgeron/compiler",
@@ -162,9 +212,28 @@
         "@types/node": "24.19.2",
       },
     },
+    "packages/icons": {
+      "name": "@forgeron/icons",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/node": "24.19.2",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+        "rolldown": "1.2.16",
+      },
+      "peerDependencies": {
+        "react": "19.3.1",
+      },
+      "optionalPeers": [
+        "react",
+      ],
+    },
     "packages/manifest": {
       "name": "@forgeron/manifest",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@forgeron/permissions": "workspace:*",
         "zod": "4.6.7",
@@ -175,7 +244,7 @@
     },
     "packages/permissions": {
       "name": "@forgeron/permissions",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
       },
@@ -216,7 +285,7 @@
     },
     "packages/runtime": {
       "name": "@forgeron/runtime",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
         "kysely": "0.29.8",
@@ -235,7 +304,7 @@
     },
     "packages/sdk": {
       "name": "@forgeron/sdk",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
         "@forgeron/permissions": "workspace:*",
@@ -269,6 +338,8 @@
       "name": "@forgeron/ui",
       "version": "0.0.0",
       "dependencies": {
+        "@forgeron/blueprint": "workspace:*",
+        "@forgeron/icons": "workspace:*",
         "react-markdown": "10.1.0",
         "remark-gfm": "4.0.1",
       },
@@ -485,6 +556,8 @@
 
     "@exodus/bytes": ["@exodus/bytes@1.16.0", "", { "peerDependencies": { "@noble/hashes": "^1.8.0 || ^2.0.0" }, "optionalPeers": ["@noble/hashes"] }, "sha512-IcpW84uEn3N7ETtNZMlxKhfl6Pec8rUNGOTBtWbK1FKhJxIFAptZyVrvVRVBimAJxJCgc3PxepxkdWWG4DVzfA=="],
 
+    "@forgeron/blueprint": ["@forgeron/blueprint@workspace:packages/blueprint"],
+
     "@forgeron/cli": ["@forgeron/cli@workspace:apps/cli"],
 
     "@forgeron/compiler": ["@forgeron/compiler@workspace:packages/compiler"],
@@ -495,9 +568,15 @@
 
     "@forgeron/console": ["@forgeron/console@workspace:apps/console"],
 
+    "@forgeron/font": ["@forgeron/font@workspace:apps/font"],
+
     "@forgeron/gateway": ["@forgeron/gateway@workspace:apps/gateway"],
 
     "@forgeron/hosting": ["@forgeron/hosting@workspace:packages/hosting"],
+
+    "@forgeron/icon-gallery": ["@forgeron/icon-gallery@workspace:apps/icon-gallery"],
+
+    "@forgeron/icons": ["@forgeron/icons@workspace:packages/icons"],
 
     "@forgeron/manifest": ["@forgeron/manifest@workspace:packages/manifest"],
 
@@ -1565,7 +1644,7 @@
 
     "uncrypto": ["uncrypto@0.1.3", "", {}, "sha512-Ql87qFHB3s/De2ClA9e0gsnS6zXG27SkTiSJwjCc9MebbfapQfuPzumMIUMi38ezPZVNFcHI9sUIepeQfw8J8Q=="],
 
-    "undici": ["undici@7.28.0", "", {}, "sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA=="],
+    "undici": ["undici@8.12.3", "", {}, "sha512-+fdndUTwBP86cVjihTp21hZHo7d6oj1c/47XPA3lL8mM0XHs+C4EkcjmgRsFnFk2f/UONGDy9ItBItmXsLOQHw=="],
 
     "undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -1719,7 +1798,7 @@
 
     "import-fresh/resolve-from": ["resolve-from@4.0.0", "", {}, "sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g=="],
 
-    "jsdom/undici": ["undici@8.12.3", "", {}, "sha512-+fdndUTwBP86cVjihTp21hZHo7d6oj1c/47XPA3lL8mM0XHs+C4EkcjmgRsFnFk2f/UONGDy9ItBItmXsLOQHw=="],
+    "miniflare/undici": ["undici@7.28.0", "", {}, "sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA=="],
 
     "oxc-parser/@oxc-project/types": ["@oxc-project/types@0.154.0", "", {}, "sha512-KYOUGQFlLWR+s4QMV2Q9ko38TZm7EdO87Qm7rvZLqk/webse/cDjtyxKhg/47l0byCbs/k46LT8qc4PKjAikzA=="],
 
@@ -1730,8 +1809,6 @@
     "rolldown-plugin-dts/get-tsconfig": ["get-tsconfig@5.0.0-beta.6", "", { "dependencies": { "resolve-pkg-maps": "^1.0.0" } }, "sha512-X6fBC0pmImC70gvX2zm56go9hx0MyoGVdG0tUCkg/D+Xnh5TJsOZ7iDbOdI3PvmtrDxnu1YdDufpK2QJX1Meqw=="],
 
     "svgo/commander": ["commander@11.1.0", "", {}, "sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ=="],
-
-    "unifont/undici": ["undici@8.12.3", "", {}, "sha512-+fdndUTwBP86cVjihTp21hZHo7d6oj1c/47XPA3lL8mM0XHs+C4EkcjmgRsFnFk2f/UONGDy9ItBItmXsLOQHw=="],
 
     "vite/rolldown": ["rolldown@1.2.15", "", { "dependencies": { "@oxc-project/types": "=0.155.0", "@rolldown/pluginutils": "^1.0.0" }, "optionalDependencies": { "@rolldown/binding-android-arm-eabi": "1.2.15", "@rolldown/binding-android-arm64": "1.2.15", "@rolldown/binding-darwin-arm64": "1.2.15", "@rolldown/binding-darwin-x64": "1.2.15", "@rolldown/binding-freebsd-x64": "1.2.15", "@rolldown/binding-linux-arm-gnueabihf": "1.2.15", "@rolldown/binding-linux-arm64-gnu": "1.2.15", "@rolldown/binding-linux-arm64-musl": "1.2.15", "@rolldown/binding-linux-ppc64-gnu": "1.2.15", "@rolldown/binding-linux-s390x-gnu": "1.2.15", "@rolldown/binding-linux-x64-gnu": "1.2.15", "@rolldown/binding-linux-x64-musl": "1.2.15", "@rolldown/binding-openharmony-arm64": "1.2.15", "@rolldown/binding-win32-arm64-msvc": "1.2.15", "@rolldown/binding-win32-x64-msvc": "1.2.15" }, "bin": { "rolldown": "./bin/cli.mjs" } }, "sha512-6odND+fel5zVw3I4Yc2e69gvguDnX0CAAGiNDZSq4ik5WUcaLrkD2GLuog0XcODbor31hZ5ayEMgVDno+KPV5g=="],
 

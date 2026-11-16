@@ -1,14 +1,17 @@
 # Forgeron — design system
 
-Forgeron is the platform where companies forge, version and host their internal tools. A tool is written once with the SDK (actions, permissions, data) and exposed through four interfaces: MCP for Claude, API, Web and CLI (every action becomes a command, e.g. `forgeron odoo tickets list`). The identity lives in a black-and-white anvil: the system is **monochrome**, and color is reserved for states.
+Forgeron is the platform where companies forge, version and host their internal tools. A tool is written once with the SDK (actions, permissions, data) and exposed through four interfaces: MCP for Claude, API, Web and CLI (every action becomes a command, e.g. `forgeron odoo tickets list`). The identity lives in a black-and-white anvil struck with one ember accent: the system is near-black and white, ember marks what matters, and the state colors are reserved for states.
 
 ## Principles
 
-1. **Black and white first.** The brand accent is `ink` itself: white on a black `bg` in the dark theme, black on white in the light theme. No brand hue: no blue, no ember orange, no gradient.
-2. **Color is information.** `success`, `warning` and `danger` appear only for a state (build, deployment, error) and always with a word or an icon.
-3. **Lines, not shadows.** We separate with `line`. `shadow-pop` is reserved for what floats (menus, command palette).
-4. **Zero rounding.** Like the anvil: everything has sharp corners (`radius-none`), cards, buttons and fields included. Round shapes exist only as cutouts (the anvil motif) or status dots (`radius-full`).
-5. **Made for developers.** Code, identifiers and versions are first-class citizens, set in `code` / `code-inline`.
+The design language is the one of the `forgeron.sh` landing (the "lab" language, adopted as the source of truth in November 2026): near-black, a film grain, pixel type, technical drawings, one ember accent.
+
+1. **Black first, one accent.** Near-black `bg`, `ink` text, and a single brand accent, ember (`accent`), used once or twice per screen: the primary button, section indices, the `$` prompt, what is active. No second hue, no gradient behind text.
+2. **Color is information.** `success`, `warning` and `danger` appear only for a state and always with a word. `danger` is kept pink-red so it never reads as the ember accent.
+3. **Lines, not shadows.** We separate with `line`; framed blocks use `line-strong`. `shadow-pop` is reserved for what floats (menus, command palette).
+4. **Zero rounding.** Like the anvil: every corner is sharp (`radius-none`), status LEDs included: they are 6px squares.
+5. **Pixels are whole.** The pixel face steps by 10px (one pixel is 0.1em), pixel icons by 12px, canvases are drawn with `image-rendering: pixelated`.
+6. **Made for developers.** Code, identifiers and versions are first-class citizens, in mono; labels and navigation are mono capitals.
 
 ## Tone and content
 
@@ -22,53 +25,79 @@ Forgeron is the platform where companies forge, version and host their internal 
 
 ## Color
 
-- Page background `bg`; secondary areas `surface`; cards and menus `surface-raised` with a `line` border; code and terminal `surface-sunken`.
-- Text `ink`; secondary text and placeholders `ink-muted`; `ink-faint` only for disabled states and line numbers.
-- Strong elements (primary button, checked box, Production environment, selection): `inverse` background, `on-inverse` text.
-- Outlines of fields and secondary buttons: `line-strong` (≥ 3:1 in both themes).
-- States: `success` / `success-subtle`, `warning` / `warning-subtle`, `danger` / `danger-subtle`, always with a label. These colors are never used to decorate.
-- The **Forge (dark)** theme is the default theme, the logo's. The **Atelier (light)** theme is its exact negative.
+Tokens in `assets/design-system/tokens.json`, generated into `packages/ui/tokens/tokens.css` (`bun run tokens` in `packages/ui`, checked by `tokens:check`).
+
+- Page background `bg`; raised or hovered areas `bg-raised` (hovered rows and cards, the highlighted layer of a legend, the app's sidebar); code, terminals and commands `bg-sunk`.
+- Text `ink`; secondary text and leads `ink-muted` (at least 4.5:1); `ink-dim` for figure labels (FIG.01), tag brackets, disabled states and field outlines, never for running text.
+- `accent` (ember), the one orange of the system: every ember fill, LED, chip and accent text uses this token, never a hex value. `accent-ink` (near-black) is the text on it; when a hover turns the fill to `ink`, the text turns to `bg`. `focus` is the ember ring. The light theme gives the token a deeper shade so ember text keeps 4.5:1.
+- Strong elements that are not the primary action (selected item, Production, the ink button): `ink` fill, `bg` text.
+- Rules `line`; outlines of buttons, chips, tags and framed cards `line-strong`.
+- States: `success` / `success-subtle`, `warning` / `warning-subtle`, `danger` / `danger-subtle`, always with a word.
+- The **Forge (dark)** theme is the default; **Atelier (light)** is its negative, for the console.
 
 ## Typography
 
-- `display` (Inter Display SemiBold, tight letter-spacing) for screen titles and marketing: `display-xl`, `display-l`, `title-1`. It is the logotype's typeface.
-- `sans` (Inter) for the interface: `title-2`, `title-3`, `body` (14/22, the default size), `body-strong`, `small`, `caption`.
-- `mono` (JetBrains Mono, loaded from Google Fonts) for `code`, `code-inline` and `eyebrow`. Everything that gets copy-pasted (CLI command, action name, version, hash, MCP URL) is in mono.
-- Headings in sentence case ("Deployed versions"), never all caps except `eyebrow`.
+- `pixel` (Forge Sans, the bitmap face shipped with the tokens; its family name is written once, `type.faces.pixel`, and read through `--font-pixel-face`): marketing titles, in capitals, medium weight, at 100, 60 and 30px (`Title`), stepping down by 10px on narrow screens. Pixel text drawn as SVG (`PixelText`, `PixelTitle`) for indices, figures and the wordmark.
+- `sans` (Geist): the interface and running text: `title-1` to `title-3`, `lead`, `body`, `small`, `caption`.
+- `mono` (Geist Mono): `code`, `code-inline`, and `eyebrow` (12px capitals): labels, navigation, metadata. Everything that gets copy-pasted is in mono.
+- `bit` (Silkscreen): `bit`, tiny status words next to a LED.
+- Geist, Geist Mono and Silkscreen come from Google Fonts on the site. The console's CSP allows no third-party style, so it falls back to the system stacks until the faces are self-hosted.
+- Headings in sentence case in the app ("Deployed versions"); marketing titles are set in capitals by the pixel face.
 
-## Spacing, radii, layout
+## Spacing, radii, borders, motion
 
-- 4px grid: `space-1` (4) to `space-16` (64). Card padding `space-6`, gap between fields `space-4`, between sections `space-8`.
-- `radius-none` (0) everywhere: cards, menus, code blocks, dialogs, buttons, fields, badges, checkboxes. Never a slight 4 or 6px rounding. `radius-full` only for status dots.
-- Developer-tool density: 32px controls, 44px table rows, 14px text.
-- App: `surface` sidebar on the left (workspace, tools, settings), content on `bg`, max reading width 1200px.
+- 4px grid: `space-1` (4) to `space-24` (96). Card padding `space-6`, gap between fields `space-4`, between sections `space-8`.
+- The site sits in a rail: `rail` (1280px) framed by two `line` borders, `gutter` (24px, 32px on the home page) inside.
+- `radius-none` everywhere. `border-width` 1px for every rule; the focus ring is `focus-width` (2px) at `focus-offset` (2px).
+- Developer-tool density in the app: 32px controls, 44px table rows, 14px text. The site's buttons are 40px (`lg`).
+- Motion: `motion-fast` (150ms) for the color and border of controls, `motion-base` (200ms) for hovered rows and cards. Only color, background, border and small transforms move. Under `prefers-reduced-motion`, loops stop and canvases draw a single frame.
 
 ## States and interaction
 
-- Hover: `surface-hover`. Active selection: `inverse`.
-- Keyboard focus: a solid 2px `focus` ring, offset by 2px, on all interactive elements (≥ 14:1 on all surfaces).
-- Disabled: `ink-faint` text, `line` outline, no global opacity.
-- Motion: 120 ms transitions on background and border color only. Nothing bounces.
+- Hover: a button's outline turns `ink`; rows and cards take `bg-raised`; a text link turns ember.
+- Keyboard focus: a solid 2px ember ring, offset by 2px, on every interactive element.
+- Disabled: `ink-dim` text, `line` outline, no global opacity.
+
+## Components
+
+The atoms live in `@forgeron/ui` (React, rendered to static markup: they work in an Astro page without JavaScript and in the console). A page loads `@forgeron/ui/tokens.css` and `@forgeron/ui/atoms.css`; the console loads `@forgeron/ui/styles.css`, which adds the composite components (shell, tables, dialogs, menus). Sections, navigation, hero and footer are page composition, in the app that owns them.
+
+| Atom                                                                            | Variants and props                                                                                                                   | Use                                                                          |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `Button`                                                                        | `primary` (ember, one per view), `secondary` (outline), `ink`, `ghost`, `danger`; `sm` 30, `md` 32, `lg` 40; `marker`, `kbd`, `href` | Actions. Mono capitals. A link when given `href`.                            |
+| `Link`                                                                          | `href`                                                                                                                               | A standalone text link: mono capitals, ember on hover ("Read the SDK →").    |
+| `Tag`                                                                           | `strong`, children                                                                                                                   | `[ Strong rest ]`: section names, file metadata, versions.                   |
+| `Label`                                                                         | children                                                                                                                             | Eyebrow above a block: mono capitals, `ink-muted`.                           |
+| `Chip`                                                                          | `active`                                                                                                                             | One of a set of options (MCP, API, Web, CLI); not interactive.               |
+| `Badge`                                                                         | tone `neutral`, `strong`, `success`, `warning`, `danger`; `dot` (a LED); `mono` keeps the case of an identifier                      | Short status or role.                                                        |
+| `EnvTag`                                                                        | `production` (ink fill), `channel` (ink outline), `preview` (dashed)                                                                 | The channel of a version, told by shape.                                     |
+| `Led`                                                                           | tone `neutral`, `success`, `warning`, `danger`, `accent`, `current` (the square marker); `label` when alone                          | A 6px square next to its word.                                               |
+| `Command`                                                                       | `prompt` (`$`), `framed`                                                                                                             | A command to type; the prompt is ember and hidden from assistive technology. |
+| `Icon`                                                                          | `icon` (from `@forgeron/icons`), `size` (multiple of 12), `variant` `duo` (secondary pixels in ember) or `mono`, `title`             | Pixel icons; a stub renders nothing.                                         |
+| `Title`                                                                         | `size` `hero`, `h2`, `h3`; `as`                                                                                                      | Marketing headings in the pixel font.                                        |
+| `PixelText`                                                                     | `text`, `label`, `bold`, `keepCase`                                                                                                  | Text drawn in the pixel face as SVG: indices, figures. Scales with its box.  |
+| `PixelTitle`                                                                    | `text` (`\n` for a line), `size`, `as`                                                                                               | A heading drawn word by word in SVG, its text kept for assistive technology. |
+| `Logo`                                                                          | `symbol`, `horizontal`; `size`                                                                                                       | The pixel anvil and wordmark.                                                |
+| `Avatar`, `Stat`, `Skeleton`, `Spinner`, `Input`, `Checkbox`, `Select`, `Field` | as before                                                                                                                            | Restyled with the tokens: mono labels, ink-dim outlines, ember checks.       |
 
 ## Environments and versions
 
 Every push to GitHub produces a version. Environments are told apart by **shape** (`EnvTag`), never by color:
 
-- **Production**: solid `inverse` fill, filled dot.
+- **Production**: solid `ink` fill, filled square.
 - **Preview**: dashed outline, `ink-muted` text — branch build.
 
 Build states (`Live`, `Building`, `Failed`) go through `Badge` with `success`, `warning`, `danger`.
 
 ## Logo
 
-- Files in the **Logos** group: symbol (the anvil), horizontal logo (symbol + "forgeron"), wordmark alone, in white or black with no background, and on-background versions for avatars and app icons.
-- On a dark `bg`: the **white** version; on a light background: the **black** version. Never any other color, never an outline, never a gradient or a shadow.
+- The site and the console draw the **pixel logo** (`Logo`): the anvil sampled on a 12-pixel grid and the wordmark in the pixel face, in `currentColor`. The vector files of the **Logos** group (symbol, horizontal logo, wordmark, on-background versions) stay for avatars, favicons and app icons.
+- On a dark `bg`: the light version; on a light background: the dark version. Never another color, never an outline, a gradient or a shadow.
 - The logotype is written in lowercase: "forgeron". In running text, the name is written "Forgeron".
-- Avatar, favicon, app icon: `forgeron-symbol-full-bleed-*` (edge-to-edge symbol) or `forgeron-symbol-standard-*` (symbol with margin).
 - Clear space and minimum size: to be defined.
 
 ## Iconography
 
-- No dedicated icon set yet. In the meantime: Lucide, 1.5px stroke, 16px in the interface, in `ink` or `ink-muted`, never colored except for a state.
+- `@forgeron/icons`: pixel icons on a 12-pixel grid, monotone or duotone (secondary pixels in ember), at 12, 24 or 48px (drawing guide: [`icons.md`](icons.md)). Through the `Icon` atom.
 - A status icon always comes with its label; no icon alone carries information.
 - The anvil symbol is not an interface icon: it is used only for the brand.

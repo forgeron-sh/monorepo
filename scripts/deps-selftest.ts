@@ -95,10 +95,28 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "blueprint-core-is-framework-free",
+    files: {
+      [`packages/blueprint/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/blueprint/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "blueprint-core-stays-neutral",
+    files: { [`packages/blueprint/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
     rule: "ui-does-not-import-sdk",
     files: {
       [`packages/ui/src/${F}.ts`]: `import "../../sdk/src/${F}_target.ts";\n`,
       [`packages/sdk/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "ui-atoms-stay-static",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "../../blueprint/src/dom/${F}_target.ts";\n`,
+      [`packages/blueprint/src/dom/${F}_target.ts`]: STUB,
     },
   },
   {

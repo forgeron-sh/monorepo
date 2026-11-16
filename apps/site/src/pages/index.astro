@@ -1,304 +1,1604 @@
 ---
-import { Badge, Button, EnvTag, Label, Logo } from "@forgeron/ui";
-import { CodeCard } from "../components/CodeCard";
-import { ExampleTabs } from "../components/ExampleTabs";
+import {
+  AnvilIcon,
+  ApiIcon,
+  BoltIcon,
+  BookOpen01Icon,
+  BrowserIcon,
+  CheckmarkSquare01Icon,
+  CloudIcon,
+  CommandLineIcon,
+  DatabaseIcon,
+  DeployIcon,
+  GitBranchIcon,
+  Key01Icon,
+  LockIcon,
+  LogIcon,
+  McpIcon,
+  RollbackIcon,
+  Settings01Icon,
+  Shield01Icon,
+} from "@forgeron/icons";
+import {
+  Button,
+  Chip,
+  Command,
+  Icon,
+  Led,
+  Link,
+  Logo,
+  PixelText,
+  Tag,
+  Title,
+} from "@forgeron/ui";
 import Footer from "../components/Footer.astro";
-import Frame from "../components/Frame.astro";
-import Header from "../components/Header.astro";
-import Base from "../layouts/Base.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Site from "../layouts/Site.astro";
 
-const templates = [
-  { path: "templates/crm", name: "Lightweight CRM", text: "Companies, contacts and leads, usable from Claude." },
-  {
-    path: "templates/inventory",
-    name: "Data hub",
-    text: "A business data repository, fed by imports and syncs.",
-  },
-  { path: "templates/dashboard", name: "Dashboard", text: "A lightweight sales dashboard on top of the CRM." },
+/** The public repository (Apache-2.0) and its documentation. */
+const GITHUB = "https://github.com/forgeron-sh/monorepo";
+const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
+
+/** Layers of the exploded stack, bottom (index 0) to top. */
+const layers = [
+  { i: 0, name: "Data", text: "Tables, and secrets held per person." },
+  { i: 1, name: "Runtime", text: "Cloudflare Workers. Hosted by us or by you." },
+  { i: 2, name: "Tools", text: "Versioned on every push, previewed before production." },
+  { i: 3, name: "Access", text: "Company SSO, teams, permissions per action." },
+  { i: 4, name: "Interfaces", text: "MCP, API, web and CLI from one definition." },
+];
+const left = [4, 2, 0].map((i) => layers[i]!);
+const right = [3, 1].map((i) => layers[i]!);
+
+const heroScenes = [
+  { id: "hero-line", label: "Line" },
+  { id: "hero-pipeline", label: "Pipeline" },
+  { id: "hero-forge", label: "Forge" },
+  { id: "hero-gateway", label: "Gateway" },
+];
+
+/** A pixel Y, white on an orange square: the Y Combinator mark, redrawn in the bitmap face. */
+const ycMark = (() => {
+  const y = ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."];
+  let d = "";
+  y.forEach((row, r) => [...row].forEach((c, x) => (d += c === "#" ? `M${x + 2} ${r + 2}h1v1h-1z` : "")));
+  return `<svg viewBox="0 0 9 11" shape-rendering="crispEdges" aria-hidden="true"><rect width="9" height="11" fill="#ff6600"/><path fill="#fff" d="${d}"/></svg>`;
+})();
+
+const proof = [
+  { icon: CloudIcon, text: "Cloudflare Workers" },
+  { icon: AnvilIcon, text: "Apache-2.0" },
+  { icon: LockIcon, text: "Company SSO" },
+];
+
+const doors = [
+  { name: "MCP", iso: "mcp", icon: McpIcon, text: "Your teams use the tool from Claude, with their own rights." },
+  { name: "API", iso: "api", icon: ApiIcon, text: "A REST endpoint per action, for your scripts and other tools." },
+  { name: "Web", iso: "web", icon: BrowserIcon, text: "The tool's own web interface, behind your company's SSO." },
+  { name: "CLI", iso: "cli", icon: CommandLineIcon, text: "forgeron <tool> <action>, with --json for scripts." },
+];
+
+const teams = ["Sales", "Support", "Mgmt"];
+const grants = [
+  { name: "contacts.read", g: [1, 1, 1] },
+  { name: "contacts.update", g: [1, 0, 1] },
+  { name: "deals.move", g: [1, 0, 1] },
+  { name: "deals.delete", g: [0, 0, 1] },
 ];
 
 const deployments = [
-  { version: "v1.5.0-rc.2", message: "Contacts CSV export", meta: "8dc01b2 · 4 min ago", env: "preview", state: "warning" },
-  { version: "v1.4.1", message: "Slimmer contact record", meta: "77c2d1a · yesterday", env: "production", state: "success" },
-  { version: "v1.4.0", message: "deals.move action with history", meta: "a41f9e0 · Mon", env: "production", state: "success" },
-] as const;
-
-const teams = ["Sales", "Support", "Management"];
-const permissions = [
-  { name: "contacts.read", kind: "Read", grants: [true, true, true] },
-  { name: "contacts.update", kind: "Write", grants: [true, false, true] },
-  { name: "deals.delete", kind: "Delete", grants: [false, false, true] },
+  { v: "v1.5.0-rc.2", m: "Contacts CSV export", meta: "8dc01b2 · 4 min ago", env: "Preview", led: "warning" as const },
+  { v: "v1.4.1", m: "Slimmer contact record", meta: "77c2d1a · yesterday", env: "Production", led: "success" as const },
+  { v: "v1.4.0", m: "deals.move action with history", meta: "a41f9e0 · Mon", env: "Production", led: "success" as const },
 ];
 
-const viewCode = [
-  'import { defineView, useAction } from "forgeron/react";',
-  "",
-  "export default defineView({",
-  '  name: "pipeline",',
-  "  render() {",
-  '    const deals = useAction("crm.deals.list");',
-  "    return <Kanban columns={deals.byStage()} />;",
-  "  },",
-  "});",
+const commands = [
+  { cmd: "npx forgeron init --template crm", note: "a tool, its test and its CI" },
+  { cmd: "forgeron dev", note: "runs locally, with local D1, KV, R2" },
+  { cmd: "forgeron test", note: "builds, then runs Vitest" },
+  { cmd: "forgeron deploy", note: "a version per push" },
+  { cmd: "forgeron secrets set ODOO_API_KEY", note: "read from the keyboard, never an argument" },
+  { cmd: "forgeron rollback --channel production", note: "back to the previous version" },
+  { cmd: "forgeron preview close", note: "tears down a merged branch" },
+  { cmd: 'forgeron crm contacts search "Durand"', note: "your tool, from the terminal" },
+];
+
+const audit = [
+  { t: "14:09", who: "sophie@", what: "deals.move", tag: "write" },
+  { t: "14:12", who: "marc@", what: "contacts.read", tag: "read" },
+  { t: "14:16", who: "ci", what: "deploy v1.4.1", tag: "deploy" },
+  { t: "14:21", who: "sophie@", what: "contacts.update", tag: "write" },
+];
+
+const hosting = [
+  { k: "Cloudflare account", cloud: "Ours", self: "Yours" },
+  { k: "A tool is", cloud: "Workers for Platforms", self: "A classic Worker" },
+  { k: "Tool resources", cloud: "Dedicated D1, KV, R2", self: "Dedicated D1, KV, R2" },
+  { k: "Installed by", cloud: "Nothing to install", self: "The forgeron CLI" },
+];
+
+const numbers = [
+  { n: "1", label: "definition per tool" },
+  { n: "4", label: "interfaces served" },
+  { n: "1", label: "Worker per tool and environment" },
+  { n: "0", label: "servers to manage" },
+];
+
+const templates = [
+  { n: "01", name: "Lightweight CRM", path: "templates/crm", iso: "blocks", text: "Companies, contacts and leads, usable from Claude." },
+  { n: "02", name: "Data hub", path: "templates/inventory", iso: "cube", text: "A business data repository, fed by imports and syncs." },
+  { n: "03", name: "Dashboard", path: "templates/dashboard", iso: "bars", text: "A lightweight sales dashboard on top of the CRM." },
+];
+
+const faq = [
+  {
+    q: "What is a tool?",
+    a: "A folder with a forgeron.config.ts and one file per action, each with its input and access level. Forgeron serves every action over MCP, a REST API, the web and the CLI.",
+  },
+  {
+    q: "Do I need servers?",
+    a: "No. Each tool runs as its own Cloudflare Worker, per environment, with dedicated D1, KV and R2.",
+  },
+  {
+    q: "Can I host it myself?",
+    a: "Yes. The same platform installs on your own Cloudflare account with the forgeron CLI. Or let us host it.",
+  },
+  {
+    q: "How do my teams sign in?",
+    a: "Through your company's SSO. Access is granted to teams, action by action, and usage is recorded in the audit log.",
+  },
+  {
+    q: "Where do personal API keys go?",
+    a: "Each person stores their own secrets, encrypted at rest. The CLI reads values from the keyboard, never from an argument.",
+  },
+  { q: "Is it open source?", a: "Yes, under the Apache-2.0 license." },
+];
+const resources = [
+  { i: 0, icon: DatabaseIcon, name: "Database", cf: "D1", text: "One database per tool and environment, bound to its Worker." },
+  { i: 1, icon: BoltIcon, name: "Cache", cf: "KV", text: "Key-value storage for what the tool reads often." },
+  { i: 2, icon: BookOpen01Icon, name: "Files", cf: "R2", text: "One prefix per tool and environment, with size and type limits." },
+  { i: 3, icon: LogIcon, name: "Queue", cf: "Queues", text: "Work the tool hands off and runs in the background." },
+  { i: 4, icon: Key01Icon, name: "Secrets", cf: "Encrypted", text: "The tool's own, or one per person, encrypted by the platform." },
 ];
 ---
 
-<Base
-  title="Forgeron — forge your internal tools"
-  description="Forge your internal tools once. Use them from Claude, the API, the web and the terminal."
+<Site
+  title="Forgeron — Forge your internal tools"
+  description="Write an internal tool once with the Forgeron SDK. Your teams use it from Claude (MCP), the API, the web and the terminal, behind your company's SSO, on Cloudflare Workers. Open source, Apache-2.0."
+  bodyClass="home"
 >
-  <Header />
+  <nav class="nav" aria-label="Main navigation">
+    <div class="rail">
+      <a href="#top" aria-label="Forgeron, home"><Logo /></a>
+      <div class="nav-links text-eyebrow">
+        <a href="#system">System</a>
+        <a href="#doors">Interfaces</a>
+        <a href="#develop">Develop</a>
+        <a href="#resources">Resources</a>
+        <a href="#ship">Ship</a>
+        <a href="#govern">Govern</a>
+        <a href="#host">Host</a>
+      </div>
+      <div class="nav-actions">
+        <Button href={GITHUB} size="sm">GitHub</Button>
+        <Button href="#start" size="sm" variant="primary" marker>Get started</Button>
+      </div>
+    </div>
+  </nav>
 
   <main>
-    <section id="top" class="wrap hero">
-      <Badge mono dot>Open source · Powered by Cloudflare Workers</Badge>
-      <h1>Forge your internal tools.</h1>
-      <p>
-        Write a tool once with the Forgeron SDK. It's versioned, deployed on Cloudflare and exposed over MCP,
-        API, web and CLI, behind your company's SSO.
-      </p>
-      <div class="hero-actions">
-        <Button href="#start" variant="primary" size="lg">Get started for free</Button>
-        <span class="command text-code"><span class="muted">$</span>npx forgeron init</span>
-      </div>
-    </section>
-
-    <section id="product" class="wrap" style="padding-bottom: 96px;">
-      <ExampleTabs client:visible />
-    </section>
-
-    <section class="wrap section stack-3" style="gap: 48px;">
-      <div class="section-head center stack-3">
-        <Label>Why Forgeron</Label>
-        <h2 class="display-section">Your teams talk to Claude. They no longer need an ERP.</h2>
-        <p class="lead">
-          When the interface becomes the conversation, what matters is that data and actions work.
-          Not the size of the software suite behind them.
-        </p>
-      </div>
-      <Frame class="compare">
-        <div>
-          <Label>Today</Label>
-          <h3 class="muted">A giant suite, paid per module.</h3>
-          <ul class="muted">
-            <li><span class="text-code-inline" aria-hidden="true">—</span>Licenses for modules nobody opens</li>
-            <li><span class="text-code-inline" aria-hidden="true">—</span>A fixed interface, heavy to adapt</li>
-            <li><span class="text-code-inline" aria-hidden="true">—</span>A custom integration for every need</li>
-            <li><span class="text-code-inline" aria-hidden="true">—</span>No clean access from an AI assistant</li>
-          </ul>
+    <!-- HERO: banner image, then title and call to action -->
+    <section id="top" class="rail hero-d">
+      <figure class="hero-frame">
+        <canvas class="hero-layer hero-bg" data-shader="field" data-px="4" data-accent="off" aria-hidden="true"></canvas>
+        <canvas id="hero-canvas" class="hero-layer" data-iso="hero-line" data-scale="2" data-unit="any" data-accent="off" data-labels="off" data-fill="0.94" aria-hidden="true"></canvas>
+        <div class="hero-switch" role="group" aria-label="Hero illustration">
+          {
+            heroScenes.map((h, i) => (
+              <button type="button" class="hero-switch-btn text-eyebrow" data-scene={h.id} aria-pressed={i === 0 ? "true" : "false"}>
+                {h.label}
+              </button>
+            ))
+          }
         </div>
-        <div class="invert">
-          <Label>With Forgeron</Label>
-          <h3>Light tools, forged to fit.</h3>
-          <ul>
-            <li><span class="check check-inv" aria-hidden="true"></span>Only the tools you need: CRM, contact records, data</li>
-            <li><span class="check check-inv" aria-hidden="true"></span>Usable from Claude, an API, the terminal or a web interface</li>
-            <li><span class="check check-inv" aria-hidden="true"></span>Editable by your developers, versioned on every push</li>
-            <li><span class="check check-inv" aria-hidden="true"></span>Hosted by us or by you, open source</li>
-          </ul>
-        </div>
-      </Frame>
-    </section>
-
-    <section class="wrap section stack-3" style="gap: 40px;">
-      <div class="section-head">
-        <Label>How it works</Label>
-        <h2 class="display-section">From repo to production, with no infrastructure to manage.</h2>
-        <p class="lead">
-          Forgeron sits on top of Cloudflare Workers. You push your code; the platform versions it,
-          applies access rules and serves it everywhere.
-        </p>
-      </div>
-      <Frame class="flow">
-        <div class="node" style="flex: 1 1 180px;">
-          <Label>01 · Code</Label>
-          <strong>Your GitHub repo</strong>
-          <span class="text-code-inline muted">forgeron.config.ts</span>
-        </div>
-        <div class="wire" aria-hidden="true"></div>
-        <div class="node invert" style="flex: 1.4 1 240px;">
-          <Label>02 · Forgeron</Label>
-          <strong>The platform</strong>
-          <div class="row-wrap">
-            {["Versions", "Access", "SSO", "Logs", "Connectors"].map((c) => <Badge mono>{c}</Badge>)}
+        <figcaption class="sr-only">An animated technical drawing of how Forgeron works.</figcaption>
+      </figure>
+      <div class="hero-d-body">
+        <div class="hero-d-left">
+          <span class="yc-badge text-eyebrow">
+            <span class="yc-mark" set:html={ycMark} />
+            Not backed by Y Combinator
+          </span>
+          <Title as="h1" size="hero">Forge your<br />internal tools.</Title>
+          <div class="hero-d-proof">
+            <span class="text-eyebrow dim">Built on</span>
+            {
+              proof.map((p) => (
+                <span class="hero-d-chip text-eyebrow">
+                  <Icon icon={p.icon} size={24} />
+                  {p.text}
+                </span>
+              ))
+            }
           </div>
         </div>
-        <div class="wire" aria-hidden="true"></div>
-        <div class="node" style="flex: 1 1 180px;">
-          <Label>03 · Runtime</Label>
-          <strong>Cloudflare Workers</strong>
-          <span class="text-small muted">One worker per tool and per environment</span>
-        </div>
-        <div class="wire" aria-hidden="true"></div>
-        <div class="stack-3" style="flex: 1.2 1 220px; gap: var(--space-2);">
-          {
-            [
-              ["Claude", "MCP"],
-              ["Your apps", "API"],
-              ["Browser", "Web"],
-              ["Terminal", "CLI"],
-            ].map(([who, iface]) => (
-              <div class="node sm">
-                <strong>{who}</strong>
-                <Badge mono>{iface}</Badge>
-              </div>
-            ))
-          }
-        </div>
-      </Frame>
-    </section>
-
-    <section class="wrap section two-col">
-      <div class="col">
-        <div class="stack-3">
-          <Label>Versions</Label>
-          <h2 class="display-block">Every push becomes a version.</h2>
-          <p class="muted">
-            Test in preview, then promote it to production. Rolling back takes
-            one click.
-          </p>
-        </div>
-        <div class="card">
-          {
-            deployments.map((d) => (
-              <div class="deploy">
-                <span class="ver text-code-inline">{d.version}</span>
-                <span class="msg">
-                  <strong>{d.message}</strong>
-                  <span class="text-code-inline muted">{d.meta}</span>
-                </span>
-                <EnvTag env={d.env} />
-                {d.state === "warning" ? (
-                  <Badge tone="warning" dot>Building</Badge>
-                ) : (
-                  <Badge tone="success" dot>Live</Badge>
-                )}
-              </div>
-            ))
-          }
+        <div class="hero-d-right">
+          <p class="text-lead lead">Write a tool once. Your teams use it from Claude, the API, the web and the terminal.</p>
+          <div class="hero-d-cta">
+            <Command framed={false}>npx forgeron init</Command>
+            <Button href="#start" size="lg" variant="primary" marker>Get started</Button>
+          </div>
         </div>
       </div>
-      <div class="col">
-        <div class="stack-3">
-          <Label>Access</Label>
-          <h2 class="display-block">Who can do what, action by action.</h2>
-          <p class="muted">
-            Permissions are declared in the SDK and given to teams in the dashboard. Sign-in through your company
-            SSO, with a log of who uses which tool.
-          </p>
+    </section>
+
+    <!-- 0.1 SYSTEM -->
+    <section id="system" class="rail">
+      <SectionHead index="/0.1" label="System" meta="5 layers · 1 tool">
+        <Title as="h2" size="h2">One tool,<br />five layers.</Title>
+        <p class="sec-lead">Everything a business tool needs, stacked once, so your developers only write the actions.</p>
+      </SectionHead>
+      <div class="stack">
+        <ul class="stack-col">
+          {
+            left.map((l) => (
+              <li data-layer={l.i}>
+                <span class="text-eyebrow accent">0{l.i + 1}</span>
+                <span class="text-title-3">{l.name}</span>
+                <span class="text-small muted">{l.text}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="stack-art dots-bg">
+          <canvas id="stack-canvas" data-iso="stack" data-cycle="2.4" data-fill="0.8" aria-hidden="true"></canvas>
         </div>
-        <div class="card scroll-x">
-          <table class="perm">
-            <thead>
-              <tr>
-                <th scope="col" style="text-align: left;" class="text-caption">Action</th>
-                {teams.map((t) => <th scope="col" class="text-caption">{t}</th>)}
-              </tr>
-            </thead>
-            <tbody>
+        <ul class="stack-col stack-col-r">
+          {
+            right.map((l) => (
+              <li data-layer={l.i}>
+                <span class="text-eyebrow accent">0{l.i + 1}</span>
+                <span class="text-title-3">{l.name}</span>
+                <span class="text-small muted">{l.text}</span>
+              </li>
+            ))
+          }
+          <li class="stack-empty" aria-hidden="true"></li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="rail spacer text-eyebrow dim"><span>/0.1 → /0.2</span><span>[ Interfaces ]</span></div>
+
+    <!-- 0.2 DOORS -->
+    <section id="doors" class="rail">
+      <SectionHead index="/0.2" label="Interfaces" meta="1 definition · 4 doors">
+        <Title as="h2" size="h2">Pick a door.</Title>
+        <p class="sec-lead">The same actions, the same rights, wherever your teams already work.</p>
+      </SectionHead>
+      <div class="doors">
+        {
+          doors.map((d, i) => (
+            <article class="door ticks">
+              <div class="door-art dots-bg">
+                <span class="door-fig text-eyebrow dim">FIG.0{i + 1}</span>
+                <canvas data-iso={d.iso} data-fill="0.74" aria-hidden="true" />
+              </div>
+              <div class="door-copy">
+                <div class="door-head">
+                  <Icon icon={d.icon} size={24} />
+                  <span class="text-eyebrow dim">0{i + 1}</span>
+                </div>
+                <Title as="h3" size="h3">{d.name}</Title>
+                <p class="text-small muted">{d.text}</p>
+              </div>
+              <Button href="#start" size="lg" variant={i === 0 ? "primary" : "secondary"} className="door-btn">
+                Explore {d.name}
+              </Button>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- 0.3 IN PRACTICE (bento) -->
+    <section id="interfaces" class="rail">
+      <SectionHead index="/0.3" label="In practice" meta="A day with a tool">
+        <Title as="h2" size="h2">Where your<br />teams already are.</Title>
+      </SectionHead>
+      <div class="bento">
+        <article class="cell c4 r3">
+          <span class="corner text-eyebrow dim">FIG.05 · Gateway</span>
+          <div class="corner-r row">
+            <Chip active>MCP</Chip><Chip>API</Chip><Chip>Web</Chip><Chip>CLI</Chip>
+          </div>
+          <div class="art"><canvas data-iso="network" data-fill="0.78" aria-hidden="true"></canvas></div>
+          <div class="copy">
+            <h3 class="text-title-3">One definition, four interfaces</h3>
+            <p class="text-small muted">Every action is served over MCP, REST, the web and the terminal.</p>
+          </div>
+        </article>
+        <article class="cell c2 r3">
+          <span class="corner text-eyebrow dim">Claude</span>
+          <div class="art chat dots-bg">
+            <div class="msg me text-code">Move the Durand deal to Won.</div>
+            <div class="msg tool text-eyebrow">
+              <Led tone="accent" /> crm.deals.move
+              <span class="dim">write · Sales</span>
+            </div>
+            <div class="msg text-code muted">Done. Durand → Won, logged in the deal history.</div>
+          </div>
+          <div class="copy hr">
+            <h3 class="text-title-3">From the conversation</h3>
+            <p class="text-small muted">Your teams ask; the tool acts, with their rights.</p>
+          </div>
+        </article>
+        <article class="cell c3 r2">
+          <span class="corner text-eyebrow dim">Permissions</span>
+          <div class="art perms">
+            <table class="text-eyebrow">
+              <thead>
+                <tr><th></th>{teams.map((t) => <th>{t}</th>)}</tr>
+              </thead>
+              <tbody>
+                {
+                  grants.map((r) => (
+                    <tr>
+                      <td>{r.name}</td>
+                      {r.g.map((v) => (
+                        <td>
+                          <span class={v ? "px on" : "px"} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="copy hr"><h3 class="text-title-3">Teams × actions, nothing more</h3></div>
+        </article>
+        <article class="cell c3 r2">
+          <span class="corner text-eyebrow dim">Environments</span>
+          <div class="corner-r row text-bit"><Led tone="success" /> prod <Led tone="warning" /> preview</div>
+          <div class="art"><canvas data-iso="blocks" data-fill="0.86" aria-hidden="true"></canvas></div>
+          <div class="copy hr"><h3 class="text-title-3">Preview, then production</h3></div>
+        </article>
+      </div>
+    </section>
+
+    <div class="rail spacer text-eyebrow dim"><span>/0.3 → /0.4</span><span>[ Develop ]</span></div>
+
+    <!-- 0.4 DEVELOP -->
+    <section id="develop" class="rail">
+      <SectionHead index="/0.4" label="Develop" meta="TypeScript SDK">
+        <Title as="h2" size="h2">Write actions,<br />not plumbing.</Title>
+      </SectionHead>
+      <div class="feat">
+        <div class="feat-copy">
+          <p class="text-lead lead">
+            A tool is a <code>forgeron.config.ts</code> and one file per action: its input, its access level, its run. Interfaces, access and hosting come with it.
+          </p>
+          <Link href={DOCS}>Read the SDK →</Link>
+          <div class="code">
+            <div class="code-head">
+              <span class="text-eyebrow dim">crm/actions/deals/move.ts</span>
+              <Tag>crm · v1.4.0</Tag>
+            </div>
+            <pre><code><span class="k">import</span> {"{"} action, z {"}"} <span class="k">from</span> <span class="s">"@forgeron/sdk"</span>;
+
+<span class="k">export default</span> action({"{"}
+  description: <span class="s">"Moves a lead to a new stage."</span>,
+  access: <span class="s">"write"</span>,
+  input: z.object({"{"} id: z.string(), stage: z.enum([<span class="s">"won"</span>, <span class="s">"lost"</span>]) {"}"}),
+  cli: {"{"} args: [<span class="s">"id"</span>, <span class="s">"stage"</span>] {"}"},
+  <span class="k">async</span> run(ctx) {"{"}
+    <span class="c">/* … */</span>
+  {"}"},
+{"}"});</code></pre>
+          </div>
+        </div>
+        <div class="feat-art dots-bg"><canvas data-iso="module" data-fill="0.72" aria-hidden="true"></canvas></div>
+      </div>
+      <ul class="feat-list">
+        <li><Icon icon={CommandLineIcon} /><span class="text-title-3">Local first</span><span class="text-small muted"><code>forgeron dev</code> runs the tool on your machine, with local D1, KV and R2.</span></li>
+        <li><Icon icon={Shield01Icon} /><span class="text-title-3">Typed inputs</span><span class="text-small muted">Each action declares its input with Zod; the same schema drives MCP, the API and the CLI options.</span></li>
+        <li><Icon icon={CheckmarkSquare01Icon} /><span class="text-title-3">Tested in CI</span><span class="text-small muted"><code>forgeron test</code> builds the tool, then runs Vitest against the real Worker.</span></li>
+      </ul>
+    </section>
+
+    <!-- 0.5 RESOURCES -->
+    <section id="resources" class="rail">
+      <SectionHead index="/0.5" label="Resources" meta="Declared, or absent">
+        <Title as="h2" size="h2">Declared,<br />or absent.</Title>
+        <p class="sec-lead">
+          A tool lists everything it asks of the platform, like an app's permissions. What is not declared does not
+          exist at runtime.
+        </p>
+      </SectionHead>
+      <div class="res">
+        <div class="res-art dots-bg">
+          <span class="door-fig text-eyebrow dim">FIG.10 · Tool and resources</span>
+          <canvas id="res-canvas" data-iso="resources" data-cycle="1.6" data-scale="2" data-fill="0.92" aria-hidden="true"></canvas>
+        </div>
+        <ul class="res-list">
+          {
+            resources.map((r) => (
+              <li data-res={r.i}>
+                <Icon icon={r.icon} />
+                <div>
+                  <span class="text-title-3">{r.name}</span> <span class="text-eyebrow dim">{r.cf}</span>
+                  <p class="text-small muted">{r.text}</p>
+                </div>
+              </li>
+            ))
+          }
+          <li class="res-ghost">
+            <Icon icon={Shield01Icon} />
+            <div>
+              <span class="text-title-3">Not declared</span> <span class="text-eyebrow dim">Ghost</span>
+              <p class="text-small muted">Absent: <code>ctx.db</code> without a database, <code>ctx.fetch</code> refuses unlisted hosts.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="res-code">
+        <div class="code">
+          <div class="code-head">
+            <span class="text-eyebrow dim">forgeron.config.ts · resources</span>
+            <Tag>Declaration</Tag>
+          </div>
+          <pre><code>resources: {"{"}
+  db: database({"{"} engine: <span class="s">"d1"</span>, why: <span class="s">"Companies, contacts and leads"</span> {"}"}),
+  files: bucket({"{"} maxSize: <span class="s">"25MB"</span>, why: <span class="s">"Lead attachments"</span> {"}"}),
+  cache: kv(),
+  userSecrets: {"{"}
+    ODOO_API_KEY: {"{"} label: <span class="s">"Odoo API key"</span>, why: <span class="s">"Read your Odoo tickets"</span> {"}"},
+  {"}"},
+  network: {"{"} allow: [<span class="s">"api.hubspot.com"</span>] {"}"},
+{"}"}</code></pre>
+        </div>
+        <div class="code">
+          <div class="code-head">
+            <span class="text-eyebrow dim">What the admin sees</span>
+            <Tag>Console · admin MCP</Tag>
+          </div>
+          <pre><code><span class="k">CRM v1.4.0 requests:</span>
+  Database (D1)              <span class="c">Companies, contacts and leads</span>
+  File storage (25 MB)       <span class="c">Lead attachments</span>
+  One Odoo API key per person <span class="c">Read your Odoo tickets</span>
+  Outbound calls: api.hubspot.com</code></pre>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-copy">
+          <Tag strong="Approval" />
+          <Title as="h3" size="h3">Asking for more<br />waits at the gate.</Title>
+          <p class="text-lead lead">
+            A resource added or broadened puts the version pending approval. It runs in preview, and reaches
+            production once an admin accepts it. A removed resource asks for nothing.
+          </p>
+          <Command>forgeron approve crm 1.5.0</Command>
+        </div>
+        <div class="feat-art dots-bg"><canvas data-iso="gate" data-fill="0.8" aria-hidden="true"></canvas></div>
+      </div>
+    </section>
+
+    <!-- 0.6 SHIP -->
+    <section id="ship" class="rail">
+      <SectionHead index="/0.6" label="Ship" meta="Every push is a version">
+        <Title as="h2" size="h2">Push, preview,<br />ship.</Title>
+      </SectionHead>
+      <div class="pipe dots-bg">
+        <canvas data-iso="pipeline" data-fill="0.8" aria-hidden="true"></canvas>
+        <span class="pin text-eyebrow" style="top:14%;left:calc(50% + 70px)"><i></i>Repository</span>
+        <span class="pin text-eyebrow accent" style="top:58%;left:calc(50% - 300px)"><i></i>Preview · per branch</span>
+        <span class="pin text-eyebrow" style="top:52%;left:calc(50% + 170px)"><i></i>Production</span>
+      </div>
+      <ul class="feat-list">
+        <li><Icon icon={GitBranchIcon} /><span class="text-title-3">A preview per branch</span><span class="text-small muted">The GitHub Action tests and deploys each push to its branch's own channel.</span></li>
+        <li><Icon icon={DeployIcon} /><span class="text-title-3">Releases go to production</span><span class="text-small muted">A release of the branch production follows updates it, by itself or by an admin.</span></li>
+        <li><Icon icon={RollbackIcon} /><span class="text-title-3">One command back</span><span class="text-small muted"><code>forgeron rollback</code> returns a channel to the version it served before.</span></li>
+      </ul>
+      <ul class="deploys">
+        {
+          deployments.map((d) => (
+            <li>
+              <span class="text-eyebrow">{d.v}</span>
+              <span>{d.m}</span>
+              <span class="text-bit">
+                <Led tone={d.led} /> {d.env}
+              </span>
+              <span class="text-eyebrow dim">{d.meta}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <div class="rail spacer text-eyebrow dim"><span>/0.6 → /0.7</span><span>[ Govern ]</span></div>
+
+    <!-- 0.6 GOVERN -->
+    <section id="govern" class="rail">
+      <SectionHead index="/0.7" label="Govern" meta="Access · secrets · audit">
+        <Title as="h2" size="h2">Who did what,<br />with which rights.</Title>
+        <p class="sec-lead">Every interface goes through the same gateway: SSO, team check, audit log. None bypasses another.</p>
+      </SectionHead>
+      <div class="trust">
+        <article class="trust-card">
+          <div class="trust-art dots-bg">
+            <div class="mock signin">
+              <Logo size={20} />
+              <span class="text-eyebrow dim">Sign in to your workspace</span>
+              <span class="fg-btn fg-btn-ink fg-btn-sm">Continue with company SSO</span>
+            </div>
+          </div>
+          <div class="trust-copy">
+            <Icon icon={LockIcon} />
+            <h3 class="text-title-3">Company SSO</h3>
+            <p class="text-small muted">Your teams sign in with the identity provider you already use. No new passwords.</p>
+          </div>
+        </article>
+        <article class="trust-card">
+          <div class="trust-art dots-bg">
+            <div class="mock secrets text-eyebrow">
+              <div><span>ODOO_API_KEY</span><span class="dim">••••••••</span></div>
+              <div><span>CRM_TOKEN</span><span class="dim">••••••••</span></div>
+              <div class="dim"><span>names only</span><span>encrypted</span></div>
+            </div>
+          </div>
+          <div class="trust-copy">
+            <Icon icon={Key01Icon} />
+            <h3 class="text-title-3">Secrets per person</h3>
+            <p class="text-small muted">Each person keeps their own API keys, encrypted at rest. Listings show names only.</p>
+          </div>
+        </article>
+        <article class="trust-card">
+          <div class="trust-art dots-bg">
+            <div class="mock audit text-eyebrow">
               {
-                permissions.map((p) => (
-                  <tr>
-                    <th scope="row">
-                      <span class="name text-code-inline">{p.name}</span>
-                      <span class="text-caption muted">{p.kind}</span>
-                    </th>
-                    {p.grants.map((granted) => (
-                      <td>
-                        <span
-                          class={granted ? "check check-on" : "check"}
-                          role="img"
-                          aria-label={granted ? "Allowed" : "Denied"}
-                        />
-                      </td>
-                    ))}
-                  </tr>
+                audit.map((a) => (
+                  <div>
+                    <span class="dim">{a.t}</span>
+                    <span>{a.who}</span>
+                    <span>{a.what}</span>
+                    <span class={a.tag === "write" ? "accent" : "dim"}>{a.tag}</span>
+                  </div>
                 ))
               }
-            </tbody>
-          </table>
+            </div>
+          </div>
+          <div class="trust-copy">
+            <Icon icon={LogIcon} />
+            <h3 class="text-title-3">Audit log</h3>
+            <p class="text-small muted">Usage, deployments and every change to the workspace are recorded, with who made them.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 0.7 TERMINAL -->
+    <section id="cli" class="rail">
+      <SectionHead index="/0.8" label="Terminal" meta="forgeron CLI">
+        <Title as="h2" size="h2">The whole life<br />of a tool, typed.</Title>
+      </SectionHead>
+      <div class="term-wrap">
+        <div class="term-copy pad">
+          <p class="text-lead lead">From the first scaffold to the rollback, the CLI does it, locally or in CI.</p>
+          <Command>npx forgeron init</Command>
+        </div>
+        <div class="term-roll" aria-label="forgeron commands">
+          <ul class="term-track text-code">
+            {
+              [...commands, ...commands].map((c, i) => (
+                <li aria-hidden={i >= commands.length ? "true" : undefined}>
+                  <span class="accent">$</span> {c.cmd}
+                  <span class="dim"># {c.note}</span>
+                </li>
+              ))
+            }
+          </ul>
         </div>
       </div>
     </section>
 
-    <section id="templates" class="wrap section stack-3" style="gap: 40px;">
-      <div class="head-row">
-        <div class="section-head">
-          <Label>Templates</Label>
-          <h2 class="display-section">Start from a base. Forge the rest.</h2>
+    <!-- 0.8 HOST -->
+    <section id="host" class="rail">
+      <SectionHead index="/0.9" label="Host" meta="Cloud or self-host">
+        <Title as="h2" size="h2">Our account,<br />or yours.</Title>
+        <p class="sec-lead">The same platform in both cases. Only where it runs changes.</p>
+      </SectionHead>
+      <div class="host">
+        <div class="host-art"><canvas data-shader="globe" data-px="4" aria-hidden="true"></canvas></div>
+        <div class="host-table">
+          <div class="host-row host-headrow text-eyebrow">
+            <span></span><span><Icon icon={CloudIcon} size={24} /> Forgeron Cloud</span><span><Icon icon={Settings01Icon} size={24} /> Self-host</span>
+          </div>
+          {
+            hosting.map((h) => (
+              <div class="host-row">
+                <span class="text-eyebrow dim">{h.k}</span>
+                <span>{h.cloud}</span>
+                <span>{h.self}</span>
+              </div>
+            ))
+          }
         </div>
-        <Button href="#templates">See all templates</Button>
       </div>
-      <div class="grid-4">
+    </section>
+
+    <!-- NUMBERS -->
+    <section class="rail numbers">
+      {
+        numbers.map((n) => (
+          <div>
+            <div class="num"><PixelText text={n.n} label={n.n} /></div>
+            <span class="text-eyebrow dim">{n.label}</span>
+          </div>
+        ))
+      }
+    </section>
+
+    <!-- 0.9 TEMPLATES -->
+    <section id="templates" class="rail">
+      <SectionHead index="/1.0" label="Templates" meta="forgeron install">
+        <Title as="h2" size="h2">Start from<br />a forged tool.</Title>
+      </SectionHead>
+      <div class="tpls">
         {
           templates.map((t) => (
-            <a href="#templates" class="card">
-              <span class="text-code-inline muted">{t.path}</span>
-              <span class="text-title-3">{t.name}</span>
-              <span class="muted">{t.text}</span>
+            <a class="tpl" href="#start">
+              <div class="tpl-art dots-bg">
+                <canvas data-iso={t.iso} data-fill="0.7" aria-hidden="true" />
+                <div class="tpl-num"><PixelText text={t.n} /></div>
+              </div>
+              <div class="tpl-copy">
+                <span class="text-eyebrow dim">{t.path}</span>
+                <h3 class="text-title-3">{t.name}</h3>
+                <p class="text-small muted">{t.text}</p>
+              </div>
             </a>
           ))
         }
       </div>
     </section>
 
-    <section id="sdk" class="wrap section split">
-      <div class="stack-3" style="gap: 20px;">
-        <Label>Views</Label>
-        <h2 class="display-section" style="font-size: clamp(32px, 4.5vw, 44px);">
-          Lightweight dashboards, in React.
-        </h2>
-        <p class="lead">
-          When a conversation isn't enough, write a React page. The SDK injects the tool's data, with
-          the signed-in person's permissions.
-        </p>
-        <div class="row-wrap" style="gap: var(--space-2);">
-          <Badge mono>useAction</Badge><Badge mono>useUser</Badge><Badge mono>defineView</Badge>
-        </div>
-      </div>
-      <Frame class="frame-pad">
-        <CodeCard title="views/pipeline.tsx" lines={viewCode} />
-      </Frame>
-    </section>
-
-    <section id="hosting" class="wrap section stack-3" style="gap: 40px;">
-      <div class="section-head center stack-3">
-        <Label>Hosting</Label>
-        <h2 class="display-section">Ours or yours.</h2>
-      </div>
-      <div class="grid-2">
-        <div class="card tile">
-          <Label>Self-host</Label>
-          <span class="display-block">Open source</span>
-          <span class="muted">
-            Deploy Forgeron on your own Cloudflare account. The SDK, the platform and the templates are open.
-          </span>
-          <Button href="#github" className="push">View on GitHub</Button>
-        </div>
-        <div class="card tile invert">
-          <Label>Forgeron Cloud</Label>
-          <span class="display-block">
-            [PRICE] € <span class="text-body muted" style="letter-spacing: 0;">/ seat / month</span>
-          </span>
-          <span class="muted">
-            One plan: all tools, connectors, enterprise SSO and versions, hosted for you.
-          </span>
-          <Button href="#start" className="push on-invert">Get started</Button>
-        </div>
+    <!-- 1.0 FAQ -->
+    <section id="faq" class="rail">
+      <SectionHead index="/1.1" label="Questions" meta={`${faq.length} answers`}>
+        <Title as="h2" size="h2">Questions,<br />answered.</Title>
+      </SectionHead>
+      <div class="faq">
+        {
+          faq.map((f, i) => (
+            <details open={i === 0}>
+              <summary>
+                <span class="text-eyebrow accent">Q.0{i + 1}</span>
+                <span class="text-title-3">{f.q}</span>
+                <span class="faq-plus text-eyebrow" aria-hidden="true">+</span>
+              </summary>
+              <p class="text-small muted">{f.a}</p>
+            </details>
+          ))
+        }
       </div>
     </section>
 
-    <section id="start" class="wrap" style="padding-top: 32px; padding-bottom: 96px;">
-      <Frame class="cta">
-        <Logo variant="symbol" size={56} />
-        <h2>Your first tool in five minutes.</h2>
+    <!-- CTA -->
+    <section id="start" class="rail cta">
+      <canvas data-shader="dissolve" data-px="8" aria-hidden="true"></canvas>
+      <div class="cta-inner pad">
+        <Tag strong="/1.2">Start</Tag>
+        <Title as="h2" size="h2">Forge your<br />first tool.</Title>
         <div class="hero-actions">
-          <Button href="#start" variant="primary" size="lg">Get started for free</Button>
-          <Button href="#docs" size="lg">Read the docs</Button>
+          <Button href="#start" size="lg" variant="primary" marker>Get started</Button>
+          <Command>npx forgeron init</Command>
         </div>
-      </Frame>
+      </div>
+    </section>
+
+    <!-- FOOTER LINKS -->
+    <section class="rail foot-cols">
+      <div>
+        <Logo size={28} />
+        <p class="text-small muted">Internal tools, forged once.</p>
+      </div>
+      <div>
+        <span class="text-eyebrow dim">Product</span>
+        <a href="#system">System</a><a href="#doors">Interfaces</a><a href="#ship">Deploy</a><a href="#host">Hosting</a>
+      </div>
+      <div>
+        <span class="text-eyebrow dim">Developers</span>
+        <a href="#develop">SDK</a><a href="#cli">CLI</a><a href="#templates">Templates</a><a href={DOCS}>Docs</a>
+      </div>
+      <div>
+        <span class="text-eyebrow dim">Open source</span>
+        <a href={GITHUB}>GitHub</a><a href={GITHUB}>License · Apache-2.0</a><a href={GITHUB}>Changelog</a>
+      </div>
     </section>
   </main>
 
   <Footer />
-</Base>
+</Site>
+
+<script>
+  // Mounts every canvas of the page (scenes, fields), once.
+  import "../illustrations/canvas";
+</script>
+
+<script>
+  // Keep the stack labels in step with the highlighted layer, and let a label pick its layer.
+  import { isoCanvas } from "../illustrations/canvas";
+
+  const stack = isoCanvas(document.getElementById("stack-canvas"));
+  const items = document.querySelectorAll<HTMLElement>("[data-layer]");
+  stack?.onActive((active) => {
+    for (const li of items) li.classList.toggle("on", Number(li.dataset.layer) === active);
+  });
+  for (const li of items) {
+    li.addEventListener("mouseenter", () => stack?.select(Number(li.dataset.layer)));
+    li.addEventListener("mouseleave", () => stack?.select(-1));
+  }
+</script>
+
+<script>
+  // Resource legend in step with the highlighted resource; hovering a line picks it.
+  import { isoCanvas } from "../illustrations/canvas";
+
+  const res = isoCanvas(document.getElementById("res-canvas"));
+  const rows = document.querySelectorAll<HTMLElement>("[data-res]");
+  res?.onActive((active) => {
+    for (const li of rows) li.classList.toggle("on", Number(li.dataset.res) === active);
+  });
+  for (const li of rows) {
+    li.addEventListener("mouseenter", () => res?.select(Number(li.dataset.res)));
+    li.addEventListener("mouseleave", () => res?.select(-1));
+  }
+</script>
+
+<script>
+  // Hero scene switcher: tells the canvas which scene to draw and marks the pressed button.
+  import { isoCanvas } from "../illustrations/canvas";
+
+  const hero = isoCanvas(document.getElementById("hero-canvas"));
+  const buttons = document.querySelectorAll<HTMLButtonElement>(".hero-switch-btn");
+  for (const b of buttons) {
+    b.addEventListener("click", () => {
+      hero?.show(b.dataset.scene ?? "");
+      for (const o of buttons) o.setAttribute("aria-pressed", String(o === b));
+    });
+  }
+</script>
+
+<style>
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+  .row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .stack {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    border-bottom: 1px solid var(--line);
+  }
+  .stack-art {
+    position: relative;
+    min-height: 640px;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .stack-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .stack-col {
+    display: grid;
+  }
+  .stack-col li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: flex-start;
+    padding: 24px var(--gutter);
+    border-bottom: 1px solid var(--line);
+    transition: background 0.2s;
+    cursor: default;
+  }
+  .stack-col li:last-child {
+    border-bottom: 0;
+  }
+  .stack-col li.on {
+    background: var(--bg-raised);
+  }
+  .stack-col li.on .text-title-3 {
+    color: var(--accent);
+  }
+  .stack-col-r li {
+    text-align: right;
+    align-items: flex-end;
+  }
+  .stack-empty {
+    background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 8px);
+  }
+  @media (max-width: 900px) {
+    .stack {
+      grid-template-columns: 1fr;
+    }
+    .stack-art {
+      min-height: 460px;
+      order: -1;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .stack-col-r li {
+      text-align: left;
+      align-items: flex-start;
+    }
+    .stack-empty {
+      display: none;
+    }
+  }
+
+  .chat {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+    padding: 48px 20px 20px;
+  }
+  .msg {
+    max-width: 92%;
+    padding: 10px 12px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+  }
+  .msg.me {
+    align-self: flex-end;
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .msg.tool {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-style: dashed;
+  }
+  .perms {
+    display: flex;
+    align-items: center;
+    padding: 44px 24px 8px;
+  }
+  .perms table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .perms th {
+    font-weight: 400;
+    color: var(--ink-dim);
+    text-align: center;
+    padding-bottom: 8px;
+  }
+  .perms td {
+    padding: 5px 0;
+    border-top: 1px solid var(--line);
+    text-align: center;
+  }
+  .perms td:first-child {
+    text-align: left;
+    color: var(--ink-muted);
+  }
+  .px {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--line-strong);
+  }
+  .px.on {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+
+  .pipe {
+    position: relative;
+    height: 420px;
+    border-bottom: 1px solid var(--line);
+  }
+  .pipe canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .pin {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-muted);
+  }
+  @media (max-width: 760px) {
+    .pin {
+      display: none;
+    }
+  }
+  .pin.accent {
+    color: var(--accent);
+  }
+  .pin i {
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+  }
+  .deploys li {
+    display: grid;
+    grid-template-columns: 140px 1fr 140px 200px;
+    gap: 16px;
+    align-items: center;
+    padding: 16px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .deploys li:hover {
+    background: var(--bg-raised);
+  }
+  @media (max-width: 760px) {
+    .deploys li {
+      grid-template-columns: 1fr auto;
+    }
+    .deploys li > :nth-child(4) {
+      display: none;
+    }
+  }
+  .tpls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .tpl {
+    border-right: 1px solid var(--line);
+    transition: background 0.2s;
+  }
+  .tpl:last-child {
+    border-right: 0;
+  }
+  .tpl:hover {
+    background: var(--bg-raised);
+  }
+  .tpl-art {
+    position: relative;
+    height: 200px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tpl-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .tpl-num {
+    position: absolute;
+    left: 24px;
+    bottom: 20px;
+    height: 56px;
+    color: var(--ink);
+  }
+  .tpl-num :global(svg) {
+    height: 100%;
+    width: auto;
+    display: block;
+  }
+  .tpl:hover .tpl-num {
+    color: var(--accent);
+  }
+  .tpl-copy {
+    padding: 20px var(--gutter) 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  @media (max-width: 760px) {
+    .tpls {
+      grid-template-columns: 1fr;
+    }
+    .tpl {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .cta {
+    position: relative;
+    min-height: 520px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .cta > canvas {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 36%;
+    width: 64%;
+    height: 100%;
+  }
+  @media (max-width: 760px) {
+    .cta > canvas {
+      left: 0;
+      width: 100%;
+      opacity: 0.35;
+    }
+  }
+  .cta-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 48px;
+    padding-bottom: 56px;
+  }
+
+
+  .doors {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    padding: 40px var(--gutter) 56px;
+    border-bottom: 1px solid var(--line);
+  }
+  .door {
+    border: 1px solid var(--line-strong);
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s;
+  }
+  .door:hover {
+    border-color: var(--ink-dim);
+  }
+  .door-art {
+    position: relative;
+    height: 260px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .door-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .door-fig {
+    position: absolute;
+    top: 12px;
+    left: 14px;
+    z-index: 1;
+  }
+  .door-copy {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+  .door-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .door :global(.door-btn) {
+    margin: 0 20px 20px;
+    justify-content: center;
+  }
+  @media (max-width: 1000px) {
+    .doors {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 560px) {
+    .doors {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .feat-copy .code {
+    margin-top: 8px;
+  }
+  .feat-list code,
+  .text-small code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  .trust {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    padding: 40px var(--gutter) 56px;
+    border-bottom: 1px solid var(--line);
+  }
+  .trust-card {
+    border: 1px solid var(--line-strong);
+    display: flex;
+    flex-direction: column;
+  }
+  .trust-art {
+    height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .trust-copy {
+    padding: 24px 20px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mock {
+    width: 100%;
+    max-width: 280px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-sunk);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .signin {
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .secrets > div,
+  .audit > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .secrets > div:last-child,
+  .audit > div:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+  .audit {
+    max-width: 320px;
+    font-size: 11px;
+  }
+  @media (max-width: 900px) {
+    .trust {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .term-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .term-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: flex-start;
+    padding-top: 56px;
+    padding-bottom: 56px;
+    border-right: 1px solid var(--line);
+  }
+  .term-roll {
+    position: relative;
+    height: 360px;
+    overflow: hidden;
+    background: var(--bg-sunk);
+    mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+  }
+  .term-track {
+    display: flex;
+    flex-direction: column;
+    animation: roll 24s linear infinite;
+  }
+  .term-track li {
+    padding: 12px var(--gutter);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+  @keyframes roll {
+    to {
+      transform: translateY(-50%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .term-track {
+      animation: none;
+    }
+  }
+  @media (max-width: 900px) {
+    .term-wrap {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .term-copy {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .host {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .host-art {
+    position: relative;
+    min-height: 360px;
+    border-right: 1px solid var(--line);
+  }
+  .host-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .host-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+    padding: 22px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .host-row:last-child {
+    border-bottom: 0;
+  }
+  .host-headrow span {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  @media (max-width: 900px) {
+    .host {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .host-art {
+      min-height: 240px;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .numbers {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-bottom: 1px solid var(--line);
+  }
+  .numbers > div {
+    padding: 56px var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-right: 1px solid var(--line);
+  }
+  .numbers > div:last-child {
+    border-right: 0;
+  }
+  .num {
+    height: 70px;
+    color: var(--accent);
+  }
+  .num :global(svg) {
+    height: 100%;
+    width: auto;
+    display: block;
+  }
+  @media (max-width: 760px) {
+    .numbers {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .numbers > div {
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .tpl-art {
+    height: 240px;
+  }
+
+  .faq {
+    border-bottom: 1px solid var(--line);
+  }
+  .faq details {
+    border-bottom: 1px solid var(--line);
+  }
+  .faq details:last-child {
+    border-bottom: 0;
+  }
+  .faq summary {
+    display: grid;
+    grid-template-columns: 80px 1fr 24px;
+    gap: 16px;
+    align-items: center;
+    padding: 24px var(--gutter);
+    cursor: pointer;
+    list-style: none;
+  }
+  .faq summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq summary:hover {
+    background: var(--bg-raised);
+  }
+  .faq details[open] .faq-plus {
+    transform: rotate(45deg);
+    color: var(--accent);
+  }
+  .faq-plus {
+    font-size: 18px;
+    transition: transform 0.2s;
+  }
+  .faq details p {
+    padding: 0 var(--gutter) 28px calc(var(--gutter) + 96px);
+    max-width: 80ch;
+  }
+  @media (max-width: 560px) {
+    .faq summary {
+      grid-template-columns: 1fr 24px;
+    }
+    .faq summary > :first-child {
+      display: none;
+    }
+    .faq details p {
+      padding-left: var(--gutter);
+    }
+  }
+
+  .foot-cols {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--line);
+  }
+  .foot-cols > div {
+    padding: 48px var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-right: 1px solid var(--line);
+  }
+  .foot-cols > div:last-child {
+    border-right: 0;
+  }
+  .foot-cols a {
+    color: var(--ink-muted);
+    font-size: 14px;
+  }
+  .foot-cols a:hover {
+    color: var(--ink);
+  }
+  @media (max-width: 760px) {
+    .foot-cols {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .foot-cols > div:first-child {
+      grid-column: span 2;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+  .res {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    border-bottom: 1px solid var(--line);
+  }
+  .res-art {
+    position: relative;
+    min-height: 560px;
+    border-right: 1px solid var(--line);
+  }
+  .res-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .res-list li {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px var(--gutter);
+    border-bottom: 1px solid var(--line);
+    transition: background 0.2s;
+  }
+  .res-list li:last-child {
+    border-bottom: 0;
+  }
+  .res-list li.on {
+    background: var(--bg-raised);
+  }
+  .res-list li.on .text-title-3 {
+    color: var(--accent);
+  }
+  .res-list p {
+    margin-top: 4px;
+  }
+  .res-ghost {
+    background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 8px);
+  }
+  .res-code {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+    padding: 40px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  @media (max-width: 900px) {
+    .res,
+    .res-code {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .res-art {
+      min-height: 380px;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+  .hero-d {
+    padding: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero-frame {
+    position: relative;
+    margin: 0;
+    aspect-ratio: 2.9 / 1;
+    min-height: 300px;
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+    background: var(--bg-sunk);
+  }
+  .hero-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .hero-d-body {
+    display: grid;
+    grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    gap: 48px;
+    align-items: end;
+    padding: 56px var(--gutter) 72px;
+  }
+  .hero-d-left {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .hero-d-left :global(.fg-title-hero) {
+    font-size: 80px;
+  }
+  .hero-d-proof {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    align-items: center;
+  }
+  .hero-d-chip {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    color: var(--ink);
+  }
+  .hero-d-right {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .hero-d-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 6px 6px 16px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-sunk);
+  }
+  @media (max-width: 900px) {
+    .hero-d-body {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 32px;
+    }
+    .hero-d-left :global(.fg-title-hero) {
+      font-size: 50px;
+    }
+  }
+  @media (max-width: 400px) {
+    .hero-d-left :global(.fg-title-hero) {
+      font-size: 40px;
+    }
+    .hero-d-cta {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 12px;
+    }
+    /* The stretched button keeps its label at the start, as in the landing it comes from. */
+    .hero-d-cta :global(.fg-btn) {
+      justify-content: flex-start;
+    }
+  }
+  .hero-bg {
+    opacity: 0.14;
+  }
+  .hero-switch {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+    display: flex;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+  }
+  .hero-switch-btn {
+    appearance: none;
+    border: 0;
+    border-right: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--ink-muted);
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .hero-switch-btn:last-child {
+    border-right: 0;
+  }
+  .hero-switch-btn:hover {
+    color: var(--ink);
+  }
+  .hero-switch-btn[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .hero-switch-btn:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: -3px;
+  }
+  .yc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    align-self: flex-start;
+    padding: 4px 12px 4px 4px;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-muted);
+  }
+  .yc-mark {
+    width: 18px;
+    height: 22px;
+    display: block;
+  }
+  .yc-mark :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .hero-d-left {
+    gap: 28px;
+  }
+  @media (max-width: 560px) {
+    .hero-switch {
+      top: 8px;
+      right: 8px;
+    }
+    .hero-switch-btn {
+      padding: 6px 8px;
+    }
+  }
+</style>

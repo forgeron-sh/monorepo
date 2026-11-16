@@ -8,6 +8,8 @@ const ENTRIES = [
   "packages/registry/src/index.ts",
   // The files of a new tool: the gateway makes them in its Worker (D-123).
   "packages/scaffold/src/index.ts",
+  // Blueprint's core renders the site's illustrations at build time and in the browser.
+  "packages/blueprint/src/index.ts",
 ];
 
 let failed = false;

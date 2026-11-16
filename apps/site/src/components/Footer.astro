@@ -1,34 +1,12 @@
 ---
-import { Label, Logo } from "@forgeron/ui";
+import { PixelText } from "@forgeron/ui";
 ---
 
-<footer id="docs" class="site-footer">
-  <div class="wrap">
-    <div class="stack-3" style="max-width: 280px;">
-      <Logo size={20} />
-      <span class="text-small muted">
-        The last platform you'll need for your internal tools.
-      </span>
-    </div>
-    <div class="footer-cols">
-      <div class="footer-col">
-        <Label>Product</Label>
-        <a class="navlink" href="#sdk">SDK</a>
-        <a class="navlink" href="#templates">Templates</a>
-        <a class="navlink" href="#hosting">Hosting</a>
-      </div>
-      <div class="footer-col">
-        <Label>Developers</Label>
-        <a class="navlink" href="#docs">Documentation</a>
-        <a class="navlink" href="#github">GitHub</a>
-        <a class="navlink" href="#docs">Changelog</a>
-      </div>
-      <div class="footer-col">
-        <Label>Company</Label>
-        <a class="navlink" href="#docs">About</a>
-        <a class="navlink" href="#docs">Contact</a>
-        <a class="navlink" href="#docs">Legal notice</a>
-      </div>
-    </div>
+<footer class="rail hr">
+  <div class="foot-word"><PixelText text="forgeron" /></div>
+  <div class="pad" style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-bottom:32px;">
+    <span class="text-eyebrow dim">Open source · Apache-2.0</span>
+    <span class="text-eyebrow dim">Runs on Cloudflare Workers</span>
+    <span class="text-eyebrow dim">forgeron.sh</span>
   </div>
 </footer>

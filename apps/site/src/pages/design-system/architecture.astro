@@ -1,9 +1,10 @@
 ---
+import "@forgeron/ui/styles.css";
 import { ArchitecturePreview } from "../../components/ArchitecturePreview";
-import Base from "../../layouts/Base.astro";
+import Site from "../../layouts/Site.astro";
 ---
 
-<Base
+<Site
   title="Architecture diagram — Forgeron design system"
   description="The architecture diagram of a tool, drawn from its manifest."
 >
@@ -16,7 +17,7 @@ import Base from "../../layouts/Base.astro";
     </p>
     <ArchitecturePreview client:load />
   </main>
-</Base>
+</Site>
 
 <style>
   .arch-page {
@@ -26,7 +27,8 @@ import Base from "../../layouts/Base.astro";
     color: var(--ink);
   }
   .arch-page h1 {
-    font: 600 32px/40px var(--font-display);
+    font: 500 32px/40px var(--font-sans);
+    letter-spacing: -0.02em;
     margin: 0 0 var(--space-2);
   }
   .arch-page p {
@@ -42,13 +44,75 @@ import Base from "../../layouts/Base.astro";
     justify-content: space-between;
     margin-bottom: var(--space-4);
   }
+  :global(.tabs) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  :global(.tab) {
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--ink-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  :global(.tab:hover) {
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  :global(.tab-on),
+  :global(.tab-on:hover) {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  :global(.tab:focus-visible) {
+    outline: var(--focus-width) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
   :global(.arch-panel) {
     border: 1px solid var(--line);
     background: var(--bg);
     padding: var(--space-6);
   }
   @media (max-width: 640px) {
-    :global(.arch-panel) {
+    :global(.tabs) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  :global(.tab) {
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--ink-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  :global(.tab:hover) {
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  :global(.tab-on),
+  :global(.tab-on:hover) {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  :global(.tab:focus-visible) {
+    outline: var(--focus-width) solid var(--focus);
+    outline-offset: var(--focus-offset);
+  }
+  :global(.arch-panel) {
       padding: var(--space-3);
     }
   }

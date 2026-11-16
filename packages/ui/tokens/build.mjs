@@ -17,15 +17,24 @@ const lines = (theme) =>
     .map((t) => `  --${t.name}: ${t.value[theme]};`)
     .concat(tokens.shadow.tokens.map((t) => `  --${t.name}: ${t.value[theme]};`));
 
+// A face's family name is written once, in `type.faces`: the @font-face rules and `--font-<face>-face`
+// both come from it, so renaming the face is a one-line change in tokens.json.
+const FORMATS = { woff2: "woff2", woff: "woff", otf: "opentype", ttf: "truetype" };
+const faceName = (face) => {
+  const name = tokens.type.faces[face];
+  if (!name) throw new Error(`tokens.json: unknown face "${face}"`);
+  return `"${name}"`;
+};
 const fontFaces = tokens.type.fonts.map((f) => {
   const name = f.file.split("/").pop();
+  const format = FORMATS[name.split(".").pop()];
   return [
     "@font-face {",
-    `  font-family: "${f.family}";`,
+    `  font-family: ${faceName(f.face)};`,
     `  font-weight: ${f.weight};`,
     "  font-style: normal;",
     "  font-display: swap;",
-    `  src: url("./fonts/${name}") format("woff2");`,
+    `  src: url("./fonts/${name}") format("${format}");`,
     "}",
   ].join("\n");
 });
@@ -39,7 +48,7 @@ const textClasses = tokens.type.groups.flatMap((g) =>
       `  line-height: ${s.lineHeight};`,
       `  font-weight: ${s.fontWeight};`,
       ...(s.letterSpacing ? [`  letter-spacing: ${s.letterSpacing};`] : []),
-      ...(s.name === "eyebrow" ? ["  text-transform: uppercase;"] : []),
+      ...(s.textTransform ? [`  text-transform: ${s.textTransform};`] : []),
       "}",
     ].join("\n"),
   ),
@@ -52,9 +61,11 @@ const css = [
     ":root {",
     "  color-scheme: dark;",
     ...lines("dark"),
+    ...Object.keys(tokens.type.faces).map((k) => `  --font-${k}-face: ${faceName(k)};`),
     ...Object.entries(tokens.type.families).map(([k, v]) => `  --font-${k}: ${v};`),
-    ...tokens.spacing.tokens.map((t) => `  --${t.name}: ${t.value};`),
-    ...tokens.radius.tokens.map((t) => `  --${t.name}: ${t.value};`),
+    ...["spacing", "layout", "radius", "border", "motion"].flatMap((group) =>
+      tokens[group].tokens.map((t) => `  --${t.name}: ${t.value};`),
+    ),
     "}",
   ].join("\n"),
   [':root[data-theme="light"] {', "  color-scheme: light;", ...lines("light"), "}"].join("\n"),

@@ -67,10 +67,34 @@ module.exports = {
       to: { path: "^packages/(?!platform-contract/|manifest/|permissions/)" },
     },
     {
+      // Blueprint's core is data and pixels: it runs at build time, in a Worker and in the browser
+      // alike. The canvas glue (`dom/`) and React (`react/`) sit on top of it, never under.
+      name: "blueprint-core-is-framework-free",
+      severity: "error",
+      from: { path: "^packages/blueprint/src/(core|examples)/" },
+      to: { path: "^packages/blueprint/src/(dom|react)/|(^|/)node_modules/(react|react-dom)/" },
+    },
+    {
+      // ... and it imports no Node module (`node:*`, `fs`…).
+      name: "blueprint-core-stays-neutral",
+      severity: "error",
+      from: { path: "^packages/blueprint/src/(core|examples)/" },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
       name: "ui-does-not-import-sdk",
       severity: "error",
       from: { path: "^packages/ui/" },
       to: { path: "^packages/(sdk|runtime|compiler)/" },
+    },
+    {
+      // The atoms render to static markup (Astro pages without JS, the console): from Blueprint they
+      // take the neutral core (the pixel face), never the canvas glue or its React layer, and from
+      // the icons the named exports, never the whole catalog.
+      name: "ui-atoms-stay-static",
+      severity: "error",
+      from: { path: "^packages/ui/" },
+      to: { path: "^packages/blueprint/src/(dom|react)/|^packages/icons/src/catalog\\.ts$" },
     },
     {
       // The registry has one door: `@forgeron/registry` (`src/index.ts`). Nothing outside the

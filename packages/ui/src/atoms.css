@@ -1,0 +1,590 @@
+/* Atoms of the lab language: values come from tokens/tokens.css, so a page that loads
+   tokens.css and this file can use every atom without the composite components. */
+
+.fg-sr,
+.fg-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus: one solid ring, in ember, on everything interactive. */
+:where(.fg-btn, .fg-link, .fg-input, .fg-check-input, .fg-select):focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* LED: a 6px square; the square marker of buttons and pins with tone="current". */
+.fg-led {
+  display: inline-block;
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background: var(--ink-dim);
+}
+.fg-led-success {
+  background: var(--success);
+}
+.fg-led-warning {
+  background: var(--warning);
+}
+.fg-led-danger {
+  background: var(--danger);
+}
+.fg-led-accent {
+  background: var(--accent);
+}
+.fg-led-current {
+  background: currentColor;
+}
+
+/* Button */
+.fg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 12px;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast);
+}
+.fg-btn:hover {
+  border-color: var(--ink);
+}
+.fg-btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+.fg-btn-lg {
+  height: 40px;
+  padding: 0 16px;
+}
+.fg-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.fg-btn-primary:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.fg-btn-ink {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.fg-btn-ink:hover {
+  background: var(--ink-muted);
+  border-color: var(--ink-muted);
+}
+.fg-btn-ghost {
+  border-color: transparent;
+}
+.fg-btn-ghost:hover {
+  border-color: transparent;
+  background: var(--bg-raised);
+}
+.fg-btn-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.fg-btn-danger:hover {
+  border-color: var(--danger);
+  background: var(--danger-subtle);
+}
+.fg-btn:disabled,
+.fg-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  background: transparent;
+  color: var(--ink-dim);
+  border-color: var(--line);
+}
+.fg-btn-kbd {
+  padding: 0 var(--space-1);
+  border: var(--border-width) solid currentColor;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0;
+  opacity: 0.6;
+}
+
+/* Link */
+.fg-link {
+  display: inline-flex;
+  gap: 8px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: color var(--motion-fast);
+}
+.fg-link:hover {
+  color: var(--accent);
+}
+
+/* Tag: [ Strong rest ] */
+.fg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fg-tag::before {
+  content: "[";
+  color: var(--ink-dim);
+}
+.fg-tag::after {
+  content: "]";
+  color: var(--ink-dim);
+}
+.fg-tag b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* Chip */
+.fg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-chip-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Badge and EnvTag: mono capitals; identifiers (mono) keep their case. */
+.fg-badge,
+.fg-env {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fg-badge-mono {
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.fg-badge-strong {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.fg-badge-success {
+  background: var(--success-subtle);
+  border-color: transparent;
+  color: var(--success);
+}
+.fg-badge-warning {
+  background: var(--warning-subtle);
+  border-color: transparent;
+  color: var(--warning);
+}
+.fg-badge-danger {
+  background: var(--danger-subtle);
+  border-color: transparent;
+  color: var(--danger);
+}
+/* The channel of a version is told by shape, not by tint. */
+.fg-env-production {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.fg-env-preview {
+  border-style: dashed;
+}
+.fg-env-channel {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.fg-env-preview .fg-env-mark,
+.fg-env-channel .fg-env-mark {
+  background: transparent;
+  border: var(--border-width) solid currentColor;
+}
+.fg-env-preview .fg-env-mark {
+  border-style: dashed;
+}
+
+/* Label: the eyebrow of a block (with text-eyebrow) */
+.fg-label-eyebrow {
+  color: var(--ink-muted);
+}
+
+/* Command: $ npx forgeron init */
+.fg-cmd {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 14px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-sunk);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.fg-cmd-inline {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 21px;
+}
+.fg-cmd-prompt {
+  color: var(--accent);
+}
+
+/* Icon */
+.fg-icon {
+  display: inline-block;
+  flex-shrink: 0;
+}
+.fg-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Logo */
+.fg-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+}
+.fg-logo-mark,
+.fg-logo-word {
+  display: block;
+}
+.fg-logo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Title: the pixel font, one pixel = 0.1em, so sizes step by 10px to keep every pixel whole. */
+.fg-title {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  font-synthesis: none;
+}
+.fg-title-hero {
+  font-size: 100px;
+}
+.fg-title-h2 {
+  font-size: 60px;
+}
+.fg-title-h3 {
+  font-size: 30px;
+}
+@media (max-width: 1100px) {
+  .fg-title-hero {
+    font-size: 80px;
+  }
+  .fg-title-h2 {
+    font-size: 50px;
+  }
+}
+@media (max-width: 760px) {
+  .fg-title-hero {
+    font-size: 50px;
+  }
+  .fg-title-h2 {
+    font-size: 40px;
+  }
+  .fg-title-h3 {
+    font-size: 20px;
+  }
+}
+@media (max-width: 400px) {
+  .fg-title-hero {
+    font-size: 40px;
+  }
+  .fg-title-h2 {
+    font-size: 30px;
+  }
+}
+
+/* PixelTitle: words drawn in SVG, 1em = 7 pixels. */
+.fg-pixel-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  margin: 0;
+  line-height: 1;
+}
+.fg-pixel-title-hero {
+  font-size: clamp(36px, 7vw, 98px);
+}
+.fg-pixel-title-h2 {
+  font-size: clamp(26px, 3.6vw, 49px);
+}
+.fg-pixel-title-h3 {
+  font-size: clamp(18px, 2.2vw, 28px);
+}
+.fg-pixel-title-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 0.57em;
+}
+.fg-pixel-title-line svg {
+  display: block;
+  width: auto;
+  height: 1em;
+}
+
+/* Avatar */
+.fg-avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  line-height: 1;
+}
+.fg-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Stat: a mono label, the figure, a hint */
+.fg-stat {
+  margin: 0;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+}
+.fg-stat-label {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.fg-stat-value {
+  margin: var(--space-2) 0 0;
+  font: 500 32px/40px var(--font-sans);
+  letter-spacing: -0.02em;
+}
+.fg-stat-hint {
+  margin: 0;
+  color: var(--ink-muted);
+  font: 400 13px/20px var(--font-sans);
+}
+
+/* Spinner */
+.fg-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+}
+.fg-spinner-mark {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  animation: fg-spin 0.9s linear infinite;
+}
+@keyframes fg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-spinner-mark {
+    animation-duration: 3s;
+  }
+}
+
+/* Skeleton */
+.fg-skeleton {
+  display: block;
+  width: 100%;
+  height: 14px;
+  background: linear-gradient(90deg, var(--line) 0%, var(--bg-raised) 50%, var(--line) 100%);
+  background-size: 200% 100%;
+  animation: fg-shimmer 1.4s ease-in-out infinite;
+}
+.fg-skeleton-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.fg-skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+@keyframes fg-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-skeleton {
+    animation: none;
+    background: var(--line);
+  }
+}
+
+/* Field, Input, Checkbox, Select: outlines in ink-dim, at least 3:1 on bg. */
+.fg-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.fg-field-label {
+  color: var(--ink);
+  font: 500 13px/20px var(--font-sans);
+}
+.fg-field-hint,
+.fg-field-error {
+  margin: 0;
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-field-hint {
+  color: var(--ink-muted);
+}
+.fg-field-error {
+  color: var(--danger);
+}
+.fg-input,
+.fg-select {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+  transition: border-color var(--motion-fast);
+}
+.fg-input {
+  width: 100%;
+}
+.fg-input::placeholder {
+  color: var(--ink-muted);
+}
+.fg-input:hover,
+.fg-select:hover {
+  border-color: var(--ink-muted);
+}
+.fg-input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+.fg-input:disabled,
+.fg-select:disabled {
+  cursor: not-allowed;
+  color: var(--ink-dim);
+  border-color: var(--line-strong);
+  background: var(--bg-raised);
+}
+.fg-input-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.fg-textarea {
+  height: auto;
+  min-height: 88px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+}
+.fg-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  cursor: pointer;
+}
+.fg-check-input {
+  appearance: none;
+  display: grid;
+  flex: none;
+  place-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: var(--border-width) solid var(--ink-dim);
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  cursor: pointer;
+}
+.fg-check-input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.fg-check-input:checked::after {
+  content: "";
+  width: 8px;
+  height: 4px;
+  margin-top: -2px;
+  border-left: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+  transform: rotate(-45deg);
+}
+.fg-check-input:disabled {
+  cursor: not-allowed;
+  border-color: var(--line-strong);
+}

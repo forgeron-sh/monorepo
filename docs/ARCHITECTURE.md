@@ -51,7 +51,9 @@ forgeron/
 │   ├── cli/                # `forgeron` binary: init, dev, play, build, deploy, db, secrets, tool commands
 │   ├── gateway/            # Public Worker: dispatch, identity, registry, admin MCP, platform API
 │   ├── console/            # Workspace console (React + Vite), served as assets by the gateway
-│   └── site/               # forgeron.app marketing site (Astro, React islands)
+│   ├── site/               # forgeron.app marketing site (Astro, React islands)
+│   ├── icon-gallery/       # dev gallery and coverage map of @forgeron/icons (Astro, React islands), not deployed
+│   └── font/               # font.forgeron.sh: specimen and downloads of the Forgeron Sans typeface (Astro, static)
 ├── packages/
 │   ├── sdk/                # @forgeron/sdk: defineConfig, action, on, schedule; subpaths db, react, testing
 │   ├── runtime/            # @forgeron/runtime: runs a tool in its Worker, serves MCP / API / CLI / Web
@@ -63,7 +65,9 @@ forgeron/
 │   ├── registry/           # @forgeron/registry: platform D1 schema (migrations) and typed access layer
 │   ├── playground/         # @forgeron/playground: the playground page, for `forgeron play` and /t/<tool>/play
 │   ├── scaffold/           # @forgeron/scaffold: the files of a new tool or marketplace, for `forgeron init` and the gateway (D-123)
-│   ├── ui/                 # @forgeron/ui: design system components and tokens
+│   ├── ui/                 # @forgeron/ui: design system atoms, components and tokens
+│   ├── blueprint/          # @forgeron/blueprint: pixel illustrations (iso scenes, dithered fields, Forge Sans), for the site
+│   ├── icons/              # @forgeron/icons: pixel icons, mono and duo, one named export per Hugeicons name and ours (drawing guide: docs/icons.md)
 │   ├── connector-google-workspace/  # @forgeron/connector-google-workspace
 │   ├── connector-microsoft-365/ # @forgeron/connector-microsoft-365: Microsoft Graph connector
 │   ├── connector-<name>/   # @forgeron/connector-<name> (later: slack, github…)
@@ -95,7 +99,9 @@ Templates live in the repository for a specific reason: they are the **SDK's int
 | `@forgeron/registry`          | Platform D1: schema migrations and typed access (tools, builds, versions, environments, approvals, template catalogue, encrypted secrets)                             | neutral                                    | `hosting`               |
 | `@forgeron/playground`        | The playground page (actions, generated forms, what MCP, API and CLI see), served by `forgeron play` and at `/t/<tool>/play`                                          | neutral                                    | none                    |
 | `@forgeron/scaffold`          | The files of a new tool or marketplace as pure functions (workflow, AGENTS.md, `docs/lifecycle.md`); bundled into the CLI, used by the gateway, not published (D-123) | neutral, no `node:*`                       | none                    |
-| `@forgeron/ui`                | React components aligned with `design-system.md`, tokens from `assets/design-system/tokens.json`                                                                      | browser                                    | `react` (peer)          |
+| `@forgeron/ui`                | React atoms (static markup) and composite components aligned with `design-system.md`, tokens from `assets/design-system/tokens.json`; `atoms.css` alone for a page    | browser                                    | `react` (peer)          |
+| `@forgeron/blueprint`         | Pixel illustrations for the site: iso 2:1 scenes (blocks, filters, SVG and canvas outputs), WebGL dithered fields, dithered images, Forge Sans, React layer           | neutral core; browser (`/dom`, `/react`)   | `react` (optional peer) |
+| `@forgeron/icons`             | One named export per icon (plain data, tree-shakeable), `toSvg`, the React `Icon` (`/react`), the catalog and manifest (`/catalog`); stubs for names not drawn yet    | neutral; browser (`/react`)                | `react` (optional peer) |
 | `@forgeron/connector-*`       | One third-party client per connector                                                                                                                                  | workerd                                    | `@forgeron/sdk` (types) |
 
 Design points:
@@ -109,12 +115,14 @@ Design points:
 
 ## The platform (`apps/`)
 
-| App       | Stack                                        | Hosting                                                           | Role                                                                                                                                                              |
-| --------- | -------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cli`     | Node, `@forgeron/sdk`, `compiler`, `hosting` | published on npm, run on a workstation or in CI                   | Tool lifecycle (`sdk.md` §5), platform installation in self-host, calling tool actions                                                                            |
-| `gateway` | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`, mapped hosts or workers.dev (D-126) | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
-| `console` | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members, teams and their permissions, access by team × action, secrets, resource approval, audit log, settings                 |
-| `site`    | Astro, React islands                         | Worker + static assets                                            | Marketing site, public documentation eventually                                                                                                                   |
+| App            | Stack                                        | Hosting                                                           | Role                                                                                                                                                              |
+| -------------- | -------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cli`          | Node, `@forgeron/sdk`, `compiler`, `hosting` | published on npm, run on a workstation or in CI                   | Tool lifecycle (`sdk.md` §5), platform installation in self-host, calling tool actions                                                                            |
+| `gateway`      | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`, mapped hosts or workers.dev (D-126) | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
+| `console`      | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members, teams and their permissions, access by team × action, secrets, resource approval, audit log, settings                 |
+| `site`         | Astro, React islands                         | Worker + static assets                                            | Marketing site, public documentation eventually                                                                                                                   |
+| `icon-gallery` | Astro, React islands, `@forgeron/icons`      | local only (`astro dev`, port 5179)                               | Gallery of `@forgeron/icons` (search, filters, detail, copy and download), its coverage map per category, the review sheet and the grid study of `docs/icons.md`  |
+| `font`         | Astro, no framework                          | Worker + static assets (`font.forgeron.sh`), local port 5180      | Specimen of Forgeron Sans read from its OTF files: construction plate, glyph set, sizes, usage, licence; `/playground` tester; downloads with checksums           |
 
 `apps/cli` is the only app published on npm: it runs on the developer's machine. It stays in `apps/` because it is a final executable that nothing imports.
 
@@ -229,7 +237,8 @@ Checked by `bun run deps` (dependency-cruiser, `.dependency-cruiser.cjs`) in CI.
 - `@forgeron/sdk` imports neither the compiler nor `hosting` (`sdk-stays-light`): a tool never ships a build or deployment tool;
 - `@forgeron/permissions` depends on no other package of the repository (`permissions-is-a-leaf`);
 - `@forgeron/manifest` depends on no other package of the repository but `permissions` (`manifest-is-a-leaf`);
-- `@forgeron/ui` does not import the SDK;
+- `@forgeron/ui` does not import the SDK, and takes only the neutral core of `@forgeron/blueprint` and the named exports of `@forgeron/icons`, never `dom/`, `react/` or the catalog (`ui-atoms-stay-static`);
+- `@forgeron/blueprint`'s core (`src/core/`, `src/examples/`) imports neither its `dom/` and `react/` layers nor React (`blueprint-core-is-framework-free`), nor a Node module (`blueprint-core-stays-neutral`);
 - the registry has one door, `@forgeron/registry` (`registry-door-is-index`): nothing outside the package imports a file under `packages/registry/src/` other than `index.ts`;
 - inside the registry, a module (`modules/<domain>/`) is imported through its `public.ts` only, by another module (`module-uses-public-api`) and by the rest of the package (`registry-root-uses-module-public-api`); the registry's `kernel/` imports no module (`kernel-is-generic`);
 - the gateway's `kernel/` (`Person`, `workspaceOf`) imports nothing else of the gateway (`gateway-kernel-is-a-leaf`); `dispatch/` and `pages/` never import `identity/` and `identity/` never imports `dispatch/` (`identity-is-below-dispatch-and-pages`, `identity-does-not-import-dispatch`): folder cycles that the file-level `no-cycles` cannot see;

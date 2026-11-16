@@ -7,7 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css",
+    "./atoms.css": "./src/atoms.css",
     "./tokens.css": "./tokens/tokens.css",
+    "./fonts/*": "./tokens/fonts/*",
     "./architecture-fixtures": "./src/architecture/fixtures.ts"
   },
   "scripts": {
@@ -15,6 +17,8 @@
     "tokens:check": "node tokens/build.mjs --check"
   },
   "dependencies": {
+    "@forgeron/blueprint": "workspace:*",
+    "@forgeron/icons": "workspace:*",
     "react-markdown": "10.1.0",
     "remark-gfm": "4.0.1"
   },

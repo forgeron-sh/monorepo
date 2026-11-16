@@ -1,2 +1,3 @@
 @import "../tokens/tokens.css";
+@import "./atoms.css";
 @import "./components.css";
