@@ -50,13 +50,6 @@ const layers = [
 const left = [4, 2, 0].map((i) => layers[i]!);
 const right = [3, 1].map((i) => layers[i]!);
 
-const heroScenes = [
-  { id: "hero-line", label: "Line" },
-  { id: "hero-pipeline", label: "Pipeline" },
-  { id: "hero-forge", label: "Forge" },
-  { id: "hero-gateway", label: "Gateway" },
-];
-
 /** A pixel Y, white on an orange square: the Y Combinator mark, redrawn in the bitmap face. */
 const ycMark = (() => {
   const y = ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."];
@@ -191,16 +184,7 @@ const resources = [
     <section id="top" class="rail hero-d">
       <figure class="hero-frame">
         <canvas class="hero-layer hero-bg" data-shader="field" data-px="4" data-accent="off" aria-hidden="true"></canvas>
-        <canvas id="hero-canvas" class="hero-layer" data-iso="hero-line" data-scale="2" data-unit="any" data-accent="off" data-labels="off" data-fill="0.94" aria-hidden="true"></canvas>
-        <div class="hero-switch" role="group" aria-label="Hero illustration">
-          {
-            heroScenes.map((h, i) => (
-              <button type="button" class="hero-switch-btn text-eyebrow" data-scene={h.id} aria-pressed={i === 0 ? "true" : "false"}>
-                {h.label}
-              </button>
-            ))
-          }
-        </div>
+        <canvas class="hero-layer" data-iso="hero-line" data-scale="2" data-unit="any" data-accent="off" data-labels="off" data-fill="0.94" aria-hidden="true"></canvas>
         <figcaption class="sr-only">An animated technical drawing of how Forgeron works.</figcaption>
       </figure>
       <div class="hero-d-body">
@@ -753,20 +737,6 @@ const resources = [
   for (const li of rows) {
     li.addEventListener("mouseenter", () => res?.select(Number(li.dataset.res)));
     li.addEventListener("mouseleave", () => res?.select(-1));
-  }
-</script>
-
-<script>
-  // Hero scene switcher: tells the canvas which scene to draw and marks the pressed button.
-  import { isoCanvas } from "../illustrations/canvas";
-
-  const hero = isoCanvas(document.getElementById("hero-canvas"));
-  const buttons = document.querySelectorAll<HTMLButtonElement>(".hero-switch-btn");
-  for (const b of buttons) {
-    b.addEventListener("click", () => {
-      hero?.show(b.dataset.scene ?? "");
-      for (const o of buttons) o.setAttribute("aria-pressed", String(o === b));
-    });
   }
 </script>
 
@@ -1538,38 +1508,6 @@ const resources = [
   .hero-bg {
     opacity: 0.14;
   }
-  .hero-switch {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    z-index: 2;
-    display: flex;
-    border: 1px solid var(--line-strong);
-    background: var(--bg);
-  }
-  .hero-switch-btn {
-    appearance: none;
-    border: 0;
-    border-right: 1px solid var(--line-strong);
-    background: transparent;
-    color: var(--ink-muted);
-    padding: 8px 12px;
-    cursor: pointer;
-  }
-  .hero-switch-btn:last-child {
-    border-right: 0;
-  }
-  .hero-switch-btn:hover {
-    color: var(--ink);
-  }
-  .hero-switch-btn[aria-pressed="true"] {
-    background: var(--ink);
-    color: var(--bg);
-  }
-  .hero-switch-btn:focus-visible {
-    outline: 1px solid var(--accent);
-    outline-offset: -3px;
-  }
   .yc-badge {
     display: inline-flex;
     align-items: center;
@@ -1591,14 +1529,5 @@ const resources = [
   }
   .hero-d-left {
     gap: 28px;
-  }
-  @media (max-width: 560px) {
-    .hero-switch {
-      top: 8px;
-      right: 8px;
-    }
-    .hero-switch-btn {
-      padding: 6px 8px;
-    }
   }
 </style>
