@@ -46,3 +46,36 @@ jobs:
           branch: \${{ github.event.ref }}${endpoint}
 `;
 }
+
+/** The `endpoint:` lines of a workflow: each is an address, with its quotes and trailing comment dropped. */
+const ENDPOINT_LINE = /^([ \t]*endpoint:[ \t]*)(["']?)([^\s"'#]+)\2([ \t]*(?:#.*)?)$/gm;
+
+/** The origin of an address (`https://acme.example.com/x` → `https://acme.example.com`), or `undefined`. */
+const originOf = (address: string): string | undefined =>
+  /^https?:\/\/[^/?#\s]+/i.exec(address)?.[0]?.toLowerCase();
+
+/** The platforms a workflow deploys to: the distinct origins of its `endpoint:` lines (D-147). */
+export function workflowEndpoints(text: string): string[] {
+  const found = new Set<string>();
+  for (const match of text.matchAll(ENDPOINT_LINE)) {
+    const origin = originOf(match[3]!);
+    if (origin) found.add(origin);
+  }
+  return [...found];
+}
+
+/**
+ * The workflow with every `endpoint:` line that names another platform pointed at `endpoint` (D-147).
+ * Nothing else changes: the lines that already name it, the quotes and the comments stay as they are.
+ */
+export function retargetWorkflow(text: string, endpoint: string): string {
+  const target = originOf(endpoint);
+  if (!target) return text;
+  return text.replace(
+    ENDPOINT_LINE,
+    (line, before: string, _q: string, address: string, after: string) =>
+      originOf(address) === undefined || originOf(address) === target
+        ? line
+        : `${before}${target}${after}`,
+  );
+}

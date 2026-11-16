@@ -24,6 +24,8 @@ export interface GithubRepository {
   forgeron: boolean;
   workflow: boolean;
   tool: string | null;
+  /** Another platform its workflow deploys to, or `null` (D-147). */
+  deployedOn: string | null;
 }
 
 export const loadGithub = async (api: Api): Promise<GithubStatus> =>
@@ -34,7 +36,13 @@ export const loadGithubRepositories = async (api: Api): Promise<GithubRepository
 
 export const linkGithubRepository = async (
   api: Api,
-  input: { repo: string; name: string; productionBranch?: string; addWorkflow?: boolean },
+  input: {
+    repo: string;
+    name: string;
+    productionBranch?: string;
+    addWorkflow?: boolean;
+    otherPlatform?: "link" | "pull-request";
+  },
 ) => ok(await typedSender(api.sendJson)(addresses.linkGithubRepository, { json: input }));
 
 export const createGithubTool = async (

@@ -58,6 +58,11 @@ export const GithubRepositorySchema = z.strictObject({
   workflow: z.boolean(),
   /** The workspace's tool that comes from it, or `null`. */
   tool: z.string().nullable(),
+  /**
+   * Another platform its workflow deploys to (the `endpoint` it names, when it is not this
+   * workspace's), or `null` (D-147).
+   */
+  deployedOn: z.string().nullable(),
 });
 
 export const getGithubRoute = defineRoute({
@@ -115,6 +120,12 @@ export const linkGithubRepositoryRoute = defineRoute({
         productionBranch: branchName.optional(),
         /** Commits `.github/workflows/forgeron.yml` when the repository has none. */
         addWorkflow: z.boolean().optional(),
+        /**
+         * What to do when the repository's workflow deploys to another platform (D-147). Without it the
+         * repository is not linked (`DEPLOYED_ELSEWHERE`). `link` connects it and leaves the workflow;
+         * `pull-request` connects it and opens a pull request that points the workflow here.
+         */
+        otherPlatform: z.enum(["link", "pull-request"]).optional(),
       }),
     ),
   },
@@ -126,6 +137,12 @@ export const linkGithubRepositoryRoute = defineRoute({
         productionBranch: z.string(),
         /** What was done about the workflow. */
         workflow: z.enum(["added", "present", "missing"]),
+        /** The other platform its workflow still deploys to, or `null`. */
+        deployedOn: z.string().nullable(),
+        /** The pull request that points the workflow here (`otherPlatform: "pull-request"`), or `null`. */
+        pullRequest: z.string().nullable(),
+        /** Why that pull request was not opened, or `null`. The tool is linked either way. */
+        pullRequestError: z.string().nullable(),
       }),
       "The tool",
     ),
@@ -133,7 +150,10 @@ export const linkGithubRepositoryRoute = defineRoute({
     401: notSignedIn,
     403: notAdmin,
     404: json(ErrorSchema, "No app (`NOT_CONNECTED`), or a repository it may not see"),
-    409: json(ErrorSchema, "The workspace already has that tool, or the repository is linked"),
+    409: json(
+      ErrorSchema,
+      "The workspace already has that tool, the repository is linked, or its workflow deploys to another platform (`DEPLOYED_ELSEWHERE`: nothing was done; say what to do with `otherPlatform`)",
+    ),
     502: json(ErrorSchema, "GitHub refused (`GITHUB`)"),
   },
 });

@@ -80,14 +80,28 @@ function AppRepositoryDialog({
   const [addWorkflow, setAddWorkflow] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [added, setAdded] = useState<{ tool: string; workflow: string }>();
+  const [otherPlatform, setOtherPlatform] = useState<"" | "link" | "pull-request">("");
+  const [added, setAdded] = useState<{
+    tool: string;
+    workflow: string;
+    deployedOn: string | null;
+    pullRequest: string | null;
+    pullRequestError: string | null;
+  }>();
 
   const choose = (repo: GithubRepository) => {
     setChosen(repo);
+    setOtherPlatform("");
     setName(toolNameOf(repo.repo));
     setBranch(repo.defaultBranch);
   };
-  const valid = !!chosen && NAME.test(name) && branch.trim() !== "";
+  // A repository whose CI deploys to another platform: the admin decides, nothing is preselected (D-147).
+  const elsewhere = chosen?.deployedOn ?? null;
+  const valid =
+    !!chosen &&
+    NAME.test(name) &&
+    branch.trim() !== "" &&
+    (elsewhere === null || otherPlatform !== "");
   const submit = async () => {
     if (!chosen) return;
     setBusy(true);
@@ -98,8 +112,15 @@ function AppRepositoryDialog({
         name,
         productionBranch: branch.trim(),
         ...(chosen.workflow ? {} : { addWorkflow }),
+        ...(elsewhere && otherPlatform ? { otherPlatform } : {}),
       });
-      setAdded({ tool: done.tool, workflow: done.workflow });
+      setAdded({
+        tool: done.tool,
+        workflow: done.workflow,
+        deployedOn: done.deployedOn,
+        pullRequest: done.pullRequest,
+        pullRequestError: done.pullRequestError,
+      });
       onAdded();
     } catch (e) {
       setError(explain(e, "The tool was not added. Try again."));
@@ -120,7 +141,23 @@ function AppRepositoryDialog({
           </Button>
         }
       >
-        {added.workflow === "missing" ? (
+        {added.deployedOn ? (
+          added.pullRequest ? (
+            <Notice tone="warning" title={`Its workflow still deploys to ${added.deployedOn}`}>
+              Merge{" "}
+              <a href={added.pullRequest} target="_blank" rel="noreferrer">
+                the pull request
+              </a>{" "}
+              to point it here. Until then its pushes go to the other platform.
+            </Notice>
+          ) : (
+            <Notice tone="warning" title={`Its workflow still deploys to ${added.deployedOn}`}>
+              {added.pullRequestError ?? "Its workflow was left as it is."} Change the{" "}
+              <code>endpoint</code> of <code>.github/workflows/forgeron.yml</code> to this
+              workspace&apos;s address for its pushes to deploy here.
+            </Notice>
+          )
+        ) : added.workflow === "missing" ? (
           <Notice tone="warning" title="The repository has no Forgeron workflow">
             Add <code>.github/workflows/forgeron.yml</code>, as <code>forgeron init</code> writes
             it, for its pushes to deploy.
@@ -212,6 +249,28 @@ function AppRepositoryDialog({
               />
             )}
           </Field>
+          {elsewhere ? (
+            <>
+              <Notice tone="warning" title={`${chosen.repo} deploys to another platform`}>
+                Its workflow names <code>{elsewhere}</code>: its pushes keep going there, not to
+                this workspace. Decide what to do before connecting it.
+              </Notice>
+              <Field label="What to do with its workflow">
+                {(control) => (
+                  <Select
+                    {...control}
+                    value={otherPlatform}
+                    onChange={(e) => setOtherPlatform(e.target.value as typeof otherPlatform)}
+                    options={[
+                      { value: "", label: "Choose…" },
+                      { value: "pull-request", label: "Open a pull request that points it here" },
+                      { value: "link", label: "Connect it and leave the workflow as it is" },
+                    ]}
+                  />
+                )}
+              </Field>
+            </>
+          ) : null}
           {chosen.workflow ? null : (
             <Checkbox
               label="Add the Forgeron workflow to the repository"
