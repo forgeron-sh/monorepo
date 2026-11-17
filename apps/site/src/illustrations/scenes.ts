@@ -4,6 +4,9 @@
  * the package's reference scenes. Faint lines are scenery: they never drive the framing (the old
  * engine skipped them when fitting), which `framed` states with `decor`.
  */
+import { machine } from "./machine";
+import { village } from "./village";
+import { arm, block, fan, rack, tray, wheel as wheel2, Z } from "./parts";
 import {
   type Block,
   examples,
@@ -357,6 +360,266 @@ const BUILDS: Record<string, (t: number, active: number) => Block[]> = {
         : { kind: "box", at: [22, 0, 0], size: [8, 8, 1.4], ghost: true },
     ];
   },
+  /**
+   * Hero · the cell: one tool after another, through an automated cell. Commits drop in, an arm
+   * inspects them, an indexing table builds (press) and tests (scan) them, a gantry ships them,
+   * an arm labels them, and a sorter hands each one to one of the four interfaces, under a rack
+   * row whose trays carry packets. One slow beat drives it all; motions ease and never bounce.
+   */
+  "hero-cell"(t) {
+    const B = 1.25;
+    const n = Math.floor(t / B);
+    const f = t / B - n;
+    const MOVE = 0.42;
+    const glide = (k: number) => {
+      const q = Math.min(1, Math.max(0, k));
+      return q * q * q * (q * (q * 6 - 15) + 10);
+    };
+    /** Steps taken at age `a` (in beats): whole beats, each eased over the first part of the beat. */
+    const steps = (a: number) => Math.floor(a) + glide((a - Math.floor(a)) / MOVE);
+    const shapes: Block[] = [...floorGrid(-40, 40, -60, 50, 4)];
+    const line = (a: Vec3, b: Vec3, ink: Ink = "ink", dash = 0): Block =>
+      dash ? { kind: "line", a, b, ink, dash } : { kind: "line", a, b, ink };
+
+    /** A wheel in the horizontal plane (`h`) or in the plane x = const (`v`), with teeth or spokes. */
+    const wheel = (
+      c: Vec3,
+      r: number,
+      plane: "h" | "v",
+      angle: number,
+      opts: { teeth?: number; spokes?: number; ink?: Ink; hub?: number } = {},
+    ) => {
+      const P = (rad: number, a: number): Vec3 =>
+        plane === "h"
+          ? [c[0] + Math.cos(a) * rad, c[1] + Math.sin(a) * rad, c[2]]
+          : [c[0], c[1] + Math.cos(a) * rad, c[2] + Math.sin(a) * rad];
+      const ink = opts.ink ?? "ink";
+      const seg = Math.max(18, Math.round(r * 7));
+      for (let k = 0; k < seg; k++) {
+        const a0 = (k / seg) * Math.PI * 2;
+        const a1 = ((k + 1) / seg) * Math.PI * 2;
+        shapes.push(line(P(r, a0), P(r, a1), ink));
+      }
+      for (let k = 0; k < (opts.teeth ?? 0); k++) {
+        const a = angle + (k / opts.teeth!) * Math.PI * 2;
+        shapes.push(line(P(r, a), P(r + 0.55, a), ink));
+      }
+      for (let k = 0; k < (opts.spokes ?? 0); k++) {
+        const a = angle + (k / opts.spokes!) * Math.PI * 2;
+        shapes.push(line(P(opts.hub ?? 0.4, a), P(r, a), "dim"));
+      }
+      if (opts.hub) {
+        for (let k = 0; k < 10; k++)
+          shapes.push(
+            line(
+              P(opts.hub, (k / 10) * Math.PI * 2),
+              P(opts.hub, ((k + 1) / 10) * Math.PI * 2),
+              "dim",
+            ),
+          );
+      }
+    };
+
+    // Back row: racks with status lights and fans, cable trays carrying packets over the line.
+    for (let k = 0, y = -36; y <= 30; y += 3.4, k++) {
+      const h = rack(shapes, -12, y, t, k);
+      if (k % 3 === 1) fan(shapes, [-12, y, h + 0.1], 1.1, t * 3 + k);
+    }
+    tray(shapes, [-9.5, -36, 13], [-9.5, 30, 13], t, 3, 12);
+    tray(shapes, [-9, 20, 12], [-2, 20, 12], t, 2, 2);
+    tray(shapes, [-9, -30, 12], [-2, -30, 12], t, 2, 2);
+    shapes.push(line([-2, 20, 12], [-2, 20, 6.5], "dim", 2));
+    shapes.push(line([-2, -30, 12], [-2, -30, 2], "dim", 2));
+    // Inspection arm on the intake: it rides along with a commit, then comes back for the next.
+    {
+      const k = f < 0.42 ? glide(f / 0.42) : 1 - glide((f - 0.5) / 0.45);
+      arm(shapes, [-6, 25, 0], [0, 28 - 5 * k, 3.6], 5, 5);
+    }
+
+    // Commits drop from the hopper onto the intake belt.
+    const C: [number, number] = [0, 8];
+    const RN = 4.6;
+    shapes.push({ kind: "box", at: [-1.8, 31.2, 6], size: [3.6, 3.6, 3.4], floors: 1.1 });
+    shapes.push({ kind: "box", at: [-1.2, 31.8, 4.8], size: [2.4, 2.4, 1.2] });
+    const belt = (x: number, y0: number, y1: number, phase: number) => {
+      shapes.push(
+        line([x - 1.5, y0, 0.6], [x - 1.5, y1, 0.6]),
+        line([x + 1.5, y0, 0.6], [x + 1.5, y1, 0.6]),
+      );
+      for (let y = Math.min(y0, y1); y <= Math.max(y0, y1); y += 2)
+        shapes.push(line([x - 1.5, y + phase, 0.6], [x + 1.5, y + phase, 0.6], "faint"));
+    };
+    const roll = (steps(t / B) * 2) % 2;
+    belt(0, 34, 14.4, -roll);
+
+    // The indexing table: it turns a sixth per beat; nests carry the work round.
+    const spin = -steps(t / B) * (Math.PI / 3);
+    shapes.push({ kind: "box", at: [C[0] - 1.5, C[1] - 1.5, 0], size: [3, 3, 0.8] });
+    wheel([C[0], C[1], 1], 6.2, "h", spin, { teeth: 24 });
+    wheel([C[0], C[1], 0.2], 6.2, "h", 0, { ink: "dim" });
+    wheel([C[0], C[1], 1.05], 1.3, "h", spin, { spokes: 6, hub: 0.3 });
+    for (let k = 0; k < 6; k++) {
+      const a = Math.PI / 2 + spin + (k * Math.PI) / 3;
+      const x = C[0] + Math.cos(a) * RN;
+      const y = C[1] + Math.sin(a) * RN;
+      shapes.push({ kind: "box", at: [x - 1.2, y - 1.2, 1], size: [2.4, 2.4, 0.3], ghost: true });
+    }
+    const at = (deg: number): [number, number] => [
+      C[0] + Math.cos((deg * Math.PI) / 180) * RN,
+      C[1] + Math.sin((deg * Math.PI) / 180) * RN,
+    ];
+    const dwell = (lo: number, hi: number) =>
+      f > lo && f < hi ? Math.sin(((f - lo) / (hi - lo)) * Math.PI) : 0;
+
+    // Build: a press over the first station.
+    {
+      const [x, y] = at(30);
+      shapes.push({ kind: "box", at: [x + 3.4, y - 1, 0], size: [2, 2, 10], floors: 2.5 });
+      shapes.push({ kind: "box", at: [x - 1, y - 0.8, 9], size: [5.4, 1.6, 1.2] });
+      const press = dwell(0.5, 0.9);
+      shapes.push(line([x, y, 9], [x, y, 6.6 - press * 3.2], "dim"));
+      shapes.push({ kind: "box", at: [x - 1.3, y - 1.3, 5.6 - press * 3.2], size: [2.6, 2.6, 1] });
+    }
+    // Test: a scanner over the second station; its beam reads the part, then lets it go.
+    const scan = dwell(0.5, 0.9);
+    {
+      const [x, y] = at(-30);
+      shapes.push({ kind: "box", at: [x + 3.4, y - 1, 0], size: [2, 2, 8], floors: 2 });
+      shapes.push({ kind: "box", at: [x - 1, y - 0.6, 7.4], size: [5.4, 1.2, 0.8] });
+      shapes.push({ kind: "box", at: [x - 0.8, y - 0.8, 6.4], size: [1.6, 1.6, 1] });
+      if (scan > 0.05) {
+        const sweep = (f - 0.5) / 0.4;
+        shapes.push(line([x, y, 6.4], [x - 1 + sweep * 2, y - 1, 1.9], "signal"));
+        shapes.push(line([x, y, 6.4], [x - 1 + sweep * 2, y + 1, 1.9], "signal"));
+      }
+    }
+
+    // Ship: a gantry lifts each tested tool over the drive train onto the outbound belt.
+    const gy0 = at(-90)[1];
+    const gy1 = -11;
+    for (const y of [-1.5, -14]) {
+      shapes.push({ kind: "box", at: [-3.8, y - 0.5, 0], size: [1, 1, 11], floors: 2.75 });
+      shapes.push({ kind: "box", at: [2.8, y - 0.5, 0], size: [1, 1, 11], floors: 2.75 });
+      shapes.push({ kind: "box", at: [-3.8, y - 0.5, 11], size: [7.6, 1, 0.8] });
+    }
+    shapes.push({ kind: "box", at: [-0.5, -14, 11.8], size: [1, gy0 - -14 + 1.5, 0.7] });
+    // Carriage course over one beat: down, up, across, down, up, back.
+    const seg = (lo: number, hi: number) => glide((f - lo) / (hi - lo));
+    let cy = gy0;
+    let cz = 9;
+    if (f < 0.42) cz = 9;
+    else if (f < 0.5) cz = 9 - 7.1 * seg(0.42, 0.5);
+    else if (f < 0.58) cz = 1.9 + 7.1 * seg(0.5, 0.58);
+    else if (f < 0.76) {
+      cz = 9;
+      cy = gy0 + (gy1 - gy0) * seg(0.58, 0.76);
+    } else if (f < 0.82) {
+      cy = gy1;
+      cz = 9 - 7.1 * seg(0.76, 0.82);
+    } else if (f < 0.88) {
+      cy = gy1;
+      cz = 1.9 + 7.1 * seg(0.82, 0.88);
+    } else cy = gy1 + (gy0 - gy1) * seg(0.88, 1);
+    shapes.push({ kind: "box", at: [-1, cy - 1, 12.5], size: [2, 2, 1] });
+    shapes.push(line([0, cy, 12.5], [0, cy, cz + 0.8], "dim"));
+    shapes.push({ kind: "box", at: [-0.9, cy - 0.9, cz], size: [1.8, 1.8, 0.8] });
+
+    // Outbound belt, then the sorter and the four interfaces.
+    belt(0, -9, -26, roll);
+    const lanes = [-7.5, -2.5, 2.5, 7.5];
+    const SY = -28;
+    const DY = -42;
+    for (const lx of lanes) {
+      shapes.push(line([0, SY, 0.6], [lx, DY + 2, 0.6], "dim", 2));
+      shapes.push({ kind: "box", at: [lx - 1.6, DY - 0.6, 0], size: [3.2, 1.2, 0.6], plate: true });
+      shapes.push({ kind: "box", at: [lx - 1.6, DY - 0.6, 0.6], size: [0.6, 1.2, 5] });
+      shapes.push({ kind: "box", at: [lx + 1, DY - 0.6, 0.6], size: [0.6, 1.2, 5] });
+      shapes.push({ kind: "box", at: [lx - 1.6, DY - 0.6, 5.6], size: [3.2, 1.2, 0.8] });
+    }
+    shapes.push({ kind: "box", at: [-1.4, SY - 1.4, 0], size: [2.8, 2.8, 0.6], plate: true });
+    {
+      const lane = (k: number) => lanes[((k % 4) + 4) % 4]!;
+      const current = n - 14;
+      const from = Math.atan2(DY - SY, lane(current - 1));
+      const to = Math.atan2(DY - SY, lane(current));
+      const a = from + (to - from) * glide(f / MOVE);
+      shapes.push(line([0, SY, 0.9], [Math.cos(a) * 4.2, SY + Math.sin(a) * 4.2, 0.9], "ink"));
+      shapes.push({
+        kind: "dot",
+        at: [Math.cos(a) * 4.2, SY + Math.sin(a) * 4.2, 0.9],
+        ink: "ink",
+        size: 2,
+      });
+    }
+
+    // Labelling arm on the outbound belt, and an antenna by the doors.
+    {
+      const k = dwell(0.5, 0.9);
+      arm(shapes, [6.5, -17, 0], [0, -19, 4 - k * 2.2], 5, 5);
+      shapes.push(line([13, -46, 0], [13, -46, 12]));
+      const yaw = t * 0.35;
+      const e1: Vec3 = [Math.cos(yaw), Math.sin(yaw), 0];
+      const nrm: Vec3 = [-Math.sin(yaw), Math.cos(yaw), 0];
+      wheel2(shapes, [13, -46, 13.5], 2.4, e1, Z, 0, { spokes: 4, hub: 0.3 });
+      shapes.push(line([13, -46, 13.5], [13 + nrm[0] * 2, -46 + nrm[1] * 2, 13.5]));
+      block(shapes, [10, -36, 0], [2.4, 1.2, 3], { floors: 1 });
+      block(shapes, [10, -36, 3], [2.8, 0.4, 2], { ghost: true });
+    }
+
+    // The tools themselves: item i enters at beat i and is a pure function of its age in beats.
+    for (let i = n - 17; i <= n; i++) {
+      const a = t / B - i;
+      if (a < 0) continue;
+      const k = a - Math.floor(a);
+      let p: Vec3 | null = null;
+      if (a < 1) p = [0, 33, 0.8 + 4 * (1 - glide(k / 0.6))];
+      else if (a < 4) p = [0, 33 - 5 * (steps(a) - 1) - 0, 0.8];
+      else if (a < 5) {
+        const y0 = 18;
+        const y1 = at(90)[1];
+        p = [0, y0 + (y1 - y0) * glide((k - 0.45) / 0.4), 0.8 + 0.5 * glide((k - 0.45) / 0.4)];
+      } else if (a < 9) {
+        const deg = 90 - 60 * Math.min(3, steps(a - 5));
+        const [x, y] = at(deg);
+        p = [x, y, 1.3];
+        if (a >= 8 && k >= 0.5) {
+          if (k < 0.58) p = [0, gy0, cz - 0.6];
+          else if (k < 0.82) p = [0, cy, cz - 0.6];
+          else p = [0, gy1, 0.8];
+        }
+      } else if (a < 13) p = [0, gy1 - 4 * steps(a - 9) * (15 / 16), 0.8];
+      else if (a < 14) p = [0, gy1 - 15 + (SY - gy1 + 15) * glide(k / MOVE), 0.8];
+      else if (a < 15.5) {
+        const lx = lanes[((i % 4) + 4) % 4]!;
+        const q = glide((a - 14) / 1.4);
+        p = [lx * q, SY + (DY + 1 - SY) * q, 0.8];
+      }
+      if (!p) continue;
+      const built = a > 6.75;
+      const tested = a > 7.75;
+      const size: Vec3 = built ? [2, 2, 0.6] : [1.6, 1.6, 1.6];
+      shapes.push({
+        kind: "box",
+        at: [p[0] - size[0] / 2, p[1] - size[1] / 2, p[2]],
+        size,
+        plate: built,
+        signal: tested,
+      });
+    }
+    // A door lights when a tool goes through it.
+    for (let i = n - 17; i <= n; i++) {
+      const a = t / B - i;
+      if (a >= 15.3 && a < 15.9) {
+        const lx = lanes[((i % 4) + 4) % 4]!;
+        shapes.push({ kind: "box", at: [lx - 1, DY - 0.4, 0.6], size: [2, 0.8, 5], signal: true });
+      }
+    }
+    return shapes;
+  },
+  /** The machine: a very complex mechanism that does nothing (/machine). */
+  machine: (t) => machine(t),
+  /** The ERP village of the home page opening, driven by the scroll (`villageStore`). */
+  "erp-village": (t) => village(t),
   /** Hero · the line: three tools forged in parallel, from the repository to production, in seven stations. */
   "hero-line"(t) {
     const D = 9;

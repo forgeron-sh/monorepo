@@ -50,13 +50,44 @@ const layers = [
 const left = [4, 2, 0].map((i) => layers[i]!);
 const right = [3, 1].map((i) => layers[i]!);
 
-/** Hero directions to compare: three flat scenes, and the isometric line as the reference. */
-const heroScenes = [
-  { id: "vulcan", label: "Vulcan", kind: "flat" },
-  { id: "workshop", label: "3 a.m.", kind: "flat" },
-  { id: "erp", label: "Wild ERP", kind: "flat" },
-  { id: "hero-line", label: "Iso", kind: "iso" },
+/** The opening's captions, one per step of the story (ranges in `STEPS`, illustrations/village.ts). */
+const sagaSteps: { step: string; title: string; pos: "top" | "tl" | "tr" | "bl" | "br" }[] = [
+  { step: "intro", title: "Anatomy of a fall.", pos: "tr" },
+  { step: "complex", title: "It does everything, all at once, and none of it is simple.", pos: "tl" },
+  { step: "unfit", title: "None of it fits the way you work, and every module is billed.", pos: "tr" },
+  { step: "excel", title: "So the real work moves to spreadsheets next door.", pos: "tl" },
+  { step: "tinker", title: "It tinkers to catch up: custom patches, nailed on wherever it hurts.", pos: "bl" },
+  { step: "upgrade", title: "Then every upgrade is a building site, and the patches do not survive it.", pos: "bl" },
+  { step: "generic", title: "It goes generic, and every need becomes a gas factory.", pos: "tl" },
+  { step: "plug", title: "It plugs into twenty thousand services, give or take.", pos: "bl" },
+  { step: "ai", title: "Everyone else has AI. Here, half of it is plugged in, and that half misfires.", pos: "tl" },
+  { step: "lockin", title: "And once you are in, you are fenced in: your data has no way out.", pos: "br" },
+  { step: "support", title: "Every question it cannot answer becomes one more ticket on the pile.", pos: "br" },
+  { step: "boom", title: "Until the whole thing blows.", pos: "bl" },
 ];
+
+/** The opening's table of contents: a short name per step, in the story's order. */
+const sagaToc: { step: string; name: string }[] = [
+  { step: "intro", name: "The village" },
+  { step: "complex", name: "Complexity" },
+  { step: "unfit", name: "Your bank account" },
+  { step: "excel", name: "Shadow Excel" },
+  { step: "tinker", name: "Custom patches" },
+  { step: "upgrade", name: "Upgrades" },
+  { step: "generic", name: "Gas factory" },
+  { step: "plug", name: "Connectors" },
+  { step: "ai", name: "AI" },
+  { step: "lockin", name: "Vendor lock-in" },
+  { step: "support", name: "Support" },
+  { step: "boom", name: "Explosion" },
+];
+
+/**
+ * Who uses Forgeron, shown in a band before the system section. Real names only: leave the list
+ * empty rather than invent one; empty slots render as hatched cells until it is filled.
+ */
+const users: string[] = [];
+const userSlots = 4;
 
 /** A pixel Y, white on an orange square: the Y Combinator mark, redrawn in the bitmap face. */
 const ycMark = (() => {
@@ -189,22 +220,46 @@ const resources = [
 
   <main>
     <!-- HERO: banner image, then title and call to action -->
-    <section id="top" class="rail hero-d">
-      <figure class="hero-frame" data-mode="flat">
-        <canvas class="hero-layer hero-bg" data-shader="field" data-px="4" data-accent="off" aria-hidden="true"></canvas>
-        <canvas id="hero-canvas" class="hero-layer" data-iso="hero-line" data-scale="2" data-unit="any" data-accent="off" data-labels="off" data-fill="0.94" aria-hidden="true"></canvas>
-        <canvas id="hero-flat" class="hero-layer" aria-hidden="true"></canvas>
-        <div class="hero-switch" role="group" aria-label="Hero illustration">
+    <section id="top" class="saga">
+      <div class="saga-stage">
+        <figure class="saga-screen">
+          <canvas class="saga-bg" data-shader="field" data-px="4" data-accent="off" aria-hidden="true"></canvas>
+          <div class="saga-cam">
+            <canvas data-iso="erp-village" data-scale="2" data-unit="any" data-fill="0.98" data-signal="--success" aria-hidden="true"></canvas>
+          </div>
+          <figcaption class="sr-only">
+            An island of absurd machines around an ERP: a slot machine eating your bank account, a CRM wheel throwing
+            contacts away, a support tank under pressure. As you scroll, the ERP tinkers, goes generic, plugs into
+            everything, explodes, and the village burns.
+          </figcaption>
+        </figure>
+        <canvas class="saga-burn" aria-hidden="true"></canvas>
+        <p class="saga-live text-eyebrow"><span class="saga-dot" aria-hidden="true"></span>Live</p>
+        <button type="button" class="saga-skip text-eyebrow">Skip intro</button>
+        <nav class="saga-toc" aria-label="Chapters">
+          <ol>
+            {
+              sagaToc.map((c, i) => (
+                <li hidden={i > 0}>
+                  <button type="button" data-goto={c.step}>
+                    <span class="saga-toc-n">{String(i + 1).padStart(2, "0")}</span>
+                    {c.name}
+                  </button>
+                </li>
+              ))
+            }
+          </ol>
+        </nav>
+        <ol class="saga-captions">
           {
-            heroScenes.map((h, i) => (
-              <button type="button" class="hero-switch-btn text-eyebrow" data-scene={h.id} data-kind={h.kind} aria-pressed={i === 0 ? "true" : "false"}>
-                {h.label}
-              </button>
+            sagaSteps.map((c) => (
+              <li data-step={c.step} data-pos={c.pos} hidden={c.step !== "intro"}>
+                <Title as="h2" size="h2">{c.title}</Title>
+              </li>
             ))
           }
-        </div>
-        <figcaption class="sr-only">An animated pixel illustration of a forge.</figcaption>
-      </figure>
+        </ol>
+        <div class="saga-hero rail hero-d">
       <div class="hero-d-body">
         <div class="hero-d-left">
           <span class="yc-badge text-eyebrow">
@@ -230,6 +285,25 @@ const resources = [
             <Command framed={false}>npx forgeron init</Command>
             <Button href="#start" size="lg" variant="primary" marker>Get started</Button>
           </div>
+        </div>
+      </div>
+      <!-- USED BY: a band of names, in the style of the font site's facts strip, closing the hero -->
+    <section class="users" aria-label="Who uses Forgeron">
+      <ul class="bento users-row">
+        <li class="cell ticks user-lead"><span class="text-eyebrow dim">Forging at</span></li>
+        {
+          Array.from({ length: userSlots }, (_, i) => users[i]).map((name) =>
+            name ? (
+              <li class="cell ticks user">
+                <span class="user-name">{name}</span>
+              </li>
+            ) : (
+              <li class="cell user user-empty" aria-hidden="true" />
+            ),
+          )
+        }
+      </ul>
+    </section>
         </div>
       </div>
     </section>
@@ -744,6 +818,316 @@ const resources = [
 </script>
 
 <script>
+  // Opening: the scroll drives the village's story, the captions, and the final shrink that hands
+  // the screen back to the navigation and the hero.
+  import { FOCUS, FRAME, STEPS, villageStore } from "../illustrations/village";
+
+  const saga = document.querySelector<HTMLElement>(".saga");
+  const stage = saga?.querySelector<HTMLElement>(".saga-stage");
+  const nav = document.querySelector<HTMLElement>(".nav");
+  const hero = stage?.querySelector<HTMLElement>(".saga-hero");
+  const screenEl = stage?.querySelector<HTMLElement>(".saga-screen");
+  const captions = [...(stage?.querySelectorAll<HTMLElement>("[data-step]") ?? [])];
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+
+  // Captions come and go through a black-and-white corruption: a 4×4 Bayer mask switches their
+  // pixels on (or off) level by level, while whole rows of the text jolt sideways and flicker
+  // between ink and dim. No fade: every pixel is on or off.
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  const masks = Array.from({ length: 17 }, (_, level) => {
+    let d = "";
+    BAYER.forEach((v, i) => {
+      if (v < level) d += `M${(i % 4) * 4} ${Math.floor(i / 4) * 4}h4v4h-4z`;
+    });
+    return `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'><path d='${d || "M0 0"}' fill='${d ? "#000" : "none"}'/></svg>`)}")`;
+  });
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const bayerPath = (level: number) => {
+    let d = "";
+    BAYER.forEach((v, i) => {
+      if (v < level) d += `M${(i % 4) * 4} ${Math.floor(i / 4) * 4}h4v4h-4z`;
+    });
+    return d || "M0 0";
+  };
+  type Rect = { l: number; t: number; r: number; b: number };
+  // The mask of the burning village: solid inside, then a ring at 11/16 and a ring at 5/16.
+  const burnMask = (w: number, h: number, R: Rect, fringe: boolean) => {
+    const F = 16;
+    const ring = (o: number, id: string) => {
+      const l = R.l + o;
+      const t = R.t + o;
+      const r = R.r - o;
+      const b = R.b - o;
+      const fill = `fill='url(#${id})'`;
+      const tall = Math.max(0, b - t - 2 * F);
+      return `<rect x='${l}' y='${t}' width='${r - l}' height='${F}' ${fill}/><rect x='${l}' y='${b - F}' width='${r - l}' height='${F}' ${fill}/><rect x='${l}' y='${t + F}' width='${F}' height='${tall}' ${fill}/><rect x='${r - F}' y='${t + F}' width='${F}' height='${tall}' ${fill}/>`;
+    };
+    const inset = fringe ? 2 * F : 0;
+    const pattern = (id: string, level: number) =>
+      `<pattern id='${id}' width='16' height='16' patternUnits='userSpaceOnUse'><path d='${bayerPath(level)}' fill='#000'/></pattern>`;
+    return `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 ${w} ${h}' shape-rendering='crispEdges'><defs>${pattern("a", 5)}${pattern("b", 11)}</defs><rect x='${R.l + inset}' y='${R.t + inset}' width='${Math.max(0, R.r - R.l - 2 * inset)}' height='${Math.max(0, R.b - R.t - 2 * inset)}' fill='#000'/>${fringe ? ring(0, "a") + ring(F, "b") : ""}</svg>`;
+  };
+  const shown = new WeakMap<HTMLElement, boolean>();
+  const runs = new WeakMap<HTMLElement, number>();
+  const timers = new WeakMap<HTMLElement, number>();
+  function glitch(el: HTMLElement, on: boolean) {
+    const was = shown.get(el);
+    if (was === on) return;
+    shown.set(el, on);
+    cancelAnimationFrame(runs.get(el) ?? 0);
+    clearTimeout(timers.get(el));
+    // First call for a caption that is already in the right state: nothing to play.
+    if (was === undefined && el.hidden === !on) return;
+    const clear = () => {
+      el.style.maskImage = el.style.webkitMaskImage = "";
+      el.style.transform = "";
+      el.classList.remove("glitch-dim");
+    };
+    if (still.matches) {
+      el.hidden = !on;
+      clear();
+      return;
+    }
+    el.hidden = false;
+    const start = performance.now();
+    const dur = on ? 520 : 300;
+    const step = (now: number) => {
+      const k = Math.min(1, (now - start) / dur);
+      const level = Math.round((on ? k : 1 - k) * 16);
+      const m = masks[level]!;
+      el.style.maskImage = el.style.webkitMaskImage = m;
+      const jolt = k < 1 && Math.random() < 0.55 ? Math.round((Math.random() - 0.5) * 3) * 6 : 0;
+      el.style.transform = jolt ? `translateX(${jolt}px)` : "";
+      el.classList.toggle("glitch-dim", k < 1 && Math.random() < 0.35);
+      if (k < 1) runs.set(el, requestAnimationFrame(step));
+      else {
+        clear();
+        el.hidden = !on;
+      }
+    };
+    runs.set(el, requestAnimationFrame(step));
+    // Frames can be throttled (a background tab): the end state is applied regardless.
+    timers.set(
+      el,
+      window.setTimeout(() => {
+        cancelAnimationFrame(runs.get(el) ?? 0);
+        clear();
+        el.hidden = !on;
+      }, dur + 60),
+    );
+  }
+
+  // The final band of village takes what the hero and the users strip leave of the screen, so
+  // nothing is left empty under them, within sensible bounds.
+  const bandFor = (w: number, h: number, top: number) => {
+    const content = [...(hero?.children ?? [])].reduce((sum, el) => sum + (el as HTMLElement).offsetHeight, 0);
+    const room = h - top - content;
+    return Math.round(Math.min(w / 2.4, h * 0.46, Math.max(h * 0.28, room)));
+  };
+
+  const layout = () => {
+    if (!stage || !hero) return;
+    const top = nav?.offsetHeight ?? 60;
+    const band = bandFor(window.innerWidth, window.innerHeight, top);
+    const r = hero.getBoundingClientRect();
+    stage.style.setProperty("--top", `${top}px`);
+    stage.style.setProperty("--band", `${band}px`);
+    stage.style.setProperty("--side", `${Math.max(0, r.left)}px`);
+  };
+
+  const update = () => {
+    if (!saga || !stage) return;
+    const r = saga.getBoundingClientRect();
+    const p = clamp(-r.top / Math.max(1, r.height - window.innerHeight));
+    villageStore.progress = p;
+    for (const c of captions) {
+      const range = STEPS[c.dataset.step as keyof typeof STEPS];
+      glitch(c, Boolean(range && p >= range[0] && p < range[1]));
+    }
+    // Camera: look at the step's focus, the point placed a little right of centre, clear of the
+    // caption. The transform eases between steps (CSS transition).
+    const step = (Object.keys(STEPS) as (keyof typeof STEPS)[]).find((k) => p >= STEPS[k][0] && p < STEPS[k][1]) ?? "out";
+    const { at, zoom, centre } = FOCUS[step];
+    const cw = stage.clientWidth;
+    const ch = stage.clientHeight;
+    const bw = FRAME.maxX - FRAME.minX;
+    const bh = FRAME.maxY - FRAME.minY;
+    const u = Math.min((cw * FRAME.fill) / bw, (ch * FRAME.fill) / bh);
+    const sx = cw / 2 + ((at[0] - at[1]) - (FRAME.minX + FRAME.maxX) / 2) * u;
+    const sy = ch / 2 + ((at[0] + at[1]) / 2 - at[2] - (FRAME.minY + FRAME.maxY) / 2) * u;
+    // With the origin at the top left, a point (sx, sy) lands at (sx·z + tx, sy·z + ty). The focus
+    // sits right of centre, clear of the caption; at the end it is the centre of the final band.
+    const top = nav?.offsetHeight ?? 60;
+    const band = bandFor(cw, ch, top);
+    const ending = step === "out";
+    // Where the subject goes: across from the step's caption, so the text never sits on it.
+    const pos = captions.find((c) => c.dataset.step === step)?.dataset.pos ?? "none";
+    const AIM: Record<string, [number, number]> = {
+      tl: [0.64, 0.58],
+      bl: [0.64, 0.4],
+      tr: [0.36, 0.58],
+      br: [0.36, 0.4],
+      top: [0.5, 0.6],
+    };
+    // No caption (the fire): the subject stays centred, so the move to the final band is straight.
+    const [ax, ay] = centre ? [0.5, 0.55] : (AIM[pos] ?? [0.5, 0.5]);
+    const gx = ending ? cw / 2 : cw * ax;
+    const gy = ending ? top + band / 2 : ch * ay;
+    const tx = Math.round(gx - sx * zoom);
+    const ty = Math.round(gy - sy * zoom);
+    const cam = stage.querySelector<HTMLElement>(".saga-cam");
+    if (cam) cam.style.transform = zoom === 1 && !ending ? "" : `translate(${tx}px, ${ty}px) scale(${zoom})`;
+    const s = clamp((p - STEPS.out[0]) / (STEPS.out[1] - STEPS.out[0] - 0.02));
+    stage.style.setProperty("--s", s.toFixed(4));
+    stage.classList.toggle("is-out", s > 0.98);
+    if (hero && screenEl) {
+      // The village burns away from every side at once: a rectangle of fire closes from the
+      // whole screen onto the final band. Inside it the village is whole; across its edge, a
+      // two-ring dithered fringe; outside, the page (the hero below, never dithered).
+      const k = clamp((s - 0.3) / 0.65);
+      const side = parseFloat(stage.style.getPropertyValue("--side")) || 0;
+      const target = { l: side, t: top, r: cw - side, b: top + band };
+      const lerp = (a: number, b2: number) => Math.round(a + (b2 - a) * k);
+      burnRect = k > 0 && k < 1 ? { l: lerp(0, target.l), t: lerp(0, target.t), r: lerp(cw, target.r), b: lerp(ch, target.b), k } : null;
+      hero.style.visibility = k > 0 ? "visible" : "";
+      if (k <= 0) screenEl.style.mask = screenEl.style.webkitMask = "";
+      else {
+        const R = k >= 1 ? target : burnRect!;
+        const svg = burnMask(cw, ch, R, k < 1);
+        screenEl.style.mask = screenEl.style.webkitMask = `url("data:image/svg+xml,${encodeURIComponent(svg)}") 0 0 / 100% 100% no-repeat`;
+      }
+    }
+    // The table of contents leaves as soon as the view starts to close.
+    stage.classList.toggle("is-closing", s > 0.01);
+    // Chapters unlock as the story reaches them.
+    const order = Object.keys(STEPS);
+    const reached = order.indexOf(step);
+    for (const b of tocButtons) {
+      b.classList.toggle("is-now", b.dataset.goto === step);
+      const li = b.parentElement;
+      if (li) li.hidden = order.indexOf(b.dataset.goto ?? "") > reached;
+    }
+    stage.classList.toggle("is-live", s < 0.02);
+    nav?.classList.toggle("nav-away", s < 0.5 && r.bottom > window.innerHeight);
+  };
+
+  // Table of contents: the current chapter lights up; a click jumps to the start of a chapter.
+  const tocButtons = [...(stage?.querySelectorAll<HTMLButtonElement>("[data-goto]") ?? [])];
+  const stepStart = (name: string) => {
+    const range = STEPS[name as keyof typeof STEPS];
+    if (!saga || !range) return 0;
+    return saga.offsetTop + (range[0] + 0.005) * (saga.offsetHeight - window.innerHeight);
+  };
+  for (const b of tocButtons) b.addEventListener("click", () => window.scrollTo({ top: stepStart(b.dataset.goto ?? ""), behavior: "auto" }));
+
+  // Skip: straight to the end of the story, where the page hands over to the hero.
+  stage?.querySelector(".saga-skip")?.addEventListener("click", () => {
+    if (!saga) return;
+    window.scrollTo({ top: saga.offsetTop + saga.offsetHeight - window.innerHeight, behavior: "auto" });
+  });
+
+  // The burn front's embers: ragged pixels along the line, white hot, ember, red, and sparks
+  // flying up from it. Drawn only while the front moves.
+  let burnRect: { l: number; t: number; r: number; b: number; k: number } | null = null;
+  const burnEl = stage?.querySelector<HTMLCanvasElement>(".saga-burn");
+  const burnCtx = burnEl?.getContext("2d");
+  const burnTone = (name: string, fallback: string) =>
+    getComputedStyle(stage ?? document.body).getPropertyValue(name).trim() || fallback;
+  let lastBurn = 0;
+  const burn = (now: number) => {
+    requestAnimationFrame(burn);
+    if (!burnEl || !burnCtx || now - lastBurn < 90) return;
+    lastBurn = now;
+    const w = (burnEl.width = burnEl.clientWidth);
+    const h = (burnEl.height = burnEl.clientHeight);
+    burnCtx.clearRect(0, 0, w, h);
+    if (!burnRect) return;
+    const colours = [burnTone("--ink", "#ededed"), burnTone("--accent", "#ff4f1f"), burnTone("--danger", "#ff6b81")];
+    const P = 4;
+    // A slow tick: each ember keeps its place for a while, so the edge glows rather than fizzes.
+    const tick = Math.floor(now / 180);
+    const { l, t, r, b, k } = burnRect;
+    // The embers thin out over the whole second half of the close: the fire dies down gently.
+    const q = Math.min(1, Math.max(0, (1 - k) / 0.5));
+    const life = q * q * (3 - 2 * q);
+    const rnd = (a: number, b2: number, c: number) => {
+      let h = (Math.imul(a | 0, 374761393) + Math.imul(b2 | 0, 668265263) + Math.imul(c | 0, 1274126177)) | 0;
+      h = Math.imul(h ^ (h >>> 13), 1274126177);
+      return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+    };
+    // Each edge: walk along it, scatter pixels across it (white at the burn, ember, then red
+    // inwards), and now and then a spark thrown outwards.
+    const edges: [number, number, number, number, number, number][] = [
+      // x0, y0, length, along x (1) or y (0), outward normal x, outward normal y
+      [l, t, r - l, 1, 0, -1],
+      [l, b, r - l, 1, 0, 1],
+      [l, t, b - t, 0, -1, 0],
+      [r, t, b - t, 0, 1, 0],
+    ];
+    for (const [x0, y0, len, ax, nx, ny] of edges) {
+      for (let u = 0; u < len; u += P) {
+        const n = Math.sin(u * 0.05 + now * 0.0012) * 3 + Math.sin(u * 0.017 - now * 0.0006) * 5;
+        const bx = x0 + (ax ? u : 0);
+        const by = y0 + (ax ? 0 : u);
+        for (let d = -2; d < 5; d++) {
+          if (rnd(u + x0 + y0, d, tick) > (0.5 - d * 0.07) * life) continue;
+          const off = 24 - n - d * P;
+          burnCtx.fillStyle = colours[d < 0 ? 0 : d < 2 ? 1 : 2]!;
+          burnCtx.fillRect(Math.round((bx - nx * off) / P) * P, Math.round((by - ny * off) / P) * P, P, P);
+        }
+        if (rnd(u + x0, y0 + 7, tick) < 0.025 * life) {
+          const fly = 6 + rnd(u, 3, tick) * 40;
+          burnCtx.fillStyle = colours[1 + Math.floor(rnd(u, 5, tick) * 2)]!;
+          burnCtx.fillRect(Math.round((bx + nx * fly) / P) * P, Math.round((by + ny * fly) / P) * P, P - 1, P - 1);
+        }
+      }
+    }
+  };
+  requestAnimationFrame(burn);
+
+  // The rumble before the blast: once the camera has finished pulling back for the explosion,
+  // the stage starts to shake, harder and harder through the first third of the step, jolts
+  // when the ERP goes, then settles. Whole pixels, about twenty steps a second; none under
+  // reduced motion.
+  const screen = stage?.querySelector<HTMLElement>(".saga-screen");
+  const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const BLAST = 0.45;
+  let lastShake = 0;
+  let boomSince = -1;
+  const shake = (now: number) => {
+    requestAnimationFrame(shake);
+    if (!screen || calm.matches || now - lastShake < 50) return;
+    lastShake = now;
+    const p = villageStore.progress;
+    const [b0, b1] = STEPS.boom;
+    const k = (p - b0) / (b1 - b0);
+    if (k < 0 || k > 1) boomSince = -1;
+    else if (boomSince < 0) boomSince = now;
+    // The camera eases over 0.9 s when the step starts: the rumble waits for it.
+    const settled = boomSince >= 0 && now - boomSince > 900;
+    let amp = 0;
+    if (settled && k < BLAST) amp = 1 + 9 * (k / BLAST) ** 1.6;
+    else if (k >= BLAST && k < BLAST + 0.12) amp = 16 * (1 - (k - BLAST) / 0.12);
+    if (amp < 0.5) {
+      if (screen.style.translate) screen.style.translate = "";
+      return;
+    }
+    const dx = Math.round((Math.random() * 2 - 1) * amp);
+    const dy = Math.round((Math.random() * 2 - 1) * amp * 0.6);
+    screen.style.translate = `${dx}px ${dy}px`;
+  };
+  requestAnimationFrame(shake);
+
+  layout();
+  update();
+  window.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", () => {
+    layout();
+    update();
+  });
+</script>
+
+<script>
   // Resource legend in step with the highlighted resource; hovering a line picks it.
   import { isoCanvas } from "../illustrations/canvas";
 
@@ -756,29 +1140,6 @@ const resources = [
     li.addEventListener("mouseenter", () => res?.select(Number(li.dataset.res)));
     li.addEventListener("mouseleave", () => res?.select(-1));
   }
-</script>
-
-<script>
-  // Hero scene switcher: flat scenes draw on their own canvas, the iso one on the blueprint canvas.
-  import { isoCanvas } from "../illustrations/canvas";
-  import { mountFlat } from "../illustrations/flat";
-
-  const frame = document.querySelector<HTMLElement>(".hero-frame");
-  const hero = isoCanvas(document.getElementById("hero-canvas"));
-  const flatEl = document.getElementById("hero-flat");
-  const flat = flatEl instanceof HTMLCanvasElement ? mountFlat(flatEl) : null;
-  const buttons = document.querySelectorAll<HTMLButtonElement>(".hero-switch-btn");
-  const pick = (b: HTMLButtonElement) => {
-    const scene = b.dataset.scene ?? "";
-    const isFlat = b.dataset.kind === "flat";
-    if (frame) frame.dataset.mode = isFlat ? "flat" : "iso";
-    flat?.show(isFlat ? scene : null);
-    if (!isFlat) hero?.show(scene);
-    for (const o of buttons) o.setAttribute("aria-pressed", String(o === b));
-  };
-  for (const b of buttons) b.addEventListener("click", () => pick(b));
-  const first = buttons[0];
-  if (first) pick(first);
 </script>
 
 <style>
@@ -1463,6 +1824,336 @@ const resources = [
       border-bottom: 1px solid var(--line);
     }
   }
+  /* Opening: a sticky full-screen stage over a tall section; the scroll is the timeline. */
+  .saga {
+    position: relative;
+    height: 1400vh;
+  }
+  .saga-stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+    --s: 0;
+    --top: 60px;
+    --band: 400px;
+    --side: 0px;
+  }
+  .saga-screen {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    background: var(--bg-sunk);
+    /* Not clipped: the burn mask closes it onto the final band (see the opening's script). */
+    z-index: 1;
+  }
+  /* A faint dithered field over the stage: blended as a screen, it only lifts the black. */
+  .saga-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0.06;
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+  .saga-burn {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    image-rendering: pixelated;
+  }
+  .saga-cam {
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
+    transition: transform 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .saga-screen canvas {
+    image-rendering: pixelated;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+  }
+  .saga-live {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .saga-toc {
+    position: absolute;
+    top: 64px;
+    left: 20px;
+    z-index: 4;
+  }
+  .saga-toc li[hidden] {
+    display: none;
+  }
+  .saga-toc ol {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .saga-toc button {
+    display: flex;
+    gap: 8px;
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    color: color-mix(in srgb, var(--ink-dim) 55%, var(--bg));
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .saga-toc button:hover {
+    color: var(--ink-dim);
+  }
+  .saga-toc button.is-now {
+    color: var(--ink);
+  }
+  .saga-toc button:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .saga-toc-n {
+    opacity: 0.7;
+  }
+  .saga-stage.is-closing .saga-toc {
+    visibility: hidden;
+  }
+  @media (max-width: 900px) {
+    .saga-toc {
+      display: none;
+    }
+  }
+  .saga-skip {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 4;
+    padding: 6px 12px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+    color: var(--ink-muted);
+    cursor: pointer;
+  }
+  .saga-skip:hover {
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  .saga-skip:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .saga-stage.is-out .saga-skip {
+    visibility: hidden;
+  }
+  .saga-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    animation: saga-blink 1s steps(2, jump-none) infinite;
+  }
+  @keyframes saga-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  /* Each caption sits where its step leaves room: a corner, or the top for the opening. */
+  .saga-captions {
+    position: absolute;
+    inset: 72px 24px 72px;
+    z-index: 3;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    pointer-events: none;
+  }
+  .saga-captions li {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* A plain plate in the background colour, no border: the drawing never runs under the text. */
+    padding: 14px 18px;
+    margin: -14px -18px;
+    background: var(--bg);
+    max-width: min(560px, 44vw);
+    mask-size: 16px 16px;
+    -webkit-mask-size: 16px 16px;
+  }
+  .saga-captions li[data-pos="tl"] {
+    top: 0;
+    left: 180px;
+  }
+  @media (max-width: 900px) {
+    .saga-captions li[data-pos="tl"] {
+      left: 0;
+    }
+  }
+  .saga-captions li[data-pos="tr"] {
+    top: 0;
+    right: 0;
+    text-align: right;
+  }
+  .saga-captions li[data-pos="bl"] {
+    bottom: 0;
+    left: 0;
+  }
+  .saga-captions li[data-pos="br"] {
+    bottom: 0;
+    right: 0;
+    text-align: right;
+  }
+  .saga-captions li[data-pos="top"] {
+    top: 0;
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    width: fit-content;
+    max-width: min(900px, 90vw);
+    text-align: center;
+  }
+  .saga-captions li:not([data-pos="top"]) :global(.fg-title) {
+    font-size: clamp(22px, 2.4vw, 34px);
+    line-height: 1.15;
+  }
+  .saga-captions li[hidden] {
+    display: none;
+  }
+  .saga-captions p {
+    margin: 0;
+    color: var(--ink-muted);
+  }
+  @media (max-width: 700px) {
+    .saga-captions li {
+      max-width: 100%;
+    }
+  }
+  /* A crisp outline in the background colour, no blur: the text stands off the drawing. */
+  .saga-captions li :global(.fg-title) {
+    text-shadow:
+      2px 0 0 var(--bg),
+      -2px 0 0 var(--bg),
+      0 2px 0 var(--bg),
+      0 -2px 0 var(--bg),
+      2px 2px 0 var(--bg),
+      -2px -2px 0 var(--bg),
+      2px -2px 0 var(--bg),
+      -2px 2px 0 var(--bg),
+      4px 0 0 var(--bg),
+      -4px 0 0 var(--bg),
+      0 4px 0 var(--bg),
+      0 -4px 0 var(--bg);
+  }
+  .saga-captions li.glitch-dim {
+    color: var(--ink-dim);
+  }
+  .saga-captions li.glitch-dim :global(*) {
+    color: inherit;
+  }
+  .saga-hero {
+    position: absolute;
+    top: calc(var(--top) + var(--band));
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    z-index: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+    visibility: hidden;
+  }
+  .saga-stage.is-out .saga-hero {
+    visibility: visible;
+  }
+  .saga-hero .hero-d-body {
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+  .saga-hero .users {
+    margin-top: auto;
+  }
+  .saga-stage:not(.is-live) .saga-live,
+  .saga-stage.is-out .saga-captions {
+    visibility: hidden;
+  }
+  :global(body.home .nav) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    transition: transform 0.25s steps(4, jump-none);
+  }
+  :global(body.home .nav.nav-away) {
+    transform: translateY(-100%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .saga-cam {
+      transition: none;
+    }
+    .saga-dot {
+      animation: none;
+    }
+    :global(body.home .nav) {
+      transition: none;
+    }
+  }
+  .users-row {
+    grid-template-columns: minmax(0, 0.8fr) repeat(4, minmax(0, 1fr));
+    grid-auto-rows: auto;
+  }
+  .users-row .cell {
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 26px var(--gutter);
+  }
+  .users-row .user-lead {
+    justify-content: flex-start;
+  }
+  .user-name {
+    font-family: var(--font-pixel);
+    font-size: 22px;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+  }
+  .user-empty {
+    background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  }
+  @media (max-width: 760px) {
+    .users-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .users-row .user-lead {
+      grid-column: 1 / -1;
+    }
+  }
   .hero-d {
     padding: 0;
     border-bottom: 1px solid var(--line);
@@ -1549,43 +2240,6 @@ const resources = [
   .hero-bg {
     opacity: 0.14;
   }
-  .hero-frame[data-mode="flat"] .hero-bg,
-  .hero-frame[data-mode="flat"] #hero-canvas,
-  .hero-frame[data-mode="iso"] #hero-flat {
-    visibility: hidden;
-  }
-  .hero-switch {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    z-index: 2;
-    display: flex;
-    border: 1px solid var(--line-strong);
-    background: var(--bg);
-  }
-  .hero-switch-btn {
-    appearance: none;
-    border: 0;
-    border-right: 1px solid var(--line-strong);
-    background: transparent;
-    color: var(--ink-muted);
-    padding: 8px 12px;
-    cursor: pointer;
-  }
-  .hero-switch-btn:last-child {
-    border-right: 0;
-  }
-  .hero-switch-btn:hover {
-    color: var(--ink);
-  }
-  .hero-switch-btn[aria-pressed="true"] {
-    background: var(--ink);
-    color: var(--bg);
-  }
-  .hero-switch-btn:focus-visible {
-    outline: 1px solid var(--accent);
-    outline-offset: -3px;
-  }
   .yc-badge {
     display: inline-flex;
     align-items: center;
@@ -1613,13 +2267,6 @@ const resources = [
     .hero-frame {
       aspect-ratio: auto;
       height: 280px;
-    }
-    .hero-switch {
-      top: 8px;
-      right: 8px;
-    }
-    .hero-switch-btn {
-      padding: 6px 8px;
     }
   }
 </style>

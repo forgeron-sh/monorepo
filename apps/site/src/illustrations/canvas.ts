@@ -5,7 +5,8 @@
  *
  * - `canvas[data-iso=<scene>]`: an isometric scene of `SCENES` (`mount`). Options: `data-scale`
  *   (pixel size, 3), `data-fill`, `data-unit="any"`, `data-cycle` (seconds per highlighted index),
- *   `data-active`, `data-labels="off"`, `data-accent="off"`, `data-bg` (token of the background);
+ *   `data-active`, `data-labels="off"`, `data-accent="off"`, `data-bg` (token of the background),
+ *   `data-signal` (token for the signal family);
  * - `canvas[data-shader=ember|globe|dissolve|field]`: a generator field (`mountField`). Options:
  *   `data-px` (cell size, 4), `data-accent="off"`, `data-bg`, `data-ink`;
  * - `canvas[data-dither-img=<url>]`: a dithered picture (`mountImage`). Options: `data-px`, `data-gain`.
@@ -65,7 +66,7 @@ function framing(el: HTMLCanvasElement, build: SceneFn): SceneFn {
 }
 
 function filtersOf(el: HTMLCanvasElement): Filter[] {
-  const { scale, accent, bg } = el.dataset;
+  const { scale, accent, bg, signal } = el.dataset;
   return [
     pixelate(Number(scale ?? 3)),
     dither({ matrix: 4 }),
@@ -73,6 +74,8 @@ function filtersOf(el: HTMLCanvasElement): Filter[] {
       ...(bg ? { bg: token(bg, "#0a0a0a") } : {}),
       // `data-accent="off"`: what would glow in ember is drawn in ink; signal stays ember.
       ...(accent === "off" ? { accent: token("--ink", "#ededed") } : {}),
+      // `data-signal=<token>`: the signal family in another colour (the village's money).
+      ...(signal ? { signal: token(signal, "#3ddc84") } : {}),
     }),
   ];
 }
