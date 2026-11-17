@@ -118,13 +118,67 @@ function smoke(
 
 /** Flames on a roof: ember tongues that flicker, and sparks drifting up. */
 function flames(out: Block[], c: Vec3, t: number, n: number, seed: number): void {
+  // Tongues, not sticks: each flame is a short wavy stroke that sways and breathes slowly, red at
+  // the root and ember at the tip, with a spark now and then drifting up from it.
+  const line = (a: Vec3, b: Vec3, ink: "alert" | "accent" | "ink") =>
+    out.push({ kind: "line", a, b, ink, layer: 1 });
   for (let k = 0; k < n; k++) {
     const ox = (hash(seed, k) - 0.5) * 4;
     const oy = (hash(seed, k + 50) - 0.5) * 4;
-    const h = 0.3 + 1.1 * (0.5 + 0.5 * Math.sin(t * 9 + k * 2.1 + seed));
-    box(out, [c[0] + ox - 0.3, c[1] + oy - 0.3, c[2]], [0.6, 0.6, h], { alert: true, layer: 1 });
-    const age = (t * 0.7 + hash(seed, k + 9)) % 1;
-    dot(out, [c[0] + ox + age, c[1] + oy, c[2] + h + age * 6], age < 0.6 ? "alert" : "dim", 1);
+    const phase = hash(seed, k + 70) * 6.28;
+    const h = 1 + 1.2 * (0.6 + 0.4 * Math.sin(t * 1.8 + phase));
+    const lean = Math.sin(t * 1.1 + phase) * 0.35;
+    // One flame in three is thick: three strokes side by side, with a white-hot core at its root.
+    const thick = k % 3 === 0;
+    const offsets: [number, number][] = thick
+      ? [
+          [0, 0],
+          [0.16, -0.08],
+          [-0.16, 0.08],
+        ]
+      : [[0, 0]];
+    for (const [dx, dy] of offsets) {
+      let prev: Vec3 = [c[0] + ox + dx, c[1] + oy + dy, c[2]];
+      const steps = 5;
+      for (let j = 1; j <= steps; j++) {
+        const q = j / steps;
+        // Thick strokes taper: the outer ones stop short of the tip.
+        if (dx !== 0 && q > 0.8) break;
+        const sway = Math.sin(q * 3.4 + t * 2.4 + phase) * 0.28 * q + lean * q * q;
+        const p: Vec3 = [
+          c[0] + ox + dx * (1 - q * 0.6) + sway,
+          c[1] + oy + dy * (1 - q * 0.6) - sway * 0.5,
+          c[2] + q * h * (thick ? 1.25 : 1),
+        ];
+        line(prev, p, q < 0.55 ? "alert" : "accent");
+        prev = p;
+      }
+    }
+    if (thick)
+      line(
+        [c[0] + ox, c[1] + oy, c[2]],
+        [c[0] + ox + lean * 0.2, c[1] + oy, c[2] + h * 0.3],
+        "ink",
+      );
+    // A second, shorter tongue beside the first, out of step with it.
+    if (k % 2 === 0) {
+      let p2: Vec3 = [c[0] + ox + 0.35, c[1] + oy, c[2]];
+      for (let j = 1; j <= 3; j++) {
+        const q = j / 3;
+        const sway = Math.sin(q * 3 + t * 2 + phase + 2) * 0.22 * q;
+        const p: Vec3 = [c[0] + ox + 0.35 + sway, c[1] + oy, c[2] + q * h * 0.6];
+        line(p2, p, "alert");
+        p2 = p;
+      }
+    }
+    const age = (t * 0.35 + hash(seed, k + 9)) % 1;
+    if (age < 0.7)
+      dot(
+        out,
+        [c[0] + ox + Math.sin(age * 5 + phase) * 0.4, c[1] + oy, c[2] + h + age * 4],
+        age < 0.35 ? "accent" : "dim",
+        1,
+      );
   }
 }
 
@@ -1308,17 +1362,11 @@ export function village(t: number): Block[] {
         ];
         dot(out, pos, age < 0.2 ? "ink" : age < 0.7 ? "alert" : "dim", age < 0.35 ? 3 : 2);
       }
-      for (let k = 0; k < 14; k++) {
-        const ox = (hash(k, 84) - 0.5) * 12;
-        const oy = (hash(k, 85) - 0.5) * 12;
-        const h =
-          (0.6 + 2.4 * (0.5 + 0.5 * Math.sin(t * 8 + k * 1.7))) *
-          Math.min(1, b * 3) *
-          (k < 6 ? 1.6 : 1);
-        box(out, [ox - 0.4, oy - 0.4, 7.6 * (1 - 0.7 * sink)], [0.8, 0.8, h], {
-          alert: true,
-          layer: 1,
-        });
+      // The top terrace catches: tongues of fire spread over it as the blast grows.
+      const catching = Math.min(1, b * 3);
+      if (catching > 0) {
+        flames(out, [-2, -2, 7.6 * (1 - 0.7 * sink)], t, Math.round(2 + catching * 5), 840);
+        flames(out, [2, 2, 7.6 * (1 - 0.7 * sink)], t, Math.round(1 + catching * 4), 841);
       }
       // The mushroom: a wide cap swelling over the top terrace on a thick column of fire, and a
       // surge of fire and smoke rolling out along the ground. White at the core, ember around,
