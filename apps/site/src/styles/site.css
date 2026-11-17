@@ -236,12 +236,6 @@ section:has(+ .spacer) > :last-child > li:last-child {
   flex-direction: column;
   gap: 6px;
 }
-.cell .corner {
-  position: absolute;
-  top: 20px;
-  left: 32px;
-  z-index: 1;
-}
 .cell .corner-r {
   position: absolute;
   top: 20px;
