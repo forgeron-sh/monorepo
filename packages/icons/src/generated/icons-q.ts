@@ -3,7 +3,7 @@
 import type { StubIcon } from "../types";
 
 export const QqPlotIcon: StubIcon = { name: "qq-plot", implemented: false };
-export const QrCodeIcon: StubIcon = { name: "qr-code", implemented: false };
+export { default as QrCodeIcon } from "../drawn/qr-code";
 export const QrCode01Icon: StubIcon = { name: "qr-code-01", implemented: false };
 export const QrCodeScanIcon: StubIcon = { name: "qr-code-scan", implemented: false };
 export const QuestionIcon: StubIcon = { name: "question", implemented: false };
@@ -18,10 +18,10 @@ export const Quiz04Icon: StubIcon = { name: "quiz-04", implemented: false };
 export const Quiz05Icon: StubIcon = { name: "quiz-05", implemented: false };
 export const QuoraIcon: StubIcon = { name: "quora", implemented: false };
 export const QuoteIcon: StubIcon = { name: "quote", implemented: false };
-export const QuoteDownIcon: StubIcon = { name: "quote-down", implemented: false };
+export { default as QuoteDownIcon } from "../drawn/quote-down";
 export const QuoteDownCircleIcon: StubIcon = { name: "quote-down-circle", implemented: false };
 export const QuoteDownSquareIcon: StubIcon = { name: "quote-down-square", implemented: false };
-export const QuoteUpIcon: StubIcon = { name: "quote-up", implemented: false };
+export { default as QuoteUpIcon } from "../drawn/quote-up";
 export const QuoteUpCircleIcon: StubIcon = { name: "quote-up-circle", implemented: false };
 export const QuoteUpSquareIcon: StubIcon = { name: "quote-up-square", implemented: false };
 export const QuotesIcon: StubIcon = { name: "quotes", implemented: false };

@@ -5,6 +5,7 @@ import type { StubIcon } from "../types";
 export const ZakatIcon: StubIcon = { name: "zakat", implemented: false };
 export const ZapIcon: StubIcon = { name: "zap", implemented: false };
 export const ZapOffIcon: StubIcon = { name: "zap-off", implemented: false };
+export { default as ZendeskIcon } from "../drawn/zendesk";
 export const ZeppelinIcon: StubIcon = { name: "zeppelin", implemented: false };
 export const ZeroCircleIcon: StubIcon = { name: "zero-circle", implemented: false };
 export const ZeroSquareIcon: StubIcon = { name: "zero-square", implemented: false };
@@ -26,7 +27,7 @@ export const ZodiacVirgoIcon: StubIcon = { name: "zodiac-virgo", implemented: fa
 export const ZoomIcon: StubIcon = { name: "zoom", implemented: false };
 export const ZoomCircleIcon: StubIcon = { name: "zoom-circle", implemented: false };
 export const ZoomInIcon: StubIcon = { name: "zoom-in", implemented: false };
-export const ZoomInAreaIcon: StubIcon = { name: "zoom-in-area", implemented: false };
+export { default as ZoomInAreaIcon } from "../drawn/zoom-in-area";
 export const ZoomOutIcon: StubIcon = { name: "zoom-out", implemented: false };
 export const ZoomOutAreaIcon: StubIcon = { name: "zoom-out-area", implemented: false };
 export const ZoomSquareIcon: StubIcon = { name: "zoom-square", implemented: false };

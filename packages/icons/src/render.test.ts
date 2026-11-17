@@ -52,7 +52,21 @@ describe("pixel icons", () => {
 
 /** Icons drawn on a larger grid, and why: the Cloudflare mark is too wide to read on 12×12; the
  * GitHub mark loses its ears and tail on 12×12 (docs/icons.md, brand logos). */
-const WIDER_GRID: Record<string, number> = { cloudflare: 16, github: 16 };
+// Brand marks drawn on 16 because their detail does not survive 12 (docs/icons.md, "Brand logos").
+const WIDER_GRID: Record<string, number> = {
+  airtable: 16,
+  asana: 16,
+  attio: 16,
+  cloudflare: 16,
+  confluence: 16,
+  github: 16,
+  intercom: 16,
+  jira: 16,
+  linear: 16,
+  "notion-01": 16,
+  salesforce: 16,
+  zendesk: 16,
+};
 
 describe("the drawn set", () => {
   it("is pixel art only, on the 12-pixel grid of the lab (16 for a brand mark that needs it)", () => {
@@ -68,6 +82,17 @@ describe("the drawn set", () => {
       for (const row of icon.rows) expect(row.length).toBeLessThanOrEqual(icon.grid);
       for (const row of icon.rows) expect(row).toMatch(/^[#o.]*$/);
     }
+  });
+
+  it("stores trimmed rows: no trailing `.`, no trailing empty row (`bun run trim` fixes them)", () => {
+    const drawn = Object.values(icons).filter(
+      (v): v is DrawnIcon =>
+        typeof v === "object" && v !== null && "implemented" in v && v.implemented,
+    );
+    const stale = drawn
+      .filter((icon) => icon.rows.some((row) => row.endsWith(".")) || icon.rows.at(-1) === "")
+      .map((icon) => icon.name);
+    expect(stale).toEqual([]);
   });
 
   it("folds the secondary pixels into the primary tone when monotone", () => {

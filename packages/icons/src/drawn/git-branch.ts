@@ -1,23 +1,26 @@
 import type { PixelIcon } from "../types";
 
-// Ported from the site's lab icons (`branch`), 12×12: `#` primary tone, `o` secondary tone.
+// Branch leaving the main line: square three-pixel nodes, a straight trunk, and the branch
+// (secondary tone) joining it with a right-angle elbow instead of the lab's curve.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "git-branch",
   implemented: true,
   style: "pixel",
   grid: 12,
+  // prettier-ignore
   rows: [
     "",
-    "..##....oo",
-    "..##....oo",
-    "..#......o",
-    "..#......o",
-    "..#.....o",
-    "..#...oo",
-    "..#.oo",
-    "..##",
-    ".####",
-    ".####",
+    "..###..ooo",
+    "..#.#..o.o",
+    "..###..ooo",
+    "...#....o",
+    "...#....o",
+    "...#ooooo",
+    "...#",
+    "..###",
+    "..#.#",
+    "..###",
   ],
 };
 

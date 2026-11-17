@@ -1,0 +1,27 @@
+import type { PixelIcon } from "../types";
+
+// Presentation board on an easel: a top bar, the board with rising bars in the secondary tone,
+// a post and two legs.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "presentation-01",
+  implemented: true,
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    ".##########",
+    "..#......#",
+    "..#....o.#",
+    "..#...oo.#",
+    "..#.oooo.#",
+    "..#......#",
+    "..########",
+    ".....##",
+    "....#..#",
+    "...#....#",
+  ],
+};
+
+export default icon;

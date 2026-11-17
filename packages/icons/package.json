@@ -14,7 +14,9 @@
     "generate": "bun scripts/generate.ts",
     "generate:check": "bun scripts/generate.ts --check",
     "generate:refresh": "bun scripts/generate.ts --refresh",
-    "audit": "bun scripts/audit.ts"
+    "audit": "bun scripts/audit.ts",
+    "trim": "bun scripts/trim.ts",
+    "trim:check": "bun scripts/trim.ts --check"
   },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*",

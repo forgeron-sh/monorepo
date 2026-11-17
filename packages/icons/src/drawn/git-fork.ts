@@ -1,26 +1,28 @@
 import type { PixelIcon } from "../types";
 
-// Fork, 12×12: two branches turning at right angles into one stem; the commits are the
-// secondary tone.
-// Proportions after Hugeicons `git-fork` (Iconify preview, 2026-11-16), redrawn as pixel art, not traced.
+// Fork, 12×12, in the style of `git-branch` (2026-11-17): square three-pixel nodes on top, one-pixel
+// lines turning at right angles, the fork in the secondary tone. The two lines meet side by side
+// into a four-pixel origin node, so the drawing is centred exactly (a three-pixel node under a
+// one-pixel stem sat half a pixel off). Redrawn after Hugeicons `git-fork` (Iconify preview,
+// 2026-11-16): composition only.
 const icon: PixelIcon = {
   name: "git-fork",
   implemented: true,
   style: "pixel",
   grid: 12,
+  // prettier-ignore
   rows: [
-    "............",
-    ".oo......oo.",
-    ".oo......oo.",
-    ".#........#.",
-    ".#........#.",
-    ".##########.",
-    ".....##.....",
-    ".....##.....",
-    ".....##.....",
-    ".....oo.....",
-    ".....oo.....",
-    "............",
+    "",
+    ".###....ooo",
+    ".#.#....o.o",
+    ".###....ooo",
+    "..#......o",
+    "..####oooo",
+    ".....#o",
+    "....####",
+    "....#..#",
+    "....#..#",
+    "....####",
   ],
 };
 

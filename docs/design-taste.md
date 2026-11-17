@@ -45,12 +45,15 @@ Always: static final text under `prefers-reduced-motion`, text available to scre
 
 ## Pixel icons
 
-| Before                                                         | After                                                                                                         |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Stroke vectors mixed with pixel icons in one set               | Everything is pixel art on the 12-pixel grid, duotone (16 only for brand marks). The stroke style was removed |
-| A settings icon "like a final boss": heavy, blobby, many teeth | A light cog: thin rim, big hub hole, eight one-pixel teeth, readable at 16 px                                 |
-| A generic cloud for the Cloudflare mark                        | A faithful pixel rendition of the real mark, checked side by side with the reference                          |
-| Long unbroken straight lines                                   | Short runs and clear proportions between stroke, gap and size                                                 |
+| Before                                                         | After                                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stroke vectors mixed with pixel icons in one set               | Everything is pixel art on the 12-pixel grid, duotone (16 only for brand marks). The stroke style was removed                                                                                                                                             |
+| A settings icon "like a final boss": heavy, blobby, many teeth | A light cog: thin rim, big hub hole, eight one-pixel teeth, readable at 16 px                                                                                                                                                                             |
+| A generic cloud for the Cloudflare mark                        | A faithful pixel rendition of the real mark, checked side by side with the reference                                                                                                                                                                      |
+| Long unbroken straight lines                                   | Short runs and clear proportions between stroke, gap and size                                                                                                                                                                                             |
+| A symbol half a pixel off centre (a one-pixel "i" in a ring)   | Centred exactly: even widths for a centred symbol, or a drawing symmetric by a half turn                                                                                                                                                                  |
+| Monotone almost everywhere                                     | The secondary tone on the one part that carries the idea (the arrow of `upload-01`, the head of `user`, the dot of `wifi-01`, the cross of `cancel-circle`), and none where nothing stands out (`more-horizontal`, `moon-02`, `minus-sign`, `message-01`) |
+| Outline only                                                   | A filled variant where the shape is closed, as its own icon named `<name>-fill`: the shape filled, the inner symbol cut out                                                                                                                               |
 
 The success criterion is that the icon looks right at 16, 24 and 48 px, not that it follows the recipe. The full protocol and the checklist are in [`icons.md`](icons.md).
 

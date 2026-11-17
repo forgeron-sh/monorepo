@@ -33,6 +33,7 @@ Entry points: `.` (icons, `toSvg`, types), `./react` (`Icon`), `./catalog` (ever
 ## Data shape
 
 - **Pixel icon** (`style: "pixel"`): rows of a square grid, `#` primary tone, `o` secondary tone. Rendered as runs of rectangles with `shape-rendering="crispEdges"`. Every drawn icon is a pixel icon on the 12×12 grid of the site's lab icons, 16×16 for a brand mark that does not fit (a test enforces it; the grid decision is in `docs/icons.md`); the console's stroke glyphs were redrawn as pixel icons, and no vector style is shipped. `style` stays in the data as a discriminant for a second style, should one ever be added.
+- **Stored trimmed**: a row drops its trailing `.` and the icon drops its trailing empty rows; `pixelRows` pads them back, so the output is unchanged. Leading empty rows stay as `""`. `bun run trim` rewrites the drawings, `bun run trim:check` and a test in `render.test.ts` fail on an untrimmed one. Measured on 2026-11-17 over 322 icons: 240 → 184 bytes of data per icon (−23 %), 7.4 → 6.6 KB gzipped for the set (−11 %); an icon's data is about half the size of its SVG (114 B against 227–259 B gzipped), and the renderer costs about 1 KB gzipped once.
 - **Stub**: `{ name, implemented: false }`.
 
 Monotone folds the secondary shapes into the primary tone; duotone gives them the secondary tone. The manifest says which icons have a duotone that differs (`variants.duo`).

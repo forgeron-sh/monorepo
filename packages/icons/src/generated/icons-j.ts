@@ -6,6 +6,7 @@ export const JapaneseYenIcon: StubIcon = { name: "japanese-yen", implemented: fa
 export const JarIcon: StubIcon = { name: "jar", implemented: false };
 export const JavaIcon: StubIcon = { name: "java", implemented: false };
 export const JavaScriptIcon: StubIcon = { name: "java-script", implemented: false };
+export { default as JiraIcon } from "../drawn/jira";
 export const JobLinkIcon: StubIcon = { name: "job-link", implemented: false };
 export const JobSearchIcon: StubIcon = { name: "job-search", implemented: false };
 export const JobShareIcon: StubIcon = { name: "job-share", implemented: false };

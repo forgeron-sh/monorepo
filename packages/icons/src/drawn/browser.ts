@@ -6,6 +6,7 @@ const icon: PixelIcon = {
   implemented: true,
   style: "pixel",
   grid: 12,
+  // prettier-ignore
   rows: [
     "############",
     "#o#o#o######",
@@ -18,7 +19,7 @@ const icon: PixelIcon = {
     "#.......o..#",
     "#.......oo.#",
     "########ooo#",
-    "........oo..",
+    "........oo",
   ],
 };
 

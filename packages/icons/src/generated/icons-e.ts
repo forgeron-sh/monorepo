@@ -23,7 +23,7 @@ export const EcoLab02Icon: StubIcon = { name: "eco-lab-02", implemented: false }
 export const EcoPowerIcon: StubIcon = { name: "eco-power", implemented: false };
 export const EdgeStyleIcon: StubIcon = { name: "edge-style", implemented: false };
 export const Edit01Icon: StubIcon = { name: "edit-01", implemented: false };
-export const Edit02Icon: StubIcon = { name: "edit-02", implemented: false };
+export { default as Edit02Icon } from "../drawn/edit-02";
 export const Edit03Icon: StubIcon = { name: "edit-03", implemented: false };
 export const Edit04Icon: StubIcon = { name: "edit-04", implemented: false };
 export const EditMultipleIcon: StubIcon = { name: "edit-multiple", implemented: false };
@@ -66,7 +66,7 @@ export const EntranceStairsIcon: StubIcon = { name: "entrance-stairs", implement
 export const EnvatoIcon: StubIcon = { name: "envato", implemented: false };
 export const EqualIcon: StubIcon = { name: "equal", implemented: false };
 export const EqualNotIcon: StubIcon = { name: "equal-not", implemented: false };
-export const EqualSignIcon: StubIcon = { name: "equal-sign", implemented: false };
+export { default as EqualSignIcon } from "../drawn/equal-sign";
 export const EqualSignCircleIcon: StubIcon = { name: "equal-sign-circle", implemented: false };
 export const EqualSignSquareIcon: StubIcon = { name: "equal-sign-square", implemented: false };
 export const EquipmentBenchPressIcon: StubIcon = { name: "equipment-bench-press", implemented: false };
@@ -75,7 +75,7 @@ export const EquipmentGym01Icon: StubIcon = { name: "equipment-gym-01", implemen
 export const EquipmentGym02Icon: StubIcon = { name: "equipment-gym-02", implemented: false };
 export const EquipmentGym03Icon: StubIcon = { name: "equipment-gym-03", implemented: false };
 export const EquipmentWeightliftingIcon: StubIcon = { name: "equipment-weightlifting", implemented: false };
-export const EraserIcon: StubIcon = { name: "eraser", implemented: false };
+export { default as EraserIcon } from "../drawn/eraser";
 export const Eraser01Icon: StubIcon = { name: "eraser-01", implemented: false };
 export const EraserAddIcon: StubIcon = { name: "eraser-add", implemented: false };
 export const EraserAutoIcon: StubIcon = { name: "eraser-auto", implemented: false };
@@ -84,9 +84,10 @@ export const Estimate02Icon: StubIcon = { name: "estimate-02", implemented: fals
 export const EthereumIcon: StubIcon = { name: "ethereum", implemented: false };
 export const EthereumEllipseIcon: StubIcon = { name: "ethereum-ellipse", implemented: false };
 export const EthereumRectangleIcon: StubIcon = { name: "ethereum-rectangle", implemented: false };
-export const EthernetPortIcon: StubIcon = { name: "ethernet-port", implemented: false };
+export { default as EthernetPortIcon } from "../drawn/ethernet-port";
 export const EuroIcon: StubIcon = { name: "euro", implemented: false };
-export const EuroCircleIcon: StubIcon = { name: "euro-circle", implemented: false };
+export { default as EuroCircleIcon } from "../drawn/euro-circle";
+export { default as EuroCircleFillIcon } from "../drawn/euro-circle-fill";
 export const EuroReceiveIcon: StubIcon = { name: "euro-receive", implemented: false };
 export const EuroSendIcon: StubIcon = { name: "euro-send", implemented: false };
 export const EuroSquareIcon: StubIcon = { name: "euro-square", implemented: false };
