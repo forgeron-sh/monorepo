@@ -3,6 +3,7 @@ import { getEntry, getIcon } from "./catalog";
 import * as icons from "./index";
 import { AbacusIcon, AnvilIcon, ForgeronIcon } from "./index";
 import { hasDuotone, isImplemented, pixelRows, toSvg } from "./render";
+import { SAME_AS } from "./generator/same-as";
 import type { DrawnIcon } from "./types";
 
 describe("stubs", () => {
@@ -80,7 +81,7 @@ describe("the drawn set", () => {
     expect(drawn.length).toBeGreaterThan(0);
     for (const icon of drawn) {
       expect(icon.style).toBe("pixel");
-      expect(icon.grid).toBe(WIDER_GRID[icon.name] ?? 12);
+      expect(icon.grid).toBe(WIDER_GRID[SAME_AS[icon.name] ?? icon.name] ?? 12);
       expect(icon.rows.length).toBeLessThanOrEqual(icon.grid);
       for (const row of icon.rows) expect(row.length).toBeLessThanOrEqual(icon.grid);
       for (const row of icon.rows) expect(row).toMatch(/^[#o.]*$/);

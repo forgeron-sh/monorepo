@@ -156,6 +156,22 @@ describe("renderFiles", () => {
     expect(JSON.parse(files["manifest.json"] ?? "")).toHaveLength(5);
   });
 
+  it("copies the drawing of a name drawn as another icon, under its own name", () => {
+    const drawn = [{ ...input.drawn[0]!, grid: 12, rows: ["", ".##"] }];
+    const { manifest, files } = generate({ ...input, drawn, sameAs: { "arrow-down-01": "anvil" } });
+    expect(files["icons-a.ts"]).toContain(
+      'export const ArrowDown01Icon: PixelIcon = { name: "arrow-down-01", implemented: true, style: "pixel", grid: 12, rows: ["", ".##"] };',
+    );
+    expect(files["icons-a.ts"]).toContain('import type { PixelIcon } from "../types";');
+    const entry = manifest.find((e) => e.name === "arrow-down-01");
+    expect(entry).toMatchObject({ implemented: true, sameAs: "anvil", variants: { duo: true } });
+    expect(manifest.find((e) => e.name === "anvil")?.sameAs).toBeNull();
+    expect(() => generate({ ...input, drawn, sameAs: { "arrow-down-01": "rows-2" } })).toThrow(
+      /not drawn/,
+    );
+    expect(() => generate({ ...input, drawn, sameAs: { nope: "anvil" } })).toThrow(/not a name/);
+  });
+
   it("is deterministic: the same input writes the same files", () => {
     expect(generate(input).files).toEqual(generate(input).files);
     const { manifest } = generate(input);

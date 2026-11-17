@@ -35,6 +35,7 @@ Entry points: `.` (icons, `toSvg`, types), `./react` (`Icon`), `./catalog` (ever
 - **Pixel icon** (`style: "pixel"`): rows of a square grid, `#` primary tone, `o` secondary tone. Rendered as runs of rectangles with `shape-rendering="crispEdges"`. Every drawn icon is a pixel icon on the 12×12 grid of the site's lab icons, 16×16 for a brand mark that does not fit (a test enforces it; the grid decision is in `docs/icons.md`); the console's stroke glyphs were redrawn as pixel icons, and no vector style is shipped. `style` stays in the data as a discriminant for a second style, should one ever be added.
 - **Stored trimmed**: a row drops its trailing `.` and the icon drops its trailing empty rows; `pixelRows` pads them back, so the output is unchanged. Leading empty rows stay as `""`. `bun run trim` rewrites the drawings, `bun run trim:check` and a test in `render.test.ts` fail on an untrimmed one. Measured on 2026-11-17 over 322 icons: 240 → 184 bytes of data per icon (−23 %), 7.4 → 6.6 KB gzipped for the set (−11 %); an icon's data is about half the size of its SVG (114 B against 227–259 B gzipped), and the renderer costs about 1 KB gzipped once.
 - **Stub**: `{ name, implemented: false }`.
+- **Drawn as another icon**: a name that means the same thing as a drawn icon (`trash` and `delete-01`, `bell` and `notification-01`) reuses its drawing instead of a near-identical second one. `src/generator/same-as.ts` lists them (669 names on 2026-11-17, mapped by meaning, then checked on a contact sheet); the generator copies the rows into the export of the name, which keeps its own `name`, and the manifest gives the source drawing in `sameAs`. Drawing the name for real means removing its line; the generator fails while both exist.
 
 Monotone folds the secondary shapes into the primary tone; duotone gives them the secondary tone. The manifest says which icons have a duotone that differs (`variants.duo`).
 
@@ -42,7 +43,7 @@ Monotone folds the secondary shapes into the primary tone; duotone gives them th
 
 **Read [`docs/icons.md`](../../docs/icons.md) first**: the drawing protocol, the review checklist and the rules. An icon is accepted when it reads at 16, 24 and 48 px in the gallery's review sheet (`/review?only=<name>&loupe=1`), not from its rows.
 
-1. Write `src/drawn/<name>.ts`, with a default export whose `name` is the file name. A Hugeicons name replaces its stub; a name of our own must also be added to `OWN_ICONS` in `src/generator/curated.ts`.
+1. Check first that no drawn icon already shows the same thing; if one does, add the name to `src/generator/same-as.ts` instead of drawing it. Otherwise write `src/drawn/<name>.ts`, with a default export whose `name` is the file name. A Hugeicons name replaces its stub; a name of our own must also be added to `OWN_ICONS` in `src/generator/curated.ts`.
 2. Optionally give it a category, labels, a description or aliases in `CURATED` (`src/generator/curated.ts`).
 3. `bun run generate` (in this package). `bun run audit` prints done and missing icons per category.
 

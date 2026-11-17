@@ -71,6 +71,11 @@ export interface IconManifestEntry {
   readonly style: DrawnIcon["style"] | null;
   /** Other names that lead to this entry (Hugeicons aliases, names used before the package). */
   readonly aliases: readonly string[];
+  /**
+   * The drawn icon whose drawing this name reuses, when the name means the same thing (`trash` →
+   * `delete-01`); `null` for a name with its own drawing or none. See `src/generator/same-as.ts`.
+   */
+  readonly sameAs: string | null;
   /** What the drawing was redrawn after (inspiration, never traced), when it was. */
   readonly reference: string | null;
   /** For a third-party brand icon: whose trademark it is and how it is used. */

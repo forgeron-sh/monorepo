@@ -26,6 +26,9 @@ export interface DrawnInfo {
   readonly name: string;
   readonly style: "pixel";
   readonly duo: boolean;
+  /** Grid and rows, to copy into the names drawn as this icon (`SAME_AS`). */
+  readonly grid?: number;
+  readonly rows?: readonly string[];
 }
 
 export interface GenerateInput {
@@ -33,6 +36,8 @@ export interface GenerateInput {
   readonly drawn: readonly DrawnInfo[];
   readonly own?: readonly string[];
   readonly curated?: Readonly<Record<string, CuratedMeta>>;
+  /** Name → drawn icon whose drawing it reuses (`SAME_AS` of `same-as.ts`). Default: none. */
+  readonly sameAs?: Readonly<Record<string, string>>;
 }
 
 export interface GenerateResult {
@@ -157,6 +162,7 @@ export function buildManifest(input: GenerateInput): IconManifestEntry[] {
   const { snapshot } = input;
   const own = input.own ?? OWN_ICONS;
   const curated = input.curated ?? CURATED;
+  const sameAs = input.sameAs ?? {};
   const hidden = new Set(snapshot.hidden);
   const huge = new Set(snapshot.uncategorized.filter((n) => !hidden.has(n)));
   const drawn = new Map(input.drawn.map((d) => [d.name, d]));
@@ -179,6 +185,13 @@ export function buildManifest(input: GenerateInput): IconManifestEntry[] {
   }
 
   const names = [...new Set([...huge, ...own])].sort();
+  for (const [name, target] of Object.entries(sameAs)) {
+    if (!names.includes(name)) throw new Error(`same-as.ts: "${name}" is not a name.`);
+    if (target in sameAs)
+      throw new Error(`same-as.ts: "${name}" leads to "${target}", itself drawn as another icon.`);
+    if (!drawn.has(target))
+      throw new Error(`same-as.ts: "${name}" leads to "${target}", not drawn.`);
+  }
   const aliases = new Map<string, string[]>();
   const addAlias = (alias: string, target: string) => {
     if (names.includes(alias)) return;
@@ -217,7 +230,8 @@ export function buildManifest(input: GenerateInput): IconManifestEntry[] {
     exports.set(id, name);
     const meta = curated[name];
     const category = meta?.category ?? categoryOf(name);
-    const art = drawn.get(name);
+    const same = sameAs[name];
+    const art = drawn.get(name) ?? (same === undefined ? undefined : drawn.get(same));
     return {
       name,
       export: id,
@@ -229,6 +243,7 @@ export function buildManifest(input: GenerateInput): IconManifestEntry[] {
       variants: { mono: art !== undefined, duo: art?.duo ?? false },
       style: art?.style ?? null,
       aliases: [...(aliases.get(name) ?? [])].sort(),
+      sameAs: same ?? null,
       reference: meta?.reference ?? null,
       trademark: meta?.trademark ?? null,
     } satisfies IconManifestEntry;
@@ -246,7 +261,18 @@ export function shardOf(name: string): string {
 }
 
 /** Every file of `src/generated/`, from the manifest. */
-export function renderFiles(manifest: readonly IconManifestEntry[]): Record<string, string> {
+export function renderFiles(
+  manifest: readonly IconManifestEntry[],
+  drawn: readonly DrawnInfo[] = [],
+): Record<string, string> {
+  const art = new Map(drawn.map((d) => [d.name, d]));
+  const copy = (e: IconManifestEntry, target: string) => {
+    const d = art.get(target);
+    if (!d?.rows || d.grid === undefined)
+      throw new Error(`"${e.name}" is drawn as "${target}", whose rows were not given.`);
+    const rows = d.rows.map((r) => JSON.stringify(r)).join(", ");
+    return `export const ${e.export}: PixelIcon = { name: "${e.name}", implemented: true, style: "pixel", grid: ${d.grid}, rows: [${rows}] };`;
+  };
   const shards = new Map<string, IconManifestEntry[]>();
   for (const entry of manifest) {
     const key = shardOf(entry.name);
@@ -256,15 +282,20 @@ export function renderFiles(manifest: readonly IconManifestEntry[]): Record<stri
   const keys = [...shards.keys()].sort();
   for (const key of keys) {
     const entries = shards.get(key) ?? [];
-    const stubs = entries.some((e) => !e.implemented);
+    const types = [
+      ...(entries.some((e) => e.sameAs !== null) ? ["PixelIcon"] : []),
+      ...(entries.some((e) => !e.implemented) ? ["StubIcon"] : []),
+    ];
     const lines = entries.map((e) =>
-      e.implemented
-        ? `export { default as ${e.export} } from "../drawn/${e.name}";`
-        : `export const ${e.export}: StubIcon = { name: "${e.name}", implemented: false };`,
+      e.sameAs !== null
+        ? copy(e, e.sameAs)
+        : e.implemented
+          ? `export { default as ${e.export} } from "../drawn/${e.name}";`
+          : `export const ${e.export}: StubIcon = { name: "${e.name}", implemented: false };`,
     );
     files[`icons-${key}.ts`] =
       HEADER +
-      (stubs ? 'import type { StubIcon } from "../types";\n\n' : "\n") +
+      (types.length > 0 ? `import type { ${types.join(", ")} } from "../types";\n\n` : "\n") +
       lines.join("\n") +
       "\n";
   }
@@ -282,5 +313,5 @@ export function renderFiles(manifest: readonly IconManifestEntry[]): Record<stri
 
 export function generate(input: GenerateInput): GenerateResult {
   const manifest = buildManifest(input);
-  return { manifest, files: renderFiles(manifest) };
+  return { manifest, files: renderFiles(manifest, input.drawn) };
 }

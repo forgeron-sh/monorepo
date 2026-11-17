@@ -62,6 +62,7 @@ export const OWN_ICONS: readonly string[] = [
   "cancel-circle-fill",
   "cancel-square-fill",
   "captions-fill",
+  "cards-01-fill",
   "castle-01-fill",
   "chart-01-fill",
   "chart-02-fill",
@@ -167,6 +168,7 @@ export const OWN_ICONS: readonly string[] = [
   "luggage-01-fill",
   "mail-01-fill",
   "mail-02-fill",
+  "mailbox-fill",
   "mcp",
   "medicine-02-fill",
   "message-01-fill",
@@ -248,6 +250,7 @@ export const OWN_ICONS: readonly string[] = [
   "user-circle-02-fill",
   "user-circle-fill",
   "user-fill",
+  "vote-fill",
   "wallet-03-fill",
   "warehouse-fill",
   "warning",
@@ -8072,5 +8075,164 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference: "Filled variant of our own `sticker`, generated from its outline on 2026-11-17.",
     labels: ["filled", "solid", "sticker"],
     description: "Filled: a sticker: a square with its lower right corner peeled back.",
+  },
+  "cards-01": {
+    reference:
+      "Hugeicons `cards-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cards"],
+    description: "Cards.",
+  },
+  clover: {
+    reference:
+      "Hugeicons `clover` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clover"],
+    description: "Clover.",
+  },
+  ear: {
+    reference:
+      "Hugeicons `ear` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ear"],
+    description: "Ear.",
+  },
+  "file-code": {
+    reference:
+      "Hugeicons `file-code` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "code"],
+    description: "File code.",
+  },
+  fireworks: {
+    reference:
+      "Hugeicons `fireworks` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fireworks"],
+    description: "Fireworks.",
+  },
+  "folder-git": {
+    reference:
+      "Hugeicons `folder-git` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "git"],
+    description: "Folder git.",
+  },
+  "folder-shared-01": {
+    reference:
+      "Hugeicons `folder-shared-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "shared"],
+    description: "Folder shared.",
+  },
+  football: {
+    reference:
+      "Hugeicons `football` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["football"],
+    description: "Football.",
+  },
+  guitar: {
+    reference:
+      "Hugeicons `guitar` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["guitar"],
+    description: "Guitar.",
+  },
+  "hand-coins": {
+    reference:
+      "Hugeicons `hand-coins` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "coins"],
+    description: "Hand coins.",
+  },
+  "hand-heart": {
+    reference:
+      "Hugeicons `hand-heart` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "heart"],
+    description: "Hand heart.",
+  },
+  kanban: {
+    reference:
+      "Hugeicons `kanban` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["kanban"],
+    description: "Kanban.",
+  },
+  "keyboard-off": {
+    reference:
+      "Hugeicons `keyboard-off` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["keyboard", "off"],
+    description: "Keyboard off.",
+  },
+  "location-share-01": {
+    reference:
+      "Hugeicons `location-share-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["location", "share"],
+    description: "Location share.",
+  },
+  mailbox: {
+    reference:
+      "Hugeicons `mailbox` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mailbox"],
+    description: "Mailbox.",
+  },
+  mirror: {
+    reference:
+      "Hugeicons `mirror` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mirror"],
+    description: "Mirror.",
+  },
+  signature: {
+    reference:
+      "Hugeicons `signature` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["signature"],
+    description: "Signature.",
+  },
+  tickets: {
+    reference:
+      "Hugeicons `tickets` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tickets"],
+    description: "Tickets.",
+  },
+  tire: {
+    reference:
+      "Hugeicons `tire` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tire"],
+    description: "Tire.",
+  },
+  "touchpad-01": {
+    reference:
+      "Hugeicons `touchpad-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touchpad"],
+    description: "Touchpad.",
+  },
+  translate: {
+    reference:
+      "Hugeicons `translate` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["translate"],
+    description: "Translate.",
+  },
+  ungroup: {
+    reference:
+      "Hugeicons `ungroup` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ungroup"],
+    description: "Ungroup.",
+  },
+  usb: {
+    reference:
+      "Hugeicons `usb` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["usb"],
+    description: "Usb.",
+  },
+  vote: {
+    reference:
+      "Hugeicons `vote` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["vote"],
+    description: "Vote.",
+  },
+  "cards-01-fill": {
+    reference: "Filled variant of our own `cards-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "cards"],
+    description: "Filled: cards.",
+  },
+  "vote-fill": {
+    reference: "Filled variant of our own `vote`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "vote"],
+    description: "Filled: vote.",
+  },
+  "mailbox-fill": {
+    reference: "Filled variant of our own `mailbox`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "mailbox"],
+    description: "Filled: mailbox.",
   },
 };

@@ -20,6 +20,7 @@ const entry = (name: string, over: Partial<IconManifestEntry> = {}): IconManifes
   variants: { mono: false, duo: false },
   style: null,
   aliases: [],
+  sameAs: null,
   reference: null,
   trademark: null,
   ...over,

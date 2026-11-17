@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { generate, type DrawnInfo, type NameSnapshot } from "../src/generator/core";
+import { SAME_AS } from "../src/generator/same-as";
 import { hasDuotone } from "../src/render";
 import type { IconDefinition } from "../src/types";
 
@@ -54,15 +55,20 @@ async function drawnIcons(): Promise<DrawnInfo[]> {
     if (!icon || !icon.implemented)
       throw new Error(`src/drawn/${file} has no drawn default export.`);
     if (icon.name !== name) throw new Error(`src/drawn/${file} is named "${icon.name}".`);
-    out.push({ name, style: icon.style, duo: hasDuotone(icon) });
+    out.push({ name, style: icon.style, duo: hasDuotone(icon), grid: icon.grid, rows: icon.rows });
   }
   return out;
 }
 
 if (args.has("--refresh")) await refresh();
 
+for (const name of Object.keys(SAME_AS)) {
+  if (existsSync(join(DRAWN, `${name}.ts`)))
+    throw new Error(`"${name}" has its own drawing: remove it from src/generator/same-as.ts.`);
+}
+
 const snapshot = JSON.parse(readFileSync(SNAPSHOT, "utf8")) as NameSnapshot;
-const { manifest, files } = generate({ snapshot, drawn: await drawnIcons() });
+const { manifest, files } = generate({ snapshot, drawn: await drawnIcons(), sameAs: SAME_AS });
 
 if (args.has("--check")) {
   const stale = Object.entries(files).filter(

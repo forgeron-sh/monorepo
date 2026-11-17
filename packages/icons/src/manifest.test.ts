@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import snapshotData from "../data/hugeicons-names.json";
 import { manifest } from "./catalog";
 import { generate, type NameSnapshot } from "./generator/core";
+import { SAME_AS } from "./generator/same-as";
 import * as icons from "./index";
 import { hasDuotone } from "./render";
 import type { IconDefinition } from "./types";
@@ -30,10 +31,17 @@ describe("manifest and exports", () => {
     const drawn = exported
       .map(([, icon]) => icon)
       .filter((icon) => icon.implemented)
-      .map((icon) => ({ name: icon.name, style: icon.style, duo: hasDuotone(icon) }));
+      .map((icon) => ({
+        name: icon.name,
+        style: icon.style,
+        duo: hasDuotone(icon),
+        grid: icon.grid,
+        rows: icon.rows,
+      }));
     const { manifest: expected } = generate({
       snapshot: snapshotData as NameSnapshot,
       drawn,
+      sameAs: SAME_AS,
     });
     expect(manifest).toEqual(expected);
   });
