@@ -16,6 +16,7 @@ import {
   Slot,
 } from "../index";
 import { bayer, matrix } from "./bayer";
+import { placeLabels } from "./draw";
 import { createFrame } from "./frame";
 import { paint, parseColor, resolvePalette } from "./palette";
 import { fit, project } from "./project";
@@ -269,5 +270,79 @@ describe("svg", () => {
     const svg = renderSvg(scene, { width: 120, height: 90, filters: [pixelate(5), grid()] });
     // floor(5 × 0.84) = 4 pixels drawn out of 5.
     expect(svg).toContain("h0.8v0.8h-0.8z");
+  });
+});
+
+describe("label placement", () => {
+  const view = { u: 4, ox: 50, oy: 40 };
+  const disjoint = (a: { x0: number; y0: number; x1: number; y1: number }, b: typeof a) =>
+    a.x1 < b.x0 || b.x1 < a.x0 || a.y1 < b.y0 || b.y1 < a.y0;
+
+  it("keeps every plate inside the raster, near an edge included", () => {
+    const labels = [
+      label([-30, 0, 0], "Left edge"),
+      label([0, 0, 20], "Top"),
+      label([30, 30, 0], "Corner"),
+    ];
+    const plates = placeLabels(labels, view, 100, 80);
+    for (const r of plates) {
+      expect(r).not.toBeNull();
+      if (!r) continue;
+      expect(r.x0).toBeGreaterThanOrEqual(0);
+      expect(r.y0).toBeGreaterThanOrEqual(0);
+      expect(r.x1).toBeLessThanOrEqual(99);
+      expect(r.y1).toBeLessThanOrEqual(79);
+    }
+  });
+
+  it("never lets two plates touch: the later one moves up past the earlier one", () => {
+    const labels = [
+      label([5, 5, 2], "Repository"),
+      label([5, 5, 2], "Preview"),
+      label([6, 5, 2], "Production"),
+    ];
+    const plates = placeLabels(labels, view, 200, 160);
+    expect(plates.every((r) => r !== null)).toBe(true);
+    for (let i = 0; i < plates.length; i++)
+      for (let j = i + 1; j < plates.length; j++)
+        expect(disjoint(plates[i]!, plates[j]!)).toBe(true);
+    expect(plates[1]!.y1).toBeLessThan(plates[0]!.y0);
+  });
+
+  it("rises off the drawing: a plate covers no pixel of a box under its anchor", () => {
+    const scene = {
+      blocks: [box([0, 0, 0], [8, 8, 6]), label([4, 4, 7], "Tool", { to: [4, 4, 6] })],
+    };
+    const { frame } = render(scene, { width: 120, height: 120 });
+    const boxPixels = new Set<number>();
+    const bare = render({ blocks: [scene.blocks[0]!] }, { width: 120, height: 120 }).frame;
+    bare.material.forEach((m, i) => m !== Material.Empty && boxPixels.add(i));
+    let covered = 0;
+    frame.material.forEach((m, i) => {
+      if (
+        (m === Material.LabelFill || m === Material.LabelFrame || m === Material.LabelText) &&
+        boxPixels.has(i)
+      )
+        covered++;
+    });
+    expect(covered).toBe(0);
+  });
+
+  it("leaves out a label that cannot be placed rather than drawing it over another", () => {
+    const labels = [label([0, 0, 0], "Wide label"), label([0, 0, 0], "Wide label")];
+    const plates = placeLabels(labels, { u: 2, ox: 40, oy: 8 }, 80, 16);
+    expect(plates[0]).not.toBeNull();
+    expect(plates[1]).toBeNull();
+  });
+
+  it("draws whole plates: as many frame pixels as the perimeter of each placed plate", () => {
+    const scene = {
+      blocks: [box([0, 0, 0], [6, 6, 2]), label([0, 0, 2], "Edge", { to: [0, 0, 2] })],
+    };
+    const { frame, view: v } = render(scene, { width: 60, height: 40 });
+    const [r] = placeLabels([scene.blocks[1] as never], v, frame.width, frame.height);
+    expect(r).toBeTruthy();
+    const frameCount = frame.material.filter((m) => m === Material.LabelFrame).length;
+    expect(frameCount).toBe(2 * (r!.x1 - r!.x0) + 2 * (r!.y1 - r!.y0));
   });
 });
