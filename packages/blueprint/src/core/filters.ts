@@ -62,6 +62,7 @@ export const DEFAULT_PALETTE: Readonly<Record<SlotName, ColorRef>> = {
   faint: { var: "--line-strong", fallback: "#2e2e2e" },
   accent: { var: "--accent", fallback: "#ff4f1f" },
   signal: { var: "--accent", fallback: "#ff4f1f" },
+  alert: { var: "--danger", fallback: "#ff6b81" },
 };
 
 /** A validated chain, split by stage. */

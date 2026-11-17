@@ -47,7 +47,7 @@ function halo(f: Frame, radius: number, density: number): void {
           const xx = x + dx;
           if (xx < 0 || xx >= width || (dx === 0 && dy === 0)) continue;
           const s = source[yy * width + xx];
-          if (s !== Slot.Accent && s !== Slot.Signal) continue;
+          if (s !== Slot.Accent && s !== Slot.Signal && s !== Slot.Alert) continue;
           const d = Math.max(Math.abs(dx), Math.abs(dy));
           const strength = density * (1 - (d - 1) / radius);
           if (strength > best) {

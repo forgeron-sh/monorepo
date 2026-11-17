@@ -26,8 +26,8 @@ function drawBox(f: Frame, s: BoxBlock, view: View): void {
     for (const face of [top, right, left]) outline(f, face, Material.Edge, Slot.Dim, 2);
     return;
   }
-  const edge = s.signal ? Slot.Signal : s.accent ? Slot.Accent : Slot.Ink;
-  const fg = s.signal ? Slot.Signal : s.accent ? Slot.Accent : Slot.Dim;
+  const edge = s.alert ? Slot.Alert : s.signal ? Slot.Signal : s.accent ? Slot.Accent : Slot.Ink;
+  const fg = s.alert ? Slot.Alert : s.signal ? Slot.Signal : s.accent ? Slot.Accent : Slot.Dim;
   const [tt, tl, tr] = s.tone ?? TONE;
   fillConvex(f, top, Material.FaceTop, fg, tt);
   fillConvex(f, left, Material.FaceLeft, fg, tl);
@@ -69,10 +69,28 @@ function drawBox(f: Frame, s: BoxBlock, view: View): void {
   }
 }
 
-/** A tag centred above its anchor: a 1-pixel frame, a fill, capitals; a leader down to `to`. */
+/**
+ * A tag centred above its anchor: a 1-pixel frame, a fill, capitals; a leader down to `to`. A
+ * plain label is the text alone.
+ */
 function drawLabel(f: Frame, l: LabelBlock, view: View): void {
   const p = project(l.at, view);
   const text = l.text.toUpperCase();
+  if (l.plain) {
+    // Text only, centred on its anchor, in its own colour family.
+    const ink = slotOf(l.ink ?? "ink");
+    let px = Math.round(p[0] - textWidth(text) / 2);
+    for (const ch of text) {
+      const g = glyph(ch);
+      g.rows.forEach((row, i) => {
+        for (let j = 0; j < row.length; j++)
+          if (row[j] === "#")
+            plot(f, px + j, Math.round(p[1]) - 7 + g.top + i, Material.LabelText, ink);
+      });
+      px += glyphWidth(g) + 1;
+    }
+    return;
+  }
   const active = l.active ?? false;
   const width = textWidth(text);
   const x0 = Math.round(p[0] - width / 2) - 3;

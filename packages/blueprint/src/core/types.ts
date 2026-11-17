@@ -5,8 +5,11 @@
 
 export type Vec3 = readonly [x: number, y: number, z: number];
 
-/** The colour family of a pixel. `signal` stays ember even when `accent` is mapped to ink. */
-export type Ink = "ink" | "dim" | "faint" | "accent" | "signal";
+/**
+ * The colour family of a pixel. `signal` stays ember even when `accent` is mapped to ink; `alert`
+ * is red.
+ */
+export type Ink = "ink" | "dim" | "faint" | "accent" | "signal" | "alert";
 
 interface BlockBase {
   /** Lower layers are painted first, whatever their depth (a ground slab). */
@@ -24,6 +27,8 @@ export interface BoxBlock extends BlockBase {
   accent?: boolean;
   /** Always ember, even when the accent is mapped to ink: a delivery. */
   signal?: boolean;
+  /** The alert family (red by default): fire, errors. */
+  alert?: boolean;
   /** Outline only, dashed: a slot or a ghost. */
   ghost?: boolean;
   /** Inset outline, corner studs and a ring on the top face. */
@@ -58,6 +63,10 @@ export interface LabelBlock extends BlockBase {
   text: string;
   to?: Vec3;
   active?: boolean;
+  /** Text only, no frame, fill or leader: a caption floating over the scene. */
+  plain?: boolean;
+  /** Colour family of a plain label's text (ink by default). */
+  ink?: Ink;
 }
 
 export type Block = BoxBlock | LineBlock | DotBlock | LabelBlock;

@@ -31,13 +31,22 @@ export const Slot = {
   Faint: 4,
   Accent: 5,
   Signal: 6,
+  Alert: 7,
 } as const;
 export type Slot = (typeof Slot)[keyof typeof Slot];
 
-export type SlotName = "bg" | "ink" | "dim" | "faint" | "accent" | "signal";
+export type SlotName = "bg" | "ink" | "dim" | "faint" | "accent" | "signal" | "alert";
 
 /** Slot names in slot order, from `Slot.Bg`. */
-export const SLOT_NAMES: readonly SlotName[] = ["bg", "ink", "dim", "faint", "accent", "signal"];
+export const SLOT_NAMES: readonly SlotName[] = [
+  "bg",
+  "ink",
+  "dim",
+  "faint",
+  "accent",
+  "signal",
+  "alert",
+];
 
 export function slotOf(name: SlotName): Slot {
   return (SLOT_NAMES.indexOf(name) + 1) as Slot;
