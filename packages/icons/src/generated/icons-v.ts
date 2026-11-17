@@ -7,7 +7,7 @@ export const VacuumCleanerIcon: StubIcon = { name: "vacuum-cleaner", implemented
 export const ValidationIcon: StubIcon = { name: "validation", implemented: false };
 export const ValidationApprovalIcon: StubIcon = { name: "validation-approval", implemented: false };
 export const VanIcon: StubIcon = { name: "van", implemented: false };
-export const VariableIcon: StubIcon = { name: "variable", implemented: false };
+export { default as VariableIcon } from "../drawn/variable";
 export const VaultIcon: StubIcon = { name: "vault", implemented: false };
 export const VectorSquareIcon: StubIcon = { name: "vector-square", implemented: false };
 export const VeganIcon: StubIcon = { name: "vegan", implemented: false };
@@ -20,7 +20,7 @@ export const VerticalResizeIcon: StubIcon = { name: "vertical-resize", implement
 export const VerticalScrollPointIcon: StubIcon = { name: "vertical-scroll-point", implemented: false };
 export const VestIcon: StubIcon = { name: "vest", implemented: false };
 export const ViberIcon: StubIcon = { name: "viber", implemented: false };
-export const VibrateIcon: StubIcon = { name: "vibrate", implemented: false };
+export { default as VibrateIcon } from "../drawn/vibrate";
 export const VibrateOffIcon: StubIcon = { name: "vibrate-off", implemented: false };
 export const VictoryFinger01Icon: StubIcon = { name: "victory-finger-01", implemented: false };
 export const VictoryFinger02Icon: StubIcon = { name: "victory-finger-02", implemented: false };
@@ -51,7 +51,7 @@ export const VisionIcon: StubIcon = { name: "vision", implemented: false };
 export const VisualStudioCodeIcon: StubIcon = { name: "visual-studio-code", implemented: false };
 export const VkIcon: StubIcon = { name: "vk", implemented: false };
 export const VkSquareIcon: StubIcon = { name: "vk-square", implemented: false };
-export const VoiceIcon: StubIcon = { name: "voice", implemented: false };
+export { default as VoiceIcon } from "../drawn/voice";
 export const VoiceCommentIcon: StubIcon = { name: "voice-comment", implemented: false };
 export const VoiceIdIcon: StubIcon = { name: "voice-id", implemented: false };
 export const VoiceToTextIcon: StubIcon = { name: "voice-to-text", implemented: false };

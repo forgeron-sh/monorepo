@@ -3,7 +3,8 @@
 import type { StubIcon } from "../types";
 
 export const JapaneseYenIcon: StubIcon = { name: "japanese-yen", implemented: false };
-export const JarIcon: StubIcon = { name: "jar", implemented: false };
+export { default as JarIcon } from "../drawn/jar";
+export { default as JarFillIcon } from "../drawn/jar-fill";
 export const JavaIcon: StubIcon = { name: "java", implemented: false };
 export const JavaScriptIcon: StubIcon = { name: "java-script", implemented: false };
 export { default as JiraIcon } from "../drawn/jira";
@@ -15,7 +16,7 @@ export const JoinBevelIcon: StubIcon = { name: "join-bevel", implemented: false 
 export const JoinRoundIcon: StubIcon = { name: "join-round", implemented: false };
 export const JoinStraightIcon: StubIcon = { name: "join-straight", implemented: false };
 export const JokerIcon: StubIcon = { name: "joker", implemented: false };
-export const Joystick01Icon: StubIcon = { name: "joystick-01", implemented: false };
+export { default as Joystick01Icon } from "../drawn/joystick-01";
 export const Joystick02Icon: StubIcon = { name: "joystick-02", implemented: false };
 export const Joystick03Icon: StubIcon = { name: "joystick-03", implemented: false };
 export const Joystick04Icon: StubIcon = { name: "joystick-04", implemented: false };

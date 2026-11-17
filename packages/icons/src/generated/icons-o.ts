@@ -3,8 +3,9 @@
 import type { StubIcon } from "../types";
 
 export const ObtuseIcon: StubIcon = { name: "obtuse", implemented: false };
-export const OctagonIcon: StubIcon = { name: "octagon", implemented: false };
+export { default as OctagonIcon } from "../drawn/octagon";
 export const OctagonAlertIcon: StubIcon = { name: "octagon-alert", implemented: false };
+export { default as OctagonFillIcon } from "../drawn/octagon-fill";
 export const OctagonMinusIcon: StubIcon = { name: "octagon-minus", implemented: false };
 export const OctagonPauseIcon: StubIcon = { name: "octagon-pause", implemented: false };
 export const OctagonXIcon: StubIcon = { name: "octagon-x", implemented: false };
@@ -25,7 +26,7 @@ export const OnlineLearning04Icon: StubIcon = { name: "online-learning-04", impl
 export const OpenCaptionIcon: StubIcon = { name: "open-caption", implemented: false };
 export const OpenSourceIcon: StubIcon = { name: "open-source", implemented: false };
 export { default as OpenaiIcon } from "../drawn/openai";
-export const OptionIcon: StubIcon = { name: "option", implemented: false };
+export { default as OptionIcon } from "../drawn/option";
 export const OptionsCallIcon: StubIcon = { name: "options-call", implemented: false };
 export const OrangeIcon: StubIcon = { name: "orange", implemented: false };
 export const Orbit01Icon: StubIcon = { name: "orbit-01", implemented: false };
@@ -38,4 +39,5 @@ export const OrientationPotraitToLandscapeIcon: StubIcon = { name: "orientation-
 export const OrigamiIcon: StubIcon = { name: "origami", implemented: false };
 export const OrthogonalEdgeIcon: StubIcon = { name: "orthogonal-edge", implemented: false };
 export const OvalIcon: StubIcon = { name: "oval", implemented: false };
-export const OvenIcon: StubIcon = { name: "oven", implemented: false };
+export { default as OvenIcon } from "../drawn/oven";
+export { default as OvenFillIcon } from "../drawn/oven-fill";

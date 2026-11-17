@@ -27,11 +27,19 @@ export const OWN_ICONS: readonly string[] = [
   "alert-circle-fill",
   "alert-diamond-fill",
   "alert-square-fill",
+  "angry-fill",
   "anthropic",
   "apartment-fill",
   "archive-02-fill",
   "asana",
   "attio",
+  "award-02-fill",
+  "badge-fill",
+  "balloon-fill",
+  "bluetooth-circle-fill",
+  "bluetooth-square-fill",
+  "bomb-fill",
+  "bone-01-fill",
   "book-01-fill",
   "book-02-fill",
   "bookmark-01-fill",
@@ -40,42 +48,70 @@ export const OWN_ICONS: readonly string[] = [
   "bookmark-remove-01-fill",
   "bot-fill",
   "briefcase-01-fill",
+  "bucket-fill",
   "bug-01-fill",
   "bug-02-fill",
   "bus-01-fill",
+  "cabinet-01-fill",
   "calculator-fill",
   "calendar-01-fill",
+  "calendar-02-fill",
   "calendar-03-fill",
   "camera-01-fill",
+  "camera-02-fill",
   "cancel-circle-fill",
   "cancel-square-fill",
+  "captions-fill",
   "castle-01-fill",
   "chart-01-fill",
+  "chart-02-fill",
+  "chart-histogram-fill",
   "chat-01-fill",
   "chat-bot-fill",
+  "chat-fill",
   "checkmark-badge-01-fill",
   "checkmark-circle-01-fill",
   "checkmark-circle-02-fill",
   "checkmark-square-01-fill",
   "checkmark-square-02-fill",
+  "chef-fill",
   "circle-arrow-down-01-fill",
   "circle-arrow-left-01-fill",
   "circle-arrow-right-01-fill",
   "circle-arrow-up-01-fill",
+  "circle-lock-01-fill",
   "clock-02-fill",
   "clock-03-fill",
   "cloudflare",
+  "code-square-fill",
   "comment-01-fill",
   "comment-02-fill",
+  "comment-03-fill",
   "comment-add-01-fill",
+  "comment-add-02-fill",
+  "comment-add-03-fill",
+  "comment-remove-01-fill",
+  "comment-remove-02-fill",
+  "comment-remove-03-fill",
+  "computer-add-fill",
+  "computer-check-fill",
+  "computer-remove-fill",
+  "computer-terminal-01-fill",
+  "computer-video-fill",
+  "cone-01-fill",
   "confluence",
   "contact-01-fill",
   "contact-book-fill",
+  "copyright-fill",
+  "coupon-percent-fill",
   "crown-fill",
   "database-01-fill",
   "deploy",
+  "diamond-01-fill",
   "diamond-fill",
   "dice-fill",
+  "directions-01-fill",
+  "dish-01-fill",
   "dollar-circle-fill",
   "door-01-fill",
   "download-square-01-fill",
@@ -84,54 +120,97 @@ export const OWN_ICONS: readonly string[] = [
   "file-01-fill",
   "file-02-fill",
   "file-unknown-fill",
+  "fire-security-fill",
   "first-aid-kit-fill",
+  "fish-fill",
   "flag-01-fill",
   "floppy-disk-fill",
   "folder-01-fill",
   "folder-02-fill",
+  "folder-03-fill",
   "folder-open-fill",
+  "folder-zip-fill",
   "forgeron",
   "game-controller-02-fill",
+  "ghost-fill",
+  "happy-01-fill",
+  "happy-fill",
+  "health-fill",
   "heart-check-fill",
   "heart-fill",
   "help-circle-fill",
   "help-square-fill",
+  "hexagon-01-fill",
+  "hexagon-fill",
   "home-01-fill",
   "home-03-fill",
+  "hospital-02-fill",
+  "id-card-fill",
   "id-fill",
   "image-02-fill",
   "information-circle-fill",
   "information-diamond-fill",
   "information-square-fill",
   "intercom",
+  "jar-fill",
   "jira",
+  "kettle-fill",
+  "key-square-fill",
+  "lantern-fill",
+  "laugh-fill",
+  "layout-dashboard-fill",
   "leaf-01-fill",
   "linear",
   "location-01-fill",
   "lock-fill",
   "log",
+  "luggage-01-fill",
   "mail-01-fill",
   "mail-02-fill",
   "mcp",
   "medicine-02-fill",
   "message-01-fill",
+  "message-02-fill",
+  "message-cancel-02-fill",
+  "message-circle-check-fill",
+  "message-circle-fill",
   "metro-fill",
+  "microwave-fill",
+  "milestone-fill",
   "minus-sign-circle-fill",
+  "monitor-pause-fill",
+  "monitor-stop-fill",
   "mountain-fill",
+  "music-01-fill",
+  "music-note-square-01-fill",
   "notification-01-fill",
   "notification-02-fill",
+  "notification-circle-fill",
+  "octagon-fill",
   "openai",
+  "oven-fill",
   "password-validation-fill",
   "pause-circle-fill",
+  "percent-circle-fill",
+  "percent-square-fill",
+  "perfume-fill",
   "pine-tree-fill",
   "play-circle-fill",
   "play-fill",
   "play-square-fill",
   "plus-sign-square-fill",
+  "pound-circle-fill",
+  "pound-square-fill",
+  "projector-fill",
+  "pulse-02-fill",
   "radio-button-fill",
   "radio-fill",
+  "rain-drop-fill",
+  "refrigerator-fill",
+  "registered-fill",
   "remove-circle-fill",
   "remove-square-fill",
+  "rhombus-fill",
   "rocket-01-fill",
   "rollback",
   "sad-01-fill",
@@ -139,9 +218,12 @@ export const OWN_ICONS: readonly string[] = [
   "sd-card-fill",
   "security-lock-fill",
   "shield-01-fill",
+  "shield-alert-fill",
   "shield-key-fill",
   "shield-user-fill",
+  "shield-x-fill",
   "shirt-01-fill",
+  "simcard-01-fill",
   "smart-phone-01-fill",
   "smart-phone-02-fill",
   "smile-fill",
@@ -151,13 +233,17 @@ export const OWN_ICONS: readonly string[] = [
   "square-arrow-right-01-fill",
   "square-arrow-up-01-fill",
   "square-arrow-up-right-fill",
+  "stairs-01-fill",
   "star-fill",
+  "sticker-fill",
   "sticky-note-01-fill",
   "stop-circle-fill",
   "store-02-fill",
   "tablet-01-fill",
   "tag-01-fill",
   "time-02-fill",
+  "toilet-01-fill",
+  "tree-01-fill",
   "user-account-fill",
   "user-circle-02-fill",
   "user-circle-fill",
@@ -165,6 +251,8 @@ export const OWN_ICONS: readonly string[] = [
   "wallet-03-fill",
   "warehouse-fill",
   "warning",
+  "weight-fill",
+  "whistle-fill",
   "zendesk",
 ];
 
@@ -4771,5 +4859,3218 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference: "Filled variant of our own `play-square`, generated from its outline on 2026-11-17.",
     labels: ["filled", "solid", "play"],
     description: "Filled: play triangle in a box.",
+  },
+  "add-01": {
+    reference:
+      "Hugeicons `add-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["add", "plus", "bold"],
+    description: "Bold plus, two-pixel bars.",
+  },
+  "add-invoice": {
+    reference:
+      "Hugeicons `add-invoice` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["invoice", "add", "bill"],
+    description: "Invoice with a plus badge.",
+  },
+  "ai-book": {
+    reference:
+      "Hugeicons `ai-book` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ai", "book", "read"],
+    description: "Book with an AI sparkle badge.",
+  },
+  "ai-browser": {
+    reference:
+      "Hugeicons `ai-browser` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ai", "browser", "web"],
+    description: "Browser window with an AI sparkle badge.",
+  },
+  "ai-chat-01": {
+    reference:
+      "Hugeicons `ai-chat-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ai", "chat", "assistant"],
+    description: "Speech bubble with an AI sparkle badge.",
+  },
+  "ai-cloud": {
+    reference:
+      "Hugeicons `ai-cloud` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ai", "cloud", "service"],
+    description: "Cloud with an AI sparkle badge.",
+  },
+  "ai-computer": {
+    reference:
+      "Hugeicons `ai-computer` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ai", "computer", "screen"],
+    description: "Monitor with an AI sparkle badge.",
+  },
+  "alarm-clock-minus": {
+    reference:
+      "Hugeicons `alarm-clock-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["alarm", "remove", "reminder"],
+    description: "Alarm clock with a minus badge.",
+  },
+  "alarm-clock-plus": {
+    reference:
+      "Hugeicons `alarm-clock-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["alarm", "add", "reminder"],
+    description: "Alarm clock with a plus badge.",
+  },
+  "analytics-02": {
+    reference:
+      "Hugeicons `analytics-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["analytics", "bars", "dashboard"],
+    description: "Monitor on a stand with two bars.",
+  },
+  angry: {
+    reference:
+      "Hugeicons `angry` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["angry", "face", "emoji"],
+    description: "Angry face with slanted eyes and a frown.",
+  },
+  "award-02": {
+    reference:
+      "Hugeicons `award-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["award", "rosette", "prize"],
+    description: "Rosette with two ribbon tails.",
+  },
+  "bar-code-02": {
+    reference:
+      "Hugeicons `bar-code-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["barcode", "product", "retail"],
+    description: "Barcode with taller guard bars at both ends.",
+  },
+  battery: {
+    reference:
+      "Hugeicons `battery` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["battery", "charge", "power"],
+    description: "Upright battery, its charge in the secondary tone.",
+  },
+  "battery-plus": {
+    reference:
+      "Hugeicons `battery-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["battery", "charge", "plus"],
+    description: "Battery with a plus inside, to charge.",
+  },
+  "bell-minus": {
+    reference:
+      "Hugeicons `bell-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bell", "notification", "remove"],
+    description: "Bell with a small minus top right.",
+  },
+  "bell-plus": {
+    reference:
+      "Hugeicons `bell-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bell", "notification", "add"],
+    description: "Bell with a small plus top right.",
+  },
+  bitcoin: {
+    reference:
+      "Hugeicons `bitcoin` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "crypto", "currency"],
+    description: "Bitcoin sign.",
+  },
+  "bitcoin-01": {
+    reference:
+      "Hugeicons `bitcoin-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "crypto", "coin"],
+    description: "Bitcoin sign in a ring.",
+  },
+  "bluetooth-circle": {
+    reference:
+      "Hugeicons `bluetooth-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bluetooth", "wireless", "circle"],
+    description: "Bluetooth rune in a ring.",
+  },
+  "bluetooth-search": {
+    reference:
+      "Hugeicons `bluetooth-search` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bluetooth", "search", "pairing"],
+    description: "Bluetooth rune with a magnifier badge.",
+  },
+  "bluetooth-square": {
+    reference:
+      "Hugeicons `bluetooth-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bluetooth", "wireless", "box"],
+    description: "Bluetooth rune in a box.",
+  },
+  "book-bookmark-01": {
+    reference:
+      "Hugeicons `book-bookmark-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "bookmark", "reading"],
+    description: "Book with a ribbon bookmark hanging from the top.",
+  },
+  "book-bookmark-02": {
+    reference:
+      "Hugeicons `book-bookmark-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "bookmark", "ribbon"],
+    description: "Book with a ribbon hanging out of the bottom.",
+  },
+  "book-check": {
+    reference:
+      "Hugeicons `book-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "done", "read"],
+    description: "Book with a check badge.",
+  },
+  "book-copy": {
+    reference:
+      "Hugeicons `book-copy` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["books", "copy", "duplicate"],
+    description: "Two books, one in front of the other.",
+  },
+  "book-download": {
+    reference:
+      "Hugeicons `book-download` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "download", "ebook"],
+    description: "Book with a download badge.",
+  },
+  "book-headphones": {
+    reference:
+      "Hugeicons `book-headphones` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["audiobook", "book", "listen"],
+    description: "Book with a headphones badge, an audiobook.",
+  },
+  "book-heart": {
+    reference:
+      "Hugeicons `book-heart` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "favourite", "love"],
+    description: "Book with a heart badge.",
+  },
+  "book-key": {
+    reference:
+      "Hugeicons `book-key` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "key", "licence"],
+    description: "Book with a key badge.",
+  },
+  "book-lock": {
+    reference:
+      "Hugeicons `book-lock` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "locked", "private"],
+    description: "Book with a padlock badge.",
+  },
+  "bot-message-square": {
+    reference:
+      "Hugeicons `bot-message-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bot", "chat", "assistant"],
+    description: "Square speech bubble with a bot's face.",
+  },
+  "bus-02": {
+    reference:
+      "Hugeicons `bus-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bus", "transit", "front"],
+    description: "Bus from the front with a solid windscreen.",
+  },
+  cake: {
+    reference:
+      "Hugeicons `cake` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cake", "birthday", "party"],
+    description: "Two-tier cake with a candle.",
+  },
+  "calendar-02": {
+    reference:
+      "Hugeicons `calendar-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "agenda", "events"],
+    description: "Calendar page with two agenda lines.",
+  },
+  "calendar-add-02": {
+    reference:
+      "Hugeicons `calendar-add-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "add", "event"],
+    description: "Calendar with a plus inside.",
+  },
+  "calendar-check": {
+    reference:
+      "Hugeicons `calendar-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "done", "confirmed"],
+    description: "Calendar with a check mark inside.",
+  },
+  "calendar-clock": {
+    reference:
+      "Hugeicons `calendar-clock` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "time", "schedule"],
+    description: "Calendar with a clock badge.",
+  },
+  "calendar-cog": {
+    reference:
+      "Hugeicons `calendar-cog` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "settings", "configure"],
+    description: "Calendar with a cog badge.",
+  },
+  "calendar-heart": {
+    reference:
+      "Hugeicons `calendar-heart` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "favourite", "love"],
+    description: "Calendar with a heart badge.",
+  },
+  "calendar-minus": {
+    reference:
+      "Hugeicons `calendar-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "remove", "event"],
+    description: "Calendar with a minus inside.",
+  },
+  "call-add": {
+    reference:
+      "Hugeicons `call-add` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["call", "add", "contact"],
+    description: "Phone handset with a plus.",
+  },
+  "call-minus": {
+    reference:
+      "Hugeicons `call-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["call", "remove", "contact"],
+    description: "Phone handset with a minus.",
+  },
+  "camera-02": {
+    reference:
+      "Hugeicons `camera-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["camera", "photo", "lens"],
+    description: "Camera with a round lens and a side viewfinder.",
+  },
+  "camera-03": {
+    reference:
+      "Hugeicons `camera-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["camera", "photo", "shoot"],
+    description: "Camera with a solid lens.",
+  },
+  "camera-add-01": {
+    reference:
+      "Hugeicons `camera-add-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["camera", "add", "photo"],
+    description: "Camera with a plus badge.",
+  },
+  "camera-add-02": {
+    reference:
+      "Hugeicons `camera-add-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["camera", "add", "photo"],
+    description: "Round-lens camera with a plus badge.",
+  },
+  "camera-add-03": {
+    reference:
+      "Hugeicons `camera-add-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["camera", "add", "photo"],
+    description: "Solid-lens camera with a plus badge.",
+  },
+  "camera-ai": {
+    reference:
+      "Hugeicons `camera-ai` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["camera", "ai", "smart"],
+    description: "Camera with a sparkle badge.",
+  },
+  "camera-microphone-01": {
+    reference:
+      "Hugeicons `camera-microphone-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["camera", "microphone", "record"],
+    description: "Camera with a microphone badge.",
+  },
+  "camera-microphone-02": {
+    reference:
+      "Hugeicons `camera-microphone-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["video", "microphone", "call"],
+    description: "Video camera with a microphone badge.",
+  },
+  "camera-smile-01": {
+    reference:
+      "Hugeicons `camera-smile-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["camera", "face", "detection"],
+    description: "Camera with a smiley badge.",
+  },
+  "car-02": {
+    reference:
+      "Hugeicons `car-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["car", "vehicle", "solid"],
+    description: "Solid car seen from the front.",
+  },
+  "car-parking-02": {
+    reference:
+      "Hugeicons `car-parking-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["car", "parking", "park"],
+    description: "Car with a P badge.",
+  },
+  "car-time": {
+    reference:
+      "Hugeicons `car-time` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["car", "time", "schedule"],
+    description: "Car with a clock badge.",
+  },
+  "chart-02": {
+    reference:
+      "Hugeicons `chart-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chart", "line", "report"],
+    description: "Rising line chart in a frame.",
+  },
+  "chart-03": {
+    reference:
+      "Hugeicons `chart-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chart", "area", "report"],
+    description: "Area chart in a frame.",
+  },
+  "chart-bar-line": {
+    reference:
+      "Hugeicons `chart-bar-line` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chart", "bars", "trend"],
+    description: "Bars with a trend line.",
+  },
+  "chart-network": {
+    reference:
+      "Hugeicons `chart-network` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chart", "network", "nodes"],
+    description: "Chart axes with connected data nodes in the secondary tone.",
+  },
+  chat: {
+    reference:
+      "Hugeicons `chat` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "conversation", "bubble"],
+    description: "Round speech bubble with three dots in the secondary tone.",
+  },
+  "chat-add": {
+    reference:
+      "Hugeicons `chat-add` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "add", "new"],
+    description: "Round speech bubble with a plus badge.",
+  },
+  "chat-cancel": {
+    reference:
+      "Hugeicons `chat-cancel` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "cancel", "close"],
+    description: "Round speech bubble with a cross badge.",
+  },
+  "chat-cancel-01": {
+    reference:
+      "Hugeicons `chat-cancel-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "cancel", "close"],
+    description: "Speech bubble with a cross badge.",
+  },
+  "chat-download": {
+    reference:
+      "Hugeicons `chat-download` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "download", "save"],
+    description: "Round speech bubble with a download arrow badge.",
+  },
+  "chat-download-01": {
+    reference:
+      "Hugeicons `chat-download-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "download", "save"],
+    description: "Speech bubble with a download arrow badge.",
+  },
+  "chat-edit": {
+    reference:
+      "Hugeicons `chat-edit` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "edit", "write"],
+    description: "Round speech bubble with a pencil badge.",
+  },
+  "chat-lock": {
+    reference:
+      "Hugeicons `chat-lock` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "private", "encrypted"],
+    description: "Round speech bubble with a padlock badge.",
+  },
+  "chat-lock-01": {
+    reference:
+      "Hugeicons `chat-lock-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "private", "encrypted"],
+    description: "Speech bubble with a padlock badge.",
+  },
+  "chat-notification": {
+    reference:
+      "Hugeicons `chat-notification` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chat", "unread", "notification"],
+    description: "Round speech bubble with a notification dot.",
+  },
+  "check-line": {
+    reference:
+      "Hugeicons `check-line` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["check", "done", "underline"],
+    description: "Check mark over a line.",
+  },
+  "circle-lock-01": {
+    reference:
+      "Hugeicons `circle-lock-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["lock", "padlock", "round"],
+    description: "Round padlock with a keyhole in the secondary tone.",
+  },
+  "angry-fill": {
+    reference: "Filled variant of our own `angry`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "angry"],
+    description: "Filled: angry face with slanted eyes and a frown.",
+  },
+  "award-02-fill": {
+    reference: "Filled variant of our own `award-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "award"],
+    description: "Filled: rosette with two ribbon tails.",
+  },
+  "bluetooth-circle-fill": {
+    reference:
+      "Filled variant of our own `bluetooth-circle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "bluetooth"],
+    description: "Filled: bluetooth rune in a ring.",
+  },
+  "bluetooth-square-fill": {
+    reference:
+      "Filled variant of our own `bluetooth-square`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "bluetooth"],
+    description: "Filled: bluetooth rune in a box.",
+  },
+  "calendar-02-fill": {
+    reference: "Filled variant of our own `calendar-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "calendar"],
+    description: "Filled: calendar page with two agenda lines.",
+  },
+  "camera-02-fill": {
+    reference: "Filled variant of our own `camera-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "camera"],
+    description: "Filled: camera with a round lens and a side viewfinder.",
+  },
+  "chart-02-fill": {
+    reference: "Filled variant of our own `chart-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "chart"],
+    description: "Filled: rising line chart in a frame.",
+  },
+  "chat-fill": {
+    reference: "Filled variant of our own `chat`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "chat"],
+    description: "Filled: round speech bubble with three dots in the secondary tone.",
+  },
+  "circle-lock-01-fill": {
+    reference:
+      "Filled variant of our own `circle-lock-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "circle"],
+    description: "Filled: round padlock with a keyhole in the secondary tone.",
+  },
+  "clipboard-clock": {
+    reference:
+      "Hugeicons `clipboard-clock` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clipboard", "pending", "time"],
+    description: "Clipboard with a clock badge.",
+  },
+  "clipboard-minus": {
+    reference:
+      "Hugeicons `clipboard-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clipboard", "remove", "minus"],
+    description: "Clipboard with a minus badge.",
+  },
+  "clipboard-pen": {
+    reference:
+      "Hugeicons `clipboard-pen` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clipboard", "edit", "write"],
+    description: "Clipboard with a pencil badge.",
+  },
+  "clipboard-plus": {
+    reference:
+      "Hugeicons `clipboard-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clipboard", "add", "new"],
+    description: "Clipboard with a plus badge.",
+  },
+  "clock-check": {
+    reference:
+      "Hugeicons `clock-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clock", "done", "on time"],
+    description: "Clock with a check badge.",
+  },
+  "clock-plus": {
+    reference:
+      "Hugeicons `clock-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clock", "add", "time"],
+    description: "Clock with a plus badge.",
+  },
+  "cloud-cog": {
+    reference:
+      "Hugeicons `cloud-cog` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cloud", "settings", "configure"],
+    description: "Cloud with a cog badge.",
+  },
+  "coffee-03": {
+    reference:
+      "Hugeicons `coffee-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["coffee", "cup", "saucer"],
+    description: "Cup of coffee on a saucer.",
+  },
+  "comment-03": {
+    reference:
+      "Hugeicons `comment-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["comment", "note", "bubble"],
+    description: "Square speech bubble with a centred tail and two lines of text.",
+  },
+  "comment-add-02": {
+    reference:
+      "Hugeicons `comment-add-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["comment", "add", "new"],
+    description: "Speech bubble with its tail on the right and a plus inside.",
+  },
+  "comment-add-03": {
+    reference:
+      "Hugeicons `comment-add-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["comment", "add", "new"],
+    description: "Square speech bubble with a centred tail and a plus inside.",
+  },
+  "comment-remove-01": {
+    reference:
+      "Hugeicons `comment-remove-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["comment", "remove", "delete"],
+    description: "Speech bubble with its tail on the left and a minus inside.",
+  },
+  "comment-remove-02": {
+    reference:
+      "Hugeicons `comment-remove-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["comment", "remove", "delete"],
+    description: "Speech bubble with its tail on the right and a minus inside.",
+  },
+  "comment-remove-03": {
+    reference:
+      "Hugeicons `comment-remove-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["comment", "remove", "delete"],
+    description: "Square speech bubble with a centred tail and a minus inside.",
+  },
+  "computer-add": {
+    reference:
+      "Hugeicons `computer-add` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["computer", "add", "monitor"],
+    description: "Monitor with a plus on its screen.",
+  },
+  "computer-check": {
+    reference:
+      "Hugeicons `computer-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["computer", "done", "monitor"],
+    description: "Monitor with a check mark on its screen.",
+  },
+  "computer-cloud": {
+    reference:
+      "Hugeicons `computer-cloud` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["computer", "cloud", "online"],
+    description: "Monitor with a cloud on its screen.",
+  },
+  "computer-remove": {
+    reference:
+      "Hugeicons `computer-remove` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["computer", "remove", "monitor"],
+    description: "Monitor with a minus on its screen.",
+  },
+  "computer-terminal-01": {
+    reference:
+      "Hugeicons `computer-terminal-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["terminal", "console", "command"],
+    description: "Monitor showing a prompt chevron and underscore.",
+  },
+  "computer-user": {
+    reference:
+      "Hugeicons `computer-user` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["computer", "user", "account"],
+    description: "Monitor showing a small person.",
+  },
+  "computer-video": {
+    reference:
+      "Hugeicons `computer-video` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["computer", "video", "play"],
+    description: "Monitor with a play triangle on its screen.",
+  },
+  "computer-video-call": {
+    reference:
+      "Hugeicons `computer-video-call` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["video call", "meeting", "computer"],
+    description: "Monitor showing a small video camera.",
+  },
+  "copy-02": {
+    reference:
+      "Hugeicons `copy-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["copy", "duplicate", "text"],
+    description: "Two sheets, the front one with two lines of text.",
+  },
+  "copy-check": {
+    reference:
+      "Hugeicons `copy-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["copy", "copied", "done"],
+    description: "Two sheets, the front one with a check mark.",
+  },
+  "copy-minus": {
+    reference:
+      "Hugeicons `copy-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["copy", "remove", "duplicate"],
+    description: "Two sheets, the front one with a minus.",
+  },
+  "copy-plus": {
+    reference:
+      "Hugeicons `copy-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["copy", "add", "duplicate"],
+    description: "Two sheets, the front one with a plus.",
+  },
+  "coupon-percent": {
+    reference:
+      "Hugeicons `coupon-percent` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["coupon", "discount", "percent"],
+    description: "Ticket with a percent sign.",
+  },
+  "dashboard-circle": {
+    reference:
+      "Hugeicons `dashboard-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["gauge", "speedometer", "dashboard"],
+    description: "Gauge: an arc open at the bottom with a hub and a needle.",
+  },
+  "dashboard-square-02": {
+    reference:
+      "Hugeicons `dashboard-square-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dashboard", "panels", "layout"],
+    description: "A tall panel on the left and two panels on the right.",
+  },
+  "dashboard-square-03": {
+    reference:
+      "Hugeicons `dashboard-square-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dashboard", "panels", "layout"],
+    description: "A wide panel on top of two squares.",
+  },
+  "dashboard-square-add": {
+    reference:
+      "Hugeicons `dashboard-square-add` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dashboard", "add", "widget"],
+    description: "Three squares and a plus badge in the fourth place.",
+  },
+  "dashboard-square-edit": {
+    reference:
+      "Hugeicons `dashboard-square-edit` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dashboard", "edit", "widget"],
+    description: "Three squares and a pencil badge in the fourth place.",
+  },
+  "dashboard-square-remove": {
+    reference:
+      "Hugeicons `dashboard-square-remove` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dashboard", "remove", "widget"],
+    description: "Three squares and a minus badge in the fourth place.",
+  },
+  "dashboard-square-setting": {
+    reference:
+      "Hugeicons `dashboard-square-setting` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dashboard", "settings", "widget"],
+    description: "Three squares and a cog badge in the fourth place.",
+  },
+  "delete-01": {
+    reference:
+      "Hugeicons `delete-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["delete", "bin", "trash"],
+    description: "Bin with a lid and a plain tapered body.",
+  },
+  "delete-03": {
+    reference:
+      "Hugeicons `delete-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["delete", "permanent", "trash"],
+    description: "Bin with a cross inside, delete for good.",
+  },
+  "delivery-truck-02": {
+    reference:
+      "Hugeicons `delivery-truck-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["delivery", "truck", "parcel"],
+    description: "Lorry carrying a parcel.",
+  },
+  "diamond-01": {
+    reference:
+      "Hugeicons `diamond-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["diamond", "rhombus", "shape"],
+    description: "Plain rhombus with two-pixel tips.",
+  },
+  "diamond-minus": {
+    reference:
+      "Hugeicons `diamond-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["gem", "remove", "premium"],
+    description: "Gem with a minus badge.",
+  },
+  "diamond-plus": {
+    reference:
+      "Hugeicons `diamond-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["gem", "add", "premium"],
+    description: "Gem with a plus badge.",
+  },
+  "dollar-01": {
+    reference:
+      "Hugeicons `dollar-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dollar", "money", "price"],
+    description: "Dollar sign on its own, two-pixel uprights.",
+  },
+  "download-02": {
+    reference:
+      "Hugeicons `download-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["download", "save", "get"],
+    description: "Chevron-headed arrow down onto a baseline.",
+  },
+  "file-bookmark": {
+    reference:
+      "Hugeicons `file-bookmark` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "bookmark", "saved"],
+    description: "File with a bookmark ribbon badge.",
+  },
+  "file-chart-line": {
+    reference:
+      "Hugeicons `file-chart-line` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "report", "chart"],
+    description: "File with a rising line chart badge.",
+  },
+  "file-chart-pie": {
+    reference:
+      "Hugeicons `file-chart-pie` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "report", "pie chart"],
+    description: "File with a pie chart badge.",
+  },
+  "file-clock": {
+    reference:
+      "Hugeicons `file-clock` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "recent", "history"],
+    description: "File with a clock badge.",
+  },
+  "file-cloud": {
+    reference:
+      "Hugeicons `file-cloud` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "cloud", "online"],
+    description: "File with a cloud badge.",
+  },
+  "file-cog": {
+    reference:
+      "Hugeicons `file-cog` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "settings", "configure"],
+    description: "File with a cog badge.",
+  },
+  "file-euro": {
+    reference:
+      "Hugeicons `file-euro` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "invoice", "euro"],
+    description: "File with a euro sign badge.",
+  },
+  "file-heart": {
+    reference:
+      "Hugeicons `file-heart` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "favourite", "love"],
+    description: "File with a heart badge.",
+  },
+  "filter-mail": {
+    reference:
+      "Hugeicons `filter-mail` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "filter", "rules"],
+    description: "Envelope with a funnel badge, a mail filter.",
+  },
+  "fire-02": {
+    reference:
+      "Hugeicons `fire-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fire", "flame", "hot"],
+    description: "Solid flame with its core in the secondary tone.",
+  },
+  "fire-security": {
+    reference:
+      "Hugeicons `fire-security` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fire safety", "shield", "flame"],
+    description: "Shield with a flame inside.",
+  },
+  "flag-02": {
+    reference:
+      "Hugeicons `flag-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pennant", "flag", "milestone"],
+    description: "Triangular pennant on a pole.",
+  },
+  "comment-03-fill": {
+    reference: "Filled variant of our own `comment-03`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "comment"],
+    description: "Filled: square speech bubble with a centred tail and two lines of text.",
+  },
+  "comment-add-02-fill": {
+    reference:
+      "Filled variant of our own `comment-add-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "comment"],
+    description: "Filled: speech bubble with its tail on the right and a plus inside.",
+  },
+  "comment-add-03-fill": {
+    reference:
+      "Filled variant of our own `comment-add-03`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "comment"],
+    description: "Filled: square speech bubble with a centred tail and a plus inside.",
+  },
+  "comment-remove-01-fill": {
+    reference:
+      "Filled variant of our own `comment-remove-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "comment"],
+    description: "Filled: speech bubble with its tail on the left and a minus inside.",
+  },
+  "comment-remove-02-fill": {
+    reference:
+      "Filled variant of our own `comment-remove-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "comment"],
+    description: "Filled: speech bubble with its tail on the right and a minus inside.",
+  },
+  "comment-remove-03-fill": {
+    reference:
+      "Filled variant of our own `comment-remove-03`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "comment"],
+    description: "Filled: square speech bubble with a centred tail and a minus inside.",
+  },
+  "computer-add-fill": {
+    reference:
+      "Filled variant of our own `computer-add`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "computer"],
+    description: "Filled: monitor with a plus on its screen.",
+  },
+  "computer-remove-fill": {
+    reference:
+      "Filled variant of our own `computer-remove`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "computer"],
+    description: "Filled: monitor with a minus on its screen.",
+  },
+  "computer-check-fill": {
+    reference:
+      "Filled variant of our own `computer-check`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "computer"],
+    description: "Filled: monitor with a check mark on its screen.",
+  },
+  "computer-terminal-01-fill": {
+    reference:
+      "Filled variant of our own `computer-terminal-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "computer"],
+    description: "Filled: monitor showing a prompt chevron and underscore.",
+  },
+  "computer-video-fill": {
+    reference:
+      "Filled variant of our own `computer-video`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "computer"],
+    description: "Filled: monitor with a play triangle on its screen.",
+  },
+  "coupon-percent-fill": {
+    reference:
+      "Filled variant of our own `coupon-percent`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "coupon"],
+    description: "Filled: ticket with a percent sign.",
+  },
+  "diamond-01-fill": {
+    reference: "Filled variant of our own `diamond-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "diamond"],
+    description: "Filled: plain rhombus with two-pixel tips.",
+  },
+  "fire-security-fill": {
+    reference:
+      "Filled variant of our own `fire-security`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "fire"],
+    description: "Filled: shield with a flame inside.",
+  },
+  "folder-03": {
+    reference:
+      "Hugeicons `folder-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "directory", "files"],
+    description: "Folder with its tab on the right.",
+  },
+  "folder-clock": {
+    reference:
+      "Hugeicons `folder-clock` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "recent", "time"],
+    description: "Folder with a clock badge.",
+  },
+  "folder-cog": {
+    reference:
+      "Hugeicons `folder-cog` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "settings", "configure"],
+    description: "Folder with a cog badge.",
+  },
+  "folder-edit": {
+    reference:
+      "Hugeicons `folder-edit` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "edit", "rename"],
+    description: "Folder with a pencil badge.",
+  },
+  "folder-heart": {
+    reference:
+      "Hugeicons `folder-heart` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "favourite", "love"],
+    description: "Folder with a heart badge.",
+  },
+  "folder-key": {
+    reference:
+      "Hugeicons `folder-key` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "key", "access"],
+    description: "Folder with a key badge.",
+  },
+  "folder-music": {
+    reference:
+      "Hugeicons `folder-music` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "music", "audio"],
+    description: "Folder with a music-note badge.",
+  },
+  "folder-pin": {
+    reference:
+      "Hugeicons `folder-pin` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "pinned", "pin"],
+    description: "Folder with a push-pin badge.",
+  },
+  fork: {
+    reference:
+      "Hugeicons `fork` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fork", "food", "restaurant"],
+    description: "Fork with three tines.",
+  },
+  fuel: {
+    reference:
+      "Hugeicons `fuel` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fuel", "jerrycan", "petrol"],
+    description: "Jerrycan with an embossed X.",
+  },
+  "git-graph": {
+    reference:
+      "Hugeicons `git-graph` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["git", "graph", "history"],
+    description: "Commit graph: a trunk and a branch leaving it at 45\u00b0.",
+  },
+  goal: {
+    reference:
+      "Hugeicons `goal` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["goal", "target", "aim"],
+    description: "Target with an arrow in its centre.",
+  },
+  grid: {
+    reference:
+      "Hugeicons `grid` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["grid", "table", "cells"],
+    description: "Three by three grid in a frame.",
+  },
+  "grid-02": {
+    reference:
+      "Hugeicons `grid-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["apps", "grid", "tiles"],
+    description: "Nine small squares, an apps grid.",
+  },
+  group: {
+    reference:
+      "Hugeicons `group` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["group", "team", "people"],
+    description: "Three people, one in front of two.",
+  },
+  happy: {
+    reference:
+      "Hugeicons `happy` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["happy", "laugh", "emoji"],
+    description: "Laughing face: two eyes and an open grin in the secondary tone.",
+  },
+  "happy-01": {
+    reference:
+      "Hugeicons `happy-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["happy", "joy", "emoji"],
+    description: "Happy face with closed, upturned eyes and a smile in the secondary tone.",
+  },
+  health: {
+    reference:
+      "Hugeicons `health` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["health", "medical", "care"],
+    description: "Heart with a medical cross inside in the secondary tone.",
+  },
+  hexagon: {
+    reference:
+      "Hugeicons `hexagon` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hexagon", "shape", "polygon"],
+    description: "Hexagon with a point on top.",
+  },
+  "hexagon-01": {
+    reference:
+      "Hugeicons `hexagon-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hexagon", "shape", "polygon"],
+    description: "Hexagon lying on its side.",
+  },
+  "hospital-02": {
+    reference:
+      "Hugeicons `hospital-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hospital", "H", "sign"],
+    description: "Hospital sign: an H in a box.",
+  },
+  "id-card": {
+    reference:
+      "Hugeicons `id-card` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["badge", "id", "staff"],
+    description: "Hanging ID badge with a portrait and a name line.",
+  },
+  "image-add-02": {
+    reference:
+      "Hugeicons `image-add-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["image", "add", "picture"],
+    description: "Picture whose sun is replaced by a plus, to add an image.",
+  },
+  "image-delete-02": {
+    reference:
+      "Hugeicons `image-delete-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["image", "delete", "picture"],
+    description: "Picture whose sun is replaced by a cross, to delete an image.",
+  },
+  "image-download": {
+    reference:
+      "Hugeicons `image-download` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["image", "download", "save"],
+    description: "Picture with a download arrow badge.",
+  },
+  "image-play": {
+    reference:
+      "Hugeicons `image-play` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["image", "play", "video"],
+    description: "Picture with a play badge.",
+  },
+  "image-remove-02": {
+    reference:
+      "Hugeicons `image-remove-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["image", "remove", "picture"],
+    description: "Picture whose sun is replaced by a minus, to remove an image.",
+  },
+  "key-square": {
+    reference:
+      "Hugeicons `key-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["key", "access", "box"],
+    description: "Key in a box, the key in the secondary tone.",
+  },
+  "laptop-add": {
+    reference:
+      "Hugeicons `laptop-add` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["laptop", "add", "computer"],
+    description: "Laptop with a plus on its screen.",
+  },
+  "laptop-check": {
+    reference:
+      "Hugeicons `laptop-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["laptop", "done", "computer"],
+    description: "Laptop with a check mark on its screen.",
+  },
+  "laptop-remove": {
+    reference:
+      "Hugeicons `laptop-remove` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["laptop", "remove", "computer"],
+    description: "Laptop with a minus on its screen.",
+  },
+  "laptop-video": {
+    reference:
+      "Hugeicons `laptop-video` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["laptop", "video", "play"],
+    description: "Laptop with a play triangle on its screen.",
+  },
+  laugh: {
+    reference:
+      "Hugeicons `laugh` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["laugh", "face", "emoji"],
+    description: "Laughing face: closed eyes and an open mouth in the secondary tone.",
+  },
+  "layout-02": {
+    reference:
+      "Hugeicons `layout-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["layout", "columns", "split"],
+    description: "Window split into a wide main column and a narrow right column cut in two.",
+  },
+  "layout-03": {
+    reference:
+      "Hugeicons `layout-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["layout", "header", "footer"],
+    description: "Window with a header and a footer band around the body.",
+  },
+  "layout-dashboard": {
+    reference:
+      "Hugeicons `layout-dashboard` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dashboard", "layout", "panels"],
+    description: "Window with a tall panel beside two tiles.",
+  },
+  "layout-grid": {
+    reference:
+      "Hugeicons `layout-grid` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["grid", "layout", "cells"],
+    description: "Window divided into three by three cells.",
+  },
+  "layout-list": {
+    reference:
+      "Hugeicons `layout-list` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["list", "layout", "rows"],
+    description: "Window with two rows, each a bullet and a line.",
+  },
+  line: {
+    reference:
+      "Hugeicons `line` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["line", "draw", "vector"],
+    description: "45\u00b0 line between two square handles.",
+  },
+  "link-forward": {
+    reference:
+      "Hugeicons `link-forward` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["link", "forward", "share"],
+    description: "Link bracket with an arrow leaving it.",
+  },
+  "list-filter-plus": {
+    reference:
+      "Hugeicons `list-filter-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["filter", "list", "add"],
+    description: "Lines getting shorter with a plus beside the shortest.",
+  },
+  "list-minus": {
+    reference:
+      "Hugeicons `list-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["list", "remove", "item"],
+    description: "List with a minus after its last line.",
+  },
+  "list-plus": {
+    reference:
+      "Hugeicons `list-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["list", "add", "item"],
+    description: "List with a plus after its last line.",
+  },
+  "list-setting": {
+    reference:
+      "Hugeicons `list-setting` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["list", "settings", "configure"],
+    description: "Three lines and a cog badge.",
+  },
+  "list-tree": {
+    reference:
+      "Hugeicons `list-tree` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tree", "hierarchy", "list"],
+    description: "Root line and three child lines hanging from one connector.",
+  },
+  "list-video": {
+    reference:
+      "Hugeicons `list-video` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["video", "playlist", "list"],
+    description: "Three lines and a play triangle.",
+  },
+  "magic-wand-02": {
+    reference:
+      "Hugeicons `magic-wand-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["magic", "wand", "auto"],
+    description: "Magic wand with a diamond star at its tip.",
+  },
+  "mail-add-02": {
+    reference:
+      "Hugeicons `mail-add-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "add", "new"],
+    description: "Rounded envelope with a plus badge.",
+  },
+  "mail-check": {
+    reference:
+      "Hugeicons `mail-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "read", "done"],
+    description: "Envelope with a check badge.",
+  },
+  "mail-download-01": {
+    reference:
+      "Hugeicons `mail-download-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "download", "receive"],
+    description: "Envelope with a download arrow badge.",
+  },
+  "mail-download-02": {
+    reference:
+      "Hugeicons `mail-download-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "download", "receive"],
+    description: "Rounded envelope with a download arrow badge.",
+  },
+  "mail-edit-01": {
+    reference:
+      "Hugeicons `mail-edit-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "edit", "compose"],
+    description: "Envelope with a pencil badge.",
+  },
+  "mail-edit-02": {
+    reference:
+      "Hugeicons `mail-edit-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "edit", "compose"],
+    description: "Rounded envelope with a pencil badge.",
+  },
+  "mail-lock-02": {
+    reference:
+      "Hugeicons `mail-lock-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "locked", "encrypted"],
+    description: "Rounded envelope with a padlock badge.",
+  },
+  "mail-minus-02": {
+    reference:
+      "Hugeicons `mail-minus-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "remove", "minus"],
+    description: "Rounded envelope with a minus badge.",
+  },
+  "mail-remove-02": {
+    reference:
+      "Hugeicons `mail-remove-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "delete", "cross"],
+    description: "Rounded envelope with a cross badge.",
+  },
+  "man-woman": {
+    reference:
+      "Hugeicons `man-woman` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["people", "couple", "toilets"],
+    description: "A man and a woman side by side.",
+  },
+  "folder-03-fill": {
+    reference: "Filled variant of our own `folder-03`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "folder"],
+    description: "Filled: folder with its tab on the right.",
+  },
+  "happy-fill": {
+    reference: "Filled variant of our own `happy`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "happy"],
+    description: "Filled: laughing face: two eyes and an open grin in the secondary tone.",
+  },
+  "happy-01-fill": {
+    reference: "Filled variant of our own `happy-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "happy"],
+    description: "Filled: happy face with closed, upturned eyes and a smile in the secondary tone.",
+  },
+  "health-fill": {
+    reference: "Filled variant of our own `health`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "health"],
+    description: "Filled: heart with a medical cross inside in the secondary tone.",
+  },
+  "hexagon-fill": {
+    reference: "Filled variant of our own `hexagon`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "hexagon"],
+    description: "Filled: hexagon with a point on top.",
+  },
+  "hexagon-01-fill": {
+    reference: "Filled variant of our own `hexagon-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "hexagon"],
+    description: "Filled: hexagon lying on its side.",
+  },
+  "hospital-02-fill": {
+    reference: "Filled variant of our own `hospital-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "hospital"],
+    description: "Filled: hospital sign: an H in a box.",
+  },
+  "id-card-fill": {
+    reference: "Filled variant of our own `id-card`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "id"],
+    description: "Filled: hanging ID badge with a portrait and a name line.",
+  },
+  "key-square-fill": {
+    reference: "Filled variant of our own `key-square`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "key"],
+    description: "Filled: key in a box, the key in the secondary tone.",
+  },
+  "laugh-fill": {
+    reference: "Filled variant of our own `laugh`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "laugh"],
+    description: "Filled: laughing face: closed eyes and an open mouth in the secondary tone.",
+  },
+  "layout-dashboard-fill": {
+    reference:
+      "Filled variant of our own `layout-dashboard`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "layout"],
+    description: "Filled: window with a tall panel beside two tiles.",
+  },
+  "medal-03": {
+    reference:
+      "Hugeicons `medal-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["medal", "first", "winner"],
+    description: "Medal with a 1 on crossed ribbons.",
+  },
+  "medical-file": {
+    reference:
+      "Hugeicons `medical-file` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["medical", "record", "health"],
+    description: "File with a pulse line.",
+  },
+  "menu-restaurant": {
+    reference:
+      "Hugeicons `menu-restaurant` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["restaurant", "menu", "food"],
+    description: "Fork and knife side by side.",
+  },
+  "message-02": {
+    reference:
+      "Hugeicons `message-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["message", "bubble", "reply"],
+    description: "Speech bubble with its tail on the right.",
+  },
+  "message-cancel-02": {
+    reference:
+      "Hugeicons `message-cancel-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["message", "cancel", "delete"],
+    description: "Speech bubble with a cross inside.",
+  },
+  "message-circle": {
+    reference:
+      "Hugeicons `message-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["message", "chat", "bubble"],
+    description: "Round speech bubble.",
+  },
+  "message-circle-check": {
+    reference:
+      "Hugeicons `message-circle-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["message", "read", "done"],
+    description: "Round speech bubble with a check inside.",
+  },
+  "message-circle-heart": {
+    reference:
+      "Hugeicons `message-circle-heart` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["message", "love", "favourite"],
+    description: "Round speech bubble with a heart inside.",
+  },
+  "message-circle-plus": {
+    reference:
+      "Hugeicons `message-circle-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["message", "add", "new"],
+    description: "Round speech bubble with a plus inside.",
+  },
+  "message-download-02": {
+    reference:
+      "Hugeicons `message-download-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["message", "download", "save"],
+    description: "Speech bubble with a download arrow inside.",
+  },
+  "minus-plus-01": {
+    reference:
+      "Hugeicons `minus-plus-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["plus minus", "tolerance", "math"],
+    description: "Plus-minus sign with two-pixel bars.",
+  },
+  "minus-plus-02": {
+    reference:
+      "Hugeicons `minus-plus-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["plus minus", "toggle sign", "calculator"],
+    description: "Plus and minus split by a slash, a +/- key.",
+  },
+  "monitor-pause": {
+    reference:
+      "Hugeicons `monitor-pause` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["monitor", "pause", "screen"],
+    description: "Monitor with pause bars on its screen.",
+  },
+  "monitor-stop": {
+    reference:
+      "Hugeicons `monitor-stop` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["monitor", "stop", "screen"],
+    description: "Monitor with a stop square on its screen.",
+  },
+  "moon-star": {
+    reference:
+      "Hugeicons `moon-star` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["night", "moon", "star"],
+    description: "Crescent moon with a small star.",
+  },
+  "mouse-03": {
+    reference:
+      "Hugeicons `mouse-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mouse", "wired", "cable"],
+    description: "Wired mouse with its cable on top.",
+  },
+  "music-01": {
+    reference:
+      "Hugeicons `music-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["music", "note", "circle"],
+    description: "Music note in a ring.",
+  },
+  "music-note-square-01": {
+    reference:
+      "Hugeicons `music-note-square-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["music", "note", "box"],
+    description: "Music note in a box.",
+  },
+  network: {
+    reference:
+      "Hugeicons `network` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["network", "nodes", "connections"],
+    description: "Three nodes linked in a triangle.",
+  },
+  "note-remove": {
+    reference:
+      "Hugeicons `note-remove` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["note", "remove", "minus"],
+    description: "Note with a minus badge.",
+  },
+  "notebook-pen": {
+    reference:
+      "Hugeicons `notebook-pen` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["notebook", "write", "notes"],
+    description: "Notebook with rings and a cover label, a pencil badge.",
+  },
+  "notification-03": {
+    reference:
+      "Hugeicons `notification-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bell", "ringing", "alert"],
+    description: "Ringing bell with a tick on each side.",
+  },
+  "notification-circle": {
+    reference:
+      "Hugeicons `notification-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bell", "notification", "circle"],
+    description: "Bell in the full-grid ring of `circle`.",
+  },
+  "percent-circle": {
+    reference:
+      "Hugeicons `percent-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["percent", "discount", "rate"],
+    description: "Percent sign in a full-grid ring.",
+  },
+  "percent-square": {
+    reference:
+      "Hugeicons `percent-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["percent", "discount", "box"],
+    description: "Percent sign in a rounded box.",
+  },
+  "message-02-fill": {
+    reference: "Filled variant of our own `message-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "message"],
+    description: "Filled: speech bubble with its tail on the right.",
+  },
+  "message-cancel-02-fill": {
+    reference:
+      "Filled variant of our own `message-cancel-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "message"],
+    description: "Filled: speech bubble with a cross inside.",
+  },
+  "message-circle-fill": {
+    reference:
+      "Filled variant of our own `message-circle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "message"],
+    description: "Filled: round speech bubble.",
+  },
+  "message-circle-check-fill": {
+    reference:
+      "Filled variant of our own `message-circle-check`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "message"],
+    description: "Filled: round speech bubble with a check inside.",
+  },
+  "monitor-pause-fill": {
+    reference:
+      "Filled variant of our own `monitor-pause`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "monitor"],
+    description: "Filled: monitor with pause bars on its screen.",
+  },
+  "monitor-stop-fill": {
+    reference:
+      "Filled variant of our own `monitor-stop`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "monitor"],
+    description: "Filled: monitor with a stop square on its screen.",
+  },
+  "music-01-fill": {
+    reference: "Filled variant of our own `music-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "music"],
+    description: "Filled: music note in a ring.",
+  },
+  "music-note-square-01-fill": {
+    reference:
+      "Filled variant of our own `music-note-square-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "music"],
+    description: "Filled: music note in a box.",
+  },
+  "notification-circle-fill": {
+    reference:
+      "Filled variant of our own `notification-circle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "notification"],
+    description: "Filled: bell in the full-grid ring of `circle`.",
+  },
+  "percent-circle-fill": {
+    reference:
+      "Filled variant of our own `percent-circle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "percent"],
+    description: "Filled: percent sign in a full-grid ring.",
+  },
+  "percent-square-fill": {
+    reference:
+      "Filled variant of our own `percent-square`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "percent"],
+    description: "Filled: percent sign in a rounded box.",
+  },
+  "customer-support": {
+    reference:
+      "Hugeicons `customer-support` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["support", "headset", "help"],
+    description: "Headset with a microphone, for customer support.",
+  },
+  "note-01": {
+    reference:
+      "Hugeicons `note-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["note", "document", "text"],
+    description: "Page with a folded corner and lines of text.",
+  },
+  "plug-03": {
+    reference:
+      "Hugeicons `plug-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["plug", "power", "cable"],
+    description: "Electric plug lying on its side, prongs pointing right.",
+  },
+  "plus-minus": {
+    reference:
+      "Hugeicons `plus-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["plus minus", "tolerance", "math"],
+    description: "Bold plus-minus sign.",
+  },
+  pound: {
+    reference:
+      "Hugeicons `pound` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pound", "currency", "money"],
+    description: "Pound sign with two-pixel uprights.",
+  },
+  "pound-circle": {
+    reference:
+      "Hugeicons `pound-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pound", "currency", "coin"],
+    description: "Pound sign in a ring.",
+  },
+  "pound-square": {
+    reference:
+      "Hugeicons `pound-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pound", "currency", "box"],
+    description: "Pound sign in a box.",
+  },
+  "pulse-02": {
+    reference:
+      "Hugeicons `pulse-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pulse", "vitals", "monitor"],
+    description: "Pulse line in a box.",
+  },
+  "rain-drop": {
+    reference:
+      "Hugeicons `rain-drop` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drop", "water", "rain"],
+    description: "Water drop.",
+  },
+  receipt: {
+    reference:
+      "Hugeicons `receipt` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["receipt", "bill", "purchase"],
+    description: "Receipt torn top and bottom with two lines.",
+  },
+  "robot-01": {
+    reference:
+      "Hugeicons `robot-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["robot", "bot", "automation"],
+    description: "Robot head with antenna and square eyes.",
+  },
+  "scissor-01": {
+    reference:
+      "Hugeicons `scissor-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["scissors", "cut", "trim"],
+    description: "Open scissors with round handles.",
+  },
+  "search-circle": {
+    reference:
+      "Hugeicons `search-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["search", "find", "magnifier"],
+    description: "Magnifier inside a circle.",
+  },
+  "search-list-01": {
+    reference:
+      "Hugeicons `search-list-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["search", "list", "filter"],
+    description: "List lines with a magnifier badge.",
+  },
+  "search-square": {
+    reference:
+      "Hugeicons `search-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["search", "find", "magnifier"],
+    description: "Magnifier inside a rounded square.",
+  },
+  "server-cog": {
+    reference:
+      "Hugeicons `server-cog` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["server", "settings", "infrastructure"],
+    description: "Server rack with a cog badge.",
+  },
+  "share-01": {
+    reference:
+      "Hugeicons `share-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["share", "network", "connect"],
+    description: "Three nodes linked by two branches.",
+  },
+  "shield-minus": {
+    reference:
+      "Hugeicons `shield-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shield", "security", "remove"],
+    description: "Shield with a minus in its centre.",
+  },
+  "shield-plus": {
+    reference:
+      "Hugeicons `shield-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shield", "security", "add"],
+    description: "Shield with a cross in its centre.",
+  },
+  "shopping-basket-02": {
+    reference:
+      "Hugeicons `shopping-basket-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["basket", "shopping", "cart"],
+    description: "Shopping basket with a handle and slats.",
+  },
+  "square-circle": {
+    reference:
+      "Hugeicons `square-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shape", "square", "circle"],
+    description: "Circle inside a rounded square.",
+  },
+  "square-lock-01": {
+    reference:
+      "Hugeicons `square-lock-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["lock", "secure", "private"],
+    description: "Padlock inside a rounded square.",
+  },
+  "square-lock-02": {
+    reference:
+      "Hugeicons `square-lock-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["lock", "secure", "private"],
+    description: "Padlock outline inside a rounded square.",
+  },
+  "ticket-01": {
+    reference:
+      "Hugeicons `ticket-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ticket", "event", "pass"],
+    description: "Ticket with notched sides and a tear line.",
+  },
+  "pound-circle-fill": {
+    reference:
+      "Filled variant of our own `pound-circle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "pound"],
+    description: "Filled: pound sign in a ring.",
+  },
+  "pound-square-fill": {
+    reference:
+      "Filled variant of our own `pound-square`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "pound"],
+    description: "Filled: pound sign in a box.",
+  },
+  "pulse-02-fill": {
+    reference: "Filled variant of our own `pulse-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "pulse"],
+    description: "Filled: pulse line in a box.",
+  },
+  "rain-drop-fill": {
+    reference: "Filled variant of our own `rain-drop`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "rain"],
+    description: "Filled: water drop.",
+  },
+  "dish-01": {
+    reference:
+      "Hugeicons `dish-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cloche", "dish", "serving"],
+    description: "A domed serving cover with a knob, resting on a plate.",
+  },
+  dock: {
+    reference:
+      "Hugeicons `dock` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dock", "taskbar", "apps"],
+    description: "A screen with the app bar along its bottom.",
+  },
+  dot: {
+    reference:
+      "Hugeicons `dot` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dot", "point", "bullet"],
+    description: "A single solid round dot.",
+  },
+  drill: {
+    reference:
+      "Hugeicons `drill` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drill", "power tool", "diy"],
+    description: "A power drill with a pistol grip and its bit.",
+  },
+  drink: {
+    reference:
+      "Hugeicons `drink` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cocktail", "drink", "glass"],
+    description: "A cocktail glass on a stem, holding a drink.",
+  },
+  drone: {
+    reference:
+      "Hugeicons `drone` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drone", "quadcopter", "aerial"],
+    description: "A quadcopter seen from above, with four arms and propellers.",
+  },
+  fahrenheit: {
+    reference:
+      "Hugeicons `fahrenheit` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fahrenheit", "temperature", "degrees"],
+    description: "A degree ring beside a capital F.",
+  },
+  "fan-01": {
+    reference:
+      "Hugeicons `fan-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fan", "ventilation", "cooling"],
+    description: "Four fan blades turning around a hub.",
+  },
+  feather: {
+    reference:
+      "Hugeicons `feather` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["feather", "quill", "light"],
+    description: "A quill feather at 45\u00b0 with its shaft.",
+  },
+  "female-02": {
+    reference:
+      "Hugeicons `female-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["female", "venus", "gender"],
+    description: "The female symbol: a ring over a short cross.",
+  },
+  "file-diff": {
+    reference:
+      "Hugeicons `file-diff` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "diff", "changes"],
+    description: "A file with a plus over a minus badge.",
+  },
+  "file-key": {
+    reference:
+      "Hugeicons `file-key` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "key", "credentials"],
+    description: "A file with a small key badge.",
+  },
+  "file-spreadsheet": {
+    reference:
+      "Hugeicons `file-spreadsheet` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["spreadsheet", "file", "table"],
+    description: "A sheet with a folded corner and a grid of cells.",
+  },
+  "file-x": {
+    reference:
+      "Hugeicons `file-x` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["file", "cross", "invalid"],
+    description: "A file with a cross badge.",
+  },
+  fish: {
+    reference:
+      "Hugeicons `fish` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fish", "seafood", "animal"],
+    description: "A fish in side view with a forked tail.",
+  },
+  "flag-off": {
+    reference:
+      "Hugeicons `flag-off` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["flag", "off", "unflag"],
+    description: "A flag struck through by a slash.",
+  },
+  focus: {
+    reference:
+      "Hugeicons `focus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["focus", "viewfinder", "target"],
+    description: "Four viewfinder corners around a solid dot.",
+  },
+  "dish-01-fill": {
+    reference: "Filled variant of our own `dish-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "dish"],
+    description: "Filled: a domed serving cover with a knob, resting on a plate.",
+  },
+  "fish-fill": {
+    reference: "Filled variant of our own `fish`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "fish"],
+    description: "Filled: a fish in side view with a forked tail.",
+  },
+  bubbles: {
+    reference:
+      "Hugeicons `bubbles` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bubbles"],
+    description: "Three bubbles: a large ring, a medium ring and a small solid one.",
+  },
+  bucket: {
+    reference:
+      "Hugeicons `bucket` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bucket"],
+    description: "Bucket: a tapered pail with a rim and an arched handle.",
+  },
+  "cabinet-01": {
+    reference:
+      "Hugeicons `cabinet-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cabinet"],
+    description: "Filing cabinet: two drawers with a handle each, on short feet.",
+  },
+  cactus: {
+    reference:
+      "Hugeicons `cactus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cactus"],
+    description: "Cactus: a solid trunk with one arm on each side.",
+  },
+  "calendar-days": {
+    reference:
+      "Hugeicons `calendar-days` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "days"],
+    description: "Calendar with four day marks.",
+  },
+  "calendar-range": {
+    reference:
+      "Hugeicons `calendar-range` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "range"],
+    description: "Calendar with a date range in the secondary tone: two end marks joined by a bar.",
+  },
+  "calendar-search": {
+    reference:
+      "Hugeicons `calendar-search` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendar", "search"],
+    description: "Calendar with a magnifier badge in the secondary tone.",
+  },
+  calendars: {
+    reference:
+      "Hugeicons `calendars` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["calendars"],
+    description:
+      "Two calendars, one behind the other; the front one marks a day in the secondary tone.",
+  },
+  camper: {
+    reference:
+      "Hugeicons `camper` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["camper"],
+    description:
+      "Camper van: a long living box with windows and a lower cab at the front, on two wheels.",
+  },
+  campfire: {
+    reference:
+      "Hugeicons `campfire` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["campfire"],
+    description: "Campfire: a flame in the secondary tone over two crossed logs.",
+  },
+  canvas: {
+    reference:
+      "Hugeicons `canvas` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["canvas"],
+    description:
+      "Canvas on an easel: a framed board with a small mountain in the secondary tone, on splayed legs.",
+  },
+  captions: {
+    reference:
+      "Hugeicons `captions` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["captions"],
+    description: "Captions: a rounded frame with two lines of subtitle text in the secondary tone.",
+  },
+  cast: {
+    reference:
+      "Hugeicons `cast` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cast"],
+    description:
+      "Cast: a screen with broadcast arcs in its lower-left corner in the secondary tone.",
+  },
+  cd: {
+    reference:
+      "Hugeicons `cd` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cd"],
+    description: "Compact disc: a full ring with a small ring at its centre.",
+  },
+  celsius: {
+    reference:
+      "Hugeicons `celsius` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["celsius"],
+    description: "Degrees Celsius: a small degree ring beside a capital C.",
+  },
+  "chair-01": {
+    reference:
+      "Hugeicons `chair-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chair"],
+    description: "Chair seen from the side: a tall back, a seat and two legs.",
+  },
+  "chart-area": {
+    reference:
+      "Hugeicons `chart-area` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chart", "area"],
+    description: "Area chart: axes with a filled area under a wavy line in the secondary tone.",
+  },
+  "chart-bubble-01": {
+    reference:
+      "Hugeicons `chart-bubble-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chart", "bubble"],
+    description: "Bubble chart: axes with one large ring and two small solid bubbles.",
+  },
+  "chart-candlestick": {
+    reference:
+      "Hugeicons `chart-candlestick` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chart", "candlestick"],
+    description:
+      "Candlestick chart: a hollow candle and a filled one in the secondary tone, each with wicks.",
+  },
+  "chart-gantt": {
+    reference:
+      "Hugeicons `chart-gantt` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chart", "gantt"],
+    description:
+      "Gantt chart: three staggered task bars on a time axis, the middle one in the secondary tone.",
+  },
+  "chart-histogram": {
+    reference:
+      "Hugeicons `chart-histogram` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chart", "histogram"],
+    description: "Histogram: three adjacent bars sharing walls, the middle one tallest.",
+  },
+  chef: {
+    reference:
+      "Hugeicons `chef` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chef"],
+    description: "Chef's toque: a puffed crown over a banded base.",
+  },
+  "circle-dashed": {
+    reference:
+      "Hugeicons `circle-dashed` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["circle", "dashed"],
+    description: "Dashed circle: the full-grid ring broken into eight dashes.",
+  },
+  "circle-dot": {
+    reference:
+      "Hugeicons `circle-dot` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["circle", "dot"],
+    description: "Ring with a solid dot at its centre in the secondary tone.",
+  },
+  "circle-slash": {
+    reference:
+      "Hugeicons `circle-slash` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["circle", "slash"],
+    description: "Ring crossed by a diagonal slash.",
+  },
+  clapperboard: {
+    reference:
+      "Hugeicons `clapperboard` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clapperboard"],
+    description: "Clapperboard: a board under a hinged bar with slanted stripes.",
+  },
+  "folder-zip": {
+    reference:
+      "Hugeicons `folder-zip` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folder", "zip"],
+    description:
+      "Zipped folder: the folder-01 base with a zipper and its pull in the secondary tone.",
+  },
+  folders: {
+    reference:
+      "Hugeicons `folders` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["folders"],
+    description: "Two folders: a folder-01 in front of a second one offset up and right.",
+  },
+  "forward-01": {
+    reference:
+      "Hugeicons `forward-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["forward"],
+    description: "Fast forward: two solid triangles pointing right.",
+  },
+  frame: {
+    reference:
+      "Hugeicons `frame` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["frame"],
+    description: "Frame: two horizontal and two vertical lines crossing near the corners.",
+  },
+  function: {
+    reference:
+      "Hugeicons `function` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["function"],
+    description: "Function: an f with a hooked top and foot, beside an x in the secondary tone.",
+  },
+  ghost: {
+    reference:
+      "Hugeicons `ghost` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ghost"],
+    description: "Ghost: a domed body with two eyes and a zigzag hem.",
+  },
+  "gif-01": {
+    reference:
+      "Hugeicons `gif-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["gif"],
+    description: "GIF: the three letters G, I and F.",
+  },
+  "gift-card": {
+    reference:
+      "Hugeicons `gift-card` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["gift", "card"],
+    description:
+      "Gift card: the credit-card outline crossed by a ribbon with a bow, the ribbon in the secondary tone.",
+  },
+  glasses: {
+    reference:
+      "Hugeicons `glasses` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["glasses"],
+    description: "Glasses: two square lenses joined by a bridge.",
+  },
+  hand: {
+    reference:
+      "Hugeicons `hand` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand"],
+    description: "Hand: a raised palm with four fingers and the thumb out to the left.",
+  },
+  hanger: {
+    reference:
+      "Hugeicons `hanger` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hanger"],
+    description: "Clothes hanger: a curled hook over a wide triangle.",
+  },
+  hd: {
+    reference:
+      "Hugeicons `hd` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hd"],
+    description: "HD: the two letters H and D.",
+  },
+  heading1: {
+    reference:
+      "Hugeicons `heading1` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["heading1"],
+    description: "Heading 1: a one-pixel H with a small 1 in the secondary tone.",
+  },
+  heading2: {
+    reference:
+      "Hugeicons `heading2` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["heading2"],
+    description: "Heading 2: a one-pixel H with a small 2 in the secondary tone.",
+  },
+  heading3: {
+    reference:
+      "Hugeicons `heading3` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["heading3"],
+    description: "Heading 3: a one-pixel H with a small 3 in the secondary tone.",
+  },
+  "heart-crack": {
+    reference:
+      "Hugeicons `heart-crack` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["heart", "crack"],
+    description: "Broken heart: the heart outline split by a zigzag crack in the secondary tone.",
+  },
+  "heart-pulse": {
+    reference:
+      "Hugeicons `heart-pulse` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["heart", "pulse"],
+    description:
+      "Heart with a pulse: the heart outline crossed by a heartbeat line in the secondary tone.",
+  },
+  "image-off": {
+    reference:
+      "Hugeicons `image-off` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["image", "off"],
+    description: "Image off: the image-01 frame crossed by a slash in the secondary tone.",
+  },
+  images: {
+    reference:
+      "Hugeicons `images` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["images"],
+    description: "Images: an image frame in front of a second one offset up and right.",
+  },
+  incognito: {
+    reference:
+      "Hugeicons `incognito` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["incognito"],
+    description: "Incognito: a solid hat over two round dark lenses.",
+  },
+  jar: {
+    reference:
+      "Hugeicons `jar` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["jar"],
+    description: "Jar: a lid over a bottle-shaped glass jar.",
+  },
+  "joystick-01": {
+    reference:
+      "Hugeicons `joystick-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["joystick"],
+    description: "Joystick: a ball on a stick over a base, the button in the secondary tone.",
+  },
+  kettle: {
+    reference:
+      "Hugeicons `kettle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["kettle"],
+    description:
+      "Kettle: a body with a lid and knob, the spout on the left and the handle on the right.",
+  },
+  "folder-zip-fill": {
+    reference: "Filled variant of our own `folder-zip`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "folder"],
+    description:
+      "Filled: zipped folder: the folder-01 base with a zipper and its pull in the secondary tone.",
+  },
+  "ghost-fill": {
+    reference: "Filled variant of our own `ghost`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "ghost"],
+    description: "Filled: ghost: a domed body with two eyes and a zigzag hem.",
+  },
+  "jar-fill": {
+    reference: "Filled variant of our own `jar`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "jar"],
+    description: "Filled: jar: a lid over a bottle-shaped glass jar.",
+  },
+  "kettle-fill": {
+    reference: "Filled variant of our own `kettle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "kettle"],
+    description:
+      "Filled: kettle: a body with a lid and knob, the spout on the left and the handle on the right.",
+  },
+  "bucket-fill": {
+    reference: "Filled variant of our own `bucket`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "bucket"],
+    description: "Filled: bucket: a tapered pail with a rim and an arched handle.",
+  },
+  "cabinet-01-fill": {
+    reference: "Filled variant of our own `cabinet-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "cabinet"],
+    description: "Filled: filing cabinet: two drawers with a handle each, on short feet.",
+  },
+  "captions-fill": {
+    reference: "Filled variant of our own `captions`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "captions"],
+    description:
+      "Filled: captions: a rounded frame with two lines of subtitle text in the secondary tone.",
+  },
+  "chart-histogram-fill": {
+    reference:
+      "Filled variant of our own `chart-histogram`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "chart"],
+    description: "Filled: histogram: three adjacent bars sharing walls, the middle one tallest.",
+  },
+  "chef-fill": {
+    reference: "Filled variant of our own `chef`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "chef"],
+    description: "Filled: chef's toque: a puffed crown over a banded base.",
+  },
+  "clock-alert": {
+    reference:
+      "Hugeicons `clock-alert` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clock", "alert"],
+    description: "Clock of `clock-01` with an exclamation-mark badge in the secondary tone.",
+  },
+  "code-square": {
+    reference:
+      "Hugeicons `code-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["code", "square"],
+    description: "Square with a pair of code chevrons inside in the secondary tone.",
+  },
+  colors: {
+    reference:
+      "Hugeicons `colors` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["colors"],
+    description: "Painter's palette with a thumb notch and three paint dots in the secondary tone.",
+  },
+  component: {
+    reference:
+      "Hugeicons `component` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["component"],
+    description: "Four solid diamonds set in a diamond, the component mark of design tools.",
+  },
+  "cone-01": {
+    reference:
+      "Hugeicons `cone-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cone"],
+    description:
+      "Traffic cone: a stepped trapezoid with two stripes in the secondary tone on a flat base.",
+  },
+  container: {
+    reference:
+      "Hugeicons `container` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["container"],
+    description:
+      "Shipping container seen from the side: a long box with three panels of short ribs.",
+  },
+  contracts: {
+    reference:
+      "Hugeicons `contracts` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["contracts"],
+    description:
+      "Page with a dog-ear, two lines of text and a signature line in the secondary tone.",
+  },
+  contrast: {
+    reference:
+      "Hugeicons `contrast` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["contrast"],
+    description: "Circle with its right half solid: the contrast symbol.",
+  },
+  cookie: {
+    reference:
+      "Hugeicons `cookie` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cookie"],
+    description: "Round cookie with three chocolate chips in the secondary tone.",
+  },
+  "copy-link": {
+    reference:
+      "Hugeicons `copy-link` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["copy", "link"],
+    description: "Two sheets of `copy-plus` with a link in the secondary tone on the front sheet.",
+  },
+  copyright: {
+    reference:
+      "Hugeicons `copyright` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["copyright"],
+    description: "Circle with a C inside in the secondary tone.",
+  },
+  crane: {
+    reference:
+      "Hugeicons `crane` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["crane"],
+    description:
+      "Tower crane: a mast, a long jib with a short counter-jib, a hook line and a load in the secondary tone.",
+  },
+  crosshair: {
+    reference:
+      "Hugeicons `crosshair` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["crosshair"],
+    description: "Crosshair: a ring crossed by four short ticks that stop before the centre.",
+  },
+  "cursor-pointer-01": {
+    reference:
+      "Hugeicons `cursor-pointer-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cursor", "pointer"],
+    description: "Pointing hand: an index finger up, folded fingers and a thumb on the left.",
+  },
+  "cursor-text": {
+    reference:
+      "Hugeicons `cursor-text` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cursor", "text"],
+    description: "Text cursor: an I-beam with short serifs top and bottom.",
+  },
+  "database-add": {
+    reference:
+      "Hugeicons `database-add` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["database", "add"],
+    description: "Database of `database-01` with a plus badge in the secondary tone.",
+  },
+  "database-export": {
+    reference:
+      "Hugeicons `database-export` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["database", "export"],
+    description: "Database of `database-01` with an up arrow badge in the secondary tone.",
+  },
+  "database-import": {
+    reference:
+      "Hugeicons `database-import` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["database", "import"],
+    description: "Database of `database-01` with a down arrow badge in the secondary tone.",
+  },
+  "database-locked": {
+    reference:
+      "Hugeicons `database-locked` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["database", "locked"],
+    description: "Database of `database-01` with the padlock badge of `folder-lock`.",
+  },
+  "database-search": {
+    reference:
+      "Hugeicons `database-search` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["database", "search"],
+    description: "Database of `database-01` with the magnifier badge of `folder-search`.",
+  },
+  "delete-row": {
+    reference:
+      "Hugeicons `delete-row` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["delete", "row"],
+    description: "Two table rows, the lower one marked with a minus in the secondary tone.",
+  },
+  desk: {
+    reference:
+      "Hugeicons `desk` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["desk"],
+    description: "Desk: a top, a leg on the left and a two-drawer unit on the right with handles.",
+  },
+  "directions-01": {
+    reference:
+      "Hugeicons `directions-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["directions"],
+    description: "Road sign: a diamond with a turn-right arrow inside in the secondary tone.",
+  },
+  "code-square-fill": {
+    reference: "Filled variant of our own `code-square`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "code"],
+    description: "Filled: square with a pair of code chevrons inside in the secondary tone.",
+  },
+  "cone-01-fill": {
+    reference: "Filled variant of our own `cone-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "cone"],
+    description:
+      "Filled: traffic cone: a stepped trapezoid with two stripes in the secondary tone on a flat base.",
+  },
+  "copyright-fill": {
+    reference: "Filled variant of our own `copyright`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "copyright"],
+    description: "Filled: circle with a C inside in the secondary tone.",
+  },
+  "directions-01-fill": {
+    reference:
+      "Filled variant of our own `directions-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "directions"],
+    description:
+      "Filled: road sign: a diamond with a turn-right arrow inside in the secondary tone.",
+  },
+  airplay: {
+    reference:
+      "Hugeicons `airplay` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["airplay"],
+    description:
+      "Screen open at the bottom with a solid triangle entering it, the triangle in the secondary tone.",
+  },
+  "align-bottom": {
+    reference:
+      "Hugeicons `align-bottom` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["align", "bottom"],
+    description:
+      "Two bars of different heights standing on a horizontal axis at the bottom; the axis in the secondary tone.",
+  },
+  "align-left": {
+    reference:
+      "Hugeicons `align-left` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["align", "left"],
+    description:
+      "Two bars of different lengths aligned on a vertical axis at the left; the axis in the secondary tone.",
+  },
+  "align-right": {
+    reference:
+      "Hugeicons `align-right` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["align", "right"],
+    description:
+      "Two bars of different lengths aligned on a vertical axis at the right; the axis in the secondary tone.",
+  },
+  "align-top": {
+    reference:
+      "Hugeicons `align-top` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["align", "top"],
+    description:
+      "Two bars of different heights hanging from a horizontal axis at the top; the axis in the secondary tone.",
+  },
+  ambulance: {
+    reference:
+      "Hugeicons `ambulance` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ambulance"],
+    description:
+      "Ambulance van facing right with a cross on its body in the secondary tone, a slanted cab and two wheels.",
+  },
+  "archive-restore": {
+    reference:
+      "Hugeicons `archive-restore` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["archive", "restore"],
+    description: "Archive box with an up arrow in the secondary tone on its body.",
+  },
+  armchair: {
+    reference:
+      "Hugeicons `armchair` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["armchair"],
+    description: "Armchair seen from the front: a back, two arms, a seat and legs.",
+  },
+  asterisk: {
+    reference:
+      "Hugeicons `asterisk` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["asterisk"],
+    description: "Six-armed asterisk drawn as a solid shape.",
+  },
+  "backward-01": {
+    reference:
+      "Hugeicons `backward-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["backward"],
+    description: "Rewind: two solid triangles pointing left.",
+  },
+  badge: {
+    reference:
+      "Hugeicons `badge` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["badge"],
+    description: "Badge: a scalloped seal outline, empty.",
+  },
+  balloon: {
+    reference:
+      "Hugeicons `balloon` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["balloon"],
+    description: "Balloon: an oval with a knot and a short string.",
+  },
+  bandage: {
+    reference:
+      "Hugeicons `bandage` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bandage"],
+    description: "Adhesive bandage on a diagonal with its pad in the secondary tone.",
+  },
+  "bathtub-01": {
+    reference:
+      "Hugeicons `bathtub-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bathtub"],
+    description: "Bathtub seen from the side, with a tap rising on the left.",
+  },
+  binoculars: {
+    reference:
+      "Hugeicons `binoculars` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["binoculars"],
+    description: "Binoculars: two barrels joined by a bridge, ending in two round lenses.",
+  },
+  bird: {
+    reference:
+      "Hugeicons `bird` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bird"],
+    description: "Small bird perched, solid silhouette facing right.",
+  },
+  blend: {
+    reference:
+      "Hugeicons `blend` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["blend"],
+    description: "Two overlapping circles with their overlap in the secondary tone.",
+  },
+  blocks: {
+    reference:
+      "Hugeicons `blocks` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["blocks"],
+    description: "Three joined squares in an L, and a fourth one apart in the secondary tone.",
+  },
+  bomb: {
+    reference:
+      "Hugeicons `bomb` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bomb"],
+    description: "Round bomb with a cap and a lit spark in the secondary tone.",
+  },
+  "bone-01": {
+    reference:
+      "Hugeicons `bone-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bone"],
+    description: "Bone lying flat, with two knobs at each end.",
+  },
+  "book-plus": {
+    reference:
+      "Hugeicons `book-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "plus"],
+    description: "Book with a plus badge in the secondary tone in the lower right corner.",
+  },
+  "book-search": {
+    reference:
+      "Hugeicons `book-search` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "search"],
+    description:
+      "Book with a magnifying glass badge in the secondary tone in the lower right corner.",
+  },
+  "bookmark-off-01": {
+    reference:
+      "Hugeicons `bookmark-off-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bookmark", "off"],
+    description: "Bookmark crossed out by a diagonal in the secondary tone.",
+  },
+  boxes: {
+    reference:
+      "Hugeicons `boxes` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["boxes"],
+    description:
+      "Three boxes stacked, one on two, each with a strip of tape in the secondary tone.",
+  },
+  braces: {
+    reference:
+      "Hugeicons `braces` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["braces"],
+    description: "Pair of curly braces.",
+  },
+  brackets: {
+    reference:
+      "Hugeicons `brackets` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["brackets"],
+    description: "Pair of square brackets.",
+  },
+  "badge-fill": {
+    reference: "Filled variant of our own `badge`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "badge"],
+    description: "Filled: badge: a scalloped seal outline, empty.",
+  },
+  "balloon-fill": {
+    reference: "Filled variant of our own `balloon`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "balloon"],
+    description: "Filled: balloon: an oval with a knot and a short string.",
+  },
+  "bomb-fill": {
+    reference: "Filled variant of our own `bomb`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "bomb"],
+    description: "Filled: round bomb with a cap and a lit spark in the secondary tone.",
+  },
+  "bone-01-fill": {
+    reference: "Filled variant of our own `bone-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "bone"],
+    description: "Filled: bone lying flat, with two knobs at each end.",
+  },
+  "knife-01": {
+    reference:
+      "Hugeicons `knife-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["knife"],
+    description:
+      "Kitchen knife on the diagonal: a solid blade tapering to a tip at top right, a gap, a handle.",
+  },
+  lantern: {
+    reference:
+      "Hugeicons `lantern` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["lantern"],
+    description:
+      "Lantern: a ring handle, a cap and a floor overhanging the glass, a flame in the secondary tone.",
+  },
+  "layout-bottom": {
+    reference:
+      "Hugeicons `layout-bottom` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["layout", "bottom"],
+    description: "Window with a panel along the bottom, the panel in the secondary tone.",
+  },
+  lifebuoy: {
+    reference:
+      "Hugeicons `lifebuoy` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["lifebuoy"],
+    description:
+      "Lifebuoy: a ring with four bands in the secondary tone at top, bottom, left and right.",
+  },
+  "list-checks": {
+    reference:
+      "Hugeicons `list-checks` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["list", "checks"],
+    description: "Checklist: two check marks in the secondary tone, each with its line.",
+  },
+  locker: {
+    reference:
+      "Hugeicons `locker` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["locker"],
+    description: "Locker: a tall door with two vents and a handle in the secondary tone.",
+  },
+  "luggage-01": {
+    reference:
+      "Hugeicons `luggage-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["luggage"],
+    description: "Suitcase standing up: a handle, a body with two straps, two small wheels.",
+  },
+  "mail-reply-01": {
+    reference:
+      "Hugeicons `mail-reply-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "reply"],
+    description:
+      "Envelope with a shallow 2:1 flap and a reply arrow badge in the secondary tone, lower right.",
+  },
+  "mail-search-01": {
+    reference:
+      "Hugeicons `mail-search-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "search"],
+    description:
+      "Envelope with a shallow 2:1 flap and a magnifier badge in the secondary tone, lower right.",
+  },
+  "mail-x": {
+    reference:
+      "Hugeicons `mail-x` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mail", "x"],
+    description:
+      "Envelope with a shallow 2:1 flap and a cross badge in the secondary tone, lower right.",
+  },
+  "male-02": {
+    reference:
+      "Hugeicons `male-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["male"],
+    description: "Male symbol: a ring with an arrow leaving it 1:1 to the upper right.",
+  },
+  manager: {
+    reference:
+      "Hugeicons `manager` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["manager"],
+    description: "Manager: the user's head and shoulders with a tie in the secondary tone.",
+  },
+  math: {
+    reference:
+      "Hugeicons `math` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["math"],
+    description: "Math: plus, minus, times and equals in the four quarters.",
+  },
+  "megaphone-01": {
+    reference:
+      "Hugeicons `megaphone-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["megaphone"],
+    description:
+      "Megaphone: a mouthpiece box, a cone opening to the right, a handle, sound in the secondary tone.",
+  },
+  "message-incoming-01": {
+    reference:
+      "Hugeicons `message-incoming-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["message", "incoming"],
+    description:
+      "Speech bubble with an arrow pointing in to the lower left, in the secondary tone.",
+  },
+  "message-outgoing-01": {
+    reference:
+      "Hugeicons `message-outgoing-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["message", "outgoing"],
+    description:
+      "Speech bubble with an arrow pointing out to the upper right, in the secondary tone.",
+  },
+  metronome: {
+    reference:
+      "Hugeicons `metronome` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["metronome"],
+    description:
+      "Metronome: a pyramid body with 2:1 sides on a base, its pendulum in the secondary tone.",
+  },
+  microwave: {
+    reference:
+      "Hugeicons `microwave` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["microwave"],
+    description:
+      "Microwave: a box with a door on the left and two knobs in the secondary tone on the right.",
+  },
+  milestone: {
+    reference:
+      "Hugeicons `milestone` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["milestone"],
+    description: "Milestone: a signpost board pointing right on a pole, on a base.",
+  },
+  "money-receive-01": {
+    reference:
+      "Hugeicons `money-receive-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["money", "receive"],
+    description: "Banknote with an arrow coming down into it, in the secondary tone.",
+  },
+  "money-send-01": {
+    reference:
+      "Hugeicons `money-send-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["money", "send"],
+    description: "Banknote with an arrow leaving it upwards, in the secondary tone.",
+  },
+  "lantern-fill": {
+    reference: "Filled variant of our own `lantern`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "lantern"],
+    description:
+      "Filled: lantern: a ring handle, a cap and a floor overhanging the glass, a flame in the secondary tone.",
+  },
+  "luggage-01-fill": {
+    reference: "Filled variant of our own `luggage-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "luggage"],
+    description:
+      "Filled: suitcase standing up: a handle, a body with two straps, two small wheels.",
+  },
+  "microwave-fill": {
+    reference: "Filled variant of our own `microwave`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "microwave"],
+    description:
+      "Filled: microwave: a box with a door on the left and two knobs in the secondary tone on the right.",
+  },
+  "milestone-fill": {
+    reference: "Filled variant of our own `milestone`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "milestone"],
+    description: "Filled: milestone: a signpost board pointing right on a pole, on a base.",
+  },
+  "radar-01": {
+    reference:
+      "Hugeicons `radar-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["radar"],
+    description:
+      "Radar scope: the copyright ring, a centre dot and the sweep in the secondary tone.",
+  },
+  ranking: {
+    reference:
+      "Hugeicons `ranking` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ranking"],
+    description: "Ranking podium: three steps, the winner's step filled in the secondary tone.",
+  },
+  refrigerator: {
+    reference:
+      "Hugeicons `refrigerator` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["refrigerator"],
+    description: "Refrigerator: a tall box, freezer door on top, two handles, small feet.",
+  },
+  register: {
+    reference:
+      "Hugeicons `register` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["register"],
+    description: "Cash register: a display on a stand over a keyed body and a drawer.",
+  },
+  registered: {
+    reference:
+      "Hugeicons `registered` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["registered"],
+    description: "Registered mark: the copyright ring with an R in the secondary tone.",
+  },
+  replace: {
+    reference:
+      "Hugeicons `replace` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["replace"],
+    description:
+      "Replace: two squares swapping places, two arrows in the secondary tone; half-turn symmetric.",
+  },
+  rhombus: {
+    reference:
+      "Hugeicons `rhombus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["rhombus"],
+    description: "Rhombus: a 1:1 diamond outline with two-pixel tips.",
+  },
+  "rows-2": {
+    reference:
+      "Hugeicons `rows-2` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["rows"],
+    description: "Two rows: a frame split in two by one rule.",
+  },
+  salad: {
+    reference:
+      "Hugeicons `salad` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["salad"],
+    description: "Salad: a bowl with two leaves rising over the rim in the secondary tone.",
+  },
+  "scan-text": {
+    reference:
+      "Hugeicons `scan-text` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["scan", "text"],
+    description: "Scan text: the scan brackets with two text lines in the secondary tone.",
+  },
+  "search-check": {
+    reference:
+      "Hugeicons `search-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["search", "check"],
+    description: "Search with a check: the search-remove lens with a check in the secondary tone.",
+  },
+  "select-01": {
+    reference:
+      "Hugeicons `select-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["select"],
+    description: "Selection: a dashed square, two-pixel dashes and gaps, solid corners.",
+  },
+  "server-crash": {
+    reference:
+      "Hugeicons `server-crash` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["server", "crash"],
+    description:
+      "Server crash: the server-stack-01 top unit with a lightning bolt in the secondary tone below.",
+  },
+  shapes: {
+    reference:
+      "Hugeicons `shapes` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shapes"],
+    description: "Shapes: a triangle over a square and a circle.",
+  },
+  "shield-alert": {
+    reference:
+      "Hugeicons `shield-alert` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shield", "alert"],
+    description: "Shield with an exclamation mark in the secondary tone; shield-plus base.",
+  },
+  "shield-off": {
+    reference:
+      "Hugeicons `shield-off` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shield", "off"],
+    description: "Shield crossed by a 1:1 slash in the secondary tone; shield-plus base.",
+  },
+  "shield-x": {
+    reference:
+      "Hugeicons `shield-x` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shield", "x"],
+    description: "Shield with a cross in the secondary tone; shield-plus base.",
+  },
+  shredder: {
+    reference:
+      "Hugeicons `shredder` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shredder"],
+    description:
+      "Shredder: a sheet entering the machine, strips leaving below in the secondary tone.",
+  },
+  "refrigerator-fill": {
+    reference:
+      "Filled variant of our own `refrigerator`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "refrigerator"],
+    description: "Filled: refrigerator: a tall box, freezer door on top, two handles, small feet.",
+  },
+  "registered-fill": {
+    reference: "Filled variant of our own `registered`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "registered"],
+    description: "Filled: registered mark: the copyright ring with an R in the secondary tone.",
+  },
+  "rhombus-fill": {
+    reference: "Filled variant of our own `rhombus`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "rhombus"],
+    description: "Filled: rhombus: a 1:1 diamond outline with two-pixel tips.",
+  },
+  "shield-alert-fill": {
+    reference:
+      "Filled variant of our own `shield-alert`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "shield"],
+    description: "Filled: shield with an exclamation mark in the secondary tone; shield-plus base.",
+  },
+  "shield-x-fill": {
+    reference: "Filled variant of our own `shield-x`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "shield"],
+    description: "Filled: shield with a cross in the secondary tone; shield-plus base.",
+  },
+  "monitor-off": {
+    reference:
+      "Hugeicons `monitor-off` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["monitor", "off"],
+    description: "Monitor of `monitor-pause` with a slash across its screen in the secondary tone.",
+  },
+  "monitor-play": {
+    reference:
+      "Hugeicons `monitor-play` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["monitor", "play"],
+    description:
+      "Monitor of `monitor-pause` with a play triangle on its screen in the secondary tone.",
+  },
+  "monitor-smartphone": {
+    reference:
+      "Hugeicons `monitor-smartphone` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["monitor", "smartphone"],
+    description: "A small monitor on its stand and a phone beside it in the secondary tone.",
+  },
+  "motorbike-01": {
+    reference:
+      "Hugeicons `motorbike-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["motorbike"],
+    description: "Motorbike seen from the side: two wheels, a seat, a tank and the handlebar fork.",
+  },
+  necklace: {
+    reference:
+      "Hugeicons `necklace` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["necklace"],
+    description: "Necklace: a chain hanging in a U with a diamond pendant in the secondary tone.",
+  },
+  octagon: {
+    reference:
+      "Hugeicons `octagon` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["octagon"],
+    description: "Regular octagon: flat top and sides, one-pixel cut corners.",
+  },
+  option: {
+    reference:
+      "Hugeicons `option` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["option"],
+    description:
+      "The option key symbol: a left bar, a falling diagonal to a lower bar, a separate upper bar.",
+  },
+  oven: {
+    reference:
+      "Hugeicons `oven` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["oven"],
+    description:
+      "Oven: a box with a control strip of two knobs in the secondary tone and a door window.",
+  },
+  "package-search": {
+    reference:
+      "Hugeicons `package-search` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["package", "search"],
+    description: "Parcel of `package` with a magnifier badge in the shared lower-right corner.",
+  },
+  "pencil-ruler": {
+    reference:
+      "Hugeicons `pencil-ruler` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pencil", "ruler"],
+    description:
+      "A ruler with ticks beside the pencil of `pencil`, its eraser in the secondary tone.",
+  },
+  pentagon: {
+    reference:
+      "Hugeicons `pentagon` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pentagon"],
+    description: "Pentagon with a point on top: 1:1 upper sides, steeper lower sides, a flat base.",
+  },
+  perfume: {
+    reference:
+      "Hugeicons `perfume` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["perfume"],
+    description: "Perfume bottle: a solid cap in the secondary tone, a short neck, a rounded body.",
+  },
+  pickaxe: {
+    reference:
+      "Hugeicons `pickaxe` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pickaxe"],
+    description: "Pickaxe upright: a curved solid head with pointed ends over a two-pixel handle.",
+  },
+  pilcrow: {
+    reference:
+      "Hugeicons `pilcrow` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pilcrow"],
+    description: "Pilcrow (paragraph mark): a solid bowl and two stems.",
+  },
+  "plant-01": {
+    reference:
+      "Hugeicons `plant-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["plant"],
+    description: "Potted plant: two leaves in the secondary tone on a stem over a tapered pot.",
+  },
+  pool: {
+    reference:
+      "Hugeicons `pool` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pool"],
+    description:
+      "Swimming pool: a ladder with hooked rails over two rows of waves in the secondary tone.",
+  },
+  popcorn: {
+    reference:
+      "Hugeicons `popcorn` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["popcorn"],
+    description:
+      "Popcorn: a scalloped top of kernels over a tapered striped bucket, stripes in the secondary tone.",
+  },
+  potion: {
+    reference:
+      "Hugeicons `potion` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["potion"],
+    description: "Potion: a round-bottomed flask with a cork, liquid in the secondary tone.",
+  },
+  prescription: {
+    reference:
+      "Hugeicons `prescription` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["prescription"],
+    description:
+      "Prescription sign Rx: an R whose leg is crossed by a stroke in the secondary tone.",
+  },
+  projector: {
+    reference:
+      "Hugeicons `projector` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["projector"],
+    description: "Projector: a wide box with a round lens in the secondary tone and two feet.",
+  },
+  "octagon-fill": {
+    reference: "Filled variant of our own `octagon`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "octagon"],
+    description: "Filled: regular octagon: flat top and sides, one-pixel cut corners.",
+  },
+  "oven-fill": {
+    reference: "Filled variant of our own `oven`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "oven"],
+    description:
+      "Filled: oven: a box with a control strip of two knobs in the secondary tone and a door window.",
+  },
+  "perfume-fill": {
+    reference: "Filled variant of our own `perfume`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "perfume"],
+    description:
+      "Filled: perfume bottle: a solid cap in the secondary tone, a short neck, a rounded body.",
+  },
+  "projector-fill": {
+    reference: "Filled variant of our own `projector`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "projector"],
+    description:
+      "Filled: projector: a wide box with a round lens in the secondary tone and two feet.",
+  },
+  "timer-reset": {
+    reference:
+      "Hugeicons `timer-reset` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["timer", "reset"],
+    description:
+      "Stopwatch reset: a stopwatch whose ring opens on the left into an arrowhead in the secondary tone.",
+  },
+  "toilet-01": {
+    reference:
+      "Hugeicons `toilet-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["toilet"],
+    description: "Toilet seen from the side: a tank, the seat, a bowl narrowing to its foot.",
+  },
+  "tornado-01": {
+    reference:
+      "Hugeicons `tornado-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tornado"],
+    description: "Tornado: five stacked strokes shrinking and wandering down to a tip.",
+  },
+  trademark: {
+    reference:
+      "Hugeicons `trademark` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["trademark"],
+    description: "Trademark sign: the letters TM.",
+  },
+  "tree-01": {
+    reference:
+      "Hugeicons `tree-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tree"],
+    description: "Tree: a round canopy on a trunk in the secondary tone.",
+  },
+  ufo: {
+    reference:
+      "Hugeicons `ufo` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ufo"],
+    description: "UFO: a domed saucer, the light beam below in the secondary tone.",
+  },
+  "user-key": {
+    reference:
+      "Hugeicons `user-key` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["user", "key"],
+    description: "Person with a key badge, the key of `folder-key`, lower right.",
+  },
+  variable: {
+    reference:
+      "Hugeicons `variable` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["variable"],
+    description: "Variable: an x in the secondary tone between two parentheses.",
+  },
+  vibrate: {
+    reference:
+      "Hugeicons `vibrate` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["vibrate"],
+    description: "Vibrate: a phone between two short strokes in the secondary tone.",
+  },
+  voice: {
+    reference:
+      "Hugeicons `voice` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["voice"],
+    description: "Voice: five sound bars, tallest in the middle.",
+  },
+  "wallet-cards": {
+    reference:
+      "Hugeicons `wallet-cards` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["wallet", "cards"],
+    description: "Wallet with a card in the secondary tone sticking out of the top.",
+  },
+  "wardrobe-01": {
+    reference:
+      "Hugeicons `wardrobe-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["wardrobe"],
+    description: "Wardrobe: two doors with handles in the secondary tone, two feet.",
+  },
+  wave: {
+    reference:
+      "Hugeicons `wave` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["wave"],
+    description: "Waves: three wavy lines, the middle one in the secondary tone.",
+  },
+  weight: {
+    reference:
+      "Hugeicons `weight` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["weight"],
+    description: "Weight: a heavy trapezoid with a handle loop on top.",
+  },
+  whistle: {
+    reference:
+      "Hugeicons `whistle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["whistle"],
+    description: "Whistle seen from the side: a round chamber and the mouthpiece reaching right.",
+  },
+  "work-history": {
+    reference:
+      "Hugeicons `work-history` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["work", "history"],
+    description: "Work history: a briefcase with a clock badge, as in `folder-clock`.",
+  },
+  zzz: {
+    reference:
+      "Hugeicons `zzz` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["zzz"],
+    description: "Sleep: a big Z and a small Z above right.",
+  },
+  "toilet-01-fill": {
+    reference: "Filled variant of our own `toilet-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "toilet"],
+    description:
+      "Filled: toilet seen from the side: a tank, the seat, a bowl narrowing to its foot.",
+  },
+  "tree-01-fill": {
+    reference: "Filled variant of our own `tree-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "tree"],
+    description: "Filled: tree: a round canopy on a trunk in the secondary tone.",
+  },
+  "weight-fill": {
+    reference: "Filled variant of our own `weight`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "weight"],
+    description: "Filled: weight: a heavy trapezoid with a handle loop on top.",
+  },
+  "whistle-fill": {
+    reference: "Filled variant of our own `whistle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "whistle"],
+    description:
+      "Filled: whistle seen from the side: a round chamber and the mouthpiece reaching right.",
+  },
+  signpost: {
+    reference:
+      "Hugeicons `signpost` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["signpost"],
+    description: "A signpost: a pole with a sign pointing right above one pointing left.",
+  },
+  "simcard-01": {
+    reference:
+      "Hugeicons `simcard-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["simcard"],
+    description: "A SIM card: a card with the upper right corner cut and the chip in the middle.",
+  },
+  siren: {
+    reference:
+      "Hugeicons `siren` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["siren"],
+    description: "A siren: a domed light on its base, with light rays above.",
+  },
+  skull: {
+    reference:
+      "Hugeicons `skull` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["skull"],
+    description: "A skull: a round cranium, two eye sockets, a nose and a narrow jaw.",
+  },
+  slash: {
+    reference:
+      "Hugeicons `slash` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["slash"],
+    description: "A slash: one diagonal stroke, drawn like the chevrons with two-pixel runs.",
+  },
+  "sofa-01": {
+    reference:
+      "Hugeicons `sofa-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sofa"],
+    description: "A sofa: a wide back, two arms and a long seat on short legs.",
+  },
+  sparkle: {
+    reference:
+      "Hugeicons `sparkle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sparkle"],
+    description: "One sparkle: a four-pointed star with concave sides.",
+  },
+  split: {
+    reference:
+      "Hugeicons `split` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["split"],
+    description: "Split: one stem forking into two arrows, up left and up right.",
+  },
+  sprout: {
+    reference:
+      "Hugeicons `sprout` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sprout"],
+    description: "A sprout: two leaves on a short stem above the ground.",
+  },
+  "square-dashed": {
+    reference:
+      "Hugeicons `square-dashed` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["square", "dashed"],
+    description: "A dashed square: the outline of a square in dashes, corners kept.",
+  },
+  "stairs-01": {
+    reference:
+      "Hugeicons `stairs-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["stairs"],
+    description: "Stairs: three steps rising to the right, closed by the wall and floor.",
+  },
+  stamp: {
+    reference:
+      "Hugeicons `stamp` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["stamp"],
+    description: "A rubber stamp: a knob and neck over the block, with its print below.",
+  },
+  steering: {
+    reference:
+      "Hugeicons `steering` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["steering"],
+    description: "A steering wheel: the rim, a hub and three spokes.",
+  },
+  sticker: {
+    reference:
+      "Hugeicons `sticker` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sticker"],
+    description: "A sticker: a square with its lower right corner peeled back.",
+  },
+  subscript: {
+    reference:
+      "Hugeicons `subscript` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["subscript"],
+    description: "Subscript: a letter X with a small 2 below on the right.",
+  },
+  sunglasses: {
+    reference:
+      "Hugeicons `sunglasses` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sunglasses"],
+    description: "Sunglasses: the glasses frame with tinted lenses.",
+  },
+  superscript: {
+    reference:
+      "Hugeicons `superscript` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["superscript"],
+    description: "Superscript: a letter X with a small 2 above on the right.",
+  },
+  "sword-01": {
+    reference:
+      "Hugeicons `sword-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sword"],
+    description: "A sword: a diagonal blade, a cross guard and a short grip.",
+  },
+  tags: {
+    reference:
+      "Hugeicons `tags` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tags"],
+    description: "Tags: a price tag with its hole, the edge of a second tag behind it.",
+  },
+  telephone: {
+    reference:
+      "Hugeicons `telephone` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["telephone"],
+    description: "A desk telephone: the handset resting on a base with a dial.",
+  },
+  "text-color": {
+    reference:
+      "Hugeicons `text-color` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["text", "color"],
+    description: "Text color: a letter A over a bar of colour.",
+  },
+  "text-quote": {
+    reference:
+      "Hugeicons `text-quote` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["text", "quote"],
+    description: "Quoted text: a quote bar beside lines of text.",
+  },
+  "text-wrap": {
+    reference:
+      "Hugeicons `text-wrap` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["text", "wrap"],
+    description: "Text wrap: a line of text that turns back under itself as an arrow.",
+  },
+  timeline: {
+    reference:
+      "Hugeicons `timeline` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["timeline"],
+    description: "A timeline: three events strung on a vertical line, each with a label.",
+  },
+  "timer-off": {
+    reference:
+      "Hugeicons `timer-off` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["timer", "off"],
+    description:
+      "A timer struck through: the timer-01 body without its hand, under a diagonal slash.",
+  },
+  "simcard-01-fill": {
+    reference: "Filled variant of our own `simcard-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "simcard"],
+    description:
+      "Filled: a SIM card: a card with the upper right corner cut and the chip in the middle.",
+  },
+  "stairs-01-fill": {
+    reference: "Filled variant of our own `stairs-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "stairs"],
+    description: "Filled: stairs: three steps rising to the right, closed by the wall and floor.",
+  },
+  "sticker-fill": {
+    reference: "Filled variant of our own `sticker`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "sticker"],
+    description: "Filled: a sticker: a square with its lower right corner peeled back.",
   },
 };

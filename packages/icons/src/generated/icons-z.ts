@@ -32,4 +32,4 @@ export const ZoomOutIcon: StubIcon = { name: "zoom-out", implemented: false };
 export const ZoomOutAreaIcon: StubIcon = { name: "zoom-out-area", implemented: false };
 export const ZoomSquareIcon: StubIcon = { name: "zoom-square", implemented: false };
 export const ZshIcon: StubIcon = { name: "zsh", implemented: false };
-export const ZzzIcon: StubIcon = { name: "zzz", implemented: false };
+export { default as ZzzIcon } from "../drawn/zzz";

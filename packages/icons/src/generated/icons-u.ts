@@ -3,7 +3,7 @@
 import type { StubIcon } from "../types";
 
 export const UberIcon: StubIcon = { name: "uber", implemented: false };
-export const UfoIcon: StubIcon = { name: "ufo", implemented: false };
+export { default as UfoIcon } from "../drawn/ufo";
 export const Ufo01Icon: StubIcon = { name: "ufo-01", implemented: false };
 export { default as UmbrellaIcon } from "../drawn/umbrella";
 export const UmbrellaDollarIcon: StubIcon = { name: "umbrella-dollar", implemented: false };
@@ -90,7 +90,7 @@ export { default as UserGroupIcon } from "../drawn/user-group";
 export { default as UserGroup02Icon } from "../drawn/user-group-02";
 export const UserGroup03Icon: StubIcon = { name: "user-group-03", implemented: false };
 export { default as UserIdVerificationIcon } from "../drawn/user-id-verification";
-export const UserKeyIcon: StubIcon = { name: "user-key", implemented: false };
+export { default as UserKeyIcon } from "../drawn/user-key";
 export { default as UserListIcon } from "../drawn/user-list";
 export { default as UserLock01Icon } from "../drawn/user-lock-01";
 export const UserLock02Icon: StubIcon = { name: "user-lock-02", implemented: false };
