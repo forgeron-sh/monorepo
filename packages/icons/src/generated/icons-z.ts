@@ -25,11 +25,13 @@ export const ZodiacScorpioIcon: StubIcon = { name: "zodiac-scorpio", implemented
 export const ZodiacTaurusIcon: StubIcon = { name: "zodiac-taurus", implemented: false };
 export const ZodiacVirgoIcon: StubIcon = { name: "zodiac-virgo", implemented: false };
 export const ZoomIcon: StubIcon = { name: "zoom", implemented: false };
-export const ZoomCircleIcon: StubIcon = { name: "zoom-circle", implemented: false };
+export { default as ZoomCircleIcon } from "../drawn/zoom-circle";
+export { default as ZoomCircleFillIcon } from "../drawn/zoom-circle-fill";
 export const ZoomInIcon: PixelIcon = { name: "zoom-in", implemented: true, style: "pixel", grid: 12, rows: ["...###", ".##...##", ".#.....#", "#...o...#", "#..ooo..#", "#...o...#", ".#.....#", ".##...##", "...###.##", "........##", ".........##"] };
 export { default as ZoomInAreaIcon } from "../drawn/zoom-in-area";
 export const ZoomOutIcon: PixelIcon = { name: "zoom-out", implemented: true, style: "pixel", grid: 12, rows: ["...###", ".##...##", ".#.....#", "#.......#", "#..ooo..#", "#.......#", ".#.....#", ".##...##", "...###.##", "........##", ".........##"] };
-export const ZoomOutAreaIcon: StubIcon = { name: "zoom-out-area", implemented: false };
-export const ZoomSquareIcon: StubIcon = { name: "zoom-square", implemented: false };
+export { default as ZoomOutAreaIcon } from "../drawn/zoom-out-area";
+export { default as ZoomSquareIcon } from "../drawn/zoom-square";
+export { default as ZoomSquareFillIcon } from "../drawn/zoom-square-fill";
 export const ZshIcon: StubIcon = { name: "zsh", implemented: false };
 export { default as ZzzIcon } from "../drawn/zzz";

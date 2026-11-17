@@ -1,0 +1,26 @@
+import type { PixelIcon } from "../types";
+
+// Line left then down, arrowhead pointing down: `corner-left-up` flipped.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "corner-left-down",
+  implemented: true,
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    ".....######",
+    "....#",
+    "...#",
+    "...#",
+    "...#",
+    "...#",
+    "...#",
+    ".#.#.#",
+    "..###",
+    "...#",
+  ],
+};
+
+export default icon;

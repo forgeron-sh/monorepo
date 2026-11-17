@@ -1,0 +1,25 @@
+import type { PixelIcon } from "../types";
+
+// Taxi: the car of car-01 seen from the front with a roof sign in the secondary tone.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "car-taxi-front",
+  implemented: true,
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    "....oooo",
+    "...######",
+    "..#......#",
+    ".##########",
+    ".#oo....oo#",
+    ".#........#",
+    ".##########",
+    ".##......##",
+    ".##......##",
+  ],
+};
+
+export default icon;
