@@ -10,8 +10,8 @@ export const XVariableCircleIcon: StubIcon = { name: "x-variable-circle", implem
 export const XVariableSquareIcon: StubIcon = { name: "x-variable-square", implemented: false };
 export const XingIcon: StubIcon = { name: "xing", implemented: false };
 export { default as Xls01Icon } from "../drawn/xls-01";
-export const Xls02Icon: StubIcon = { name: "xls-02", implemented: false };
+export { default as Xls02Icon } from "../drawn/xls-02";
 export { default as Xml01Icon } from "../drawn/xml-01";
-export const Xml02Icon: StubIcon = { name: "xml-02", implemented: false };
+export { default as Xml02Icon } from "../drawn/xml-02";
 export { default as Xsl01Icon } from "../drawn/xsl-01";
-export const Xsl02Icon: StubIcon = { name: "xsl-02", implemented: false };
+export { default as Xsl02Icon } from "../drawn/xsl-02";

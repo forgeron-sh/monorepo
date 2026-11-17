@@ -22,4 +22,4 @@ export { default as FourGSignalIcon } from "../drawn/4-g-signal";
 export { default as FourKIcon } from "../drawn/4k";
 export { default as FiveGSignalIcon } from "../drawn/5-g-signal";
 export { default as SevenZ01Icon } from "../drawn/7z-01";
-export const SevenZ02Icon: StubIcon = { name: "7z-02", implemented: false };
+export const SevenZ02Icon: PixelIcon = { name: "7z-02", implemented: true, style: "pixel", grid: 12, rows: ["", ".#####", ".#...##", ".#...#.#", ".#...####", ".#", ".#..ooo.ooo", ".#....o...o", ".#...o...o", ".#...o..o", ".###.o..ooo"] };

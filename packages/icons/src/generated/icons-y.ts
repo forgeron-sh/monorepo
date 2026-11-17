@@ -10,8 +10,8 @@ export const YenSendIcon: PixelIcon = { name: "yen-send", implemented: true, sty
 export { default as YenSquareIcon } from "../drawn/yen-square";
 export { default as YenSquareFillIcon } from "../drawn/yen-square-fill";
 export { default as Yoga01Icon } from "../drawn/yoga-01";
-export const Yoga02Icon: StubIcon = { name: "yoga-02", implemented: false };
-export const Yoga03Icon: StubIcon = { name: "yoga-03", implemented: false };
+export { default as Yoga02Icon } from "../drawn/yoga-02";
+export { default as Yoga03Icon } from "../drawn/yoga-03";
 export const YogaBallIcon: StubIcon = { name: "yoga-ball", implemented: false };
 export const YogaMatIcon: StubIcon = { name: "yoga-mat", implemented: false };
 export const YogurtIcon: StubIcon = { name: "yogurt", implemented: false };

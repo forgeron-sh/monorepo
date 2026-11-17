@@ -35,7 +35,7 @@ export { default as OptionIcon } from "../drawn/option";
 export const OptionsCallIcon: StubIcon = { name: "options-call", implemented: false };
 export { default as OrangeIcon } from "../drawn/orange";
 export { default as Orbit01Icon } from "../drawn/orbit-01";
-export const Orbit02Icon: StubIcon = { name: "orbit-02", implemented: false };
+export const Orbit02Icon: PixelIcon = { name: "orbit-02", implemented: true, style: "pixel", grid: 12, rows: ["....####", "..##.....oo", ".#.......oo", ".#", "#....##....#", "#...####...#", "#...####...#", "#....##....#", ".#........#", ".#........#", "..##....##", "....####"] };
 export { default as OrganicFoodIcon } from "../drawn/organic-food";
 export const OrientationImageLandscapeToPotraitIcon: PixelIcon = { name: "orientation-image-landscape-to-potrait", implemented: true, style: "pixel", grid: 12, rows: ["#######", "#.....#", "#.....#", "#.....#", "#.....#", "#######.####", ".o......#..#", ".o..o...#..#", ".o...o..#..#", "..ooooo.#..#", ".....o..#..#", "....o...####"] };
 export const OrientationImagePotraitToLandscapeIcon: PixelIcon = { name: "orientation-image-potrait-to-landscape", implemented: true, style: "pixel", grid: 12, rows: ["#####", "#...#.ooo", "#...#....o", "#...#..o.o.o", "#...#...ooo", "#...#....o", "#####", ".....#######", ".....#.....#", ".....#.....#", ".....#.....#", ".....#######"] };
