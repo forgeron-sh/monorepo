@@ -118,67 +118,55 @@ function smoke(
 
 /** Flames on a roof: ember tongues that flicker, and sparks drifting up. */
 function flames(out: Block[], c: Vec3, t: number, n: number, seed: number): void {
-  // Tongues, not sticks: each flame is a short wavy stroke that sways and breathes slowly, red at
-  // the root and ember at the tip, with a spark now and then drifting up from it.
-  const line = (a: Vec3, b: Vec3, ink: "alert" | "accent" | "ink") =>
-    out.push({ kind: "line", a, b, ink, layer: 1 });
+  // Pixel-art flames: each one a little stack of square pixels, wide and red at the root, ember
+  // and narrower above, a white core at the base, animated in three stepped frames like a sprite.
+  // One in three is a big one, two columns wide.
+  const frame = Math.floor(t * 7);
+  const px = (at: Vec3, ink: "alert" | "accent" | "ink", size: number) =>
+    out.push({ kind: "dot", at, ink, size, layer: 1 });
   for (let k = 0; k < n; k++) {
     const ox = (hash(seed, k) - 0.5) * 4;
     const oy = (hash(seed, k + 50) - 0.5) * 4;
-    const phase = hash(seed, k + 70) * 6.28;
-    const h = 1 + 1.2 * (0.6 + 0.4 * Math.sin(t * 1.8 + phase));
-    const lean = Math.sin(t * 1.1 + phase) * 0.35;
-    // One flame in three is thick: three strokes side by side, with a white-hot core at its root.
-    const thick = k % 3 === 0;
-    const offsets: [number, number][] = thick
-      ? [
-          [0, 0],
-          [0.16, -0.08],
-          [-0.16, 0.08],
-        ]
-      : [[0, 0]];
-    for (const [dx, dy] of offsets) {
-      let prev: Vec3 = [c[0] + ox + dx, c[1] + oy + dy, c[2]];
-      const steps = 5;
-      for (let j = 1; j <= steps; j++) {
-        const q = j / steps;
-        // Thick strokes taper: the outer ones stop short of the tip.
-        if (dx !== 0 && q > 0.8) break;
-        const sway = Math.sin(q * 3.4 + t * 2.4 + phase) * 0.28 * q + lean * q * q;
-        const p: Vec3 = [
-          c[0] + ox + dx * (1 - q * 0.6) + sway,
-          c[1] + oy + dy * (1 - q * 0.6) - sway * 0.5,
-          c[2] + q * h * (thick ? 1.25 : 1),
-        ];
-        line(prev, p, q < 0.55 ? "alert" : "accent");
-        prev = p;
+    const f = (frame + k) % 3;
+    const big = k % 3 === 0;
+    const rows = (big ? 6 : 4) + (f === 1 ? 1 : 0);
+    const cols = big ? [-0.22, 0.22] : [0];
+    for (const cx2 of cols)
+      for (let i = 0; i < rows; i++) {
+        const q = i / rows;
+        // A step to one side or the other, frame by frame, more at the top.
+        const step = (f === 0 ? -1 : f === 2 ? 1 : 0) * (q > 0.4 ? 0.18 : 0) * (cx2 < 0 ? -1 : 1);
+        const at: Vec3 = [c[0] + ox + cx2 + step, c[1] + oy, c[2] + i * 0.32];
+        const size = Math.max(2, Math.round((big ? 5 : 4) * (1 - q * 0.75)));
+        // The burn's texture: each pixel draws its colour from a mix that shifts with height
+        // (mostly red at the root, mixed in the body, ember with white glints at the tip), the
+        // same draw for the same pixel within a frame, so it shimmers rather than fizzes.
+        const r = hash(seed * 31 + k + f * 977, i * 7 + (cx2 < 0 ? 1 : 0));
+        const ink: "alert" | "accent" | "ink" =
+          q < 0.3
+            ? r < 0.7
+              ? "alert"
+              : r < 0.92
+                ? "accent"
+                : "ink"
+            : q < 0.65
+              ? r < 0.45
+                ? "alert"
+                : r < 0.9
+                  ? "accent"
+                  : "ink"
+              : r < 0.15
+                ? "alert"
+                : r < 0.8
+                  ? "accent"
+                  : "ink";
+        px(at, ink, size);
       }
-    }
-    if (thick)
-      line(
-        [c[0] + ox, c[1] + oy, c[2]],
-        [c[0] + ox + lean * 0.2, c[1] + oy, c[2] + h * 0.3],
-        "ink",
-      );
-    // A second, shorter tongue beside the first, out of step with it.
-    if (k % 2 === 0) {
-      let p2: Vec3 = [c[0] + ox + 0.35, c[1] + oy, c[2]];
-      for (let j = 1; j <= 3; j++) {
-        const q = j / 3;
-        const sway = Math.sin(q * 3 + t * 2 + phase + 2) * 0.22 * q;
-        const p: Vec3 = [c[0] + ox + 0.35 + sway, c[1] + oy, c[2] + q * h * 0.6];
-        line(p2, p, "alert");
-        p2 = p;
-      }
-    }
+    px([c[0] + ox, c[1] + oy, c[2] + 0.1], "ink", big ? 3 : 2);
+    // A spark breaks off the tip now and then.
     const age = (t * 0.35 + hash(seed, k + 9)) % 1;
-    if (age < 0.7)
-      dot(
-        out,
-        [c[0] + ox + Math.sin(age * 5 + phase) * 0.4, c[1] + oy, c[2] + h + age * 4],
-        age < 0.35 ? "accent" : "dim",
-        1,
-      );
+    if (age < 0.6)
+      px([c[0] + ox + (f - 1) * 0.15, c[1] + oy, c[2] + rows * 0.32 + age * 3], "accent", 2);
   }
 }
 
@@ -1377,42 +1365,72 @@ export function village(t: number): Block[] {
       const cz = 12 + grow * 10;
       // As the fire takes the village, the mushroom thins out and goes, leaving the burning ruins.
       const gone = Math.min(1, Math.max(0, (b - 0.75) / 0.25) * 0.35 + fire * 1.15);
+      // The cloud is made of puffs, not blocks: small round billows, like the smoke, packed
+      // tight. White at the heart while it is young, red and ember through the body, ash at the
+      // edges and as it goes.
       const put = (q: Vec3, w: number, k: number) => {
         if (hash(k, 123) < gone) return;
-        if (w < 0.42 && fade < 0.5) out.push({ kind: "dot", at: q, ink: "ink", size: 3, layer: 1 });
-        else if (hash(k, 97) > fade * 0.7)
-          out.push({
-            kind: "box",
-            at: [q[0] - 0.45, q[1] - 0.45, q[2]],
-            size: [0.9, 0.9, 0.9],
-            alert: true,
-            layer: 1,
-          });
-        else out.push({ kind: "dot", at: q, ink: "dim", size: 2, layer: 1 });
+        const ink: "ink" | "alert" | "accent" | "dim" =
+          w < 0.42 && fade < 0.5
+            ? "ink"
+            : hash(k, 97) < fade * 0.7
+              ? "dim"
+              : hash(k, 98) < 0.5
+                ? "alert"
+                : "accent";
+        const r = 0.45 + hash(k, 99) * 0.35;
+        let prev: Vec3 | null = null;
+        for (let j = 0; j <= 6; j++) {
+          const a2 = (j / 6) * TAU + k;
+          const p2: Vec3 = [
+            q[0] + Math.cos(a2) * r,
+            q[1] + Math.sin(a2) * r * 0.6,
+            q[2] + Math.sin(a2) * r * 0.5,
+          ];
+          if (prev) out.push({ kind: "line", a: prev, b: p2, ink, layer: 1 });
+          prev = p2;
+        }
       };
-      for (let k = 0; k < 520; k++) {
-        const w = Math.cbrt(hash(k, 92));
-        const th = hash(k, 90) * TAU;
-        const ph = Math.acos(2 * hash(k, 91) - 1);
-        const r = R * w * (1 + 0.1 * Math.sin(t * 9 + k));
-        // Flattened, and rolled under at the rim: a cap rather than a ball.
-        const vz = Math.cos(ph) * r * 0.5 - (Math.sin(ph) > 0.85 ? r * 0.2 : 0);
+      // The cap: a rolled ring (a torus) whose underside curls back towards the stem, with a dome
+      // filling its middle. The fireball glows white inside the roll while it is young.
+      const ringR = R * 0.62;
+      const tube = R * 0.42;
+      for (let k = 0; k < 340; k++) {
+        const u = hash(k, 90) * TAU;
+        const v = hash(k, 91) * TAU;
+        const w = Math.sqrt(hash(k, 92));
+        const boil = 1 + 0.08 * Math.sin(t * 2 + k);
+        const rr = ringR + Math.cos(v) * tube * w * boil;
+        const z = cz + Math.sin(v) * tube * w * 0.8 + fade * 3;
+        put([Math.cos(u) * rr, Math.sin(u) * rr, z], w * (Math.sin(v) < -0.3 ? 0.3 : 1), k);
+      }
+      for (let k = 0; k < 90; k++) {
+        const a2 = hash(k, 110) * TAU;
+        const r2 = Math.sqrt(hash(k, 111)) * ringR;
+        const z = cz + tube * 0.5 + (1 - r2 / ringR) * tube * 0.7 + fade * 3;
+        put([Math.cos(a2) * r2, Math.sin(a2) * r2, z], 0.7, k + 1200);
+      }
+      // The stem: narrow, widening a little to the cap, with a collar of cloud halfway up.
+      const stemTop = cz - tube * 0.6;
+      for (let k = 0; k < 110; k++) {
+        const z = 7.6 + hash(k, 93) * (stemTop - 7.6);
+        const a2 = hash(k, 94) * TAU;
+        const rr =
+          (0.9 + 0.9 * ((z - 7.6) / (stemTop - 7.6))) * Math.sqrt(hash(k, 95)) * (1 + grow * 0.6);
+        put([Math.cos(a2) * rr, Math.sin(a2) * rr, z], hash(k, 96) * 0.8, k + 600);
+      }
+      const collarZ = 7.6 + (stemTop - 7.6) * 0.55;
+      for (let k = 0; k < 60; k++) {
+        const a2 = hash(k, 120) * TAU;
+        const rr = (2.2 + grow * 2.2) * (0.8 + 0.2 * hash(k, 121));
         put(
-          [Math.sin(ph) * Math.cos(th) * r, Math.sin(ph) * Math.sin(th) * r, cz + vz + fade * 3],
-          w,
-          k,
+          [Math.cos(a2) * rr, Math.sin(a2) * rr, collarZ + (hash(k, 122) - 0.5) * 1.2],
+          0.6,
+          k + 1400,
         );
       }
-      for (let k = 0; k < 160; k++) {
-        const z = 7.6 + hash(k, 93) * (cz - 7.6 - R * 0.3);
-        const a = hash(k, 94) * TAU;
-        const rr =
-          (0.6 + 0.8 * (z / cz)) * Math.sqrt(hash(k, 95)) * (1.4 + grow) +
-          Math.sin(t * 7 + z) * 0.2;
-        put([Math.cos(a) * rr, Math.sin(a) * rr, z], hash(k, 96) * 0.8, k + 600);
-      }
       const surge = 9 + grow * 9;
-      for (let k = 0; k < 260; k++) {
+      for (let k = 0; k < 170; k++) {
         const a = hash(k, 98) * TAU;
         const rr = surge * (0.75 + 0.25 * Math.sqrt(hash(k, 99)));
         const z = hash(k, 100) * 2.4 * (1 - hash(k, 101) * 0.5);
@@ -1452,7 +1470,7 @@ export function village(t: number): Block[] {
     out.push({
       kind: "label",
       text: broken ? "ERP - not responding" : "ERP",
-      at: [0, 0, 15],
+      at: [0, 0, broken && fire < 0.3 ? 34 : 15],
       to: [0, 0, 7.7],
       active: focus === "erp",
     });
