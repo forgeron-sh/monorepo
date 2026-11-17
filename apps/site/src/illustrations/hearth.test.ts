@@ -1,6 +1,6 @@
 import { textSvg } from "@forgeron/blueprint";
 import { describe, expect, it } from "vitest";
-import { BG, cellSize, EMBER, HOT, hearthFrame, hearthGrid, IRON, SPARK } from "./hearth";
+import { BG, cellSize, EMBER, HOT, hearthFrame, hearthGrid, IRON, SPARK, TONES } from "./hearth";
 
 // The footer's grid at 1440 px: 319 × 136 cells of 4 px, the word slot under the link cells.
 const slot = { x: 8, y: 78, w: 303, h: 45 };
@@ -41,12 +41,13 @@ describe("hearthFrame", () => {
   });
 
   it("keeps the letters in iron, white or ember, and the rest in embers, sparks or nothing", () => {
+    const letter = new Set([IRON, HOT, SPARK]);
+    const around = new Set([BG, EMBER, SPARK]);
     for (const t of [0, 1.5, 7]) {
       const frame = hearthFrame(grid, t, { x: 100, y: 100 });
-      frame.forEach((tone, i) => {
-        if (grid.word[i]) expect([IRON, HOT, SPARK]).toContain(tone);
-        else expect([BG, EMBER, SPARK]).toContain(tone);
-      });
+      const wrong = [...frame].filter((tone, i) => !(grid.word[i] ? letter : around).has(tone));
+      expect(wrong).toEqual([]);
+      expect(Math.max(...frame)).toBeLessThan(TONES.length);
     }
   });
 
