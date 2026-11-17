@@ -51,6 +51,12 @@ canvas {
   display: block;
   image-rendering: pixelated;
 }
+/* Keyboard focus: the ember ring of the design system on every link and toggle of the site. */
+a:focus-visible,
+summary:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
 ::selection {
   background: var(--accent);
   color: var(--accent-ink);
