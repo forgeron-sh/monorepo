@@ -188,6 +188,17 @@ const BUILDS: Record<string, (t: number, active: number) => Block[]> = {
     shapes.push({ kind: "dot", at: [10 + ((k + 0.5) % 1) * 8, 5, 0.1], ink: "ink", size: 2 });
     return shapes;
   },
+  /** The pipeline with its three stops named in the drawing, on plates (the home page). */
+  "pipeline-labels"(t) {
+    const pipeline = BUILDS.pipeline;
+    if (!pipeline) return [];
+    return [
+      ...pipeline(t, -1),
+      { kind: "label", text: "Repository", at: [5, 5, 8], to: [5, 5, 1.4] },
+      { kind: "label", text: "Preview", at: [5, 23, 10], to: [5, 23, 4.6], active: true },
+      { kind: "label", text: "Production", at: [23, 5, 8], to: [23, 5, 1.4] },
+    ];
+  },
   bars(t) {
     const shapes: Block[] = [];
     for (let k = 0; k <= 24; k += 3)

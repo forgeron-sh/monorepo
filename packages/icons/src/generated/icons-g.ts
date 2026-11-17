@@ -56,7 +56,7 @@ export const GitPullRequestCreateIcon: StubIcon = { name: "git-pull-request-crea
 export const GitPullRequestCreateArrowIcon: StubIcon = { name: "git-pull-request-create-arrow", implemented: false };
 export const GitPullRequestDraftIcon: StubIcon = { name: "git-pull-request-draft", implemented: false };
 export const GitbookIcon: StubIcon = { name: "gitbook", implemented: false };
-export const GithubIcon: StubIcon = { name: "github", implemented: false };
+export { default as GithubIcon } from "../drawn/github";
 export const Github01Icon: StubIcon = { name: "github-01", implemented: false };
 export const GitlabIcon: StubIcon = { name: "gitlab", implemented: false };
 export const GiveBloodIcon: StubIcon = { name: "give-blood", implemented: false };

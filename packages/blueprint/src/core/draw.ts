@@ -69,43 +69,128 @@ function drawBox(f: Frame, s: BoxBlock, view: View): void {
   }
 }
 
-/**
- * A tag centred above its anchor: a 1-pixel frame, a fill, capitals; a leader down to `to`. A
- * plain label is the text alone.
- */
-function drawLabel(f: Frame, l: LabelBlock, view: View): void {
+/** The plate of a label in raster pixels, frame included (inclusive bounds). */
+export interface LabelPlate {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+const PLATE_GAP = 2;
+
+/** Where a label's plate sits by default: centred above its anchor, 13 pixels tall. */
+function defaultPlate(l: LabelBlock, view: View): LabelPlate {
   const p = project(l.at, view);
-  const text = l.text.toUpperCase();
-  if (l.plain) {
-    // Text only, centred on its anchor, in its own colour family.
-    const ink = slotOf(l.ink ?? "ink");
-    let px = Math.round(p[0] - textWidth(text) / 2);
-    for (const ch of text) {
-      const g = glyph(ch);
-      g.rows.forEach((row, i) => {
-        for (let j = 0; j < row.length; j++)
-          if (row[j] === "#")
-            plot(f, px + j, Math.round(p[1]) - 7 + g.top + i, Material.LabelText, ink);
-      });
-      px += glyphWidth(g) + 1;
-    }
-    return;
-  }
-  const active = l.active ?? false;
-  const width = textWidth(text);
+  const width = textWidth(l.text.toUpperCase());
   const x0 = Math.round(p[0] - width / 2) - 3;
   const y0 = Math.round(p[1]) - 13;
-  const x1 = x0 + width + 5;
-  const y1 = y0 + 12;
-  if (l.to)
-    stroke(
-      f,
-      [Math.round(p[0]), y1 + 1],
-      project(l.to, view),
-      Material.Edge,
-      active ? Slot.Accent : Slot.Dim,
-      active ? 0 : 1,
-    );
+  return { x0, y0, x1: x0 + width + 5, y1: y0 + 12 };
+}
+
+const overlaps = (a: LabelPlate, b: LabelPlate) =>
+  a.x0 <= b.x1 + PLATE_GAP &&
+  b.x0 <= a.x1 + PLATE_GAP &&
+  a.y0 <= b.y1 + PLATE_GAP &&
+  b.y0 <= a.y1 + PLATE_GAP;
+
+function shift(r: LabelPlate, dx: number, dy: number): LabelPlate {
+  return { x0: r.x0 + dx, y0: r.y0 + dy, x1: r.x1 + dx, y1: r.y1 + dy };
+}
+
+/** Moves a plate inside a `width` × `height` raster (when it fits at all). */
+function inside(r: LabelPlate, width: number, height: number): LabelPlate {
+  const dx = r.x0 < 0 ? -r.x0 : r.x1 > width - 1 ? width - 1 - r.x1 : 0;
+  const dy = r.y0 < 0 ? -r.y0 : r.y1 > height - 1 ? height - 1 - r.y1 : 0;
+  return shift(r, dx, dy);
+}
+
+/**
+ * The placement rule of labels: each plate starts centred above its anchor and is moved inside
+ * the raster (a plate is never clipped by an edge). Then, in order, it rises until it covers
+ * nothing of the drawing (`occupied`, when given, with two pixels of air) and touches no plate placed before it (two
+ * pixels of air between plates); the leader grows to match. When no free spot exists above, the
+ * plate keeps the first spot that touches no other plate, over the drawing; a label that cannot
+ * avoid another plate at all is left out rather than drawn over it. A `fixed` label keeps its
+ * starting spot.
+ */
+export function placeLabels(
+  labels: readonly LabelBlock[],
+  view: View,
+  width: number,
+  height: number,
+  occupied?: (x: number, y: number) => boolean,
+): (LabelPlate | null)[] {
+  const placed: LabelPlate[] = [];
+  // A plate keeps two pixels of air around it from the drawing, too.
+  const covers = (r: LabelPlate) => {
+    if (!occupied) return false;
+    for (let y = Math.max(0, r.y0 - PLATE_GAP); y <= Math.min(height - 1, r.y1 + PLATE_GAP); y++)
+      for (let x = Math.max(0, r.x0 - PLATE_GAP); x <= Math.min(width - 1, r.x1 + PLATE_GAP); x++)
+        if (occupied(x, y)) return true;
+    return false;
+  };
+
+  const free = (r: LabelPlate) => !placed.some((o) => overlaps(r, o));
+  return labels.map((l) => {
+    const start = inside(defaultPlate(l, view), width, height);
+    if (start.x0 < 0 || start.y0 < 0 || start.x1 > width - 1 || start.y1 > height - 1) return null;
+    // A fixed label stays where it is put, over the drawing if need be.
+    if (l.fixed) {
+      placed.push(start);
+      return start;
+    }
+    let fallback: LabelPlate | null = null;
+    let chosen: LabelPlate | null = null;
+    // Up from the default spot to the top edge, then down from it to the bottom edge.
+    const offsets: number[] = [];
+    for (let dy = 0; start.y0 + dy >= 0; dy--) offsets.push(dy);
+    for (let dy = 1; start.y1 + dy <= height - 1; dy++) offsets.push(dy);
+    for (const dy of offsets) {
+      const r = shift(start, 0, dy);
+      if (!free(r)) continue;
+      if (!covers(r)) {
+        chosen = r;
+        break;
+      }
+      fallback ??= r;
+    }
+    const r = chosen ?? fallback;
+    if (r) placed.push(r);
+    return r;
+  });
+}
+
+/** A plain label: its text alone, centred on its anchor, in its own colour family. */
+function drawPlainLabel(f: Frame, l: LabelBlock, view: View): void {
+  const p = project(l.at, view);
+  const text = l.text.toUpperCase();
+  const ink = slotOf(l.ink ?? "ink");
+  let px = Math.round(p[0] - textWidth(text) / 2);
+  for (const ch of text) {
+    const g = glyph(ch);
+    g.rows.forEach((row, i) => {
+      for (let j = 0; j < row.length; j++)
+        if (row[j] === "#")
+          plot(f, px + j, Math.round(p[1]) - 7 + g.top + i, Material.LabelText, ink);
+    });
+    px += glyphWidth(g) + 1;
+  }
+}
+
+/** A tag on its plate: a 1-pixel frame, a solid fill, capitals; a leader down to `to`. */
+function drawLabel(f: Frame, l: LabelBlock, view: View, r: LabelPlate): void {
+  const p = project(l.at, view);
+  const text = l.text.toUpperCase();
+  const active = l.active ?? false;
+  const { x0, y0, x1, y1 } = r;
+  if (l.to) {
+    const target = project(l.to, view);
+    // The leader leaves the plate from the edge that faces its target, under the anchor.
+    const sx = Math.min(Math.max(Math.round(p[0]), x0 + 1), x1 - 1);
+    const sy = target[1] < y0 ? y0 - 1 : y1 + 1;
+    stroke(f, [sx, sy], target, Material.Edge, active ? Slot.Accent : Slot.Dim, active ? 0 : 1);
+  }
   for (let y = y0; y <= y1; y++)
     for (let x = x0; x <= x1; x++) {
       const edge = x === x0 || x === x1 || y === y0 || y === y1;
@@ -168,5 +253,17 @@ export function rasterize(
     }
   }
   if (options.labels === false) return;
-  for (const l of labels) drawLabel(f, l, view);
+  // The drawing a plate should not cover: anything but empty pixels and faint decor lines.
+  const occupied = (x: number, y: number) => {
+    const i = y * f.width + x;
+    return f.material[i] !== Material.Empty && f.ink[i] !== Slot.Faint;
+  };
+  // Plain labels float where they are put; the plates are placed around the drawing.
+  const framed = labels.filter((l) => !l.plain);
+  const plates = placeLabels(framed, view, f.width, f.height, occupied);
+  framed.forEach((l, i) => {
+    const r = plates[i];
+    if (r) drawLabel(f, l, view, r);
+  });
+  for (const l of labels) if (l.plain) drawPlainLabel(f, l, view);
 }

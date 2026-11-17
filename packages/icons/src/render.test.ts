@@ -50,8 +50,9 @@ describe("pixel icons", () => {
   });
 });
 
-/** Icons drawn on a larger grid, and why: the Cloudflare mark is too wide to read on 12×12. */
-const WIDER_GRID: Record<string, number> = { cloudflare: 16 };
+/** Icons drawn on a larger grid, and why: the Cloudflare mark is too wide to read on 12×12; the
+ * GitHub mark loses its ears and tail on 12×12 (docs/icons.md, brand logos). */
+const WIDER_GRID: Record<string, number> = { cloudflare: 16, github: 16 };
 
 describe("the drawn set", () => {
   it("is pixel art only, on the 12-pixel grid of the lab (16 for a brand mark that needs it)", () => {

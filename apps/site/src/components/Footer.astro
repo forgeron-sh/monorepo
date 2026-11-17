@@ -1,12 +1,158 @@
 ---
-import { PixelText } from "@forgeron/ui";
+import { GithubIcon } from "@forgeron/icons";
+import { Icon, Logo, PixelText } from "@forgeron/ui";
+
+interface Props {
+  /** The public repository. */
+  github: string;
+  /** The SDK documentation. */
+  docs: string;
+}
+const { github, docs } = Astro.props;
 ---
 
-<footer class="rail hr">
-  <div class="foot-word"><PixelText text="forgeron" /></div>
-  <div class="pad" style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-bottom:32px;">
-    <span class="text-eyebrow dim">Open source · Apache-2.0</span>
-    <span class="text-eyebrow dim">Runs on Cloudflare Workers</span>
-    <span class="text-eyebrow dim">forgeron.sh</span>
+<!--
+  The hearth: the site's index in glued cells over a bed of embers, and the wordmark as iron just
+  out of the forge (illustrations/hearth.ts). Without JavaScript the wordmark is the static pixel
+  drawing in cold iron, at the same place.
+-->
+<footer class="rail foot">
+  <div class="spacer text-eyebrow dim"><span>/1.2 → /1.3</span><span>[ Index ]</span></div>
+  <div class="hearth" data-hearth>
+    <canvas aria-hidden="true"></canvas>
+    <nav class="foot-cells" aria-label="Site index">
+      <div class="foot-cell ticks foot-brand">
+        <Logo size={28} />
+      </div>
+      <div class="foot-cell ticks">
+        <span class="text-eyebrow dim">Product</span>
+        <a href="#system">System</a><a href="#doors">Interfaces</a><a href="#ship">Deploy</a><a href="#host">Hosting</a>
+      </div>
+      <div class="foot-cell ticks">
+        <span class="text-eyebrow dim">Developers</span>
+        <a href="#develop">SDK</a><a href="#cli">CLI</a><a href="#templates">Templates</a><a href={docs}>Docs</a>
+      </div>
+      <div class="foot-cell ticks">
+        <span class="text-eyebrow dim">Open source</span>
+        <a href={github} class="foot-gh"><Icon icon={GithubIcon} size={16} variant="mono" />GitHub</a>
+        <a href={github}>License · Apache-2.0</a><a href={github}>Changelog</a>
+      </div>
+    </nav>
+    <div class="hearth-word" data-hearth-word><PixelText text="forgeron" /></div>
+  </div>
+  <div class="foot-legal text-eyebrow muted">
+    <span>Open source · Apache-2.0</span>
+    <span>Runs on Cloudflare Workers</span>
+    <span>forgeron.sh</span>
   </div>
 </footer>
+
+<script>
+  import { mountHearth } from "../illustrations/hearth";
+
+  const hearth = document.querySelector<HTMLElement>("[data-hearth]");
+  if (hearth) mountHearth(hearth);
+</script>
+
+<style>
+  /* The band above takes its top rule from the section before the footer. */
+  .foot > .spacer {
+    height: 88px;
+    border-top: 0;
+  }
+  .hearth {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 72px;
+    padding: 48px var(--gutter) 40px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .hearth > canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .foot-cells {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+    /* Glued: one-pixel gaps that the cells' outlines fill, so neighbours share one line. */
+    gap: 1px;
+  }
+  .foot-cell {
+    outline: 1px solid var(--line-strong);
+    background-color: var(--bg);
+    padding: 28px 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .foot-cell a {
+    color: var(--ink-muted);
+    font-size: 14px;
+    line-height: 20px;
+    align-self: flex-start;
+  }
+  .foot-cell a:hover {
+    color: var(--ink);
+  }
+  .foot-gh {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hearth-word {
+    position: relative;
+    color: var(--ink-dim);
+  }
+  .hearth-word :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  /* Drawn by the canvas once it runs: the static wordmark keeps its room, out of sight. */
+  .hearth[data-live] .hearth-word {
+    visibility: hidden;
+  }
+  .foot-legal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    min-height: 56px;
+    padding: 12px var(--gutter);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  }
+  .foot-legal span {
+    background: var(--bg);
+    padding: 2px 8px;
+  }
+  @media (max-width: 760px) {
+    .hearth {
+      gap: 48px;
+      padding-top: 32px;
+      padding-bottom: 28px;
+    }
+    .foot-cells {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .foot-brand,
+    .foot-cell:last-child {
+      grid-column: span 2;
+    }
+    .foot-cell {
+      padding: 24px 20px 28px;
+    }
+    .foot-legal {
+      justify-content: flex-start;
+    }
+  }
+</style>

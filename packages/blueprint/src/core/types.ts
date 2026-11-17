@@ -65,6 +65,8 @@ export interface LabelBlock extends BlockBase {
   active?: boolean;
   /** Text only, no frame, fill or leader: a caption floating over the scene. */
   plain?: boolean;
+  /** Keep the plate above its anchor (inside the raster), even over the drawing. */
+  fixed?: boolean;
   /** Colour family of a plain label's text (ink by default). */
   ink?: Ink;
 }

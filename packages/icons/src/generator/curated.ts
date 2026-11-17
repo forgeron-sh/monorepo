@@ -102,6 +102,15 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     labels: ["branch", "commits"],
     description: "Two branches turning into one stem, with their commits.",
   },
+  github: {
+    category: "brands",
+    labels: ["git", "repository", "source", "octocat", "logo"],
+    description: "The GitHub mark: the Octocat cut out of a round disc.",
+    reference:
+      "simple-icons:github (Iconify, 2026-11-17): rasterised to 16×16, then redrawn by hand (2026-11-17, docs/icons.md).",
+    trademark:
+      "GitHub and the Octocat logo are trademarks of GitHub, Inc., used here only to refer to GitHub.",
+  },
   globe: {
     labels: ["web", "world", "network"],
     description: "Globe: a meridian and the equator.",
@@ -123,10 +132,22 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     labels: ["logs", "audit", "queue", "lines"],
     description: "Lines of a log, one of them highlighted.",
   },
+  "minus-sign": {
+    reference:
+      "Hugeicons `minus-sign` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["collapse", "close", "subtract"],
+    description: "Minus sign: the bar of the plus sign, for a collapse toggle.",
+  },
   mcp: {
     category: "ai",
     labels: ["model context protocol", "claude", "agent", "connector"],
     description: "Plug of the Model Context Protocol: tools used from an AI assistant.",
+  },
+  "plus-sign": {
+    reference:
+      "Hugeicons `plus-sign` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["add", "expand", "open"],
+    description: "Plus sign: two crossing bars, for an expand toggle.",
   },
   rollback: {
     category: "development",

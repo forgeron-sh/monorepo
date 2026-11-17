@@ -1447,7 +1447,11 @@ export function village(t: number): Block[] {
 
   // From the explosion on, every label goes but the ERP's.
   const quiet = p >= STEPS.boom[0];
-  return out
-    .filter((b) => !(quiet && b.kind === "label" && !b.text.startsWith("ERP")))
-    .map((b) => (b === island || b === anchor || b.decor ? b : { ...b, decor: true }));
+  return (
+    out
+      .filter((b) => !(quiet && b.kind === "label" && !b.text.startsWith("ERP")))
+      // Labels stay over what they name: the village is too dense to move them off the drawing.
+      .map((b) => (b.kind === "label" && !b.plain ? { ...b, fixed: true } : b))
+      .map((b) => (b === island || b === anchor || b.decor ? b : { ...b, decor: true }))
+  );
 }
