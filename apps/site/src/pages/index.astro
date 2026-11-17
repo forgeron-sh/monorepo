@@ -50,11 +50,12 @@ const layers = [
 const left = [4, 2, 0].map((i) => layers[i]!);
 const right = [3, 1].map((i) => layers[i]!);
 
+/** Hero directions to compare: three flat scenes, and the isometric line as the reference. */
 const heroScenes = [
-  { id: "hero-line", label: "Line" },
-  { id: "hero-pipeline", label: "Pipeline" },
-  { id: "hero-forge", label: "Forge" },
-  { id: "hero-gateway", label: "Gateway" },
+  { id: "vulcan", label: "Vulcan", kind: "flat" },
+  { id: "workshop", label: "3 a.m.", kind: "flat" },
+  { id: "erp", label: "Wild ERP", kind: "flat" },
+  { id: "hero-line", label: "Iso", kind: "iso" },
 ];
 
 /** A pixel Y, white on an orange square: the Y Combinator mark, redrawn in the bitmap face. */
@@ -189,19 +190,20 @@ const resources = [
   <main>
     <!-- HERO: banner image, then title and call to action -->
     <section id="top" class="rail hero-d">
-      <figure class="hero-frame">
+      <figure class="hero-frame" data-mode="flat">
         <canvas class="hero-layer hero-bg" data-shader="field" data-px="4" data-accent="off" aria-hidden="true"></canvas>
         <canvas id="hero-canvas" class="hero-layer" data-iso="hero-line" data-scale="2" data-unit="any" data-accent="off" data-labels="off" data-fill="0.94" aria-hidden="true"></canvas>
+        <canvas id="hero-flat" class="hero-layer" aria-hidden="true"></canvas>
         <div class="hero-switch" role="group" aria-label="Hero illustration">
           {
             heroScenes.map((h, i) => (
-              <button type="button" class="hero-switch-btn text-eyebrow" data-scene={h.id} aria-pressed={i === 0 ? "true" : "false"}>
+              <button type="button" class="hero-switch-btn text-eyebrow" data-scene={h.id} data-kind={h.kind} aria-pressed={i === 0 ? "true" : "false"}>
                 {h.label}
               </button>
             ))
           }
         </div>
-        <figcaption class="sr-only">An animated technical drawing of how Forgeron works.</figcaption>
+        <figcaption class="sr-only">An animated pixel illustration of a forge.</figcaption>
       </figure>
       <div class="hero-d-body">
         <div class="hero-d-left">
@@ -757,17 +759,26 @@ const resources = [
 </script>
 
 <script>
-  // Hero scene switcher: tells the canvas which scene to draw and marks the pressed button.
+  // Hero scene switcher: flat scenes draw on their own canvas, the iso one on the blueprint canvas.
   import { isoCanvas } from "../illustrations/canvas";
+  import { mountFlat } from "../illustrations/flat";
 
+  const frame = document.querySelector<HTMLElement>(".hero-frame");
   const hero = isoCanvas(document.getElementById("hero-canvas"));
+  const flatEl = document.getElementById("hero-flat");
+  const flat = flatEl instanceof HTMLCanvasElement ? mountFlat(flatEl) : null;
   const buttons = document.querySelectorAll<HTMLButtonElement>(".hero-switch-btn");
-  for (const b of buttons) {
-    b.addEventListener("click", () => {
-      hero?.show(b.dataset.scene ?? "");
-      for (const o of buttons) o.setAttribute("aria-pressed", String(o === b));
-    });
-  }
+  const pick = (b: HTMLButtonElement) => {
+    const scene = b.dataset.scene ?? "";
+    const isFlat = b.dataset.kind === "flat";
+    if (frame) frame.dataset.mode = isFlat ? "flat" : "iso";
+    flat?.show(isFlat ? scene : null);
+    if (!isFlat) hero?.show(scene);
+    for (const o of buttons) o.setAttribute("aria-pressed", String(o === b));
+  };
+  for (const b of buttons) b.addEventListener("click", () => pick(b));
+  const first = buttons[0];
+  if (first) pick(first);
 </script>
 
 <style>
@@ -1538,6 +1549,11 @@ const resources = [
   .hero-bg {
     opacity: 0.14;
   }
+  .hero-frame[data-mode="flat"] .hero-bg,
+  .hero-frame[data-mode="flat"] #hero-canvas,
+  .hero-frame[data-mode="iso"] #hero-flat {
+    visibility: hidden;
+  }
   .hero-switch {
     position: absolute;
     top: 16px;
@@ -1593,6 +1609,11 @@ const resources = [
     gap: 28px;
   }
   @media (max-width: 560px) {
+    /* min-height with an aspect ratio would widen the frame past the screen. */
+    .hero-frame {
+      aspect-ratio: auto;
+      height: 280px;
+    }
     .hero-switch {
       top: 8px;
       right: 8px;
