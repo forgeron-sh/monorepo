@@ -2,7 +2,7 @@
 // Do not edit: draw an icon in src/drawn/<name>.ts, then run the generator.
 import type { PixelIcon, StubIcon } from "../types";
 
-export const JapaneseYenIcon: StubIcon = { name: "japanese-yen", implemented: false };
+export const JapaneseYenIcon: PixelIcon = { name: "japanese-yen", implemented: true, style: "pixel", grid: 12, rows: ["", "..##....##", "...##..##", "....####", ".....##", "...######", ".....##", "...######", ".....##", ".....##", ".....##"] };
 export { default as JarIcon } from "../drawn/jar";
 export { default as JarFillIcon } from "../drawn/jar-fill";
 export const JavaIcon: StubIcon = { name: "java", implemented: false };
@@ -11,21 +11,21 @@ export { default as JiraIcon } from "../drawn/jira";
 export { default as JobLinkIcon } from "../drawn/job-link";
 export { default as JobSearchIcon } from "../drawn/job-search";
 export { default as JobShareIcon } from "../drawn/job-share";
-export const JoggerPantsIcon: StubIcon = { name: "jogger-pants", implemented: false };
+export { default as JoggerPantsIcon } from "../drawn/jogger-pants";
 export { default as JoinBevelIcon } from "../drawn/join-bevel";
 export { default as JoinBevelFillIcon } from "../drawn/join-bevel-fill";
 export { default as JoinRoundIcon } from "../drawn/join-round";
 export { default as JoinRoundFillIcon } from "../drawn/join-round-fill";
-export const JoinStraightIcon: StubIcon = { name: "join-straight", implemented: false };
+export { default as JoinStraightIcon } from "../drawn/join-straight";
 export const JokerIcon: StubIcon = { name: "joker", implemented: false };
 export { default as Joystick01Icon } from "../drawn/joystick-01";
 export const Joystick02Icon: StubIcon = { name: "joystick-02", implemented: false };
 export const Joystick03Icon: StubIcon = { name: "joystick-03", implemented: false };
 export const Joystick04Icon: StubIcon = { name: "joystick-04", implemented: false };
 export const Joystick05Icon: StubIcon = { name: "joystick-05", implemented: false };
-export const Jpg01Icon: StubIcon = { name: "jpg-01", implemented: false };
+export { default as Jpg01Icon } from "../drawn/jpg-01";
 export const Jpg02Icon: StubIcon = { name: "jpg-02", implemented: false };
-export const Jsx01Icon: StubIcon = { name: "jsx-01", implemented: false };
+export { default as Jsx01Icon } from "../drawn/jsx-01";
 export const Jsx02Icon: StubIcon = { name: "jsx-02", implemented: false };
 export const Jsx03Icon: StubIcon = { name: "jsx-03", implemented: false };
 export const JudgeIcon: StubIcon = { name: "judge", implemented: false };

@@ -2,24 +2,24 @@
 // Do not edit: draw an icon in src/drawn/<name>.ts, then run the generator.
 import type { PixelIcon, StubIcon } from "../types";
 
-export const FirstBracketIcon: StubIcon = { name: "1st-bracket", implemented: false };
-export const FirstBracketCircleIcon: StubIcon = { name: "1st-bracket-circle", implemented: false };
-export const FirstBracketSquareIcon: StubIcon = { name: "1st-bracket-square", implemented: false };
-export const TwentyFourHoursClockIcon: StubIcon = { name: "24-hours-clock", implemented: false };
-export const SecondBracketIcon: StubIcon = { name: "2nd-bracket", implemented: false };
-export const SecondBracketCircleIcon: StubIcon = { name: "2nd-bracket-circle", implemented: false };
+export const FirstBracketIcon: PixelIcon = { name: "1st-bracket", implemented: true, style: "pixel", grid: 12, rows: ["", "...#....#", "..#......#", ".#........#", ".#........#", ".#........#", ".#........#", ".#........#", ".#........#", "..#......#", "...#....#"] };
+export { default as FirstBracketCircleIcon } from "../drawn/1st-bracket-circle";
+export { default as FirstBracketSquareIcon } from "../drawn/1st-bracket-square";
+export { default as TwentyFourHoursClockIcon } from "../drawn/24-hours-clock";
+export const SecondBracketIcon: PixelIcon = { name: "2nd-bracket", implemented: true, style: "pixel", grid: 12, rows: ["", "...##..##", "..#......#", "..#......#", "..#......#", ".#........#", ".#........#", "..#......#", "..#......#", "..#......#", "...##..##"] };
+export { default as SecondBracketCircleIcon } from "../drawn/2nd-bracket-circle";
 export const SecondBracketSquareIcon: StubIcon = { name: "2nd-bracket-square", implemented: false };
-export const ThreeDViewIcon: StubIcon = { name: "3-d-view", implemented: false };
-export const ThreeGSignalIcon: StubIcon = { name: "3-g-signal", implemented: false };
+export { default as ThreeDViewIcon } from "../drawn/3-d-view";
+export { default as ThreeGSignalIcon } from "../drawn/3-g-signal";
 export const ThreeDMoveIcon: PixelIcon = { name: "3d-move", implemented: true, style: "pixel", grid: 12, rows: ["", "...#", "..#.#", "...#", "...#....o", "...#...o", "...#..o", "...#.o", "...#o....#", "...########", ".........#"] };
 export { default as ThreeDPrinterIcon } from "../drawn/3d-printer";
 export const ThreeDRotateIcon: StubIcon = { name: "3d-rotate", implemented: false };
 export { default as ThreeDScaleIcon } from "../drawn/3d-scale";
-export const ThirdBracketIcon: StubIcon = { name: "3rd-bracket", implemented: false };
-export const ThirdBracketCircleIcon: StubIcon = { name: "3rd-bracket-circle", implemented: false };
-export const ThirdBracketSquareIcon: StubIcon = { name: "3rd-bracket-square", implemented: false };
-export const FourGSignalIcon: StubIcon = { name: "4-g-signal", implemented: false };
+export const ThirdBracketIcon: PixelIcon = { name: "3rd-bracket", implemented: true, style: "pixel", grid: 12, rows: ["", "..###..###", "..#......#", "..#......#", "..#......#", "..#......#", "..#......#", "..#......#", "..#......#", "..#......#", "..###..###"] };
+export { default as ThirdBracketCircleIcon } from "../drawn/3rd-bracket-circle";
+export { default as ThirdBracketSquareIcon } from "../drawn/3rd-bracket-square";
+export { default as FourGSignalIcon } from "../drawn/4-g-signal";
 export { default as FourKIcon } from "../drawn/4k";
-export const FiveGSignalIcon: StubIcon = { name: "5-g-signal", implemented: false };
-export const SevenZ01Icon: StubIcon = { name: "7z-01", implemented: false };
+export { default as FiveGSignalIcon } from "../drawn/5-g-signal";
+export { default as SevenZ01Icon } from "../drawn/7z-01";
 export const SevenZ02Icon: StubIcon = { name: "7z-02", implemented: false };

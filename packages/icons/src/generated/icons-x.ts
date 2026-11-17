@@ -3,15 +3,15 @@
 import type { PixelIcon, StubIcon } from "../types";
 
 export const XIcon: PixelIcon = { name: "x", implemented: true, style: "pixel", grid: 12, rows: ["", "", "..#......#", "...#....#", "....#..#", ".....##", ".....##", "....#..#", "...#....#", "..#......#"] };
-export const XLineTopIcon: StubIcon = { name: "x-line-top", implemented: false };
+export { default as XLineTopIcon } from "../drawn/x-line-top";
 export { default as XRayIcon } from "../drawn/x-ray";
 export const XVariableIcon: PixelIcon = { name: "x-variable", implemented: true, style: "pixel", grid: 12, rows: ["", "", "..#......#", ".#........#", ".#..o..o..#", ".#...oo...#", ".#...oo...#", ".#..o..o..#", ".#........#", "..#......#"] };
 export const XVariableCircleIcon: StubIcon = { name: "x-variable-circle", implemented: false };
 export const XVariableSquareIcon: StubIcon = { name: "x-variable-square", implemented: false };
 export const XingIcon: StubIcon = { name: "xing", implemented: false };
-export const Xls01Icon: StubIcon = { name: "xls-01", implemented: false };
+export { default as Xls01Icon } from "../drawn/xls-01";
 export const Xls02Icon: StubIcon = { name: "xls-02", implemented: false };
-export const Xml01Icon: StubIcon = { name: "xml-01", implemented: false };
+export { default as Xml01Icon } from "../drawn/xml-01";
 export const Xml02Icon: StubIcon = { name: "xml-02", implemented: false };
-export const Xsl01Icon: StubIcon = { name: "xsl-01", implemented: false };
+export { default as Xsl01Icon } from "../drawn/xsl-01";
 export const Xsl02Icon: StubIcon = { name: "xsl-02", implemented: false };
