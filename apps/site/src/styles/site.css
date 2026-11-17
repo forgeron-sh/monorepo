@@ -345,18 +345,6 @@ section:has(+ .spacer) > :last-child > li:last-child {
   color: var(--ink-dim);
 }
 
-/* ---------------------------------------------------------------- footer */
-
-.foot-word {
-  color: var(--ink);
-  padding: var(--space-12) var(--gutter) var(--space-6);
-}
-.foot-word svg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
 /* ---------------------------------------------------------------- feature rows */
 
 /* Copy, art, then three small features. */

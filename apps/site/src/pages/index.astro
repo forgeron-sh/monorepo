@@ -684,28 +684,9 @@ const resources = [
       </div>
     </section>
 
-    <!-- FOOTER LINKS -->
-    <section class="rail foot-cols">
-      <div>
-        <Logo size={28} />
-        <p class="text-small muted">Internal tools, forged once.</p>
-      </div>
-      <div>
-        <span class="text-eyebrow dim">Product</span>
-        <a href="#system">System</a><a href="#doors">Interfaces</a><a href="#ship">Deploy</a><a href="#host">Hosting</a>
-      </div>
-      <div>
-        <span class="text-eyebrow dim">Developers</span>
-        <a href="#develop">SDK</a><a href="#cli">CLI</a><a href="#templates">Templates</a><a href={DOCS}>Docs</a>
-      </div>
-      <div>
-        <span class="text-eyebrow dim">Open source</span>
-        <a href={GITHUB} class="foot-gh"><Icon icon={GithubIcon} size={16} variant="mono" />GitHub</a><a href={GITHUB}>License · Apache-2.0</a><a href={GITHUB}>Changelog</a>
-      </div>
-    </section>
   </main>
 
-  <Footer />
+  <Footer github={GITHUB} docs={DOCS} />
 </Site>
 
 <script>
@@ -1328,42 +1309,6 @@ const resources = [
     }
   }
 
-  .foot-cols {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    border-bottom: 1px solid var(--line);
-  }
-  .foot-cols > div {
-    padding: 48px var(--gutter);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    border-right: 1px solid var(--line);
-  }
-  .foot-cols > div:last-child {
-    border-right: 0;
-  }
-  .foot-cols a {
-    color: var(--ink-muted);
-    font-size: 14px;
-  }
-  .foot-cols a:hover {
-    color: var(--ink);
-  }
-  .foot-gh {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  @media (max-width: 760px) {
-    .foot-cols {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .foot-cols > div:first-child {
-      grid-column: span 2;
-      border-bottom: 1px solid var(--line);
-    }
-  }
   .res {
     display: grid;
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
