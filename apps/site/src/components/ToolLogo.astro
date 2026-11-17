@@ -1,4 +1,5 @@
 ---
+import { Icon } from "@forgeron/ui";
 import type { StackTool } from "../data/stack";
 
 interface Props {
@@ -7,13 +8,12 @@ interface Props {
 const { tool } = Astro.props;
 ---
 
-<!-- A tool's logo in a square tile: its Simple Icons mark, or its initial when it has none. -->
+<!-- A tool's logo in a square tile: its pixel brand mark (16-pixel grid, drawn at 16 px to stay
+     sharp), or its initial when it has none. -->
 <span class="tool-logo" aria-hidden="true">
   {
-    tool.path ? (
-      <svg viewBox="0 0 24 24" width="16" height="16">
-        <path d={tool.path} fill="currentColor" />
-      </svg>
+    tool.icon ? (
+      <Icon icon={tool.icon} size={16} variant="mono" />
     ) : (
       <span class="tool-initial">{tool.name.slice(0, 1)}</span>
     )
