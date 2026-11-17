@@ -203,6 +203,200 @@ function person(out: Block[], at: Vec3, step: boolean): void {
   box(out, [at[0] - 0.25, at[1] - 0.25 + (step ? 0.1 : 0), at[2] + 1.15], [0.5, 0.5, 0.5]);
 }
 
+/**
+ * The customers, simulated: each lives in one of the three houses, walks out, crosses to sales
+ * or support on the inbound lane, queues, is served at the window, steps left onto the return
+ * lane and walks home. Nobody pops in or out: the story only changes where the next trip goes
+ * (more and more to support) and how long support takes (longer and longer), so the support
+ * queue grows on its own. Walkers keep their distance: one never walks into the one ahead.
+ */
+type Desk = "sales" | "support";
+interface Walker {
+  id: number;
+  home: number;
+  state: "home" | "go" | "queue" | "serve" | "leave";
+  pos: [number, number];
+  dir: [number, number];
+  route: [number, number][];
+  desk: Desk;
+  timer: number;
+  waited: number;
+  trips: number;
+}
+/** Three houses in a row along the island's south edge, doors on their +y face. */
+const HOUSES: [number, number][] = [
+  [-57, -29],
+  [-52.5, -29],
+  [-48, -29],
+];
+const DESK_Y: Record<Desk, number> = { support: -22, sales: -9 };
+/** The serving spot in front of the window; the queue runs back from it along the inbound lane. */
+const SERVE_X = -30.2;
+const SLOT = 1.3;
+const LANE_IN = -44.5;
+/** The inbound lane runs on the -y side of each bridge, the return lane on the +y side. */
+const IN_Y = -0.8;
+const OUT_Y = 0.6;
+const LANE_OUT = -46.2;
+const SPEED = 4.2;
+const door = (h: number): [number, number] => [HOUSES[h]![0] + 1.5, HOUSES[h]![1] + 3.3];
+/** In front of the houses: out along one row (east), back along the other (west). Both desks
+ * lie north of it, so the way in only ever climbs and the way back only ever comes down. */
+const IN_ROW = -24.6;
+const OUT_ROW = -23.4;
+/** A desk with this many in line: the next customer waits at home a little longer. */
+const FULL = 8;
+const walkers: Walker[] = Array.from({ length: 18 }, (_, id) => ({
+  id,
+  home: id % 3,
+  state: "home" as const,
+  pos: door(id % 3),
+  dir: [1, 0] as [number, number],
+  route: [],
+  desk: "sales" as Desk,
+  timer: 0.4 + id * 0.6,
+  waited: 0,
+  trips: 0,
+}));
+const queues: Record<Desk, Walker[]> = { sales: [], support: [] };
+let simT: number | null = null;
+/** Where a walker is drawn: a little to one side of the way it walks, so two walkers meeting
+ * on one lane pass side by side. Spacing is measured there too. */
+const shown = (w: Walker): [number, number] => [
+  w.pos[0] + w.dir[1] * 0.4,
+  w.pos[1] - w.dir[0] * 0.4,
+];
+
+function stepWalkers(dt: number, swing: number): void {
+  for (const w of walkers) {
+    if (w.state === "home") {
+      w.timer -= dt;
+      if (w.timer > 0) continue;
+      const [dx, dy] = door(w.home);
+      // Out of the door only when the doorstep is clear.
+      if (walkers.some((o) => o.state !== "home" && Math.hypot(o.pos[0] - dx, o.pos[1] - dy) < 1.6))
+        continue;
+      w.desk = hash(w.id, w.trips++) < 0.15 + swing * 0.75 ? "support" : "sales";
+      if (queues[w.desk].length >= FULL) {
+        w.timer = 1.5;
+        continue;
+      }
+      const lane = DESK_Y[w.desk] + IN_Y;
+      w.pos = [dx + 0.4, dy];
+      w.route = [
+        [dx + 0.4, IN_ROW],
+        [LANE_IN, IN_ROW],
+        [LANE_IN, lane],
+      ];
+      w.state = "go";
+      continue;
+    }
+    if (w.state === "serve") {
+      w.timer -= dt;
+      if (w.timer > 0) continue;
+      const [dx, dy] = door(w.home);
+      const back = DESK_Y[w.desk] + OUT_Y;
+      // A step to its left at the window (+y, left on screen too), onto the return lane, then home.
+      w.route = [
+        [SERVE_X, back],
+        [LANE_OUT, back],
+        [LANE_OUT, OUT_ROW],
+        [dx - 0.4, OUT_ROW],
+        [dx - 0.4, dy],
+      ];
+      w.state = "leave";
+      continue;
+    }
+    // Where it heads: the next corner of its route, or its slot in the queue.
+    let target: [number, number] | undefined = w.route[0];
+    if (w.state === "queue") {
+      const k = queues[w.desk].indexOf(w);
+      target = [SERVE_X - k * SLOT, DESK_Y[w.desk] + IN_Y];
+    }
+    if (!target) continue;
+    const vx = target[0] - w.pos[0];
+    const vy = target[1] - w.pos[1];
+    const d = Math.hypot(vx, vy);
+    if (d > 1e-3) w.dir = [vx / d, vy / d];
+    // Keep a distance: hold when someone is just ahead going the same way, standing in line, or
+    // crossing in front; when two crossing walkers see each other, the lower number goes first.
+    let blocked = false;
+    for (const o of walkers) {
+      if (o === w || o.state === "home") continue;
+      // Measured on the lanes themselves: at a corner, the drawn side-step would put the one
+      // behind ahead.
+      const ox = o.pos[0] - w.pos[0];
+      const oy = o.pos[1] - w.pos[1];
+      const od = Math.hypot(ox, oy);
+      if (od > 1.2 || od < 1e-6) continue;
+      const ahead = (ox * w.dir[0] + oy * w.dir[1]) / od;
+      if (ahead < 0.25) continue;
+      const same = o.dir[0] * w.dir[0] + o.dir[1] * w.dir[1];
+      // Whether the other has this one ahead too: if not, it will not stop, so this one does.
+      const seen = (-ox * o.dir[0] - oy * o.dir[1]) / od >= 0.25;
+      if (same > 0.5 || o.state === "queue" || o.state === "serve" || !seen || o.id < w.id)
+        blocked = true;
+    }
+    if (blocked && w.waited < 3) {
+      w.waited += dt;
+      continue;
+    }
+    const move = Math.min(d, SPEED * dt);
+    const next: [number, number] = [w.pos[0] + w.dir[0] * move, w.pos[1] + w.dir[1] * move];
+    // Whatever the rules above say (a long wait lets it go anyway), never a step into someone.
+    const [cx, cy] = shown(w);
+    const [nx, ny] = shown({ ...w, pos: next });
+    const into = walkers.some((o) => {
+      if (o === w || o.state === "home") return false;
+      // Two walkers crossing at right angles may brush past; only a file is kept apart.
+      if (Math.abs(o.dir[0] * w.dir[0] + o.dir[1] * w.dir[1]) < 0.5 && o.state !== "queue")
+        return false;
+      const [ox, oy] = shown(o);
+      const after = Math.hypot(ox - nx, oy - ny);
+      // Only a step that heads at the other counts, not one that slides past it.
+      const now = Math.hypot(ox - cx, oy - cy);
+      const toward = ((ox - cx) * w.dir[0] + (oy - cy) * w.dir[1]) / (now || 1);
+      return after < 0.62 && after < now && toward > 0.3;
+    });
+    // A jam that lasts (a corner where lanes cross) is broken: the one stuck longest slips by.
+    if (into && w.waited < 4) {
+      w.waited += dt;
+      continue;
+    }
+    w.waited = 0;
+    w.pos = next;
+    if (d - move > 1e-3) continue;
+    if (w.state === "queue") {
+      if (queues[w.desk][0] === w) {
+        w.state = "serve";
+        w.timer = w.desk === "support" ? 1 + swing * 5 : 0.9;
+      }
+      continue;
+    }
+    w.route.shift();
+    // Out of the window's way: the next in line may step up.
+    if (w.state === "leave" && w.route.length === 4) queues[w.desk].shift();
+    if (w.route.length) continue;
+    if (w.state === "go") {
+      queues[w.desk].push(w);
+      w.state = "queue";
+    } else {
+      w.state = "home";
+      w.timer = 1.5 + hash(w.id, w.trips + 50) * 3;
+    }
+  }
+}
+
+/** Advances the walkers to time `t`, in small steps; the first call warms the village up. */
+function simulate(t: number, swing: number): void {
+  const from = simT ?? t - 30;
+  const span = Math.min(t - from, simT === null ? 30 : 0.25);
+  simT = t;
+  if (span <= 0) return;
+  const n = Math.ceil(span / 0.05);
+  for (let k = 0; k < n; k++) stepWalkers(span / n, swing);
+}
+
 /** A tree: trunk and two stacked crowns. Scenery: never frames the scene. */
 function tree(out: Block[], x: number, y: number, s: number): void {
   box(out, [x - 0.3, y - 0.3, 0], [0.6, 0.6, 1.6 * s], { decor: true });
@@ -472,7 +666,8 @@ export function village(t: number): Block[] {
     box(out, [piv[0] - 0.6, piv[1], piv[2] - 0.6], [1.2, 0.5, 1.2], { plate: true });
     const L = 4.6;
     const ang = pull * 1.7;
-    const knob: Vec3 = [piv[0], piv[1] + 0.5 + Math.sin(ang) * L, piv[2] + Math.cos(ang) * L];
+    // Pulled toward the viewer (+x, the machine's front), not back into the island.
+    const knob: Vec3 = [piv[0] + Math.sin(ang) * L, piv[1] + 0.5, piv[2] + Math.cos(ang) * L];
     front([piv[0], piv[1] + 0.5, piv[2]], knob);
     front([piv[0] + 0.15, piv[1] + 0.5, piv[2]], [knob[0] + 0.15, knob[1], knob[2]], "dim");
     out.push({ kind: "dot", at: knob, ink: "accent", size: 6, layer: 1 });
@@ -547,9 +742,7 @@ export function village(t: number): Block[] {
     }
   }
 
-  // The customers, on their own island, with a teleporter to the support counter. Fewer and
-  // fewer of them as the story goes on.
-  const leaving = clamp(p / STEPS.boom[0]);
+  // The customers, on their own island: three houses they walk out of (see `walkers`).
   // A small rope bridge across the water, jungle style: sagging planks, rope rails, two posts at
   // each end. People cross both ways on it, side by side.
   const sag = (x: number) => (x > -41 && x < -36 ? -0.8 * Math.sin(((x + 41) / 5) * Math.PI) : 0);
@@ -575,23 +768,12 @@ export function village(t: number): Block[] {
     }
   }
   {
-    for (let k = 0; k < 3; k++) {
-      const hx = -57 + (k % 2) * 6;
-      const hy = -29 + k * 5;
+    for (const [hx, hy] of HOUSES) {
       box(out, [hx, hy, 0], [3, 3, 2.4], { floors: 1.2 });
       box(out, [hx - 0.3, hy - 0.3, 2.4], [3.6, 3.6, 0.5], { plate: true });
     }
-    const idle = Math.round(6 * (1 - leaving));
-    for (let k = 0; k < idle; k++) {
-      const a = t * 0.4 + k * 1.1;
-      person(
-        out,
-        [-48 + Math.cos(a) * 1.8, -16 + Math.sin(a) * 2.5, 0],
-        Math.floor(t * 3 + k) % 2 === 0,
-      );
-    }
-    seg(out, [-45, -29, 0], [-45, -29, 4]);
-    wheel(out, [-45, -29, 5], 1.4, [Math.SQRT1_2, -Math.SQRT1_2, 0], Z, 0, { spokes: 3, hub: 0.2 });
+    seg(out, [-56, -8, 0], [-56, -8, 4]);
+    wheel(out, [-56, -8, 5], 1.4, [Math.SQRT1_2, -Math.SQRT1_2, 0], Z, 0, { spokes: 3, hub: 0.2 });
     out.push({ kind: "label", text: "Customers", at: [-51, -16, 8], to: [-51, -16, 3] });
   }
 
@@ -599,49 +781,13 @@ export function village(t: number): Block[] {
   // go at first, and support, where they end up. The crowds swap over the story. Behind support
   // the tickets pile up like a landfill (nothing at first), and that pile is what burns.
   const swing = clamp(p / STEPS.boom[0]);
-  const desk = (cy: number, name: string, crowd: number, key: string, pile: boolean) => {
+  const desk = (cy: number, name: string, key: string, pile: boolean) => {
     const cx = -26;
     box(out, [cx - 3, cy - 2, 0], [6, 4, 5], { floors: 1.7 });
     box(out, [cx - 3.5, cy - 2.5, 5], [7, 5, 0.5], { plate: true });
     // The window is on the bridge side (the far side, mostly hidden by the building).
     const wx = cx - 3.02;
     box(out, [wx - 0.8, cy - 1.4, 1.4], [0.8, 2.8, 0.2]);
-    const queue = Math.round(1 + 5 * crowd);
-    const qx = (k: number) => wx - 1.5 - k * 1.3;
-    const inbound: Vec3[] = [
-      [-48, cy + 0.6, 0],
-      [qx(queue), cy + 0.6, 0],
-    ];
-    const outbound: Vec3[] = [
-      [wx - 0.6, cy - 0.8, 0],
-      [-48, cy - 0.8, 0],
-    ];
-    for (const path of [inbound, outbound])
-      for (let k = 0; k + 1 < path.length; k++) seg(out, path[k]!, path[k + 1]!, "faint", 2);
-    const walkers = Math.round(3 * crowd);
-    for (const [path, n, carry] of [
-      [inbound, walkers, true],
-      [outbound, walkers, false],
-    ] as const) {
-      const W = pathLength(path);
-      for (let k = 0; k < n; k++) {
-        const q0 = along(path, (t * 1.8 + (k * W) / Math.max(1, n)) % W);
-        const q: Vec3 = [q0[0], q0[1], sag(q0[0])];
-        person(out, q, Math.floor(t * 4 + k) % 2 === 0);
-        if (carry) box(out, [q[0] - 0.9, q[1] - 0.4, q[2] + 1], [0.8, 0.8, 0.5]);
-      }
-    }
-    const shuffle = (t * 0.5) % 1;
-    for (let k = 0; k < queue; k++) {
-      const x = qx(k + 1 - glide(shuffle));
-      const q: Vec3 = [x, cy + 0.6, sag(x)];
-      person(out, q, Math.floor(t * 3 + k) % 2 === 0);
-      if (pile) {
-        const n = 1 + Math.floor(hash(k, 77) * 4);
-        for (let j = 0; j < n; j++)
-          box(out, [q[0] - 0.9, q[1] - 0.4, q[2] + 1 + j * 0.25], [0.8, 0.8, 0.2]);
-      }
-    }
     if (pile) {
       const px = cx - 2;
       const py = cy - 7;
@@ -695,10 +841,30 @@ export function village(t: number): Block[] {
       });
     }
   };
-  desk(-22, "Support", swing, "support", true);
-  desk(-9, "Sales", 1 - swing, "sales", false);
+  desk(-22, "Support", "support", true);
+  desk(-9, "Sales", "sales", false);
+  // The lanes, faint on the ground: in on one side of each bridge, back on the other.
+  for (const cy of [-22, -9]) {
+    seg(out, [LANE_IN, cy + IN_Y, 0], [SERVE_X, cy + IN_Y, 0], "faint", 2);
+    seg(out, [SERVE_X, cy + OUT_Y, 0], [LANE_OUT, cy + OUT_Y, 0], "faint", 2);
+  }
+  simulate(t, swing);
+  for (const w of walkers) {
+    if (w.state === "home") continue;
+    const [x, y] = shown(w);
+    const q: Vec3 = [x, y, sag(x)];
+    person(out, q, w.state !== "serve" && Math.floor(t * 4 + w.id) % 2 === 0);
+    if (w.state === "leave") continue;
+    // Going in: a parcel for sales, a stack of tickets for support.
+    if (w.desk === "sales") box(out, [x - 0.9, y - 0.4, q[2] + 1], [0.8, 0.8, 0.5]);
+    else {
+      const n = 1 + Math.floor(hash(w.id, w.trips) * 3 + swing * 2);
+      for (let j = 0; j < n; j++)
+        box(out, [x - 0.9, y - 0.4, q[2] + 1 + j * 0.25], [0.8, 0.8, 0.2]);
+    }
+  }
 
-  // Marketing: a telecom tower right of the ERP, beaming offers across the village at the customers.
+  // Marketing: a telecom tower right of the ERP, its offers spreading round it in rings.
   {
     const tx = 16;
     const ty = -5;
@@ -734,19 +900,16 @@ export function village(t: number): Block[] {
         spokes: 3,
         hub: 0.2,
       });
-    for (let k = 0; k < Math.ceil(5 * reach); k++) {
-      const r = 2 + ((t * 6 + k * 8) % 40);
-      const fwd: Vec3 = [Math.cos(aim), Math.sin(aim), 0];
-      const side: Vec3 = [-Math.sin(aim), Math.cos(aim), 0];
+    // Rings spreading round the top, small: they fade out before reaching the ERP's chimneys.
+    for (let k = 0; k < Math.ceil(3 * reach); k++) {
+      const age = (t * 0.5 + k / 3) % 1;
+      const r = 1.5 + age * 6;
+      const ink = age > 0.7 ? "faint" : "dim";
       let prev: Vec3 | null = null;
-      for (let j = -6; j <= 6; j++) {
-        const a = (j / 6) * 0.35;
-        const q: Vec3 = [
-          tx + fwd[0] * r * Math.cos(a) + side[0] * r * Math.sin(a),
-          ty + fwd[1] * r * Math.cos(a) + side[1] * r * Math.sin(a),
-          H + 1,
-        ];
-        if (prev) seg(out, prev, q, r > 28 ? "faint" : "dim");
+      for (let j = 0; j <= 24; j++) {
+        const a = (j / 24) * TAU;
+        const q: Vec3 = [tx + Math.cos(a) * r, ty + Math.sin(a) * r, H + 1.6];
+        if (prev) seg(out, prev, q, ink);
         prev = q;
       }
     }
@@ -1375,7 +1538,7 @@ export function village(t: number): Block[] {
       // filling its middle. The fireball glows white inside the roll while it is young.
       const ringR = R * 0.62;
       const tube = R * 0.5;
-      for (let k = 0; k < 1500; k++) {
+      for (let k = 0; k < 3800; k++) {
         const u = hash(k, 90) * TAU;
         const v = hash(k, 91) * TAU;
         const w = Math.sqrt(hash(k, 92));
@@ -1384,37 +1547,37 @@ export function village(t: number): Block[] {
         const z = cz + Math.sin(v) * tube * w * 0.8 + fade * 3;
         put([Math.cos(u) * rr, Math.sin(u) * rr, z], w * (Math.sin(v) < -0.3 ? 0.3 : 1), k);
       }
-      for (let k = 0; k < 420; k++) {
+      for (let k = 0; k < 1100; k++) {
         const a2 = hash(k, 110) * TAU;
         const r2 = Math.sqrt(hash(k, 111)) * ringR;
         const z = cz + tube * 0.5 + (1 - r2 / ringR) * tube * 0.7 + fade * 3;
-        put([Math.cos(a2) * r2, Math.sin(a2) * r2, z], 0.7, k + 1200);
+        put([Math.cos(a2) * r2, Math.sin(a2) * r2, z], 0.7, k + 4000);
       }
       // The stem: narrow, widening a little to the cap, with a collar of cloud halfway up.
       const stemTop = cz - tube * 0.6;
-      for (let k = 0; k < 600; k++) {
+      for (let k = 0; k < 1500; k++) {
         const z = 7.6 + hash(k, 93) * (stemTop - 7.6);
         const a2 = hash(k, 94) * TAU;
         const rr =
           (0.9 + 0.8 * ((z - 7.6) / (stemTop - 7.6))) * Math.sqrt(hash(k, 95)) * (1 + grow * 0.5);
-        put([Math.cos(a2) * rr, Math.sin(a2) * rr, z], hash(k, 96) * 0.8, k + 600);
+        put([Math.cos(a2) * rr, Math.sin(a2) * rr, z], hash(k, 96) * 0.8, k + 5200);
       }
       const collarZ = 7.6 + (stemTop - 7.6) * 0.55;
-      for (let k = 0; k < 260; k++) {
+      for (let k = 0; k < 650; k++) {
         const a2 = hash(k, 120) * TAU;
         const rr = (2.2 + grow * 2.2) * (0.8 + 0.2 * hash(k, 121));
         put(
           [Math.cos(a2) * rr, Math.sin(a2) * rr, collarZ + (hash(k, 122) - 0.5) * 1.2],
           0.6,
-          k + 1400,
+          k + 6800,
         );
       }
       const surge = 9 + grow * 9;
-      for (let k = 0; k < 700; k++) {
+      for (let k = 0; k < 1700; k++) {
         const a = hash(k, 98) * TAU;
         const rr = surge * (0.75 + 0.25 * Math.sqrt(hash(k, 99)));
         const z = hash(k, 100) * 2.4 * (1 - hash(k, 101) * 0.5);
-        put([Math.cos(a) * rr, Math.sin(a) * rr, z], 0.5 + hash(k, 102) * 0.5, k + 900);
+        put([Math.cos(a) * rr, Math.sin(a) * rr, z], 0.5 + hash(k, 102) * 0.5, k + 7500);
       }
     }
     // Once it has blown, the fire runs round the tiers, in front and behind.

@@ -1,0 +1,41 @@
+---
+import type { StackTool } from "../data/stack";
+
+interface Props {
+  tool: StackTool;
+}
+const { tool } = Astro.props;
+---
+
+<!-- A tool's logo in a square tile: its Simple Icons mark, or its initial when it has none. -->
+<span class="tool-logo" aria-hidden="true">
+  {
+    tool.path ? (
+      <svg viewBox="0 0 24 24" width="16" height="16">
+        <path d={tool.path} fill="currentColor" />
+      </svg>
+    ) : (
+      <span class="tool-initial">{tool.name.slice(0, 1)}</span>
+    )
+  }
+</span>
+
+<style>
+  .tool-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: none;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-sunk);
+    color: var(--ink);
+  }
+  .tool-initial {
+    font-family: var(--font-pixel);
+    font-size: 20px;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+</style>

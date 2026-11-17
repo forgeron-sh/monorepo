@@ -1,0 +1,67 @@
+---
+import { MinusSignIcon, PlusSignIcon } from "@forgeron/icons";
+import { Icon } from "@forgeron/ui";
+
+interface Props {
+  /** Accessible name of the number field. */
+  label: string;
+  value: number;
+  /** Marks the team-size stepper, which the page script tells apart from the tools' seats. */
+  people?: boolean;
+}
+const { label, value, people = false } = Astro.props;
+---
+
+<!-- A whole number with a minus button on its left and a plus button on its right. -->
+<span class="stepper" data-stepper={people ? "people" : "seats"}>
+  <button type="button" data-step="-1" aria-label={`Fewer: ${label}`}><Icon icon={MinusSignIcon} size={12} /></button>
+  <input type="number" inputmode="numeric" min="0" max="9999" step="1" value={value} aria-label={label} />
+  <button type="button" data-step="1" aria-label={`More: ${label}`}><Icon icon={PlusSignIcon} size={12} /></button>
+</span>
+
+<style>
+  .stepper {
+    display: inline-flex;
+    align-items: stretch;
+    height: 32px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-sunk);
+  }
+  .stepper button {
+    width: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-muted);
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .stepper button:hover {
+    color: var(--accent);
+    background: var(--bg-raised);
+  }
+  .stepper button:focus-visible,
+  .stepper input:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: -1px;
+  }
+  .stepper input {
+    width: 52px;
+    border: 0;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    background: none;
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-align: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .stepper input::-webkit-inner-spin-button,
+  .stepper input::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+</style>

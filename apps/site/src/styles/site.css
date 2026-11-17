@@ -155,28 +155,34 @@ section:has(+ .spacer) > :last-child > li:last-child {
 /* ---------------------------------------------------------------- section head  /0.1 */
 
 .sec-head {
-  display: grid;
-  grid-template-columns: 140px 1fr auto;
-  align-items: end;
-  gap: var(--space-6);
-  padding: 112px var(--gutter) 48px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 56px var(--gutter) 40px;
   border-bottom: 1px solid var(--line);
+}
+.sec-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 .sec-index {
   color: var(--accent);
 }
 .sec-index svg {
-  height: 28px;
+  height: 20px;
   width: auto;
   display: block;
 }
 .sec-title {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  max-width: 64%;
 }
 .sec-meta {
-  text-align: right;
+  margin-left: auto;
   color: var(--ink-dim);
 }
 .sec-lead {
@@ -187,13 +193,11 @@ section:has(+ .spacer) > :last-child > li:last-child {
 }
 @media (max-width: 760px) {
   .sec-head {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
-    padding-top: 72px;
-    padding-bottom: 32px;
+    padding-top: 40px;
+    padding-bottom: 28px;
   }
-  .sec-meta {
-    text-align: left;
+  .sec-title {
+    max-width: none;
   }
 }
 
@@ -402,5 +406,112 @@ section:has(+ .spacer) > :last-child > li:last-child {
   .feat-list li {
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+}
+
+/* ---------------------------------------------------------------- plans (home and pricing) */
+
+.num {
+  height: 56px;
+  color: var(--accent);
+}
+.num svg {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+.catalog-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-muted);
+  margin-left: 8px;
+}
+.plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.plan {
+  position: relative;
+  background-color: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 var(--gutter) 32px;
+}
+.plan-art {
+  position: relative;
+  height: 220px;
+  margin: 0 calc(-1 * var(--gutter)) 16px;
+  border-bottom: 1px solid var(--line);
+}
+.plan-art canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.plan.featured {
+  background-color: var(--bg-raised);
+}
+.plan.featured .plan-head .fg-icon {
+  color: var(--accent);
+}
+/* The plan's name in the pixel face, with the price under it. */
+.plan-name {
+  height: 20px;
+  color: var(--ink);
+}
+.plan-name svg {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+.plan-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.plan-tag {
+  margin-left: auto;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.plan-tag.soon {
+  background: transparent;
+  color: var(--ink-muted);
+  border: 1px dashed var(--line-strong);
+}
+.plan-group {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.plan-list {
+  display: grid;
+  gap: 8px;
+}
+.plan .plan-btn {
+  margin-top: auto;
+  justify-content: center;
+}
+.plan-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+@media (max-width: 900px) {
+  .plans {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

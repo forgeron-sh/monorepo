@@ -5,6 +5,7 @@
  * engine skipped them when fitting), which `framed` states with `decor`.
  */
 import { machine } from "./machine";
+import { OBJECT_SCENES } from "./objects";
 import { village } from "./village";
 import { arm, block, fan, rack, tray, wheel as wheel2, Z } from "./parts";
 import {
@@ -117,6 +118,7 @@ function scenery(y0: number, y1: number): Block[] {
 /** Isometric scenes, in world units, as a function of time and of an optional active index. */
 /** Scenes in world units, as a function of time and of an optional active index. */
 const BUILDS: Record<string, (t: number, active: number) => Block[]> = {
+  ...OBJECT_SCENES,
   blocks(t, active) {
     const pick = active >= 0 ? active : Math.floor(t / 2.5) % 3;
     const shapes: Block[] = [
@@ -282,71 +284,6 @@ const BUILDS: Record<string, (t: number, active: number) => Block[]> = {
     });
     if (Math.floor(t * 2) % 2 === 0)
       shapes.push({ kind: "box", at: [3.2, 1.6 + 5 * 1.9, 1.6], size: [1, 1, 1.4], accent: true });
-    return shapes;
-  },
-  /** A tool and what it declared: database, files, cache, queue, secrets; an undeclared slot stays a ghost. */
-  resources(t, active) {
-    const pick = active >= 0 ? active : Math.floor(t / 1.6) % 5;
-    const shapes: Block[] = [...floor(-16, 16, 4)];
-    const hubs: [number, number][] = [
-      [-12, -2],
-      [-2, -12],
-      [10, -2],
-      [-2, 10],
-      [10, 10],
-    ];
-    hubs.forEach(([hx, hy], i) => {
-      const ink = i === pick ? "accent" : "dim";
-      shapes.push({
-        kind: "line",
-        a: [0, 0, 0.05],
-        b: [hx + 2, 0, 0.05],
-        ink,
-        dash: i === pick ? 0 : 2,
-      });
-      shapes.push({
-        kind: "line",
-        a: [hx + 2, 0, 0.05],
-        b: [hx + 2, hy + 2, 0.05],
-        ink,
-        dash: i === pick ? 0 : 2,
-      });
-    });
-    const on = (i: number) => i === pick;
-    // Database (D1): stacked platters.
-    for (let k = 0; k < 3; k++)
-      shapes.push({
-        kind: "box",
-        at: [-12, -2, k * 1.5],
-        size: [4, 4, 1],
-        accent: on(0),
-        plate: k === 2,
-      });
-    // Cache (KV): a grid of keys.
-    for (let a = 0; a < 3; a++)
-      for (let b = 0; b < 3; b++)
-        shapes.push({
-          kind: "box",
-          at: [-2.2 + a * 1.6, -12.2 + b * 1.6, 0],
-          size: [1.2, 1.2, 1.2 + ((a + b + Math.floor(t * 2)) % 3) * 0.5],
-          accent: on(1) && a === 1 && b === 1,
-        });
-    // Files (R2): a bin with sheets.
-    shapes.push({ kind: "box", at: [10, -2, 0], size: [4, 5, 2.5], floors: 1.25, accent: on(2) });
-    shapes.push({ kind: "box", at: [10.5, -1.4, 2.5], size: [3, 0.3, 1.8] });
-    shapes.push({ kind: "box", at: [10.5, -0.4, 2.5], size: [3, 0.3, 2.6], accent: on(2) });
-    // Queue: messages in line.
-    for (let k = 0; k < 4; k++) {
-      const y = 9 + ((k * 1.5 + t * 1.2) % 6);
-      shapes.push({ kind: "box", at: [-1.5, y, 0], size: [3, 1, 1], accent: on(3) && k === 0 });
-    }
-    // Secrets: a vault.
-    shapes.push({ kind: "box", at: [10, 10, 0], size: [4, 4, 4], plate: true, accent: on(4) });
-    // Not declared: absent at runtime.
-    shapes.push({ kind: "box", at: [-12, 10, 0], size: [4, 4, 3], ghost: true });
-    // The tool.
-    shapes.push({ kind: "box", at: [-3, -3, 0], size: [6, 6, 6], vents: true, floors: 3 });
-    shapes.push({ kind: "box", at: [-2, -2, 6.4], size: [4, 4, 0.8], plate: true });
     return shapes;
   },
   /** A version asking for more waits at the gate: preview runs, production follows once approved. */

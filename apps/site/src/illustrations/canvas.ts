@@ -5,6 +5,7 @@
  *
  * - `canvas[data-iso=<scene>]`: an isometric scene of `SCENES` (`mount`). Options: `data-scale`
  *   (pixel size, 3), `data-fill`, `data-unit="any"`, `data-cycle` (seconds per highlighted index),
+ *   `data-count` (how many indices the cycle visits, 5),
  *   `data-active`, `data-labels="off"`, `data-accent="off"`, `data-bg` (token of the background),
  *   `data-signal` (token for the signal family);
  * - `canvas[data-shader=ember|globe|dissolve|field]`: a generator field (`mountField`). Options:
@@ -93,12 +94,13 @@ export function isoCanvas(el: HTMLElement | null): IsoCanvas | null {
   const listeners = new Set<(active: number) => void>();
   let current: number | undefined;
   const cycle = Number(el.dataset.cycle ?? 0);
+  const count = Number(el.dataset.count ?? 5);
   let source = framing(el, first);
   let selected = el.dataset.active !== undefined ? Number(el.dataset.active) : -1;
   const options = (): MountOptions => ({
     filters: filtersOf(el),
     ...(selected >= 0 ? { active: selected } : {}),
-    ...(cycle ? { cycle: { every: cycle, count: 5 } } : {}),
+    ...(cycle ? { cycle: { every: cycle, count } } : {}),
     labels: el.dataset.labels !== "off",
     onActive: (n) => {
       current = n;
