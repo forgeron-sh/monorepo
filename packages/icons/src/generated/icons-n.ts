@@ -36,7 +36,7 @@ export const NewTwitterEllipseIcon: StubIcon = { name: "new-twitter-ellipse", im
 export const NewTwitterRectangleIcon: StubIcon = { name: "new-twitter-rectangle", implemented: false };
 export { default as NewsIcon } from "../drawn/news";
 export const News01Icon: StubIcon = { name: "news-01", implemented: false };
-export const NewspaperIcon: StubIcon = { name: "newspaper", implemented: false };
+export { default as NewspaperIcon } from "../drawn/newspaper";
 export { default as NextIcon } from "../drawn/next";
 export const NextWeekIcon: StubIcon = { name: "next-week", implemented: false };
 export { default as NfcIcon } from "../drawn/nfc";
@@ -94,7 +94,7 @@ export const NotificationOff03Icon: StubIcon = { name: "notification-off-03", im
 export { default as NotificationSnooze01Icon } from "../drawn/notification-snooze-01";
 export const NotificationSnooze02Icon: StubIcon = { name: "notification-snooze-02", implemented: false };
 export const NotificationSnooze03Icon: StubIcon = { name: "notification-snooze-03", implemented: false };
-export const NotificationSquareIcon: StubIcon = { name: "notification-square", implemented: false };
+export { default as NotificationSquareIcon } from "../drawn/notification-square";
 export { default as Notion01Icon } from "../drawn/notion-01";
 export const Notion02Icon: StubIcon = { name: "notion-02", implemented: false };
 export const NpmIcon: StubIcon = { name: "npm", implemented: false };

@@ -190,7 +190,7 @@ export const ListVideoIcon: StubIcon = { name: "list-video", implemented: false 
 export { default as ListViewIcon } from "../drawn/list-view";
 export const ListXIcon: StubIcon = { name: "list-x", implemented: false };
 export const LitecoinIcon: StubIcon = { name: "litecoin", implemented: false };
-export const LiveStreaming01Icon: StubIcon = { name: "live-streaming-01", implemented: false };
+export { default as LiveStreaming01Icon } from "../drawn/live-streaming-01";
 export const LiveStreaming02Icon: StubIcon = { name: "live-streaming-02", implemented: false };
 export const LiveStreaming03Icon: StubIcon = { name: "live-streaming-03", implemented: false };
 export const LiverIcon: StubIcon = { name: "liver", implemented: false };
@@ -240,11 +240,11 @@ export const LocationUser04Icon: StubIcon = { name: "location-user-04", implemen
 export { default as LockIcon } from "../drawn/lock";
 export const LockComputerIcon: StubIcon = { name: "lock-computer", implemented: false };
 export { default as LockFillIcon } from "../drawn/lock-fill";
-export const LockKeyIcon: StubIcon = { name: "lock-key", implemented: false };
+export { default as LockKeyIcon } from "../drawn/lock-key";
 export const LockKeyholeIcon: StubIcon = { name: "lock-keyhole", implemented: false };
 export const LockKeyholeOpenIcon: StubIcon = { name: "lock-keyhole-open", implemented: false };
 export { default as LockOpenIcon } from "../drawn/lock-open";
-export const LockPasswordIcon: StubIcon = { name: "lock-password", implemented: false };
+export { default as LockPasswordIcon } from "../drawn/lock-password";
 export const LockSync01Icon: StubIcon = { name: "lock-sync-01", implemented: false };
 export const LockSync02Icon: StubIcon = { name: "lock-sync-02", implemented: false };
 export const LockedIcon: StubIcon = { name: "locked", implemented: false };

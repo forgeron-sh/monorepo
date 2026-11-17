@@ -205,7 +205,7 @@ export const RotateTopLeftIcon: StubIcon = { name: "rotate-top-left", implemente
 export const RotateTopRightIcon: StubIcon = { name: "rotate-top-right", implemented: false };
 export const Rotate_3dIcon: StubIcon = { name: "rotate3d", implemented: false };
 export { default as Route01Icon } from "../drawn/route-01";
-export const Route02Icon: StubIcon = { name: "route-02", implemented: false };
+export { default as Route02Icon } from "../drawn/route-02";
 export const Route03Icon: StubIcon = { name: "route-03", implemented: false };
 export const RouteBlockIcon: StubIcon = { name: "route-block", implemented: false };
 export const RouteOffIcon: StubIcon = { name: "route-off", implemented: false };
@@ -220,7 +220,7 @@ export const Rows4Icon: StubIcon = { name: "rows-4", implemented: false };
 export const Rows_2Icon: StubIcon = { name: "rows2", implemented: false };
 export const Rows_3Icon: StubIcon = { name: "rows3", implemented: false };
 export const Rows_4Icon: StubIcon = { name: "rows4", implemented: false };
-export const RssIcon: StubIcon = { name: "rss", implemented: false };
+export { default as RssIcon } from "../drawn/rss";
 export const RssConnected01Icon: StubIcon = { name: "rss-connected-01", implemented: false };
 export const RssConnected02Icon: StubIcon = { name: "rss-connected-02", implemented: false };
 export const RssErrorIcon: StubIcon = { name: "rss-error", implemented: false };

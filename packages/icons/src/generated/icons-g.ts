@@ -10,14 +10,15 @@ export const GalleryVerticalIcon: StubIcon = { name: "gallery-vertical", impleme
 export const GalleryVerticalEndIcon: StubIcon = { name: "gallery-vertical-end", implemented: false };
 export const GameIcon: StubIcon = { name: "game", implemented: false };
 export { default as GameController01Icon } from "../drawn/game-controller-01";
-export const GameController02Icon: StubIcon = { name: "game-controller-02", implemented: false };
+export { default as GameController02Icon } from "../drawn/game-controller-02";
+export { default as GameController02FillIcon } from "../drawn/game-controller-02-fill";
 export const GameController03Icon: StubIcon = { name: "game-controller-03", implemented: false };
 export const GameboyIcon: StubIcon = { name: "gameboy", implemented: false };
 export const GamepadIcon: StubIcon = { name: "gamepad", implemented: false };
 export const Gamepad01Icon: StubIcon = { name: "gamepad-01", implemented: false };
 export const GamepadDirectionalIcon: StubIcon = { name: "gamepad-directional", implemented: false };
 export const Gamepad2Icon: StubIcon = { name: "gamepad2", implemented: false };
-export const GarageIcon: StubIcon = { name: "garage", implemented: false };
+export { default as GarageIcon } from "../drawn/garage";
 export const GarbageTruckIcon: StubIcon = { name: "garbage-truck", implemented: false };
 export const GarlandsIcon: StubIcon = { name: "garlands", implemented: false };
 export const GasPipeIcon: StubIcon = { name: "gas-pipe", implemented: false };
@@ -103,7 +104,7 @@ export const GoogleLensIcon: StubIcon = { name: "google-lens", implemented: fals
 export const GoogleMapsIcon: StubIcon = { name: "google-maps", implemented: false };
 export const GooglePhotosIcon: StubIcon = { name: "google-photos", implemented: false };
 export const GoogleSheetIcon: StubIcon = { name: "google-sheet", implemented: false };
-export const Gps01Icon: StubIcon = { name: "gps-01", implemented: false };
+export { default as Gps01Icon } from "../drawn/gps-01";
 export const Gps02Icon: StubIcon = { name: "gps-02", implemented: false };
 export const GpsDisconnectedIcon: StubIcon = { name: "gps-disconnected", implemented: false };
 export const GpsOff01Icon: StubIcon = { name: "gps-off-01", implemented: false };

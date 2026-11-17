@@ -55,6 +55,7 @@ describe("pixel icons", () => {
 // Brand marks drawn on 16 because their detail does not survive 12 (docs/icons.md, "Brand logos").
 const WIDER_GRID: Record<string, number> = {
   airtable: 16,
+  anthropic: 16,
   asana: 16,
   attio: 16,
   cloudflare: 16,
@@ -63,7 +64,9 @@ const WIDER_GRID: Record<string, number> = {
   intercom: 16,
   jira: 16,
   linear: 16,
+  mistral: 16,
   "notion-01": 16,
+  openai: 16,
   salesforce: 16,
   zendesk: 16,
 };

@@ -22,7 +22,7 @@ export const EcoLab01Icon: StubIcon = { name: "eco-lab-01", implemented: false }
 export const EcoLab02Icon: StubIcon = { name: "eco-lab-02", implemented: false };
 export const EcoPowerIcon: StubIcon = { name: "eco-power", implemented: false };
 export const EdgeStyleIcon: StubIcon = { name: "edge-style", implemented: false };
-export const Edit01Icon: StubIcon = { name: "edit-01", implemented: false };
+export { default as Edit01Icon } from "../drawn/edit-01";
 export { default as Edit02Icon } from "../drawn/edit-02";
 export const Edit03Icon: StubIcon = { name: "edit-03", implemented: false };
 export const Edit04Icon: StubIcon = { name: "edit-04", implemented: false };
@@ -95,7 +95,7 @@ export const EvChargerIcon: StubIcon = { name: "ev-charger", implemented: false 
 export const EvChargingIcon: StubIcon = { name: "ev-charging", implemented: false };
 export const EvilIcon: StubIcon = { name: "evil", implemented: false };
 export const ExcavatorIcon: StubIcon = { name: "excavator", implemented: false };
-export const Exchange01Icon: StubIcon = { name: "exchange-01", implemented: false };
+export { default as Exchange01Icon } from "../drawn/exchange-01";
 export const Exchange02Icon: StubIcon = { name: "exchange-02", implemented: false };
 export const Exchange03Icon: StubIcon = { name: "exchange-03", implemented: false };
 export const ExchangeBitcoinIcon: StubIcon = { name: "exchange-bitcoin", implemented: false };

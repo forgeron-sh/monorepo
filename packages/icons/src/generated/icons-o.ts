@@ -24,6 +24,7 @@ export const OnlineLearning03Icon: StubIcon = { name: "online-learning-03", impl
 export const OnlineLearning04Icon: StubIcon = { name: "online-learning-04", implemented: false };
 export const OpenCaptionIcon: StubIcon = { name: "open-caption", implemented: false };
 export const OpenSourceIcon: StubIcon = { name: "open-source", implemented: false };
+export { default as OpenaiIcon } from "../drawn/openai";
 export const OptionIcon: StubIcon = { name: "option", implemented: false };
 export const OptionsCallIcon: StubIcon = { name: "options-call", implemented: false };
 export const OrangeIcon: StubIcon = { name: "orange", implemented: false };

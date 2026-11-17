@@ -6,7 +6,7 @@ export const QqPlotIcon: StubIcon = { name: "qq-plot", implemented: false };
 export { default as QrCodeIcon } from "../drawn/qr-code";
 export const QrCode01Icon: StubIcon = { name: "qr-code-01", implemented: false };
 export const QrCodeScanIcon: StubIcon = { name: "qr-code-scan", implemented: false };
-export const QuestionIcon: StubIcon = { name: "question", implemented: false };
+export { default as QuestionIcon } from "../drawn/question";
 export const Queue01Icon: StubIcon = { name: "queue-01", implemented: false };
 export const Queue02Icon: StubIcon = { name: "queue-02", implemented: false };
 export const QuillWrite01Icon: StubIcon = { name: "quill-write-01", implemented: false };

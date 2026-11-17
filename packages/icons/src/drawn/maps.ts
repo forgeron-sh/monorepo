@@ -1,0 +1,25 @@
+import type { PixelIcon } from "../types";
+
+// Folded map: three panels, the middle one set one row lower, folds two pixels apart.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "maps",
+  implemented: true,
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    "",
+    ".####..####",
+    ".#..####..#",
+    ".#..#..#..#",
+    ".#..#..#..#",
+    ".#..#..#..#",
+    ".#..#..#..#",
+    ".####..####",
+    "....####",
+  ],
+};
+
+export default icon;
