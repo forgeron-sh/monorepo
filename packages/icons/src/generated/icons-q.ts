@@ -2,7 +2,7 @@
 // Do not edit: draw an icon in src/drawn/<name>.ts, then run the generator.
 import type { PixelIcon, StubIcon } from "../types";
 
-export const QqPlotIcon: StubIcon = { name: "qq-plot", implemented: false };
+export { default as QqPlotIcon } from "../drawn/qq-plot";
 export { default as QrCodeIcon } from "../drawn/qr-code";
 export const QrCode01Icon: PixelIcon = { name: "qr-code-01", implemented: true, style: "pixel", grid: 12, rows: ["", ".####..####", ".#..#..#..#", ".#..#..#..#", ".####..####", "", "", ".####..oo", ".#..#..oo", ".#..#....oo", ".####....oo"] };
 export const QrCodeScanIcon: StubIcon = { name: "qr-code-scan", implemented: false };
@@ -24,7 +24,7 @@ export const QuoteDownSquareIcon: StubIcon = { name: "quote-down-square", implem
 export { default as QuoteUpIcon } from "../drawn/quote-up";
 export const QuoteUpCircleIcon: StubIcon = { name: "quote-up-circle", implemented: false };
 export const QuoteUpSquareIcon: StubIcon = { name: "quote-up-square", implemented: false };
-export const QuotesIcon: StubIcon = { name: "quotes", implemented: false };
+export const QuotesIcon: PixelIcon = { name: "quotes", implemented: true, style: "pixel", grid: 12, rows: ["", "", "", ".####..####", ".####..####", ".####..####", "....#.....#", "...#.....#", "..#.....#"] };
 export const Quran01Icon: StubIcon = { name: "quran-01", implemented: false };
 export const Quran02Icon: StubIcon = { name: "quran-02", implemented: false };
 export const Quran03Icon: StubIcon = { name: "quran-03", implemented: false };

@@ -1,0 +1,27 @@
+import type { PixelIcon } from "../types";
+
+// TV issue: the television of `tv-01` with an exclamation mark in the secondary tone, lower right.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "tv-issue",
+  implemented: true,
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "...#....#",
+    "....#..#",
+    ".##########",
+    ".#........#",
+    ".#........#",
+    ".#........#",
+    ".#",
+    ".#######.o",
+    "..#......o",
+    ".........o",
+    "",
+    ".........o",
+  ],
+};
+
+export default icon;

@@ -20,7 +20,7 @@ export { default as KeySquareIcon } from "../drawn/key-square";
 export { default as KeySquareFillIcon } from "../drawn/key-square-fill";
 export { default as KeyboardIcon } from "../drawn/keyboard";
 export { default as KeyboardOffIcon } from "../drawn/keyboard-off";
-export const KeyframeIcon: StubIcon = { name: "keyframe", implemented: false };
+export const KeyframeIcon: PixelIcon = { name: "keyframe", implemented: true, style: "pixel", grid: 12, rows: ["", ".....##", "....#..#", "...#....#", "..#......#", ".#........#", ".#........#", "..#......#", "...#....#", "....#..#", ".....##"] };
 export const KeyframeAddIcon: StubIcon = { name: "keyframe-add", implemented: false };
 export const KeyframeAlignCenterIcon: StubIcon = { name: "keyframe-align-center", implemented: false };
 export const KeyframeAlignHorizontalIcon: StubIcon = { name: "keyframe-align-horizontal", implemented: false };

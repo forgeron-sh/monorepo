@@ -4,11 +4,13 @@ import type { PixelIcon, StubIcon } from "../types";
 
 export const ZakatIcon: StubIcon = { name: "zakat", implemented: false };
 export const ZapIcon: PixelIcon = { name: "zap", implemented: true, style: "pixel", grid: 12, rows: ["......oo", ".....oo", "....oo", "...oooooo", "......oo", ".....oo", "....oo", "...oo", "", "#.#.#.#.#.#"] };
-export const ZapOffIcon: StubIcon = { name: "zap-off", implemented: false };
+export { default as ZapOffIcon } from "../drawn/zap-off";
 export { default as ZendeskIcon } from "../drawn/zendesk";
 export const ZeppelinIcon: StubIcon = { name: "zeppelin", implemented: false };
-export const ZeroCircleIcon: StubIcon = { name: "zero-circle", implemented: false };
-export const ZeroSquareIcon: StubIcon = { name: "zero-square", implemented: false };
+export { default as ZeroCircleIcon } from "../drawn/zero-circle";
+export { default as ZeroCircleFillIcon } from "../drawn/zero-circle-fill";
+export { default as ZeroSquareIcon } from "../drawn/zero-square";
+export { default as ZeroSquareFillIcon } from "../drawn/zero-square-fill";
 export const Zip01Icon: StubIcon = { name: "zip-01", implemented: false };
 export const Zip02Icon: StubIcon = { name: "zip-02", implemented: false };
 export const ZodiacAquariusIcon: StubIcon = { name: "zodiac-aquarius", implemented: false };

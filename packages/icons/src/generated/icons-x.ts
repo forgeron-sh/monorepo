@@ -4,8 +4,8 @@ import type { PixelIcon, StubIcon } from "../types";
 
 export const XIcon: PixelIcon = { name: "x", implemented: true, style: "pixel", grid: 12, rows: ["", "", "..#......#", "...#....#", "....#..#", ".....##", ".....##", "....#..#", "...#....#", "..#......#"] };
 export const XLineTopIcon: StubIcon = { name: "x-line-top", implemented: false };
-export const XRayIcon: StubIcon = { name: "x-ray", implemented: false };
-export const XVariableIcon: StubIcon = { name: "x-variable", implemented: false };
+export { default as XRayIcon } from "../drawn/x-ray";
+export const XVariableIcon: PixelIcon = { name: "x-variable", implemented: true, style: "pixel", grid: 12, rows: ["", "", "..#......#", ".#........#", ".#..o..o..#", ".#...oo...#", ".#...oo...#", ".#..o..o..#", ".#........#", "..#......#"] };
 export const XVariableCircleIcon: StubIcon = { name: "x-variable-circle", implemented: false };
 export const XVariableSquareIcon: StubIcon = { name: "x-variable-square", implemented: false };
 export const XingIcon: StubIcon = { name: "xing", implemented: false };

@@ -8,7 +8,7 @@ export const IceCream03Icon: StubIcon = { name: "ice-cream-03", implemented: fal
 export const IceCream04Icon: StubIcon = { name: "ice-cream-04", implemented: false };
 export const IceCreamBowlIcon: StubIcon = { name: "ice-cream-bowl", implemented: false };
 export const IceCreamConeIcon: StubIcon = { name: "ice-cream-cone", implemented: false };
-export const IceCubesIcon: StubIcon = { name: "ice-cubes", implemented: false };
+export { default as IceCubesIcon } from "../drawn/ice-cubes";
 export const IceHockeyIcon: StubIcon = { name: "ice-hockey", implemented: false };
 export const IceSkatingIcon: StubIcon = { name: "ice-skating", implemented: false };
 export const IcoIcon: StubIcon = { name: "ico", implemented: false };
@@ -124,7 +124,7 @@ export const Invoice02Icon: StubIcon = { name: "invoice-02", implemented: false 
 export const Invoice03Icon: StubIcon = { name: "invoice-03", implemented: false };
 export const Invoice04Icon: StubIcon = { name: "invoice-04", implemented: false };
 export const IpodIcon: StubIcon = { name: "ipod", implemented: false };
-export const IrisScanIcon: StubIcon = { name: "iris-scan", implemented: false };
+export { default as IrisScanIcon } from "../drawn/iris-scan";
 export const IslandIcon: StubIcon = { name: "island", implemented: false };
 export const ItalicIcon: PixelIcon = { name: "italic", implemented: true, style: "pixel", grid: 12, rows: ["", "....######", "......##", "......##", "......##", ".....##", ".....##", "....##", "....##", "....##", "..######"] };
 export const IterationCcwIcon: StubIcon = { name: "iteration-ccw", implemented: false };

@@ -2,7 +2,7 @@
 // Do not edit: draw an icon in src/drawn/<name>.ts, then run the generator.
 import type { StubIcon } from "../types";
 
-export const ObtuseIcon: StubIcon = { name: "obtuse", implemented: false };
+export { default as ObtuseIcon } from "../drawn/obtuse";
 export { default as OctagonIcon } from "../drawn/octagon";
 export const OctagonAlertIcon: StubIcon = { name: "octagon-alert", implemented: false };
 export { default as OctagonFillIcon } from "../drawn/octagon-fill";
@@ -16,9 +16,11 @@ export const OfficeChairIcon: StubIcon = { name: "office-chair", implemented: fa
 export const OilBarrelIcon: StubIcon = { name: "oil-barrel", implemented: false };
 export const OkFingerIcon: StubIcon = { name: "ok-finger", implemented: false };
 export const OlympicTorchIcon: StubIcon = { name: "olympic-torch", implemented: false };
-export const OmegaIcon: StubIcon = { name: "omega", implemented: false };
-export const OneCircleIcon: StubIcon = { name: "one-circle", implemented: false };
-export const OneSquareIcon: StubIcon = { name: "one-square", implemented: false };
+export { default as OmegaIcon } from "../drawn/omega";
+export { default as OneCircleIcon } from "../drawn/one-circle";
+export { default as OneCircleFillIcon } from "../drawn/one-circle-fill";
+export { default as OneSquareIcon } from "../drawn/one-square";
+export { default as OneSquareFillIcon } from "../drawn/one-square-fill";
 export const OnlineLearning01Icon: StubIcon = { name: "online-learning-01", implemented: false };
 export const OnlineLearning02Icon: StubIcon = { name: "online-learning-02", implemented: false };
 export const OnlineLearning03Icon: StubIcon = { name: "online-learning-03", implemented: false };
@@ -28,7 +30,7 @@ export const OpenSourceIcon: StubIcon = { name: "open-source", implemented: fals
 export { default as OpenaiIcon } from "../drawn/openai";
 export { default as OptionIcon } from "../drawn/option";
 export const OptionsCallIcon: StubIcon = { name: "options-call", implemented: false };
-export const OrangeIcon: StubIcon = { name: "orange", implemented: false };
+export { default as OrangeIcon } from "../drawn/orange";
 export const Orbit01Icon: StubIcon = { name: "orbit-01", implemented: false };
 export const Orbit02Icon: StubIcon = { name: "orbit-02", implemented: false };
 export const OrganicFoodIcon: StubIcon = { name: "organic-food", implemented: false };
@@ -38,6 +40,7 @@ export const OrientationLandscapeToPotraitIcon: StubIcon = { name: "orientation-
 export const OrientationPotraitToLandscapeIcon: StubIcon = { name: "orientation-potrait-to-landscape", implemented: false };
 export const OrigamiIcon: StubIcon = { name: "origami", implemented: false };
 export const OrthogonalEdgeIcon: StubIcon = { name: "orthogonal-edge", implemented: false };
-export const OvalIcon: StubIcon = { name: "oval", implemented: false };
+export { default as OvalIcon } from "../drawn/oval";
+export { default as OvalFillIcon } from "../drawn/oval-fill";
 export { default as OvenIcon } from "../drawn/oven";
 export { default as OvenFillIcon } from "../drawn/oven-fill";
