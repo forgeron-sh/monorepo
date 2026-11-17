@@ -117,56 +117,43 @@ function smoke(
 }
 
 /** Flames on a roof: ember tongues that flicker, and sparks drifting up. */
+const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
+const bayer4 = (x: number, y: number) => BAYER4[(((y % 4) + 4) % 4) * 4 + (((x % 4) + 4) % 4)]!;
+
 function flames(out: Block[], c: Vec3, t: number, n: number, seed: number): void {
-  // Pixel-art flames: each one a little stack of square pixels, wide and red at the root, ember
-  // and narrower above, a white core at the base, animated in three stepped frames like a sprite.
-  // One in three is a big one, two columns wide.
-  const frame = Math.floor(t * 7);
-  const px = (at: Vec3, ink: "alert" | "accent" | "ink", size: number) =>
-    out.push({ kind: "dot", at, ink, size, layer: 1 });
+  // Pixel-art flames in one colour: the shape is a grid of red pixels whose density, dithered
+  // through a 4×4 Bayer matrix like the rest of the site, is full at the root and the core and
+  // thins out towards the edges and the tip. Three stepped frames, like a sprite; one flame in
+  // three is a big one.
+  const frame = Math.floor(t * 6);
+  const S = 0.2;
   for (let k = 0; k < n; k++) {
     const ox = (hash(seed, k) - 0.5) * 4;
     const oy = (hash(seed, k + 50) - 0.5) * 4;
     const f = (frame + k) % 3;
     const big = k % 3 === 0;
-    const rows = (big ? 6 : 4) + (f === 1 ? 1 : 0);
-    const cols = big ? [-0.22, 0.22] : [0];
-    for (const cx2 of cols)
-      for (let i = 0; i < rows; i++) {
-        const q = i / rows;
-        // A step to one side or the other, frame by frame, more at the top.
-        const step = (f === 0 ? -1 : f === 2 ? 1 : 0) * (q > 0.4 ? 0.18 : 0) * (cx2 < 0 ? -1 : 1);
-        const at: Vec3 = [c[0] + ox + cx2 + step, c[1] + oy, c[2] + i * 0.32];
-        const size = Math.max(2, Math.round((big ? 5 : 4) * (1 - q * 0.75)));
-        // The burn's texture: each pixel draws its colour from a mix that shifts with height
-        // (mostly red at the root, mixed in the body, ember with white glints at the tip), the
-        // same draw for the same pixel within a frame, so it shimmers rather than fizzes.
-        const r = hash(seed * 31 + k + f * 977, i * 7 + (cx2 < 0 ? 1 : 0));
-        const ink: "alert" | "accent" | "ink" =
-          q < 0.3
-            ? r < 0.7
-              ? "alert"
-              : r < 0.92
-                ? "accent"
-                : "ink"
-            : q < 0.65
-              ? r < 0.45
-                ? "alert"
-                : r < 0.9
-                  ? "accent"
-                  : "ink"
-              : r < 0.15
-                ? "alert"
-                : r < 0.8
-                  ? "accent"
-                  : "ink";
-        px(at, ink, size);
+    const rows = (big ? 13 : 9) + (f === 1 ? 1 : 0);
+    const half = big ? 4 : 3;
+    const sway = f === 0 ? -1 : f === 2 ? 1 : 0;
+    for (let i = 0; i < rows; i++) {
+      const q = i / rows;
+      const w = half * Math.pow(1 - q, 0.75);
+      const shift = Math.round(sway * q * q * 2);
+      for (let j = -half; j <= half; j++) {
+        const d = Math.abs(j) / Math.max(0.5, w);
+        if (d > 1) continue;
+        // Plenty of holes, like the rest of the dither: never solid, thinner up and out.
+        const density = (0.72 - q * 0.55) * (1 - d * d * 0.75);
+        if (bayer4(j + k * 3, i + f) >= density) continue;
+        out.push({
+          kind: "dot",
+          at: [c[0] + ox + (j + shift) * S, c[1] + oy, c[2] + i * S],
+          ink: "alert",
+          size: 1,
+          layer: 1,
+        });
       }
-    px([c[0] + ox, c[1] + oy, c[2] + 0.1], "ink", big ? 3 : 2);
-    // A spark breaks off the tip now and then.
-    const age = (t * 0.35 + hash(seed, k + 9)) % 1;
-    if (age < 0.6)
-      px([c[0] + ox + (f - 1) * 0.15, c[1] + oy, c[2] + rows * 0.32 + age * 3], "accent", 2);
+    }
   }
 }
 
@@ -1368,34 +1355,27 @@ export function village(t: number): Block[] {
       // The cloud is made of puffs, not blocks: small round billows, like the smoke, packed
       // tight. White at the heart while it is young, red and ember through the body, ash at the
       // edges and as it goes.
+      // The cloud in one colour, pixel by pixel: red pixels, larger and packed at the heart,
+      // smaller and dithered away at the edges (by a 4×4 Bayer threshold on their depth), turning
+      // to ash as it goes.
       const put = (q: Vec3, w: number, k: number) => {
         if (hash(k, 123) < gone) return;
-        const ink: "ink" | "alert" | "accent" | "dim" =
-          w < 0.42 && fade < 0.5
-            ? "ink"
-            : hash(k, 97) < fade * 0.7
-              ? "dim"
-              : hash(k, 98) < 0.5
-                ? "alert"
-                : "accent";
-        const r = 0.45 + hash(k, 99) * 0.35;
-        let prev: Vec3 | null = null;
-        for (let j = 0; j <= 6; j++) {
-          const a2 = (j / 6) * TAU + k;
-          const p2: Vec3 = [
-            q[0] + Math.cos(a2) * r,
-            q[1] + Math.sin(a2) * r * 0.6,
-            q[2] + Math.sin(a2) * r * 0.5,
-          ];
-          if (prev) out.push({ kind: "line", a: prev, b: p2, ink, layer: 1 });
-          prev = p2;
-        }
+        const edge = Math.min(1, w);
+        if (bayer4(k, k >> 2) < edge * 0.7) return;
+        const ash = hash(k, 97) < fade * 0.8;
+        out.push({
+          kind: "dot",
+          at: q,
+          ink: ash ? "dim" : "alert",
+          size: edge < 0.45 ? 2 : 1,
+          layer: 1,
+        });
       };
       // The cap: a rolled ring (a torus) whose underside curls back towards the stem, with a dome
       // filling its middle. The fireball glows white inside the roll while it is young.
       const ringR = R * 0.62;
-      const tube = R * 0.42;
-      for (let k = 0; k < 340; k++) {
+      const tube = R * 0.5;
+      for (let k = 0; k < 1500; k++) {
         const u = hash(k, 90) * TAU;
         const v = hash(k, 91) * TAU;
         const w = Math.sqrt(hash(k, 92));
@@ -1404,7 +1384,7 @@ export function village(t: number): Block[] {
         const z = cz + Math.sin(v) * tube * w * 0.8 + fade * 3;
         put([Math.cos(u) * rr, Math.sin(u) * rr, z], w * (Math.sin(v) < -0.3 ? 0.3 : 1), k);
       }
-      for (let k = 0; k < 90; k++) {
+      for (let k = 0; k < 420; k++) {
         const a2 = hash(k, 110) * TAU;
         const r2 = Math.sqrt(hash(k, 111)) * ringR;
         const z = cz + tube * 0.5 + (1 - r2 / ringR) * tube * 0.7 + fade * 3;
@@ -1412,15 +1392,15 @@ export function village(t: number): Block[] {
       }
       // The stem: narrow, widening a little to the cap, with a collar of cloud halfway up.
       const stemTop = cz - tube * 0.6;
-      for (let k = 0; k < 110; k++) {
+      for (let k = 0; k < 600; k++) {
         const z = 7.6 + hash(k, 93) * (stemTop - 7.6);
         const a2 = hash(k, 94) * TAU;
         const rr =
-          (0.9 + 0.9 * ((z - 7.6) / (stemTop - 7.6))) * Math.sqrt(hash(k, 95)) * (1 + grow * 0.6);
+          (0.9 + 0.8 * ((z - 7.6) / (stemTop - 7.6))) * Math.sqrt(hash(k, 95)) * (1 + grow * 0.5);
         put([Math.cos(a2) * rr, Math.sin(a2) * rr, z], hash(k, 96) * 0.8, k + 600);
       }
       const collarZ = 7.6 + (stemTop - 7.6) * 0.55;
-      for (let k = 0; k < 60; k++) {
+      for (let k = 0; k < 260; k++) {
         const a2 = hash(k, 120) * TAU;
         const rr = (2.2 + grow * 2.2) * (0.8 + 0.2 * hash(k, 121));
         put(
@@ -1430,7 +1410,7 @@ export function village(t: number): Block[] {
         );
       }
       const surge = 9 + grow * 9;
-      for (let k = 0; k < 170; k++) {
+      for (let k = 0; k < 700; k++) {
         const a = hash(k, 98) * TAU;
         const rr = surge * (0.75 + 0.25 * Math.sqrt(hash(k, 99)));
         const z = hash(k, 100) * 2.4 * (1 - hash(k, 101) * 0.5);
