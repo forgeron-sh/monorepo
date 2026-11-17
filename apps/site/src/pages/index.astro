@@ -53,12 +53,13 @@ const layers = [
 const left = [4, 2, 0].map((i) => layers[i]!);
 const right = [3, 1].map((i) => layers[i]!);
 
-/** A pixel Y, white on an orange square: the Y Combinator mark, redrawn in the bitmap face. */
+/** A pixel Y on an ember square: the Y Combinator mark, redrawn in the bitmap face, in the page's
+ * one orange (`--accent`) with black (`--accent-ink`) on it. */
 const ycMark = (() => {
   const y = ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."];
   let d = "";
   y.forEach((row, r) => [...row].forEach((c, x) => (d += c === "#" ? `M${x + 2} ${r + 2}h1v1h-1z` : "")));
-  return `<svg viewBox="0 0 9 11" shape-rendering="crispEdges" aria-hidden="true"><rect width="9" height="11" fill="#ff6600"/><path fill="#fff" d="${d}"/></svg>`;
+  return `<svg viewBox="0 0 9 11" shape-rendering="crispEdges" aria-hidden="true"><rect width="9" height="11" style="fill:var(--accent)"/><path style="fill:var(--accent-ink)" d="${d}"/></svg>`;
 })();
 
 const proof = [
@@ -222,7 +223,7 @@ const resources = [
 
     <!-- 0.1 SYSTEM -->
     <section id="system" class="rail">
-      <SectionHead index="/0.1" label="System" meta="5 layers · 1 tool">
+      <SectionHead index="/0.1" label="System">
         <Title as="h2" size="h2">One tool,<br />five layers.</Title>
         <p class="sec-lead">Everything a business tool needs, stacked once, so your developers only write the actions.</p>
       </SectionHead>
@@ -260,7 +261,7 @@ const resources = [
 
     <!-- 0.2 DOORS -->
     <section id="doors" class="rail">
-      <SectionHead index="/0.2" label="Interfaces" meta="1 definition · 4 doors">
+      <SectionHead index="/0.2" label="Interfaces">
         <Title as="h2" size="h2">Pick a door.</Title>
         <p class="sec-lead">The same actions, the same rights, wherever your teams already work.</p>
       </SectionHead>
@@ -269,7 +270,6 @@ const resources = [
           doors.map((d, i) => (
             <article class="door ticks">
               <div class="door-art dots-bg">
-                <span class="door-fig text-eyebrow dim">FIG.0{i + 1}</span>
                 <canvas data-iso={d.iso} data-scale="2" data-fill="0.6" aria-hidden="true" />
               </div>
               <div class="door-copy">
@@ -291,12 +291,12 @@ const resources = [
 
     <!-- 0.3 IN PRACTICE (bento) -->
     <section id="interfaces" class="rail">
-      <SectionHead index="/0.3" label="In practice" meta="A day with a tool">
+      <SectionHead index="/0.3" label="In practice">
         <Title as="h2" size="h2">Where your<br />teams already are.</Title>
       </SectionHead>
       <div class="bento">
-        <article class="cell c4 r3">
-          <span class="corner text-eyebrow dim">FIG.05 · Gateway</span>
+        <article class="cell ticks c4 r3">
+          <span class="corner text-eyebrow dim">Gateway</span>
           <div class="corner-r row">
             <Chip active>MCP</Chip><Chip>API</Chip><Chip>Web</Chip><Chip>CLI</Chip>
           </div>
@@ -306,7 +306,7 @@ const resources = [
             <p class="text-small muted">Every action is served over MCP, REST, the web and the terminal.</p>
           </div>
         </article>
-        <article class="cell c2 r3">
+        <article class="cell ticks c2 r3">
           <span class="corner text-eyebrow dim">Claude</span>
           <div class="art chat dots-bg">
             <div class="msg me text-code">Move the Durand deal to Won.</div>
@@ -321,7 +321,7 @@ const resources = [
             <p class="text-small muted">Your teams ask; the tool acts, with their rights.</p>
           </div>
         </article>
-        <article class="cell c3 r2">
+        <article class="cell ticks c3 r2">
           <span class="corner text-eyebrow dim">Permissions</span>
           <div class="art perms">
             <table class="text-eyebrow">
@@ -346,7 +346,7 @@ const resources = [
           </div>
           <div class="copy hr"><h3 class="text-title-3">Teams × actions, nothing more</h3></div>
         </article>
-        <article class="cell c3 r2">
+        <article class="cell ticks c3 r2">
           <span class="corner text-eyebrow dim">Environments</span>
           <div class="corner-r row text-bit"><Led tone="success" /> prod <Led tone="warning" /> preview</div>
           <div class="art"><canvas data-iso="blocks" data-scale="2" data-fill="0.7" aria-hidden="true"></canvas></div>
@@ -359,7 +359,7 @@ const resources = [
 
     <!-- 0.4 DEVELOP -->
     <section id="develop" class="rail">
-      <SectionHead index="/0.4" label="Develop" meta="TypeScript SDK">
+      <SectionHead index="/0.4" label="Develop">
         <Title as="h2" size="h2">Write actions,<br />not plumbing.</Title>
       </SectionHead>
       <div class="feat">
@@ -397,7 +397,7 @@ const resources = [
 
     <!-- 0.5 RESOURCES -->
     <section id="resources" class="rail">
-      <SectionHead index="/0.5" label="Resources" meta="Declared, or absent">
+      <SectionHead index="/0.5" label="Resources">
         <Title as="h2" size="h2">Declared,<br />or absent.</Title>
         <p class="sec-lead">
           A tool lists everything it asks of the platform, like an app's permissions. What is not declared does not
@@ -406,7 +406,6 @@ const resources = [
       </SectionHead>
       <div class="res">
         <div class="res-art dots-bg">
-          <span class="door-fig text-eyebrow dim">FIG.10 · Tool and resources</span>
           <canvas id="res-canvas" data-iso="resources" data-cycle="1.6" data-scale="2" data-fill="0.7" aria-hidden="true"></canvas>
         </div>
         <ul class="res-list">
@@ -474,7 +473,7 @@ const resources = [
 
     <!-- 0.6 SHIP -->
     <section id="ship" class="rail">
-      <SectionHead index="/0.6" label="Ship" meta="Every push is a version">
+      <SectionHead index="/0.6" label="Ship">
         <Title as="h2" size="h2">Push, preview,<br />ship.</Title>
       </SectionHead>
       <div class="pipe dots-bg">
@@ -505,12 +504,12 @@ const resources = [
 
     <!-- 0.6 GOVERN -->
     <section id="govern" class="rail">
-      <SectionHead index="/0.7" label="Govern" meta="Access · secrets · audit">
+      <SectionHead index="/0.7" label="Govern">
         <Title as="h2" size="h2">Who did what,<br />with which rights.</Title>
         <p class="sec-lead">Every interface goes through the same gateway: SSO, team check, audit log. None bypasses another.</p>
       </SectionHead>
       <div class="trust">
-        <article class="trust-card">
+        <article class="trust-card ticks">
           <div class="trust-art dots-bg">
             <div class="mock signin">
               <Logo size={20} />
@@ -524,7 +523,7 @@ const resources = [
             <p class="text-small muted">Your teams sign in with the identity provider you already use. No new passwords.</p>
           </div>
         </article>
-        <article class="trust-card">
+        <article class="trust-card ticks">
           <div class="trust-art dots-bg">
             <div class="mock secrets text-eyebrow">
               <div><span>ODOO_API_KEY</span><span class="dim">••••••••</span></div>
@@ -538,7 +537,7 @@ const resources = [
             <p class="text-small muted">Each person keeps their own API keys, encrypted at rest. Listings show names only.</p>
           </div>
         </article>
-        <article class="trust-card">
+        <article class="trust-card ticks">
           <div class="trust-art dots-bg">
             <div class="mock audit text-eyebrow">
               {
@@ -564,7 +563,7 @@ const resources = [
 
     <!-- 0.7 TERMINAL -->
     <section id="cli" class="rail">
-      <SectionHead index="/0.8" label="Terminal" meta="forgeron CLI">
+      <SectionHead index="/0.8" label="Terminal">
         <Title as="h2" size="h2">The whole life<br />of a tool, typed.</Title>
       </SectionHead>
       <div class="term-wrap">
@@ -589,7 +588,7 @@ const resources = [
 
     <!-- 0.8 HOST -->
     <section id="host" class="rail">
-      <SectionHead index="/0.9" label="Host" meta="Cloud or self-host">
+      <SectionHead index="/0.9" label="Host">
         <Title as="h2" size="h2">Our account,<br />or yours.</Title>
         <p class="sec-lead">The same platform in both cases. Only where it runs changes.</p>
       </SectionHead>
@@ -626,7 +625,7 @@ const resources = [
 
     <!-- 0.9 TEMPLATES -->
     <section id="templates" class="rail">
-      <SectionHead index="/1.0" label="Templates" meta="forgeron install">
+      <SectionHead index="/1.0" label="Templates">
         <Title as="h2" size="h2">Start from<br />a forged tool.</Title>
       </SectionHead>
       <div class="tpls">
@@ -650,7 +649,7 @@ const resources = [
 
     <!-- 1.0 FAQ -->
     <section id="faq" class="rail">
-      <SectionHead index="/1.1" label="Questions" meta={`${faq.length} answers`}>
+      <SectionHead index="/1.1" label="Questions">
         <Title as="h2" size="h2">Questions,<br />answered.</Title>
       </SectionHead>
       <div class="faq">
@@ -817,7 +816,9 @@ const resources = [
       text-align: left;
       align-items: flex-start;
     }
-    .stack-empty {
+    /* `.stack-col li` sets a display: say it as strongly, or the hatched cell stays and doubles
+       the spacer band below it. */
+    .stack-col .stack-empty {
       display: none;
     }
   }
@@ -1007,18 +1008,20 @@ const resources = [
   .doors {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 20px;
+    /* Glued: one-pixel gaps that the cards' outlines fill, so neighbours share one line. */
+    gap: 1px;
     padding: 40px var(--gutter) 56px;
     border-bottom: 1px solid var(--line);
   }
   .door {
-    border: 1px solid var(--line-strong);
+    outline: 1px solid var(--line-strong);
+    background-color: var(--bg);
     display: flex;
     flex-direction: column;
-    transition: border-color 0.2s;
+    transition: background-color var(--motion-base);
   }
   .door:hover {
-    border-color: var(--ink-dim);
+    background-color: var(--bg-raised);
   }
   .door-art {
     position: relative;
@@ -1030,12 +1033,6 @@ const resources = [
     inset: 0;
     width: 100%;
     height: 100%;
-  }
-  .door-fig {
-    position: absolute;
-    top: 12px;
-    left: 14px;
-    z-index: 1;
   }
   .door-copy {
     padding: 24px 20px;
@@ -1077,12 +1074,13 @@ const resources = [
   .trust {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px;
+    gap: 1px;
     padding: 40px var(--gutter) 56px;
     border-bottom: 1px solid var(--line);
   }
   .trust-card {
-    border: 1px solid var(--line-strong);
+    outline: 1px solid var(--line-strong);
+    background-color: var(--bg);
     display: flex;
     flex-direction: column;
   }

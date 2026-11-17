@@ -203,14 +203,15 @@ section:has(+ .spacer) > :last-child > li:last-child {
 }
 .cell {
   position: relative;
-  background: var(--bg);
+  /* Colour only, so the corner brackets of `.ticks` survive on a cell (as on the font site). */
+  background-color: var(--bg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: background var(--motion-base);
+  transition: background-color var(--motion-base);
 }
 .cell:hover {
-  background: var(--bg-raised);
+  background-color: var(--bg-raised);
 }
 .cell .art {
   position: relative;
