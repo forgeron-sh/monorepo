@@ -26603,4 +26603,1771 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     description:
       "Filled: face mask: a pleated mask, two pleats in the secondary tone, with ear loops either side.",
   },
+  "bitcoin-03": {
+    reference:
+      "Hugeicons `bitcoin-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin"],
+    description:
+      "The offering hand of `save-money-dollar` under a bitcoin sign in the secondary tone.",
+  },
+  "bitcoin-bag": {
+    reference:
+      "Hugeicons `bitcoin-bag` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "bag"],
+    description: "The money bag of `money-bag-02` with a bitcoin sign in the secondary tone.",
+  },
+  "bitcoin-down-01": {
+    reference:
+      "Hugeicons `bitcoin-down-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "down"],
+    description:
+      "Bitcoin down: the thin arrow of `arrow-down-03` and the bitcoin badge of `file-bitcoin` in the lower-right corner.",
+  },
+  "bitcoin-down-02": {
+    reference:
+      "Hugeicons `bitcoin-down-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "down"],
+    description:
+      "Bitcoin trend down: the zigzag of `chart-down` under the bitcoin badge of `file-bitcoin`, moved to the upper right.",
+  },
+  "bitcoin-money-01": {
+    reference:
+      "Hugeicons `bitcoin-money-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "money"],
+    description: "A banknote with a bitcoin sign in the middle, in the secondary tone.",
+  },
+  "bitcoin-money-02": {
+    reference:
+      "Hugeicons `bitcoin-money-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "money"],
+    description:
+      "Two banknotes stacked like `money-02`, a bitcoin sign on the front one in the secondary tone.",
+  },
+  "bitcoin-receive": {
+    reference:
+      "Hugeicons `bitcoin-receive` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "receive"],
+    description:
+      "The bitcoin sign of `bitcoin-01`, moved left, with the arrow badge of `pound-receive` pointing in, in the secondary tone.",
+  },
+  "bitcoin-safe": {
+    reference:
+      "Hugeicons `bitcoin-safe` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "safe"],
+    description: "The safe of `money-safe` with a bitcoin sign on its door in the secondary tone.",
+  },
+  "bitcoin-send": {
+    reference:
+      "Hugeicons `bitcoin-send` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "send"],
+    description:
+      "The bitcoin sign of `bitcoin-01`, moved left, with the arrow badge of `pound-send` pointing out, in the secondary tone.",
+  },
+  "bitcoin-square": {
+    reference:
+      "Hugeicons `bitcoin-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "square"],
+    description: "A bitcoin sign in the rounded square of `dollar-square`, in the secondary tone.",
+  },
+  "bitcoin-transaction": {
+    reference:
+      "Hugeicons `bitcoin-transaction` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "transaction"],
+    description:
+      "Two arrows turning around a bitcoin sign, symmetric by a half turn, the sign in the secondary tone.",
+  },
+  "bitcoin-up-01": {
+    reference:
+      "Hugeicons `bitcoin-up-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "up"],
+    description:
+      "Bitcoin up: the thin arrow of `arrow-up-03` and the bitcoin badge of `file-bitcoin` in the lower-right corner.",
+  },
+  "bitcoin-up-02": {
+    reference:
+      "Hugeicons `bitcoin-up-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "up"],
+    description:
+      "Bitcoin trend up: the zigzag of `chart-up` and the bitcoin badge of `file-bitcoin` in the lower-right corner.",
+  },
+  "bitcoin-wallet": {
+    reference:
+      "Hugeicons `bitcoin-wallet` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "wallet"],
+    description:
+      "The wallet of `wallet-01` and the bitcoin badge of `file-bitcoin` in the lower-right corner.",
+  },
+  "bitcoin-withdraw": {
+    reference:
+      "Hugeicons `bitcoin-withdraw` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "withdraw"],
+    description:
+      "A cash slot with a note coming out of it, a bitcoin sign on the note in the secondary tone.",
+  },
+  "cashback-bitcoin": {
+    reference:
+      "Hugeicons `cashback-bitcoin` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cashback", "bitcoin"],
+    description:
+      "Cashback in bitcoin: the return arrow ring of `cashback` around a bitcoin sign in the secondary tone.",
+  },
+  "exchange-bitcoin": {
+    reference:
+      "Hugeicons `exchange-bitcoin` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["exchange", "bitcoin"],
+    description:
+      "Exchange: an arrow right above, an arrow left below, a bitcoin sign between them in the secondary tone.",
+  },
+  "bitcoin-cloud": {
+    reference:
+      "Hugeicons `bitcoin-cloud` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "cloud"],
+    description: "The cloud of `cloud` and a bitcoin sign badge.",
+  },
+  "bitcoin-cpu": {
+    reference:
+      "Hugeicons `bitcoin-cpu` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "cpu"],
+    description: "The chip of `cpu` and a bitcoin sign badge.",
+  },
+  "bitcoin-credit-card": {
+    reference:
+      "Hugeicons `bitcoin-credit-card` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "credit", "card"],
+    description:
+      "The card of `credit-card`, its band in the primary tone, and a bitcoin sign badge.",
+  },
+  "bitcoin-database": {
+    reference:
+      "Hugeicons `bitcoin-database` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "database"],
+    description: "The cylinder of `database-01` and a bitcoin sign badge.",
+  },
+  "bitcoin-eye": {
+    reference:
+      "Hugeicons `bitcoin-eye` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "eye"],
+    description: "A small eye with its pupil and a bitcoin sign badge.",
+  },
+  "bitcoin-filter": {
+    reference:
+      "Hugeicons `bitcoin-filter` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "filter"],
+    description: "A narrow funnel after `filter` and a bitcoin sign badge.",
+  },
+  "bitcoin-flashdisk": {
+    reference:
+      "Hugeicons `bitcoin-flashdisk` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "flashdisk"],
+    description: "The memory stick of `usb-memory-01` and a bitcoin sign badge.",
+  },
+  "bitcoin-graph": {
+    reference:
+      "Hugeicons `bitcoin-graph` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "graph"],
+    description: "The rising trend line of `chart-up` and a bitcoin sign badge.",
+  },
+  "bitcoin-invoice": {
+    reference:
+      "Hugeicons `bitcoin-invoice` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "invoice"],
+    description: "The sheet of `invoice-01`, torn at the bottom, and a bitcoin sign badge.",
+  },
+  "bitcoin-key": {
+    reference:
+      "Hugeicons `bitcoin-key` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "key"],
+    description: "The key of `key-01` with single teeth and a bitcoin sign badge.",
+  },
+  "bitcoin-location": {
+    reference:
+      "Hugeicons `bitcoin-location` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "location"],
+    description: "The small pin of `location-add-01` and a bitcoin sign badge.",
+  },
+  "bitcoin-lock": {
+    reference:
+      "Hugeicons `bitcoin-lock` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "lock"],
+    description: "A padlock with a bitcoin sign on its body.",
+  },
+  "bitcoin-mail": {
+    reference:
+      "Hugeicons `bitcoin-mail` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "mail"],
+    description: "The envelope of `mail-lock-01` and a bitcoin sign badge.",
+  },
+  "bitcoin-mind": {
+    reference:
+      "Hugeicons `bitcoin-mind` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "mind"],
+    description: "The brain of `brain-cog` and a bitcoin sign badge.",
+  },
+  "bitcoin-pie-chart": {
+    reference:
+      "Hugeicons `bitcoin-pie-chart` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "pie", "chart"],
+    description:
+      "A pie chart with its lower-right slice taken out and a bitcoin sign in its place.",
+  },
+  "bitcoin-presentation": {
+    reference:
+      "Hugeicons `bitcoin-presentation` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "presentation"],
+    description: "A presentation board on its stand with a bitcoin sign on the board.",
+  },
+  "bitcoin-receipt": {
+    reference:
+      "Hugeicons `bitcoin-receipt` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "receipt"],
+    description: "The receipt of `receipt`, torn top and bottom, and a bitcoin sign badge.",
+  },
+  "bitcoin-search": {
+    reference:
+      "Hugeicons `bitcoin-search` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "search"],
+    description: "A magnifying glass with a bitcoin sign in its lens.",
+  },
+  "bitcoin-setting": {
+    reference:
+      "Hugeicons `bitcoin-setting` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "setting"],
+    description:
+      "The cog of `settings-01` with a quarter taken out and a bitcoin sign in its place.",
+  },
+  "bitcoin-shield": {
+    reference:
+      "Hugeicons `bitcoin-shield` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "shield"],
+    description: "The shield of `shield-01` with a bitcoin sign inside.",
+  },
+  "bitcoin-shopping": {
+    reference:
+      "Hugeicons `bitcoin-shopping` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "shopping"],
+    description: "A shopping bag with its handle and a bitcoin sign on the bag.",
+  },
+  "bitcoin-smartphone-01": {
+    reference:
+      "Hugeicons `bitcoin-smartphone-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "smartphone"],
+    description: "The phone of `phone-lock` and a bitcoin sign badge.",
+  },
+  "bitcoin-smartphone-02": {
+    reference:
+      "Hugeicons `bitcoin-smartphone-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "smartphone"],
+    description: "A wider phone with a bitcoin sign on its screen.",
+  },
+  "bitcoin-store": {
+    reference:
+      "Hugeicons `bitcoin-store` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "store"],
+    description: "The shop of `store-01`, its awning in outline, and a bitcoin sign badge.",
+  },
+  "bitcoin-tag": {
+    reference:
+      "Hugeicons `bitcoin-tag` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bitcoin", "tag"],
+    description: "The price tag of `tag-01` with its tip replaced by a bitcoin sign badge.",
+  },
+  coinbase: {
+    category: "brands",
+    labels: ["coinbase", "exchange", "crypto"],
+    description: "The Coinbase C in a circle.",
+    reference:
+      "Coinbase logo composition (thick C, square counter, open on the right), redrawn by hand on 2026-11-18; simple-icons:coinbase is now the wordmark.",
+    trademark:
+      "Coinbase and the Coinbase logo are trademarks of Coinbase, Inc., used here only to refer to Coinbase.",
+  },
+  ethereum: {
+    category: "brands",
+    labels: ["ethereum", "ether", "crypto"],
+    description: "The Ethereum mark: a diamond over a chevron.",
+    reference:
+      "simple-icons:ethereum (Iconify, 2026-11-18): cell-centre sample on 12, redrawn by hand.",
+    trademark:
+      "Ethereum and the Ethereum logo are trademarks of the Ethereum Foundation, used here only to refer to Ethereum.",
+  },
+  "ethereum-ellipse": {
+    category: "brands",
+    labels: ["ethereum", "coin", "crypto"],
+    description: "The Ethereum mark in a coin ring.",
+    reference:
+      "simple-icons:ethereum (Iconify, 2026-11-18): cell-centre sample on 12, redrawn by hand inside the ring of bitcoin-01.",
+    trademark:
+      "Ethereum and the Ethereum logo are trademarks of the Ethereum Foundation, used here only to refer to Ethereum.",
+  },
+  "ethereum-rectangle": {
+    category: "brands",
+    labels: ["ethereum", "token", "crypto"],
+    description: "The Ethereum mark in a rounded square.",
+    reference:
+      "simple-icons:ethereum (Iconify, 2026-11-18): cell-centre sample on 12, redrawn by hand inside a rounded square.",
+    trademark:
+      "Ethereum and the Ethereum logo are trademarks of the Ethereum Foundation, used here only to refer to Ethereum.",
+  },
+  litecoin: {
+    category: "brands",
+    labels: ["litecoin", "coin", "crypto"],
+    description: "The Litecoin L with its crossing stroke in a coin ring.",
+    reference:
+      "simple-icons:litecoin (Iconify, 2026-11-18): cell-centre sample on 12, redrawn by hand as a positive glyph in the ring of bitcoin-01.",
+    trademark:
+      "Litecoin and the Litecoin logo are trademarks of the Litecoin Foundation, used here only to refer to Litecoin.",
+  },
+  "mining-01": {
+    labels: ["mining", "pickaxe", "bitcoin"],
+    description: "A pickaxe on the diagonal with a bitcoin badge.",
+    reference:
+      "Hugeicons `mining-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "mining-03": {
+    labels: ["mining", "rig", "gpu"],
+    description: "A graphics board with a fan and a bitcoin badge.",
+    reference:
+      "Hugeicons `mining-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "token-circle": {
+    labels: ["token", "coin", "hexagon"],
+    description: "A coin ring with a hexagon inside.",
+    reference:
+      "Hugeicons `token-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "token-square": {
+    labels: ["token", "square", "hexagon"],
+    description: "A rounded square with a hexagon inside.",
+    reference:
+      "Hugeicons `token-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  usdt: {
+    category: "brands",
+    labels: ["tether", "stablecoin", "crypto"],
+    description: "The Tether T with its crossing bar in a coin ring.",
+    reference:
+      "simple-icons:tether (Iconify, 2026-11-18): cell-centre sample on 12, redrawn by hand as a positive glyph in the ring of bitcoin-01.",
+    trademark:
+      "Tether, USDT and the Tether logo are trademarks of Tether Operations Limited, used here only to refer to Tether.",
+  },
+  "java-script": {
+    category: "brands",
+    labels: ["js", "language", "code"],
+    description: "The JavaScript mark: the letters JS cut out of a square.",
+    reference: "simple-icons:javascript (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "JavaScript is a trademark of Oracle Corporation, used here only to refer to JavaScript.",
+  },
+  "kickstarter-01": {
+    category: "brands",
+    labels: ["crowdfunding", "funding", "projects"],
+    description: "The Kickstarter K: a rounded bar with two rounded arms.",
+    reference: "simple-icons:kickstarter (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Kickstarter and the Kickstarter logo are trademarks of Kickstarter, PBC, used here only to refer to Kickstarter.",
+  },
+  "kickstarter-02": {
+    category: "brands",
+    labels: ["crowdfunding", "funding", "app"],
+    description: "The Kickstarter K cut out of a rounded square.",
+    reference: "simple-icons:kickstarter (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Kickstarter and the Kickstarter logo are trademarks of Kickstarter, PBC, used here only to refer to Kickstarter.",
+  },
+  "kimi-ai": {
+    category: "brands",
+    labels: ["assistant", "chatbot", "ai"],
+    description: "The Kimi mark: a K with a dot at its upper right.",
+    reference: "simple-icons:kimi (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Kimi and the Kimi logo are trademarks of Moonshot AI, used here only to refer to Kimi.",
+  },
+  klarna: {
+    category: "brands",
+    labels: ["payment", "checkout", "credit"],
+    description: "The Klarna mark: a bar, a curved stroke and the full stop.",
+    reference: "simple-icons:klarna (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Klarna and the Klarna logo are trademarks of Klarna Bank AB, used here only to refer to Klarna.",
+  },
+  "ko-fi": {
+    category: "brands",
+    labels: ["donation", "tip", "creator"],
+    description: "The Ko-fi mark: a coffee cup with the heart inside in the secondary tone.",
+    reference: "simple-icons:kofi (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Ko-fi and the Ko-fi logo are trademarks of Ko-fi Labs Limited, used here only to refer to Ko-fi.",
+  },
+  "last-fm": {
+    category: "brands",
+    labels: ["music", "scrobble", "radio"],
+    description: "The Last.fm mark: the joined letters a and s.",
+    reference: "simple-icons:lastdotfm (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Last.fm and the Last.fm logo are trademarks of Last.fm Ltd., used here only to refer to Last.fm.",
+  },
+  leetcode: {
+    category: "brands",
+    labels: ["coding", "interview", "practice"],
+    description: "The LeetCode mark: the curled open bracket with the bar in its mouth.",
+    reference: "simple-icons:leetcode (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "LeetCode and the LeetCode logo are trademarks of LeetCode LLC, used here only to refer to LeetCode.",
+  },
+  "linkedin-01": {
+    category: "brands",
+    labels: ["professional", "network", "social"],
+    description: "The LinkedIn mark: the letters in cut out of a rounded square.",
+    reference: "simple-icons:linkedin (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "LinkedIn and the LinkedIn logo are trademarks of LinkedIn Corporation, used here only to refer to LinkedIn.",
+  },
+  "linkedin-02": {
+    category: "brands",
+    labels: ["professional", "network", "letters"],
+    description: "The LinkedIn letters in on their own, without the square.",
+    reference: "simple-icons:linkedin (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "LinkedIn and the LinkedIn logo are trademarks of LinkedIn Corporation, used here only to refer to LinkedIn.",
+  },
+  loom: {
+    category: "brands",
+    labels: ["video", "recording", "screen"],
+    description: "The Loom mark: a starburst of rays round an empty centre.",
+    reference: "simple-icons:loom (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Loom and the Loom logo are trademarks of Loom, Inc., used here only to refer to Loom.",
+  },
+  lottiefiles: {
+    category: "brands",
+    labels: ["animation", "motion", "lottie"],
+    description: "The LottieFiles mark: the eased curve cut out of a rounded square.",
+    reference: "simple-icons:lottiefiles (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "LottieFiles and the LottieFiles logo are trademarks of Design Barn Inc., used here only to refer to LottieFiles.",
+  },
+  "master-card": {
+    category: "brands",
+    labels: ["card", "payment", "credit"],
+    description: "The Mastercard mark: two overlapping discs, the overlap in the secondary tone.",
+    reference: "simple-icons:mastercard (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Mastercard and the Mastercard logo are trademarks of Mastercard International Incorporated, used here only to refer to Mastercard.",
+  },
+  mastodon: {
+    category: "brands",
+    labels: ["fediverse", "social", "decentralised"],
+    description: "The Mastodon mark: a rounded balloon with the m cut out and its tail.",
+    reference: "simple-icons:mastodon (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Mastodon and the Mastodon logo are trademarks of Mastodon gGmbH, used here only to refer to Mastodon.",
+  },
+  "mcp-server": {
+    labels: ["server", "protocol", "clients"],
+    description: "A server unit wired down to three clients, its lights in the secondary tone.",
+    reference:
+      "Hugeicons `mcp-server` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  medium: {
+    category: "brands",
+    labels: ["blog", "writing", "publishing"],
+    description: "The Medium mark: a disc, a narrower ellipse and a thin bar.",
+    reference: "simple-icons:medium (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Medium and the Medium logo are trademarks of A Medium Corporation, used here only to refer to Medium.",
+  },
+  "medium-signal": {
+    labels: ["signal", "strength", "bars"],
+    description: "Three rising bars, the two short ones full, the tallest only outlined.",
+    reference:
+      "Hugeicons `medium-signal` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "medium-square": {
+    category: "brands",
+    labels: ["blog", "writing", "app"],
+    description: "The Medium mark cut out of a rounded square.",
+    reference: "simple-icons:medium (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Medium and the Medium logo are trademarks of A Medium Corporation, used here only to refer to Medium.",
+  },
+  messenger: {
+    category: "brands",
+    labels: ["chat", "messaging", "bolt"],
+    description: "The Messenger mark: a round balloon with the zigzag bolt cut out.",
+    reference: "simple-icons:messenger (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Messenger and the Messenger logo are trademarks of Meta Platforms, Inc., used here only to refer to Messenger.",
+  },
+  meta: {
+    category: "brands",
+    labels: ["infinity", "company", "social"],
+    description: "The Meta mark: the looped infinity sign.",
+    reference: "simple-icons:meta (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Meta and the Meta logo are trademarks of Meta Platforms, Inc., used here only to refer to Meta.",
+  },
+  microsoft: {
+    category: "brands",
+    labels: ["windows", "company", "squares"],
+    description: "The Microsoft mark: four squares in a two by two grid.",
+    reference: "simple-icons:microsoft (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Microsoft and the Microsoft logo are trademarks of Microsoft Corporation, used here only to refer to Microsoft.",
+  },
+  "microsoft-admin": {
+    category: "brands",
+    labels: ["admin", "shield", "management"],
+    description: "A shield split in four by a cross, two quarters in the secondary tone.",
+    reference:
+      "Hugeicons `microsoft-admin` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Microsoft is a trademark of Microsoft Corporation, used here only to refer to Microsoft.",
+  },
+  "microsoft-teams": {
+    category: "brands",
+    labels: ["meetings", "chat", "collaboration"],
+    description: "The Teams mark: the T plaque in front of two people in the secondary tone.",
+    reference:
+      "simple-icons:microsoftteams (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Microsoft Teams and the Microsoft Teams logo are trademarks of Microsoft Corporation, used here only to refer to Microsoft Teams.",
+  },
+  "new-twitter": {
+    category: "brands",
+    labels: ["x", "social", "post"],
+    description: "The X mark: the hollow falling stroke crossed by the thin rising one.",
+    reference: "simple-icons:x (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark: "X and the X logo are trademarks of X Corp., used here only to refer to X.",
+  },
+  "new-twitter-ellipse": {
+    category: "brands",
+    labels: ["x", "social", "circle"],
+    description: "The X mark inside a coin ring.",
+    reference: "simple-icons:x (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark: "X and the X logo are trademarks of X Corp., used here only to refer to X.",
+  },
+  "new-twitter-rectangle": {
+    category: "brands",
+    labels: ["x", "social", "square"],
+    description: "The X mark inside a rounded square.",
+    reference: "simple-icons:x (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark: "X and the X logo are trademarks of X Corp., used here only to refer to X.",
+  },
+  nike: {
+    category: "brands",
+    labels: ["swoosh", "sport", "apparel"],
+    description: "The Nike swoosh: a small hook sweeping up to a thin point.",
+    reference: "simple-icons:nike (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark: "Nike and the Swoosh are trademarks of Nike, Inc., used here only to refer to Nike.",
+  },
+  nintendo: {
+    category: "brands",
+    labels: ["console", "handheld", "gaming"],
+    description: "A handheld console: the screen between two controllers with their sticks.",
+    reference:
+      "Hugeicons `nintendo` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Nintendo is a trademark of Nintendo Co., Ltd., used here only to refer to Nintendo.",
+  },
+  "nintendo-switch": {
+    category: "brands",
+    labels: ["console", "gaming", "joycon"],
+    description: "The Switch mark: the outlined left controller and the solid right one.",
+    reference:
+      "simple-icons:nintendoswitch (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Nintendo Switch and the Nintendo Switch logo are trademarks of Nintendo Co., Ltd., used here only to refer to Nintendo Switch.",
+  },
+  npm: {
+    category: "brands",
+    labels: ["package", "registry", "javascript"],
+    description: "The npm mark: the letter n cut out of a square.",
+    reference: "simple-icons:npm (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark: "npm and the npm logo are trademarks of npm, Inc., used here only to refer to npm.",
+  },
+  "open-source": {
+    labels: ["licence", "community", "keyhole"],
+    description: "A thick ring with a keyhole slot cut down to its bottom edge.",
+    reference:
+      "Hugeicons `open-source` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "orthogonal-edge": {
+    labels: ["connector", "diagram", "nodes"],
+    description: "Two nodes joined by a connector with a right angle.",
+    reference:
+      "Hugeicons `orthogonal-edge` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "pacman-01": {
+    category: "brands",
+    labels: ["arcade", "game", "retro"],
+    description: "Pac-Man with his mouth open and two pellets in the secondary tone.",
+    reference:
+      "Hugeicons `pacman-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Pac-Man is a trademark of Bandai Namco Entertainment Inc., used here only to refer to Pac-Man.",
+  },
+  "pacman-02": {
+    category: "brands",
+    labels: ["ghost", "arcade", "game"],
+    description: "A Pac-Man ghost with a wavy hem and eyes looking aside.",
+    reference:
+      "Hugeicons `pacman-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Pac-Man is a trademark of Bandai Namco Entertainment Inc., used here only to refer to Pac-Man.",
+  },
+  paypal: {
+    category: "brands",
+    labels: ["payment", "wallet", "checkout"],
+    description: "The PayPal mark: the front P in the secondary tone over the back P.",
+    reference: "simple-icons:paypal (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "PayPal and the PayPal logo are trademarks of PayPal, Inc., used here only to refer to PayPal.",
+  },
+  pexels: {
+    category: "brands",
+    labels: ["photos", "stock", "images"],
+    description: "The Pexels mark: the letter P cut out of a rounded square.",
+    reference: "simple-icons:pexels (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Pexels and the Pexels logo are trademarks of Pexels GmbH, used here only to refer to Pexels.",
+  },
+  php: {
+    category: "brands",
+    labels: ["language", "server", "code"],
+    description: "The PHP logo: the letters php cut out of a flat oval.",
+    reference: "simple-icons:php (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "PHP and the PHP logo are trademarks of The PHP Group, used here only to refer to PHP.",
+  },
+  picasa: {
+    category: "brands",
+    labels: ["photos", "gallery", "aperture"],
+    description: "The Picasa mark: a disc with a pentagon at its centre and five turning blades.",
+    reference: "logos:picasa (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Picasa and the Picasa logo are trademarks of Google LLC, used here only to refer to Picasa.",
+  },
+  "adobe-after-effect": {
+    category: "brands",
+    labels: ["motion", "video", "adobe"],
+    description: "The Adobe After Effects mark: \u201cAe\u201d cut out of a rounded square.",
+    reference:
+      "simple-icons:adobeaftereffects (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Adobe After Effects and the Adobe After Effects logo are trademarks of Adobe Inc., used here only to refer to Adobe After Effects.",
+  },
+  "adobe-illustrator": {
+    category: "brands",
+    labels: ["vector", "design", "adobe"],
+    description: "The Adobe Illustrator mark: \u201cAi\u201d cut out of a rounded square.",
+    reference:
+      "simple-icons:adobeillustrator (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Adobe Illustrator and the Adobe Illustrator logo are trademarks of Adobe Inc., used here only to refer to Adobe Illustrator.",
+  },
+  "adobe-indesign": {
+    category: "brands",
+    labels: ["layout", "publishing", "adobe"],
+    description: "The Adobe InDesign mark: \u201cId\u201d cut out of a rounded square.",
+    reference:
+      "simple-icons:adobeindesign (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Adobe InDesign and the Adobe InDesign logo are trademarks of Adobe Inc., used here only to refer to Adobe InDesign.",
+  },
+  "adobe-photoshop": {
+    category: "brands",
+    labels: ["photo", "editing", "adobe"],
+    description: "The Adobe Photoshop mark: \u201cPs\u201d cut out of a rounded square.",
+    reference:
+      "simple-icons:adobephotoshop (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Adobe Photoshop and the Adobe Photoshop logo are trademarks of Adobe Inc., used here only to refer to Adobe Photoshop.",
+  },
+  "adobe-premier": {
+    category: "brands",
+    labels: ["video", "editing", "adobe"],
+    description: "The Adobe Premiere Pro mark: \u201cPr\u201d cut out of a rounded square.",
+    reference:
+      "simple-icons:adobepremierepro (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Adobe Premiere Pro and the Adobe Premiere Pro logo are trademarks of Adobe Inc., used here only to refer to Adobe Premiere Pro.",
+  },
+  "adobe-xd": {
+    category: "brands",
+    labels: ["prototype", "design", "adobe"],
+    description: "The Adobe XD mark: \u201cXd\u201d cut out of a rounded square.",
+    reference: "simple-icons:adobexd (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Adobe XD and the Adobe XD logo are trademarks of Adobe Inc., used here only to refer to Adobe XD.",
+  },
+  airbnb: {
+    category: "brands",
+    labels: ["travel", "rental", "stay"],
+    description: "The Airbnb B\u00e9lo: an outlined drop with an inner loop and two lobes.",
+    reference: "simple-icons:airbnb (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Airbnb and the Airbnb logo are trademarks of Airbnb, Inc., used here only to refer to Airbnb.",
+  },
+  airdrop: {
+    labels: ["share", "wireless", "nearby"],
+    description: "Wireless sharing: concentric arcs over a small triangle.",
+    reference:
+      "Hugeicons `airdrop` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  amazon: {
+    category: "brands",
+    labels: ["shopping", "store", "retail"],
+    description: "The Amazon mark: a lowercase \u201ca\u201d over the arrow smile.",
+    reference: "simple-icons:amazon (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Amazon and the Amazon logo are trademarks of Amazon.com, Inc., used here only to refer to Amazon.",
+  },
+  android: {
+    category: "brands",
+    labels: ["mobile", "robot", "os"],
+    description: "The Android robot head with its antennae and eyes.",
+    reference: "simple-icons:android (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Android and the Android robot logo are trademarks of Google LLC, used here only to refer to Android.",
+  },
+  "app-store": {
+    category: "brands",
+    labels: ["apps", "download", "apple"],
+    description: "The App Store mark: an \u201cA\u201d built of crossed sticks over a bar.",
+    reference: "simple-icons:appstore (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "App Store and the App Store logo are trademarks of Apple Inc., used here only to refer to App Store.",
+  },
+  apple: {
+    category: "brands",
+    labels: ["mac", "iphone", "logo"],
+    description: "The Apple logo: the bitten apple with its leaf.",
+    reference: "simple-icons:apple (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Apple and the Apple logo are trademarks of Apple Inc., used here only to refer to Apple.",
+  },
+  "apple-01": {
+    labels: ["fruit", "food", "apple"],
+    description: "An apple fruit in outline, with its stem and a leaf.",
+    reference:
+      "Hugeicons `apple-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "apple-finder": {
+    category: "brands",
+    labels: ["files", "mac", "face"],
+    description: "The Finder face: a two-tone split square with eyes and a smile.",
+    reference:
+      "Hugeicons `apple-finder` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Finder and the Finder logo are trademarks of Apple Inc., used here only to refer to Finder.",
+  },
+  "apple-music": {
+    category: "brands",
+    labels: ["music", "streaming", "note"],
+    description: "The Apple Music mark: a pair of beamed notes cut out of a rounded square.",
+    reference: "simple-icons:applemusic (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Apple Music and the Apple Music logo are trademarks of Apple Inc., used here only to refer to Apple Music.",
+  },
+  "apple-news": {
+    category: "brands",
+    labels: ["news", "reading", "apple"],
+    description: "The Apple News mark: a rounded square crossed by diagonal bands.",
+    reference: "simple-icons:applenews (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Apple News and the Apple News logo are trademarks of Apple Inc., used here only to refer to Apple News.",
+  },
+  "apple-pie": {
+    labels: ["pie", "dessert", "baking"],
+    description: "An apple pie: a lattice crust domed over a deep tin.",
+    reference:
+      "Hugeicons `apple-pie` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "apple-reminder": {
+    labels: ["reminders", "list", "todo"],
+    description: "A reminders list: three dots and lines in a rounded square.",
+    reference:
+      "Hugeicons `apple-reminder` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "apple-stocks": {
+    labels: ["stocks", "chart", "market"],
+    description: "A stocks app: a zigzag price line in a rounded square.",
+    reference:
+      "Hugeicons `apple-stocks` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "apple-vision-pro": {
+    labels: ["headset", "spatial", "goggles"],
+    description: "A spatial headset seen from the front, with its nose notch.",
+    reference:
+      "Hugeicons `apple-vision-pro` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "aws-lambda": {
+    category: "brands",
+    labels: ["serverless", "function", "aws"],
+    description: "The AWS Lambda mark: a bold lowercase lambda.",
+    reference: "simple-icons:awslambda (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "AWS Lambda and the AWS Lambda logo are trademarks of Amazon.com, Inc., used here only to refer to AWS Lambda.",
+  },
+  bebo: {
+    category: "brands",
+    labels: ["social", "network", "letter"],
+    description: "The Bebo mark: a rounded lowercase \u201cb\u201d.",
+    reference:
+      "Hugeicons `bebo` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Bebo and the Bebo logo are trademarks of Bebo, Inc., used here only to refer to Bebo.",
+  },
+  "behance-01": {
+    category: "brands",
+    labels: ["portfolio", "design", "adobe"],
+    description: "The Behance mark: the letters \u201cB\u0113\u201d.",
+    reference: "simple-icons:behance (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Behance and the Behance logo are trademarks of Adobe Inc., used here only to refer to Behance.",
+  },
+  "behance-02": {
+    category: "brands",
+    labels: ["portfolio", "design", "adobe"],
+    description: "The Behance mark: \u201cB\u0113\u201d cut out of a rounded square.",
+    reference: "simple-icons:behance (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Behance and the Behance logo are trademarks of Adobe Inc., used here only to refer to Behance.",
+  },
+  bing: {
+    category: "brands",
+    labels: ["search", "microsoft", "engine"],
+    description: "The Microsoft Bing mark: a tall stem folding into a pointed bowl.",
+    reference:
+      "simple-icons:microsoftbing (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Microsoft Bing and the Microsoft Bing logo are trademarks of Microsoft Corporation, used here only to refer to Microsoft Bing.",
+  },
+  blogger: {
+    category: "brands",
+    labels: ["blog", "writing", "google"],
+    description:
+      "The Blogger mark: a rounded square with a \u201cB\u201d cut out, its two bars kept solid.",
+    reference: "simple-icons:blogger (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Blogger and the Blogger logo are trademarks of Google LLC, used here only to refer to Blogger.",
+  },
+  bluesky: {
+    category: "brands",
+    labels: ["social", "butterfly", "network"],
+    description: "The Bluesky butterfly: two large upper wings and two smaller lower ones.",
+    reference: "simple-icons:bluesky (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Bluesky and the Bluesky butterfly logo are trademarks of Bluesky Social, PBC, used here only to refer to Bluesky.",
+  },
+  bootstrap: {
+    category: "brands",
+    labels: ["css", "framework", "frontend"],
+    description: "The Bootstrap mark: a \u201cB\u201d cut out of a rounded square.",
+    reference: "simple-icons:bootstrap (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Bootstrap and the Bootstrap logo are trademarks of the Bootstrap project, used here only to refer to Bootstrap.",
+  },
+  brandfetch: {
+    category: "brands",
+    labels: ["brand", "assets", "logos"],
+    description:
+      "The Brandfetch mark: a slanted \u201cB\u201d whose top stroke curls out to the left.",
+    reference: "simple-icons:brandfetch (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Brandfetch and the Brandfetch logo are trademarks of Brandfetch GmbH, used here only to refer to Brandfetch.",
+  },
+  capcut: {
+    category: "brands",
+    labels: ["video", "editing", "bytedance"],
+    description: "The CapCut mark: two bars joined by a crossing whose ends poke out on the right.",
+    reference: "thesvg:capcut (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "CapCut and the CapCut logo are trademarks of ByteDance Ltd., used here only to refer to CapCut.",
+  },
+  "capcut-rectangle": {
+    category: "brands",
+    labels: ["video", "editing", "bytedance"],
+    description: "The CapCut mark cut out of a rounded square.",
+    reference: "thesvg:capcut (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "CapCut and the CapCut logo are trademarks of ByteDance Ltd., used here only to refer to CapCut.",
+  },
+  castbox: {
+    category: "brands",
+    labels: ["podcast", "audio", "player"],
+    description: "The Castbox mark: a sound wave cut out of an upright hexagon.",
+    reference: "simple-icons:castbox (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Castbox and the Castbox logo are trademarks of Guru Network Limited, used here only to refer to Castbox.",
+  },
+  chrome: {
+    category: "brands",
+    labels: ["browser", "google", "web"],
+    description: "The Google Chrome mark: a disc split three ways around a central dot.",
+    reference: "simple-icons:googlechrome (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google Chrome and the Chrome logo are trademarks of Google LLC, used here only to refer to Google Chrome.",
+  },
+  claude: {
+    category: "brands",
+    labels: ["ai", "assistant", "anthropic"],
+    description: "The Claude mark: an uneven starburst of rays around a solid core.",
+    reference: "simple-icons:claude (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Claude and the Claude logo are trademarks of Anthropic, PBC, used here only to refer to Claude.",
+  },
+  codepen: {
+    category: "brands",
+    labels: ["code", "playground", "frontend"],
+    description: "The CodePen mark: the outline of a cube cut out of a disc.",
+    reference: "simple-icons:codepen (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "CodePen and the CodePen logo are trademarks of CodePen, Inc., used here only to refer to CodePen.",
+  },
+  codesandbox: {
+    category: "brands",
+    labels: ["code", "sandbox", "ide"],
+    description: "The CodeSandbox mark: a heavy square frame.",
+    reference: "simple-icons:codesandbox (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "CodeSandbox and the CodeSandbox logo are trademarks of CodeSandbox BV, used here only to refer to CodeSandbox.",
+  },
+  copilot: {
+    category: "brands",
+    labels: ["ai", "coding", "github"],
+    description: "The GitHub Copilot mark: a round head with goggles and two eyes.",
+    reference:
+      "simple-icons:githubcopilot (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "GitHub Copilot and the GitHub Copilot logo are trademarks of GitHub, Inc., used here only to refer to GitHub Copilot.",
+  },
+  "creative-commons": {
+    category: "brands",
+    labels: ["licence", "cc", "copyright"],
+    description: "The Creative Commons mark: two letters c inside a round ring.",
+    reference:
+      "simple-icons:creativecommons (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Creative Commons and the Creative Commons logo are trademarks of Creative Commons Corporation, used here only to refer to Creative Commons.",
+  },
+  "creative-market": {
+    category: "brands",
+    labels: ["marketplace", "tag", "design"],
+    description: "A diagonal price tag with a ring hole and a star on its face.",
+    reference:
+      "Hugeicons `creative-market` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Creative Market and the Creative Market logo are trademarks of Creative Market Labs, Inc., used here only to refer to Creative Market.",
+  },
+  "css-3": {
+    labels: ["stylesheet", "web", "shield"],
+    description: "The CSS3 mark: a shield with the figure 3 cut out of it.",
+    reference: "simple-icons:css3 (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+  },
+  deepseek: {
+    category: "brands",
+    labels: ["ai", "whale", "chatbot"],
+    description:
+      "The DeepSeek whale seen side on, back and raised tail filled, belly an open curve.",
+    reference: "simple-icons:deepseek (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "DeepSeek and the DeepSeek logo are trademarks of Hangzhou DeepSeek Artificial Intelligence Co., Ltd., used here only to refer to DeepSeek.",
+  },
+  deviantart: {
+    category: "brands",
+    labels: ["art", "community", "gallery"],
+    description: "The DeviantArt mark: a slanted Z with a short stem at each end.",
+    reference: "simple-icons:deviantart (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "DeviantArt and the DeviantArt logo are trademarks of DeviantArt, Inc., used here only to refer to DeviantArt.",
+  },
+  discord: {
+    category: "brands",
+    labels: ["chat", "community", "voice"],
+    description: "The Discord mark: Clyde's rounded head with two eyes.",
+    reference: "simple-icons:discord (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Discord and the Discord logo are trademarks of Discord Inc., used here only to refer to Discord.",
+  },
+  dribbble: {
+    category: "brands",
+    labels: ["design", "portfolio", "ball"],
+    description: "The Dribbble mark: a basketball ring crossed by three curved seams.",
+    reference: "simple-icons:dribbble (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Dribbble and the Dribbble logo are trademarks of Dribbble Holdings Ltd., used here only to refer to Dribbble.",
+  },
+  envato: {
+    category: "brands",
+    labels: ["marketplace", "assets", "creative"],
+    description: "The Envato mark: a scribble zigzagging down to a dot.",
+    reference: "simple-icons:envato (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Envato and the Envato logo are trademarks of Envato Pty Ltd, used here only to refer to Envato.",
+  },
+  "facebook-01": {
+    category: "brands",
+    labels: ["social", "network", "meta"],
+    description: "The Facebook f cut out of a rounded square, running off its bottom edge.",
+    reference: "simple-icons:facebook (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Facebook and the Facebook logo are trademarks of Meta Platforms, Inc., used here only to refer to Facebook.",
+  },
+  "facebook-02": {
+    category: "brands",
+    labels: ["social", "network", "meta"],
+    description: "The Facebook f on its own: a bold stem, a hooked top and a crossbar.",
+    reference: "simple-icons:facebook (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Facebook and the Facebook logo are trademarks of Meta Platforms, Inc., used here only to refer to Facebook.",
+  },
+  figma: {
+    category: "brands",
+    labels: ["design", "prototype", "interface"],
+    description: "The Figma mark: four rounded pieces and a circle in alternating tones.",
+    reference: "simple-icons:figma (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Figma and the Figma logo are trademarks of Figma, Inc., used here only to refer to Figma.",
+  },
+  fiverr: {
+    category: "brands",
+    labels: ["freelance", "marketplace", "gigs"],
+    description: "The Fiverr mark: the letters fi cut out of a round disc.",
+    reference:
+      "Hugeicons `fiverr` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Fiverr and the Fiverr logo are trademarks of Fiverr International Ltd., used here only to refer to Fiverr.",
+  },
+  flaticon: {
+    category: "brands",
+    labels: ["icons", "vector", "library"],
+    description: "The Flaticon mark: a letter F folded into a downward triangle.",
+    reference:
+      "Hugeicons `flaticon` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Flaticon and the Flaticon logo are trademarks of Freepik Company S.L., used here only to refer to Flaticon.",
+  },
+  flickr: {
+    category: "brands",
+    labels: ["photos", "sharing", "dots"],
+    description: "The Flickr mark: two dots side by side, the second in the secondary tone.",
+    reference: "simple-icons:flickr (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Flickr and the Flickr logo are trademarks of Flickr, Inc., used here only to refer to Flickr.",
+  },
+  forrst: {
+    category: "brands",
+    labels: ["tree", "community", "developers"],
+    description: "The Forrst mark: a small branching tree inside a triangle.",
+    reference:
+      "Hugeicons `forrst` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Forrst and the Forrst logo are trademarks of their owner, used here only to refer to Forrst.",
+  },
+  foursquare: {
+    category: "brands",
+    labels: ["places", "check-in", "location"],
+    description: "The 2014 Foursquare mark: a letter F cut out of a shield that slants to a point.",
+    reference:
+      "Hugeicons `foursquare` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Foursquare and the Foursquare logo are trademarks of Foursquare Labs, Inc., used here only to refer to Foursquare.",
+  },
+  framer: {
+    category: "brands",
+    labels: ["design", "website", "builder"],
+    description: "The Framer mark: a top triangle, a slanted middle square and a bottom triangle.",
+    reference: "simple-icons:framer (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Framer and the Framer logo are trademarks of Framer B.V., used here only to refer to Framer.",
+  },
+  gitlab: {
+    category: "brands",
+    labels: ["git", "devops", "tanuki"],
+    description: "The GitLab mark: the tanuki head with two pointed ears.",
+    reference: "simple-icons:gitlab (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "GitLab and the GitLab logo are trademarks of GitLab Inc., used here only to refer to GitLab.",
+  },
+  google: {
+    category: "brands",
+    labels: ["search", "account", "g"],
+    description: "The Google mark: a thick letter G with its bar running in from the right.",
+    reference: "simple-icons:google (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google and the Google logo are trademarks of Google LLC, used here only to refer to Google.",
+  },
+  "google-doc": {
+    category: "brands",
+    labels: ["docs", "document", "text"],
+    description: "The Google Docs mark: a page with a cut corner and lines of text cut out of it.",
+    reference: "simple-icons:googledocs (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google Docs and the Google Docs logo are trademarks of Google LLC, used here only to refer to Google Docs.",
+  },
+  "google-drive": {
+    category: "brands",
+    labels: ["storage", "files", "triangle"],
+    description: "The Google Drive mark: a triangle of three bands split by thin gaps.",
+    reference: "simple-icons:googledrive (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google Drive and the Google Drive logo are trademarks of Google LLC, used here only to refer to Google Drive.",
+  },
+  "google-gemini": {
+    category: "brands",
+    labels: ["ai", "assistant", "sparkle"],
+    description: "The Gemini mark: a four-pointed sparkle with pinched sides.",
+    reference: "simple-icons:googlegemini (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Gemini and the Gemini logo are trademarks of Google LLC, used here only to refer to Gemini.",
+  },
+  "google-home": {
+    category: "brands",
+    labels: ["smart", "home", "house"],
+    description: "The Google Home mark: a thick house outline with a pointed roof.",
+    reference: "simple-icons:googlehome (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google Home and the Google Home logo are trademarks of Google LLC, used here only to refer to Google Home.",
+  },
+  "google-maps": {
+    category: "brands",
+    labels: ["map", "pin", "navigation"],
+    description: "The Google Maps mark: a pin with a round hole and a diagonal road cut.",
+    reference: "simple-icons:googlemaps (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google Maps and the Google Maps logo are trademarks of Google LLC, used here only to refer to Google Maps.",
+  },
+  "google-photos": {
+    category: "brands",
+    labels: ["photos", "gallery", "pinwheel"],
+    description:
+      "The Google Photos mark: a pinwheel of four half-round blades in alternating tones.",
+    reference: "simple-icons:googlephotos (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google Photos and the Google Photos logo are trademarks of Google LLC, used here only to refer to Google Photos.",
+  },
+  "google-sheet": {
+    category: "brands",
+    labels: ["sheets", "spreadsheet", "table"],
+    description: "The Google Sheets mark: a page with a cut corner and four table cells cut out.",
+    reference: "simple-icons:googlesheets (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google Sheets and the Google Sheets logo are trademarks of Google LLC, used here only to refer to Google Sheets.",
+  },
+  grok: {
+    category: "brands",
+    labels: ["ai", "chatbot", "xai"],
+    description: "The Grok mark: a ring broken by a long slash from lower left to upper right.",
+    reference: "logos:grok-icon (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark: "Grok and the Grok logo are trademarks of xAI, used here only to refer to Grok.",
+  },
+  "grok-02": {
+    category: "brands",
+    labels: ["ai", "xai", "chatbot"],
+    description:
+      "The xAI mark used by Grok: a long diagonal, a short slash and a tall bar on the right.",
+    reference:
+      "Hugeicons `grok-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark: "Grok, xAI and the xAI logo are trademarks of xAI, used here only to refer to Grok.",
+  },
+  groww: {
+    category: "brands",
+    labels: ["investing", "finance", "growth"],
+    description:
+      "The Groww mark: a disc split by a rising line, the lower part in the secondary tone.",
+    reference:
+      "Hugeicons `groww` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Groww and the Groww logo are trademarks of Billionbrains Garage Ventures Pvt. Ltd., used here only to refer to Groww.",
+  },
+  hackerrank: {
+    category: "brands",
+    labels: ["coding", "challenges", "hiring"],
+    description: "The HackerRank mark: a pointed hexagon with the letter H cut out.",
+    reference:
+      "Hugeicons `hackerrank` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "HackerRank and the HackerRank logo are trademarks of HackerRank, used here only to refer to HackerRank.",
+  },
+  hangout: {
+    category: "brands",
+    labels: ["chat", "video", "quotes"],
+    description: "The Google Hangouts mark: a speech bubble with two quotation marks cut out.",
+    reference:
+      "simple-icons:googlehangouts (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google Hangouts and the Hangouts logo are trademarks of Google LLC, used here only to refer to Google Hangouts.",
+  },
+  "html-5": {
+    labels: ["markup", "web", "shield"],
+    description: "The HTML5 mark: a shield with the figure 5 cut out of it.",
+    reference: "simple-icons:html5 (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+  },
+  hugeicons: {
+    category: "brands",
+    labels: ["icons", "library", "basket"],
+    description: "The Hugeicons mark: a basket with a round handle, a rim and a tapering bowl.",
+    reference:
+      "Hugeicons `hugeicons` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Hugeicons and the Hugeicons logo are trademarks of their owner, used here only to refer to Hugeicons.",
+  },
+  imo: {
+    category: "brands",
+    labels: ["messenger", "chat", "calls"],
+    description: "The imo mark: a speech bubble with the word imo inside.",
+    reference:
+      "Hugeicons `imo` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "imo and the imo logo are trademarks of PageBites, Inc., used here only to refer to imo.",
+  },
+  instagram: {
+    category: "brands",
+    labels: ["photos", "social", "camera"],
+    description: "The Instagram mark: a rounded square with a round lens and a corner dot.",
+    reference: "simple-icons:instagram (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Instagram and the Instagram logo are trademarks of Meta Platforms, Inc., used here only to refer to Instagram.",
+  },
+  java: {
+    category: "brands",
+    labels: ["programming", "language", "coffee"],
+    description: "The Java mark: a cup on a saucer with two wisps of steam in the secondary tone.",
+    reference: "logos:java (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Java and the Java logo are trademarks of Oracle and/or its affiliates, used here only to refer to Java.",
+  },
+  pinterest: {
+    category: "brands",
+    labels: ["pin", "board", "social"],
+    description: "The Pinterest mark: the P cut out of a round disc.",
+    reference: "simple-icons:pinterest (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Pinterest and the Pinterest logo are trademarks of Pinterest, Inc., used here only to refer to Pinterest.",
+  },
+  pocket: {
+    category: "brands",
+    labels: ["read-later", "save", "bookmark"],
+    description: "The Pocket mark: the rounded pocket with its chevron cut out.",
+    reference: "simple-icons:pocket (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Pocket and the Pocket logo are trademarks of Mozilla Corporation, used here only to refer to Pocket.",
+  },
+  python: {
+    category: "brands",
+    labels: ["language", "snake", "programming"],
+    description: "The Python mark: two interlocking snakes, the second in the secondary tone.",
+    reference: "simple-icons:python (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Python and the Python logo are trademarks of the Python Software Foundation, used here only to refer to Python.",
+  },
+  quora: {
+    category: "brands",
+    labels: ["questions", "answers", "community"],
+    description: "The Quora mark: the round Q with its tail at the lower right.",
+    reference: "simple-icons:quora (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Quora and the Quora logo are trademarks of Quora, Inc., used here only to refer to Quora.",
+  },
+  "rail-symbol": {
+    labels: ["train", "railway", "station"],
+    description: "The rail symbol: two parallel tracks crossed by a three-stroke zigzag.",
+    reference:
+      "Hugeicons `rail-symbol` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  react: {
+    category: "brands",
+    labels: ["atom", "framework", "javascript"],
+    description: "The React mark: three orbits crossing around the nucleus.",
+    reference: "simple-icons:react (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "React and the React logo are trademarks of Meta Platforms, Inc., used here only to refer to React.",
+  },
+  reddit: {
+    category: "brands",
+    labels: ["forum", "community", "snoo"],
+    description: "The Reddit mark: the Snoo's head cut out of the round speech bubble.",
+    reference: "simple-icons:reddit (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Reddit and the Reddit logo are trademarks of Reddit, Inc., used here only to refer to Reddit.",
+  },
+  replit: {
+    category: "brands",
+    labels: ["ide", "code", "cloud"],
+    description: "The Replit mark: three blocks stepping right and back.",
+    reference: "simple-icons:replit (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Replit and the Replit logo are trademarks of Replit, Inc., used here only to refer to Replit.",
+  },
+  roblox: {
+    category: "brands",
+    labels: ["game", "platform", "metaverse"],
+    description: "The Roblox mark: the tilted square with its small square hole.",
+    reference: "simple-icons:roblox (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Roblox and the Roblox logo are trademarks of Roblox Corporation, used here only to refer to Roblox.",
+  },
+  safari: {
+    category: "brands",
+    labels: ["browser", "compass", "web"],
+    description:
+      "The Safari mark: the compass ring and its diagonal needle, the north half in the secondary tone.",
+    reference: "simple-icons:safari (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Safari and the Safari logo are trademarks of Apple Inc., used here only to refer to Safari.",
+  },
+  shadcn: {
+    category: "brands",
+    labels: ["components", "ui", "library"],
+    description: "The shadcn/ui mark: a long and a short parallel slash.",
+    reference: "simple-icons:shadcnui (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "shadcn/ui and the shadcn/ui logo are trademarks of shadcn, used here only to refer to shadcn/ui.",
+  },
+  "shadcn-square": {
+    category: "brands",
+    labels: ["components", "ui", "library"],
+    description: "The shadcn/ui slashes cut out of a filled rounded square.",
+    reference: "simple-icons:shadcnui (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "shadcn/ui and the shadcn/ui logo are trademarks of shadcn, used here only to refer to shadcn/ui.",
+  },
+  shopify: {
+    category: "brands",
+    labels: ["store", "ecommerce", "bag"],
+    description:
+      "The Shopify mark: the shopping bag with its handle and S, its side in the secondary tone.",
+    reference: "simple-icons:shopify (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Shopify and the Shopify logo are trademarks of Shopify Inc., used here only to refer to Shopify.",
+  },
+  shutterstock: {
+    category: "brands",
+    labels: ["stock", "photos", "images"],
+    description: "The Shutterstock mark: two thick corners facing each other.",
+    reference: "simple-icons:shutterstock (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Shutterstock and the Shutterstock logo are trademarks of Shutterstock, Inc., used here only to refer to Shutterstock.",
+  },
+  sketch: {
+    category: "brands",
+    labels: ["design", "gem", "app"],
+    description: "The Sketch mark: the cut gem with its facets.",
+    reference: "simple-icons:sketch (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Sketch and the Sketch logo are trademarks of Sketch B.V., used here only to refer to Sketch.",
+  },
+  skype: {
+    category: "brands",
+    labels: ["call", "video", "chat"],
+    description: "The Skype mark: the S cut out of the round shape with two bumps.",
+    reference: "simple-icons:skype (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Skype and the Skype logo are trademarks of Microsoft Corporation, used here only to refer to Skype.",
+  },
+  slack: {
+    category: "brands",
+    labels: ["chat", "team", "workspace"],
+    description: "The Slack mark: four bars and four dots turning around the centre.",
+    reference: "simple-icons:slack (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Slack and the Slack logo are trademarks of Slack Technologies, LLC, used here only to refer to Slack.",
+  },
+  snapchat: {
+    category: "brands",
+    labels: ["ghost", "social", "messaging"],
+    description: "The Snapchat mark: the ghost with its arms and ragged hem.",
+    reference: "simple-icons:snapchat (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Snapchat and the Snapchat logo are trademarks of Snap Inc., used here only to refer to Snapchat.",
+  },
+  soundcloud: {
+    category: "brands",
+    labels: ["audio", "music", "streaming"],
+    description: "The SoundCloud mark: the cloud with rising sound bars on its left.",
+    reference: "simple-icons:soundcloud (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "SoundCloud and the SoundCloud logo are trademarks of SoundCloud Global Limited & Co. KG, used here only to refer to SoundCloud.",
+  },
+  spotify: {
+    category: "brands",
+    labels: ["music", "streaming", "audio"],
+    description: "The Spotify mark: three arcs cut out of the round disc.",
+    reference: "simple-icons:spotify (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Spotify and the Spotify logo are trademarks of Spotify AB, used here only to refer to Spotify.",
+  },
+  "straight-edge": {
+    labels: ["connector", "diagram", "link"],
+    description: "Two nodes joined by one straight diagonal edge.",
+    reference:
+      "Hugeicons `straight-edge` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  stripe: {
+    category: "brands",
+    labels: ["payments", "billing", "checkout"],
+    description: "The Stripe mark: the bold S.",
+    reference: "simple-icons:stripe (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Stripe and the Stripe logo are trademarks of Stripe, Inc., used here only to refer to Stripe.",
+  },
+  tailwindcss: {
+    category: "brands",
+    labels: ["css", "framework", "styling"],
+    description: "The Tailwind CSS mark: two offset waves.",
+    reference: "simple-icons:tailwindcss (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Tailwind CSS and the Tailwind CSS logo are trademarks of Tailwind Labs Inc., used here only to refer to Tailwind CSS.",
+  },
+  teamviewer: {
+    category: "brands",
+    labels: ["remote", "desktop", "support"],
+    description: "The TeamViewer mark: the double arrow in the round window of a rounded square.",
+    reference: "simple-icons:teamviewer (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "TeamViewer and the TeamViewer logo are trademarks of TeamViewer SE, used here only to refer to TeamViewer.",
+  },
+  telegram: {
+    category: "brands",
+    labels: ["messaging", "chat", "plane"],
+    description: "The Telegram mark: the paper plane cut out of the round disc.",
+    reference: "simple-icons:telegram (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Telegram and the Telegram logo are trademarks of Telegram FZ-LLC, used here only to refer to Telegram.",
+  },
+  threads: {
+    category: "brands",
+    labels: ["social", "meta", "posts"],
+    description: "The Threads mark: the looped at sign curling into its inner bowl.",
+    reference: "simple-icons:threads (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Threads and the Threads logo are trademarks of Meta Platforms, Inc., used here only to refer to Threads.",
+  },
+  "threads-ellipse": {
+    category: "brands",
+    labels: ["social", "meta", "coin"],
+    description: "The Threads mark cut out of a filled disc.",
+    reference: "simple-icons:threads (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Threads and the Threads logo are trademarks of Meta Platforms, Inc., used here only to refer to Threads.",
+  },
+  "threads-rectangle": {
+    category: "brands",
+    labels: ["social", "meta", "square"],
+    description: "The Threads mark cut out of a filled rounded square.",
+    reference: "simple-icons:threads (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Threads and the Threads logo are trademarks of Meta Platforms, Inc., used here only to refer to Threads.",
+  },
+  tiktok: {
+    category: "brands",
+    labels: ["video", "music", "social"],
+    description: "The TikTok mark: the musical note with its curling flag.",
+    reference: "simple-icons:tiktok (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "TikTok and the TikTok logo are trademarks of ByteDance Ltd., used here only to refer to TikTok.",
+  },
+  tinder: {
+    category: "brands",
+    labels: ["dating", "flame", "match"],
+    description: "The Tinder mark: the flame with a small lick on its left.",
+    reference: "simple-icons:tinder (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Tinder and the Tinder logo are trademarks of Match Group, LLC, used here only to refer to Tinder.",
+  },
+  "tinder-square": {
+    category: "brands",
+    labels: ["dating", "flame", "app"],
+    description: "The Tinder flame in a rounded square, the flame in the secondary tone.",
+    reference: "simple-icons:tinder (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Tinder and the Tinder logo are trademarks of Match Group, LLC, used here only to refer to Tinder.",
+  },
+  trello: {
+    category: "brands",
+    labels: ["board", "kanban", "lists"],
+    description: "The Trello mark: a rounded board with a tall and a short list cut out of it.",
+    reference: "simple-icons:trello (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Trello and the Trello logo are trademarks of Atlassian Pty Ltd, used here only to refer to Trello.",
+  },
+  tumblr: {
+    category: "brands",
+    labels: ["blog", "social", "letter"],
+    description: "The Tumblr mark: a solid lowercase t with a tail that turns up.",
+    reference: "simple-icons:tumblr (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Tumblr and the Tumblr logo are trademarks of Tumblr, Inc., used here only to refer to Tumblr.",
+  },
+  twitch: {
+    category: "brands",
+    labels: ["streaming", "live", "gaming"],
+    description: "The Twitch mark: a speech bubble with a cut corner, two eyes and a tail.",
+    reference: "simple-icons:twitch (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Twitch and the Twitch logo are trademarks of Twitch Interactive, Inc., used here only to refer to Twitch.",
+  },
+  twitter: {
+    category: "brands",
+    labels: ["bird", "social", "tweet"],
+    description: "The Twitter bird, solid, its beak raised.",
+    reference: "simple-icons:twitter (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Twitter and the Twitter logo are trademarks of X Corp., used here only to refer to Twitter.",
+  },
+  "twitter-square": {
+    category: "brands",
+    labels: ["bird", "social", "tweet"],
+    description: "The Twitter bird in a rounded square, the bird in the secondary tone.",
+    reference: "simple-icons:twitter (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Twitter and the Twitter logo are trademarks of X Corp., used here only to refer to Twitter.",
+  },
+  "typescript-01": {
+    category: "brands",
+    labels: ["language", "code", "javascript"],
+    description: "The TypeScript mark: a solid square with the letters TS cut out of it.",
+    reference: "simple-icons:typescript (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "TypeScript and the TypeScript logo are trademarks of Microsoft Corporation, used here only to refer to TypeScript.",
+  },
+  "typescript-02": {
+    category: "brands",
+    labels: ["file", "code", "language"],
+    description: "A document with a cut corner and the letters TS inside, in the secondary tone.",
+    reference: "simple-icons:typescript (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "TypeScript and the TypeScript logo are trademarks of Microsoft Corporation, used here only to refer to TypeScript.",
+  },
+  "typescript-03": {
+    category: "brands",
+    labels: ["file", "code", "language"],
+    description: "A document with a folded corner, its lower right taken by the letters TS.",
+    reference: "simple-icons:typescript (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "TypeScript and the TypeScript logo are trademarks of Microsoft Corporation, used here only to refer to TypeScript.",
+  },
+  unsplash: {
+    category: "brands",
+    labels: ["photos", "images", "stock"],
+    description: "The Unsplash mark: a small block above a wide block with a matching notch.",
+    reference: "simple-icons:unsplash (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Unsplash and the Unsplash logo are trademarks of Unsplash Inc., used here only to refer to Unsplash.",
+  },
+  upwork: {
+    category: "brands",
+    labels: ["freelance", "jobs", "work"],
+    description: "The Upwork mark: the letters u and p joined, the p running below the line.",
+    reference: "simple-icons:upwork (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Upwork and the Upwork logo are trademarks of Upwork Inc., used here only to refer to Upwork.",
+  },
+  viber: {
+    category: "brands",
+    labels: ["messaging", "call", "chat"],
+    description: "The Viber mark: a rounded speech bubble with a phone handset inside.",
+    reference: "simple-icons:viber (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Viber and the Viber logo are trademarks of Viber Media S.\u00e0 r.l., used here only to refer to Viber.",
+  },
+  vimeo: {
+    category: "brands",
+    labels: ["video", "hosting", "streaming"],
+    description: "The Vimeo mark: a solid v with a hooked left arm.",
+    reference: "simple-icons:vimeo (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Vimeo and the Vimeo logo are trademarks of Vimeo.com, Inc., used here only to refer to Vimeo.",
+  },
+  vine: {
+    category: "brands",
+    labels: ["video", "loop", "social"],
+    description: "The Vine mark: a v whose right arm rises and curls into a loop.",
+    reference:
+      "Hugeicons `vine` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark: "Vine and the Vine logo are trademarks of X Corp., used here only to refer to Vine.",
+  },
+  "vine-square": {
+    category: "brands",
+    labels: ["video", "loop", "social"],
+    description: "The Vine mark in a rounded square, in the secondary tone.",
+    reference:
+      "Hugeicons `vine-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark: "Vine and the Vine logo are trademarks of X Corp., used here only to refer to Vine.",
+  },
+  "visual-studio-code": {
+    category: "brands",
+    labels: ["editor", "code", "ide"],
+    description: "The Visual Studio Code mark: a tall bar with two crossed arms reaching left.",
+    reference:
+      "simple-icons:visualstudiocode (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Visual Studio Code and the Visual Studio Code logo are trademarks of Microsoft Corporation, used here only to refer to Visual Studio Code.",
+  },
+  vk: {
+    category: "brands",
+    labels: ["social", "network", "letters"],
+    description: "The VK mark: the letters V and K side by side.",
+    reference: "simple-icons:vk (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "VK and the VK logo are trademarks of VK Company Limited, used here only to refer to VK.",
+  },
+  "vk-square": {
+    category: "brands",
+    labels: ["social", "network", "letters"],
+    description: "The letters VK in a rounded square, in the secondary tone.",
+    reference: "simple-icons:vk (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "VK and the VK logo are trademarks of VK Company Limited, used here only to refer to VK.",
+  },
+  "w-3-schools": {
+    category: "brands",
+    labels: ["tutorials", "web", "learning"],
+    description: "The W3Schools mark: a letter W with a small raised 3.",
+    reference: "simple-icons:w3schools (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "W3Schools and the W3Schools logo are trademarks of Refsnes Data AS, used here only to refer to W3Schools.",
+  },
+  wattpad: {
+    category: "brands",
+    labels: ["stories", "reading", "writing"],
+    description: "The Wattpad mark: a bold W whose middle stroke splits into an arch.",
+    reference: "simple-icons:wattpad (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Wattpad and the Wattpad logo are trademarks of Wattpad Corp., used here only to refer to Wattpad.",
+  },
+  "wattpad-square": {
+    category: "brands",
+    labels: ["stories", "reading", "writing"],
+    description: "The Wattpad W in a rounded square, in the secondary tone.",
+    reference: "simple-icons:wattpad (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Wattpad and the Wattpad logo are trademarks of Wattpad Corp., used here only to refer to Wattpad.",
+  },
+  waze: {
+    category: "brands",
+    labels: ["navigation", "maps", "traffic"],
+    description: "The Waze mark: a round smiling face riding on two wheels.",
+    reference: "simple-icons:waze (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Waze and the Waze logo are trademarks of Google LLC, used here only to refer to Waze.",
+  },
+  webflow: {
+    category: "brands",
+    labels: ["website", "builder", "design"],
+    description: "The Webflow mark: a solid slanted W.",
+    reference: "simple-icons:webflow (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Webflow and the Webflow logo are trademarks of Webflow, Inc., used here only to refer to Webflow.",
+  },
+  "webflow-ellipse": {
+    category: "brands",
+    labels: ["website", "builder", "design"],
+    description: "The Webflow W in a ring, in the secondary tone.",
+    reference: "simple-icons:webflow (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Webflow and the Webflow logo are trademarks of Webflow, Inc., used here only to refer to Webflow.",
+  },
+  "webflow-rectangle": {
+    category: "brands",
+    labels: ["website", "builder", "design"],
+    description: "The Webflow W in a rounded square, in the secondary tone.",
+    reference: "simple-icons:webflow (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Webflow and the Webflow logo are trademarks of Webflow, Inc., used here only to refer to Webflow.",
+  },
+  wechat: {
+    category: "brands",
+    labels: ["messaging", "chat", "social"],
+    description:
+      "The WeChat mark: a large speech bubble overlapped by a smaller one, each with two eyes.",
+    reference: "simple-icons:wechat (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "WeChat and the WeChat logo are trademarks of Tencent Holdings Limited, used here only to refer to WeChat.",
+  },
+  whatsapp: {
+    category: "brands",
+    labels: ["messaging", "chat", "call"],
+    description:
+      "The WhatsApp mark: a round speech bubble with a pointed tail and a phone handset.",
+    reference: "simple-icons:whatsapp (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "WhatsApp and the WhatsApp logo are trademarks of WhatsApp LLC, used here only to refer to WhatsApp.",
+  },
+  "whatsapp-business": {
+    category: "brands",
+    labels: ["messaging", "business", "chat"],
+    description: "The WhatsApp bubble with a letter B inside.",
+    reference: "simple-icons:whatsapp (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "WhatsApp Business and the WhatsApp Business logo are trademarks of WhatsApp LLC, used here only to refer to WhatsApp Business.",
+  },
+  wikipedia: {
+    category: "brands",
+    labels: ["encyclopedia", "wiki", "reference"],
+    description: "The Wikipedia W: a serif W with three wide tops.",
+    reference: "simple-icons:wikipedia (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Wikipedia and the Wikipedia logo are trademarks of the Wikimedia Foundation, Inc., used here only to refer to Wikipedia.",
+  },
+  "windows-old": {
+    category: "brands",
+    labels: ["microsoft", "os", "panes"],
+    description: "The earlier Windows mark: four panes in perspective, the right ones taller.",
+    reference: "simple-icons:windows10 (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Windows and the Windows logo are trademarks of Microsoft Corporation, used here only to refer to Windows.",
+  },
+  wordpress: {
+    category: "brands",
+    labels: ["blog", "cms", "website"],
+    description: "The WordPress mark: a W inside a ring, the W in the secondary tone.",
+    reference: "simple-icons:wordpress (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "WordPress and the WordPress logo are trademarks of the WordPress Foundation, used here only to refer to WordPress.",
+  },
+  "wps-office": {
+    category: "brands",
+    labels: ["office", "documents", "suite"],
+    description: "The WPS Office mark: a bold W whose right arm rises higher, like a check mark.",
+    reference:
+      "Hugeicons `wps-office` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "WPS Office and the WPS Office logo are trademarks of Kingsoft Office Software Corporation Limited, used here only to refer to WPS Office.",
+  },
+  "wps-office-rectangle": {
+    category: "brands",
+    labels: ["office", "documents", "suite"],
+    description: "The WPS Office W in a rounded square, in the secondary tone.",
+    reference:
+      "Hugeicons `wps-office-rectangle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "WPS Office and the WPS Office logo are trademarks of Kingsoft Office Software Corporation Limited, used here only to refer to WPS Office.",
+  },
+  xing: {
+    category: "brands",
+    labels: ["network", "career", "social"],
+    description: "The XING mark: a small chevron beside a tall stroke that bends at its middle.",
+    reference: "simple-icons:xing (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "XING and the XING logo are trademarks of New Work SE, used here only to refer to XING.",
+  },
+  youtube: {
+    category: "brands",
+    labels: ["video", "play", "streaming"],
+    description: "The YouTube mark: a wide rounded rectangle with a play triangle cut out of it.",
+    reference: "simple-icons:youtube (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "YouTube and the YouTube logo are trademarks of Google LLC, used here only to refer to YouTube.",
+  },
+  zoom: {
+    category: "brands",
+    labels: ["video", "meeting", "call"],
+    description:
+      "The Zoom mark: a video camera in a rounded square, the camera in the secondary tone.",
+    reference:
+      "Hugeicons `zoom` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Zoom and the Zoom logo are trademarks of Zoom Communications, Inc., used here only to refer to Zoom.",
+  },
 };

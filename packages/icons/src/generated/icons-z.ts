@@ -26,7 +26,7 @@ export { default as ZodiacSagittariusIcon } from "../drawn/zodiac-sagittarius";
 export { default as ZodiacScorpioIcon } from "../drawn/zodiac-scorpio";
 export { default as ZodiacTaurusIcon } from "../drawn/zodiac-taurus";
 export { default as ZodiacVirgoIcon } from "../drawn/zodiac-virgo";
-export const ZoomIcon: StubIcon = { name: "zoom", implemented: false };
+export { default as ZoomIcon } from "../drawn/zoom";
 export { default as ZoomCircleIcon } from "../drawn/zoom-circle";
 export { default as ZoomCircleFillIcon } from "../drawn/zoom-circle-fill";
 export const ZoomInIcon: PixelIcon = { name: "zoom-in", implemented: true, style: "pixel", grid: 12, rows: ["...###", ".##...##", ".#.....#", "#...o...#", "#..ooo..#", "#...o...#", ".#.....#", ".##...##", "...###.##", "........##", ".........##"] };

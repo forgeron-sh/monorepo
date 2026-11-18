@@ -30,7 +30,7 @@ export const OnlineLearning02Icon: PixelIcon = { name: "online-learning-02", imp
 export { default as OnlineLearning03Icon } from "../drawn/online-learning-03";
 export const OnlineLearning04Icon: PixelIcon = { name: "online-learning-04", implemented: true, style: "pixel", grid: 12, rows: [".....oo", "...oo..oo", ".oo......oo", "...oo..oo", ".....oo", "", "..########", "..#......#", "..#......#", "..#......#", "..########", ".##########"] };
 export const OpenCaptionIcon: PixelIcon = { name: "open-caption", implemented: true, style: "pixel", grid: 12, rows: ["", "", ".##########", "#..........#", "#..........#", "#.ooo.oooo.#", "#..........#", "#.oooo.ooo.#", "#..........#", ".##########"] };
-export const OpenSourceIcon: StubIcon = { name: "open-source", implemented: false };
+export { default as OpenSourceIcon } from "../drawn/open-source";
 export { default as OpenaiIcon } from "../drawn/openai";
 export { default as OptionIcon } from "../drawn/option";
 export { default as OptionsCallIcon } from "../drawn/options-call";
@@ -44,7 +44,7 @@ export const OrientationImagePotraitToLandscapeIcon: PixelIcon = { name: "orient
 export { default as OrientationLandscapeToPotraitIcon } from "../drawn/orientation-landscape-to-potrait";
 export { default as OrientationPotraitToLandscapeIcon } from "../drawn/orientation-potrait-to-landscape";
 export { default as OrigamiIcon } from "../drawn/origami";
-export const OrthogonalEdgeIcon: StubIcon = { name: "orthogonal-edge", implemented: false };
+export { default as OrthogonalEdgeIcon } from "../drawn/orthogonal-edge";
 export { default as OvalIcon } from "../drawn/oval";
 export { default as OvalFillIcon } from "../drawn/oval-fill";
 export { default as OvenIcon } from "../drawn/oven";

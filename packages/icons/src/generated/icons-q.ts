@@ -17,7 +17,7 @@ export { default as Quiz02FillIcon } from "../drawn/quiz-02-fill";
 export { default as Quiz03Icon } from "../drawn/quiz-03";
 export const Quiz04Icon: PixelIcon = { name: "quiz-04", implemented: true, style: "pixel", grid: 12, rows: ["", "....####", ".##.#..#.##", ".#..####..#", ".#..oooo..#", ".#.o....o.#", ".#.....oo.#", ".#....o...#", ".#....o...#", ".#........#", ".#....o...#", ".##########"] };
 export const Quiz05Icon: PixelIcon = { name: "quiz-05", implemented: true, style: "pixel", grid: 12, rows: ["", "....####", ".##.#..#.##", ".#..####..#", ".#..oooo..#", ".#.o....o.#", ".#.....oo.#", ".#....o...#", ".#....o...#", ".#........#", ".#....o...#", ".##########"] };
-export const QuoraIcon: StubIcon = { name: "quora", implemented: false };
+export { default as QuoraIcon } from "../drawn/quora";
 export const QuoteIcon: PixelIcon = { name: "quote", implemented: true, style: "pixel", grid: 12, rows: ["", "", "", ".####..####", ".####..####", ".####..####", "....#.....#", "...#.....#", "..#.....#"] };
 export { default as QuoteDownIcon } from "../drawn/quote-down";
 export { default as QuoteDownCircleIcon } from "../drawn/quote-down-circle";

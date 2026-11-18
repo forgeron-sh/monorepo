@@ -15,6 +15,6 @@ export { default as Yoga03Icon } from "../drawn/yoga-03";
 export { default as YogaBallIcon } from "../drawn/yoga-ball";
 export { default as YogaMatIcon } from "../drawn/yoga-mat";
 export { default as YogurtIcon } from "../drawn/yogurt";
-export const YoutubeIcon: StubIcon = { name: "youtube", implemented: false };
+export { default as YoutubeIcon } from "../drawn/youtube";
 export { default as YurtIcon } from "../drawn/yurt";
 export { default as YurtFillIcon } from "../drawn/yurt-fill";

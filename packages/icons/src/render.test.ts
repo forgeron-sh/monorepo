@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { getEntry, getIcon } from "./catalog";
 import * as icons from "./index";
-import { AdobePhotoshopIcon, AnvilIcon, ForgeronIcon } from "./index";
+import { ZshIcon, AnvilIcon, ForgeronIcon } from "./index";
 import { hasDuotone, isImplemented, pixelRows, toSvg } from "./render";
 import { SAME_AS } from "./generator/same-as";
 import type { DrawnIcon } from "./types";
 
 describe("stubs", () => {
   it("render nothing and say so", () => {
-    expect(AdobePhotoshopIcon).toEqual({ name: "adobe-photoshop", implemented: false });
-    expect(isImplemented(AdobePhotoshopIcon)).toBe(false);
-    expect(hasDuotone(AdobePhotoshopIcon)).toBe(false);
-    expect(toSvg(AdobePhotoshopIcon)).toBeNull();
+    expect(ZshIcon).toEqual({ name: "zsh", implemented: false });
+    expect(isImplemented(ZshIcon)).toBe(false);
+    expect(hasDuotone(ZshIcon)).toBe(false);
+    expect(toSvg(ZshIcon)).toBeNull();
   });
 });
 
@@ -60,15 +60,26 @@ const WIDER_GRID: Record<string, number> = {
   asana: 16,
   attio: 16,
   cloudflare: 16,
+  codepen: 16,
   confluence: 16,
+  deepseek: 16,
   github: 16,
+  imo: 16,
   intercom: 16,
   jira: 16,
   linear: 16,
   mistral: 16,
   "notion-01": 16,
   openai: 16,
+  php: 16,
+  picasa: 16,
+  react: 16,
   salesforce: 16,
+  slack: 16,
+  threads: 16,
+  "threads-ellipse": 16,
+  "threads-rectangle": 16,
+  "vk-square": 16,
   zendesk: 16,
 };
 

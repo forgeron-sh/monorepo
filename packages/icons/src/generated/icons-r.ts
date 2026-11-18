@@ -22,7 +22,7 @@ export const RadioReceiverIcon: PixelIcon = { name: "radio-receiver", implemente
 export const RadioTowerIcon: PixelIcon = { name: "radio-tower", implemented: true, style: "pixel", grid: 12, rows: ["", ".o........o", "o..o....o..o", "o.o..##..o.o", "o.o..##..o.o", "o..o....o..o", ".o...##...o", ".....##", ".....##", ".....##", "....####"] };
 export const RadioactiveAlertIcon: StubIcon = { name: "radioactive-alert", implemented: false };
 export { default as RadiusIcon } from "../drawn/radius";
-export const RailSymbolIcon: StubIcon = { name: "rail-symbol", implemented: false };
+export { default as RailSymbolIcon } from "../drawn/rail-symbol";
 export { default as RainIcon } from "../drawn/rain";
 export { default as RainDoubleDropIcon } from "../drawn/rain-double-drop";
 export { default as RainDoubleDropFillIcon } from "../drawn/rain-double-drop-fill";
@@ -41,7 +41,7 @@ export { default as RatioIcon } from "../drawn/ratio";
 export { default as Raw01Icon } from "../drawn/raw-01";
 export const Raw02Icon: PixelIcon = { name: "raw-02", implemented: true, style: "pixel", grid: 12, rows: ["", "..#####", "..#...##", "..#...#.#", "..#...####", "..#......#", "", ".oo..ooo.o.o", ".o.o.o.o.o.o", ".oo..ooo.o.o", ".o.o.o.o.ooo", ".o.o.o.o.o.o"] };
 export const ReIcon: StubIcon = { name: "re", implemented: false };
-export const ReactIcon: StubIcon = { name: "react", implemented: false };
+export { default as ReactIcon } from "../drawn/react";
 export { default as RealEstate01Icon } from "../drawn/real-estate-01";
 export const RealEstate02Icon: PixelIcon = { name: "real-estate-02", implemented: true, style: "pixel", grid: 12, rows: ["", ".#####", ".#...#", ".#.#.#", ".#...#.##", ".#...##..#", ".#.#.#....#", ".#...#....#", ".#...#.##.#", ".#...#.##.#", ".##########"] };
 export { default as ReceiptIcon } from "../drawn/receipt";
@@ -70,7 +70,7 @@ export const Rectangular01Icon: PixelIcon = { name: "rectangular-01", implemente
 export const Recycle01Icon: StubIcon = { name: "recycle-01", implemented: false };
 export const Recycle02Icon: StubIcon = { name: "recycle-02", implemented: false };
 export const Recycle03Icon: StubIcon = { name: "recycle-03", implemented: false };
-export const RedditIcon: StubIcon = { name: "reddit", implemented: false };
+export { default as RedditIcon } from "../drawn/reddit";
 export const RedoIcon: PixelIcon = { name: "redo", implemented: true, style: "pixel", grid: 12, rows: ["", "", "........#", ".........#", "...########", "..#......#", ".#......#", ".#", "..#", "...#######"] };
 export const Redo01Icon: PixelIcon = { name: "redo-01", implemented: true, style: "pixel", grid: 12, rows: ["", "", "........#", ".........#", "...########", "..#......#", ".#......#", ".#", "..#", "...#######"] };
 export { default as Redo02Icon } from "../drawn/redo-02";
@@ -120,7 +120,7 @@ export const RepeatOne02Icon: PixelIcon = { name: "repeat-one-02", implemented: 
 export { default as ReplaceIcon } from "../drawn/replace";
 export const ReplaceAllIcon: PixelIcon = { name: "replace-all", implemented: true, style: "pixel", grid: 12, rows: ["", ".####", ".#..#.oooo", ".#..#....o", ".####...ooo", ".........o", "..o", ".ooo...####", "..o....#..#", "..oooo.#..#", ".......####"] };
 export { default as ReplayIcon } from "../drawn/replay";
-export const ReplitIcon: StubIcon = { name: "replit", implemented: false };
+export { default as ReplitIcon } from "../drawn/replit";
 export const ReplyIcon: PixelIcon = { name: "reply", implemented: true, style: "pixel", grid: 12, rows: ["", "...#", "..#", ".########", "..#......#", "...#......#", "..........#", "..........#", "..........#", "..........#", "..........#"] };
 export { default as ReplyAllIcon } from "../drawn/reply-all";
 export { default as RepositoryIcon } from "../drawn/repository";
@@ -167,7 +167,7 @@ export const Road02Icon: PixelIcon = { name: "road-02", implemented: true, style
 export { default as RoadLocation01Icon } from "../drawn/road-location-01";
 export const RoadLocation02Icon: StubIcon = { name: "road-location-02", implemented: false };
 export const RoadWaysideIcon: StubIcon = { name: "road-wayside", implemented: false };
-export const RobloxIcon: StubIcon = { name: "roblox", implemented: false };
+export { default as RobloxIcon } from "../drawn/roblox";
 export { default as Robot01Icon } from "../drawn/robot-01";
 export { default as Robot02Icon } from "../drawn/robot-02";
 export const RoboticIcon: PixelIcon = { name: "robotic", implemented: true, style: "pixel", grid: 12, rows: ["", ".....##", ".....##", ".##########", ".#........#", "##.oo..oo.##", "##.oo..oo.##", ".#........#", ".#..####..#", ".#........#", ".##########"] };

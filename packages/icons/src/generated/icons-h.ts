@@ -2,7 +2,7 @@
 // Do not edit: draw an icon in src/drawn/<name>.ts, then run the generator.
 import type { PixelIcon, StubIcon } from "../types";
 
-export const HackerrankIcon: StubIcon = { name: "hackerrank", implemented: false };
+export { default as HackerrankIcon } from "../drawn/hackerrank";
 export const HairClipsIcon: StubIcon = { name: "hair-clips", implemented: false };
 export { default as HairDryerIcon } from "../drawn/hair-dryer";
 export const HajiIcon: StubIcon = { name: "haji", implemented: false };
@@ -47,7 +47,7 @@ export { default as HandsClappingIcon } from "../drawn/hands-clapping";
 export { default as HandshakeIcon } from "../drawn/handshake";
 export { default as HangerIcon } from "../drawn/hanger";
 export { default as HangingClockIcon } from "../drawn/hanging-clock";
-export const HangoutIcon: StubIcon = { name: "hangout", implemented: false };
+export { default as HangoutIcon } from "../drawn/hangout";
 export { default as HappyIcon } from "../drawn/happy";
 export { default as Happy01Icon } from "../drawn/happy-01";
 export { default as Happy01FillIcon } from "../drawn/happy-01-fill";
@@ -201,10 +201,10 @@ export { default as HousePlugIcon } from "../drawn/house-plug";
 export { default as HousePlusIcon } from "../drawn/house-plus";
 export { default as HouseSolarPanelIcon } from "../drawn/house-solar-panel";
 export { default as HouseWifiIcon } from "../drawn/house-wifi";
-export const Html5Icon: StubIcon = { name: "html-5", implemented: false };
+export { default as Html5Icon } from "../drawn/html-5";
 export const HtmlFile01Icon: PixelIcon = { name: "html-file-01", implemented: true, style: "pixel", grid: 12, rows: ["", ".#####", ".#...##", ".#...#.#", ".#...####", ".#", ".#", ".#.....o.o", ".#....o...o", ".#.....o.o", ".####"] };
 export const HtmlFile02Icon: PixelIcon = { name: "html-file-02", implemented: true, style: "pixel", grid: 12, rows: ["", ".#####", ".#...##", ".#...#.#", ".#...####", ".#", ".#", ".#.....o.o", ".#....o...o", ".#.....o.o", ".####"] };
-export const HugeiconsIcon: StubIcon = { name: "hugeicons", implemented: false };
+export { default as HugeiconsIcon } from "../drawn/hugeicons";
 export { default as HumidityIcon } from "../drawn/humidity";
 export { default as HutIcon } from "../drawn/hut";
 export { default as HydroPowerIcon } from "../drawn/hydro-power";

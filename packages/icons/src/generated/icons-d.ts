@@ -48,7 +48,7 @@ export const DatevIcon: StubIcon = { name: "datev", implemented: false };
 export const DeadIcon: PixelIcon = { name: "dead", implemented: true, style: "pixel", grid: 12, rows: ["", "...######", "..#......#", ".#........#", ".#.##..##.#", ".#.##..##.#", ".#........#", "..##....##", "...#.##.#", "...#....#", "...######"] };
 export { default as DecimalsArrowLeftIcon } from "../drawn/decimals-arrow-left";
 export { default as DecimalsArrowRightIcon } from "../drawn/decimals-arrow-right";
-export const DeepseekIcon: StubIcon = { name: "deepseek", implemented: false };
+export { default as DeepseekIcon } from "../drawn/deepseek";
 export { default as Delete01Icon } from "../drawn/delete-01";
 export { default as Delete02Icon } from "../drawn/delete-02";
 export { default as Delete03Icon } from "../drawn/delete-03";
@@ -89,7 +89,7 @@ export const DessertIcon: PixelIcon = { name: "dessert", implemented: true, styl
 export { default as DetergentIcon } from "../drawn/detergent";
 export { default as DetergentFillIcon } from "../drawn/detergent-fill";
 export { default as DeveloperIcon } from "../drawn/developer";
-export const DeviantartIcon: StubIcon = { name: "deviantart", implemented: false };
+export { default as DeviantartIcon } from "../drawn/deviantart";
 export { default as DeviceAccessIcon } from "../drawn/device-access";
 export { default as DiagonalScrollPoint01Icon } from "../drawn/diagonal-scroll-point-01";
 export { default as DiagonalScrollPoint02Icon } from "../drawn/diagonal-scroll-point-02";
@@ -140,7 +140,7 @@ export const DiscIcon: PixelIcon = { name: "disc", implemented: true, style: "pi
 export const Disc2Icon: PixelIcon = { name: "disc-2", implemented: true, style: "pixel", grid: 12, rows: ["....####", "..##....##", ".#........#", ".#........#", "#....##....#", "#...#..#...#", "#...#..#...#", "#....##....#", ".#........#", ".#........#", "..##....##", "....####"] };
 export const Disc3Icon: PixelIcon = { name: "disc-3", implemented: true, style: "pixel", grid: 12, rows: ["....####", "..##....##", ".#........#", ".#........#", "#....##....#", "#...#..#...#", "#...#..#...#", "#....##....#", ".#........#", ".#........#", "..##....##", "....####"] };
 export { default as DiscAlbumIcon } from "../drawn/disc-album";
-export const DiscordIcon: StubIcon = { name: "discord", implemented: false };
+export { default as DiscordIcon } from "../drawn/discord";
 export const DiscountIcon: PixelIcon = { name: "discount", implemented: true, style: "pixel", grid: 12, rows: ["", ".....##", "..###..###", "..#......#", "..#.o..o.#", ".#....o...#", ".#...o....#", "..#.o..o.#", "..#......#", "..###..###", ".....##"] };
 export const Discount01Icon: PixelIcon = { name: "discount-01", implemented: true, style: "pixel", grid: 12, rows: ["", ".....##", "..###..###", "..#......#", "..#.o..o.#", ".#....o...#", ".#...o....#", "..#.o..o.#", "..#......#", "..###..###", ".....##"] };
 export { default as DiscountTag01Icon } from "../drawn/discount-tag-01";
@@ -246,7 +246,7 @@ export const Dress07Icon: PixelIcon = { name: "dress-07", implemented: true, sty
 export { default as DressingTable01Icon } from "../drawn/dressing-table-01";
 export { default as DressingTable02Icon } from "../drawn/dressing-table-02";
 export const DressingTable03Icon: PixelIcon = { name: "dressing-table-03", implemented: true, style: "pixel", grid: 12, rows: ["", "....####", "...#....#", "...#..o.#", "...#.o..#", "....####", ".....##", ".##########", ".#........#", ".##########", ".#........#", ".#........#"] };
-export const DribbbleIcon: StubIcon = { name: "dribbble", implemented: false };
+export { default as DribbbleIcon } from "../drawn/dribbble";
 export { default as DrillIcon } from "../drawn/drill";
 export { default as DrinkIcon } from "../drawn/drink";
 export const DriveIcon: PixelIcon = { name: "drive", implemented: true, style: "pixel", grid: 12, rows: ["", "", "..########", ".#........#", ".#........#", ".#........#", ".#........#", ".##########", ".#.##..oo.#", "..########"] };
