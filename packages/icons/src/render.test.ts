@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { getEntry, getIcon } from "./catalog";
 import * as icons from "./index";
-import { AbacusIcon, AnvilIcon, ForgeronIcon } from "./index";
+import { AdobePhotoshopIcon, AnvilIcon, ForgeronIcon } from "./index";
 import { hasDuotone, isImplemented, pixelRows, toSvg } from "./render";
 import { SAME_AS } from "./generator/same-as";
 import type { DrawnIcon } from "./types";
 
 describe("stubs", () => {
   it("render nothing and say so", () => {
-    expect(AbacusIcon).toEqual({ name: "abacus", implemented: false });
-    expect(isImplemented(AbacusIcon)).toBe(false);
-    expect(hasDuotone(AbacusIcon)).toBe(false);
-    expect(toSvg(AbacusIcon)).toBeNull();
+    expect(AdobePhotoshopIcon).toEqual({ name: "adobe-photoshop", implemented: false });
+    expect(isImplemented(AdobePhotoshopIcon)).toBe(false);
+    expect(hasDuotone(AdobePhotoshopIcon)).toBe(false);
+    expect(toSvg(AdobePhotoshopIcon)).toBeNull();
   });
 });
 

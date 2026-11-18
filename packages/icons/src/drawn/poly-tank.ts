@@ -1,0 +1,26 @@
+import type { PixelIcon } from "../types";
+
+// Water tank: a domed cylinder with a lid on top and two moulded ribs.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "poly-tank",
+  implemented: true,
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    ".....##",
+    "...######",
+    "..#......#",
+    ".#........#",
+    ".##########",
+    ".#........#",
+    ".#........#",
+    ".##########",
+    ".#........#",
+    "..########",
+  ],
+};
+
+export default icon;

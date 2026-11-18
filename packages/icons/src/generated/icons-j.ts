@@ -28,8 +28,8 @@ export const Jpg02Icon: PixelIcon = { name: "jpg-02", implemented: true, style: 
 export { default as Jsx01Icon } from "../drawn/jsx-01";
 export const Jsx02Icon: PixelIcon = { name: "jsx-02", implemented: true, style: "pixel", grid: 12, rows: ["", "", "", "...#..##.#.#", "...#.#...#.#", "...#..#...#", ".#.#...#.#.#", "..#..##..#.#"] };
 export const Jsx03Icon: PixelIcon = { name: "jsx-03", implemented: true, style: "pixel", grid: 12, rows: ["", "", "", "...#..##.#.#", "...#.#...#.#", "...#..#...#", ".#.#...#.#.#", "..#..##..#.#"] };
-export const JudgeIcon: StubIcon = { name: "judge", implemented: false };
-export const JumpersIcon: StubIcon = { name: "jumpers", implemented: false };
+export const JudgeIcon: PixelIcon = { name: "judge", implemented: true, style: "pixel", grid: 12, rows: ["", ".....##", ".....###", "......###", "......####", ".....##.##", "....##", "...##", "..##", "..#..######", ".....######"] };
+export { default as JumpersIcon } from "../drawn/jumpers";
 export const JupiterIcon: StubIcon = { name: "jupiter", implemented: false };
 export const JusticeScale01Icon: PixelIcon = { name: "justice-scale-01", implemented: true, style: "pixel", grid: 12, rows: ["", ".....##", ".##########", ".#...##...#", "#.#..##..#.#", "oooo.##.oooo", ".....##", ".....##", ".....##", "...######"] };
 export const JusticeScale02Icon: PixelIcon = { name: "justice-scale-02", implemented: true, style: "pixel", grid: 12, rows: ["", ".....##", ".##########", ".#...##...#", "#.#..##..#.#", "oooo.##.oooo", ".....##", ".....##", ".....##", "...######"] };

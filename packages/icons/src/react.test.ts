@@ -1,7 +1,7 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AbacusIcon, AnvilIcon, GitForkIcon } from "./index";
+import { AdobePhotoshopIcon, AnvilIcon, GitForkIcon } from "./index";
 import { Icon } from "./react";
 import { toSvg } from "./render";
 
@@ -10,7 +10,7 @@ const selfClose = (markup: string) => markup.replace(/<(\w+)([^<>]*)><\/\1>/g, "
 
 describe("Icon", () => {
   it("renders nothing for a stub", () => {
-    expect(html(h(Icon, { icon: AbacusIcon }))).toBe("");
+    expect(html(h(Icon, { icon: AdobePhotoshopIcon }))).toBe("");
   });
 
   it("renders the same markup as toSvg", () => {
