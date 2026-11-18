@@ -13,6 +13,18 @@ export function alloc(len) {
 }
 
 /**
+ * Room for `len` bytes of packed blocks (the script layer), returned as an address; the host
+ * writes the list there and its length into `inputs.blocks`. Moves only when it grows.
+ * @param {number} handle
+ * @param {number} len
+ * @returns {number}
+ */
+export function block_buffer(handle, len) {
+  const ret = wasm.block_buffer(handle, len);
+  return ret >>> 0;
+}
+
+/**
  * A handle for immediate mode only.
  * @returns {number}
  */
@@ -30,12 +42,12 @@ export function dealloc(ptr, len) {
 }
 
 /**
- * The tree of the loaded SceneBin as text (in the output buffer); returns its length.
+ * The still picture of the loaded scene at its root scope as set (P2): 1 when drawn, 0 on error.
  * @param {number} handle
  * @returns {number}
  */
-export function describe(handle) {
-  const ret = wasm.describe(handle);
+export function draw_scene(handle) {
+  const ret = wasm.draw_scene(handle);
   return ret >>> 0;
 }
 
@@ -68,17 +80,9 @@ export function fit_blocks(handle, ptr, len) {
 }
 
 /**
- * The loaded scene's blocks, packed (in the output buffer); returns the length, 0 on error.
- * @param {number} handle
- * @returns {number}
- */
-export function flat_blocks(handle) {
-  const ret = wasm.flat_blocks(handle);
-  return ret >>> 0;
-}
-
-/**
- * A frame of the loaded scene: 1 when drawn, 0 on error.
+ * **The** call of a frame (§3 "The frame"): reads the inputs block, runs vars, machines,
+ * timelines, the raster (when anything changed), the RGBA (when a palette is set), writes the
+ * outputs block. Returns the outputs' flags (`frame_flags`; `ERROR` on error).
  * @param {number} handle
  * @returns {number}
  */
@@ -125,6 +129,25 @@ export function ink_ptr(handle) {
 }
 
 /**
+ * @param {number} handle
+ * @returns {number}
+ */
+export function inputs_len(handle) {
+  const ret = wasm.inputs_len(handle);
+  return ret >>> 0;
+}
+
+/**
+ * The inputs block of a handle (f64 words): stable until `load`, `free` or a memory growth.
+ * @param {number} handle
+ * @returns {number}
+ */
+export function inputs_ptr(handle) {
+  const ret = wasm.inputs_ptr(handle);
+  return ret >>> 0;
+}
+
+/**
  * Reads a SceneBin; 0 on error (`error_ptr`, `error_len`).
  * @param {number} ptr
  * @param {number} len
@@ -145,11 +168,21 @@ export function material_ptr(handle) {
 }
 
 /**
- * The output buffer of `describe` and `flat_blocks`.
+ * @param {number} handle
  * @returns {number}
  */
-export function out_ptr() {
-  const ret = wasm.out_ptr();
+export function outputs_len(handle) {
+  const ret = wasm.outputs_len(handle);
+  return ret >>> 0;
+}
+
+/**
+ * The outputs block of a handle (f64 words).
+ * @param {number} handle
+ * @returns {number}
+ */
+export function outputs_ptr(handle) {
+  const ret = wasm.outputs_ptr(handle);
   return ret >>> 0;
 }
 
@@ -173,6 +206,16 @@ export function paint(handle, palette_ptr) {
  */
 export function resize(handle, width, height) {
   const ret = wasm.resize(handle, width, height);
+  return ret >>> 0;
+}
+
+/**
+ * The RGBA `frame` paints (with `set_palette`).
+ * @param {number} handle
+ * @returns {number}
+ */
+export function rgba_ptr(handle) {
+  const ret = wasm.rgba_ptr(handle);
   return ret >>> 0;
 }
 
@@ -201,6 +244,16 @@ export function set_fit(handle, fill, unit) {
  */
 export function set_labels(handle, on) {
   wasm.set_labels(handle, on);
+}
+
+/**
+ * Seven slots × RGB at `palette_ptr`: `frame` then paints RGBA (`rgba_ptr`). 0 bytes: no paint.
+ * @param {number} handle
+ * @param {number} palette_ptr
+ * @param {number} len
+ */
+export function set_palette(handle, palette_ptr, len) {
+  wasm.set_palette(handle, palette_ptr, len);
 }
 
 /**

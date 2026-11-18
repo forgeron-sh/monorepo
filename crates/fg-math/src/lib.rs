@@ -1,6 +1,7 @@
 //! The math the Rust crates share, ported from the TypeScript so that every float64 operation
 //! happens in the same order: an exact pixel parity depends on it (docs/blueprint/engine.md, §4).
 
+pub mod fdlibm;
 pub mod iso;
 pub mod num;
 pub mod vec;

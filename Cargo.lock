@@ -18,8 +18,16 @@ checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 name = "fg-blueprint"
 version = "0.0.0"
 dependencies = [
+ "fg-blueprint-raster",
  "fg-math",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "fg-blueprint-raster"
+version = "0.0.0"
+dependencies = [
+ "fg-math",
 ]
 
 [[package]]

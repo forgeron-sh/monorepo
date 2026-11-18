@@ -3,7 +3,8 @@
   "version": 1,
   "id": "site/cli",
   "parts": {
-    "static": {
+    "body": {
+      "params": { "cursor": { "type": "flag", "default": true } },
       "prims": [
         {
           "kind": "line",
@@ -167,7 +168,14 @@
         },
         { "kind": "box", "at": [3.2, 7.299999999999999, 1.6], "size": [4, 1, 0.5] },
         { "kind": "box", "at": [1.6, 9.2, 1.6], "size": [1, 1, 0.5], "look": "accent" },
-        { "kind": "box", "at": [3.2, 9.2, 1.6], "size": [7, 1, 0.5] }
+        { "kind": "box", "at": [3.2, 9.2, 1.6], "size": [7, 1, 0.5] },
+        {
+          "kind": "box",
+          "at": [3.2, 11.1, 1.6],
+          "size": [1, 1, 1.4],
+          "look": "accent",
+          "visible": "@cursor"
+        }
       ]
     }
   },
@@ -176,7 +184,22 @@
       "title": "cli",
       "depth": "painter",
       "camera": { "view": 0, "fit": {} },
-      "root": { "instances": [{ "id": "static", "use": "static" }] }
+      "root": { "instances": [{ "id": "body", "use": "body" }] },
+      "timelines": {
+        "motion": {
+          "tracks": [
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:cursor",
+              "rate": 2,
+              "period": 2,
+              "on": 1,
+              "seed": 0
+            }
+          ]
+        }
+      }
     }
   }
 }

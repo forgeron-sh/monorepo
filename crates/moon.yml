@@ -16,7 +16,7 @@ tasks:
       runFromWorkspaceRoot: true
     inputs: ["/crates/**/*", "/Cargo.toml", "/Cargo.lock", "/rust-toolchain.toml"]
   clippy:
-    command: cargo clippy -p fg-math -p fg-blueprint --all-targets --features fg-blueprint/wasm -- -D warnings
+    command: cargo clippy -p fg-math -p fg-blueprint -p fg-blueprint-raster --all-targets --features fg-blueprint/wasm -- -D warnings
     options:
       runFromWorkspaceRoot: true
     inputs: ["/crates/**/*", "/Cargo.toml", "/Cargo.lock", "/rust-toolchain.toml"]

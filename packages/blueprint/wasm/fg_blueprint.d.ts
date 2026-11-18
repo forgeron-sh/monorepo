@@ -9,6 +9,12 @@
 export function alloc(len: number): number;
 
 /**
+ * Room for `len` bytes of packed blocks (the script layer), returned as an address; the host
+ * writes the list there and its length into `inputs.blocks`. Moves only when it grows.
+ */
+export function block_buffer(handle: number, len: number): number;
+
+/**
  * A handle for immediate mode only.
  */
 export function create(): number;
@@ -16,9 +22,9 @@ export function create(): number;
 export function dealloc(ptr: number, len: number): void;
 
 /**
- * The tree of the loaded SceneBin as text (in the output buffer); returns its length.
+ * The still picture of the loaded scene at its root scope as set (P2): 1 when drawn, 0 on error.
  */
-export function describe(handle: number): number;
+export function draw_scene(handle: number): number;
 
 export function error_len(): number;
 
@@ -30,12 +36,9 @@ export function error_ptr(): number;
 export function fit_blocks(handle: number, ptr: number, len: number): number;
 
 /**
- * The loaded scene's blocks, packed (in the output buffer); returns the length, 0 on error.
- */
-export function flat_blocks(handle: number): number;
-
-/**
- * A frame of the loaded scene: 1 when drawn, 0 on error.
+ * **The** call of a frame (§3 "The frame"): reads the inputs block, runs vars, machines,
+ * timelines, the raster (when anything changed), the RGBA (when a palette is set), writes the
+ * outputs block. Returns the outputs' flags (`frame_flags`; `ERROR` on error).
  */
 export function frame(handle: number): number;
 
@@ -50,6 +53,13 @@ export function immediate(handle: number, ptr: number, len: number): number;
 
 export function ink_ptr(handle: number): number;
 
+export function inputs_len(handle: number): number;
+
+/**
+ * The inputs block of a handle (f64 words): stable until `load`, `free` or a memory growth.
+ */
+export function inputs_ptr(handle: number): number;
+
 /**
  * Reads a SceneBin; 0 on error (`error_ptr`, `error_len`).
  */
@@ -57,10 +67,12 @@ export function load(ptr: number, len: number): number;
 
 export function material_ptr(handle: number): number;
 
+export function outputs_len(handle: number): number;
+
 /**
- * The output buffer of `describe` and `flat_blocks`.
+ * The outputs block of a handle (f64 words).
  */
-export function out_ptr(): number;
+export function outputs_ptr(handle: number): number;
 
 /**
  * RGBA of the last frame with `palette` (7 slots × RGB at `palette_ptr`); returns its pointer.
@@ -73,6 +85,11 @@ export function paint(handle: number, palette_ptr: number): number;
 export function resize(handle: number, width: number, height: number): number;
 
 /**
+ * The RGBA `frame` paints (with `set_palette`).
+ */
+export function rgba_ptr(handle: number): number;
+
+/**
  * 0 painter, 1 z-buffer.
  */
 export function set_depth(handle: number, mode: number): void;
@@ -83,6 +100,11 @@ export function set_depth(handle: number, mode: number): void;
 export function set_fit(handle: number, fill: number, unit: number): void;
 
 export function set_labels(handle: number, on: boolean): void;
+
+/**
+ * Seven slots × RGB at `palette_ptr`: `frame` then paints RGBA (`rgba_ptr`). 0 bytes: no paint.
+ */
+export function set_palette(handle: number, palette_ptr: number, len: number): void;
 
 /**
  * Dither 0 (flat), 2, 4 or 8; glow radius 0 for none.
@@ -126,26 +148,31 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly alloc: (a: number) => number;
+  readonly block_buffer: (a: number, b: number) => number;
   readonly create: () => number;
   readonly dealloc: (a: number, b: number) => void;
-  readonly describe: (a: number) => number;
+  readonly draw_scene: (a: number) => number;
   readonly error_len: () => number;
   readonly error_ptr: () => number;
   readonly fit_blocks: (a: number, b: number, c: number) => number;
-  readonly flat_blocks: (a: number) => number;
   readonly frame: (a: number) => number;
   readonly free: (a: number) => void;
   readonly height: (a: number) => number;
   readonly immediate: (a: number, b: number, c: number) => number;
   readonly ink_ptr: (a: number) => number;
+  readonly inputs_len: (a: number) => number;
+  readonly inputs_ptr: (a: number) => number;
   readonly load: (a: number, b: number) => number;
   readonly material_ptr: (a: number) => number;
-  readonly out_ptr: () => number;
+  readonly outputs_len: (a: number) => number;
+  readonly outputs_ptr: (a: number) => number;
   readonly paint: (a: number, b: number) => number;
   readonly resize: (a: number, b: number, c: number) => number;
+  readonly rgba_ptr: (a: number) => number;
   readonly set_depth: (a: number, b: number) => void;
   readonly set_fit: (a: number, b: number, c: number) => void;
   readonly set_labels: (a: number, b: number) => void;
+  readonly set_palette: (a: number, b: number, c: number) => void;
   readonly set_shading: (a: number, b: number, c: number, d: number) => void;
   readonly set_var: (a: number, b: number, c: number) => void;
   readonly set_view: (a: number, b: number, c: number, d: number) => void;

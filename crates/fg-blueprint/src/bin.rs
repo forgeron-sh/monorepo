@@ -70,6 +70,114 @@ pub struct Prim {
     pub active: Option<Flag>,
     pub plain: bool,
     pub fixed: bool,
+    /// A rig prim's rig (`code::rig`, -1 otherwise) and its settings.
+    pub rig: i32,
+    pub rig_args: Range<usize>,
+}
+
+/// A setting of a rig prim (`code::rig_arg` kinds).
+#[derive(Clone, Debug, PartialEq)]
+pub struct RigArg {
+    pub name: usize,
+    pub kind: i32,
+    pub num: usize,
+    pub flag: Flag,
+    pub then: i32,
+    pub otherwise: i32,
+    pub text: Option<usize>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Var {
+    pub name: usize,
+    pub ty: i32,
+    /// Index in the root scope; `None` for `time` and `pointer`.
+    pub slot: Option<usize>,
+    pub default: f64,
+    /// An int var's cycle: (every, count).
+    pub cycle: Option<(f64, f64)>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Timeline {
+    pub name: usize,
+    /// The root scope slot of a var clock; `None` for the time.
+    pub clock: Option<usize>,
+    pub length: Option<f64>,
+    pub looping: i32,
+    pub tracks: Range<usize>,
+}
+
+/// A track: the fields its kind uses (`code::track`); NaN or `None` elsewhere.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Track {
+    pub kind: i32,
+    /// An instance index; `None` for the scene's root.
+    pub target: Option<usize>,
+    pub channel: i32,
+    pub param: usize,
+    pub keys: Range<usize>,
+    pub path: Range<usize>,
+    pub rate: f64,
+    pub phase: Option<f64>,
+    pub period: f64,
+    pub on: f64,
+    pub at: f64,
+    pub seed: f64,
+    pub duration: f64,
+    pub delay: f64,
+    pub ease: i32,
+    pub def: usize,
+    pub count: usize,
+    pub speed: f64,
+    pub wave: i32,
+    pub amp: f64,
+    pub base: f64,
+    pub clip: bool,
+    pub to_slot: usize,
+    pub to_then: f64,
+    pub to_else: f64,
+    pub args: Range<usize>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Key {
+    pub t: f64,
+    pub v: [f64; 3],
+    pub ease: i32,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Machine {
+    pub name: usize,
+    pub initial: usize,
+    pub states: Range<usize>,
+    pub transitions: Range<usize>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct State {
+    pub name: usize,
+    /// Timeline indices (a run of the play section).
+    pub plays: Range<usize>,
+    /// (slot, value) pairs (a run of the set section).
+    pub sets: Range<usize>,
+    pub shot: Option<usize>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Transition {
+    /// A state index of the machine; `None` for any state.
+    pub from: Option<usize>,
+    pub to: usize,
+    pub when: i32,
+    pub slot: usize,
+    pub lo: f64,
+    pub hi: f64,
+    pub value: f64,
+    pub after: f64,
+    pub event: usize,
+    pub dissolve: f64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -132,6 +240,16 @@ pub struct SceneBin {
     pub instances: Vec<Instance>,
     pub args: Vec<Arg>,
     pub sockets: Vec<Socket>,
+    pub rig_args: Vec<RigArg>,
+    pub vars: Vec<Var>,
+    pub timelines: Vec<Timeline>,
+    pub tracks: Vec<Track>,
+    pub keys: Vec<Key>,
+    pub machines: Vec<Machine>,
+    pub states: Vec<State>,
+    pub plays: Vec<usize>,
+    pub sets: Vec<(usize, f64)>,
+    pub transitions: Vec<Transition>,
     pub scene: SceneRec,
 }
 
@@ -201,17 +319,15 @@ fn choice(kind: f64, a: f64, then: f64, otherwise: f64) -> Option<Choice> {
 
 pub fn read(bytes: &[u8]) -> Result<SceneBin, String> {
     use L::{
-        arg, def, header as H, instance as I, num, param, point, prim as P, scene, socket, string,
+        arg, def, header as H, instance as I, key, machine, num, param, play, point, prim as P,
+        rig_arg, scene, set, socket, state, string, timeline, track as T, transition as X, var,
     };
     if bytes.len() < H::WORDS * 8 || word(bytes, H::MAGIC) as u32 != L::SCENE_MAGIC {
         return Err("not a SceneBin".into());
     }
     let version = word(bytes, H::VERSION) as u32;
     if version != L::SCENE_VERSION {
-        return Err(format!(
-            "SceneBin version {version}, this engine reads {}",
-            L::SCENE_VERSION
-        ));
+        return Err("SceneBin of another version: this engine reads version 1".into());
     }
     let count = |f: usize| word(bytes, f).max(0.0) as usize;
     let mut r = Reader {
@@ -227,6 +343,16 @@ pub fn read(bytes: &[u8]) -> Result<SceneBin, String> {
     let instances = r.records(count(H::INSTANCES), I::WORDS)?;
     let args = r.records(count(H::ARGS), arg::WORDS)?;
     let sockets = r.records(count(H::SOCKETS), socket::WORDS)?;
+    let rig_args = r.records(count(H::RIG_ARGS), rig_arg::WORDS)?;
+    let vars = r.records(count(H::VARS), var::WORDS)?;
+    let timelines = r.records(count(H::TIMELINES), timeline::WORDS)?;
+    let tracks = r.records(count(H::TRACKS), T::WORDS)?;
+    let keys = r.records(count(H::KEYS), key::WORDS)?;
+    let machines = r.records(count(H::MACHINES), machine::WORDS)?;
+    let states = r.records(count(H::STATES), state::WORDS)?;
+    let plays = r.records(count(H::PLAYS), play::WORDS)?;
+    let sets = r.records(count(H::SETS), set::WORDS)?;
+    let transitions = r.records(count(H::TRANSITIONS), X::WORDS)?;
     let scene_raw = r.records(1, scene::WORDS)?.remove(0);
     let text_start = r.at * 8;
     let text_len = count(H::BYTES);
@@ -303,6 +429,12 @@ pub fn read(bytes: &[u8]) -> Result<SceneBin, String> {
                 active: flag(p[P::ACTIVE_KIND], p[P::ACTIVE_A]),
                 plain: p[P::PLAIN] != 0.0,
                 fixed: p[P::FIXED] != 0.0,
+                rig: if p[P::RIG] >= 0.0 {
+                    p[P::RIG] as i32
+                } else {
+                    -1
+                },
+                rig_args: range(p[P::RIG_ARGS], p[P::RIG_ARG_COUNT]),
             })
             .collect(),
         points: points.iter().map(|p| p[point::AT] as usize).collect(),
@@ -343,6 +475,129 @@ pub fn read(bytes: &[u8]) -> Result<SceneBin, String> {
                 at: opt_index(s[socket::AT]),
                 instance: opt_index(s[socket::INSTANCE]),
                 socket: opt_index(s[socket::SOCKET]),
+            })
+            .collect(),
+        rig_args: rig_args
+            .iter()
+            .map(|a| RigArg {
+                name: a[rig_arg::NAME] as usize,
+                kind: a[rig_arg::KIND] as i32,
+                num: a[rig_arg::NUM].max(0.0) as usize,
+                flag: Flag {
+                    kind: a[rig_arg::FLAG_KIND] as i32,
+                    a: a[rig_arg::FLAG_A],
+                },
+                then: a[rig_arg::THEN] as i32,
+                otherwise: a[rig_arg::ELSE] as i32,
+                text: opt_index(a[rig_arg::TEXT]),
+            })
+            .collect(),
+        vars: vars
+            .iter()
+            .map(|v| Var {
+                name: v[var::NAME] as usize,
+                ty: v[var::TYPE] as i32,
+                slot: opt_index(v[var::SLOT]),
+                default: v[var::DEFAULT],
+                cycle: if v[var::EVERY].is_nan() {
+                    None
+                } else {
+                    Some((v[var::EVERY], v[var::COUNT]))
+                },
+            })
+            .collect(),
+        timelines: timelines
+            .iter()
+            .map(|t| Timeline {
+                name: t[timeline::NAME] as usize,
+                clock: if t[timeline::CLOCK] as i32 == code::clock::VAR {
+                    opt_index(t[timeline::CLOCK_SLOT])
+                } else {
+                    None
+                },
+                length: opt_num(t[timeline::LENGTH]),
+                looping: t[timeline::LOOP] as i32,
+                tracks: range(t[timeline::TRACKS], t[timeline::TRACK_COUNT]),
+            })
+            .collect(),
+        tracks: tracks
+            .iter()
+            .map(|t| Track {
+                kind: t[T::KIND] as i32,
+                target: opt_index(t[T::TARGET]),
+                channel: t[T::CHANNEL] as i32,
+                param: t[T::PARAM].max(0.0) as usize,
+                keys: range(t[T::KEYS], t[T::KEY_COUNT]),
+                path: range(t[T::PATH], t[T::PATH_COUNT]),
+                rate: t[T::RATE],
+                phase: opt_num(t[T::PHASE]),
+                period: t[T::PERIOD],
+                on: t[T::ON],
+                at: t[T::AT],
+                seed: t[T::SEED],
+                duration: t[T::DURATION],
+                delay: t[T::DELAY],
+                ease: t[T::EASE] as i32,
+                def: t[T::USE].max(0.0) as usize,
+                count: t[T::COUNT].max(0.0) as usize,
+                speed: t[T::SPEED],
+                wave: t[T::WAVE] as i32,
+                amp: t[T::AMP],
+                base: t[T::BASE],
+                clip: t[T::CLIP] > 0.0,
+                to_slot: t[T::TO_SLOT].max(0.0) as usize,
+                to_then: t[T::TO_THEN],
+                to_else: t[T::TO_ELSE],
+                args: range(t[T::ARGS], t[T::ARG_COUNT]),
+            })
+            .collect(),
+        keys: keys
+            .iter()
+            .map(|k| Key {
+                t: k[key::T],
+                v: [k[key::V0], k[key::V1], k[key::V2]],
+                ease: k[key::EASE] as i32,
+            })
+            .collect(),
+        machines: machines
+            .iter()
+            .map(|m| Machine {
+                name: m[machine::NAME] as usize,
+                initial: m[machine::INITIAL].max(0.0) as usize,
+                states: range(m[machine::STATES], m[machine::STATE_COUNT]),
+                transitions: range(m[machine::TRANSITIONS], m[machine::TRANSITION_COUNT]),
+            })
+            .collect(),
+        states: states
+            .iter()
+            .map(|st| State {
+                name: st[state::NAME] as usize,
+                plays: range(st[state::PLAYS], st[state::PLAY_COUNT]),
+                sets: range(st[state::SETS], st[state::SET_COUNT]),
+                shot: opt_index(st[state::SHOT]),
+            })
+            .collect(),
+        plays: plays
+            .iter()
+            .map(|p| p[play::TIMELINE].max(0.0) as usize)
+            .collect(),
+        sets: sets
+            .iter()
+            .map(|x| (x[set::SLOT].max(0.0) as usize, x[set::VALUE]))
+            .collect(),
+        transitions: transitions
+            .iter()
+            .map(|x| Transition {
+                from: opt_index(x[X::FROM]),
+                to: x[X::TO].max(0.0) as usize,
+                when: x[X::WHEN] as i32,
+                slot: x[X::SLOT].max(0.0) as usize,
+                lo: x[X::LO],
+                hi: x[X::HI],
+                value: x[X::VALUE],
+                after: x[X::AFTER],
+                event: x[X::EVENT].max(0.0) as usize,
+                dissolve: x[X::DISSOLVE],
             })
             .collect(),
         scene: SceneRec {
@@ -428,6 +683,89 @@ impl SceneBin {
             if k.name >= s || !ok_vec(k.at) || !ok_str(k.socket) {
                 return Err("socket out of range".into());
             }
+        }
+        if self
+            .prims
+            .iter()
+            .any(|p| !in_range(&p.rig_args, self.rig_args.len()))
+        {
+            return Err("rig prim out of range".into());
+        }
+        if self.rig_args.iter().any(|a| {
+            a.name >= s
+                || !ok_str(a.text)
+                || (a.kind <= code::rig_arg::VEC
+                    && a.num + 3 > n
+                    && !(a.kind == code::rig_arg::NUM && a.num < n))
+        }) {
+            return Err("rig setting out of range".into());
+        }
+        let scope = self.defs[self.scene.root].params.len();
+        let ok_slot = |i: usize| i < scope;
+        if self
+            .vars
+            .iter()
+            .any(|v| v.name >= s || v.slot.is_some_and(|i| !ok_slot(i)))
+        {
+            return Err("var out of range".into());
+        }
+        for t in &self.timelines {
+            if t.name >= s
+                || !in_range(&t.tracks, self.tracks.len())
+                || t.clock.is_some_and(|i| !ok_slot(i))
+            {
+                return Err("timeline out of range".into());
+            }
+        }
+        for t in &self.tracks {
+            let ok = t.target.is_none_or(|i| i < self.instances.len())
+                && in_range(&t.keys, self.keys.len())
+                && in_range(&t.path, self.points.len())
+                && in_range(&t.args, self.args.len())
+                && (t.kind != code::track::CONVEYOR || t.def < self.defs.len())
+                && (t.kind != code::track::SPRING || ok_slot(t.to_slot))
+                && (t.channel != code::channel::PARAM
+                    || match t.target {
+                        None => ok_slot(t.param),
+                        Some(i) => t.param < self.defs[self.instances[i].def].params.len(),
+                    });
+            if !ok {
+                return Err("track out of range".into());
+            }
+        }
+        for m in &self.machines {
+            if m.name >= s
+                || !in_range(&m.states, self.states.len())
+                || !in_range(&m.transitions, self.transitions.len())
+                || m.initial >= m.states.len()
+            {
+                return Err("machine out of range".into());
+            }
+            for x in &self.transitions[m.transitions.clone()] {
+                let k = m.states.len();
+                if x.to >= k
+                    || x.from.is_some_and(|f| f >= k)
+                    || (x.when == code::when::EVENT && x.event >= s)
+                    || ((x.when == code::when::RANGE || x.when == code::when::EQUALS)
+                        && !ok_slot(x.slot))
+                {
+                    return Err("transition out of range".into());
+                }
+            }
+        }
+        for st in &self.states {
+            if st.name >= s
+                || !in_range(&st.plays, self.plays.len())
+                || !in_range(&st.sets, self.sets.len())
+                || !ok_str(st.shot)
+            {
+                return Err("state out of range".into());
+            }
+        }
+        if self.plays.iter().any(|&p| p >= self.timelines.len())
+            || self.sets.iter().any(|&(i, _)| !ok_slot(i))
+        {
+            return Err("state play or set out of range".into());
         }
         Ok(())
     }
@@ -614,7 +952,10 @@ impl SceneBin {
                 ink(&mut out);
             }
             code::prim::SPRITE => out.push(format!("at={}", vec(p.at))),
-            _ => {}
+            _ => {
+                out.push(format!("rig={}", p.rig));
+                out.push(format!("with={}", p.rig_args.len()));
+            }
         }
         out.join(" ")
     }
@@ -731,6 +1072,13 @@ impl SceneBin {
                 }
             }
         }
+        lines.push(format!(
+            "vars={} timelines={} tracks={} machines={}",
+            self.vars.len(),
+            self.timelines.len(),
+            self.tracks.len(),
+            self.machines.len()
+        ));
         let mut out = lines.join("\n");
         out.push('\n');
         out

@@ -99,7 +99,25 @@ An instance places a part or an assembly:
 - **`depth`**: `painter` (today's order, exactly) or `zbuffer` (a depth buffer; [`engine.md`](engine.md) §3).
 - **`filters`**: `pixel` (integer ≥ 1), `dither` (`2`, `4`, `8` or `"none"`), `glow`. `post`: `@forgeron/shaders` preset ids, outside parity.
 - **`vars`**: `time` (implicit as `t`, seconds), `progress` (0–1, written by the host), `int` (`default`, optional `cycle: { every, count }`), `pointer` (the hovered tag).
-- **`timelines`** and **`machines`**: their shapes are fixed by the schema and their meaning by [`engine.md`](engine.md) §2; they are evaluated by the engine from P3.
+- **`timelines`** and **`machines`**: their shapes are fixed by the schema and their meaning below ("Playing").
+
+### Playing
+
+What the engine does each frame (P3; [`engine.md`](engine.md) §3 "The frame" and "P3 notes"):
+
+1. **Vars.** The root scope is `t` (the clock), the `int` and `progress` vars, then the root's params. A var's value is the host's when the host set it (`set`), else the `set` of a machine's current state, else its `cycle` (`floor(t / every) mod count`), else its default.
+2. **Machines.** For each machine, the first transition, in order, whose `from` is the current state (or `"*"`: any state but its `to`) and whose `when` holds is taken; at most one per machine per frame. `range: [lo, hi]` holds while `lo ≤ v < hi` (a window that must hold at 1 ends above 1); `equals` while `v = value`; `after` once the state is that many seconds old; `event` when the host queued that event this frame, or for `hover:<tag>` and `leave` when the hovered tag changed. Entering a state starts its clock.
+3. **Timelines.** A timeline that no state plays always plays, on `t` (or on its `clock` var); one a state plays runs only in that state, on the seconds since the state was entered (or on its `clock` var). `length` folds the clock: `loop` (`c mod length`), `ping-pong`, `once` (held at `length`).
+4. **Tracks** write channels: `param:<name>` of the `target` (an instance path, `"a/b"`, or `""` for the scene's root params), or its `at`, `turn`, `scale`, visibility. A track targets the instance in its assembly's definition: every placement of that assembly moves with it.
+   - `key`: held before the first key and after the last; between two keys `a + (b − a)·ease(k)`, with the ease of the key the segment ends at. Eases: `linear`, `step` (0 until the end), `smooth` (3k² − 2k³), `glide` (parts.ts's `glide`), `in` (k²), `out` (k(2 − k)), `in-out`. Boolean keys hold.
+   - `visible`: boolean keys.
+   - `spin`: `phase + rate·clock` (`rate·clock` without a phase).
+   - `wave`: `base + f(clock·rate + phase)·amp`, `f` `sin` or `cos`, `max(0, f)` with `clip`.
+   - `blink`: 1 while `at ≤ floor(clock·rate + seed) mod period < at + on` (`at` 0 by default), else 0.
+   - `path`: `at` moves along the polyline to `ease((clock − delay) / duration)` of its length (parts.ts's `along`).
+   - `conveyor`: `count` copies of the part `use` (with `params`, in the root scope) at `(clock·speed + k·L/count) mod L` along the path (parts.ts's `tray`); their blocks follow the root's.
+   - `spring`: `now + (to − now)·min(1, dt·rate)`, `to` being `then` while the root scope's `if` is truthy, else `else`; the first frame lands on `to` (`stack6`'s plates).
+5. **Rigs** draw from their `with` settings in their part's scope, so a track on a part's param drives them (`"angle": "@angle"`). Settings: `wheel` `c`, `r`, `plane` (`xy`, `yz`, `xz`) or `e1` and `e2`, `angle`, `teeth`, `tooth` (0.5), `spokes`, `hub`, `ink`; `arm` `base`, `target`, `l1`, `l2`, `ink`; `fan` `c`, `r`, `angle`; `piston` `c`, `axis` (`x`, `y`), `angle`, `r` (1.2), `rod` (4); `pendulum` `pivot`, `length`, `plane` (`x`, `y`), `angle`, `ink`; `smoke` `top`, `t`, `n`, `seed`, `rise` (9), `thick` (1); `sparks` `at`, `t`, `n`, `seed` (`village.ts`'s flames). A rig's own layer (sparks: 1) adds to its prim's.
 
 ### The still picture (`flatten`)
 
@@ -108,3 +126,5 @@ The still picture of a scene at given var values is: `t = 0`, every var at its d
 ## 7. Converted files
 
 `scripts/blueprint/convert-site.ts` writes one file per site scene (`apps/site/src/illustrations/library/<scene>.bp.json`, id `site/<scene>`): a part `static` with the blocks every sample of the scene function draws, in the order the first sample draws them, and a scene of the same name in painter mode with one instance of it. Its `vars` declare `active` and `progress` when the picture depends on them. What varies is listed in `target/blueprint/convert-report.md`.
+
+A scene converted **by hand** (`scripts/blueprint/by-hand.ts`, P3) has one part `body` with params, its varying blocks back as prims bound to those params at the places the function draws them, and a timeline `motion` whose tracks drive the params; the params' defaults are the picture at `t = 0`. The mechanical pass never writes over a file whose scene has timelines, vars or machines.

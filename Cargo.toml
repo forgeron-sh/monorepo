@@ -15,9 +15,14 @@ panic = "abort"
 inherits = "release"
 opt-level = 3
 
-# Blueprint's raster runs every frame: speed over size (the module stays within its 150 KB).
-[profile.release.package.fg-blueprint]
+# Blueprint's raster runs every frame: speed (fg-blueprint-raster, fg-math). The rest of the
+# engine (the SceneBin reader, the scene, timelines, machines, rigs) runs a little per frame and
+# builds for size: the module stays within its 150 KB raw / 60 KB gzip (D-150, P3 notes).
+[profile.release.package.fg-blueprint-raster]
 opt-level = 3
+
+[profile.release.package.fg-blueprint]
+opt-level = "z"
 
 [profile.release.package.fg-math]
 opt-level = 3

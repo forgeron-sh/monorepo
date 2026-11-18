@@ -1,0 +1,11 @@
+[package]
+name = "fg-blueprint-raster"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.93"
+license = "Apache-2.0"
+publish = false
+description = "Blueprint's hot path: the low-resolution raster (painter and z-buffer), boxes, labels and the bitmap face, shading and paint. Its own crate so that it builds at opt-level 3 while the rest of fg-blueprint builds for size (D-150, P3 notes)."
+
+[dependencies]
+fg-math = { path = "../../fg-math" }

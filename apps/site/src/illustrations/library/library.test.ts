@@ -10,7 +10,8 @@ import { describe, expect, it } from "vitest";
 import { ROUTED, SCENE_NAMES, samplesOf } from "./samples";
 
 // The converted library (scripts/blueprint/convert-site.ts) against the scene functions: at every
-// sample, `flatten` of the file gives the blocks every sample draws, as values, float64 exact.
+// sample, `flatten` of the file gives the blocks every sample draws, as values, float64 exact. A
+// scene converted by hand (scripts/blueprint/by-hand.ts) gives its whole picture at t = 0.
 // Run in `SCENE_NAMES` order, as the converter does, so stateful scenes see the same history.
 
 const load = async (name: string): Promise<BlueprintFile> =>
@@ -31,8 +32,18 @@ describe("the converted library", () => {
   it.each(SCENE_NAMES)(
     "%s flattens to its static blocks at every sample",
     async (name) => {
-      const lib = await readBlueprint(await load(name), { location: `${name}.bp.json` });
+      const file = await load(name);
+      const lib = await readBlueprint(file, { location: `${name}.bp.json` });
       const samples = samplesOf(name);
+      // A scene converted by hand (P3) also draws what moves: its params' defaults are its
+      // picture at t = 0, and the animated parity suite (packages/blueprint/test/parity/) checks
+      // every other time.
+      if (Object.values(file.scenes ?? {}).some((s) => s.timelines)) {
+        const first = samples.find((s) => s.input.t === 0)!.blocks;
+        // oxlint-disable-next-line vitest/no-conditional-expect -- by-hand scenes differ in kind; the rest is checked below
+        expect(flatten(lib, name)).toStrictEqual(staticBlocks(first, staticCounts([first])));
+        return;
+      }
       const counts = staticCounts(samples.map((s) => s.blocks));
       // The first sample by `toStrictEqual`, every other one by exact text (JSON writes one
       // shortest form per float64): `toStrictEqual` on them all takes minutes.

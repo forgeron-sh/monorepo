@@ -2,8 +2,6 @@
 //! goes through pointers into linear memory (docs/blueprint/engine.md §3, "WASM API"). One module
 //! serves every canvas of a page, one handle each; handles keep their buffers between frames.
 
-use crate::block::Block;
-use crate::immediate::write_blocks;
 use crate::paint::paint as paint_rgba;
 use crate::render::Depth;
 use crate::shade::Glow;
@@ -15,7 +13,6 @@ use wasm_bindgen::prelude::*;
 thread_local! {
     static STAGES: RefCell<Vec<Option<Box<Stage>>>> = const { RefCell::new(Vec::new()) };
     static ERROR: RefCell<String> = const { RefCell::new(String::new()) };
-    static OUT: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
 }
 
 fn fail(message: String) -> u32 {
@@ -199,13 +196,82 @@ pub fn fit_blocks(handle: u32, ptr: usize, len: usize) -> u32 {
     })
 }
 
-/// A frame of the loaded scene: 1 when drawn, 0 on error.
+/// The still picture of the loaded scene at its root scope as set (P2): 1 when drawn, 0 on error.
 #[wasm_bindgen]
-pub fn frame(handle: u32) -> u32 {
+pub fn draw_scene(handle: u32) -> u32 {
     with(handle, 0, |s| match s.frame() {
         Ok(()) => 1,
         Err(e) => fail(e),
     })
+}
+
+/// **The** call of a frame (§3 "The frame"): reads the inputs block, runs vars, machines,
+/// timelines, the raster (when anything changed), the RGBA (when a palette is set), writes the
+/// outputs block. Returns the outputs' flags (`frame_flags`; `ERROR` on error).
+#[wasm_bindgen]
+pub fn frame(handle: u32) -> u32 {
+    with(handle, crate::layout::frame_flags::ERROR, |s| {
+        match s.step() {
+            Ok(flags) => flags,
+            Err(e) => {
+                fail(e);
+                crate::layout::frame_flags::ERROR
+            }
+        }
+    })
+}
+
+/// The inputs block of a handle (f64 words): stable until `load`, `free` or a memory growth.
+#[wasm_bindgen]
+pub fn inputs_ptr(handle: u32) -> usize {
+    with(handle, 0, |s| s.inputs.as_ptr() as usize)
+}
+
+#[wasm_bindgen]
+pub fn inputs_len(handle: u32) -> usize {
+    with(handle, 0, |s| s.inputs.len())
+}
+
+/// The outputs block of a handle (f64 words).
+#[wasm_bindgen]
+pub fn outputs_ptr(handle: u32) -> usize {
+    with(handle, 0, |s| s.outputs.as_ptr() as usize)
+}
+
+#[wasm_bindgen]
+pub fn outputs_len(handle: u32) -> usize {
+    with(handle, 0, |s| s.outputs.len())
+}
+
+/// Room for `len` bytes of packed blocks (the script layer), returned as an address; the host
+/// writes the list there and its length into `inputs.blocks`. Moves only when it grows.
+#[wasm_bindgen]
+pub fn block_buffer(handle: u32, len: usize) -> usize {
+    with(handle, 0, |s| s.block_buffer(len))
+}
+
+/// Seven slots × RGB at `palette_ptr`: `frame` then paints RGBA (`rgba_ptr`). 0 bytes: no paint.
+#[wasm_bindgen]
+pub fn set_palette(handle: u32, palette_ptr: usize, len: usize) {
+    let mut palette = [0u8; 21];
+    let on = len >= 21;
+    if on {
+        palette.copy_from_slice(unsafe { bytes(palette_ptr, 21) });
+    }
+    with(handle, (), |s| {
+        s.palette = on.then_some(palette);
+        if on {
+            let n = s.frame.width * s.frame.height * 4;
+            s.rgba.resize(n, 0);
+            crate::paint::paint(&s.frame.color, &palette, &mut s.rgba);
+        }
+    })
+}
+
+/// The RGBA `frame` paints (with `set_palette`).
+#[wasm_bindgen]
+pub fn rgba_ptr(handle: u32) -> usize {
+    with(handle, 0, |s| s.rgba.as_ptr() as usize)
 }
 
 /// A frame of a packed block list on the current view: 1 when drawn, 0 on error.
@@ -267,44 +333,6 @@ pub fn paint(handle: u32, palette_ptr: usize) -> usize {
     })
 }
 
-fn output(data: Vec<u8>) -> usize {
-    OUT.with(|o| {
-        let mut o = o.borrow_mut();
-        *o = data;
-        o.len()
-    })
-}
-
-/// The output buffer of `describe` and `flat_blocks`.
-#[wasm_bindgen]
-pub fn out_ptr() -> usize {
-    OUT.with(|o| o.borrow().as_ptr() as usize)
-}
-
-/// The tree of the loaded SceneBin as text (in the output buffer); returns its length.
-#[wasm_bindgen]
-pub fn describe(handle: u32) -> usize {
-    let text = with(handle, String::new(), |s| {
-        s.scene
-            .as_ref()
-            .map(|sc| sc.bin.describe())
-            .unwrap_or_default()
-    });
-    output(text.into_bytes())
-}
-
-/// The loaded scene's blocks, packed (in the output buffer); returns the length, 0 on error.
-#[wasm_bindgen]
-pub fn flat_blocks(handle: u32) -> usize {
-    let packed: Result<Vec<u8>, String> = with(handle, Err("no such handle".into()), |s| {
-        s.flat_blocks().map(|b: &[Block]| write_blocks(b))
-    });
-    match packed {
-        Ok(p) => output(p),
-        Err(e) => fail(e) as usize,
-    }
-}
-
 #[wasm_bindgen]
 pub fn free(handle: u32) {
     STAGES.with(|s| {
@@ -312,4 +340,55 @@ pub fn free(handle: u32) {
             *slot = None;
         }
     })
+}
+
+/// The debug and contract outputs (feature "debug"): built into the test module of
+/// `packages/blueprint/wasm/debug/` only, never into the shipped one.
+#[cfg(feature = "debug")]
+mod debug {
+    use super::*;
+    use crate::block::Block;
+    use crate::immediate::write_blocks;
+
+    thread_local! {
+        static OUT: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+    }
+
+    fn output(data: Vec<u8>) -> usize {
+        OUT.with(|o| {
+            let mut o = o.borrow_mut();
+            *o = data;
+            o.len()
+        })
+    }
+
+    /// The output buffer of `describe` and `flat_blocks`.
+    #[wasm_bindgen]
+    pub fn out_ptr() -> usize {
+        OUT.with(|o| o.borrow().as_ptr() as usize)
+    }
+
+    /// The tree of the loaded SceneBin as text (in the output buffer); returns its length.
+    #[wasm_bindgen]
+    pub fn describe(handle: u32) -> usize {
+        let text = with(handle, String::new(), |s| {
+            s.scene
+                .as_ref()
+                .map(|sc| sc.bin.describe())
+                .unwrap_or_default()
+        });
+        output(text.into_bytes())
+    }
+
+    /// The loaded scene's blocks, packed (in the output buffer); returns the length, 0 on error.
+    #[wasm_bindgen]
+    pub fn flat_blocks(handle: u32) -> usize {
+        let packed: Result<Vec<u8>, String> = with(handle, Err("no such handle".into()), |s| {
+            s.flat_blocks().map(|b: &[Block]| write_blocks(b))
+        });
+        match packed {
+            Ok(p) => output(p),
+            Err(e) => fail(e) as usize,
+        }
+    }
 }

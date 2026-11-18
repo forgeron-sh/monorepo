@@ -19,6 +19,8 @@ export { type Library, type ReadOptions, readBlueprint, resolveLocation } from "
 export {
   describeNumber,
   describeScene,
+  type EncodedScene,
+  encodeScene,
   type SceneBinOptions,
   sceneDefs,
   writeSceneBin,

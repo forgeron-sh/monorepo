@@ -261,6 +261,20 @@ export type Track =
       period: number;
       on: number;
       seed: number;
+      /** First value of the on window (0 when absent): on while `at ≤ m < at + on`. */
+      at?: number;
+    }
+  /** A wave: `base + f(clock·rate + phase)·amp`, `f` sin or cos, `clip` keeps f ≥ 0 (P3). */
+  | {
+      kind: "wave";
+      target: string;
+      channel: ParamChannel;
+      wave: "sin" | "cos";
+      rate: number;
+      phase?: number;
+      amp: number;
+      base: number;
+      clip?: boolean;
     }
   | {
       kind: "spring";

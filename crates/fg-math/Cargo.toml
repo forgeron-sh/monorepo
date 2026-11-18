@@ -5,8 +5,8 @@ edition = "2021"
 rust-version = "1.93"
 license = "Apache-2.0"
 publish = false
-description = "The shared math of the Rust crates: vectors, quarter turns, iso 2:1 projection and fit, JavaScript-exact rounding and trig (libm)."
+description = "The shared math of the Rust crates: vectors, quarter turns, iso 2:1 projection and fit, JavaScript-exact rounding, hypot and hash, and V8-exact trig (fdlibm with contraction)."
 
 [dependencies]
-# fdlibm, as V8's Math.sin/cos: parity with the TypeScript renderer is defined under Node.
+# pow and atan2 (fdlibm.rs ports V8's own sin and cos for parity under Node).
 libm = "=0.2.16"

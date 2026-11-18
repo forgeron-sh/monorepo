@@ -251,3 +251,45 @@ pub fn draw_label(f: &mut Frame, l: &Block, text: &str, view: &View, r: &Plate) 
         if active { Slot::BG } else { Slot::INK },
     );
 }
+
+/// `toUpperCase` for the label face: ASCII and Latin-1 letters (the face's glyphs), and the few
+/// letters whose upper case lands there (ß → SS, ı → I, ſ → S, the Latin ligatures). Other
+/// scripts have no glyph and are left as they are; std's full Unicode tables would cost the
+/// module several KB for letters the face cannot draw.
+pub fn upper(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            'a'..='z' => out.push(c.to_ascii_uppercase()),
+            '\u{e0}'..='\u{fe}' if c != '\u{f7}' => {
+                out.push(char::from_u32(c as u32 - 0x20).unwrap_or(c))
+            }
+            '\u{df}' => out.push_str("SS"),
+            '\u{131}' => out.push('I'),
+            '\u{17f}' => out.push('S'),
+            '\u{fb00}' => out.push_str("FF"),
+            '\u{fb01}' => out.push_str("FI"),
+            '\u{fb02}' => out.push_str("FL"),
+            '\u{fb03}' => out.push_str("FFI"),
+            '\u{fb04}' => out.push_str("FFL"),
+            '\u{fb05}' | '\u{fb06}' => out.push_str("ST"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod upper_tests {
+    use super::upper;
+
+    #[test]
+    fn upper_cases_like_javascript_on_the_face() {
+        // "…".toUpperCase() under node.
+        assert_eq!(upper("Prévisualisation à 3 €"), "PRÉVISUALISATION À 3 €");
+        assert_eq!(upper("straße · ﬁn →"), "STRASSE · FIN →");
+        // JavaScript gives Ÿ (U+0178): neither has a glyph, so the label draws the same.
+        assert_eq!(upper("ÿ"), "ÿ");
+        assert_eq!(upper("çà ÷ þ"), "ÇÀ ÷ Þ");
+    }
+}

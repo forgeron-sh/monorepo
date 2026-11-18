@@ -1,4 +1,4 @@
-import { renderBlocks } from "../engine/index";
+import { renderBlocks } from "../engine/runtime";
 import { rasterize } from "./draw";
 import { type Filter, type Plan, plan } from "./filters";
 import { createFrame, type Frame } from "./frame";

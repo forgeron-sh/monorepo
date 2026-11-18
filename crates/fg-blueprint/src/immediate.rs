@@ -19,7 +19,7 @@ fn kind_of(code: f64) -> Result<BlockKind, String> {
         code::block::LINE => Ok(BlockKind::Line),
         code::block::DOT => Ok(BlockKind::Dot),
         code::block::LABEL => Ok(BlockKind::Label),
-        other => Err(format!("unknown block kind {other}")),
+        _ => Err("unknown block kind".into()),
     }
 }
 

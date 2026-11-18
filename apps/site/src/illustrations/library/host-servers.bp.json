@@ -3,7 +3,25 @@
   "version": 1,
   "id": "site/host-servers",
   "parts": {
-    "static": {
+    "body": {
+      "params": {
+        "on00": { "type": "flag", "default": true },
+        "on01": { "type": "flag", "default": false },
+        "on02": { "type": "flag", "default": false },
+        "on03": { "type": "flag", "default": true },
+        "on04": { "type": "flag", "default": false },
+        "on10": { "type": "flag", "default": false },
+        "on11": { "type": "flag", "default": true },
+        "on12": { "type": "flag", "default": false },
+        "on13": { "type": "flag", "default": false },
+        "on14": { "type": "flag", "default": false },
+        "on20": { "type": "flag", "default": false },
+        "on21": { "type": "flag", "default": false },
+        "on22": { "type": "flag", "default": false },
+        "on23": { "type": "flag", "default": true },
+        "on24": { "type": "flag", "default": false },
+        "screen": { "type": "flag", "default": true }
+      },
       "prims": [
         {
           "kind": "line",
@@ -151,6 +169,13 @@
           "decor": true
         },
         {
+          "kind": "dot",
+          "at": [-2.5, -3.6, 1.6],
+          "ink": { "if": "@on00", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
+        },
+        {
           "kind": "line",
           "points": [
             [-2.5, -5.6, 2.8],
@@ -159,6 +184,13 @@
           "ink": "faint",
           "layer": 1,
           "decor": true
+        },
+        {
+          "kind": "dot",
+          "at": [-2.5, -3.6, 2.8],
+          "ink": { "if": "@on01", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
         },
         {
           "kind": "line",
@@ -171,6 +203,13 @@
           "decor": true
         },
         {
+          "kind": "dot",
+          "at": [-2.5, -3.6, 4],
+          "ink": { "if": "@on02", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
+        },
+        {
           "kind": "line",
           "points": [
             [-2.5, -5.6, 5.199999999999999],
@@ -181,6 +220,13 @@
           "decor": true
         },
         {
+          "kind": "dot",
+          "at": [-2.5, -3.6, 5.199999999999999],
+          "ink": { "if": "@on03", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
+        },
+        {
           "kind": "line",
           "points": [
             [-2.5, -5.6, 6.4],
@@ -189,6 +235,13 @@
           "ink": "faint",
           "layer": 1,
           "decor": true
+        },
+        {
+          "kind": "dot",
+          "at": [-2.5, -3.6, 6.4],
+          "ink": { "if": "@on04", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
         },
         { "kind": "box", "at": [-1.5, -6, 0.6], "size": [3, 3, 7], "tone": [0.06, 0.2, 0.1] },
         {
@@ -202,6 +255,13 @@
           "decor": true
         },
         {
+          "kind": "dot",
+          "at": [1.5, -3.6, 1.6],
+          "ink": { "if": "@on10", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
+        },
+        {
           "kind": "line",
           "points": [
             [1.5, -5.6, 2.8],
@@ -210,6 +270,13 @@
           "ink": "faint",
           "layer": 1,
           "decor": true
+        },
+        {
+          "kind": "dot",
+          "at": [1.5, -3.6, 2.8],
+          "ink": { "if": "@on11", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
         },
         {
           "kind": "line",
@@ -222,6 +289,13 @@
           "decor": true
         },
         {
+          "kind": "dot",
+          "at": [1.5, -3.6, 4],
+          "ink": { "if": "@on12", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
+        },
+        {
           "kind": "line",
           "points": [
             [1.5, -5.6, 5.199999999999999],
@@ -232,6 +306,13 @@
           "decor": true
         },
         {
+          "kind": "dot",
+          "at": [1.5, -3.6, 5.199999999999999],
+          "ink": { "if": "@on13", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
+        },
+        {
           "kind": "line",
           "points": [
             [1.5, -5.6, 6.4],
@@ -240,6 +321,13 @@
           "ink": "faint",
           "layer": 1,
           "decor": true
+        },
+        {
+          "kind": "dot",
+          "at": [1.5, -3.6, 6.4],
+          "ink": { "if": "@on14", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
         },
         { "kind": "box", "at": [2.5, -6, 0.6], "size": [3, 3, 7], "tone": [0.06, 0.2, 0.1] },
         {
@@ -253,6 +341,13 @@
           "decor": true
         },
         {
+          "kind": "dot",
+          "at": [5.5, -3.6, 1.6],
+          "ink": { "if": "@on20", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
+        },
+        {
           "kind": "line",
           "points": [
             [5.5, -5.6, 2.8],
@@ -261,6 +356,13 @@
           "ink": "faint",
           "layer": 1,
           "decor": true
+        },
+        {
+          "kind": "dot",
+          "at": [5.5, -3.6, 2.8],
+          "ink": { "if": "@on21", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
         },
         {
           "kind": "line",
@@ -273,6 +375,13 @@
           "decor": true
         },
         {
+          "kind": "dot",
+          "at": [5.5, -3.6, 4],
+          "ink": { "if": "@on22", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
+        },
+        {
           "kind": "line",
           "points": [
             [5.5, -5.6, 5.199999999999999],
@@ -281,6 +390,13 @@
           "ink": "faint",
           "layer": 1,
           "decor": true
+        },
+        {
+          "kind": "dot",
+          "at": [5.5, -3.6, 5.199999999999999],
+          "ink": { "if": "@on23", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
         },
         {
           "kind": "line",
@@ -292,6 +408,13 @@
           "layer": 1,
           "decor": true
         },
+        {
+          "kind": "dot",
+          "at": [5.5, -3.6, 6.4],
+          "ink": { "if": "@on24", "then": "accent", "else": "dim" },
+          "size": 2,
+          "layer": 1
+        },
         { "kind": "box", "at": [1.4, 2.4, 0.6], "size": [1.2, 1.2, 2.4], "tone": [0.2, 0.4, 0.6] },
         {
           "kind": "box",
@@ -299,7 +422,13 @@
           "size": [0.9, 0.9, 0.9],
           "tone": [0.2, 0.4, 0.6]
         },
-        { "kind": "box", "at": [-3, 2, 0.6], "size": [3, 2, 2.4], "tone": [0.06, 0.2, 0.1] }
+        { "kind": "box", "at": [-3, 2, 0.6], "size": [3, 2, 2.4], "tone": [0.06, 0.2, 0.1] },
+        {
+          "kind": "box",
+          "at": [-1.8, 2.4, 3],
+          "size": [0.3, 1.2, 1],
+          "look": { "if": "@screen", "then": "accent", "else": "plain" }
+        }
       ]
     }
   },
@@ -308,7 +437,157 @@
       "title": "host-servers",
       "depth": "painter",
       "camera": { "view": 0, "fit": {} },
-      "root": { "instances": [{ "id": "static", "use": "static" }] }
+      "root": { "instances": [{ "id": "body", "use": "body" }] },
+      "timelines": {
+        "motion": {
+          "tracks": [
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on00",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 0
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on01",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 5
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on02",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 10
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on03",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 15
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on04",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 20
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on10",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 3
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on11",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 8
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on12",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 13
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on13",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 18
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on14",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 23
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on20",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 6
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on21",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 11
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on22",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 16
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on23",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 21
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:on24",
+              "rate": 3,
+              "period": 7,
+              "on": 2,
+              "seed": 26
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:screen",
+              "rate": 2,
+              "period": 2,
+              "on": 1,
+              "seed": 0
+            }
+          ]
+        }
+      }
     }
   }
 }

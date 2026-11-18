@@ -6,6 +6,7 @@
 pub const SCENE_MAGIC: u32 = 0x50424746;
 pub const BLOCKS_MAGIC: u32 = 0x4c424746;
 pub const SCENE_VERSION: u32 = 1;
+pub const MAX_EVENTS: usize = 8;
 
 pub mod header {
     pub const MAGIC: usize = 0;
@@ -19,9 +20,19 @@ pub mod header {
     pub const INSTANCES: usize = 8;
     pub const ARGS: usize = 9;
     pub const SOCKETS: usize = 10;
-    pub const BYTES: usize = 11;
+    pub const RIG_ARGS: usize = 11;
+    pub const VARS: usize = 12;
+    pub const TIMELINES: usize = 13;
+    pub const TRACKS: usize = 14;
+    pub const KEYS: usize = 15;
+    pub const MACHINES: usize = 16;
+    pub const STATES: usize = 17;
+    pub const PLAYS: usize = 18;
+    pub const SETS: usize = 19;
+    pub const TRANSITIONS: usize = 20;
+    pub const BYTES: usize = 21;
     /// Words per record.
-    pub const WORDS: usize = 12;
+    pub const WORDS: usize = 22;
 }
 
 pub mod string {
@@ -95,8 +106,24 @@ pub mod prim {
     pub const ACTIVE_A: usize = 28;
     pub const PLAIN: usize = 29;
     pub const FIXED: usize = 30;
+    pub const RIG: usize = 31;
+    pub const RIG_ARGS: usize = 32;
+    pub const RIG_ARG_COUNT: usize = 33;
     /// Words per record.
-    pub const WORDS: usize = 31;
+    pub const WORDS: usize = 34;
+}
+
+pub mod rig_arg {
+    pub const NAME: usize = 0;
+    pub const KIND: usize = 1;
+    pub const NUM: usize = 2;
+    pub const FLAG_KIND: usize = 3;
+    pub const FLAG_A: usize = 4;
+    pub const THEN: usize = 5;
+    pub const ELSE: usize = 6;
+    pub const TEXT: usize = 7;
+    /// Words per record.
+    pub const WORDS: usize = 8;
 }
 
 pub mod point {
@@ -159,6 +186,151 @@ pub mod scene {
     pub const GLOW_DENSITY: usize = 11;
     /// Words per record.
     pub const WORDS: usize = 12;
+}
+
+pub mod var {
+    pub const NAME: usize = 0;
+    pub const TYPE: usize = 1;
+    pub const SLOT: usize = 2;
+    pub const DEFAULT: usize = 3;
+    pub const EVERY: usize = 4;
+    pub const COUNT: usize = 5;
+    /// Words per record.
+    pub const WORDS: usize = 6;
+}
+
+pub mod timeline {
+    pub const NAME: usize = 0;
+    pub const CLOCK: usize = 1;
+    pub const CLOCK_SLOT: usize = 2;
+    pub const LENGTH: usize = 3;
+    pub const LOOP: usize = 4;
+    pub const TRACKS: usize = 5;
+    pub const TRACK_COUNT: usize = 6;
+    /// Words per record.
+    pub const WORDS: usize = 7;
+}
+
+pub mod track {
+    pub const KIND: usize = 0;
+    pub const TARGET: usize = 1;
+    pub const CHANNEL: usize = 2;
+    pub const PARAM: usize = 3;
+    pub const KEYS: usize = 4;
+    pub const KEY_COUNT: usize = 5;
+    pub const PATH: usize = 6;
+    pub const PATH_COUNT: usize = 7;
+    pub const RATE: usize = 8;
+    pub const PHASE: usize = 9;
+    pub const PERIOD: usize = 10;
+    pub const ON: usize = 11;
+    pub const AT: usize = 12;
+    pub const SEED: usize = 13;
+    pub const DURATION: usize = 14;
+    pub const DELAY: usize = 15;
+    pub const EASE: usize = 16;
+    pub const USE: usize = 17;
+    pub const COUNT: usize = 18;
+    pub const SPEED: usize = 19;
+    pub const WAVE: usize = 20;
+    pub const AMP: usize = 21;
+    pub const BASE: usize = 22;
+    pub const CLIP: usize = 23;
+    pub const TO_SLOT: usize = 24;
+    pub const TO_THEN: usize = 25;
+    pub const TO_ELSE: usize = 26;
+    pub const ARGS: usize = 27;
+    pub const ARG_COUNT: usize = 28;
+    /// Words per record.
+    pub const WORDS: usize = 29;
+}
+
+pub mod key {
+    pub const T: usize = 0;
+    pub const V0: usize = 1;
+    pub const V1: usize = 2;
+    pub const V2: usize = 3;
+    pub const EASE: usize = 4;
+    /// Words per record.
+    pub const WORDS: usize = 5;
+}
+
+pub mod machine {
+    pub const NAME: usize = 0;
+    pub const INITIAL: usize = 1;
+    pub const STATES: usize = 2;
+    pub const STATE_COUNT: usize = 3;
+    pub const TRANSITIONS: usize = 4;
+    pub const TRANSITION_COUNT: usize = 5;
+    /// Words per record.
+    pub const WORDS: usize = 6;
+}
+
+pub mod state {
+    pub const NAME: usize = 0;
+    pub const PLAYS: usize = 1;
+    pub const PLAY_COUNT: usize = 2;
+    pub const SETS: usize = 3;
+    pub const SET_COUNT: usize = 4;
+    pub const SHOT: usize = 5;
+    /// Words per record.
+    pub const WORDS: usize = 6;
+}
+
+pub mod play {
+    pub const TIMELINE: usize = 0;
+    /// Words per record.
+    pub const WORDS: usize = 1;
+}
+
+pub mod set {
+    pub const SLOT: usize = 0;
+    pub const VALUE: usize = 1;
+    /// Words per record.
+    pub const WORDS: usize = 2;
+}
+
+pub mod transition {
+    pub const FROM: usize = 0;
+    pub const TO: usize = 1;
+    pub const WHEN: usize = 2;
+    pub const SLOT: usize = 3;
+    pub const LO: usize = 4;
+    pub const HI: usize = 5;
+    pub const VALUE: usize = 6;
+    pub const AFTER: usize = 7;
+    pub const EVENT: usize = 8;
+    pub const DISSOLVE: usize = 9;
+    /// Words per record.
+    pub const WORDS: usize = 10;
+}
+
+pub mod inputs {
+    pub const TIME: usize = 0;
+    pub const DT: usize = 1;
+    pub const POINTER_X: usize = 2;
+    pub const POINTER_Y: usize = 3;
+    pub const POINTER_IN: usize = 4;
+    pub const BLOCKS: usize = 5;
+    pub const EVENT_COUNT: usize = 6;
+    pub const EVENT0: usize = 7;
+    pub const EVENT1: usize = 8;
+    pub const EVENT2: usize = 9;
+    pub const EVENT3: usize = 10;
+    pub const EVENT4: usize = 11;
+    pub const EVENT5: usize = 12;
+    pub const EVENT6: usize = 13;
+    pub const EVENT7: usize = 14;
+    /// Words per record.
+    pub const WORDS: usize = 15;
+}
+
+pub mod outputs {
+    pub const FLAGS: usize = 0;
+    pub const HOVER: usize = 1;
+    pub const FRAMES: usize = 2;
+    /// Words per record.
+    pub const WORDS: usize = 3;
 }
 
 pub mod blocks_header {
@@ -262,6 +434,74 @@ pub mod code {
         pub const DOT: i32 = 2;
         pub const LABEL: i32 = 3;
     }
+    pub mod rig_arg {
+        pub const NUM: i32 = 0;
+        pub const VEC: i32 = 1;
+        pub const FLAG: i32 = 2;
+        pub const INK: i32 = 3;
+        pub const NAME: i32 = 4;
+    }
+    pub mod rig {
+        pub const WHEEL: i32 = 0;
+        pub const ARM: i32 = 1;
+        pub const FAN: i32 = 2;
+        pub const PISTON: i32 = 3;
+        pub const PENDULUM: i32 = 4;
+        pub const SMOKE: i32 = 5;
+        pub const SPARKS: i32 = 6;
+    }
+    pub mod var_type {
+        pub const TIME: i32 = 0;
+        pub const PROGRESS: i32 = 1;
+        pub const INT: i32 = 2;
+        pub const POINTER: i32 = 3;
+    }
+    pub mod clock {
+        pub const TIME: i32 = 0;
+        pub const VAR: i32 = 1;
+    }
+    pub mod loop_mode {
+        pub const NONE: i32 = -1;
+        pub const LOOP: i32 = 0;
+        pub const PING_PONG: i32 = 1;
+        pub const ONCE: i32 = 2;
+    }
+    pub mod track {
+        pub const KEY: i32 = 0;
+        pub const VISIBLE: i32 = 1;
+        pub const SPIN: i32 = 2;
+        pub const PATH: i32 = 3;
+        pub const CONVEYOR: i32 = 4;
+        pub const BLINK: i32 = 5;
+        pub const SPRING: i32 = 6;
+        pub const WAVE: i32 = 7;
+    }
+    pub mod channel {
+        pub const AT: i32 = 0;
+        pub const TURN: i32 = 1;
+        pub const SCALE: i32 = 2;
+        pub const PARAM: i32 = 3;
+        pub const VISIBLE: i32 = 4;
+    }
+    pub mod ease {
+        pub const LINEAR: i32 = 0;
+        pub const STEP: i32 = 1;
+        pub const SMOOTH: i32 = 2;
+        pub const GLIDE: i32 = 3;
+        pub const IN: i32 = 4;
+        pub const OUT: i32 = 5;
+        pub const IN_OUT: i32 = 6;
+    }
+    pub mod wave {
+        pub const SIN: i32 = 0;
+        pub const COS: i32 = 1;
+    }
+    pub mod when {
+        pub const RANGE: i32 = 0;
+        pub const EQUALS: i32 = 1;
+        pub const AFTER: i32 = 2;
+        pub const EVENT: i32 = 3;
+    }
     pub mod ink {
         pub const ABSENT: i32 = 0;
         pub const INK: i32 = 2;
@@ -286,4 +526,12 @@ pub mod flags {
     pub const FIXED: u32 = 512;
     pub const HAS_TO: u32 = 1024;
     pub const HAS_TONE: u32 = 2048;
+}
+
+pub mod frame_flags {
+    pub const DRAWN: u32 = 1;
+    pub const VARS: u32 = 2;
+    pub const STATE: u32 = 4;
+    pub const HOVER: u32 = 8;
+    pub const ERROR: u32 = 16;
 }

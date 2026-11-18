@@ -11,6 +11,7 @@ import contract from "./fixtures/contract.bp.json";
 import { EngineScene, immediateHandle } from "./index";
 import { offsets, sizeOf } from "./layout";
 import { packBlocks } from "./pack";
+import { DebugScene } from "../../test/debug";
 
 const root = new URL("../../../../", import.meta.url);
 const read = (path: string) => readFileSync(new URL(path, root));
@@ -51,9 +52,9 @@ describe("SceneBin: written in TypeScript, read in Rust", async () => {
   const lib = await readBlueprint(contract, { location: "contract.bp.json" });
 
   it("gives the same tree", () => {
-    const scene = EngineScene.load(writeSceneBin(lib, "room"));
+    const scene = DebugScene.load(writeSceneBin(lib, "room"));
     expect(scene.describe()).toBe(describeScene(lib, "room"));
-    const fitted = EngineScene.load(
+    const fitted = DebugScene.load(
       writeSceneBin(lib, "room", { fill: 0.5, unit: "even", labels: false }),
     );
     expect(fitted.describe()).toBe(
@@ -78,7 +79,7 @@ describe("SceneBin: written in TypeScript, read in Rust", async () => {
   ];
 
   it.each(inputs)("flattens to the blocks of `flatten`, float64 exact (%j)", (vars, set) => {
-    const scene = EngineScene.load(writeSceneBin(lib, "room"));
+    const scene = DebugScene.load(writeSceneBin(lib, "room"));
     for (const [i, v] of set) scene.set(i, v);
     expect(untagged(scene.flatBlocks())).toStrictEqual(packBlocks(flatten(lib, "room", vars)));
     scene.dispose();

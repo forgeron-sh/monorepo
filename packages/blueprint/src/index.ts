@@ -50,7 +50,7 @@ export {
   type TextSvgOptions,
   textWidth,
 } from "./core/font";
-export { initBlueprint } from "./engine/index";
+export { initBlueprint } from "./engine/runtime";
 export { ditherImage, IMAGE_PALETTE, type ImagePalette } from "./core/image";
 export { renderSvg, toSvg } from "./core/svg";
 export type {

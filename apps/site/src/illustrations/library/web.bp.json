@@ -3,7 +3,8 @@
   "version": 1,
   "id": "site/web",
   "parts": {
-    "static": {
+    "body": {
+      "params": { "pop": { "type": "number", "default": 0.6 } },
       "prims": [
         {
           "kind": "line",
@@ -148,6 +149,7 @@
         { "kind": "box", "at": [0, 0, 0], "size": [16, 1, 12], "tone": [0.1, 0.06, 0.3] },
         { "kind": "box", "at": [0, 1, 10.5], "size": [16, 0.4, 1.5], "look": "accent" },
         { "kind": "box", "at": [1, 1, 1], "size": [6, 0.6, 8] },
+        { "kind": "box", "at": [8, 1, 6], "size": [7, "@pop", 3] },
         { "kind": "box", "at": [8, 1, 1], "size": [7, 0.6, 4] },
         { "kind": "dot", "at": [1, 1.2, 11.2], "ink": "ink", "size": 2 },
         { "kind": "dot", "at": [2.2, 1.2, 11.2], "ink": "ink", "size": 2 },
@@ -160,7 +162,23 @@
       "title": "web",
       "depth": "painter",
       "camera": { "view": 0, "fit": {} },
-      "root": { "instances": [{ "id": "static", "use": "static" }] }
+      "root": { "instances": [{ "id": "body", "use": "body" }] },
+      "timelines": {
+        "motion": {
+          "tracks": [
+            {
+              "kind": "wave",
+              "target": "body",
+              "channel": "param:pop",
+              "wave": "sin",
+              "rate": 1.5,
+              "amp": 0.8,
+              "base": 0.6,
+              "clip": true
+            }
+          ]
+        }
+      }
     }
   }
 }

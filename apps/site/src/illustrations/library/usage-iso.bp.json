@@ -3,7 +3,13 @@
   "version": 1,
   "id": "site/usage-iso",
   "parts": {
-    "static": {
+    "body": {
+      "params": {
+        "row0": { "type": "number", "default": 1 },
+        "row1": { "type": "number", "default": 0 },
+        "row2": { "type": "number", "default": 0 },
+        "row3": { "type": "number", "default": 0 }
+      },
       "prims": [
         {
           "kind": "box",
@@ -478,6 +484,12 @@
         { "kind": "box", "at": [23, 1, 0.4], "size": [1.2, 1.2, 1.2], "look": "accent" },
         { "kind": "box", "at": [24.5, 1, 0.4], "size": [1.2, 1.2, 1.2], "look": "accent" },
         { "kind": "box", "at": [26, 1, 0.4], "size": [1.2, 1.2, 1.2], "look": "accent" },
+        {
+          "kind": "box",
+          "at": [27.5, 1, 0.4],
+          "size": [1.2, 1.2, { "p": "row0", "k": 0.6, "b": 1.2 }],
+          "look": "accent"
+        },
         {
           "kind": "box",
           "at": [0.76, 5.6, 0.4],
@@ -1132,6 +1144,12 @@
         { "kind": "box", "at": [30.5, 5.6, 0.4], "size": [1.2, 1.2, 1.2], "look": "accent" },
         {
           "kind": "box",
+          "at": [32, 5.6, 0.4],
+          "size": [1.2, 1.2, { "p": "row1", "k": 0.6, "b": 1.2 }],
+          "look": "accent"
+        },
+        {
+          "kind": "box",
           "at": [0.76, 10.2, 0.4],
           "size": [0.26, 0.26, 0.12],
           "tone": [0.3, 0.5, 0.7]
@@ -1436,6 +1454,12 @@
         },
         { "kind": "box", "at": [26, 10.2, 0.4], "size": [1.2, 1.2, 1.2], "tone": [0.1, 0.3, 0.16] },
         { "kind": "box", "at": [27.5, 10.2, 0.4], "size": [1.2, 1.2, 1.2], "look": "accent" },
+        {
+          "kind": "box",
+          "at": [29, 10.2, 0.4],
+          "size": [1.2, 1.2, { "p": "row2", "k": 0.6, "b": 1.2 }],
+          "look": "accent"
+        },
         {
           "kind": "box",
           "at": [0.5, 14.799999999999999, 0.4],
@@ -2113,6 +2137,12 @@
           "at": [17, 14.799999999999999, 0.4],
           "size": [1.2, 1.2, 1.2],
           "tone": [0.1, 0.3, 0.16]
+        },
+        {
+          "kind": "box",
+          "at": [18.5, 14.799999999999999, 0.4],
+          "size": [1.2, 1.2, { "p": "row3", "k": 0.6, "b": 1.2 }],
+          "look": "accent"
         }
       ]
     }
@@ -2122,7 +2152,53 @@
       "title": "usage-iso",
       "depth": "painter",
       "camera": { "view": 0, "fit": {} },
-      "root": { "instances": [{ "id": "static", "use": "static" }] }
+      "root": { "instances": [{ "id": "body", "use": "body" }] },
+      "timelines": {
+        "motion": {
+          "tracks": [
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:row0",
+              "rate": 2,
+              "period": 4,
+              "on": 1,
+              "seed": 0,
+              "at": 0
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:row1",
+              "rate": 2,
+              "period": 4,
+              "on": 1,
+              "seed": 0,
+              "at": 1
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:row2",
+              "rate": 2,
+              "period": 4,
+              "on": 1,
+              "seed": 0,
+              "at": 2
+            },
+            {
+              "kind": "blink",
+              "target": "body",
+              "channel": "param:row3",
+              "rate": 2,
+              "period": 4,
+              "on": 1,
+              "seed": 0,
+              "at": 3
+            }
+          ]
+        }
+      }
     }
   }
 }

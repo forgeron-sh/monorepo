@@ -1,12 +1,16 @@
-//! A scene read from a SceneBin: its still picture as blocks (`flatten` of `format/flatten.ts`,
-//! operation for operation: params, instances, quarter turns, uniform scale, socket snaps), and
-//! the state a handle keeps between calls. Rigs and sprites are P3: skipped here.
+//! A scene read from a SceneBin: its picture as blocks (`flatten` of `format/flatten.ts`,
+//! operation for operation: params, instances, quarter turns, uniform scale, socket snaps), with
+//! what the timelines set this frame (`Overrides`), the rigs drawn from their settings and the
+//! conveyors' copies after the root. Sprites are v1.1: skipped.
 
-use crate::bin::{Choice, Def, Flag, Prim, SceneBin};
+use crate::bin::{Choice, Def, Flag, Prim, RigArg, SceneBin};
 use crate::block::{flags, Block, BlockKind};
 use crate::layout::code;
+use crate::rigs;
+use crate::tracks::Overrides;
 use fg_math::vec::{no_neg_zero as z, rotate};
 use fg_math::{num::truthy, Turn, Vec3};
+use std::ops::Range;
 
 /// world = t + R(turn)(s · p)
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -115,14 +119,92 @@ enum Slot {
 
 pub struct Flattener<'a> {
     pub bin: &'a SceneBin,
+    over: Option<&'a Overrides>,
     depth: usize,
+    rig_out: Vec<Block>,
+}
+
+/// The settings of a rig prim, evaluated in its part's scope.
+struct RigSettings<'b, 'a> {
+    f: &'b Flattener<'a>,
+    args: &'b [RigArg],
+    scope: &'b [f64],
+}
+
+impl RigSettings<'_, '_> {
+    fn find(&self, name: &str) -> Option<&RigArg> {
+        self.args.iter().find(|a| self.f.name(a.name) == name)
+    }
+}
+
+impl rigs::Settings for RigSettings<'_, '_> {
+    fn num(&self, name: &str) -> Option<f64> {
+        let a = self.find(name)?;
+        match a.kind {
+            code::rig_arg::NUM => Some(self.f.num(a.num, self.scope)),
+            code::rig_arg::FLAG => Some(if self.f.flag(&a.flag, self.scope) {
+                1.0
+            } else {
+                0.0
+            }),
+            _ => None,
+        }
+    }
+
+    fn vec(&self, name: &str) -> Option<Vec3> {
+        let a = self.find(name)?;
+        (a.kind == code::rig_arg::VEC).then(|| self.f.vec(a.num, self.scope))
+    }
+
+    fn ink(&self, name: &str) -> Option<u8> {
+        let a = self.find(name)?;
+        let code = match a.kind {
+            code::rig_arg::INK => self.f.choose(
+                &Choice {
+                    flag: a.flag,
+                    then: a.then,
+                    otherwise: a.otherwise,
+                },
+                self.scope,
+            ),
+            code::rig_arg::NAME => match a.text.map(|t| self.f.name(t)) {
+                Some("ink") => code::ink::INK,
+                Some("dim") => code::ink::DIM,
+                Some("faint") => code::ink::FAINT,
+                Some("accent") => code::ink::ACCENT,
+                Some("signal") => code::ink::SIGNAL,
+                Some("alert") => code::ink::ALERT,
+                _ => 0,
+            },
+            _ => 0,
+        };
+        (code > 0).then_some(code as u8)
+    }
+
+    fn name(&self, name: &str) -> Option<&str> {
+        let a = self.find(name)?;
+        (a.kind == code::rig_arg::NAME).then(|| a.text.map(|t| self.f.name(t)))?
+    }
 }
 
 type R<T> = Result<T, String>;
 
 impl<'a> Flattener<'a> {
     pub fn new(bin: &'a SceneBin) -> Self {
-        Self { bin, depth: 0 }
+        Self {
+            bin,
+            over: None,
+            depth: 0,
+            rig_out: Vec::new(),
+        }
+    }
+
+    /// A flattener that applies what the timelines set.
+    pub fn with(bin: &'a SceneBin, over: &'a Overrides) -> Self {
+        Self {
+            over: Some(over),
+            ..Self::new(bin)
+        }
     }
 
     fn name(&self, s: usize) -> &str {
@@ -164,7 +246,7 @@ impl<'a> Flattener<'a> {
         }
     }
 
-    fn emit_prim(&self, prim: &Prim, t: &Transform, scope: &[f64], out: &mut Vec<Block>) {
+    fn emit_prim(&mut self, prim: &Prim, t: &Transform, scope: &[f64], out: &mut Vec<Block>) {
         if let Some(v) = &prim.visible {
             if !self.flag(v, scope) {
                 return;
@@ -297,18 +379,69 @@ impl<'a> Flattener<'a> {
                 ink(&mut b);
                 base(b, out);
             }
-            // Rigs and sprites are drawn by the engine from P3 on.
+            code::prim::RIG => {
+                let mut blocks = std::mem::take(&mut self.rig_out);
+                blocks.clear();
+                {
+                    let settings = RigSettings {
+                        f: self,
+                        args: &self.bin.rig_args[prim.rig_args.clone()],
+                        scope,
+                    };
+                    rigs::draw(prim.rig, &settings, &mut blocks);
+                }
+                for mut b in blocks.drain(..) {
+                    match b.kind {
+                        BlockKind::Box => {
+                            let (a, s) = place_box(t, b.a, b.b);
+                            b.a = out3(a);
+                            b.b = out3(s);
+                        }
+                        _ => {
+                            b.a = out3(point(t, b.a));
+                            if b.kind == BlockKind::Line {
+                                b.b = out3(point(t, b.b));
+                            }
+                        }
+                    }
+                    // The rig's own layer (sparks: 1) sits on the prim's and the instance's.
+                    if let Some(l) = layer {
+                        b.layer = z(l + b.layer);
+                    }
+                    if prim.decor {
+                        b.flags |= flags::DECOR;
+                    }
+                    b.tag = tag;
+                    out.push(b);
+                }
+                self.rig_out = blocks;
+            }
+            // Sprites are v1.1.
             _ => {}
         }
     }
 
-    /// The scope of a definition used by an instance: its param defaults, then the instance's values.
+    /// The scope of a definition used by an instance: its param defaults, the instance's values,
+    /// then what the timelines set.
     fn scope_of(&self, def: &Def, inst: usize, parent: &[f64]) -> Vec<f64> {
+        let mut scope = self.scope_with(def, self.bin.instances[inst].args.clone(), parent);
+        if let Some(over) = self.over {
+            for (p, x) in scope.iter_mut().enumerate() {
+                if let Some(v) = over.param(inst, p) {
+                    *x = v;
+                }
+            }
+        }
+        scope
+    }
+
+    /// A definition's param defaults, then the values of `args` (evaluated in `parent`).
+    fn scope_with(&self, def: &Def, args: Range<usize>, parent: &[f64]) -> Vec<f64> {
         let mut scope: Vec<f64> = self.bin.params[def.params.clone()]
             .iter()
             .map(|p| p.default)
             .collect();
-        for a in &self.bin.args[self.bin.instances[inst].args.clone()] {
+        for a in &self.bin.args[args] {
             let value = if a.kind == code::arg::FLAG {
                 if self.flag(&a.flag, parent) {
                     1.0
@@ -331,7 +464,7 @@ impl<'a> Flattener<'a> {
         let socket = self.bin.sockets[d.sockets.clone()]
             .iter()
             .find(|s| self.name(s.name) == name)
-            .ok_or_else(|| format!("{}: no socket \"{name}\"", self.name(d.name)))?;
+            .ok_or_else(|| [self.name(d.name), ": no socket \"", name, "\""].concat())?;
         if socket.kind == code::socket::POINT {
             let at = socket.at.ok_or("socket without a point")?;
             return Ok(self.vec(at, scope));
@@ -346,7 +479,7 @@ impl<'a> Flattener<'a> {
     fn resolve(&self, asm: &Def, scope: &[f64], k: usize, slots: &mut Vec<Slot>) -> R<()> {
         match slots[k] {
             Slot::Done(_) => return Ok(()),
-            Slot::Busy => return Err(format!("{}: snap cycle", self.name(asm.name))),
+            Slot::Busy => return Err([self.name(asm.name), ": snap cycle"].concat()),
             Slot::Todo => {}
         }
         slots[k] = Slot::Busy;
@@ -355,9 +488,12 @@ impl<'a> Flattener<'a> {
         let def = &self.bin.defs[inst.def];
         let inner = self.scope_of(def, index, scope);
         let mut t = Transform {
-            s: inst.scale,
-            turn: inst.turn,
-            t: inst.at.map(|at| self.vec(at, scope)),
+            s: self.over.and_then(|o| o.scale[index]).unwrap_or(inst.scale),
+            turn: self.over.and_then(|o| o.turn[index]).unwrap_or(inst.turn),
+            t: self
+                .over
+                .and_then(|o| o.at[index])
+                .or_else(|| inst.at.map(|at| self.vec(at, scope))),
             layer: inst.layer,
             tag: inst.tag.map_or(0, |s| (s + 1) as u16),
         };
@@ -427,15 +563,18 @@ impl<'a> Flattener<'a> {
         let asm = &self.bin.defs[def];
         for p in self.place(asm, scope)? {
             let inst = &self.bin.instances[p.inst];
-            if let Some(v) = &inst.visible {
-                if !self.flag(v, scope) {
-                    continue;
-                }
+            let shown = match self.over.and_then(|o| o.visible[p.inst]) {
+                Some(v) => v,
+                None => inst.visible.as_ref().is_none_or(|v| self.flag(v, scope)),
+            };
+            if !shown {
+                continue;
             }
             let world = compose(t, &p.t);
-            let d = &self.bin.defs[p.def];
+            let bin = self.bin;
+            let d = &bin.defs[p.def];
             if d.kind == code::def::PART {
-                for prim in &self.bin.prims[d.prims.clone()] {
+                for prim in &bin.prims[d.prims.clone()] {
                     self.emit_prim(prim, &world, &p.scope, out);
                 }
             } else {
@@ -459,7 +598,29 @@ impl<'a> Flattener<'a> {
         } else {
             IDENTITY
         };
-        self.emit_assembly(self.bin.scene.root, vars, &t, out)
+        self.emit_assembly(self.bin.scene.root, vars, &t, out)?;
+        // Conveyor copies, after the root (§2 `conveyor`, P3 notes).
+        if let Some(over) = self.over {
+            let bin = self.bin;
+            for c in &over.copies {
+                let track = &bin.tracks[c.track];
+                let def = &bin.defs[track.def];
+                let scope = self.scope_with(def, track.args.clone(), vars);
+                let at = Transform {
+                    t: Some(c.at),
+                    ..IDENTITY
+                };
+                let world = compose(&t, &at);
+                if def.kind == code::def::PART {
+                    for prim in &bin.prims[def.prims.clone()] {
+                        self.emit_prim(prim, &world, &scope, out);
+                    }
+                } else {
+                    self.emit_assembly(track.def, &scope, &world, out)?;
+                }
+            }
+        }
+        Ok(())
     }
 }
 

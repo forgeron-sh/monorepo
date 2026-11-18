@@ -296,8 +296,23 @@ export const SCHEMA: JsonSchema = {
           period: { type: "integer", minimum: 1 },
           on: num,
           seed: num,
+          at: num,
         },
         ["kind", "target", "channel", "rate", "period", "on", "seed"],
+      ),
+      obj(
+        {
+          kind: { const: "wave" },
+          target: str,
+          channel: paramChannel,
+          wave: enumOf("sin", "cos"),
+          rate: num,
+          phase: num,
+          amp: num,
+          base: num,
+          clip: bool,
+        },
+        ["kind", "target", "channel", "wave", "rate", "amp", "base"],
       ),
       obj(
         {

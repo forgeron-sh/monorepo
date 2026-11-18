@@ -7,7 +7,7 @@
  * between frames (the village's walkers, `stack6`'s spring) see the same history. Each sample is
  * drawn twice and the second picture kept: `stack6` then sits at its target, whatever came before.
  */
-import type { Block } from "@forgeron/blueprint";
+import type { Block, SceneFn } from "@forgeron/blueprint";
 import type { Sample } from "@forgeron/blueprint/format";
 import { lineStore } from "../objects";
 import { SCENES } from "../scenes";
@@ -77,6 +77,27 @@ export function evaluate(name: string, input: Input): readonly Block[] {
     if (store) store.progress = 0;
   }
 }
+
+/**
+ * A scene as a function of `{ t, active }` at a scroll `progress`, drawn once per call: what the
+ * engine's script layer plays (the animated parity suite drives stateful scenes frame by frame).
+ */
+export function sceneAtProgress(name: string, progress = 0): SceneFn {
+  const scene = SCENES[name];
+  if (!scene) throw new Error(`no scene "${name}"`);
+  const store = STORES[name];
+  return (frame) => {
+    if (store) store.progress = progress;
+    try {
+      return scene(frame);
+    } finally {
+      if (store) store.progress = 0;
+    }
+  };
+}
+
+/** Whether the scene is driven by a scroll progress. */
+export const isScroll = (name: string): boolean => name in STORES;
 
 const same = (a: readonly Block[], b: readonly Block[]) => JSON.stringify(a) === JSON.stringify(b);
 

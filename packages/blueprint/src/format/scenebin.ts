@@ -26,7 +26,10 @@ import type {
   ParamSpec,
   Part,
   Prim,
+  RigPrim,
   Scene,
+  Track,
+  Vec3,
 } from "./types";
 
 type Rec = number[];
@@ -81,6 +84,13 @@ export function sceneDefs(lib: Library, sceneName: string): DefEntry[] {
     }
   };
   visit(scene.root);
+  // Parts a conveyor rides are definitions of the scene too, after what the root uses.
+  for (const timeline of Object.values(scene.timelines ?? {}))
+    for (const track of timeline.tracks)
+      if (track.kind === "conveyor" && !seen.has(track.use)) {
+        seen.add(track.use);
+        visit({ instances: [{ use: track.use }] });
+      }
   return out;
 }
 
@@ -232,9 +242,43 @@ function writePrim(w: Writer, prim: Prim, s: Scope): void {
       f.at = s.vec(prim.at);
       break;
     case "rig":
+      writeRig(w, prim, s, f);
       break;
   }
   w.push("prim", f);
+}
+
+const RIG_CODE = CODES.rig;
+
+/** A rig's settings (`with`), in the rigArg section: nums, vectors, flags, ink choices, names. */
+function writeRig(w: Writer, prim: RigPrim, s: Scope, f: Record<string, number>): void {
+  f.rig = RIG_CODE[prim.rig];
+  const args = Object.entries(prim.with).map(([name, v]) => {
+    const rec: Record<string, number> = { name: w.str(name) };
+    if (typeof v === "number" || (typeof v === "string" && v.startsWith("@"))) {
+      rec.kind = CODES.rigArg.num;
+      rec.num = s.num(v as Num);
+    } else if (typeof v === "string") {
+      rec.kind = CODES.rigArg.name;
+      rec.text = w.str(v);
+    } else if (typeof v === "boolean" || "not" in v) {
+      rec.kind = CODES.rigArg.flag;
+      [rec.flagKind, rec.flagA] = s.flag(v as Flag);
+    } else if (Array.isArray(v)) {
+      rec.kind = CODES.rigArg.vec;
+      rec.num = s.vec(v as NumVec);
+    } else if ("if" in v) {
+      rec.kind = CODES.rigArg.ink;
+      [rec.flagKind, rec.flagA, rec.then, rec.else] = s.choice(v as InkRef, INK_CODE);
+    } else {
+      rec.kind = CODES.rigArg.num;
+      rec.num = s.num(v as Num);
+    }
+    return rec;
+  });
+  f.rigArgs = w.section("rigArg").length;
+  f.rigArgCount = args.length;
+  for (const a of args) w.push("rigArg", a);
 }
 
 function writeInstance(
@@ -289,16 +333,315 @@ export interface SceneBinOptions {
   labels?: boolean;
 }
 
+/** What a host needs besides the bytes: names of the root scope, machines and strings. */
+export interface EncodedScene {
+  bytes: Uint8Array;
+  /** The string table: tags, events and state names are indices into it. */
+  strings: readonly string[];
+  /** The root scope, in slot order: `t`, the vars, then the root's params. */
+  scope: readonly string[];
+  /** Each var: its slot in the root scope (-1 for `time` and `pointer`) and its spec. */
+  vars: readonly { name: string; slot: number; type: string }[];
+  /** Each machine and its state names, in the order of the outputs block. */
+  machines: readonly { name: string; states: readonly string[] }[];
+}
+
 /** One scene of `lib` as SceneBin bytes. */
 export function writeSceneBin(
   lib: Library,
   sceneName: string,
   options: SceneBinOptions = {},
 ): Uint8Array {
+  return encodeScene(lib, sceneName, options).bytes;
+}
+
+/** Instance path ("line/package") → the index of that instance's record. */
+function resolveTarget(
+  target: string,
+  entries: DefEntry[],
+  instanceStart: Map<string, number>,
+  where: string,
+): number {
+  if (target === "") return -1;
+  let entry = entries[0]!;
+  let index = -1;
+  for (const id of target.split("/")) {
+    const instances = entry.assembly?.instances ?? [];
+    const k = instances.findIndex((o) => o.id === id);
+    if (k < 0) throw new BlueprintError(`${where}: no instance "${id}" in "${target}"`);
+    index = instanceStart.get(entry.name)! + k;
+    const next = entries.find((e) => e.name === instances[k]!.use);
+    if (!next) throw new BlueprintError(`${where}: "${instances[k]!.use}" is not defined`);
+    entry = next;
+  }
+  return index;
+}
+
+const EASE_CODE = {
+  linear: CODES.ease.linear,
+  step: CODES.ease.step,
+  smooth: CODES.ease.smooth,
+  glide: CODES.ease.glide,
+  in: CODES.ease.in,
+  out: CODES.ease.out,
+  "in-out": CODES.ease.inOut,
+} as const;
+
+/** The timelines, vars and machines of a scene, after its definitions. */
+function writeAnimation(
+  w: Writer,
+  scene: Scene,
+  entries: DefEntry[],
+  defs: Map<string, number>,
+  instanceStart: Map<string, number>,
+): void {
+  const scope = entries[0]!.params.map(([n]) => n);
+  const root = new Scope(w, scope, "/scene");
+  const slot = (name: string, where: string) => {
+    const i = scope.lastIndexOf(name);
+    if (i < 0) throw new BlueprintError(`${where}: no var or root param "${name}"`);
+    return i;
+  };
+  for (const [name, v] of Object.entries(scene.vars ?? {}))
+    w.push("var", {
+      name: w.str(name),
+      type: CODES.varType[v.type],
+      slot: v.type === "time" ? 0 : v.type === "pointer" ? -1 : slot(name, `/vars/${name}`),
+      default: v.type === "int" ? v.default : v.type === "progress" ? (v.default ?? 0) : 0,
+      every: v.type === "int" && v.cycle ? v.cycle.every : Number.NaN,
+      count: v.type === "int" && v.cycle ? v.cycle.count : Number.NaN,
+    });
+  const timelineNames = Object.keys(scene.timelines ?? {});
+  for (const [name, tl] of Object.entries(scene.timelines ?? {})) {
+    const where = `/timelines/${name}`;
+    const clock = tl.clock === undefined || tl.clock === "t" ? -1 : slot(tl.clock, where);
+    const first = w.section("track").length;
+    tl.tracks.forEach((track, i) => writeTrack(w, track, `${where}/tracks/${i}`));
+    w.push("timeline", {
+      name: w.str(name),
+      clock: clock < 0 ? CODES.clock.time : CODES.clock.var,
+      clockSlot: clock,
+      length: tl.length ?? Number.NaN,
+      loop:
+        tl.length === undefined
+          ? CODES.loopMode.none
+          : tl.loop === "ping-pong"
+            ? CODES.loopMode.pingPong
+            : tl.loop === "once"
+              ? CODES.loopMode.once
+              : CODES.loopMode.loop,
+      tracks: first,
+      trackCount: tl.tracks.length,
+    });
+  }
+  function writeTrack(w: Writer, track: Track, where: string): void {
+    const f: Record<string, number> = { kind: CODES.track[track.kind] };
+    let specs: [string, ParamSpec][] = entries[0]!.params;
+    if ("target" in track) {
+      f.target = resolveTarget(track.target, entries, instanceStart, where);
+      if (f.target >= 0) {
+        const at = (target: string) => {
+          // The used definition of the last instance on the path.
+          let entry = entries[0]!;
+          for (const id of target.split("/")) {
+            const inst = entry.assembly!.instances.find((o) => o.id === id)!;
+            entry = entries.find((e) => e.name === inst.use)!;
+          }
+          return entry;
+        };
+        specs = at(track.target).params;
+      }
+    }
+    const channel = (c: string) => {
+      if (c.startsWith("param:")) {
+        const name = c.slice(6);
+        const i = specs.findIndex(([n]) => n === name);
+        if (i < 0) throw new BlueprintError(`${where}: no parameter "${name}"`);
+        f.channel = CODES.channel.param;
+        f.param = i;
+      } else f.channel = CODES.channel[c as "at" | "turn" | "scale"];
+    };
+    const keys = (list: readonly { t: number; v: number | Vec3 | boolean; ease?: string }[]) => {
+      f.keys = w.section("key").length;
+      f.keyCount = list.length;
+      for (const k of list) {
+        const v =
+          typeof k.v === "boolean"
+            ? [Number(k.v), 0, 0]
+            : typeof k.v === "number"
+              ? [k.v, 0, 0]
+              : k.v;
+        w.push("key", {
+          t: k.t,
+          v0: v[0]!,
+          v1: v[1]!,
+          v2: v[2]!,
+          ease: EASE_CODE[(k.ease ?? "linear") as keyof typeof EASE_CODE],
+        });
+      }
+    };
+    const path = (pts: readonly Vec3[]) => {
+      const first = w.section("point").length;
+      const nums = pts.map((p) => root.vec(p));
+      for (const at of nums) w.push("point", { at });
+      f.path = first;
+      f.pathCount = pts.length;
+    };
+    switch (track.kind) {
+      case "key":
+        channel(track.channel);
+        keys(track.keys);
+        break;
+      case "visible":
+        f.channel = CODES.channel.visible;
+        keys(track.keys);
+        break;
+      case "spin":
+        channel(track.channel);
+        f.rate = track.rate;
+        f.phase = track.phase ?? Number.NaN;
+        break;
+      case "path":
+        f.channel = CODES.channel.at;
+        path(track.path);
+        f.duration = track.duration;
+        f.delay = track.delay ?? 0;
+        f.ease = EASE_CODE[track.ease ?? "linear"];
+        break;
+      case "conveyor": {
+        path(track.path);
+        const def = defs.get(track.use);
+        if (def === undefined) throw new BlueprintError(`${where}: "${track.use}" is not defined`);
+        f.use = def;
+        f.count = track.count;
+        f.speed = track.speed;
+        const used = entries[def]!.params;
+        const args = Object.entries(track.params ?? {}).map(([name, value]) => {
+          const param = used.findIndex(([n]) => n === name);
+          if (param < 0) throw new BlueprintError(`${where}: "${track.use}" has no "${name}"`);
+          if (used[param]![1].type === "flag") {
+            const [flagKind, flagA] = root.flag(value as Flag);
+            return { param, kind: CODES.arg.flag, num: -1, flagKind, flagA };
+          }
+          return {
+            param,
+            kind: CODES.arg.num,
+            num: root.num(value as Num),
+            flagKind: -1,
+            flagA: 0,
+          };
+        });
+        f.args = w.section("arg").length;
+        f.argCount = args.length;
+        for (const a of args) w.push("arg", a);
+        break;
+      }
+      case "blink":
+        channel(track.channel);
+        f.rate = track.rate;
+        f.period = track.period;
+        f.on = track.on;
+        f.seed = track.seed;
+        f.at = track.at ?? 0;
+        break;
+      case "spring":
+        channel(track.channel);
+        f.toSlot = slot(track.to.if, where);
+        f.toThen = track.to.then;
+        f.toElse = track.to.else;
+        f.rate = track.rate;
+        break;
+      case "wave":
+        channel(track.channel);
+        f.wave = CODES.wave[track.wave];
+        f.rate = track.rate;
+        f.phase = track.phase ?? Number.NaN;
+        f.amp = track.amp;
+        f.base = track.base;
+        f.clip = track.clip ? 1 : 0;
+        break;
+    }
+    w.push("track", f);
+  }
+  for (const [name, m] of Object.entries(scene.machines ?? {})) {
+    const where = `/machines/${name}`;
+    const states = Object.keys(m.states);
+    const stateIndex = (s: string) => {
+      const i = states.indexOf(s);
+      if (i < 0) throw new BlueprintError(`${where}: no state "${s}"`);
+      return i;
+    };
+    const firstState = w.section("state").length;
+    for (const [sname, st] of Object.entries(m.states)) {
+      const plays = (st.play ?? []).map((tl) => {
+        const i = timelineNames.indexOf(tl);
+        if (i < 0) throw new BlueprintError(`${where}/states/${sname}: no timeline "${tl}"`);
+        return i;
+      });
+      const sets = Object.entries(st.set ?? {}).map(([v, value]) => ({
+        slot: slot(v, `${where}/states/${sname}`),
+        value,
+      }));
+      const p0 = w.section("play").length;
+      for (const timeline of plays) w.push("play", { timeline });
+      const s0 = w.section("set").length;
+      for (const x of sets) w.push("set", x);
+      w.push("state", {
+        name: w.str(sname),
+        plays: p0,
+        playCount: plays.length,
+        sets: s0,
+        setCount: sets.length,
+        shot: st.shot === undefined ? -1 : w.str(st.shot),
+      });
+    }
+    const firstTransition = w.section("transition").length;
+    m.transitions.forEach((tr) => {
+      const rec: Record<string, number> = {
+        from: tr.from === "*" ? -1 : stateIndex(tr.from),
+        to: stateIndex(tr.to),
+        dissolve: tr.dissolve ?? 0,
+      };
+      const when = tr.when;
+      if ("range" in when) {
+        rec.when = CODES.when.range;
+        rec.slot = slot(when.var, where);
+        [rec.lo, rec.hi] = when.range;
+      } else if ("equals" in when) {
+        rec.when = CODES.when.equals;
+        rec.slot = slot(when.var, where);
+        rec.value = when.equals;
+      } else if ("after" in when) {
+        rec.when = CODES.when.after;
+        rec.after = when.after;
+      } else {
+        rec.when = CODES.when.event;
+        rec.event = w.str(when.event);
+      }
+      w.push("transition", rec);
+    });
+    w.push("machine", {
+      name: w.str(name),
+      initial: stateIndex(m.initial),
+      states: firstState,
+      stateCount: states.length,
+      transitions: firstTransition,
+      transitionCount: m.transitions.length,
+    });
+  }
+}
+
+/** One scene of `lib` as SceneBin bytes, with the names a host needs to drive it. */
+export function encodeScene(
+  lib: Library,
+  sceneName: string,
+  options: SceneBinOptions = {},
+): EncodedScene {
   const scene = lib.scenes.get(sceneName);
   if (!scene) throw new BlueprintError(`no scene "${sceneName}" in ${lib.file.id}`);
   const entries = sceneDefs(lib, sceneName);
   const defs = new Map(entries.map((e, i) => [e.name, i]));
+  const instanceStart = new Map<string, number>();
   const w = new Writer();
   entries.forEach((e) => {
     const names = e.params.map(([n]) => n);
@@ -331,6 +674,7 @@ export function writeSceneBin(
       rec.socketCount = sockets.length;
     } else if (e.assembly) {
       const instances = e.assembly.instances;
+      instanceStart.set(e.name, w.section("instance").length);
       instances.forEach((inst, i) =>
         writeInstance(w, inst, instances, s, defs, entries, `${where}/instances/${i}`),
       );
@@ -352,6 +696,7 @@ export function writeSceneBin(
     w.push("def", rec);
   });
   // The def records were pushed after their contents: their order is still the entries' order.
+  writeAnimation(w, scene, entries, defs, instanceStart);
   const unit = options.unit ?? scene.camera.fit.unit;
   const labels = options.labels ?? scene.labels;
   const dither = scene.filters?.dither;
@@ -388,6 +733,16 @@ export function writeSceneBin(
     "instance",
     "arg",
     "socket",
+    "rigArg",
+    "var",
+    "timeline",
+    "track",
+    "key",
+    "machine",
+    "state",
+    "play",
+    "set",
+    "transition",
   ];
   const header: Rec = [
     SCENE_MAGIC,
@@ -407,7 +762,25 @@ export function writeSceneBin(
     out.set(b, at);
     at += b.length;
   }
-  return out;
+  return {
+    bytes: out,
+    strings: w.strings,
+    scope: entries[0]!.params.map(([n]) => n),
+    vars: Object.entries(scene.vars ?? {}).map(([name, v]) => ({
+      name,
+      type: v.type,
+      slot:
+        v.type === "time"
+          ? 0
+          : v.type === "pointer"
+            ? -1
+            : entries[0]!.params.findIndex(([n]) => n === name),
+    })),
+    machines: Object.entries(scene.machines ?? {}).map(([name, m]) => ({
+      name,
+      states: Object.keys(m.states),
+    })),
+  };
 }
 
 // ── The tree, as text ──────────────────────────────────────────────────────────
@@ -485,6 +858,7 @@ function describePrim(p: Prim): string {
       out.push(`at=${fmtVec(p.at)}`);
       break;
     case "rig":
+      out.push(`rig=${RIG_CODE[p.rig]}`, `with=${Object.keys(p.with).length}`);
       break;
   }
   return out.join(" ");
@@ -565,5 +939,14 @@ export function describeScene(
       }
     }
   }
+  const tracks = Object.values(scene.timelines ?? {}).reduce((n, tl) => n + tl.tracks.length, 0);
+  lines.push(
+    [
+      `vars=${Object.keys(scene.vars ?? {}).length}`,
+      `timelines=${Object.keys(scene.timelines ?? {}).length}`,
+      `tracks=${tracks}`,
+      `machines=${Object.keys(scene.machines ?? {}).length}`,
+    ].join(" "),
+  );
   return `${lines.join("\n")}\n`;
 }

@@ -8,7 +8,7 @@
 // can differ by an ulp under JavaScriptCore, which shifts a block's last bit). Started by Bun, the
 // script bundles itself with rolldown and hands over to Node.
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import type { Block } from "../../packages/blueprint/src";
 import {
   blockKey,
@@ -140,14 +140,26 @@ const SPECIAL: Record<string, string> = {
 // ── Run ─────────────────────────────────────────────────────────────────────
 
 mkdirSync(LIBRARY, { recursive: true });
-for (const f of readdirSync(LIBRARY)) if (f.endsWith(".bp.json")) rmSync(`${LIBRARY}/${f}`);
+// A scene converted by hand (P3: its file has timelines, vars or machines) is the by-hand pass's
+// work: this pass reports it but never writes over it.
+const byHand = new Set<string>();
+for (const f of readdirSync(LIBRARY)) {
+  if (!f.endsWith(".bp.json")) continue;
+  const scenes = Object.values(
+    (JSON.parse(readFileSync(`${LIBRARY}/${f}`, "utf8")) as { scenes?: Record<string, object> })
+      .scenes ?? {},
+  );
+  if (scenes.some((s) => "timelines" in s || "vars" in s || "machines" in s))
+    byHand.add(f.replace(/\.bp\.json$/, ""));
+  else rmSync(`${LIBRARY}/${f}`);
+}
 
 const converted = new Map<string, Converted>();
 const started = performance.now();
 for (const name of SCENE_NAMES) {
   const c = convertScene(samplesOf(name), { name, prefix: "site" });
   converted.set(name, c);
-  writeFileSync(`${LIBRARY}/${name}.bp.json`, writeBlueprint(c.file));
+  if (!byHand.has(name)) writeFileSync(`${LIBRARY}/${name}.bp.json`, writeBlueprint(c.file));
   const r = c.report;
   console.log(
     `${name.padEnd(18)} ${String(r.static).padStart(5)} static, ${r.varying[0]}–${r.varying[1]} varying, ${r.samples} samples${r.ordered ? "" : "  (static order differs between samples!)"}`,

@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = "1.93"
 license = "Apache-2.0"
 publish = false
-description = "Blueprint's scene engine: SceneBin reader, still scenes, the low-resolution raster (painter and z-buffer), labels, the bitmap face, shading and paint (D-150)."
+description = "Blueprint's scene engine: SceneBin reader, scenes with vars, timelines, machines and rigs, the low-resolution raster (painter and z-buffer), labels, the bitmap face, shading and paint (D-150)."
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -13,7 +13,10 @@ crate-type = ["cdylib", "rlib"]
 [features]
 # The WebAssembly entry points (`src/wasm.rs`), built by scripts/blueprint/build-wasm.ts.
 wasm = ["dep:wasm-bindgen"]
+# The debug and contract outputs (`describe`, `flat_blocks`): the test module only.
+debug = ["wasm"]
 
 [dependencies]
 fg-math = { path = "../fg-math" }
+fg-blueprint-raster = { path = "raster" }
 wasm-bindgen = { version = "=0.2.130", optional = true }

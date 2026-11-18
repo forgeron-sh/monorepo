@@ -557,9 +557,26 @@
             "rate": { "type": "number" },
             "period": { "type": "integer", "minimum": 1 },
             "on": { "type": "number" },
-            "seed": { "type": "number" }
+            "seed": { "type": "number" },
+            "at": { "type": "number" }
           },
           "required": ["kind", "target", "channel", "rate", "period", "on", "seed"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "wave" },
+            "target": { "type": "string" },
+            "channel": { "type": "string", "pattern": "^param:[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+            "wave": { "enum": ["sin", "cos"] },
+            "rate": { "type": "number" },
+            "phase": { "type": "number" },
+            "amp": { "type": "number" },
+            "base": { "type": "number" },
+            "clip": { "type": "boolean" }
+          },
+          "required": ["kind", "target", "channel", "wave", "rate", "amp", "base"],
           "additionalProperties": false
         },
         {

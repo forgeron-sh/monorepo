@@ -3,7 +3,7 @@
 
 use crate::block::{flags, Block, BlockKind};
 use crate::boxes::{draw_box, line_bias};
-use crate::labels::{draw_label, draw_plain_label, place_labels};
+use crate::labels::{draw_label, draw_plain_label, place_labels, upper};
 use crate::raster::{dot, stroke, Frame, Material, Pt, Slot};
 use crate::{cull, order};
 use fg_math::{iso, View};
@@ -112,7 +112,7 @@ pub fn render_blocks(
         .copied()
         .filter(|l| !l.has(flags::PLAIN))
         .collect();
-    let texts: Vec<String> = framed.iter().map(|l| l.text.to_uppercase()).collect();
+    let texts: Vec<String> = framed.iter().map(|l| upper(&l.text)).collect();
     let plates = {
         let (material, ink, width) = (&f.material, &f.ink, f.width);
         let occupied = |x: usize, y: usize| {
@@ -129,7 +129,7 @@ pub fn render_blocks(
     }
     for l in labels.iter().filter(|l| l.has(flags::PLAIN)) {
         f.pen_tag = l.tag;
-        draw_plain_label(f, l, &l.text.to_uppercase(), view);
+        draw_plain_label(f, l, &upper(&l.text), view);
     }
     f.pen_tag = 0;
 }

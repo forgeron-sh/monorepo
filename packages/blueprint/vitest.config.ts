@@ -10,5 +10,7 @@ export default defineConfig({
     include: ["src/**/*.test.ts", "test/**/*.test.ts"],
     testTimeout: 120_000,
     maxWorkers: 4,
+    // The player's suite measures the heap of its loop (`gc()`).
+    execArgv: ["--expose-gc"],
   },
 });
