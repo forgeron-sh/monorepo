@@ -1,6 +1,7 @@
 import { entries as dataBlocks } from "./entries/data";
 import { entries as filteringBlocks } from "./entries/filtering";
 import { entries as hookEntries } from "./entries/hooks";
+import { entries as iconPickerBlocks } from "./entries/icon-picker";
 import { entries as listBlocks } from "./entries/lists";
 import { entries as navigationBlocks } from "./entries/navigation";
 import { entries as recordBlocks } from "./entries/record";
@@ -781,6 +782,7 @@ const pickers: ReadonlyArray<Atom> = [
 /** Composites of atoms, ready: the pickers, then the groups built after Tasks. */
 export const blocks: ReadonlyArray<Atom> = [
   ...pickers,
+  ...iconPickerBlocks,
   ...listBlocks,
   ...viewBlocks,
   ...filteringBlocks,

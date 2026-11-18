@@ -136,3 +136,4 @@ export * from "./blocks/data";
 export * from "./blocks/views";
 export * from "./hooks";
 export * from "./shaders";
+export * from "./blocks/icon-picker";
