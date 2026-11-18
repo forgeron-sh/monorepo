@@ -6,8 +6,7 @@ The development gallery of [`@forgeron/icons`](../../packages/icons/README.md). 
 bun run --cwd apps/icon-gallery dev   # http://localhost:5179
 ```
 
-- `/`: every icon of the catalog. Search by name, label or alias (`/` focuses the search), filter by category, status (drawn or stub) and origin of the name, switch monotone and duotone. An icon opens its detail: size, colours, secondary tone, stroke, backdrop, the pixel grid; copy the SVG, the React snippet, the import or the name; download SVG, PNG, JPG or WEBP. The query lives in the address bar (`/?category=arrows&icon=arrow-down-01`).
-- `/grids`: the grid study of 2026-11-16, the same subjects on 12, 16 and 24-pixel grids (study drawings in `src/lib/grid-study.ts`, not exported).
+- `/`: every icon of the catalog. Search by name, label or alias (`/` focuses the search), filter by category, switch monotone and duotone. An icon opens its detail: size, colours, secondary tone, stroke, backdrop, the pixel grid; copy the SVG, the React snippet, the import or the name; download SVG, PNG, JPG or WEBP. The query lives in the address bar (`/?category=arrows&icon=arrow-down-01`).
 
 ## Design
 

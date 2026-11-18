@@ -1,7 +1,15 @@
-import type { IconManifestEntry, IconVariant } from "@forgeron/icons";
-import { categories, getIcon, manifest } from "@forgeron/icons/catalog";
+import type { IconVariant, PixelIcon } from "@forgeron/icons";
 import { Icon } from "@forgeron/icons/react";
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { createLoader, type Catalog, type GalleryEntry, type Loader } from "../lib/loader";
 import {
   countByCategory,
   EMPTY_QUERY,
@@ -9,14 +17,11 @@ import {
   queryFromSearch,
   searchFromQuery,
   type GalleryQuery,
-  type SourceFilter,
-  type StatusFilter,
 } from "../lib/search";
 import { IconDetail } from "./IconDetail";
-import { fig, StubMark } from "./parts";
+import { fig } from "./parts";
 
 const PAGE = 240;
-const TOTALS = countByCategory(manifest, categories);
 
 function Seg<T extends string>({
   label,
@@ -48,36 +53,33 @@ function Seg<T extends string>({
 
 function Tile({
   entry,
+  loader,
   variant,
   onOpen,
 }: {
-  entry: IconManifestEntry;
+  entry: GalleryEntry;
+  loader: Loader;
   variant: IconVariant;
   onOpen: (name: string) => void;
 }) {
-  const icon = getIcon(entry.name);
+  const data = loader.get(entry.name);
   return (
     <li>
       <button
         type="button"
-        className={entry.implemented ? "tile" : "tile is-stub"}
+        className="tile"
         onClick={() => onOpen(entry.name)}
-        title={entry.description}
+        title={data?.description ?? entry.name}
       >
-        <span className="tile-fig t-mono">{fig(entry.name).slice(4)}</span>
-        <span
-          className={entry.implemented ? "led ok tile-led" : "led tile-led"}
-          aria-hidden="true"
-        />
+        <span className="tile-fig t-mono">{fig(entry.index).slice(4)}</span>
         <span className="tile-art">
-          {icon && entry.implemented ? (
-            <Icon icon={icon} variant={entry.variants.duo ? variant : "mono"} size={36} />
+          {data ? (
+            <Icon icon={data.icon} variant={entry.duo ? variant : "mono"} size={36} />
           ) : (
-            <StubMark size={30} />
+            <span className="tile-wait" aria-hidden="true" />
           )}
         </span>
         <span className="tile-name">{entry.name}</span>
-        <span className="sr-only">{entry.implemented ? "drawn" : "stub, not drawn yet"}</span>
       </button>
     </li>
   );
@@ -86,7 +88,29 @@ function Tile({
 /** The query in the address bar when the page opens (the island renders on the client only). */
 const initial = () => queryFromSearch(window.location.search);
 
-export default function Gallery() {
+export default function Gallery({
+  version,
+  searchIcon,
+}: {
+  version: string;
+  /** Given by the page, so the island never imports the package entry and its every icon. */
+  searchIcon: PixelIcon;
+}) {
+  const loader = useMemo(() => createLoader(version), [version]);
+  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    loader.catalog().then(setCatalog, () => setFailed(true));
+  }, [loader]);
+  // Renders again whenever a batch of drawings arrives.
+  useSyncExternalStore(loader.subscribe, loader.size);
+  const entries = useMemo(() => catalog?.entries ?? [], [catalog]);
+  const totals = useMemo(
+    () => (catalog ? countByCategory(catalog.entries, catalog.categories) : []),
+    [catalog],
+  );
+  const byName = useMemo(() => new Map(entries.map((e) => [e.name, e])), [entries]);
+
   const [query, setQuery] = useState<GalleryQuery>(() => {
     const { icon: _icon, ...q } = initial();
     return q;
@@ -108,13 +132,15 @@ export default function Gallery() {
   }, [query, open]);
 
   const results = useMemo(
-    () => filterEntries(manifest, { ...query, text: deferredText }),
-    [query, deferredText],
+    () => filterEntries(entries, { ...query, text: deferredText }),
+    [entries, query, deferredText],
   );
 
+  // The sentinel exists only once the index is in and while tiles remain: observe it again then.
+  const more = results.length > limit;
   useEffect(() => {
     const el = sentinel.current;
-    if (!el) return;
+    if (!more || !el) return;
     const io = new IntersectionObserver(
       ([e]) => {
         if (e?.isIntersecting) setPage({ key, limit: limit + PAGE });
@@ -123,7 +149,7 @@ export default function Gallery() {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [key, limit]);
+  }, [key, limit, more]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -141,8 +167,14 @@ export default function Gallery() {
     (patch: Partial<GalleryQuery>) => setQuery((q) => ({ ...q, ...patch })),
     [],
   );
-  const shown = results.slice(0, limit);
-  const category = TOTALS.find((c) => c.id === query.category);
+  const shown = useMemo(() => results.slice(0, limit), [results, limit]);
+  const openEntry = open ? byName.get(open) : undefined;
+  // The batches of the tiles on screen and of the open icon, each asked once.
+  useEffect(() => loader.need(shown), [loader, shown]);
+  useEffect(() => {
+    if (openEntry) loader.need([openEntry]);
+  }, [loader, openEntry]);
+  const category = totals.find((c) => c.id === query.category);
   const move = (step: number) => {
     const i = results.findIndex((e) => e.name === open);
     const next = results[(i + step + results.length) % results.length];
@@ -153,19 +185,6 @@ export default function Gallery() {
     <div className="gallery">
       <aside className="side" aria-label="Filters">
         <div className="side-block">
-          <span className="side-label t-mono dim">Status</span>
-          <Seg<StatusFilter>
-            label="Status"
-            value={query.status}
-            onChange={(status) => update({ status })}
-            options={[
-              { value: "all", label: "All" },
-              { value: "drawn", label: "Drawn" },
-              { value: "stub", label: "Stubs" },
-            ]}
-          />
-        </div>
-        <div className="side-block">
           <span className="side-label t-mono dim">Variant</span>
           <Seg<IconVariant>
             label="Variant"
@@ -174,19 +193,6 @@ export default function Gallery() {
             options={[
               { value: "mono", label: "Mono" },
               { value: "duo", label: "Duo" },
-            ]}
-          />
-        </div>
-        <div className="side-block">
-          <span className="side-label t-mono dim">Name from</span>
-          <Seg<SourceFilter>
-            label="Name from"
-            value={query.source}
-            onChange={(source) => update({ source })}
-            options={[
-              { value: "all", label: "All" },
-              { value: "hugeicons", label: "Hugeicons" },
-              { value: "forgeron", label: "Own" },
             ]}
           />
         </div>
@@ -201,10 +207,10 @@ export default function Gallery() {
                 onClick={() => update({ category: null })}
               >
                 <span className="cat-name">All icons</span>
-                <span className="cat-count t-mono">{manifest.length}</span>
+                <span className="cat-count t-mono">{entries.length}</span>
               </button>
             </li>
-            {TOTALS.map((c) => (
+            {totals.map((c) => (
               <li key={c.id}>
                 <button
                   type="button"
@@ -220,8 +226,7 @@ export default function Gallery() {
           </ul>
         </nav>
         <p className="side-note t-small">
-          Categories and labels are our own taxonomy, derived from the names. Hugeicons publishes
-          none that we could verify.
+          Categories and labels are our own taxonomy, derived from the names.
         </p>
       </aside>
 
@@ -229,16 +234,13 @@ export default function Gallery() {
         <div className="bar">
           <label className="search">
             <span className="search-icon" aria-hidden="true">
-              {(() => {
-                const s = getIcon("search-01");
-                return s ? <Icon icon={s} size={18} /> : null;
-              })()}
+              <Icon icon={searchIcon} size={18} />
             </span>
             <span className="sr-only">Search icons by name or label</span>
             <input
               ref={search}
               type="search"
-              placeholder="Search 6,000 names, labels, aliases…"
+              placeholder={`Search ${entries.length.toLocaleString("en")} names, labels, aliases…`}
               value={query.text}
               onChange={(e) => update({ text: e.target.value })}
               autoComplete="off"
@@ -258,9 +260,14 @@ export default function Gallery() {
           </div>
         </div>
 
-        {results.length === 0 ? (
+        {!catalog ? (
           <div className="empty dots-bg">
-            <StubMark size={48} />
+            <p className="f-title f-h4">
+              {failed ? "The catalog did not load." : "Loading the catalog…"}
+            </p>
+          </div>
+        ) : results.length === 0 ? (
+          <div className="empty dots-bg">
             <p className="f-title f-h4">No icon matches.</p>
             <p className="t-small">Try another word, or clear the filters.</p>
             <button type="button" className="btn btn-sm" onClick={() => setQuery(EMPTY_QUERY)}>
@@ -270,7 +277,13 @@ export default function Gallery() {
         ) : (
           <ul className="grid">
             {shown.map((entry) => (
-              <Tile key={entry.name} entry={entry} variant={variant} onOpen={setOpen} />
+              <Tile
+                key={entry.name}
+                entry={entry}
+                loader={loader}
+                variant={variant}
+                onOpen={setOpen}
+              />
             ))}
             {shown.length < results.length ? (
               <li ref={sentinel} className="grid-more" aria-hidden="true" />
@@ -279,9 +292,11 @@ export default function Gallery() {
         )}
       </section>
 
-      {open ? (
+      {openEntry && catalog ? (
         <IconDetail
-          name={open}
+          entry={openEntry}
+          data={loader.get(openEntry.name)}
+          categories={catalog.categories}
           variant={variant}
           onVariant={setVariant}
           onClose={() => setOpen(null)}

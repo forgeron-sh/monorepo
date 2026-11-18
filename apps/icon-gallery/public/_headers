@@ -1,0 +1,12 @@
+# Cache rules of icons.forgeron.sh (Cloudflare static assets read this file).
+# Files whose name or path carries a content hash never change: the browser keeps them for a year
+# and does not ask again. The HTML keeps the default (revalidated on each visit), so a new
+# deployment is seen at once and points to the new files.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+/data/*
+  Cache-Control: public, max-age=31536000, immutable
+/fonts/*
+  Cache-Control: public, max-age=2592000
+/favicon.*
+  Cache-Control: public, max-age=2592000

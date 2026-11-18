@@ -1,4 +1,3 @@
-import type { IconManifestEntry } from "@forgeron/icons";
 import { describe, expect, it } from "vitest";
 import {
   countByCategory,
@@ -9,30 +8,20 @@ import {
   searchScore,
 } from "./search";
 
-const entry = (name: string, over: Partial<IconManifestEntry> = {}): IconManifestEntry => ({
+const entry = (name: string, category: string, labels: string[] = [], aliases: string[] = []) => ({
   name,
-  export: "X",
-  source: "hugeicons",
-  category: "interface",
-  labels: name.split("-"),
-  description: `${name}.`,
-  implemented: false,
-  variants: { mono: false, duo: false },
-  style: null,
-  aliases: [],
-  sameAs: null,
-  reference: null,
-  trademark: null,
-  ...over,
+  category,
+  labels,
+  aliases,
 });
 
 const entries = [
-  entry("lock", { category: "security", implemented: true, labels: ["lock", "secure"] }),
-  entry("lock-key", { category: "security" }),
-  entry("square-lock-01", { category: "security" }),
-  entry("command-line", { category: "development", aliases: ["cli"], implemented: true }),
-  entry("arrow-down-01", { category: "arrows", labels: ["arrow", "down", "chevron"] }),
-  entry("mcp", { category: "ai", source: "forgeron" }),
+  entry("lock", "security", ["secure"]),
+  entry("lock-key", "security"),
+  entry("square-lock-01", "security"),
+  entry("command-line", "development", [], ["cli"]),
+  entry("arrow-down-01", "arrows", ["chevron"]),
+  entry("mcp", "ai"),
 ];
 
 describe("search", () => {
@@ -53,16 +42,16 @@ describe("search", () => {
     expect(searchScore(entries[0]!, "lock key")).toBe(0);
   });
 
-  it("filters by category, status and source, drawn icons first", () => {
-    const all = filterEntries(entries, EMPTY_QUERY).map((e) => e.name);
-    expect(all.slice(0, 2)).toEqual(["command-line", "lock"]);
-    expect(
-      filterEntries(entries, { ...EMPTY_QUERY, category: "security", status: "stub" }),
-    ).toHaveLength(2);
-    expect(
-      filterEntries(entries, { ...EMPTY_QUERY, source: "forgeron" }).map((e) => e.name),
-    ).toEqual(["mcp"]);
-    expect(filterEntries(entries, { ...EMPTY_QUERY, status: "drawn" })).toHaveLength(2);
+  it("filters by category, sorted by name", () => {
+    expect(filterEntries(entries, EMPTY_QUERY).map((e) => e.name)).toEqual([
+      "arrow-down-01",
+      "command-line",
+      "lock",
+      "lock-key",
+      "mcp",
+      "square-lock-01",
+    ]);
+    expect(filterEntries(entries, { ...EMPTY_QUERY, category: "security" })).toHaveLength(3);
   });
 
   it("counts per category in the given order, skipping empty ones", () => {
@@ -78,16 +67,10 @@ describe("search", () => {
   });
 
   it("round-trips the query through the address bar", () => {
-    const q = {
-      text: "lock",
-      category: "security",
-      status: "drawn" as const,
-      source: "all" as const,
-      icon: "lock",
-    };
-    expect(searchFromQuery(q)).toBe("?q=lock&category=security&status=drawn&icon=lock");
+    const q = { text: "lock", category: "security", icon: "lock" };
+    expect(searchFromQuery(q)).toBe("?q=lock&category=security&icon=lock");
     expect(queryFromSearch(searchFromQuery(q))).toEqual(q);
-    expect(queryFromSearch("?status=nope")).toEqual({ ...EMPTY_QUERY, icon: null });
+    expect(queryFromSearch("?status=drawn")).toEqual({ ...EMPTY_QUERY, icon: null });
     expect(searchFromQuery({ ...EMPTY_QUERY })).toBe("");
   });
 });

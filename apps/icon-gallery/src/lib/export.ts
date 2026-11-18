@@ -1,4 +1,9 @@
-import type { IconManifestEntry, IconRenderOptions } from "@forgeron/icons";
+import type { IconRenderOptions } from "@forgeron/icons";
+
+/** What a snippet needs of an icon: its named export. */
+interface Exported {
+  readonly export: string;
+}
 
 // What the detail view copies and downloads.
 
@@ -11,7 +16,7 @@ const MIME: Record<RasterFormat, string> = {
 };
 
 /** The React snippet for the current settings, only with the props that differ from the defaults. */
-export function reactSnippet(entry: IconManifestEntry, options: IconRenderOptions): string {
+export function reactSnippet(entry: Exported, options: IconRenderOptions): string {
   const props = [`icon={${entry.export}}`];
   if (options.variant === "duo") props.push(`variant="duo"`);
   if (options.size !== undefined && options.size !== 24) props.push(`size={${options.size}}`);
@@ -27,7 +32,7 @@ export function reactSnippet(entry: IconManifestEntry, options: IconRenderOption
   ].join("\n");
 }
 
-export function importSnippet(entry: IconManifestEntry): string {
+export function importSnippet(entry: Exported): string {
   return `import { ${entry.export} } from "@forgeron/icons";`;
 }
 

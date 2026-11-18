@@ -2,7 +2,7 @@
 import { ForgeronIcon, toSvg } from "@forgeron/icons";
 
 interface Props {
-  page: "gallery" | "grids";
+  page: "gallery";
 }
 const { page } = Astro.props;
 const mark = toSvg(ForgeronIcon, { size: 22 }) ?? "";
@@ -16,7 +16,6 @@ const mark = toSvg(ForgeronIcon, { size: 22 }) ?? "";
     </a>
     <div class="nav-links t-mono">
       <a href="/" aria-current={page === "gallery" ? "page" : undefined}>/0.1 Gallery</a>
-      <a href="/grids" aria-current={page === "grids" ? "page" : undefined}>/0.2 Grids</a>
     </div>
   </div>
 </nav>

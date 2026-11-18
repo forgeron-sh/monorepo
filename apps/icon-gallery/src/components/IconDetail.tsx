@@ -1,6 +1,6 @@
 import type { IconRenderOptions, IconVariant } from "@forgeron/icons";
-import { toSvg } from "@forgeron/icons";
-import { categories, getEntry, getIcon } from "@forgeron/icons/catalog";
+// The renderer alone: the package entry re-exports every icon, which a page should not load.
+import { toSvg } from "@forgeron/icons/render";
 import { Icon } from "@forgeron/icons/react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -11,7 +11,8 @@ import {
   reactSnippet,
   type RasterFormat,
 } from "../lib/export";
-import { fig, StubMark } from "./parts";
+import type { GalleryEntry, IconData } from "../lib/loader";
+import { fig } from "./parts";
 
 type Backdrop = "dark" | "light" | "checker";
 
@@ -72,22 +73,25 @@ function Action({
 }
 
 export function IconDetail({
-  name,
+  entry,
+  data,
+  categories,
   variant,
   onVariant,
   onClose,
   onMove,
   onCategory,
 }: {
-  name: string;
+  entry: GalleryEntry;
+  /** Undefined while the batch of the icon is on its way. */
+  data: IconData | undefined;
+  categories: readonly { id: string; label: string }[];
   variant: IconVariant;
   onVariant: (v: IconVariant) => void;
   onClose: () => void;
   onMove: (step: number) => void;
   onCategory: (id: string) => void;
 }) {
-  const entry = getEntry(name);
-  const icon = getIcon(name);
   const [s, setS] = useState<Settings>(DEFAULTS);
   const panel = useRef<HTMLDivElement>(null);
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
@@ -111,19 +115,18 @@ export function IconDetail({
     };
   }, [onClose, onMove]);
 
-  if (!entry || !icon) return null;
-  const drawn = icon.implemented ? icon : null;
-  const duo = entry.variants.duo && variant === "duo";
+  const drawn = data?.icon;
+  const duo = entry.duo && variant === "duo";
   const options: IconRenderOptions = {
     variant: duo ? "duo" : "mono",
     size: s.size,
     color: s.color,
     ...(duo ? { secondaryColor: s.secondaryColor, secondaryOpacity: s.secondaryOpacity } : {}),
   };
-  const svg = toSvg(icon, options);
+  const svg = drawn ? toSvg(drawn, options) : null;
   const file = (ext: string) => `${entry.name}${duo ? "-duo" : ""}-${s.size}.${ext}`;
   const raster = (format: RasterFormat) => async () => {
-    if (!svg || !drawn) throw new Error("Stub");
+    if (!svg) throw new Error("Not loaded yet");
     const bg = s.backdrop === "light" ? "#ededed" : s.backdrop === "dark" ? "#0a0a0a" : null;
     download(
       await rasterize(svg, s.size, format, format === "jpg" ? (bg ?? "#0a0a0a") : null),
@@ -146,13 +149,11 @@ export function IconDetail({
       >
         <header className="detail-head">
           <div className="detail-id">
-            <span className="t-mono dim">
-              {fig(entry.name)} · {entry.source === "forgeron" ? "Own name" : "Hugeicons name"}
-            </span>
+            <span className="t-mono dim">{fig(entry.index)}</span>
             <h2 id="detail-title" className="f-title f-h3">
               {entry.name}
             </h2>
-            <code className="t-code muted">{entry.export}</code>
+            <code className="t-code muted">{data?.export ?? "…"}</code>
           </div>
           <div className="detail-nav">
             <button
@@ -179,11 +180,7 @@ export function IconDetail({
 
         <div className={`stage ticks backdrop-${s.backdrop}`}>
           <span className="stage-fig t-mono dim">
-            {drawn ? `${drawn.style} · ${drawn.grid}×${drawn.grid}` : "stub"} · {s.size}px
-          </span>
-          <span className={drawn ? "chip stage-status" : "chip on stage-status"}>
-            <span className={drawn ? "led ok" : "led hot"} />
-            {drawn ? "Drawn" : "Not drawn yet"}
+            {drawn ? `${drawn.style} · ${drawn.grid}×${drawn.grid}` : "…"} · {s.size}px
           </span>
           {drawn ? (
             <div
@@ -193,13 +190,7 @@ export function IconDetail({
               <Icon icon={drawn} {...options} size={previewSize} />
             </div>
           ) : (
-            <div className="stage-stub">
-              <StubMark size={120} />
-              <p className="t-small">
-                This name is in the catalog but has no drawing yet: <code>{entry.export}</code>{" "}
-                renders nothing.
-              </p>
-            </div>
+            <div className="stage-art" style={{ width: previewSize, height: previewSize }} />
           )}
           {drawn ? (
             <div className="stage-sizes" aria-label="At small sizes">
@@ -223,7 +214,7 @@ export function IconDetail({
                     key={v}
                     type="button"
                     aria-pressed={(v === "duo") === duo}
-                    disabled={!drawn || (v === "duo" && !entry.variants.duo)}
+                    disabled={!drawn || (v === "duo" && !entry.duo)}
                     onClick={() => onVariant(v)}
                   >
                     {v === "mono" ? "Monotone" : "Duotone"}
@@ -314,8 +305,16 @@ export function IconDetail({
             <span className="t-mono dim">Copy</span>
             <div className="actions-row">
               <Action label="SVG" primary disabled={!svg} run={() => copyText(svg ?? "")} />
-              <Action label="React" run={() => copyText(reactSnippet(entry, options))} />
-              <Action label="Import" run={() => copyText(importSnippet(entry))} />
+              <Action
+                label="React"
+                disabled={!data}
+                run={() => copyText(data ? reactSnippet(data, options) : "")}
+              />
+              <Action
+                label="Import"
+                disabled={!data}
+                run={() => copyText(data ? importSnippet(data) : "")}
+              />
               <Action label="Name" run={() => copyText(entry.name)} />
             </div>
             <span className="t-mono dim">Download</span>
@@ -331,7 +330,7 @@ export function IconDetail({
             </div>
           </div>
 
-          <pre className="snippet t-code">{reactSnippet(entry, options)}</pre>
+          <pre className="snippet t-code">{data ? reactSnippet(data, options) : "…"}</pre>
 
           <dl className="spec">
             <dt className="t-mono">Category</dt>
@@ -341,11 +340,10 @@ export function IconDetail({
               </button>
             </dd>
             <dt className="t-mono">Description</dt>
-            <dd>{entry.description}</dd>
+            <dd>{data?.description ?? "…"}</dd>
             <dt className="t-mono">Variants</dt>
             <dd className="t-mono">
-              {entry.variants.mono ? "mono" : <span className="dim">mono</span>} ·{" "}
-              {entry.variants.duo ? "duo" : <span className="dim">duo</span>}
+              mono · {entry.duo ? "duo" : <span className="dim">duo</span>}
             </dd>
             {entry.aliases.length > 0 ? (
               <>
@@ -353,23 +351,23 @@ export function IconDetail({
                 <dd className="t-code">{entry.aliases.join(", ")}</dd>
               </>
             ) : null}
-            {entry.reference ? (
+            {data?.reference ? (
               <>
                 <dt className="t-mono">Reference</dt>
-                <dd>{entry.reference}</dd>
+                <dd>{data.reference}</dd>
               </>
             ) : null}
-            {entry.trademark ? (
+            {data?.trademark ? (
               <>
                 <dt className="t-mono">Trademark</dt>
                 <dd>
-                  <span className="chip on">Third-party brand</span> {entry.trademark}
+                  <span className="chip on">Third-party brand</span> {data.trademark}
                 </dd>
               </>
             ) : null}
             <dt className="t-mono">Labels</dt>
             <dd className="labels">
-              {entry.labels.map((l) => (
+              {[...entry.name.split("-"), ...entry.labels].map((l) => (
                 <span key={l} className="chip">
                   {l}
                 </span>

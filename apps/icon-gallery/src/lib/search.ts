@@ -1,21 +1,18 @@
-import type { IconManifestEntry } from "@forgeron/icons";
+import type { GalleryEntry } from "./loader";
 
 // The gallery's view of the catalog: what the sidebar, the search bar and the grid ask of it.
-
-export type StatusFilter = "all" | "drawn" | "stub";
-export type SourceFilter = "all" | "hugeicons" | "forgeron";
 
 export interface GalleryQuery {
   readonly text: string;
   readonly category: string | null;
-  readonly status: StatusFilter;
-  readonly source: SourceFilter;
 }
 
-export const EMPTY_QUERY: GalleryQuery = { text: "", category: null, status: "all", source: "all" };
+export const EMPTY_QUERY: GalleryQuery = { text: "", category: null };
+
+type Searchable = Pick<GalleryEntry, "name" | "category" | "labels" | "aliases">;
 
 /** How well an entry matches one search term; 0 when it does not. */
-function termScore(entry: IconManifestEntry, term: string): number {
+function termScore(entry: Searchable, term: string): number {
   if (entry.name === term) return 100;
   if (entry.aliases.includes(term)) return 90;
   if (entry.name.startsWith(term)) return 70;
@@ -24,12 +21,11 @@ function termScore(entry: IconManifestEntry, term: string): number {
   if (entry.labels.some((l) => l === term)) return 30;
   if (entry.aliases.some((a) => a.includes(term))) return 25;
   if (entry.labels.some((l) => l.startsWith(term))) return 20;
-  if (entry.description.toLowerCase().includes(term)) return 5;
   return 0;
 }
 
 /** The score of an entry for a whole search: every term must match. */
-export function searchScore(entry: IconManifestEntry, text: string): number {
+export function searchScore(entry: Searchable, text: string): number {
   const terms = text
     .toLowerCase()
     .trim()
@@ -45,27 +41,19 @@ export function searchScore(entry: IconManifestEntry, text: string): number {
   return total;
 }
 
-/** The entries a query keeps, best match first when there is a search, drawn icons first otherwise. */
-export function filterEntries(
-  entries: readonly IconManifestEntry[],
+/** The entries a query keeps, best match first, then by name. */
+export function filterEntries<T extends Searchable>(
+  entries: readonly T[],
   query: GalleryQuery,
-): IconManifestEntry[] {
-  const scored: { entry: IconManifestEntry; score: number }[] = [];
+): T[] {
+  const scored: { entry: T; score: number }[] = [];
   for (const entry of entries) {
     if (query.category && entry.category !== query.category) continue;
-    if (query.status === "drawn" && !entry.implemented) continue;
-    if (query.status === "stub" && entry.implemented) continue;
-    if (query.source !== "all" && entry.source !== query.source) continue;
     const score = searchScore(entry, query.text);
     if (score > 0) scored.push({ entry, score });
   }
   return scored
-    .sort(
-      (a, b) =>
-        b.score - a.score ||
-        Number(b.entry.implemented) - Number(a.entry.implemented) ||
-        a.entry.name.localeCompare(b.entry.name),
-    )
+    .sort((a, b) => b.score - a.score || a.entry.name.localeCompare(b.entry.name))
     .map((s) => s.entry);
 }
 
@@ -77,7 +65,7 @@ export interface CategoryCount {
 
 /** Totals per category, in the order of `categories`. */
 export function countByCategory(
-  entries: readonly IconManifestEntry[],
+  entries: readonly Pick<GalleryEntry, "category">[],
   categories: readonly { id: string; label: string }[],
 ): CategoryCount[] {
   const totals = new Map<string, number>();
@@ -87,16 +75,12 @@ export function countByCategory(
     .filter((c) => c.total > 0);
 }
 
-/** The query in the address bar, so a category of the coverage page links to its gallery. */
+/** The query in the address bar, so a search, a category or an icon can be linked. */
 export function queryFromSearch(search: string): GalleryQuery & { icon: string | null } {
   const params = new URLSearchParams(search);
-  const status = params.get("status");
-  const source = params.get("source");
   return {
     text: params.get("q") ?? "",
     category: params.get("category"),
-    status: status === "drawn" || status === "stub" ? status : "all",
-    source: source === "hugeicons" || source === "forgeron" ? source : "all",
     icon: params.get("icon"),
   };
 }
@@ -105,8 +89,6 @@ export function searchFromQuery(query: GalleryQuery & { icon?: string | null }):
   const params = new URLSearchParams();
   if (query.text) params.set("q", query.text);
   if (query.category) params.set("category", query.category);
-  if (query.status !== "all") params.set("status", query.status);
-  if (query.source !== "all") params.set("source", query.source);
   if (query.icon) params.set("icon", query.icon);
   const s = params.toString();
   return s ? `?${s}` : "";

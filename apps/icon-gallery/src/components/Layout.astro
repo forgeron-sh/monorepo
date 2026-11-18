@@ -6,7 +6,7 @@ import Nav from "./Nav.astro";
 interface Props {
   title: string;
   description: string;
-  page: "gallery" | "grids";
+  page: "gallery";
 }
 const { title, description, page } = Astro.props;
 ---
@@ -35,7 +35,7 @@ const { title, description, page } = Astro.props;
     </main>
     <footer class="rail foot t-mono dim">
       <span>@forgeron/icons · Apache-2.0</span>
-      <span>Names mirrored from the Hugeicons list · drawings by Forgeron</span>
+      <span>Drawings by Forgeron</span>
       <span>Dev gallery</span>
     </footer>
     <script>

@@ -1,4 +1,4 @@
-/* The gallery and grid pages, on top of lab.css. */
+/* The gallery, on top of lab.css. */
 
 :root {
   /* Duotone icons take the ember of the lab as their second tone. */
@@ -286,11 +286,6 @@ body.is-locked {
   line-height: 12px;
   color: var(--ink-dim);
 }
-.tile-led {
-  position: absolute;
-  top: 11px;
-  right: 10px;
-}
 .tile-name {
   max-width: 100%;
   overflow: hidden;
@@ -301,36 +296,19 @@ body.is-locked {
   line-height: 14px;
   color: var(--ink-muted);
 }
-.tile.is-stub .tile-name {
-  color: var(--ink-dim);
-}
 @media (max-width: 560px) {
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   }
 }
 
-/* The empty grid of a stub: a dotted square, crossed. */
-.stub-mark {
-  position: relative;
+/* A tile whose drawing is on its way. */
+.tile-wait {
   display: inline-block;
-  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
   background-image: radial-gradient(var(--line-strong) 1px, transparent 1.2px);
   background-size: 5px 5px;
-  border: 1px dashed var(--line-strong);
-}
-.stub-mark span {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to top right,
-    transparent calc(50% - 0.5px),
-    var(--line-strong) 50%,
-    transparent calc(50% + 0.5px)
-  );
-}
-.tile:hover .stub-mark {
-  border-color: var(--ink-dim);
 }
 
 .empty {
@@ -433,12 +411,6 @@ body.is-locked {
   top: 12px;
   left: 14px;
 }
-.stage-status {
-  position: absolute;
-  top: 9px;
-  right: 12px;
-  background: var(--bg);
-}
 .stage-art {
   position: relative;
   display: flex;
@@ -473,19 +445,6 @@ body.is-locked {
 }
 .stage-size svg {
   display: block;
-}
-.stage-stub {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  max-width: 34ch;
-  text-align: center;
-  padding: 48px 0;
-}
-.stage-stub code {
-  font-family: var(--font-mono);
-  color: var(--ink);
 }
 .detail-body {
   padding: 20px 24px 40px;
@@ -626,75 +585,5 @@ input[type="range"] {
   }
   .actions-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* ================================================================ review sheet (/grids) */
-.rv {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-}
-.rv-row {
-  display: grid;
-  grid-template-columns: minmax(150px, 220px) auto auto auto;
-  align-items: stretch;
-  gap: 1px;
-  background: var(--line);
-}
-.rv-id {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  background: var(--bg);
-}
-.rv-group {
-  display: flex;
-  align-items: flex-end;
-  gap: 18px;
-  padding: 14px 16px 10px;
-}
-.rv-dark {
-  background: var(--bg-sunk);
-}
-.rv-light {
-  background: #ededed;
-}
-.rv-light .dim {
-  color: #6b6b6b;
-}
-.rv-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.rv-cell svg,
-.rv-cell canvas {
-  display: block;
-}
-.raster {
-  image-rendering: pixelated;
-}
-.rv-loupe {
-  grid-column: 1 / -1;
-  flex-wrap: wrap;
-}
-.rv-intro {
-  max-width: 72ch;
-  margin-bottom: 24px;
-}
-@media (max-width: 900px) {
-  .rv-row {
-    grid-template-columns: 1fr;
-  }
-  .rv-group {
-    flex-wrap: wrap;
   }
 }
