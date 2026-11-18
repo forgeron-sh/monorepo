@@ -1,3 +1,4 @@
+import { entries as automationBlocks } from "./entries/automation";
 import { entries as dataBlocks } from "./entries/data";
 import { entries as datahubBlocks } from "./entries/datahub";
 import { entries as driveBlocks } from "./entries/drive";
@@ -793,6 +794,7 @@ export const blocks: ReadonlyArray<Atom> = [
   ...dataBlocks,
   ...datahubBlocks,
   ...driveBlocks,
+  ...automationBlocks,
 ];
 
 /** The hooks: the state the components share, the keyboard, the actions of a screen. */
