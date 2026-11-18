@@ -1,0 +1,33 @@
+---
+import { toSvg } from "@forgeron/icons";
+import type { Planned } from "../registry";
+
+interface Props {
+  items: ReadonlyArray<Planned>;
+  /** The section index shown on each cell, e.g. `/0.2`. */
+  index: string;
+  /** Numbering starts after this many cells. */
+  start?: number;
+}
+const { items, index, start = 0 } = Astro.props;
+---
+
+<ul class="grid planned">
+  {
+    items.map((item, i) => (
+      <li class="card card-soon">
+        <div class="card-art hatch" aria-hidden="true">
+          <span class="card-glyph" set:html={toSvg(item.icon, { size: 36, variant: "duo", secondaryColor: "var(--accent)", secondaryOpacity: 1 }) ?? ""} />
+        </div>
+        <div class="card-copy">
+          <span class="t-mono dim">
+            {index}.{String(start + i + 1).padStart(2, "0")}
+          </span>
+          <span class="card-name">{item.name}</span>
+          <span class="t-small">{item.summary}</span>
+        </div>
+        <span class="soon card-tag">Soon</span>
+      </li>
+    ))
+  }
+</ul>

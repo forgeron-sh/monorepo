@@ -1,0 +1,58 @@
+---
+import DocsLayout from "../../components/DocsLayout.astro";
+import { highlight } from "../../lib/highlight";
+import { atoms } from "../../registry";
+
+const steps = [
+  { title: "Add the package", lang: "shellscript", code: "bun add @forgeron/ui @forgeron/icons react react-dom" },
+  {
+    title: "Import the styles once",
+    lang: "tsx",
+    code: `// main.tsx: tokens, atoms and components, with the Forgeron Sans files.\nimport "@forgeron/ui/styles.css";`,
+  },
+  {
+    title: "Use a component",
+    lang: "tsx",
+    code: `import { Button } from "@forgeron/ui";\n\nexport function Deploy() {\n  return <Button variant="primary">Deploy</Button>;\n}`,
+  },
+  {
+    title: "Light theme, if you want it",
+    lang: "tsx",
+    code: `// Dark by default. Every token has its light value.\ndocument.documentElement.dataset.theme = "light";`,
+  },
+] as const;
+---
+
+<DocsLayout
+  title="Installation — Forgeron UI"
+  description="Add @forgeron/ui to a React app and import its styles."
+  current="installation"
+>
+  <header class="doc-head">
+    <span class="t-mono dim">Get started <span class="accent">/</span> Installation</span>
+    <h1 class="f-title f-h3">Installation</h1>
+    <p class="t-lead">React 19, one stylesheet, no build step of its own.</p>
+  </header>
+  <ol class="steps">
+    {
+      steps.map((s, i) => (
+        <li class="step">
+          <span class="step-n t-mono accent">/{String(i + 1).padStart(2, "0")}</span>
+          <div class="step-body">
+            <p class="t-title">{s.title}</p>
+            <div class="hero-cmd">
+              <div class="hero-cmd-code" id={`step-${i}`} set:html={highlight(s.code, s.lang)} />
+              <button type="button" class="btn btn-sm" data-copy={`step-${i}`}>
+                Copy
+              </button>
+            </div>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+  <nav class="pager-nav t-mono" aria-label="Next page">
+    <span />
+    <a href={`/docs/${atoms[0]!.slug}`}>{atoms[0]!.name} →</a>
+  </nav>
+</DocsLayout>

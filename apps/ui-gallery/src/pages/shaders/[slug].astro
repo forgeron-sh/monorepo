@@ -1,0 +1,160 @@
+---
+import DocsLayout from "../../components/DocsLayout.astro";
+import ShaderStage from "../../components/shaders/ShaderStage.astro";
+import { highlight } from "../../lib/highlight";
+import { type Shader, shaders } from "../../lib/shaders";
+import { atoms } from "../../registry";
+import "../../styles/shaders.css";
+
+export function getStaticPaths() {
+  return shaders.map((shader, i) => ({
+    params: { slug: shader.slug },
+    props: { shader, prev: shaders[i - 1], next: shaders[i + 1] },
+  }));
+}
+
+interface Props {
+  shader: Shader;
+  prev?: Shader;
+  next?: Shader;
+}
+const { shader: s, prev, next } = Astro.props;
+const n = (i: number) => String(i).padStart(2, "0");
+---
+
+<DocsLayout title={`${s.name} — Shaders — Forgeron UI`} description={s.summary} current={`shaders/${s.slug}`} page="shaders">
+  <header class="doc-head">
+    <span class="t-mono dim">Shaders <span class="accent">/</span> {s.name}</span>
+    <h1 class="f-title f-h3">{s.name}</h1>
+    <p class="t-lead">{s.summary}</p>
+    <dl class="sh-facts t-mono">
+      <div><dt class="dim">Drawn with</dt><dd>{s.engine}</dd></div>
+      <div><dt class="dim">Code</dt><dd>{s.home}</dd></div>
+    </dl>
+  </header>
+
+  <section class="sh-block" aria-label="Live">
+    <div class="sh-hero dots-bg ticks">
+      <ShaderStage spec={s.versions[0]!.demo} />
+    </div>
+  </section>
+
+  <section class="sh-block" aria-label="What it is">
+    <div class="spacer-sm t-mono dim"><span>/01 → What it is</span></div>
+    <ul class="sh-what">
+      {s.what.map((line) => <li>{line}</li>)}
+    </ul>
+  </section>
+
+  <section class="sh-block" aria-label="Where Forgeron uses it">
+    <div class="spacer-sm t-mono dim"><span>/02 → Where Forgeron uses it</span></div>
+    <div class="table-wrap">
+      <table class="props">
+        <thead>
+          <tr>
+            <th scope="col">Site</th>
+            <th scope="col">Where</th>
+            <th scope="col">Settings</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            s.uses.map((u) => (
+              <tr>
+                <td>{u.site}</td>
+                <td>{u.place}</td>
+                <td>
+                  <code class="dim-code">{u.settings}</code>
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="sh-block" aria-label="Versions">
+    <div class="spacer-sm t-mono dim"><span>/03 → Versions</span></div>
+    <ul class="sh-versions">
+      {
+        s.versions.map((v, i) => (
+          <li class="sh-version">
+            <div class="sh-stage dots-bg">
+              <ShaderStage spec={v.demo} />
+            </div>
+            <div class="sh-caption">
+              <span class="t-mono">
+                <span class="accent">/{n(i + 1)}</span> {v.title}
+              </span>
+              <code class="dim-code">{v.note}</code>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="sh-block" aria-label="Use it">
+    <div class="spacer-sm t-mono dim"><span>/04 → Use it</span></div>
+    <div class="sh-snippets">
+      {
+        s.code.map((c, i) => {
+          const id = `code-${s.slug}-${i}`;
+          return (
+            <section class="frame" data-show="code" aria-label={c.title}>
+              <header class="frame-bar">
+                <span class="t-mono">
+                  <span class="accent">/{n(i + 1)}</span> <span class="dim">→</span> {c.title}
+                </span>
+                <div class="frame-tools">
+                  <button type="button" class="btn btn-sm" data-copy={id}>
+                    Copy
+                  </button>
+                </div>
+              </header>
+              <div class="frame-code" id={id} set:html={highlight(c.code, c.lang)} />
+            </section>
+          );
+        })
+      }
+    </div>
+  </section>
+
+  <section class="api" aria-labelledby="api-title">
+    <div class="spacer-sm t-mono dim"><span id="api-title">API → Options</span></div>
+    <div class="table-wrap">
+      <table class="props">
+        <thead>
+          <tr>
+            <th scope="col">Option</th>
+            <th scope="col">Type</th>
+            <th scope="col">Default</th>
+            <th scope="col">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            s.options.map((o) => (
+              <tr>
+                <td>
+                  <code>{o.name}</code>
+                </td>
+                <td>
+                  <code class="dim-code">{o.type}</code>
+                </td>
+                <td>{o.default ? <code class="dim-code">{o.default}</code> : <span class="dim">—</span>}</td>
+                <td>{o.description}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <nav class="pager-nav t-mono" aria-label="Previous and next shader">
+    {prev ? <a href={`/shaders/${prev.slug}`}>← {prev.name}</a> : <a href="/shaders">← Every shader</a>}
+    {next ? <a href={`/shaders/${next.slug}`}>{next.name} →</a> : <a href={`/docs/${atoms[0]!.slug}`}>Atoms →</a>}
+  </nav>
+</DocsLayout>

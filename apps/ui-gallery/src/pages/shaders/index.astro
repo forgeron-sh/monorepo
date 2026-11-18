@@ -1,0 +1,25 @@
+---
+import Layout from "../../components/Layout.astro";
+import ShaderGrid from "../../components/shaders/ShaderGrid.astro";
+import "../../styles/shaders.css";
+---
+
+<Layout
+  title="Shaders — Forgeron UI"
+  description="The pixel fields and effects Forgeron draws online: ordered dither, dither field, WebGL fields, dithered images, hearth, reveal and burn."
+  page="shaders"
+>
+  <section class="rail">
+    <header class="sec-head">
+      <div class="sec-index" aria-hidden="true">/0.2</div>
+      <div class="sec-title">
+        <span class="tag"><b>Shaders</b></span>
+        <h1 class="f-title f-h2">Whole pixels,<br />never a blur.</h1>
+      </div>
+    </header>
+  </section>
+  <div class="rail spacer t-mono dim"><span>/0.2 → Every shader</span><span>[ Live ]</span></div>
+  <section class="rail" aria-label="Shaders">
+    <ShaderGrid index="/0.2" />
+  </section>
+</Layout>

@@ -1,0 +1,21 @@
+---
+import EntryGrid from "../components/EntryGrid.astro";
+import Layout from "../components/Layout.astro";
+import { blocks } from "../registry";
+---
+
+<Layout title="Blocks — Forgeron UI" description="Composites of atoms: pickers, lists, filters, records, navigation, data and the frame of an app." page="blocks">
+  <section class="rail">
+    <header class="sec-head">
+      <div class="sec-index" aria-hidden="true">/0.4</div>
+      <div class="sec-title">
+        <span class="tag"><b>Blocks</b></span>
+        <h1 class="f-title f-h2">Atoms,<br />put together.</h1>
+      </div>
+    </header>
+  </section>
+  <div class="rail spacer t-mono dim"><span>/0.4 → Every block</span><span>[ Ready ]</span></div>
+  <section class="rail" aria-label="Ready blocks">
+    <EntryGrid entries={blocks} index="/0.4" />
+  </section>
+</Layout>

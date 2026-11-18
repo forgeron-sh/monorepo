@@ -1,0 +1,167 @@
+---
+import { Logo, anvilPath } from "@forgeron/ui";
+import DocsLayout from "../../components/DocsLayout.astro";
+import { colors, families, identity, scales, typeGroups } from "../../lib/identity";
+
+export function getStaticPaths() {
+  return identity.map((page, i) => ({
+    params: { slug: page.slug },
+    props: { page, prev: identity[i - 1], next: identity[i + 1] },
+  }));
+}
+
+const { page, prev, next } = Astro.props;
+const groups = { brand: colors.slice(0, 11), states: colors.slice(11) };
+const pixelSize = (px: string) => Number.parseInt(px, 10);
+const logos = [
+  ["Logo, dark", "/brand/forgeron-logo-dark.svg"],
+  ["Logo, light", "/brand/forgeron-logo-light.svg"],
+  ["Wordmark, dark", "/brand/forgeron-wordmark-dark.svg"],
+  ["Wordmark, light", "/brand/forgeron-wordmark-light.svg"],
+  ["Symbol, dark", "/brand/forgeron-symbol-standard-dark.svg"],
+  ["Symbol, light", "/brand/forgeron-symbol-standard-light.svg"],
+] as const;
+---
+
+<DocsLayout title={`${page.name} — Forgeron UI`} description={page.summary} current={`identity/${page.slug}`} page="identity">
+  <header class="doc-head">
+    <span class="t-mono dim">Identity <span class="accent">/</span> {page.name}</span>
+    <h1 class="f-title f-h3">{page.name}</h1>
+    <p class="t-lead">{page.summary}</p>
+  </header>
+
+  {
+    page.slug === "logo" && (
+      <>
+        <section class="id-block" aria-label="The logo">
+          <div class="spacer-sm t-mono dim"><span>/01 → Lockups</span></div>
+          <div class="id-logos">
+            <div class="id-logo dots-bg ticks"><Logo size={48} /></div>
+            <div class="id-logo id-light"><Logo size={48} /></div>
+            <div class="id-logo dots-bg ticks"><Logo variant="symbol" size={72} /></div>
+            <div class="id-logo id-accent"><Logo variant="symbol" size={72} /></div>
+          </div>
+        </section>
+        <section class="id-block" aria-label="The anvil">
+          <div class="spacer-sm t-mono dim"><span>/02 → The anvil, three renderings</span></div>
+          <div class="id-anvils">
+            {(["solid", "dither", "fade"] as const).map((mode) => (
+              <figure class="id-anvil">
+                <svg viewBox="0 0 24 24" width="120" height="120" shape-rendering="crispEdges" aria-hidden="true">
+                  <path fill="currentColor" d={anvilPath(24, mode)} />
+                </svg>
+                <figcaption class="t-mono dim">{mode}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+        <section class="id-block" aria-label="Files">
+          <div class="spacer-sm t-mono dim"><span>/03 → Files</span></div>
+          <ul class="id-files">
+            {logos.map(([name, href]) => (
+              <li>
+                <span>{name}</span>
+                <a class="btn btn-sm" href={href} download>SVG</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </>
+    )
+  }
+
+  {
+    page.slug === "colors" && (
+      <>
+        {(["brand", "states"] as const).map((key, gi) => (
+          <section class="id-block" aria-label={key === "brand" ? "Surfaces, ink and accent" : "States"}>
+            <div class="spacer-sm t-mono dim">
+              <span>/{String(gi + 1).padStart(2, "0")} → {key === "brand" ? "Surfaces, ink, accent" : "States"}</span>
+            </div>
+            <ul class="id-colors">
+              {groups[key].map((c) => (
+                <li class="id-color">
+                  <div class="id-chips" aria-hidden="true">
+                    <span style={`background:${c.value.dark}`} />
+                    <span style={`background:${c.value.light}`} />
+                  </div>
+                  <div class="id-color-copy">
+                    <code class="id-name">--{c.name}</code>
+                    <span class="t-mono dim">
+                      {c.value.dark.startsWith("var") ? c.value.dark : `${c.value.dark} · ${c.value.light}`}
+                    </span>
+                    <p class="t-small">{c.usage.replace(/`/g, "")}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </>
+    )
+  }
+
+  {
+    page.slug === "typography" &&
+      typeGroups.map((group, gi) => (
+        <section class="id-block" aria-label={group.name}>
+          <div class="spacer-sm t-mono dim">
+            <span>/{String(gi + 1).padStart(2, "0")} → {group.name}</span>
+          </div>
+          <ul class="id-type">
+            {group.styles.map((style) => (
+              <li class="id-type-row">
+                <div class="id-type-meta">
+                  <code class="id-name">.text-{style.name}</code>
+                  <span class="t-mono dim">
+                    {style.fontSize} / {style.lineHeight} · {style.fontWeight}
+                  </span>
+                </div>
+                <p
+                  class={`text-${style.name} id-type-sample`}
+                  style={pixelSize(style.fontSize) > 60 ? "font-size:60px" : undefined}
+                >
+                  {style.sample ?? "Supplier invoices arrive twice from Odoo"}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p class="t-small id-family"><code>{families[group.family]}</code></p>
+        </section>
+      ))
+  }
+
+  {
+    page.slug === "tokens" &&
+      scales.map((scale, si) => (
+        <section class="id-block" aria-label={scale.title}>
+          <div class="spacer-sm t-mono dim">
+            <span>/{String(si + 1).padStart(2, "0")} → {scale.title}</span>
+          </div>
+          <ul class="id-scale">
+            {scale.tokens.map((t) => {
+              const value = typeof t.value === "string" ? t.value : t.value.dark;
+              return (
+                <li class="id-scale-row">
+                  <code class="id-name">--{t.name}</code>
+                  <span class="t-mono dim id-scale-value">{value}</span>
+                  <span class="id-scale-vis" aria-hidden="true">
+                    {scale.title === "Spacing" && <span class="id-bar" style={`width:${value}`} />}
+                    {scale.title === "Shadow" && <span class="id-shadow" style={`box-shadow:${value}`} />}
+                    {scale.title === "Motion" && <span class="id-motion" style={`--d:${value}`} />}
+                  </span>
+                  <span class="t-small">{t.usage.replace(/`/g, "")}</span>
+                </li>
+              );
+            })}
+          </ul>
+          {scale.note && <p class="t-small id-family">{scale.note}</p>}
+        </section>
+      ))
+  }
+
+  <nav class="pager-nav t-mono" aria-label="Previous and next page">
+    {prev ? <a href={`/identity/${prev.slug}`}>← {prev.name}</a> : <a href="/docs/installation">← Installation</a>}
+    {next ? <a href={`/identity/${next.slug}`}>{next.name} →</a> : <a href="/shaders">Shaders →</a>}
+  </nav>
+</DocsLayout>

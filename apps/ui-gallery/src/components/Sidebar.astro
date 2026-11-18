@@ -1,0 +1,44 @@
+---
+import { identity } from "../lib/identity";
+import { shaders } from "../lib/shaders";
+import { atoms, blocks, hooks } from "../registry";
+
+interface Props {
+  /** The slug of the page shown: an atom, a block, `installation` or `identity/<page>`. */
+  current: string;
+}
+const { current } = Astro.props;
+const here = (slug: string) => (slug === current ? "page" : undefined);
+---
+
+<aside class="side" aria-label="Contents">
+  <div class="side-group">
+    <p class="side-head t-mono">Get started</p>
+    <a href="/docs/installation" aria-current={here("installation")}>Installation</a>
+  </div>
+  <div class="side-group">
+    <p class="side-head t-mono">/0.1 Identity</p>
+    {identity.map((p) => <a href={`/identity/${p.slug}`} aria-current={here(`identity/${p.slug}`)}>{p.name}</a>)}
+  </div>
+  <div class="side-group">
+    <p class="side-head t-mono">/0.2 Shaders</p>
+    <a href="/shaders" aria-current={here("shaders")}>Overview</a>
+    {shaders.map((s) => <a href={`/shaders/${s.slug}`} aria-current={here(`shaders/${s.slug}`)}>{s.name}</a>)}
+  </div>
+  <div class="side-group">
+    <p class="side-head t-mono">/0.3 Atoms</p>
+    {atoms.map((a) => <a href={`/docs/${a.slug}`} aria-current={here(a.slug)}>{a.name}</a>)}
+  </div>
+  <div class="side-group">
+    <p class="side-head t-mono">/0.4 Blocks</p>
+    {blocks.map((b) => <a href={`/docs/${b.slug}`} aria-current={here(b.slug)}>{b.name}</a>)}
+  </div>
+  <div class="side-group">
+    <p class="side-head t-mono">Hooks</p>
+    {hooks.map((h) => <a href={`/docs/${h.slug}`} aria-current={here(h.slug)}>{h.name}</a>)}
+  </div>
+  <div class="side-group">
+    <p class="side-head t-mono">/0.5 Pages <span class="soon">Soon</span></p>
+    <a href="/pages">Planned pages</a>
+  </div>
+</aside>

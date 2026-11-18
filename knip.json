@@ -47,6 +47,9 @@
     "apps/font": {
       "ignoreDependencies": ["@astrojs/check"]
     },
+    "apps/ui-gallery": {
+      "ignoreDependencies": ["@astrojs/check"]
+    },
     "apps/cli": {
       "ignore": ["fixtures/**"],
       "ignoreDependencies": ["@forgeron/runtime", "kysely", "miniflare", "rolldown", "zod"]

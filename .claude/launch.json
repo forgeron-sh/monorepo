@@ -20,10 +20,22 @@
       "port": 5179
     },
     {
+      "name": "ui-gallery",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/ui-gallery", "dev"],
+      "port": 5181
+    },
+    {
       "name": "font",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "apps/font", "dev"],
       "port": 5180
+    },
+    {
+      "name": "prototypes",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "5197", "--directory", "docs/prototypes"],
+      "port": 5197
     }
   ]
 }

@@ -1,0 +1,34 @@
+---
+import { type Shader, shaders } from "../../lib/shaders";
+import ShaderStage from "./ShaderStage.astro";
+
+// Cards of shaders, each with its first live version (the dithered image: its dithered one).
+interface Props {
+  items?: Shader[];
+  /** The section index shown on each card, e.g. `/0.2`. */
+  index: string;
+}
+const { items = shaders, index } = Astro.props;
+const card = (s: Shader) => s.versions[s.slug === "dithered-image" ? 1 : 0]!.demo;
+---
+
+<ul class="grid">
+  {
+    items.map((s) => (
+      <li class="card">
+        <div class="card-art sh-card-art dots-bg" aria-hidden="true">
+          <ShaderStage spec={card(s)} />
+        </div>
+        <div class="card-copy">
+          <span class="t-mono dim">
+            {index}.{String(shaders.indexOf(s) + 1).padStart(2, "0")} · {s.engine}
+          </span>
+          <a class="card-name card-link" href={`/shaders/${s.slug}`}>
+            {s.name}
+          </a>
+          <span class="t-small">{s.summary}</span>
+        </div>
+      </li>
+    ))
+  }
+</ul>

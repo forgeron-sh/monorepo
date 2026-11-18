@@ -1,0 +1,708 @@
+/* The gallery: home grid, docs layout, example frames. On top of lab.css; the components bring their
+   own styles from @forgeron/ui. */
+
+.skip {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 60;
+  background: var(--bg);
+}
+.skip:focus {
+  top: 12px;
+}
+code {
+  font-family: var(--font-mono);
+}
+.nav-cta {
+  flex: none;
+}
+@media (max-width: 760px) {
+  .nav-links {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- hero */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+}
+.hero .sec-head {
+  position: relative;
+  z-index: 1;
+  border-bottom: 0;
+  padding-bottom: 56px;
+}
+.hero-dither {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 46%;
+  height: 100%;
+  opacity: 0.55;
+  mask-image: linear-gradient(to right, transparent, #000 45%);
+}
+@media (max-width: 760px) {
+  .hero-dither {
+    width: 100%;
+    opacity: 0.25;
+  }
+}
+
+/* A line of code and its copy button, one control height. */
+.hero-cmd {
+  display: flex;
+  align-items: stretch;
+  max-width: 560px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-sunk);
+}
+.hero-cmd-code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+.hero-cmd-code pre {
+  margin: 0;
+  padding: 7px 12px;
+  background: transparent !important;
+  font: 400 13px/20px var(--font-mono);
+}
+.hero-cmd .btn {
+  height: auto;
+  border-width: 0 0 0 1px;
+}
+
+/* ---------------------------------------------------------------- grid of cards */
+
+/* Glued cells; where a row runs short, the hatch of the grid shows through. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+}
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transition: background-color 0.2s;
+}
+.grid > .card:nth-child(4n) {
+  border-right: 0;
+}
+.card:not(.card-soon):hover {
+  background-color: var(--bg-raised);
+}
+.card-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 200px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  pointer-events: none;
+}
+.card-demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 24px;
+  zoom: 0.82;
+}
+/* Still pictures of an open overlay (components/thumbnails): drawn in flow, not in a portal. */
+.thumb {
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.thumb-stack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.thumb .fg-palette {
+  position: static;
+  width: 330px;
+  transform: none;
+}
+.thumb .fg-modal {
+  width: 330px;
+  padding: var(--space-2) var(--space-3);
+}
+.thumb .fg-create-title {
+  margin-top: var(--space-2);
+}
+.thumb .fg-create-desc {
+  min-height: 0;
+}
+.thumb .fg-create-props {
+  margin-top: var(--space-3);
+}
+.thumb .fg-create-foot {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+}
+.thumb .fg-palette-input,
+.thumb .fg-create-title,
+.thumb .fg-create-desc {
+  display: flex;
+  align-items: center;
+}
+.thumb .thumb-placeholder {
+  color: var(--ink-dim);
+}
+.thumb-board {
+  zoom: 0.72;
+}
+.card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 24px 24px;
+}
+.card-name {
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+}
+/* The name is the link; it covers the whole card. */
+.card-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.card-link:focus-visible {
+  outline: none;
+}
+.card:has(.card-link:focus-visible) {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.card:hover .card-link {
+  color: var(--accent);
+}
+.card-soon .card-art {
+  height: 96px;
+}
+.hatch {
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+}
+.soon {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-dim);
+  font: 400 10px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.card-tag {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--bg);
+}
+.rail-more {
+  display: block;
+  padding: 16px var(--gutter);
+  border-top: 1px solid var(--line);
+  color: var(--ink-muted);
+  margin-top: -1px;
+}
+.rail-more:hover {
+  color: var(--accent);
+}
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid > .card:nth-child(4n) {
+    border-right: 1px solid var(--line);
+  }
+  .grid > .card:nth-child(2n) {
+    border-right: 0;
+  }
+}
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .grid > .card {
+    border-right: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- docs layout */
+
+.docs {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  min-height: calc(100vh - var(--nav-h));
+}
+.side {
+  position: sticky;
+  top: var(--nav-h);
+  align-self: start;
+  max-height: calc(100vh - var(--nav-h));
+  overflow-y: auto;
+  padding: 24px 0 40px;
+  border-right: 1px solid var(--line);
+}
+.side-group {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 20px;
+}
+.side-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px var(--gutter);
+  color: var(--ink-dim);
+}
+.side a {
+  padding: 4px var(--gutter);
+  color: var(--ink-muted);
+  font-size: 14px;
+  line-height: 22px;
+  border-left: 2px solid transparent;
+}
+.side a:hover {
+  color: var(--ink);
+}
+.side a[aria-current="page"] {
+  color: var(--ink);
+  border-left-color: var(--accent);
+  background: var(--bg-raised);
+}
+.doc {
+  min-width: 0;
+  padding: 48px var(--gutter) 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  max-width: 960px;
+}
+.doc-head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .docs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .side {
+    position: static;
+    max-height: none;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 12px var(--gutter);
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .side-group {
+    flex-direction: row;
+    padding: 0;
+  }
+  .side-head {
+    display: none;
+  }
+  .side a {
+    flex: none;
+    padding: 4px 10px;
+    border-left: 0;
+    border: 1px solid transparent;
+    font-size: 13px;
+  }
+  .side a[aria-current="page"] {
+    border-color: var(--line-strong);
+  }
+  .doc {
+    padding-top: 32px;
+  }
+}
+
+/* ---------------------------------------------------------------- example frame */
+
+.frame {
+  border: 1px solid var(--line);
+}
+.frame-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.frame-tools {
+  display: flex;
+  gap: 8px;
+}
+.frame-tools .seg button,
+.frame-tools .btn {
+  height: 30px;
+}
+.frame-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 240px;
+  padding: 48px 24px;
+}
+.frame-code {
+  display: none;
+  max-height: 480px;
+  overflow: auto;
+  background: var(--bg-sunk);
+}
+.frame[data-show="code"] .frame-stage {
+  display: none;
+}
+.frame[data-show="code"] .frame-code {
+  display: block;
+}
+.frame-code pre {
+  margin: 0;
+  padding: 20px 24px;
+  background: transparent !important;
+  font: 400 13px/21px var(--font-mono);
+}
+/* The highlighter writes the lab's dark palette: in the light theme, code keeps a dark field. */
+:root[data-theme="light"] .frame-code,
+:root[data-theme="light"] .hero-cmd-code {
+  background: var(--ink);
+}
+.frame-code pre:focus-visible,
+.hero-cmd-code pre:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* ---------------------------------------------------------------- props */
+
+.spacer-sm {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  margin-bottom: -1px;
+  border: 1px solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+}
+.spacer-sm span {
+  background: var(--bg);
+  padding: 2px 8px;
+}
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+}
+.props {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 20px;
+}
+.props th {
+  text-align: left;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.props td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  color: var(--ink-muted);
+}
+.props tr:last-child td {
+  border-bottom: 0;
+}
+.props td:first-child code {
+  color: var(--ink);
+  white-space: nowrap;
+}
+.props code {
+  font-size: 12.5px;
+}
+.dim-code {
+  color: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------- installation, pager */
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+}
+.step {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 16px;
+  padding: 24px;
+}
+.step + .step {
+  border-top: 1px solid var(--line);
+}
+.step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.step .hero-cmd {
+  max-width: none;
+}
+.pager-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.pager-nav a {
+  color: var(--ink-muted);
+}
+.pager-nav a:hover {
+  color: var(--accent);
+}
+.card-glyph {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink-muted);
+}
+.card-glyph svg {
+  display: block;
+}
+
+/* ---------------------------------------------------------------- sidebar extras */
+
+.side a.side-soon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-dim);
+}
+
+/* ---------------------------------------------------------------- identity */
+
+.id-block {
+  display: flex;
+  flex-direction: column;
+}
+.id-block > :not(.spacer-sm) {
+  border: 1px solid var(--line);
+}
+.id-logos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+}
+.id-logo {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  background-color: var(--bg);
+  color: var(--ink);
+}
+/* The logo draws in `ink`: each tile sets the ink it stands on. */
+.id-light {
+  --ink: #111111;
+  background: #f7f7f5;
+  color: #111111;
+}
+.id-accent {
+  --ink: var(--accent-ink);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.id-anvils {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.id-anvil {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 40px 16px 24px;
+  color: var(--ink);
+}
+.id-anvil + .id-anvil {
+  border-left: 1px solid var(--line);
+}
+.id-anvil svg {
+  image-rendering: pixelated;
+}
+.id-files li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 8px 8px 16px;
+}
+.id-files li + li {
+  border-top: 1px solid var(--line);
+}
+.id-colors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.id-color {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.id-color:nth-child(odd) {
+  border-right: 1px solid var(--line);
+}
+.id-chips {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  height: 72px;
+  border: 1px solid var(--line-strong);
+}
+.id-color-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.id-name {
+  color: var(--ink);
+  font-size: 13px;
+}
+.id-type-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 20px 16px;
+}
+.id-type-row + .id-type-row {
+  border-top: 1px solid var(--line);
+}
+.id-type-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.id-type-sample {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.id-family {
+  border: 0 !important;
+  padding: 10px 0 0;
+}
+.id-scale-row {
+  display: grid;
+  grid-template-columns: 160px 120px 160px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+}
+.id-scale-row + .id-scale-row {
+  border-top: 1px solid var(--line);
+}
+.id-bar {
+  display: block;
+  height: 12px;
+  background: var(--accent);
+}
+.id-shadow {
+  display: block;
+  width: 96px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+}
+.id-motion {
+  display: block;
+  width: 12px;
+  height: 12px;
+  background: var(--ink);
+  animation: id-move calc(var(--d) * 8) steps(8, end) infinite alternate;
+}
+@keyframes id-move {
+  to {
+    transform: translateX(120px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .id-motion {
+    animation: none;
+  }
+}
+.id-strip {
+  display: flex;
+  border: 1px solid var(--line-strong);
+}
+.id-strip span {
+  width: 20px;
+  height: 48px;
+}
+.id-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.id-steps span {
+  height: 6px;
+  background: var(--accent);
+}
+.card-art > .fg-logo,
+.card-art > .f-title,
+.card-art > .id-strip,
+.card-art > .id-steps {
+  position: relative;
+}
+@media (max-width: 900px) {
+  .id-logos,
+  .id-colors {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .id-color:nth-child(odd) {
+    border-right: 0;
+  }
+  .id-type-row,
+  .id-scale-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .id-anvils {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .id-anvil + .id-anvil {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}

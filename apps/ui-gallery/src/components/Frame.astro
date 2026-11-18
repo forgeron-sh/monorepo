@@ -1,0 +1,31 @@
+---
+import Demo from "./Demo";
+
+interface Props {
+  /** `button/01-variants`. */
+  id: string;
+  index: string;
+  title: string;
+  /** Highlighted source. */
+  code: string;
+}
+const { id, index, title, code } = Astro.props;
+const codeId = `code-${id.replace("/", "-")}`;
+---
+
+<section class="frame" data-frame data-show="preview" aria-label={title}>
+  <header class="frame-bar">
+    <span class="t-mono"><span class="accent">{index}</span> <span class="dim">→</span> {title}</span>
+    <div class="frame-tools">
+      <div class="seg" role="group" aria-label={`${title}: preview or code`}>
+        <button type="button" data-view="preview" aria-pressed="true">Preview</button>
+        <button type="button" data-view="code" aria-pressed="false">Code</button>
+      </div>
+      <button type="button" class="btn btn-sm" data-copy={codeId}>Copy</button>
+    </div>
+  </header>
+  <div class="frame-stage dots-bg ticks">
+    <Demo id={id} client:load />
+  </div>
+  <div class="frame-code" id={codeId} set:html={code} />
+</section>

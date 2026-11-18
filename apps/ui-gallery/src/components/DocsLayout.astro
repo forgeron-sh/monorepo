@@ -1,0 +1,21 @@
+---
+import Layout from "./Layout.astro";
+import Sidebar from "./Sidebar.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  current: string;
+  page?: "docs" | "identity" | "shaders" | "blocks";
+}
+const { title, description, current, page = "docs" } = Astro.props;
+---
+
+<Layout title={title} description={description} page={page}>
+  <div class="rail docs">
+    <Sidebar current={current} />
+    <article class="doc">
+      <slot />
+    </article>
+  </div>
+</Layout>

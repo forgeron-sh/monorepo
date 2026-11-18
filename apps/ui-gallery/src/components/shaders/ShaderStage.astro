@@ -1,0 +1,25 @@
+---
+import { anvilPath, ditherPath } from "@forgeron/ui";
+import type { DemoSpec } from "../../lib/shaders";
+import ShaderDemo from "./ShaderDemo";
+
+// One demo: static SVG drawn at build time for the ordered dither, a live island otherwise.
+interface Props {
+  spec: DemoSpec;
+}
+const { spec } = Astro.props;
+---
+
+{
+  spec.kind === "ramp" ? (
+    <svg class="sh-ramp" viewBox="0 0 64 16" preserveAspectRatio="none" shape-rendering="crispEdges" aria-hidden="true">
+      <path fill="currentColor" d={ditherPath(64, 16, (x) => x / 63, spec.n)} />
+    </svg>
+  ) : spec.kind === "anvil" ? (
+    <svg class="sh-anvil" viewBox="0 0 24 24" shape-rendering="crispEdges" aria-hidden="true">
+      <path fill="currentColor" d={anvilPath(24, spec.mode)} />
+    </svg>
+  ) : (
+    <ShaderDemo spec={spec} client:visible />
+  )
+}
