@@ -1,0 +1,79 @@
+---
+import DocsLayout from "../../components/DocsLayout.astro";
+import Landing from "../../components/landing/Landing";
+import PropsTable from "../../components/PropsTable.astro";
+import { entries } from "../../entries/marketing";
+import { highlight } from "../../lib/highlight";
+import { identity } from "../../lib/identity";
+import { atoms } from "../../registry";
+import "../../styles/landing.css";
+
+// The marketing blocks of forgeron.sh, put together top to bottom, then each one in short: what it
+// is, its import and its props. The marketing atoms keep their own pages, linked here.
+
+const page = identity.find((p) => p.slug === "landing")!;
+const prev = identity[identity.indexOf(page) - 1];
+const atomSlugs = ["section-head", "section-band", "pixel-figure", "soon-tag", "mark-badge", "logo-tile", "stepper"];
+const used = atoms.filter((a) => atomSlugs.includes(a.slug));
+const pieces = entries.map((e, i) => ({
+  ...e,
+  index: `/${String(i + 1).padStart(2, "0")}`,
+  importLine: highlight(`import { ${e.imports.join(", ")} } from "@forgeron/ui";`),
+}));
+---
+
+<DocsLayout title={`${page.name} — Forgeron UI`} description={page.summary} current="identity/landing" page="identity" wide>
+  <header class="doc-head">
+    <span class="t-mono dim">Identity <span class="accent">/</span> {page.name}</span>
+    <h1 class="f-title f-h3">{page.name}</h1>
+    <p class="t-lead">{page.summary}</p>
+  </header>
+
+  <section class="id-block" aria-label="The page">
+    <div class="spacer-sm t-mono dim"><span>/01 → The page</span><span>[ {entries.length} blocks · {used.length} atoms ]</span></div>
+    <div class="landing-stage">
+      <Landing />
+    </div>
+  </section>
+
+  <section class="id-block" aria-labelledby="pieces-title">
+    <div class="spacer-sm t-mono dim"><span id="pieces-title">/02 → The blocks, top to bottom</span></div>
+    <ol class="landing-pieces">
+      {
+        pieces.map((p) => (
+          <li class="landing-piece" id={p.slug}>
+            <header class="landing-piece-head">
+              <span class="t-mono accent">{p.index}</span>
+              <h2 class="landing-piece-name">{p.name}</h2>
+              <p class="t-small">{p.summary}</p>
+            </header>
+            <div class="hero-cmd">
+              <div class="hero-cmd-code" id={`import-${p.slug}`} set:html={p.importLine} />
+              <button type="button" class="btn btn-sm" data-copy={`import-${p.slug}`}>Copy</button>
+            </div>
+            <PropsTable props={p.props} />
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="id-block" aria-labelledby="atoms-title">
+    <div class="spacer-sm t-mono dim"><span id="atoms-title">/03 → The atoms inside</span></div>
+    <ul class="landing-atoms">
+      {
+        used.map((a) => (
+          <li>
+            <a href={`/docs/${a.slug}`}>{a.name}</a>
+            <span class="t-small">{a.summary}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <nav class="pager-nav t-mono" aria-label="Previous and next page">
+    {prev ? <a href={`/identity/${prev.slug}`}>← {prev.name}</a> : <a href="/docs/installation">← Installation</a>}
+    <a href="/shaders">Shaders →</a>
+  </nav>
+</DocsLayout>

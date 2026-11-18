@@ -12,6 +12,11 @@ export const identity = [
     summary: "The pixel face for titles, Geist for the rest.",
   },
   { slug: "tokens", name: "Tokens", summary: "Space, borders, corners, motion, the one shadow." },
+  {
+    slug: "landing",
+    name: "Landing",
+    summary: "The marketing blocks of forgeron.sh, put together into one landing page.",
+  },
 ] as const;
 
 export interface ColorToken {

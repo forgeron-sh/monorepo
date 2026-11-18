@@ -1,4 +1,4 @@
-/* Blocks of the "marketing" group. */
+/* The marketing blocks (forgeron.sh): documented on /identity/landing, not among the blocks. */
 import type { Atom, PropRow } from "../types";
 
 const className: PropRow = { name: "className", type: "string", description: "Extra classes." };
@@ -8,7 +8,7 @@ const art: PropRow = {
   description: "The drawing: a canvas or an image fills its box.",
 };
 
-/** Gallery pages of the "marketing" blocks, in order. */
+/** The pieces of the landing page, in the order they are read. */
 export const entries: ReadonlyArray<Atom> = [
   {
     slug: "site-nav",

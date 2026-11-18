@@ -4,10 +4,13 @@ import DocsLayout from "../../components/DocsLayout.astro";
 import { colors, families, identity, scales, typeGroups } from "../../lib/identity";
 
 export function getStaticPaths() {
-  return identity.map((page, i) => ({
-    params: { slug: page.slug },
-    props: { page, prev: identity[i - 1], next: identity[i + 1] },
-  }));
+  // The landing has its own page (landing.astro).
+  return identity
+    .map((page, i) => ({
+      params: { slug: page.slug },
+      props: { page, prev: identity[i - 1], next: identity[i + 1] },
+    }))
+    .filter((path) => path.params.slug !== "landing");
 }
 
 const { page, prev, next } = Astro.props;

@@ -679,10 +679,25 @@ code {
   height: 6px;
   background: var(--accent);
 }
+/* A page in miniature: the nav, the hero in ember, the sections, the footer. */
+.id-page {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 88px;
+}
+.id-page span {
+  border: 1px solid var(--line-strong);
+}
+.id-page span.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
 .card-art > .fg-logo,
 .card-art > .f-title,
 .card-art > .id-strip,
-.card-art > .id-steps {
+.card-art > .id-steps,
+.card-art > .id-page {
   position: relative;
 }
 @media (max-width: 900px) {

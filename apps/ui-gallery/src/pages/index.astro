@@ -35,7 +35,7 @@ const homeShaders = ["dither-field", "ember", "globe", "hearth"].flatMap((slug) 
     <canvas class="hero-dither" data-dither data-px="4" aria-hidden="true"></canvas>
   </section>
 
-  <div class="rail spacer t-mono dim"><span>/0.1 → Identity</span><span>[ Logo · colours · type · tokens ]</span></div>
+  <div class="rail spacer t-mono dim"><span>/0.1 → Identity</span><span>[ Logo · colours · type · tokens · landing ]</span></div>
   <section class="rail" aria-label="Identity">
     <ul class="grid">
       {
@@ -55,6 +55,13 @@ const homeShaders = ["dither-field", "ember", "globe", "hearth"].flatMap((slug) 
                 <span class="id-steps">
                   {[4, 8, 12, 16, 24, 32, 48].map((w) => (
                     <span style={`width:${w}px`} />
+                  ))}
+                </span>
+              )}
+              {p.slug === "landing" && (
+                <span class="id-page">
+                  {[6, 22, 10, 14, 6].map((h, k) => (
+                    <span class={k === 1 ? "on" : undefined} style={`height:${h}px`} />
                   ))}
                 </span>
               )}

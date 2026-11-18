@@ -1,6 +1,7 @@
 ---
 import DocsLayout from "../../components/DocsLayout.astro";
 import Frame from "../../components/Frame.astro";
+import PropsTable from "../../components/PropsTable.astro";
 import { examplesOf } from "../../lib/examples";
 import { highlight } from "../../lib/highlight";
 import { sourceOf } from "../../lib/sources";
@@ -45,34 +46,7 @@ const importLine = `import { ${atom.imports.join(", ")} } from "@forgeron/ui";`;
 
   <section class="api" aria-labelledby="api-title">
     <div class="spacer-sm t-mono dim"><span id="api-title">API → Props</span></div>
-    <div class="table-wrap">
-      <table class="props">
-        <thead>
-          <tr>
-            <th scope="col">Prop</th>
-            <th scope="col">Type</th>
-            <th scope="col">Default</th>
-            <th scope="col">Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          {
-            atom.props.map((p) => (
-              <tr>
-                <td>
-                  <code>{p.name}</code>
-                </td>
-                <td>
-                  <code class="dim-code">{p.type}</code>
-                </td>
-                <td>{p.default ? <code class="dim-code">{p.default}</code> : <span class="dim">—</span>}</td>
-                <td>{p.description}</td>
-              </tr>
-            ))
-          }
-        </tbody>
-      </table>
-    </div>
+    <PropsTable props={atom.props} />
   </section>
 
   <nav class="pager-nav t-mono" aria-label="Previous and next atom">
