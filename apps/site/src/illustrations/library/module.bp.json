@@ -1,0 +1,16 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/module",
+  "parts": {
+    "static": { "prims": [{ "kind": "box", "at": [0, 0, 0], "size": [14, 14, 2], "vents": "+x" }] }
+  },
+  "scenes": {
+    "module": {
+      "title": "module",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] }
+    }
+  }
+}

@@ -3,7 +3,7 @@
   "ignore": ["assets/**", "docs/prototypes/**"],
   "workspaces": {
     ".": {
-      "entry": ["scripts/*.ts"]
+      "entry": ["scripts/*.ts", "scripts/blueprint/*.ts"]
     },
     "packages/*": {},
     "templates/*": {

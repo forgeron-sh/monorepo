@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./dom": "./src/dom/index.ts",
+    "./format": "./src/format/index.ts",
     "./react": "./src/react/index.ts"
   },
   "devDependencies": {

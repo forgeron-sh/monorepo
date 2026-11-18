@@ -67,18 +67,19 @@ module.exports = {
       to: { path: "^packages/(?!platform-contract/|manifest/|permissions/)" },
     },
     {
-      // Blueprint's core is data and pixels: it runs at build time, in a Worker and in the browser
-      // alike. The canvas glue (`dom/`) and React (`react/`) sit on top of it, never under.
+      // Blueprint's core and its file format are data and pixels: they run at build time, in a
+      // Worker and in the browser alike. The canvas glue (`dom/`) and React (`react/`) sit on top
+      // of them, never under.
       name: "blueprint-core-is-framework-free",
       severity: "error",
-      from: { path: "^packages/blueprint/src/(core|examples)/" },
+      from: { path: "^packages/blueprint/src/(core|examples|format)/" },
       to: { path: "^packages/blueprint/src/(dom|react)/|(^|/)node_modules/(react|react-dom)/" },
     },
     {
       // ... and it imports no Node module (`node:*`, `fs`…).
       name: "blueprint-core-stays-neutral",
       severity: "error",
-      from: { path: "^packages/blueprint/src/(core|examples)/" },
+      from: { path: "^packages/blueprint/src/(core|examples|format)/" },
       to: { dependencyTypes: ["core"] },
     },
     {

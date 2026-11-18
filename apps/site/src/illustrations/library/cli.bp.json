@@ -1,0 +1,182 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/cli",
+  "parts": {
+    "static": {
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [-4, -4, 0],
+            [-4, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [0, -4, 0],
+            [0, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [4, -4, 0],
+            [4, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [8, -4, 0],
+            [8, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [12, -4, 0],
+            [12, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [16, -4, 0],
+            [16, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [20, -4, 0],
+            [20, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, -4, 0],
+            [20, -4, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 0, 0],
+            [20, 0, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 4, 0],
+            [20, 4, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 8, 0],
+            [20, 8, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 12, 0],
+            [20, 12, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 16, 0],
+            [20, 16, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-4, 20, 0],
+            [20, 20, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        { "kind": "box", "at": [0, 0, 0], "size": [16, 12, 1.4], "vents": "+x", "layer": -2 },
+        {
+          "kind": "box",
+          "at": [0.8, 0.8, 1.4],
+          "size": [14.4, 10.4, 0.2],
+          "tone": [0.02, 0, 0],
+          "layer": -1
+        },
+        { "kind": "box", "at": [1.6, 1.6, 1.6], "size": [1, 1, 0.5], "look": "accent" },
+        { "kind": "box", "at": [3.2, 1.6, 1.6], "size": [9, 1, 0.5] },
+        { "kind": "box", "at": [1.6, 3.5, 1.6], "size": [1, 1, 0.5], "look": "accent" },
+        { "kind": "box", "at": [3.2, 3.5, 1.6], "size": [6, 1, 0.5] },
+        { "kind": "box", "at": [1.6, 5.4, 1.6], "size": [1, 1, 0.5], "look": "accent" },
+        { "kind": "box", "at": [3.2, 5.4, 1.6], "size": [11, 1, 0.5] },
+        {
+          "kind": "box",
+          "at": [1.6, 7.299999999999999, 1.6],
+          "size": [1, 1, 0.5],
+          "look": "accent"
+        },
+        { "kind": "box", "at": [3.2, 7.299999999999999, 1.6], "size": [4, 1, 0.5] },
+        { "kind": "box", "at": [1.6, 9.2, 1.6], "size": [1, 1, 0.5], "look": "accent" },
+        { "kind": "box", "at": [3.2, 9.2, 1.6], "size": [7, 1, 0.5] }
+      ]
+    }
+  },
+  "scenes": {
+    "cli": {
+      "title": "cli",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] }
+    }
+  }
+}

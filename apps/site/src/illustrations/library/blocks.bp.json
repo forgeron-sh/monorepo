@@ -1,0 +1,30 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/blocks",
+  "parts": {
+    "static": {
+      "prims": [
+        {
+          "kind": "box",
+          "at": [-2, -2, 0],
+          "size": [26, 16, 1],
+          "tone": [0.03, 0.12, 0.25],
+          "layer": -1
+        },
+        { "kind": "box", "at": [0, 6, 1], "size": [7, 7, 10], "floors": 2.5 },
+        { "kind": "box", "at": [0, 6, 11.4], "size": [7, 7, 8], "floors": 2.5 },
+        { "kind": "box", "at": [9, 7, 1], "size": [5, 5, 7], "floors": 2 }
+      ]
+    }
+  },
+  "scenes": {
+    "blocks": {
+      "title": "blocks",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] },
+      "vars": { "active": { "type": "int", "default": -1 } }
+    }
+  }
+}

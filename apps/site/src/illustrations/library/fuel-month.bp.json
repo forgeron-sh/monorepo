@@ -1,0 +1,153 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/fuel-month",
+  "parts": {
+    "static": {
+      "prims": [
+        {
+          "kind": "line",
+          "points": [
+            [-10, -10, 0],
+            [-10, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-6, -10, 0],
+            [-6, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-2, -10, 0],
+            [-2, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [2, -10, 0],
+            [2, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [6, -10, 0],
+            [6, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [10, -10, 0],
+            [10, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-10, -10, 0],
+            [10, -10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-10, -6, 0],
+            [10, -6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-10, -2, 0],
+            [10, -2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-10, 2, 0],
+            [10, 2, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-10, 6, 0],
+            [10, 6, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "line",
+          "points": [
+            [-10, 10, 0],
+            [10, 10, 0]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "box",
+          "at": [-6, -6, 0],
+          "size": [12, 12, 0.6],
+          "tone": [0.03, 0.08, 0.16],
+          "layer": -2
+        },
+        { "kind": "box", "at": [-3.6, -4.4, 0.6], "size": [4, 4, 6.4], "tone": [0.06, 0.2, 0.1] },
+        {
+          "kind": "box",
+          "at": [0.3999999999999999, -3.4000000000000004, 5.85],
+          "size": [0.05, 2, 0.45],
+          "layer": 1
+        }
+      ]
+    }
+  },
+  "scenes": {
+    "fuel-month": {
+      "title": "fuel-month",
+      "depth": "painter",
+      "camera": { "view": 0, "fit": {} },
+      "root": { "instances": [{ "id": "static", "use": "static" }] }
+    }
+  }
+}

@@ -39,10 +39,11 @@ An animated scene is a function of `{ t, active }` that returns data: `examples.
                                                            grid
 ```
 
-| Entry                       | Contents                                                                             | Runs                                    |
-| --------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------- |
-| `@forgeron/blueprint`       | blocks, scene, projection and fit, frame, filters, SVG                               | anywhere: no DOM, no React, no `node:*` |
-| `@forgeron/blueprint/dom`   | `mount(canvas, scene, options)`: observers, loop, tokens; `mountField`, `mountImage` | browser                                 |
-| `@forgeron/blueprint/react` | `<Blueprint>` and the marker components                                              | server (SVG) and browser (canvas)       |
+| Entry                        | Contents                                                                                                                                                         | Runs                                    |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `@forgeron/blueprint`        | blocks, scene, projection and fit, frame, filters, SVG                                                                                                           | anywhere: no DOM, no React, no `node:*` |
+| `@forgeron/blueprint/dom`    | `mount(canvas, scene, options)`: observers, loop, tokens; `mountField`, `mountImage`                                                                             | browser                                 |
+| `@forgeron/blueprint/format` | the `.bp.json` format: types, schema, `readBlueprint`, `flatten`, `writeBlueprint`, the converter ([`docs/blueprint/format.md`](../../docs/blueprint/format.md)) | anywhere: no DOM, no React, no `node:*` |
+| `@forgeron/blueprint/react`  | `<Blueprint>` and the marker components                                                                                                                          | server (SVG) and browser (canvas)       |
 
 The scene is rasterised at the final low resolution before any filter runs, and every pixel keeps its material: dither shades faces only, never an edge or a letter.
