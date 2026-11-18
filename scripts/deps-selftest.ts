@@ -120,6 +120,31 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "ui-does-not-import-editors",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "../../canvas/src/${F}_target.ts";\n`,
+      [`packages/canvas/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "canvas-does-not-import-its-editors",
+    files: {
+      [`packages/canvas/src/${F}.ts`]: `import "../../flow/src/${F}_target.ts";\n`,
+      [`packages/flow/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "canvas-core-is-framework-free",
+    files: {
+      [`packages/canvas/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/canvas/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "canvas-core-stays-neutral",
+    files: { [`packages/canvas/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
     rule: "registry-door-is-index",
     files: {
       [`apps/gateway/src/${F}.ts`]: `import "../../../packages/registry/src/${F}_target.ts";\n`,

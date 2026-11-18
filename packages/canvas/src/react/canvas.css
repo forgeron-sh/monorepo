@@ -1,0 +1,196 @@
+/* @forgeron/canvas: the surface and its chrome, in the lab language: sunk background, dotted pixel
+   grid, 1 px lines, the accent for the selection only, square corners, no blur and no fades.
+   Needs the tokens of @forgeron/ui (tokens.css or styles.css). */
+
+.fg-canvas {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  background: var(--bg-sunk);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
+  isolation: isolate;
+}
+.fg-canvas:focus-visible:not([data-pointer]) {
+  box-shadow: inset 0 0 0 var(--focus-width) var(--focus);
+}
+.fg-canvas[data-panning] * {
+  cursor: grabbing !important;
+}
+
+/* The renderer's layers: under the DOM items (grid, shapes) and over them (selection). */
+.fg-canvas-under,
+.fg-canvas-over {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.fg-canvas-over {
+  z-index: 1;
+}
+.fg-canvas-shapes {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+}
+.fg-canvas-grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.fg-canvas-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+}
+
+.fg-canvas-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+.fg-canvas-world-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.fg-canvas-item {
+  position: absolute;
+  box-sizing: border-box;
+  outline: none;
+}
+.fg-canvas-item:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* The selection, the handles, the box and the lasso: screen space, 1 px whatever the zoom. */
+.fg-canvas-chrome {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+  shape-rendering: crispEdges;
+}
+.fg-canvas-outline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+.fg-canvas-handle {
+  fill: var(--bg);
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+.fg-canvas-band {
+  fill: color-mix(in srgb, var(--accent) 7%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+.fg-canvas-lasso {
+  fill: color-mix(in srgb, var(--accent) 7%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-linejoin: miter;
+}
+
+/* Screen-space chrome: lets clicks through, its controls take them. */
+.fg-canvas-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.fg-canvas-overlay > * {
+  pointer-events: auto;
+}
+
+/* Zoom controls: one row of 32 px controls glued in a frame, bottom left by default. */
+.fg-canvas-zoom {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fg-canvas-zoom .fg-seg {
+  background: var(--bg);
+}
+.fg-canvas-zoom-group {
+  display: inline-flex;
+  align-items: center;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+}
+.fg-canvas-zoom-group .fg-iconbtn {
+  width: 30px;
+  height: 30px;
+}
+.fg-canvas-zoom-value {
+  display: inline-grid;
+  place-items: center;
+  height: 30px;
+  min-width: 52px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-left: var(--border-width) solid var(--line);
+  border-right: var(--border-width) solid var(--line);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 400 11px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.fg-canvas-zoom-value:hover {
+  color: var(--ink);
+}
+.fg-canvas-zoom-value:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: -4px;
+}
+
+/* Minimap: bottom right, framed, pixelated. */
+.fg-canvas-minimap {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: block;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+  cursor: crosshair;
+  image-rendering: pixelated;
+}
+
+/* The key list. */
+.fg-canvas-keys {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+.fg-canvas-keys-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.fg-canvas-keys-row dt {
+  color: var(--ink-muted);
+}
+.fg-canvas-keys-row dd {
+  margin: 0;
+}

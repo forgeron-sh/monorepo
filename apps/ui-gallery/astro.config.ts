@@ -6,5 +6,9 @@ export default defineConfig({
   server: { port: 5181 },
   integrations: [react()],
   // The workspace packages ship as TypeScript sources: Vite compiles them.
-  vite: { ssr: { noExternal: ["@forgeron/ui", "@forgeron/icons", "@forgeron/blueprint"] } },
+  vite: {
+    ssr: {
+      noExternal: ["@forgeron/ui", "@forgeron/icons", "@forgeron/blueprint", "@forgeron/canvas"],
+    },
+  },
 });

@@ -97,6 +97,36 @@ module.exports = {
       to: { path: "^packages/blueprint/src/(dom|react)/|^packages/icons/src/catalog\\.ts$" },
     },
     {
+      // Editors on an infinite surface sit above the design system (D-148): ui never imports them.
+      name: "ui-does-not-import-editors",
+      severity: "error",
+      from: { path: "^packages/ui/" },
+      to: { path: "^packages/(canvas|flow|draw)/" },
+    },
+    {
+      // Canvas is the engine under flow and draw, never the other way.
+      name: "canvas-does-not-import-its-editors",
+      severity: "error",
+      from: { path: "^packages/canvas/" },
+      to: { path: "^packages/(flow|draw)/" },
+    },
+    {
+      // The core of canvas is data and commands behind `CanvasEngine`, meant to be swappable for a
+      // WebAssembly engine: no React, no view, no ui, no Node module.
+      name: "canvas-core-is-framework-free",
+      severity: "error",
+      from: { path: "^packages/canvas/src/(core/|index\\.ts$)" },
+      to: {
+        path: "^packages/canvas/src/react/|^packages/ui/|(^|/)node_modules/(react|react-dom)/",
+      },
+    },
+    {
+      name: "canvas-core-stays-neutral",
+      severity: "error",
+      from: { path: "^packages/canvas/src/(core/|index\\.ts$)" },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
       // The registry has one door: `@forgeron/registry` (`src/index.ts`). Nothing outside the
       // package reaches into its files (docs/spikes/module-model.md, FOR-155).
       name: "registry-door-is-index",

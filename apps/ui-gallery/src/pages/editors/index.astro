@@ -1,0 +1,58 @@
+---
+import { Database01Icon, DrawingModeIcon, Flowchart01Icon } from "@forgeron/icons";
+import Layout from "../../components/Layout.astro";
+import Planned from "../../components/Planned.astro";
+import "../../styles/editors.css";
+
+// Editors work on an infinite surface. Canvas is the engine they share; flow, draw and the data
+// hub's schema diagram are built on it and come next.
+const planned = [
+  { name: "Flow", icon: Flowchart01Icon, summary: "Nodes, typed ports, edges, auto-layout, run state." },
+  { name: "Draw", icon: DrawingModeIcon, summary: "Whiteboard: shapes, stickies, pixel pen, text, arrows, frames." },
+  { name: "Schema", icon: Database01Icon, summary: "The data hub's tables and the relations between them." },
+];
+---
+
+<Layout
+  title="Editors — Forgeron UI"
+  description="The editors that work on an infinite surface: the canvas engine they share, then flow, draw and the schema diagram."
+  page="editors"
+>
+  <section class="rail">
+    <header class="sec-head">
+      <div class="sec-index" aria-hidden="true">/0.5</div>
+      <div class="sec-title">
+        <span class="tag"><b>Editors</b></span>
+        <h1 class="f-title f-h2">One surface,<br />every editor.</h1>
+      </div>
+    </header>
+  </section>
+  <div class="rail spacer t-mono dim"><span>/0.5 → Every editor</span><span>[ Canvas live ]</span></div>
+  <section class="rail" aria-label="Editors">
+    <ul class="grid">
+      <li class="card">
+        <div class="card-art ed-card-art dots-bg" aria-hidden="true">
+          <svg viewBox="0 0 200 120" shape-rendering="crispEdges">
+            <rect x="20.5" y="24.5" width="56" height="28" fill="var(--bg)" stroke="var(--line-strong)" />
+            <rect x="96.5" y="24.5" width="56" height="28" fill="var(--bg)" stroke="var(--accent)" />
+            <rect x="96.5" y="68.5" width="56" height="28" fill="var(--bg)" stroke="var(--line-strong)" />
+            <rect x="149" y="49" width="7" height="7" fill="var(--bg)" stroke="var(--accent)" />
+            <rect x="93" y="21" width="7" height="7" fill="var(--bg)" stroke="var(--accent)" />
+            <rect x="140.5" y="88.5" width="44" height="20" fill="none" stroke="var(--line-strong)" />
+            <rect x="152.5" y="94.5" width="20" height="8" fill="var(--accent)" stroke="none" />
+            <rect x="156.5" y="96.5" width="8" height="4" fill="none" stroke="var(--bg)" />
+          </svg>
+        </div>
+        <div class="card-copy">
+          <span class="t-mono dim">/0.5.01 · headless + React</span>
+          <a class="card-name card-link" href="/editors/canvas">Canvas</a>
+          <span class="t-small">Pan, zoom, grid, selection, move, resize, history, minimap.</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+  <div class="rail spacer t-mono dim"><span>/0.5 → Built on canvas</span><span>[ Soon ]</span></div>
+  <section class="rail" aria-label="Planned editors">
+    <Planned items={planned} index="/0.5" start={1} />
+  </section>
+</Layout>
