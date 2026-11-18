@@ -1,0 +1,511 @@
+/* Blocks of the "views" group: timeline, calendar. Values come from tokens/tokens.css. */
+
+/* ---------------------------------------------------------------- timeline */
+.fg-tl {
+  --fg-tl-head: 48px;
+  --fg-tl-row: 36px;
+  --fg-hatch: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  /* The canvas is wider than the screen: its width must not widen what holds the timeline. */
+  contain: inline-size;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+.fg-tl-empty,
+.fg-calv-empty {
+  padding: var(--space-8) var(--space-4);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  color: var(--ink-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.fg-tl-tools,
+.fg-calv-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-tl-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+}
+.fg-tl-canvas {
+  position: relative;
+  width: calc(var(--fg-tl-label) + var(--fg-tl-w));
+}
+
+/* The axis: months (or quarters) above, days (or Mondays, or months) below. */
+.fg-tl-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  height: var(--fg-tl-head);
+  border-bottom: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+}
+.fg-tl-corner {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  flex: none;
+  width: var(--fg-tl-label);
+  border-right: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+}
+.fg-tl-axis {
+  position: relative;
+  flex: none;
+  width: var(--fg-tl-w);
+  overflow: hidden;
+}
+.fg-tl-axis-row {
+  position: relative;
+  height: 24px;
+}
+.fg-tl-unit,
+.fg-tl-tick {
+  position: absolute;
+  top: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  line-height: 24px;
+  white-space: nowrap;
+}
+.fg-tl-unit {
+  padding-left: 6px;
+  border-left: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+.fg-tl-tick {
+  padding-left: 4px;
+  color: var(--ink-dim);
+  font-size: 10.5px;
+}
+.fg-tl-weeks .fg-tl-tick {
+  padding: 0;
+  text-align: center;
+}
+.fg-tl-tick-dim {
+  opacity: 0.6;
+}
+.fg-tl-pill {
+  position: absolute;
+  bottom: 3px;
+  z-index: 1;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 500 10.5px/18px var(--font-mono);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* What lies under the rows: weekends, rules, today. */
+.fg-tl-layer {
+  position: absolute;
+  top: var(--fg-tl-head);
+  bottom: 0;
+  left: var(--fg-tl-label);
+  width: var(--fg-tl-w);
+  pointer-events: none;
+}
+.fg-tl-weekend {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-image: var(--fg-hatch);
+}
+.fg-tl-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: var(--border-width) solid var(--line);
+}
+.fg-tl-line-strong {
+  border-left-color: var(--line-strong);
+}
+.fg-tl-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  border-left: var(--border-width) solid var(--accent);
+}
+
+/* Rows: a sticky name, then the track the bar sits on. */
+.fg-tl-row {
+  --c: var(--ink-muted);
+  position: relative;
+  display: flex;
+  height: var(--fg-tl-row);
+}
+.fg-tl-label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  width: var(--fg-tl-label);
+  border-right: var(--border-width) solid var(--line-strong);
+  border-bottom: var(--border-width) solid var(--line);
+  background: var(--bg);
+}
+.fg-tl-track {
+  position: relative;
+  flex: none;
+  width: var(--fg-tl-w);
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-tl-open,
+.fg-tl-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fg-tl-open > span:last-child,
+.fg-tl-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-tl-id {
+  flex: none;
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.fg-tl-row:hover .fg-tl-label,
+.fg-tl-current .fg-tl-label {
+  background: var(--bg-raised);
+}
+.fg-tl-row:hover .fg-tl-track,
+.fg-tl-current .fg-tl-track {
+  background: color-mix(in srgb, var(--bg-raised) 55%, transparent);
+}
+.fg-tl-current .fg-tl-label {
+  box-shadow: inset 2px 0 var(--accent);
+}
+.fg-tl-open:focus-visible,
+.fg-tl-toggle:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-width) * -1);
+}
+.fg-tl-grouprow {
+  height: 32px;
+}
+.fg-tl-grouprow .fg-tl-label,
+.fg-tl-grouprow:hover .fg-tl-label {
+  background: var(--bg-raised);
+  box-shadow: none;
+}
+.fg-tl-grouprow .fg-tl-track,
+.fg-tl-grouprow:hover .fg-tl-track {
+  background: color-mix(in srgb, var(--bg-raised) 70%, transparent);
+}
+.fg-tl-name {
+  font-weight: 500;
+}
+.fg-tl-chevron {
+  flex: none;
+  color: var(--ink-dim);
+}
+.fg-tl-toggle[aria-expanded="false"] .fg-tl-chevron {
+  transform: rotate(-90deg);
+}
+
+/* A bar: flat, the record's colour on its left edge, like an all-day event in the Agenda. */
+.fg-tl-bar {
+  position: absolute;
+  top: 8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  height: 20px;
+  min-width: 2px;
+  padding: 0 6px;
+  border-left: 2px solid var(--c);
+  background: color-mix(in srgb, var(--c) 18%, var(--bg));
+  cursor: pointer;
+  user-select: none;
+}
+.fg-tl-bar:hover {
+  background: color-mix(in srgb, var(--c) 28%, var(--bg));
+}
+.fg-tl-current .fg-tl-bar {
+  outline: var(--border-width) solid var(--ink);
+}
+.fg-tl-bar-text {
+  /* The name stays in view while the start of a long bar is scrolled away. */
+  position: sticky;
+  left: calc(var(--fg-tl-label) + 6px);
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-tl-quarters .fg-tl-bar-text {
+  display: none;
+}
+.fg-tl-movable {
+  cursor: grab;
+  touch-action: none;
+}
+.fg-tl-dragging,
+.fg-tl-dragging .fg-tl-movable {
+  cursor: grabbing;
+}
+.fg-tl-grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+}
+.fg-tl-grip-start {
+  left: -2px;
+}
+.fg-tl-grip-end {
+  right: 0;
+}
+.fg-tl-bar:hover .fg-tl-grip-end::after,
+.fg-tl-bar:hover .fg-tl-grip-start::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 2px;
+  width: 2px;
+  background: var(--ink);
+}
+
+/* A point: what has one date (a due date), a square of its colour and its name after it. */
+.fg-tl-point {
+  position: absolute;
+  top: 8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  margin-left: -4px;
+  cursor: pointer;
+  user-select: none;
+}
+.fg-tl-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--c);
+}
+.fg-tl-current .fg-tl-dot {
+  outline: var(--border-width) solid var(--ink);
+  outline-offset: 1px;
+}
+.fg-tl-point-text {
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.fg-tl-point:hover .fg-tl-point-text {
+  color: var(--ink);
+}
+.fg-tl-milestone {
+  position: absolute;
+  top: 12px;
+  z-index: 1;
+  display: inline-grid;
+  margin-left: -6px;
+  color: var(--ink-muted);
+}
+.fg-tl-milestone-done {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- calendar view */
+.fg-calv {
+  --fg-hatch: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+.fg-calv-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.fg-calv-title {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-calv-week-no {
+  color: var(--ink-dim);
+  font: 400 11.5px/1 var(--font-mono);
+}
+.fg-calv-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.fg-calv-dow {
+  padding: 8px 10px;
+  border-bottom: var(--border-width) solid var(--line);
+  color: var(--ink-dim);
+  font: 500 10.5px/16px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fg-calv-dow + .fg-calv-dow,
+.fg-calv-day + .fg-calv-day {
+  border-left: var(--border-width) solid var(--line);
+}
+.fg-calv-row {
+  display: contents;
+}
+.fg-calv-day {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  min-height: 104px;
+  padding: 4px 4px 6px;
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-calv-weekmode .fg-calv-day {
+  min-height: 320px;
+}
+.fg-calv-day:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-width) * -1);
+}
+.fg-calv-weekend {
+  background: color-mix(in srgb, var(--bg-raised) 45%, transparent);
+}
+.fg-calv-out {
+  background-image: var(--fg-hatch);
+}
+.fg-calv-target {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}
+.fg-calv-num {
+  align-self: flex-start;
+  padding: 1px 5px;
+  color: var(--ink-muted);
+  font: 500 11.5px/16px var(--font-mono);
+}
+.fg-calv-out .fg-calv-num {
+  color: var(--ink-dim);
+}
+.fg-calv-today .fg-calv-num {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.fg-calv-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-calv-item {
+  --c: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 20px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fg-calv-item:hover {
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+.fg-calv-item[draggable="true"] {
+  cursor: grab;
+}
+.fg-calv-current {
+  background: var(--bg-raised);
+  box-shadow: inset 2px 0 var(--accent);
+  color: var(--ink);
+}
+.fg-calv-item:focus-visible,
+.fg-calv-more:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-width) * -1);
+}
+.fg-calv-sq {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background: var(--c);
+}
+.fg-calv-text {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fg-calv-text > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fg-calv-id {
+  flex: none;
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.fg-calv-more {
+  align-self: flex-start;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+  cursor: pointer;
+}
+.fg-calv-more:hover {
+  color: var(--ink);
+}

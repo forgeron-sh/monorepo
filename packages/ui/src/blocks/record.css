@@ -1,0 +1,363 @@
+/* Styles of the "record" blocks. Values come from tokens/tokens.css. */
+
+/* ---------------------------------------------------------------- PropertyPanel */
+
+.fg-props {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+  font: 400 12.5px/18px var(--font-sans);
+  color: var(--ink);
+}
+.fg-props-heading {
+  margin: 0 0 var(--space-1);
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-props-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.fg-props-row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+}
+/* Under a heading that names it, the control takes the row, its text aligned with the heading. */
+.fg-props-wide {
+  grid-template-columns: minmax(0, 1fr);
+  margin-inline: -9px;
+}
+.fg-props-label {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fg-props-value {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+}
+/* In the column the pickers keep their frame for hover and focus only, and fill the row. */
+.fg-props-value > .fg-selm,
+.fg-props-value > .fg-selm-trigger {
+  width: 100%;
+}
+.fg-props-value .fg-selm-chip {
+  width: 100%;
+  height: 28px;
+  border-color: transparent;
+  overflow: hidden;
+}
+.fg-props-value .fg-selm-chip:hover,
+.fg-props-value .fg-selm-chip[data-popup-open] {
+  border-color: var(--line-strong);
+}
+.fg-props-value .fg-selm-chip .fg-selm-value {
+  overflow: hidden;
+}
+.fg-props-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  height: 28px;
+  padding: 0 9px;
+}
+.fg-props-text-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-props-dim {
+  color: var(--ink-muted);
+}
+
+/* The row of chips under a title, or at the foot of a form. */
+.fg-props-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------- Activity */
+
+.fg-activity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--ink);
+  font: 400 12.5px/18px var(--font-sans);
+}
+.fg-activity-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 30px;
+  margin-bottom: var(--space-2);
+}
+.fg-activity-title {
+  margin: 0;
+  font: 500 14px/20px var(--font-sans);
+}
+.fg-activity-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-activity-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  color: var(--ink-muted);
+}
+.fg-activity-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+}
+.fg-activity-text {
+  min-width: 0;
+}
+.fg-activity-event b,
+.fg-activity-head b,
+.fg-activity-quote b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.fg-activity-when {
+  color: var(--ink-dim);
+  font: 400 11.5px/18px var(--font-mono);
+}
+.fg-activity-item {
+  padding: 6px 0 6px 28px;
+}
+.fg-activity-comment {
+  padding: 10px 12px;
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-raised);
+  font-size: 13px;
+  line-height: 20px;
+}
+.fg-activity-highlighted {
+  border-color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.fg-activity-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.fg-activity-quote {
+  margin: var(--space-1) 0 var(--space-2);
+  padding: 2px 0 2px 10px;
+  border-left: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  line-height: 18px;
+}
+.fg-activity-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fg-activity .fg-composer {
+  margin-top: var(--space-4);
+}
+
+/* The composer: a sunk box, the textarea borderless inside, the button at the bottom right. */
+.fg-composer {
+  display: flex;
+  flex-direction: column;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-sunk);
+}
+.fg-composer:focus-within {
+  border-color: var(--ink-muted);
+}
+.fg-composer-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 72px;
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+  resize: vertical;
+}
+.fg-composer-input::placeholder {
+  color: var(--ink-dim);
+}
+.fg-composer-input:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-composer-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2);
+  border-top: var(--border-width) solid var(--line);
+}
+
+/* ---------------------------------------------------------------- Modal and CreateDialog */
+
+/* Appears whole: no transition on open or close. */
+.fg-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--scrim);
+}
+.fg-modal-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 12vh var(--space-2) var(--space-2);
+  overflow-y: auto;
+}
+.fg-modal {
+  position: relative;
+  box-sizing: border-box;
+  width: min(750px, 100%);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-modal-sm {
+  width: min(480px, 100%);
+}
+.fg-modal:focus {
+  outline: none;
+}
+/* The lab's corner brackets, a little bolder than the frame. */
+.fg-modal::before,
+.fg-modal::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: var(--border-width) solid var(--ink-dim);
+  background: var(--bg);
+}
+.fg-modal::before {
+  top: -4px;
+  left: -4px;
+}
+.fg-modal::after {
+  right: -4px;
+  bottom: -4px;
+}
+.fg-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+}
+.fg-modal-head .fg-selm-chip {
+  height: 24px;
+  font: 500 12px/1 var(--font-mono);
+}
+.fg-modal-sep {
+  color: var(--ink-dim);
+}
+.fg-modal-title {
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-modal-close {
+  margin-left: auto;
+}
+.fg-modal-close:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+.fg-create {
+  display: flex;
+  flex-direction: column;
+}
+.fg-create-title,
+.fg-create-desc {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink);
+}
+.fg-create-title {
+  margin-top: var(--space-3);
+  font: 600 18px/24px var(--font-sans);
+  letter-spacing: -0.01em;
+}
+.fg-create-desc {
+  min-height: 68px;
+  margin-top: 6px;
+  color: var(--ink-muted);
+  font: 400 15px/22px var(--font-sans);
+  resize: vertical;
+}
+.fg-create-title::placeholder,
+.fg-create-desc::placeholder {
+  color: var(--ink-dim);
+}
+.fg-create-title[aria-invalid="true"]::placeholder {
+  color: var(--danger);
+}
+.fg-create-title:focus-visible,
+.fg-create-desc:focus-visible {
+  outline: var(--border-width) solid var(--line-strong);
+  outline-offset: 0;
+}
+.fg-create-props {
+  margin-top: var(--space-6);
+}
+.fg-create-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-create-space {
+  flex: 1;
+}
+.fg-create-foot .fg-switch {
+  min-height: 30px;
+  color: var(--ink-muted);
+  font-size: 12px;
+}

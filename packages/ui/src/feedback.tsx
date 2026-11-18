@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import type { IconDefinition } from "@forgeron/icons";
 import { cx } from "./cx";
+import { Icon } from "./icon";
 
 export interface NoticeProps {
   tone?: "info" | "success" | "warning" | "danger";
@@ -31,6 +33,13 @@ export function Notice({ tone = "info", title, action, className, children }: No
 
 export interface EmptyStateProps {
   title: ReactNode;
+  /** A pixel icon above the title, in `ink-dim`. */
+  icon?: IconDefinition;
+  /**
+   * `plain` (default): a dashed frame. `hatch`: the hatched field of the lab language, the words
+   * set on the background colour, the way an empty list fills its pane.
+   */
+  variant?: "plain" | "hatch";
   description?: ReactNode;
   /** The one thing to do about it. */
   action?: ReactNode;
@@ -38,9 +47,17 @@ export interface EmptyStateProps {
 }
 
 /** What a list shows when there is nothing in it yet, and what to do about it. */
-export function EmptyState({ title, description, action, className }: EmptyStateProps) {
+export function EmptyState({
+  title,
+  icon,
+  variant = "plain",
+  description,
+  action,
+  className,
+}: EmptyStateProps) {
   return (
-    <div className={cx("fg-empty", className)}>
+    <div className={cx("fg-empty", variant === "hatch" && "fg-empty-hatch", className)}>
+      {icon ? <Icon icon={icon} size={36} className="fg-empty-icon" /> : null}
       <p className="fg-empty-title">{title}</p>
       {description ? <p className="fg-empty-text">{description}</p> : null}
       {action ? <div className="fg-empty-action">{action}</div> : null}
@@ -54,7 +71,7 @@ export interface SpinnerProps {
   className?: string;
 }
 
-/** A turning square: the loading state. Nothing bounces. */
+/** Eight pixels on a ring lighting in turn: the loading state. Nothing turns, nothing bounces. */
 export function Spinner({ label = "Loading", className }: SpinnerProps) {
   return (
     <span className={cx("fg-spinner", className)} role="status">

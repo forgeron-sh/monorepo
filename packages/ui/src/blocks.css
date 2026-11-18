@@ -1,0 +1,7 @@
+/* Blocks: composites of atoms, one file per group. */
+@import "./blocks/lists.css";
+@import "./blocks/filtering.css";
+@import "./blocks/record.css";
+@import "./blocks/navigation.css";
+@import "./blocks/data.css";
+@import "./blocks/views.css";

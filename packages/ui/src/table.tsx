@@ -19,21 +19,24 @@ export interface TableProps<Row> {
   onRowClick?: (row: Row) => void;
   /** Shown when `rows` is empty. */
   empty?: ReactNode;
+  /** Names the table for assistive technology, when no heading does. */
+  label?: string;
   className?: string;
 }
 
-/** Data table, 44px rows, header in `Label` style. */
+/** Data table: 44px rows, a mono header; a clickable row is a button on Enter and Space. */
 export function Table<Row>({
   columns,
   rows,
   rowKey,
   onRowClick,
   empty = "Nothing to show",
+  label,
   className,
 }: TableProps<Row>) {
   return (
     <div className={cx("fg-table-wrap", className)}>
-      <table className="fg-table">
+      <table className="fg-table" aria-label={label}>
         <thead>
           <tr>
             {columns.map((c) => (

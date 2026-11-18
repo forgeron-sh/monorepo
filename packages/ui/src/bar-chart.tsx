@@ -11,18 +11,23 @@ export interface BarChartProps {
   title: string;
   /** Formats the value shown at the end of each bar. */
   format?: (value: number) => string;
+  /** The label of the one bar to stand out, in ember: this month, the leader, the outlier. */
+  highlight?: string;
   className?: string;
 }
 
-/** Horizontal bars in `ink`; every bar carries its label and value as text. */
-export function BarChart({ data, title, format = String, className }: BarChartProps) {
+/**
+ * Horizontal pixel bars (a solid cap on scan lines); every bar carries its label and value as text,
+ * so the chart reads without colour. One bar may stand out in ember.
+ */
+export function BarChart({ data, title, format = String, highlight, className }: BarChartProps) {
   const max = Math.max(0, ...data.map((d) => d.value));
   return (
     <figure className={cx("fg-bars", className)}>
       <figcaption className="fg-bars-title">{title}</figcaption>
       <ul className="fg-bars-list">
         {data.map((d) => (
-          <li key={d.label} className="fg-bars-row">
+          <li key={d.label} className={cx("fg-bars-row", d.label === highlight && "fg-bars-hi")}>
             <span className="fg-bars-label">{d.label}</span>
             <span className="fg-bars-track" aria-hidden="true">
               <span

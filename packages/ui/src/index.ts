@@ -5,6 +5,38 @@ export type { ButtonProps } from "./button";
 export { Chip } from "./chip";
 export type { ChipProps } from "./chip";
 export { Command } from "./command";
+export { RadioGroup, Segmented, Switch } from "./controls";
+export type {
+  RadioGroupProps,
+  RadioOption,
+  SegmentedOption,
+  SegmentedProps,
+  SwitchProps,
+} from "./controls";
+export { Kbd, Progress, Separator } from "./marks";
+export { AppTile, AvatarGroup, Breadcrumb, IconButton, SearchBox, Swatch } from "./identity";
+export type {
+  AppTileProps,
+  AvatarGroupProps,
+  BreadcrumbItem,
+  BreadcrumbProps,
+  IconButtonProps,
+  SearchBoxProps,
+  SwatchProps,
+} from "./identity";
+export { Calendar } from "./calendar";
+export type { CalendarProps } from "./calendar";
+export { addDays, addMonths, formatShort, monthGrid, toIso } from "./dates";
+export { DatePicker, duePresets, SelectMenu, Toaster, Tooltip, useToast } from "./overlays";
+export type {
+  DatePickerProps,
+  DatePreset,
+  SelectMenuOption,
+  SelectMenuProps,
+  ToasterProps,
+  TooltipProps,
+} from "./overlays";
+export type { KbdProps, ProgressProps, SeparatorProps } from "./marks";
 export type { CommandProps } from "./command";
 export { Icon } from "./icon";
 export type { IconProps } from "./icon";
@@ -73,3 +105,34 @@ export type { AvatarProps } from "./avatar";
 export { SettingsGroup, SettingsRow } from "./settings";
 export type { SettingsGroupProps, SettingsRowProps } from "./settings";
 export * from "./architecture";
+export { PriorityGlyph, QuarterGlyph, SizeGlyph, StatusGlyph } from "./glyphs";
+export type { GlyphProps, PriorityLevel, SizeLevel, StatusKind } from "./glyphs";
+export {
+  LabelPicker,
+  PersonPicker,
+  PRIORITY_NAMES,
+  PriorityPicker,
+  QuarterPicker,
+  SIZE_NAMES,
+  SizePicker,
+  STATUS_NAMES,
+  StatusPicker,
+} from "./pickers";
+export type {
+  LabelOption,
+  LabelPickerProps,
+  Person,
+  PersonPickerProps,
+  PriorityPickerProps,
+  QuarterPickerProps,
+  SizePickerProps,
+  StatusPickerProps,
+} from "./pickers";
+export * from "./blocks/lists";
+export * from "./blocks/filtering";
+export * from "./blocks/record";
+export * from "./blocks/navigation";
+export * from "./blocks/data";
+export * from "./blocks/views";
+export * from "./hooks";
+export * from "./shaders";

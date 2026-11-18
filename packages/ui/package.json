@@ -17,6 +17,7 @@
     "tokens:check": "node tokens/build.mjs --check"
   },
   "dependencies": {
+    "@base-ui/react": "1.9.0",
     "@forgeron/blueprint": "workspace:*",
     "@forgeron/icons": "workspace:*",
     "react-markdown": "10.1.0",

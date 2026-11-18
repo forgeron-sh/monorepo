@@ -1,5 +1,7 @@
+import { ArrowRight01Icon } from "@forgeron/icons";
 import type { MouseEvent, ReactNode } from "react";
 import { cx } from "./cx";
+import { Icon } from "./icon";
 
 export interface SettingsGroupProps {
   title?: ReactNode;
@@ -80,9 +82,7 @@ export function SettingsRow({
         {text}
         <span className="fg-srow-control">
           {value ? <span className="fg-srow-value">{value}</span> : null}
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M6 3.5L10.5 8L6 12.5" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
+          <Icon icon={ArrowRight01Icon} size={12} variant="mono" className="fg-srow-chev" />
         </span>
       </a>
     );

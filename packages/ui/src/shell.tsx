@@ -1,5 +1,7 @@
-import type { MouseEvent, ReactNode } from "react";
+import { Cancel01Icon, Menu01Icon } from "@forgeron/icons";
+import { useId, type MouseEvent, type ReactNode } from "react";
 import { cx } from "./cx";
+import { IconButton } from "./identity";
 
 export interface NavItem {
   id: string;
@@ -93,6 +95,12 @@ export interface AppShellProps {
   onMenuToggle?: () => void;
   /** The id the skip link jumps to. */
   contentId?: string;
+  /**
+   * `page` (default): the shell fills the window, the sidebar sticks to it. `box`: it fills its
+   * parent instead, for a shell inside a frame (a preview, a demo).
+   */
+  frame?: "page" | "box";
+  className?: string;
   children?: ReactNode;
 }
 
@@ -103,26 +111,34 @@ export function AppShell({
   menuOpen = false,
   onMenuToggle,
   contentId = "content",
+  frame = "page",
+  className,
   children,
 }: AppShellProps) {
+  const sideId = `${useId()}-side`;
   return (
-    <div className={cx("fg-shell", menuOpen && "fg-shell-open")}>
+    <div
+      className={cx(
+        "fg-shell",
+        frame === "box" && "fg-shell-box",
+        menuOpen && "fg-shell-open",
+        className,
+      )}
+    >
       <a className="fg-skip" href={`#${contentId}`}>
         Skip to content
       </a>
       <header className="fg-topbar">
-        <button
-          type="button"
-          className="fg-btn fg-btn-ghost fg-btn-sm"
+        <IconButton
+          icon={menuOpen ? Cancel01Icon : Menu01Icon}
+          label={menuOpen ? "Close menu" : "Menu"}
           aria-expanded={menuOpen}
-          aria-controls="fg-shell-side"
+          aria-controls={sideId}
           onClick={onMenuToggle}
-        >
-          {menuOpen ? "Close menu" : "Menu"}
-        </button>
+        />
         {topbar}
       </header>
-      <aside id="fg-shell-side" className="fg-shell-side">
+      <aside id={sideId} className="fg-shell-side">
         {sidebar}
       </aside>
       {menuOpen ? (

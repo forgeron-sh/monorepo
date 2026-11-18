@@ -1,0 +1,325 @@
+/* Styles of the "data and shell" blocks. Values come from tokens/tokens.css. */
+
+/* ---------------------------------------------------------------- LineChart */
+
+.fg-line {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-line-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.fg-line-title {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-line-readout {
+  display: inline-flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--space-2);
+  font: 400 11px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-line-readout b {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.fg-line-readout-label {
+  color: var(--ink-dim);
+}
+.fg-line-plot {
+  position: relative;
+  min-width: 0;
+  outline: none;
+  cursor: crosshair;
+}
+.fg-line-plot:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-line-plot svg {
+  display: block;
+}
+.fg-line-max {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  z-index: 1;
+  padding-right: 4px;
+  background: var(--bg);
+  color: var(--ink-dim);
+  font: 400 10.5px/12px var(--font-mono);
+}
+.fg-line-ink-accent {
+  fill: var(--accent);
+}
+.fg-line-ink-grid {
+  fill: var(--line-strong);
+}
+.fg-line-ink-before {
+  fill: var(--ink-dim);
+}
+.fg-line-ink-hover {
+  fill: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.fg-line-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  overflow: hidden;
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Sparkline */
+
+.fg-spark {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  fill: var(--accent);
+}
+.fg-spark-ink {
+  fill: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------- KpiRow */
+
+/* Cells glued by one 1px line: the row draws the top and left edges, each cell its right and
+   bottom ones, so a short last row leaves no empty box. */
+.fg-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+  margin: 0;
+  border-top: var(--border-width) solid var(--line);
+  border-left: var(--border-width) solid var(--line);
+  color: var(--ink);
+}
+.fg-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-right: var(--border-width) solid var(--line);
+  border-bottom: var(--border-width) solid var(--line);
+  background: var(--bg);
+}
+.fg-kpi dd {
+  margin: 0;
+}
+.fg-kpi-label {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-kpi-value {
+  font: 500 28px/32px var(--font-mono);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fg-kpi-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 16px;
+}
+.fg-kpi-change {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-kpi-delta {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.fg-kpi-good {
+  color: var(--success);
+}
+.fg-kpi-bad {
+  color: var(--danger);
+}
+.fg-kpi-flat {
+  color: var(--ink-muted);
+}
+.fg-kpi-hint {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------- AuditLog */
+
+.fg-audit {
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-audit-empty {
+  padding: var(--space-6) var(--space-4);
+  border: var(--border-width) solid var(--line);
+  color: var(--ink-muted);
+  text-align: center;
+}
+/* The day: a closed band, its name on the background over the hatching. */
+.fg-audit-day {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  margin: 0;
+  padding: 0 var(--space-2);
+  border-top: var(--border-width) solid var(--line);
+  border-bottom: var(--border-width) solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-audit-day span {
+  padding: 0 6px;
+  background: var(--bg);
+}
+.fg-audit-group + .fg-audit-group {
+  margin-top: var(--space-4);
+}
+.fg-audit-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-audit-row {
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-audit-line {
+  display: grid;
+  grid-template-columns: 44px minmax(96px, 160px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.fg-audit-line {
+  cursor: pointer;
+}
+button.fg-audit-line:hover {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+button.fg-audit-line:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: -2px;
+}
+.fg-audit-time {
+  color: var(--ink-dim);
+  font: 400 12px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-audit-who {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.fg-audit-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+}
+.fg-audit-actor {
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-audit-what {
+  overflow: hidden;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-audit-target {
+  margin-left: 6px;
+  color: var(--ink);
+  font: 400 12px/16px var(--font-mono);
+}
+.fg-audit-end {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 12px;
+}
+.fg-audit-chev {
+  color: var(--ink-dim);
+}
+.fg-audit-detail {
+  margin: 0 var(--space-2) var(--space-2) calc(44px + var(--space-3) + var(--space-2));
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--line-strong);
+  background: var(--bg-sunk);
+  color: var(--ink-muted);
+  font: 400 12px/18px var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.fg-audit-denied .fg-audit-detail {
+  border-left-color: var(--warning);
+}
+.fg-audit-failed .fg-audit-detail {
+  border-left-color: var(--danger);
+}
+@media (max-width: 640px) {
+  .fg-audit-line {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    padding-block: var(--space-2);
+  }
+  .fg-audit-end {
+    grid-row: 1;
+    grid-column: 3;
+  }
+  .fg-audit-what {
+    grid-row: 2;
+    grid-column: 2 / -1;
+    white-space: normal;
+  }
+  .fg-audit-detail {
+    margin-left: var(--space-2);
+  }
+}

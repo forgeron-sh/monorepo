@@ -1,0 +1,369 @@
+/* Styles of the "filtering" blocks. Values come from tokens/tokens.css. */
+
+/* ---------------------------------------------------------------- Filter popups */
+
+/* A search input over a list: the filter fields, then the values of one field. */
+.fg-fpop {
+  width: 260px;
+}
+.fg-fpop-head {
+  display: flex;
+  align-items: center;
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-fpop-input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+  outline: none;
+}
+.fg-fpop-input::placeholder {
+  color: var(--ink-dim);
+}
+.fg-fpop-input:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-fpop-empty:not(:empty) {
+  padding: 10px 12px;
+  color: var(--ink-dim);
+}
+.fg-fpop .fg-pop-list:empty {
+  display: none;
+}
+.fg-fpop-chev {
+  display: inline-grid;
+  color: var(--ink-dim);
+}
+.fg-fpop .fg-pop-row[data-selected] .fg-check-box {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* ---------------------------------------------------------------- Filter button and bar */
+
+.fg-filters-trigger {
+  gap: 8px;
+}
+.fg-filters-trigger[data-popup-open] {
+  background: var(--bg-raised);
+}
+.fg-filters-trigger:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* The band under the header: chips on a hatched field, each on the background colour. */
+.fg-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+  padding: 7px 12px;
+  border-bottom: var(--border-width) solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+}
+.fg-filters > :not(.fg-filters-gap) {
+  background-color: var(--bg);
+}
+.fg-filters-gap {
+  flex: 1;
+}
+.fg-filters .fg-btn-sm {
+  height: 26px;
+}
+.fg-filters .fg-iconbtn-sm {
+  width: 26px;
+  height: 26px;
+  border-color: var(--line-strong);
+}
+
+/* One filter: field, operator, values, ×. */
+.fg-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 26px;
+  padding: 0 2px 0 8px;
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+  font: 400 12.5px/1 var(--font-sans);
+  white-space: nowrap;
+}
+.fg-filter-field {
+  color: var(--ink);
+}
+.fg-filter-op,
+.fg-filter-values,
+.fg-filter-x {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-none);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.fg-filter-op {
+  padding: 0 4px;
+  color: var(--ink-dim);
+}
+.fg-filter-values {
+  gap: 6px;
+  min-width: 0;
+  padding: 0 4px;
+  color: var(--ink);
+  font-weight: 500;
+}
+.fg-filter-mark {
+  display: inline-grid;
+  flex: none;
+}
+.fg-filter-mark + .fg-filter-mark {
+  margin-left: -2px;
+}
+.fg-filter-names {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fg-filter-x {
+  justify-content: center;
+  width: 22px;
+  color: var(--ink-dim);
+}
+.fg-filter-op:hover,
+.fg-filter-values:hover,
+.fg-filter-values[data-popup-open],
+.fg-filter-x:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.fg-filter-op:focus-visible,
+.fg-filter-values:focus-visible,
+.fg-filter-x:focus-visible,
+.fg-iconbtn:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 0;
+}
+
+/* ---------------------------------------------------------------- Display menu */
+
+.fg-display-trigger {
+  gap: 8px;
+}
+.fg-display-trigger[data-popup-open] {
+  border-color: var(--ink);
+}
+.fg-display-trigger:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-display {
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  padding: 12px;
+}
+.fg-display-layout {
+  display: flex;
+  width: 100%;
+}
+.fg-display-layout .fg-seg-item {
+  flex: 1;
+}
+.fg-display-layout + * {
+  margin-top: 8px;
+}
+.fg-display > .fg-display-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.fg-display-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--ink-muted);
+}
+.fg-display-section {
+  display: flex;
+  flex-direction: column;
+  margin: 8px -12px 0;
+  padding: 8px 12px 0;
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-display-switch {
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  min-height: 32px;
+  color: var(--ink-muted);
+}
+.fg-display-heading {
+  margin: 4px 0 8px;
+  color: var(--ink-dim);
+  font: 500 10.5px/14px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fg-display-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.fg-display-prop {
+  height: 26px;
+  padding: 0 8px;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-dim);
+  font: 400 12px/1 var(--font-sans);
+  cursor: pointer;
+}
+.fg-display-prop:hover {
+  color: var(--ink);
+}
+.fg-display-prop[aria-pressed="true"] {
+  border-color: var(--ink-muted);
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+.fg-display-prop:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-display-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* ---------------------------------------------------------------- View header */
+
+/* One row of 30px controls; in a column narrower than 560px the tabs take a second line and
+   scroll sideways, and the filter and display buttons keep only their icons. */
+.fg-vhead {
+  container-type: inline-size;
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-vhead-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "title tabs actions";
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 48px;
+  padding: 8px 8px 8px 12px;
+}
+.fg-vhead-title {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.fg-vhead-name {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font: 500 13px/16px var(--font-sans);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-vhead-tabs {
+  grid-area: tabs;
+  display: flex;
+  justify-self: start;
+  max-width: 100%;
+  overflow-x: auto;
+  border: var(--border-width) solid var(--line-strong);
+  scrollbar-width: none;
+}
+.fg-vhead-tabs::-webkit-scrollbar {
+  display: none;
+}
+.fg-vhead-tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-dim);
+  font: 400 11px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fg-vhead-tab + .fg-vhead-tab {
+  border-left: var(--border-width) solid var(--line-strong);
+}
+.fg-vhead-tab:hover:not([aria-pressed="true"], [aria-current="page"]) {
+  color: var(--ink);
+}
+.fg-vhead-tab[aria-pressed="true"],
+.fg-vhead-tab[aria-current="page"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.fg-vhead-tab:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: -4px;
+}
+.fg-vhead-count {
+  letter-spacing: 0;
+}
+.fg-vhead-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fg-vhead-actions > * {
+  flex: none;
+}
+
+@container (max-width: 560px) {
+  .fg-vhead-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title actions"
+      "tabs tabs";
+  }
+  .fg-vhead .fg-filters-trigger-text,
+  .fg-vhead .fg-display-trigger-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .fg-vhead .fg-filters-trigger,
+  .fg-vhead .fg-display-trigger {
+    width: 30px;
+    padding: 0;
+  }
+  .fg-vhead .fg-btn-kbd {
+    display: none;
+  }
+}
+.fg-vhead-actions .fg-iconbtn {
+  width: 30px;
+  height: 30px;
+}

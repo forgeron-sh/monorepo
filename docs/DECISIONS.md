@@ -1931,3 +1931,13 @@ Rules of the log:
 - **Consequences**: a change made outside the gateway's registry (a script on the D1, a migration) does not raise the generation: it is seen after 5 minutes at most, or at the next deployment of the gateway. A write through the gateway costs one more trip (the generation). A batch counts as one query of D1's limit per invocation.
 - **Not verified**: the gain on a real install: read in `Server-Timing` after the update.
 - **Applied in**: `apps/gateway/src/dispatch/{d1-probe,hot-registry,dispatch}.ts`; `apps/gateway/src/compose.ts`; `packages/registry/src/{registry,root-migrations}.ts`.
+
+## D-147 — The parts of `@forgeron/ui` that open over the page are built on Base UI
+
+- **Date**: 17/11/2026 · **Status**: Active
+- **Decision**: the components that open a layer (`SelectMenu`, `Tooltip`, `Toaster`, `DatePicker` and, when they are rewritten, `Menu`, `Dialog`, `Drawer`) take their behaviour from **Base UI** (`@base-ui/react`, pinned at 1.9.0): focus kept and returned, Escape and click outside, positioning against the screen edges, typeahead, announcements of toasts, `aria-*` and roles. Base UI ships no style; the look stays ours, in `atoms.css`, with the `fg-` classes and the tokens. The static atoms (Button, Badge, Field…) stay plain markup, so they still render in pages without JavaScript. The calendar grid is ours: Base UI 1.9 has no public calendar.
+- **Why**: hand-written popups are where accessibility breaks (focus traps, return of focus, screen-reader roles, scroll and collision). Base UI is written by the authors of Radix, maintained by the MUI team, released monthly (1.4 in April 2026, 1.9 on 09/10/2026), and is unstyled by design, which fits a design system that owns its CSS.
+- **Rejected**: **shadcn/ui as the base.** It is a way to copy component sources into an app (a CLI and a registry), styled with Tailwind, built on Radix or Base UI. We do not use Tailwind, and the package is meant to be imported, not copied. What we can take from it later is its distribution: the gallery could serve a shadcn-compatible registry so that `npx shadcn add` installs our components. **Radix directly**: still maintained, but its authors' new work goes into Base UI. **React Aria**: the most complete on accessibility, at the cost of a larger API and bundle; kept in mind for the calendar if ours falls short.
+- **Consequences**: `@forgeron/ui` gains one runtime dependency (with `@floating-ui`). Popups appear and disappear whole, without fades (`docs/design-taste.md`).
+- **Not verified**: a pass with VoiceOver and NVDA on the gallery.
+- **Applied in**: `packages/ui/src/overlays.tsx`; `packages/ui/src/calendar.tsx`.

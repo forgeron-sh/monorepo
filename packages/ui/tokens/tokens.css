@@ -43,6 +43,7 @@
   --warning-subtle: #2e2209;
   --danger: #ff6b81;
   --danger-subtle: #351419;
+  --scrim: rgba(0,0,0,0.72);
   --shadow-pop: 0 8px 24px rgba(0,0,0,0.6);
   --font-pixel-face: "Forge Sans";
   --font-pixel: var(--font-pixel-face), "Geist Mono", ui-monospace, monospace;
@@ -88,6 +89,7 @@
   --warning-subtle: #f8eed9;
   --danger: #b4233f;
   --danger-subtle: #f8e4e8;
+  --scrim: rgba(17,17,17,0.4);
   --shadow-pop: 0 8px 24px rgba(17,17,17,0.12);
 }
 

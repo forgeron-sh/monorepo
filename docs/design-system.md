@@ -27,7 +27,7 @@ The design language is the one of the `forgeron.sh` landing (the "lab" language,
 
 Tokens in `assets/design-system/tokens.json`, generated into `packages/ui/tokens/tokens.css` (`bun run tokens` in `packages/ui`, checked by `tokens:check`).
 
-- Page background `bg`; raised or hovered areas `bg-raised` (hovered rows and cards, the highlighted layer of a legend, the app's sidebar); code, terminals and commands `bg-sunk`.
+- Page background `bg`; raised or hovered areas `bg-raised` (hovered rows and cards, the highlighted layer of a legend, the app's sidebar); code, terminals and commands `bg-sunk`; the flat shade behind a modal `scrim` (no blur).
 - Text `ink`; secondary text and leads `ink-muted` (at least 4.5:1); `ink-dim` for figure labels (FIG.01), tag brackets, disabled states and field outlines, never for running text.
 - `accent` (ember), the one orange of the system: every ember fill, LED, chip and accent text uses this token, never a hex value. `accent-ink` (near-black) is the text on it; when a hover turns the fill to `ink`, the text turns to `bg`. `focus` is the ember ring. The light theme gives the token a deeper shade so ember text keeps 4.5:1.
 - Strong elements that are not the primary action (selected item, Production, the ink button): `ink` fill, `bg` text.
