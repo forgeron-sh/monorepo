@@ -44,7 +44,7 @@ export { default as Watch01Icon } from "../drawn/watch-01";
 export const Watch02Icon: PixelIcon = { name: "watch-02", implemented: true, style: "pixel", grid: 12, rows: ["", "....####", "....####", "...######", "..#......#", "..#..o...#", "..#..oo..#", "..#......#", "...######", "....####", "....####"] };
 export const WaterEnergyIcon: PixelIcon = { name: "water-energy", implemented: true, style: "pixel", grid: 12, rows: ["", ".....##", ".....##", "....#..#", "...#..o.#", "...#.o..#", "..#.oooo.#", "..#...o..#", "..#..o...#", "...#....#", "....####"] };
 export { default as WaterPoloIcon } from "../drawn/water-polo";
-export const WaterPumpIcon: StubIcon = { name: "water-pump", implemented: false };
+export { default as WaterPumpIcon } from "../drawn/water-pump";
 export { default as WaterfallDown01Icon } from "../drawn/waterfall-down-01";
 export const WaterfallDown03Icon: PixelIcon = { name: "waterfall-down-03", implemented: true, style: "pixel", grid: 12, rows: ["", ".##..##", ".##..##", ".##..##", ".##..##", ".##......oo", ".##......oo", ".##......oo", ".##......oo", "", ".##########"] };
 export { default as WaterfallUp01Icon } from "../drawn/waterfall-up-01";
@@ -62,7 +62,7 @@ export const WavesArrowDownIcon: PixelIcon = { name: "waves-arrow-down", impleme
 export { default as WavesArrowUpIcon } from "../drawn/waves-arrow-up";
 export const WavesLadderIcon: PixelIcon = { name: "waves-ladder", implemented: true, style: "pixel", grid: 12, rows: ["", "..##...##", "....#....#", "....#....#", "....######", "....#....#", "....#....#", "", ".oo..oo..oo", "o..oo..oo..o"] };
 export { default as WavingHand01Icon } from "../drawn/waving-hand-01";
-export const WavingHand02Icon: PixelIcon = { name: "waving-hand-02", implemented: true, style: "pixel", grid: 12, rows: ["", "....#.#...o", "..#.#.#.#..o", "..#.#.#.#..o", "..#.#.#.#.o", "#.#######", "##.######", ".########", "..#######", "...#####", "...#####"] };
+export const WavingHand02Icon: PixelIcon = { name: "waving-hand-02", implemented: true, style: "pixel", grid: 12, rows: ["..........o", "...........o", ".....#....o", "...#.#.#", "...#.#.#.#", "#..#.#.#.#", ".#.#######", "..########", "...#######", "....#####", "", "....#####"] };
 export { default as WaypointsIcon } from "../drawn/waypoints";
 export const WazeIcon: StubIcon = { name: "waze", implemented: false };
 export { default as WebDesign01Icon } from "../drawn/web-design-01";

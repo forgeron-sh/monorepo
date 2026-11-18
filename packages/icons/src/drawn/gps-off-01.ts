@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// GPS off: the GPS ring crossed by a slash in the secondary tone.
+// GPS off: the GPS pin and ring struck through by a slash in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "gps-off-01",
@@ -9,17 +9,17 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    "o",
-    ".o...##",
-    "..o.####",
-    "...o....#",
+    "o...####",
+    ".o.#....#",
+    "..o..##..#",
+    "..#o.##..#",
     "..#.o....#",
-    ".##..o...##",
-    ".##...o..##",
-    "..#....o.#",
-    "...#....o",
-    "....####.o",
-    ".....##...o",
+    "...#.o..#",
+    "....#.o#",
+    "..##.##o##",
+    ".#......o.#",
+    "..##....#o",
+    "....####..o",
     "...........o",
   ],
 };

@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// A pointing hand with an arrow down: swipe down. Hand of `cursor-pointer-01`, shortened.
+// Swipe down: the pointing hand of the set beside an arrow down.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "swipe-down-01",
@@ -9,18 +9,18 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    "..........o",
-    "..........o",
-    "..........o",
-    "....##...ooo",
-    "...#..#...o",
-    "...#..###",
-    "...#..#..##",
-    ".###.....#",
-    ".#.......#",
-    "..#......#",
-    "...#....#",
-    "...######",
+    "........o",
+    "........o",
+    ".......ooo",
+    "....#...o",
+    "....#",
+    ".#..#.#.#.#",
+    "..#.#######",
+    "...########",
+    "....#######",
+    ".....#####",
+    "",
+    ".....#####",
   ],
 };
 

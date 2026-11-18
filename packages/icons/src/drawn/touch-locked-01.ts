@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// A pointing hand with a padlock: touch locked. Hand of `swipe-right-01`, padlock of `user-lock-01`.
+// Touch locked: the pointing hand of the set beside a padlock in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "touch-locked-01",
@@ -12,15 +12,15 @@ const icon: PixelIcon = {
     "........ooo",
     "........o.o",
     ".......ooooo",
-    ".......ooooo",
-    "...##",
-    "..#..#",
-    "..#..###",
-    "..#..#..##",
-    "###.....#",
-    ".#......#",
-    "..#....#",
-    "..######",
+    "....#..ooooo",
+    "....#",
+    ".#..#.#.#.#",
+    "..#.#######",
+    "...########",
+    "....#######",
+    ".....#####",
+    "",
+    ".....#####",
   ],
 };
 

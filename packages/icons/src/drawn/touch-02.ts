@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// A pointing hand with three short rays above the fingertip: a tap. Hand of `swipe-right-01`.
+// Touch: the pointing hand of the set with three short rays above the fingertip.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "touch-02",
@@ -9,18 +9,18 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    ".o..oo..o",
-    "..o....o",
+    "....o",
+    ".o..o..o",
+    "..o...o",
+    "....#",
+    "....#",
+    ".#..#.#.#.#",
+    "..#.#######",
+    "...########",
+    "....#######",
+    ".....#####",
     "",
-    "....##",
-    "...#..#",
-    "...#..###",
-    "...#..#..##",
-    ".###.....#",
-    ".#.......#",
-    "..#......#",
-    "...#....#",
-    "...######",
+    ".....#####",
   ],
 };
 

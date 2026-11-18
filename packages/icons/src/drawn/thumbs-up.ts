@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Thumbs up: a narrow cuff on the left, a hand whose thumb rises from a diagonal shoulder,
+// Thumbs up: the fist of the set turned a quarter turn, a cuff on the left, a two-pixel thumb rising from it,
 // the folded fingers marked by a notch on the right edge (without it the thumb sat on a box).
 // Redrawn after Hugeicons `thumbs-up` (Iconify preview, 2026-11-17): composition only.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
@@ -12,16 +12,16 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    ".....##",
-    "....#..#",
-    "....#..#",
-    "...#...#",
-    ".###....###",
-    ".#.#......#",
-    ".#.#...###",
-    ".#.#......#",
-    ".#.#.....#",
-    ".########",
+    "....##",
+    "....##",
+    "....##",
+    "...#######",
+    ".#.#####",
+    ".#.#######",
+    ".#.#####",
+    ".#.#######",
+    ".#.#####",
+    "...######",
   ],
 };
 

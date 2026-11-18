@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Hand showing three fingers: middle, ring and little finger, from `hand`.
+// Three fingers: `hand` with the middle, ring and little fingers raised.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "three-finger-03",
@@ -10,16 +10,16 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    "....#.#",
-    "....#.#.#",
-    "....#.#.#",
-    "....#.#.#",
-    "..#######",
-    "..#######",
-    "..#######",
-    "..#######",
-    "...#####",
-    "...#####",
+    "......#",
+    "......#.#",
+    "......#.#.#",
+    "....#.#.#.#",
+    "....#######",
+    "....#######",
+    "....#######",
+    ".....#####",
+    "",
+    ".....#####",
   ],
 };
 

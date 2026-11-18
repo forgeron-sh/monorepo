@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// A hand raising two fingers: a two-finger gesture.
+// Two fingers: `hand` with the index and middle fingers raised, the others and the thumb folded.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "two-finger-01",
@@ -10,16 +10,16 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    "....##.##",
-    "...#..#..#",
-    "...#..#..#",
-    "...#..#..#",
-    "...#..#..##",
-    ".###......#",
-    ".#........#",
-    "..#.......#",
-    "...#.....#",
-    "...######",
+    "......#",
+    "....#.#",
+    "....#.#",
+    "....#.#.#.#",
+    "....#######",
+    "....#######",
+    "....#######",
+    ".....#####",
+    "",
+    ".....#####",
   ],
 };
 

@@ -43,7 +43,7 @@ export const Unlink03Icon: PixelIcon = { name: "unlink-03", implemented: true, s
 export const Unlink04Icon: PixelIcon = { name: "unlink-04", implemented: true, style: "pixel", grid: 12, rows: ["", "", ".......####", "...........#", ".......##..#", ".####......#", "#......####", "#..##", "#", ".####"] };
 export const Unlink05Icon: PixelIcon = { name: "unlink-05", implemented: true, style: "pixel", grid: 12, rows: ["", "", ".......####", "...........#", ".......##..#", ".####......#", "#......####", "#..##", "#", ".####"] };
 export const Unlink06Icon: PixelIcon = { name: "unlink-06", implemented: true, style: "pixel", grid: 12, rows: ["", "", ".......####", "...........#", ".......##..#", ".####......#", "#......####", "#..##", "#", ".####"] };
-export const UnplugIcon: StubIcon = { name: "unplug", implemented: false };
+export { default as UnplugIcon } from "../drawn/unplug";
 export const UnsplashIcon: StubIcon = { name: "unsplash", implemented: false };
 export { default as Upload01Icon } from "../drawn/upload-01";
 export const Upload02Icon: PixelIcon = { name: "upload-02", implemented: true, style: "pixel", grid: 12, rows: ["", ".....o", "....ooo", "...o.o.o", "..o..o..o", ".....o", ".....o", ".....o", "", ".#.......#", ".#########"] };

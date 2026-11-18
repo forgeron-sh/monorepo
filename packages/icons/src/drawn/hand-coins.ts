@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Hand coins.
+// Hand holding coins: the offering hand of the set under a stack of coins in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "hand-coins",
@@ -10,17 +10,17 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    "....oooo",
-    "...o....o",
-    "....oooo",
-    "...o....o",
-    "....oooo",
     "",
-    "#.....##",
-    "#.###...#",
-    "#....####",
-    "#.....#",
-    "#",
+    "",
+    ".......ooo",
+    "......o...o",
+    ".......ooo",
+    "......o...o",
+    "....#..ooo",
+    "#..#",
+    "#.#########",
+    "#.####",
+    "#.########",
   ],
 };
 

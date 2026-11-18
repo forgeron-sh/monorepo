@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// GPS fix: a ring with four ticks and a centre dot in the secondary tone.
+// GPS: the shared map pin with its tip in a ring in the secondary tone, a position fix.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "gps-01",
@@ -9,17 +9,17 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    "",
-    ".....##",
     "....####",
     "...#....#",
-    "..#......#",
-    ".##..oo..##",
-    ".##..oo..##",
+    "..#..##..#",
+    "..#..##..#",
     "..#......#",
     "...#....#",
-    "....####",
-    ".....##",
+    "....#..#",
+    "..oo.##.oo",
+    ".o........o",
+    "..oo....oo",
+    "....oooo",
   ],
 };
 

@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Hand holding a platter: a serving dome over a plate, held by the hand of `hand-heart`.
+// Hand holding a platter: the offering hand of the set under a dome on a plate in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "hand-platter",
@@ -10,17 +10,17 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    ".....oo",
-    "...oooooo",
-    "..o......o",
-    "..o......o",
-    ".oooooooooo",
     "",
-    "#.....##",
-    "#.###...#",
-    "#....####",
-    "#.....#",
-    "#",
+    "",
+    "........oo",
+    ".......oooo",
+    "......oooooo",
+    "",
+    "....#.oooooo",
+    "#..#",
+    "#.#########",
+    "#.####",
+    "#.########",
   ],
 };
 

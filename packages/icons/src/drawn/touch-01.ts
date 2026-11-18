@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// A pointing hand under a ring: a touch. Hand of `swipe-right-01`.
+// Touch: the fingertip of the pointing hand inside a ring in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "touch-01",
@@ -9,18 +9,18 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    "...oooo",
-    "..o....o",
-    "..o....o",
-    "....##",
-    "...#..#",
-    "...#..###",
-    "...#..#..##",
-    ".###.....#",
-    ".#.......#",
-    "..#......#",
-    "...#....#",
-    "...######",
+    "...ooo",
+    "..o...o",
+    "..o...o",
+    "..o.#.o",
+    "....#",
+    ".#..#.#.#.#",
+    "..#.#######",
+    "...########",
+    "....#######",
+    ".....#####",
+    "",
+    ".....#####",
   ],
 };
 

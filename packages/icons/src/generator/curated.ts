@@ -230,6 +230,8 @@ export const OWN_ICONS: readonly string[] = [
   "forgeron",
   "four-circle-fill",
   "four-square-fill",
+  "function-circle-fill",
+  "function-square-fill",
   "game-controller-02-fill",
   "gameboy-fill",
   "gamepad-directional-fill",
@@ -259,6 +261,8 @@ export const OWN_ICONS: readonly string[] = [
   "id-card-fill",
   "id-fill",
   "image-02-fill",
+  "inequality-circle-01-fill",
+  "inequality-circle-02-fill",
   "information-circle-fill",
   "information-diamond-fill",
   "information-square-fill",
@@ -373,6 +377,10 @@ export const OWN_ICONS: readonly string[] = [
   "pyramid-maslowo-fill",
   "pyramid-structure-02-fill",
   "quiz-02-fill",
+  "quote-down-circle-fill",
+  "quote-down-square-fill",
+  "quote-up-circle-fill",
+  "quote-up-square-fill",
   "rabbit-fill",
   "radio-button-fill",
   "radio-fill",
@@ -519,6 +527,8 @@ export const OWN_ICONS: readonly string[] = [
   "whistle-fill",
   "wifi-square-fill",
   "wink-fill",
+  "x-variable-circle-fill",
+  "x-variable-square-fill",
   "yen-square-fill",
   "yurt-fill",
   "zendesk",
@@ -917,7 +927,8 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `location-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["pin", "map", "place"],
-    description: "Map pin.",
+    description:
+      "The larger shared pin, a round head and a pointed tip, with a ring centred in its head in the secondary tone.",
   },
   "lock-open": {
     reference:
@@ -2443,13 +2454,14 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `thumbs-down` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art by an Opus agent and reviewed in the gallery.",
     labels: ["dislike", "reject", "thumb"],
-    description: "Hand giving a thumbs down.",
+    description: "Thumbs down: the thumbs-up hand turned over.",
   },
   "thumbs-up": {
     reference:
       "Hugeicons `thumbs-up` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art by an Opus agent and reviewed in the gallery.",
     labels: ["like", "approve", "thumb"],
-    description: "Hand giving a thumbs up.",
+    description:
+      "Thumbs up: the fist of the set turned a quarter turn, a cuff on the left, a thumb rising from it.",
   },
   triangle: {
     reference:
@@ -3818,7 +3830,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `gps-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["gps", "location", "position"],
-    description: "GPS fix: a ring with ticks and a centre dot.",
+    description: "The shared map pin with its tip in a ring in the secondary tone, a position fix.",
   },
   headset: {
     reference:
@@ -3908,7 +3920,8 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `map-pin` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["pin", "map", "place"],
-    description: "Solid map pin standing on the ground.",
+    description:
+      "The shared outline pin with a dot in its head, standing on a ground arc in the secondary tone.",
   },
   maps: {
     reference:
@@ -3920,7 +3933,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `maps-location-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "location", "pin"],
-    description: "Folded map with a location pin badge.",
+    description: "The shared map pin above a three-panel folded map in the secondary tone.",
   },
   "medicine-02": {
     reference:
@@ -7124,7 +7137,8 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `hand` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand"],
-    description: "Hand: a raised palm with four fingers and the thumb out to the left.",
+    description:
+      "An open hand: four one-pixel fingers, the thumb out at 45°, a solid palm and a cuff.",
   },
   hanger: {
     reference:
@@ -8403,13 +8417,15 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `hand-coins` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand", "coins"],
-    description: "Hand coins.",
+    description:
+      "Hand holding coins: the offering hand of the set under a stack of coins in the secondary tone.",
   },
   "hand-heart": {
     reference:
       "Hugeicons `hand-heart` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand", "heart"],
-    description: "Hand heart.",
+    description:
+      "Hand holding a heart: the offering hand of the set with a heart in the secondary tone above the fingers.",
   },
   kanban: {
     reference:
@@ -8427,7 +8443,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `location-share-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["location", "share"],
-    description: "Location share.",
+    description: "The shared map pin with an up-right arrow badge in the secondary tone.",
   },
   mailbox: {
     reference:
@@ -9069,41 +9085,41 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
       "Hugeicons `hand-fist` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand", "fist"],
     description:
-      "Fist: the solid hand of `hand` with its fingers curled, four knuckles and the thumb folded across.",
+      "Fist: four knuckles, the thumb folded along the side, a solid palm and the cuff of the open hand.",
   },
   "hand-grab": {
     reference:
       "Hugeicons `hand-grab` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand", "grab"],
-    description: "Grabbing hand: `hand` with its fingers bent forward, shorter, and the thumb out.",
+    description:
+      "Grabbing hand: the open hand with its four fingers bent short and level, the thumb out.",
   },
   "hand-metal": {
     reference:
       "Hugeicons `hand-metal` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand", "metal"],
     description:
-      "Rock sign: `hand` with the index and little fingers raised, the middle fingers folded.",
+      "Rock sign: the open hand with the index and little fingers raised, the middle fingers folded.",
   },
   "hand-platter": {
     reference:
       "Hugeicons `hand-platter` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand", "platter"],
     description:
-      "Hand holding a platter: a serving dome over a plate, held by the hand of `hand-heart`.",
+      "Hand holding a platter: the offering hand of the set under a dome on a plate in the secondary tone.",
   },
   "hand-pointing-left-01": {
     reference:
       "Hugeicons `hand-pointing-left-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand", "pointing", "left"],
-    description:
-      "Hand pointing left: the solid hand of `hand` turned a quarter turn, the index finger extended.",
+    description: "Hand pointing left: the right-pointing hand mirrored.",
   },
   "hand-pointing-right-01": {
     reference:
       "Hugeicons `hand-pointing-right-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand", "pointing", "right"],
     description:
-      "Hand pointing right: the solid hand of `hand` turned a quarter turn, the index finger extended.",
+      "Hand pointing right: the pointing hand of the set turned a quarter turn, cuff on the left.",
   },
   "house-heart": {
     reference:
@@ -10626,37 +10642,39 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `location-add-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["location", "add"],
-    description: "Location pin with a plus: add a place.",
+    description: "The shared map pin with a plus badge in the secondary tone.",
   },
   "location-favourite-01": {
     reference:
       "Hugeicons `location-favourite-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["location", "favourite"],
-    description: "Location pin with a heart: a favourite place.",
+    description: "The shared map pin with a solid heart badge in the secondary tone.",
   },
   "location-offline-01": {
     reference:
       "Hugeicons `location-offline-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["location", "offline"],
-    description: "Location pin struck through: location unavailable.",
+    description:
+      "The shared map pin with a no-entry badge (a ring crossed by a bar) in the secondary tone.",
   },
   "location-remove-01": {
     reference:
       "Hugeicons `location-remove-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["location", "remove"],
-    description: "Location pin with a minus: remove a place.",
+    description: "The shared map pin with a minus badge in the secondary tone.",
   },
   "location-star-01": {
     reference:
       "Hugeicons `location-star-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["location", "star"],
-    description: "Location pin with a star: a starred place.",
+    description: "The shared map pin with a solid star badge in the secondary tone.",
   },
   "location-user-01": {
     reference:
       "Hugeicons `location-user-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["location", "user"],
-    description: "Location pin with a person: a person's location.",
+    description:
+      "The shared map pin with a person badge (a round head over shoulders) in the secondary tone.",
   },
   "lock-computer": {
     reference:
@@ -11045,29 +11063,25 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `swipe-down-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["swipe", "down"],
-    description:
-      "A pointing hand with an arrow down: swipe down. Hand of `cursor-pointer-01`, shortened.",
+    description: "Swipe down: the pointing hand of the set beside an arrow down.",
   },
   "swipe-left-01": {
     reference:
       "Hugeicons `swipe-left-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["swipe", "left"],
-    description:
-      "A pointing hand with an arrow to the left: swipe left. Hand of `cursor-pointer-01`, shortened.",
+    description: "Swipe left: the right-swipe hand mirrored.",
   },
   "swipe-right-01": {
     reference:
       "Hugeicons `swipe-right-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["swipe", "right"],
-    description:
-      "A pointing hand with an arrow to the right: swipe right. Hand of `cursor-pointer-01`, shortened.",
+    description: "Swipe right: the pointing hand of the set under an arrow to the right.",
   },
   "swipe-up-01": {
     reference:
       "Hugeicons `swipe-up-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["swipe", "up"],
-    description:
-      "A pointing hand with an arrow up: swipe up. Hand of `cursor-pointer-01`, shortened.",
+    description: "Swipe up: the pointing hand of the set beside an arrow up.",
   },
   "table-cells-merge": {
     reference:
@@ -11503,41 +11517,37 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `map-pin-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "check"],
-    description:
-      "Map pin (solid, with a hole) on the left and a check badge in the secondary tone.",
+    description: "The shared map pin with a check badge in the secondary tone.",
   },
   "map-pin-house": {
     reference:
       "Hugeicons `map-pin-house` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "house"],
-    description:
-      "Map pin (solid, with a hole) on the left and a small house badge in the secondary tone.",
+    description: "The shared map pin with a small house badge in the secondary tone.",
   },
   "map-pin-minus": {
     reference:
       "Hugeicons `map-pin-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "minus"],
-    description:
-      "Map pin (solid, with a hole) on the left and a minus badge in the secondary tone.",
+    description: "The shared map pin with a minus badge in the secondary tone.",
   },
   "map-pin-pen": {
     reference:
       "Hugeicons `map-pin-pen` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "pen"],
-    description: "Map pin (solid, with a hole) on the left and a pen badge in the secondary tone.",
+    description: "The shared map pin with a pen badge in the secondary tone.",
   },
   "map-pin-plus": {
     reference:
       "Hugeicons `map-pin-plus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "plus"],
-    description: "Map pin (solid, with a hole) on the left and a plus badge in the secondary tone.",
+    description: "The shared map pin with a plus badge in the secondary tone.",
   },
   "map-pin-search": {
     reference:
       "Hugeicons `map-pin-search` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "search"],
-    description:
-      "Map pin (solid, with a hole) on the left and a search badge in the secondary tone.",
+    description: "The shared map pin with a magnifier badge in the secondary tone.",
   },
   "message-blocked": {
     reference:
@@ -17232,7 +17242,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `gps-off-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["gps", "off"],
-    description: "GPS off: the GPS ring crossed by a slash in the secondary tone.",
+    description: "The GPS pin and ring struck through by a slash in the secondary tone.",
   },
   "graphic-card": {
     reference:
@@ -17778,7 +17788,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `map-pin-x` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "x"],
-    description: "Small map pin with a cross badge in the secondary tone.",
+    description: "The shared map pin with a cross badge in the secondary tone.",
   },
   "maps-editing": {
     reference:
@@ -19795,7 +19805,8 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `waving-hand-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["waving", "hand"],
-    description: "Waving hand: the palm of `hand` with a motion mark in the secondary tone.",
+    description:
+      "Waving hand: the open hand with a motion mark beside the fingers in the secondary tone.",
   },
   "weight-scale": {
     reference:
@@ -22995,13 +23006,13 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `location-check-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["location", "check"],
-    description: "Location checked: a map pin with a check badge in the secondary tone.",
+    description: "The shared map pin with a one-pixel check badge in the secondary tone.",
   },
   "location-update-01": {
     reference:
       "Hugeicons `location-update-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["location", "update"],
-    description: "Location update: a map pin with a circular arrow badge in the secondary tone.",
+    description: "The shared map pin with a one-headed circular arrow badge in the secondary tone.",
   },
   "more-or-less-square": {
     reference:
@@ -23880,7 +23891,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `tap-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["tap"],
-    description: "The pointing hand of the set with a tap ripple above the fingertip.",
+    description: "Tap: the pointing hand of the set under a short arc in the secondary tone.",
   },
   taxes: {
     reference:
@@ -23920,7 +23931,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `three-finger-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["three", "finger"],
-    description: "A hand raising three fingers, thumb folded: a three-finger gesture.",
+    description: "Three fingers: the three-finger hand mirrored, seen from the back.",
   },
   "tic-tac-toe": {
     reference:
@@ -23951,35 +23962,33 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `touch-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["touch"],
-    description: "A pointing hand under a ring: a touch. Hand of `swipe-right-01`.",
+    description: "Touch: the fingertip of the pointing hand inside a ring in the secondary tone.",
   },
   "touch-02": {
     reference:
       "Hugeicons `touch-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["touch"],
-    description:
-      "A pointing hand with three short rays above the fingertip: a tap. Hand of `swipe-right-01`.",
+    description: "Touch: the pointing hand of the set with three short rays above the fingertip.",
   },
   "touch-interaction-01": {
     reference:
       "Hugeicons `touch-interaction-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["touch", "interaction"],
     description:
-      "A pointing hand pressing a bar: a touch interaction. Hand of `swipe-right-01`, one row shorter.",
+      "Touch interaction: the pointing hand of the set under a button in the secondary tone.",
   },
   "touch-interaction-02": {
     reference:
       "Hugeicons `touch-interaction-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["touch", "interaction"],
-    description:
-      "A pointing hand under two arrows going apart: a touch gesture. Hand of `swipe-right-01`, one row shorter.",
+    description: "Touch interaction: the pointing hand of the set under two arrows going apart.",
   },
   "touch-locked-01": {
     reference:
       "Hugeicons `touch-locked-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["touch", "locked"],
     description:
-      "A pointing hand with a padlock: touch locked. Hand of `swipe-right-01`, padlock of `user-lock-01`.",
+      "Touch locked: the pointing hand of the set beside a padlock in the secondary tone.",
   },
   "tow-truck": {
     reference:
@@ -24108,7 +24117,8 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `two-finger-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["two", "finger"],
-    description: "A hand raising two fingers: a two-finger gesture.",
+    description:
+      "Two fingers: the open hand with the index and middle fingers raised, the others and the thumb folded.",
   },
   "two-square": {
     reference:
@@ -24698,8 +24708,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `four-finger-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["four", "finger"],
-    description:
-      "Hand raising four fingers, the thumb folded: the palm of `hand` without its thumb.",
+    description: "Four fingers: the open hand with the thumb folded.",
   },
   frisbee: {
     reference:
@@ -24780,7 +24789,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `hand-pointing-down-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hand", "pointing", "down"],
-    description: "Hand pointing down: `hand-pointing-right-01` turned a quarter turn clockwise.",
+    description: "Hand pointing down: the pointing hand of the set turned over, cuff at the top.",
   },
   hiking: {
     reference:
@@ -24799,19 +24808,22 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `hold-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hold"],
-    description: "Hand holding a box in the secondary tone: the hand of `hand-heart`.",
+    description:
+      "Hand holding a box: the offering hand of the set under a parcel in the secondary tone.",
   },
   "hold-locked-01": {
     reference:
       "Hugeicons `hold-locked-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hold", "locked"],
-    description: "Hand holding a padlock in the secondary tone: the hand of `hand-heart`.",
+    description:
+      "Hand holding a padlock: the offering hand of the set under a padlock in the secondary tone.",
   },
   "hold-phone": {
     reference:
       "Hugeicons `hold-phone` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["hold", "phone"],
-    description: "Hand holding a phone upright, the phone in the secondary tone.",
+    description:
+      "Hand holding a phone upright: the offering hand of the set under a phone in the secondary tone.",
   },
   hop: {
     reference:
@@ -24861,7 +24873,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
       "Hugeicons `ok-finger` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["ok", "finger"],
     description:
-      "OK hand sign: three raised fingers, the thumb and index finger closed into a ring in the secondary tone.",
+      "OK sign: the open hand with the index and thumb closed into a ring, three fingers raised.",
   },
   origami: {
     reference:
@@ -25189,19 +25201,20 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `three-finger-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["three", "finger"],
-    description: "Hand showing three fingers: index, middle and ring, from `hand`.",
+    description:
+      "Three fingers: the open hand with the index, middle and ring fingers raised, the thumb folded.",
   },
   "three-finger-02": {
     reference:
       "Hugeicons `three-finger-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["three", "finger"],
-    description: "Hand showing three fingers: thumb, index and middle, from `hand`.",
+    description: "Three fingers: the open hand with the thumb, index and middle finger out.",
   },
   "three-finger-03": {
     reference:
       "Hugeicons `three-finger-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["three", "finger"],
-    description: "Hand showing three fingers: middle, ring and little finger, from `hand`.",
+    description: "Three fingers: the open hand with the middle, ring and little fingers raised.",
   },
   "tree-palm": {
     reference:
@@ -25275,8 +25288,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `shaka-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["shaka"],
-    description:
-      "Shaka sign: the hand of `hand-metal` with only the thumb and the little finger out.",
+    description: "Shaka sign: the open hand with only the little finger and a long thumb out.",
   },
   "sing-left": {
     reference:
@@ -25331,5 +25343,485 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     labels: ["filled", "solid", "cap"],
     description:
       "Filled: cap: a baseball cap seen from the side, a round crown and a long peak to the right, the button in the secondary tone.",
+  },
+  "ai-dna": {
+    reference:
+      "Hugeicons `ai-dna` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ai", "dna"],
+    description: "A double helix with a sparkle badge.",
+  },
+  "airport-tower": {
+    reference:
+      "Hugeicons `airport-tower` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["airport", "tower"],
+    description: "An airport control tower with a glazed cab.",
+  },
+  "atomic-power": {
+    reference:
+      "Hugeicons `atomic-power` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["atomic", "power"],
+    description: "Radiation trefoil: three blades around a centre dot.",
+  },
+  "bowling-pins": {
+    reference:
+      "Hugeicons `bowling-pins` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bowling", "pins"],
+    description: "Two bowling pins side by side.",
+  },
+  "bubble-chat-question": {
+    reference:
+      "Hugeicons `bubble-chat-question` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bubble", "chat", "question"],
+    description: "Round speech bubble with a question-mark badge.",
+  },
+  "bubble-chat-search": {
+    reference:
+      "Hugeicons `bubble-chat-search` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bubble", "chat", "search"],
+    description: "Round speech bubble with a magnifier badge.",
+  },
+  "bubble-chat-upload": {
+    reference:
+      "Hugeicons `bubble-chat-upload` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bubble", "chat", "upload"],
+    description: "Round speech bubble with an upload arrow badge.",
+  },
+  "bubble-tea-02": {
+    reference:
+      "Hugeicons `bubble-tea-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bubble", "tea"],
+    description: "A bubble tea with a domed lid, straw and pearls.",
+  },
+  bullet: {
+    reference:
+      "Hugeicons `bullet` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bullet"],
+    description: "A cartridge: the bullet on its case.",
+  },
+  "candelier-01": {
+    reference:
+      "Hugeicons `candelier-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["candelier"],
+    description: "Hanging chandelier with two lit candles.",
+  },
+  "car-signal": {
+    reference:
+      "Hugeicons `car-signal` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["car", "signal"],
+    description: "Car with signal bars badge.",
+  },
+  caravan: {
+    reference:
+      "Hugeicons `caravan` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["caravan"],
+    description: "Trailer with a window, a door, a tow bar and a wheel.",
+  },
+  "coffee-beans": {
+    reference:
+      "Hugeicons `coffee-beans` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["coffee", "beans"],
+    description: "An oval coffee bean with its S-shaped crease.",
+  },
+  "cylinder-03": {
+    reference:
+      "Hugeicons `cylinder-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cylinder"],
+    description: "A cylinder lying on its side.",
+  },
+  "function-circle": {
+    reference:
+      "Hugeicons `function-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["function", "circle"],
+    description: "Circle with a function sign f inside.",
+  },
+  "function-square": {
+    reference:
+      "Hugeicons `function-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["function", "square"],
+    description: "Square with a function sign f inside.",
+  },
+  "gas-pipe": {
+    reference:
+      "Hugeicons `gas-pipe` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["gas", "pipe"],
+    description: "Horizontal pipe through a valve with its wheel.",
+  },
+  "give-pill": {
+    reference:
+      "Hugeicons `give-pill` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["give", "pill"],
+    description:
+      "Hand offering a capsule: the offering hand of the set under a pill in the secondary tone.",
+  },
+  grapes: {
+    reference:
+      "Hugeicons `grapes` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["grapes"],
+    description: "A bunch of grapes with a stem and a leaf.",
+  },
+  grip: {
+    reference:
+      "Hugeicons `grip` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["grip"],
+    description: "A three-by-three grid of dots used as a drag handle.",
+  },
+  "hand-pointing-down-02": {
+    reference:
+      "Hugeicons `hand-pointing-down-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "pointing", "down"],
+    description: "Hand pointing down, thumb on the right: the downward pointing hand mirrored.",
+  },
+  hologram: {
+    reference:
+      "Hugeicons `hologram` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hologram"],
+    description: "Projector casting a light cone under a floating shape.",
+  },
+  "inequality-circle-01": {
+    reference:
+      "Hugeicons `inequality-circle-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["inequality", "circle"],
+    description: "Less-than-or-equal sign in a circle.",
+  },
+  "inequality-circle-02": {
+    reference:
+      "Hugeicons `inequality-circle-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["inequality", "circle"],
+    description: "Greater-than-or-equal sign in a circle.",
+  },
+  "location-check-02": {
+    reference:
+      "Hugeicons `location-check-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["location", "check"],
+    description: "The shared map pin with a bold two-pixel check badge in the secondary tone.",
+  },
+  "location-update-02": {
+    reference:
+      "Hugeicons `location-update-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["location", "update"],
+    description: "The shared map pin with a badge of two circling arrows in the secondary tone.",
+  },
+  "login-method": {
+    reference:
+      "Hugeicons `login-method` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["login", "method"],
+    description: "Padlock above three password dots.",
+  },
+  "map-pin-check-inside": {
+    reference:
+      "Hugeicons `map-pin-check-inside` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["map", "pin", "check"],
+    description:
+      "The larger shared pin, a round head and a pointed tip, with a check centred in its head in the secondary tone.",
+  },
+  "map-pin-minus-inside": {
+    reference:
+      "Hugeicons `map-pin-minus-inside` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["map", "pin", "minus"],
+    description:
+      "The larger shared pin, a round head and a pointed tip, with a minus centred in its head in the secondary tone.",
+  },
+  "map-pin-plus-inside": {
+    reference:
+      "Hugeicons `map-pin-plus-inside` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["map", "pin", "plus"],
+    description:
+      "The larger shared pin, a round head and a pointed tip, with a plus centred in its head in the secondary tone.",
+  },
+  "map-pin-x-inside": {
+    reference:
+      "Hugeicons `map-pin-x-inside` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["map", "pin", "x"],
+    description:
+      "The larger shared pin, a round head and a pointed tip, with a cross centred in its head in the secondary tone.",
+  },
+  mixer: {
+    reference:
+      "Hugeicons `mixer` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mixer"],
+    description: "Stand mixer with its bowl on a base.",
+  },
+  monster: {
+    reference:
+      "Hugeicons `monster` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["monster"],
+    description: "Horned round monster with one big eye.",
+  },
+  "navigator-01": {
+    reference:
+      "Hugeicons `navigator-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["navigator"],
+    description: "Road with a navigation arrow.",
+  },
+  "nuclear-power": {
+    reference:
+      "Hugeicons `nuclear-power` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["nuclear", "power"],
+    description: "Cooling tower with a cloud of steam.",
+  },
+  "payment-02": {
+    reference:
+      "Hugeicons `payment-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["payment"],
+    description: "A card held above an open hand.",
+  },
+  "pen-tool-add": {
+    reference:
+      "Hugeicons `pen-tool-add` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pen", "tool", "add"],
+    description: "Small pen tool nib with a plus.",
+  },
+  "pen-tool-minus": {
+    reference:
+      "Hugeicons `pen-tool-minus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pen", "tool", "minus"],
+    description: "Small pen tool nib with a minus.",
+  },
+  pendulum: {
+    reference:
+      "Hugeicons `pendulum` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pendulum"],
+    description: "A pendulum swinging from its bar.",
+  },
+  "plug-socket": {
+    reference:
+      "Hugeicons `plug-socket` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["plug", "socket"],
+    description: "Plug pointing down into a socket plate.",
+  },
+  "power-socket-01": {
+    reference:
+      "Hugeicons `power-socket-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["power", "socket"],
+    description: "A wall socket with two pin holes.",
+  },
+  "prism-01": {
+    reference:
+      "Hugeicons `prism-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["prism"],
+    description: "Optical prism splitting a beam into rays.",
+  },
+  "prison-guard": {
+    reference:
+      "Hugeicons `prison-guard` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["prison", "guard"],
+    description: "A person wearing a peaked cap.",
+  },
+  prisoner: {
+    reference:
+      "Hugeicons `prisoner` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["prisoner"],
+    description: "Person in a striped uniform.",
+  },
+  "product-loading": {
+    reference:
+      "Hugeicons `product-loading` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["product", "loading"],
+    description: "A package with a spinner arc badge.",
+  },
+  "quote-down-circle": {
+    reference:
+      "Hugeicons `quote-down-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["quote", "down", "circle"],
+    description: "Closing quotation marks in a circle.",
+  },
+  "quote-down-square": {
+    reference:
+      "Hugeicons `quote-down-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["quote", "down", "square"],
+    description: "Closing quotation marks in a square.",
+  },
+  "quote-up-circle": {
+    reference:
+      "Hugeicons `quote-up-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["quote", "up", "circle"],
+    description: "Opening quotation marks in a circle.",
+  },
+  "quote-up-square": {
+    reference:
+      "Hugeicons `quote-up-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["quote", "up", "square"],
+    description: "Opening quotation marks in a square.",
+  },
+  "road-location-01": {
+    reference:
+      "Hugeicons `road-location-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["road", "location"],
+    description:
+      "The shared map pin above a road whose dashed centre line is in the secondary tone.",
+  },
+  shoes: {
+    reference:
+      "Hugeicons `shoes` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shoes"],
+    description: "Sneaker seen from the side on a flat sole.",
+  },
+  software: {
+    reference:
+      "Hugeicons `software` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["software"],
+    description: "A window with a title bar and code brackets.",
+  },
+  "solar-energy": {
+    reference:
+      "Hugeicons `solar-energy` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["solar", "energy"],
+    description: "A sun rising behind a solar panel.",
+  },
+  "sorting-1-9": {
+    reference:
+      "Hugeicons `sorting-1-9` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sorting"],
+    description: "Sort ascending by number: 1 over 9 beside a down arrow.",
+  },
+  "sorting-9-1": {
+    reference:
+      "Hugeicons `sorting-9-1` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sorting"],
+    description: "Sort descending by number: 9 over 1 beside a down arrow.",
+  },
+  "square-bottom-dashed-scissors": {
+    reference:
+      "Hugeicons `square-bottom-dashed-scissors` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["square", "bottom", "dashed"],
+    description: "Square with a dashed bottom edge and scissors inside.",
+  },
+  "square-scissors": {
+    reference:
+      "Hugeicons `square-scissors` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["square", "scissors"],
+    description: "Square with scissors inside.",
+  },
+  "table-lamp-01": {
+    reference:
+      "Hugeicons `table-lamp-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["table", "lamp"],
+    description: "A table lamp with a tapered shade.",
+  },
+  "table-lamp-02": {
+    reference:
+      "Hugeicons `table-lamp-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["table", "lamp"],
+    description: "A table lamp with a round shade.",
+  },
+  "taco-01": {
+    reference:
+      "Hugeicons `taco-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["taco"],
+    description: "A domed taco shell under an arc of filling.",
+  },
+  "tap-02": {
+    reference:
+      "Hugeicons `tap-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tap"],
+    description: "Tap: the pointing hand of the set under a wide arc in the secondary tone.",
+  },
+  "tape-measure": {
+    reference:
+      "Hugeicons `tape-measure` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tape", "measure"],
+    description: "A tape measure case with its tape pulled out.",
+  },
+  "text-select": {
+    reference:
+      "Hugeicons `text-select` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["text", "select"],
+    description: "Lines of text inside a dashed frame.",
+  },
+  "trolley-02": {
+    reference:
+      "Hugeicons `trolley-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["trolley"],
+    description: "A hand truck carrying a box, with its wheel.",
+  },
+  "truck-monster": {
+    reference:
+      "Hugeicons `truck-monster` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["truck", "monster"],
+    description: "A pickup on huge wheels.",
+  },
+  unplug: {
+    reference:
+      "Hugeicons `unplug` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["unplug"],
+    description: "A plug pulled away from the wall.",
+  },
+  "water-pump": {
+    reference:
+      "Hugeicons `water-pump` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["water", "pump"],
+    description: "A hand pump with a lever, a spout and a drop.",
+  },
+  "x-variable-circle": {
+    reference:
+      "Hugeicons `x-variable-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["x", "variable", "circle"],
+    description: "Circle with a variable x.",
+  },
+  "x-variable-square": {
+    reference:
+      "Hugeicons `x-variable-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["x", "variable", "square"],
+    description: "Square with a variable x.",
+  },
+  "function-circle-fill": {
+    reference:
+      "Filled variant of our own `function-circle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "function"],
+    description: "Filled: circle with a function sign f inside.",
+  },
+  "function-square-fill": {
+    reference:
+      "Filled variant of our own `function-square`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "function"],
+    description: "Filled: square with a function sign f inside.",
+  },
+  "inequality-circle-01-fill": {
+    reference:
+      "Filled variant of our own `inequality-circle-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "inequality"],
+    description: "Filled: less-than-or-equal sign in a circle.",
+  },
+  "inequality-circle-02-fill": {
+    reference:
+      "Filled variant of our own `inequality-circle-02`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "inequality"],
+    description: "Filled: greater-than-or-equal sign in a circle.",
+  },
+  "quote-down-circle-fill": {
+    reference:
+      "Filled variant of our own `quote-down-circle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "quote"],
+    description: "Filled: closing quotation marks in a circle.",
+  },
+  "quote-down-square-fill": {
+    reference:
+      "Filled variant of our own `quote-down-square`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "quote"],
+    description: "Filled: closing quotation marks in a square.",
+  },
+  "quote-up-circle-fill": {
+    reference:
+      "Filled variant of our own `quote-up-circle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "quote"],
+    description: "Filled: opening quotation marks in a circle.",
+  },
+  "quote-up-square-fill": {
+    reference:
+      "Filled variant of our own `quote-up-square`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "quote"],
+    description: "Filled: opening quotation marks in a square.",
+  },
+  "x-variable-square-fill": {
+    reference:
+      "Filled variant of our own `x-variable-square`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "x"],
+    description: "Filled: square with a variable x.",
+  },
+  "x-variable-circle-fill": {
+    reference:
+      "Filled variant of our own `x-variable-circle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "x"],
+    description: "Filled: circle with a variable x.",
   },
 };

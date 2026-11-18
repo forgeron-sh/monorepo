@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Hand heart.
+// Hand holding a heart: the offering hand of the set with a heart in the secondary tone above the fingers.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "hand-heart",
@@ -10,17 +10,17 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    "...oo.oo",
-    "..ooooooo",
-    "..ooooooo",
-    "...ooooo",
-    "....ooo",
-    ".....o",
-    "#.....##",
-    "#.###...#",
-    "#....####",
-    "#.....#",
-    "#",
+    "",
+    "",
+    "......oo.oo",
+    "......ooooo",
+    "......ooooo",
+    ".......ooo",
+    "....#...o",
+    "#..#",
+    "#.#########",
+    "#.####",
+    "#.########",
   ],
 };
 

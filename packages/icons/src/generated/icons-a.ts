@@ -84,7 +84,7 @@ export const AiConcertIcon: PixelIcon = { name: "ai-concert", implemented: true,
 export { default as AiContentGenerator01Icon } from "../drawn/ai-content-generator-01";
 export const AiContentGenerator02Icon: PixelIcon = { name: "ai-content-generator-02", implemented: true, style: "pixel", grid: 12, rows: ["", ".#####", ".#...##", ".#...#.#", ".#...####", ".#......#", ".#.####", ".#.......o", ".#.###..ooo", ".#.....ooooo", ".#####..ooo", ".........o"] };
 export { default as AiCropIcon } from "../drawn/ai-crop";
-export const AiDnaIcon: StubIcon = { name: "ai-dna", implemented: false };
+export { default as AiDnaIcon } from "../drawn/ai-dna";
 export const AiDrawingIcon: PixelIcon = { name: "ai-drawing", implemented: true, style: "pixel", grid: 12, rows: ["", "..##", "..##", "..##", "..##", ".####", ".####", "######...o", "######..ooo", ".####..ooooo", "..##....ooo", ".........o"] };
 export { default as AiEditingIcon } from "../drawn/ai-editing";
 export { default as AiElementsIcon } from "../drawn/ai-elements";
@@ -173,7 +173,7 @@ export { default as Airpod02Icon } from "../drawn/airpod-02";
 export const Airpod03Icon: PixelIcon = { name: "airpod-03", implemented: true, style: "pixel", grid: 12, rows: ["", ".###....###", "#####..#####", "#####..#####", ".####..####", "...##..##", "...##..##", "...##..##", "...##..##", "...##..##", "...##..##"] };
 export const AirportIcon: PixelIcon = { name: "airport", implemented: true, style: "pixel", grid: 12, rows: [".........##", "........###", "...#...###", "...##.###", "...######", "....####", "...####", "...##.##", "......#", "", ".##########"] };
 export const Airport02Icon: PixelIcon = { name: "airport-02", implemented: true, style: "pixel", grid: 12, rows: [".........##", "........###", "...#...###", "...##.###", "...######", "....####", "...####", "...##.##", "......#", "", ".##########"] };
-export const AirportTowerIcon: StubIcon = { name: "airport-tower", implemented: false };
+export { default as AirportTowerIcon } from "../drawn/airport-tower";
 export { default as AirtableIcon } from "../drawn/airtable";
 export const AlAqsaMosqueIcon: StubIcon = { name: "al-aqsa-mosque", implemented: false };
 export { default as AlarmClockIcon } from "../drawn/alarm-clock";
@@ -238,7 +238,7 @@ export { default as AlignVerticalSpaceAroundIcon } from "../drawn/align-vertical
 export { default as AlignVerticalSpaceBetweenIcon } from "../drawn/align-vertical-space-between";
 export { default as AllBookmarkIcon } from "../drawn/all-bookmark";
 export const AllahIcon: StubIcon = { name: "allah", implemented: false };
-export const AlmsIcon: PixelIcon = { name: "alms", implemented: true, style: "pixel", grid: 12, rows: ["", "....oooo", "...o....o", "....oooo", "...o....o", "....oooo", "", "#.....##", "#.###...#", "#....####", "#.....#", "#"] };
+export const AlmsIcon: PixelIcon = { name: "alms", implemented: true, style: "pixel", grid: 12, rows: ["", "", "", ".......ooo", "......o...o", ".......ooo", "......o...o", "....#..ooo", "#..#", "#.#########", "#.####", "#.########"] };
 export { default as AlphaIcon } from "../drawn/alpha";
 export { default as AlphaCircleIcon } from "../drawn/alpha-circle";
 export { default as AlphaCircleFillIcon } from "../drawn/alpha-circle-fill";
@@ -465,7 +465,7 @@ export const Atm01Icon: PixelIcon = { name: "atm-01", implemented: true, style: 
 export { default as Atm02Icon } from "../drawn/atm-02";
 export const Atom01Icon: StubIcon = { name: "atom-01", implemented: false };
 export const Atom02Icon: StubIcon = { name: "atom-02", implemented: false };
-export const AtomicPowerIcon: StubIcon = { name: "atomic-power", implemented: false };
+export { default as AtomicPowerIcon } from "../drawn/atomic-power";
 export const AttachmentIcon: PixelIcon = { name: "attachment", implemented: true, style: "pixel", grid: 12, rows: ["", "...####", "..#....#.#", "..#.#..#.#", "..#.#..#.#", "..#.#..#.#", "..#.#..#.#", "..#.#..#.#", "..#..##..#", "..#......#", "...######"] };
 export { default as Attachment01Icon } from "../drawn/attachment-01";
 export const Attachment02Icon: PixelIcon = { name: "attachment-02", implemented: true, style: "pixel", grid: 12, rows: ["", "...####", "..#....#.#", "..#.#..#.#", "..#.#..#.#", "..#.#..#.#", "..#.#..#.#", "..#.#..#.#", "..#..##..#", "..#......#", "...######"] };

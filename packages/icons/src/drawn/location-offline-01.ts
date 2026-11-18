@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Location pin struck through: location unavailable.
+// Location offline: the shared map pin with a no-entry badge (a ring crossed by a bar) in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "location-offline-01",
@@ -9,18 +9,18 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    "o",
-    ".o.######",
-    "..o......#",
-    ".#.o......#",
-    ".#..o.....#",
-    ".#...o....#",
-    ".#....o...#",
-    "..#....o.#",
-    "...#....o",
-    "....#..#.o",
-    ".....##...o",
-    "...........o",
+    "..####",
+    ".#....#",
+    "#..##..#",
+    "#..##..#",
+    "#......#",
+    ".#....#",
+    "..#..#",
+    "...##...ooo",
+    ".......o..oo",
+    ".......o.o.o",
+    ".......oo..o",
+    "........ooo",
   ],
 };
 

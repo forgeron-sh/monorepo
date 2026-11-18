@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Thumbs down: `thumbs-up` turned by a half turn, as Hugeicons does.
+// Thumbs down: `thumbs-up` turned over.
 // Redrawn after Hugeicons `thumbs-down` (Iconify preview, 2026-11-17): composition only.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
@@ -11,16 +11,16 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    "...########",
-    "..#.....#.#",
-    ".#......#.#",
-    "..###...#.#",
-    ".#......#.#",
-    ".###....###",
-    "....#...#",
-    "....#..#",
-    "....#..#",
-    ".....##",
+    "...######",
+    ".#.#####",
+    ".#.#######",
+    ".#.#####",
+    ".#.#######",
+    ".#.#####",
+    "...#######",
+    "....##",
+    "....##",
+    "....##",
   ],
 };
 

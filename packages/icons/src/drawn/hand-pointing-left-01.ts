@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Hand pointing left: the solid hand of `hand` turned a quarter turn, the index finger extended.
+// Hand pointing left: `hand-pointing-right-01` mirrored.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "hand-pointing-left-01",
@@ -9,15 +9,17 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    ".....##",
-    "......##",
-    "....##.##",
-    ".....######",
-    ".##########",
-    ".....######",
-    "....#######",
-    ".....######",
-    "....#####",
+    "",
+    "....#",
+    ".....#",
+    "......#",
+    "..######",
+    ".....####.#",
+    "....#####.#",
+    ".....####.#",
+    "....#####.#",
+    ".....####.#",
+    "....####",
   ],
 };
 

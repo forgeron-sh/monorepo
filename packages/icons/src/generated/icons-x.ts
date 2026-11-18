@@ -6,8 +6,10 @@ export const XIcon: PixelIcon = { name: "x", implemented: true, style: "pixel", 
 export { default as XLineTopIcon } from "../drawn/x-line-top";
 export { default as XRayIcon } from "../drawn/x-ray";
 export const XVariableIcon: PixelIcon = { name: "x-variable", implemented: true, style: "pixel", grid: 12, rows: ["", "", "..#......#", ".#........#", ".#..o..o..#", ".#...oo...#", ".#...oo...#", ".#..o..o..#", ".#........#", "..#......#"] };
-export const XVariableCircleIcon: StubIcon = { name: "x-variable-circle", implemented: false };
-export const XVariableSquareIcon: StubIcon = { name: "x-variable-square", implemented: false };
+export { default as XVariableCircleIcon } from "../drawn/x-variable-circle";
+export { default as XVariableCircleFillIcon } from "../drawn/x-variable-circle-fill";
+export { default as XVariableSquareIcon } from "../drawn/x-variable-square";
+export { default as XVariableSquareFillIcon } from "../drawn/x-variable-square-fill";
 export const XingIcon: StubIcon = { name: "xing", implemented: false };
 export { default as Xls01Icon } from "../drawn/xls-01";
 export { default as Xls02Icon } from "../drawn/xls-02";

@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Hand: a raised palm with four fingers and the thumb out to the left.
+// An open hand: four one-pixel fingers, the thumb out at 45°, a solid palm and a cuff.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "hand",
@@ -10,16 +10,16 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    "....#.#",
-    "..#.#.#.#",
-    "..#.#.#.#",
-    "..#.#.#.#",
-    "#.#######",
-    "##.######",
-    ".########",
-    "..#######",
-    "...#####",
-    "...#####",
+    "......#",
+    "....#.#.#",
+    "....#.#.#.#",
+    ".#..#.#.#.#",
+    "..#.#######",
+    "...########",
+    "....#######",
+    ".....#####",
+    "",
+    ".....#####",
   ],
 };
 

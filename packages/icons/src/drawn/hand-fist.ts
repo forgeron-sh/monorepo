@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Fist: the solid hand of `hand` with its fingers curled, four knuckles and the thumb folded across.
+// Fist: four knuckles, the thumb folded along the side, a solid palm and the cuff of `hand`.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "hand-fist",
@@ -11,15 +11,16 @@ const icon: PixelIcon = {
   rows: [
     "",
     "",
-    "..#.#.#.#",
-    "..#.#.#.#",
-    ".#########",
-    ".#....####",
-    ".#########",
-    "..########",
-    "...#####",
-    "...#####",
-    "...#####",
+    "",
+    "....#.#.#.#",
+    "....#.#.#.#",
+    "...########",
+    "..#.#######",
+    "..#.#######",
+    "...#.######",
+    ".....#####",
+    "",
+    ".....#####",
   ],
 };
 

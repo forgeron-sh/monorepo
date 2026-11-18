@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Map pin (solid, with a hole) on the left and a search badge in the secondary tone.
+// Map pin search: the shared map pin with a magnifier badge in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "map-pin-search",
@@ -9,17 +9,18 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    "",
-    ".####",
-    "######",
-    "##..##",
-    "##..##",
-    "######",
-    ".####.ooo",
-    "..##..o.o",
-    "..##..ooo",
-    ".........o",
+    "..####",
+    ".#....#",
+    "#..##..#",
+    "#..##..#",
+    "#......#",
+    ".#....#",
+    "..#..#",
+    "...##..ooo",
+    ".......o.o",
+    ".......ooo",
     "..........o",
+    "...........o",
   ],
 };
 

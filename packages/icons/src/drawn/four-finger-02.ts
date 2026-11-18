@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Hand raising four fingers, the thumb folded: the palm of `hand` without its thumb.
+// Four fingers: `hand` with the thumb folded.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "four-finger-02",
@@ -10,16 +10,16 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    "..#.#.#.#",
-    "..#.#.#.#",
-    "..#.#.#.#",
-    "..#.#.#.#",
-    "..#######",
-    "..#######",
-    "..#######",
-    "..#######",
-    "...#####",
-    "...#####",
+    "......#",
+    "....#.#.#",
+    "....#.#.#.#",
+    "....#.#.#.#",
+    "....#######",
+    "....#######",
+    "....#######",
+    ".....#####",
+    "",
+    ".....#####",
   ],
 };
 

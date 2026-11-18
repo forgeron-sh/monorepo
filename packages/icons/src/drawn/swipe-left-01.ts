@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// A pointing hand with an arrow to the left: swipe left. Hand of `cursor-pointer-01`, shortened.
+// Swipe left: `swipe-right-01` mirrored.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "swipe-left-01",
@@ -9,18 +9,18 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    "..o",
-    ".oooooooo",
-    "..o",
-    "....##",
-    "...#..#",
-    "...#..###",
-    "...#..#..##",
-    ".###.....#",
-    ".#.......#",
-    "..#......#",
-    "...#....#",
-    "...######",
+    "...o",
+    "...oooooooo",
+    "...o",
+    ".......#",
+    ".......#",
+    ".#.#.#.#..#",
+    ".#######.#",
+    ".########",
+    ".#######",
+    "..#####",
+    "",
+    "..#####",
   ],
 };
 

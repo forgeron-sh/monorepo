@@ -23,7 +23,7 @@ export { default as Navigation2Icon } from "../drawn/navigation-2";
 export { default as Navigation2OffIcon } from "../drawn/navigation-2-off";
 export { default as NavigationOffIcon } from "../drawn/navigation-off";
 export const NavigationOff01Icon: PixelIcon = { name: "navigation-off-01", implemented: true, style: "pixel", grid: 12, rows: ["o", ".o........#", "..o....###", "...o.#####", "..##o.####", "..###o.##", ".....#o.#", "......#o", "......##o", "......##.o", "..........o", "...........o"] };
-export const Navigator01Icon: StubIcon = { name: "navigator-01", implemented: false };
+export { default as Navigator01Icon } from "../drawn/navigator-01";
 export const Navigator02Icon: PixelIcon = { name: "navigator-02", implemented: true, style: "pixel", grid: 12, rows: ["", "..........#", ".......###", ".....#####", "..########", "..#######", ".....####", "......##", "......##", "......##"] };
 export { default as NecklaceIcon } from "../drawn/necklace";
 export { default as NerdIcon } from "../drawn/nerd";
@@ -103,7 +103,7 @@ export { default as NotificationSquareIcon } from "../drawn/notification-square"
 export { default as Notion01Icon } from "../drawn/notion-01";
 export const Notion02Icon: PixelIcon = { name: "notion-02", implemented: true, style: "pixel", grid: 16, rows: ["..##########", "##..........##", "###..........##", "################", "####...........#", "####.###..###..#", "####..##...#...#", "####..###..#...#", "####..#.##.#...#", "####..#..###...#", "####..#...##...#", "####..#....#...#", ".###.###...#...#", ".###...........#", "..##############", "...###########"] };
 export const NpmIcon: StubIcon = { name: "npm", implemented: false };
-export const NuclearPowerIcon: StubIcon = { name: "nuclear-power", implemented: false };
+export { default as NuclearPowerIcon } from "../drawn/nuclear-power";
 export { default as NutIcon } from "../drawn/nut";
 export { default as NutFillIcon } from "../drawn/nut-fill";
 export { default as NutOffIcon } from "../drawn/nut-off";

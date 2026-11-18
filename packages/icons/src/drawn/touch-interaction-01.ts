@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// A pointing hand pressing a bar: a touch interaction. Hand of `swipe-right-01`, one row shorter.
+// Touch interaction: the pointing hand of the set under a button in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "touch-interaction-01",
@@ -9,18 +9,18 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    "..oooooo",
-    "..o....o",
-    "..oooooo",
+    ".ooooooo",
+    ".ooooooo",
     "",
-    "....##",
-    "...#..#",
-    "...#..###",
-    "...#..#..##",
-    ".###.....#",
-    "..#......#",
-    "...#....#",
-    "...######",
+    "....#",
+    "....#",
+    ".#..#.#.#.#",
+    "..#.#######",
+    "...########",
+    "....#######",
+    ".....#####",
+    "",
+    ".....#####",
   ],
 };
 

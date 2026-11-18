@@ -75,8 +75,10 @@ export const IndiaGateIcon: StubIcon = { name: "india-gate", implemented: false 
 export const IndianRupeeIcon: PixelIcon = { name: "indian-rupee", implemented: true, style: "pixel", grid: 12, rows: ["", "..########", ".......#", ".......#", "..########", ".......#", "...####", "....#", ".....#", "......#", ".......#"] };
 export { default as Inequality01Icon } from "../drawn/inequality-01";
 export { default as Inequality02Icon } from "../drawn/inequality-02";
-export const InequalityCircle01Icon: StubIcon = { name: "inequality-circle-01", implemented: false };
-export const InequalityCircle02Icon: StubIcon = { name: "inequality-circle-02", implemented: false };
+export { default as InequalityCircle01Icon } from "../drawn/inequality-circle-01";
+export { default as InequalityCircle01FillIcon } from "../drawn/inequality-circle-01-fill";
+export { default as InequalityCircle02Icon } from "../drawn/inequality-circle-02";
+export { default as InequalityCircle02FillIcon } from "../drawn/inequality-circle-02-fill";
 export { default as InequalitySquare01Icon } from "../drawn/inequality-square-01";
 export { default as InequalitySquare02Icon } from "../drawn/inequality-square-02";
 export const InfantIcon: PixelIcon = { name: "infant", implemented: true, style: "pixel", grid: 12, rows: ["....oo", ".....o##", "..##....##", ".#........#", ".#........#", "#..##..##..#", "#..........#", "#..........#", "#....##....#", ".#........#", "..##....##", "....####"] };

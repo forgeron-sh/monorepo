@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Location checked: a map pin with a check badge in the secondary tone.
+// Location checked: the shared map pin with a one-pixel check badge in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "location-check-01",
@@ -9,17 +9,18 @@ const icon: PixelIcon = {
   grid: 12,
   // prettier-ignore
   rows: [
-    "",
     "..####",
     ".#....#",
-    ".#.##.#",
-    ".#.##.#",
+    "#..##..#",
+    "#..##..#",
+    "#......#",
+    ".#....#",
     "..#..#",
     "...##",
+    "...........o",
     "..........o",
-    ".........o",
-    "......o.o",
-    ".......o",
+    ".......o.o",
+    "........o",
   ],
 };
 

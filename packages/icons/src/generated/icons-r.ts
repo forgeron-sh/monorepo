@@ -164,7 +164,7 @@ export const RiyalRectangleIcon: StubIcon = { name: "riyal-rectangle", implement
 export { default as RoadIcon } from "../drawn/road";
 export const Road01Icon: PixelIcon = { name: "road-01", implemented: true, style: "pixel", grid: 12, rows: ["", "....#..#", "....#..#", "...#....#", "...#.oo.#", "..#......#", "..#..oo..#", ".#...oo...#", ".#........#", "#....oo....#", "#....oo....#"] };
 export const Road02Icon: PixelIcon = { name: "road-02", implemented: true, style: "pixel", grid: 12, rows: ["", "....#..#", "....#..#", "...#....#", "...#.oo.#", "..#......#", "..#..oo..#", ".#...oo...#", ".#........#", "#....oo....#", "#....oo....#"] };
-export const RoadLocation01Icon: StubIcon = { name: "road-location-01", implemented: false };
+export { default as RoadLocation01Icon } from "../drawn/road-location-01";
 export const RoadLocation02Icon: StubIcon = { name: "road-location-02", implemented: false };
 export const RoadWaysideIcon: StubIcon = { name: "road-wayside", implemented: false };
 export const RobloxIcon: StubIcon = { name: "roblox", implemented: false };
