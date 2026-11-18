@@ -1,0 +1,26 @@
+import type { PixelIcon } from "../types";
+
+// Root folder: `folder-01` with a slash in the secondary tone inside.
+// 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
+const icon: PixelIcon = {
+  name: "folder-root",
+  implemented: true,
+  style: "pixel",
+  grid: 12,
+  // prettier-ignore
+  rows: [
+    "",
+    "",
+    ".####",
+    ".#...######",
+    ".#........#",
+    ".#......o.#",
+    ".#.....o..#",
+    ".#....o...#",
+    ".#...o....#",
+    ".#........#",
+    ".##########",
+  ],
+};
+
+export default icon;

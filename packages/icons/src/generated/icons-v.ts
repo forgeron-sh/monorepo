@@ -59,7 +59,7 @@ export { default as VoiceCommentFillIcon } from "../drawn/voice-comment-fill";
 export { default as VoiceIdIcon } from "../drawn/voice-id";
 export { default as VoiceToTextIcon } from "../drawn/voice-to-text";
 export { default as VoicemailIcon } from "../drawn/voicemail";
-export const VolleyballIcon: StubIcon = { name: "volleyball", implemented: false };
+export { default as VolleyballIcon } from "../drawn/volleyball";
 export const VolumeIcon: PixelIcon = { name: "volume", implemented: true, style: "pixel", grid: 12, rows: ["", "", ".......#", "......##", "...###.#", "...#...#", "...#...#", "...###.#", "......##", ".......#"] };
 export { default as Volume01Icon } from "../drawn/volume-01";
 export { default as Volume01FillIcon } from "../drawn/volume-01-fill";

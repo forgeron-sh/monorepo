@@ -17,7 +17,7 @@ export { default as JoinBevelFillIcon } from "../drawn/join-bevel-fill";
 export { default as JoinRoundIcon } from "../drawn/join-round";
 export { default as JoinRoundFillIcon } from "../drawn/join-round-fill";
 export { default as JoinStraightIcon } from "../drawn/join-straight";
-export const JokerIcon: StubIcon = { name: "joker", implemented: false };
+export { default as JokerIcon } from "../drawn/joker";
 export { default as Joystick01Icon } from "../drawn/joystick-01";
 export { default as Joystick02Icon } from "../drawn/joystick-02";
 export { default as Joystick03Icon } from "../drawn/joystick-03";

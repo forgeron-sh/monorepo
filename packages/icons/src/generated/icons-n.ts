@@ -8,7 +8,7 @@ export { default as NThRootCircleFillIcon } from "../drawn/n-th-root-circle-fill
 export const NThRootSquareIcon: PixelIcon = { name: "n-th-root-square", implemented: true, style: "pixel", grid: 12, rows: ["", "..########", ".#........#", ".#....ooo.#", ".#....o...#", ".#...o....#", ".#...o....#", ".#.oo.....#", ".#..o.....#", ".#........#", "..########"] };
 export const NanoTechnologyIcon: PixelIcon = { name: "nano-technology", implemented: true, style: "pixel", grid: 12, rows: ["", "..##....##", ".#..#..#..#", ".#..#..#..#", "..##....##", "....#..#", ".....##", "....#..#", "....#..#", ".....##"] };
 export { default as Napkins01Icon } from "../drawn/napkins-01";
-export const Napkins02Icon: StubIcon = { name: "napkins-02", implemented: false };
+export { default as Napkins02Icon } from "../drawn/napkins-02";
 export { default as NaturalFoodIcon } from "../drawn/natural-food";
 export { default as NaturalFoodFillIcon } from "../drawn/natural-food-fill";
 export const NavigationIcon: PixelIcon = { name: "navigation", implemented: true, style: "pixel", grid: 12, rows: ["", "..........#", ".......###", ".....#####", "..########", "..#######", ".....####", "......##", "......##", "......##"] };
@@ -26,7 +26,7 @@ export const NavigationOff01Icon: PixelIcon = { name: "navigation-off-01", imple
 export const Navigator01Icon: StubIcon = { name: "navigator-01", implemented: false };
 export const Navigator02Icon: PixelIcon = { name: "navigator-02", implemented: true, style: "pixel", grid: 12, rows: ["", "..........#", ".......###", ".....#####", "..########", "..#######", ".....####", "......##", "......##", "......##"] };
 export { default as NecklaceIcon } from "../drawn/necklace";
-export const NerdIcon: StubIcon = { name: "nerd", implemented: false };
+export { default as NerdIcon } from "../drawn/nerd";
 export { default as NetworkIcon } from "../drawn/network";
 export { default as NeuralNetworkIcon } from "../drawn/neural-network";
 export { default as NeutralIcon } from "../drawn/neutral";
@@ -59,8 +59,8 @@ export { default as NodeMoveDownIcon } from "../drawn/node-move-down";
 export { default as NodeMoveUpIcon } from "../drawn/node-move-up";
 export { default as NodeRemoveIcon } from "../drawn/node-remove";
 export { default as NonBinaryIcon } from "../drawn/non-binary";
-export const NoodlesIcon: StubIcon = { name: "noodles", implemented: false };
-export const NoseIcon: StubIcon = { name: "nose", implemented: false };
+export { default as NoodlesIcon } from "../drawn/noodles";
+export { default as NoseIcon } from "../drawn/nose";
 export const NotEqualSignIcon: PixelIcon = { name: "not-equal-sign", implemented: true, style: "pixel", grid: 12, rows: ["........o", "........o", ".......o", ".......o", "..#####o##", "......o", "......o", "..###o####", ".....o", ".....o", "....o", "....o"] };
 export { default as NotEqualSignCircleIcon } from "../drawn/not-equal-sign-circle";
 export { default as NotEqualSignSquareIcon } from "../drawn/not-equal-sign-square";

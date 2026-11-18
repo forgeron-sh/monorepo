@@ -18,7 +18,7 @@ export const OfficeIcon: PixelIcon = { name: "office", implemented: true, style:
 export const Office365Icon: StubIcon = { name: "office-365", implemented: false };
 export { default as OfficeChairIcon } from "../drawn/office-chair";
 export const OilBarrelIcon: PixelIcon = { name: "oil-barrel", implemented: true, style: "pixel", grid: 12, rows: ["", "..########", ".#........#", ".##########", "#..........#", "#..........#", "#..........#", "#..........#", ".##########", ".#........#", "..########"] };
-export const OkFingerIcon: StubIcon = { name: "ok-finger", implemented: false };
+export { default as OkFingerIcon } from "../drawn/ok-finger";
 export { default as OlympicTorchIcon } from "../drawn/olympic-torch";
 export { default as OmegaIcon } from "../drawn/omega";
 export { default as OneCircleIcon } from "../drawn/one-circle";
@@ -43,7 +43,7 @@ export const OrientationImageLandscapeToPotraitIcon: PixelIcon = { name: "orient
 export const OrientationImagePotraitToLandscapeIcon: PixelIcon = { name: "orientation-image-potrait-to-landscape", implemented: true, style: "pixel", grid: 12, rows: ["#####", "#...#.ooo", "#...#....o", "#...#..o.o.o", "#...#...ooo", "#...#....o", "#####", ".....#######", ".....#.....#", ".....#.....#", ".....#.....#", ".....#######"] };
 export { default as OrientationLandscapeToPotraitIcon } from "../drawn/orientation-landscape-to-potrait";
 export { default as OrientationPotraitToLandscapeIcon } from "../drawn/orientation-potrait-to-landscape";
-export const OrigamiIcon: StubIcon = { name: "origami", implemented: false };
+export { default as OrigamiIcon } from "../drawn/origami";
 export const OrthogonalEdgeIcon: StubIcon = { name: "orthogonal-edge", implemented: false };
 export { default as OvalIcon } from "../drawn/oval";
 export { default as OvalFillIcon } from "../drawn/oval-fill";

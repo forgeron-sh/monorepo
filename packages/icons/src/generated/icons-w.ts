@@ -98,7 +98,7 @@ export { default as WholeWordIcon } from "../drawn/whole-word";
 export { default as Wifi01Icon } from "../drawn/wifi-01";
 export const Wifi02Icon: PixelIcon = { name: "wifi-02", implemented: true, style: "pixel", grid: 12, rows: ["", "...######", ".##......##", "#..........#", "", "...######", "..#......#", "", "", ".....oo", ".....oo"] };
 export { default as WifiCircleIcon } from "../drawn/wifi-circle";
-export const WifiCogIcon: StubIcon = { name: "wifi-cog", implemented: false };
+export { default as WifiCogIcon } from "../drawn/wifi-cog";
 export { default as WifiConnected01Icon } from "../drawn/wifi-connected-01";
 export const WifiConnected02Icon: PixelIcon = { name: "wifi-connected-02", implemented: true, style: "pixel", grid: 12, rows: ["", "...######", ".##......##", "#..........#", "", "...######", "..#......#", "", "........o", "...o...o", "....o.o", ".....o"] };
 export const WifiConnected03Icon: PixelIcon = { name: "wifi-connected-03", implemented: true, style: "pixel", grid: 12, rows: ["", "...######", ".##......##", "#..........#", "", "...######", "..#......#", "", "........o", "...o...o", "....o.o", ".....o"] };
@@ -121,7 +121,7 @@ export const WifiOff02Icon: PixelIcon = { name: "wifi-off-02", implemented: true
 export { default as WifiPenIcon } from "../drawn/wifi-pen";
 export { default as WifiSquareIcon } from "../drawn/wifi-square";
 export { default as WifiSquareFillIcon } from "../drawn/wifi-square-fill";
-export const WifiSyncIcon: StubIcon = { name: "wifi-sync", implemented: false };
+export { default as WifiSyncIcon } from "../drawn/wifi-sync";
 export { default as WifiUnlockIcon } from "../drawn/wifi-unlock";
 export const WifiZeroIcon: PixelIcon = { name: "wifi-zero", implemented: true, style: "pixel", grid: 12, rows: ["", "...oooooo", ".oo......oo", "o..........o", "", "...oooooo", "..o......o", "", "", ".....oo", ".....oo"] };
 export const WikipediaIcon: StubIcon = { name: "wikipedia", implemented: false };
