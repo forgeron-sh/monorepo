@@ -62,7 +62,7 @@ export const WavesArrowDownIcon: PixelIcon = { name: "waves-arrow-down", impleme
 export { default as WavesArrowUpIcon } from "../drawn/waves-arrow-up";
 export const WavesLadderIcon: PixelIcon = { name: "waves-ladder", implemented: true, style: "pixel", grid: 12, rows: ["", "..##...##", "....#....#", "....#....#", "....######", "....#....#", "....#....#", "", ".oo..oo..oo", "o..oo..oo..o"] };
 export { default as WavingHand01Icon } from "../drawn/waving-hand-01";
-export const WavingHand02Icon: PixelIcon = { name: "waving-hand-02", implemented: true, style: "pixel", grid: 12, rows: ["..........o", "...........o", ".....#....o", "...#.#.#", "...#.#.#.#", "#..#.#.#.#", ".#.#######", "..########", "...#######", "....#####", "", "....#####"] };
+export { default as WavingHand02Icon } from "../drawn/waving-hand-02";
 export { default as WaypointsIcon } from "../drawn/waypoints";
 export const WazeIcon: StubIcon = { name: "waze", implemented: false };
 export { default as WebDesign01Icon } from "../drawn/web-design-01";

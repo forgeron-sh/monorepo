@@ -116,6 +116,7 @@ export const MarsIcon: PixelIcon = { name: "mars", implemented: true, style: "pi
 export { default as MarsStrokeIcon } from "../drawn/mars-stroke";
 export const MartiniIcon: PixelIcon = { name: "martini", implemented: true, style: "pixel", grid: 12, rows: ["", ".##########", "..#oooooo#", "...#oooo#", "....#oo#", ".....##", ".....##", ".....##", ".....##", "...######"] };
 export { default as MaskIcon } from "../drawn/mask";
+export { default as MaskFillIcon } from "../drawn/mask-fill";
 export const MaskLoveIcon: StubIcon = { name: "mask-love", implemented: false };
 export { default as MaskTheater01Icon } from "../drawn/mask-theater-01";
 export { default as MaskTheater02Icon } from "../drawn/mask-theater-02";

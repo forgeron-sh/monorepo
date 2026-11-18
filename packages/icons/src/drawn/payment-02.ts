@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// A card held above an open hand.
+// A card held above the offering hand of the set (`hold-01`), the card in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-18.
 const icon: PixelIcon = {
   name: "payment-02",
@@ -10,17 +10,17 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    "..oooooooo",
-    "..o......o",
-    "..oooooooo",
-    "..o......o",
-    "..oooooooo",
     "",
-    "#.....##",
-    "#.###...#",
-    "#....####",
-    "#.....#",
-    "#",
+    "",
+    "......oooooo",
+    "......oooooo",
+    "......o....o",
+    "......o....o",
+    "....#.oooooo",
+    "#..#",
+    "#.#########",
+    "#.####",
+    "#.########",
   ],
 };
 

@@ -275,6 +275,7 @@ export const OWN_ICONS: readonly string[] = [
   "kettle-fill",
   "kettlebell-fill",
   "key-square-fill",
+  "label-fill",
   "label-important-fill",
   "lantern-fill",
   "laugh-fill",
@@ -291,6 +292,7 @@ export const OWN_ICONS: readonly string[] = [
   "mail-01-fill",
   "mail-02-fill",
   "mailbox-fill",
+  "mask-fill",
   "mcp",
   "medicine-02-fill",
   "medicine-syrup-fill",
@@ -495,6 +497,7 @@ export const OWN_ICONS: readonly string[] = [
   "ticket-percent-fill",
   "ticket-plus-fill",
   "ticket-x-fill",
+  "tie-fill",
   "time-02-fill",
   "toilet-01-fill",
   "toy-brick-fill",
@@ -514,6 +517,7 @@ export const OWN_ICONS: readonly string[] = [
   "user-circle-fill",
   "user-fill",
   "van-fill",
+  "vest-fill",
   "videotape-fill",
   "voice-comment-fill",
   "volume-01-fill",
@@ -7355,7 +7359,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `cursor-pointer-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["cursor", "pointer"],
-    description: "Pointing hand: an index finger up, folded fingers and a thumb on the left.",
+    description: "The pointing hand of the set with its index finger up.",
   },
   "cursor-text": {
     reference:
@@ -12012,36 +12016,31 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `save-energy-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["save", "energy"],
-    description:
-      "Save energy: the open hand of `hand-heart` under a lightning bolt in the secondary tone.",
+    description: "The offering hand of the set under a lightning bolt in the secondary tone.",
   },
   "save-money-dollar": {
     reference:
       "Hugeicons `save-money-dollar` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["save", "money", "dollar"],
-    description:
-      "Save money: the open hand of `hand-heart` under a dollar sign in the secondary tone.",
+    description: "The offering hand of the set under a dollar sign in the secondary tone.",
   },
   "save-money-euro": {
     reference:
       "Hugeicons `save-money-euro` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["save", "money", "euro"],
-    description:
-      "Save money: the open hand of `hand-heart` under a euro sign in the secondary tone.",
+    description: "The offering hand of the set under a euro sign in the secondary tone.",
   },
   "save-money-pound": {
     reference:
       "Hugeicons `save-money-pound` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["save", "money", "pound"],
-    description:
-      "Save money: the open hand of `hand-heart` under a pound sign in the secondary tone.",
+    description: "The offering hand of the set under a pound sign in the secondary tone.",
   },
   "save-money-yen": {
     reference:
       "Hugeicons `save-money-yen` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["save", "money", "yen"],
-    description:
-      "Save money: the open hand of `hand-heart` under a yen sign in the secondary tone.",
+    description: "The offering hand of the set under a yen sign in the secondary tone.",
   },
   "save-off": {
     reference:
@@ -13553,8 +13552,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `give-blood` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["give", "blood"],
-    description:
-      "Give blood: the open hand of `hand-heart` under a blood drop in the secondary tone.",
+    description: "The offering hand of the set under a blood drop in the secondary tone.",
   },
   "glass-water": {
     reference:
@@ -22303,7 +22301,7 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `glove` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["glove"],
-    description: "Glove: the hand of `hand` with a wide cuff in the secondary tone.",
+    description: "The open hand of the set with a wide cuff in the secondary tone.",
   },
   "gold-ingots": {
     reference:
@@ -25512,28 +25510,28 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
       "Hugeicons `map-pin-check-inside` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "check"],
     description:
-      "The larger shared pin, a round head and a pointed tip, with a check centred in its head in the secondary tone.",
+      "An odd-width map pin with a check centred in its head in thin one-pixel strokes, in the secondary tone.",
   },
   "map-pin-minus-inside": {
     reference:
       "Hugeicons `map-pin-minus-inside` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "minus"],
     description:
-      "The larger shared pin, a round head and a pointed tip, with a minus centred in its head in the secondary tone.",
+      "An odd-width map pin with a minus centred in its head in a thin one-pixel stroke, in the secondary tone.",
   },
   "map-pin-plus-inside": {
     reference:
       "Hugeicons `map-pin-plus-inside` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "plus"],
     description:
-      "The larger shared pin, a round head and a pointed tip, with a plus centred in its head in the secondary tone.",
+      "An odd-width map pin with a plus centred in its head in thin one-pixel strokes, in the secondary tone.",
   },
   "map-pin-x-inside": {
     reference:
       "Hugeicons `map-pin-x-inside` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["map", "pin", "x"],
     description:
-      "The larger shared pin, a round head and a pointed tip, with a cross centred in its head in the secondary tone.",
+      "An odd-width map pin with a cross centred in its head in thin one-pixel strokes, in the secondary tone.",
   },
   mixer: {
     reference:
@@ -25563,7 +25561,8 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     reference:
       "Hugeicons `payment-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     labels: ["payment"],
-    description: "A card held above an open hand.",
+    description:
+      "A bank card held above the offering hand of the set, the card in the secondary tone.",
   },
   "pen-tool-add": {
     reference:
@@ -25823,5 +25822,785 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
       "Filled variant of our own `x-variable-circle`, generated from its outline on 2026-11-17.",
     labels: ["filled", "solid", "x"],
     description: "Filled: circle with a variable x.",
+  },
+  "drag-left-01": {
+    reference:
+      "Hugeicons `drag-left-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drag", "left"],
+    description: "Drag left: `drag-right-01` mirrored.",
+  },
+  "drag-left-02": {
+    reference:
+      "Hugeicons `drag-left-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drag", "left"],
+    description: "Drag left: `drag-right-02` mirrored.",
+  },
+  "drag-left-03": {
+    reference:
+      "Hugeicons `drag-left-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drag", "left"],
+    description: "Drag left: `drag-right-03` mirrored.",
+  },
+  "drag-left-04": {
+    reference:
+      "Hugeicons `drag-left-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drag", "left"],
+    description: "Drag left: `drag-right-04` mirrored.",
+  },
+  "drag-right-01": {
+    reference:
+      "Hugeicons `drag-right-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drag", "right"],
+    description: "Drag right: the fist of the set, cut at the wrist, under an arrow to the right.",
+  },
+  "drag-right-02": {
+    reference:
+      "Hugeicons `drag-right-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drag", "right"],
+    description:
+      "Drag right: the fist of the set, cut at the wrist, under an arrow to the right with a dashed trail.",
+  },
+  "drag-right-03": {
+    reference:
+      "Hugeicons `drag-right-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drag", "right"],
+    description:
+      "Drag an item right: the fist of the set, cut at the wrist, under a small box and an arrow to the right.",
+  },
+  "drag-right-04": {
+    reference:
+      "Hugeicons `drag-right-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drag", "right"],
+    description: "Drag right with the left hand: `drag-right-01` with the fist mirrored.",
+  },
+  "swipe-down-02": {
+    reference:
+      "Hugeicons `swipe-down-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "down"],
+    description:
+      "A touch point with an arrow down in the secondary tone: `swipe-up-02` turned upside down.",
+  },
+  "swipe-down-03": {
+    reference:
+      "Hugeicons `swipe-down-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "down"],
+    description:
+      "Two touch points, each with an arrow down in the secondary tone: `swipe-up-03` turned upside down.",
+  },
+  "swipe-down-04": {
+    reference:
+      "Hugeicons `swipe-down-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "down"],
+    description:
+      "Two-finger swipe down: the pointing hand of the set with two fingers raised, beside an arrow down.",
+  },
+  "swipe-down-05": {
+    reference:
+      "Hugeicons `swipe-down-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "down"],
+    description: "Swipe down with the left hand: `swipe-down-01` mirrored.",
+  },
+  "swipe-down-06": {
+    reference:
+      "Hugeicons `swipe-down-06` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "down"],
+    description:
+      "Swipe down: the pointing hand of the set, cut at the wrist, under a long arrow down to its fingertip.",
+  },
+  "swipe-down-07": {
+    reference:
+      "Hugeicons `swipe-down-07` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "down"],
+    description:
+      "Fast swipe down: the pointing hand of the set, cut at the wrist, under two arrows down.",
+  },
+  "swipe-down-08": {
+    reference:
+      "Hugeicons `swipe-down-08` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "down"],
+    description: "Swipe down: the pointing hand of the set with the arrow down on the thumb side.",
+  },
+  "swipe-left-02": {
+    reference:
+      "Hugeicons `swipe-left-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "left"],
+    description:
+      "A touch point with an arrow to the left in the secondary tone: `swipe-right-02` mirrored.",
+  },
+  "swipe-left-03": {
+    reference:
+      "Hugeicons `swipe-left-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "left"],
+    description:
+      "Two touch points, each with an arrow to the left in the secondary tone: `swipe-right-03` mirrored.",
+  },
+  "swipe-left-04": {
+    reference:
+      "Hugeicons `swipe-left-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "left"],
+    description: "Swipe left: `swipe-right-04` mirrored.",
+  },
+  "swipe-left-05": {
+    reference:
+      "Hugeicons `swipe-left-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "left"],
+    description: "Swipe left: `swipe-right-05` mirrored.",
+  },
+  "swipe-left-06": {
+    reference:
+      "Hugeicons `swipe-left-06` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "left"],
+    description: "Swipe left: `swipe-right-06` mirrored.",
+  },
+  "swipe-left-07": {
+    reference:
+      "Hugeicons `swipe-left-07` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "left"],
+    description: "Swipe left: `swipe-right-07` mirrored.",
+  },
+  "swipe-left-08": {
+    reference:
+      "Hugeicons `swipe-left-08` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "left"],
+    description: "Swipe left: `swipe-right-08` mirrored.",
+  },
+  "swipe-left-09": {
+    reference:
+      "Hugeicons `swipe-left-09` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "left"],
+    description: "Swipe left: `swipe-right-09` mirrored.",
+  },
+  "swipe-right-04": {
+    reference:
+      "Hugeicons `swipe-right-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "right"],
+    description: "Swipe right: the pointing hand of the set beside a short arrow to the right.",
+  },
+  "swipe-right-05": {
+    reference:
+      "Hugeicons `swipe-right-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "right"],
+    description:
+      "Two-finger swipe right: the pointing hand of the set with two fingers raised, under an arrow to the right.",
+  },
+  "swipe-right-06": {
+    reference:
+      "Hugeicons `swipe-right-06` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "right"],
+    description:
+      "Swipe right with the left hand: `swipe-right-01` with the pointing hand mirrored.",
+  },
+  "swipe-right-07": {
+    reference:
+      "Hugeicons `swipe-right-07` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "right"],
+    description:
+      "Swipe right: the pointing hand of the set beside an arrow to the right with a dashed trail.",
+  },
+  "swipe-right-08": {
+    reference:
+      "Hugeicons `swipe-right-08` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "right"],
+    description:
+      "Fast swipe right: the pointing hand of the set, cut at the wrist, under two staggered arrows to the right.",
+  },
+  "swipe-right-09": {
+    reference:
+      "Hugeicons `swipe-right-09` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "right"],
+    description:
+      "Swipe right along a curve: the pointing hand of the set under an arc that comes down on the right into an arrowhead.",
+  },
+  "swipe-up-04": {
+    reference:
+      "Hugeicons `swipe-up-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "up"],
+    description:
+      "Two-finger swipe up: the pointing hand of the set with two fingers raised, beside an arrow up.",
+  },
+  "swipe-up-05": {
+    reference:
+      "Hugeicons `swipe-up-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "up"],
+    description: "Swipe up with the left hand: `swipe-up-01` mirrored.",
+  },
+  "swipe-up-06": {
+    reference:
+      "Hugeicons `swipe-up-06` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "up"],
+    description:
+      "Swipe up: the pointing hand of the set, cut at the wrist, under a long arrow up from its fingertip.",
+  },
+  "swipe-up-07": {
+    reference:
+      "Hugeicons `swipe-up-07` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "up"],
+    description:
+      "Fast swipe up: the pointing hand of the set, cut at the wrist, under two arrows up.",
+  },
+  "swipe-up-08": {
+    reference:
+      "Hugeicons `swipe-up-08` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["swipe", "up"],
+    description: "Swipe up: the pointing hand of the set with the arrow up on the thumb side.",
+  },
+  "tap-03": {
+    reference:
+      "Hugeicons `tap-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tap"],
+    description: "Tap: the pointing hand of the set under three short rays aimed at the fingertip.",
+  },
+  "tap-04": {
+    reference:
+      "Hugeicons `tap-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tap"],
+    description: "Tap with the left hand: `tap-01` mirrored.",
+  },
+  "tap-05": {
+    reference:
+      "Hugeicons `tap-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tap"],
+    description:
+      "Two-finger tap: the pointing hand of the set with two fingers raised under a wide arc.",
+  },
+  "tap-06": {
+    reference:
+      "Hugeicons `tap-06` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tap"],
+    description:
+      "Double tap: the pointing hand of the set, cut at the wrist, under two nested arcs.",
+  },
+  "tap-07": {
+    reference:
+      "Hugeicons `tap-07` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tap"],
+    description:
+      "Long press: the pointing hand of the set, cut at the wrist, under a short arc beside a small clock.",
+  },
+  "tap-08": {
+    reference:
+      "Hugeicons `tap-08` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tap"],
+    description: "Tap on a target: the pointing hand of the set with its fingertip in a crosshair.",
+  },
+  "clapping-01": {
+    reference:
+      "Hugeicons `clapping-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["clapping"],
+    description:
+      "Clapping: the hands of `hand-prayer` parting at the fingertips, three motion marks in the secondary tone.",
+  },
+  "hand-prayer": {
+    reference:
+      "Hugeicons `hand-prayer` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "prayer"],
+    description:
+      "Praying hands: two hands joined upright palm to palm, a one-pixel seam between them and a cuff under each.",
+  },
+  "hands-clapping": {
+    reference:
+      "Hugeicons `hands-clapping` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hands", "clapping"],
+    description:
+      "Hands clapping: the hands of `hand-prayer` palm to palm, clap marks in the secondary tone on both sides.",
+  },
+  handshake: {
+    reference:
+      "Hugeicons `handshake` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["handshake"],
+    description:
+      "Handshake: two hands clasped along a diagonal seam between a cuff on each side, the fingers of one under the other.",
+  },
+  "heart-handshake": {
+    reference:
+      "Hugeicons `heart-handshake` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["heart", "handshake"],
+    description: "Handshake with a heart: `handshake` under a small heart in the secondary tone.",
+  },
+  "love-korean-finger": {
+    reference:
+      "Hugeicons `love-korean-finger` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["love", "korean", "finger"],
+    description:
+      "Finger heart: the fist of `hand-fist` with the thumb and index crossed above it, a small heart in the secondary tone.",
+  },
+  "sign-language-c": {
+    reference:
+      "Hugeicons `sign-language-c` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sign", "language", "c"],
+    description:
+      "Sign language C: a hand curved into the letter C, the fingers over the top, the thumb under, a cuff below.",
+  },
+  "thumbs-up-down": {
+    reference:
+      "Hugeicons `thumbs-up-down` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["thumbs", "up", "down"],
+    description:
+      "Thumbs up and down: a small `thumbs-up` top left and a small `thumbs-down` bottom right, cuffs outside.",
+  },
+  "victory-finger-01": {
+    reference:
+      "Hugeicons `victory-finger-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["victory", "finger"],
+    description:
+      "Victory sign: the index and middle fingers of `hand` spread into a V, the other two folded on the palm.",
+  },
+  "victory-finger-02": {
+    reference:
+      "Hugeicons `victory-finger-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["victory", "finger"],
+    description:
+      "Victory sign with the thumb: the V of `victory-finger-01` with the thumb of `hand` out at 45\u00b0.",
+  },
+  "victory-finger-03": {
+    reference:
+      "Hugeicons `victory-finger-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["victory", "finger"],
+    description:
+      "Victory sign from the back: the V of `victory-finger-01` mirrored, the folded fingers hidden behind the hand.",
+  },
+  "cursor-hold-02": {
+    reference:
+      "Hugeicons `cursor-hold-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cursor", "hold"],
+    description:
+      "Pointer (the cursor-loading-01 base) with a clock in the secondary tone: press and hold.",
+  },
+  "do-not-touch-02": {
+    reference:
+      "Hugeicons `do-not-touch-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["do", "not", "touch"],
+    description:
+      "Do not touch: the pointing hand of the set crossed by a slash in the secondary tone.",
+  },
+  "four-finger-03": {
+    reference:
+      "Hugeicons `four-finger-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["four", "finger"],
+    description: "Four fingers, back of the hand: `four-finger-02` mirrored.",
+  },
+  "hand-grip": {
+    reference:
+      "Hugeicons `hand-grip` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "grip"],
+    description: "Hand grip: the fist of the set closed on a bar in the secondary tone.",
+  },
+  "hand-helping": {
+    reference:
+      "Hugeicons `hand-helping` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "helping"],
+    description:
+      "Helping hand: the offering hand of the set, empty, raised to the middle of the grid.",
+  },
+  "hand-pointing-down-03": {
+    reference:
+      "Hugeicons `hand-pointing-down-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "pointing", "down"],
+    description: "Hand pointing down: `hand-pointing-down-01` with the thumb folded.",
+  },
+  "hand-pointing-down-04": {
+    reference:
+      "Hugeicons `hand-pointing-down-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "pointing", "down"],
+    description:
+      "Hand pointing down at a spot: `hand-pointing-down-01` over a short line in the secondary tone.",
+  },
+  "hand-pointing-left-02": {
+    reference:
+      "Hugeicons `hand-pointing-left-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "pointing", "left"],
+    description: "Hand pointing left: `hand-pointing-right-02` mirrored.",
+  },
+  "hand-pointing-left-03": {
+    reference:
+      "Hugeicons `hand-pointing-left-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "pointing", "left"],
+    description: "Hand pointing left: `hand-pointing-right-03` mirrored.",
+  },
+  "hand-pointing-left-04": {
+    reference:
+      "Hugeicons `hand-pointing-left-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "pointing", "left"],
+    description: "Hand pointing left: `hand-pointing-right-04` mirrored.",
+  },
+  "hand-pointing-right-02": {
+    reference:
+      "Hugeicons `hand-pointing-right-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "pointing", "right"],
+    description: "Hand pointing right: `hand-pointing-right-01` with the thumb folded.",
+  },
+  "hand-pointing-right-03": {
+    reference:
+      "Hugeicons `hand-pointing-right-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "pointing", "right"],
+    description:
+      "Hand pointing right, palm side: `hand-pointing-right-02` turned over, the finger along the lower edge.",
+  },
+  "hand-pointing-right-04": {
+    reference:
+      "Hugeicons `hand-pointing-right-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hand", "pointing", "right"],
+    description:
+      "Hand pointing right, palm side: `hand-pointing-right-01` turned over, the thumb underneath.",
+  },
+  "hold-02": {
+    reference:
+      "Hugeicons `hold-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hold"],
+    description:
+      "Hand holding a card: the offering hand of the set under a bank card in the secondary tone.",
+  },
+  "hold-03": {
+    reference:
+      "Hugeicons `hold-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hold"],
+    description:
+      "Hand holding a document: the offering hand of the set under a page with two lines in the secondary tone.",
+  },
+  "hold-04": {
+    reference:
+      "Hugeicons `hold-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hold"],
+    description:
+      "Hand holding a coin: the offering hand of the set under one coin in the secondary tone.",
+  },
+  "hold-05": {
+    reference:
+      "Hugeicons `hold-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hold"],
+    description:
+      "Hand holding an idea: the offering hand of the set under a light bulb in the secondary tone.",
+  },
+  "hold-locked-02": {
+    reference:
+      "Hugeicons `hold-locked-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hold", "locked"],
+    description:
+      "Hand holding an open padlock: `hold-locked-01` with the shackle lifted on one side.",
+  },
+  "pointing-left-01": {
+    reference:
+      "Hugeicons `pointing-left-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "left"],
+    description: "Pointing left: `pointing-right-01` mirrored.",
+  },
+  "pointing-left-02": {
+    reference:
+      "Hugeicons `pointing-left-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "left"],
+    description: "Pointing left: `pointing-right-02` mirrored.",
+  },
+  "pointing-left-03": {
+    reference:
+      "Hugeicons `pointing-left-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "left"],
+    description: "Pointing left: `pointing-right-03` mirrored.",
+  },
+  "pointing-left-04": {
+    reference:
+      "Hugeicons `pointing-left-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "left"],
+    description: "Pointing left: `pointing-right-04` mirrored.",
+  },
+  "pointing-left-05": {
+    reference:
+      "Hugeicons `pointing-left-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "left"],
+    description: "Pointing left: `pointing-right-05` mirrored.",
+  },
+  "pointing-left-06": {
+    reference:
+      "Hugeicons `pointing-left-06` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "left"],
+    description: "Pointing left: `pointing-right-06` mirrored.",
+  },
+  "pointing-left-07": {
+    reference:
+      "Hugeicons `pointing-left-07` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "left"],
+    description: "Pointing left: `pointing-right-07` mirrored.",
+  },
+  "pointing-left-08": {
+    reference:
+      "Hugeicons `pointing-left-08` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "left"],
+    description: "Pointing left: `pointing-right-08` mirrored.",
+  },
+  "pointing-right-01": {
+    reference:
+      "Hugeicons `pointing-right-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "right"],
+    description:
+      "Pointing right: the pointing hand of the set with the thumb folded, under a long arrow in the secondary tone.",
+  },
+  "pointing-right-02": {
+    reference:
+      "Hugeicons `pointing-right-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "right"],
+    description:
+      "Pointing right: the pointing hand of the set with the thumb folded, under a short arrow in the secondary tone.",
+  },
+  "pointing-right-03": {
+    reference:
+      "Hugeicons `pointing-right-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "right"],
+    description:
+      "Pointing right: the pointing hand of the set with the thumb folded, under an arrow to a stop bar in the secondary tone.",
+  },
+  "pointing-right-04": {
+    reference:
+      "Hugeicons `pointing-right-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "right"],
+    description:
+      "Pointing right: the pointing hand of the set with the thumb folded, under a double chevron in the secondary tone.",
+  },
+  "pointing-right-05": {
+    reference:
+      "Hugeicons `pointing-right-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "right"],
+    description:
+      "Pointing right: the pointing hand of the set with the thumb folded, under a dashed arrow in the secondary tone.",
+  },
+  "pointing-right-06": {
+    reference:
+      "Hugeicons `pointing-right-06` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "right"],
+    description:
+      "Pointing right: the pointing hand of the set with the thumb folded, over a long arrow in the secondary tone.",
+  },
+  "pointing-right-07": {
+    reference:
+      "Hugeicons `pointing-right-07` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "right"],
+    description:
+      "Pointing right, palm side: the pointing hand turned over, finger along the lower edge, under a long arrow in the secondary tone.",
+  },
+  "pointing-right-08": {
+    reference:
+      "Hugeicons `pointing-right-08` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pointing", "right"],
+    description:
+      "Pointing right, palm side: the pointing hand turned over, finger along the lower edge, under a short arrow in the secondary tone.",
+  },
+  "shaka-02": {
+    reference:
+      "Hugeicons `shaka-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shaka"],
+    description: "Shaka sign, back of the hand: `shaka-01` mirrored.",
+  },
+  "three-finger-05": {
+    reference:
+      "Hugeicons `three-finger-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["three", "finger"],
+    description:
+      "Three fingers, back of the hand: `three-finger-02` mirrored, the thumb on the right.",
+  },
+  "touch-03": {
+    reference:
+      "Hugeicons `touch-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch"],
+    description:
+      "Touch, left hand: `touch-01` mirrored, the fingertip inside a ring in the secondary tone.",
+  },
+  "touch-04": {
+    reference:
+      "Hugeicons `touch-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch"],
+    description: "Touch, left hand: `touch-02` mirrored, three short rays above the fingertip.",
+  },
+  "touch-05": {
+    reference:
+      "Hugeicons `touch-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch"],
+    description:
+      "Touch: the pointing hand of the set with the thumb folded, the fingertip inside a ring in the secondary tone.",
+  },
+  "touch-06": {
+    reference:
+      "Hugeicons `touch-06` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch"],
+    description:
+      "Touch: the pointing hand of the set with the thumb folded, three short rays above the fingertip.",
+  },
+  "touch-07": {
+    reference:
+      "Hugeicons `touch-07` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch"],
+    description:
+      "Touch from the side: `hand-pointing-right-01` pressing a short arc in the secondary tone at its fingertip.",
+  },
+  "touch-08": {
+    reference:
+      "Hugeicons `touch-08` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch"],
+    description: "Touch from the side, left hand: `touch-07` mirrored.",
+  },
+  "touch-10": {
+    reference:
+      "Hugeicons `touch-10` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch"],
+    description:
+      "Two-finger touch: the index and middle fingers of the set under a wide arc in the secondary tone.",
+  },
+  "touch-interaction-03": {
+    reference:
+      "Hugeicons `touch-interaction-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch", "interaction"],
+    description:
+      "Touch interaction: the pointing hand of the set pressing inside a frame in the secondary tone.",
+  },
+  "touch-interaction-04": {
+    reference:
+      "Hugeicons `touch-interaction-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch", "interaction"],
+    description: "Touch interaction, left hand: `touch-interaction-03` mirrored.",
+  },
+  "touch-locked-02": {
+    reference:
+      "Hugeicons `touch-locked-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch", "locked"],
+    description:
+      "Touch unlocked: the pointing hand of the set beside an open padlock in the secondary tone.",
+  },
+  "touch-locked-03": {
+    reference:
+      "Hugeicons `touch-locked-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch", "locked"],
+    description: "Touch locked, left hand: `touch-locked-01` mirrored.",
+  },
+  "touch-locked-04": {
+    reference:
+      "Hugeicons `touch-locked-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["touch", "locked"],
+    description: "Touch unlocked, left hand: `touch-locked-02` mirrored.",
+  },
+  "two-finger-02": {
+    reference:
+      "Hugeicons `two-finger-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["two", "finger"],
+    description: "Two fingers, back of the hand: `two-finger-01` mirrored.",
+  },
+  "two-finger-03": {
+    reference:
+      "Hugeicons `two-finger-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["two", "finger"],
+    description: "Peace sign: `two-finger-01` with the two raised fingers spread apart.",
+  },
+  "two-finger-04": {
+    reference:
+      "Hugeicons `two-finger-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["two", "finger"],
+    description: "Fingers crossed: `two-finger-01` with the middle finger crossed over the index.",
+  },
+  "two-finger-05": {
+    reference:
+      "Hugeicons `two-finger-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["two", "finger"],
+    description:
+      "Two fingers pointing right: `two-finger-01` turned a quarter turn, cuff on the left.",
+  },
+  "waving-hand-02": {
+    reference:
+      "Hugeicons `waving-hand-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["waving", "hand"],
+    description:
+      "Waving hand, back of the hand: `waving-hand-01` mirrored, the motion mark on the left.",
+  },
+  egg: {
+    reference:
+      "Hugeicons `egg` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["egg"],
+    description: "Egg: a one-pixel oval, narrower at the top.",
+  },
+  energy: {
+    reference:
+      "Hugeicons `energy` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["energy"],
+    description: "Energy: a solid lightning bolt, symmetric by a half turn.",
+  },
+  gauge: {
+    reference:
+      "Hugeicons `gauge` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["gauge"],
+    description: "Gauge: a dial open at the bottom, its needle and hub in the secondary tone.",
+  },
+  hat: {
+    reference:
+      "Hugeicons `hat` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hat"],
+    description:
+      "Hat: a crown with a band in the secondary tone over a brim curled up at both ends.",
+  },
+  label: {
+    reference:
+      "Hugeicons `label` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["label"],
+    description: "Label: a tag with a square left end and a pointed right end.",
+  },
+  mask: {
+    reference:
+      "Hugeicons `mask` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mask"],
+    description:
+      "Face mask: a pleated mask, two pleats in the secondary tone, with ear loops either side.",
+  },
+  merge: {
+    reference:
+      "Hugeicons `merge` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["merge"],
+    description: "Merge: two paths joining into one that goes up, ending in an arrowhead.",
+  },
+  paragraph: {
+    reference:
+      "Hugeicons `paragraph` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["paragraph"],
+    description: "Pilcrow: a solid bowl with two stems.",
+  },
+  ratio: {
+    reference:
+      "Hugeicons `ratio` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ratio"],
+    description: "Aspect ratio: a portrait frame in the secondary tone inside a landscape one.",
+  },
+  tie: {
+    reference:
+      "Hugeicons `tie` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tie"],
+    description: "A necktie: a small knot over a long pointed blade.",
+  },
+  utensils: {
+    reference:
+      "Hugeicons `utensils` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["utensils"],
+    description: "Fork and knife side by side, upright; the fork is the one of `spoon-and-fork`.",
+  },
+  vest: {
+    reference:
+      "Hugeicons `vest` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["vest"],
+    description:
+      "Sleeveless vest: narrow straps, a deep V neck and two buttons in the secondary tone.",
+  },
+  "tie-fill": {
+    reference: "Filled variant of our own `tie`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "tie"],
+    description: "Filled: a necktie: a small knot over a long pointed blade.",
+  },
+  "vest-fill": {
+    reference: "Filled variant of our own `vest`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "vest"],
+    description:
+      "Filled: sleeveless vest: narrow straps, a deep V neck and two buttons in the secondary tone.",
+  },
+  "label-fill": {
+    reference: "Filled variant of our own `label`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "label"],
+    description: "Filled: label: a tag with a square left end and a pointed right end.",
+  },
+  "mask-fill": {
+    reference: "Filled variant of our own `mask`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "mask"],
+    description:
+      "Filled: face mask: a pleated mask, two pleats in the secondary tone, with ear loops either side.",
   },
 };

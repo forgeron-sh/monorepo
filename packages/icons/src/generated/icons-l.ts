@@ -3,6 +3,7 @@
 import type { PixelIcon, StubIcon } from "../types";
 
 export { default as LabelIcon } from "../drawn/label";
+export { default as LabelFillIcon } from "../drawn/label-fill";
 export { default as LabelImportantIcon } from "../drawn/label-important";
 export { default as LabelImportantFillIcon } from "../drawn/label-important-fill";
 export const LaborIcon: StubIcon = { name: "labor", implemented: false };
@@ -285,7 +286,7 @@ export { default as LookRightIcon } from "../drawn/look-right";
 export { default as LookTopIcon } from "../drawn/look-top";
 export const LoomIcon: StubIcon = { name: "loom", implemented: false };
 export const LottiefilesIcon: StubIcon = { name: "lottiefiles", implemented: false };
-export const LoveKoreanFingerIcon: StubIcon = { name: "love-korean-finger", implemented: false };
+export { default as LoveKoreanFingerIcon } from "../drawn/love-korean-finger";
 export const LowSignalIcon: PixelIcon = { name: "low-signal", implemented: true, style: "pixel", grid: 12, rows: ["", "", "..........o", "..........o", ".......o..o", ".......o..o", "....o..o..o", "....o..o..o", ".#..o..o..o", ".#..o..o..o"] };
 export { default as LoyaltyCardIcon } from "../drawn/loyalty-card";
 export { default as LoyaltyCardFillIcon } from "../drawn/loyalty-card-fill";

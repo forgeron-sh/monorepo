@@ -325,7 +325,7 @@ export { default as Forward02Icon } from "../drawn/forward-02";
 export { default as FourCircleIcon } from "../drawn/four-circle";
 export { default as FourCircleFillIcon } from "../drawn/four-circle-fill";
 export { default as FourFinger02Icon } from "../drawn/four-finger-02";
-export const FourFinger03Icon: PixelIcon = { name: "four-finger-03", implemented: true, style: "pixel", grid: 12, rows: ["", "......#", "....#.#.#", "....#.#.#.#", "....#.#.#.#", "....#######", "....#######", "....#######", ".....#####", "", ".....#####"] };
+export { default as FourFinger03Icon } from "../drawn/four-finger-03";
 export { default as FourSquareIcon } from "../drawn/four-square";
 export { default as FourSquareFillIcon } from "../drawn/four-square-fill";
 export const FoursquareIcon: StubIcon = { name: "foursquare", implemented: false };

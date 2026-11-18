@@ -1,6 +1,6 @@
 import type { PixelIcon } from "../types";
 
-// Give blood: the open hand of `hand-heart` under a blood drop in the secondary tone.
+// Give blood: the offering hand of the set (`hold-01`) under a blood drop in the secondary tone.
 // 12×12: `#` primary tone, `o` secondary tone. Drawn on 2026-11-17.
 const icon: PixelIcon = {
   name: "give-blood",
@@ -10,17 +10,17 @@ const icon: PixelIcon = {
   // prettier-ignore
   rows: [
     "",
-    ".....oo",
-    "....oooo",
-    "...oooooo",
-    "...oooooo",
-    "....oooo",
-    "",
-    "#.....##",
-    "#.###...#",
-    "#....####",
-    "#.....#",
-    "#",
+    "........o",
+    ".......ooo",
+    "......ooooo",
+    "......ooooo",
+    "......ooooo",
+    ".......ooo",
+    "....#",
+    "#..#",
+    "#.#########",
+    "#.####",
+    "#.########",
   ],
 };
 
