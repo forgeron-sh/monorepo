@@ -147,7 +147,7 @@ export const UserXIcon: PixelIcon = { name: "user-x", implemented: true, style: 
 export { default as UsersIcon } from "../drawn/users";
 export const UsersRoundIcon: PixelIcon = { name: "users-round", implemented: true, style: "pixel", grid: 12, rows: ["", "........oo", ".......o..o", "..##...o..o", ".#..#...oo", ".#..#", "..##...oooo", "...........o", ".####......o", "#....#.....o", "######.ooooo"] };
 export { default as UtensilsIcon } from "../drawn/utensils";
-export const UtensilsCrossedIcon: StubIcon = { name: "utensils-crossed", implemented: false };
+export { default as UtensilsCrossedIcon } from "../drawn/utensils-crossed";
 export { default as UtilityPoleIcon } from "../drawn/utility-pole";
 export { default as Uv01Icon } from "../drawn/uv-01";
 export const Uv02Icon: PixelIcon = { name: "uv-02", implemented: true, style: "pixel", grid: 12, rows: ["", "", "", ".#..#.#...#", ".#..#.#...#", ".#..#..#.#", ".#..#..#.#", ".#..#...#", "..##....#"] };

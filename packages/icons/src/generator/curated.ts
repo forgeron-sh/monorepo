@@ -55,10 +55,13 @@ export const OWN_ICONS: readonly string[] = [
   "badge-minus-fill",
   "badge-percent-fill",
   "badge-plus-fill",
+  "badge-turkish-lira-fill",
   "balloon-fill",
   "baseball-fill",
   "baseball-helmet-fill",
   "bean-fill",
+  "berlin-tower-fill",
+  "biceps-flexed-fill",
   "birdhouse-fill",
   "bluetooth-circle-fill",
   "bluetooth-square-fill",
@@ -72,6 +75,7 @@ export const OWN_ICONS: readonly string[] = [
   "bookmark-check-01-fill",
   "bookmark-remove-01-fill",
   "bookmark-x-fill",
+  "borobudur-fill",
   "bot-fill",
   "bottle-wine-fill",
   "bowling-ball-fill",
@@ -82,6 +86,7 @@ export const OWN_ICONS: readonly string[] = [
   "bug-01-fill",
   "bug-02-fill",
   "bulletproof-vest-fill",
+  "burj-al-arab-fill",
   "bus-01-fill",
   "cabinet-01-fill",
   "calculator-fill",
@@ -117,6 +122,7 @@ export const OWN_ICONS: readonly string[] = [
   "chess-knight-fill",
   "chess-pawn-fill",
   "chess-rook-fill",
+  "circle-arrow-data-transfer-diagonal-fill",
   "circle-arrow-data-transfer-horizontal-fill",
   "circle-arrow-data-transfer-vertical-fill",
   "circle-arrow-diagonal-01-fill",
@@ -173,6 +179,7 @@ export const OWN_ICONS: readonly string[] = [
   "cottage-fill",
   "coupon-percent-fill",
   "cowboy-hat-fill",
+  "cross-fill",
   "crown-fill",
   "curling-fill",
   "cursor-in-window-fill",
@@ -198,12 +205,14 @@ export const OWN_ICONS: readonly string[] = [
   "download-square-01-fill",
   "dress-01-fill",
   "droplets-fill",
+  "duplex-fill",
   "ellipse-fill",
   "energy-ellipse-fill",
   "energy-rectangle-fill",
   "equipment-gym-01-fill",
   "euro-circle-fill",
   "euro-square-fill",
+  "face-mimic-fill",
   "favourite-circle-fill",
   "favourite-fill",
   "favourite-square-fill",
@@ -215,6 +224,7 @@ export const OWN_ICONS: readonly string[] = [
   "fire-security-fill",
   "first-aid-kit-fill",
   "fish-fill",
+  "fish-symbol-fill",
   "five-circle-fill",
   "five-square-fill",
   "flag-01-fill",
@@ -238,6 +248,7 @@ export const OWN_ICONS: readonly string[] = [
   "ghost-fill",
   "gold-ingots-fill",
   "golf-ball-fill",
+  "halal-fill",
   "hand-bag-01-fill",
   "hand-sanitizer-fill",
   "happy-01-fill",
@@ -272,8 +283,10 @@ export const OWN_ICONS: readonly string[] = [
   "jira",
   "join-bevel-fill",
   "join-round-fill",
+  "jupiter-fill",
   "kettle-fill",
   "kettlebell-fill",
+  "ketupat-fill",
   "key-square-fill",
   "label-fill",
   "label-important-fill",
@@ -282,6 +295,7 @@ export const OWN_ICONS: readonly string[] = [
   "layout-dashboard-fill",
   "leaf-01-fill",
   "linear",
+  "liver-fill",
   "location-01-fill",
   "lock-fill",
   "log",
@@ -319,6 +333,7 @@ export const OWN_ICONS: readonly string[] = [
   "more-or-less-square-fill",
   "more-vertical-circle-01-fill",
   "more-vertical-square-02-fill",
+  "mosque-location-fill",
   "mountain-fill",
   "music-01-fill",
   "music-note-square-01-fill",
@@ -341,6 +356,7 @@ export const OWN_ICONS: readonly string[] = [
   "options-call-fill",
   "oval-fill",
   "oven-fill",
+  "paint-board-fill",
   "parallelogram-fill",
   "parking-meter-fill",
   "password-validation-fill",
@@ -353,6 +369,7 @@ export const OWN_ICONS: readonly string[] = [
   "perfume-fill",
   "pi-circle-fill",
   "pi-square-fill",
+  "pickup-01-fill",
   "pie-chart-square-fill",
   "pie-fill",
   "pillow-fill",
@@ -367,14 +384,17 @@ export const OWN_ICONS: readonly string[] = [
   "plus-sign-square-fill",
   "police-badge-fill",
   "poly-tank-fill",
+  "poop-fill",
   "pound-circle-fill",
   "pound-square-fill",
+  "prayer-rug-01-fill",
   "prism-fill",
   "programming-flag-fill",
   "projector-fill",
   "pulse-02-fill",
   "pumpkin-fill",
   "punching-ball-01-fill",
+  "puzzle-fill",
   "pyramid-fill",
   "pyramid-maslowo-fill",
   "pyramid-structure-02-fill",
@@ -383,11 +403,14 @@ export const OWN_ICONS: readonly string[] = [
   "quote-down-square-fill",
   "quote-up-circle-fill",
   "quote-up-square-fill",
+  "quran-01-fill",
   "rabbit-fill",
   "radio-button-fill",
   "radio-fill",
   "rain-double-drop-fill",
   "rain-drop-fill",
+  "ramadhan-01-fill",
+  "rat-fill",
   "rectangle-circle-fill",
   "rectangle-horizontal-fill",
   "rectangle-vertical-fill",
@@ -404,6 +427,7 @@ export const OWN_ICONS: readonly string[] = [
   "rollback",
   "roller-skate-fill",
   "root-circle-fill",
+  "rub-el-hizb-fill",
   "rubber-duck-fill",
   "rupee-circle-fill",
   "rupee-shield-fill",
@@ -419,6 +443,8 @@ export const OWN_ICONS: readonly string[] = [
   "send-horizontal-fill",
   "seven-circle-fill",
   "seven-square-fill",
+  "shell-fill",
+  "sheriff-01-fill",
   "shield-01-fill",
   "shield-alert-fill",
   "shield-ellipsis-fill",
@@ -444,8 +470,10 @@ export const OWN_ICONS: readonly string[] = [
   "soup-fill",
   "spade-fill",
   "speaker-fill",
+  "sphere-fill",
   "spoon-fill",
   "square-activity-fill",
+  "square-arrow-data-transfer-diagonal-fill",
   "square-arrow-data-transfer-horizontal-fill",
   "square-arrow-data-transfer-vertical-fill",
   "square-arrow-diagonal-01-fill",
@@ -527,7 +555,9 @@ export const OWN_ICONS: readonly string[] = [
   "wallet-minimal-fill",
   "warehouse-fill",
   "warning",
+  "washington-monument-fill",
   "weight-fill",
+  "weight-tilde-fill",
   "whistle-fill",
   "wifi-square-fill",
   "wink-fill",
@@ -28369,5 +28399,1143 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
       "Hugeicons `zoom` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
     trademark:
       "Zoom and the Zoom logo are trademarks of Zoom Communications, Inc., used here only to refer to Zoom.",
+  },
+  adventure: {
+    reference:
+      "Hugeicons `adventure` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mountain", "flag", "expedition"],
+    description: "A mountain with a flag planted on its peak.",
+  },
+  "ai-watermark": {
+    reference:
+      "Hugeicons `ai-watermark` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drop", "watermark", "ai"],
+    description: "A water drop with an AI spark inside.",
+  },
+  "align-key-object": {
+    reference:
+      "Hugeicons `align-key-object` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["align", "key", "object"],
+    description: "Two objects aligned on the left edge of a highlighted key object.",
+  },
+  arrange: {
+    reference:
+      "Hugeicons `arrange` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["arrange", "layers", "front"],
+    description: "One square brought in front of another.",
+  },
+  "arrow-up-right-stack": {
+    reference:
+      "Hugeicons `arrow-up-right-stack` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["arrow", "stack", "export"],
+    description: "An up-right arrow leaving a stack corner.",
+  },
+  "atom-01": {
+    reference:
+      "Hugeicons `atom-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["atom", "science", "orbit"],
+    description: "Two crossed orbits around a nucleus.",
+  },
+  bacteria: {
+    reference:
+      "Hugeicons `bacteria` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bacteria", "germ", "microbe"],
+    description: "A rod-shaped bacterium with a wavy flagellum.",
+  },
+  "badge-turkish-lira": {
+    reference:
+      "Hugeicons `badge-turkish-lira` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["badge", "lira", "currency"],
+    description: "A rosette badge with a Turkish lira sign.",
+  },
+  "bend-tool": {
+    reference:
+      "Hugeicons `bend-tool` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bend", "curve", "nodes"],
+    description: "A curve running between two square nodes.",
+  },
+  "biceps-flexed": {
+    reference:
+      "Hugeicons `biceps-flexed` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["biceps", "muscle", "strength"],
+    description: "A flexed arm with the biceps bulging.",
+  },
+  "body-part-six-pack": {
+    reference:
+      "Hugeicons `body-part-six-pack` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["abs", "torso", "fitness"],
+    description: "A torso with six abdominal muscles.",
+  },
+  "book-open-check": {
+    reference:
+      "Hugeicons `book-open-check` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["book", "read", "done"],
+    description: "An open book with a check on its right page.",
+  },
+  "breast-pump": {
+    reference:
+      "Hugeicons `breast-pump` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["breast", "pump", "baby"],
+    description: "A funnel flange on top of a bottle.",
+  },
+  cannabis: {
+    reference:
+      "Hugeicons `cannabis` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cannabis", "leaf", "plant"],
+    description: "A cannabis leaf with pointed leaflets on a short stem.",
+  },
+  "cannabis-off": {
+    reference:
+      "Hugeicons `cannabis-off` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cannabis", "off", "forbidden"],
+    description: "The cannabis leaf struck through by a slash.",
+  },
+  "circle-arrow-data-transfer-diagonal": {
+    reference:
+      "Hugeicons `circle-arrow-data-transfer-diagonal` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["transfer", "diagonal", "sync"],
+    description: "A ring around two opposite diagonal arrows.",
+  },
+  "co-present": {
+    reference:
+      "Hugeicons `co-present` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["presenter", "screen", "meeting"],
+    description: "A person in front of a presentation screen.",
+  },
+  "congruent-to-circle": {
+    reference:
+      "Hugeicons `congruent-to-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["congruent", "math", "circle"],
+    description: "The congruence sign inside a ring.",
+  },
+  "congruent-to-square": {
+    reference:
+      "Hugeicons `congruent-to-square` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["congruent", "math", "square"],
+    description: "The congruence sign inside a square.",
+  },
+  "covid-info": {
+    reference:
+      "Hugeicons `covid-info` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["virus", "covid", "info"],
+    description: "A spiked virus with an info badge.",
+  },
+  "credit-card-pos": {
+    reference:
+      "Hugeicons `credit-card-pos` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["terminal", "card", "payment"],
+    description: "A card terminal with a card in its slot.",
+  },
+  dart: {
+    reference:
+      "Hugeicons `dart` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dart", "throw", "game"],
+    description: "A dart flying down to the left with its flights.",
+  },
+  "delete-throw": {
+    reference:
+      "Hugeicons `delete-throw` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bin", "throw", "discard"],
+    description: "A ball being thrown into an open bin.",
+  },
+  "delivery-tracking-01": {
+    reference:
+      "Hugeicons `delivery-tracking-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["delivery", "tracking", "truck"],
+    description: "A delivery lorry under a location pin.",
+  },
+  "delivery-tracking-02": {
+    reference:
+      "Hugeicons `delivery-tracking-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["parcel", "route", "tracking"],
+    description: "A parcel linked by a route to a location pin.",
+  },
+  "diamond-percent": {
+    reference:
+      "Hugeicons `diamond-percent` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["diamond", "discount", "percent"],
+    description: "A diamond with a percent sign.",
+  },
+  "badge-turkish-lira-fill": {
+    reference:
+      "Filled variant of our own `badge-turkish-lira`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "badge"],
+    description: "Filled: a rosette badge with a Turkish lira sign.",
+  },
+  "biceps-flexed-fill": {
+    reference:
+      "Filled variant of our own `biceps-flexed`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "biceps"],
+    description: "Filled: a flexed arm with the biceps bulging.",
+  },
+  "circle-arrow-data-transfer-diagonal-fill": {
+    reference:
+      "Filled variant of our own `circle-arrow-data-transfer-diagonal`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "circle"],
+    description: "Filled: a ring around two opposite diagonal arrows.",
+  },
+  "dining-table": {
+    reference:
+      "Hugeicons `dining-table` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dining", "table", "meal"],
+    description: "A table seen from the side with a serving cloche on it.",
+  },
+  "dna-off": {
+    reference:
+      "Hugeicons `dna-off` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dna", "genetics", "off"],
+    description: "The DNA double helix struck through by a slash.",
+  },
+  duplex: {
+    reference:
+      "Hugeicons `duplex` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["duplex", "house", "floors"],
+    description: "A gabled house split into two storeys, with a window and a door.",
+  },
+  "edit-multiple": {
+    reference:
+      "Hugeicons `edit-multiple` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["edit", "multiple", "documents"],
+    description: "A pencil writing on the front sheet of two stacked sheets.",
+  },
+  "elearning-exchange": {
+    reference:
+      "Hugeicons `elearning-exchange` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["elearning", "exchange", "screen"],
+    description: "A screen with two opposite arrows on it.",
+  },
+  "eraser-add": {
+    reference:
+      "Hugeicons `eraser-add` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["eraser", "add", "plus"],
+    description: "An eraser with a plus badge.",
+  },
+  "estimate-02": {
+    reference:
+      "Hugeicons `estimate-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["estimate", "approximate", "document"],
+    description: "A sheet with an approximately-equal sign.",
+  },
+  excavator: {
+    reference:
+      "Hugeicons `excavator` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["excavator", "construction", "digger"],
+    description: "An excavator on tracks, with its boom and bucket, seen from the side.",
+  },
+  expander: {
+    reference:
+      "Hugeicons `expander` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["expander", "fitness", "exercise"],
+    description: "A chest expander with two handles joined by cables.",
+  },
+  "face-mimic": {
+    reference:
+      "Hugeicons `face-mimic` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["face", "expression", "wink"],
+    description: "A round face winking.",
+  },
+  "fencing-mask": {
+    reference:
+      "Hugeicons `fencing-mask` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fencing", "mask", "sport"],
+    description: "A fencing mask from the front, with a mesh face and a bib.",
+  },
+  "ferris-wheel": {
+    reference:
+      "Hugeicons `ferris-wheel` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ferris", "wheel", "fair"],
+    description: "A Ferris wheel with crossed spokes on two legs.",
+  },
+  "fish-symbol": {
+    reference:
+      "Hugeicons `fish-symbol` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ichthys", "fish", "symbol"],
+    description: "The ichthys: two arcs meeting at the nose and crossing at the tail.",
+  },
+  forklift: {
+    reference:
+      "Hugeicons `forklift` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["forklift", "warehouse", "lift"],
+    description: "A forklift from the side, with its mast, forks, cab guard and wheels.",
+  },
+  "geology-crust": {
+    reference:
+      "Hugeicons `geology-crust` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["geology", "crust", "layers"],
+    description: "A block of ground layers under a mountain, with the top crust layer highlighted.",
+  },
+  gnome: {
+    reference:
+      "Hugeicons `gnome` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["gnome", "garden", "fantasy"],
+    description: "A garden gnome with a tall pointed hat and a beard.",
+  },
+  "graduate-female": {
+    reference:
+      "Hugeicons `graduate-female` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["graduate", "student", "woman"],
+    description: "A person with long hair wearing a mortarboard.",
+  },
+  "graduate-male": {
+    reference:
+      "Hugeicons `graduate-male` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["graduate", "student", "man"],
+    description: "A person wearing a mortarboard with its tassel.",
+  },
+  "graduation-scroll": {
+    reference:
+      "Hugeicons `graduation-scroll` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["diploma", "scroll", "graduation"],
+    description: "A rolled diploma tied with a ribbon.",
+  },
+  gun: {
+    reference:
+      "Hugeicons `gun` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["gun", "pistol", "weapon"],
+    description: "A solid pistol seen from the side.",
+  },
+  ico: {
+    reference:
+      "Hugeicons `ico` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ico", "icon", "file"],
+    description: "A file with a small app icon on it.",
+  },
+  jupiter: {
+    reference:
+      "Hugeicons `jupiter` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["jupiter", "planet", "space"],
+    description: "A banded planet with the Great Red Spot.",
+  },
+  labor: {
+    reference:
+      "Hugeicons `labor` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["labor", "worker", "hardhat"],
+    description: "A person wearing a hard hat.",
+  },
+  liver: {
+    reference:
+      "Hugeicons `liver` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["liver", "organ", "anatomy"],
+    description: "A liver: a broad lobe that tapers to a point.",
+  },
+  "mask-love": {
+    reference:
+      "Hugeicons `mask-love` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mask", "heart", "care"],
+    description: "A face mask with a heart on it.",
+  },
+  "meeting-room": {
+    reference:
+      "Hugeicons `meeting-room` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["meeting", "room", "table"],
+    description: "A long table seen from above with two chairs on each side.",
+  },
+  "duplex-fill": {
+    reference: "Filled variant of our own `duplex`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "duplex"],
+    description: "Filled: a gabled house split into two storeys, with a window and a door.",
+  },
+  "face-mimic-fill": {
+    reference: "Filled variant of our own `face-mimic`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "face"],
+    description: "Filled: a round face winking.",
+  },
+  "fish-symbol-fill": {
+    reference: "Filled variant of our own `fish-symbol`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "fish"],
+    description: "Filled: the ichthys: two arcs meeting at the nose and crossing at the tail.",
+  },
+  "jupiter-fill": {
+    reference: "Filled variant of our own `jupiter`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "jupiter"],
+    description: "Filled: a banded planet with the Great Red Spot.",
+  },
+  "liver-fill": {
+    reference: "Filled variant of our own `liver`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "liver"],
+    description: "Filled: a liver: a broad lobe that tapers to a point.",
+  },
+  "milk-oat": {
+    reference:
+      "Hugeicons `milk-oat` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["oat", "milk", "carton"],
+    description: "Milk carton with an oat grain on its front.",
+  },
+  "paint-board": {
+    reference:
+      "Hugeicons `paint-board` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["palette", "paint", "art"],
+    description: "Painter's palette with three dabs of paint.",
+  },
+  perspective: {
+    reference:
+      "Hugeicons `perspective` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["perspective", "room", "depth"],
+    description: "Room in one-point perspective with its back wall highlighted.",
+  },
+  "pickup-01": {
+    reference:
+      "Hugeicons `pickup-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pickup", "truck", "vehicle"],
+    description: "Pickup truck seen from the side.",
+  },
+  "pickup-02": {
+    reference:
+      "Hugeicons `pickup-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pickup", "cargo", "truck"],
+    description: "Pickup truck carrying a crate in its bed.",
+  },
+  poop: {
+    reference:
+      "Hugeicons `poop` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["poop", "waste", "pile"],
+    description: "Three-tier swirl of poop with a curled tip.",
+  },
+  pulley: {
+    reference:
+      "Hugeicons `pulley` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pulley", "rope", "lift"],
+    description: "Wheel hung from a beam with a rope and a weight.",
+  },
+  "push-up-bar": {
+    reference:
+      "Hugeicons `push-up-bar` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["push-up", "fitness", "grip"],
+    description: "Push-up bar with a padded grip on splayed legs.",
+  },
+  puzzle: {
+    reference:
+      "Hugeicons `puzzle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["puzzle", "piece", "jigsaw"],
+    description: "Jigsaw puzzle piece with two knobs.",
+  },
+  "queue-01": {
+    reference:
+      "Hugeicons `queue-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["queue", "line", "people"],
+    description: "Three people standing in a line.",
+  },
+  "queue-02": {
+    reference:
+      "Hugeicons `queue-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["queue", "waiting", "next"],
+    description: "Three people in a line over an arrow to the front.",
+  },
+  radiation: {
+    reference:
+      "Hugeicons `radiation` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["radiation", "nuclear", "hazard"],
+    description: "Radiation trefoil: three blades round a centre dot.",
+  },
+  rat: {
+    reference:
+      "Hugeicons `rat` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["rat", "rodent", "animal"],
+    description: "Rat seen from the side with a long tail.",
+  },
+  "recycle-01": {
+    reference:
+      "Hugeicons `recycle-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["recycle", "arrows", "eco"],
+    description: "Three arrows chasing each other round a triangle.",
+  },
+  "restaurant-table": {
+    reference:
+      "Hugeicons `restaurant-table` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["table", "restaurant", "dining"],
+    description: "Table between two chairs with a plate on it.",
+  },
+  "road-wayside": {
+    reference:
+      "Hugeicons `road-wayside` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["roadside", "road", "sign"],
+    description: "Road in perspective with a signpost beside it.",
+  },
+  "roller-coaster": {
+    reference:
+      "Hugeicons `roller-coaster` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["coaster", "loop", "ride"],
+    description: "Roller coaster loop on a raised track.",
+  },
+  "rotate-ccw-key": {
+    reference:
+      "Hugeicons `rotate-ccw-key` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["key", "rotate", "renew"],
+    description: "Key over an anticlockwise arrow.",
+  },
+  "safety-pin-01": {
+    reference:
+      "Hugeicons `safety-pin-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["safety-pin", "pin", "clasp"],
+    description: "Safety pin lying flat with its coil and clasp.",
+  },
+  sandals: {
+    reference:
+      "Hugeicons `sandals` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sandal", "flip-flop", "beach"],
+    description: "Flip-flop seen from above with its V strap.",
+  },
+  "search-replace": {
+    reference:
+      "Hugeicons `search-replace` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["search", "replace", "find"],
+    description: "Magnifier with a return arrow in the corner.",
+  },
+  seesaw: {
+    reference:
+      "Hugeicons `seesaw` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["seesaw", "playground", "balance"],
+    description: "Tilted plank resting on a triangular pivot.",
+  },
+  "share-knowledge": {
+    reference:
+      "Hugeicons `share-knowledge` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["knowledge", "share", "book"],
+    description: "Closed book with share nodes above it.",
+  },
+  "shared-drive": {
+    reference:
+      "Hugeicons `shared-drive` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drive", "shared", "storage"],
+    description: "Hard drive with a share arrow in the corner.",
+  },
+  shell: {
+    reference:
+      "Hugeicons `shell` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shell", "scallop", "sea"],
+    description: "Scallop shell with a scalloped rim and ribs.",
+  },
+  "sheriff-01": {
+    reference:
+      "Hugeicons `sheriff-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sheriff", "badge", "star"],
+    description: "Star badge with a round stamp at its centre.",
+  },
+  shoulder: {
+    reference:
+      "Hugeicons `shoulder` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shoulder", "body", "person"],
+    description: "Person with one shoulder highlighted.",
+  },
+  "paint-board-fill": {
+    reference: "Filled variant of our own `paint-board`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "paint"],
+    description: "Filled: painter's palette with three dabs of paint.",
+  },
+  "pickup-01-fill": {
+    reference: "Filled variant of our own `pickup-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "pickup"],
+    description: "Filled: pickup truck seen from the side.",
+  },
+  "poop-fill": {
+    reference: "Filled variant of our own `poop`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "poop"],
+    description: "Filled: three-tier swirl of poop with a curled tip.",
+  },
+  "puzzle-fill": {
+    reference: "Filled variant of our own `puzzle`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "puzzle"],
+    description: "Filled: jigsaw puzzle piece with two knobs.",
+  },
+  "rat-fill": {
+    reference: "Filled variant of our own `rat`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "rat"],
+    description: "Filled: rat seen from the side with a long tail.",
+  },
+  "shell-fill": {
+    reference: "Filled variant of our own `shell`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "shell"],
+    description: "Filled: scallop shell with a scalloped rim and ribs.",
+  },
+  "sheriff-01-fill": {
+    reference: "Filled variant of our own `sheriff-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "sheriff"],
+    description: "Filled: star badge with a round stamp at its centre.",
+  },
+  "smartphone-lost-wifi": {
+    reference:
+      "Hugeicons `smartphone-lost-wifi` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["phone", "wifi", "disconnected"],
+    description: "A smartphone beside a wifi sign whose dot is crossed out.",
+  },
+  "smile-dizzy": {
+    reference:
+      "Hugeicons `smile-dizzy` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["emoji", "dizzy", "face"],
+    description: "A smiling face with crossed, dizzy eyes.",
+  },
+  spaghetti: {
+    reference:
+      "Hugeicons `spaghetti` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pasta", "food", "fork"],
+    description: "A plate of spaghetti with a fork standing in it.",
+  },
+  sperm: {
+    reference:
+      "Hugeicons `sperm` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fertility", "cell", "biology"],
+    description: "A sperm cell with an oval head and a wavy tail.",
+  },
+  sphere: {
+    reference:
+      "Hugeicons `sphere` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ball", "3d", "shape"],
+    description: "A circle with a curved equator, drawn as a sphere.",
+  },
+  spotlight: {
+    reference:
+      "Hugeicons `spotlight` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["light", "stage", "beam"],
+    description: "A hanging spotlight casting a cone of light to the floor.",
+  },
+  "square-arrow-data-transfer-diagonal": {
+    reference:
+      "Hugeicons `square-arrow-data-transfer-diagonal` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["transfer", "sync", "arrows"],
+    description: "A square with two opposite diagonal arrows inside.",
+  },
+  "square-centerline-dashed-horizontal": {
+    reference:
+      "Hugeicons `square-centerline-dashed-horizontal` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["centre", "guide", "align"],
+    description: "A square with a dashed horizontal centre line.",
+  },
+  "star-award-01": {
+    reference:
+      "Hugeicons `star-award-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["award", "star", "badge"],
+    description: "A star badge with two ribbons hanging below it.",
+  },
+  "street-food": {
+    reference:
+      "Hugeicons `street-food` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["stall", "cart", "food"],
+    description: "A food stall with an awning over a counter on two wheels.",
+  },
+  "structure-folder-circle": {
+    reference:
+      "Hugeicons `structure-folder-circle` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["structure", "hierarchy", "folder"],
+    description: "Two linked circles connected down to a folder.",
+  },
+  student: {
+    reference:
+      "Hugeicons `student` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["student", "graduate", "school"],
+    description: "A person wearing a mortarboard.",
+  },
+  students: {
+    reference:
+      "Hugeicons `students` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["students", "class", "school"],
+    description: "Two people side by side, each in a mortarboard.",
+  },
+  "tanker-truck": {
+    reference:
+      "Hugeicons `tanker-truck` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tanker", "truck", "fuel"],
+    description: "A truck carrying a round tank behind its cab.",
+  },
+  "treadmill-01": {
+    reference:
+      "Hugeicons `treadmill-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["treadmill", "fitness", "running"],
+    description: "A treadmill belt with an upright and a console.",
+  },
+  "utensils-crossed": {
+    reference:
+      "Hugeicons `utensils-crossed` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["restaurant", "cutlery", "dining"],
+    description: "A fork and a knife crossed in an X.",
+  },
+  vomiting: {
+    reference:
+      "Hugeicons `vomiting` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["sick", "nausea", "face"],
+    description: "A face being sick, the spill below its mouth.",
+  },
+  wanted: {
+    reference:
+      "Hugeicons `wanted` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["poster", "wanted", "portrait"],
+    description: "A wanted poster: a portrait under a heading bar.",
+  },
+  watermelon: {
+    reference:
+      "Hugeicons `watermelon` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["fruit", "watermelon", "slice"],
+    description: "A half-disc watermelon slice with rind line and seeds.",
+  },
+  "webhook-off": {
+    reference:
+      "Hugeicons `webhook-off` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["webhook", "disabled", "off"],
+    description: "The webhook symbol crossed out by a diagonal slash.",
+  },
+  "weight-tilde": {
+    reference:
+      "Hugeicons `weight-tilde` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["weight", "approximate", "mass"],
+    description: "A weight with a tilde on it.",
+  },
+  "wireless-cloud-access": {
+    reference:
+      "Hugeicons `wireless-cloud-access` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cloud", "wifi", "wireless"],
+    description: "A cloud above a wifi sign.",
+  },
+  worm: {
+    reference:
+      "Hugeicons `worm` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["worm", "bait", "wriggle"],
+    description: "A worm wriggling in a wave.",
+  },
+  "sphere-fill": {
+    reference: "Filled variant of our own `sphere`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "sphere"],
+    description: "Filled: a circle with a curved equator, drawn as a sphere.",
+  },
+  "square-arrow-data-transfer-diagonal-fill": {
+    reference:
+      "Filled variant of our own `square-arrow-data-transfer-diagonal`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "square"],
+    description: "Filled: a square with two opposite diagonal arrows inside.",
+  },
+  "weight-tilde-fill": {
+    reference:
+      "Filled variant of our own `weight-tilde`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "weight"],
+    description: "Filled: a weight with a tilde on it.",
+  },
+  adzan: {
+    reference:
+      "Hugeicons `adzan` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["call", "minaret", "prayer"],
+    description: "A minaret with sound waves for the call to prayer.",
+  },
+  "al-aqsa-mosque": {
+    reference:
+      "Hugeicons `al-aqsa-mosque` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dome", "jerusalem", "mosque"],
+    description: "The Dome of the Rock: a dome on a drum over a wide hall.",
+  },
+  angel: {
+    reference:
+      "Hugeicons `angel` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["angel", "halo", "wings"],
+    description: "An angel with a halo, a robe and raised wings.",
+  },
+  "bedug-01": {
+    reference:
+      "Hugeicons `bedug-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drum", "bedug", "mosque"],
+    description: "A barrel drum lying on its stand.",
+  },
+  "bedug-02": {
+    reference:
+      "Hugeicons `bedug-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["drum", "bedug", "hanging"],
+    description: "A barrel drum hung from a beam between two posts.",
+  },
+  caduceus: {
+    reference:
+      "Hugeicons `caduceus` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["medicine", "staff", "snakes"],
+    description: "A winged staff with two snakes winding around it.",
+  },
+  cross: {
+    reference:
+      "Hugeicons `cross` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cross", "christian", "faith"],
+    description: "A Latin cross in outline.",
+  },
+  dua: {
+    reference:
+      "Hugeicons `dua` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["dua", "supplication", "prayer"],
+    description: "A person with both hands raised in supplication.",
+  },
+  "eid-mubarak": {
+    reference:
+      "Hugeicons `eid-mubarak` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["eid", "crescent", "lantern"],
+    description: "A crescent moon with a small lantern hanging beside it.",
+  },
+  halal: {
+    reference:
+      "Hugeicons `halal` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["halal", "stamp", "crescent"],
+    description: "A round stamp with a crescent.",
+  },
+  "halal-lab": {
+    reference:
+      "Hugeicons `halal-lab` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["halal", "lab", "flask"],
+    description: "A conical flask with a crescent inside.",
+  },
+  hijab: {
+    reference:
+      "Hugeicons `hijab` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hijab", "headscarf", "woman"],
+    description: "A headscarf framing a face and falling to the shoulders.",
+  },
+  "kaaba-01": {
+    reference:
+      "Hugeicons `kaaba-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["kaaba", "mecca", "cube"],
+    description: "The Kaaba as a solid cube with its band.",
+  },
+  "kaaba-02": {
+    reference:
+      "Hugeicons `kaaba-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["kaaba", "mecca", "cube"],
+    description: "The Kaaba as an outlined cube with its band on both faces.",
+  },
+  keffiyeh: {
+    reference:
+      "Hugeicons `keffiyeh` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["keffiyeh", "headdress", "agal"],
+    description: "A head cloth falling to the shoulders, held by an agal cord.",
+  },
+  ketupat: {
+    reference:
+      "Hugeicons `ketupat` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ketupat", "rice", "eid"],
+    description: "The woven diamond rice pouch with two leaf ends.",
+  },
+  "mosque-01": {
+    reference:
+      "Hugeicons `mosque-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mosque", "dome", "crescent"],
+    description: "A dome with a crescent finial over a hall with an arched door.",
+  },
+  "mosque-02": {
+    reference:
+      "Hugeicons `mosque-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mosque", "minaret", "dome"],
+    description: "The shared mosque dome with one minaret.",
+  },
+  "mosque-03": {
+    reference:
+      "Hugeicons `mosque-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mosque", "minarets", "dome"],
+    description: "The shared mosque dome between two minarets.",
+  },
+  "mosque-04": {
+    reference:
+      "Hugeicons `mosque-04` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mosque", "arcade", "dome"],
+    description: "The shared mosque dome over a hall of three arches.",
+  },
+  "mosque-05": {
+    reference:
+      "Hugeicons `mosque-05` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mosque", "solid", "minarets"],
+    description: "A solid mosque with a dome and two minarets.",
+  },
+  "mosque-location": {
+    reference:
+      "Hugeicons `mosque-location` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mosque", "location", "pin"],
+    description: "A map pin with a dome in its head.",
+  },
+  niqab: {
+    reference:
+      "Hugeicons `niqab` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["niqab", "veil", "woman"],
+    description: "A veil covering the face except for an eye slit.",
+  },
+  "prayer-rug-01": {
+    reference:
+      "Hugeicons `prayer-rug-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["prayer", "rug", "niche"],
+    description: "A prayer rug with fringes and a pointed niche.",
+  },
+  "prayer-rug-02": {
+    reference:
+      "Hugeicons `prayer-rug-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["prayer", "rug", "rolled"],
+    description: "A half-rolled prayer rug with its pointed niche.",
+  },
+  "quran-01": {
+    reference:
+      "Hugeicons `quran-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["quran", "book", "crescent"],
+    description: "A closed book with a crescent on its cover.",
+  },
+  "quran-02": {
+    reference:
+      "Hugeicons `quran-02` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["quran", "rehal", "stand"],
+    description: "An open book resting on a crossed rehal stand.",
+  },
+  "quran-03": {
+    reference:
+      "Hugeicons `quran-03` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["quran", "open", "book"],
+    description: "An open book under a crescent.",
+  },
+  "ramadhan-01": {
+    reference:
+      "Hugeicons `ramadhan-01` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ramadan", "fanous", "lantern"],
+    description: "A Ramadan fanous lantern with a flame.",
+  },
+  "ramadhan-month": {
+    reference:
+      "Hugeicons `ramadhan-month` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["ramadan", "calendar", "month"],
+    description: "A calendar with a crescent in place of the day.",
+  },
+  "rub-el-hizb": {
+    reference:
+      "Hugeicons `rub-el-hizb` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["star", "octagram", "islamic"],
+    description: "The eight-pointed star of two overlapping squares.",
+  },
+  salah: {
+    reference:
+      "Hugeicons `salah` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["salah", "standing", "prayer"],
+    description: "A person standing in prayer with folded arms on a mat.",
+  },
+  "salah-time": {
+    reference:
+      "Hugeicons `salah-time` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["prayer", "time", "clock"],
+    description: "A clock with a crescent badge.",
+  },
+  tasbih: {
+    reference:
+      "Hugeicons `tasbih` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tasbih", "beads", "rosary"],
+    description: "A loop of prayer beads with a tassel.",
+  },
+  "the-prophets-mosque": {
+    reference:
+      "Hugeicons `the-prophets-mosque` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["medina", "dome", "mosque"],
+    description: "The Prophet's Mosque with its green dome between two minarets.",
+  },
+  wudu: {
+    reference:
+      "Hugeicons `wudu` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["wudu", "ablution", "water"],
+    description: "An open hand under a falling water drop.",
+  },
+  "cross-fill": {
+    reference: "Filled variant of our own `cross`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "cross"],
+    description: "Filled: a Latin cross in outline.",
+  },
+  "halal-fill": {
+    reference: "Filled variant of our own `halal`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "halal"],
+    description: "Filled: a round stamp with a crescent.",
+  },
+  "ketupat-fill": {
+    reference: "Filled variant of our own `ketupat`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "ketupat"],
+    description: "Filled: the woven diamond rice pouch with two leaf ends.",
+  },
+  "mosque-location-fill": {
+    reference:
+      "Filled variant of our own `mosque-location`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "mosque"],
+    description: "Filled: a map pin with a dome in its head.",
+  },
+  "prayer-rug-01-fill": {
+    reference:
+      "Filled variant of our own `prayer-rug-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "prayer"],
+    description: "Filled: a prayer rug with fringes and a pointed niche.",
+  },
+  "quran-01-fill": {
+    reference: "Filled variant of our own `quran-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "quran"],
+    description: "Filled: a closed book with a crescent on its cover.",
+  },
+  "ramadhan-01-fill": {
+    reference: "Filled variant of our own `ramadhan-01`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "ramadhan"],
+    description: "Filled: a Ramadan fanous lantern with a flame.",
+  },
+  "rub-el-hizb-fill": {
+    reference: "Filled variant of our own `rub-el-hizb`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "rub"],
+    description: "Filled: the eight-pointed star of two overlapping squares.",
+  },
+  "alphabet-arabic": {
+    reference:
+      "Hugeicons `alphabet-arabic` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["arabic", "ain", "alphabet"],
+    description: "The letter ain for the Arabic alphabet.",
+  },
+  "alphabet-bangla": {
+    reference:
+      "Hugeicons `alphabet-bangla` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["bangla", "bengali", "script"],
+    description: "The Bengali letter o for Bangla.",
+  },
+  "alphabet-chinese": {
+    reference:
+      "Hugeicons `alphabet-chinese` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["chinese", "wen", "script"],
+    description: "The character wen for Chinese script.",
+  },
+  "alphabet-greek": {
+    reference:
+      "Hugeicons `alphabet-greek` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["greek", "omega", "alphabet"],
+    description: "A capital omega for the Greek alphabet.",
+  },
+  "alphabet-hindi": {
+    reference:
+      "Hugeicons `alphabet-hindi` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["hindi", "devanagari", "script"],
+    description: "The Devanagari letter a for Hindi.",
+  },
+  "alphabet-japanese": {
+    reference:
+      "Hugeicons `alphabet-japanese` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["japanese", "hiragana", "script"],
+    description: "The hiragana a for Japanese script.",
+  },
+  "alphabet-korean": {
+    reference:
+      "Hugeicons `alphabet-korean` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["korean", "hangul", "script"],
+    description: "The syllable ga for Korean script.",
+  },
+  berlin: {
+    reference:
+      "Hugeicons `berlin` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["berlin", "brandenburg", "gate"],
+    description: "The Brandenburg Gate with its quadriga over columns.",
+  },
+  "berlin-tower": {
+    reference:
+      "Hugeicons `berlin-tower` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["tv", "tower", "berlin"],
+    description: "The Berlin TV tower: a ball on a needle and shaft.",
+  },
+  borobudur: {
+    reference:
+      "Hugeicons `borobudur` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["borobudur", "stupa", "temple"],
+    description: "Borobudur: a bell stupa on stepped terraces.",
+  },
+  "burj-al-arab": {
+    reference:
+      "Hugeicons `burj-al-arab` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["burj", "dubai", "sail"],
+    description: "The sail-shaped Burj Al Arab tower on its island.",
+  },
+  "cayan-tower": {
+    reference:
+      "Hugeicons `cayan-tower` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["cayan", "twisted", "tower"],
+    description: "A tall tower whose floors twist around it.",
+  },
+  "central-shaheed-minar": {
+    reference:
+      "Hugeicons `central-shaheed-minar` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["shaheed", "minar", "memorial"],
+    description: "A tall frame with a bowed head between two lower frames.",
+  },
+  "china-temple": {
+    reference:
+      "Hugeicons `china-temple` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pagoda", "temple", "china"],
+    description: "A pagoda with upturned eaves, a spire and a door.",
+  },
+  colosseum: {
+    reference:
+      "Hugeicons `colosseum` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["colosseum", "rome", "arena"],
+    description: "The Colosseum's tiers of arches, broken off on one side.",
+  },
+  "eiffel-tower": {
+    reference:
+      "Hugeicons `eiffel-tower` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["eiffel", "paris", "tower"],
+    description: "The Eiffel tower with its platforms, splayed legs and arch.",
+  },
+  "india-gate": {
+    reference:
+      "Hugeicons `india-gate` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["india", "gate", "arch"],
+    description: "India Gate, a memorial arch with a cornice and small dome.",
+  },
+  "mayan-pyramid": {
+    reference:
+      "Hugeicons `mayan-pyramid` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["mayan", "pyramid", "temple"],
+    description: "A stepped Mayan pyramid with a temple and a central stair.",
+  },
+  monas: {
+    reference:
+      "Hugeicons `monas` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["monas", "jakarta", "monument"],
+    description: "The Monas obelisk crowned with a flame on its cup platform.",
+  },
+  "pisa-tower": {
+    reference:
+      "Hugeicons `pisa-tower` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["pisa", "leaning", "tower"],
+    description: "The leaning tower of Pisa, its storeys stepped to one side.",
+  },
+  "taj-mahal": {
+    reference:
+      "Hugeicons `taj-mahal` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["taj", "mahal", "dome"],
+    description: "The Taj Mahal: an onion dome on an arched hall between minarets.",
+  },
+  "torri-gate": {
+    reference:
+      "Hugeicons `torri-gate` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["torii", "gate", "shrine"],
+    description: "A Japanese torii gate with two beams and two posts.",
+  },
+  trulli: {
+    reference:
+      "Hugeicons `trulli` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["trullo", "cone", "house"],
+    description: "A trullo: a conical stone roof on a whitewashed wall.",
+  },
+  "twin-tower": {
+    reference:
+      "Hugeicons `twin-tower` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["twin", "towers", "skybridge"],
+    description: "Two spired towers linked by a skybridge.",
+  },
+  "washington-monument": {
+    reference:
+      "Hugeicons `washington-monument` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    labels: ["obelisk", "washington", "monument"],
+    description: "The Washington Monument obelisk on a stepped base.",
+  },
+  "washington-monument-fill": {
+    reference:
+      "Filled variant of our own `washington-monument`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "washington"],
+    description: "Filled: the Washington Monument obelisk on a stepped base.",
+  },
+  "burj-al-arab-fill": {
+    reference:
+      "Filled variant of our own `burj-al-arab`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "burj"],
+    description: "Filled: the sail-shaped Burj Al Arab tower on its island.",
+  },
+  "berlin-tower-fill": {
+    reference:
+      "Filled variant of our own `berlin-tower`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "berlin"],
+    description: "Filled: the Berlin TV tower: a ball on a needle and shaft.",
+  },
+  "borobudur-fill": {
+    reference: "Filled variant of our own `borobudur`, generated from its outline on 2026-11-17.",
+    labels: ["filled", "solid", "borobudur"],
+    description: "Filled: borobudur: a bell stupa on stepped terraces.",
   },
 };

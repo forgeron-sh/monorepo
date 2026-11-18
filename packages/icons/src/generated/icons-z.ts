@@ -2,7 +2,7 @@
 // Do not edit: draw an icon in src/drawn/<name>.ts, then run the generator.
 import type { PixelIcon, StubIcon } from "../types";
 
-export const ZakatIcon: StubIcon = { name: "zakat", implemented: false };
+export const ZakatIcon: PixelIcon = { name: "zakat", implemented: true, style: "pixel", grid: 12, rows: ["", "", "", ".......ooo", "......o...o", ".......ooo", "......o...o", "....#..ooo", "#..#", "#.#########", "#.####", "#.########"] };
 export const ZapIcon: PixelIcon = { name: "zap", implemented: true, style: "pixel", grid: 12, rows: ["......oo", ".....oo", "....oo", "...oooooo", "......oo", ".....oo", "....oo", "...oo", "", "#.#.#.#.#.#"] };
 export { default as ZapOffIcon } from "../drawn/zap-off";
 export { default as ZendeskIcon } from "../drawn/zendesk";

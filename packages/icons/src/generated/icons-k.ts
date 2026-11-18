@@ -2,17 +2,18 @@
 // Do not edit: draw an icon in src/drawn/<name>.ts, then run the generator.
 import type { PixelIcon, StubIcon } from "../types";
 
-export const Kaaba01Icon: StubIcon = { name: "kaaba-01", implemented: false };
-export const Kaaba02Icon: StubIcon = { name: "kaaba-02", implemented: false };
+export { default as Kaaba01Icon } from "../drawn/kaaba-01";
+export { default as Kaaba02Icon } from "../drawn/kaaba-02";
 export { default as KanbanIcon } from "../drawn/kanban";
 export { default as KayakIcon } from "../drawn/kayak";
-export const KeffiyehIcon: StubIcon = { name: "keffiyeh", implemented: false };
+export { default as KeffiyehIcon } from "../drawn/keffiyeh";
 export { default as KettleIcon } from "../drawn/kettle";
 export const Kettle01Icon: PixelIcon = { name: "kettle-01", implemented: true, style: "pixel", grid: 12, rows: ["", ".....##", "...######", "#.#......###", ".##......#.#", "..#......#.#", "..#......###", "..#......#", ".#........#", ".##########"] };
 export { default as KettleFillIcon } from "../drawn/kettle-fill";
 export { default as KettlebellIcon } from "../drawn/kettlebell";
 export { default as KettlebellFillIcon } from "../drawn/kettlebell-fill";
-export const KetupatIcon: StubIcon = { name: "ketupat", implemented: false };
+export { default as KetupatIcon } from "../drawn/ketupat";
+export { default as KetupatFillIcon } from "../drawn/ketupat-fill";
 export { default as Key01Icon } from "../drawn/key-01";
 export { default as Key02Icon } from "../drawn/key-02";
 export { default as KeyGeneratorFobIcon } from "../drawn/key-generator-fob";
