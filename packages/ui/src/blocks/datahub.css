@@ -1,0 +1,951 @@
+/* Blocks of the "datahub" group. Values come from tokens/tokens.css. */
+
+.fg-dh-grid-wrap,
+.fg-dh-sf,
+.fg-dh-tl,
+.fg-dh-imp,
+.fg-dh-map {
+  --fg-dh-hatch: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+}
+
+.fg-dh-glyph {
+  color: var(--ink-muted);
+}
+.fg-dh-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.fg-dh-spacer {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------- RelationPicker */
+
+.fg-dh-relpick {
+  min-width: 0;
+  max-width: 100%;
+}
+.fg-dh-relpick:not(.fg-selm-chip) {
+  width: 100%;
+}
+.fg-dh-relpick-empty {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-muted);
+}
+.fg-dh-relchips,
+.fg-dh-chips {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.fg-dh-relchip,
+.fg-dh-choicechip,
+.fg-dh-filechip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 20px;
+  padding: 0 6px;
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink);
+  font: 400 12px/18px var(--font-sans);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A link to another record: dashed, as the foreign key chip. */
+.fg-dh-relchip {
+  border-style: dashed;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.fg-dh-relpop {
+  width: 300px;
+}
+
+/* ---------------------------------------------------------------- FieldInput */
+
+.fg-dh-num {
+  text-align: end;
+}
+.fg-dh-date {
+  width: 100%;
+}
+.fg-dh-files {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+}
+.fg-dh-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 2px 0 8px;
+  border: var(--border-width) solid var(--line-strong);
+  font: 400 12.5px/18px var(--font-mono);
+}
+.fg-dh-file-name {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dh-file-x {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.fg-dh-file-x:hover {
+  color: var(--ink);
+}
+.fg-dh-file-x:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+}
+
+/* ---------------------------------------------------------------- RecordForm */
+
+.fg-dh-form,
+.fg-dh-fed {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-dh-form-rows {
+  display: flex;
+  flex-direction: column;
+}
+.fg-dh-form-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 34%) minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-dh-form-row:first-child {
+  padding-top: 0;
+}
+.fg-dh-form-key {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 6px;
+}
+.fg-dh-form-name {
+  font: 500 12.5px/18px var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.fg-dh-req {
+  margin-left: 2px;
+  color: var(--accent);
+}
+.fg-dh-form-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-dh-form-value {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.fg-dh-form-value > .fg-selm,
+.fg-dh-form-value > .fg-selm-trigger {
+  width: 100%;
+}
+.fg-dh-form-locked {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--ink-muted);
+  font: 400 12.5px/18px var(--font-mono);
+}
+.fg-dh-form-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--line);
+}
+
+/* ---------------------------------------------------------------- FieldEditor */
+
+.fg-dh-fed {
+  gap: var(--space-4);
+}
+.fg-dh-fed-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+.fg-dh-fed-type .fg-selm,
+.fg-dh-fed-type .fg-selm-trigger,
+.fg-dh-fed > .fg-selm,
+.fg-dh-fed > .fg-selm .fg-selm-trigger,
+.fg-dh-fed-row .fg-selm-trigger {
+  width: 100%;
+  min-width: 0;
+}
+.fg-dh-fed-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.fg-dh-fed-rules,
+.fg-dh-choices {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fg-dh-fed-rules {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-6);
+}
+.fg-dh-fed-rules > legend {
+  float: left;
+  width: 100%;
+  margin-bottom: var(--space-1);
+}
+.fg-dh-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-dh-choice {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 6px;
+}
+.fg-dh-choice-color {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: var(--border-width) solid var(--line-strong);
+  background: transparent;
+  cursor: pointer;
+}
+.fg-dh-choice-color:hover {
+  border-color: var(--ink-muted);
+}
+.fg-dh-choice-color:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-dh-choice-color .fg-swatch-mark {
+  width: 10px;
+  height: 10px;
+}
+.fg-input.fg-dh-choice-input {
+  height: 26px;
+  font-size: 12.5px;
+}
+@media (max-width: 480px) {
+  .fg-dh-fed-top,
+  .fg-dh-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------- SchemaFields */
+
+.fg-dh-sf {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-dh-sf-empty {
+  margin: 0;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--line);
+  background-image: var(--fg-dh-hatch);
+  color: var(--ink-muted);
+}
+.fg-dh-sf-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-dh-sf-list:not(:empty) {
+  border: var(--border-width) solid var(--line);
+}
+.fg-dh-sf-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  background: var(--bg-raised);
+}
+.fg-dh-sf-row + .fg-dh-sf-row {
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-dh-sf-row:hover {
+  background: var(--bg);
+}
+.fg-dh-sf-current {
+  box-shadow: inset 2px 0 0 var(--accent);
+  background: var(--bg);
+}
+.fg-dh-sf-dragging {
+  opacity: 0.5;
+}
+.fg-dh-sf-over {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+.fg-dh-sf-grip {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  align-self: stretch;
+  color: var(--ink-dim);
+  cursor: grab;
+}
+.fg-dh-sf-grip.fg-dh-sf-fixed {
+  cursor: default;
+}
+.fg-dh-sf-grip:active {
+  cursor: grabbing;
+}
+.fg-dh-sf-main {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fg-dh-sf-main:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-dh-sf-glyph {
+  display: inline-grid;
+  color: var(--ink-muted);
+}
+.fg-dh-sf-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.fg-dh-sf-name {
+  font: 500 12.5px/18px var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dh-sf-desc {
+  color: var(--ink-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dh-sf-type {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  white-space: nowrap;
+}
+.fg-dh-sf-chips {
+  display: inline-flex;
+  gap: 4px;
+}
+.fg-dh-sf-more {
+  margin-right: 6px;
+  opacity: 0;
+}
+.fg-dh-sf-row:hover .fg-dh-sf-more,
+.fg-dh-sf-row:focus-within .fg-dh-sf-more,
+.fg-dh-sf-more[data-popup-open] {
+  opacity: 1;
+}
+.fg-dh-sf-add {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+}
+@media (max-width: 480px) {
+  .fg-dh-sf-chips {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- TableList */
+
+.fg-dh-tl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-dh-tl-search {
+  width: 100%;
+}
+.fg-dh-tl-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.fg-dh-tl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+  padding: 0 0 0 6px;
+}
+.fg-dh-tl-heading {
+  margin: 0;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-dh-tl-items {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-dh-tl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 30px;
+  padding: 0 6px;
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--ink-muted);
+  font: 400 12.5px/18px var(--font-mono);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.fg-dh-tl-row:hover {
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+.fg-dh-tl-row:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-dh-tl-row[aria-current="page"] {
+  background: var(--bg-raised);
+  border-color: var(--line);
+  box-shadow: inset 2px 0 0 var(--accent);
+  color: var(--ink);
+}
+.fg-dh-tl-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dh-tl-end {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--ink-dim);
+}
+.fg-dh-tl-count {
+  font-size: 11px;
+}
+.fg-dh-tl-empty {
+  margin: 0;
+  padding: 8px 6px;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+
+/* ---------------------------------------------------------------- RecordGrid */
+
+.fg-dh-grid-wrap {
+  position: relative;
+  max-width: 100%;
+  overflow: auto;
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-raised);
+}
+.fg-dh-grid {
+  width: max-content;
+  min-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-dh-grid th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 32px;
+  padding: 0;
+  background: var(--bg-raised);
+  border-bottom: var(--border-width) solid var(--line-strong);
+  border-inline-end: var(--border-width) solid var(--line);
+  font-weight: 500;
+  text-align: start;
+}
+.fg-dh-th {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  min-width: 0;
+}
+.fg-dh-th-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 500 12px/16px var(--font-mono);
+  text-align: start;
+}
+button.fg-dh-th-main {
+  cursor: pointer;
+}
+button.fg-dh-th-main:hover {
+  background: var(--bg);
+}
+button.fg-dh-th-main:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-dh-th-main .fg-icon {
+  color: var(--ink-muted);
+}
+.fg-dh-th-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dh-th-sort {
+  color: var(--accent);
+}
+.fg-dh-th-more {
+  margin-right: 4px;
+  opacity: 0;
+}
+.fg-dh-grid th:hover .fg-dh-th-more,
+.fg-dh-th-more:focus-visible,
+.fg-dh-th-more[data-popup-open] {
+  opacity: 1;
+}
+.fg-dh-grid td {
+  height: 32px;
+  padding: 0;
+  border-bottom: var(--border-width) solid var(--line);
+  border-inline-end: var(--border-width) solid var(--line);
+  background: var(--bg-raised);
+}
+.fg-dh-cell {
+  position: relative;
+  padding: 0 8px !important;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+  outline: none;
+}
+.fg-dh-cell.fg-dh-end {
+  text-align: end;
+}
+.fg-dh-pk {
+  color: var(--ink-muted);
+}
+.fg-dh-text {
+  white-space: nowrap;
+}
+/* The current cell: an ink frame; ember while it has the keyboard. */
+.fg-dh-active {
+  box-shadow: inset 0 0 0 1px var(--ink-dim);
+}
+.fg-dh-active:focus {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.fg-dh-editing {
+  overflow: visible;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: var(--bg) !important;
+}
+/* Changed since the grid was shown: an ember corner, as the prototype marks a written cell. */
+.fg-dh-edited::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-top: 6px solid var(--accent);
+  border-left: 6px solid transparent;
+}
+.fg-dh-bool {
+  vertical-align: middle;
+}
+.fg-dh-bool-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.fg-dh-cellinput {
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+}
+.fg-dh-cell.fg-dh-end .fg-dh-cellinput {
+  text-align: end;
+}
+.fg-dh-cellerror {
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  z-index: 3;
+  padding: 2px 8px;
+  background: var(--danger);
+  color: var(--bg);
+  font: 500 11.5px/16px var(--font-sans);
+  white-space: nowrap;
+}
+.fg-dh-cellpick.fg-selm-trigger,
+.fg-dh-cellpick .fg-selm-trigger {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  border-color: transparent;
+}
+.fg-dh-gutter {
+  padding: 0 !important;
+  text-align: center;
+}
+.fg-dh-gutter > .fg-check-input {
+  margin: 0 auto;
+}
+.fg-dh-gutter-in {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.fg-dh-expand {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  opacity: 0;
+}
+.fg-dh-grid tr:hover .fg-dh-expand,
+.fg-dh-expand:focus-visible {
+  opacity: 1;
+}
+.fg-dh-expand:hover {
+  color: var(--ink);
+}
+.fg-dh-row-selected td {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-raised));
+}
+.fg-dh-addcol {
+  text-align: center;
+}
+.fg-dh-grid td.fg-dh-addcol,
+.fg-dh-grid td.fg-dh-grid-empty {
+  background-image: var(--fg-dh-hatch);
+}
+.fg-dh-grid-empty {
+  height: 96px !important;
+  color: var(--ink-muted);
+  text-align: center;
+}
+.fg-dh-addrow {
+  position: sticky;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font: 400 12.5px/18px var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+.fg-dh-addrow:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+.fg-dh-addrow:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+/* ---------------------------------------------------------------- ColumnMapping, ImportWizard */
+
+.fg-dh-map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.fg-dh-map-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-dh-map-table th {
+  padding: 6px 8px;
+  border-bottom: var(--border-width) solid var(--line-strong);
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-align: start;
+  text-transform: uppercase;
+}
+.fg-dh-map-table td {
+  padding: 6px 8px;
+  border-bottom: var(--border-width) solid var(--line);
+  vertical-align: middle;
+}
+.fg-dh-map-table .fg-selm,
+.fg-dh-map-table .fg-selm-trigger {
+  width: 100%;
+  min-width: 0;
+}
+.fg-dh-map-src {
+  display: block;
+  font: 500 12.5px/18px var(--font-mono);
+}
+.fg-dh-map-sample {
+  display: block;
+  max-width: 260px;
+  color: var(--ink-dim);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dh-map-skip .fg-dh-map-src {
+  color: var(--ink-muted);
+  text-decoration: line-through;
+}
+.fg-dh-map-arrow {
+  width: 24px;
+  color: var(--ink-dim);
+}
+.fg-dh-map-problems {
+  margin: 0;
+  padding: 8px 12px 8px 28px;
+  border: var(--border-width) solid var(--danger);
+  background: var(--danger-subtle);
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+.fg-dh-imp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-dh-steps {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  border: var(--border-width) solid var(--line);
+  list-style: none;
+}
+.fg-dh-step {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  color: var(--ink-dim);
+  font: 400 12px/16px var(--font-mono);
+  white-space: nowrap;
+}
+.fg-dh-step + .fg-dh-step {
+  border-left: var(--border-width) solid var(--line);
+}
+.fg-dh-step-n {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: var(--border-width) solid currentColor;
+  font-size: 11px;
+}
+.fg-dh-step-done {
+  color: var(--ink-muted);
+}
+.fg-dh-step-now {
+  background: var(--bg-raised);
+  box-shadow: inset 0 -2px 0 var(--accent);
+  color: var(--ink);
+}
+.fg-dh-step-now .fg-dh-step-n {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.fg-dh-imp-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.fg-dh-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 128px;
+  padding: var(--space-4);
+  border: var(--border-width) dashed var(--line-strong);
+  background-image: var(--fg-dh-hatch);
+  text-align: center;
+  cursor: pointer;
+}
+.fg-dh-drop:hover,
+.fg-dh-drop-over {
+  border-color: var(--accent);
+}
+.fg-dh-drop:focus-within {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-dh-drop-title {
+  padding: 0 6px;
+  background: var(--bg);
+  font-weight: 500;
+}
+.fg-dh-drop-hint {
+  padding: 0 6px;
+  background: var(--bg);
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.fg-dh-imp-sum {
+  margin: 0;
+}
+.fg-dh-bad {
+  color: var(--danger);
+}
+.fg-dh-imp-preview {
+  max-width: 100%;
+  overflow: auto;
+  border: var(--border-width) solid var(--line);
+}
+.fg-dh-imp-table td {
+  max-width: 220px;
+  font: 400 12px/16px var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fg-dh-imp-th {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.fg-dh-imp-bad {
+  background: var(--danger-subtle);
+  box-shadow: inset 2px 0 0 var(--danger);
+}
+.fg-dh-imp-why {
+  display: block;
+  color: var(--danger);
+  font: 400 11px/14px var(--font-sans);
+}
+.fg-dh-imp-done {
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-raised);
+}
+.fg-dh-imp-big {
+  color: var(--accent);
+  font: 400 32px/36px var(--font-pixel);
+}
+.fg-dh-imp .fg-dh-form-foot {
+  margin-top: 0;
+}
