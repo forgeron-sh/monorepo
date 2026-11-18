@@ -16,6 +16,13 @@ export {
 } from "./convert";
 export { flatten } from "./flatten";
 export { type Library, type ReadOptions, readBlueprint, resolveLocation } from "./read";
+export {
+  describeNumber,
+  describeScene,
+  type SceneBinOptions,
+  sceneDefs,
+  writeSceneBin,
+} from "./scenebin";
 export { type JsonSchema, SCHEMA } from "./schema";
 export type * from "./types";
 export { FORMAT_VERSION, SCHEMA_URL } from "./types";

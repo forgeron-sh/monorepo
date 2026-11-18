@@ -14,3 +14,10 @@ panic = "abort"
 [profile.release-speed]
 inherits = "release"
 opt-level = 3
+
+# Blueprint's raster runs every frame: speed over size (the module stays within its 150 KB).
+[profile.release.package.fg-blueprint]
+opt-level = 3
+
+[profile.release.package.fg-math]
+opt-level = 3

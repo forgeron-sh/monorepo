@@ -1,0 +1,34 @@
+# The Rust workspace (`Cargo.toml` at the root): fg-math, fg-blueprint, fg-canvas-core. Needs
+# rustup with the toolchain of `rust-toolchain.toml`, its proxies first on PATH (Homebrew's cargo
+# ignores the file; proto does not pin Rust here, see
+# `.prototools`); the `wasm` tasks also need wasm-bindgen-cli (the crate's exact version) and
+# wasm-opt (binaryen).
+language: rust
+
+workspace:
+  inheritedTasks:
+    exclude: ["typecheck"]
+
+tasks:
+  test:
+    command: cargo test --workspace
+    options:
+      runFromWorkspaceRoot: true
+    inputs: ["/crates/**/*", "/Cargo.toml", "/Cargo.lock", "/rust-toolchain.toml"]
+  clippy:
+    command: cargo clippy -p fg-math -p fg-blueprint --all-targets --features fg-blueprint/wasm -- -D warnings
+    options:
+      runFromWorkspaceRoot: true
+    inputs: ["/crates/**/*", "/Cargo.toml", "/Cargo.lock", "/rust-toolchain.toml"]
+  # Builds packages/blueprint/wasm/ (committed: the site and TypeScript-only work need no Rust).
+  wasm:
+    command: bun scripts/blueprint/build-wasm.ts
+    options:
+      runFromWorkspaceRoot: true
+      cache: false
+  # Fails unless the committed packages/blueprint/wasm/ is what the crates build, byte for byte.
+  wasm-check:
+    command: bun scripts/blueprint/build-wasm.ts --check
+    options:
+      runFromWorkspaceRoot: true
+      cache: false

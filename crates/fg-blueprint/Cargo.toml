@@ -1,0 +1,19 @@
+[package]
+name = "fg-blueprint"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.93"
+license = "Apache-2.0"
+publish = false
+description = "Blueprint's scene engine: SceneBin reader, still scenes, the low-resolution raster (painter and z-buffer), labels, the bitmap face, shading and paint (D-150)."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# The WebAssembly entry points (`src/wasm.rs`), built by scripts/blueprint/build-wasm.ts.
+wasm = ["dep:wasm-bindgen"]
+
+[dependencies]
+fg-math = { path = "../fg-math" }
+wasm-bindgen = { version = "=0.2.130", optional = true }

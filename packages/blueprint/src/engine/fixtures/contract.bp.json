@@ -1,0 +1,114 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "test/contract",
+  "parts": {
+    "rack": {
+      "params": {
+        "light": { "type": "flag", "default": false },
+        "h": { "type": "number", "default": 8 }
+      },
+      "prims": [
+        {
+          "kind": "box",
+          "at": [-1.4, -1.4, 0],
+          "size": [2.8, 2.8, "@h"],
+          "floors": 1,
+          "tone": [0.04, 0.1, 0.22],
+          "vents": "-y",
+          "look": { "if": "@light", "then": "accent", "else": "plain" }
+        },
+        {
+          "kind": "box",
+          "at": [0, 0, "@h"],
+          "size": [1, 2, 0.5],
+          "anchor": "base-centre",
+          "plate": true,
+          "layer": 2
+        },
+        {
+          "kind": "dot",
+          "at": [1.4, 0.6, 1.5],
+          "size": 1,
+          "ink": { "if": "@light", "then": "accent", "else": "dim" }
+        },
+        {
+          "kind": "line",
+          "points": [
+            [0, 0, 0],
+            [1, 0, 0],
+            [1, 1, { "p": "h", "k": 0.5, "b": 0.25 }]
+          ],
+          "ink": "faint",
+          "dash": 1,
+          "decor": true
+        },
+        {
+          "kind": "label",
+          "at": [0, 0, 10],
+          "text": "Rack été",
+          "to": [0, 0, "@h"],
+          "active": "@light"
+        },
+        {
+          "kind": "label",
+          "at": [0, 0, 12],
+          "text": "plain",
+          "plain": true,
+          "ink": "signal",
+          "visible": { "not": "@light" }
+        }
+      ],
+      "sockets": { "top": { "at": [0, 0, "@h"] } }
+    },
+    "cap": {
+      "prims": [{ "kind": "box", "at": [-0.5, -0.5, 0], "size": [1, 1, 1], "look": "ghost" }],
+      "sockets": { "base": { "at": [0, 0, 0] } }
+    }
+  },
+  "assemblies": {
+    "pair": {
+      "params": {
+        "on": { "type": "flag", "default": true },
+        "lift": { "type": "number", "default": 3 }
+      },
+      "instances": [
+        { "id": "a", "use": "rack", "params": { "light": "@on", "h": "@lift" } },
+        {
+          "id": "b",
+          "use": "rack",
+          "at": [0, 4, 0],
+          "turn": 2,
+          "scale": 1.5,
+          "layer": 1,
+          "params": { "light": { "not": "@on" } }
+        },
+        { "id": "c", "use": "cap", "snap": { "socket": "base", "to": "a.top" } }
+      ],
+      "sockets": { "top": "b.top" }
+    }
+  },
+  "scenes": {
+    "room": {
+      "title": "Contract",
+      "depth": "painter",
+      "camera": { "view": 1, "fit": { "fill": 0.8, "unit": "any" } },
+      "vars": {
+        "active": { "type": "int", "default": -1 },
+        "progress": { "type": "progress", "default": 0.25 }
+      },
+      "root": {
+        "params": { "open": { "type": "flag", "default": true } },
+        "instances": [
+          {
+            "id": "p",
+            "use": "pair",
+            "params": { "on": "@open", "lift": { "p": "progress", "k": 4, "b": 2 } }
+          },
+          { "use": "pair", "at": [10, 0, 0], "turn": 2, "visible": { "not": "@open" } },
+          { "use": "cap", "snap": { "socket": "base", "to": "p.top" }, "tag": "cap" }
+        ]
+      }
+    }
+  }
+}

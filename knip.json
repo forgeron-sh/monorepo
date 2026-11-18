@@ -28,6 +28,9 @@
     "packages/sdk": {
       "ignore": ["fixtures/**"]
     },
+    "packages/blueprint": {
+      "ignore": ["test/reference/**", "wasm/*.d.ts"]
+    },
     "packages/canvas": {
       "entry": ["bench/run.ts", "bench/browser.ts", "bench/build-wasm.ts", "bench/browser/main.ts"]
     },

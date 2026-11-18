@@ -1,6 +1,6 @@
 import { type Filter, plan } from "../core/filters";
 import { type ResolvedPalette, paint, resolvePalette } from "../core/palette";
-import { frameView, rasterSize, render } from "../core/render";
+import { frameView, rasterSize, renderTs } from "../core/render";
 import { gridCell } from "../core/svg";
 import type { SceneSource, View } from "../core/types";
 
@@ -76,7 +76,7 @@ export function mount(
       lastActive = active;
       options.onActive?.(active);
     }
-    const { frame, plan: p } = render(source, {
+    const { frame, plan: p } = renderTs(source, {
       width: state.width,
       height: state.height,
       filters: options.filters,

@@ -1,1 +1,15 @@
 language: typescript
+
+tasks:
+  # Every suite, with the parity of the Rust core against the TypeScript reference and its perf
+  # budgets (test/, under Node). Uses the committed module (packages/blueprint/wasm/): no Rust.
+  test:
+    command: vitest run --config vitest.config.ts
+    inputs:
+      [
+        "src/**/*",
+        "test/**/*",
+        "wasm/**/*",
+        "vitest.config.ts",
+        "/apps/site/src/illustrations/**/*",
+      ]

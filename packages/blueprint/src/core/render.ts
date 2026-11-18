@@ -1,3 +1,4 @@
+import { renderBlocks } from "../engine/index";
 import { rasterize } from "./draw";
 import { type Filter, type Plan, plan } from "./filters";
 import { createFrame, type Frame } from "./frame";
@@ -51,8 +52,28 @@ export function frameView(source: SceneSource, rasterWidth: number, rasterHeight
  * One frame: plans the filters, rasterises the scene at the raster resolution (the hoisted
  * `pixelate`) into materials, then shades it (dither, glow). Palette and grid are applied by the
  * outputs, which keep colours as references until the last moment.
+ *
+ * The raster is the Rust engine's (immediate mode): in a browser or a Worker, `await
+ * initBlueprint()` first; under Node and Bun it starts by itself.
  */
 export function render(source: SceneSource, options: RenderOptions): Rendered {
+  const p = plan(options.filters);
+  const [w, h] = rasterSize(options.width, options.height, p.pixel);
+  const view = options.view ?? frameView(source, w, h);
+  const scene = sceneAt(source, options.t ?? 0, options.active ?? -1);
+  const frame = renderBlocks(scene.blocks, view, w, h, {
+    labels: options.labels !== false,
+    dither: p.dither,
+    glow: p.glow,
+  });
+  return { frame, view, plan: p };
+}
+
+/**
+ * `render` on the TypeScript raster: what `mount` draws the site's canvases with until the site
+ * switches to the engine (docs/blueprint/engine.md, P4). Same frames, pixel for pixel.
+ */
+export function renderTs(source: SceneSource, options: RenderOptions): Rendered {
   const p = plan(options.filters);
   const [w, h] = rasterSize(options.width, options.height, p.pixel);
   const view = options.view ?? frameView(source, w, h);

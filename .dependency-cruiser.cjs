@@ -4,9 +4,11 @@ module.exports = {
     { name: "no-cycles", severity: "error", from: {}, to: { circular: true } },
     { name: "no-unresolved", severity: "error", from: {}, to: { couldNotResolve: true } },
     {
+      // Blueprint's parity suite is the exception: it renders the site's scenes, the scenes the
+      // engine must reproduce (docs/blueprint/engine.md, P2), and ships nowhere.
       name: "packages-do-not-import-apps",
       severity: "error",
-      from: { path: "^(packages|templates)/" },
+      from: { path: "^(packages|templates)/", pathNot: "^packages/blueprint/test/parity/" },
       to: { path: "^apps/" },
     },
     {

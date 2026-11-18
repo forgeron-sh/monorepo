@@ -6,6 +6,7 @@ export default defineConfig({
     include: [
       "apps/*/src/**/*.test.{ts,tsx}",
       "packages/*/src/**/*.test.ts",
+      "packages/blueprint/test/parity/still.test.ts",
       "packages/ui/tokens/*.test.ts",
       "scripts/*.test.ts",
       "templates/*/tests/**/*.test.ts",
