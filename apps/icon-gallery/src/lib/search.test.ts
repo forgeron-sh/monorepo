@@ -72,8 +72,8 @@ describe("search", () => {
       { id: "ai", label: "AI" },
     ]);
     expect(counts).toEqual([
-      { id: "security", label: "Security", total: 3, done: 1 },
-      { id: "ai", label: "AI", total: 1, done: 0 },
+      { id: "security", label: "Security", total: 3 },
+      { id: "ai", label: "AI", total: 1 },
     ]);
   });
 

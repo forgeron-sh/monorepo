@@ -52,7 +52,7 @@ forgeron/
 │   ├── gateway/            # Public Worker: dispatch, identity, registry, admin MCP, platform API
 │   ├── console/            # Workspace console (React + Vite), served as assets by the gateway
 │   ├── site/               # forgeron.app marketing site (Astro, React islands)
-│   ├── icon-gallery/       # dev gallery and coverage map of @forgeron/icons (Astro, React islands), not deployed
+│   ├── icon-gallery/       # dev gallery of @forgeron/icons (Astro, React islands), not deployed
 │   ├── font/               # font.forgeron.sh: specimen and downloads of the Forgeron Sans typeface (Astro, static)
 │   └── ui-gallery/         # ui.forgeron.sh: gallery of @forgeron/ui, examples, code and props (Astro, React islands)
 ├── packages/
@@ -124,7 +124,7 @@ Design points:
 | `gateway`      | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`, mapped hosts or workers.dev (D-126) | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
 | `console`      | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members, teams and their permissions, access by team × action, secrets, resource approval, audit log, settings                 |
 | `site`         | Astro, React islands                         | Worker + static assets                                            | Marketing site, public documentation eventually                                                                                                                   |
-| `icon-gallery` | Astro, React islands, `@forgeron/icons`      | local only (`astro dev`, port 5179)                               | Gallery of `@forgeron/icons` (search, filters, detail, copy and download), its coverage map per category, the review sheet and the grid study of `docs/icons.md`  |
+| `icon-gallery` | Astro, React islands, `@forgeron/icons`      | local only (`astro dev`, port 5179)                               | Gallery of `@forgeron/icons` (search, filters, detail, copy and download), and the grid study of `docs/icons.md`                                                  |
 | `font`         | Astro, no framework                          | Worker + static assets (`font.forgeron.sh`), local port 5180      | Specimen of Forgeron Sans read from its OTF files: construction plate, glyph set, sizes, usage, licence; `/playground` tester; downloads with checksums           |
 | `ui-gallery`   | Astro, React islands, `@forgeron/ui`         | Worker + static assets (`ui.forgeron.sh`), local port 5181        | Gallery of `@forgeron/ui`: atoms with live examples, their code and props, installation; blocks and pages planned (Soon)                                          |
 

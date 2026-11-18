@@ -3,7 +3,7 @@ import { toSvg } from "@forgeron/icons";
 import { Icon } from "@forgeron/icons/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-// The review sheet of `docs/icons.md`: each icon at the sizes it must read at (16, 24, 48 px), on
+// The sheet of the grid study: each icon at the sizes it must read at (16, 24, 48 px), on
 // dark and light, in both tones, and as a screen at 1 device pixel per CSS pixel would show it.
 
 export interface ReviewItem {

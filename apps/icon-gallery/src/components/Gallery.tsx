@@ -101,7 +101,7 @@ export default function Gallery() {
   const [page, setPage] = useState({ key, limit: PAGE });
   const limit = page.key === key ? page.limit : PAGE;
 
-  // The address bar holds the query: the coverage page links to a category this way.
+  // The address bar holds the query, so a category or an icon can be linked.
   useEffect(() => {
     const next = `${window.location.pathname}${searchFromQuery({ ...query, icon: open })}`;
     window.history.replaceState(null, "", next);
@@ -141,7 +141,6 @@ export default function Gallery() {
     (patch: Partial<GalleryQuery>) => setQuery((q) => ({ ...q, ...patch })),
     [],
   );
-  const done = manifest.filter((e) => e.implemented).length;
   const shown = results.slice(0, limit);
   const category = TOTALS.find((c) => c.id === query.category);
   const move = (step: number) => {
@@ -203,9 +202,6 @@ export default function Gallery() {
               >
                 <span className="cat-name">All icons</span>
                 <span className="cat-count t-mono">{manifest.length}</span>
-                <span className="cat-bar" aria-hidden="true">
-                  <span style={{ width: `${(done / manifest.length) * 100}%` }} />
-                </span>
               </button>
             </li>
             {TOTALS.map((c) => (
@@ -217,18 +213,7 @@ export default function Gallery() {
                   onClick={() => update({ category: query.category === c.id ? null : c.id })}
                 >
                   <span className="cat-name">{c.label}</span>
-                  <span className="cat-count t-mono">
-                    {c.done > 0 ? <span className="accent">{c.done}</span> : null}
-                    {c.done > 0 ? <span className="dim">/</span> : null}
-                    {c.total}
-                  </span>
-                  <span className="cat-bar" aria-hidden="true">
-                    <span
-                      style={{
-                        width: `${Math.max(c.done > 0 ? 3 : 0, (c.done / c.total) * 100)}%`,
-                      }}
-                    />
-                  </span>
+                  <span className="cat-count t-mono">{c.total}</span>
                 </button>
               </li>
             ))}

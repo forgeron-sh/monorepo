@@ -2,7 +2,7 @@
 
 Forgeron's icons: one named export per icon, plain data that a bundler drops when it is not imported, in two variants (monotone and duotone). The catalog mirrors the list of names of [Hugeicons](https://hugeicons.com), plus our own; every drawing is ours. A name with no drawing yet is a **stub**: it is exported, it renders nothing, and the manifest says it is not implemented.
 
-The gallery and the coverage map live in `apps/icon-gallery` (`bun run --cwd apps/icon-gallery dev`, port 5179).
+The gallery lives in `apps/icon-gallery` (`bun run --cwd apps/icon-gallery dev`, port 5179).
 
 ## Use
 
@@ -41,11 +41,11 @@ Monotone folds the secondary shapes into the primary tone; duotone gives them th
 
 ## Add or draw an icon
 
-**Read [`docs/icons.md`](../../docs/icons.md) first**: the drawing protocol, the review checklist and the rules. An icon is accepted when it reads at 16, 24 and 48 px in the gallery's review sheet (`/review?only=<name>&loupe=1`), not from its rows.
+**Read [`docs/icons.md`](../../docs/icons.md) first**: the drawing protocol, the review checklist and the rules. An icon is accepted when it reads at 16, 24 and 48 px in its detail in the gallery (`/?icon=<name>`), not from its rows.
 
 1. Check first that no drawn icon already shows the same thing; if one does, add the name to `src/generator/same-as.ts` instead of drawing it. Otherwise write `src/drawn/<name>.ts`, with a default export whose `name` is the file name. A Hugeicons name replaces its stub; a name of our own must also be added to `OWN_ICONS` in `src/generator/curated.ts`.
 2. Optionally give it a category, labels, a description or aliases in `CURATED` (`src/generator/curated.ts`).
-3. `bun run generate` (in this package). `bun run audit` prints done and missing icons per category.
+3. `bun run generate` (in this package).
 
 The generator only writes `src/generated/`, so it never touches a drawing, and it writes the same files when run twice. `bun run generate:check` fails when `src/generated/` is out of date; `manifest.test.ts` fails too.
 

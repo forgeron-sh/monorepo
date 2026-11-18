@@ -73,7 +73,6 @@ export interface CategoryCount {
   readonly id: string;
   readonly label: string;
   readonly total: number;
-  readonly done: number;
 }
 
 /** Totals per category, in the order of `categories`. */
@@ -81,15 +80,10 @@ export function countByCategory(
   entries: readonly IconManifestEntry[],
   categories: readonly { id: string; label: string }[],
 ): CategoryCount[] {
-  const totals = new Map<string, { total: number; done: number }>();
-  for (const entry of entries) {
-    const t = totals.get(entry.category) ?? { total: 0, done: 0 };
-    t.total++;
-    if (entry.implemented) t.done++;
-    totals.set(entry.category, t);
-  }
+  const totals = new Map<string, number>();
+  for (const entry of entries) totals.set(entry.category, (totals.get(entry.category) ?? 0) + 1);
   return categories
-    .map((c) => ({ id: c.id, label: c.label, ...(totals.get(c.id) ?? { total: 0, done: 0 }) }))
+    .map((c) => ({ id: c.id, label: c.label, total: totals.get(c.id) ?? 0 }))
     .filter((c) => c.total > 0);
 }
 

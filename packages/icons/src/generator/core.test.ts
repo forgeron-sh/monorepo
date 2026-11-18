@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { coverage, coverageTable } from "./audit";
 import {
   buildManifest,
   exportName,
@@ -203,20 +202,5 @@ describe("taxonomy", () => {
     expect(wordsOf("arrow-down-01")).toEqual(["arrow", "down"]);
     expect(variantOf("arrow-down-01")).toBe("01");
     expect(variantOf("anvil")).toBeUndefined();
-  });
-});
-
-describe("coverage", () => {
-  it("counts done and missing per category, then overall", () => {
-    const { manifest } = generate({
-      snapshot: snapshot(),
-      drawn: [{ name: "anvil", style: "pixel", duo: true }],
-      own: [],
-      curated: {},
-    });
-    const rows = coverage(manifest);
-    expect(rows.at(-1)).toEqual({ id: "all", label: "All", total: 5, done: 1, missing: 4 });
-    expect(rows.reduce((n, r) => (r.id === "all" ? n : n + r.total), 0)).toBe(5);
-    expect(coverageTable(rows)).toMatch(/^category\s+total\s+done\s+missing\s+done %/);
   });
 });

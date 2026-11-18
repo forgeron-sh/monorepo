@@ -13,8 +13,8 @@ Ten minutes per icon, in this order. Do not skip step 6: every bad icon in the s
 3. **Grid.** 12×12. 16×16 only for a brand mark that cannot fit (see [Grid and sizes](#grid-and-sizes)). Plan the margins: keep a one-pixel margin unless the shape is round or must be large (a circle can touch the edges; a square should not).
 4. **Line weight.** One pixel, like the rest of the set, or solid shapes. Choose one per icon and never mix a one-pixel outline with a two-pixel one.
 5. **Rows.** Write the rows: `#` primary tone, `o` secondary tone, `.` empty. Use the secondary tone for one idea only, or not at all (see [Do and don't](#do-and-dont)). Draw with full rows if it helps, then run `bun run trim` in `packages/icons`: it drops trailing `.` and trailing empty rows, which the renderer pads back (a test fails until it is done).
-6. **Render.** Put the drawing in `packages/icons/src/drawn/<name>.ts`, run `bun run generate` in `packages/icons`, start the gallery (`icon-gallery` in `.claude/launch.json`, port 5179) and open `/review?only=<name>&loupe=1`. The review sheet shows the icon at 16, 24 and 48 px in both tones, on dark and light, as a 1× screen draws it, and enlarged device pixels.
-7. **Review at 16, 24, 48** with the [checklist](#review-checklist). Compare with two or three neighbours of the set at the same size (`?only=<name>,clock-01,lock`): same weight, same size on the grid.
+6. **Render.** Put the drawing in `packages/icons/src/drawn/<name>.ts`, run `bun run generate` in `packages/icons`, start the gallery (`icon-gallery` in `.claude/launch.json`, port 5179) and open the icon's detail (`/?icon=<name>`). It shows the icon at 16, 24 and 48 px, in both tones, with its pixel grid.
+7. **Review at 16, 24, 48** with the [checklist](#review-checklist). Compare with two or three neighbours of the set at the same size: same weight, same size on the grid.
 8. **Fix and render again.** Change pixels, not the rule. Expect three or four rounds. Say so when it still does not read: a weak icon left as a stub is better than a bad one in the set.
 9. **Register.**
    - `src/drawn/<name>.ts`: the file name is the icon name; a comment says what it shows, and the reference it was redrawn after.
@@ -25,7 +25,7 @@ Ten minutes per icon, in this order. Do not skip step 6: every bad icon in the s
 
 ## Review checklist
 
-Look at the review sheet, not at the rows.
+Look at the rendered icon, not at the rows.
 
 - [ ] At **16 px**, a stranger names the subject in a second. The silhouette alone is enough.
 - [ ] At **24 px**, nothing looks broken, stray or blurred; the icon has the weight of `clock-01` or `lock` next to it.
@@ -57,7 +57,7 @@ Look at the review sheet, not at the rows.
 - **What popular pixel sets do.** pixelarticons (MIT) draws on a 24×24 viewBox but, in the SVGs checked, almost every number of the path data is even: all of them in `file-text` and `cloud`, 79 of 98 in `settings-cog`, 40 of 45 in `user`. In practice it draws on a 12-pixel grid with a few half-steps (measured from the Iconify SVGs on 2026-11-16). Its guidelines recommend display sizes that are multiples of the grid.
 - **Cost.** 35 drawn icons and the site's lab icons are on 12.
 
-**Use the sizes the grid divides**: 12, 24, 36, 48, 96 px for a 12-grid icon (16, 32, 48 for a 16-grid one). A 16 px slot works (the review sheet checks it) but is slightly soft on a 1× screen. If a product needs many crisp 16 px icons (the console's glyphs are 16 px today), the open option is a hand-drawn 16-grid variant of those icons, decided then, not a new base grid.
+**Use the sizes the grid divides**: 12, 24, 36, 48, 96 px for a 12-grid icon (16, 32, 48 for a 16-grid one). A 16 px slot works but is slightly soft on a 1× screen. If a product needs many crisp 16 px icons (the console's glyphs are 16 px today), the open option is a hand-drawn 16-grid variant of those icons, decided then, not a new base grid.
 
 ## Do and don't
 
@@ -204,7 +204,7 @@ A third-party mark is drawn to be **recognised**, not reinterpreted.
 
 ## Agent skills
 
-Searched on 2026-11-16 in skills.sh, Tessl and a few skill directories. No published skill covers pixel icons written as rows of characters and judged by rendering; none is worth installing for this package. This guide and the gallery's `/review` page are the tools.
+Searched on 2026-11-16 in skills.sh, Tessl and a few skill directories. No published skill covers pixel icons written as rows of characters and judged by rendering; none is worth installing for this package. This guide and the gallery are the tools.
 
 - `jezweb/icon-set-generator` (skills.sh, about 2,000 installs as listed): Lucide-like stroke icons in batches with an HTML preview at 24 and 48 px. Serious, but vector strokes. Its batch-and-preview idea is the one kept here.
 - `tryopendata/svg-design` (skills.sh, about 310 installs): a substantial reference on stroke icon geometry; some rules are inconsistent (its margin is given as one and as two pixels). Reading, not installing.
