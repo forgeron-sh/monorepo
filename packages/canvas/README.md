@@ -88,12 +88,14 @@ What flow, draw and the schema diagram plug in:
 
 `CanvasEngine` is the only door to the document: `dispatch(command)` with a plain-object command (`{ type: "nudge", dx, dy }`), `query(question)` (`{ type: "hit", point }`, `in-rect`, `in-lasso`, `visible`, `handle-at`, `nearest`…), `getState`, `subscribe`, `serialize`, `load`. `<Canvas>`, the chrome and the store's named commands use nothing else; the pure functions of `core/` are the TypeScript engine's internals and helpers for tests and consumers.
 
+The TypeScript engine (`createTsEngine`) keeps its items in an id table over a spatial index (`core/spatial-index.ts`: a hashed uniform grid of 256-unit cells, a list for the very large items, the stacking order sorted again only when z changes): `hit`, `in-rect`, `in-lasso`, `visible` and `nearest` ask the index instead of scanning every item, and patches are applied by id. At 20,000 items a hit test takes about a microsecond and moving 500 items a fifth of a millisecond (`docs/benchmarks/canvas-engine.md`). A kind's own `hitTest` is asked only for points inside the item's bounds: a shape that reaches outside them makes its bounds cover it.
+
 D-148 plans to move the core to a Rust crate compiled to WebAssembly (`fg-canvas-core`) after a benchmark. How the interface maps onto it:
 
 | Interface                | WASM engine                                                                                                              |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | `dispatch(command)`      | one exported function taking the command (JSON or a compact binary form), returning `EngineResult`                       |
-| `query(question)`        | answered from a spatial index (R-tree or grid); `visible` is culling, `hit` stays under 1 ms at 20k items                |
+| `query(question)`        | answered from the same hashed grid as the TypeScript engine; `visible` is culling, `hit` stays under 1 ms at 20k items   |
 | `getState` / `subscribe` | a change counter read after each dispatch; items mirrored to JS lazily, by id, for the DOM overlay                       |
 | `serialize` / `load`     | the same JSON, version 1                                                                                                 |
 | `Scene` for the renderer | GPU vertex buffers in shared memory, drawn by a WebGL2 `CanvasRenderer`; the DOM overlay keeps text and accessibility    |

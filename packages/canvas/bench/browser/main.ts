@@ -3,8 +3,9 @@
 
 import {
   boundaryCost,
+  STRIDE,
+  tsEngine,
   tsIndex,
-  tsScan,
   wasmCore,
   type BenchEngine,
   type CoreGlue,
@@ -21,7 +22,6 @@ import {
   type Stats,
 } from "../scenarios";
 import { makeScene } from "../scene-data";
-import { STRIDE } from "../ts-grid";
 import { createRenderer } from "../webgl2";
 
 const post = (path: string, body: unknown) =>
@@ -48,7 +48,7 @@ async function main() {
   const small = await loadGlue("release-opt");
   const fast = await loadGlue("release-speed-opt");
   const makers: (() => BenchEngine)[] = [
-    tsScan,
+    tsEngine,
     tsIndex,
     () => wasmCore(small.glue, small.memory, "rust-wasm (Oz)"),
     () => wasmCore(fast.glue, fast.memory, "rust-wasm (O3)"),

@@ -721,10 +721,17 @@ export function Canvas<D = unknown>({
 
   // Culling: the overlay holds the items in view, plus the selected and the focused ones.
   const shown = useMemo(() => {
-    const ids = new Set(store.query({ type: "visible", viewport, size, margin: overscan }));
-    for (const id of selection) ids.add(id);
-    if (liveFocus) ids.add(liveFocus);
-    return size.w ? items.filter((i) => ids.has(i.id)) : items;
+    if (!size.w) return items;
+    // The index answers bottom first: read those items by id rather than filtering them all.
+    const visible = store.query({ type: "visible", viewport, size, margin: overscan });
+    const ids = new Set(visible);
+    const extra = [...selection, ...(liveFocus ? [liveFocus] : [])].filter((id) => !ids.has(id));
+    if (extra.length === 0) {
+      return visible.map((id) => store.get(id)).filter((i): i is (typeof items)[number] => !!i);
+    }
+    // An off-screen selected or focused item: keep the document's order.
+    for (const id of extra) ids.add(id);
+    return items.filter((i) => ids.has(i.id));
   }, [store, items, viewport, size, overscan, selection, liveFocus]);
 
   const tabbableId = useMemo(() => {
@@ -734,7 +741,8 @@ export function Canvas<D = unknown>({
   }, [store, liveFocus, items, selection]);
 
   const scene = useMemo<Scene>(() => {
-    const selected = selectionChrome ? items.filter((i) => selection.has(i.id)) : [];
+    const selected =
+      selectionChrome && selection.size > 0 ? items.filter((i) => selection.has(i.id)) : [];
     const single = selected.length === 1 ? selected[0]! : null;
     const handles = single ? store.query({ type: "handles", id: single.id }) : [];
     const box = single ? boundsToScreen(viewport, single.bounds) : null;

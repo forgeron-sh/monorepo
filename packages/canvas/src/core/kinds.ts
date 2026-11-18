@@ -16,7 +16,11 @@ export interface ResizeRule {
 }
 
 export interface KindDefinition<D = unknown> {
-  /** Whether a world point touches the item; the bounds by default. An ellipse, a line, an arrow. */
+  /**
+   * Whether a world point touches the item; the bounds by default. An ellipse, a line, an arrow.
+   * The engine asks it only for points inside the bounds (it finds candidates in a spatial
+   * index): a shape that reaches outside them, a thick stroke, makes its bounds cover it.
+   */
   hitTest?: (item: Item<D>, point: Point) => boolean;
   /** `false`: no handles. The default allows all eight, down to one grid cell. */
   resize?: false | ResizeRule;

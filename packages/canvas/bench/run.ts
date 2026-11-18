@@ -7,8 +7,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cpus, loadavg, release, totalmem } from "node:os";
 import {
   boundaryCost,
+  tsEngine,
   tsIndex,
-  tsScan,
   wasmCore,
   type BenchEngine,
   type CoreGlue,
@@ -35,7 +35,7 @@ async function loadGlue(variant: string): Promise<{ glue: CoreGlue; memory: WebA
 const small = await loadGlue("release-opt");
 const fast = await loadGlue("release-speed-opt");
 const makers: (() => BenchEngine)[] = [
-  tsScan,
+  tsEngine,
   tsIndex,
   () => wasmCore(small.glue, small.memory, "rust-wasm (Oz)"),
   () => wasmCore(fast.glue, fast.memory, "rust-wasm (O3)"),
@@ -71,7 +71,6 @@ const results: (CpuResult & { heap: number; itemsHeap: number; wasmMemory?: numb
 for (const n of sizes) {
   for (const make of makers) {
     const name = make().name;
-    if (quick && name === "ts-scan" && n > 20_000) continue;
     const mem = heapDelta(make, n);
     const r = runCpu(make, n, { budget: quick ? 1500 : 6000 });
     const wasmMemory = name.startsWith("rust")

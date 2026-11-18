@@ -10,11 +10,13 @@ import {
   type Size,
   type Viewport,
 } from "../src/index";
+import { SpatialIndex } from "../src/core/spatial-index";
 import { KINDS } from "./scene-data";
-import { STRIDE, TsGrid } from "./ts-grid";
 
 /** World units per cell of the indexes: about twice the size of a typical item. */
 const CELL = 256;
+/** Floats per instance: x, y, w, h, kind, flags. */
+export const STRIDE = 6;
 
 export interface Instances {
   count: number;
@@ -38,12 +40,12 @@ export interface BenchEngine {
 
 const kindIndex = new Map<string, number>(KINDS.map((k, i) => [k, i]));
 
-/** `createTsEngine` as it is today: every query scans the items. */
-export function tsScan(): BenchEngine {
+/** `createTsEngine` itself, through `CanvasEngine`: ids in, ids out, items rebuilt per change. */
+export function tsEngine(): BenchEngine {
   let engine: CanvasEngine<null> = createTsEngine<null>();
   let buf = new Float32Array(1024 * STRIDE);
   return {
-    name: "ts-scan",
+    name: "ts-engine",
     load(items) {
       engine = createTsEngine<null>({ items });
     },
@@ -92,46 +94,77 @@ class IdTable {
   }
 }
 
-/** The same grid as the Rust crate, in TypeScript. */
+/**
+ * The engine's spatial index (`src/core/spatial-index.ts`) on its own, with the bounds and kinds
+ * in plain arrays: the same algorithm as the Rust crate, without `CanvasEngine` around it.
+ */
 export function tsIndex(): BenchEngine {
-  let grid = new TsGrid(CELL);
+  let grid = new SpatialIndex(CELL);
   const table = new IdTable();
-  let slotsIn = new Uint32Array(1024);
+  /** x, y, w, h per slot (the slots of a load are 0..n-1). */
+  let bounds = new Float64Array(0);
+  let kinds = new Uint8Array(0);
+  let instances = new Float32Array(1024 * STRIDE);
   return {
     name: "ts-index",
     load(items) {
-      grid = new TsGrid(CELL);
+      grid = new SpatialIndex(CELL);
       grid.reserve(items.length);
+      bounds = new Float64Array(items.length * 4);
+      kinds = new Uint8Array(items.length);
       for (const i of items) {
         const b = i.bounds;
-        grid.add(b.x, b.y, b.w, b.h, kindIndex.get(i.kind) ?? 0, i.z);
+        const s = grid.add(b.x, b.y, b.w, b.h, i.z);
+        bounds.set([b.x, b.y, b.w, b.h], s * 4);
+        kinds[s] = kindIndex.get(i.kind) ?? 0;
       }
       table.load(items);
     },
     frame(v, size, margin) {
-      const count = grid.frame(v.x, v.y, v.zoom, size.w, size.h, margin);
-      return { count, data: grid.instances };
+      const m = margin / v.zoom;
+      const x0 = -v.x / v.zoom - m;
+      const y0 = -v.y / v.zoom - m;
+      const n = grid.gather({
+        x0,
+        y0,
+        x1: x0 + (size.w / v.zoom + 2 * m),
+        y1: y0 + (size.h / v.zoom + 2 * m),
+      });
+      if (instances.length < n * STRIDE) instances = new Float32Array(n * STRIDE * 2);
+      const out = grid.out;
+      for (let i = 0, o = 0; i < n; i++, o += STRIDE) {
+        const s = out[i]!;
+        instances[o] = bounds[s * 4]!;
+        instances[o + 1] = bounds[s * 4 + 1]!;
+        instances[o + 2] = bounds[s * 4 + 2]!;
+        instances[o + 3] = bounds[s * 4 + 3]!;
+        instances[o + 4] = kinds[s]!;
+        instances[o + 5] = 0;
+      }
+      return { count: n, data: instances };
     },
     hit(x, y) {
       const s = grid.hit(x, y);
       return s < 0 ? null : table.ids[s]!;
     },
     box(rect, contain) {
-      const n = grid.inRect(rect.x, rect.y, rect.w, rect.h, contain);
+      const area = { x0: rect.x, y0: rect.y, x1: rect.x + rect.w, y1: rect.y + rect.h };
+      const n = contain ? grid.inside(area) : grid.gather(area);
       const out: string[] = Array.from({ length: n });
       for (let i = 0; i < n; i++) out[i] = table.ids[grid.out[i]!]!;
       return out;
     },
     move(ids, dx, dy) {
-      if (slotsIn.length < ids.length) slotsIn = new Uint32Array(ids.length * 2);
-      let n = 0;
       for (const id of ids) {
         const s = table.slots.get(id);
-        if (s !== undefined) slotsIn[n++] = s;
+        if (s === undefined) continue;
+        const o = s * 4;
+        const x = (bounds[o] = bounds[o]! + dx);
+        const y = (bounds[o + 1] = bounds[o + 1]! + dy);
+        grid.setBounds(s, x, y, bounds[o + 2]!, bounds[o + 3]!);
       }
-      grid.moveMany(slotsIn, n, dx, dy);
     },
-    bytes: () => grid.bytes() + table.bytes(),
+    bytes: () => grid.bytes() + bounds.byteLength + kinds.byteLength + table.bytes(),
   };
 }
 

@@ -1,10 +1,11 @@
-// The TypeScript engine: the reference implementation of `CanvasEngine`. Its queries scan the
-// items (no spatial index yet); the Rust engine of D-148 would answer the same queries from one.
+// The TypeScript engine: the reference implementation of `CanvasEngine`. Items live in an id
+// table over a spatial index (`item-index.ts`, a hashed grid): hit, box, lasso, culling and
+// nearest ask the index instead of scanning, and patches are applied by id. The Rust crate of
+// D-148 (`crates/fg-canvas-core`) has the same index, for when the core moves.
 
-import { unionBounds } from "./geometry";
+import { inflate, unionBounds } from "./geometry";
 import { DEFAULT_GRID, snap, type GridOptions } from "./grid";
 import {
-  applyPatches,
   createHistory,
   pick,
   record,
@@ -14,15 +15,8 @@ import {
   type History,
   type Patch,
 } from "./history";
-import {
-  handleAt,
-  hitTest,
-  itemsInLasso,
-  itemsInRect,
-  nearestInDirection,
-  readingOrder,
-  resizeBounds,
-} from "./hit";
+import { handleAt, readingOrder, resizeBounds } from "./hit";
+import { ItemIndex } from "./item-index";
 import { isMovable, kindOf, resizeRule, type KindMap } from "./kinds";
 import { applySelection, EMPTY_SELECTION, pruneSelection, sameSelection } from "./selection";
 import { deserialize, serialize } from "./serialize";
@@ -34,10 +28,10 @@ import {
   DEFAULT_ZOOM,
   fitBounds,
   IDENTITY,
-  intersectsView,
   panBy,
   roundViewport,
   stepZoom,
+  visibleWorld,
   zoomAt,
   type ZoomLimits,
 } from "./viewport";
@@ -67,8 +61,6 @@ export interface TsEngineOptions<D = unknown> {
   createId?: (kind: string, exists: (id: string) => boolean) => string;
 }
 
-const byZ = <D>(items: Item<D>[]) => items.sort((a, b) => a.z - b.z);
-
 export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): CanvasEngine<D> {
   const kinds: KindMap<D> = options.kinds ?? {};
   const grid: GridOptions = { ...DEFAULT_GRID, ...options.grid };
@@ -76,7 +68,7 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
   const readOnly = options.readOnly ?? false;
   const listeners = new Set<() => void>();
   let history: History<D> = createHistory(options.historyLimit ?? 200);
-  let index = new Map<string, Item<D>>();
+  const index = new ItemIndex<D>(kinds);
   let gesture: { label: string | undefined; before: Map<string, Item<D> | null> } | null = null;
   let clipboard: string | null = null;
   let pasteCount = 0;
@@ -94,20 +86,16 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
     revision: 0,
   };
 
-  const reindex = (items: ReadonlyArray<Item<D>>) => {
-    index = new Map(items.map((i) => [i.id, i]));
-  };
   const setState = (patch: Partial<CanvasState<D>>) => {
     state = { ...state, ...patch };
     for (const l of [...listeners]) l();
   };
+  /** Publishes `items`, bottom first and already in the index. */
   const setItems = (items: Item<D>[], extra: Partial<CanvasState<D>> = {}) => {
-    const sorted = byZ(items);
-    reindex(sorted);
     const selection = pruneSelection(extra.selection ?? state.selection, (id) => index.has(id));
     setState({
       ...extra,
-      items: sorted,
+      items,
       selection,
       canUndo: history.past.length > 0,
       canRedo: history.future.length > 0,
@@ -151,7 +139,7 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
         ...(meta.coalesce ? { coalesce: meta.coalesce } : {}),
       });
     }
-    setItems(applyPatches(state.items, patches), extra);
+    setItems(index.apply(state.items, patches), extra);
     return true;
   };
 
@@ -164,6 +152,16 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
     return out;
   };
 
+  /** The union of the bounds of these items, or of every item. */
+  const boundsOf = (ids?: ReadonlyArray<string>) =>
+    unionBounds(
+      ids
+        ? ids.flatMap((id) => {
+            const item = index.get(id);
+            return item ? [item.bounds] : [];
+          })
+        : state.items.map((i) => i.bounds),
+    );
   const topZ = () => state.items.at(-1)?.z ?? 0;
   const bottomZ = () => state.items[0]?.z ?? 0;
   const materialise = (list: ReadonlyArray<NewItem<D>>): Item<D>[] => {
@@ -175,7 +173,7 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
       return { ...n, id, z: n.z ?? ++z } as Item<D>;
     });
   };
-  const selected = () => state.items.filter((i) => state.selection.has(i.id));
+  const selected = () => index.inOrder(state.selection);
   const editable = () =>
     selected()
       .filter((i) => !i.locked)
@@ -207,10 +205,7 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
     return commit(updatePatches(changes), { label: "Move", ...meta }) ? done() : NONE;
   };
   const fitViewport = (ids?: ReadonlyArray<string>, padding?: number, maxZoom?: number) => {
-    const wanted = ids ? new Set(ids) : null;
-    const box = unionBounds(
-      state.items.filter((i) => !wanted || wanted.has(i.id)).map((i) => i.bounds),
-    );
+    const box = boundsOf(ids);
     if (!box || !state.size.w || !state.size.h) return state.viewport;
     return fitBounds(box, state.size, {
       limits: zoom,
@@ -223,7 +218,9 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
     const s = dir === "undo" ? undoStep(history) : redoStep(history);
     if (!s.patches) return NONE;
     history = s.history;
-    setItems(applyPatches(state.items, s.patches), { selection: new Set(touchedIds(s.patches)) });
+    setItems(index.apply(state.items, s.patches), {
+      selection: new Set(touchedIds(s.patches)),
+    });
     return done();
   };
   const endGesture = (): EngineResult<D> => {
@@ -266,7 +263,7 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
     let items = state.items.filter((i) => !g.before.has(i.id) || g.before.get(i.id));
     items = items.map((i) => g.before.get(i.id) ?? i);
     for (const [id, before] of g.before) if (before && !index.has(id)) items.push(before);
-    setItems(items);
+    setItems(index.reset(items));
     return done();
   };
   const addAll = (created: Item<D>[], label: string, selectThem: boolean) =>
@@ -313,7 +310,7 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
         case "replace":
           history = createHistory(history.limit);
           gesture = null;
-          setItems([...c.items], {
+          setItems(index.reset(c.items), {
             selection: EMPTY_SELECTION,
             connection: null,
             ...(c.viewport ? { viewport: c.viewport } : {}),
@@ -482,24 +479,19 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
       const answer = (): QueryResults<D>[EngineQuery["type"]] => {
         switch (q.type) {
           case "hit":
-            return hitTest(state.items, q.point, kinds);
+            return index.hit(q.point);
           case "in-rect":
-            return itemsInRect(state.items, q.rect, q.mode, kinds).map((i) => i.id);
+            return index.inRect(q.rect, q.mode);
           case "in-lasso":
-            return itemsInLasso(state.items, q.polygon, kinds).map((i) => i.id);
+            return index.inLasso(q.polygon);
           case "visible": {
             const v = q.viewport ?? state.viewport;
             const size = q.size ?? state.size;
-            return state.items
-              .filter((i) => intersectsView(v, size, i.bounds, q.margin ?? 0))
-              .map((i) => i.id);
+            const area = inflate(visibleWorld(v, size), (q.margin ?? 0) / v.zoom);
+            return index.touching(area);
           }
-          case "bounds": {
-            const wanted = q.ids ? new Set(q.ids) : null;
-            return unionBounds(
-              state.items.filter((i) => !wanted || wanted.has(i.id)).map((i) => i.bounds),
-            );
-          }
+          case "bounds":
+            return boundsOf(q.ids);
           case "fit":
             return fitViewport(q.ids, q.padding, q.maxZoom);
           case "handle-at": {
@@ -523,7 +515,7 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
                 });
           case "nearest": {
             const from = index.get(q.from);
-            return from ? (nearestInDirection(state.items, from, q.direction)?.id ?? null) : null;
+            return from ? (index.nearest(from, q.direction)?.id ?? null) : null;
           }
           case "reading-order":
             return readingOrder(state.items).map((i) => i.id);
@@ -545,9 +537,6 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
     },
   };
 
-  if (options.items?.length) {
-    state = { ...state, items: byZ([...options.items]) };
-    reindex(state.items);
-  }
+  if (options.items?.length) state = { ...state, items: index.reset(options.items) };
   return engine;
 }
