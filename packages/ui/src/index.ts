@@ -135,6 +135,7 @@ export * from "./blocks/navigation";
 export * from "./blocks/data";
 export * from "./blocks/views";
 export * from "./blocks/datahub";
+export * from "./blocks/drive";
 export * from "./hooks";
 export * from "./shaders";
 export * from "./blocks/icon-picker";
