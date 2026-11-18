@@ -118,7 +118,7 @@ export const aiModels: AiModel[] = [
 ];
 
 /** A compute meter: what a tool uses, its unit, and its price in US dollars per unit. */
-export interface Meter {
+interface Meter {
   key: string;
   name: string;
   unit: string;

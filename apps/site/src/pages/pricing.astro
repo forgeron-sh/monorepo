@@ -1,13 +1,26 @@
 ---
-import { GithubIcon, MinusSignIcon, PlusSignIcon, Tick01Icon } from "@forgeron/icons";
-import { Button, Command, Icon, PixelText, Title } from "@forgeron/ui";
+import { GithubIcon } from "@forgeron/icons";
+import {
+  ArtCard,
+  Button,
+  CardGrid,
+  Command,
+  CompareTable,
+  Faq,
+  FigureGrid,
+  Icon,
+  LogoTile,
+  PlanCard,
+  PlanGrid,
+  SectionBand,
+  SectionHead,
+  SiteNav,
+  Stepper,
+  Title,
+} from "@forgeron/ui";
 import Footer from "../components/Footer.astro";
-import SectionHead from "../components/SectionHead.astro";
-import SiteNav from "../components/SiteNav.astro";
 import { GITHUB, plans, SELF_HOST } from "../data/plans";
 import { FORGERON_SEAT, READ_ON, stack } from "../data/stack";
-import Logo from "../components/ToolLogo.astro";
-import Stepper from "../components/Stepper.astro";
 import { AI_READ_ON, aiCost, aiExample, aiModels, aiSources, BALANCE, fmt, lineCost, meterGroups, money, scenarioCost, scenarios } from "../data/usage";
 import Site from "../layouts/Site.astro";
 
@@ -164,60 +177,43 @@ const faq = [
 
   <main class="pricing">
     <!-- 0.1 PLANS -->
-    <section id="plans" class="rail">
-      <SectionHead index="/0.1">
-        <Title as="h1" size="h2">Per seat,<br />or free.</Title>
-        <p class="sec-lead">Let us run Forgeron for you, or run it yourself. The same platform, the same tools.</p>
-      </SectionHead>
-      <div class="plans">
+    <section id="plans" class="fg-rail">
+      <SectionHead
+        index="/0.1"
+        title={["Per seat,", "or free."]}
+        titleAs="h1"
+        lead="Let us run Forgeron for you, or run it yourself. The same platform, the same tools."
+      />
+      <PlanGrid>
         {
           plans.map((p, i) => (
-            <article class:list={["plan ticks", { featured: i === 0 }]}>
-              <div class="plan-art dots-bg">
-                <canvas data-iso={p.iso} data-scale="2" data-fill="0.8" data-unit="any" aria-hidden="true" />
-              </div>
-              <div class="plan-head">
-                <Icon icon={p.icon} size={24} />
-                <span class="plan-name"><PixelText text={p.name} label={p.name} /></span>
-                {p.tag && <span class:list={["plan-tag text-bit", { soon: p.tag === "Soon" }]}>{p.tag}</span>}
-              </div>
-              <p class="plan-where text-small muted">{p.where}</p>
-              <div class="price">
-                <div class="price-n">
-                  <PixelText text={p.price} label={p.price} />
-                </div>
-                <span class="text-eyebrow dim">{p.unit}</span>
-              </div>
-              {p.groups.map((g) => (
-                <div class="plan-group">
-                  <span class="text-eyebrow dim">{g.title}</span>
-                  <ul class="plan-list">
-                    {g.items.map((it) => (
-                      <li class="text-small">
-                        <Icon icon={Tick01Icon} size={12} />
-                        {it}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              <Button href={p.action.href} size="lg" variant={p.action.primary ? "primary" : "secondary"} className="plan-btn">
-                {p.action.label}
-              </Button>
-            </article>
+            <PlanCard
+              name={p.name}
+              icon={p.icon}
+              tag={p.tag}
+              where={p.where}
+              price={p.price}
+              unit={p.unit}
+              groups={p.groups}
+              action={p.action}
+              featured={i === 0}
+            >
+              <canvas data-iso={p.iso} data-scale="2" data-fill="0.8" data-unit="any" aria-hidden="true" />
+            </PlanCard>
           ))
         }
-      </div>
+      </PlanGrid>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.1 → /0.2</span><span>[ Savings ]</span></div>
+    <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="Savings" />
 
     <!-- 0.2 SAVINGS: pick the tools the team pays for, set the seats, compare with Forgeron Cloud. -->
-    <section id="savings" class="rail">
-      <SectionHead index="/0.2">
-        <Title as="h2" size="h2">What you<br />would save.</Title>
-        <p class="sec-lead">Pick the tools your team pays for today, set the seats, and compare with Forgeron Cloud.</p>
-      </SectionHead>
+    <section id="savings" class="fg-rail">
+      <SectionHead
+        index="/0.2"
+        title={["What you", "would save."]}
+        lead="Pick the tools your team pays for today, set the seats, and compare with Forgeron Cloud."
+      />
       <div class="sim">
         <div class="sim-pick">
           {
@@ -227,7 +223,7 @@ const faq = [
                 <div class="sim-chips">
                   {g.tools.map((tool) => (
                     <button type="button" class="sim-chip" data-tool={tool.id} aria-pressed="false">
-                      <Logo tool={tool} />
+                      <LogoTile icon={tool.icon} name={tool.name} />
                       <span>{tool.name}</span>
                     </button>
                   ))}
@@ -240,12 +236,12 @@ const faq = [
               stack.flatMap((g) =>
                 g.tools.map((tool) => (
                   <li class="sim-row" data-row={tool.id} hidden>
-                    <Logo tool={tool} />
+                    <LogoTile icon={tool.icon} name={tool.name} />
                     <span class="sim-name">
                       <span class="text-title-3">{tool.name}</span>
                       <span class="text-eyebrow dim">{tool.plan}</span>
                     </span>
-                    <Stepper label={`${tool.name} seats`} value={10} />
+                    <Stepper label={`${tool.name} seats`} value={10} data-stepper="seats" />
                     <span class="sim-cost text-code" data-cost />
                   </li>
                 )),
@@ -254,7 +250,7 @@ const faq = [
             <li class="sim-empty text-small muted" data-empty>Pick a tool above to add it here.</li>
           </ul>
         </div>
-        <aside class="sim-bill ticks" aria-live="polite">
+        <aside class="sim-bill fg-ticks" aria-live="polite">
           <div class="bill-line">
             <span class="text-eyebrow dim">Today, per month</span>
             <span class="bill-n" data-today>$0</span>
@@ -264,7 +260,7 @@ const faq = [
             <span class="bill-n" data-forgeron>$0</span>
             <div class="bill-people">
               <span class="text-small muted">People on the team</span>
-              <Stepper label="People on the team" value={10} people />
+              <Stepper label="People on the team" value={10} data-stepper="people" />
             </div>
           </div>
           <div class="bill-save">
@@ -296,33 +292,24 @@ const faq = [
       </details>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.2 → /0.3</span><span>[ Fuel ]</span></div>
+    <SectionBand className="fg-rail" from="/0.2" to="/0.3" label="Fuel" />
 
     <!-- 0.3 FUEL: one balance in dollars, for AI and compute alike. -->
-    <section id="fuel" class="rail">
-      <SectionHead index="/0.3">
-        <Title as="h2" size="h2">Fuel,<br />in dollars.</Title>
-        <p class="sec-lead">
-          On Forgeron Cloud, everything your tools use, AI models and compute alike, burns {BALANCE}: one balance per
-          workspace, in US dollars, drawn as it is used.
-        </p>
-      </SectionHead>
-      <ul class="use-rules">
+    <section id="fuel" class="fg-rail">
+      <SectionHead
+        index="/0.3"
+        title={["Fuel,", "in dollars."]}
+        lead={`On Forgeron Cloud, everything your tools use, AI models and compute alike, burns ${BALANCE}: one balance per workspace, in US dollars, drawn as it is used.`}
+      />
+      <CardGrid as="ul" artHeight={220} className="use-rules">
         {
           fuelRules.map((r) => (
-            <li class="use-rule ticks">
-              <div class="use-rule-art dots-bg">
-                <canvas data-iso={r.iso} data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true" />
-              </div>
-              <div class="use-rule-copy">
-                <span class="text-eyebrow accent">{r.tag}</span>
-                <h3 class="text-title-3">{r.name}</h3>
-                <p class="text-small muted">{r.text}</p>
-              </div>
-            </li>
+            <ArtCard as="li" eyebrow={r.tag} title={r.name} text={r.text}>
+              <canvas slot="art" data-iso={r.iso} data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true" />
+            </ArtCard>
           ))
         }
-      </ul>
+      </CardGrid>
 
       <div class="use-part">
         <header class="use-head">
@@ -345,7 +332,7 @@ const faq = [
             aiModels.map((m) => (
               <div class="ai-row" role="row">
                 <span role="rowheader" class="ai-model">
-                  <span class="ai-logo" aria-hidden="true"><Icon icon={m.icon} size={16} variant="mono" /></span>
+                  <LogoTile icon={m.icon} />
                   <span class="text-small">{m.model}</span>
                   <span class="text-eyebrow dim">{m.provider}</span>
                 </span>
@@ -388,7 +375,7 @@ const faq = [
         <div class="meters">
           {
             meterGroups.map((g) => (
-              <div class="meter-group ticks">
+              <div class="meter-group fg-ticks">
                 <span class="meter-head text-eyebrow">
                   <Icon icon={g.icon} size={16} />
                   {g.resource}
@@ -409,7 +396,7 @@ const faq = [
         <div class="scenarios">
           {
             scenarios.map((sc) => (
-              <article class="scenario ticks">
+              <article class="scenario fg-ticks">
                 <h4 class="text-title-3">{sc.name}</h4>
                 <p class="text-small muted">{sc.text}</p>
                 <ul>
@@ -449,52 +436,39 @@ const faq = [
       </details>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.3 → /0.4</span><span>[ Why Forgeron Cloud ]</span></div>
+    <SectionBand className="fg-rail" from="/0.3" to="/0.4" label="Why Forgeron Cloud" />
 
     <!-- 0.2 WHY FORGERON CLOUD -->
-    <section id="why" class="rail">
-      <SectionHead index="/0.4">
-        <Title as="h2" size="h2">Built on<br />Cloudflare.</Title>
-        <p class="sec-lead">What Cloudflare's platform gives every tool, and what we take off your plate.</p>
-      </SectionHead>
-      <div class="reasons">
+    <section id="why" class="fg-rail">
+      <SectionHead
+        index="/0.4"
+        title={["Built on", "Cloudflare."]}
+        lead="What Cloudflare's platform gives every tool, and what we take off your plate."
+      />
+      <CardGrid artHeight={240} className="reasons">
         {
           reasons.map((r) => (
-            <article class="reason ticks">
-              <div class="reason-art dots-bg">
-                <canvas data-iso={r.iso} data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true" />
-              </div>
-              <div class="reason-copy">
-                <h3 class="text-title-3">{r.name}</h3>
-                <p class="text-small muted">{r.text}</p>
-              </div>
-            </article>
+            <ArtCard title={r.name} text={r.text}>
+              <canvas slot="art" data-iso={r.iso} data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true" />
+            </ArtCard>
           ))
         }
-      </div>
+      </CardGrid>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.4 → /0.5</span><span>[ Network ]</span></div>
+    <SectionBand className="fg-rail" from="/0.4" to="/0.5" label="Network" />
 
     <!-- 0.3 NETWORK -->
-    <section id="network" class="rail">
-      <SectionHead index="/0.5">
-        <Title as="h2" size="h2">Close to<br />every team.</Title>
-        <p class="sec-lead">Every tool runs on Cloudflare's network: near your teams, with nothing to keep running.</p>
-      </SectionHead>
+    <section id="network" class="fg-rail">
+      <SectionHead
+        index="/0.5"
+        title={["Close to", "every team."]}
+        lead="Every tool runs on Cloudflare's network: near your teams, with nothing to keep running."
+      />
       <div class="net">
         <div class="net-art"><canvas data-shader="globe" data-px="4" aria-hidden="true"></canvas></div>
         <div class="net-facts">
-          <ul class="net-grid">
-            {
-              network.map((f) => (
-                <li class="ticks">
-                  <div class="num"><PixelText text={f.n} label={f.n} /></div>
-                  <span class="text-eyebrow dim">{f.label}</span>
-                </li>
-              ))
-            }
-          </ul>
+          <FigureGrid figures={network} />
           <p class="net-source text-eyebrow dim">
             Source: cloudflare.com/network, Workers product and pricing pages, read 17 Nov 2026.
           </p>
@@ -502,61 +476,18 @@ const faq = [
       </div>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.5 → /0.6</span><span>[ Compare ]</span></div>
+    <SectionBand className="fg-rail" from="/0.5" to="/0.6" label="Compare" />
 
     <!-- 0.4 COMPARE -->
-    <section id="compare" class="rail">
-      <SectionHead index="/0.6">
-        <Title as="h2" size="h2">Side<br />by side.</Title>
-      </SectionHead>
-      <div class="cmp" role="table" aria-label="Plans compared">
-        <div class="cmp-row cmp-head" role="row">
-          <span role="columnheader"></span>
-          {
-            plans.map((p) => (
-              <span role="columnheader" class="text-eyebrow">
-                <Icon icon={p.icon} size={12} />
-                {p.name}
-              </span>
-            ))
-          }
-        </div>
-        {
-          compare.map((g) => (
-            <>
-              <div class="cmp-group text-eyebrow dim" role="row">
-                <span role="rowheader">{g.group}</span>
-              </div>
-              {g.rows.map((r) => (
-                <div class="cmp-row" role="row">
-                  <span role="rowheader" class="text-small">
-                    {r.name}
-                  </span>
-                  {r.v.map((v) => (
-                    <span role="cell" class="cmp-cell">
-                      {v === true ? (
-                        <Icon icon={Tick01Icon} size={12} title="Included" />
-                      ) : v === false ? (
-                        <span class="dim" aria-label="Not included">
-                          —
-                        </span>
-                      ) : (
-                        <span class:list={["text-eyebrow", { soon: v === "Soon" }]}>{v}</span>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              ))}
-            </>
-          ))
-        }
-      </div>
+    <section id="compare" class="fg-rail">
+      <SectionHead index="/0.6" title={["Side", "by side."]} />
+      <CompareTable label="Plans compared" columns={plans.map((p) => ({ name: p.name, icon: p.icon }))} groups={compare} />
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.6 → /0.7</span><span>[ Open source ]</span></div>
+    <SectionBand className="fg-rail" from="/0.6" to="/0.7" label="Open source" />
 
     <!-- 0.5 OPEN SOURCE -->
-    <section id="open-source" class="rail oss">
+    <section id="open-source" class="fg-rail oss">
       <canvas data-shader="dissolve" data-px="8" aria-hidden="true"></canvas>
       <div class="oss-inner">
         <span class="text-eyebrow dim">/0.7 · Open source</span>
@@ -574,27 +505,9 @@ const faq = [
     </section>
 
     <!-- 0.6 QUESTIONS -->
-    <section id="faq" class="rail">
-      <SectionHead index="/0.8">
-        <Title as="h2" size="h2">Questions,<br />answered.</Title>
-      </SectionHead>
-      <div class="faq">
-        {
-          faq.map((f, i) => (
-            <details open={i === 0}>
-              <summary>
-                <span class="text-eyebrow accent">Q.0{i + 1}</span>
-                <span class="text-title-3">{f.q}</span>
-                <span class="faq-mark" aria-hidden="true">
-                  <Icon icon={PlusSignIcon} variant="mono" className="faq-closed" />
-                  <Icon icon={MinusSignIcon} variant="mono" className="faq-opened" />
-                </span>
-              </summary>
-              <p class="text-small muted">{f.a}</p>
-            </details>
-          ))
-        }
-      </div>
+    <section id="faq" class="fg-rail">
+      <SectionHead index="/0.8" title={["Questions,", "answered."]} />
+      <Faq items={faq} className="faq-plain" />
     </section>
   </main>
 
@@ -607,7 +520,7 @@ const faq = [
   import { FORGERON_SEAT, stack } from "../data/stack";
 
   // Plans: every description takes the height of the tallest, so the prices start on one line.
-  const wheres = [...document.querySelectorAll<HTMLElement>(".plan-where")];
+  const wheres = [...document.querySelectorAll<HTMLElement>(".fg-plan-where")];
   const evenWheres = () => {
     for (const el of wheres) el.style.minHeight = "";
     const tallest = Math.max(0, ...wheres.map((el) => el.offsetHeight));
@@ -734,7 +647,7 @@ const faq = [
     border-color: var(--accent);
     background: var(--bg-raised);
   }
-  .sim-chip[aria-pressed="true"] :global(.tool-logo) {
+  .sim-chip[aria-pressed="true"] :global(.fg-logo-tile) {
     color: var(--accent);
     border-color: var(--accent);
   }
@@ -849,55 +762,11 @@ const faq = [
       font-size: 40px;
     }
   }
-  /* The price, set apart from the name and its description, its unit under it. */
-  .price {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin: 16px 0 8px;
-  }
-  .price-n {
-    height: 32px;
-    color: var(--ink);
-  }
-  .featured .price-n {
-    color: var(--accent);
-  }
-  .price-n :global(svg) {
-    height: 100%;
-    width: auto;
-    display: block;
-  }
-
-  /* Usage: three rules, then the two pools, each a head, a table and examples. */
-  .use-rules {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1px;
-    background: var(--line);
-    border-bottom: 1px solid var(--line);
-  }
-  .use-rule {
-    position: relative;
-    display: grid;
-    grid-template-rows: 220px auto;
-    background-color: var(--bg);
-  }
-  .use-rule-art {
-    position: relative;
-    border-bottom: 1px solid var(--line);
-  }
-  .use-rule-art canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-  .use-rule-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 24px var(--gutter);
+  /* Usage: three rules, then the two pools, each a head, a table and examples. The rules are
+     cards of a `CardGrid`, with a tighter copy block than the default. */
+  :global(.fg-cards.use-rules) {
+    --fg-artcard-gap: 8px;
+    --fg-artcard-pad: 24px var(--gutter);
   }
   .use-part {
     border-bottom: 1px solid var(--line);
@@ -946,17 +815,6 @@ const faq = [
     display: flex;
     align-items: center;
     gap: 12px;
-  }
-  .ai-logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    flex: none;
-    border: 1px solid var(--line-strong);
-    background: var(--bg-sunk);
-    color: var(--ink);
   }
   .ai-example {
     display: flex;
@@ -1057,7 +915,6 @@ const faq = [
     color: var(--accent);
   }
   @media (max-width: 900px) {
-    .use-rules,
     .scenarios {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -1082,35 +939,10 @@ const faq = [
   }
 
   /* Why Cloud: six glued cards, three a row, their copy blocks one height. */
-  .reasons {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1px;
-    background: var(--line);
-    border-bottom: 1px solid var(--line);
-  }
-  .reason {
-    position: relative;
-    background-color: var(--bg);
-    display: grid;
-    grid-template-rows: 240px auto;
-  }
-  .reason-art {
-    position: relative;
-    border-bottom: 1px solid var(--line);
-  }
-  .reason-art canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-  .reason-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-height: 128px;
-    padding: 24px var(--gutter) 28px;
+  :global(.fg-cards.reasons) {
+    --fg-artcard-gap: 8px;
+    --fg-artcard-min: 128px;
+    --fg-artcard-pad: 24px var(--gutter) 28px;
   }
 
   /* Network: the globe and the figures. */
@@ -1134,65 +966,12 @@ const faq = [
     display: flex;
     flex-direction: column;
   }
-  .net-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1px;
-    background: var(--line);
+  .net-facts :global(.fg-figures) {
     flex: 1;
-  }
-  .net-grid li {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    gap: 16px;
-    padding: 32px var(--gutter);
-    background-color: var(--bg);
   }
   .net-source {
     padding: 16px var(--gutter);
     border-top: 1px solid var(--line);
-  }
-
-  /* Compare: a grid table, a column per plan. */
-  .cmp {
-    border-bottom: 1px solid var(--line);
-  }
-  .cmp-row {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
-    align-items: center;
-    min-height: 48px;
-    border-bottom: 1px solid var(--line);
-  }
-  .cmp-row > * {
-    padding: 0 var(--gutter);
-  }
-  .cmp-row > * + * {
-    border-left: 1px solid var(--line);
-    align-self: stretch;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .cmp-head {
-    position: sticky;
-    top: 60px;
-    z-index: 1;
-    background: var(--bg);
-  }
-  .cmp-group {
-    padding: 20px var(--gutter) 8px;
-    border-bottom: 1px solid var(--line);
-  }
-  .cmp-row:hover {
-    background: var(--bg-raised);
-  }
-  .cmp-cell .soon {
-    color: var(--ink-muted);
-    border: 1px dashed var(--line-strong);
-    padding: 0 6px;
   }
 
   /* Open source: the dissolve field behind, the call on top. */
@@ -1229,47 +1008,25 @@ const faq = [
     align-items: center;
   }
 
-  /* Questions: the same accordion as the home page. */
-  .faq {
-    border-bottom: 1px solid var(--line);
-  }
-  .faq details {
-    border-bottom: 1px solid var(--line);
-  }
-  .faq details:last-child {
-    border-bottom: 0;
-  }
-  .faq summary {
-    display: grid;
-    grid-template-columns: 80px 1fr 24px;
-    align-items: center;
-    gap: 16px;
-    padding: 24px var(--gutter);
-    cursor: pointer;
-    list-style: none;
-  }
-  .faq summary::-webkit-details-marker {
-    display: none;
-  }
-  .faq summary:hover {
-    background: var(--bg-raised);
-  }
-  .faq-mark :global(.faq-opened),
-  .faq details[open] .faq-mark :global(.faq-closed) {
-    display: none;
-  }
-  .faq details[open] .faq-mark :global(.faq-opened) {
+  /* Questions: the accordion of the home page, with the pricing page's own two habits: the open
+     mark stays in ink, and the number gives way under 760px. */
+  :global(.fg-faq.faq-plain .fg-faq-mark) {
     display: block;
+    width: auto;
+    height: auto;
   }
-  .faq details p {
-    padding: 0 var(--gutter) 28px calc(var(--gutter) + 96px);
-    max-width: 80ch;
+  :global(.fg-faq.faq-plain details[open] .fg-faq-mark) {
+    color: inherit;
+  }
+  :global(.fg-faq.faq-plain .fg-faq-mark .fg-faq-opened),
+  :global(.fg-faq.faq-plain details[open] .fg-faq-mark .fg-faq-closed) {
+    display: none;
+  }
+  :global(.fg-faq.faq-plain details[open] .fg-faq-mark .fg-faq-opened) {
+    display: block;
   }
 
   @media (max-width: 900px) {
-    .reasons {
-      grid-template-columns: minmax(0, 1fr);
-    }
     .net {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -1278,12 +1035,6 @@ const faq = [
       border-right: 0;
       border-bottom: 1px solid var(--line);
     }
-    .cmp-row {
-      grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
-    }
-    .cmp-row > * {
-      padding: 0 10px;
-    }
   }
   @media (max-width: 760px) {
     .oss > canvas {
@@ -1291,13 +1042,13 @@ const faq = [
       width: 100%;
       opacity: 0.35;
     }
-    .faq summary {
+    :global(.fg-faq.faq-plain summary) {
       grid-template-columns: 1fr 24px;
     }
-    .faq summary > :first-child {
+    :global(.fg-faq.faq-plain summary > :first-child) {
       display: none;
     }
-    .faq details p {
+    :global(.fg-faq.faq-plain details p) {
       padding-left: var(--gutter);
     }
   }

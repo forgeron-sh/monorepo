@@ -128,12 +128,25 @@ export type {
   SizePickerProps,
   StatusPickerProps,
 } from "./pickers";
+export { SectionBand, SectionHead, titleLines } from "./section-head";
+export type { SectionBandProps, SectionHeadProps, TitleLines } from "./section-head";
+export { PixelFigure } from "./pixel-figure";
+export type { PixelFigureProps } from "./pixel-figure";
+export { SoonTag } from "./soon-tag";
+export type { SoonTagProps } from "./soon-tag";
+export { MarkBadge } from "./mark-badge";
+export type { MarkBadgeProps } from "./mark-badge";
+export { LogoTile } from "./logo-tile";
+export type { LogoTileProps } from "./logo-tile";
+export { Stepper } from "./stepper";
+export type { StepperProps } from "./stepper";
 export * from "./blocks/lists";
 export * from "./blocks/filtering";
 export * from "./blocks/record";
 export * from "./blocks/navigation";
 export * from "./blocks/data";
 export * from "./blocks/views";
+export * from "./blocks/marketing";
 export * from "./blocks/datahub";
 export * from "./blocks/drive";
 export * from "./blocks/automation";

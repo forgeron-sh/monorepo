@@ -22,27 +22,37 @@ import {
   LogIcon,
   Mail01Icon,
   McpIcon,
-  MinusSignIcon,
   Note01Icon,
-  PlusSignIcon,
   Robot01Icon,
   RollbackIcon,
   Search01Icon,
   Shield01Icon,
   Ticket01Icon,
-  Tick01Icon,
   UserGroupIcon,
 } from "@forgeron/icons";
 import {
-  Button,
+  ArtCard,
+  Bento,
+  BentoCell,
+  CardGrid,
   Command,
+  CtaBand,
+  Faq,
+  Hero,
   Icon,
-  PixelText,
+  LogoStrip,
+  MarkBadge,
+  PlanCard,
+  PlanGrid,
+  SectionBand,
+  SectionHead,
+  SiteNav,
+  SoonTag,
+  StoryList,
+  StoryStep,
   Title,
 } from "@forgeron/ui";
 import Footer from "../components/Footer.astro";
-import SectionHead from "../components/SectionHead.astro";
-import SiteNav from "../components/SiteNav.astro";
 import Site from "../layouts/Site.astro";
 import { plans } from "../data/plans";
 
@@ -304,76 +314,49 @@ const faq = [
             ))
           }
         </ol>
-        <div class="saga-hero rail hero-d">
-      <div class="hero-d-body">
-        <div class="hero-d-left">
-          <span class="yc-badge text-eyebrow">
-            <span class="yc-mark" set:html={ycMark} />
-            Not backed by Y Combinator
-          </span>
-          <Title as="h1" size="hero">Forge your<br />internal tools.</Title>
-          <div class="hero-d-proof">
-            <span class="text-eyebrow dim">Built on</span>
-            {
-              proof.map((p) => (
-                <span class="hero-d-chip text-eyebrow">
-                  <Icon icon={p.icon} size={24} />
-                  {p.text}
-                </span>
-              ))
-            }
-          </div>
-        </div>
-        <div class="hero-d-right">
-          <p class="text-lead lead">Pick a ready-made tool. Shape it to your team with AI. Ship it to your people and your agents.</p>
-          <div class="hero-d-cta">
-            <Command framed={false}>npx forgeron init</Command>
-            <Button href="#start" size="lg" variant="primary" marker>Get started</Button>
-          </div>
-        </div>
-      </div>
-      <!-- USED BY: a band of names, in the style of the font site's facts strip, closing the hero -->
-    <section class="users" aria-label="Who uses Forgeron">
-      <ul class="bento users-row">
-        <li class="cell ticks user-lead"><span class="text-eyebrow dim">Forging at</span></li>
-        {
-          Array.from({ length: userSlots }, (_, i) => users[i]).map((name) =>
-            name ? (
-              <li class="cell ticks user">
-                <span class="user-name">{name}</span>
-              </li>
-            ) : (
-              <li class="cell user user-empty" aria-hidden="true" />
-            ),
-          )
-        }
-      </ul>
-    </section>
+        <div class="saga-hero fg-rail hero-d">
+          <Hero
+            title={["Forge your", "internal tools."]}
+            proof={proof}
+            lead="Pick a ready-made tool. Shape it to your team with AI. Ship it to your people and your agents."
+            action={{ href: "#start", label: "Get started" }}
+          >
+            <Command slot="command" framed={false}>npx forgeron init</Command>
+            <MarkBadge slot="badge">
+              <Fragment slot="mark" set:html={ycMark} />
+              Not backed by Y Combinator
+            </MarkBadge>
+          </Hero>
+          <!-- USED BY: a band of names, in the style of the font site's facts strip, closing the hero -->
+          <section class="users" aria-label="Who uses Forgeron">
+            <LogoStrip label="Forging at" names={users} slots={userSlots} />
+          </section>
         </div>
       </div>
     </section>
 
     <!-- 0.1 HOW IT WORKS: pick, shape, ship -->
-    <section id="how" class="rail">
-      <SectionHead index="/0.1">
-        <Title as="h2" size="h2">Pick. Shape.<br />Ship.</Title>
-        <p class="sec-lead">From a tool that already works to a tool that fits your team, live for your people and your agents.</p>
-      </SectionHead>
+    <section id="how" class="fg-rail">
+      <SectionHead
+        index="/0.1"
+        title={["Pick. Shape.", "Ship."]}
+        lead="From a tool that already works to a tool that fits your team, live for your people and your agents."
+      />
 
-      <ol class="steps">
+      <StoryList>
         <!-- 01 PICK -->
-        <li id="pick" class="step ticks">
-          <div class="step-copy">
-            <div class="step-num"><PixelText text="01" label="Step 1" /></div>
-            <h3 class="text-title-1">Start from a tool that already works.</h3>
-            <p class="text-small muted">A CRM, a help desk, a notes app: browse finished tools and install one.</p>
-            <ul class="chunks">
-              <li><Icon icon={DeployIcon} /><span>Installed in one click</span></li>
-              <li><Icon icon={RollbackIcon} /><span>Kept up to date by its maintainers</span></li>
-              <li><Icon icon={GitForkIcon} /><span>Yours to fork</span></li>
-            </ul>
-          </div>
-          <div class="step-art dots-bg">
+        <StoryStep
+          id="pick"
+          n="01"
+          label="Step 1"
+          title="Start from a tool that already works."
+          text="A CRM, a help desk, a notes app: browse finished tools and install one."
+          points={[
+            { icon: DeployIcon, text: "Installed in one click" },
+            { icon: RollbackIcon, text: "Kept up to date by its maintainers" },
+            { icon: GitForkIcon, text: "Yours to fork" },
+          ]}
+        >
             <div class="catalog">
               <div class="catalog-bar text-eyebrow">
                 <Icon icon={Search01Icon} size={12} />
@@ -387,7 +370,7 @@ const faq = [
                       <span class="catalog-name">{c.name}</span>
                       <span class="text-eyebrow dim">{c.text}</span>
                       {c.soon ? (
-                        <span class="catalog-tag text-bit">Soon</span>
+                        <SoonTag />
                       ) : i === 0 ? (
                         <span class="fg-btn fg-btn-primary fg-btn-sm catalog-btn">Install</span>
                       ) : (
@@ -398,25 +381,24 @@ const faq = [
                 }
               </ul>
             </div>
-          </div>
-        </li>
+        </StoryStep>
 
         <!-- 02 SHAPE -->
-        <li id="shape" class="step ticks">
-          <div class="step-copy">
-            <div class="step-num"><PixelText text="02" label="Step 2" /></div>
-            <h3 class="text-title-1">Make it fit your team, with AI.</h3>
-            <p class="text-small muted">Pick a recipe, or ask for your own. Recipes and plugins hand the AI tested code and the method to add it.</p>
-            <ul class="chunks">
-              <li><Icon icon={EyeIcon} /><span>A preview for every change</span></li>
-              <li><Icon icon={GitBranchIcon} /><span>Every change, a version</span></li>
-              <li><Icon icon={Layers01Icon} /><span>Recipes: documents the AI follows</span></li>
-            </ul>
-          </div>
-          <div class="step-art dots-bg">
+        <StoryStep
+          id="shape"
+          n="02"
+          label="Step 2"
+          title="Make it fit your team, with AI."
+          text="Pick a recipe, or ask for your own. Recipes and plugins hand the AI tested code and the method to add it."
+          points={[
+            { icon: EyeIcon, text: "A preview for every change" },
+            { icon: GitBranchIcon, text: "Every change, a version" },
+            { icon: Layers01Icon, text: "Recipes: documents the AI follows" },
+          ]}
+        >
             <div class="shape">
               <ul class="shape-plugins shape-recipes">
-                <li class="text-eyebrow shape-head"><span>Recipes</span><span class="catalog-tag text-bit">Soon</span></li>
+                <li class="text-eyebrow shape-head"><span>Recipes</span><SoonTag /></li>
                 {
                   recipes.map((r) =>
                     r.docs ? (
@@ -445,7 +427,7 @@ const faq = [
                 }
               </ul>
               <ul class="shape-plugins">
-                <li class="text-eyebrow shape-head"><span>Plugins</span><span class="catalog-tag text-bit">Soon</span></li>
+                <li class="text-eyebrow shape-head"><span>Plugins</span><SoonTag /></li>
                 {
                   plugins.map((p) => (
                     <li class:list={["text-eyebrow", { added: p.added }]}>
@@ -456,22 +438,23 @@ const faq = [
                 }
               </ul>
             </div>
-          </div>
-        </li>
+        </StoryStep>
 
         <!-- 03 SHIP -->
-        <li id="ship" class="step ticks">
-          <div class="step-copy">
-            <div class="step-num"><PixelText text="03" label="Step 3" /></div>
-            <h3 class="text-title-1">Out to your people and your agents.</h3>
-            <p class="text-small muted">One click, and the tool is live on the web, in the terminal, over the API and in Claude, behind your SSO.</p>
-            <ul class="chunks">
-              <li><Icon icon={DeployIcon} /><span>One click to production</span></li>
-              <li><Icon icon={Shield01Icon} /><span>The same rights on every door</span></li>
-              <li><Icon icon={Robot01Icon} /><span>Made for agents, not bolted on</span></li>
-            </ul>
-          </div>
-          <div class="step-art ship-art">
+        <StoryStep
+          id="ship"
+          n="03"
+          label="Step 3"
+          title="Out to your people and your agents."
+          text="One click, and the tool is live on the web, in the terminal, over the API and in Claude, behind your SSO."
+          points={[
+            { icon: DeployIcon, text: "One click to production" },
+            { icon: Shield01Icon, text: "The same rights on every door" },
+            { icon: Robot01Icon, text: "Made for agents, not bolted on" },
+          ]}
+          dots={false}
+          artClassName="ship-art"
+        >
             {
               doorGroups.map((g) => (
                 <div class="ship-group" style={`--n:${g.doors.length}`}>
@@ -479,7 +462,7 @@ const faq = [
                   <div class="ship-doors">
                     {g.doors.map((d) => (
                       <article class="ship-door">
-                        <div class="ship-door-art dots-bg">
+                        <div class="ship-door-art fg-dots">
                           <canvas data-iso={d.iso} data-scale="2" data-fill="0.6" aria-hidden="true" />
                         </div>
                         <div class="ship-door-copy">
@@ -495,24 +478,24 @@ const faq = [
                 </div>
               ))
             }
-          </div>
-        </li>
-      </ol>
+        </StoryStep>
+      </StoryList>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.1 → /0.2</span><span>[ Under the hood ]</span></div>
+    <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="Under the hood" />
 
     <!-- 0.2 ANATOMY -->
-    <section id="anatomy" class="rail">
-      <SectionHead index="/0.2">
-        <Title as="h2" size="h2">One framework,<br />six layers.</Title>
-        <p class="sec-lead">What the platform stacks under every tool, so your change only touches what makes it yours.</p>
-      </SectionHead>
+    <section id="anatomy" class="fg-rail">
+      <SectionHead
+        index="/0.2"
+        title={["One framework,", "six layers."]}
+        lead="What the platform stacks under every tool, so your change only touches what makes it yours."
+      />
       <div class="stack">
         <ul class="stack-col">
           {
             left.map((l) => (
-              <li data-layer={l.i} class="ticks">
+              <li data-layer={l.i} class="fg-ticks">
                 <span class="layer-head">
                   <Icon icon={l.icon} />
                 </span>
@@ -522,13 +505,13 @@ const faq = [
             ))
           }
         </ul>
-        <div class="stack-art dots-bg">
+        <div class="stack-art fg-dots">
           <canvas id="stack-canvas" data-iso="stack6" data-scale="2" data-fill="0.78" data-unit="any" aria-hidden="true"></canvas>
         </div>
         <ul class="stack-col stack-col-r">
           {
             right.map((l) => (
-              <li data-layer={l.i} class="ticks">
+              <li data-layer={l.i} class="fg-ticks">
                 <span class="layer-head">
                   <Icon icon={l.icon} />
                 </span>
@@ -541,22 +524,23 @@ const faq = [
       </div>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.2 → /0.3</span><span>[ Resources ]</span></div>
+    <SectionBand className="fg-rail" from="/0.2" to="/0.3" label="Resources" />
 
     <!-- 0.3 RESOURCES -->
-    <section id="resources" class="rail">
-      <SectionHead index="/0.3">
-        <Title as="h2" size="h2">Everything<br />on tap.</Title>
-        <p class="sec-lead">A tool lists what it needs; the platform hands it over, one per tool and environment.</p>
-      </SectionHead>
+    <section id="resources" class="fg-rail">
+      <SectionHead
+        index="/0.3"
+        title={["Everything", "on tap."]}
+        lead="A tool lists what it needs; the platform hands it over, one per tool and environment."
+      />
       <div class="res">
-        <div class="res-art dots-bg">
+        <div class="res-art fg-dots">
           <canvas id="res-canvas" data-iso="resources" data-cycle="2" data-count="9" data-scale="2" data-fill="0.94" data-unit="any" aria-hidden="true"></canvas>
         </div>
         <ul class="res-list">
           {
             resources.map((r) => (
-              <li data-res={r.i} class="ticks">
+              <li data-res={r.i} class="fg-ticks">
                 <Icon icon={r.icon} />
                 <div>
                   <span class="text-title-3">{r.name}</span>
@@ -569,49 +553,44 @@ const faq = [
       </div>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.3 → /0.4</span><span>[ Access ]</span></div>
+    <SectionBand className="fg-rail" from="/0.3" to="/0.4" label="Access" />
 
     <!-- 0.5 ACCESS -->
-    <section id="access" class="rail">
-      <SectionHead index="/0.4">
-        <Title as="h2" size="h2">Who did what,<br />with which rights.</Title>
-        <p class="sec-lead">Every door goes through the same gateway: sign-in, team check, audit log. None bypasses another.</p>
-      </SectionHead>
-      <div class="trust">
+    <section id="access" class="fg-rail">
+      <SectionHead
+        index="/0.4"
+        title={["Who did what,", "with which rights."]}
+        lead="Every door goes through the same gateway: sign-in, team check, audit log. None bypasses another."
+      />
+      <CardGrid>
         {
           access.map((a) => (
-            <article class="trust-card ticks">
-              <div class="trust-art dots-bg">
-                <canvas data-iso={a.iso} data-scale="2" data-fill="0.8" data-unit="any" aria-hidden="true" />
-              </div>
-              <div class="trust-copy">
-                <Icon icon={a.icon} />
-                <h3 class="text-title-3">{a.name}</h3>
-                <p class="text-small muted">{a.text}</p>
-              </div>
-            </article>
+            <ArtCard icon={a.icon} title={a.name} text={a.text}>
+              <canvas slot="art" data-iso={a.iso} data-scale="2" data-fill="0.8" data-unit="any" aria-hidden="true" />
+            </ArtCard>
           ))
         }
-      </div>
+      </CardGrid>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.4 → /0.5</span><span>[ Develop ]</span></div>
+    <SectionBand className="fg-rail" from="/0.4" to="/0.5" label="Develop" />
 
     <!-- 0.6 DEVELOP: a pinned production line -->
-    <section id="develop" class="rail">
+    <section id="develop" class="fg-rail">
       <div class="line-track">
         <div class="line-pin">
-          <SectionHead index="/0.5">
-          <Title as="h2" size="h2">From your laptop<br />to everyone.</Title>
-          <p class="sec-lead">Try a tool locally, share it in a preview, publish it. In your terminal, or from Claude.</p>
-        </SectionHead>
-          <div class="line-art dots-bg">
+          <SectionHead
+            index="/0.5"
+            title={["From your laptop", "to everyone."]}
+            lead="Try a tool locally, share it in a preview, publish it. In your terminal, or from Claude."
+          />
+          <div class="line-art fg-dots">
             <canvas id="line-canvas" data-iso="production-line" data-scale="2" data-fill="0.84" data-unit="any" aria-hidden="true"></canvas>
           </div>
           <ol class="line-stops">
             {
               stops.map((s, i) => (
-                <li data-stop={i} class:list={["ticks", { on: i === 0 }]}>
+                <li data-stop={i} class:list={["fg-ticks", { on: i === 0 }]}>
                   <span class="text-eyebrow accent">{s.n}</span>
                   <span class="text-title-3">{s.name}</span>
                   <span class="text-small muted">{s.text}</span>
@@ -621,159 +600,83 @@ const faq = [
           </ol>
           <!-- The hosting head rides in the pin, under the stops: it is already in view while the
                package travels, and the plans follow it straight after. -->
-          <div class="spacer text-eyebrow dim"><span>/0.5 → /0.6</span><span>[ Hosting ]</span></div>
+          <SectionBand from="/0.5" to="/0.6" label="Hosting" />
           <div id="host" class="host-head">
-            <SectionHead index="/0.6">
-              <Title as="h2" size="h2">Our cloud,<br />or yours.</Title>
-              <p class="sec-lead">The same platform in every case. Only who runs it changes.</p>
-            </SectionHead>
+            <SectionHead
+              index="/0.6"
+              title={["Our cloud,", "or yours."]}
+              lead="The same platform in every case. Only who runs it changes."
+            />
           </div>
         </div>
       </div>
     </section>
 
     <!-- 0.7 HOSTING -->
-    <section class="rail host">
-      <div class="plans">
+    <section class="fg-rail host">
+      <PlanGrid>
         {
           plans.map((p, i) => (
-            <article class:list={["plan ticks", { featured: i === 0 }]}>
-              <div class="plan-art dots-bg">
-                <canvas data-iso={p.iso} data-scale="2" data-fill="0.8" data-unit="any" aria-hidden="true" />
-              </div>
-              <div class="plan-head">
-                <Icon icon={p.icon} size={24} />
-                <span class="plan-name"><PixelText text={p.name} label={p.name} /></span>
-                {p.tag && <span class:list={["plan-tag text-bit", { soon: p.tag === "Soon" }]}>{p.tag}</span>}
-              </div>
-              <p class="text-small muted">{p.where}</p>
-              {p.groups.map((g) => (
-                <div class="plan-group">
-                  <span class="text-eyebrow dim">{g.title}</span>
-                  <ul class="plan-list">
-                    {g.items.map((it) => (
-                      <li class="text-small">
-                        <Icon icon={Tick01Icon} size={12} />
-                        {it}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              {i === 0 ? (
-                <Button href="/pricing" size="lg" variant="primary" marker className="plan-btn">
-                  See pricing
-                </Button>
-              ) : (
-                <Button href={p.action.href} size="lg" variant={p.action.primary ? "primary" : "secondary"} className="plan-btn">
-                  {p.action.label}
-                </Button>
-              )}
-            </article>
+            <PlanCard
+              name={p.name}
+              icon={p.icon}
+              tag={p.tag}
+              where={p.where}
+              groups={p.groups}
+              featured={i === 0}
+              action={i === 0 ? { href: "/pricing", label: "See pricing", primary: true, marker: true } : p.action}
+            >
+              <canvas data-iso={p.iso} data-scale="2" data-fill="0.8" data-unit="any" aria-hidden="true" />
+            </PlanCard>
           ))
         }
-      </div>
+      </PlanGrid>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.6 → /0.7</span><span>[ Extras ]</span></div>
+    <SectionBand className="fg-rail" from="/0.6" to="/0.7" label="Extras" />
 
     <!-- 0.8 EXTRAS -->
-    <section id="extras" class="rail">
-      <SectionHead index="/0.7">
-        <Title as="h2" size="h2">The small<br />extras.</Title>
-      </SectionHead>
-      <div class="bento">
-        <article class="cell ticks c2 r3">
-          <div class="art"><canvas data-iso="usage-iso" data-scale="2" data-fill="0.86" data-unit="any" aria-hidden="true"></canvas></div>
-          <div class="copy hr">
-            <h3 class="text-title-3">Usage per team</h3>
-            <p class="text-small muted">One unit for everything a tool runs: CPU, storage, crons. Heavy storage and light CPU even out, with no overage per resource. AI spend beside it (soon).</p>
-          </div>
-        </article>
-        <article class="cell ticks c2 r3">
-          <div class="corner-r row"><span class="catalog-tag text-bit">Soon</span></div>
-          <div class="art"><canvas data-iso="ai-gateway" data-scale="2" data-fill="0.86" data-unit="any" aria-hidden="true"></canvas></div>
-          <div class="copy hr">
-            <h3 class="text-title-3">One AI gateway</h3>
-            <p class="text-small muted">Every model behind one entry, and who calls what.</p>
-          </div>
-        </article>
-        <article class="cell ticks c2 r3">
-          <div class="art"><canvas data-iso="safe" data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true"></canvas></div>
-          <div class="copy hr">
-            <h3 class="text-title-3">One vault</h3>
-            <p class="text-small muted">Application secrets and each person's own keys, sealed together. Nobody reads them back.</p>
-          </div>
-        </article>
-        <article class="cell ticks c2 r3">
-          <div class="art"><canvas data-iso="permissions-iso" data-scale="2" data-fill="0.84" data-unit="any" aria-hidden="true"></canvas></div>
-          <div class="copy hr">
-            <h3 class="text-title-3">Teams and permissions</h3>
-            <p class="text-small muted">Access given to teams, action by action, on every door at once.</p>
-          </div>
-        </article>
-        <article class="cell ticks c2 r3">
-          <div class="art"><canvas data-iso="market" data-scale="2" data-fill="0.82" data-unit="any" aria-hidden="true"></canvas></div>
-          <div class="copy hr">
-            <h3 class="text-title-3">Marketplaces</h3>
-            <p class="text-small muted">Add a GitHub repository of your team's tools as a private catalog.</p>
-          </div>
-        </article>
-        <article class="cell ticks c2 r3">
-          <div class="art"><canvas data-iso="approval-plug" data-scale="2" data-fill="0.84" data-unit="any" aria-hidden="true"></canvas></div>
-          <div class="copy hr">
-            <h3 class="text-title-3">Approval policies</h3>
-            <p class="text-small muted">A tool asking for a new resource waits for an admin; approved, it is plugged in.</p>
-          </div>
-        </article>
-      </div>
+    <section id="extras" class="fg-rail">
+      <SectionHead index="/0.7" title={["The small", "extras."]} />
+      <Bento>
+        <BentoCell span={2} rows={3} title="Usage per team" text="One unit for everything a tool runs: CPU, storage, crons. Heavy storage and light CPU even out, with no overage per resource. AI spend beside it (soon).">
+          <canvas slot="art" data-iso="usage-iso" data-scale="2" data-fill="0.86" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="One AI gateway" text="Every model behind one entry, and who calls what.">
+          <SoonTag slot="corner" />
+          <canvas slot="art" data-iso="ai-gateway" data-scale="2" data-fill="0.86" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="One vault" text="Application secrets and each person's own keys, sealed together. Nobody reads them back.">
+          <canvas slot="art" data-iso="safe" data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="Teams and permissions" text="Access given to teams, action by action, on every door at once.">
+          <canvas slot="art" data-iso="permissions-iso" data-scale="2" data-fill="0.84" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="Marketplaces" text="Add a GitHub repository of your team's tools as a private catalog.">
+          <canvas slot="art" data-iso="market" data-scale="2" data-fill="0.82" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+        <BentoCell span={2} rows={3} title="Approval policies" text="A tool asking for a new resource waits for an admin; approved, it is plugged in.">
+          <canvas slot="art" data-iso="approval-plug" data-scale="2" data-fill="0.84" data-unit="any" aria-hidden="true"></canvas>
+        </BentoCell>
+      </Bento>
     </section>
 
     <!-- QUESTIONS -->
-    <section id="faq" class="rail">
-      <SectionHead index="/0.8">
-        <Title as="h2" size="h2">Questions,<br />answered.</Title>
-      </SectionHead>
-      <div class="faq">
-        {
-          faq.map((f, i) => (
-            <details open={i === 0}>
-              <summary>
-                <span class="text-eyebrow accent">Q.0{i + 1}</span>
-                <span class="text-title-3">{f.q}</span>
-                <span class="faq-mark" aria-hidden="true">
-                  <Icon icon={PlusSignIcon} variant="mono" className="faq-closed" />
-                  <Icon icon={MinusSignIcon} variant="mono" className="faq-opened" />
-                </span>
-              </summary>
-              <p class="text-small muted">{f.a}</p>
-            </details>
-          ))
-        }
-      </div>
+    <section id="faq" class="fg-rail">
+      <SectionHead index="/0.8" title={["Questions,", "answered."]} />
+      <Faq items={faq} />
     </section>
     <!-- CTA: the forge itself, striking a bar into a tool, beside the one command to start. -->
-    <section id="start" class="rail cta">
-      <div class="cta-inner">
-        <div class="cta-copy pad">
-          <Title as="h2" size="hero">Forge your<br />first tool.</Title>
-          <p class="sec-lead">Pick it, shape it, ship it. Open source, Apache-2.0.</p>
-        </div>
-        <div class="cta-actions">
-          <div class="cta-cell">
-            <Button href="#start" size="lg" variant="primary" marker>Get started</Button>
-          </div>
-          <div class="cta-cell">
-            <span class="text-eyebrow dim">Or in your terminal</span>
-            <Command>npx forgeron init</Command>
-          </div>
-        </div>
-      </div>
-      <div class="cta-art ticks">
-        <canvas class="cta-glow" data-shader="ember" data-px="8" aria-hidden="true"></canvas>
-        <canvas data-iso="forge-cta" data-scale="2" data-fill="0.9" data-unit="any" aria-hidden="true"></canvas>
-      </div>
-    </section>
+    <CtaBand
+      id="start"
+      title={["Forge your", "first tool."]}
+      lead="Pick it, shape it, ship it. Open source, Apache-2.0."
+      action={{ href: "#start", label: "Get started" }}
+      command="npx forgeron init"
+    >
+      <canvas class="cta-glow" data-shader="ember" data-px="8" aria-hidden="true"></canvas>
+      <canvas data-iso="forge-cta" data-scale="2" data-fill="0.9" data-unit="any" aria-hidden="true"></canvas>
+    </CtaBand>
 
   </main>
 
@@ -820,7 +723,7 @@ const faq = [
 
   const saga = document.querySelector<HTMLElement>(".saga");
   const stage = saga?.querySelector<HTMLElement>(".saga-stage");
-  const nav = document.querySelector<HTMLElement>(".nav");
+  const nav = document.querySelector<HTMLElement>(".fg-snav");
   const hero = stage?.querySelector<HTMLElement>(".saga-hero");
   const screenEl = stage?.querySelector<HTMLElement>(".saga-screen");
   const captions = [...(stage?.querySelectorAll<HTMLElement>("[data-step]") ?? [])];
@@ -1321,7 +1224,7 @@ const faq = [
     if (!pin) return;
     // Under the navigation if it all fits; else bottom-aligned, but never so high that the
     // drawing slides under the navigation (the hosting head then runs off the bottom instead).
-    const head = pin.querySelector<HTMLElement>(".sec-head")?.offsetHeight ?? 0;
+    const head = pin.querySelector<HTMLElement>(".fg-sec-head")?.offsetHeight ?? 0;
     const top = Math.max(Math.min(60, window.innerHeight - pin.offsetHeight), 60 - head);
     pin.style.setProperty("--pin-top", `${top}px`);
     onScroll();
@@ -1332,18 +1235,6 @@ const faq = [
 </script>
 
 <style>
-  .hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-  }
-  .row {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-  }
-
   .stack {
     display: grid;
     grid-template-columns: 1fr 1.3fr 1fr;
@@ -1402,180 +1293,11 @@ const faq = [
     }
   }
 
-  /* The closing call: copy on the left, the forge at work on the right over a bed of embers. */
-  .cta {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-    min-height: 560px;
-    overflow: hidden;
-    border-bottom: 1px solid var(--line);
-  }
-  .cta-art .cta-glow {
+  /* The closing call's bed of embers, under the forge, in the bottom third. */
+  .cta-glow {
     top: auto;
     height: 30%;
     opacity: 0.4;
-  }
-  /* The copy fills the column, centred; the two ways to start sit in glued cells at its foot. */
-  .cta-inner {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-  }
-  .cta-copy {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 24px;
-    padding-top: 64px;
-    padding-bottom: 64px;
-  }
-  .cta-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    border-top: 1px solid var(--line);
-  }
-  .cta-cell {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 10px;
-    padding: 24px var(--gutter);
-  }
-  .cta-cell + .cta-cell {
-    border-left: 1px solid var(--line);
-  }
-  .cta-cell :global(.fg-btn) {
-    align-self: flex-start;
-  }
-  .cta-art {
-    position: relative;
-    border-left: 1px solid var(--line);
-  }
-  .cta-art canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-  @media (max-width: 1100px) {
-    .cta {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    .cta-art {
-      height: 300px;
-      border-left: 0;
-      border-top: 1px solid var(--line);
-      order: -1;
-    }
-  }
-
-
-  .feat-copy .code {
-    margin-top: 8px;
-  }
-  .feat-list code,
-  .text-small code {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--ink);
-  }
-
-  .trust {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1px;
-    background: var(--line);
-    border-bottom: 1px solid var(--line);
-  }
-  .trust-card {
-    position: relative;
-    background-color: var(--bg);
-    display: flex;
-    flex-direction: column;
-  }
-  .trust-art {
-    position: relative;
-    height: 280px;
-    border-bottom: 1px solid var(--line);
-  }
-  .trust-art canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-  .trust-copy {
-    padding: 24px 20px 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  @media (max-width: 900px) {
-    .trust {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  .faq {
-    border-bottom: 1px solid var(--line);
-  }
-  .faq details {
-    border-bottom: 1px solid var(--line);
-  }
-  .faq details:last-child {
-    border-bottom: 0;
-  }
-  .faq summary {
-    display: grid;
-    grid-template-columns: 80px 1fr 24px;
-    gap: 16px;
-    align-items: center;
-    padding: 24px var(--gutter);
-    cursor: pointer;
-    list-style: none;
-  }
-  .faq summary::-webkit-details-marker {
-    display: none;
-  }
-  .faq summary:hover {
-    background: var(--bg-raised);
-  }
-  /* The toggle mark: a pixel plus that becomes a pixel minus in ember. The two icons swap in
-     place, whole, with no rotation (pixels switch on or off). */
-  .faq-mark {
-    display: grid;
-    width: 24px;
-    height: 24px;
-  }
-  .faq-mark :global(.fg-icon) {
-    grid-area: 1 / 1;
-  }
-  .faq details[open] .faq-mark {
-    color: var(--accent);
-  }
-  .faq-mark :global(.faq-opened),
-  .faq details[open] .faq-mark :global(.faq-closed) {
-    visibility: hidden;
-  }
-  .faq details[open] .faq-mark :global(.faq-opened) {
-    visibility: visible;
-  }
-  .faq details p {
-    padding: 0 var(--gutter) 28px calc(var(--gutter) + 96px);
-    max-width: 80ch;
-  }
-  @media (max-width: 560px) {
-    .faq summary {
-      grid-template-columns: 1fr 24px;
-    }
-    .faq summary > :first-child {
-      display: none;
-    }
-    .faq details p {
-      padding-left: var(--gutter);
-    }
   }
 
   .res {
@@ -1894,9 +1616,13 @@ const faq = [
   .saga-stage.is-out .saga-hero {
     visibility: visible;
   }
-  .saga-hero .hero-d-body {
+  .saga-hero :global(.fg-hero) {
     padding-top: 40px;
     padding-bottom: 40px;
+  }
+  .hero-d {
+    padding: 0;
+    border-bottom: 1px solid var(--line);
   }
   .saga-hero .users {
     border-top: 1px solid var(--line);
@@ -1906,20 +1632,20 @@ const faq = [
   .saga-stage.is-out .saga-captions {
     visibility: hidden;
   }
-  :global(body.home .nav) {
+  :global(body.home .fg-snav) {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     transition: transform 0.25s steps(4, jump-none);
   }
-  :global(body.home .nav.nav-away) {
+  :global(body.home .fg-snav.nav-away) {
     transform: translateY(-100%);
   }
   /* Away from the first paint: the opening's script only takes it over after load, and the nav
      must not show, then slide out, on arrival. Without scripts it stays where it is. */
   @media (scripting: enabled) {
-    :global(body.home:not(.saga-ready) .nav) {
+    :global(body.home:not(.saga-ready) .fg-snav) {
       transform: translateY(-100%);
       transition: none;
     }
@@ -1931,194 +1657,10 @@ const faq = [
     .saga-dot {
       animation: none;
     }
-    :global(body.home .nav) {
+    :global(body.home .fg-snav) {
       transition: none;
     }
   }
-  .users-row {
-    grid-template-columns: minmax(0, 0.8fr) repeat(4, minmax(0, 1fr));
-    grid-auto-rows: auto;
-  }
-  .users-row .cell {
-    min-height: 0;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    padding: 26px var(--gutter);
-  }
-  .users-row .user-lead {
-    justify-content: flex-start;
-  }
-  .user-name {
-    font-family: var(--font-pixel);
-    font-size: 22px;
-    letter-spacing: 0.02em;
-    color: var(--ink);
-  }
-  .user-empty {
-    background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
-  }
-  @media (max-width: 760px) {
-    .users-row {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .users-row .user-lead {
-      grid-column: 1 / -1;
-    }
-  }
-  .hero-d {
-    padding: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .hero-d-body {
-    display: grid;
-    grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
-    gap: 48px;
-    align-items: end;
-    padding: 56px var(--gutter) 72px;
-  }
-  .hero-d-left {
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-  }
-  .hero-d-left :global(.fg-title-hero) {
-    font-size: 80px;
-  }
-  .hero-d-proof {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 24px;
-    align-items: center;
-  }
-  .hero-d-chip {
-    display: inline-flex;
-    gap: 10px;
-    align-items: center;
-    color: var(--ink);
-  }
-  .hero-d-right {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  .hero-d-cta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 6px 6px 6px 16px;
-    border: 1px solid var(--line-strong);
-    background: var(--bg-sunk);
-  }
-  @media (max-width: 900px) {
-    .hero-d-body {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 32px;
-    }
-    .hero-d-left :global(.fg-title-hero) {
-      font-size: 50px;
-    }
-  }
-  @media (max-width: 400px) {
-    .hero-d-left :global(.fg-title-hero) {
-      font-size: 40px;
-    }
-    .hero-d-cta {
-      flex-direction: column;
-      align-items: stretch;
-      padding: 12px;
-    }
-    /* The stretched button keeps its label at the start, as in the landing it comes from. */
-    .hero-d-cta :global(.fg-btn) {
-      justify-content: flex-start;
-    }
-  }
-  .yc-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    align-self: flex-start;
-    padding: 4px 12px 4px 4px;
-    border: 1px solid var(--line-strong);
-    color: var(--ink-muted);
-  }
-  .yc-mark {
-    width: 18px;
-    height: 22px;
-    display: block;
-  }
-  .yc-mark :global(svg) {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-  .hero-d-left {
-    gap: 28px;
-  }
-
-  /* Shared bits: small pixel squares, big pixel figures, the Soon tag. */
-  .c6 {
-    grid-column: 1 / -1;
-  }
-
-  /* 0.1 How it works: three glued rows, copy left and drawing right. */
-  /* Cards are glued edge to edge, like the bento: the 1px gaps show the line behind them. */
-  .steps {
-    display: grid;
-    gap: 1px;
-    background: var(--line);
-    border-bottom: 1px solid var(--line);
-  }
-  .step {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    background-color: var(--bg);
-    min-height: 460px;
-  }
-  .step-copy {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-    padding: 40px var(--gutter);
-    border-right: 1px solid var(--line);
-  }
-  .step-num {
-    height: 70px;
-    color: var(--accent);
-    margin-bottom: 8px;
-  }
-  .step-num :global(svg) {
-    height: 100%;
-    width: auto;
-    display: block;
-  }
-  .step-copy h3 {
-    max-width: 18ch;
-  }
-  .chunks {
-    margin-top: auto;
-    display: grid;
-    gap: 10px;
-    padding-top: 16px;
-  }
-  .chunks li {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-  }
-  .step-art {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 32px;
-    min-width: 0;
-  }
-
   /* Step 01: the catalog. */
   .catalog {
     width: 100%;
@@ -2162,7 +1704,7 @@ const faq = [
     font-weight: 600;
     margin-top: 6px;
   }
-  .catalog-card .catalog-tag,
+  .catalog-card :global(.fg-soon),
   .catalog-btn {
     align-self: flex-start;
     margin: 8px 0 0;
@@ -2257,7 +1799,7 @@ const faq = [
   }
 
   /* Step 03: two groups of doors. */
-  .ship-art {
+  :global(.fg-story-art.ship-art) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
     gap: 16px;
@@ -2304,25 +1846,12 @@ const faq = [
     align-items: center;
     gap: 8px;
   }
-  @media (max-width: 1000px) {
-    .step {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    .step-copy {
-      border-right: 0;
-      border-bottom: 1px solid var(--line-strong);
-    }
-  }
   @media (max-width: 640px) {
-    .step-copy,
-    .step-art {
-      padding: 28px 16px;
-    }
     .catalog-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .shape,
-    .ship-art {
+    :global(.fg-story-art.ship-art) {
       grid-template-columns: minmax(0, 1fr);
     }
   }
@@ -2343,7 +1872,7 @@ const faq = [
     background: var(--bg);
   }
   /* The heading rides with the line: tighter than a regular section head. */
-  .line-pin :global(.sec-head) {
+  .line-pin :global(.fg-sec-head) {
     padding-top: 40px;
     padding-bottom: 28px;
   }
@@ -2423,13 +1952,7 @@ const faq = [
   /* 0.7 Hosting: three plans, glued. */
 
   /* 0.8 Extras: the copy blocks share one height, whatever their text. */
-  #extras .cell .copy {
+  #extras :global(.fg-cell-copy) {
     flex: 0 0 148px;
-  }
-  .agents-chat {
-    flex: 1.2;
-    justify-content: center;
-    padding: 32px;
-    border-right: 1px solid var(--line);
   }
 </style>

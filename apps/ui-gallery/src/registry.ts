@@ -6,6 +6,7 @@ import { entries as filteringBlocks } from "./entries/filtering";
 import { entries as hookEntries } from "./entries/hooks";
 import { entries as iconPickerBlocks } from "./entries/icon-picker";
 import { entries as listBlocks } from "./entries/lists";
+import { entries as marketingBlocks } from "./entries/marketing";
 import { entries as navigationBlocks } from "./entries/navigation";
 import { entries as recordBlocks } from "./entries/record";
 import { entries as viewBlocks } from "./entries/views";
@@ -652,6 +653,126 @@ export const atoms: ReadonlyArray<Atom> = [
       className,
     ],
   },
+  // Marketing atoms: the pieces of the landing pages (forgeron.sh).
+  {
+    slug: "section-head",
+    name: "Section head",
+    summary:
+      "The head of a marketing section: its coordinate in ember, the pixel title, a lead. Sits on the page's rail (fg-rail).",
+    imports: ["SectionHead"],
+    props: [
+      { name: "index", type: "string", description: "The coordinate, /0.1, in the pixel face." },
+      { name: "title", type: "string | string[]", description: "The title, one string per line." },
+      {
+        name: "titleAs",
+        type: '"h1" | "h2"',
+        default: '"h2"',
+        description: "h1 when it opens the page.",
+      },
+      { name: "lead", type: "ReactNode", description: "One or two sentences under the title." },
+      { name: "meta", type: "ReactNode", description: "A mono note right of the coordinate." },
+      className,
+    ],
+  },
+  {
+    slug: "section-band",
+    name: "Section band",
+    summary:
+      "The hatched band between two sections, /0.1 → /0.2 and the next one's name. It takes the rule of the block above.",
+    imports: ["SectionBand"],
+    props: [
+      { name: "from", type: "string", description: "The coordinate of the section above." },
+      { name: "to", type: "string", description: "The coordinate of the section below." },
+      { name: "label", type: "string", description: "What comes next, shown in brackets." },
+      {
+        name: "className",
+        type: "string",
+        description:
+          "fg-rail to sit on the page's rail. Cards take fg-ticks (corner brackets), drawings fg-dots.",
+      },
+    ],
+  },
+  {
+    slug: "pixel-figure",
+    name: "Pixel figure",
+    summary: "A figure, a step or a short name drawn in the pixel face at a fixed height.",
+    imports: ["PixelFigure"],
+    props: [
+      { name: "text", type: "string", description: "What is drawn: 348, $14.99, 01." },
+      {
+        name: "label",
+        type: "string",
+        default: "text",
+        description: "Said to assistive technology.",
+      },
+      {
+        name: "size",
+        type: '"sm" | "md" | "lg" | "xl"',
+        default: '"lg"',
+        description: "20px (a name), 32px (a price), 56px (a figure), 70px (a step).",
+      },
+      {
+        name: "tone",
+        type: '"accent" | "ink" | "inherit"',
+        default: '"accent"',
+        description: "Its colour.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "soon-tag",
+    name: "Soon tag",
+    summary: "A small dashed tag in the bitmap face next to what is announced but not there yet.",
+    imports: ["SoonTag"],
+    props: [
+      { name: "children", type: "ReactNode", default: '"Soon"', description: "The word." },
+      className,
+    ],
+  },
+  {
+    slug: "mark-badge",
+    name: "Mark badge",
+    summary: "An outlined mono pill led by a small square mark, above a hero title.",
+    imports: ["MarkBadge"],
+    props: [
+      { name: "mark", type: "ReactNode", description: "The mark, 18 × 22: an SVG fills it." },
+      { name: "children", type: "ReactNode", description: "The words, in mono capitals." },
+      className,
+    ],
+  },
+  {
+    slug: "logo-tile",
+    name: "Logo tile",
+    summary: "A product's pixel mark, or its initial, in a 28px square. Decorative.",
+    imports: ["LogoTile"],
+    props: [
+      { name: "icon", type: "IconDefinition", description: "Its pixel brand mark, drawn at 16px." },
+      { name: "name", type: "string", description: "Without an icon, its first letter is drawn." },
+      className,
+    ],
+  },
+  {
+    slug: "stepper",
+    name: "Stepper",
+    summary:
+      "A whole number between a minus and a plus button. Markup only: the page wires data-step and reads the field.",
+    imports: ["Stepper"],
+    props: [
+      {
+        name: "label",
+        type: "string",
+        description: "Names the field; the buttons read Fewer / More.",
+      },
+      { name: "value", type: "number", description: "The starting value, 0 to 9999." },
+      {
+        name: "...rest",
+        type: "HTMLAttributes<HTMLSpanElement>",
+        description: "On the root, e.g. data-*.",
+      },
+      className,
+    ],
+  },
 ];
 
 const pickerProps = (extra: ReadonlyArray<PropRow> = []): ReadonlyArray<PropRow> => [
@@ -795,6 +916,7 @@ export const blocks: ReadonlyArray<Atom> = [
   ...datahubBlocks,
   ...driveBlocks,
   ...automationBlocks,
+  ...marketingBlocks,
 ];
 
 /** The hooks: the state the components share, the keyboard, the actions of a screen. */

@@ -28,7 +28,7 @@ export const READ_ON = "2026-11-17";
 /** Forgeron Cloud's price per seat per month, as on the plans (`plans.ts`). */
 export const FORGERON_SEAT = 14.99;
 
-export interface StackTool {
+interface StackTool {
   id: string;
   name: string;
   /** The plan the price is for. */

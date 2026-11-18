@@ -74,7 +74,7 @@ const FONT: Record<string, string[]> = {
 };
 
 /** The two buffers of a frame, and the shapes painted into them. */
-export class Cells {
+class Cells {
   readonly l: Float32Array;
   readonly a: Float32Array;
 
@@ -204,10 +204,10 @@ export class Cells {
   }
 }
 
-export const textWidth = (s: string) =>
+const textWidth = (s: string) =>
   [...s.toUpperCase()].reduce((w, ch) => w + (FONT[ch] ?? FONT[" "]!)[0]!.length + 1, 0) - 1;
 
-export type FlatScene = (c: Cells, t: number) => void;
+type FlatScene = (c: Cells, t: number) => void;
 
 // ---------------------------------------------------------------------------------------------
 // A wild ERP appeared: a handheld battle screen; each forged tool knocks a module off the suite.
@@ -451,7 +451,7 @@ const erp: FlatScene = (c, t) => {
   }
 };
 
-export const FLAT_SCENES: Readonly<Record<string, { draw: FlatScene; still: number }>> = {
+const FLAT_SCENES: Readonly<Record<string, { draw: FlatScene; still: number }>> = {
   erp: { draw: erp, still: 9.2 },
 };
 

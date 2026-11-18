@@ -1,6 +1,6 @@
 ---
 import { GithubIcon } from "@forgeron/icons";
-import { Icon, Logo, PixelText } from "@forgeron/ui";
+import { SiteFooter } from "@forgeron/ui";
 
 interface Props {
   /** The public repository. */
@@ -11,7 +11,6 @@ interface Props {
   from: string;
 }
 const { github, docs, from } = Astro.props;
-const next = `/${(Number(from.slice(1)) + 0.1).toFixed(1)}`;
 ---
 
 <!--
@@ -19,36 +18,38 @@ const next = `/${(Number(from.slice(1)) + 0.1).toFixed(1)}`;
   out of the forge (illustrations/hearth.ts). Without JavaScript the wordmark is the static pixel
   drawing in cold iron, at the same place.
 -->
-<footer class="rail foot">
-  <div class="spacer text-eyebrow dim"><span>{from} → {next}</span><span>[ Index ]</span></div>
-  <div class="hearth" data-hearth>
-    <canvas aria-hidden="true"></canvas>
-    <nav class="foot-cells" aria-label="Site index">
-      <div class="foot-cell ticks foot-brand">
-        <Logo size={28} />
-      </div>
-      <div class="foot-cell ticks">
-        <span class="text-eyebrow dim">Product</span>
-        <a href="/#how">How it works</a><a href="/#ship">Interfaces</a><a href="/#resources">Resources</a><a href="/pricing">Pricing</a>
-      </div>
-      <div class="foot-cell ticks">
-        <span class="text-eyebrow dim">Developers</span>
-        <a href="/#develop">CLI and MCP</a><a href="/#anatomy">Framework</a><a href="/#pick">Catalog</a><a href={docs}>Docs</a>
-      </div>
-      <div class="foot-cell ticks">
-        <span class="text-eyebrow dim">Open source</span>
-        <a href={github} class="foot-gh"><Icon icon={GithubIcon} size={16} variant="mono" />GitHub</a>
-        <a href={github}>License · Apache-2.0</a><a href={github}>Changelog</a>
-      </div>
-    </nav>
-    <div class="hearth-word" data-hearth-word><PixelText text="forgeron" /></div>
-  </div>
-  <div class="foot-legal text-eyebrow muted">
-    <span>Open source · Apache-2.0</span>
-    <span>Runs on Cloudflare Workers</span>
-    <span>forgeron.sh</span>
-  </div>
-</footer>
+<SiteFooter
+  from={from}
+  columns={[
+    {
+      title: "Product",
+      links: [
+        { href: "/#how", label: "How it works" },
+        { href: "/#ship", label: "Interfaces" },
+        { href: "/#resources", label: "Resources" },
+        { href: "/pricing", label: "Pricing" },
+      ],
+    },
+    {
+      title: "Developers",
+      links: [
+        { href: "/#develop", label: "CLI and MCP" },
+        { href: "/#anatomy", label: "Framework" },
+        { href: "/#pick", label: "Catalog" },
+        { href: docs, label: "Docs" },
+      ],
+    },
+    {
+      title: "Open source",
+      links: [
+        { href: github, label: "GitHub", icon: GithubIcon },
+        { href: github, label: "License · Apache-2.0" },
+        { href: github, label: "Changelog" },
+      ],
+    },
+  ]}
+  legal={["Open source · Apache-2.0", "Runs on Cloudflare Workers", "forgeron.sh"]}
+/>
 
 <script>
   import { mountHearth } from "../illustrations/hearth";
@@ -56,110 +57,3 @@ const next = `/${(Number(from.slice(1)) + 0.1).toFixed(1)}`;
   const hearth = document.querySelector<HTMLElement>("[data-hearth]");
   if (hearth) mountHearth(hearth);
 </script>
-
-<style>
-  /* The band above takes its top rule from the section before the footer. */
-  .foot > .spacer {
-    height: 88px;
-    border-top: 0;
-  }
-  .hearth {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 72px;
-    /* The cells run edge to edge, like every glued block of the site; the wordmark keeps its gutter. */
-    padding: 0 0 40px;
-    overflow: hidden;
-    background: var(--bg);
-  }
-  .hearth > canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-  }
-  .foot-cells {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
-    /* Glued: one-pixel gaps show the line behind, so neighbours share one rule. */
-    gap: 1px;
-    background: var(--line);
-    border-bottom: 1px solid var(--line);
-  }
-  .foot-cell {
-    position: relative;
-    background-color: var(--bg);
-    padding: 28px var(--gutter) 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .foot-cell a {
-    color: var(--ink-muted);
-    font-size: 14px;
-    line-height: 20px;
-    align-self: flex-start;
-  }
-  .foot-cell a:hover {
-    color: var(--ink);
-  }
-  .foot-gh {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .hearth-word {
-    position: relative;
-    color: var(--ink-dim);
-    /* A margin, not a padding: the hearth measures the slot's box to place the wordmark. */
-    margin: 0 var(--gutter);
-  }
-  .hearth-word :global(svg) {
-    display: block;
-    width: 100%;
-    height: auto;
-  }
-  /* Drawn by the canvas once it runs: the static wordmark keeps its room, out of sight. */
-  .hearth[data-live] .hearth-word {
-    visibility: hidden;
-  }
-  .foot-legal {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px 16px;
-    min-height: 56px;
-    padding: 12px var(--gutter);
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-    background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
-  }
-  .foot-legal span {
-    background: var(--bg);
-    padding: 2px 8px;
-  }
-  @media (max-width: 760px) {
-    .hearth {
-      gap: 48px;
-      padding-bottom: 28px;
-    }
-    .foot-cells {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .foot-brand,
-    .foot-cell:last-child {
-      grid-column: span 2;
-    }
-    .foot-cell {
-      padding: 24px 20px 28px;
-    }
-    .foot-legal {
-      justify-content: flex-start;
-    }
-  }
-</style>

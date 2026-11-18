@@ -1569,3 +1569,232 @@ a.fg-crumb:focus-visible {
 .fg-pop-row[data-selected] .fg-check-box {
   border-color: var(--ink-muted);
 }
+
+/* Marketing atoms ------------------------------------------------------------------------------
+   The pieces of the marketing pages (forgeron.sh): the rail, the corner ticks, the dotted field,
+   the section head and the hatched band between sections, pixel figures, the Soon tag, the mark
+   badge, logo tiles and the number stepper. */
+
+/* The rail: the page's column, ruled on both sides. */
+.fg-rail {
+  max-width: var(--rail);
+  margin: 0 auto;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  position: relative;
+}
+/* Crosshair brackets on the four corners. A background, so a card sets only its colour. */
+.fg-ticks {
+  --tick: var(--ink-dim);
+  --tl: 7px;
+  background:
+    linear-gradient(var(--tick), var(--tick)) top left / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) top left / 1px var(--tl) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) top right / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) top right / 1px var(--tl) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom left / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom left / 1px var(--tl) no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / var(--tl) 1px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / 1px var(--tl) no-repeat;
+}
+/* A field of dots on a 16px grid, under a drawing. */
+.fg-dots {
+  background-image: radial-gradient(var(--line-strong) 1px, transparent 1.2px);
+  background-size: 16px 16px;
+}
+
+/* Section head: the coordinate, then the title and its lead. */
+.fg-sec-head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 56px var(--gutter) 40px;
+  border-bottom: 1px solid var(--line);
+}
+.fg-sec-head-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.fg-sec-head-index {
+  color: var(--accent);
+}
+.fg-sec-head-index svg {
+  height: 20px;
+  width: auto;
+  display: block;
+}
+.fg-sec-head-title {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 64%;
+}
+.fg-sec-head-meta {
+  margin-left: auto;
+  color: var(--ink-dim);
+}
+.fg-sec-lead {
+  max-width: 52ch;
+  color: var(--ink-muted);
+  font-size: 17px;
+  line-height: 27px;
+}
+@media (max-width: 760px) {
+  .fg-sec-head {
+    padding-top: 40px;
+    padding-bottom: 28px;
+  }
+  .fg-sec-head-title {
+    max-width: none;
+  }
+}
+
+/* Section band: hatched, with its coordinates. 89px: the 88px band and the top rule it takes over
+   from the block above, so nothing below moves. */
+.fg-band {
+  height: 89px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--gutter);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  color: var(--ink-dim);
+}
+/* The band is closed above and below: the block before it gives up its own bottom rule. */
+section:has(+ .fg-band) > :last-child,
+section:has(+ .fg-band) > :last-child > li:last-child {
+  border-bottom: 0;
+}
+.fg-band span {
+  background: var(--bg);
+  padding: 2px 8px;
+}
+
+/* Pixel figure: the pixel face at a fixed height. */
+.fg-pfig {
+  display: block;
+}
+.fg-pfig svg {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+.fg-pfig-sm {
+  height: 20px;
+}
+.fg-pfig-md {
+  height: 32px;
+}
+.fg-pfig-lg {
+  height: 56px;
+}
+.fg-pfig-xl {
+  height: 70px;
+}
+.fg-pfig-accent {
+  color: var(--accent);
+}
+.fg-pfig-ink {
+  color: var(--ink);
+}
+
+/* Soon: a dashed tag in the bitmap face. */
+.fg-soon {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-muted);
+  margin-left: 8px;
+}
+
+/* Mark badge: an outlined mono pill led by a small mark. */
+.fg-mark-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-muted);
+}
+.fg-mark-badge-mark {
+  width: 18px;
+  height: 22px;
+  display: block;
+}
+.fg-mark-badge-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Logo tile: a product's mark, or its initial, in a 28px square. */
+.fg-logo-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-sunk);
+  color: var(--ink);
+}
+.fg-logo-tile-initial {
+  font-family: var(--font-pixel);
+  font-size: 20px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* Stepper: minus, the number, plus. */
+.fg-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-sunk);
+}
+.fg-stepper button {
+  width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.fg-stepper button:hover {
+  color: var(--accent);
+  background: var(--bg-raised);
+}
+.fg-stepper button:focus-visible,
+.fg-stepper input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.fg-stepper input {
+  width: 52px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.fg-stepper input::-webkit-inner-spin-button,
+.fg-stepper input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
