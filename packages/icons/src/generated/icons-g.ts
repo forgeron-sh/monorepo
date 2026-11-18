@@ -105,7 +105,7 @@ export { default as GoogleDocIcon } from "../drawn/google-doc";
 export { default as GoogleDriveIcon } from "../drawn/google-drive";
 export { default as GoogleGeminiIcon } from "../drawn/google-gemini";
 export { default as GoogleHomeIcon } from "../drawn/google-home";
-export const GoogleLensIcon: StubIcon = { name: "google-lens", implemented: false };
+export { default as GoogleLensIcon } from "../drawn/google-lens";
 export { default as GoogleMapsIcon } from "../drawn/google-maps";
 export { default as GooglePhotosIcon } from "../drawn/google-photos";
 export { default as GoogleSheetIcon } from "../drawn/google-sheet";

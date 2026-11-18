@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { getEntry, getIcon } from "./catalog";
 import * as icons from "./index";
-import { ZshIcon, AnvilIcon, ForgeronIcon } from "./index";
+import { AmieIcon, AnvilIcon, ForgeronIcon } from "./index";
 import { hasDuotone, isImplemented, pixelRows, toSvg } from "./render";
 import { SAME_AS } from "./generator/same-as";
 import type { DrawnIcon } from "./types";
 
 describe("stubs", () => {
   it("render nothing and say so", () => {
-    expect(ZshIcon).toEqual({ name: "zsh", implemented: false });
-    expect(isImplemented(ZshIcon)).toBe(false);
-    expect(hasDuotone(ZshIcon)).toBe(false);
-    expect(toSvg(ZshIcon)).toBeNull();
+    expect(AmieIcon).toEqual({ name: "amie", implemented: false });
+    expect(isImplemented(AmieIcon)).toBe(false);
+    expect(hasDuotone(AmieIcon)).toBe(false);
+    expect(toSvg(AmieIcon)).toBeNull();
   });
 });
 
@@ -63,6 +63,7 @@ const WIDER_GRID: Record<string, number> = {
   codepen: 16,
   confluence: 16,
   deepseek: 16,
+  digg: 16,
   github: 16,
   imo: 16,
   intercom: 16,
@@ -79,6 +80,7 @@ const WIDER_GRID: Record<string, number> = {
   threads: 16,
   "threads-ellipse": 16,
   "threads-rectangle": 16,
+  uber: 16,
   "vk-square": 16,
   zendesk: 16,
 };

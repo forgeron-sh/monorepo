@@ -142,7 +142,7 @@ export { default as WinkFillIcon } from "../drawn/wink-fill";
 export const WinkingIcon: PixelIcon = { name: "winking", implemented: true, style: "pixel", grid: 12, rows: ["", "...######", "..#......#", ".#........#", ".#..#.....#", ".#..#.###.#", ".#........#", ".#.o....o.#", ".#..oooo..#", "..#......#", "...######"] };
 export const WirelessIcon: PixelIcon = { name: "wireless", implemented: true, style: "pixel", grid: 12, rows: ["", "...######", ".##......##", "#..........#", "", "...######", "..#......#", "", "", ".....oo", ".....oo"] };
 export { default as WirelessCloudAccessIcon } from "../drawn/wireless-cloud-access";
-export const WiseIcon: StubIcon = { name: "wise", implemented: false };
+export { default as WiseIcon } from "../drawn/wise";
 export { default as WomanIcon } from "../drawn/woman";
 export { default as WordpressIcon } from "../drawn/wordpress";
 export const WorkIcon: PixelIcon = { name: "work", implemented: true, style: "pixel", grid: 12, rows: ["", "....####", "....#..#", ".##########", ".#........#", ".#........#", ".#...oo...#", ".#...oo...#", ".#........#", ".#........#", ".##########"] };

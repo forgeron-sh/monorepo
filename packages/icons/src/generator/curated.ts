@@ -29538,4 +29538,125 @@ export const CURATED: Readonly<Record<string, CuratedMeta>> = {
     labels: ["filled", "solid", "borobudur"],
     description: "Filled: borobudur: a bell stupa on stepped terraces.",
   },
+  "bitcoin-piggy-bank": {
+    labels: ["piggy", "bitcoin", "savings"],
+    description: "A piggy bank with a bitcoin sign on its side.",
+    reference:
+      "Hugeicons `bitcoin-piggy-bank` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  "bitcoin-target": {
+    labels: ["bitcoin", "target", "goal"],
+    description: "A crosshair ring with four ticks and the bitcoin B at its centre.",
+    reference:
+      "Hugeicons `bitcoin-target` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  digg: {
+    category: "brands",
+    labels: ["digg", "news", "social"],
+    description: "The Digg logo: its blocky lowercase digg wordmark.",
+    reference: "simple-icons:digg (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Digg and the Digg logo are trademarks of Digg, Inc., used here only to refer to Digg.",
+  },
+  dropbox: {
+    category: "brands",
+    labels: ["dropbox", "cloud", "storage"],
+    description: "The Dropbox mark: five rhombi forming an open box.",
+    reference: "simple-icons:dropbox (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Dropbox and the Dropbox logo are trademarks of Dropbox, Inc., used here only to refer to Dropbox.",
+  },
+  "google-lens": {
+    category: "brands",
+    labels: ["lens", "visual search", "camera"],
+    description: "The Google Lens mark: viewfinder brackets, a central disc and a corner dot.",
+    reference: "simple-icons:googlelens (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Google Lens and the Google Lens logo are trademarks of Google LLC, used here only to refer to Google Lens.",
+  },
+  iconjar: {
+    category: "brands",
+    labels: ["jar", "icons", "app"],
+    description: "The IconJar mark: a lidded jar with a slit splitting its body.",
+    reference: "simple-icons:iconjar (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "IconJar and the IconJar logo are trademarks of their owners, used here only to refer to IconJar.",
+  },
+  "office-365": {
+    category: "brands",
+    labels: ["office", "microsoft", "suite"],
+    description: "The Office 365 door-shaped mark in pixels.",
+    reference:
+      "Hugeicons `office-365` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Office 365 and the Office logo are trademarks of Microsoft Corporation, used here only to refer to Office 365.",
+  },
+  plaxo: {
+    category: "brands",
+    labels: ["plaxo", "contacts", "brand"],
+    description: "The Plaxo mark: a P inside a ring, its stem piercing the ring at the bottom.",
+    reference:
+      "Hugeicons `plaxo` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Plaxo and the Plaxo logo are trademarks of their owner, used here only to refer to Plaxo.",
+  },
+  pokeball: {
+    category: "brands",
+    labels: ["pokeball", "pokemon", "game"],
+    description:
+      "A Pok\u00e9 Ball: solid upper half, open lower half and the round button on the seam.",
+    reference:
+      "hugeicons:pokeball (Iconify, 2026-11-18): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Pok\u00e9mon and the Pok\u00e9 Ball are trademarks of Nintendo, Creatures Inc. and GAME FREAK inc., used here only to refer to Pok\u00e9mon.",
+  },
+  "shield-blockchain": {
+    labels: ["shield", "bitcoin", "chain"],
+    description: "A shield with a bitcoin B and two linked chain rings at its corner.",
+    reference:
+      "Hugeicons `shield-blockchain` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+  },
+  stumbleupon: {
+    category: "brands",
+    labels: ["stumbleupon", "discovery", "social"],
+    description: "The StumbleUpon mark: the joined su, a hooked arch followed by a u.",
+    reference: "fa-brands:stumbleupon (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "StumbleUpon and the StumbleUpon logo are trademarks of StumbleUpon, Inc., used here only to refer to StumbleUpon.",
+  },
+  swarm: {
+    category: "brands",
+    labels: ["bee", "check-in", "foursquare"],
+    description: "The Swarm by Foursquare bee: two wings, a striped curved body and the sting.",
+    reference: "simple-icons:swarm (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Swarm and the Swarm logo are trademarks of Foursquare Labs, Inc., used here only to refer to Swarm.",
+  },
+  uber: {
+    category: "brands",
+    labels: ["uber", "ride", "taxi"],
+    description: "The Uber app icon: a solid square with the Uber wordmark knocked out.",
+    reference:
+      "Hugeicons `uber` (Iconify preview, 2026-11-17): proportions and composition only, redrawn as pixel art.",
+    trademark:
+      "Uber and the Uber logo are trademarks of Uber Technologies, Inc., used here only to refer to Uber.",
+  },
+  wise: {
+    category: "brands",
+    labels: ["wise", "money", "transfer"],
+    description:
+      "The Wise fast-flag mark: a top bar turning into a long slanted stroke, with a down-left arrowhead.",
+    reference: "simple-icons:wise (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Wise and the Wise logo are trademarks of Wise Payments Limited, used here only to refer to Wise.",
+  },
+  zsh: {
+    category: "brands",
+    labels: ["zsh", "shell", "terminal"],
+    description:
+      "The Zsh logo: a terminal window with a % prompt and a z breaking its lower right corner.",
+    reference: "simple-icons:zsh (Iconify, 2026-11-18): rasterised, then redrawn by hand.",
+    trademark:
+      "Zsh and the Zsh logo are trademarks of their owners, used here only to refer to Zsh.",
+  },
 };

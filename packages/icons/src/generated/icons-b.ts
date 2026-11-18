@@ -178,7 +178,7 @@ export { default as BitcoinMindIcon } from "../drawn/bitcoin-mind";
 export { default as BitcoinMoney01Icon } from "../drawn/bitcoin-money-01";
 export { default as BitcoinMoney02Icon } from "../drawn/bitcoin-money-02";
 export { default as BitcoinPieChartIcon } from "../drawn/bitcoin-pie-chart";
-export const BitcoinPiggyBankIcon: StubIcon = { name: "bitcoin-piggy-bank", implemented: false };
+export { default as BitcoinPiggyBankIcon } from "../drawn/bitcoin-piggy-bank";
 export { default as BitcoinPresentationIcon } from "../drawn/bitcoin-presentation";
 export { default as BitcoinReceiptIcon } from "../drawn/bitcoin-receipt";
 export { default as BitcoinReceiveIcon } from "../drawn/bitcoin-receive";
@@ -194,7 +194,7 @@ export { default as BitcoinSmartphone02Icon } from "../drawn/bitcoin-smartphone-
 export { default as BitcoinSquareIcon } from "../drawn/bitcoin-square";
 export { default as BitcoinStoreIcon } from "../drawn/bitcoin-store";
 export { default as BitcoinTagIcon } from "../drawn/bitcoin-tag";
-export const BitcoinTargetIcon: StubIcon = { name: "bitcoin-target", implemented: false };
+export { default as BitcoinTargetIcon } from "../drawn/bitcoin-target";
 export { default as BitcoinTransactionIcon } from "../drawn/bitcoin-transaction";
 export { default as BitcoinUp01Icon } from "../drawn/bitcoin-up-01";
 export { default as BitcoinUp02Icon } from "../drawn/bitcoin-up-02";
