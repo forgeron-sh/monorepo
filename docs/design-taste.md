@@ -12,6 +12,7 @@ Each line is a stated preference, not a guess. When a rule and a rendered result
 | A spacer band with a bottom border only                                       | A top separator as well                                                                                                                                           | A band must read as a closed strip.                             |
 | Plain bordered cards                                                          | Bordered containers glued to each other, corner brackets a little bolder than the 1 px line, hatched stripes in the empty spaces, copied exactly from the landing | One recognisable frame across every site, not an approximation. |
 | Controls of different heights on one row (swatches, toggles, selects)         | One control height on any horizontal row, one token for it                                                                                                        | Mixed heights look broken.                                      |
+| Hatched rails across the top and bottom of a social banner, a big wordmark    | The dithered field over the whole banner, the logo smaller, inside a card with the landing's corner brackets                                                      | The banner reads as a piece of the landing.                     |
 | A tester, a download block and the whole licence on the home page             | A light home page. The playground is its own page, downloads and licence detail live in modals                                                                    | The home presents. It does not host tools or walls of text.     |
 | Counters and stats in chrome ("35 / 6,121 drawn", "v0.1 · OTF", glyph counts) | Removed                                                                                                                                                           | Numbers in the navbar and in lists are noise.                   |
 
@@ -29,10 +30,11 @@ Minimal first: if a line does not help someone choose or act, cut it.
 
 ## Colour and buttons
 
-| Before                                       | After                                                                          |
-| -------------------------------------------- | ------------------------------------------------------------------------------ |
-| White text on the orange button was tried    | Black text on orange (`--accent-ink`), as on the landing. White was reverted   |
-| Possible second oranges (hex, mixed opacity) | One orange, the `--accent` token, everywhere. The same one as the navbar label |
+| Before                                          | After                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| White text on the orange button was tried       | Black text on orange (`--accent-ink`), as on the landing. White was reverted   |
+| Possible second oranges (hex, mixed opacity)    | One orange, the `--accent` token, everywhere. The same one as the navbar label |
+| Orange as a dithered heat field across a banner | Orange on the anvil alone; the rest in greys (the landing's `field` dither)    |
 
 ## Motion
 
