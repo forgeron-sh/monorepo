@@ -1,0 +1,16 @@
+# The Rust workspace of the monorepo: crates live in `crates/`, one `target/` at the root.
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+# Size first: the module ships to the browser (D-148 aims at 150–300 KB).
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# The same, tuned for speed: the benchmark compares both.
+[profile.release-speed]
+inherits = "release"
+opt-level = 3
