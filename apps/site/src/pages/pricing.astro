@@ -8,6 +8,7 @@ import { GITHUB, plans, SELF_HOST } from "../data/plans";
 import { FORGERON_SEAT, READ_ON, stack } from "../data/stack";
 import Logo from "../components/ToolLogo.astro";
 import Stepper from "../components/Stepper.astro";
+import { AI_READ_ON, aiCost, aiExample, aiModels, aiSources, BALANCE, fmt, lineCost, meterGroups, money, scenarioCost, scenarios } from "../data/usage";
 import Site from "../layouts/Site.astro";
 
 const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
@@ -94,6 +95,28 @@ const compare: { group: string; rows: { name: string; v: (boolean | string)[] }[
   },
 ];
 
+/** The three rules of Fuel, each with its scene. */
+const fuelRules = [
+  {
+    iso: "fuel-month",
+    tag: "Each month",
+    name: "Included, not carried over",
+    text: `Your plan tops up your ${BALANCE} every month. What is left of it at the end of the month does not roll over.`,
+  },
+  {
+    iso: "fuel-topup",
+    tag: "On top",
+    name: "Top-ups last a year",
+    text: "Dollars you add on top stay valid for twelve months, used after the month's own.",
+  },
+  {
+    iso: "fuel-pool",
+    tag: BALANCE,
+    name: "One balance for everything",
+    text: "AI and compute, every tool and every person draw on the same dollars. One person's heavy month is not a surcharge on their seat.",
+  },
+];
+
 const faq = [
   {
     q: "What is a seat?",
@@ -106,6 +129,10 @@ const faq = [
   {
     q: "What is the difference with Forgeron Cloud?",
     a: "The same platform. On Forgeron Cloud we run it: updates, patches and resources are handled for you, with priority support and one bill per seat.",
+  },
+  {
+    q: "What happens to the Fuel I do not use?",
+    a: "What your plan includes each month does not carry over to the next. What you add on top stays valid for twelve months.",
   },
   {
     q: "When will the own-servers mode be ready?",
@@ -125,10 +152,10 @@ const faq = [
     current="/pricing"
     links={[
       { href: "/#how", label: "How it works" },
-      { href: "/#resources", label: "Resources" },
       { href: "/#develop", label: "Develop" },
       { href: "#plans", label: "Plans" },
       { href: "#savings", label: "Savings" },
+      { href: "#fuel", label: "Fuel" },
       { href: "#why", label: "Why Cloud" },
       { href: "#compare", label: "Compare" },
       { href: "/pricing", label: "Pricing" },
@@ -269,11 +296,164 @@ const faq = [
       </details>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.2 → /0.3</span><span>[ Why Forgeron Cloud ]</span></div>
+    <div class="rail spacer text-eyebrow dim"><span>/0.2 → /0.3</span><span>[ Fuel ]</span></div>
+
+    <!-- 0.3 FUEL: one balance in dollars, for AI and compute alike. -->
+    <section id="fuel" class="rail">
+      <SectionHead index="/0.3">
+        <Title as="h2" size="h2">Fuel,<br />in dollars.</Title>
+        <p class="sec-lead">
+          On Forgeron Cloud, everything your tools use, AI models and compute alike, burns {BALANCE}: one balance per
+          workspace, in US dollars, drawn as it is used.
+        </p>
+      </SectionHead>
+      <ul class="use-rules">
+        {
+          fuelRules.map((r) => (
+            <li class="use-rule ticks">
+              <div class="use-rule-art dots-bg">
+                <canvas data-iso={r.iso} data-scale="2" data-fill="0.74" data-unit="any" aria-hidden="true" />
+              </div>
+              <div class="use-rule-copy">
+                <span class="text-eyebrow accent">{r.tag}</span>
+                <h3 class="text-title-3">{r.name}</h3>
+                <p class="text-small muted">{r.text}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="use-part">
+        <header class="use-head">
+          <span class="text-eyebrow dim">/A · AI models</span>
+          <h3 class="text-title-2">Tokens, priced per model.</h3>
+          <p class="text-small muted">
+            Every call a tool makes to a model is counted in tokens: what it reads (input), what it writes (output), and what
+            the provider serves from its cache, read for a fraction of the input price. In US dollars per million tokens:
+          </p>
+        </header>
+        <div class="ai-table" role="table" aria-label="AI models, US dollars per million tokens">
+          <div class="ai-row ai-headrow text-eyebrow dim" role="row">
+            <span role="columnheader">Model</span>
+            <span role="columnheader">Input</span>
+            <span role="columnheader">Output</span>
+            <span role="columnheader">Cache read</span>
+            <span role="columnheader">Cache write</span>
+          </div>
+          {
+            aiModels.map((m) => (
+              <div class="ai-row" role="row">
+                <span role="rowheader" class="ai-model">
+                  <span class="ai-logo" aria-hidden="true"><Icon icon={m.icon} size={16} variant="mono" /></span>
+                  <span class="text-small">{m.model}</span>
+                  <span class="text-eyebrow dim">{m.provider}</span>
+                </span>
+                <span role="cell" class="text-code">{fmt(m.input)}</span>
+                <span role="cell" class="text-code">{fmt(m.output)}</span>
+                <span role="cell" class="text-code">{fmt(m.cacheRead)}</span>
+                <span role="cell" class="text-code">{m.cacheWrite === null ? <span class="dim">—</span> : fmt(m.cacheWrite)}</span>
+              </div>
+            ))
+          }
+        </div>
+        <div class="ai-example">
+          <p class="text-small muted"><span class="text-eyebrow accent">Example</span> {aiExample.text}</p>
+          <ul>
+            {
+              aiExample.models.map((name) => {
+                const m = aiModels.find((x) => x.model === name)!;
+                return (
+                  <li>
+                    <span class="text-small">{m.model}</span>
+                    <span class="use-n">{money(aiCost(m))}</span>
+                    <span class="text-eyebrow dim">a month</span>
+                  </li>
+                );
+              })
+            }
+          </ul>
+        </div>
+      </div>
+
+      <div class="use-part">
+        <header class="use-head">
+          <span class="text-eyebrow dim">/B · Compute</span>
+          <h3 class="text-title-2">Everything else, by the unit.</h3>
+          <p class="text-small muted">
+            Requests, CPU time, the database, files, cache, realtime, queues, mail and logs: each has a price per unit, taken
+            from the same {BALANCE} as AI. A tool that sleeps costs nothing; a busy one pays for what it does.
+          </p>
+        </header>
+        <div class="meters">
+          {
+            meterGroups.map((g) => (
+              <div class="meter-group ticks">
+                <span class="meter-head text-eyebrow">
+                  <Icon icon={g.icon} size={16} />
+                  {g.resource}
+                </span>
+                <ul>
+                  {g.meters.map((m) => (
+                    <li>
+                      <span class="text-small">{m.name}</span>
+                      <span class="text-eyebrow dim">{m.unit}</span>
+                      <span class="text-code meter-n">{m.usd === 0 ? "Free" : fmt(m.usd)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          }
+        </div>
+        <div class="scenarios">
+          {
+            scenarios.map((sc) => (
+              <article class="scenario ticks">
+                <h4 class="text-title-3">{sc.name}</h4>
+                <p class="text-small muted">{sc.text}</p>
+                <ul>
+                  {sc.lines.map((l) => (
+                    <li class="text-small">
+                      <span>{l.label}</span>
+                      <span class="text-code">{money(lineCost(l))}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div class="scenario-total">
+                  <span class="text-eyebrow dim">A month</span>
+                  <span class="use-n">{money(scenarioCost(sc))}</span>
+                </div>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+      <details class="sim-sources">
+        <summary class="text-eyebrow dim">AI prices and sources, read on {AI_READ_ON}</summary>
+        <ul>
+          {
+            aiSources.map((src) => (
+              <li class="text-small">
+                <span>{src.provider}</span>
+                <a href={src.url} rel="noopener" target="_blank">{new URL(src.url).host}</a>
+              </li>
+            ))
+          }
+          <li class="text-small muted">
+            Prices in US dollars, before tax. Cache write: the shortest-lived cache each provider lists. {BALANCE} applies to
+            Forgeron Cloud; on a self-managed install, your own accounts bill you. Logos drawn in pixels after the brands'
+            marks; the marks belong to their owners.
+          </li>
+        </ul>
+      </details>
+    </section>
+
+    <div class="rail spacer text-eyebrow dim"><span>/0.3 → /0.4</span><span>[ Why Forgeron Cloud ]</span></div>
 
     <!-- 0.2 WHY FORGERON CLOUD -->
     <section id="why" class="rail">
-      <SectionHead index="/0.3">
+      <SectionHead index="/0.4">
         <Title as="h2" size="h2">Built on<br />Cloudflare.</Title>
         <p class="sec-lead">What Cloudflare's platform gives every tool, and what we take off your plate.</p>
       </SectionHead>
@@ -294,11 +474,11 @@ const faq = [
       </div>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.3 → /0.4</span><span>[ Network ]</span></div>
+    <div class="rail spacer text-eyebrow dim"><span>/0.4 → /0.5</span><span>[ Network ]</span></div>
 
     <!-- 0.3 NETWORK -->
     <section id="network" class="rail">
-      <SectionHead index="/0.4">
+      <SectionHead index="/0.5">
         <Title as="h2" size="h2">Close to<br />every team.</Title>
         <p class="sec-lead">Every tool runs on Cloudflare's network: near your teams, with nothing to keep running.</p>
       </SectionHead>
@@ -322,11 +502,11 @@ const faq = [
       </div>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.4 → /0.5</span><span>[ Compare ]</span></div>
+    <div class="rail spacer text-eyebrow dim"><span>/0.5 → /0.6</span><span>[ Compare ]</span></div>
 
     <!-- 0.4 COMPARE -->
     <section id="compare" class="rail">
-      <SectionHead index="/0.5">
+      <SectionHead index="/0.6">
         <Title as="h2" size="h2">Side<br />by side.</Title>
       </SectionHead>
       <div class="cmp" role="table" aria-label="Plans compared">
@@ -373,13 +553,13 @@ const faq = [
       </div>
     </section>
 
-    <div class="rail spacer text-eyebrow dim"><span>/0.5 → /0.6</span><span>[ Open source ]</span></div>
+    <div class="rail spacer text-eyebrow dim"><span>/0.6 → /0.7</span><span>[ Open source ]</span></div>
 
     <!-- 0.5 OPEN SOURCE -->
     <section id="open-source" class="rail oss">
       <canvas data-shader="dissolve" data-px="8" aria-hidden="true"></canvas>
       <div class="oss-inner">
-        <span class="text-eyebrow dim">/0.5 · Open source</span>
+        <span class="text-eyebrow dim">/0.7 · Open source</span>
         <Title as="h2" size="h2">All of it,<br />Apache-2.0.</Title>
         <p class="text-small muted oss-lead">
           The platform, the SDK, the CLI and the templates are open source. Read the code, run it on your own account, or
@@ -395,7 +575,7 @@ const faq = [
 
     <!-- 0.6 QUESTIONS -->
     <section id="faq" class="rail">
-      <SectionHead index="/0.7">
+      <SectionHead index="/0.8">
         <Title as="h2" size="h2">Questions,<br />answered.</Title>
       </SectionHead>
       <div class="faq">
@@ -418,7 +598,7 @@ const faq = [
     </section>
   </main>
 
-  <Footer github={GITHUB} docs={DOCS} from="/0.7" />
+  <Footer github={GITHUB} docs={DOCS} from="/0.8" />
 </Site>
 
 <script>
@@ -687,6 +867,218 @@ const faq = [
     height: 100%;
     width: auto;
     display: block;
+  }
+
+  /* Usage: three rules, then the two pools, each a head, a table and examples. */
+  .use-rules {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .use-rule {
+    position: relative;
+    display: grid;
+    grid-template-rows: 220px auto;
+    background-color: var(--bg);
+  }
+  .use-rule-art {
+    position: relative;
+    border-bottom: 1px solid var(--line);
+  }
+  .use-rule-art canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .use-rule-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 24px var(--gutter);
+  }
+  .use-part {
+    border-bottom: 1px solid var(--line);
+  }
+  .use-head {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 720px;
+    padding: 32px var(--gutter) 24px;
+  }
+  .use-n {
+    font-family: var(--font-pixel);
+    text-transform: uppercase;
+    font-size: 30px;
+    line-height: 1;
+    font-synthesis: none;
+    color: var(--ink);
+  }
+  .ai-table {
+    border-top: 1px solid var(--line);
+  }
+  .ai-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) repeat(4, minmax(0, 1fr));
+    align-items: center;
+    min-height: 48px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ai-row > * {
+    padding: 0 var(--gutter);
+  }
+  .ai-row > * + * {
+    border-left: 1px solid var(--line);
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+  }
+  .ai-headrow {
+    min-height: 36px;
+  }
+  .ai-row:not(.ai-headrow):hover {
+    background: var(--bg-raised);
+  }
+  .ai-model {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ai-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: none;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-sunk);
+    color: var(--ink);
+  }
+  .ai-example {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 32px;
+    padding: 24px var(--gutter);
+  }
+  .ai-example p {
+    max-width: 520px;
+  }
+  .ai-example ul {
+    display: flex;
+    gap: 32px;
+  }
+  .ai-example li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .meters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .meter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px var(--gutter);
+    background-color: var(--bg);
+  }
+  .meter-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .meter-group ul {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .meter-group li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+  }
+  .meter-group li .text-eyebrow {
+    grid-column: 1;
+  }
+  .meter-n {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    color: var(--ink);
+  }
+  .scenarios {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+  }
+  .scenario {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 24px var(--gutter);
+    background-color: var(--bg-raised);
+  }
+  .scenario ul {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 0;
+    border-top: 1px dashed var(--line-strong);
+    border-bottom: 1px dashed var(--line-strong);
+  }
+  .scenario li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .scenario li .text-code {
+    color: var(--ink-muted);
+  }
+  .scenario-total {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+  .scenario-total .use-n {
+    color: var(--accent);
+  }
+  @media (max-width: 900px) {
+    .use-rules,
+    .scenarios {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .meters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .ai-row {
+      grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr));
+      font-size: 12px;
+    }
+    .ai-row > * {
+      padding: 0 8px;
+    }
+    .ai-model .text-eyebrow {
+      display: none;
+    }
+  }
+  @media (max-width: 560px) {
+    .meters {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   /* Why Cloud: six glued cards, three a row, their copy blocks one height. */

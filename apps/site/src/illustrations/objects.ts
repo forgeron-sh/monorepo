@@ -1,7 +1,7 @@
 /**
  * Recognisable objects for the home page's scenes, and the scenes built from them: what a tool is
- * given (a server, a filing cabinet, a memory stick under a lightning bolt, a funnel that letters
- * drop into, a safe), the access cards (a badge gate, a personal safe, a ticker printing the audit tape), the
+ * given (a server, a filing cabinet, a memory stick under a lightning bolt, a safe, a belt of jobs
+ * feeding a worker, a mail funnel that letters drop into and leave from), the access cards (a badge gate, a personal safe, a ticker printing the audit tape), the
  * observability desk, the production line of the develop section, driven by the scroll through
  * `lineStore`, and the AI gateway.
  *
@@ -209,10 +209,11 @@ function envelope(out: Out, at: Vec3, lit: boolean): void {
 }
 
 /**
- * A queue: a stepped funnel on a base, letters dropping into it one after another; a slot on the
- * base blinks as each one goes through. `on` lights the leading letter and the slot.
+ * Mail: a stepped funnel on a base. Letters drop into it one after another (received), and a
+ * letter slides out of the slot on the base and away (sent). `on` lights the leading letter
+ * in, the one going out, and the slot.
  */
-function letterFunnel(out: Out, c: Vec3, on: boolean, t: number): void {
+function mailFunnel(out: Out, c: Vec3, on: boolean, t: number): void {
   const [cx, cy, z] = c;
   box(out, [cx - 1.6, cy - 1.6, z], [3.2, 3.2, 2.6], { floors: 1.3, tone: [0.06, 0.2, 0.1] });
   const slot = out.length;
@@ -229,11 +230,78 @@ function letterFunnel(out: Out, c: Vec3, on: boolean, t: number): void {
   box(out, [cx - 1, cy - 1, z + 2.6], [2, 2, 1.2], { tone: [0.04, 0.14, 0.08] });
   box(out, [cx - 1.8, cy - 1.8, z + 3.8], [3.6, 3.6, 0.8], { tone: [0.06, 0.18, 0.1] });
   box(out, [cx - 2.6, cy - 2.6, z + 4.6], [5.2, 5.2, 0.8], { tone: [0.04, 0.12, 0.08] });
-  // Letters dropping in, in whole steps.
+  // Received: letters dropping in, in whole steps.
   for (let k = 0; k < 3; k++) {
     const phase = (t * 0.7 + k / 3) % 1;
     const lz = z + 5.6 + Math.round((1 - phase) * 10) * 0.6;
     envelope(out, [cx - 0.8 + (k - 1) * 0.3, cy - 0.55, lz], on && k === 0);
+  }
+  // Sent: a letter out of the slot, along the plinth to its edge, in whole steps.
+  const out1 = (t * 0.55) % 1;
+  envelope(out, [cx + 1.3 + Math.round(out1 * 6) * 0.25, cy - 0.55, z], on);
+}
+
+/**
+ * A queue: jobs waiting in line on a short belt, crates that step back together into a tall
+ * worker behind it, whose gauge on the +x face fills as it runs the job it took. The belt runs
+ * along y, in front of the worker, so the line is never hidden behind it. `on` lights the job at
+ * the head of the line and the gauge.
+ */
+function jobQueue(out: Out, c: Vec3, on: boolean, t: number): void {
+  const [cx, cy, z] = c;
+  const yw = cy - 0.6;
+  const L = 4.8;
+  const front = yw + L;
+  const top = z + 1.6;
+  // The worker at the back, and the belt on two legs in front of it.
+  box(out, [cx - 1.8, cy - 4.2, z], [3.6, 3.6, 6.4], {
+    floors: 3.2,
+    vents: true,
+    tone: [0.06, 0.2, 0.1],
+  });
+  box(out, [cx - 1, yw + 0.3, z], [2, 0.5, 1]);
+  box(out, [cx - 1, front - 0.8, z], [2, 0.5, 1]);
+  box(out, [cx - 1.2, yw, z + 1], [2.4, L, 0.6], { tone: [0.04, 0.12, 0.08] });
+  // The line moves one place a beat: it eases over the first third, then the worker runs it.
+  const beat = t * 0.8;
+  const n = Math.floor(beat);
+  const u = (beat - n) * 3;
+  const f = Math.min(1, u);
+  const ease = f * f * (3 - 2 * f);
+  const PITCH = 1.6;
+  const crates: number[] = [];
+  for (let k = 0; k < 4; k++) {
+    const y = front - 1.5 - (k - 1 + ease) * PITCH;
+    // Appears at the front of the belt, goes into the worker at the back.
+    if (y >= yw - 0.05 && y + 1.4 <= front + 0.05) crates.push(y);
+  }
+  crates.forEach((y) => {
+    const head = y === Math.min(...crates);
+    box(
+      out,
+      [cx - 0.75, y, top],
+      [1.5, 1.4, 1.4],
+      head && on ? { accent: true, layer: 1 } : { tone: [0.1, 0.25, 0.4], layer: 1 },
+    );
+    // A job ticket on the crate's +x face.
+    out.push({
+      kind: "line",
+      a: [cx + 0.76, y + 0.3, top + 0.8],
+      b: [cx + 0.76, y + 1.1, top + 0.8],
+      ink: head && on ? "accent" : "ink",
+      layer: 2,
+    });
+  });
+  // The worker's gauge, four cells up its +x face, filling while it runs the job.
+  const done = u < 1 ? 0 : Math.min(4, Math.floor((u - 1) * 2) + 1);
+  for (let k = 0; k < 4; k++) {
+    const lit = k < done;
+    box(
+      out,
+      [cx + 1.8, cy - 3.4, z + 1.4 + k * 1.1],
+      [0.05, 2, 0.7],
+      lit ? (on ? { accent: true, layer: 1 } : { tone: [0.3, 0.6, 0.9], layer: 1 }) : { layer: 1 },
+    );
   }
 }
 
@@ -436,7 +504,8 @@ function broadcaster(out: Out, at: Vec3, s: number, on: boolean, t: number): voi
 
 /**
  * Where each resource stands round the tool, clockwise on screen from twelve o'clock, in the
- * order of the page's list (database, files, cache, secrets, queue, cron jobs, observability, realtime),
+ * order of the page's list (database, files, cache, secrets, queue, mail, cron jobs, observability,
+ * realtime),
  * and the route of its cable on the floor: it leaves the tool on the
  * side facing the resource and arrives square on the resource's plinth.
  */
@@ -473,32 +542,45 @@ const SPOTS: Spot[] = [
   },
   // 3 · secrets, between four and five: out of the bottom right, onto the safe's top-left side.
   {
-    at: [19.7, 8.5],
+    at: [22.5, 6],
     size: 9,
     route: [
       [5, 4.5],
-      [15.2, 4.5],
+      [18, 4.5],
     ],
   },
-  // 4 · queue, six o'clock: straight out of the bottom left.
+  // 4 · queue, six o'clock, at the front corner: down, across under the safe, then down to it.
   {
-    at: [6, 19.7],
+    at: [21, 21],
+    size: 9,
+    route: [
+      [3, 5],
+      [3, 13],
+      [20, 13],
+      [20, 16.5],
+    ],
+  },
+  // 5 · mail, between six and seven: straight out of the bottom left.
+  {
+    at: [2, 22],
     size: 8,
     route: [
-      [4, 5],
-      [4, 15.7],
+      [-1, 5],
+      [-1, 18],
     ],
   },
-  // 5 · cron jobs, between seven and eight: straight out of the bottom left.
+  // 6 · cron jobs, between seven and eight: out of the bottom left, then across and down to it.
   {
-    at: [-7, 17],
+    at: [-11, 18],
     size: 8,
     route: [
       [-4, 5],
-      [-4, 13],
+      [-4, 10],
+      [-11, 10],
+      [-11, 14],
     ],
   },
-  // 6 · observability, nine o'clock: straight out of the left.
+  // 7 · observability, nine o'clock: straight out of the left.
   {
     at: [-22, 4],
     size: 8,
@@ -507,7 +589,7 @@ const SPOTS: Spot[] = [
       [-18, 2],
     ],
   },
-  // 7 · realtime, eleven o'clock: out of the left, then up to it.
+  // 8 · realtime, eleven o'clock: out of the left, then up to it.
   {
     at: [-21, -9],
     size: 8,
@@ -530,10 +612,10 @@ function wire(out: Out, route: readonly [number, number][], on: boolean, t: numb
 
 /**
  * The tool and what it was given, clockwise from noon: database, files, cache, secrets, queue,
- * cron jobs, observability and realtime, each wired to it. `active` (or the cycle) picks the resource in ember.
+ * mail, cron jobs, observability and realtime, each wired to it. `active` (or the cycle) picks the resource in ember.
  */
 function resources(t: number, active: number): Block[] {
-  const pick = active >= 0 ? active : Math.floor(t / 1.6) % 8;
+  const pick = active >= 0 ? active : Math.floor(t / 1.6) % 9;
   const out: Out = [...floorGrid(-36, 36, -36, 36, 4)];
   // The tool, on its plinth.
   plinth(out, [-5, -5, 0], [10, 10, 0.8]);
@@ -554,13 +636,15 @@ function resources(t: number, active: number): Block[] {
   const [sx, sy] = spot(3);
   vault(out, [sx - 3, sy - 3.25, 0.6], 1.3, pick === 3, t);
   const [qx, qy] = spot(4);
-  letterFunnel(out, [qx, qy, 0.6], pick === 4, t);
-  const [kx, ky] = spot(5);
-  alarmClock(out, [kx - 1.2, ky - 2.1, 0.6], 1, pick === 5, t);
-  const [ox, oy] = spot(6);
-  monitor(out, [ox - 1.2, oy - 2.5, 0.6], 1, pick === 6, t);
-  const [rx, ry] = spot(7);
-  broadcaster(out, [rx - 1.5, ry - 1.5, 0.6], 1, pick === 7, t);
+  jobQueue(out, [qx, qy, 0.6], pick === 4, t);
+  const [mx, my] = spot(5);
+  mailFunnel(out, [mx, my, 0.6], pick === 5, t);
+  const [kx, ky] = spot(6);
+  alarmClock(out, [kx - 1.2, ky - 2.1, 0.6], 1, pick === 6, t);
+  const [ox, oy] = spot(7);
+  monitor(out, [ox - 1.2, oy - 2.5, 0.6], 1, pick === 7, t);
+  const [rx, ry] = spot(8);
+  broadcaster(out, [rx - 1.5, ry - 1.5, 0.6], 1, pick === 8, t);
   return out;
 }
 
@@ -1902,6 +1986,136 @@ function forge(t: number): Block[] {
   return out;
 }
 
+/**
+ * A fuel tank: a box on a plinth with a gauge of `cells` stacked on its +x face, `level` of them
+ * lit (ember when `hot`), and a filler cap on top.
+ */
+function tank(out: Out, at: Vec3, s: number, level: number, cells: number, hot: boolean): void {
+  const [x, y, z] = at;
+  const w = 4 * s;
+  const d = 4 * s;
+  const h = 6.4 * s;
+  box(out, [x, y, z], [w, d, h], { tone: [0.06, 0.2, 0.1] });
+  box(
+    out,
+    [x + w / 2 - 0.6 * s, y + d / 2 - 0.6 * s, z + h],
+    [1.2 * s, 1.2 * s, 0.5 * s],
+    hot ? { accent: true } : {},
+  );
+  const gh = (h - 1.2 * s) / cells;
+  for (let k = 0; k < cells; k++) {
+    const lit = k < level;
+    box(
+      out,
+      [x + w, y + 1 * s, z + 0.6 * s + k * gh + 0.1 * s],
+      [0.05, d - 2 * s, gh - 0.2 * s],
+      lit ? (hot ? { accent: true, layer: 1 } : { tone: [0.3, 0.6, 0.9], layer: 1 }) : { layer: 1 },
+    );
+  }
+}
+
+/**
+ * Fuel · each month: the tank fills at the start of the month, the gauge drains week by week,
+ * and what is left at the end is emptied out before the next fill: nothing carries over. Four
+ * week tiles on the floor light as the month goes.
+ */
+function fuelMonth(t: number): Block[] {
+  const out: Out = [...floorGrid(-10, 10, -10, 10, 4)];
+  plinth(out, [-6, -6, 0], [12, 12, 0.6]);
+  const p = (t / 7) % 1;
+  const CELLS = 8;
+  let level: number;
+  if (p < 0.12) level = Math.round((p / 0.12) * CELLS);
+  else if (p < 0.82) level = CELLS - Math.round(((p - 0.12) / 0.7) * 5);
+  else level = p < 0.9 ? (Math.floor(t * 6) % 2 ? 3 : 0) : 0;
+  tank(out, [-3.6, -4.4, 0.6], 1, level, CELLS, p < 0.12);
+  // The weeks, along the front of the plinth.
+  const week = p < 0.12 ? -1 : Math.min(3, Math.floor(((p - 0.12) / 0.7) * 4));
+  for (let k = 0; k < 4; k++)
+    box(
+      out,
+      [-4.6 + k * 2.4, 2.6, 0.6],
+      [1.8, 1.8, 0.3],
+      k === week ? { accent: true } : k < week ? { tone: [0.1, 0.25, 0.4] } : {},
+    );
+  return out;
+}
+
+/** A jerrycan: a slim box standing up, a handle on top and a short spout. */
+function jerrycan(out: Out, at: Vec3, lit: boolean): void {
+  const [x, y, z] = at;
+  box(out, [x, y, z], [1.4, 2.6, 3.2], lit ? { accent: true } : { tone: [0.06, 0.2, 0.1] });
+  seg(out, [x + 0.7, y + 0.5, z + 3.2], [x + 0.7, y + 0.5, z + 3.7], lit ? "accent" : "ink");
+  seg(out, [x + 0.7, y + 0.5, z + 3.7], [x + 0.7, y + 1.7, z + 3.7], lit ? "accent" : "ink");
+  seg(out, [x + 0.7, y + 1.7, z + 3.7], [x + 0.7, y + 1.7, z + 3.2], lit ? "accent" : "ink");
+  box(out, [x + 0.35, y + 2.1, z + 3.2], [0.7, 0.5, 0.6], lit ? { accent: true } : {});
+}
+
+/**
+ * Fuel · top-ups: jerrycans set aside next to a row of twelve month tiles; a marker steps along
+ * the year and a can is lit while it lasts.
+ */
+function fuelTopUp(t: number): Block[] {
+  const out: Out = [...floorGrid(-10, 10, -10, 10, 4)];
+  plinth(out, [-6, -6, 0], [12, 12, 0.6]);
+  const month = Math.floor(t * 1.6) % 13;
+  for (let k = 0; k < 3; k++) jerrycan(out, [-4.8 + k * 2, -4.6, 0.6], k === 0 && month < 12);
+  // Twelve months, two rows of six along the front.
+  for (let k = 0; k < 12; k++) {
+    const row = Math.floor(k / 6);
+    const col = k % 6;
+    box(
+      out,
+      [-5 + col * 1.7, 0.6 + row * 1.9, 0.6],
+      [1.3, 1.4, 0.3],
+      k === month ? { accent: true } : k < month ? { tone: [0.1, 0.25, 0.4] } : {},
+    );
+  }
+  return out;
+}
+
+/**
+ * Fuel · one balance: one tank in the middle, its lines running to a server, a filing cabinet
+ * and a memory stick; fuel rides the line to whichever is working.
+ */
+function fuelPool(t: number): Block[] {
+  const out: Out = [...floorGrid(-12, 12, -12, 12, 4)];
+  const turn = Math.floor(t / 1.4) % 3;
+  plinth(out, [-3, -3, 0], [6, 6, 0.6]);
+  tank(out, [-2, -2, 0.6], 1, 6, 8, false);
+  const spots: { at: [number, number]; route: [number, number][] }[] = [
+    {
+      at: [-9, -2],
+      route: [
+        [-3, 0],
+        [-6, 0],
+      ],
+    },
+    {
+      at: [3, -10],
+      route: [
+        [0, -3],
+        [0, -7],
+      ],
+    },
+    {
+      at: [-3, 9],
+      route: [
+        [-1, 3],
+        [-1, 6],
+      ],
+    },
+  ];
+  spots.forEach(({ at, route }, i) => {
+    wire(out, route, i === turn, t);
+    plinth(out, [at[0] - 3, at[1] - 3, 0], [6, 6, 0.6]);
+  });
+  server(out, [-10.2, -4.2, 0.6], 0.9, turn === 0, t);
+  cabinet(out, [1.4, -12, 0.6], 1, turn === 1, t);
+  cacheChip(out, [-4.5, 6.4, 0.6], 1.1, turn === 2, t);
+  return out;
+}
+
 export const OBJECT_SCENES: Record<string, (t: number, active: number) => Block[]> = {
   resources,
   safe,
@@ -1922,4 +2136,7 @@ export const OBJECT_SCENES: Record<string, (t: number, active: number) => Block[
   "host-servers": hostServers,
   "ai-gateway": aiGateway,
   "forge-cta": forge,
+  "fuel-month": fuelMonth,
+  "fuel-topup": fuelTopUp,
+  "fuel-pool": fuelPool,
 };
