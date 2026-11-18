@@ -111,12 +111,10 @@ const COMMON_ICONS: ReadonlyArray<IconDefinition> = [
   CrownIcon,
 ];
 
-const drawn = (icon: IconDefinition): icon is PixelIcon => icon.implemented;
-
 // Built on first use, not at module level: a page that never shows a picker keeps none of it.
 let commonMap: Map<string, PixelIcon> | null = null;
 const common = () =>
-  (commonMap ??= new Map(COMMON_ICONS.filter(drawn).map((icon) => [icon.name, icon] as const)));
+  (commonMap ??= new Map(COMMON_ICONS.map((icon) => [icon.name, icon] as const)));
 
 /* ---------------------------------------------------------------- sections */
 
@@ -565,9 +563,8 @@ function buildCatalog(module: Record<string, unknown>): IconCatalog {
   const byName = new Map<string, PixelIcon>();
   const groups = new Map<string, { icons: PixelIcon[]; aliases: string[] }>();
   for (const [key, value] of Object.entries(module)) {
-    if (!value || typeof value !== "object" || !("implemented" in value)) continue;
-    const icon = value as IconDefinition;
-    if (!drawn(icon)) continue;
+    if (!value || typeof value !== "object" || !("rows" in value)) continue;
+    const icon = value as PixelIcon;
     byName.set(icon.name, icon);
     const drawing = `${icon.grid}:${icon.rows.join("/")}`;
     const group = groups.get(drawing) ?? { icons: [], aliases: [] };

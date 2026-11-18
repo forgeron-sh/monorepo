@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Amazon and the Amazon logo are trademarks of Amazon.com, Inc., used here only to refer to Amazon.
 const icon: PixelIcon = {
   name: "amazon",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

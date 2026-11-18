@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Adobe Illustrator and the Adobe Illustrator logo are trademarks of Adobe Inc., used here only to refer to Adobe Illustrator.
 const icon: PixelIcon = {
   name: "adobe-illustrator",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

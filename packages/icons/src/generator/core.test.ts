@@ -1,25 +1,9 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildManifest,
-  exportName,
-  generate,
-  renderFiles,
-  shardOf,
-  type NameSnapshot,
-} from "./core";
+import { buildManifest, exportName, generate, renderFiles, shardOf } from "./core";
 import { categoryOf, variantOf, wordsOf } from "./taxonomy";
 
-const snapshot = (over: Partial<NameSnapshot> = {}): NameSnapshot => ({
-  source: "test",
-  fetchedAt: "2026-11-16T00:00:00.000Z",
-  prefix: "hugeicons",
-  total: 6,
-  title: "Huge Icons",
-  uncategorized: ["1st-bracket", "anvil", "arrow-down-01", "rows-2", "rows2", "withdrawn"],
-  hidden: ["withdrawn", "first-bracket-circle"],
-  aliases: { "first-bracket": "1st-bracket", "first-brecket": "first-bracket", lost: "nowhere" },
-  ...over,
-});
+const pixel = (name: string, duo = false) => ({ name, style: "pixel" as const, duo });
+const DRAWN = [pixel("1st-bracket"), pixel("anvil", true), pixel("rows-2"), pixel("rows2")];
 
 describe("exportName", () => {
   it.each([
@@ -39,14 +23,13 @@ describe("exportName", () => {
 
 describe("buildManifest", () => {
   const manifest = buildManifest({
-    snapshot: snapshot(),
-    drawn: [{ name: "anvil", style: "pixel", duo: true }],
-    own: ["forgeron"],
+    drawn: [...DRAWN, pixel("arrow-down-01"), pixel("forgeron")],
+    aliases: { "first-bracket": "1st-bracket" },
     curated: { forgeron: { category: "brands", description: "Our mark.", aliases: ["mark"] } },
   });
   const entry = (name: string) => manifest.find((e) => e.name === name);
 
-  it("lists the visible names and our own, without the hidden ones, sorted", () => {
+  it("lists the drawn icons, sorted", () => {
     expect(manifest.map((e) => e.name)).toEqual([
       "1st-bracket",
       "anvil",
@@ -57,27 +40,18 @@ describe("buildManifest", () => {
     ]);
   });
 
-  it("flags drawn icons as implemented, with their variants and style", () => {
-    expect(entry("anvil")).toMatchObject({
-      implemented: true,
-      variants: { mono: true, duo: true },
-      style: "pixel",
-      source: "hugeicons",
-    });
+  it("gives each entry its variants, style and curated data", () => {
+    expect(entry("anvil")).toMatchObject({ variants: { mono: true, duo: true }, style: "pixel" });
     expect(entry("forgeron")).toMatchObject({
-      implemented: false,
-      variants: { mono: false, duo: false },
-      style: null,
-      source: "forgeron",
+      variants: { mono: true, duo: false },
       category: "brands",
       description: "Our mark.",
       aliases: ["mark"],
     });
   });
 
-  it("follows alias chains to a visible name and drops the dead ends", () => {
-    expect(entry("1st-bracket")?.aliases).toEqual(["first-bracket", "first-brecket"]);
-    expect(manifest.flatMap((e) => e.aliases)).not.toContain("lost");
+  it("files the aliases under their name", () => {
+    expect(entry("1st-bracket")?.aliases).toEqual(["first-bracket"]);
   });
 
   it("keeps the plain export for the hyphenated name of a pair", () => {
@@ -92,83 +66,53 @@ describe("buildManifest", () => {
     expect(arrow?.description).toBe("Arrow down, variant 01. Arrows.");
   });
 
-  it("refuses a drawn icon that is neither a Hugeicons name nor our own", () => {
+  it("refuses an unknown curated category, an alias that is a name or leads nowhere", () => {
     expect(() =>
-      buildManifest({
-        snapshot: snapshot(),
-        drawn: [{ name: "typo", style: "pixel", duo: false }],
-        own: [],
-      }),
-    ).toThrow(/neither a Hugeicons name nor listed in OWN_ICONS/);
-  });
-
-  it("refuses an own name that Hugeicons already has", () => {
-    expect(() => buildManifest({ snapshot: snapshot(), drawn: [], own: ["anvil"] })).toThrow(
-      /is a Hugeicons name/,
-    );
-  });
-
-  it("refuses an unknown curated category and an alias that is a name", () => {
-    expect(() =>
-      buildManifest({
-        snapshot: snapshot(),
-        drawn: [],
-        own: [],
-        curated: { anvil: { category: "nope" } },
-      }),
+      buildManifest({ drawn: DRAWN, aliases: {}, curated: { anvil: { category: "nope" } } }),
     ).toThrow(/unknown category/);
     expect(() =>
-      buildManifest({
-        snapshot: snapshot(),
-        drawn: [],
-        own: [],
-        curated: { anvil: { aliases: ["rows2"] } },
-      }),
+      buildManifest({ drawn: DRAWN, aliases: {}, curated: { anvil: { aliases: ["rows2"] } } }),
     ).toThrow(/is a name/);
+    expect(() =>
+      buildManifest({ drawn: DRAWN, curated: {}, aliases: { lost: "nowhere" } }),
+    ).toThrow(/not a name/);
   });
 });
 
 describe("renderFiles", () => {
-  const input = {
-    snapshot: snapshot(),
-    drawn: [{ name: "anvil", style: "pixel" as const, duo: true }],
-    own: [],
-    curated: {},
-  };
+  const input = { drawn: [pixel("1st-bracket"), pixel("anvil", true)], curated: {}, aliases: {} };
 
-  it("re-exports drawn icons and writes stubs as plain data, one shard per first letter", () => {
+  it("re-exports drawn icons, one shard per first letter", () => {
     const { files } = generate(input);
     expect(Object.keys(files).sort()).toEqual([
       "icons-0-9.ts",
       "icons-a.ts",
-      "icons-r.ts",
       "index.ts",
       "manifest.json",
       "names.ts",
     ]);
     expect(files["icons-a.ts"]).toContain('export { default as AnvilIcon } from "../drawn/anvil";');
-    expect(files["icons-a.ts"]).toContain(
-      'export const ArrowDown01Icon: StubIcon = { name: "arrow-down-01", implemented: false };',
-    );
     expect(files["index.ts"]).toContain('export * from "./icons-0-9";');
     expect(files["names.ts"]).toContain('| "1st-bracket"');
-    expect(JSON.parse(files["manifest.json"] ?? "")).toHaveLength(5);
+    expect(JSON.parse(files["manifest.json"] ?? "")).toHaveLength(2);
   });
 
   it("copies the drawing of a name drawn as another icon, under its own name", () => {
-    const drawn = [{ ...input.drawn[0]!, grid: 12, rows: ["", ".##"] }];
+    const drawn = [{ ...pixel("anvil", true), grid: 12, rows: ["", ".##"] }];
     const { manifest, files } = generate({ ...input, drawn, sameAs: { "arrow-down-01": "anvil" } });
     expect(files["icons-a.ts"]).toContain(
-      'export const ArrowDown01Icon: PixelIcon = { name: "arrow-down-01", implemented: true, style: "pixel", grid: 12, rows: ["", ".##"] };',
+      'export const ArrowDown01Icon: PixelIcon = { name: "arrow-down-01", style: "pixel", grid: 12, rows: ["", ".##"] };',
     );
     expect(files["icons-a.ts"]).toContain('import type { PixelIcon } from "../types";');
     const entry = manifest.find((e) => e.name === "arrow-down-01");
-    expect(entry).toMatchObject({ implemented: true, sameAs: "anvil", variants: { duo: true } });
+    expect(entry).toMatchObject({ sameAs: "anvil", variants: { duo: true } });
     expect(manifest.find((e) => e.name === "anvil")?.sameAs).toBeNull();
     expect(() => generate({ ...input, drawn, sameAs: { "arrow-down-01": "rows-2" } })).toThrow(
       /not drawn/,
     );
-    expect(() => generate({ ...input, drawn, sameAs: { nope: "anvil" } })).toThrow(/not a name/);
+    expect(() => generate({ ...input, drawn, sameAs: { anvil: "anvil" } })).toThrow(
+      /has its own drawing/,
+    );
   });
 
   it("is deterministic: the same input writes the same files", () => {

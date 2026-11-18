@@ -8,16 +8,9 @@
  */
 export interface PixelIcon {
   readonly name: string;
-  readonly implemented: true;
   readonly style: "pixel";
   readonly grid: number;
   readonly rows: readonly string[];
-}
-
-/** A catalog name with no drawing yet: renders nothing. */
-export interface StubIcon {
-  readonly name: string;
-  readonly implemented: false;
 }
 
 /**
@@ -25,7 +18,7 @@ export interface StubIcon {
  * discriminant, so a second style can be added without breaking the data.
  */
 export type DrawnIcon = PixelIcon;
-export type IconDefinition = DrawnIcon | StubIcon;
+export type IconDefinition = DrawnIcon;
 
 /** Monotone: every shape in the primary tone. Duotone: the secondary shapes in the secondary tone. */
 export type IconVariant = "mono" | "duo";
@@ -50,30 +43,24 @@ export interface IconRenderOptions {
   title?: string;
 }
 
-/** Where the name of a catalog entry comes from. */
-export type IconSource = "hugeicons" | "forgeron";
-
 /** One entry of the generated manifest (`@forgeron/icons/catalog`). */
 export interface IconManifestEntry {
   /** Kebab-case name, the key of the catalog. */
   readonly name: string;
   /** The named export of `@forgeron/icons`. */
   readonly export: string;
-  /** `hugeicons`: a name of the Hugeicons list (name only, our drawing); `forgeron`: our own. */
-  readonly source: IconSource;
   /** Our own taxonomy, derived from the name (see the package README). */
   readonly category: string;
   /** Search tags. */
   readonly labels: readonly string[];
   readonly description: string;
-  readonly implemented: boolean;
   readonly variants: { readonly mono: boolean; readonly duo: boolean };
-  readonly style: DrawnIcon["style"] | null;
-  /** Other names that lead to this entry (Hugeicons aliases, names used before the package). */
+  readonly style: DrawnIcon["style"];
+  /** Other names that lead to this entry (older spellings, names used before the package). */
   readonly aliases: readonly string[];
   /**
    * The drawn icon whose drawing this name reuses, when the name means the same thing (`trash` →
-   * `delete-01`); `null` for a name with its own drawing or none. See `src/generator/same-as.ts`.
+   * `delete-01`); `null` for a name with its own drawing. See `src/generator/same-as.ts`.
    */
   readonly sameAs: string | null;
   /** What the drawing was redrawn after (inspiration, never traced), when it was. */

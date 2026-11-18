@@ -11,7 +11,6 @@ import type { PixelIcon } from "../types";
 // to Digg.
 const icon: PixelIcon = {
   name: "digg",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

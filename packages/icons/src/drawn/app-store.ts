@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // App Store and the App Store logo are trademarks of Apple Inc., used here only to refer to App Store.
 const icon: PixelIcon = {
   name: "app-store",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

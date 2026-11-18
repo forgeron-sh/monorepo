@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Bebo and the Bebo logo are trademarks of Bebo, Inc., used here only to refer to Bebo.
 const icon: PixelIcon = {
   name: "bebo",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

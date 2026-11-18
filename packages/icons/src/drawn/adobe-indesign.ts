@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Adobe InDesign and the Adobe InDesign logo are trademarks of Adobe Inc., used here only to refer to Adobe InDesign.
 const icon: PixelIcon = {
   name: "adobe-indesign",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

@@ -1,6 +1,5 @@
 import { textSvg } from "@forgeron/blueprint";
 import { CloudIcon, LockIcon } from "@forgeron/icons";
-import type { IconDefinition } from "@forgeron/icons";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -144,9 +143,7 @@ describe("Icon", () => {
     expect(out).toContain("fill:var(--accent)");
     expect(out).toContain('aria-hidden="true"');
   });
-  it("is named with a title, and renders nothing for a stub", () => {
+  it("is named with a title", () => {
     expect(html(h(Icon, { icon: LockIcon, title: "Locked" }))).toContain('aria-label="Locked"');
-    const stub: IconDefinition = { name: "not-drawn", implemented: false };
-    expect(html(h(Icon, { icon: stub }))).toBe("");
   });
 });

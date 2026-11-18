@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // pixels wide, closed where sampling broke them, the hole kept open. Monotone.
 const icon: PixelIcon = {
   name: "openai",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

@@ -1,8 +1,7 @@
 import type { IconCategory } from "../types";
 
-// Our own taxonomy of the catalog. Hugeicons publishes no category list that we could verify (the
-// Iconify listing of the set has none), so categories are derived from the words of each name by
-// the rules below. They are a heuristic: a hand-drawn icon can override its category in
+// Our own taxonomy of the catalog: categories are derived from the words of each name by the
+// rules below. They are a heuristic: a hand-drawn icon can override its category in
 // `curated.ts`, and a name no rule recognises lands in `general`.
 
 interface CategoryRule extends IconCategory {

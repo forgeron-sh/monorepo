@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // stepping one column every three rows. Monotone.
 const icon: PixelIcon = {
   name: "anthropic",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

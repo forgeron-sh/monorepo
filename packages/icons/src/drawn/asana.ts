@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // then redrawn. Monotone.
 const icon: PixelIcon = {
   name: "asana",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

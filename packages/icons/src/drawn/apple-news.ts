@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Apple News and the Apple News logo are trademarks of Apple Inc., used here only to refer to Apple News.
 const icon: PixelIcon = {
   name: "apple-news",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

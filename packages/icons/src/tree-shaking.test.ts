@@ -35,7 +35,6 @@ describe("tree shaking", () => {
     expect(code).toMatch(/[`"]anvil[`"]/);
     expect(code).not.toContain("abacus");
     expect(code).not.toContain("arrow-down-01");
-    expect(code).not.toContain("implemented:!1");
     expect(code.length).toBeLessThan(4000);
     expect(imports).toEqual([]);
   }, 30_000);

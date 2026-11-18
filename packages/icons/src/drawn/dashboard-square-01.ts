@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Duotone (2026-11-17): the two short panels, keeping the half-turn symmetry.
 const icon: PixelIcon = {
   name: "dashboard-square-01",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

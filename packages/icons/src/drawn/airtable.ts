@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // (Iconify, 2026-11-17), then redrawn with clean 2:1 slopes. Monotone.
 const icon: PixelIcon = {
   name: "airtable",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

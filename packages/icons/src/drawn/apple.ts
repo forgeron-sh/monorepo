@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Apple and the Apple logo are trademarks of Apple Inc., used here only to refer to Apple.
 const icon: PixelIcon = {
   name: "apple",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

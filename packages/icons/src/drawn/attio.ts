@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // were noise at 16 and 24 px. Monotone.
 const icon: PixelIcon = {
   name: "attio",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Google Chrome and the Chrome logo are trademarks of Google LLC, used here only to refer to Google Chrome.
 const icon: PixelIcon = {
   name: "chrome",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

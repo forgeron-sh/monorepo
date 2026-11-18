@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // empty, an area filled in the tone of its contour), then checked in the review sheet.
 const icon: PixelIcon = {
   name: "speaker-fill",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

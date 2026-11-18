@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // one-pixel outline over two chevrons) blurred at 16 px.
 const icon: PixelIcon = {
   name: "layers-01",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

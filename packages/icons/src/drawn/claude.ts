@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Claude and the Claude logo are trademarks of Anthropic, PBC, used here only to refer to Claude.
 const icon: PixelIcon = {
   name: "claude",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

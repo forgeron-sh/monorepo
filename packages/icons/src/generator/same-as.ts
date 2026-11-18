@@ -1,4 +1,4 @@
-// Names drawn as another icon: a Hugeicons name that means the same thing as a drawn icon reuses
+// Names drawn as another icon: a name that means the same thing as a drawn icon reuses
 // its drawing instead of a second, near-identical one (`trash` → `delete-01`). The generator
 // copies the rows of the drawn icon into the export of the name, so each export stays plain data
 // and keeps its own `name`; the manifest says which drawing it reuses (`sameAs`).

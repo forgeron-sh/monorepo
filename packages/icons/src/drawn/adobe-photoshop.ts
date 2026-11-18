@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Adobe Photoshop and the Adobe Photoshop logo are trademarks of Adobe Inc., used here only to refer to Adobe Photoshop.
 const icon: PixelIcon = {
   name: "adobe-photoshop",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

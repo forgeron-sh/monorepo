@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import snapshotData from "../data/hugeicons-names.json";
 import { manifest } from "./catalog";
-import { generate, type NameSnapshot } from "./generator/core";
+import { generate } from "./generator/core";
 import { SAME_AS } from "./generator/same-as";
 import * as icons from "./index";
 import { hasDuotone } from "./render";
@@ -11,8 +10,7 @@ import type { IconDefinition } from "./types";
 // running `bun run generate`, or a hand edit of src/generated/, fails here.
 
 const exported = Object.entries(icons).filter(
-  (e): e is [string, IconDefinition] =>
-    typeof e[1] === "object" && e[1] !== null && "implemented" in e[1],
+  (e): e is [string, IconDefinition] => typeof e[1] === "object" && e[1] !== null && "rows" in e[1],
 );
 
 describe("manifest and exports", () => {
@@ -20,17 +18,14 @@ describe("manifest and exports", () => {
     const byExport = new Map(exported);
     expect(byExport.size).toBe(manifest.length);
     for (const entry of manifest) {
-      const icon = byExport.get(entry.export);
-      expect(icon).toBeDefined();
-      expect(icon?.name).toBe(entry.name);
-      expect(icon?.implemented).toBe(entry.implemented);
+      expect(byExport.get(entry.export)?.name).toBe(entry.name);
     }
   });
 
-  it("is what the generator writes from the snapshot and the drawn icons", () => {
+  it("is what the generator writes from the drawn icons", () => {
     const drawn = exported
       .map(([, icon]) => icon)
-      .filter((icon) => icon.implemented)
+      .filter((icon) => !(icon.name in SAME_AS))
       .map((icon) => ({
         name: icon.name,
         style: icon.style,
@@ -38,23 +33,8 @@ describe("manifest and exports", () => {
         grid: icon.grid,
         rows: icon.rows,
       }));
-    const { manifest: expected } = generate({
-      snapshot: snapshotData as NameSnapshot,
-      drawn,
-      sameAs: SAME_AS,
-    });
+    const { manifest: expected } = generate({ drawn, sameAs: SAME_AS });
     expect(manifest).toEqual(expected);
-  });
-
-  it("mirrors every visible Hugeicons name", () => {
-    const snapshot = snapshotData as NameSnapshot;
-    const names = new Set(manifest.map((e) => e.name));
-    const hidden = new Set(snapshot.hidden);
-    const visible = snapshot.uncategorized.filter((name) => !hidden.has(name));
-    expect(visible.filter((name) => !names.has(name))).toEqual([]);
-    for (const entry of manifest.filter((e) => e.source === "forgeron")) {
-      expect(snapshot.uncategorized).not.toContain(entry.name);
-    }
   });
 
   it("gives every entry a category, labels and a description", () => {

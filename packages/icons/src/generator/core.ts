@@ -1,25 +1,10 @@
 import type { IconManifestEntry } from "../types";
-import { CURATED, OWN_ICONS, type CuratedMeta } from "./curated";
+import { ALIASES } from "./aliases";
+import { CURATED, type CuratedMeta } from "./curated";
 import { CATEGORIES, categoryOf, variantOf, wordsOf } from "./taxonomy";
 
-// The generator as pure functions: from the name snapshot and the list of drawn icons to the
+// The generator as pure functions: from the drawn icons and the names that reuse them to the
 // content of every generated file. `scripts/generate.ts` does the reading and the writing.
-
-/** The snapshot of the Iconify listing of Hugeicons, kept in `data/hugeicons-names.json`. */
-export interface NameSnapshot {
-  readonly source: string;
-  /** When the listing was fetched (ISO 8601). */
-  readonly fetchedAt: string;
-  readonly prefix: string;
-  readonly total: number;
-  readonly title: string;
-  /** Every visible name: Iconify files the whole set as uncategorized. */
-  readonly uncategorized: readonly string[];
-  /** Names Iconify hides (renamed or withdrawn): not in our catalog. */
-  readonly hidden: readonly string[];
-  /** Other name → name of the set: kept as aliases of their target. */
-  readonly aliases: Readonly<Record<string, string>>;
-}
 
 /** What the generator needs to know of a drawn icon (a module of `src/drawn/`). */
 export interface DrawnInfo {
@@ -32,10 +17,10 @@ export interface DrawnInfo {
 }
 
 export interface GenerateInput {
-  readonly snapshot: NameSnapshot;
   readonly drawn: readonly DrawnInfo[];
-  readonly own?: readonly string[];
   readonly curated?: Readonly<Record<string, CuratedMeta>>;
+  /** Other name → name of the catalog (`ALIASES` of `aliases.ts`). */
+  readonly aliases?: Readonly<Record<string, string>>;
   /** Name → drawn icon whose drawing it reuses (`SAME_AS` of `same-as.ts`). Default: none. */
   readonly sameAs?: Readonly<Record<string, string>>;
 }
@@ -159,70 +144,43 @@ function descriptionOf(name: string, category: string): string {
 
 /** The manifest, sorted by name, and checked: one entry per name, one export per entry. */
 export function buildManifest(input: GenerateInput): IconManifestEntry[] {
-  const { snapshot } = input;
-  const own = input.own ?? OWN_ICONS;
   const curated = input.curated ?? CURATED;
   const sameAs = input.sameAs ?? {};
-  const hidden = new Set(snapshot.hidden);
-  const huge = new Set(snapshot.uncategorized.filter((n) => !hidden.has(n)));
   const drawn = new Map(input.drawn.map((d) => [d.name, d]));
 
-  for (const name of own) {
-    if (huge.has(name)) throw new Error(`"${name}" is a Hugeicons name: remove it from OWN_ICONS.`);
-  }
-  for (const name of drawn.keys()) {
-    if (!huge.has(name) && !own.includes(name)) {
-      throw new Error(
-        `The drawn icon "${name}" is neither a Hugeicons name nor listed in OWN_ICONS (curated.ts).`,
-      );
-    }
-  }
   const categories = new Set(CATEGORIES.map((c) => c.id));
   for (const [name, meta] of Object.entries(curated)) {
     if (meta.category && !categories.has(meta.category)) {
       throw new Error(`curated.ts: "${name}" has the unknown category "${meta.category}".`);
     }
   }
-
-  const names = [...new Set([...huge, ...own])].sort();
   for (const [name, target] of Object.entries(sameAs)) {
-    if (!names.includes(name)) throw new Error(`same-as.ts: "${name}" is not a name.`);
+    if (drawn.has(name)) throw new Error(`same-as.ts: "${name}" has its own drawing.`);
     if (target in sameAs)
       throw new Error(`same-as.ts: "${name}" leads to "${target}", itself drawn as another icon.`);
     if (!drawn.has(target))
       throw new Error(`same-as.ts: "${name}" leads to "${target}", not drawn.`);
   }
+
+  const names = [...new Set([...drawn.keys(), ...Object.keys(sameAs)])].sort();
+  const known = new Set(names);
   const aliases = new Map<string, string[]>();
   const addAlias = (alias: string, target: string) => {
-    if (names.includes(alias)) return;
+    if (known.has(alias)) throw new Error(`The alias "${alias}" is a name.`);
+    if (!known.has(target))
+      throw new Error(`The alias "${alias}" leads to "${target}", not a name.`);
     aliases.set(target, [...(aliases.get(target) ?? []), alias]);
   };
-  // An alias may lead to another alias (`first-brecket-circle` → `first-bracket-circle` → …):
-  // follow the chain to a visible name, or drop it.
-  const resolve = (name: string): string | undefined => {
-    let current: string | undefined = name;
-    for (let hops = 0; current !== undefined && hops < 8; hops++) {
-      if (huge.has(current)) return current;
-      current = snapshot.aliases[current];
-    }
-    return undefined;
-  };
-  for (const alias of Object.keys(snapshot.aliases)) {
-    const target = resolve(alias);
-    if (target) addAlias(alias, target);
-  }
+  for (const [alias, target] of Object.entries(input.aliases ?? ALIASES)) addAlias(alias, target);
   for (const [target, meta] of Object.entries(curated)) {
-    for (const alias of meta.aliases ?? []) {
-      if (names.includes(alias)) throw new Error(`curated.ts: the alias "${alias}" is a name.`);
-      addAlias(alias, target);
-    }
+    for (const alias of meta.aliases ?? []) addAlias(alias, target);
   }
 
   const exports = new Map<string, string>();
   return names.map((name) => {
-    // Hugeicons lists a few names twice, with and without a hyphen before a number (`rows-2`,
-    // `rows2`). Names are sorted, so the hyphenated one comes first and keeps the plain export;
-    // the other marks the glued number with `_` (`Rows_2Icon`).
+    // A few names differ only by a hyphen before a number (`rows-2`, `rows2`). Names are sorted,
+    // so the hyphenated one comes first and keeps the plain export; the other marks the glued
+    // number with `_` (`Rows_2Icon`).
     let id = exportName(name);
     if (exports.has(id)) id = exportName(name.replace(/([a-z])(\d)/g, "$1_$2"));
     const clash = exports.get(id);
@@ -231,17 +189,15 @@ export function buildManifest(input: GenerateInput): IconManifestEntry[] {
     const meta = curated[name];
     const category = meta?.category ?? categoryOf(name);
     const same = sameAs[name];
-    const art = drawn.get(name) ?? (same === undefined ? undefined : drawn.get(same));
+    const art = drawn.get(name) ?? drawn.get(same ?? "");
     return {
       name,
       export: id,
-      source: huge.has(name) ? "hugeicons" : "forgeron",
       category,
       labels: labelsOf(name, category, meta),
       description: meta?.description ?? descriptionOf(name, category),
-      implemented: art !== undefined,
-      variants: { mono: art !== undefined, duo: art?.duo ?? false },
-      style: art?.style ?? null,
+      variants: { mono: true, duo: art?.duo ?? false },
+      style: "pixel",
       aliases: [...(aliases.get(name) ?? [])].sort(),
       sameAs: same ?? null,
       reference: meta?.reference ?? null,
@@ -251,7 +207,7 @@ export function buildManifest(input: GenerateInput): IconManifestEntry[] {
 }
 
 const HEADER =
-  "// Generated by `bun run generate` (packages/icons) from data/hugeicons-names.json and src/drawn/.\n" +
+  "// Generated by `bun run generate` (packages/icons) from src/drawn/ and src/generator/.\n" +
   "// Do not edit: draw an icon in src/drawn/<name>.ts, then run the generator.\n";
 
 /** The shard of a name: its first letter, or `0-9` for a leading digit. */
@@ -271,7 +227,7 @@ export function renderFiles(
     if (!d?.rows || d.grid === undefined)
       throw new Error(`"${e.name}" is drawn as "${target}", whose rows were not given.`);
     const rows = d.rows.map((r) => JSON.stringify(r)).join(", ");
-    return `export const ${e.export}: PixelIcon = { name: "${e.name}", implemented: true, style: "pixel", grid: ${d.grid}, rows: [${rows}] };`;
+    return `export const ${e.export}: PixelIcon = { name: "${e.name}", style: "pixel", grid: ${d.grid}, rows: [${rows}] };`;
   };
   const shards = new Map<string, IconManifestEntry[]>();
   for (const entry of manifest) {
@@ -282,20 +238,15 @@ export function renderFiles(
   const keys = [...shards.keys()].sort();
   for (const key of keys) {
     const entries = shards.get(key) ?? [];
-    const types = [
-      ...(entries.some((e) => e.sameAs !== null) ? ["PixelIcon"] : []),
-      ...(entries.some((e) => !e.implemented) ? ["StubIcon"] : []),
-    ];
+    const copies = entries.some((e) => e.sameAs !== null);
     const lines = entries.map((e) =>
       e.sameAs !== null
         ? copy(e, e.sameAs)
-        : e.implemented
-          ? `export { default as ${e.export} } from "../drawn/${e.name}";`
-          : `export const ${e.export}: StubIcon = { name: "${e.name}", implemented: false };`,
+        : `export { default as ${e.export} } from "../drawn/${e.name}";`,
     );
     files[`icons-${key}.ts`] =
       HEADER +
-      (types.length > 0 ? `import type { ${types.join(", ")} } from "../types";\n\n` : "\n") +
+      (copies ? `import type { PixelIcon } from "../types";\n\n` : "\n") +
       lines.join("\n") +
       "\n";
   }

@@ -8,17 +8,17 @@ How to draw an icon for [`@forgeron/icons`](../packages/icons/README.md) that is
 
 Ten minutes per icon, in this order. Do not skip step 6: every bad icon in the set so far was accepted from its rows, never looked at.
 
-1. **Reference.** Open the Hugeicons drawing of the name: `https://api.iconify.design/hugeicons/<name>.svg` (or `@hugeicons/core-free-icons`, MIT). Note its composition only: which parts, how many, how big against each other. For a subject Hugeicons does not have, look at two or three reference drawings on the web (see [Sources of inspiration](#sources-of-inspiration)).
+1. **Reference.** Look at two or three reference drawings of the subject (see [Sources of inspiration](#sources-of-inspiration)). Note their composition only: which parts, how many, how big against each other.
 2. **Silhouette.** Decide the one shape that must survive at 16 px, and what can go. Write it in one sentence ("a ring with eight short teeth and a big hole"). If you need more than one sentence, the icon has too much in it.
 3. **Grid.** 12×12. 16×16 only for a brand mark that cannot fit (see [Grid and sizes](#grid-and-sizes)). Plan the margins: keep a one-pixel margin unless the shape is round or must be large (a circle can touch the edges; a square should not).
 4. **Line weight.** One pixel, like the rest of the set, or solid shapes. Choose one per icon and never mix a one-pixel outline with a two-pixel one.
 5. **Rows.** Write the rows: `#` primary tone, `o` secondary tone, `.` empty. Use the secondary tone for one idea only, or not at all (see [Do and don't](#do-and-dont)). Draw with full rows if it helps, then run `bun run trim` in `packages/icons`: it drops trailing `.` and trailing empty rows, which the renderer pads back (a test fails until it is done).
 6. **Render.** Put the drawing in `packages/icons/src/drawn/<name>.ts`, run `bun run generate` in `packages/icons`, start the gallery (`icon-gallery` in `.claude/launch.json`, port 5179) and open the icon's detail (`/?icon=<name>`). It shows the icon at 16, 24 and 48 px, in both tones, with its pixel grid.
 7. **Review at 16, 24, 48** with the [checklist](#review-checklist). Compare with two or three neighbours of the set at the same size: same weight, same size on the grid.
-8. **Fix and render again.** Change pixels, not the rule. Expect three or four rounds. Say so when it still does not read: a weak icon left as a stub is better than a bad one in the set.
+8. **Fix and render again.** Change pixels, not the rule. Expect three or four rounds. Say so when it still does not read: no icon is better than a bad one in the set.
 9. **Register.**
    - `src/drawn/<name>.ts`: the file name is the icon name; a comment says what it shows, and the reference it was redrawn after.
-   - `src/generator/curated.ts`: the description, labels, `reference` (for example "Hugeicons `x` (Iconify preview, YYYY-MM-DD): proportions and composition only, redrawn as pixel art."), `trademark` for a third-party logo, and the name in `OWN_ICONS` when it is not a Hugeicons name.
+   - `src/generator/curated.ts`: the description, labels, `reference` for a brand mark (for example "simple-icons:x (Iconify, YYYY-MM-DD): rasterised, then redrawn by hand."), and `trademark` for a third-party logo.
    - A grid other than 12: add it to `WIDER_GRID` in `src/render.test.ts`, with the reason.
    - `bun run generate`, then `bunx vitest run packages/icons apps/icon-gallery`.
 10. **Record** what you changed and why in the comment of the drawn file, so the next person knows the drawing was reviewed.
@@ -43,7 +43,7 @@ Look at the rendered icon, not at the rows.
 
 **Decision (2026-11-16): the base grid stays 12×12.** A 16×16 grid is allowed for a brand mark whose aspect ratio or detail does not fit 12 (today: `cloudflare`, `github`). No 24×24 grid.
 
-**How it was decided.** The same subjects (a cog, a brand cloud, an arrow, a document, a user) were drawn on 12, 16 and 24-pixel grids and compared at 16, 24 and 48 px, in the gallery's `/grids` page (study drawings in `apps/icon-gallery/src/lib/grid-study.ts`, not exported). What was seen and measured:
+**How it was decided.** The same subjects (a cog, a brand cloud, an arrow, a document, a user) were drawn on 12, 16 and 24-pixel grids and compared at 16, 24 and 48 px, in a study page of the gallery, since removed. What was seen and measured:
 
 | Device pixels per grid pixel | 16 px       | 24 px       | 48 px     |
 | ---------------------------- | ----------- | ----------- | --------- |
@@ -170,7 +170,7 @@ Before                  Rejected               After (adopted)
 ```
 
 - **Before**: ten-pixel rows (rows 2 and 9) make the body a slab; the teeth are separated by one-pixel gaps that close at 16 px; a three-pixel rim and a small hole make it heavy; the secondary axle floats in the hole.
-- **Rejected**: six thin teeth on a one-pixel ring, like the six teeth of Hugeicons `settings-01`. At 24 px it reads as a nut with legs: the teeth are too thin for their gaps.
+- **Rejected**: six thin teeth on a one-pixel ring. At 24 px it reads as a nut with legs: the teeth are too thin for their gaps.
 - **After**: a two-pixel rim around a six-pixel hole (about a third of the body, like the reference's hub); eight one-pixel teeth set at 22.5°, so the notches fall on the diagonals and every gap is at least two pixels; no row longer than eight. Monotone: a cog has no second idea. It reads as a cog at 16 px and is as light as the ring icons next to it.
 
 ## Brand logos
@@ -191,14 +191,13 @@ A third-party mark is drawn to be **recognised**, not reinterpreted.
 
 ## Sources of inspiration
 
-| Source                                                                                                        | Use it for                                                            | Licence                                                                                                      | Copy?                                                                                                                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hugeicons free, `@hugeicons/core-free-icons` 4.4.0; preview `https://api.iconify.design/hugeicons/<name>.svg` | the composition of the icon a name stands for                         | MIT (`LICENSE.md` read 2026-11-16)                                                                           | Inspiration only. Vendoring would be allowed with the notice, but is not done (a stroke style would break the pixel set) and must be recorded in the package README if it ever is. Never Hugeicons Pro. |
-| Lucide and its icon design guide                                                                              | rules of spacing, padding, optical balance, clarity first             | ISC (Lucide)                                                                                                 | Rules and ideas, not drawings.                                                                                                                                                                          |
-| pixelarticons (halfmage)                                                                                      | how a popular pixel set solves a subject at about 12 effective pixels | MIT                                                                                                          | Inspiration only, no tracing.                                                                                                                                                                           |
-| Pixel Icon Library (HackerNoon), Iconify prefix `pixel`                                                       | more pixel solutions, true 24 grid                                    | unclear: README says CC BY 4.0 for icons, `LICENSE` file is MIT, Iconify lists CC BY 4.0. Treat as CC BY 4.0 | Inspiration only.                                                                                                                                                                                       |
-| Kenney Game Icons                                                                                             | game-style pictograms                                                 | CC0                                                                                                          | Inspiration; copying would be allowed but would not match the style.                                                                                                                                    |
-| The web (photos, diagrams, other icon sets)                                                                   | what a subject looks like, which parts people recognise               | varies                                                                                                       | Look, close the tab, draw from memory of the parts. Never trace.                                                                                                                                        |
+| Source                                                  | Use it for                                                            | Licence                                                                                                      | Copy?                                                                |
+| ------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Lucide and its icon design guide                        | rules of spacing, padding, optical balance, clarity first             | ISC (Lucide)                                                                                                 | Rules and ideas, not drawings.                                       |
+| pixelarticons (halfmage)                                | how a popular pixel set solves a subject at about 12 effective pixels | MIT                                                                                                          | Inspiration only, no tracing.                                        |
+| Pixel Icon Library (HackerNoon), Iconify prefix `pixel` | more pixel solutions, true 24 grid                                    | unclear: README says CC BY 4.0 for icons, `LICENSE` file is MIT, Iconify lists CC BY 4.0. Treat as CC BY 4.0 | Inspiration only.                                                    |
+| Kenney Game Icons                                       | game-style pictograms                                                 | CC0                                                                                                          | Inspiration; copying would be allowed but would not match the style. |
+| The web (photos, diagrams, other icon sets)             | what a subject looks like, which parts people recognise               | varies                                                                                                       | Look, close the tab, draw from memory of the parts. Never trace.     |
 
 **Never** trace, sample or copy the pixels of another icon set. "Redrawn after" means: same idea and proportions, our own pixels, recorded in `reference`. A brand logo is the only thing that is rasterised, and only from the brand's own mark.
 
@@ -225,21 +224,20 @@ All read on 2026-11-16 unless stated. "Listing" means only a directory entry or 
 7. Streamline, Grids and key shapes: https://blog.streamlinehq.com/grids-and-keyshapes (read; undated blog post); 16 × 16 icons page: https://design.streamlinehq.com/16x16-icons (read; mostly a product page).
 8. Apple Human Interface Guidelines, Icons: https://developer.apple.com/design/human-interface-guidelines/icons (read through its JSON data; simplicity, consistent weight, optical centring of bottom-heavy icons).
 9. Microsoft Fluent 2, Iconography: https://fluent2.microsoft.design/iconography (read; dedicated sizes rather than scaling down).
-10. Hugeicons, `@hugeicons/core-free-icons` registry data: https://registry.npmjs.org/@hugeicons/core-free-icons/latest (read; MIT, 4.4.0); no public Hugeicons design guide was found.
-11. pixelarticons: https://github.com/halfmage/pixelarticons and its CONTRIBUTING: https://raw.githubusercontent.com/halfmage/pixelarticons/master/CONTRIBUTING.md (read; 24 × 24 viewBox, paths only, no anti-aliasing or sub-pixel coordinates, avoid diagonal edges, display at multiples of 24).
-12. Pixel Icon Library (HackerNoon): https://github.com/hackernoon/pixel-icon-library (README and LICENSE read; licence statements disagree).
-13. Kenney, Game Icons: https://kenney.nl/assets/game-icons (read; CC0).
-14. Derek Yu, Pixel Art Tutorial: https://www.derekyu.com/makegames/pixelart.html (read; updated 2020-01-28; jaggies, clean-up to one-pixel lines, no anti-aliasing on an outer edge over an unknown background).
-15. cure, The Pixel Art Tutorial, Pixel Joint: https://pixeljoint.com/forum/forum_posts.asp?TID=11299 (read; 2010; jaggies, clusters, banding, pillow shading).
-16. Lospec, Pixel Art Outlines Tutorial (skeddles, 2016): https://lospec.com/articles/pixel-art-outlines (read; equal segment lengths on a diagonal, steady shortening on a curve).
-17. Tsugumo, So You Want To Be A Pixel Artist?, WPI copy: https://web.cs.wpi.edu/~claypool/courses/frontiers-06/samples/pixel-artist/faq.htm (read; about tiles and sprites, little for icons).
-18. Slynyrd, Pixelblog 47, Tiny Pixels: https://www.slynyrd.com/blog/2023/11/26/pixelblog-47-tiny-pixels (read; keep only the traits that identify, stop early).
-19. Pedro Medeiros, tutorials index: https://saint11.art/blog/pixel-art-tutorials/ (read, but the tutorials are images; his Medium articles returned 403).
-20. Line slopes 1:1, 1:2, 2:1: https://community.aseprite.org/t/how-do-i-make-straight-curved-lines-properly/10246 and https://pixeljoint.com/Forum/forum_posts.asp?TID=20478 (search snippets only; sources 15 and 16 say the equivalent in full).
-21. Cloudflare, Our Trademark Guidelines: https://www.cloudflare.com/trademark/ (read).
-22. Simple Icons, DISCLAIMER: https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md (read).
-23. Iconify API previews used as references: `https://api.iconify.design/hugeicons/settings-01.svg`, `https://api.iconify.design/logos/cloudflare-icon.svg`, `https://api.iconify.design/simple-icons/cloudflare.svg`, and the pixelarticons and `pixel` SVGs whose coordinates were counted (fetched).
-24. Agent skills: https://skills.sh/jezweb/claude-skills/icon-set-generator, https://skills.sh/tryopendata/skills/svg-design, https://skills.sh/omer-metin/skills-for-antigravity/pixel-art, https://tessl.io/registry/skills/github/wanshuiyin/Auto-claude-code-research-in-sleep/pixel-art (SKILL files or references read); the others listed above are listings.
+10. pixelarticons: https://github.com/halfmage/pixelarticons and its CONTRIBUTING: https://raw.githubusercontent.com/halfmage/pixelarticons/master/CONTRIBUTING.md (read; 24 × 24 viewBox, paths only, no anti-aliasing or sub-pixel coordinates, avoid diagonal edges, display at multiples of 24).
+11. Pixel Icon Library (HackerNoon): https://github.com/hackernoon/pixel-icon-library (README and LICENSE read; licence statements disagree).
+12. Kenney, Game Icons: https://kenney.nl/assets/game-icons (read; CC0).
+13. Derek Yu, Pixel Art Tutorial: https://www.derekyu.com/makegames/pixelart.html (read; updated 2020-01-28; jaggies, clean-up to one-pixel lines, no anti-aliasing on an outer edge over an unknown background).
+14. cure, The Pixel Art Tutorial, Pixel Joint: https://pixeljoint.com/forum/forum_posts.asp?TID=11299 (read; 2010; jaggies, clusters, banding, pillow shading).
+15. Lospec, Pixel Art Outlines Tutorial (skeddles, 2016): https://lospec.com/articles/pixel-art-outlines (read; equal segment lengths on a diagonal, steady shortening on a curve).
+16. Tsugumo, So You Want To Be A Pixel Artist?, WPI copy: https://web.cs.wpi.edu/~claypool/courses/frontiers-06/samples/pixel-artist/faq.htm (read; about tiles and sprites, little for icons).
+17. Slynyrd, Pixelblog 47, Tiny Pixels: https://www.slynyrd.com/blog/2023/11/26/pixelblog-47-tiny-pixels (read; keep only the traits that identify, stop early).
+18. Pedro Medeiros, tutorials index: https://saint11.art/blog/pixel-art-tutorials/ (read, but the tutorials are images; his Medium articles returned 403).
+19. Line slopes 1:1, 1:2, 2:1: https://community.aseprite.org/t/how-do-i-make-straight-curved-lines-properly/10246 and https://pixeljoint.com/Forum/forum_posts.asp?TID=20478 (search snippets only; sources 15 and 16 say the equivalent in full).
+20. Cloudflare, Our Trademark Guidelines: https://www.cloudflare.com/trademark/ (read).
+21. Simple Icons, DISCLAIMER: https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md (read).
+22. Iconify API previews used as references: `https://api.iconify.design/logos/cloudflare-icon.svg`, `https://api.iconify.design/simple-icons/cloudflare.svg`, and the pixelarticons and `pixel` SVGs whose coordinates were counted (fetched).
+23. Agent skills: https://skills.sh/jezweb/claude-skills/icon-set-generator, https://skills.sh/tryopendata/skills/svg-design, https://skills.sh/omer-metin/skills-for-antigravity/pixel-art, https://tessl.io/registry/skills/github/wanshuiyin/Auto-claude-code-research-in-sleep/pixel-art (SKILL files or references read); the others listed above are listings.
 
 ## Changes of 2026-11-16
 

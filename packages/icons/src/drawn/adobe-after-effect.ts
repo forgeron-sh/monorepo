@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Adobe After Effects and the Adobe After Effects logo are trademarks of Adobe Inc., used here only to refer to Adobe After Effects.
 const icon: PixelIcon = {
   name: "adobe-after-effect",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

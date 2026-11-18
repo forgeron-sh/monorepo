@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Castbox and the Castbox logo are trademarks of Guru Network Limited, used here only to refer to Castbox.
 const icon: PixelIcon = {
   name: "castbox",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

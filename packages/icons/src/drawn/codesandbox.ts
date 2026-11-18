@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // CodeSandbox and the CodeSandbox logo are trademarks of CodeSandbox BV, used here only to refer to CodeSandbox.
 const icon: PixelIcon = {
   name: "codesandbox",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

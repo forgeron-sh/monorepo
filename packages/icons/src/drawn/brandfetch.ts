@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Brandfetch and the Brandfetch logo are trademarks of Brandfetch GmbH, used here only to refer to Brandfetch.
 const icon: PixelIcon = {
   name: "brandfetch",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

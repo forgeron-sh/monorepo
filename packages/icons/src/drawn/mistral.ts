@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // then redrawn on whole blocks: the anti-aliased corners dropped. Monotone.
 const icon: PixelIcon = {
   name: "mistral",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // Duotone (2026-11-17): the question mark.
 const icon: PixelIcon = {
   name: "help-circle",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

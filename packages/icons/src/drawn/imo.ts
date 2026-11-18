@@ -4,7 +4,6 @@ import type { PixelIcon } from "../types";
 // 16×16: `#` primary tone. Drawn on 2026-11-18.
 const icon: PixelIcon = {
   name: "imo",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

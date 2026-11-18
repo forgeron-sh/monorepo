@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Android and the Android robot logo are trademarks of Google LLC, used here only to refer to Android.
 const icon: PixelIcon = {
   name: "android",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

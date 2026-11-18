@@ -1,19 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { getEntry, getIcon } from "./catalog";
 import * as icons from "./index";
-import { AmieIcon, AnvilIcon, ForgeronIcon } from "./index";
-import { hasDuotone, isImplemented, pixelRows, toSvg } from "./render";
+import { AnvilIcon, ForgeronIcon } from "./index";
+import { hasDuotone, pixelRows, toSvg } from "./render";
 import { SAME_AS } from "./generator/same-as";
 import type { DrawnIcon } from "./types";
-
-describe("stubs", () => {
-  it("render nothing and say so", () => {
-    expect(AmieIcon).toEqual({ name: "amie", implemented: false });
-    expect(isImplemented(AmieIcon)).toBe(false);
-    expect(hasDuotone(AmieIcon)).toBe(false);
-    expect(toSvg(AmieIcon)).toBeNull();
-  });
-});
 
 describe("pixel icons", () => {
   it("pads rows to the grid", () => {
@@ -88,8 +79,7 @@ const WIDER_GRID: Record<string, number> = {
 describe("the drawn set", () => {
   it("is pixel art only, on the 12-pixel grid of the lab (16 for a brand mark that needs it)", () => {
     const drawn = Object.values(icons).filter(
-      (v): v is DrawnIcon =>
-        typeof v === "object" && v !== null && "implemented" in v && v.implemented,
+      (v): v is DrawnIcon => typeof v === "object" && v !== null && "rows" in v,
     );
     expect(drawn.length).toBeGreaterThan(0);
     for (const icon of drawn) {
@@ -103,8 +93,7 @@ describe("the drawn set", () => {
 
   it("stores trimmed rows: no trailing `.`, no trailing empty row (`bun run trim` fixes them)", () => {
     const drawn = Object.values(icons).filter(
-      (v): v is DrawnIcon =>
-        typeof v === "object" && v !== null && "implemented" in v && v.implemented,
+      (v): v is DrawnIcon => typeof v === "object" && v !== null && "rows" in v,
     );
     const stale = drawn
       .filter((icon) => icon.rows.some((row) => row.endsWith(".")) || icon.rows.at(-1) === "")

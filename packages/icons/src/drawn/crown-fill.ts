@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // was redrawn by hand: the script cut a stripe through it.
 const icon: PixelIcon = {
   name: "crown-fill",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

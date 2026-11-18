@@ -19,7 +19,6 @@ export interface IconProps {
  * shrinks.
  */
 export function Icon({ icon, size = 24, variant = "duo", title, className }: IconProps) {
-  if (!icon.implemented) return null;
   return (
     <span className={cx("fg-icon", className)} style={{ width: size, height: size }}>
       <PixelIcon

@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Bluesky and the Bluesky butterfly logo are trademarks of Bluesky Social, PBC, used here only to refer to Bluesky.
 const icon: PixelIcon = {
   name: "bluesky",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

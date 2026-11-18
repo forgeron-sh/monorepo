@@ -8,12 +8,12 @@
   "exports": {
     ".": "./src/index.ts",
     "./react": "./src/react.tsx",
+    "./render": "./src/render.ts",
     "./catalog": "./src/catalog.ts"
   },
   "scripts": {
     "generate": "bun scripts/generate.ts",
     "generate:check": "bun scripts/generate.ts --check",
-    "generate:refresh": "bun scripts/generate.ts --refresh",
     "trim": "bun scripts/trim.ts",
     "trim:check": "bun scripts/trim.ts --check"
   },

@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // one-pixel gaps everywhere) blurred into a scribble at 16 px.
 const icon: PixelIcon = {
   name: "globe",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

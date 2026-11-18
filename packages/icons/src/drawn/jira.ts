@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // cuts of the reference are below a pixel at this size. Monotone.
 const icon: PixelIcon = {
   name: "jira",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Blogger and the Blogger logo are trademarks of Google LLC, used here only to refer to Blogger.
 const icon: PixelIcon = {
   name: "blogger",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

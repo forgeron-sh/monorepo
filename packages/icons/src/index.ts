@@ -3,6 +3,6 @@
 // `@forgeron/icons/react`, the whole catalog with its manifest in `@forgeron/icons/catalog`.
 export * from "./generated/index";
 export type { IconName } from "./generated/names";
-export { hasDuotone, iconTree, isImplemented, pixelRows, toSvg } from "./render";
+export { hasDuotone, iconTree, pixelRows, toSvg } from "./render";
 export type { SvgElement } from "./render";
 export type * from "./types";

@@ -8,7 +8,6 @@ import type { PixelIcon } from "../types";
 // the Swarm logo are trademarks of Foursquare Labs, Inc., used here only to refer to Swarm.
 const icon: PixelIcon = {
   name: "swarm",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

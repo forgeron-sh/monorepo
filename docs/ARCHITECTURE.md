@@ -68,7 +68,7 @@ forgeron/
 │   ├── scaffold/           # @forgeron/scaffold: the files of a new tool or marketplace, for `forgeron init` and the gateway (D-123)
 │   ├── ui/                 # @forgeron/ui: design system atoms, components and tokens
 │   ├── blueprint/          # @forgeron/blueprint: pixel illustrations (iso scenes, dithered fields, Forge Sans), for the site
-│   ├── icons/              # @forgeron/icons: pixel icons, mono and duo, one named export per Hugeicons name and ours (drawing guide: docs/icons.md)
+│   ├── icons/              # @forgeron/icons: pixel icons, mono and duo, one named export per icon (drawing guide: docs/icons.md)
 │   ├── canvas/             # @forgeron/canvas: the engine of the editors on an infinite surface (camera, grid, selection, history), React layer (D-148)
 │   ├── connector-google-workspace/  # @forgeron/connector-google-workspace
 │   ├── connector-microsoft-365/ # @forgeron/connector-microsoft-365: Microsoft Graph connector
@@ -103,7 +103,7 @@ Templates live in the repository for a specific reason: they are the **SDK's int
 | `@forgeron/scaffold`          | The files of a new tool or marketplace as pure functions (workflow, AGENTS.md, `docs/lifecycle.md`); bundled into the CLI, used by the gateway, not published (D-123)     | neutral, no `node:*`                       | none                                   |
 | `@forgeron/ui`                | React atoms (static markup) and composite components aligned with `design-system.md`, tokens from `assets/design-system/tokens.json`; `atoms.css` alone for a page        | browser                                    | `react` (peer)                         |
 | `@forgeron/blueprint`         | Pixel illustrations for the site: iso 2:1 scenes (blocks, filters, SVG and canvas outputs), WebGL dithered fields, dithered images, Forge Sans, React layer               | neutral core; browser (`/dom`, `/react`)   | `react` (optional peer)                |
-| `@forgeron/icons`             | One named export per icon (plain data, tree-shakeable), `toSvg`, the React `Icon` (`/react`), the catalog and manifest (`/catalog`); stubs for names not drawn yet        | neutral; browser (`/react`)                | `react` (optional peer)                |
+| `@forgeron/icons`             | One named export per icon (plain data, tree-shakeable), `toSvg`, the React `Icon` (`/react`), the catalog and manifest (`/catalog`)                                       | neutral; browser (`/react`)                | `react` (optional peer)                |
 | `@forgeron/canvas`            | `CanvasEngine` (commands and queries as data) and its TypeScript engine: pan, zoom, grid, hit testing, selection, history, JSON; `<Canvas>`, renderer, minimap (`/react`) | neutral core; browser (`/react`)           | `ui`, `icons`, `react` (optional peer) |
 | `@forgeron/connector-*`       | One third-party client per connector                                                                                                                                      | workerd                                    | `@forgeron/sdk` (types)                |
 
@@ -124,7 +124,7 @@ Design points:
 | `gateway`      | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`, mapped hosts or workers.dev (D-126) | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
 | `console`      | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members, teams and their permissions, access by team × action, secrets, resource approval, audit log, settings                 |
 | `site`         | Astro, React islands                         | Worker + static assets                                            | Marketing site, public documentation eventually                                                                                                                   |
-| `icon-gallery` | Astro, React islands, `@forgeron/icons`      | local only (`astro dev`, port 5179)                               | Gallery of `@forgeron/icons` (search, filters, detail, copy and download), and the grid study of `docs/icons.md`                                                  |
+| `icon-gallery` | Astro, React islands, `@forgeron/icons`      | local only (`astro dev`, port 5179)                               | Gallery of `@forgeron/icons` (search, filters, detail, copy and download)                                                                                         |
 | `font`         | Astro, no framework                          | Worker + static assets (`font.forgeron.sh`), local port 5180      | Specimen of Forgeron Sans read from its OTF files: construction plate, glyph set, sizes, usage, licence; `/playground` tester; downloads with checksums           |
 | `ui-gallery`   | Astro, React islands, `@forgeron/ui`         | Worker + static assets (`ui.forgeron.sh`), local port 5181        | Gallery of `@forgeron/ui`: atoms with live examples, their code and props, installation; blocks and pages planned (Soon)                                          |
 

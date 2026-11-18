@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // smile. Monotone.
 const icon: PixelIcon = {
   name: "intercom",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

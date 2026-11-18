@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Finder and the Finder logo are trademarks of Apple Inc., used here only to refer to Finder.
 const icon: PixelIcon = {
   name: "apple-finder",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

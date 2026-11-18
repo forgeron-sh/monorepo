@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Duotone (2026-11-17): the bar between the links.
 const icon: PixelIcon = {
   name: "link-01",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

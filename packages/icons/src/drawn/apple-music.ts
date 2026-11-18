@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Apple Music and the Apple Music logo are trademarks of Apple Inc., used here only to refer to Apple Music.
 const icon: PixelIcon = {
   name: "apple-music",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

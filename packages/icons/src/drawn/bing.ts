@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Microsoft Bing and the Microsoft Bing logo are trademarks of Microsoft Corporation, used here only to refer to Microsoft Bing.
 const icon: PixelIcon = {
   name: "bing",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

@@ -9,7 +9,6 @@ import type { PixelIcon } from "../types";
 // only to refer to Cloudflare.
 const icon: PixelIcon = {
   name: "cloudflare",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

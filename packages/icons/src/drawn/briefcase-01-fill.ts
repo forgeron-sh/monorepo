@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // handle was filled by the script and opened again by hand.
 const icon: PixelIcon = {
   name: "briefcase-01-fill",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

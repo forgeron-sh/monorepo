@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // the cuts set one pixel wide at equal spacing. Monotone.
 const icon: PixelIcon = {
   name: "linear",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

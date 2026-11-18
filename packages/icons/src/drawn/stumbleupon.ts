@@ -10,7 +10,6 @@ import type { PixelIcon } from "../types";
 // StumbleUpon.
 const icon: PixelIcon = {
   name: "stumbleupon",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

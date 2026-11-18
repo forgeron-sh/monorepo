@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Duotone (2026-11-17): the inner ring.
 const icon: PixelIcon = {
   name: "location-01",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // hand (a straight raster read as two cups facing each other). Monotone.
 const icon: PixelIcon = {
   name: "confluence",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

@@ -9,7 +9,6 @@ import type { PixelIcon } from "../types";
 // Microsoft Corporation, used here only to refer to Office 365.
 const icon: PixelIcon = {
   name: "office-365",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

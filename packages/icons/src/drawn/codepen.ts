@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // CodePen and the CodePen logo are trademarks of CodePen, Inc., used here only to refer to CodePen.
 const icon: PixelIcon = {
   name: "codepen",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

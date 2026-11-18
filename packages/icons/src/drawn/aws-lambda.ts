@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // AWS Lambda and the AWS Lambda logo are trademarks of Amazon.com, Inc., used here only to refer to AWS Lambda.
 const icon: PixelIcon = {
   name: "aws-lambda",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

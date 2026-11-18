@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Adobe XD and the Adobe XD logo are trademarks of Adobe Inc., used here only to refer to Adobe XD.
 const icon: PixelIcon = {
   name: "adobe-xd",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

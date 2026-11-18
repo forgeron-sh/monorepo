@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // GitHub Copilot and the GitHub Copilot logo are trademarks of GitHub, Inc., used here only to refer to GitHub Copilot.
 const icon: PixelIcon = {
   name: "copilot",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

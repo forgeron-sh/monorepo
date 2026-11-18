@@ -12,7 +12,6 @@ import type { PixelIcon } from "../types";
 // GitHub.
 const icon: PixelIcon = {
   name: "github",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

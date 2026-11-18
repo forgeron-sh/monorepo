@@ -6,7 +6,6 @@ import type { PixelIcon } from "../types";
 // 2026-11-17), then cleaned. Monotone.
 const icon: PixelIcon = {
   name: "zendesk",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

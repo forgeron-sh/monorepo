@@ -27,8 +27,7 @@ function toReact(el: SvgElement, key?: number, extra?: Record<string, unknown>):
 }
 
 /**
- * Renders an icon of `@forgeron/icons`. A stub (an icon not drawn yet) renders nothing, so a page
- * never shows an empty box for it.
+ * Renders an icon of `@forgeron/icons`.
  */
 export function Icon({
   icon,
@@ -39,7 +38,7 @@ export function Icon({
   secondaryOpacity,
   title,
   ...rest
-}: IconProps): ReactElement | null {
+}: IconProps): ReactElement {
   const tree = iconTree(icon, {
     variant,
     size,
@@ -48,5 +47,5 @@ export function Icon({
     secondaryOpacity,
     title,
   });
-  return tree ? toReact(tree, undefined, rest) : null;
+  return toReact(tree, undefined, rest);
 }

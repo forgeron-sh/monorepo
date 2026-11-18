@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // smooth blob without its bumps, so the cloud was redrawn by hand with one-pixel dips. Monotone.
 const icon: PixelIcon = {
   name: "salesforce",
-  implemented: true,
   style: "pixel",
   grid: 16,
   // prettier-ignore

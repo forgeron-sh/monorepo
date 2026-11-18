@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import * as icons from "@forgeron/icons";
 import { act, createElement as h } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup as html } from "react-dom/server";
@@ -66,19 +65,12 @@ const open = async (props: Parameters<typeof IconPicker>[0] = {}) => {
   return el;
 };
 
-const stubs = Object.values(icons as Record<string, unknown>).filter(
-  (v): v is { name: string; implemented: false } =>
-    typeof v === "object" && v !== null && (v as { implemented?: unknown }).implemented === false,
-);
-
 describe("icon catalog", () => {
   it("holds drawn icons only, one name per drawing", () => {
     const names = new Set(catalog.entries.map((e) => e.name));
     expect(names.size).toBe(catalog.entries.length);
     expect(catalog.entries.length).toBeGreaterThan(1000);
-    expect(stubs.length).toBeGreaterThan(0);
-    for (const stub of stubs) expect(names.has(stub.name)).toBe(false);
-    expect(catalog.entries.every((e) => e.icon.implemented)).toBe(true);
+    expect(catalog.entries.every((e) => e.icon.rows.length > 0)).toBe(true);
   });
   it("finds by name, by word, by another name of the drawing and by synonym", () => {
     expect(searchIcons(catalog.entries, "rocket")[0]?.name).toMatch(/^rocket/);
@@ -132,18 +124,13 @@ describe("IconPicker", () => {
     expect(trigger.querySelector("svg")).not.toBeNull();
   });
 
-  it("filters by search and leaves stubs out", async () => {
+  it("filters by search", async () => {
     await open();
     expect(options().length).toBeGreaterThan(100);
     await type("rocket");
     const names = options().map((o) => o.getAttribute("aria-label"));
     expect(names.length).toBeGreaterThan(0);
     expect(names.every((n) => n?.includes("rocket"))).toBe(true);
-    const stub = stubs[0]!;
-    await type(stub.name);
-    expect(options().map((o) => o.getAttribute("aria-label"))).not.toContain(
-      stub.name.replace(/-/g, " "),
-    );
   });
 
   it("moves with the arrows and picks with Enter", async () => {

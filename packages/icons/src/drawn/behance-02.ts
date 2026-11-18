@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Behance and the Behance logo are trademarks of Adobe Inc., used here only to refer to Behance.
 const icon: PixelIcon = {
   name: "behance-02",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

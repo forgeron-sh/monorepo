@@ -1,4 +1,4 @@
-import type { DrawnIcon, IconDefinition, IconRenderOptions, PixelIcon } from "./types";
+import type { IconDefinition, IconRenderOptions, PixelIcon } from "./types";
 
 // One renderer for every output: `iconTree` builds a neutral element tree that `toSvg` prints and
 // the React component maps to elements, so a copied SVG and a rendered icon never differ.
@@ -14,14 +14,8 @@ export interface SvgElement {
 const SECONDARY_COLOR = "var(--icon-secondary, currentColor)";
 const SECONDARY_OPACITY = "var(--icon-secondary-opacity, 0.4)";
 
-/** Whether the icon has a drawing (a stub has none). */
-export function isImplemented(icon: IconDefinition): icon is DrawnIcon {
-  return icon.implemented;
-}
-
 /** Whether the duotone variant differs from the monotone one. */
 export function hasDuotone(icon: IconDefinition): boolean {
-  if (!icon.implemented) return false;
   return icon.rows.some((row) => row.includes("o"));
 }
 
@@ -58,7 +52,7 @@ function secondaryPaint(options: IconRenderOptions): { color: string; opacity: s
   return { color, opacity };
 }
 
-function shapes(icon: DrawnIcon, options: IconRenderOptions): SvgElement[] {
+function shapes(icon: IconDefinition, options: IconRenderOptions): SvgElement[] {
   const color = options.color ?? "currentColor";
   const rows = pixelRows(icon);
   if (options.variant !== "duo") {
@@ -80,9 +74,8 @@ function shapes(icon: DrawnIcon, options: IconRenderOptions): SvgElement[] {
   return out;
 }
 
-/** The `<svg>` element of an icon, or `null` for a stub. */
-export function iconTree(icon: IconDefinition, options: IconRenderOptions = {}): SvgElement | null {
-  if (!icon.implemented) return null;
+/** The `<svg>` element of an icon. */
+export function iconTree(icon: IconDefinition, options: IconRenderOptions = {}): SvgElement {
   const size = options.size ?? 24;
   const attrs: Record<string, string | number> = {
     xmlns: "http://www.w3.org/2000/svg",
@@ -125,8 +118,8 @@ function print(el: SvgElement): string {
   return inner ? `<${el.tag}${attrs}>${inner}</${el.tag}>` : `<${el.tag}${attrs}/>`;
 }
 
-/** The icon as SVG markup, or `null` for a stub. */
-export function toSvg(icon: IconDefinition, options: IconRenderOptions = {}): string | null {
+/** The icon as SVG markup. */
+export function toSvg(icon: IconDefinition, options: IconRenderOptions = {}): string {
   const tree = iconTree(icon, options);
-  return tree ? print(tree) : null;
+  return print(tree);
 }

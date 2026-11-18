@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // CapCut and the CapCut logo are trademarks of ByteDance Ltd., used here only to refer to CapCut.
 const icon: PixelIcon = {
   name: "capcut-rectangle",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

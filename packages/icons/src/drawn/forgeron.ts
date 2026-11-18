@@ -4,7 +4,6 @@ import type { PixelIcon } from "../types";
 // Monotone only: the mark is never two-tone.
 const icon: PixelIcon = {
   name: "forgeron",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

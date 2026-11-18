@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Duotone (2026-11-17): the arrow.
 const icon: PixelIcon = {
   name: "logout-01",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

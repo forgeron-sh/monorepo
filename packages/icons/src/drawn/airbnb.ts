@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Airbnb and the Airbnb logo are trademarks of Airbnb, Inc., used here only to refer to Airbnb.
 const icon: PixelIcon = {
   name: "airbnb",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore

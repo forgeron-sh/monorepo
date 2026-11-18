@@ -5,7 +5,6 @@ import type { PixelIcon } from "../types";
 // Bootstrap and the Bootstrap logo are trademarks of the Bootstrap project, used here only to refer to Bootstrap.
 const icon: PixelIcon = {
   name: "bootstrap",
-  implemented: true,
   style: "pixel",
   grid: 12,
   // prettier-ignore
