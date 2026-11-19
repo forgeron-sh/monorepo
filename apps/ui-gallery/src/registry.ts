@@ -1,3 +1,4 @@
+import { entries as adminBlocks } from "./entries/admin";
 import { entries as approvalBlocks } from "./entries/approval";
 import { entries as automationBlocks } from "./entries/automation";
 import { entries as conversationBlocks } from "./entries/conversation";
@@ -929,6 +930,7 @@ export const blocks: ReadonlyArray<Atom> = [
   ...financeBlocks,
   ...dashboardBlocks,
   ...formsBlocks,
+  ...adminBlocks,
 ];
 
 /** The hooks: the state the components share, the keyboard, the actions of a screen. */

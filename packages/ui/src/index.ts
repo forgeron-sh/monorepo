@@ -199,3 +199,4 @@ export type { ToolbarButtonProps, ToolbarLinkProps, ToolbarProps } from "./toolb
 export { Banner } from "./banner";
 export type { BannerProps } from "./banner";
 export * from "./blocks/forms";
+export * from "./blocks/admin";
