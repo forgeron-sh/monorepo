@@ -1,6 +1,7 @@
 import { entries as approvalBlocks } from "./entries/approval";
 import { entries as automationBlocks } from "./entries/automation";
 import { entries as conversationBlocks } from "./entries/conversation";
+import { entries as dashboardBlocks } from "./entries/dashboard";
 import { entries as dataBlocks } from "./entries/data";
 import { entries as datahubBlocks } from "./entries/datahub";
 import { entries as driveBlocks } from "./entries/drive";
@@ -926,6 +927,7 @@ export const blocks: ReadonlyArray<Atom> = [
   ...conversationBlocks,
   ...approvalBlocks,
   ...financeBlocks,
+  ...dashboardBlocks,
   ...formsBlocks,
 ];
 
