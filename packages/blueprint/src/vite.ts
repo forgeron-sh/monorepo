@@ -39,9 +39,10 @@ const SIZES = SECTIONS.map(sizeOf);
 
 /**
  * A SceneBin as the module writes it: its float64 words as number literals, each section's
- * records transposed (field by field: a field repeats down a section, so gzip finds it), and its
- * string bytes as text; `B` puts the bytes back on load. Exact (every word keeps its bits) and,
- * gzipped, about half the bytes in base64 (measured on the site's files: 7.1 KB against 13.4 KB).
+ * records transposed (field by field: a field repeats down a section, so gzip finds it), an
+ * integer field as differences, and its string bytes as text; `B` puts the bytes back on load.
+ * Exact (every word keeps its bits) and, gzipped, about half the bytes in base64 (measured on the
+ * site's files: 7.1 KB against 13.4 KB; the differences took the village from 45.6 to 33.1 KB).
  */
 function binLiteral(bin: Uint8Array): string {
   const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
@@ -51,30 +52,53 @@ function binLiteral(bin: Uint8Array): string {
   const out: number[] = [];
   for (let i = 0; i < HEADER; i++) out.push(word(i));
   let at = HEADER;
+  // A field whose every value is an integer (indices, counts, codes) is written as differences
+  // from the record before: runs of indices become runs of small numbers. Exact: integers, all
+  // of them safe, add back exactly (a -0 or a NaN keeps the field as it is).
+  const deltas: number[] = [];
+  let column = 0;
   SIZES.forEach((size, k) => {
     const records = word(2 + k);
-    for (let f = 0; f < size; f++)
-      for (let r = 0; r < records; r++) out.push(word(at + r * size + f));
+    for (let f = 0; f < size; f++, column++) {
+      const values = Array.from({ length: records }, (_, r) => word(at + r * size + f));
+      const exact = (v: number) => Number.isSafeInteger(v) && !Object.is(v, -0);
+      if (
+        records > 1 &&
+        values.every((v, r) => exact(v) && (r === 0 || exact(v - values[r - 1]!)))
+      ) {
+        deltas.push(column);
+        values.forEach((v, r) => out.push(r === 0 ? v : v - values[r - 1]!));
+      } else out.push(...values);
+    }
     at += records * size;
   });
   for (let i = at; i < count; i++) out.push(word(i));
   const text = new TextDecoder("utf-8", { fatal: true }).decode(bin.subarray(count * 8));
-  return `B([${out.map(literal).join(",")}],${JSON.stringify(text)})`;
+  return `B([${out.map(literal).join(",")}],${JSON.stringify(text)},[${deltas.join(",")}])`;
 }
 
 /** Puts a SceneBin back from `binLiteral`'s words (sections transposed back) and string text. */
 const DECODE = `const Z = ${JSON.stringify(SIZES)};
-const B = (w, s) => {
+const B = (w, s, d) => {
   const t = new TextEncoder().encode(s);
   const n = w.length;
   const o = new Uint8Array(n * 8 + t.length);
   const v = new DataView(o.buffer);
+  const D = new Set(d);
   let i = 0;
+  let col = 0;
   for (; i < ${HEADER}; i++) v.setFloat64(i * 8, w[i], true);
   let at = ${HEADER};
   Z.forEach((z, k) => {
     const c = w[2 + k];
-    for (let f = 0; f < z; f++) for (let r = 0; r < c; r++) v.setFloat64((at + r * z + f) * 8, w[i++], true);
+    for (let f = 0; f < z; f++) {
+      const delta = D.has(col++);
+      let x = 0;
+      for (let r = 0; r < c; r++) {
+        x = delta && r > 0 ? x + w[i++] : w[i++];
+        v.setFloat64((at + r * z + f) * 8, x, true);
+      }
+    }
     at += c * z;
   });
   for (; i < n; i++) v.setFloat64(i * 8, w[i], true);

@@ -6,36 +6,42 @@
  *
  * A scene plays from data when it was converted by hand (`library/<scene>.bp` with its
  * timelines), on the script layer otherwise (its function's blocks, rasterised by the engine).
- * The scroll and hover scenes add a control file (`library/control/<scene>.bp`): its vars,
- * machines and camera are data, its pixels stay the function's (docs/blueprint/engine.md, P4).
+ * The scroll and hover scenes not converted yet add a control file (`library/control/<scene>.bp`):
+ * its vars, machines and camera are data, its pixels stay the function's (docs/blueprint/
+ * engine.md, P4). The village plays from data with its vars, machine and camera in one file.
  * The files are imported compiled (`?compiled`, `@forgeron/blueprint/vite`): their SceneBin bytes,
  * not their JSON, and no reader or SceneBin writer.
  */
 import type { CompiledSource } from "@forgeron/blueprint/dom";
 import type { CompiledBlueprint } from "@forgeron/blueprint/format";
 import cli from "./library/cli.bp?compiled";
-import village from "./library/control/erp-village.bp?compiled";
 import line from "./library/control/production-line.bp?compiled";
 import resources from "./library/control/resources.bp?compiled";
 import stack6 from "./library/control/stack6.bp?compiled";
 import hostServers from "./library/host-servers.bp?compiled";
 import mcp from "./library/mcp.bp?compiled";
+import village from "./library/erp-village.bp?compiled";
 import usageIso from "./library/usage-iso.bp?compiled";
 import web from "./library/web.bp?compiled";
 import { lineStore } from "./objects";
 import { SCENES } from "./scenes";
-import { villageStore } from "./village";
 
 const DATA = new Map<string, CompiledBlueprint>(
-  Object.entries({ web, mcp, cli, "usage-iso": usageIso, "host-servers": hostServers }),
+  Object.entries({
+    web,
+    mcp,
+    cli,
+    "usage-iso": usageIso,
+    "host-servers": hostServers,
+    "erp-village": village,
+  }),
 );
 const CONTROL = new Map<string, CompiledBlueprint>(
-  Object.entries({ "erp-village": village, "production-line": line, resources, stack6 }),
+  Object.entries({ "production-line": line, resources, stack6 }),
 );
 
 /** The module stores the scroll scenes' functions read their progress from. */
 const STORES: Record<string, { progress: number }> = {
-  "erp-village": villageStore,
   "production-line": lineStore,
 };
 

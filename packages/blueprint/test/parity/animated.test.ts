@@ -177,14 +177,20 @@ describe.each(ROUTED)("%s", (name) => {
           const view = fit(evaluate(name, { t: 0, active: 0 }), w, h, fitOptions);
           const rec = record(`${m.page || "/"} f${m.options.fill ?? "-"} ${viewport}`);
           rec("fit", JSON.stringify(scene.view) === JSON.stringify(view) ? "" : "the fit differs");
+          // A scroll scene sweeps its progress at each time; a stateful one is compared at the
+          // frames of the script layer's fixed dt sequence (the same case names).
+          const times = STATEFUL.has(name) ? TIMES.map((t) => Math.round(t / DT) * DT) : TIMES;
+          const progresses = isScroll(name) ? PROGRESS : [undefined];
           for (const active of activesOf(name)) {
             if (scene.scope.includes("active")) scene.set("active", active);
             let last = 0;
-            for (const t of TIMES) {
-              scene.frame(t, t - last);
-              last = t;
-              rec(`t=${t} a=${active}`, scene.snapshot());
-            }
+            for (const t of times)
+              for (const p of progresses) {
+                if (p !== undefined) scene.set("progress", p);
+                scene.frame(t, t - last);
+                last = t;
+                rec(`t=${t} a=${active}${p === undefined ? "" : ` p=${p}`}`, scene.snapshot());
+              }
           }
         }
         scene.dispose();

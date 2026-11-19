@@ -3,7 +3,7 @@
  * drawn frame, no JavaScript allocation in a data scene's loop (heap delta over 600 frames under
  * `--expose-gc`), and the budgets of a frame from inputs to present: ≤ 3 ms for `erp-village`
  * full screen (720 × 450 raster, the script layer: its function, packing, raster, paint,
- * present), ≤ 0.5 ms for a card. The 2D presenter puts the RGBA on a stub context (no canvas in
+ * present; and from data at its explosion), ≤ 0.5 ms for a card. The 2D presenter puts the RGBA on a stub context (no canvas in
  * Node): what is measured is the engine and the copy.
  *
  * As P2, budgets are for a quiet M4; a test reports p50 and p95 and fails only when its median
@@ -153,6 +153,35 @@ describe("the player's frame", () => {
     const m = measure((k) => play(k / 60));
     expect(check("play erp-village 720x450 (script)", m, 3)).toBeLessThanOrEqual(SLACK);
     scene.dispose();
+  });
+
+  // The village at the middle of its explosion (the heaviest frame of the saga), as the site
+  // plays it now (from data: docs/blueprint/engine.md, "Village as data notes") and as it did
+  // (its function on the script layer).
+  it("erp-village at the explosion (p = 0.745), 720 × 450: from data ≤ 3 ms", async () => {
+    const data = createScene(await library("erp-village"), "erp-village", {
+      fill: 0.98,
+      unit: "any",
+    });
+    data.resize(720, 450);
+    data.palette(colors);
+    data.set("progress", 0.745);
+    const p1 = present2d(stubCanvas());
+    p1.resize(720, 450, 2, 0);
+    const m1 = measure((k) => player(data, p1)(k / 60));
+    expect(check("play erp-village 720x450 explosion (data)", m1, 3)).toBeLessThanOrEqual(SLACK);
+    const script = createScriptScene(sceneAtProgress("erp-village", 0.745), {
+      fill: 0.98,
+      unit: "any",
+    });
+    script.resize(720, 450);
+    script.palette(colors);
+    const p2 = present2d(stubCanvas());
+    p2.resize(720, 450, 2, 0);
+    const m2 = measure((k) => player(script, p2)(k / 60));
+    check("play erp-village 720x450 explosion (script)", m2, 3);
+    data.dispose();
+    script.dispose();
   });
 
   it("a card, 212 × 139: ≤ 0.5 ms, from data and on the script layer", async () => {

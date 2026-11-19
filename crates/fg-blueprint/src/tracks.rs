@@ -4,7 +4,7 @@
 
 use crate::bin::{Key, SceneBin, Track};
 use crate::layout::code;
-use fg_math::num::{cos, hypot, js_max, js_min, sin, truthy};
+use fg_math::num::{cos, hash, hypot, js_max, js_min, js_round, pow, sin, truthy};
 use fg_math::Vec3;
 
 /// An ease of `k` ∈ [0, 1] (clamped first).
@@ -218,6 +218,63 @@ pub fn number(track: &Track, clock: f64) -> Option<f64> {
     }
 }
 
+/// A `calc` track's value: its operations (`code::op`, a run of the key section), left to right
+/// from 0, each one IEEE operation in the order the TypeScript expression it stands for does them
+/// (so a value computed by a chain of calcs is the function's, bit for bit). An operand is the
+/// literal `v[0]`, or the root scope slot `v[1]` when it is not negative. Comparisons and logic
+/// give 1 or 0. `None` when a `when` operand is falsy: the track writes nothing this frame.
+pub fn calc(ops: &[Key], scope: &[f64]) -> Option<f64> {
+    use code::op::*;
+    let mut v = 0.0;
+    let b = |c: bool| if c { 1.0 } else { 0.0 };
+    for op in ops {
+        let x = if op.v[1] >= 0.0 {
+            scope.get(op.v[1] as usize).copied().unwrap_or(f64::NAN)
+        } else {
+            op.v[0]
+        };
+        v = match op.t as i32 {
+            LOAD => x,
+            ADD => v + x,
+            SUB => v - x,
+            RSUB => x - v,
+            MUL => v * x,
+            DIV => v / x,
+            RDIV => x / v,
+            MOD => v % x,
+            MIN => js_min(v, x),
+            MAX => js_max(v, x),
+            POW => pow(v, x),
+            FLOOR => v.floor(),
+            CEIL => v.ceil(),
+            ROUND => js_round(v),
+            ABS => v.abs(),
+            SQRT => v.sqrt(),
+            SIN => sin(v),
+            COS => cos(v),
+            LT => b(v < x),
+            LE => b(v <= x),
+            GT => b(v > x),
+            GE => b(v >= x),
+            EQ => b(v == x),
+            AND => b(truthy(v) && truthy(x)),
+            OR => b(truthy(v) || truthy(x)),
+            NOT => b(!truthy(v)),
+            HASH => hash(v, x),
+            RHASH => hash(x, v),
+            EASE => ease(x as i32, v),
+            WHEN => {
+                if !truthy(x) {
+                    return None;
+                }
+                v
+            }
+            _ => v,
+        };
+    }
+    Some(v)
+}
+
 /// A spring's next value: `now + (to − now)·k`, `k = min(1, dt·rate)` (1 when `dt` is 0, so the
 /// first frame lands on the target), as `stack6`'s plates.
 #[inline]
@@ -352,6 +409,53 @@ mod tests {
             reference += (target - reference) * k;
             assert_eq!(now.to_bits(), reference.to_bits(), "frame {frame}");
         }
+    }
+
+    fn op(code: i32, x: f64) -> Key {
+        Key {
+            t: code as f64,
+            v: [x, -1.0, 0.0],
+            ease: 0,
+        }
+    }
+
+    #[test]
+    fn calc_chains_operations_in_order() {
+        use code::op::*;
+        // village.ts's reveal: clamp((p − a) / (b − a)), at p = 0.72 of the boom step.
+        let (a, b) = (0.69f64, 0.8f64);
+        let p = 0.72f64;
+        let ops = [
+            op(LOAD, p),
+            op(SUB, a),
+            op(DIV, b - a),
+            op(MAX, 0.0),
+            op(MIN, 1.0),
+        ];
+        let want = js_min(1.0, js_max(0.0, (p - a) / (b - a)));
+        assert_eq!(calc(&ops, &[]), Some(want));
+        // A param operand (slot 1), a reversed subtraction, a comparison, a guard.
+        let scope = [0.0, 2.5];
+        let from_slot = Key {
+            t: RSUB as f64,
+            v: [f64::NAN, 1.0, 0.0],
+            ease: 0,
+        };
+        assert_eq!(calc(&[op(LOAD, 1.0), from_slot], &scope), Some(1.5));
+        assert_eq!(calc(&[op(LOAD, 0.3), op(GT, 0.2)], &[]), Some(1.0));
+        assert_eq!(calc(&[op(LOAD, 7.0), op(WHEN, 0.0)], &[]), None);
+        assert_eq!(
+            calc(&[op(LOAD, 7.6), op(MOD, 3.0), op(FLOOR, 0.0)], &[]),
+            Some(1.0)
+        );
+        assert_eq!(
+            calc(&[op(LOAD, 3.0), op(RHASH, 61.0)], &[]),
+            Some(hash(61.0, 3.0))
+        );
+        assert_eq!(
+            calc(&[op(LOAD, 0.25), op(EASE, 3.0)], &[]),
+            Some(0.103515625)
+        );
     }
 
     #[test]

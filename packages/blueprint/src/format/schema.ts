@@ -4,7 +4,7 @@
  * stale), and `validate` (in `read.ts`) checks a file against this same object, so the published
  * schema and the reader never disagree. It mirrors `types.ts` shape for shape.
  */
-import { SCHEMA_URL } from "./types";
+import { CALC_OPS, SCHEMA_URL } from "./types";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type JsonSchema = { [key: string]: Json };
@@ -171,7 +171,20 @@ export const SCHEMA: JsonSchema = {
       prim(
         "rig",
         {
-          rig: enumOf("wheel", "arm", "fan", "piston", "pendulum", "smoke", "sparks"),
+          rig: enumOf(
+            "wheel",
+            "arm",
+            "fan",
+            "piston",
+            "pendulum",
+            "smoke",
+            "sparks",
+            "burst",
+            "mushroom",
+            "pile",
+            "fence",
+            "ash",
+          ),
           // Settings that are names ("plane": "yz") are strings that cannot start with "@".
           with: map(
             oneOf(ref("Num"), ref("NumVec"), ref("Flag"), ref("InkRef"), {
@@ -283,6 +296,7 @@ export const SCHEMA: JsonSchema = {
           path: list(ref("Vec3"), { minItems: 2 }),
           count: { type: "integer", minimum: 1 },
           speed: num,
+          phase: num,
           params: map(oneOf(ref("Num"), ref("Flag"))),
         },
         ["kind", "use", "path", "count", "speed"],
@@ -323,6 +337,24 @@ export const SCHEMA: JsonSchema = {
           rate: num,
         },
         ["kind", "target", "channel", "to", "rate"],
+      ),
+      obj(
+        {
+          kind: { const: "calc" },
+          target: str,
+          channel: paramChannel,
+          from: oneOf(num, { type: "string", pattern: PARAM_REF }),
+          ops: list({
+            type: "array",
+            prefixItems: [
+              enumOf(...CALC_OPS),
+              oneOf(num, { type: "string", pattern: PARAM_REF }, ref("Ease")),
+            ],
+            items: false,
+            minItems: 1,
+          }),
+        },
+        ["kind", "target", "channel", "from", "ops"],
       ),
     ),
     Timeline: obj(

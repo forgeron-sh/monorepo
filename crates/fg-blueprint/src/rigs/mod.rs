@@ -4,8 +4,13 @@
 //! part's frame; the flattener places them like any prim's.
 
 mod arm;
+mod ash;
+mod burst;
 mod fan;
+mod fence;
+mod mushroom;
 mod pendulum;
+mod pile;
 mod piston;
 mod smoke;
 mod sparks;
@@ -17,8 +22,13 @@ use crate::raster::Slot;
 use fg_math::Vec3;
 
 pub use arm::arm;
+pub use ash::ash;
+pub use burst::burst;
 pub use fan::fan;
+pub use fence::fence;
+pub use mushroom::mushroom;
 pub use pendulum::pendulum;
+pub use pile::pile;
 pub use piston::piston;
 pub use smoke::smoke;
 pub use sparks::sparks;
@@ -184,6 +194,16 @@ pub fn draw(rig: i32, s: &dyn Settings, out: &mut Vec<Block>) {
             s.num("n").unwrap_or(0.0),
             s.num("seed").unwrap_or(0.0),
         ),
+        code::rig::BURST => burst(out, s.num("b").unwrap_or(0.0)),
+        code::rig::MUSHROOM => mushroom(
+            out,
+            s.num("b").unwrap_or(0.0),
+            s.num("fire").unwrap_or(0.0),
+            s.num("t").unwrap_or(0.0),
+        ),
+        code::rig::PILE => pile(out, s.vec("at").unwrap_or(zero), s.num("g").unwrap_or(0.0)),
+        code::rig::FENCE => fence(out, s.num("done").unwrap_or(0.0)),
+        code::rig::ASH => ash(out, s.num("n").unwrap_or(0.0)),
         _ => {}
     }
 }

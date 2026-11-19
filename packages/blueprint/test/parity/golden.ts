@@ -39,7 +39,8 @@ const colors = resolvePalette(plan().colors);
 function dump(name: string, f: Frame): string {
   const dir = new URL("target/parity/", repo);
   mkdirSync(dir, { recursive: true });
-  const file = new URL(`${name}.png`, dir);
+  // A case name holds the page's path ("/"): one file name.
+  const file = new URL(`${name.replace(/[^\w.=-]+/g, "_")}.png`, dir);
   writeFileSync(file, png(f.width, f.height, paint(f, colors)));
   return file.pathname;
 }

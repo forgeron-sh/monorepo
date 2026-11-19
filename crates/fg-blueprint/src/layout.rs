@@ -449,6 +449,11 @@ pub mod code {
         pub const PENDULUM: i32 = 4;
         pub const SMOKE: i32 = 5;
         pub const SPARKS: i32 = 6;
+        pub const BURST: i32 = 7;
+        pub const MUSHROOM: i32 = 8;
+        pub const PILE: i32 = 9;
+        pub const FENCE: i32 = 10;
+        pub const ASH: i32 = 11;
     }
     pub mod var_type {
         pub const TIME: i32 = 0;
@@ -475,6 +480,7 @@ pub mod code {
         pub const BLINK: i32 = 5;
         pub const SPRING: i32 = 6;
         pub const WAVE: i32 = 7;
+        pub const CALC: i32 = 8;
     }
     pub mod channel {
         pub const AT: i32 = 0;
@@ -495,6 +501,38 @@ pub mod code {
     pub mod wave {
         pub const SIN: i32 = 0;
         pub const COS: i32 = 1;
+    }
+    pub mod op {
+        pub const LOAD: i32 = 0;
+        pub const ADD: i32 = 1;
+        pub const SUB: i32 = 2;
+        pub const RSUB: i32 = 3;
+        pub const MUL: i32 = 4;
+        pub const DIV: i32 = 5;
+        pub const RDIV: i32 = 6;
+        pub const MOD: i32 = 7;
+        pub const MIN: i32 = 8;
+        pub const MAX: i32 = 9;
+        pub const POW: i32 = 10;
+        pub const FLOOR: i32 = 11;
+        pub const CEIL: i32 = 12;
+        pub const ROUND: i32 = 13;
+        pub const ABS: i32 = 14;
+        pub const SQRT: i32 = 15;
+        pub const SIN: i32 = 16;
+        pub const COS: i32 = 17;
+        pub const LT: i32 = 18;
+        pub const LE: i32 = 19;
+        pub const GT: i32 = 20;
+        pub const GE: i32 = 21;
+        pub const EQ: i32 = 22;
+        pub const AND: i32 = 23;
+        pub const OR: i32 = 24;
+        pub const NOT: i32 = 25;
+        pub const HASH: i32 = 26;
+        pub const RHASH: i32 = 27;
+        pub const EASE: i32 = 28;
+        pub const WHEN: i32 = 29;
     }
     pub mod when {
         pub const RANGE: i32 = 0;

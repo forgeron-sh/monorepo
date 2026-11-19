@@ -10,8 +10,8 @@
 import type { Block, SceneFn } from "@forgeron/blueprint";
 import type { Sample } from "@forgeron/blueprint/format";
 import { lineStore } from "../objects";
-import { SCENES } from "../scenes";
-import { villageStore } from "../village";
+import { SCENES as SITE_SCENES } from "../scenes";
+import { village, villageStore } from "../village";
 
 /** The routed scenes (the parity list of docs/blueprint/engine.md §1); the rest are explorations. */
 export const ROUTED = [
@@ -51,6 +51,15 @@ const T = [0, 0.37, 1.7, 4.3, 9.2, 31.4, ...Array.from({ length: 10 }, (_, i) =>
 const T_SCROLL = [0, 0.37, 1.7, 4.3, 9.2, 31.4];
 const ACTIVE = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 const PROGRESS = Array.from({ length: 33 }, (_, i) => i / 32);
+
+/**
+ * The site's scenes as functions: `SCENES`, and the ERP village, which the site plays from data
+ * (its function is kept as the reference of the parity tests, outside the worker's bundle).
+ */
+const SCENES: Readonly<Record<string, SceneFn>> = {
+  ...SITE_SCENES,
+  "erp-village": ({ t }) => ({ blocks: village(t) }),
+};
 
 /** The scenes driven by a scroll progress, and the module store the page writes it into. */
 const STORES: Record<string, { progress: number }> = {

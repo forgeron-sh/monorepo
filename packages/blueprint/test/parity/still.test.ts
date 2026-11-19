@@ -102,6 +102,9 @@ describe.each(ROUTED)("%s", (name) => {
       readFileSync(new URL(`apps/site/src/illustrations/library/${name}.bp`, repo), "utf8"),
     ) as BlueprintFile;
     const lib = await readBlueprint(file, { location: `${name}.bp` });
+    // A scene drawn with rigs (the village) has no picture `flatten` can give: the engine's
+    // framing is checked by the animated suite against the function's.
+    const rigs = Object.values(file.parts ?? {}).some((p) => p.prims.some((q) => q.kind === "rig"));
     const root = sceneDefs(lib, name)[0]!.params.map(([n]) => n);
     const activeIndex = root.indexOf("active");
     for (const m of mounts) {
@@ -116,9 +119,12 @@ describe.each(ROUTED)("%s", (name) => {
           scene.resize(w, h);
           for (const active of activeIndex < 0 ? [-1] : ACTIVE) {
             if (activeIndex >= 0) scene.set(activeIndex, active);
-            const blocks = flatten(lib, name, activeIndex < 0 ? {} : { active });
-            const view = fit(blocks, w, h, fitOptions);
-            expect(scene.view, `${name} ${viewport}: fit`).toEqual(view);
+            if (!rigs) {
+              const blocks = flatten(lib, name, activeIndex < 0 ? {} : { active });
+              const view = fit(blocks, w, h, fitOptions);
+              // oxlint-disable-next-line vitest/no-conditional-expect -- a rig scene's fit is the animated suite's
+              expect(scene.view, `${name} ${viewport}: fit`).toEqual(view);
+            }
             scene.draw();
             expectGolden(
               `${name}-${m.page.replace(/\W/g, "") || "home"}-f${m.options.fill ?? "-"}-${viewport}-a${active}-${labels ? "labels" : "plain"}-data`,

@@ -41,7 +41,7 @@ import {
 } from "@forgeron/blueprint/dom";
 import type { BlueprintMeta, Camera } from "@forgeron/blueprint/format";
 import cli from "./library/cli.bp?meta";
-import village from "./library/control/erp-village.bp?meta";
+import village from "./library/erp-village.bp?meta";
 import line from "./library/control/production-line.bp?meta";
 import resources from "./library/control/resources.bp?meta";
 import stack6 from "./library/control/stack6.bp?meta";

@@ -44,6 +44,10 @@ describe("the converted library", () => {
       // picture at t = 0, and the animated parity suite (packages/blueprint/test/parity/) checks
       // every other time.
       if (Object.values(file.scenes ?? {}).some((s) => s.timelines)) {
+        // Drawn with rigs and conveyors (the village), its picture is the engine's: checked
+        // against the function by packages/blueprint/test/parity/village.test.ts.
+        if (Object.values(file.parts ?? {}).some((p) => p.prims.some((q) => q.kind === "rig")))
+          return;
         const first = samples.find((s) => s.input.t === 0)!.blocks;
         // oxlint-disable-next-line vitest/no-conditional-expect -- by-hand scenes differ in kind; the rest is checked below
         expect(flatten(lib, name)).toStrictEqual(staticBlocks(first, staticCounts([first])));

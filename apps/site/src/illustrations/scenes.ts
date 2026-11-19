@@ -6,7 +6,6 @@
  */
 import { machine } from "./machine";
 import { OBJECT_SCENES } from "./objects";
-import { village } from "./village";
 import { arm, block, fan, rack, tray, wheel as wheel2, Z } from "./parts";
 import {
   type Block,
@@ -566,8 +565,6 @@ const BUILDS: Record<string, (t: number, active: number) => Block[]> = {
   },
   /** The machine: a very complex mechanism that does nothing (/machine). */
   machine: (t) => machine(t),
-  /** The ERP village of the home page opening, driven by the scroll (`villageStore`). */
-  "erp-village": (t) => village(t),
   /** Hero · the line: three tools forged in parallel, from the repository to production, in seven stations. */
   "hero-line"(t) {
     const D = 9;
@@ -1157,7 +1154,12 @@ function framed(build: (t: number, active: number) => Block[]): SceneFn {
   });
 }
 
-/** Every scene a lab canvas can show, by the name its `data-iso` attribute gives. */
+/**
+ * Every scene a lab canvas can show on the script layer, by the name its `data-iso` attribute
+ * gives. The ERP village is not here: the site plays it from data (`library/erp-village.bp`), and
+ * its function (`village.ts`) is the parity tests' reference (`library/samples.ts`), so the
+ * worker that plays the scenes does not ship it.
+ */
 export const SCENES: Readonly<Record<string, SceneFn>> = {
   cube: examples.cube,
   stack: examples.stack,

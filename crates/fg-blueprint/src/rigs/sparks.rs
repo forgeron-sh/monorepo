@@ -10,8 +10,9 @@ const BAYER4: [f64; 16] = [
     0., 8., 2., 10., 12., 4., 14., 6., 3., 11., 1., 9., 15., 7., 13., 5.,
 ];
 
+/// `bayer4` of village.ts.
 #[inline]
-fn bayer4(x: f64, y: f64) -> f64 {
+pub(super) fn bayer4(x: f64, y: f64) -> f64 {
     let m = |v: f64| ((v % 4.0) + 4.0) % 4.0;
     (BAYER4[(m(y) * 4.0 + m(x)) as usize] + 0.5) / 16.0
 }

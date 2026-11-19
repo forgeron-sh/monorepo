@@ -2,9 +2,14 @@
  * The ERP village (home page opening): an island of absurd machines, one per department, around
  * the ERP itself, a stepped pyramid with two chimneys, with a customers' island over a rope
  * bridge and an island of external apps. The scroll drives the story through
- * `villageStore.progress` (written from the scene's `progress` var by `canvas.ts`): it tinkers (a nailed-together shack), goes generic (smoke), plugs into
+ * `villageStore.progress`: it tinkers (a nailed-together shack), goes generic (smoke), plugs into
  * everything (cables), breaks (the support's ticket pile catches, the ERP explodes, scrubbed by
  * the scroll), and burns.
+ *
+ * The site plays the village from data (`library/erp-village.bp`, written by
+ * `scripts/blueprint/village.ts` from this function's computations); this function stays as the
+ * reference its parity test compares with, the walkers aside (docs/blueprint/engine.md, "Village
+ * as data notes").
  */
 import type { Block, Vec3 } from "@forgeron/blueprint";
 import {
@@ -31,7 +36,7 @@ export const villageStore = { progress: 0 };
 export { STEPS } from "./steps";
 
 // Where the camera looks at each step, and how close, and the box that frames the island: the
-// shots and the fit box of `library/control/erp-village.bp`, read by the page.
+// shots and the fit box of `library/erp-village.bp`, read by the page.
 
 const TAU = Math.PI * 2;
 const clamp = (v: number) => Math.min(1, Math.max(0, v));

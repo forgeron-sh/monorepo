@@ -124,7 +124,19 @@ export interface LabelPrim extends PrimBase {
   ink?: InkRef;
 }
 
-export type RigName = "wheel" | "arm" | "fan" | "piston" | "pendulum" | "smoke" | "sparks";
+export type RigName =
+  | "wheel"
+  | "arm"
+  | "fan"
+  | "piston"
+  | "pendulum"
+  | "smoke"
+  | "sparks"
+  | "burst"
+  | "mushroom"
+  | "pile"
+  | "fence"
+  | "ash";
 
 /** A parametric generator built into the engine (the functions of today's `parts.ts`). */
 export interface RigPrim extends PrimBase {
@@ -251,6 +263,8 @@ export type Track =
       path: Vec3[];
       count: number;
       speed: number;
+      /** Added to `clock·speed` before the copies are spaced: `(clock·speed + phase + k·L/count) mod L`. */
+      phase?: number;
       params?: Instance["params"];
     }
   | {
@@ -282,7 +296,56 @@ export type Track =
       channel: ParamChannel;
       to: { if: string; then: number; else: number };
       rate: number;
+    }
+  /**
+   * A value computed each frame from a number or a root param, by operations applied left to
+   * right, each one IEEE operation (format.md §6, "Playing"); an operand is a number or a root
+   * param. Comparisons and logic give 1 or 0; `when` stops the track (it writes nothing) when
+   * its operand is falsy.
+   */
+  | {
+      kind: "calc";
+      target: string;
+      channel: ParamChannel;
+      from: number | ParamRef;
+      ops: CalcOp[];
     };
+
+/** The operations of a `calc` track. */
+export const CALC_OPS = [
+  "add",
+  "sub",
+  "rsub",
+  "mul",
+  "div",
+  "rdiv",
+  "mod",
+  "min",
+  "max",
+  "pow",
+  "floor",
+  "ceil",
+  "round",
+  "abs",
+  "sqrt",
+  "sin",
+  "cos",
+  "lt",
+  "le",
+  "gt",
+  "ge",
+  "eq",
+  "and",
+  "or",
+  "not",
+  "hash",
+  "rhash",
+  "ease",
+  "when",
+] as const;
+
+/** One operation: its name, then its operand (none for the unary ones; an ease name for `ease`). */
+export type CalcOp = readonly [op: (typeof CALC_OPS)[number], operand?: number | ParamRef | Ease];
 
 // ── State machine ────────────────────────────────────────────────────────────
 

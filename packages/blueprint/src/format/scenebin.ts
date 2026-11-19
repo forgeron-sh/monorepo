@@ -87,10 +87,9 @@ export function sceneDefs(lib: Library, sceneName: string): DefEntry[] {
   // Parts a conveyor rides are definitions of the scene too, after what the root uses.
   for (const timeline of Object.values(scene.timelines ?? {}))
     for (const track of timeline.tracks)
-      if (track.kind === "conveyor" && !seen.has(track.use)) {
-        seen.add(track.use);
+      // `visit` marks it seen (marking it first skipped it: no scene rode a conveyor before).
+      if (track.kind === "conveyor" && !seen.has(track.use))
         visit({ instances: [{ use: track.use }] });
-      }
   return out;
 }
 
@@ -515,6 +514,7 @@ function writeAnimation(
         f.use = def;
         f.count = track.count;
         f.speed = track.speed;
+        f.phase = track.phase ?? Number.NaN;
         const used = entries[def]!.params;
         const args = Object.entries(track.params ?? {}).map(([name, value]) => {
           const param = used.findIndex(([n]) => n === name);
@@ -551,6 +551,32 @@ function writeAnimation(
         f.toElse = track.to.else;
         f.rate = track.rate;
         break;
+      case "calc": {
+        // The operations, as key records: the code in `t`, a literal in `v0`, a root slot in
+        // `v1` (-1 for a literal); `from` is the first one, a `load`.
+        channel(track.channel);
+        const operand = (x: unknown, at: string) =>
+          typeof x === "string" && x.startsWith("@")
+            ? { v0: Number.NaN, v1: slot(x.slice(1), at) }
+            : typeof x === "string"
+              ? { v0: EASE_CODE[x as keyof typeof EASE_CODE], v1: -1 }
+              : { v0: typeof x === "number" ? x : Number.NaN, v1: -1 };
+        const ops: [string, unknown][] = [
+          ["load", track.from],
+          ...track.ops.map((o) => [...o] as [string, unknown]),
+        ];
+        f.keys = w.section("key").length;
+        f.keyCount = ops.length;
+        ops.forEach(([op, x], i) => {
+          const code = CODES.op[op as keyof typeof CODES.op];
+          if (code === undefined)
+            throw new BlueprintError(`${where}/ops/${i - 1}: no operation "${op}"`);
+          if (op === "ease" && !(typeof x === "string" && x in EASE_CODE))
+            throw new BlueprintError(`${where}/ops/${i - 1}: an ease name is expected`);
+          w.push("key", { t: code, ...operand(x, `${where}/ops/${i - 1}`), v2: 0, ease: 0 });
+        });
+        break;
+      }
       case "wave":
         channel(track.channel);
         f.wave = CODES.wave[track.wave];

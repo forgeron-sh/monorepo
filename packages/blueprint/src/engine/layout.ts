@@ -156,8 +156,9 @@ export const RECORDS = {
   /**
    * A track, every kind in one shape (`TRACK` kinds). `target` is an instance index (-1: the
    * scene's root), `channel` a `CHANNEL` code and `param` the index of a param in the target's
-   * scope. Paths are runs of the point section; keys a run of the key section; a conveyor's
-   * `use` is a definition and its params a run of the arg section (in the root scope).
+   * scope. Paths are runs of the point section; keys a run of the key section (a `calc` track's
+   * operations too, `OP` codes); a conveyor's `use` is a definition and its params a run of the
+   * arg section (in the root scope), its `phase` NaN when it has none.
    */
   track: [
     "kind",
@@ -273,7 +274,20 @@ export const CODES = {
   unit: { even: 0, any: 1 },
   block: { box: 0, line: 1, dot: 2, label: 3 },
   rigArg: { num: 0, vec: 1, flag: 2, ink: 3, name: 4 },
-  rig: { wheel: 0, arm: 1, fan: 2, piston: 3, pendulum: 4, smoke: 5, sparks: 6 },
+  rig: {
+    wheel: 0,
+    arm: 1,
+    fan: 2,
+    piston: 3,
+    pendulum: 4,
+    smoke: 5,
+    sparks: 6,
+    burst: 7,
+    mushroom: 8,
+    pile: 9,
+    fence: 10,
+    ash: 11,
+  },
   varType: { time: 0, progress: 1, int: 2, pointer: 3 },
   clock: { time: 0, var: 1 },
   loopMode: { none: -1, loop: 0, pingPong: 1, once: 2 },
@@ -286,10 +300,47 @@ export const CODES = {
     blink: 5,
     spring: 6,
     wave: 7,
+    calc: 8,
   },
   channel: { at: 0, turn: 1, scale: 2, param: 3, visible: 4 },
   ease: { linear: 0, step: 1, smooth: 2, glide: 3, in: 4, out: 5, inOut: 6 },
   wave: { sin: 0, cos: 1 },
+  /**
+   * Operations of a `calc` track, one record of the key section each: the code in `t`, a literal
+   * operand in `v0`, or the root scope slot of a param operand in `v1` (-1 for a literal).
+   */
+  op: {
+    load: 0,
+    add: 1,
+    sub: 2,
+    rsub: 3,
+    mul: 4,
+    div: 5,
+    rdiv: 6,
+    mod: 7,
+    min: 8,
+    max: 9,
+    pow: 10,
+    floor: 11,
+    ceil: 12,
+    round: 13,
+    abs: 14,
+    sqrt: 15,
+    sin: 16,
+    cos: 17,
+    lt: 18,
+    le: 19,
+    gt: 20,
+    ge: 21,
+    eq: 22,
+    and: 23,
+    or: 24,
+    not: 25,
+    hash: 26,
+    rhash: 27,
+    ease: 28,
+    when: 29,
+  },
   when: { range: 0, equals: 1, after: 2, event: 3 },
   /** Ink codes are the palette slots of `core/frame.ts`; 0 means absent. */
   ink: { absent: 0, ink: 2, dim: 3, faint: 4, accent: 5, signal: 6, alert: 7 },

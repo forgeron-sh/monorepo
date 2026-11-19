@@ -7,7 +7,7 @@ use crate::bin::SceneBin;
 use crate::layout::code;
 use crate::machine::{Events, Machines};
 use crate::tracks::{
-    along, ease, key_flag, key_value, number, path_length, path_of, spring, Copy, Overrides,
+    along, calc, ease, key_flag, key_value, number, path_length, path_of, spring, Copy, Overrides,
 };
 use crate::vars;
 use fg_math::num::{js_min, truthy};
@@ -152,11 +152,21 @@ impl Animator {
                 let l = path_length(&self.path);
                 let n = t.count as f64;
                 for c in 0..t.count {
-                    let s = (clock * t.speed + (c as f64 * l) / n) % l;
+                    // With a phase: (clock·speed + phase + k·L/count) mod L.
+                    let run = match t.phase {
+                        Some(p) => clock * t.speed + p,
+                        None => clock * t.speed,
+                    };
+                    let s = (run + (c as f64 * l) / n) % l;
                     self.over.copies.push(Copy {
                         track: k,
                         at: along(&self.path, s),
                     });
+                }
+            }
+            code::track::CALC => {
+                if let Some(v) = calc(&bin.keys[t.keys.clone()], scope) {
+                    self.write(bin, k, v, scope);
                 }
             }
             code::track::SPRING => {

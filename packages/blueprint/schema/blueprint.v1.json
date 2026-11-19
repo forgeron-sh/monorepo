@@ -271,7 +271,22 @@
             "decor": { "type": "boolean" },
             "visible": { "$ref": "#/$defs/Flag" },
             "tag": { "type": "string" },
-            "rig": { "enum": ["wheel", "arm", "fan", "piston", "pendulum", "smoke", "sparks"] },
+            "rig": {
+              "enum": [
+                "wheel",
+                "arm",
+                "fan",
+                "piston",
+                "pendulum",
+                "smoke",
+                "sparks",
+                "burst",
+                "mushroom",
+                "pile",
+                "fence",
+                "ash"
+              ]
+            },
             "with": {
               "type": "object",
               "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
@@ -537,6 +552,7 @@
             "path": { "type": "array", "items": { "$ref": "#/$defs/Vec3" }, "minItems": 2 },
             "count": { "type": "integer", "minimum": 1 },
             "speed": { "type": "number" },
+            "phase": { "type": "number" },
             "params": {
               "type": "object",
               "propertyNames": { "pattern": "^[A-Za-z0-9_][A-Za-z0-9_-]*$" },
@@ -598,6 +614,72 @@
             "rate": { "type": "number" }
           },
           "required": ["kind", "target", "channel", "to", "rate"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "calc" },
+            "target": { "type": "string" },
+            "channel": { "type": "string", "pattern": "^param:[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+            "from": {
+              "anyOf": [
+                { "type": "number" },
+                { "type": "string", "pattern": "^@[A-Za-z0-9_][A-Za-z0-9_-]*$" }
+              ]
+            },
+            "ops": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "enum": [
+                      "add",
+                      "sub",
+                      "rsub",
+                      "mul",
+                      "div",
+                      "rdiv",
+                      "mod",
+                      "min",
+                      "max",
+                      "pow",
+                      "floor",
+                      "ceil",
+                      "round",
+                      "abs",
+                      "sqrt",
+                      "sin",
+                      "cos",
+                      "lt",
+                      "le",
+                      "gt",
+                      "ge",
+                      "eq",
+                      "and",
+                      "or",
+                      "not",
+                      "hash",
+                      "rhash",
+                      "ease",
+                      "when"
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      { "type": "number" },
+                      { "type": "string", "pattern": "^@[A-Za-z0-9_][A-Za-z0-9_-]*$" },
+                      { "$ref": "#/$defs/Ease" }
+                    ]
+                  }
+                ],
+                "items": false,
+                "minItems": 1
+              }
+            }
+          },
+          "required": ["kind", "target", "channel", "from", "ops"],
           "additionalProperties": false
         }
       ]
