@@ -7,6 +7,7 @@ import { entries as driveBlocks } from "./entries/drive";
 import { entries as fieldEntries } from "./entries/fields";
 import { entries as filteringBlocks } from "./entries/filtering";
 import { entries as financeBlocks } from "./entries/finance";
+import { entries as formsBlocks } from "./entries/forms";
 import { entries as hookEntries } from "./entries/hooks";
 import { entries as iconPickerBlocks } from "./entries/icon-picker";
 import { entries as listBlocks } from "./entries/lists";
@@ -925,6 +926,7 @@ export const blocks: ReadonlyArray<Atom> = [
   ...conversationBlocks,
   ...approvalBlocks,
   ...financeBlocks,
+  ...formsBlocks,
 ];
 
 /** The hooks: the state the components share, the keyboard, the actions of a screen. */
