@@ -5,9 +5,14 @@
  */
 import { BlueprintError } from "../core/blocks";
 import type { SceneSource } from "../core/types";
-import { createScriptScene, loadScene } from "../engine/scene";
+import {
+  type BlueprintScene,
+  createScriptScene,
+  loadScene,
+  type ScriptScene,
+} from "../engine/scene";
 import type { CompiledBlueprint } from "../format/compile";
-import { fitOf, type Player, type PlayOptions, run } from "./player";
+import { fitOf, type Player, type PlayOptions, run, type SceneText } from "./player";
 
 /** A scene of a compiled file: `{ compiled, scene }`. */
 export interface CompiledSource {
@@ -20,20 +25,29 @@ export interface CompiledSource {
 const isCompiled = (s: unknown): s is CompiledSource =>
   typeof s === "object" && s !== null && "compiled" in s && "scene" in s;
 
-export function playCompiled(
-  canvas: HTMLCanvasElement,
+/** The engine's handle of a compiled scene or a scene function, and what its overlay says. */
+export function compiledScene(
   source: SceneSource | CompiledSource,
   options: PlayOptions = {},
-): Player {
+): { scene: BlueprintScene | ScriptScene; text: SceneText | null } {
   const fit = fitOf(options);
   if (!isCompiled(source)) {
     const scene = createScriptScene(source, fit);
     if (options.cycle) scene.cycleActive(options.cycle);
-    return run(canvas, scene, null, options);
+    return { scene, text: null };
   }
   const compiled = source.compiled.scenes[source.scene];
   if (!compiled) throw new BlueprintError(`no scene "${source.scene}" in ${source.compiled.id}`);
   const scene = loadScene(compiled, fit);
   if (source.script) scene.script(source.script);
-  return run(canvas, scene, compiled, options);
+  return { scene, text: compiled };
+}
+
+export function playCompiled(
+  canvas: HTMLCanvasElement,
+  source: SceneSource | CompiledSource,
+  options: PlayOptions = {},
+): Player {
+  const { scene, text } = compiledScene(source, options);
+  return run(canvas, scene, text, options);
 }

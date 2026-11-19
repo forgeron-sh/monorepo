@@ -32,6 +32,12 @@ export interface CompiledBlueprint {
   scenes: Readonly<Record<string, CompiledScene>>;
 }
 
+/** A compiled file without its bytes (`x.bp?meta`): what a page reads of scenes a worker plays. */
+export interface BlueprintMeta {
+  id: string;
+  scenes: Readonly<Record<string, Omit<CompiledScene, "bin">>>;
+}
+
 /** Label texts of every part of a library (what the overlay lists for a scene of it). */
 export function labelsOf(lib: Library): string[] {
   const out: string[] = [];

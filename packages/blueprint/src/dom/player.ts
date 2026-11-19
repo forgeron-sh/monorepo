@@ -1,13 +1,14 @@
 /**
- * The loop under `play` and `playCompiled`: a scene handle on a canvas, one engine call per frame,
- * handed to a presenter (docs/blueprint/engine.md §3). `play.ts` and `play-compiled.ts` only make
- * the handle, so that a page playing compiled scenes imports neither the reader nor the writer.
+ * The player under `play` and `playCompiled`: a scene handle on a canvas, one engine call per
+ * frame, handed to a presenter (docs/blueprint/engine.md §3). The loop itself is `loop.ts`; this
+ * feeds it from the page (size, tokens, visibility, pointer). `play.ts` and `play-compiled.ts`
+ * only make the handle, so that a page playing compiled scenes imports neither the reader nor the
+ * writer.
  */
 import { type Filter, plan } from "../core/filters";
-import { type ResolvedPalette, resolvePalette } from "../core/palette";
-import { rasterSize } from "../core/render";
+import { resolvePalette } from "../core/palette";
 import type { BlueprintScene, ScriptScene } from "../engine/scene";
-import { FRAME_FLAGS } from "../engine/layout";
+import { loop } from "./loop";
 import { overlay, type Overlay } from "./overlay";
 import { present2d, type Presenter } from "./present-2d";
 import { presentWebGL2, type WebGL2Presenter } from "./present-webgl2";
@@ -81,7 +82,6 @@ export function run(
   const reduced = () =>
     options.reducedMotion ?? win?.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   const data = text !== null;
-  const machines = data && (scene as BlueprintScene).encoded.machines.length > 0;
   if (options.active !== undefined) scene.set("active", options.active);
 
   let gl: WebGL2Presenter | null = options.presenter === "webgl2" ? presentWebGL2(canvas) : null;
@@ -96,76 +96,29 @@ export function run(
         )
       : null;
 
-  const start = performance.now();
-  let raf = 0;
-  let visible = false;
-  let last = Number.NaN;
-  let ready = false;
-  let pending = false;
-
-  const animated = () => !reduced();
-  const now = () => (reduced() ? 0 : (performance.now() - start) / 1000);
-
+  const core = loop(scene, presenter, {
+    filters: options.filters,
+    data,
+    reduced,
+    gl,
+    onDraw: options.onDraw,
+  });
   const measure = () => {
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    const p = plan(options.filters);
-    const [w, h] = rasterSize(width, height, p.pixel);
     const style = win?.getComputedStyle(canvas);
-    const colors: ResolvedPalette = resolvePalette(
-      p.colors,
-      (name) => style?.getPropertyValue(name) || undefined,
+    const p = plan(options.filters);
+    core.measure(
+      canvas.clientWidth,
+      canvas.clientHeight,
+      resolvePalette(p.colors, (name) => style?.getPropertyValue(name) || undefined),
     );
-    ready = width > 0 && height > 0;
-    if (!ready) return;
-    if (!data || options.filters) scene.shading(p.dither, p.glow);
-    scene.resize(w, h);
-    if (gl) {
-      gl.palette(colors);
-      scene.palette(null);
-    } else scene.palette(colors);
-    presenter.resize(w, h, p.pixel, p.gap);
-    last = Number.NaN;
-  };
-
-  const draw = (t: number) => {
-    if (!ready) return;
-    const dt = Number.isNaN(last) || t < last ? 0 : t - last;
-    last = t;
-    const flags = scene.frame(t, dt);
-    if (flags & FRAME_FLAGS.drawn) {
-      presenter.present(scene);
-      options.onDraw?.();
-    }
-  };
-
-  const loop = () => {
-    pending = false;
-    draw(now());
-    if (visible && animated()) raf = requestAnimationFrame(loop);
-  };
-  /** A frame soon, when the loop is not running (reduced motion, a scroll, a hover). */
-  const request = () => {
-    if (visible && !animated() && !pending) {
-      pending = true;
-      raf = requestAnimationFrame(loop);
-    }
   };
 
   const onPointer = (e: PointerEvent) => {
     const r = canvas.getBoundingClientRect();
-    const { width, height } = scene.size;
     if (r.width === 0 || r.height === 0) return;
-    scene.pointer(
-      ((e.clientX - r.left) / r.width) * width,
-      ((e.clientY - r.top) / r.height) * height,
-    );
-    request();
+    core.pointer((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
   };
-  const onLeave = () => {
-    scene.pointer(null);
-    request();
-  };
+  const onLeave = () => core.pointer(null);
   if (data) {
     canvas.addEventListener("pointermove", onPointer);
     canvas.addEventListener("pointerleave", onLeave);
@@ -177,51 +130,26 @@ export function run(
       ? null
       : new ResizeObserver(() => {
           measure();
-          draw(now());
+          core.draw();
         });
   resize?.observe(canvas);
   const seen =
     typeof IntersectionObserver === "undefined"
       ? null
-      : new IntersectionObserver(([entry]) => {
-          const on = entry?.isIntersecting ?? false;
-          if (on && !visible) {
-            visible = true;
-            loop();
-          } else if (!on) {
-            visible = false;
-            cancelAnimationFrame(raf);
-          }
-        });
+      : new IntersectionObserver(([entry]) => core.visible(entry?.isIntersecting ?? false));
   if (seen) seen.observe(canvas);
-  else {
-    visible = true;
-    loop();
-  }
+  else core.visible(true);
 
   return {
     scene,
     presenter,
-    set(name, value) {
-      scene.set(name, value);
-      if (machines && !visible) draw(now());
-      else request();
-    },
-    release(name) {
-      scene.release(name);
-      request();
-    },
-    emit(event) {
-      if (data) (scene as BlueprintScene).emit(event);
-      request();
-    },
+    set: (name, value) => core.set(name, value),
+    release: (name) => core.release(name),
+    emit: (event) => core.emit(event),
     on: (name, fn) => scene.on(name, fn),
-    draw(time) {
-      draw(time ?? now());
-    },
+    draw: (time) => core.draw(time),
     destroy() {
-      visible = false;
-      cancelAnimationFrame(raf);
+      core.stop();
       resize?.disconnect();
       seen?.disconnect();
       canvas.removeEventListener("pointermove", onPointer);

@@ -2,6 +2,7 @@ import { type Block, render } from "@forgeron/blueprint";
 import { type BlueprintScene, createScene, loadScene } from "@forgeron/blueprint/engine";
 import {
   type BlueprintFile,
+  type BlueprintMeta,
   type CompiledBlueprint,
   encodeScene,
   flatten,
@@ -85,6 +86,13 @@ const COMPILED = import.meta.glob<CompiledBlueprint>("./**/*.bp", {
   eager: true,
 });
 
+// The same files without their bytes (`?meta`): what the page reads of scenes the worker plays.
+const META = import.meta.glob<BlueprintMeta>("./**/*.bp", {
+  query: "?meta",
+  import: "default",
+  eager: true,
+});
+
 /** The frame's four buffers, the root scope and every machine's state, as one comparable value. */
 function played(scene: BlueprintScene, t: number, dt: number) {
   scene.frame(t, dt);
@@ -103,6 +111,18 @@ describe("the compiled library", () => {
   it("has every file compiled", () => {
     expect(Object.keys(COMPILED).sort()).toEqual(Object.keys(FILES).sort());
     expect(Object.keys(FILES).length).toBeGreaterThan(40);
+  });
+
+  it("gives every file's names and cameras without the bytes (`?meta`)", () => {
+    for (const [path, compiled] of Object.entries(COMPILED)) {
+      const meta = META[path]!;
+      expect(meta.id).toBe(compiled.id);
+      for (const [name, { bin, ...rest }] of Object.entries(compiled.scenes)) {
+        expect(bin.length).toBeGreaterThan(0);
+        expect(meta.scenes[name]).toEqual(rest);
+        expect("bin" in meta.scenes[name]!).toBe(false);
+      }
+    }
   });
 
   it.each(Object.keys(FILES).sort())(

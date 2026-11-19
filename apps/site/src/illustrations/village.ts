@@ -22,27 +22,13 @@ import {
   Y,
   Z,
 } from "./parts";
+import { STEPS } from "./steps";
 
 /** Scroll progress of the story, 0 to 1, read by every frame: the page sets it on the canvas. */
 export const villageStore = { progress: 0 };
 
-/** The story's steps, as ranges of progress; the page's captions use the same ones. */
-export const STEPS = {
-  intro: [0, 0.05],
-  complex: [0.05, 0.105],
-  unfit: [0.105, 0.16],
-  excel: [0.16, 0.215],
-  tinker: [0.215, 0.27],
-  upgrade: [0.27, 0.33],
-  generic: [0.33, 0.39],
-  plug: [0.39, 0.45],
-  ai: [0.45, 0.51],
-  lockin: [0.51, 0.6],
-  support: [0.6, 0.69],
-  boom: [0.69, 0.8],
-  fire: [0.8, 0.9],
-  out: [0.9, 1],
-} as const;
+// The story's steps (`steps.ts`): the page reads them without loading this module.
+export { STEPS } from "./steps";
 
 // Where the camera looks at each step, and how close, and the box that frames the island: the
 // shots and the fit box of `library/control/erp-village.bp`, read by the page.

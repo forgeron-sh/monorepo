@@ -61,7 +61,7 @@ const GITHUB = "https://github.com/forgeron-sh/monorepo";
 const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
 
 
-/** The opening's captions, one per step of the story (ranges in `STEPS`, illustrations/village.ts). */
+/** The opening's captions, one per step of the story (ranges in `STEPS`, illustrations/steps.ts). */
 const sagaSteps: { step: string; title: string; pos: "top" | "tl" | "tr" | "bl" | "br" }[] = [
   { step: "intro", title: "Anatomy of a fall.", pos: "tr" },
   { step: "complex", title: "It does everything, all at once, and none of it is simple.", pos: "tl" },
@@ -720,7 +720,7 @@ const faq = [
   // Opening: the scroll drives the village's story, the captions, and the final shrink that hands
   // the screen back to the navigation and the hero.
   import { isoCanvas } from "../illustrations/canvas";
-  import { STEPS } from "../illustrations/village";
+  import { STEPS } from "../illustrations/steps";
 
   const saga = document.querySelector<HTMLElement>(".saga");
   const stage = saga?.querySelector<HTMLElement>(".saga-stage");

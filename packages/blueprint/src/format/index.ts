@@ -14,7 +14,12 @@ export {
   staticBlocks,
   staticCounts,
 } from "./convert";
-export { type CompiledBlueprint, type CompiledScene, compileBlueprint } from "./compile";
+export {
+  type BlueprintMeta,
+  type CompiledBlueprint,
+  type CompiledScene,
+  compileBlueprint,
+} from "./compile";
 export { flatten } from "./flatten";
 export { type Library, type ReadOptions, readBlueprint, resolveLocation } from "./read";
 export {

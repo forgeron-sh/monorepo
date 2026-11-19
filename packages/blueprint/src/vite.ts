@@ -7,13 +7,15 @@
  *   imports too), each scene compiled to its SceneBin (`compileBlueprint`), and the module is
  *   those bytes, inlined as number literals, with the few names the player needs. A page plays them with
  *   `playCompiled` (or `loadScene`) and ships neither the JSON nor the reader and the writer.
+ * - `import meta from "./scene.bp?meta"`: the same without the bytes (`BlueprintMeta`): what a page
+ *   reads of a scene a worker plays (its camera, scope, machines' states).
  *
  * Types: `/// <reference types="@forgeron/blueprint/bp" />`.
  */
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { isAbsolute } from "node:path";
-import { type CompiledBlueprint, compileBlueprint } from "./format/compile";
+import { type BlueprintMeta, type CompiledBlueprint, compileBlueprint } from "./format/compile";
 import { readBlueprint } from "./format/read";
 import { sizeOf } from "./engine/layout";
 import { SECTIONS } from "./format/scenebin";
@@ -26,7 +28,7 @@ export interface BlueprintPlugin {
 }
 
 /** Queries Vite adds on its own; any other query (`?raw`, `?url`) is left to Vite. */
-const PASSING = new Set(["compiled", "import", "t", "v"]);
+const PASSING = new Set(["compiled", "meta", "import", "t", "v"]);
 
 /** A number as a JavaScript literal that reads back to the same float64 (`-0`, `NaN` included). */
 const literal = (x: number) => (Object.is(x, -0) ? "-0" : String(x));
@@ -92,6 +94,17 @@ export function compiledModule(compiled: CompiledBlueprint): string {
   return `${DECODE}\nexport default ${body};\n`;
 }
 
+/** The module of a file's names without its bytes (`?meta`). */
+export function metaModule(compiled: CompiledBlueprint): string {
+  const meta: BlueprintMeta = {
+    id: compiled.id,
+    scenes: Object.fromEntries(
+      Object.entries(compiled.scenes).map(([name, { bin: _bin, ...rest }]) => [name, rest]),
+    ),
+  };
+  return `export default ${JSON.stringify(meta)};\n`;
+}
+
 export function blueprint(): BlueprintPlugin {
   return {
     name: "forgeron-blueprint",
@@ -102,7 +115,7 @@ export function blueprint(): BlueprintPlugin {
       const params = new URLSearchParams(query);
       for (const key of params.keys()) if (!PASSING.has(key)) return null;
       const text = readFileSync(path, "utf8");
-      if (!params.has("compiled")) {
+      if (!params.has("compiled") && !params.has("meta")) {
         let value: unknown;
         try {
           value = JSON.parse(text);
@@ -120,7 +133,8 @@ export function blueprint(): BlueprintPlugin {
           return readFileSync(file, "utf8");
         },
       });
-      return compiledModule(compileBlueprint(lib));
+      const compiled = compileBlueprint(lib);
+      return params.has("meta") ? metaModule(compiled) : compiledModule(compiled);
     },
   };
 }

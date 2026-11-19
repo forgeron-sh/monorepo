@@ -22,8 +22,12 @@ export interface Presenter {
   dispose(): void;
 }
 
-export function present2d(canvas: HTMLCanvasElement): Presenter {
-  const ctx = canvas.getContext("2d");
+/** On a page's canvas, or on one handed to a worker (`transferControlToOffscreen`). */
+export function present2d(canvas: HTMLCanvasElement | OffscreenCanvas): Presenter {
+  const ctx = canvas.getContext("2d") as
+    | CanvasRenderingContext2D
+    | OffscreenCanvasRenderingContext2D
+    | null;
   let width = 0;
   let height = 0;
   let pixel = 1;
@@ -42,7 +46,8 @@ export function present2d(canvas: HTMLCanvasElement): Presenter {
       const scale = gap > 0 ? pixel : 1;
       canvas.width = w * scale;
       canvas.height = h * scale;
-      canvas.style.imageRendering = "pixelated";
+      // A worker's canvas has no style: the page sets it on the element (`playInWorker`).
+      if ("style" in canvas) canvas.style.imageRendering = "pixelated";
       image = null;
       source = null;
       scaled = null;
