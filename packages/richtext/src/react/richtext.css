@@ -1,0 +1,374 @@
+/* @forgeron/richtext: the page in the lab language: 1 px lines, sharp corners, mono capitals for
+   controls, the accent for the caret and the selection, no blur and no fades. Needs the tokens and
+   the styles of @forgeron/ui. Colours are tokens only; the carets of collaborators take the colour
+   their user gives (`--fg-rt-user`). */
+
+.fg-rt {
+  position: relative;
+  color: var(--ink);
+  font: 400 15px/24px var(--font-sans);
+}
+.fg-rt-handles {
+  padding-left: 52px;
+}
+
+/* ---------------------------------------------------------------- The page (editor and view) */
+
+.fg-rt-content,
+.fg-rt-view {
+  outline: none;
+  min-height: 1.5em;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+.fg-rt-view {
+  white-space: normal;
+}
+.fg-rt-content > * + *,
+.fg-rt-view > * + * {
+  margin-top: 8px;
+}
+.fg-rt p {
+  margin: 0;
+}
+.fg-rt h1,
+.fg-rt h2,
+.fg-rt h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--ink);
+}
+.fg-rt h1 {
+  margin-top: 24px;
+  font-size: 30px;
+  line-height: 36px;
+}
+.fg-rt h2 {
+  margin-top: 20px;
+  font-size: 22px;
+  line-height: 30px;
+}
+.fg-rt h3 {
+  margin-top: 16px;
+  font-size: 17px;
+  line-height: 26px;
+}
+.fg-rt-content > :first-child,
+.fg-rt-view > :first-child {
+  margin-top: 0;
+}
+.fg-rt ul,
+.fg-rt ol {
+  margin: 0;
+  padding-left: 24px;
+}
+.fg-rt ul {
+  list-style: square;
+}
+.fg-rt ol {
+  list-style: decimal;
+}
+.fg-rt li::marker {
+  color: var(--ink-dim);
+}
+.fg-rt li > p + p,
+.fg-rt li > * + * {
+  margin-top: 4px;
+}
+.fg-rt a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.fg-rt a:hover {
+  background: var(--bg-raised);
+}
+.fg-rt strong {
+  font-weight: 600;
+}
+.fg-rt s {
+  color: var(--ink-muted);
+}
+.fg-rt blockquote {
+  margin: 0;
+  padding: 2px 0 2px 16px;
+  border-left: 2px solid var(--accent);
+  color: var(--ink-muted);
+}
+.fg-rt hr {
+  height: 0;
+  margin: 16px 0;
+  border: 0;
+  border-top: var(--border-width) solid var(--line-strong);
+}
+.fg-rt code,
+.fg-rt-inline-code {
+  padding: 1px 4px;
+  border: var(--border-width) solid var(--line);
+  background: var(--bg-sunk);
+  font: 400 0.9em/1 var(--font-mono);
+}
+.fg-rt pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-sunk);
+  font: 400 13px/20px var(--font-mono);
+  white-space: pre;
+}
+.fg-rt pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+}
+.fg-rt img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: var(--border-width) solid var(--line);
+}
+.fg-rt img.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+}
+
+/* To-do items: a square box, the accent when done. */
+.fg-rt ul[data-type="taskList"] {
+  padding-left: 0;
+  list-style: none;
+}
+.fg-rt ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.fg-rt ul[data-type="taskList"] > li > label {
+  display: flex;
+  flex: none;
+  padding-top: 4px;
+  user-select: none;
+}
+.fg-rt ul[data-type="taskList"] > li > div {
+  flex: 1;
+  min-width: 0;
+}
+.fg-rt ul[data-type="taskList"] > li[data-checked="true"] > div {
+  color: var(--ink-dim);
+  text-decoration: line-through;
+}
+.fg-rt ul[data-type="taskList"] > li > input {
+  flex: none;
+  margin-top: 4px;
+}
+.fg-rt input[type="checkbox"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: var(--bg);
+  cursor: pointer;
+}
+.fg-rt-view input[type="checkbox"] {
+  cursor: default;
+}
+.fg-rt input[type="checkbox"]:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: inset 0 0 0 3px var(--bg);
+}
+.fg-rt input[type="checkbox"]:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* Tables */
+.fg-rt table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.fg-rt .tableWrapper {
+  overflow-x: auto;
+}
+.fg-rt th,
+.fg-rt td {
+  position: relative;
+  min-width: 48px;
+  padding: 6px 10px;
+  border: var(--border-width) solid var(--line-strong);
+  text-align: left;
+  vertical-align: top;
+}
+.fg-rt th {
+  background: var(--bg-raised);
+  font: 500 12px/18px var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fg-rt .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Mentions */
+.fg-rt-mention {
+  padding: 0 3px;
+  background: var(--bg-raised);
+  border: var(--border-width) solid var(--line);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* Placeholder: the empty line under the caret says what to do. */
+.fg-rt-content p.is-empty::before,
+.fg-rt-content h1.is-empty::before,
+.fg-rt-content h2.is-empty::before,
+.fg-rt-content h3.is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--ink-dim);
+  pointer-events: none;
+}
+
+/* Selection and the drop line */
+.fg-rt-content ::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.fg-rt-content .ProseMirror-gapcursor::after {
+  border-top-color: var(--accent);
+}
+.fg-rt-content .ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+}
+
+/* The minimal variant sits in a form: a framed field. */
+.fg-rt-minimal.fg-rt-editable .fg-rt-content {
+  min-height: 72px;
+  padding: 8px 10px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+  font-size: 14px;
+  line-height: 22px;
+}
+.fg-rt-minimal.fg-rt-editable .fg-rt-content:focus {
+  border-color: var(--ink);
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+/* ---------------------------------------------------------------- Collaborators */
+
+.fg-rt-caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid var(--fg-rt-user, var(--ink-muted));
+  pointer-events: none;
+  word-break: normal;
+}
+.fg-rt-caret-label {
+  position: absolute;
+  top: -1.4em;
+  left: -2px;
+  padding: 1px 5px;
+  background: var(--fg-rt-user, var(--ink-muted));
+  color: var(--accent-ink);
+  font: 400 10px/14px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+}
+.fg-rt-selection {
+  background: color-mix(in srgb, var(--fg-rt-user, var(--ink-muted)) 25%, transparent);
+}
+
+/* ---------------------------------------------------------------- Floating UI */
+
+.fg-rt-float {
+  position: fixed;
+  z-index: 70;
+}
+.fg-rt-bubble {
+  box-shadow: var(--shadow-pop);
+}
+.fg-rt-link {
+  gap: 4px;
+}
+.fg-rt-link-input {
+  width: 220px;
+  height: 26px;
+}
+.fg-rt-menu {
+  width: 260px;
+}
+.fg-rt-menu-empty {
+  margin: 0;
+  padding: 8px 10px;
+  color: var(--ink-dim);
+  font-size: 11.5px;
+}
+.fg-rt-menu-head {
+  margin: 0;
+  padding: 6px 10px 4px;
+  color: var(--ink-dim);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-rt-menu-sep {
+  height: 0;
+  margin: 4px 0;
+  border: 0;
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-rt-menu-gap {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+}
+.fg-rt-danger:hover,
+.fg-rt-danger[data-highlighted] {
+  color: var(--danger);
+}
+
+/* The handle sits in the gutter, at the first line of the block under the pointer. */
+.fg-rt-handle {
+  position: absolute;
+  left: 0;
+  display: flex;
+  gap: 2px;
+  height: 24px;
+}
+.fg-rt-grip {
+  cursor: grab;
+}
+.fg-rt-grip:active {
+  cursor: grabbing;
+}
+
+/* No gutter on a phone: there is no pointer to hover with. The slash menu and the keyboard stay. */
+@media (hover: none), (max-width: 640px) {
+  .fg-rt-handles {
+    padding-left: 0;
+  }
+  .fg-rt-handle {
+    display: none;
+  }
+}
+
+/* A block being dragged. */
+.fg-rt-content .ProseMirror-dropcursor {
+  background: var(--accent);
+}

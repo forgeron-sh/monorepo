@@ -227,6 +227,38 @@ const cases: Case[] = [
     files: { [`packages/draw/src/core/${F}.ts`]: `import "node:fs";\n` },
   },
   {
+    rule: "ui-does-not-import-editors",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "../../richtext/src/${F}_target.ts";\n`,
+      [`packages/richtext/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "richtext-does-not-import-other-editors",
+    files: {
+      [`packages/richtext/src/react/${F}.ts`]: `import "../../../flow/src/${F}_target.ts";\n`,
+      [`packages/flow/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "richtext-core-is-framework-free",
+    files: {
+      [`packages/richtext/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/richtext/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "richtext-core-is-framework-free",
+    files: {
+      [`packages/richtext/src/core/${F}.ts`]: `import "../tiptap/${F}_target.ts";\n`,
+      [`packages/richtext/src/tiptap/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "richtext-core-stays-neutral",
+    files: { [`packages/richtext/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
     rule: "registry-door-is-index",
     files: {
       [`apps/gateway/src/${F}.ts`]: `import "../../../packages/registry/src/${F}_target.ts";\n`,

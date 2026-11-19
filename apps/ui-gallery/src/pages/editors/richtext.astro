@@ -1,0 +1,111 @@
+---
+import { formatShortcut, Kbd } from "@forgeron/ui";
+import DocsLayout from "../../components/DocsLayout.astro";
+import RichTextDemo from "../../components/editors/RichTextDemo";
+import {
+  richtextCollabSnippet,
+  richtextCovers,
+  richtextKeys,
+  richtextSnippet,
+} from "../../components/editors/richtext-docs";
+import { highlight } from "../../lib/highlight";
+import "@forgeron/richtext/styles.css";
+import "../../styles/editors.css";
+---
+
+<DocsLayout
+  title="Rich text — Editors — Forgeron UI"
+  description="The page editor: blocks, a slash menu, marks, mentions, Markdown, a static view and Yjs collaboration, on Tiptap with our own interface."
+  current="editors/richtext"
+  page="editors"
+>
+  <header class="doc-head">
+    <span class="t-mono dim">Editors <span class="accent">/</span> Rich text</span>
+    <h1 class="f-title f-h3">Rich text</h1>
+    <p class="t-lead">A page you write in, for notes, descriptions and comments. Collaboration plugs in when you need it.</p>
+    <dl class="ed-facts t-mono">
+      <div><dt class="dim">Package</dt><dd>@forgeron/richtext</dd></div>
+      <div><dt class="dim">Layers</dt><dd>core (no React) · /react · /collab</dd></div>
+      <div><dt class="dim">On</dt><dd>Tiptap · Yjs · @forgeron/ui</dd></div>
+    </dl>
+  </header>
+
+  <section class="ed-block-stack" aria-label="Full">
+    <div class="spacer-sm t-mono dim"><span>/01 → Full</span></div>
+    <RichTextDemo kind="full" client:only="react" />
+    <p class="ed-hint t-mono">
+      <span><Kbd keys="/" />blocks</span>
+      <span><Kbd keys="@" />mention</span>
+      <span>select text for its marks</span>
+      <span>hover a block for its handle</span>
+    </p>
+  </section>
+
+  <section class="ed-block-stack" aria-label="Minimal">
+    <div class="spacer-sm t-mono dim"><span>/02 → Minimal</span></div>
+    <RichTextDemo kind="minimal" client:only="react" />
+  </section>
+
+  <section class="ed-block-stack" aria-label="Read only">
+    <div class="spacer-sm t-mono dim"><span>/03 → Read only, no editor loaded</span></div>
+    <RichTextDemo kind="view" client:only="react" />
+  </section>
+
+  <section class="ed-block-stack" aria-label="Collaboration">
+    <div class="spacer-sm t-mono dim"><span>/04 → Two editors, two documents, one relay</span></div>
+    <RichTextDemo kind="collab" client:only="react" />
+  </section>
+
+  <section class="ed-block-stack" aria-label="Notes">
+    <div class="spacer-sm t-mono dim"><span>/05 → Try it: a small Notes</span></div>
+    <RichTextDemo kind="notes" client:only="react" />
+  </section>
+
+  <section class="ed-block-stack" aria-label="What it covers">
+    <div class="spacer-sm t-mono dim"><span>/06 → What it covers</span></div>
+    <ul class="ed-list">
+      {richtextCovers.map((line) => <li>{line}</li>)}
+    </ul>
+  </section>
+
+  <section class="ed-block-stack" aria-label="Use it">
+    <div class="spacer-sm t-mono dim"><span>/07 → Use it</span></div>
+    <section class="frame" data-show="code" aria-label="A page">
+      <header class="frame-bar">
+        <span class="t-mono"><span class="accent">/01</span> <span class="dim">→</span> A page</span>
+        <div class="frame-tools">
+          <button type="button" class="btn btn-sm" data-copy="code-richtext-0">Copy</button>
+        </div>
+      </header>
+      <div class="frame-code" id="code-richtext-0" set:html={highlight(richtextSnippet, "tsx")} />
+    </section>
+    <section class="frame" data-show="code" aria-label="Collaboration">
+      <header class="frame-bar">
+        <span class="t-mono"><span class="accent">/02</span> <span class="dim">→</span> Collaboration</span>
+        <div class="frame-tools">
+          <button type="button" class="btn btn-sm" data-copy="code-richtext-1">Copy</button>
+        </div>
+      </header>
+      <div class="frame-code" id="code-richtext-1" set:html={highlight(richtextCollabSnippet, "tsx")} />
+    </section>
+  </section>
+
+  <section class="ed-block-stack" aria-label="Keys">
+    <div class="spacer-sm t-mono dim"><span>/08 → Keys</span></div>
+    <div class="ed-keys">
+      {
+        richtextKeys.map((k) => (
+          <div>
+            <span>{k.label}</span>
+            <Kbd keys={formatShortcut(k.combo)} />
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <nav class="pager-nav t-mono" aria-label="Previous and next">
+    <a href="/editors/blueprint">← Blueprint</a>
+    <a href="/pages">Pages →</a>
+  </nav>
+</DocsLayout>

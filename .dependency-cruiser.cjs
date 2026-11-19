@@ -141,7 +141,7 @@ module.exports = {
       name: "ui-does-not-import-editors",
       severity: "error",
       from: { path: "^packages/ui/" },
-      to: { path: "^packages/(canvas|flow|draw)/" },
+      to: { path: "^packages/(canvas|flow|draw|richtext)/" },
     },
     {
       // Canvas is the engine under flow and draw, never the other way.
@@ -218,6 +218,31 @@ module.exports = {
       name: "draw-core-stays-neutral",
       severity: "error",
       from: { path: "^packages/draw/src/(core/|index\\.ts$)" },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
+      // The rich text editor is its own editor, on ProseMirror (Tiptap) and Yjs, not on canvas: it
+      // knows none of the others.
+      name: "richtext-does-not-import-other-editors",
+      severity: "error",
+      from: { path: "^packages/richtext/" },
+      to: { path: "^packages/(canvas|flow|draw|blueprint|blueprint-canvas)/" },
+    },
+    {
+      // The core of richtext (the document as JSON, the block catalog, Markdown, plain text, the
+      // static renderer) is data and pure functions: no React, no ProseMirror or Tiptap, no Yjs, no
+      // ui, no layer above it, no Node module. The editor reads it, never the reverse.
+      name: "richtext-core-is-framework-free",
+      severity: "error",
+      from: { path: "^packages/richtext/src/(core/|index\\.ts$)" },
+      to: {
+        path: "^packages/richtext/src/(react|tiptap|collab)/|^packages/ui/|(^|/)node_modules/(react|react-dom|@tiptap/|prosemirror-|yjs/|y-protocols/|y-prosemirror/)",
+      },
+    },
+    {
+      name: "richtext-core-stays-neutral",
+      severity: "error",
+      from: { path: "^packages/richtext/src/(core/|index\\.ts$)" },
       to: { dependencyTypes: ["core"] },
     },
     {

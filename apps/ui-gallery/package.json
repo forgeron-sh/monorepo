@@ -17,6 +17,7 @@
     "@forgeron/flow": "workspace:*",
     "@forgeron/icons": "workspace:*",
     "@forgeron/libraries": "workspace:*",
+    "@forgeron/richtext": "workspace:*",
     "@forgeron/shaders": "workspace:*",
     "@forgeron/ui": "workspace:*",
     "astro": "7.4.5",
