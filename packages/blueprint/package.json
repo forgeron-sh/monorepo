@@ -9,7 +9,11 @@
     "./dom": "./src/dom/index.ts",
     "./engine": "./src/engine/index.ts",
     "./format": "./src/format/index.ts",
-    "./react": "./src/react/index.ts"
+    "./react": "./src/react/index.ts",
+    "./bp": {
+      "types": "./src/bp.d.ts"
+    },
+    "./vite": "./src/vite.ts"
   },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*",

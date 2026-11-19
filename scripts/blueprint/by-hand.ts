@@ -1,6 +1,6 @@
 // The by-hand pass of the Blueprint conversion (docs/blueprint/engine.md §2, P3): a scene's
 // varying blocks, rewritten as prims bound to params that tracks drive, go back into its
-// `.bp.json` at the places the scene function draws them, so the painter's stable order is the
+// `.bp` at the places the scene function draws them, so the painter's stable order is the
 // function's. A spec per scene below; the files it writes are then the source (the mechanical
 // pass, `convert-site.ts`, leaves them alone).
 //   bun scripts/blueprint/by-hand.ts web mcp
@@ -194,7 +194,7 @@ function convert(name: string, spec: Spec): void {
       if (other[i] === undefined || key(other[i]!) !== key(b)) varying.add(i);
     });
   }
-  const path = `${LIBRARY}/${name}.bp.json`;
+  const path = `${LIBRARY}/${name}.bp`;
   const file = JSON.parse(readFileSync(path, "utf8")) as BlueprintFile;
   const part = Object.values(file.parts ?? {})[0];
   if (!part || Object.keys(file.parts ?? {}).length !== 1)

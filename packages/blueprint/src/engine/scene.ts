@@ -6,7 +6,9 @@
  * the slot buffer, all as views on the module's memory: nothing is copied and, once warm,
  * nothing is allocated per frame on a data scene.
  *
- * - `createScene(lib, name)`: a scene of a `.bp.json` library (vars, timelines, machines, rigs).
+ * - `createScene(lib, name)`: a scene of a `.bp` library (vars, timelines, machines, rigs).
+ * - `loadScene(compiled)`: the same scene compiled at build time (`compileBlueprint`, an import of
+ *   `x.bp?compiled`): no reader, no SceneBin writer on the page.
  * - `createScriptScene(source)`: the script layer, a scene function feeding immediate blocks into
  *   the same raster each frame (the scenes not converted to data yet).
  */
@@ -16,8 +18,8 @@ import { frameView, sceneAt } from "../core/render";
 import type { ResolvedPalette } from "../core/palette";
 import { createFrame, type Frame, SLOT_NAMES } from "../core/frame";
 import type { Block, SceneSource, View } from "../core/types";
-import type { Scene } from "../format/types";
-import { type EncodedScene, encodeScene, type SceneBinOptions } from "../format/scenebin";
+import type { CompiledScene } from "../format/compile";
+import { encodeScene, type SceneBinOptions } from "../format/scenebin";
 import type { Library } from "../format/read";
 import { engineMemory, lastEngineError } from "./runtime";
 import {
@@ -39,6 +41,10 @@ const B = offsets("block");
 const BH = sizeOf("blocksHeader");
 const BW = sizeOf("block");
 const encoder = new TextEncoder();
+const HEADER = offsets("header");
+const HEADER_WORDS = sizeOf("header");
+const STR = offsets("string");
+const SCENE = offsets("scene");
 
 export { FRAME_FLAGS };
 
@@ -47,6 +53,20 @@ export type FrameFlags = number;
 
 type Listener = (value: number, name: string) => void;
 type Cycle = { every: number; count: number };
+
+/** What a scene handle needs besides the bytes: names of the root scope, machines and strings. */
+export interface SceneInfo {
+  bytes: Uint8Array;
+  /** The string table: tags, events and state names are indices into it. */
+  strings: readonly string[];
+  /** The root scope, in slot order. */
+  scope: readonly string[];
+  /** Each machine and its state names, in the order of the outputs block. */
+  machines: readonly { name: string; states: readonly string[] }[];
+}
+
+/** The scene's int var `active`: the script layer draws at its value. */
+type ActiveVar = { default: number; cycle?: Cycle } | null;
 
 /** The views a handle reads and writes, refreshed when the module's memory grows. */
 interface Views {
@@ -301,9 +321,9 @@ abstract class Handle {
   }
 }
 
-/** A scene of a `.bp.json` library, played by the engine. */
+/** A scene of a `.bp` library, played by the engine. */
 export class BlueprintScene extends Handle {
-  readonly encoded: EncodedScene;
+  readonly encoded: SceneInfo;
   private readonly slotOf = new Map<string, number>();
   private readonly eventIndex = new Map<string, number>();
   private last: Float64Array;
@@ -311,7 +331,7 @@ export class BlueprintScene extends Handle {
   private layer: SceneSource | null = null;
   private readonly activeVar: { slot: number; default: number; cycle?: Cycle } | null;
 
-  constructor(encoded: EncodedScene, vars: Scene["vars"] = {}) {
+  constructor(encoded: SceneInfo, active: ActiveVar = null) {
     engineMemory();
     const memory = engineMemory();
     const ptr = wasm.alloc(encoded.bytes.length);
@@ -327,12 +347,8 @@ export class BlueprintScene extends Handle {
     this.last = new Float64Array(OUT_WORDS + encoded.scope.length + this.machineCount).fill(
       Number.NaN,
     );
-    const active = vars?.active;
     const slot = this.slotOf.get("active");
-    this.activeVar =
-      active?.type === "int" && slot !== undefined
-        ? { slot, default: active.default, ...(active.cycle ? { cycle: active.cycle } : {}) }
-        : null;
+    this.activeVar = active && slot !== undefined ? { slot, ...active } : null;
   }
 
   /**
@@ -442,13 +458,62 @@ export class BlueprintScene extends Handle {
   }
 }
 
-/** A scene of a `.bp.json` library: `createScene(lib, "village")`. */
+/** A scene of a `.bp` library: `createScene(lib, "village")`. */
 export function createScene(
   lib: Library,
   name: string,
   options: SceneBinOptions = {},
 ): BlueprintScene {
-  return new BlueprintScene(encodeScene(lib, name, options), lib.scenes.get(name)?.vars);
+  const active = lib.scenes.get(name)?.vars?.active;
+  return new BlueprintScene(
+    encodeScene(lib, name, options),
+    active?.type === "int"
+      ? { default: active.default, ...(active.cycle ? { cycle: active.cycle } : {}) }
+      : null,
+  );
+}
+
+/**
+ * The SceneBin of a compiled scene with a page's fit and labels written over the scene's own:
+ * the same bytes `encodeScene` writes with those options (they live in the scene record only).
+ */
+function compiledBytes(scene: CompiledScene, options: SceneBinOptions = {}): Uint8Array {
+  const { fill, unit, labels } = options;
+  if (fill === undefined && unit === undefined && labels === undefined) return scene.bin;
+  const bytes = scene.bin.slice();
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const byteLength = view.getFloat64(HEADER.bytes * 8, true);
+  const record = bytes.length - byteLength - sizeOf("scene") * 8;
+  const put = (field: number, value: number) => view.setFloat64(record + field * 8, value, true);
+  if (fill !== undefined) put(SCENE.fill, fill);
+  if (unit !== undefined) put(SCENE.unit, unit === "any" ? CODES.unit.any : CODES.unit.even);
+  if (labels !== undefined) put(SCENE.labels, Number(labels));
+  return bytes;
+}
+
+/** The string table of a SceneBin, read back from its string records and bytes. */
+function stringsOf(bytes: Uint8Array): string[] {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const word = (i: number) => view.getFloat64(i * 8, true);
+  const count = word(HEADER.strings);
+  const base = bytes.length - word(HEADER.bytes);
+  const decoder = new TextDecoder();
+  const out: string[] = [];
+  for (let k = 0; k < count; k++) {
+    const r = HEADER_WORDS + k * sizeOf("string");
+    const at = base + word(r + STR.offset);
+    out.push(decoder.decode(bytes.subarray(at, at + word(r + STR.length))));
+  }
+  return out;
+}
+
+/** A scene compiled at build time (`compileBlueprint`): plays as `createScene` on its library. */
+export function loadScene(scene: CompiledScene, options: SceneBinOptions = {}): BlueprintScene {
+  const bytes = compiledBytes(scene, options);
+  return new BlueprintScene(
+    { bytes, strings: stringsOf(bytes), scope: scene.scope, machines: scene.machines },
+    scene.active,
+  );
 }
 
 /**

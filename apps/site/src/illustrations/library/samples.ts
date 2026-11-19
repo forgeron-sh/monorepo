@@ -1,7 +1,7 @@
 /**
  * The inputs at which the mechanical converter (`scripts/blueprint/convert-site.ts`) and its test
  * evaluate each scene of `SCENES`: a block that every sample draws is static and goes into the
- * scene's `.bp.json`; the rest is left to the by-hand pass (docs/blueprint/engine.md, P3).
+ * scene's `.bp`; the rest is left to the by-hand pass (docs/blueprint/engine.md, P3).
  *
  * Both walk the samples in the same order from a fresh module, so the scenes that keep state
  * between frames (the village's walkers, `stack6`'s spring) see the same history. Each sample is

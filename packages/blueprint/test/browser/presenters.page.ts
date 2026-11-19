@@ -33,7 +33,7 @@ async function run(): Promise<unknown> {
   const out: { name: string; pixels: number; vs2d: number; vsEngine: number }[] = [];
   for (const c of cases) {
     const scene = c.file
-      ? createScene(await readBlueprint(c.file, { location: `${c.name}.bp.json` }), c.name, {
+      ? createScene(await readBlueprint(c.file, { location: `${c.name}.bp` }), c.name, {
           ...(c.fill !== undefined ? { fill: c.fill } : {}),
         })
       : createScriptScene({ blocks: c.blocks! }, c.fill !== undefined ? { fill: c.fill } : {});

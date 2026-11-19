@@ -1,4 +1,4 @@
-// @forgeron/blueprint/format: the `.bp.json` format. Types, the schema, the reader (validation
+// @forgeron/blueprint/format: the `.bp` format. Types, the schema, the reader (validation
 // and imports), the writer, the still-picture evaluator (`flatten`) and the mechanical converter.
 // Pure TypeScript, like the core: no DOM, no Node module.
 
@@ -14,6 +14,7 @@ export {
   staticBlocks,
   staticCounts,
 } from "./convert";
+export { type CompiledBlueprint, type CompiledScene, compileBlueprint } from "./compile";
 export { flatten } from "./flatten";
 export { type Library, type ReadOptions, readBlueprint, resolveLocation } from "./read";
 export {

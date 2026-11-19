@@ -54,7 +54,7 @@ function firstDiff(a: Uint8Array, b: Uint8Array): string {
 }
 
 async function drawn(prim: RigPrim): Promise<Uint8Array> {
-  const lib = await readBlueprint(file(prim), { location: "rigs.bp.json" });
+  const lib = await readBlueprint(file(prim), { location: "rigs.bp" });
   const scene = DebugScene.load(writeSceneBin(lib, "s"));
   const out = scene.flatBlocks();
   scene.dispose();
@@ -201,7 +201,7 @@ describe("a rig's channel on a track", () => {
     const prim = rig("wheel", { c: [0, 0, 0], r: 2.2, plane: "yz", teeth: 15, angle: "@angle" });
     const lib = await readBlueprint(
       file(prim, { timelines: { idle: timeline } }, { angle: { type: "number", default: 0 } }),
-      { location: "rigs.bp.json" },
+      { location: "rigs.bp" },
     );
     const scene = DebugScene.load(writeSceneBin(lib, "s"));
     scene.resize(64, 64);

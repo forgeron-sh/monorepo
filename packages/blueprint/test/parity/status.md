@@ -1,6 +1,6 @@
 # Blueprint parity status
 
-Written by `animated.test.ts` (docs/blueprint/engine.md, P3): each routed scene of the site, how the engine plays it, and whether its animated frames equal the frozen ones of `golden.json` (`material`, `ink`, `tone`, `color`, exact; frozen in P4 from frames equal to the TypeScript reference). **data**: the scene's `.bp.json` (converted by hand, `scripts/blueprint/by-hand.ts`) with its timelines; **script**: the scene function on the script layer, its blocks rasterised by the engine. A scene enters the data column only when it passes.
+Written by `animated.test.ts` (docs/blueprint/engine.md, P3): each routed scene of the site, how the engine plays it, and whether its animated frames equal the frozen ones of `golden.json` (`material`, `ink`, `tone`, `color`, exact; frozen in P4 from frames equal to the TypeScript reference). **data**: the scene's `.bp` (converted by hand, `scripts/blueprint/by-hand.ts`) with its timelines; **script**: the scene function on the script layer, its blocks rasterised by the engine. A scene enters the data column only when it passes.
 
 28 scenes: 5 from data, 23 on the script layer; 28 equal over 2392 cases.
 

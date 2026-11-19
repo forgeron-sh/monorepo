@@ -6,7 +6,7 @@
  * deleted it (`golden.ts`).
  *
  * - immediate mode: the scene function's blocks, through `render` (the engine);
- * - data: the converted `.bp.json` (its static part, P1) as a SceneBin, fitted and drawn by the
+ * - data: the converted `.bp` (its static part, P1) as a SceneBin, fitted and drawn by the
  *   engine; its fit equals `fit` of the blocks `flatten` gives.
  *
  * Under Node only: parity is defined against V8's Math (P1 note 2).
@@ -99,9 +99,9 @@ describe.each(ROUTED)("%s", (name) => {
 
   it("data: the converted file as a SceneBin", async () => {
     const file = JSON.parse(
-      readFileSync(new URL(`apps/site/src/illustrations/library/${name}.bp.json`, repo), "utf8"),
+      readFileSync(new URL(`apps/site/src/illustrations/library/${name}.bp`, repo), "utf8"),
     ) as BlueprintFile;
-    const lib = await readBlueprint(file, { location: `${name}.bp.json` });
+    const lib = await readBlueprint(file, { location: `${name}.bp` });
     const root = sceneDefs(lib, name)[0]!.params.map(([n]) => n);
     const activeIndex = root.indexOf("active");
     for (const m of mounts) {

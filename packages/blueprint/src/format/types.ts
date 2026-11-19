@@ -1,6 +1,6 @@
 /**
  * The Blueprint file format, version 1: a library of Parts, Assemblies and Scenes in one JSON
- * file (`*.bp.json`). The normative description is `docs/blueprint/format.md`; the JSON schema
+ * file (`*.bp`). The normative description is `docs/blueprint/format.md`; the JSON schema
  * (`schema.ts`, published as `schema/blueprint.v1.json`) states the same shapes for editors.
  */
 
@@ -35,7 +35,7 @@ export interface BlueprintFile {
 }
 
 export interface Import {
-  /** A path relative to this file, or a package path ("@forgeron/blueprint-library/office.bp.json"). */
+  /** A path relative to this file, or a package path ("@forgeron/blueprint-library/office.bp"). */
   from: string;
   /** Names to take; all when absent. */
   use?: string[];

@@ -1,6 +1,6 @@
 // The mechanical pass of the Blueprint conversion (docs/blueprint/engine.md, §2 and P1): every
 // scene of the site's `SCENES` is sampled (`library/samples.ts`), the blocks every sample draws
-// become the scene's static part in `apps/site/src/illustrations/library/<scene>.bp.json`, and
+// become the scene's static part in `apps/site/src/illustrations/library/<scene>.bp`, and
 // `target/blueprint/convert-report.md` says what varies, which helper drew it, and what it still
 // needs in P3. Run: bun scripts/blueprint/convert-site.ts
 //
@@ -144,13 +144,13 @@ mkdirSync(LIBRARY, { recursive: true });
 // work: this pass reports it but never writes over it.
 const byHand = new Set<string>();
 for (const f of readdirSync(LIBRARY)) {
-  if (!f.endsWith(".bp.json")) continue;
+  if (!f.endsWith(".bp")) continue;
   const scenes = Object.values(
     (JSON.parse(readFileSync(`${LIBRARY}/${f}`, "utf8")) as { scenes?: Record<string, object> })
       .scenes ?? {},
   );
   if (scenes.some((s) => "timelines" in s || "vars" in s || "machines" in s))
-    byHand.add(f.replace(/\.bp\.json$/, ""));
+    byHand.add(f.replace(/\.bp$/, ""));
   else rmSync(`${LIBRARY}/${f}`);
 }
 
@@ -159,7 +159,7 @@ const started = performance.now();
 for (const name of SCENE_NAMES) {
   const c = convertScene(samplesOf(name), { name, prefix: "site" });
   converted.set(name, c);
-  if (!byHand.has(name)) writeFileSync(`${LIBRARY}/${name}.bp.json`, writeBlueprint(c.file));
+  if (!byHand.has(name)) writeFileSync(`${LIBRARY}/${name}.bp`, writeBlueprint(c.file));
   const r = c.report;
   console.log(
     `${name.padEnd(18)} ${String(r.static).padStart(5)} static, ${r.varying[0]}–${r.varying[1]} varying, ${r.samples} samples${r.ordered ? "" : "  (static order differs between samples!)"}`,
@@ -170,7 +170,7 @@ spawnSync("bunx", ["oxfmt", LIBRARY], { stdio: "inherit" });
 const lines: string[] = [
   "# Blueprint conversion report (mechanical pass)",
   "",
-  `Written by \`scripts/blueprint/convert-site.ts\`. Each scene of \`SCENES\` was drawn at the inputs of \`apps/site/src/illustrations/library/samples.ts\`; the blocks every sample draws are the static part in \`library/<scene>.bp.json\`, flattened back exactly by \`flatten\`. The rest varies and is listed by the helper that pushed it (sampled at the first, a middle and the last input), with what it needs in P3.`,
+  `Written by \`scripts/blueprint/convert-site.ts\`. Each scene of \`SCENES\` was drawn at the inputs of \`apps/site/src/illustrations/library/samples.ts\`; the blocks every sample draws are the static part in \`library/<scene>.bp\`, flattened back exactly by \`flatten\`. The rest varies and is listed by the helper that pushed it (sampled at the first, a middle and the last input), with what it needs in P3.`,
   "",
   "| Scene | Routed | Samples | Blocks | Static | Varying | Inputs | Static order stable |",
   "| --- | --- | ---: | ---: | ---: | ---: | --- | --- |",

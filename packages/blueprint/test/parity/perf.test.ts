@@ -75,10 +75,10 @@ describe("perf (release module, p95)", () => {
 
   it("load of the largest converted scene: ≤ 5 ms", async () => {
     const dir = new URL("apps/site/src/illustrations/library/", repo);
-    const files = readdirSync(dir).filter((f) => f.endsWith(".bp.json"));
+    const files = readdirSync(dir).filter((f) => f.endsWith(".bp"));
     let largest: { name: string; bin: Uint8Array } = { name: "", bin: new Uint8Array() };
     for (const f of files) {
-      const name = f.replace(/\.bp\.json$/, "");
+      const name = f.replace(/\.bp$/, "");
       const file = JSON.parse(readFileSync(new URL(f, dir), "utf8")) as BlueprintFile;
       const bin = writeSceneBin(await readBlueprint(file, { location: f }), name);
       if (bin.length > largest.bin.length) largest = { name, bin };

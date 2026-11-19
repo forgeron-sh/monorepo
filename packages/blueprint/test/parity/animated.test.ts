@@ -5,7 +5,7 @@
  * t ∈ {0, 0.37, 1.7, 4.3, 9.2, 31.4} × the active sweep × progress ∈ {0, 0.05, …, 1} for the
  * scroll scenes, at every size and with the options the page mounts it with (`sizes.json`):
  *
- * - a scene converted by hand (its `.bp.json` has timelines) plays **from data** (`BlueprintScene`);
+ * - a scene converted by hand (its `.bp` has timelines) plays **from data** (`BlueprintScene`);
  * - every other scene plays on the **script layer**: its function's blocks packed into the
  *   engine's block buffer each frame (`ScriptScene`).
  *
@@ -48,7 +48,7 @@ const mountsOf = (name: string) => (sizes.scenes as unknown as Record<string, Mo
 
 function fileOf(name: string): BlueprintFile {
   return JSON.parse(
-    readFileSync(new URL(`apps/site/src/illustrations/library/${name}.bp.json`, repo), "utf8"),
+    readFileSync(new URL(`apps/site/src/illustrations/library/${name}.bp`, repo), "utf8"),
   ) as BlueprintFile;
 }
 
@@ -167,7 +167,7 @@ describe.each(ROUTED)("%s", (name) => {
             record(`${m.page || "/"} f${m.options.fill ?? "-"} ${viewport}`),
           );
     } else {
-      const lib = await readBlueprint(fileOf(name), { location: `${name}.bp.json` });
+      const lib = await readBlueprint(fileOf(name), { location: `${name}.bp` });
       for (const m of mounts) {
         const fitOptions = fitOf(m);
         const scene = createScene(lib, name, { ...fitOptions, labels: m.options.labels });
@@ -205,12 +205,9 @@ describe.each(ROUTED)("%s", (name) => {
 describe.each(["production-line", "resources", "stack6"])("%s from its control file", (name) => {
   it("plays the frames of the script layer", async () => {
     const file = JSON.parse(
-      readFileSync(
-        new URL(`apps/site/src/illustrations/library/control/${name}.bp.json`, repo),
-        "utf8",
-      ),
+      readFileSync(new URL(`apps/site/src/illustrations/library/control/${name}.bp`, repo), "utf8"),
     ) as BlueprintFile;
-    const control = await readBlueprint(file, { location: `${name}.bp.json` });
+    const control = await readBlueprint(file, { location: `${name}.bp` });
     const failures: string[] = [];
     let cases = 0;
     for (const m of mountsOf(name))
@@ -264,7 +261,7 @@ afterAll(() => {
     [
       "# Blueprint parity status",
       "",
-      "Written by `animated.test.ts` (docs/blueprint/engine.md, P3): each routed scene of the site, how the engine plays it, and whether its animated frames equal the frozen ones of `golden.json` (`material`, `ink`, `tone`, `color`, exact; frozen in P4 from frames equal to the TypeScript reference). **data**: the scene's `.bp.json` (converted by hand, `scripts/blueprint/by-hand.ts`) with its timelines; **script**: the scene function on the script layer, its blocks rasterised by the engine. A scene enters the data column only when it passes.",
+      "Written by `animated.test.ts` (docs/blueprint/engine.md, P3): each routed scene of the site, how the engine plays it, and whether its animated frames equal the frozen ones of `golden.json` (`material`, `ink`, `tone`, `color`, exact; frozen in P4 from frames equal to the TypeScript reference). **data**: the scene's `.bp` (converted by hand, `scripts/blueprint/by-hand.ts`) with its timelines; **script**: the scene function on the script layer, its blocks rasterised by the engine. A scene enters the data column only when it passes.",
       "",
       `${ROUTED.length} scenes: ${data} from data, ${ROUTED.length - data} on the script layer; ${equal} equal over ${cases} cases.`,
       "",

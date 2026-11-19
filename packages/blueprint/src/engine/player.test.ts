@@ -28,7 +28,7 @@ function file(scene: Partial<Scene>, params: Record<string, unknown> = {}): Blue
 }
 
 async function scene(f: BlueprintFile) {
-  const s = createScene(await readBlueprint(f, { location: "player.bp.json" }), "s");
+  const s = createScene(await readBlueprint(f, { location: "player.bp" }), "s");
   s.resize(32, 32);
   return s;
 }

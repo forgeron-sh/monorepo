@@ -48,9 +48,9 @@ function stubCanvas(): HTMLCanvasElement {
 
 async function library(name: string) {
   const file = JSON.parse(
-    readFileSync(new URL(`apps/site/src/illustrations/library/${name}.bp.json`, repo), "utf8"),
+    readFileSync(new URL(`apps/site/src/illustrations/library/${name}.bp`, repo), "utf8"),
   ) as BlueprintFile;
-  return readBlueprint(file, { location: `${name}.bp.json` });
+  return readBlueprint(file, { location: `${name}.bp` });
 }
 
 function measure(run: (k: number) => void, n = 240): { p50: number; p95: number } {

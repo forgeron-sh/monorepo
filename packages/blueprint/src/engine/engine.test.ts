@@ -7,7 +7,7 @@ import { paint, resolvePalette } from "../core/palette";
 import { render } from "../core/render";
 import { describeScene, flatten, readBlueprint, writeSceneBin } from "../format/index";
 import { fontRust, layoutRust } from "./codegen";
-import contract from "./fixtures/contract.bp.json";
+import contract from "./fixtures/contract.bp";
 import { EngineScene, immediateHandle } from "./index";
 import { offsets, sizeOf } from "./layout";
 import { packBlocks } from "./pack";
@@ -49,7 +49,7 @@ function untagged(packed: Uint8Array): Uint8Array {
 }
 
 describe("SceneBin: written in TypeScript, read in Rust", async () => {
-  const lib = await readBlueprint(contract, { location: "contract.bp.json" });
+  const lib = await readBlueprint(contract, { location: "contract.bp" });
 
   it("gives the same tree", () => {
     const scene = DebugScene.load(writeSceneBin(lib, "room"));

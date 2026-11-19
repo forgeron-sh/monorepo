@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import { box, pixelate } from "../index";
+import { compileBlueprint } from "../format/compile";
 import { readBlueprint } from "../format/read";
 import type { BlueprintFile } from "../format/types";
 import { play } from "./play";
+import { playCompiled } from "./play-compiled";
 
 /** A canvas whose 2D context records `putImageData`, at a given CSS size (jsdom lays nothing out). */
 function canvasOf(width: number, height: number) {
@@ -70,7 +72,7 @@ describe("play", () => {
   });
 
   it("plays a data scene with its overlay, and gives it back on destroy", async () => {
-    const lib = await readBlueprint(file, { location: "play.bp.json" });
+    const lib = await readBlueprint(file, { location: "play.bp" });
     const { canvas, puts } = canvasOf(80, 60);
     const hovered: string[] = [];
     const p = play(canvas, { lib, scene: "s" }, { reducedMotion: true });
@@ -96,5 +98,29 @@ describe("play", () => {
     p.destroy();
     expect(canvas.hasAttribute("role")).toBe(false);
     expect(document.getElementById(list!.id)).toBeNull();
+  });
+
+  it("plays a compiled scene as the read one: same pixels, overlay and hover", async () => {
+    const lib = await readBlueprint(file, { location: "play.bp" });
+    const a = canvasOf(80, 60);
+    const b = canvasOf(80, 60);
+    const pa = play(a.canvas, { lib, scene: "s" }, { reducedMotion: true, fill: 0.5 });
+    const pb = playCompiled(
+      b.canvas,
+      { compiled: compileBlueprint(lib), scene: "s" },
+      { reducedMotion: true, fill: 0.5 },
+    );
+    expect(lit(b.puts[0]!.data)).toBeGreaterThan(0);
+    expect(Array.from(b.puts[0]!.data)).toEqual(Array.from(a.puts[0]!.data));
+    expect(b.canvas.getAttribute("aria-label")).toBe(a.canvas.getAttribute("aria-label"));
+    const hovered: string[] = [];
+    pb.on("hover", (_, tag) => hovered.push(tag));
+    const tags = pb.scene.tags;
+    const at = tags.findIndex((t) => t > 0);
+    pb.scene.pointer(at % pb.scene.size.width, Math.floor(at / pb.scene.size.width));
+    pb.draw(0);
+    expect(hovered).toEqual(["sign"]);
+    pa.destroy();
+    pb.destroy();
   });
 });

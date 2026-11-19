@@ -730,7 +730,7 @@ const faq = [
   const captions = [...(stage?.querySelectorAll<HTMLElement>("[data-step]") ?? [])];
   const clamp = (v: number) => Math.min(1, Math.max(0, v));
 
-  // The village plays its story as a machine over the scroll (library/control/erp-village.bp.json):
+  // The village plays its story as a machine over the scroll (library/control/erp-village.bp):
   // the page writes the progress, reads the current step from the machine's state, and turns
   // that step's camera shot into a CSS transform.
   const village = isoCanvas(stage?.querySelector<HTMLCanvasElement>('canvas[data-iso="erp-village"]') ?? null);

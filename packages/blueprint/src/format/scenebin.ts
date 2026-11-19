@@ -631,6 +631,29 @@ function writeAnimation(
   }
 }
 
+/** The sections of a SceneBin, in the order of the header's counts and of the words. */
+export const SECTIONS: readonly RecordName[] = [
+  "string",
+  "num",
+  "def",
+  "param",
+  "prim",
+  "point",
+  "instance",
+  "arg",
+  "socket",
+  "rigArg",
+  "var",
+  "timeline",
+  "track",
+  "key",
+  "machine",
+  "state",
+  "play",
+  "set",
+  "transition",
+];
+
 /** One scene of `lib` as SceneBin bytes, with the names a host needs to drive it. */
 export function encodeScene(
   lib: Library,
@@ -723,27 +746,7 @@ export function encodeScene(
     bytes.push(b);
     byteLength += b.length;
   }
-  const order: RecordName[] = [
-    "string",
-    "num",
-    "def",
-    "param",
-    "prim",
-    "point",
-    "instance",
-    "arg",
-    "socket",
-    "rigArg",
-    "var",
-    "timeline",
-    "track",
-    "key",
-    "machine",
-    "state",
-    "play",
-    "set",
-    "transition",
-  ];
+  const order = SECTIONS;
   const header: Rec = [
     SCENE_MAGIC,
     SCENE_VERSION,

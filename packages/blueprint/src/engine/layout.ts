@@ -1,6 +1,6 @@
 /**
  * The binary layouts shared by TypeScript and the Rust core (`crates/fg-blueprint`): SceneBin (a
- * resolved scene of a `.bp.json` library) and the packed block list of immediate mode. Defined
+ * resolved scene of a `.bp` library) and the packed block list of immediate mode. Defined
  * here once; `crates/fg-blueprint/src/layout.rs` is generated from this file by
  * `scripts/blueprint/gen-layout.ts`, and a test fails when the two disagree.
  *

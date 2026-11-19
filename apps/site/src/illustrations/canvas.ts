@@ -12,10 +12,12 @@
  *   `data-px` (cell size, 4), `data-accent="off"`, `data-bg`, `data-ink`;
  * - `canvas[data-dither-img=<url>]`: a dithered picture (`mountImage`). Options: `data-px`, `data-gain`.
  *
- * A scene plays from data when it was converted by hand (`library/<scene>.bp.json` with its
+ * A scene plays from data when it was converted by hand (`library/<scene>.bp` with its
  * timelines), on the script layer otherwise (its function's blocks, rasterised by the engine).
- * The scroll and hover scenes add a control file (`library/control/<scene>.bp.json`): its vars,
+ * The scroll and hover scenes add a control file (`library/control/<scene>.bp`): its vars,
  * machines and camera are data, its pixels stay the function's (docs/blueprint/engine.md, P4).
+ * The files are imported compiled (`?compiled`, `@forgeron/blueprint/vite`): the page gets their
+ * SceneBin bytes, not their JSON, and ships no reader or SceneBin writer.
  *
  * Page scripts drive a scene through `isoCanvas(el)`: a typed handle instead of DOM events.
  */
@@ -30,28 +32,23 @@ import {
   pixelate,
 } from "@forgeron/blueprint";
 import {
-  type DataSource,
+  type CompiledSource,
   mountField,
   mountImage,
-  play,
+  playCompiled,
   type Player,
   type PlayOptions,
 } from "@forgeron/blueprint/dom";
-import {
-  type BlueprintFile,
-  type Camera,
-  type Library,
-  readBlueprint,
-} from "@forgeron/blueprint/format";
-import cli from "./library/cli.bp.json";
-import village from "./library/control/erp-village.bp.json";
-import line from "./library/control/production-line.bp.json";
-import resources from "./library/control/resources.bp.json";
-import stack6 from "./library/control/stack6.bp.json";
-import hostServers from "./library/host-servers.bp.json";
-import mcp from "./library/mcp.bp.json";
-import usageIso from "./library/usage-iso.bp.json";
-import web from "./library/web.bp.json";
+import type { Camera, CompiledBlueprint } from "@forgeron/blueprint/format";
+import cli from "./library/cli.bp?compiled";
+import village from "./library/control/erp-village.bp?compiled";
+import line from "./library/control/production-line.bp?compiled";
+import resources from "./library/control/resources.bp?compiled";
+import stack6 from "./library/control/stack6.bp?compiled";
+import hostServers from "./library/host-servers.bp?compiled";
+import mcp from "./library/mcp.bp?compiled";
+import usageIso from "./library/usage-iso.bp?compiled";
+import web from "./library/web.bp?compiled";
 import { lineStore } from "./objects";
 import { SCENES } from "./scenes";
 import { villageStore } from "./village";
@@ -83,17 +80,6 @@ export interface IsoCanvas {
 
 const handles = new WeakMap<HTMLCanvasElement, IsoCanvas>();
 
-const asFile = (json: unknown) => json as BlueprintFile;
-const read = async (files: Record<string, unknown>) =>
-  new Map(
-    await Promise.all(
-      Object.entries(files).map(
-        async ([name, json]) =>
-          [name, await readBlueprint(asFile(json), { location: `${name}.bp.json` })] as const,
-      ),
-    ),
-  );
-
 const isField = (name: string | undefined): name is FieldMode =>
   name !== undefined && name in FIELD_MODES;
 
@@ -117,13 +103,16 @@ for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-shader
   });
 }
 
-// The engine starts once, then the libraries are read: page scripts importing this module wait
-// for both (top-level await), so `isoCanvas` stays synchronous for them.
-const [DATA, CONTROL] = await Promise.all([
-  read({ web, mcp, cli, "usage-iso": usageIso, "host-servers": hostServers }),
-  read({ "erp-village": village, "production-line": line, resources, stack6 }),
-  initBlueprint(),
-]);
+const DATA = new Map<string, CompiledBlueprint>(
+  Object.entries({ web, mcp, cli, "usage-iso": usageIso, "host-servers": hostServers }),
+);
+const CONTROL = new Map<string, CompiledBlueprint>(
+  Object.entries({ "erp-village": village, "production-line": line, resources, stack6 }),
+);
+
+// The engine starts once: page scripts importing this module wait for it (top-level await), so
+// `isoCanvas` stays synchronous for them.
+await initBlueprint();
 
 /** The module stores the scroll scenes' functions read their progress from. */
 const STORES: Record<string, { progress: number }> = {
@@ -138,10 +127,10 @@ const STORES: Record<string, { progress: number }> = {
 function sourceOf(
   name: string,
   vars: ReadonlyMap<string, number> = new Map(),
-): DataSource | (typeof SCENES)[string] | undefined {
+): CompiledSource | (typeof SCENES)[string] | undefined {
   const fn = SCENES[name];
   const data = DATA.get(name);
-  if (data) return { lib: data, scene: name };
+  if (data) return { compiled: data, scene: name };
   const control = CONTROL.get(name);
   if (!control || !fn) return fn;
   const store = STORES[name];
@@ -151,7 +140,7 @@ function sourceOf(
         return fn(frame);
       }
     : fn;
-  return { lib: control, scene: name, script };
+  return { compiled: control, scene: name, script };
 }
 
 function filtersOf(el: HTMLCanvasElement): Filter[] {
@@ -186,7 +175,7 @@ export function isoCanvas(el: HTMLElement | null): IsoCanvas | null {
   const count = Number(el.dataset.count ?? 5);
   const { fill, unit } = el.dataset;
   let selected = el.dataset.active !== undefined ? Number(el.dataset.active) : -1;
-  let lib: Library | null = null;
+  let lib: CompiledBlueprint | null = null;
   let player: Player;
   let off: (() => void)[] = [];
   /** Whether the scene has var `v` (a script scene takes any). */
@@ -195,7 +184,7 @@ export function isoCanvas(el: HTMLElement | null): IsoCanvas | null {
 
   const start = () => {
     const source = sourceOf(name, values)!;
-    lib = typeof source === "object" && "lib" in source ? source.lib : null;
+    lib = typeof source === "object" && "compiled" in source ? source.compiled : null;
     const options: PlayOptions = {
       filters: filtersOf(el),
       labels: el.dataset.labels !== "off",
@@ -204,7 +193,7 @@ export function isoCanvas(el: HTMLElement | null): IsoCanvas | null {
       ...(unit === "any" ? { unit: "any" as const } : {}),
       ...(!lib && cycle ? { cycle: { every: cycle, count } } : {}),
     };
-    player = play(el, source, options);
+    player = playCompiled(el, source, options);
     if (selected >= 0 && has("active")) player.set("active", selected);
     for (const [v, value] of values) if (has(v)) player.set(v, value);
     off = ["active", "state", ...listeners.keys()]
@@ -259,7 +248,7 @@ export function isoCanvas(el: HTMLElement | null): IsoCanvas | null {
     },
     on: listen,
     get camera() {
-      return lib?.scenes.get(name)?.camera ?? null;
+      return lib?.scenes[name]?.camera ?? null;
     },
   };
   handles.set(el, handle);

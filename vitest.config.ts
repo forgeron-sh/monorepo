@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config";
+import { blueprint } from "./packages/blueprint/src/vite";
 
 export default defineConfig({
+  // Imports of `*.bp` files (Blueprint scenes, docs/blueprint/format.md).
+  plugins: [blueprint()],
   test: {
     globalSetup: ["scripts/build-templates.ts"],
     include: [

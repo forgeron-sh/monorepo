@@ -4,7 +4,7 @@ import type { Block } from "../core/types";
 import { render } from "../core/render";
 import { cube, stack } from "../examples/scenes";
 import { convertScene, normalizeBlock, type Sample, staticBlocks } from "./convert";
-import rackRoom from "./examples/rack-room.bp.json";
+import rackRoom from "./examples/rack-room.bp";
 import { flatten } from "./flatten";
 import { readBlueprint } from "./read";
 import { SCHEMA } from "./schema";
@@ -89,7 +89,7 @@ describe("schema", () => {
   it.each(broken)("rejects %s, naming the path", (_, breakIt, path) => {
     const file = clone(rackRoom);
     breakIt(file);
-    expect(() => validate(file, "case.bp.json")).toThrow(path);
+    expect(() => validate(file, "case.bp")).toThrow(path);
   });
 
   it("refuses a newer version, naming it", () => {
@@ -99,15 +99,15 @@ describe("schema", () => {
 
 describe("imports", () => {
   const files: Record<string, object> = {
-    "lib/screws.bp.json": {
+    "lib/screws.bp": {
       ...HEAD,
       id: "lib/screws",
       parts: { screw: { prims: [{ kind: "dot", at: [0, 0, 0] }] }, nut: { prims: [] } },
     },
-    "lib/office.bp.json": {
+    "lib/office.bp": {
       ...HEAD,
       id: "lib/office",
-      imports: [{ from: "./screws.bp.json", as: "hw" }],
+      imports: [{ from: "./screws.bp", as: "hw" }],
       parts: { desk: { prims: [{ kind: "box", at: [0, 0, 0], size: [2, 1, 1] }] } },
       assemblies: { corner: { instances: [{ use: "desk" }, { use: "hw:screw", at: [1, 0, 1] }] } },
     },
@@ -134,8 +134,8 @@ describe("imports", () => {
 
   it("gives imported names their prefix, through nested imports", async () => {
     const lib = await readBlueprint(
-      root([{ from: "./lib/office.bp.json", as: "office" }], ["office:corner", "office:hw:nut"]),
-      { location: "root.bp.json", load },
+      root([{ from: "./lib/office.bp", as: "office" }], ["office:corner", "office:hw:nut"]),
+      { location: "root.bp", load },
     );
     expect([...lib.parts.keys()].sort()).toEqual([
       "office:desk",
@@ -154,8 +154,8 @@ describe("imports", () => {
 
   it("takes only the names in `use`", async () => {
     const read = readBlueprint(
-      root([{ from: "./lib/office.bp.json", as: "office", use: ["desk"] }], ["office:corner"]),
-      { location: "root.bp.json", load },
+      root([{ from: "./lib/office.bp", as: "office", use: ["desk"] }], ["office:corner"]),
+      { location: "root.bp", load },
     );
     await expect(read).rejects.toThrow(
       `/scenes/s/root/instances/0/use: "office:corner" is not defined or not imported`,
@@ -163,22 +163,20 @@ describe("imports", () => {
   });
 
   it("names a missing name", async () => {
-    const read = readBlueprint(root([{ from: "./lib/screws.bp.json", as: "hw", use: ["bolt"] }]), {
-      location: "root.bp.json",
+    const read = readBlueprint(root([{ from: "./lib/screws.bp", as: "hw", use: ["bolt"] }]), {
+      location: "root.bp",
       load,
     });
-    await expect(read).rejects.toThrow(
-      `/imports/0/use/0: "bolt" is not defined in lib/screws.bp.json`,
-    );
+    await expect(read).rejects.toThrow(`/imports/0/use/0: "bolt" is not defined in lib/screws.bp`);
   });
 
   it("refuses a prefix used twice", async () => {
     const read = readBlueprint(
       root([
-        { from: "./lib/screws.bp.json", as: "hw" },
-        { from: "./lib/office.bp.json", as: "hw" },
+        { from: "./lib/screws.bp", as: "hw" },
+        { from: "./lib/office.bp", as: "hw" },
       ]),
-      { location: "root.bp.json", load },
+      { location: "root.bp", load },
     );
     await expect(read).rejects.toThrow(
       `/imports/1/as: the prefix "hw" is already used by /imports/0`,
@@ -187,22 +185,22 @@ describe("imports", () => {
 
   it("refuses a cycle, naming it", async () => {
     const cyclic: Record<string, object> = {
-      "a.bp.json": { ...HEAD, id: "a", imports: [{ from: "./b.bp.json", as: "b" }] },
-      "b.bp.json": { ...HEAD, id: "b", imports: [{ from: "./a.bp.json", as: "a" }] },
+      "a.bp": { ...HEAD, id: "a", imports: [{ from: "./b.bp", as: "b" }] },
+      "b.bp": { ...HEAD, id: "b", imports: [{ from: "./a.bp", as: "a" }] },
     };
-    const read = readBlueprint(cyclic["a.bp.json"], {
-      location: "a.bp.json",
+    const read = readBlueprint(cyclic["a.bp"], {
+      location: "a.bp",
       load: (l) => cyclic[l],
     });
-    await expect(read).rejects.toThrow("import cycle: a.bp.json → b.bp.json → a.bp.json");
+    await expect(read).rejects.toThrow("import cycle: a.bp → b.bp → a.bp");
   });
 
   it("validates imported files, naming them", async () => {
-    const read = readBlueprint(root([{ from: "./bad.bp.json", as: "x" }]), {
-      location: "root.bp.json",
+    const read = readBlueprint(root([{ from: "./bad.bp", as: "x" }]), {
+      location: "root.bp",
       load: () => ({ ...HEAD, id: "bad", parts: { p: { prims: [{ kind: "dot" }] } } }),
     });
-    await expect(read).rejects.toThrow(`bad.bp.json: /parts/p/prims/0: missing "at"`);
+    await expect(read).rejects.toThrow(`bad.bp: /parts/p/prims/0: missing "at"`);
   });
 });
 
@@ -309,7 +307,7 @@ describe("flatten", () => {
       '/scenes/rack-room/root/instances/2/snap/socket: no socket "c"',
     );
     const file = clone(rackRoom);
-    file.scenes["rack-room"].root.instances[2] = { id: "g", use: "gear", at: [0, 0, 8] } as never;
+    file.scenes!["rack-room"]!.root.instances[2] = { id: "g", use: "gear", at: [0, 0, 8] } as never;
     const still = await readBlueprint(file);
     expect(() => flatten(still, "rack-room")).toThrow(
       "/parts/gear/prims/0: rig prims are drawn by the engine",

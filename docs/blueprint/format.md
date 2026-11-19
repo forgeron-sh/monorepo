@@ -2,7 +2,11 @@
 
 > Normative. Design and rationale: [`engine.md`](engine.md) §2. Types: `packages/blueprint/src/format/types.ts`; schema: `packages/blueprint/schema/blueprint.v1.json` (written from `src/format/schema.ts` by `scripts/blueprint/gen-schema.ts`), to be served at `https://blueprint.forgeron.sh/schema/v1.json`. Reference implementation: `@forgeron/blueprint/format` (`readBlueprint`, `flatten`, `writeBlueprint`).
 
-A Blueprint file is one JSON document, named `*.bp.json`, holding a library of **Parts** (primitives), **Assemblies** (placed instances of parts and assemblies) and **Scenes** (an assembly with a camera, inputs and motion). Where this text and the schema disagree, the schema states the shape and this text states the meaning.
+A Blueprint file is one JSON document, named `*.bp`, holding a library of **Parts** (primitives), **Assemblies** (placed instances of parts and assemblies) and **Scenes** (an assembly with a camera, inputs and motion). Where this text and the schema disagree, the schema states the shape and this text states the meaning.
+
+**Name and type.** The extension is `.bp` (until 19/11/2026 it was `.bp.json`); the content is JSON, UTF-8, exactly as below. Media type: `application/vnd.forgeron.blueprint+json`. Not to be confused with Android's Soong build files (`Android.bp`), which share the extension and are not JSON.
+
+**Tooling.** Vite, Astro and Vitest import `*.bp` through `@forgeron/blueprint/vite` (`blueprint()` in `plugins`): `import file from "./x.bp"` gives the file as written, `import compiled from "./x.bp?compiled"` its scenes compiled to SceneBin at build time (played by `playCompiled` or `loadScene`, [`engine.md`](engine.md), "Extension and build-time compile notes"); TypeScript gets their types from `/// <reference types="@forgeron/blueprint/bp" />`. oxfmt formats them as JSON (`associations` in `.oxfmtrc.json`). An editor needs to be told: in VS Code, `"files.associations": { "*.bp": "json" }` and `"json.schemas": [{ "fileMatch": ["*.bp"], "url": "./packages/blueprint/schema/blueprint.v1.json" }]` in the workspace settings (the repository tracks no `.vscode/`).
 
 ## 1. File
 
@@ -21,7 +25,7 @@ A Blueprint file is one JSON document, named `*.bp.json`, holding a library of *
 
 **Names** of parts, assemblies, scenes, params, sockets and instance ids match `^[A-Za-z0-9_][A-Za-z0-9_-]*$`: no `:` (the import separator), no `.` or `/` (paths). Parts and assemblies share one namespace in a file; scenes have their own.
 
-**Errors** name the faulty value by its JSON Pointer, prefixed by the file's location: `office.bp.json: /parts/rack/prims/0/size: expected at least 3 items, got 2`.
+**Errors** name the faulty value by its JSON Pointer, prefixed by the file's location: `office.bp: /parts/rack/prims/0/size: expected at least 3 items, got 2`.
 
 ## 2. Values
 
@@ -40,7 +44,7 @@ A Blueprint file is one JSON document, named `*.bp.json`, holding a library of *
 - Every part and assembly of the imported file becomes visible as `prefix:name`. Names the imported file itself imports keep their own prefix behind the new one: `office:hw:screw`.
 - With `use`, only the listed names become visible to the importing file (each must be defined in the imported file, or it is an error naming `/imports/i/use/k`). The other definitions still exist, under the prefix, for the listed ones to use.
 - Two imports of one file may not share a prefix (an error naming `/imports/i/as`).
-- An import cycle is an error that lists the chain (`a.bp.json → b.bp.json → a.bp.json`).
+- An import cycle is an error that lists the chain (`a.bp → b.bp → a.bp`).
 - Every `use` in a file (instances, `conveyor` tracks) names a part or assembly visible from that file, or the file is rejected.
 - Only parts and assemblies are imported; scenes are not.
 
@@ -125,6 +129,6 @@ The still picture of a scene at given var values is: `t = 0`, every var at its d
 
 ## 7. Converted files
 
-`scripts/blueprint/convert-site.ts` writes one file per site scene (`apps/site/src/illustrations/library/<scene>.bp.json`, id `site/<scene>`): a part `static` with the blocks every sample of the scene function draws, in the order the first sample draws them, and a scene of the same name in painter mode with one instance of it. Its `vars` declare `active` and `progress` when the picture depends on them. What varies is listed in `target/blueprint/convert-report.md`.
+`scripts/blueprint/convert-site.ts` writes one file per site scene (`apps/site/src/illustrations/library/<scene>.bp`, id `site/<scene>`): a part `static` with the blocks every sample of the scene function draws, in the order the first sample draws them, and a scene of the same name in painter mode with one instance of it. Its `vars` declare `active` and `progress` when the picture depends on them. What varies is listed in `target/blueprint/convert-report.md`.
 
 A scene converted **by hand** (`scripts/blueprint/by-hand.ts`, P3) has one part `body` with params, its varying blocks back as prims bound to those params at the places the function draws them, and a timeline `motion` whose tracks drive the params; the params' defaults are the picture at `t = 0`. The mechanical pass never writes over a file whose scene has timelines, vars or machines.
