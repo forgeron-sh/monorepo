@@ -2,7 +2,13 @@
 module.exports = {
   forbidden: [
     { name: "no-cycles", severity: "error", from: {}, to: { circular: true } },
-    { name: "no-unresolved", severity: "error", from: {}, to: { couldNotResolve: true } },
+    {
+      // Vite's virtual modules (`virtual:…`, made by a plugin of the app's config) have no file.
+      name: "no-unresolved",
+      severity: "error",
+      from: {},
+      to: { couldNotResolve: true, pathNot: "^virtual:" },
+    },
     {
       // Blueprint's parity suite is the exception: it renders the site's scenes, the scenes the
       // engine must reproduce (docs/blueprint/engine.md, P2), and ships nowhere.
@@ -112,6 +118,14 @@ module.exports = {
       severity: "error",
       from: { path: "^packages/canvas/" },
       to: { path: "^packages/(flow|draw)/" },
+    },
+    {
+      // Blueprint sits on canvas as an item kind and a layer (`@forgeron/blueprint-canvas`,
+      // docs/blueprint/engine.md, P5), never the reverse: the canvas knows no scene engine.
+      name: "canvas-does-not-import-blueprint",
+      severity: "error",
+      from: { path: "^packages/canvas/" },
+      to: { path: "^packages/blueprint(-canvas)?/" },
     },
     {
       // The core of canvas is data and commands behind `CanvasEngine`, meant to be swappable for a

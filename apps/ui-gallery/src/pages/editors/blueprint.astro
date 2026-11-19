@@ -1,0 +1,63 @@
+---
+import DocsLayout from "../../components/DocsLayout.astro";
+import BlueprintDemo from "../../components/editors/BlueprintDemo";
+import BlueprintReview from "../../components/editors/BlueprintReview";
+import "@forgeron/canvas/styles.css";
+import "@forgeron/blueprint-canvas/styles.css";
+import "../../styles/editors.css";
+
+const covers = [
+  "Open a .bp: pick it, drop it, or take one of the site's library.",
+  "Its scenes, assemblies and parts; a part or an assembly is framed alone.",
+  "The four iso views (quarter turns), and the depth mode: the file's, painter's order or the z-buffer.",
+  "Play, pause and scrub the clock; the scrub runs over the longest timeline on t, or ten seconds.",
+  "The scene's vars as sliders and switches (progress, int with its cycle), its machines' states.",
+  "Hover shows the tag under the pointer, read from the engine's tag buffer.",
+  "The scene is an item of @forgeron/canvas drawn by <BlueprintLayer>: pan by whole pixels, zoom by steps.",
+];
+---
+
+<DocsLayout
+  title="Blueprint — Editors — Forgeron UI"
+  description="Blueprint scenes on the canvas: open a .bp, turn it in the four iso views, play and scrub it, set its vars, read its tags."
+  current="editors/blueprint"
+  page="editors"
+>
+  <header class="doc-head">
+    <span class="t-mono dim">Editors <span class="accent">/</span> Blueprint</span>
+    <h1 class="f-title f-h3">Blueprint viewer</h1>
+    <p class="t-lead">Any scene of a .bp on the canvas, in its four views, played by the engine.</p>
+    <dl class="ed-facts t-mono">
+      <div><dt class="dim">Package</dt><dd>@forgeron/blueprint-canvas</dd></div>
+      <div><dt class="dim">On</dt><dd>@forgeron/canvas · @forgeron/blueprint (WASM)</dd></div>
+      <div><dt class="dim">Library</dt><dd>apps/site/src/illustrations/library, read as data</dd></div>
+    </dl>
+  </header>
+
+  <section class="ed-block-stack" aria-label="Live">
+    <div class="ed-stage ed-stage-viewer ticks">
+      <BlueprintDemo client:only="react" />
+    </div>
+  </section>
+
+  <section class="ed-block-stack" aria-label="What it covers">
+    <div class="spacer-sm t-mono dim"><span>/01 → What it covers</span></div>
+    <ul class="ed-list">
+      {covers.map((line) => <li>{line}</li>)}
+    </ul>
+  </section>
+
+  <section class="ed-block-stack" aria-label="Depth review">
+    <div class="spacer-sm t-mono dim"><span>/02 → Z-buffer review</span></div>
+    <p class="t-small">
+      Every scene of the library at t = 0, in painter's order and with the depth buffer, then the
+      pixels that differ. The choice per scene stays in this browser; copy them out when done.
+    </p>
+    <BlueprintReview client:only="react" />
+  </section>
+
+  <nav class="pager-nav t-mono" aria-label="Previous and next">
+    <a href="/editors/canvas">← Canvas</a>
+    <a href="/pages">Pages →</a>
+  </nav>
+</DocsLayout>

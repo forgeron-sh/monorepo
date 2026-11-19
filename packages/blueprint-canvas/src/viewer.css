@@ -1,0 +1,202 @@
+/* @forgeron/blueprint-canvas: the viewer and the depth review sheet, in the lab language: 1 px
+   lines, square corners, mono labels, the accent for the hovered tag only. Needs the tokens and
+   styles of @forgeron/ui, then @forgeron/canvas/styles.css. */
+
+.fg-bpv {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr) 208px;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+.fg-bpv-side,
+.fg-bpv-inspect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-3);
+}
+.fg-bpv-side {
+  border-right: 1px solid var(--line);
+}
+.fg-bpv-inspect {
+  border-left: 1px solid var(--line);
+}
+.fg-bpv-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.fg-bpv-bar,
+.fg-bpv-transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+.fg-bpv-bar {
+  border-bottom: 1px solid var(--line);
+}
+.fg-bpv-transport {
+  border-top: 1px solid var(--line);
+  flex-wrap: nowrap;
+}
+.fg-bpv-title {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.fg-bpv-stage {
+  position: relative;
+  flex: 1;
+  min-height: 240px;
+}
+.fg-bpv-canvas {
+  position: absolute;
+  inset: 0;
+}
+.fg-bpv-hover {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  pointer-events: none;
+  color: var(--accent);
+}
+.fg-bpv-hover:empty {
+  display: none;
+}
+.fg-bpv-scrub {
+  flex: 1;
+  min-width: 80px;
+}
+.fg-bpv-time {
+  min-width: 64px;
+  text-align: right;
+}
+.fg-bpv-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.fg-bpv-head {
+  margin: var(--space-2) 0 0;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+.fg-bpv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.fg-bpv-int {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.fg-bpv-stats {
+  margin: auto 0 0;
+  font-size: 11px;
+}
+
+@media (max-width: 960px) {
+  .fg-bpv {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(360px, 1fr) auto;
+    height: auto;
+  }
+  .fg-bpv-side,
+  .fg-bpv-inspect {
+    border: 0;
+    overflow: visible;
+  }
+  .fg-bpv-side {
+    border-bottom: 1px solid var(--line);
+  }
+  .fg-bpv-inspect {
+    border-top: 1px solid var(--line);
+  }
+  .fg-bpv-stage {
+    min-height: 320px;
+  }
+  .fg-bpv-title {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+  .fg-bpv-transport {
+    flex-wrap: wrap;
+  }
+  .fg-bpv-transport > select,
+  .fg-bpv-transport > .fg-select {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+}
+
+/* The depth review sheet. */
+.fg-bpr {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.fg-bpr-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 12px;
+}
+.fg-bpr-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-bpr-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+.fg-bpr-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 12px;
+}
+.fg-bpr-head > :last-child {
+  margin-left: auto;
+}
+.fg-bpr-pics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.fg-bpr-pics canvas {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 8 / 5;
+  image-rendering: pixelated;
+  background: var(--bg-sunk);
+  border: 1px solid var(--line);
+}
+@media (max-width: 640px) {
+  .fg-bpr-pics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

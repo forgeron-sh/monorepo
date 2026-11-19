@@ -145,6 +145,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@astrojs/react": "7.1.2",
+        "@forgeron/blueprint-canvas": "workspace:*",
         "@forgeron/canvas": "workspace:*",
         "@forgeron/icons": "workspace:*",
         "@forgeron/ui": "workspace:*",
@@ -177,6 +178,27 @@
       "optionalPeers": [
         "react",
       ],
+    },
+    "packages/blueprint-canvas": {
+      "name": "@forgeron/blueprint-canvas",
+      "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/blueprint": "workspace:*",
+        "@forgeron/canvas": "workspace:*",
+        "@forgeron/icons": "workspace:*",
+        "@forgeron/ui": "workspace:*",
+      },
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "jsdom": "30.1.3",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+      },
+      "peerDependencies": {
+        "react": "19.3.1",
+      },
     },
     "packages/canvas": {
       "name": "@forgeron/canvas",
@@ -615,6 +637,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
 
     "@forgeron/blueprint": ["@forgeron/blueprint@workspace:packages/blueprint"],
+
+    "@forgeron/blueprint-canvas": ["@forgeron/blueprint-canvas@workspace:packages/blueprint-canvas"],
 
     "@forgeron/canvas": ["@forgeron/canvas@workspace:packages/canvas"],
 

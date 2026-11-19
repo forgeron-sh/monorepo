@@ -134,6 +134,13 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "canvas-does-not-import-blueprint",
+    files: {
+      [`packages/canvas/src/react/${F}.ts`]: `import "../../../blueprint-canvas/src/${F}_target.ts";\n`,
+      [`packages/blueprint-canvas/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "canvas-core-is-framework-free",
     files: {
       [`packages/canvas/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,

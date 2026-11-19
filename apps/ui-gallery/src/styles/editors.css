@@ -149,3 +149,16 @@
   width: 70%;
   height: auto;
 }
+
+/* The Blueprint viewer: three columns on a wide screen, stacked below 960 px. */
+.ed-stage-viewer {
+  height: 680px;
+}
+@media (max-width: 960px) {
+  .ed-stage-viewer {
+    height: auto;
+  }
+  .ed-stage-viewer > astro-island {
+    position: static;
+  }
+}
