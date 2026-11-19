@@ -113,6 +113,24 @@ const cases: Case[] = [
     files: { [`packages/blueprint/src/core/${F}.ts`]: `import "node:fs";\n` },
   },
   {
+    rule: "shaders-is-a-leaf",
+    files: {
+      [`packages/shaders/src/dom/${F}.ts`]: `import "../../../ui/src/${F}_target.ts";\n`,
+      [`packages/ui/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "shaders-core-is-framework-free",
+    files: {
+      [`packages/shaders/src/core/${F}.ts`]: `import "../dom/${F}_target.ts";\n`,
+      [`packages/shaders/src/dom/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "shaders-core-stays-neutral",
+    files: { [`packages/shaders/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
     rule: "ui-does-not-import-sdk",
     files: {
       [`packages/ui/src/${F}.ts`]: `import "../../sdk/src/${F}_target.ts";\n`,

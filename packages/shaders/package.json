@@ -1,0 +1,16 @@
+{
+  "name": "@forgeron/shaders",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./dom": "./src/dom/index.ts",
+    "./schema/preset.v1.json": "./schema/preset.v1.json"
+  },
+  "devDependencies": {
+    "@forgeron/tsconfig": "workspace:*"
+  }
+}

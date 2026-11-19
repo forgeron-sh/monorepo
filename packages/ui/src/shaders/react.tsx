@@ -1,14 +1,20 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { cx } from "../cx";
 import { PixelText } from "../pixel-text";
-import { type DitherFieldOptions, mountDitherField } from "./dither-field";
-import { type FieldMode, mountFieldShader } from "./field";
-import { type HearthOptions, mountHearth } from "./hearth";
-import { type DitheredImageOptions, mountDitheredImage } from "./image";
-import { mountReveal, REVEAL_MARGIN, textRows } from "./reveal";
+import { type FieldMode, REVEAL_MARGIN } from "@forgeron/shaders";
+import {
+  type DitheredImageOptions,
+  type DitherFieldOptions,
+  mountDitheredImage,
+  mountDitherField,
+  mountReveal,
+} from "@forgeron/shaders/dom";
+import { type HearthOptions, mountFieldShader, mountHearth } from "./mounts";
+import { textRows } from "./text-rows";
 
-// Thin React wrappers: each renders a plain element on the server (a canvas is decoration, the
-// page reads without it) and mounts its shader after hydration. Size the canvas with CSS.
+// Thin React wrappers over @forgeron/shaders: each renders a plain element on the server (a canvas
+// is decoration, the page reads without it) and mounts its shader after hydration. Size the
+// canvas with CSS.
 
 interface CanvasProps {
   className?: string;
@@ -63,7 +69,8 @@ export function FieldShader(props: FieldShaderProps) {
   );
 }
 
-export interface DitheredImageProps extends CanvasProps, DitheredImageOptions {
+export interface DitheredImageProps
+  extends CanvasProps, Pick<DitheredImageOptions, "pixel" | "gain"> {
   src: string;
 }
 

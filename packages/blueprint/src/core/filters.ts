@@ -1,9 +1,10 @@
+import type { ColorRef } from "@forgeron/shaders";
 import type { BayerSize } from "./bayer";
 import { BlueprintError } from "./blocks";
 import type { SlotName } from "./frame";
 
-/** A colour: a literal CSS colour, or a CSS variable with its fallback. */
-export type ColorRef = string | { var: string; fallback: string };
+/** A colour: a literal CSS colour, or a CSS variable with its fallback (`@forgeron/shaders`). */
+export type { ColorRef };
 
 export interface PixelateFilter {
   type: "pixelate";

@@ -1,39 +1,36 @@
-import { ditherImage, IMAGE_PALETTE, type RGB } from "@forgeron/blueprint";
-import type { ShaderHandle } from "./surface";
-import { readTone } from "./surface";
-
-/**
- * The dithered image: any picture redrawn in the palette with the 4×4 Bayer matrix, five greys
- * for the structure and the ember for what glows (`ditherImage` of `@forgeron/blueprint`).
- * Whatever made the picture, it comes out in the system.
- */
+import { ditherImage, IMAGE_PALETTE, type ImagePalette } from "../core/passes/image-dither";
+import { resolveColor, type ShaderHandle } from "./surface";
 
 export interface DitheredImageOptions {
   /** Side of one dithered pixel in CSS pixels (3 by default). */
   pixel?: number;
   /** Luminance gain before dithering (1.1 by default). */
   gain?: number;
+  /** The greys and the ember (the site's tokens by default). */
+  palette?: ImagePalette;
+  /** Asks for a CPU-backed 2D context (true by default; Blueprint's `mountImage` asked without). */
+  willReadFrequently?: boolean;
 }
 
-const fallbackOf = (ref: (typeof IMAGE_PALETTE.greys)[number]) =>
-  typeof ref === "string" ? ref : ref.fallback;
-const nameOf = (ref: (typeof IMAGE_PALETTE.greys)[number]) =>
-  typeof ref === "string" ? ref : ref.var;
-
 /**
- * Loads `src`, crops it to cover the canvas, reduces it to one pixel per `pixel` CSS pixels and
- * dithers it; redraws on resize. The canvas hides itself when the picture fails to load.
+ * The dithered image (`ditheredImageChain`, on the CPU, through `ditherImage`): loads `src`, crops it to cover the
+ * canvas, reduces it to one pixel per `pixel` CSS pixels and dithers it; redraws on resize. The
+ * canvas hides itself when the picture fails to load.
  */
 export function mountDitheredImage(
   canvas: HTMLCanvasElement,
   src: string,
   options: DitheredImageOptions = {},
 ): ShaderHandle | null {
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const ctx =
+    options.willReadFrequently === false
+      ? canvas.getContext("2d")
+      : canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
-  const colors: { greys: RGB[]; ember: RGB } = {
-    greys: IMAGE_PALETTE.greys.map((c) => readTone(canvas, nameOf(c), fallbackOf(c))),
-    ember: readTone(canvas, nameOf(IMAGE_PALETTE.ember), fallbackOf(IMAGE_PALETTE.ember)),
+  const palette = options.palette ?? IMAGE_PALETTE;
+  const colors = {
+    greys: palette.greys.map((c) => resolveColor(canvas, c)),
+    ember: resolveColor(canvas, palette.ember),
   };
   const px = options.pixel ?? 3;
   const img = new Image();

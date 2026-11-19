@@ -32,4 +32,4 @@ The SIL Open Font License 1.1, copyright forgeron.sh, no Reserved Font Name. `sr
 
 ## Design
 
-The lab design language of the site and the icon gallery, with pixel icons from `@forgeron/icons`. An app cannot import another app, so `src/styles/lab.css` (with the landing's bento and spacer), `src/lib/dither-field.ts` and `src/lib/pixels.ts` are copies, and the nav, section head and footer follow the gallery's components. They should move to a shared package once the lab design is settled. Every control on a row has the height `--ctl-h`.
+The lab design language of the site and the icon gallery, with pixel icons from `@forgeron/icons`. An app cannot import another app, so `src/styles/lab.css` (with the landing's bento and spacer) is a copy (the hero's dither field comes from `@forgeron/shaders`), and the nav, section head and footer follow the gallery's components. They should move to a shared package once the lab design is settled. Every control on a row has the height `--ctl-h`.

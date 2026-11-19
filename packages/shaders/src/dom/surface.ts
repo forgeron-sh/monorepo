@@ -1,4 +1,4 @@
-import { parseColor, type RGB } from "@forgeron/blueprint";
+import { type ColorRef, resolveRef, type RGB } from "../core/color";
 
 /**
  * The canvas glue every shader of the module shares: reads tokens, honours
@@ -16,15 +16,26 @@ export function prefersStill(el: Element, override?: boolean): boolean {
   return win?.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 }
 
+/** Reads custom properties on `el` (so a theme scoped to a section applies). */
+export function tokenReader(el: Element): (name: string) => string | undefined {
+  let style: CSSStyleDeclaration | undefined;
+  return (name) => {
+    style ??= el.ownerDocument.defaultView?.getComputedStyle(el);
+    return style?.getPropertyValue(name);
+  };
+}
+
 /**
  * A colour for a shader: a CSS custom property (`--accent`) read on `el`, so a theme scoped to a
  * section applies, or a literal colour; the fallback when neither parses.
  */
 export function readTone(el: Element, value: string, fallback: string): RGB {
-  const raw = value.startsWith("--")
-    ? (el.ownerDocument.defaultView?.getComputedStyle(el).getPropertyValue(value) ?? "")
-    : value;
-  return parseColor(raw) ?? parseColor(fallback) ?? [0, 0, 0];
+  return resolveRef(value, tokenReader(el), fallback);
+}
+
+/** A colour reference (`ColorRef`) resolved on `el`. */
+export function resolveColor(el: Element, ref: ColorRef, fallback = "#000"): RGB {
+  return resolveRef(ref, tokenReader(el), fallback);
 }
 
 export interface AnimateCanvasOptions {
@@ -87,6 +98,31 @@ export function animateCanvas(
       cancelAnimationFrame(raf);
       sized.disconnect();
       seen.disconnect();
+    },
+  };
+}
+
+/**
+ * Colour references resolved on `el` once, until `reset` (called on resize, as the effects
+ * always read their tokens then).
+ */
+export function colorCache(el: Element): {
+  resolve(ref: ColorRef): RGB;
+  reset(): void;
+} {
+  let cache = new Map<string, RGB>();
+  return {
+    resolve(ref) {
+      const key = typeof ref === "string" ? ref : `${ref.var}|${ref.fallback}`;
+      let c = cache.get(key);
+      if (!c) {
+        c = resolveColor(el, ref);
+        cache.set(key, c);
+      }
+      return c;
+    },
+    reset() {
+      cache = new Map();
     },
   };
 }

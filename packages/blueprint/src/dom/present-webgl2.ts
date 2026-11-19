@@ -6,6 +6,7 @@
  * most four presenters live at once: `presentWebGL2` returns `null` beyond (the player then
  * falls back to the 2D presenter).
  */
+import { linkProgram } from "@forgeron/shaders/dom";
 import type { ResolvedPalette } from "../core/palette";
 import { SLOT_NAMES } from "../core/frame";
 import { gridCell } from "../core/svg";
@@ -47,15 +48,6 @@ void main() {
   color = vec4(palette[s], 1.0);
 }`;
 
-function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
-  const shader = gl.createShader(type)!;
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
-    throw new Error(`blueprint presenter: ${gl.getShaderInfoLog(shader) ?? "shader"}`);
-  return shader;
-}
-
 export interface WebGL2Presenter extends Presenter {
   /** The palette, from CSS tokens on the canvas (as the 2D presenter's). */
   palette(colors: ResolvedPalette): void;
@@ -72,12 +64,7 @@ export function presentWebGL2(canvas: HTMLCanvasElement): WebGL2Presenter | null
   });
   if (!gl) return null;
   live++;
-  const program = gl.createProgram()!;
-  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX));
-  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAGMENT));
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-    throw new Error(`blueprint presenter: ${gl.getProgramInfoLog(program) ?? "link"}`);
+  const program = linkProgram(gl, VERTEX, FRAGMENT, "blueprint presenter");
   gl.useProgram(program);
   const vao = gl.createVertexArray();
   gl.bindVertexArray(vao);

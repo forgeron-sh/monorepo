@@ -10,6 +10,8 @@ const ENTRIES = [
   "packages/scaffold/src/index.ts",
   // Blueprint's core renders the site's illustrations at build time and in the browser.
   "packages/blueprint/src/index.ts",
+  // The effects' core: presets and CPU passes run at build time and in a Worker (D-149).
+  "packages/shaders/src/index.ts",
 ];
 
 let failed = false;

@@ -16,6 +16,9 @@
     },
     "./vite": "./src/vite.ts"
   },
+  "dependencies": {
+    "@forgeron/shaders": "workspace:*"
+  },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*",
     "@types/react": "19.3.0",

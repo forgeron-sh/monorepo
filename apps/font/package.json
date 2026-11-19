@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@forgeron/icons": "workspace:*",
+    "@forgeron/shaders": "workspace:*",
     "astro": "7.4.5"
   },
   "devDependencies": {

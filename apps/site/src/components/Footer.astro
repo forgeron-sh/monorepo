@@ -15,7 +15,7 @@ const { github, docs, from } = Astro.props;
 
 <!--
   The hearth: the site's index in glued cells over a bed of embers, and the wordmark as iron just
-  out of the forge (illustrations/hearth.ts). Without JavaScript the wordmark is the static pixel
+  out of the forge (`mountHearth` of @forgeron/shaders). Without JavaScript the wordmark is the static pixel
   drawing in cold iron, at the same place.
 -->
 <SiteFooter
@@ -52,8 +52,9 @@ const { github, docs, from } = Astro.props;
 />
 
 <script>
-  import { mountHearth } from "../illustrations/hearth";
+  import { glyph, glyphWidth, textWidth } from "@forgeron/blueprint";
+  import { mountHearth } from "@forgeron/shaders/dom";
 
   const hearth = document.querySelector<HTMLElement>("[data-hearth]");
-  if (hearth) mountHearth(hearth);
+  if (hearth) mountHearth(hearth, { face: { glyph, glyphWidth, textWidth } });
 </script>

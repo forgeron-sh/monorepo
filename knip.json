@@ -3,7 +3,7 @@
   "ignore": ["assets/**", "docs/prototypes/**"],
   "workspaces": {
     ".": {
-      "entry": ["scripts/*.ts", "scripts/blueprint/*.ts"]
+      "entry": ["scripts/*.ts", "scripts/blueprint/*.ts", "scripts/shaders/*.ts"]
     },
     "packages/*": {},
     "templates/*": {
@@ -31,6 +31,9 @@
     "packages/blueprint": {
       "entry": ["test/browser/presenters.page.ts"],
       "ignore": ["wasm/*.d.ts", "wasm/debug/**"]
+    },
+    "packages/shaders": {
+      "entry": ["test/browser/agreement.page.ts"]
     },
     "packages/canvas": {
       "entry": ["bench/run.ts", "bench/browser.ts", "bench/build-wasm.ts", "bench/browser/main.ts"]

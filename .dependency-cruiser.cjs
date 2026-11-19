@@ -91,6 +91,29 @@ module.exports = {
       to: { dependencyTypes: ["core"] },
     },
     {
+      // The effects (D-149, docs/shaders/design.md) sit under ui and Blueprint: both import
+      // `@forgeron/shaders`, which imports no other package of ours (no ui, no Blueprint, no canvas).
+      name: "shaders-is-a-leaf",
+      severity: "error",
+      from: { path: "^packages/shaders/" },
+      to: { path: "^packages/(?!shaders/)" },
+    },
+    {
+      // Its core (passes, sources, presets, GLSL as strings) runs at build time and in a Worker:
+      // no DOM layer, no React ...
+      name: "shaders-core-is-framework-free",
+      severity: "error",
+      from: { path: "^packages/shaders/src/(core/|index\\.ts$)" },
+      to: { path: "^packages/shaders/src/dom/|(^|/)node_modules/(react|react-dom)/" },
+    },
+    {
+      // ... and no Node module.
+      name: "shaders-core-stays-neutral",
+      severity: "error",
+      from: { path: "^packages/shaders/src/(core/|index\\.ts$)" },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
       // The libraries are shared assets (one folder per type: `blueprints/`), data that the site,
       // the gallery and the parity tests read: they import no other package of ours.
       name: "libraries-is-a-leaf",

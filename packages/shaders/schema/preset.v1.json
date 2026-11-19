@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shaders.forgeron.sh/schema/preset.v1.json",
+  "title": "Forgeron shader preset",
+  "description": "A source and a chain of passes (docs/shaders/design.md). Each pass has a GLSL and a CPU version with the same result.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "name": {
+      "type": "string"
+    },
+    "source": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "The site's generator fields (ember, globe, dissolve, field): a value per cell.",
+          "properties": {
+            "type": {
+              "const": "field"
+            },
+            "mode": {
+              "description": "Which field.",
+              "enum": ["ember", "globe", "dissolve", "field"],
+              "default": "ember"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "The dither field's heat, rising from the bottom right (CPU only).",
+          "properties": {
+            "type": {
+              "const": "heat"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "A picture, one pixel per cell.",
+          "properties": {
+            "type": {
+              "const": "image"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "A tone function of the cell, given at run time (CPU only).",
+          "properties": {
+            "type": {
+              "const": "tone"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "The footer's hearth: a wordmark of iron on a bed of embers (tone indices, CPU).",
+          "properties": {
+            "type": {
+              "const": "hearth"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "passes": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Cell size: the source is computed once per cell of `size` CSS pixels.",
+            "properties": {
+              "type": {
+                "const": "pixelate"
+              },
+              "size": {
+                "description": "Side of one cell in CSS pixels.",
+                "type": "integer",
+                "minimum": 1,
+                "default": 1
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Ordered (Bayer) dither of the value into tone indices.",
+            "properties": {
+              "type": {
+                "const": "ordered"
+              },
+              "matrix": {
+                "description": "Side of the Bayer matrix.",
+                "enum": [2, 4, 8],
+                "default": 8
+              },
+              "centered": {
+                "description": "Thresholds at (m + 0.5) / n² instead of m / n².",
+                "type": "boolean",
+                "default": true
+              },
+              "origin": {
+                "description": "Row the matrix starts on.",
+                "enum": ["top", "bottom"],
+                "default": "top"
+              },
+              "steps": {
+                "description": "[offset, scale] per tone above the background: tone k when the value passes k consecutive steps.",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "default": [[0, 1]]
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A picture to grey and ember tone indices, through the 4×4 Bayer matrix.",
+            "properties": {
+              "type": {
+                "const": "image-dither"
+              },
+              "gain": {
+                "description": "Luminance gain.",
+                "type": "number",
+                "minimum": 0,
+                "default": 1.1
+              },
+              "greys": {
+                "description": "Greys in the palette; ember is the tone after them.",
+                "type": "integer",
+                "minimum": 2,
+                "default": 5
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "Tone indices to colours.",
+            "properties": {
+              "type": {
+                "const": "palette"
+              },
+              "tones": {
+                "description": "One colour per tone index.",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "description": "A CSS colour (\"#rrggbb\", \"rgb(…)\") or a token (\"--accent\")."
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "var": {
+                          "type": "string"
+                        },
+                        "fallback": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["var", "fallback"],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "default": [
+                  {
+                    "var": "--bg",
+                    "fallback": "#0a0a0a"
+                  },
+                  {
+                    "var": "--ink",
+                    "fallback": "#ededed"
+                  },
+                  {
+                    "var": "--accent",
+                    "fallback": "#ff4f1f"
+                  }
+                ]
+              },
+              "transparent": {
+                "description": "Tone indices drawn transparent.",
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "default": []
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A gap on the right and top edge of each cell, in output pixels.",
+            "properties": {
+              "type": {
+                "const": "grid"
+              },
+              "gap": {
+                "description": "Share of a cell.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.5,
+                "default": 0.16
+              },
+              "min": {
+                "description": "No gap below this many device pixels per cell.",
+                "type": "number",
+                "minimum": 0,
+                "default": 4
+              },
+              "tone": {
+                "description": "Tone of the gap.",
+                "type": "integer",
+                "minimum": 0,
+                "default": 0
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": ["version", "source", "passes"],
+  "additionalProperties": false
+}

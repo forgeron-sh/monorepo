@@ -20,6 +20,7 @@
     "@base-ui/react": "1.9.0",
     "@forgeron/blueprint": "workspace:*",
     "@forgeron/icons": "workspace:*",
+    "@forgeron/shaders": "workspace:*",
     "react-markdown": "10.1.0",
     "remark-gfm": "4.0.1"
   },

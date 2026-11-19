@@ -1,4 +1,6 @@
-import { bayer8 } from "./pixels";
+import { bayer } from "@forgeron/shaders";
+
+const bayer8 = (x: number, y: number) => bayer(x, y, 8);
 
 /**
  * The hero's reveal, a glitch that resolves into the text. It is a raster scan: the pixel rows of

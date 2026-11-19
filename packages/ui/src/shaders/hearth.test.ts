@@ -1,6 +1,9 @@
 import { textSvg } from "@forgeron/blueprint";
 import { describe, expect, it } from "vitest";
-import { BG, cellSize, EMBER, HOT, hearthFrame, hearthGrid, IRON, SPARK, TONES } from "./hearth";
+import { HEARTH_TONES as TONES, hearthCell as cellSize, hearthFrame, hearthGrid } from "./index";
+
+// The footer's hearth (moved from apps/site/src/illustrations/hearth.test.ts with the effect).
+const [BG, EMBER, IRON, HOT, SPARK] = [0, 1, 2, 3, 4];
 
 // The footer's grid at 1440 px: 319 × 136 cells of 4 px, the word slot under the link cells.
 const slot = { x: 8, y: 78, w: 303, h: 45 };

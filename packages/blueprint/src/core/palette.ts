@@ -1,30 +1,11 @@
-import type { ColorRef } from "./filters";
+import { type ColorRef, cssColor, parseColor, type RGB } from "@forgeron/shaders";
 import { type Frame, SLOT_NAMES, type SlotName } from "./frame";
 
-export type RGB = readonly [r: number, g: number, b: number];
+// Colours are shared with every effect (`@forgeron/shaders`, D-149).
+export { cssColor, parseColor, type RGB };
 
 /** The palette with every variable resolved to a colour. */
 export type ResolvedPalette = Readonly<Record<SlotName, RGB>>;
-
-/** Parses `#rgb`, `#rrggbb` and `rgb(r g b)` / `rgb(r, g, b)`; anything else is null. */
-export function parseColor(value: string): RGB | null {
-  const v = value.trim();
-  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
-  if (hex) {
-    const h = hex[1] ?? "";
-    const full = h.length === 3 ? [...h].map((c) => c + c).join("") : h;
-    const n = Number.parseInt(full, 16);
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  }
-  const rgb = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(v);
-  if (rgb) return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])];
-  return null;
-}
-
-/** Literal of a colour reference for CSS: `var(--x, fallback)` or the colour itself. */
-export function cssColor(ref: ColorRef): string {
-  return typeof ref === "string" ? ref : `var(${ref.var}, ${ref.fallback})`;
-}
 
 /**
  * Resolves the variables of a palette with `read` (in a browser, a computed-style lookup). A
