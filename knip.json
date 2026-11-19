@@ -38,6 +38,9 @@
     "packages/canvas": {
       "entry": ["bench/run.ts", "bench/browser.ts", "bench/build-wasm.ts", "bench/browser/main.ts"]
     },
+    "packages/flow": {
+      "entry": ["bench/layout.ts"]
+    },
     "apps/*": {},
     "apps/console": {
       "entry": [

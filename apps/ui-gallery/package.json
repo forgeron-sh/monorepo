@@ -13,6 +13,8 @@
     "@astrojs/react": "7.1.2",
     "@forgeron/blueprint-canvas": "workspace:*",
     "@forgeron/canvas": "workspace:*",
+    "@forgeron/draw": "workspace:*",
+    "@forgeron/flow": "workspace:*",
     "@forgeron/icons": "workspace:*",
     "@forgeron/libraries": "workspace:*",
     "@forgeron/shaders": "workspace:*",

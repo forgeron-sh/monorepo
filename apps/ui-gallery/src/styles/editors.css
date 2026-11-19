@@ -162,3 +162,17 @@
     position: static;
   }
 }
+
+/* Draw: a taller stage for the whiteboard, its editor filling it. */
+.ed-stage-draw {
+  height: 640px;
+}
+.ed-draw {
+  position: absolute;
+  inset: 0;
+}
+@media (max-width: 700px) {
+  .ed-stage-draw {
+    height: 560px;
+  }
+}

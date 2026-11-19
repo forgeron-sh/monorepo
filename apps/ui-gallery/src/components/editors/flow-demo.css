@@ -1,0 +1,77 @@
+/* The flow demo of /editors/flow: a bar of actions, the canvas with the step panel over its right
+   side (StepPicker or StepInspector, shown while there is something to pick or edit), then the
+   JSON. Under 900px the panel goes under the canvas. The flow is styled by @forgeron/flow. */
+
+.fd {
+  display: grid;
+  gap: 12px;
+}
+.fd-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fd-status {
+  margin-left: auto;
+  font-size: 12px;
+}
+.fd-stage {
+  position: relative;
+  height: 560px;
+  border: 1px solid var(--line);
+}
+.fd-canvas {
+  position: absolute;
+  inset: 0;
+}
+.fd-side {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  width: 320px;
+  overflow: auto;
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+}
+.fd-side > .fg-spick,
+.fd-side > .fg-insp {
+  border: 0;
+}
+.fd-json summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.fd-json[open] summary {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 900px) {
+  /* The minimap would cover the zoom controls on a phone; fit (1) does its job there. */
+  .fd .fg-canvas-minimap {
+    display: none;
+  }
+  .fd-stage {
+    display: grid;
+    height: auto;
+  }
+  .fd-canvas {
+    position: relative;
+    inset: auto;
+    height: 440px;
+  }
+  .fd-side {
+    position: static;
+    width: auto;
+    max-height: 520px;
+    border: 0;
+    border-top: 1px solid var(--line);
+  }
+  .fd-status {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}

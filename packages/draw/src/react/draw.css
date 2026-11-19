@@ -1,0 +1,207 @@
+/* @forgeron/draw: the whiteboard, in the lab language: square corners, 1 px lines, pixel pen and
+   dither fills, the accent for the selection and bindings only. Needs the styles of @forgeron/ui
+   and @forgeron/canvas. */
+
+.fgd-editor {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  height: 100%;
+}
+.fgd-canvas {
+  flex: 1;
+  min-width: 0;
+}
+
+/* An item: its paint fills its box and may draw past it (arrows, thick lines). */
+.fgd-item {
+  position: absolute;
+  inset: 0;
+}
+.fgd-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Text: what the DOM shows and edits, with the same metrics as the export's estimate. */
+.fgd-sticky-text,
+.fgd-text,
+.fgd-label {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+}
+.fgd-sticky-text {
+  padding: var(--fgd-pad, 12px);
+  font-size: var(--fgd-size, 14px);
+}
+.fgd-text {
+  padding: 0;
+}
+.fgd-label {
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  font-size: 14px;
+  text-align: center;
+}
+.fgd-field {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  caret-color: var(--accent);
+}
+.fgd-label.fgd-field {
+  padding-top: calc(50% - 10px);
+}
+
+/* A frame's name, in its strip. */
+.fgd-frame-name {
+  position: absolute;
+  left: 8px;
+  top: 4px;
+  right: 8px;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font: 400 11px/16px var(--font-mono);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The ends of the selected arrow: dragged onto an item, they bind to it. */
+.fgd-end {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  box-sizing: border-box;
+  cursor: crosshair;
+}
+
+/* Previews drawn above the items. */
+.fgd-preview {
+  opacity: 0.85;
+}
+.fgd-erasing {
+  fill: color-mix(in srgb, var(--bg-sunk) 70%, transparent);
+  stroke: var(--danger);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.fgd-bind {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+.fgd-wire {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+/* The tool dock, top centre. */
+.fgd-dock {
+  position: absolute;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 2 * var(--space-3));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.fgd-dock .fg-toolbar {
+  background: var(--bg);
+}
+
+/* The properties panel, top right. */
+.fgd-inspector {
+  position: absolute;
+  top: calc(var(--space-3) + 48px);
+  right: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 248px;
+  /* Clear of the dock above and the minimap below. */
+  max-height: calc(100% - 48px - 4 * var(--space-3) - 112px);
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+  box-sizing: border-box;
+}
+.fgd-inspector .fg-edt-style {
+  padding: 0;
+  border: 0;
+}
+.fgd-insp-head {
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fgd-insp-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+}
+.fgd-insp-row .fg-seg {
+  width: 100%;
+}
+.fgd-insp-name {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+}
+.fgd-insp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding-top: var(--space-2);
+  border-top: var(--border-width) solid var(--line);
+}
+
+@media (max-width: 720px) {
+  .fgd-dock {
+    left: var(--space-3);
+    transform: none;
+  }
+  .fgd-inspector {
+    top: auto;
+    right: var(--space-3);
+    left: var(--space-3);
+    bottom: calc(var(--space-3) + 44px);
+    width: auto;
+    max-height: 42%;
+  }
+  .fgd-editor .fg-canvas-minimap {
+    display: none;
+  }
+}
+
+/* Far out: plain boxes. */
+.fgd-far {
+  box-sizing: border-box;
+}

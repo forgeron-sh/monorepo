@@ -1,5 +1,5 @@
 ---
-import { Database01Icon, DrawingModeIcon, Flowchart01Icon } from "@forgeron/icons";
+import { Database01Icon } from "@forgeron/icons";
 import Layout from "../../components/Layout.astro";
 import Planned from "../../components/Planned.astro";
 import "../../styles/editors.css";
@@ -7,8 +7,6 @@ import "../../styles/editors.css";
 // Editors work on an infinite surface. Canvas is the engine they share; flow, draw and the data
 // hub's schema diagram are built on it and come next.
 const planned = [
-  { name: "Flow", icon: Flowchart01Icon, summary: "Nodes, typed ports, edges, auto-layout, run state." },
-  { name: "Draw", icon: DrawingModeIcon, summary: "Whiteboard: shapes, stickies, pixel pen, text, arrows, frames." },
   { name: "Schema", icon: Database01Icon, summary: "The data hub's tables and the relations between them." },
 ];
 ---
@@ -27,7 +25,7 @@ const planned = [
       </div>
     </header>
   </section>
-  <div class="rail spacer t-mono dim"><span>/0.6 → Every editor</span><span>[ Canvas, Blueprint live ]</span></div>
+  <div class="rail spacer t-mono dim"><span>/0.6 → Every editor</span><span>[ Canvas, Flow, Draw, Blueprint live ]</span></div>
   <section class="rail" aria-label="Editors">
     <ul class="grid">
       <li class="card">
@@ -63,6 +61,45 @@ const planned = [
           <span class="t-mono dim">/0.6.02 · on canvas + WASM</span>
           <a class="card-name card-link" href="/editors/blueprint">Blueprint</a>
           <span class="t-small">Open a .bp, four iso views, play, scrub, vars, hover tags.</span>
+        </div>
+      </li>
+      <li class="card">
+        <div class="card-art ed-card-art dots-bg" aria-hidden="true">
+          <svg viewBox="0 0 200 120" shape-rendering="crispEdges">
+            <rect x="16.5" y="46.5" width="44" height="24" fill="var(--bg)" stroke="var(--line-strong)" />
+            <rect x="84.5" y="46.5" width="44" height="24" fill="var(--bg)" stroke="var(--accent)" />
+            <rect x="148.5" y="22.5" width="40" height="24" fill="var(--bg)" stroke="var(--line-strong)" />
+            <rect x="148.5" y="74.5" width="40" height="24" fill="var(--bg)" stroke="var(--line-strong)" />
+            <path d="M60.5 58.5 H84.5" fill="none" stroke="var(--accent)" />
+            <path d="M128.5 52.5 H138.5 V34.5 H148.5" fill="none" stroke="var(--line-strong)" />
+            <path d="M128.5 64.5 H138.5 V86.5 H148.5" fill="none" stroke="var(--line-strong)" stroke-dasharray="2 2" />
+            <rect x="57" y="55" width="7" height="7" fill="var(--bg)" stroke="var(--line-strong)" />
+            <rect x="81" y="55" width="7" height="7" fill="var(--accent)" stroke="var(--accent)" />
+          </svg>
+        </div>
+        <div class="card-copy">
+          <span class="t-mono dim">/0.6.03 · on canvas</span>
+          <a class="card-name card-link" href="/editors/flow">Flow</a>
+          <span class="t-small">Steps as nodes, typed ports, edges, auto-layout, a run played on it.</span>
+        </div>
+      </li>
+      <li class="card">
+        <div class="card-art ed-card-art dots-bg" aria-hidden="true">
+          <svg viewBox="0 0 200 120" shape-rendering="crispEdges">
+            <rect x="18.5" y="20.5" width="164" height="80" fill="none" stroke="var(--line-strong)" />
+            <rect x="18" y="20" width="165" height="8" fill="var(--bg-raised)" />
+            <rect x="32.5" y="40.5" width="40" height="40" fill="var(--warning-subtle)" stroke="var(--warning)" />
+            <rect x="32" y="40" width="41" height="3" fill="var(--warning)" />
+            <path d="M80 60 H112" fill="none" stroke="var(--ink-muted)" />
+            <path d="M108 56 L114 60 L108 64 Z" fill="var(--ink-muted)" />
+            <rect x="118.5" y="44.5" width="48" height="32" fill="var(--bg)" stroke="var(--accent)" />
+            <path d="M124 88h4v-4h4v-4h4v4h4v4h4v-4h4v-4h4" fill="none" stroke="var(--accent)" stroke-width="2" />
+          </svg>
+        </div>
+        <div class="card-copy">
+          <span class="t-mono dim">/0.6.04 · on canvas</span>
+          <a class="card-name card-link" href="/editors/draw">Draw</a>
+          <span class="t-small">Shapes, sticky notes, text, bound arrows, pixel pen, frames, export.</span>
         </div>
       </li>
     </ul>

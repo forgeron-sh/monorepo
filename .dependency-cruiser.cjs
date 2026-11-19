@@ -175,6 +175,52 @@ module.exports = {
       to: { dependencyTypes: ["core"] },
     },
     {
+      // Flow sits on canvas and ui (D-148); it knows neither the whiteboard nor Blueprint.
+      name: "flow-does-not-import-other-editors",
+      severity: "error",
+      from: { path: "^packages/flow/" },
+      to: { path: "^packages/(draw|blueprint|blueprint-canvas)/" },
+    },
+    {
+      // The core of flow (the graph, its rules, the layout, run state, the controller) is data and
+      // pure functions on canvas's core: no React, no view, no ui, no Node module.
+      name: "flow-core-is-framework-free",
+      severity: "error",
+      from: { path: "^packages/flow/src/(core/|index\\.ts$)" },
+      to: {
+        path: "^packages/flow/src/react/|^packages/canvas/src/react/|^packages/ui/|(^|/)node_modules/(react|react-dom)/",
+      },
+    },
+    {
+      name: "flow-core-stays-neutral",
+      severity: "error",
+      from: { path: "^packages/flow/src/(core/|index\\.ts$)" },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
+      // Draw sits on canvas and ui (D-148); it knows neither flow nor Blueprint.
+      name: "draw-does-not-import-other-editors",
+      severity: "error",
+      from: { path: "^packages/draw/" },
+      to: { path: "^packages/(flow|blueprint|blueprint-canvas)/" },
+    },
+    {
+      // The core of draw (kinds, the draw engine, arrows, frames, the pen, the board's JSON, the SVG
+      // export) is data and pure functions on canvas's core: no React, no view, no ui, no Node module.
+      name: "draw-core-is-framework-free",
+      severity: "error",
+      from: { path: "^packages/draw/src/(core/|index\\.ts$)" },
+      to: {
+        path: "^packages/draw/src/react/|^packages/canvas/src/react/|^packages/ui/|(^|/)node_modules/(react|react-dom)/",
+      },
+    },
+    {
+      name: "draw-core-stays-neutral",
+      severity: "error",
+      from: { path: "^packages/draw/src/(core/|index\\.ts$)" },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
       // The registry has one door: `@forgeron/registry` (`src/index.ts`). Nothing outside the
       // package reaches into its files (docs/spikes/module-model.md, FOR-155).
       name: "registry-door-is-index",

@@ -177,6 +177,56 @@ const cases: Case[] = [
     files: { [`packages/canvas/src/core/${F}.ts`]: `import "node:fs";\n` },
   },
   {
+    rule: "flow-does-not-import-other-editors",
+    files: {
+      [`packages/flow/src/react/${F}.ts`]: `import "../../../draw/src/${F}_target.ts";\n`,
+      [`packages/draw/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "flow-core-is-framework-free",
+    files: {
+      [`packages/flow/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/flow/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "flow-core-stays-neutral",
+    files: { [`packages/flow/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "ui-does-not-import-editors",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "../../draw/src/${F}_target.ts";\n`,
+      [`packages/draw/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "canvas-does-not-import-its-editors",
+    files: {
+      [`packages/canvas/src/react/${F}.ts`]: `import "../../../draw/src/${F}_target.ts";\n`,
+      [`packages/draw/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-does-not-import-other-editors",
+    files: {
+      [`packages/draw/src/react/${F}.ts`]: `import "../../../flow/src/${F}_target.ts";\n`,
+      [`packages/flow/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-core-is-framework-free",
+    files: {
+      [`packages/draw/src/core/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/draw/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-core-stays-neutral",
+    files: { [`packages/draw/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
     rule: "registry-door-is-index",
     files: {
       [`apps/gateway/src/${F}.ts`]: `import "../../../packages/registry/src/${F}_target.ts";\n`,
