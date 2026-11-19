@@ -1,0 +1,979 @@
+/* Blocks of the "conversation" group: message list, composer, pickers, thread, list, recipients. Tokens only, sharp corners. */
+
+.fg-conv,
+.fg-conv-composer,
+.fg-conv-thread,
+.fg-conv-list,
+.fg-conv-rcpt,
+.fg-conv-emoji {
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+
+/* ---------------------------------------------------------------- PresenceDot, TypingIndicator */
+
+.fg-conv-presence {
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  background: var(--ink-dim);
+}
+.fg-conv-presence-online {
+  background: var(--success);
+}
+.fg-conv-presence-away {
+  background: var(--warning);
+}
+.fg-conv-presence-busy {
+  background: var(--danger);
+}
+.fg-conv-presence-offline {
+  border: var(--border-width) solid var(--ink-dim);
+  background: transparent;
+}
+.fg-conv-presence-with {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+  font: 400 11px/16px var(--font-mono);
+  text-transform: uppercase;
+}
+
+.fg-conv-typing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 20px;
+  color: var(--ink-muted);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-conv-typing-none {
+  min-height: 0;
+}
+.fg-conv-typing-dots {
+  display: inline-flex;
+  gap: 2px;
+}
+.fg-conv-typing-dots i {
+  width: 4px;
+  height: 4px;
+  background: var(--accent);
+  animation: fg-conv-blink 1.2s steps(1) infinite;
+}
+.fg-conv-typing-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.fg-conv-typing-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes fg-conv-blink {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.25;
+  }
+}
+
+/* ---------------------------------------------------------------- AttachmentList */
+
+.fg-conv-files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-conv-files-grid {
+  flex-flow: row wrap;
+  gap: var(--space-2);
+}
+.fg-conv-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+}
+.fg-conv-files-grid .fg-conv-file {
+  max-width: 280px;
+}
+.fg-conv-file-failed {
+  border-color: var(--danger);
+}
+.fg-conv-file-thumb {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  background: var(--bg-sunk);
+  color: var(--ink-muted);
+}
+.fg-conv-file-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: auto;
+}
+.fg-conv-file-ext {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 0 2px;
+  background: var(--bg);
+  color: var(--ink-dim);
+  font: 500 8px/10px var(--font-mono);
+}
+.fg-conv-file-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.fg-conv-file-name {
+  overflow: hidden;
+  color: var(--ink);
+  font: 500 12px/16px var(--font-sans);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+a.fg-conv-file-name:hover {
+  text-decoration: underline;
+}
+.fg-conv-file-meta {
+  color: var(--ink-dim);
+  font: 400 11px/14px var(--font-mono);
+}
+.fg-conv-file-error {
+  color: var(--danger);
+}
+.fg-conv-file-track {
+  display: block;
+  height: 4px;
+  background: var(--bg-sunk);
+}
+.fg-conv-file-track > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.fg-conv-file-actions {
+  display: inline-flex;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- EmojiPicker, ReactionBar */
+
+.fg-conv-emoji {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.fg-conv-emoji-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-sunk);
+  color: var(--ink-muted);
+}
+.fg-conv-emoji-search:focus-within {
+  border-color: var(--ink-muted);
+}
+.fg-conv-emoji-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-conv-emoji-input:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 2px;
+}
+.fg-conv-emoji-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-conv-emoji-tab {
+  min-width: 28px;
+  height: 28px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-none);
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.fg-conv-emoji-tab:hover {
+  background: var(--bg-sunk);
+}
+.fg-conv-emoji-tab[aria-pressed="true"] {
+  border-bottom-color: var(--accent);
+}
+.fg-conv-emoji-grid {
+  display: grid;
+  max-height: 200px;
+  overflow: auto;
+}
+.fg-conv-emoji-cell {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.fg-conv-emoji-cell:hover {
+  background: var(--bg-sunk);
+}
+.fg-conv-emoji-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--ink-dim);
+  font: 400 12px/16px var(--font-mono);
+}
+.fg-conv-emoji-tab:focus-visible,
+.fg-conv-emoji-cell:focus-visible,
+.fg-conv-reaction:focus-visible,
+.fg-conv-jump:focus-visible,
+.fg-conv-quote:focus-visible,
+.fg-conv-replies:focus-visible,
+.fg-conv-mention:focus-visible,
+.fg-conv-rcpts-toggle:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+.fg-conv-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+.fg-conv-reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 24px;
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: var(--bg);
+  color: var(--ink-muted);
+  font: 400 13px/1 var(--font-sans);
+  cursor: pointer;
+}
+.fg-conv-reaction:hover:not(:disabled) {
+  border-color: var(--ink-muted);
+}
+.fg-conv-reaction-mine {
+  border-color: var(--accent);
+  background: var(--bg-sunk);
+  color: var(--ink);
+}
+.fg-conv-reaction-count {
+  font: 500 11px/1 var(--font-mono);
+}
+.fg-conv-reaction:disabled {
+  cursor: default;
+}
+
+/* ---------------------------------------------------------------- MentionPicker */
+
+.fg-conv-mention-pop {
+  z-index: 20;
+  min-width: 220px;
+  max-width: 320px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+}
+.fg-conv-mention-pop-at {
+  position: absolute;
+}
+.fg-conv-mention-pop-at[data-placement="above"] {
+  transform: translateY(-100%);
+}
+.fg-conv-mention-list {
+  max-height: 220px;
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  list-style: none;
+}
+.fg-conv-mention-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  padding: 2px var(--space-2);
+  cursor: pointer;
+}
+.fg-conv-mention-opt[aria-selected="true"] {
+  background: var(--bg-sunk);
+  box-shadow: inset 2px 0 var(--accent);
+}
+.fg-conv-mention-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  background: var(--bg-sunk);
+  color: var(--ink-muted);
+  font: 500 12px/1 var(--font-mono);
+}
+.fg-conv-mention-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-conv-mention-hint {
+  flex: none;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-conv-mention-empty {
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--ink-dim);
+  font: 400 12px/16px var(--font-mono);
+}
+
+/* ---------------------------------------------------------------- MessageList */
+
+.fg-conv {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--bg);
+}
+.fg-conv-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.fg-conv-rows {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3) 0;
+}
+.fg-conv-older,
+.fg-conv-empty {
+  margin: 0;
+  padding: var(--space-4);
+  color: var(--ink-dim);
+  font: 400 12px/16px var(--font-mono);
+  text-align: center;
+}
+.fg-conv-day,
+.fg-conv-unread {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) var(--space-4);
+  color: var(--ink-muted);
+  font: 400 11px/16px var(--font-mono);
+  text-transform: uppercase;
+}
+.fg-conv-day::before,
+.fg-conv-day::after,
+.fg-conv-unread::before,
+.fg-conv-unread::after {
+  flex: 1;
+  height: 7px;
+  border-top: var(--border-width) solid var(--line-strong);
+  border-bottom: var(--border-width) solid var(--line-strong);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  content: "";
+}
+.fg-conv-unread {
+  color: var(--accent);
+}
+.fg-conv-unread::before,
+.fg-conv-unread::after {
+  height: 0;
+  border-top-color: var(--accent);
+  border-bottom: 0;
+  background-image: none;
+}
+.fg-conv-system {
+  margin: var(--space-2) var(--space-4);
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  text-align: center;
+}
+
+.fg-conv-msg {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: 2px var(--space-4);
+  outline: none;
+}
+.fg-conv-msg-head {
+  margin-top: var(--space-2);
+  padding-top: var(--space-1);
+}
+.fg-conv-msg:hover,
+.fg-conv-msg-active {
+  background: var(--bg-sunk);
+}
+.fg-conv-msg:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-conv-msg-mine {
+  box-shadow: inset 2px 0 var(--line-strong);
+}
+.fg-conv-msg-side {
+  display: flex;
+  justify-content: center;
+}
+.fg-conv-msg-time {
+  align-self: flex-start;
+  color: var(--ink-dim);
+  font: 400 10px/18px var(--font-mono);
+  visibility: hidden;
+}
+.fg-conv-msg:hover .fg-conv-msg-time,
+.fg-conv-msg:focus-visible .fg-conv-msg-time {
+  visibility: visible;
+}
+.fg-conv-msg-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.fg-conv-msg-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.fg-conv-msg-author {
+  font-weight: 500;
+}
+.fg-conv-msg-role,
+.fg-conv-msg-when {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-conv-msg-body {
+  max-width: 72ch;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.fg-conv-msg-sending .fg-conv-msg-body {
+  color: var(--ink-muted);
+}
+.fg-conv-msg-failed .fg-conv-msg-body {
+  color: var(--danger);
+}
+.fg-conv-deleted,
+.fg-conv-edited {
+  color: var(--ink-dim);
+}
+.fg-conv-edited {
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-conv-state {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  text-transform: uppercase;
+}
+.fg-conv-failed-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fg-conv-failed-text {
+  color: var(--danger);
+  font: 500 11px/16px var(--font-mono);
+  text-transform: uppercase;
+}
+.fg-conv-quote {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  padding: 0 0 0 var(--space-2);
+  border: 0;
+  border-left: 2px solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 400 12px/16px var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+.fg-conv-quote:disabled {
+  cursor: default;
+}
+.fg-conv-quote > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-conv-replies {
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--accent);
+  font: 500 11px/16px var(--font-mono);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.fg-conv-replies:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.fg-conv-replies:disabled {
+  cursor: default;
+}
+.fg-conv-replies-last {
+  color: var(--ink-dim);
+}
+.fg-conv-code {
+  padding: 0 4px;
+  background: var(--bg-sunk);
+  border: var(--border-width) solid var(--line);
+  font: 400 12px/16px var(--font-mono);
+}
+.fg-conv-link {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.fg-conv-mention {
+  display: inline;
+  padding: 0 2px;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: var(--bg-sunk);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 500;
+}
+button.fg-conv-mention {
+  cursor: pointer;
+}
+.fg-conv-msg-actions {
+  position: absolute;
+  top: -12px;
+  right: var(--space-4);
+  display: none;
+  gap: 2px;
+  padding: 2px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+}
+.fg-conv-msg:hover .fg-conv-msg-actions,
+.fg-conv-msg:focus-within .fg-conv-msg-actions,
+.fg-conv-msg-active .fg-conv-msg-actions {
+  display: inline-flex;
+}
+.fg-conv-jump {
+  position: absolute;
+  bottom: var(--space-3);
+  left: 50%;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 28px;
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-none);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+  font: 500 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+.fg-conv-jump-count {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- RichComposer */
+
+.fg-conv-composer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg-sunk);
+}
+.fg-conv-composer:focus-within {
+  border-color: var(--ink-muted);
+}
+.fg-conv-composer-locked {
+  background: var(--bg);
+}
+.fg-conv-replybar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+  border-bottom: var(--border-width) solid var(--line);
+  background: var(--bg);
+  color: var(--ink-muted);
+  font: 400 12px/16px var(--font-sans);
+}
+.fg-conv-replybar-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-conv-replybar-quote {
+  margin-left: var(--space-2);
+  color: var(--ink-dim);
+}
+.fg-conv-tools {
+  padding: 2px var(--space-1);
+  border-bottom: var(--border-width) solid var(--line);
+  background: var(--bg);
+}
+.fg-conv-composer-field {
+  position: relative;
+}
+.fg-conv-composer-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+  resize: none;
+}
+.fg-conv-composer-input[hidden] {
+  display: none;
+}
+.fg-conv-composer-input::placeholder {
+  color: var(--ink-dim);
+}
+.fg-conv-composer-input:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-conv-preview {
+  min-height: 56px;
+  padding: var(--space-3);
+  background: var(--bg);
+}
+.fg-conv-preview-empty {
+  margin: 0;
+  color: var(--ink-dim);
+  font: 400 12px/16px var(--font-mono);
+}
+.fg-conv-composer-files {
+  padding: var(--space-2);
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-conv-composer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-conv-composer-hint {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-conv-composer-hint b {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------- ThreadPanel */
+
+.fg-conv-thread {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  border-left: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+}
+.fg-conv-thread-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-width) solid var(--line-strong);
+}
+.fg-conv-thread-title {
+  margin: 0;
+  font: 500 14px/20px var(--font-sans);
+}
+.fg-conv-thread-count {
+  flex: 1;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  text-transform: uppercase;
+}
+.fg-conv-thread-root {
+  padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-conv-thread-list {
+  flex: 1;
+}
+.fg-conv-thread > .fg-conv-composer {
+  margin: var(--space-3);
+}
+.fg-conv-thread > .fg-conv-typing {
+  padding: 0 var(--space-4);
+}
+
+/* ---------------------------------------------------------------- ConversationList */
+
+.fg-conv-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  outline: none;
+}
+.fg-conv-list-empty {
+  padding: var(--space-4);
+  color: var(--ink-dim);
+  font: 400 12px/16px var(--font-mono);
+}
+.fg-conv-list:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-conv-section-head {
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-width) solid var(--line);
+  border-bottom: var(--border-width) solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  text-transform: uppercase;
+}
+.fg-conv-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "who title time"
+    "who preview count";
+  column-gap: var(--space-3);
+  align-items: center;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-width) solid var(--line);
+  cursor: pointer;
+}
+.fg-conv-row:hover {
+  background: var(--bg-sunk);
+}
+.fg-conv-row[aria-selected="true"] {
+  background: var(--bg-sunk);
+  box-shadow: inset 2px 0 var(--accent);
+}
+.fg-conv-list:focus-visible .fg-conv-row-active {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+.fg-conv-row-who {
+  position: relative;
+  display: flex;
+  grid-area: who;
+  align-items: center;
+}
+.fg-conv-row-presence {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.fg-conv-row-title {
+  display: flex;
+  grid-area: title;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.fg-conv-row-name {
+  overflow: hidden;
+  font-weight: 400;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-conv-row-unread .fg-conv-row-name {
+  font-weight: 600;
+}
+.fg-conv-row-mark {
+  display: inline-flex;
+  flex: none;
+  color: var(--ink-dim);
+}
+.fg-conv-row-time {
+  grid-area: time;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  white-space: nowrap;
+}
+.fg-conv-row-unread .fg-conv-row-time {
+  color: var(--accent);
+}
+.fg-conv-row-preview {
+  grid-area: preview;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font: 400 12px/16px var(--font-sans);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-conv-row-unread .fg-conv-row-preview {
+  color: var(--ink);
+}
+.fg-conv-row-by {
+  color: var(--ink-dim);
+}
+.fg-conv-row-typing {
+  color: var(--accent);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-conv-row-muted .fg-conv-row-name,
+.fg-conv-row-muted .fg-conv-row-preview {
+  color: var(--ink-dim);
+}
+.fg-conv-row-count {
+  display: flex;
+  grid-area: count;
+  justify-content: flex-end;
+}
+.fg-conv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 10px/16px var(--font-mono);
+}
+.fg-conv-row-muted .fg-conv-badge {
+  background: var(--ink-dim);
+  color: var(--bg);
+}
+
+/* ---------------------------------------------------------------- RecipientInput */
+
+.fg-conv-rcpt {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.fg-conv-rcpt-label {
+  flex: none;
+  width: 32px;
+  padding-top: 7px;
+  color: var(--ink-dim);
+  font: 500 11px/18px var(--font-mono);
+  text-transform: uppercase;
+}
+.fg-conv-rcpt-box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.fg-conv-rcpt-list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  margin: 2px 0 0;
+  padding: 4px;
+  border: var(--border-width) solid var(--line-strong);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+  list-style: none;
+}
+.fg-conv-rcpts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.fg-conv-rcpts-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.fg-conv-rcpts-row > .fg-conv-rcpt {
+  flex: 1;
+}
+.fg-conv-rcpts-toggles {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding-top: 6px;
+}
+.fg-conv-rcpts-toggle {
+  padding: 0 var(--space-2);
+  height: 20px;
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-none);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 500 11px/1 var(--font-mono);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.fg-conv-rcpts-toggle:hover {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fg-conv-typing-dots i {
+    animation: none;
+  }
+  .fg-conv-scroll {
+    scroll-behavior: auto;
+  }
+}

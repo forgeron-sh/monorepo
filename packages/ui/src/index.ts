@@ -153,6 +153,7 @@ export * from "./blocks/automation";
 export * from "./blocks/time";
 export * from "./blocks/approval";
 export * from "./blocks/finance";
+export * from "./blocks/conversation";
 export * from "./hooks";
 export * from "./shaders";
 export * from "./blocks/icon-picker";
