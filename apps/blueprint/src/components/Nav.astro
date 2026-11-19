@@ -1,0 +1,33 @@
+---
+import { ForgeronIcon, toSvg } from "@forgeron/icons";
+
+interface Props {
+  page: "home" | "format" | "library" | "viewer" | "none";
+}
+const { page } = Astro.props;
+const mark = toSvg(ForgeronIcon, { size: 22 }) ?? "";
+const links = [
+  ["/format", "/0.1 Format", "format"],
+  ["/library", "/0.2 Library", "library"],
+  ["/viewer", "/0.3 Viewer", "viewer"],
+] as const;
+---
+
+<nav class="nav" aria-label="Main navigation">
+  <div class="rail">
+    <a href="/" class="nav-brand" aria-label="Forgeron Blueprint, home">
+      <span set:html={mark} />
+      <span class="nav-word">Forgeron<span class="dim">/</span><span class="accent">Blueprint</span></span>
+    </a>
+    <div class="nav-links t-mono">
+      {
+        links.map(([href, label, id]) => (
+          <a href={href} aria-current={page === id ? "page" : undefined}>
+            {label}
+          </a>
+        ))
+      }
+    </div>
+    <a class="btn btn-sm nav-cta" href="/schema/v1.json">Schema v1</a>
+  </div>
+</nav>

@@ -20,6 +20,29 @@
         "vitest": "5.0.5",
       },
     },
+    "apps/blueprint": {
+      "name": "@forgeron/blueprint-site",
+      "version": "0.0.0",
+      "dependencies": {
+        "@astrojs/react": "7.1.2",
+        "@forgeron/blueprint": "workspace:*",
+        "@forgeron/blueprint-canvas": "workspace:*",
+        "@forgeron/canvas": "workspace:*",
+        "@forgeron/icons": "workspace:*",
+        "@forgeron/libraries": "workspace:*",
+        "@forgeron/ui": "workspace:*",
+        "astro": "7.4.5",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+      },
+      "devDependencies": {
+        "@astrojs/check": "0.9.12",
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/node": "24.19.2",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+      },
+    },
     "apps/cli": {
       "name": "@forgeron/cli",
       "version": "0.6.0",
@@ -71,6 +94,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@forgeron/icons": "workspace:*",
+        "@forgeron/shaders": "workspace:*",
         "astro": "7.4.5",
       },
       "devDependencies": {
@@ -94,7 +118,6 @@
         "@hono/zod-openapi": "1.6.3",
         "hono": "4.13.16",
         "zod": "4.6.7",
-        "@forgeron/shaders": "workspace:*",
       },
       "devDependencies": {
         "@forgeron/runtime": "workspace:*",
@@ -110,6 +133,7 @@
       "dependencies": {
         "@astrojs/react": "7.1.2",
         "@forgeron/icons": "workspace:*",
+        "@forgeron/shaders": "workspace:*",
         "astro": "7.4.5",
         "react": "19.3.1",
         "react-dom": "19.3.1",
@@ -129,11 +153,11 @@
         "@forgeron/blueprint": "workspace:*",
         "@forgeron/icons": "workspace:*",
         "@forgeron/libraries": "workspace:*",
+        "@forgeron/shaders": "workspace:*",
         "@forgeron/ui": "workspace:*",
         "astro": "7.4.5",
         "react": "19.3.1",
         "react-dom": "19.3.1",
-        "@forgeron/shaders": "workspace:*",
       },
       "devDependencies": {
         "@astrojs/check": "0.9.12",
@@ -152,8 +176,8 @@
         "@forgeron/canvas": "workspace:*",
         "@forgeron/icons": "workspace:*",
         "@forgeron/libraries": "workspace:*",
-        "@forgeron/ui": "workspace:*",
         "@forgeron/shaders": "workspace:*",
+        "@forgeron/ui": "workspace:*",
         "astro": "7.4.5",
         "react": "19.3.1",
         "react-dom": "19.3.1",
@@ -169,6 +193,9 @@
     "packages/blueprint": {
       "name": "@forgeron/blueprint",
       "version": "0.0.0",
+      "dependencies": {
+        "@forgeron/shaders": "workspace:*",
+      },
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
         "@types/react": "19.3.0",
@@ -176,7 +203,6 @@
         "jsdom": "30.1.3",
         "react": "19.3.1",
         "react-dom": "19.3.1",
-        "@forgeron/shaders": "workspace:*",
       },
       "peerDependencies": {
         "react": "19.3.1",
@@ -193,9 +219,6 @@
         "@forgeron/canvas": "workspace:*",
         "@forgeron/icons": "workspace:*",
         "@forgeron/ui": "workspace:*",
-      "dependencies": {
-        "@forgeron/shaders": "workspace:*",
-      },
       },
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
@@ -412,6 +435,13 @@
         "react-dom",
       ],
     },
+    "packages/shaders": {
+      "name": "@forgeron/shaders",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+      },
+    },
     "packages/tsconfig": {
       "name": "@forgeron/tsconfig",
       "version": "0.0.0",
@@ -423,6 +453,7 @@
         "@base-ui/react": "1.9.0",
         "@forgeron/blueprint": "workspace:*",
         "@forgeron/icons": "workspace:*",
+        "@forgeron/shaders": "workspace:*",
         "react-markdown": "10.1.0",
         "remark-gfm": "4.0.1",
       },
@@ -435,13 +466,6 @@
         "react": "19.3.1",
         "react-dom": "19.3.1",
       },
-    "packages/shaders": {
-      "name": "@forgeron/shaders",
-      "version": "0.0.0",
-      "devDependencies": {
-        "@forgeron/tsconfig": "workspace:*",
-      },
-    },
       "peerDependencies": {
         "react": "19.3.1",
       },
@@ -453,7 +477,6 @@
         "@forgeron/sdk": "workspace:*",
       },
     },
-        "@forgeron/shaders": "workspace:*",
     "templates/dashboard": {
       "name": "@forgeron/template-dashboard",
       "version": "0.0.0",
@@ -665,6 +688,8 @@
 
     "@forgeron/blueprint-canvas": ["@forgeron/blueprint-canvas@workspace:packages/blueprint-canvas"],
 
+    "@forgeron/blueprint-site": ["@forgeron/blueprint-site@workspace:apps/blueprint"],
+
     "@forgeron/canvas": ["@forgeron/canvas@workspace:packages/canvas"],
 
     "@forgeron/cli": ["@forgeron/cli@workspace:apps/cli"],
@@ -705,6 +730,8 @@
 
     "@forgeron/sdk": ["@forgeron/sdk@workspace:packages/sdk"],
 
+    "@forgeron/shaders": ["@forgeron/shaders@workspace:packages/shaders"],
+
     "@forgeron/site": ["@forgeron/site@workspace:apps/site"],
 
     "@forgeron/template-crm": ["@forgeron/template-crm@workspace:templates/crm"],
@@ -730,8 +757,6 @@
     "@img/sharp-darwin-x64": ["@img/sharp-darwin-x64@0.35.5", "", { "optionalDependencies": { "@img/sharp-libvips-darwin-x64": "1.3.4" }, "os": "darwin", "cpu": "x64" }, "sha512-+BR255RhDlpygUpOc/Jdt1nT6DQ3XG/ERo5wbcdOf5Q320dKtPCKPLR1LJs9VGXRaMa8l1uUa0tkCNOXiAxZUw=="],
 
     "@img/sharp-freebsd-wasm32": ["@img/sharp-freebsd-wasm32@0.35.5", "", { "dependencies": { "@img/sharp-wasm32": "0.35.5" }, "os": "freebsd" }, "sha512-Y/z91nEZ4uIBX5X3nfTovjU9lHNKFYbL2lpHCLVNmXQK03VIZvXBBt0KxbPGp2SdGSF+2mQU4e+hQaWOt86iAw=="],
-    "@forgeron/shaders": ["@forgeron/shaders@workspace:packages/shaders"],
-
 
     "@img/sharp-libvips-darwin-arm64": ["@img/sharp-libvips-darwin-arm64@1.3.4", "", { "os": "darwin", "cpu": "arm64" }, "sha512-5R89nBYiRdUlSWJxPhO+GVtaXzXSxKnRu/xqMn3KTA3L9EB9Oy/P+Nn2f2vlhPuUdy/Zusb2DarbyTpGCfEDuw=="],
 
@@ -1915,6 +1940,8 @@
 
     "import-fresh/resolve-from": ["resolve-from@4.0.0", "", {}, "sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g=="],
 
+    "miniflare/sharp": ["sharp@0.35.2", "", { "dependencies": { "@img/colour": "^1.1.0", "detect-libc": "^2.1.2", "semver": "^7.8.4" }, "optionalDependencies": { "@img/sharp-darwin-arm64": "0.35.2", "@img/sharp-darwin-x64": "0.35.2", "@img/sharp-freebsd-wasm32": "0.35.2", "@img/sharp-libvips-darwin-arm64": "1.3.1", "@img/sharp-libvips-darwin-x64": "1.3.1", "@img/sharp-libvips-linux-arm": "1.3.1", "@img/sharp-libvips-linux-arm64": "1.3.1", "@img/sharp-libvips-linux-ppc64": "1.3.1", "@img/sharp-libvips-linux-riscv64": "1.3.1", "@img/sharp-libvips-linux-s390x": "1.3.1", "@img/sharp-libvips-linux-x64": "1.3.1", "@img/sharp-libvips-linuxmusl-arm64": "1.3.1", "@img/sharp-libvips-linuxmusl-x64": "1.3.1", "@img/sharp-linux-arm": "0.35.2", "@img/sharp-linux-arm64": "0.35.2", "@img/sharp-linux-ppc64": "0.35.2", "@img/sharp-linux-riscv64": "0.35.2", "@img/sharp-linux-s390x": "0.35.2", "@img/sharp-linux-x64": "0.35.2", "@img/sharp-linuxmusl-arm64": "0.35.2", "@img/sharp-linuxmusl-x64": "0.35.2", "@img/sharp-webcontainers-wasm32": "0.35.2", "@img/sharp-win32-arm64": "0.35.2", "@img/sharp-win32-ia32": "0.35.2", "@img/sharp-win32-x64": "0.35.2" } }, "sha512-FVtFjtBCMiJS6yb5CX7Sop45WFMpeGw6oRKuJnXYgf/f1ms/D7LE/ZUSNxnW7rZ/dbslQWYkoqFHGPaDBtaK4w=="],
+
     "miniflare/undici": ["undici@7.28.0", "", {}, "sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA=="],
 
     "oxc-parser/@oxc-project/types": ["@oxc-project/types@0.154.0", "", {}, "sha512-KYOUGQFlLWR+s4QMV2Q9ko38TZm7EdO87Qm7rvZLqk/webse/cDjtyxKhg/47l0byCbs/k46LT8qc4PKjAikzA=="],
@@ -1940,8 +1967,6 @@
     "wrap-ansi/string-width": ["string-width@7.2.0", "", { "dependencies": { "emoji-regex": "^10.3.0", "get-east-asian-width": "^1.0.0", "strip-ansi": "^7.1.0" } }, "sha512-tsaTIkKW9b4N+AEj+SVA+WhJzV7/zMhcSu78mLKWSk7cXMOSHsBKFWUs0fWwq8QyK3MgJBQRX6Gbi4kYbdvGkQ=="],
 
     "yaml-language-server/request-light": ["request-light@0.5.8", "", {}, "sha512-3Zjgh+8b5fhRJBQZoy+zbVKpAQGLyka0MPgW3zruTF4dFFJ8Fqcfu9YsAvi/rvdcaTeWG3MkbZv4WKxAn/84Lg=="],
-    "miniflare/sharp": ["sharp@0.35.2", "", { "dependencies": { "@img/colour": "^1.1.0", "detect-libc": "^2.1.2", "semver": "^7.8.4" }, "optionalDependencies": { "@img/sharp-darwin-arm64": "0.35.2", "@img/sharp-darwin-x64": "0.35.2", "@img/sharp-freebsd-wasm32": "0.35.2", "@img/sharp-libvips-darwin-arm64": "1.3.1", "@img/sharp-libvips-darwin-x64": "1.3.1", "@img/sharp-libvips-linux-arm": "1.3.1", "@img/sharp-libvips-linux-arm64": "1.3.1", "@img/sharp-libvips-linux-ppc64": "1.3.1", "@img/sharp-libvips-linux-riscv64": "1.3.1", "@img/sharp-libvips-linux-s390x": "1.3.1", "@img/sharp-libvips-linux-x64": "1.3.1", "@img/sharp-libvips-linuxmusl-arm64": "1.3.1", "@img/sharp-libvips-linuxmusl-x64": "1.3.1", "@img/sharp-linux-arm": "0.35.2", "@img/sharp-linux-arm64": "0.35.2", "@img/sharp-linux-ppc64": "0.35.2", "@img/sharp-linux-riscv64": "0.35.2", "@img/sharp-linux-s390x": "0.35.2", "@img/sharp-linux-x64": "0.35.2", "@img/sharp-linuxmusl-arm64": "0.35.2", "@img/sharp-linuxmusl-x64": "0.35.2", "@img/sharp-webcontainers-wasm32": "0.35.2", "@img/sharp-win32-arm64": "0.35.2", "@img/sharp-win32-ia32": "0.35.2", "@img/sharp-win32-x64": "0.35.2" } }, "sha512-FVtFjtBCMiJS6yb5CX7Sop45WFMpeGw6oRKuJnXYgf/f1ms/D7LE/ZUSNxnW7rZ/dbslQWYkoqFHGPaDBtaK4w=="],
-
 
     "yaml-language-server/yaml": ["yaml@2.8.3", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg=="],
 

@@ -1,0 +1,30 @@
+---
+import Layout from "../components/Layout.astro";
+import Viewer from "../islands/Viewer";
+import "@forgeron/canvas/styles.css";
+import "@forgeron/blueprint-canvas/styles.css";
+---
+
+<Layout
+  title="Viewer — Blueprint"
+  description="Open a .bp file in the Blueprint viewer: its scenes, assemblies and parts in the four iso views, played and scrubbed, its vars and machines."
+  page="viewer"
+>
+  <header class="rail sec-head">
+    <span class="sec-index">0.3</span>
+    <div class="sec-title">
+      <h1 class="f-title f-h2">Viewer</h1>
+      <p class="t-lead">
+        Any scene of a .bp on a canvas: the four views, play and scrub, vars and machines. Take a file of
+        the library, or drop your own on the stage.
+      </p>
+    </div>
+    <div class="sec-meta t-mono">
+      <div>Nothing leaves this page</div>
+      <div>@forgeron/blueprint-canvas</div>
+    </div>
+  </header>
+  <section class="rail bp-viewer" aria-label="Viewer">
+    <Viewer client:only="react" />
+  </section>
+</Layout>

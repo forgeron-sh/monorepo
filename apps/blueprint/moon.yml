@@ -1,0 +1,32 @@
+# `apps/blueprint` and `packages/blueprint` share a folder name: this project takes its own id.
+id: "blueprint-site"
+language: typescript
+
+tasks:
+  dev:
+    command: astro dev
+    preset: server
+  build:
+    command: astro build
+    inputs:
+      ["src/**/*", "public/**/*", "astro.config.ts", "package.json", "/docs/blueprint/format.md"]
+    outputs: ["dist"]
+
+  # `tsc` does not read `.astro` files: `astro-check` (from @astrojs/check) type-checks them along with the TypeScript.
+  typecheck:
+    command: astro-check
+    inputs:
+      [
+        "src/**/*",
+        "public/**/*",
+        "tsconfig.json",
+        "astro.config.ts",
+        "package.json",
+        "/docs/blueprint/format.md",
+      ]
+
+  # The built site: every internal link and anchor resolves, the schema is served.
+  links:
+    command: bun scripts/check-links.ts
+    deps: ["~:build"]
+    inputs: ["dist/**/*", "scripts/check-links.ts"]

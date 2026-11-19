@@ -1,0 +1,46 @@
+---
+import { compiledContent, getHeadings } from "../../../../docs/blueprint/format.md";
+import Layout from "../components/Layout.astro";
+import { rewriteDocLinks } from "../lib/doc-links";
+
+// The normative text, rendered from docs/blueprint/format.md as it is in the repository: this page
+// adds the table of contents and nothing else, so the two never disagree.
+const html = rewriteDocLinks(await compiledContent());
+const toc = getHeadings().filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+<Layout
+  title="Format — Blueprint"
+  description="The Blueprint file format, version 1: files, values, imports, parts, assemblies, scenes. Normative text."
+  page="format"
+>
+  <header class="rail sec-head">
+    <span class="sec-index">0.1</span>
+    <div class="sec-title">
+      <h1 class="f-title f-h2">The format</h1>
+      <p class="t-lead">Version 1, normative. Where the text and the schema disagree, the schema states the shape and the text states the meaning.</p>
+    </div>
+    <div class="sec-meta t-mono">
+      <a href="/schema/v1.json">schema/v1.json</a>
+      <div>application/vnd.forgeron.blueprint+json</div>
+    </div>
+  </header>
+
+  <div class="rail bp-doc">
+    <nav class="bp-toc t-mono" aria-label="On this page">
+      <span class="dim">On this page</span>
+      <ol>
+        {
+          toc.map((h) => (
+            <li class={h.depth === 3 ? "sub" : undefined}>
+              <a href={`#${h.slug}`}>{h.text}</a>
+            </li>
+          ))
+        }
+      </ol>
+    </nav>
+    <article class="bp-prose">
+      <Fragment set:html={html} />
+    </article>
+  </div>
+</Layout>

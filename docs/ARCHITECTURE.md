@@ -54,7 +54,8 @@ forgeron/
 │   ├── site/               # forgeron.app marketing site (Astro, React islands)
 │   ├── icon-gallery/       # dev gallery of @forgeron/icons (Astro, React islands), not deployed
 │   ├── font/               # font.forgeron.sh: specimen and downloads of the Forgeron Sans typeface (Astro, static)
-│   └── ui-gallery/         # ui.forgeron.sh: gallery of @forgeron/ui, examples, code and props (Astro, React islands)
+│   ├── ui-gallery/         # ui.forgeron.sh: gallery of @forgeron/ui, examples, code and props (Astro, React islands)
+│   └── blueprint/          # blueprint.forgeron.sh: the Blueprint format, its schema, the part library, the viewer (Astro, React island)
 ├── packages/
 │   ├── sdk/                # @forgeron/sdk: defineConfig, action, on, schedule; subpaths db, react, testing
 │   ├── runtime/            # @forgeron/runtime: runs a tool in its Worker, serves MCP / API / CLI / Web
@@ -68,8 +69,8 @@ forgeron/
 │   ├── scaffold/           # @forgeron/scaffold: the files of a new tool or marketplace, for `forgeron init` and the gateway (D-123)
 │   ├── ui/                 # @forgeron/ui: design system atoms, components and tokens
 │   ├── blueprint/          # @forgeron/blueprint: pixel illustrations (iso scenes, dithered fields, Forge Sans), for the site
-│   ├── icons/              # @forgeron/icons: pixel icons, mono and duo, one named export per icon (drawing guide: docs/icons.md)
 │   ├── shaders/            # @forgeron/shaders: the pixel effects as a pipeline of passes (GLSL and CPU) with JSON presets (D-149)
+│   ├── icons/              # @forgeron/icons: pixel icons, mono and duo, one named export per icon (drawing guide: docs/icons.md)
 │   ├── canvas/             # @forgeron/canvas: the engine of the editors on an infinite surface (camera, grid, selection, history), React layer (D-148)
 │   ├── blueprint-canvas/   # @forgeron/blueprint-canvas: Blueprint scenes on canvas (item kind, layer, the .bp viewer, the depth review), D-150 P5
 │   ├── libraries/          # @forgeron/libraries: shared assets, one folder per type (blueprints/: the site's .bp scenes)
@@ -133,6 +134,7 @@ Design points:
 | `icon-gallery` | Astro, React islands, `@forgeron/icons`      | local only (`astro dev`, port 5179)                               | Gallery of `@forgeron/icons` (search, filters, detail, copy and download)                                                                                         |
 | `font`         | Astro, no framework                          | Worker + static assets (`font.forgeron.sh`), local port 5180      | Specimen of Forgeron Sans read from its OTF files: construction plate, glyph set, sizes, usage, licence; `/playground` tester; downloads with checksums           |
 | `ui-gallery`   | Astro, React islands, `@forgeron/ui`         | Worker + static assets (`ui.forgeron.sh`), local port 5181        | Gallery of `@forgeron/ui`: atoms with live examples, their code and props, installation; blocks and pages planned (Soon)                                          |
+| `blueprint`    | Astro, React island, `@forgeron/blueprint`   | Worker + static assets (`blueprint.forgeron.sh`), local port 5182 | The `.bp` format (from `docs/blueprint/format.md`), its schema at `/schema/v1.json`, the part library built as SVG, the P5 viewer; moon id `blueprint-site`       |
 
 `apps/cli` is the only app published on npm: it runs on the developer's machine. It stays in `apps/` because it is a final executable that nothing imports.
 
@@ -250,9 +252,9 @@ Checked by `bun run deps` (dependency-cruiser, `.dependency-cruiser.cjs`) in CI.
 - `@forgeron/libraries` (shared assets: data) depends on no other package of the repository (`libraries-is-a-leaf`);
 - `@forgeron/ui` does not import the SDK, and takes only the neutral core of `@forgeron/blueprint` and the named exports of `@forgeron/icons`, never `dom/`, `react/` or the catalog (`ui-atoms-stay-static`);
 - the editors on an infinite surface sit above ui (D-148): `@forgeron/ui` imports neither `@forgeron/canvas` nor `flow` nor `draw` (`ui-does-not-import-editors`); canvas imports neither flow nor draw (`canvas-does-not-import-its-editors`); canvas imports neither `@forgeron/blueprint` nor `@forgeron/blueprint-canvas` (`canvas-does-not-import-blueprint`): Blueprint sits on canvas, in its own package because `blueprint → canvas → ui → blueprint` would be a cycle of moon's project graph; canvas's core (`src/core/`) imports neither React nor its `react/` layer nor ui (`canvas-core-is-framework-free`), nor a Node module (`canvas-core-stays-neutral`);
+- `@forgeron/shaders` (D-149, `docs/shaders/design.md`) sits under ui and Blueprint, which both import it: it imports no other package of the repository (`shaders-is-a-leaf`); its core (`src/core/`, `src/index.ts`) imports neither its `dom/` layer nor React (`shaders-core-is-framework-free`), nor a Node module (`shaders-core-stays-neutral`);
 - `@forgeron/blueprint`'s core (`src/core/`, `src/examples/`) imports neither its `dom/` and `react/` layers nor React (`blueprint-core-is-framework-free`), nor a Node module (`blueprint-core-stays-neutral`);
 - the registry has one door, `@forgeron/registry` (`registry-door-is-index`): nothing outside the package imports a file under `packages/registry/src/` other than `index.ts`;
-- `@forgeron/shaders` (D-149, `docs/shaders/design.md`) sits under ui and Blueprint, which both import it: it imports no other package of the repository (`shaders-is-a-leaf`); its core (`src/core/`, `src/index.ts`) imports neither its `dom/` layer nor React (`shaders-core-is-framework-free`), nor a Node module (`shaders-core-stays-neutral`);
 - inside the registry, a module (`modules/<domain>/`) is imported through its `public.ts` only, by another module (`module-uses-public-api`) and by the rest of the package (`registry-root-uses-module-public-api`); the registry's `kernel/` imports no module (`kernel-is-generic`);
 - the gateway's `kernel/` (`Person`, `workspaceOf`) imports nothing else of the gateway (`gateway-kernel-is-a-leaf`); `dispatch/` and `pages/` never import `identity/` and `identity/` never imports `dispatch/` (`identity-is-below-dispatch-and-pages`, `identity-does-not-import-dispatch`): folder cycles that the file-level `no-cycles` cannot see;
 - the gateway wires its areas in `compose.ts` (`createModules` once, `createRequestModules` per request) and `gateway.ts` is the table of routes; an area takes the narrow port it uses (`Pick<Registry, …>`) and never imports `compose.ts` (`gateway-compose-is-the-root`);

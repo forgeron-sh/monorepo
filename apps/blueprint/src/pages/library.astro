@@ -1,0 +1,168 @@
+---
+import Layout from "../components/Layout.astro";
+import { assertDrawn, libraryParts, PREVIEW } from "../lib/parts";
+
+// Every part and assembly of the library, drawn at build time by the engine. The build fails when
+// one that has prims draws nothing.
+const entries = await libraryParts();
+assertDrawn(entries);
+const files = [...new Set(entries.map((e) => e.file))];
+const parts = entries.filter((e) => e.kind === "part").length;
+const describe = (counts: Readonly<Record<string, number>>) =>
+  Object.entries(counts)
+    .map(([k, n]) => `${n} ${k}${n > 1 ? "s" : ""}`)
+    .join(" · ");
+---
+
+<Layout
+  title="Library — Blueprint"
+  description="Every part and assembly of the Blueprint library, drawn at build time by the engine: search by name, filter by kind and file, open any of them in the viewer."
+  page="library"
+>
+  <header class="rail sec-head">
+    <span class="sec-index">0.2</span>
+    <div class="sec-title">
+      <h1 class="f-title f-h2">Part library</h1>
+      <p class="t-lead">
+        The parts and assemblies of the library files, each framed alone and drawn at build time by the
+        same engine the pages play. Parts whose defaults draw nothing are shown as they stand in their
+        scene.
+      </p>
+    </div>
+    <div class="sec-meta t-mono">
+      <div>{parts} parts · {entries.length - parts} assemblies</div>
+      <div>{files.length} files · @forgeron/libraries</div>
+    </div>
+  </header>
+
+  <form class="rail bp-filters" role="search" aria-label="Filter the library" data-filters>
+    <label class="bp-search">
+      <span class="sr-only">Search</span>
+      <input
+        class="fg-input"
+        type="search"
+        name="q"
+        placeholder="Search a part, a file, a prim…"
+        autocomplete="off"
+        data-q
+      />
+    </label>
+    <div class="seg" role="group" aria-label="Kind">
+      <button type="button" data-kind="all" aria-pressed="true">All</button>
+      <button type="button" data-kind="part" aria-pressed="false">Parts</button>
+      <button type="button" data-kind="assembly" aria-pressed="false">Assemblies</button>
+    </div>
+    <label class="bp-file">
+      <span class="sr-only">File</span>
+      <select class="fg-select" name="file" data-file>
+        <option value="">Every file</option>
+        {files.map((f) => <option value={f}>{f}</option>)}
+      </select>
+    </label>
+    <output class="t-mono dim" data-count aria-live="polite">{entries.length} shown</output>
+  </form>
+
+  <ul class="rail bp-grid" data-grid>
+    {
+      entries.map((e) => (
+        <li
+          class="bp-card"
+          id={e.id.replace(/[^\w-]+/g, "-")}
+          data-kind={e.kind}
+          data-file={e.file}
+          data-search={[e.name, e.title ?? "", e.file, e.fileId, e.kind, ...Object.keys(e.counts), ...e.params]
+            .join(" ")
+            .toLowerCase()}
+        >
+          <div class="bp-card-art" style={`aspect-ratio: ${PREVIEW.width} / ${PREVIEW.height}`}>
+            {e.svg ? (
+              <Fragment set:html={e.svg} />
+            ) : (
+              <span class="t-mono dim bp-empty">No prims: drawn by the page's script</span>
+            )}
+          </div>
+          <div class="bp-card-copy">
+            <div class="bp-card-head">
+              <h2 class="t-title">{e.title ?? (e.name === "static" ? e.file.replace(/\.bp$/, "") : e.name)}</h2>
+              <span class={e.kind === "assembly" ? "chip on" : "chip"}>{e.kind}</span>
+            </div>
+            <p class="t-mono dim">
+              {e.file} · {e.name}
+            </p>
+            <p class="t-small">{describe(e.counts) || "empty"}</p>
+            {e.params.length > 0 && (
+              <p class="t-small dim">
+                {e.params.length} param{e.params.length > 1 ? "s" : ""}
+                {e.sockets.length > 0 ? ` · ${e.sockets.length} sockets` : ""}
+              </p>
+            )}
+            {e.from && <p class="t-small dim">Defaults draw nothing; shown {e.from.startsWith("alone") ? e.from : `as in ${e.from}`}</p>}
+            <a class="bp-open t-mono" href={`/viewer?file=${encodeURIComponent(e.file)}`}>
+              Open {e.file} in the viewer →
+            </a>
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+  <p class="rail bp-none t-small" data-none hidden>Nothing matches. Clear the search or pick another file.</p>
+</Layout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("[data-filters]");
+  const search = document.querySelector<HTMLInputElement>("[data-q]");
+  const file = document.querySelector<HTMLSelectElement>("[data-file]");
+  const count = document.querySelector<HTMLOutputElement>("[data-count]");
+  const none = document.querySelector<HTMLElement>("[data-none]");
+  const cards = [...document.querySelectorAll<HTMLElement>(".bp-card")];
+  const kinds = [...document.querySelectorAll<HTMLButtonElement>("button[data-kind]")].filter(
+    (b) => b.tagName === "BUTTON",
+  );
+  let kind = "all";
+
+  // The filters live in the address bar: ?q=…&kind=…&file=….
+  const params = new URLSearchParams(window.location.search);
+  if (search) search.value = params.get("q") ?? "";
+  if (file) file.value = params.get("file") ?? "";
+  kind = params.get("kind") ?? "all";
+
+  function apply() {
+    const words = (search?.value ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+    const f = file?.value ?? "";
+    let shown = 0;
+    for (const card of cards) {
+      const text = card.dataset.search ?? "";
+      const ok =
+        (kind === "all" || card.dataset.kind === kind) &&
+        (!f || card.dataset.file === f) &&
+        words.every((w) => text.includes(w));
+      card.hidden = !ok;
+      if (ok) shown++;
+    }
+    for (const b of kinds) b.setAttribute("aria-pressed", String(b.dataset.kind === kind));
+    if (count) count.value = `${shown} shown`;
+    if (none) none.hidden = shown > 0;
+    const next = new URLSearchParams();
+    if (search?.value) next.set("q", search.value);
+    if (kind !== "all") next.set("kind", kind);
+    if (f) next.set("file", f);
+    const query = next.toString();
+    history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+  }
+
+  search?.addEventListener("input", apply);
+  file?.addEventListener("change", apply);
+  for (const b of kinds)
+    b.addEventListener("click", () => {
+      kind = b.dataset.kind ?? "all";
+      apply();
+    });
+  form?.addEventListener("submit", (e) => e.preventDefault());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== search) {
+      e.preventDefault();
+      search?.focus();
+    }
+  });
+  apply();
+</script>

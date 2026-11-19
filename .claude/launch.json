@@ -26,6 +26,12 @@
       "port": 5181
     },
     {
+      "name": "blueprint",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/blueprint", "dev"],
+      "port": 5182
+    },
+    {
       "name": "font",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "apps/font", "dev"],
