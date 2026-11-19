@@ -15,6 +15,7 @@ import { entries as iconPickerBlocks } from "./entries/icon-picker";
 import { entries as listBlocks } from "./entries/lists";
 import { entries as navigationBlocks } from "./entries/navigation";
 import { entries as recordBlocks } from "./entries/record";
+import { entries as structureBlocks } from "./entries/structure";
 import { entries as timeBlocks } from "./entries/time";
 import { entries as viewBlocks } from "./entries/views";
 import {
@@ -931,6 +932,7 @@ export const blocks: ReadonlyArray<Atom> = [
   ...dashboardBlocks,
   ...formsBlocks,
   ...adminBlocks,
+  ...structureBlocks,
 ];
 
 /** The hooks: the state the components share, the keyboard, the actions of a screen. */
