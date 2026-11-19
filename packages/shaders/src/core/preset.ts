@@ -1,45 +1,116 @@
 import {
   type Chain,
+  type CpuPass,
+  type CpuSource,
+  type GlslPass,
+  type GlslSource,
   type PassDef,
+  type PassMeta,
   PRESET_SCHEMA_ID,
   type Preset,
   type SourceDef,
+  type SourceMeta,
   type Step,
 } from "./contract";
 import { jsonSchemaOf, type PresetIssue, readParams } from "./params";
-import { gridPass } from "./passes/grid";
-import { imageDitherPass } from "./passes/image-dither";
-import { orderedPass } from "./passes/ordered";
-import { palettePass } from "./passes/palette";
-import { pixelatePass } from "./passes/pixelate";
-import { fieldSource } from "./sources/field";
-import { hearthSource } from "./sources/hearth";
-import { heatSource } from "./sources/heat";
-import { imageSource } from "./sources/image";
-import { toneSource } from "./sources/tone";
+import { blueNoiseMeta } from "./passes/blue-noise";
+import { blueNoiseCpu } from "./passes/blue-noise.cpu";
+import { blueNoiseGlsl } from "./passes/blue-noise.glsl";
+import { crtMeta } from "./passes/crt";
+import { crtCpu } from "./passes/crt.cpu";
+import { crtGlsl } from "./passes/crt.glsl";
+import { edgesMeta } from "./passes/edges";
+import { edgesCpu } from "./passes/edges.cpu";
+import { edgesGlsl } from "./passes/edges.glsl";
+import { floydSteinbergMeta } from "./passes/floyd-steinberg";
+import { floydSteinbergCpu } from "./passes/floyd-steinberg.cpu";
+import { glowMeta } from "./passes/glow";
+import { glowCpu } from "./passes/glow.cpu";
+import { glowGlsl } from "./passes/glow.glsl";
+import { gridMeta } from "./passes/grid";
+import { gridCpu } from "./passes/grid.cpu";
+import { gridGlsl } from "./passes/grid.glsl";
+import { halftoneMeta } from "./passes/halftone";
+import { halftoneCpu } from "./passes/halftone.cpu";
+import { halftoneGlsl } from "./passes/halftone.glsl";
+import { imageDitherMeta } from "./passes/image-dither";
+import { imageDitherCpu } from "./passes/image-dither.cpu";
+import { imageDitherGlsl } from "./passes/image-dither.glsl";
+import { orderedMeta } from "./passes/ordered";
+import { orderedCpu } from "./passes/ordered.cpu";
+import { orderedGlsl } from "./passes/ordered.glsl";
+import { paletteMeta } from "./passes/palette";
+import { paletteCpu } from "./passes/palette.cpu";
+import { paletteGlsl } from "./passes/palette.glsl";
+import { pixelateMeta, pixelateStep } from "./passes/pixelate";
+import { scanlinesMeta } from "./passes/scanlines";
+import { scanlinesCpu } from "./passes/scanlines.cpu";
+import { scanlinesGlsl } from "./passes/scanlines.glsl";
+import { constantMeta } from "./sources/constant";
+import { constantCpu } from "./sources/constant.cpu";
+import { constantGlsl } from "./sources/constant.glsl";
+import { fieldMeta } from "./sources/field";
+import { fieldCpu } from "./sources/field.cpu";
+import { fieldGlsl } from "./sources/field.glsl";
+import { hearthMeta } from "./sources/hearth";
+import { hearthCpu } from "./sources/hearth.cpu";
+import { heatMeta } from "./sources/heat";
+import { heatCpu } from "./sources/heat.cpu";
+import { imageMeta } from "./sources/image";
+import { imageCpu } from "./sources/image.cpu";
+import { imageGlsl } from "./sources/image.glsl";
+import { toneMeta } from "./sources/tone";
+import { toneCpu } from "./sources/tone.cpu";
 
 /**
  * Presets: an effect as data (docs/shaders/design.md §3). `version: 1`; the schema is
- * `schema/preset.v1.json`, written from the params of the passes and sources below.
+ * `schema/preset.v1.json`, written from the params of the passes and sources below. This module
+ * holds every definition with its three parts: a live mount does not import it.
  */
+
+/** The three parts of a pass as one definition; `glsl` null for a CPU-only pass. */
+export function definePass<P>(
+  meta: PassMeta,
+  glsl: GlslPass<P> | null,
+  cpu: CpuPass<P>,
+): PassDef<never> {
+  return { ...meta, glsl: (glsl?.glsl ?? null) as PassDef<never>["glsl"], cpu: cpu.cpu as never };
+}
+
+/** The parts of a source as one definition; `glsl` null for a CPU-only source. */
+export function defineSource<P>(
+  meta: SourceMeta,
+  glsl: GlslSource<P> | null,
+  cpu: CpuSource<P>,
+): SourceDef<never> {
+  return { ...meta, glsl: (glsl?.glsl ?? null) as SourceDef<never>["glsl"], cpu: cpu.cpu as never };
+}
 
 /** The passes a preset may use, by type. */
 export const PASSES: Readonly<Record<string, PassDef<never>>> = {
-  pixelate: pixelatePass,
-  ordered: orderedPass,
-  "image-dither": imageDitherPass,
-  palette: palettePass,
-  grid: gridPass,
-} as Record<string, PassDef<never>>;
+  pixelate: definePass(pixelateMeta, pixelateStep, pixelateStep),
+  ordered: definePass(orderedMeta, orderedGlsl, orderedCpu),
+  "image-dither": definePass(imageDitherMeta, imageDitherGlsl, imageDitherCpu),
+  palette: definePass(paletteMeta, paletteGlsl, paletteCpu),
+  grid: definePass(gridMeta, gridGlsl, gridCpu),
+  "blue-noise": definePass(blueNoiseMeta, blueNoiseGlsl, blueNoiseCpu),
+  "floyd-steinberg": definePass(floydSteinbergMeta, null, floydSteinbergCpu),
+  halftone: definePass(halftoneMeta, halftoneGlsl, halftoneCpu),
+  scanlines: definePass(scanlinesMeta, scanlinesGlsl, scanlinesCpu),
+  edges: definePass(edgesMeta, edgesGlsl, edgesCpu),
+  glow: definePass(glowMeta, glowGlsl, glowCpu),
+  crt: definePass(crtMeta, crtGlsl, crtCpu),
+};
 
 /** The sources a preset may start from, by type. */
 export const SOURCES: Readonly<Record<string, SourceDef<never>>> = {
-  field: fieldSource,
-  heat: heatSource,
-  image: imageSource,
-  tone: toneSource,
-  hearth: hearthSource,
-} as Record<string, SourceDef<never>>;
+  field: defineSource(fieldMeta, fieldGlsl, fieldCpu),
+  heat: defineSource(heatMeta, null, heatCpu),
+  image: defineSource(imageMeta, imageGlsl, imageCpu),
+  tone: defineSource(toneMeta, null, toneCpu),
+  hearth: defineSource(hearthMeta, null, hearthCpu),
+  constant: defineSource(constantMeta, constantGlsl, constantCpu),
+};
 
 export class PresetError extends Error {
   constructor(readonly issues: readonly PresetIssue[]) {
@@ -77,7 +148,7 @@ export function checkPreset(input: unknown): { preset: Preset } | { issues: Pres
   const passes: Step[] = [];
   if (!Array.isArray(input.passes)) issues.push({ path: "$.passes", message: "must be a list" });
   else {
-    let present = false;
+    let present = "";
     input.passes.forEach((raw: unknown, i) => {
       const path = `$.passes[${i}]`;
       if (!isObject(raw) || typeof raw.type !== "string") {
@@ -92,8 +163,8 @@ export function checkPreset(input: unknown): { preset: Preset } | { issues: Pres
       if (def.kind === "layout" && i !== 0)
         issues.push({ path, message: `"${raw.type}" must come first` });
       if (def.usesCell && present)
-        issues.push({ path, message: `"${raw.type}" reads cells and cannot follow the grid` });
-      present ||= def.kind === "present";
+        issues.push({ path, message: `"${raw.type}" reads cells and cannot follow "${present}"` });
+      if (def.kind === "present") present ||= raw.type;
       passes.push(readParams(def.params, raw, path, issues) as Step);
     });
   }
@@ -111,11 +182,11 @@ export function readPreset(input: unknown): Preset {
   return r.preset;
 }
 
-/** The chain of a preset (checked first: throws a `PresetError`). */
-export function chainOf(input: Preset | unknown): Chain {
+/** The chain of a preset (checked first: throws a `PresetError`), with every definition. */
+export function chainOf(input: Preset | unknown): Chain<SourceDef<never>, PassDef<never>> {
   const preset = readPreset(input);
   const { type: sourceType, ...sourceParams } = preset.source;
-  const chain: Chain = {
+  const chain: Chain<SourceDef<never>, PassDef<never>> = {
     source: { def: SOURCES[sourceType] as SourceDef<never>, params: sourceParams },
     passes: preset.passes.map(({ type, ...params }) => ({
       def: PASSES[type] as PassDef<never>,
@@ -128,7 +199,7 @@ export function chainOf(input: Preset | unknown): Chain {
 
 function stepSchema(
   type: string,
-  def: { description: string; params: PassDef["params"] },
+  def: { description: string; params: PassMeta["params"] },
 ): Record<string, unknown> {
   const properties: Record<string, unknown> = { type: { const: type } };
   for (const [k, spec] of Object.entries(def.params)) properties[k] = jsonSchemaOf(spec);

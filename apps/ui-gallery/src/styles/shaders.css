@@ -158,3 +158,62 @@
   width: 100%;
   height: 100%;
 }
+
+/* A built-in preset of @forgeron/shaders: the canvas fills the stage, the controls sit on it. */
+.sh-preset {
+  position: absolute;
+  inset: 0;
+}
+.sh-preset > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.sh-controls {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  grid-template-columns: max-content minmax(96px, 160px) 40px;
+  gap: 4px 8px;
+  align-items: center;
+  max-width: calc(100% - 16px);
+  padding: 8px 10px;
+  font-size: 11px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+.sh-controls > span {
+  grid-column: 1 / -1;
+}
+.sh-controls label {
+  display: contents;
+}
+.sh-controls input[type="text"],
+.sh-controls select {
+  grid-column: span 2;
+  min-width: 0;
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+}
+.sh-controls input[type="checkbox"] {
+  grid-column: span 2;
+  justify-self: start;
+}
+.sh-controls output {
+  text-align: right;
+  color: var(--ink-muted);
+}
+.sh-problem {
+  color: var(--danger, #ff6b81);
+}
+/* A preset's card: a static SVG drawn at build time. */
+.sh-preset-card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}

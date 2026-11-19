@@ -6,6 +6,7 @@
  */
 import type { ImagePixels } from "../../src/core/sources/image";
 import {
+  bayerMaskPreset,
   chainOf,
   type ColorRef,
   ditheredImagePreset,
@@ -15,7 +16,7 @@ import {
   runCpu,
   toRgba,
 } from "../../src/index";
-import { createGlPipeline } from "../../src/dom/pipeline-gl";
+import { createGlPipeline } from "../../src/dom/pipeline-gl-ext";
 
 interface Case {
   name: string;
@@ -147,6 +148,144 @@ function cases(): Case[] {
     image: picture(200, 120),
     exact: false,
   });
+  // S2's passes, each alone on the test picture, then in a chain with the grid.
+  const W2 = 240;
+  const H2 = 120;
+  const pic = picture(W2, H2);
+  const on = (passes: Preset["passes"], tones = 3): Preset => ({
+    version: 1,
+    source: { type: "image" },
+    passes: [...passes, { type: "palette", tones: TONES.slice(0, tones), transparent: [] }],
+  });
+  const FIELD: [number, number][] = [
+    [0, 1],
+    [0.86, 0.12],
+  ];
+  const add = (name: string, preset: Preset, exact: boolean, px = 1, split = false) => {
+    const image = px === 1 ? pic : picture(Math.ceil(W2 / px), Math.ceil(H2 / px));
+    out.push({ name, preset, width: W2, height: H2, px, image, exact, split });
+  };
+  for (const origin of ["top", "bottom"] as const)
+    for (const steps of [[[0, 1]], FIELD] as [number, number][][])
+      add(
+        `blue-noise ${origin} ${steps.length} step(s)`,
+        on([{ type: "blue-noise", origin, steps }]),
+        true,
+      );
+  add(
+    "blue-noise + grid px 4",
+    on([
+      { type: "blue-noise", origin: "bottom", steps: FIELD },
+      { type: "grid", gap: 0.16, min: 4, tone: 0 },
+    ]),
+    true,
+    4,
+  );
+  for (const [size, angle] of [
+    [6, 45],
+    [4.5, 15],
+    [3, 0],
+  ] as const)
+    add(
+      `halftone size ${size} angle ${angle}`,
+      on([{ type: "halftone", size, angle, tone: 1 }], 2),
+      false,
+    );
+  add(
+    "scanlines on colours",
+    {
+      version: 1,
+      source: { type: "image" },
+      passes: [{ type: "scanlines", period: 3, width: 1, strength: 0.55, origin: "top" }],
+    },
+    false,
+  );
+  add(
+    "ordered + palette + scanlines bottom",
+    {
+      version: 1,
+      source: { type: "image" },
+      passes: [
+        { type: "ordered", matrix: 4, centered: true, origin: "top", steps: FIELD },
+        { type: "palette", tones: TONES.slice(0, 3), transparent: [] },
+        { type: "scanlines", period: 4, width: 2, strength: 0.3, origin: "bottom" },
+      ],
+    },
+    false,
+  );
+  for (const scale of [1, 3])
+    add(
+      `edges scale ${scale} + ordered`,
+      on([
+        { type: "edges", scale },
+        { type: "ordered", matrix: 8, centered: false, origin: "bottom", steps: FIELD },
+      ]),
+      false,
+    );
+  add(
+    "edges + ordered + grid px 4",
+    on([
+      { type: "edges", scale: 2 },
+      { type: "ordered", matrix: 8, centered: false, origin: "bottom", steps: FIELD },
+      { type: "grid", gap: 0.16, min: 4, tone: 0 },
+    ]),
+    false,
+    4,
+  );
+  for (const [radius, strength, matrix] of [
+    [1, 1, 4],
+    [2, 1.5, 4],
+    [4, 2.5, 8],
+  ] as const)
+    add(
+      `glow radius ${radius} strength ${strength}`,
+      on([
+        { type: "ordered", matrix: 8, centered: false, origin: "bottom", steps: FIELD },
+        { type: "glow", tones: [2], over: [0], tone: 2, radius, strength, matrix },
+      ]),
+      true,
+    );
+  add(
+    "glow + grid px 4, a stage per pass",
+    on([
+      { type: "ordered", matrix: 8, centered: false, origin: "bottom", steps: FIELD },
+      { type: "glow", tones: [2], over: [0, 1], tone: 1, radius: 2, strength: 1.5, matrix: 4 },
+      { type: "grid", gap: 0.16, min: 4, tone: 0 },
+    ]),
+    true,
+    4,
+    true,
+  );
+  for (const px of [1, 4])
+    add(
+      `crt px ${px}`,
+      {
+        version: 1,
+        source: { type: "image" },
+        passes: [
+          { type: "ordered", matrix: 8, centered: false, origin: "bottom", steps: FIELD },
+          { type: "palette", tones: TONES.slice(0, 3), transparent: [] },
+          { type: "crt", curvature: 0.12, mask: 0.3, bloom: 0.35, vignette: 0.35 },
+        ],
+      },
+      false,
+      px,
+    );
+  for (const level of [0, 5, 11, 16])
+    out.push({
+      name: `bayer mask level ${level} (constant source)`,
+      preset: {
+        ...bayerMaskPreset(level),
+        passes: [
+          ...bayerMaskPreset(level).passes,
+          { type: "palette", tones: TONES.slice(0, 2), transparent: [] },
+        ],
+      },
+      width: 64,
+      height: 32,
+      px: 1,
+      exact: true,
+    });
   for (const mode of ["ember", "globe", "dissolve", "field"] as const)
     for (const time of [0, 1.7])
       out.push({

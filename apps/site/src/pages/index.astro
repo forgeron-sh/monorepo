@@ -55,6 +55,16 @@ import {
 import Footer from "../components/Footer.astro";
 import Site from "../layouts/Site.astro";
 import { plans } from "../data/plans";
+import { bayerMaskPath } from "@forgeron/shaders";
+
+/**
+ * The corruption of the opening, written at build time from the package's ordered dither
+ * (`bayerMaskPath`, a `bayer-mask` preset): the captions' 17 masks (the cells on at each level of
+ * the 4×4 Bayer tile, 4 px each) and the burn's fringe (the cells eaten at levels 5 and 11). The
+ * page carries the paths, not the matrix.
+ */
+const captionMasks = Array.from({ length: 17 }, (_, level) => bayerMaskPath(level, { cell: 4 }));
+const burnFringe = Object.fromEntries([5, 11].map((l) => [l, bayerMaskPath(l, { cell: 4, off: true })]));
 
 /** The public repository (Apache-2.0) and its documentation. */
 const GITHUB = "https://github.com/forgeron-sh/monorepo";
@@ -288,7 +298,7 @@ const faq = [
             everything, explodes, and the village burns.
           </figcaption>
         </figure>
-        <canvas class="saga-burn" aria-hidden="true"></canvas>
+        <canvas class="saga-burn" aria-hidden="true" data-fringe={JSON.stringify(burnFringe)}></canvas>
         <p class="saga-live text-eyebrow"><span class="saga-dot" aria-hidden="true"></span>Live</p>
         <button type="button" class="saga-skip text-eyebrow">Skip intro</button>
         <nav class="saga-toc" aria-label="Chapters">
@@ -305,7 +315,7 @@ const faq = [
             }
           </ol>
         </nav>
-        <ol class="saga-captions">
+        <ol class="saga-captions" data-masks={JSON.stringify(captionMasks)}>
           {
             sagaSteps.map((c) => (
               <li data-step={c.step} data-pos={c.pos} hidden={c.step !== "intro"}>
@@ -761,14 +771,13 @@ const faq = [
   // Captions come and go through a black-and-white corruption: a 4×4 Bayer mask switches their
   // pixels on (or off) level by level, while whole rows of the text jolt sideways and flicker
   // between ink and dim. No fade: every pixel is on or off.
-  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-  const masks = Array.from({ length: 17 }, (_, level) => {
-    let d = "";
-    BAYER.forEach((v, i) => {
-      if (v < level) d += `M${(i % 4) * 4} ${Math.floor(i / 4) * 4}h4v4h-4z`;
-    });
-    return `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'><path d='${d || "M0 0"}' fill='${d ? "#000" : "none"}'/></svg>`)}")`;
-  });
+  // The masks' paths come from the page (`captionMasks`, written at build time by the shaders
+  // package): one per level, 0 to 16.
+  const maskPaths: string[] = JSON.parse(stage?.querySelector<HTMLElement>(".saga-captions")?.dataset.masks ?? "[]");
+  const masks = maskPaths.map(
+    (d) =>
+      `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'><path d='${d || "M0 0"}' fill='${d ? "#000" : "none"}'/></svg>`)}")`,
+  );
   const still = window.matchMedia("(prefers-reduced-motion: reduce)");
   const shown = new WeakMap<HTMLElement, boolean>();
   const runs = new WeakMap<HTMLElement, number>();
@@ -961,6 +970,7 @@ const faq = [
   // cells, the outer ring mostly eaten (5 of 16 cells left), the inner one mostly whole (11 of
   // 16). Painted in the page's background over the village, through two cached patterns.
   const fringe = new Map<number, CanvasPattern | null>();
+  const fringeCells: Record<number, string> = JSON.parse(burnEl?.dataset.fringe ?? "{}");
   const eaten = (level: number) => {
     if (!burnCtx) return null;
     const known = fringe.get(level);
@@ -970,10 +980,9 @@ const faq = [
     const t2 = tile.getContext("2d");
     if (!t2) return null;
     t2.fillStyle = burnTone("--bg", "#0a0a0a");
-    // Cells at or above `level` are the ones the burn has eaten.
-    BAYER.forEach((v, i) => {
-      if (v >= level) t2.fillRect((i % 4) * 4, Math.floor(i / 4) * 4, 4, 4);
-    });
+    // Cells at or above `level` are the ones the burn has eaten (`burnFringe`, written at build
+    // time): whole 4 px squares, so the path fills exactly the pixels the squares did.
+    t2.fill(new Path2D(fringeCells[level] ?? ""));
     const pattern = burnCtx.createPattern(tile, "repeat");
     fringe.set(level, pattern);
     return pattern;

@@ -1,8 +1,14 @@
 import type { ColorRef } from "../core/color";
-import { fieldChain } from "../core/presets";
+import { bindChain } from "../core/contract";
+import { gridGlsl } from "../core/passes/grid.glsl";
+import { orderedGlsl } from "../core/passes/ordered.glsl";
+import { paletteGlsl } from "../core/passes/palette.glsl";
+import { pixelateStep } from "../core/passes/pixelate";
+import { fieldPreset } from "../core/presets";
 import { FIELD_MODES, type FieldMode } from "../core/sources/field";
+import { fieldGlsl } from "../core/sources/field.glsl";
 import { PIXEL_CONTEXT } from "./gl";
-import { createGlPipeline } from "./pipeline-gl";
+import { glPipeline } from "./pipeline-gl";
 import { animateCanvas, colorCache, prefersStill, type ShaderHandle } from "./surface";
 
 /** The four modes, in the order of the shader. */
@@ -23,7 +29,7 @@ export interface FieldOptions {
 }
 
 /**
- * Draws a generator field (`fieldChain`) on `canvas` with WebGL2 and keeps it drawn: resizes
+ * Draws a generator field (`fieldPreset`, its GLSL side) on `canvas` with WebGL2 and keeps it drawn: resizes
  * with the canvas, follows the pointer over its parent, animates only while on screen, one frame
  * at `t = 0` when still. Null, leaving the canvas blank, where WebGL2 is unavailable or the
  * program does not compile.
@@ -32,19 +38,23 @@ export function mountField(canvas: HTMLCanvasElement, options: FieldOptions): Sh
   const gl = canvas.getContext("webgl2", PIXEL_CONTEXT);
   if (!gl) return null;
   const colors = options.colors ?? {};
-  const chain = fieldChain({
-    mode: options.mode in FIELD_MODES ? options.mode : "ember",
-    accent: options.accent,
-    tones: [
-      colors.bg ?? { var: "--bg", fallback: "#0a0a0a" },
-      colors.ink ?? { var: "--ink", fallback: "#ededed" },
-      colors.accent ?? { var: "--accent", fallback: "#ff4f1f" },
-    ],
-  });
+  const chain = bindChain(
+    fieldPreset({
+      mode: options.mode in FIELD_MODES ? options.mode : "ember",
+      accent: options.accent,
+      tones: [
+        colors.bg ?? { var: "--bg", fallback: "#0a0a0a" },
+        colors.ink ?? { var: "--ink", fallback: "#ededed" },
+        colors.accent ?? { var: "--accent", fallback: "#ff4f1f" },
+      ],
+    }),
+    { field: fieldGlsl },
+    { pixelate: pixelateStep, ordered: orderedGlsl, grid: gridGlsl, palette: paletteGlsl },
+  );
   const colorsOf = colorCache(canvas);
   let pipeline;
   try {
-    pipeline = createGlPipeline(gl, chain, { resolve: colorsOf.resolve });
+    pipeline = glPipeline(gl, chain, { resolve: colorsOf.resolve });
   } catch {
     return null;
   }

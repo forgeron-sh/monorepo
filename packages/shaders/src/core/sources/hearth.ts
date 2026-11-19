@@ -1,5 +1,5 @@
 import { bayer } from "../bayer";
-import type { SourceDef } from "../contract";
+import type { SourceMeta } from "../contract";
 
 /**
  * The hearth: a wordmark as iron just out of the forge, on a bed of embers (the footer of
@@ -163,25 +163,8 @@ export const hearthCell = (width: number) => (width >= 560 ? 4 : 2);
  * The hearth as a source: `data.grid` (a `HearthGrid` the size of the frame) and `data.heat`
  * (the bellows, in cells, or null) at `time`.
  */
-export const hearthSource: SourceDef<Record<string, never>> = {
+export const hearthMeta: SourceMeta = {
   type: "hearth",
   description: "The footer's hearth: a wordmark of iron on a bed of embers (tone indices, CPU).",
   params: {},
-  glsl: null,
-  cpu(frame, _p, ctx) {
-    const grid = ctx.data?.grid as HearthGrid | undefined;
-    const heat = (ctx.data?.heat as { x: number; y: number } | null | undefined) ?? null;
-    if (!grid) return;
-    const tones = hearthFrame(grid, ctx.time, heat);
-    const { width: w, height: h, data } = frame;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const o = (y * w + x) * 4;
-        data[o] = x < grid.cols && y < grid.rows ? (tones[y * grid.cols + x] ?? 0) : 0;
-        data[o + 1] = 0;
-        data[o + 2] = 0;
-        data[o + 3] = 1;
-      }
-    }
-  },
 };

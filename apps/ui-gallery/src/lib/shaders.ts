@@ -1,6 +1,10 @@
 // The Shaders section: every pixel field and effect Forgeron draws online, where it runs, its
 // versions and how to use it. The demos are `components/shaders/ShaderDemo.tsx` (an island per
-// demo) or static SVG drawn at build time (`ramp`, `anvil`).
+// demo), `PresetDemo.tsx` (a built-in preset of @forgeron/shaders, `builtInPresets()`, with live
+// settings drawn from its pass's params schema) or static SVG drawn at build time (`ramp`,
+// `anvil`, the presets' cards).
+
+import { bayerMaskPath, builtInPresets, type ParamSpec, PASSES } from "@forgeron/shaders";
 
 type FieldMode = "ember" | "globe" | "dissolve" | "field";
 
@@ -20,7 +24,23 @@ export type DemoSpec =
   | { kind: "image"; pixel?: number; gain?: number; raw?: boolean }
   | { kind: "hearth"; text?: string; cell?: number; still?: boolean }
   | { kind: "reveal"; text: string; pixel?: number; duration?: number }
-  | { kind: "burn"; mode: "close" | "open" };
+  | {
+      kind: "burn";
+      mode: "close" | "open";
+      /** The fringe's eaten cells at levels 5 and 11, written at build time (`bayerMaskPath`). */
+      fringe: Record<number, string>;
+    }
+  | {
+      kind: "preset";
+      /** A name of `builtInPresets()`. */
+      name: string;
+      /** The pass the page is about. */
+      pass: string;
+      /** Overrides of that pass's settings. */
+      params?: Record<string, unknown>;
+      /** A control per setting of the pass. */
+      live?: boolean;
+    };
 
 interface Version {
   title: string;
@@ -130,6 +150,217 @@ const fieldWhat = (line: string): string[] => [
   "One WebGL fragment shader for the four fields (FIELD_FRAGMENT): fractal noise, then the 8×8 Bayer threshold to three tones.",
   "Animates only on screen; one still frame under reduced motion; blank where WebGL is missing.",
 ];
+
+/** The burn's fringe: the cells eaten at levels 5 and 11 of the 4×4 Bayer tile, 4 px each. */
+const FRINGE: Record<number, string> = Object.fromEntries(
+  [5, 11].map((level) => [level, bayerMaskPath(level, { cell: 4, off: true })]),
+);
+
+/** The JSON of a built-in preset, as a snippet. */
+const presetJson = (name: string): Snippet => ({
+  title: `Preset "${name}" (builtInPresets())`,
+  lang: "tsx",
+  code: JSON.stringify(builtInPresets()[name], null, 2),
+});
+
+const typeOf = (spec: ParamSpec): string =>
+  spec.type === "enum"
+    ? spec.values.map((v) => JSON.stringify(v)).join(" | ")
+    : spec.type === "colors"
+      ? "ColorRef[]"
+      : spec.type === "indices"
+        ? "number[]"
+        : spec.type === "steps"
+          ? "[offset, scale][]"
+          : spec.type;
+
+/** The options of a pass, from its params schema (what validates presets). */
+const optionsOf = (pass: string): Option[] =>
+  Object.entries(PASSES[pass]?.params ?? {}).map(([name, spec]) => ({
+    name,
+    type: typeOf(spec),
+    default: JSON.stringify(spec.default),
+    description: spec.description,
+  }));
+
+const presetCode = (name: string, gpu: boolean): Snippet[] => [
+  presetJson(name),
+  {
+    title: "Plain DOM",
+    lang: "tsx",
+    code: `import { builtInPresets } from "@forgeron/shaders";
+import { mountPreset } from "@forgeron/shaders/dom";
+
+// ${gpu ? "WebGL2: every step has GLSL." : "On the CPU: a step has no GLSL."} Validated first.
+const handle = mountPreset(canvas, builtInPresets()["${name}"]);
+// later: handle?.destroy();`,
+  },
+  {
+    title: "Static, at build time",
+    lang: "tsx",
+    code: `import { builtInPresets, chainOf, runCpu, toRgba } from "@forgeron/shaders";
+
+// The CPU side of every pass: RGBA bytes for a PNG, or tone paths for an SVG (toSvgPath).
+const rgba = toRgba(runCpu(chainOf(builtInPresets()["${name}"]), 320, 200, { time: 1.7 }));`,
+  },
+];
+
+interface PassPage {
+  slug: string;
+  name: string;
+  summary: string;
+  gpu: boolean;
+  what: string[];
+  agreement: string;
+  versions: [string, string, Record<string, unknown>][];
+}
+
+const PASS_INFO: PassPage[] = [
+  {
+    slug: "blue-noise",
+    name: "Blue noise",
+    summary: "Ordered dither without the cross-hatch: a 64×64 void-and-cluster mask.",
+    gpu: true,
+    what: [
+      "The ordered pass with a 64×64 tileable mask instead of the Bayer matrix: no visible grid, the grain of film.",
+      "The mask is a void-and-cluster ranking made once from a fixed seed (about 40 ms), the same on every page.",
+      "Thresholds at (rank + 0.5) / 4096, exact in float32: an R32F texture on the GPU.",
+    ],
+    agreement: "exact: 0 pixels differ",
+    versions: [
+      ["Ember", "steps [0, 1], [0.86, 0.12]", {}],
+      ["One tone", "steps [0, 1]", { steps: [[0, 1]] }],
+    ],
+  },
+  {
+    slug: "floyd-steinberg",
+    name: "Floyd–Steinberg",
+    summary: "Error diffusion: each cell passes its rounding error on to the cells after it.",
+    gpu: false,
+    what: [
+      "Row by row, each value becomes the nearest tone and gives 7/16, 3/16, 5/16 and 1/16 of its error to the cells not yet visited.",
+      "Serial by nature: CPU only. A chain with it runs on a 2D canvas or at build time; blue noise is the GPU's answer.",
+      "Serpentine by default: every other row runs backwards, fewer worms.",
+    ],
+    agreement: "CPU only: checked against the textbook result in vitest",
+    versions: [
+      ["Three tones", "levels 3, serpentine", {}],
+      ["Two tones", "levels 2, left to right", { levels: 2, serpentine: false }],
+    ],
+  },
+  {
+    slug: "halftone",
+    name: "Halftone",
+    summary: "Dots on a turned grid, as large as the value under them.",
+    gpu: true,
+    what: [
+      "A grid of dots `size` cells apart, turned by `angle`; a cell is in a dot when it is within √(v / 2) pitches of its centre.",
+      "The value is the cell's own: an amplitude-modulated screen sampled per cell.",
+      "Float: cosine and sine written once as literals, read back by the CPU.",
+    ],
+    agreement: "tolerance 0.5 % of pixels (measured 0)",
+    versions: [
+      ["45°", "size 6", {}],
+      ["Fine, 15°", "size 4, angle 15", { size: 4, angle: 15 }],
+    ],
+  },
+  {
+    slug: "scanlines",
+    name: "Scanlines",
+    summary: "Darker rows of whole cells every few rows.",
+    gpu: true,
+    what: [
+      "Every `period` rows of cells, `width` rows darkened by `strength`: the lines are the pixel grid's.",
+      "On colours after the palette, or on the value before a dither.",
+      "A float product: a byte on a rounding tie may round the other way on the GPU.",
+    ],
+    agreement:
+      "tolerance 2 % of pixels (0 on the palette's colours; 1.3 % on raw picture colours, ties)",
+    versions: [
+      ["Every third row", "period 3, strength 0.55", {}],
+      ["Wide", "period 6, width 2", { period: 6, width: 2 }],
+    ],
+  },
+  {
+    slug: "edges",
+    name: "Edges",
+    summary: "Sobel on the value: the outlines of a field, then dithered.",
+    gpu: true,
+    what: [
+      "The Sobel gradient over the 3×3 cells around each cell, its length times `scale` as the value.",
+      "A neighbourhood pass: on the GPU it starts a stage that reads the previous one through a float framebuffer.",
+      "Edges of the frame clamped on both sides.",
+    ],
+    agreement: "tolerance 1 % of pixels (measured 0)",
+    versions: [
+      ["Dissolve", "scale 2.5", {}],
+      ["Faint", "scale 1", { scale: 1 }],
+    ],
+  },
+  {
+    slug: "glow",
+    name: "Glow",
+    summary: "A dithered halo around the ember cells, as Blueprint's glow.",
+    gpu: true,
+    what: [
+      "On tone indices before the palette: the share of glowing cells around a cell, through a binomial kernel of `radius`; the ember of a field sits inside ink, so the halo covers both.",
+      "Separable: a horizontal then a vertical sum, two stages on the GPU.",
+      "Above the Bayer threshold, a background cell takes the halo's tone: whole pixels, never a blur.",
+    ],
+    agreement: "exact: whole sums over a power of two, 0 pixels differ",
+    versions: [
+      ["Ember", "radius 2, strength 3, over ink and background", {}],
+      ["Wide", "radius 4, strength 5, matrix 8", { radius: 4, strength: 5, matrix: 8 }],
+    ],
+  },
+  {
+    slug: "crt",
+    name: "CRT",
+    summary: "A curved tube: barrel distortion, aperture mask, bloom and vignette.",
+    gpu: true,
+    what: [
+      "At output resolution, after the palette: each pixel samples the cell under its distorted position, black outside the tube.",
+      "Bloom from the mean of the 3×3 cells around it; each column of the aperture mask keeps one channel.",
+      "A present pass that reads the previous stage: it starts the last one.",
+    ],
+    agreement: "tolerance 2 % of pixels (measured 0.007 %)",
+    versions: [
+      ["Globe", "curvature 0.12", {}],
+      ["Flat", "curvature 0, mask 0.5", { curvature: 0, mask: 0.5 }],
+    ],
+  },
+];
+
+/** A page per S2 pass, each a built-in preset with live settings. */
+const PASS_PAGES: Shader[] = PASS_INFO.map((p) => ({
+  slug: p.slug,
+  name: p.name,
+  summary: p.summary,
+  engine: p.gpu ? "WebGL" : "Canvas 2D",
+  home: `@forgeron/shaders: the "${p.slug}" pass (GLSL ${p.gpu ? "and" : "none,"} CPU) and preset`,
+  what: [...p.what, `CPU against GLSL: ${p.agreement}.`],
+  uses: [
+    {
+      site: "Gallery",
+      place: "This page (a built-in preset; not yet on a site)",
+      settings: `builtInPresets()["${p.slug}"]`,
+    },
+  ],
+  versions: [
+    {
+      title: "Live",
+      note: "every setting of the pass",
+      demo: { kind: "preset", name: p.slug, pass: p.slug, live: true },
+    },
+    ...p.versions.map(([title, note, params]) => ({
+      title,
+      note,
+      demo: { kind: "preset" as const, name: p.slug, pass: p.slug, params },
+    })),
+  ],
+  code: presetCode(p.slug, p.gpu),
+  options: optionsOf(p.slug),
+}));
 
 export const shaders: Shader[] = [
   {
@@ -648,7 +879,7 @@ mountReveal(canvas, [textRows("Forgeron"), textRows("Sans")], {
     name: "Burn",
     summary: "A front of fire that eats a picture away, or lets it in.",
     engine: "Canvas 2D",
-    home: "apps/site/src/pages/index.astro (driven by the scroll); a demo copy in apps/ui-gallery/src/shaders/burn.ts",
+    home: "apps/site/src/pages/index.astro (driven by the scroll); a demo copy in apps/ui-gallery/src/shaders/burn.ts; the fringe's cells: bayerMaskPath of @forgeron/shaders",
     what: [
       "Across the front, a two-ring fringe dithered by the 4×4 Bayer matrix in 4 px cells: outer ring 5 cells of 16 left, inner 11.",
       "Embers along the line, redrawn on a slow tick: white hot, ember and red as it closes; white and greys as it opens.",
@@ -667,24 +898,32 @@ mountReveal(canvas, [textRows("Forgeron"), textRows("Sans")], {
       },
     ],
     versions: [
-      { title: "Close", note: "the end of the story", demo: { kind: "burn", mode: "close" } },
-      { title: "Open", note: "the opening reveal", demo: { kind: "burn", mode: "open" } },
+      {
+        title: "Close",
+        note: "the end of the story",
+        demo: { kind: "burn", mode: "close", fringe: FRINGE },
+      },
+      {
+        title: "Open",
+        note: "the opening reveal",
+        demo: { kind: "burn", mode: "open", fringe: FRINGE },
+      },
     ],
     code: [
       {
         title: "The fringe tile",
         lang: "tsx",
-        code: `// A 16 px tile: the cells at or above \`level\` (of 16) painted in the page's background.
-const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+        code: `import { bayerMaskPath } from "@forgeron/shaders";
 
+// A 16 px tile: the cells eaten at \`level\` (of 16) painted in the page's background. The cells
+// are a \`bayer-mask\` preset (a constant level through the 4×4 ordered dither); the site writes
+// them at build time.
 function eaten(ctx: CanvasRenderingContext2D, level: number, bg: string) {
   const tile = document.createElement("canvas");
   tile.width = tile.height = 16;
   const t = tile.getContext("2d")!;
   t.fillStyle = bg;
-  BAYER4.forEach((v, i) => {
-    if (v >= level) t.fillRect((i % 4) * 4, Math.floor(i / 4) * 4, 4, 4);
-  });
+  t.fill(new Path2D(bayerMaskPath(level, { cell: 4, off: true })));
   return ctx.createPattern(tile, "repeat");
 }
 
@@ -706,4 +945,6 @@ ctx.fillStyle = eaten(ctx, 11, bg); // inner ring`,
       },
     ],
   },
+
+  ...PASS_PAGES,
 ];

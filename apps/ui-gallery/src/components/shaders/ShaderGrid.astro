@@ -17,7 +17,7 @@ const card = (s: Shader) => s.versions[s.slug === "dithered-image" ? 1 : 0]!.dem
     items.map((s) => (
       <li class="card">
         <div class="card-art sh-card-art dots-bg" aria-hidden="true">
-          <ShaderStage spec={card(s)} />
+          <ShaderStage spec={card(s)} card />
         </div>
         <div class="card-copy">
           <span class="t-mono dim">

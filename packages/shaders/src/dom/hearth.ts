@@ -1,6 +1,7 @@
-import type { Frame } from "../core/contract";
+import { bindChain, type Frame } from "../core/contract";
 import { runCpu, toRgba } from "../core/cpu";
-import { hearthChain } from "../core/presets";
+import { paletteCpu } from "../core/passes/palette.cpu";
+import { hearthPreset } from "../core/presets";
 import {
   type CellRect,
   hearthCell,
@@ -8,15 +9,14 @@ import {
   type HearthGrid,
   type PixelFace,
 } from "../core/sources/hearth";
+import { hearthCpu } from "../core/sources/hearth.cpu";
 import { colorCache, prefersStill, type ShaderHandle } from "./surface";
 
 /**
- * The hearth on a page (`hearthChain`): sizes the grid to whole cells, draws only while on
+ * The hearth on a page (`hearthPreset`, on the CPU): sizes the grid to whole cells, draws only while on
  * screen and one still frame under `prefers-reduced-motion`; the canvas is upscaled with a gap on
  * each cell's right and top edges from 4 CSS pixels.
  */
-
-const chain = hearthChain();
 
 export interface HearthOptions {
   /** The pixel face of the wordmark (Blueprint's `glyph`, `glyphWidth`, `textWidth`). */
@@ -44,6 +44,7 @@ export function mountHearth(root: HTMLElement, options: HearthOptions): ShaderHa
   const off = root.ownerDocument.createElement("canvas");
   const offCtx = off.getContext("2d");
   if (!offCtx) return null;
+  const chain = bindChain(hearthPreset(), { hearth: hearthCpu }, { palette: paletteCpu });
 
   let grid: HearthGrid | null = null;
   let cell = 4;

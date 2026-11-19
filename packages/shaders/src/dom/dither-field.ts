@@ -1,6 +1,9 @@
-import type { Frame } from "../core/contract";
+import { bindChain, type Frame } from "../core/contract";
 import { runCpu, toRgba } from "../core/cpu";
-import { DITHER_FIELD_TONES, ditherFieldChain } from "../core/presets";
+import { orderedCpu } from "../core/passes/ordered.cpu";
+import { paletteCpu } from "../core/passes/palette.cpu";
+import { DITHER_FIELD_TONES, ditherFieldPreset } from "../core/presets";
+import { heatCpu } from "../core/sources/heat.cpu";
 import { animateCanvas, colorCache, prefersStill, type ShaderHandle } from "./surface";
 
 export interface DitherFieldOptions {
@@ -25,7 +28,11 @@ export function mountDitherField(
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   const px = options.pixel ?? 4;
-  const chain = ditherFieldChain(options.tones ?? DITHER_FIELD_TONES);
+  const chain = bindChain(
+    ditherFieldPreset(options.tones ?? DITHER_FIELD_TONES),
+    { heat: heatCpu },
+    { ordered: orderedCpu, palette: paletteCpu },
+  );
   const colors = colorCache(canvas);
   let image: ImageData | null = null;
   let frame: Frame | undefined;

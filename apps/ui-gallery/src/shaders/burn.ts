@@ -7,14 +7,19 @@
 //   5 cells of 16 left, inner 11), and embers along the line: white hot, ember, red, sparks;
 // - `open`: the picture spreads from the centre through the same fringe, behind a lobed front
 //   whose lobes drift, with specks in white and greys only.
+//
+// The fringe's cells are a `bayer-mask` preset of @forgeron/shaders (`bayerMaskPath`): the cells
+// of the 4×4 Bayer tile eaten at a level, 4 px each, written at build time (lib/shaders.ts) and
+// passed in as `fringe`.
 
-const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 /** Fixed phases of the open front's lobes (the site draws them at random on each load). */
 const LOBES = [1.3, 4.1, 2.7, 5.9];
 const P = 4;
 
 export interface BurnOptions {
   mode: "close" | "open";
+  /** SVG paths of the fringe's eaten cells, by level (5 and 11). */
+  fringe: Readonly<Record<number, string>>;
   /** One run of the front, then a short hold, in milliseconds. */
   period?: number;
   /** A still frame half-way through. */
@@ -53,9 +58,8 @@ export function mountBurn(
     const t2 = tile.getContext("2d");
     if (!t2) return null;
     t2.fillStyle = bg;
-    BAYER4.forEach((v, i) => {
-      if (v >= level) t2.fillRect((i % 4) * 4, Math.floor(i / 4) * 4, 4, 4);
-    });
+    // Whole 4 px squares: the path fills exactly the pixels `fillRect` did.
+    t2.fill(new Path2D(options.fringe[level] ?? ""));
     const pattern = ctx.createPattern(tile, "repeat");
     patterns.set(level, pattern);
     return pattern;

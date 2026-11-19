@@ -1,6 +1,6 @@
-import { BAYER_GLSL, bayer } from "../bayer";
+import { bayer } from "../bayer";
 import type { ColorRef, RGB } from "../color";
-import { type PassDef, glslFloat } from "../contract";
+import type { PassMeta } from "../contract";
 
 /**
  * Dithered images: a picture redrawn in the palette with a 4×4 ordered dither, greys for the
@@ -80,7 +80,7 @@ export interface ImageDitherParams {
 }
 
 /** Colours (bytes over 255) to tone indices: the greys, then ember. Float luminance. */
-export const imageDitherPass: PassDef<ImageDitherParams> = {
+export const imageDitherMeta: PassMeta = {
   type: "image-dither",
   kind: "cell",
   usesCell: true,
@@ -94,26 +94,5 @@ export const imageDitherPass: PassDef<ImageDitherParams> = {
       integer: true,
       description: "Greys in the palette; ember is the tone after them.",
     },
-  },
-  glsl(p) {
-    const L = glslFloat(p.greys - 1);
-    return {
-      decl: [BAYER_GLSL],
-      body: `{vec3 b=floor(c.rgb*255.+.5);float lum=min(1.,((0.2126*b.r+0.7152*b.g+0.0722*b.b)/255.)*${glslFloat(p.gain)});float t=bayer4(vec2(cell.x,uCells.y-1.-cell.y))+0.03125;float k;if(b.r>110.&&b.r-b.b>70.&&b.r-b.g>30.){k=min(1.,(b.r/255.)*1.15)>t?${glslFloat(p.greys)}:0.;}else{float v=lum*${L};float lo=floor(v);k=v-lo>t?min(${L},lo+1.):lo;}c=vec4(k,0.,0.,1.);}`,
-    };
-  },
-  cpu(frame, p) {
-    const { width: w, height: h, data } = frame;
-    const last = p.greys - 1;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const o = (y * w + x) * 4;
-        const byte = (i: number) => Math.round((data[o + i] ?? 0) * 255);
-        data[o] = imageTone(byte(0), byte(1), byte(2), x, y, last, p.gain);
-        data[o + 1] = 0;
-        data[o + 2] = 0;
-        data[o + 3] = 1;
-      }
-    }
   },
 };

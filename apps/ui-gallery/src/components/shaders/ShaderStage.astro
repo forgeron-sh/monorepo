@@ -1,13 +1,19 @@
 ---
 import { anvilPath, ditherPath } from "@forgeron/ui";
+import { presetSvg } from "../../lib/preset-svg";
 import type { DemoSpec } from "../../lib/shaders";
+import PresetDemo from "./PresetDemo";
 import ShaderDemo from "./ShaderDemo";
 
-// One demo: static SVG drawn at build time for the ordered dither, a live island otherwise.
+// One demo: static SVG drawn at build time for the ordered dither, a live island otherwise. A
+// preset's card (`card`) is a static SVG of it too (`presetSvg`): the grid ships no JavaScript
+// for the presets.
 interface Props {
   spec: DemoSpec;
+  card?: boolean;
 }
-const { spec } = Astro.props;
+const { spec, card } = Astro.props;
+const still = spec.kind === "preset" && card ? presetSvg(spec.name) : null;
 ---
 
 {
@@ -19,6 +25,12 @@ const { spec } = Astro.props;
     <svg class="sh-anvil" viewBox="0 0 24 24" shape-rendering="crispEdges" aria-hidden="true">
       <path fill="currentColor" d={anvilPath(24, spec.mode)} />
     </svg>
+  ) : still ? (
+    <svg class="sh-preset-card" viewBox={`0 0 ${still.width} ${still.height}`} preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true">
+      {still.paths.map((p) => <path fill={p.fill} d={p.d} />)}
+    </svg>
+  ) : spec.kind === "preset" ? (
+    <PresetDemo name={spec.name} pass={spec.pass} params={spec.params} live={spec.live} client:visible />
   ) : (
     <ShaderDemo spec={spec} client:visible />
   )

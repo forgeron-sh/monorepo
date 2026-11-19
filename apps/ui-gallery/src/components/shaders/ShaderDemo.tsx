@@ -26,7 +26,7 @@ export default function ShaderDemo({ spec }: { spec: DemoSpec }) {
     case "reveal":
       return <RevealDemo text={spec.text} pixel={spec.pixel} duration={spec.duration} />;
     case "burn":
-      return <BurnDemo mode={spec.mode} />;
+      return <BurnDemo mode={spec.mode} fringe={spec.fringe} />;
     default:
       return null;
   }
@@ -87,13 +87,13 @@ function RevealDemo({
 }
 
 /** The burn over a dither field standing in for the site's village. */
-function BurnDemo({ mode }: { mode: "close" | "open" }) {
+function BurnDemo({ mode, fringe }: { mode: "close" | "open"; fringe: Record<number, string> }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     if (!ref.current) return;
-    const handle = mountBurn(ref.current, { mode });
+    const handle = mountBurn(ref.current, { mode, fringe });
     return () => handle?.destroy();
-  }, [mode]);
+  }, [mode, fringe]);
   return (
     <div className="sh-burn">
       <FieldShader mode="globe" pixel={4} />

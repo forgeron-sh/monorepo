@@ -13,7 +13,7 @@ export interface DitheredImageOptions {
 }
 
 /**
- * The dithered image (`ditheredImageChain`, on the CPU, through `ditherImage`): loads `src`, crops it to cover the
+ * The dithered image (`ditheredImagePreset`, on the CPU, through `ditherImage`): loads `src`, crops it to cover the
  * canvas, reduces it to one pixel per `pixel` CSS pixels and dithers it; redraws on resize. The
  * canvas hides itself when the picture fails to load.
  */
