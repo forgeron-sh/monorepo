@@ -11,6 +11,7 @@ import { entries as iconPickerBlocks } from "./entries/icon-picker";
 import { entries as listBlocks } from "./entries/lists";
 import { entries as navigationBlocks } from "./entries/navigation";
 import { entries as recordBlocks } from "./entries/record";
+import { entries as timeBlocks } from "./entries/time";
 import { entries as viewBlocks } from "./entries/views";
 import {
   BeachIcon,
@@ -919,6 +920,7 @@ export const blocks: ReadonlyArray<Atom> = [
   ...datahubBlocks,
   ...driveBlocks,
   ...automationBlocks,
+  ...timeBlocks,
   ...approvalBlocks,
   ...financeBlocks,
 ];
