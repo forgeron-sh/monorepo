@@ -5,6 +5,7 @@ import { entries as datahubBlocks } from "./entries/datahub";
 import { entries as driveBlocks } from "./entries/drive";
 import { entries as fieldEntries } from "./entries/fields";
 import { entries as filteringBlocks } from "./entries/filtering";
+import { entries as financeBlocks } from "./entries/finance";
 import { entries as hookEntries } from "./entries/hooks";
 import { entries as iconPickerBlocks } from "./entries/icon-picker";
 import { entries as listBlocks } from "./entries/lists";
@@ -919,6 +920,7 @@ export const blocks: ReadonlyArray<Atom> = [
   ...driveBlocks,
   ...automationBlocks,
   ...approvalBlocks,
+  ...financeBlocks,
 ];
 
 /** The hooks: the state the components share, the keyboard, the actions of a screen. */

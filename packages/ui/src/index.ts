@@ -151,6 +151,7 @@ export * from "./blocks/datahub";
 export * from "./blocks/drive";
 export * from "./blocks/automation";
 export * from "./blocks/approval";
+export * from "./blocks/finance";
 export * from "./hooks";
 export * from "./shaders";
 export * from "./blocks/icon-picker";
