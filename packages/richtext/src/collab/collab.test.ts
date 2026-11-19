@@ -5,7 +5,10 @@ import type { Editor } from "@tiptap/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import { doc, heading, paragraph, text } from "../core/model";
+import { callout } from "../fixtures/callout-editor";
+import { contentPlugins } from "../plugins/editor/index";
 import { RichTextEditor } from "../react/editor";
+import type { EditorPlugin } from "../tiptap/plugin";
 import { type LocalPeer, createLocalSync, createYDoc, fromYDoc, toYDoc } from "./index";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -99,6 +102,7 @@ describe("two editors on two documents", () => {
   async function mountPeer(
     peer: { doc: Y.Doc; awareness: unknown },
     name: string,
+    plugins?: ReadonlyArray<EditorPlugin>,
   ): Promise<Editor> {
     const el = document.createElement("div");
     document.body.append(el);
@@ -114,6 +118,7 @@ describe("two editors on two documents", () => {
             provider: { awareness: peer.awareness },
             user: { name, color: "#808080" },
           },
+          ...(plugins ? { plugins } : {}),
           onReady: (e: Editor) => (editor = e),
         }),
       ),
@@ -161,5 +166,35 @@ describe("two editors on two documents", () => {
     await act(async () => sync.connect());
     expect(a.getText()).toBe(b.getText());
     expect(a.getText()).toContain("A-base-B");
+  });
+
+  it("converges with a plugin of its own, seeded from JSON, and keeps what a peer cannot show", async () => {
+    const plugins = [...contentPlugins, callout];
+    const page = doc(paragraph("Intro"), {
+      type: "callout",
+      content: [paragraph("Boxed")],
+    });
+    const sync = createLocalSync(2, [toYDoc(page, undefined, plugins), createYDoc()]);
+    const [pa, pb] = sync.peers as [(typeof sync.peers)[number], (typeof sync.peers)[number]];
+    const a = await mountPeer(pa, "Ada", plugins);
+    const b = await mountPeer(pb, "Grace", plugins);
+    expect(b.getJSON().content?.[1]?.type).toBe("callout");
+    await act(async () => {
+      a.chain().focus("start").insertContent("A: ").run();
+      b.chain().focus("end").insertContent(" :B").run();
+    });
+    expect(a.getJSON()).toEqual(b.getJSON());
+    expect(JSON.stringify(fromYDoc(pa.doc, undefined, plugins))).toBe(
+      JSON.stringify(fromYDoc(pb.doc, undefined, plugins)),
+    );
+    expect(fromYDoc(pa.doc, undefined, plugins).content[1]?.type).toBe("callout");
+    // A reader that has no callout plugin gets the node back untouched, not an empty page.
+    const poorer = contentPlugins;
+    const wrapped = toYDoc(page, undefined, poorer);
+    expect(fromYDoc(wrapped, undefined, poorer).content[1]).toEqual({
+      type: "callout",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Boxed" }] }],
+    });
+    sync.destroy();
   });
 });

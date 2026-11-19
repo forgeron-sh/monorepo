@@ -229,6 +229,24 @@
   font-weight: 500;
 }
 
+/* What the plugins of this editor do not know: kept in the document, shown as a box. */
+.fg-rt-unknown {
+  margin: 8px 0;
+  padding: 6px 10px;
+  border: var(--border-width) dashed var(--line);
+  color: var(--ink-dim);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.85em;
+}
+span.fg-rt-unknown {
+  display: inline;
+  margin: 0;
+  padding: 0 3px;
+}
+.fg-rt-unknown p {
+  margin: 0;
+}
+
 /* Placeholder: the empty line under the caret says what to do. */
 .fg-rt-content p.is-empty::before,
 .fg-rt-content h1.is-empty::before,

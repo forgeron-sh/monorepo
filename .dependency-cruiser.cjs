@@ -91,6 +91,14 @@ module.exports = {
       to: { dependencyTypes: ["core"] },
     },
     {
+      // Forgeron Sans (`@forgeron/font`) sits under ui and Blueprint, which both import it: it
+      // imports no other package of ours.
+      name: "font-is-a-leaf",
+      severity: "error",
+      from: { path: "^packages/font/" },
+      to: { path: "^packages/(?!font/)" },
+    },
+    {
       // The effects (D-149, docs/shaders/design.md) sit under ui and Blueprint: both import
       // `@forgeron/shaders`, which imports no other package of ours (no ui, no Blueprint, no canvas).
       name: "shaders-is-a-leaf",
@@ -151,12 +159,20 @@ module.exports = {
       to: { path: "^packages/(flow|draw)/" },
     },
     {
-      // Blueprint sits on canvas as an item kind and a layer (`@forgeron/blueprint-canvas`,
+      // Blueprint sits on canvas as an item kind and a layer (`@forgeron/blueprint/canvas`,
       // docs/blueprint/engine.md, P5), never the reverse: the canvas knows no scene engine.
       name: "canvas-does-not-import-blueprint",
       severity: "error",
       from: { path: "^packages/canvas/" },
-      to: { path: "^packages/blueprint(-canvas)?/" },
+      to: { path: "^packages/blueprint/" },
+    },
+    {
+      // Blueprint's engine, format and layers (everything but `src/canvas/`) are what the site
+      // ships: they import neither canvas nor ui, nor the integration on canvas.
+      name: "blueprint-does-not-import-canvas-outside-its-canvas-layer",
+      severity: "error",
+      from: { path: "^packages/blueprint/src/(?!canvas/)" },
+      to: { path: "^packages/(canvas|ui)/|^packages/blueprint/src/canvas/" },
     },
     {
       // The core of canvas is data and commands behind `CanvasEngine`, meant to be swappable for a
@@ -179,7 +195,7 @@ module.exports = {
       name: "flow-does-not-import-other-editors",
       severity: "error",
       from: { path: "^packages/flow/" },
-      to: { path: "^packages/(draw|blueprint|blueprint-canvas)/" },
+      to: { path: "^packages/(draw|blueprint)/" },
     },
     {
       // The core of flow (the graph, its rules, the layout, run state, the controller) is data and
@@ -202,7 +218,7 @@ module.exports = {
       name: "draw-does-not-import-other-editors",
       severity: "error",
       from: { path: "^packages/draw/" },
-      to: { path: "^packages/(flow|blueprint|blueprint-canvas)/" },
+      to: { path: "^packages/(flow|blueprint)/" },
     },
     {
       // The core of draw (kinds, the draw engine, arrows, frames, the pen, the board's JSON, the SVG
@@ -226,23 +242,25 @@ module.exports = {
       name: "richtext-does-not-import-other-editors",
       severity: "error",
       from: { path: "^packages/richtext/" },
-      to: { path: "^packages/(canvas|flow|draw|blueprint|blueprint-canvas)/" },
+      to: { path: "^packages/(canvas|flow|draw|blueprint)/" },
     },
     {
-      // The core of richtext (the document as JSON, the block catalog, Markdown, plain text, the
-      // static renderer) is data and pure functions: no React, no ProseMirror or Tiptap, no Yjs, no
-      // ui, no layer above it, no Node module. The editor reads it, never the reverse.
+      // The core of richtext (the document as JSON, the plugin contract, the block catalog,
+      // Markdown, plain text, the static renderer, and the core halves of the plugins in
+      // `src/plugins/*.ts`) is data and pure functions: no React, no ProseMirror or Tiptap, no
+      // Yjs, no ui, no layer above it, no editor half (`src/plugins/editor/`), no Node module. The
+      // editor reads it, never the reverse.
       name: "richtext-core-is-framework-free",
       severity: "error",
-      from: { path: "^packages/richtext/src/(core/|index\\.ts$)" },
+      from: { path: "^packages/richtext/src/(core/|index\\.ts$|plugins/[^/]+\\.ts$)" },
       to: {
-        path: "^packages/richtext/src/(react|tiptap|collab)/|^packages/ui/|(^|/)node_modules/(react|react-dom|@tiptap/|prosemirror-|yjs/|y-protocols/|y-prosemirror/)",
+        path: "^packages/richtext/src/(react|tiptap|collab|plugins/editor)/|^packages/ui/|(^|/)node_modules/(react|react-dom|@tiptap/|prosemirror-|yjs/|y-protocols/|y-prosemirror/)",
       },
     },
     {
       name: "richtext-core-stays-neutral",
       severity: "error",
-      from: { path: "^packages/richtext/src/(core/|index\\.ts$)" },
+      from: { path: "^packages/richtext/src/(core/|index\\.ts$|plugins/[^/]+\\.ts$)" },
       to: { dependencyTypes: ["core"] },
     },
     {

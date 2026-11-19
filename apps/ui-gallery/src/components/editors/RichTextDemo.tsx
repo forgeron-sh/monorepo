@@ -6,6 +6,20 @@ import {
   type RichDoc,
 } from "@forgeron/richtext";
 import {
+  blockquote,
+  bubble,
+  codeBlock,
+  heading,
+  horizontalRule,
+  listPlugins,
+  markPlugins,
+  placeholder,
+  references,
+  slash,
+  table,
+  type EditorPlugin,
+} from "@forgeron/richtext/plugins/editor";
+import {
   RichTextEditor,
   RichTextView,
   createLocalSync,
@@ -14,6 +28,7 @@ import {
 } from "@forgeron/richtext/react";
 import { Button, Segmented } from "@forgeron/ui";
 import { useEffect, useMemo, useState } from "react";
+import { callout } from "./callout-plugin";
 
 // The live editors of the rich text page: the full page (with its Markdown beside it), the minimal
 // field, the read-only view, and two editors on two Y.Docs linked by an in-memory relay.
@@ -281,11 +296,108 @@ function Collab() {
   );
 }
 
+// Features come from plugins: the core is paragraphs and text; each button adds or removes a plugin
+// (a list of plugins is the whole configuration). `callout` is defined in this gallery, in one file.
+const PLUGINS_SEED = `# A page with everything
+
+Plain text, **bold**, a [link](https://forgeron.sh) and a mention of [@Ada Lovelace](mention:ada).
+
+:::callout
+A callout: a plugin of this gallery, not of the package.
+:::
+
+- [ ] a to-do
+- a bullet
+
+> a quote
+
+| Plugin | Adds |
+| --- | --- |
+| table | rows and columns |
+`;
+
+const GROUPS: ReadonlyArray<{ id: string; label: string; plugins: ReadonlyArray<EditorPlugin> }> = [
+  { id: "marks", label: "marks", plugins: markPlugins },
+  { id: "heading", label: "heading", plugins: [heading] },
+  { id: "lists", label: "lists", plugins: listPlugins },
+  { id: "quote", label: "quote", plugins: [blockquote] },
+  { id: "code", label: "codeBlock", plugins: [codeBlock] },
+  { id: "divider", label: "horizontalRule", plugins: [horizontalRule] },
+  { id: "table", label: "table", plugins: [table] },
+  { id: "references", label: "references", plugins: [references] },
+  { id: "callout", label: "callout", plugins: [callout] },
+];
+
+const ALL_CORES = [...GROUPS.flatMap((g) => g.plugins), slash, bubble, placeholder].map(
+  (p) => p.core,
+);
+
+function Plugins() {
+  const [on, setOn] = useState<ReadonlySet<string>>(() => new Set(GROUPS.map((g) => g.id)));
+  const [doc, setDoc] = useState<RichDoc>(() => fromMarkdown(PLUGINS_SEED, ALL_CORES));
+  const plugins = useMemo<ReadonlyArray<EditorPlugin>>(
+    () => [
+      placeholder,
+      ...GROUPS.filter((g) => on.has(g.id)).flatMap((g) => g.plugins),
+      slash,
+      bubble,
+    ],
+    [on],
+  );
+  const cores = useMemo(() => plugins.map((p) => p.core), [plugins]);
+  const toggle = (id: string) =>
+    setOn((now) => {
+      const next = new Set(now);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  return (
+    <div className="ed-rt-stack">
+      <div className="ed-rt-bar" role="group" aria-label="Plugins">
+        <Button size="sm" variant="secondary" onClick={() => setOn(new Set())}>
+          Core only
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => setOn(new Set(GROUPS.map((g) => g.id)))}
+        >
+          Everything
+        </Button>
+        {GROUPS.map((g) => (
+          <Button
+            key={g.id}
+            size="sm"
+            variant={on.has(g.id) ? "primary" : "secondary"}
+            aria-pressed={on.has(g.id)}
+            onClick={() => toggle(g.id)}
+          >
+            {g.label}
+          </Button>
+        ))}
+      </div>
+      <p className="t-mono dim">plugins: core · {plugins.map((p) => p.core.id).join(" · ")}</p>
+      <div className="ed-rt-box">
+        <RichTextEditor
+          value={doc}
+          onChange={setDoc}
+          plugins={plugins}
+          mentions={PEOPLE}
+          placeholder="Type / for what is installed"
+          label="Plugins"
+        />
+      </div>
+      <pre className="ed-rt-out">{toMarkdown(doc, cores)}</pre>
+    </div>
+  );
+}
+
 export default function RichTextDemo({
   kind,
 }: {
-  kind: "full" | "minimal" | "view" | "collab" | "notes";
+  kind: "full" | "minimal" | "view" | "collab" | "notes" | "plugins";
 }) {
+  if (kind === "plugins") return <Plugins />;
   if (kind === "notes") return <Notes />;
   if (kind === "minimal") return <Minimal />;
   if (kind === "view") return <View />;

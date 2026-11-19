@@ -1,13 +1,16 @@
 import type { Editor } from "@tiptap/core";
 import { useEditorState } from "@tiptap/react";
 import { Toolbar, ToolbarButton, ToolbarSeparator } from "@forgeron/ui";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { safeUrl } from "../core/render";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import type { FieldPanel, ToolbarItem } from "../tiptap/plugin";
 import { Floating } from "./floating";
-import { UI_ICONS } from "./icons";
+
+export { normalizeLink } from "../core/view";
 
 export interface BubbleToolbarProps {
   editor: Editor;
+  /** What the plugins put in the `bubble` slot, left to right. */
+  items: ReadonlyArray<ToolbarItem>;
 }
 
 type Rect = { left: number; right: number; top: number; bottom: number };
@@ -30,50 +33,45 @@ function selectionRect(editor: Editor): Rect | null {
   }
 }
 
-/** `example.com` becomes `https://example.com`; a scheme that can run code gives `undefined`. */
-export function normalizeLink(input: string): string | undefined {
-  const value = input.trim();
-  if (!value) return undefined;
-  const withScheme = /^([a-z][a-z0-9+.-]*:|\/|#)/i.test(value) ? value : `https://${value}`;
-  return safeUrl(withScheme);
-}
+/** Is the selection inside a node that holds code (a code block)? The toolbar stays away. */
+const inCode = (editor: Editor) => editor.state.selection.$from.parent.type.spec.code === true;
+
+const matchesShortcut = (shortcut: string, e: KeyboardEvent) => {
+  const key = shortcut.split("+").pop()?.toLowerCase();
+  return (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === key;
+};
 
 /**
- * The marks of a selection, floating above it: bold, italic, underline, strike, code, link. The
- * link opens a field in place of the marks. Hidden when nothing is selected or inside code.
+ * The buttons the plugins contribute, floating above a selection (marks, link...). An item with a
+ * `field` opens a small form in place of the buttons. Hidden when nothing is selected or inside
+ * code.
  */
-export function BubbleToolbar({ editor }: BubbleToolbarProps) {
+export function BubbleToolbar({ editor, items }: BubbleToolbarProps) {
   const [rect, setRect] = useState<Rect | null>(null);
-  const [linking, setLinking] = useState(false);
+  const [panel, setPanel] = useState<string | null>(null);
   const dragging = useRef(false);
-  const linkingRef = useRef(false);
-  // Set before the field takes the focus: the editor's blur event must see the link mode.
-  const setLink = useCallback((on: boolean) => {
-    linkingRef.current = on;
-    setLinking(on);
+  const panelRef = useRef<string | null>(null);
+  // Set before the field takes the focus: the editor's blur event must see the panel.
+  const openPanel = useCallback((id: string | null) => {
+    panelRef.current = id;
+    setPanel(id);
   }, []);
 
-  const marks = useEditorState({
+  const state = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
-      bold: e.isActive("bold"),
-      italic: e.isActive("italic"),
-      underline: e.isActive("underline"),
-      strike: e.isActive("strike"),
-      code: e.isActive("code"),
-      link: e.isActive("link"),
-      href: (e.getAttributes("link")["href"] as string | undefined) ?? "",
-      inCode: e.isActive("codeBlock"),
+      flags: items.map((i) => [!!i.active?.(e), !!i.disabled?.(e)] as const),
+      inCode: inCode(e),
     }),
   });
 
   const refresh = useCallback(() => {
     if (dragging.current || !editor.isEditable) return setRect(null);
-    const focused = editor.view.hasFocus() || linkingRef.current;
-    const next = focused && !editor.isActive("codeBlock") ? selectionRect(editor) : null;
+    const focused = editor.view.hasFocus() || panelRef.current !== null;
+    const next = focused && !inCode(editor) ? selectionRect(editor) : null;
     setRect(next);
-    if (!next) setLink(false);
-  }, [editor, setLink]);
+    if (!next) openPanel(null);
+  }, [editor, openPanel]);
 
   useEffect(() => {
     const dom = editor.view.dom;
@@ -87,15 +85,14 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
       refresh();
     };
     const key = (e: KeyboardEvent) => {
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        e.key.toLowerCase() === "k" &&
-        !editor.state.selection.empty
-      ) {
-        e.preventDefault();
-        setLink(true);
+      if (editor.state.selection.empty) return;
+      const item = items.find((i) => i.shortcut && matchesShortcut(i.shortcut, e));
+      if (!item) return;
+      e.preventDefault();
+      if (item.field) {
+        openPanel(item.id);
         refresh();
-      }
+      } else item.run?.(editor);
     };
     editor.on("selectionUpdate", refresh);
     editor.on("focus", refresh);
@@ -117,34 +114,27 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
       window.removeEventListener("scroll", refresh, true);
       window.removeEventListener("resize", refresh);
     };
-  }, [editor, refresh, setLink]);
+  }, [editor, items, refresh, openPanel]);
 
-  if (!rect || marks.inCode) return null;
-  const chain = () => editor.chain().focus();
+  if (!rect || state.inCode || items.length === 0) return null;
 
-  if (linking) {
+  const field = panel ? items.find((i) => i.id === panel)?.field : undefined;
+  if (field) {
     return (
       <Floating
         rect={rect}
         placement="above"
         className="fg-rt-bubble"
         keepFocus={false}
-        label="Link"
+        label={field.label}
       >
-        <LinkField
-          initial={marks.href}
-          active={marks.link}
-          onApply={(href) => {
-            chain().extendMarkRange("link").setLink({ href }).run();
-            setLink(false);
-          }}
-          onRemove={() => {
-            chain().extendMarkRange("link").unsetLink().run();
-            setLink(false);
-          }}
+        <FieldForm
+          editor={editor}
+          field={field}
+          onDone={() => openPanel(null)}
           onCancel={() => {
-            setLink(false);
-            chain().run();
+            openPanel(null);
+            editor.chain().run();
           }}
         />
       </Floating>
@@ -154,74 +144,54 @@ export function BubbleToolbar({ editor }: BubbleToolbarProps) {
   return (
     <Floating rect={rect} placement="above" className="fg-rt-bubble" label="Text formatting">
       <Toolbar label="Text formatting">
-        <ToolbarButton
-          label="Bold"
-          icon={UI_ICONS.bold}
-          pressed={marks.bold}
-          onClick={() => chain().toggleBold().run()}
-        />
-        <ToolbarButton
-          label="Italic"
-          icon={UI_ICONS.italic}
-          pressed={marks.italic}
-          onClick={() => chain().toggleItalic().run()}
-        />
-        <ToolbarButton
-          label="Underline"
-          icon={UI_ICONS.underline}
-          pressed={marks.underline}
-          onClick={() => chain().toggleUnderline().run()}
-        />
-        <ToolbarButton
-          label="Strikethrough"
-          icon={UI_ICONS.strike}
-          pressed={marks.strike}
-          onClick={() => chain().toggleStrike().run()}
-        />
-        <ToolbarButton
-          label="Code"
-          icon={UI_ICONS.code}
-          pressed={marks.code}
-          onClick={() => chain().toggleCode().run()}
-        />
-        <ToolbarSeparator />
-        <ToolbarButton
-          label="Link"
-          icon={UI_ICONS.link}
-          pressed={marks.link}
-          onClick={() => setLink(true)}
-        />
+        {items.map((item, i) => {
+          const [pressed, disabled] = state.flags[i] ?? [false, false];
+          return (
+            <Fragment key={item.id}>
+              {item.separatorBefore && i > 0 ? <ToolbarSeparator /> : null}
+              <ToolbarButton
+                label={item.label}
+                {...(item.icon ? { icon: item.icon } : {})}
+                pressed={pressed}
+                disabled={disabled}
+                onClick={() => (item.field ? openPanel(item.id) : item.run?.(editor))}
+              />
+            </Fragment>
+          );
+        })}
       </Toolbar>
     </Floating>
   );
 }
 
-interface LinkFieldProps {
-  initial: string;
-  active: boolean;
-  onApply: (href: string) => void;
-  onRemove: () => void;
+interface FieldFormProps {
+  editor: Editor;
+  field: FieldPanel;
+  onDone: () => void;
   onCancel: () => void;
 }
 
-function LinkField({ initial, active, onApply, onRemove, onCancel }: LinkFieldProps) {
-  const [value, setValue] = useState(initial);
+function FieldForm({ editor, field, onDone, onCancel }: FieldFormProps) {
+  const [value, setValue] = useState(() => field.initial(editor));
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => ref.current?.focus(), []);
-  const href = normalizeLink(value);
+  const parsed = field.parse(value);
+  const active = field.isActive?.(editor) ?? false;
   return (
     <form
       className="fg-toolbar fg-rt-link"
       onSubmit={(e) => {
         e.preventDefault();
-        if (href) onApply(href);
+        if (parsed === undefined) return;
+        field.apply(editor, parsed);
+        onDone();
       }}
     >
       <input
         ref={ref}
         className="fg-input fg-rt-link-input"
-        aria-label="Link address"
-        placeholder="example.com"
+        aria-label={field.label}
+        placeholder={field.placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
@@ -231,11 +201,18 @@ function LinkField({ initial, active, onApply, onRemove, onCancel }: LinkFieldPr
           }
         }}
       />
-      <button type="submit" className="fg-tool" disabled={!href}>
+      <button type="submit" className="fg-tool" disabled={parsed === undefined}>
         Apply
       </button>
-      {active ? (
-        <button type="button" className="fg-tool" onClick={onRemove}>
+      {active && field.remove ? (
+        <button
+          type="button"
+          className="fg-tool"
+          onClick={() => {
+            field.remove?.(editor);
+            onDone();
+          }}
+        >
           Remove
         </button>
       ) : null}

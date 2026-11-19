@@ -1,11 +1,17 @@
 import { type ReactNode, createElement, useMemo } from "react";
 import type { RichNode } from "../core/model";
+import type { Plugins } from "../core/plugin";
 import { type ViewNode, toTree } from "../core/render";
 import { cx } from "./cx";
 
 export interface RichTextViewProps {
   /** The document to show. Anything unsafe (a `javascript:` link) is dropped. */
   value: RichNode;
+  /**
+   * The core halves of the plugins the document was written with; default the `full` preset. A
+   * node no plugin knows is shown as a placeholder.
+   */
+  plugins?: Plugins;
   className?: string;
 }
 
@@ -25,10 +31,11 @@ function renderNode(node: ViewNode, key: number): ReactNode {
 }
 
 /**
- * A document, read only, without ProseMirror: the static tree walked by React. Light enough for a
- * task list or a preview; the look is the editor's (`@forgeron/richtext/styles.css`).
+ * A document, read only, without ProseMirror: the static tree walked by React, from the core
+ * halves of the plugins only. Light enough for a task list or a preview; the look is the editor's
+ * (`@forgeron/richtext/styles.css`).
  */
-export function RichTextView({ value, className }: RichTextViewProps) {
-  const tree = useMemo(() => toTree(value), [value]);
+export function RichTextView({ value, plugins, className }: RichTextViewProps) {
+  const tree = useMemo(() => toTree(value, plugins), [value, plugins]);
   return <div className={cx("fg-rt fg-rt-view", className)}>{tree.map(renderNode)}</div>;
 }

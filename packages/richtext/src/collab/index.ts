@@ -1,28 +1,66 @@
 // Yjs helpers: JSON <-> Y.Doc, and a local relay that links documents in memory (tests, the
 // gallery, an offline-first app) so collaboration can be shown without a server. No React.
 
+import { getSchema } from "@tiptap/core";
 import { prosemirrorJSONToYDoc, yDocToProsemirrorJSON } from "@tiptap/y-tiptap";
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from "y-protocols/awareness";
 import * as Y from "yjs";
-import { type RichDoc, emptyDoc, parseDoc } from "../core/model";
-import { DEFAULT_FIELD, richTextSchema } from "../tiptap/extensions";
+import { type RichDoc, type RichNode, emptyDoc, parseDoc } from "../core/model";
+import { contentPlugins } from "../plugins/editor/content";
+import { DEFAULT_FIELD, createContext, createHost } from "../tiptap/host";
+import type { EditorPlugin } from "../tiptap/plugin";
+import { prepareContent, restoreUnknown } from "../tiptap/unknown";
 
 export { DEFAULT_FIELD };
+
+const cache = new WeakMap<ReadonlyArray<EditorPlugin>, ReturnType<typeof schemaOf>>();
+
+function schemaOf(plugins: ReadonlyArray<EditorPlugin>) {
+  const host = createHost(plugins, createContext({ collaborative: true }));
+  return { registry: host.registry, schema: getSchema([...host.extensions]) };
+}
+
+/** The schema and plugin registry a plugin list gives; the same list is built once. */
+function build(plugins: ReadonlyArray<EditorPlugin>) {
+  let built = cache.get(plugins);
+  if (!built) {
+    built = schemaOf(plugins);
+    cache.set(plugins, built);
+  }
+  return built;
+}
 
 /** An empty shared document; the editor fills it. */
 export function createYDoc(): Y.Doc {
   return new Y.Doc();
 }
 
-/** A shared document seeded from JSON, to open an existing page for collaboration. */
-export function toYDoc(json: RichDoc, field: string = DEFAULT_FIELD): Y.Doc {
-  return prosemirrorJSONToYDoc(richTextSchema(), json, field);
+/**
+ * A shared document seeded from JSON, to open an existing page for collaboration. Give the plugins
+ * the editors use (default: the `full` content plugins): the schema is made from them.
+ */
+export function toYDoc(
+  json: RichDoc,
+  field: string = DEFAULT_FIELD,
+  plugins: ReadonlyArray<EditorPlugin> = contentPlugins,
+): Y.Doc {
+  const { registry, schema } = build(plugins);
+  return prosemirrorJSONToYDoc(schema, prepareContent(json, registry, schema), field);
 }
 
 /** The JSON of the shared document now: what to store next to (or instead of) the Yjs update. */
-export function fromYDoc(ydoc: Y.Doc, field: string = DEFAULT_FIELD): RichDoc {
+export function fromYDoc(
+  ydoc: Y.Doc,
+  field: string = DEFAULT_FIELD,
+  plugins: ReadonlyArray<EditorPlugin> = contentPlugins,
+): RichDoc {
   if (ydoc.share.get(field) === undefined) return emptyDoc();
-  return parseDoc(yDocToProsemirrorJSON(ydoc, field));
+  const { registry } = build(plugins);
+  return parseDoc(
+    restoreUnknown(yDocToProsemirrorJSON(ydoc, field) as unknown as RichNode),
+    registry,
+    { unknown: "keep" },
+  );
 }
 
 /** One participant of a local session: its document and its presence (who is where). */

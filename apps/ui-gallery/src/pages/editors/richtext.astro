@@ -6,6 +6,7 @@ import {
   richtextCollabSnippet,
   richtextCovers,
   richtextKeys,
+  richtextPluginsSnippet,
   richtextSnippet,
 } from "../../components/editors/richtext-docs";
 import { highlight } from "../../lib/highlight";
@@ -15,17 +16,17 @@ import "../../styles/editors.css";
 
 <DocsLayout
   title="Rich text — Editors — Forgeron UI"
-  description="The page editor: blocks, a slash menu, marks, mentions, Markdown, a static view and Yjs collaboration, on Tiptap with our own interface."
+  description="The page editor: a minimal core and plugins for everything else (blocks, slash menu, marks, references), Markdown, a static view and Yjs collaboration, on Tiptap with our own interface."
   current="editors/richtext"
   page="editors"
 >
   <header class="doc-head">
     <span class="t-mono dim">Editors <span class="accent">/</span> Rich text</span>
     <h1 class="f-title f-h3">Rich text</h1>
-    <p class="t-lead">A page you write in, for notes, descriptions and comments. Collaboration plugs in when you need it.</p>
+    <p class="t-lead">A page you write in, for notes, descriptions and comments. A minimal core; every feature is a plugin, and collaboration plugs in when you need it.</p>
     <dl class="ed-facts t-mono">
       <div><dt class="dim">Package</dt><dd>@forgeron/richtext</dd></div>
-      <div><dt class="dim">Layers</dt><dd>core (no React) · /react · /collab</dd></div>
+      <div><dt class="dim">Layers</dt><dd>core (no React) · /plugins · /plugins/editor · /react · /collab</dd></div>
       <div><dt class="dim">On</dt><dd>Tiptap · Yjs · @forgeron/ui</dd></div>
     </dl>
   </header>
@@ -56,20 +57,29 @@ import "../../styles/editors.css";
     <RichTextDemo kind="collab" client:only="react" />
   </section>
 
+  <section class="ed-block-stack" aria-label="Plugins">
+    <div class="spacer-sm t-mono dim"><span>/05 → Features come from plugins</span></div>
+    <RichTextDemo kind="plugins" client:only="react" />
+    <p class="ed-hint t-mono">
+      <span>core only: paragraphs, text, line breaks</span>
+      <span>what a plugin removes stays in the document, shown as a box</span>
+    </p>
+  </section>
+
   <section class="ed-block-stack" aria-label="Notes">
-    <div class="spacer-sm t-mono dim"><span>/05 → Try it: a small Notes</span></div>
+    <div class="spacer-sm t-mono dim"><span>/06 → Try it: a small Notes</span></div>
     <RichTextDemo kind="notes" client:only="react" />
   </section>
 
   <section class="ed-block-stack" aria-label="What it covers">
-    <div class="spacer-sm t-mono dim"><span>/06 → What it covers</span></div>
+    <div class="spacer-sm t-mono dim"><span>/07 → What it covers</span></div>
     <ul class="ed-list">
       {richtextCovers.map((line) => <li>{line}</li>)}
     </ul>
   </section>
 
   <section class="ed-block-stack" aria-label="Use it">
-    <div class="spacer-sm t-mono dim"><span>/07 → Use it</span></div>
+    <div class="spacer-sm t-mono dim"><span>/08 → Use it</span></div>
     <section class="frame" data-show="code" aria-label="A page">
       <header class="frame-bar">
         <span class="t-mono"><span class="accent">/01</span> <span class="dim">→</span> A page</span>
@@ -88,10 +98,19 @@ import "../../styles/editors.css";
       </header>
       <div class="frame-code" id="code-richtext-1" set:html={highlight(richtextCollabSnippet, "tsx")} />
     </section>
+    <section class="frame" data-show="code" aria-label="Plugins">
+      <header class="frame-bar">
+        <span class="t-mono"><span class="accent">/03</span> <span class="dim">→</span> Plugins</span>
+        <div class="frame-tools">
+          <button type="button" class="btn btn-sm" data-copy="code-richtext-2">Copy</button>
+        </div>
+      </header>
+      <div class="frame-code" id="code-richtext-2" set:html={highlight(richtextPluginsSnippet, "tsx")} />
+    </section>
   </section>
 
   <section class="ed-block-stack" aria-label="Keys">
-    <div class="spacer-sm t-mono dim"><span>/08 → Keys</span></div>
+    <div class="spacer-sm t-mono dim"><span>/09 → Keys</span></div>
     <div class="ed-keys">
       {
         richtextKeys.map((k) => (

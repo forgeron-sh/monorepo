@@ -5,6 +5,7 @@ import { NodeSelection, Selection } from "@tiptap/pm/state";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { BlockDef } from "../core/blocks";
 import { applyBlock, type ApplyBlockOptions } from "../tiptap/commands";
+import type { HandleAction } from "../tiptap/plugin";
 import { Floating } from "./floating";
 import { blockIcon, UI_ICONS } from "./icons";
 
@@ -14,6 +15,10 @@ export interface BlockHandleProps extends ApplyBlockOptions {
   host: RefObject<HTMLElement | null>;
   /** The blocks the "turn into" menu offers. */
   blocks: ReadonlyArray<BlockDef>;
+  /** What the plugins put in the `handle` slot: the rest of the menu. */
+  actions: ReadonlyArray<HandleAction>;
+  /** Node names whose block can be turned into another (the plugins' `turnable`). */
+  turnable: ReadonlySet<string>;
 }
 
 /** The top-level block of the document under a viewport point: its position and node. */
@@ -62,22 +67,19 @@ function setDragging(view: Editor["view"], value: Editor["view"]["dragging"]) {
   view.dragging = value;
 }
 
-const TURNABLE = new Set([
-  "paragraph",
-  "heading",
-  "bulletList",
-  "orderedList",
-  "taskList",
-  "blockquote",
-  "codeBlock",
-]);
-
 /**
  * At the left of the block under the pointer: a "+" that inserts a block below (and opens the
  * slash menu), and a grip that drags the block, or opens its menu: turn into, duplicate, move,
  * delete.
  */
-export function BlockHandle({ editor, host, blocks, requestImage }: BlockHandleProps) {
+export function BlockHandle({
+  editor,
+  host,
+  blocks,
+  actions,
+  turnable,
+  requestImage,
+}: BlockHandleProps) {
   const [target, setTarget] = useState<{ pos: number; top: number } | null>(null);
   const [menu, setMenu] = useState<{ rect: DOMRect } | null>(null);
   const grip = useRef<HTMLButtonElement>(null);
@@ -205,7 +207,7 @@ export function BlockHandle({ editor, host, blocks, requestImage }: BlockHandleP
   };
 
   const at = live();
-  const canTurn = at ? TURNABLE.has(at.node.type.name) : false;
+  const canTurn = at ? turnable.has(at.node.type.name) : false;
 
   return (
     <>
@@ -256,58 +258,22 @@ export function BlockHandle({ editor, host, blocks, requestImage }: BlockHandleP
                 <hr className="fg-rt-menu-sep" />
               </>
             ) : null}
-            <button
-              type="button"
-              role="menuitem"
-              className="fg-pop-row"
-              onClick={() =>
-                run(({ pos, node }) =>
-                  editor
-                    .chain()
-                    .focus()
-                    .insertContentAt(pos + node.nodeSize, node.toJSON())
-                    .run(),
-                )
-              }
-            >
-              <Icon icon={UI_ICONS.copy} size={12} variant="mono" />
-              <span className="fg-pop-label">Duplicate</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="fg-pop-row"
-              onClick={() => run(({ pos }) => moveBlock(editor, pos, "up"))}
-            >
-              <span className="fg-rt-menu-gap" aria-hidden="true" />
-              <span className="fg-pop-label">Move up</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="fg-pop-row"
-              onClick={() => run(({ pos }) => moveBlock(editor, pos, "down"))}
-            >
-              <span className="fg-rt-menu-gap" aria-hidden="true" />
-              <span className="fg-pop-label">Move down</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="fg-pop-row fg-rt-danger"
-              onClick={() =>
-                run(({ pos, node }) =>
-                  editor
-                    .chain()
-                    .focus()
-                    .deleteRange({ from: pos, to: pos + node.nodeSize })
-                    .run(),
-                )
-              }
-            >
-              <Icon icon={UI_ICONS.trash} size={12} variant="mono" />
-              <span className="fg-pop-label">Delete</span>
-            </button>
+            {actions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                role="menuitem"
+                className={action.danger ? "fg-pop-row fg-rt-danger" : "fg-pop-row"}
+                onClick={() => run((hit) => action.run(editor, hit))}
+              >
+                {action.icon ? (
+                  <Icon icon={action.icon} size={12} variant="mono" />
+                ) : (
+                  <span className="fg-rt-menu-gap" aria-hidden="true" />
+                )}
+                <span className="fg-pop-label">{action.label}</span>
+              </button>
+            ))}
           </div>
         </Floating>
       ) : null}

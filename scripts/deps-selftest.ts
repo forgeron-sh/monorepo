@@ -113,6 +113,13 @@ const cases: Case[] = [
     files: { [`packages/blueprint/src/core/${F}.ts`]: `import "node:fs";\n` },
   },
   {
+    rule: "font-is-a-leaf",
+    files: {
+      [`packages/font/src/${F}.ts`]: `import "../../ui/src/${F}_target.ts";\n`,
+      [`packages/ui/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "shaders-is-a-leaf",
     files: {
       [`packages/shaders/src/dom/${F}.ts`]: `import "../../../ui/src/${F}_target.ts";\n`,
@@ -161,8 +168,15 @@ const cases: Case[] = [
   {
     rule: "canvas-does-not-import-blueprint",
     files: {
-      [`packages/canvas/src/react/${F}.ts`]: `import "../../../blueprint-canvas/src/${F}_target.ts";\n`,
-      [`packages/blueprint-canvas/src/${F}_target.ts`]: STUB,
+      [`packages/canvas/src/react/${F}.ts`]: `import "../../../blueprint/src/${F}_target.ts";\n`,
+      [`packages/blueprint/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "blueprint-does-not-import-canvas-outside-its-canvas-layer",
+    files: {
+      [`packages/blueprint/src/dom/${F}.ts`]: `import "../canvas/${F}_target.ts";\n`,
+      [`packages/blueprint/src/canvas/${F}_target.ts`]: STUB,
     },
   },
   {
@@ -255,8 +269,19 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "richtext-core-is-framework-free",
+    files: {
+      [`packages/richtext/src/plugins/${F}.ts`]: `import "./editor/${F}_target.ts";\n`,
+      [`packages/richtext/src/plugins/editor/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "richtext-core-stays-neutral",
     files: { [`packages/richtext/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "richtext-core-stays-neutral",
+    files: { [`packages/richtext/src/plugins/${F}.ts`]: `import "node:fs";\n` },
   },
   {
     rule: "registry-door-is-index",

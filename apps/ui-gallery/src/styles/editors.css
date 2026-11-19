@@ -261,6 +261,13 @@
   background: var(--bg-sunk);
   color: var(--ink);
 }
+/* The callout plugin the gallery defines (components/editors/callout-plugin.ts). */
+.fg-rt-callout {
+  margin: 8px 0;
+  padding: 4px 12px;
+  border-left: 2px solid var(--accent);
+  background: var(--bg-sunk);
+}
 @media (max-width: 900px) {
   .ed-rt-pair,
   .ed-rt-notes {

@@ -129,13 +129,18 @@ describe("RichTextEditor", () => {
   });
 
   it("mentions only exist when a source is given", async () => {
+    // A mention is the reference of the kind `user` (D-152).
     const without = await mountEditor({});
-    expect(without.editor.extensionManager.extensions.map((e) => e.name)).not.toContain("mention");
+    expect(without.editor.extensionManager.extensions.map((e) => e.name)).not.toContain(
+      "suggestion-reference-user",
+    );
     await act(async () => root?.unmount());
     root = undefined;
     host?.remove();
     const withList = await mountEditor({ mentions: [{ id: "1", label: "Ada" }] });
-    expect(withList.editor.extensionManager.extensions.map((e) => e.name)).toContain("mention");
+    const names = withList.editor.extensionManager.extensions.map((e) => e.name);
+    expect(names).toContain("reference");
+    expect(names).toContain("suggestion-reference-user");
   });
 });
 

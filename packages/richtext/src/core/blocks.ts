@@ -1,159 +1,34 @@
-// The block catalog: every kind of block a page can hold, with what the slash menu shows and
-// matches. Data only; the editor and the menu both read it, so one list names the blocks.
+// The block catalog, composed from the plugins: every kind of block a page can hold, with what the
+// slash menu shows and matches. Data only; the editor and the menu both read it, so one list names
+// the blocks. Each plugin brings its own entries (`CorePlugin.blocks`).
 
-export type BlockId =
-  | "paragraph"
-  | "heading-1"
-  | "heading-2"
-  | "heading-3"
-  | "bullet-list"
-  | "ordered-list"
-  | "task-list"
-  | "quote"
-  | "code-block"
-  | "divider"
-  | "table"
-  | "image";
+import { corePresets } from "../plugins/index";
+import { registryOf } from "./defaults";
+import type { BlockDef, Plugins } from "./plugin";
+import type { ReferenceItem } from "./references";
 
-/** `full`: a page (every block). `minimal`: marks, lists and mentions, for comments and descriptions. */
+export type { BlockDef, BlockGroup } from "./plugin";
+
+/** The id of a catalog entry: `heading-1`, `callout`. */
+export type BlockId = string;
+
+/** A preset: a named list of plugins. `full` is a page, `minimal` marks, lists and mentions. */
 export type RichTextVariant = "full" | "minimal";
 
-export type BlockGroup = "text" | "list" | "insert";
+/** The slash catalog of the `full` preset. */
+export const BLOCKS: ReadonlyArray<BlockDef> = registryOf().blocks;
 
-export interface BlockDef {
-  id: BlockId;
-  label: string;
-  /** Extra words the slash menu matches: `/h1`, `/todo`, `/hr`. */
-  keywords: readonly string[];
-  /** A name of `@forgeron/icons` (`heading-01`); the React layer draws it. */
-  icon: string;
-  group: BlockGroup;
-  /** The Markdown shortcut typed at the start of a line, when there is one. */
-  shortcut?: string;
-  /** The variants that offer this block. */
-  variants: readonly RichTextVariant[];
-}
-
-const BOTH = ["full", "minimal"] as const;
-const FULL = ["full"] as const;
-
-export const BLOCKS: ReadonlyArray<BlockDef> = [
-  {
-    id: "paragraph",
-    label: "Text",
-    keywords: ["paragraph", "plain", "p", "text"],
-    icon: "type",
-    group: "text",
-    variants: BOTH,
-  },
-  {
-    id: "heading-1",
-    label: "Heading 1",
-    keywords: ["h1", "title", "heading", "big"],
-    icon: "heading-01",
-    group: "text",
-    shortcut: "#",
-    variants: FULL,
-  },
-  {
-    id: "heading-2",
-    label: "Heading 2",
-    keywords: ["h2", "subtitle", "heading", "medium"],
-    icon: "heading-02",
-    group: "text",
-    shortcut: "##",
-    variants: FULL,
-  },
-  {
-    id: "heading-3",
-    label: "Heading 3",
-    keywords: ["h3", "heading", "small"],
-    icon: "heading-03",
-    group: "text",
-    shortcut: "###",
-    variants: FULL,
-  },
-  {
-    id: "bullet-list",
-    label: "Bulleted list",
-    keywords: ["ul", "unordered", "bullets", "list"],
-    icon: "left-to-right-list-bullet",
-    group: "list",
-    shortcut: "-",
-    variants: BOTH,
-  },
-  {
-    id: "ordered-list",
-    label: "Numbered list",
-    keywords: ["ol", "ordered", "numbers", "list"],
-    icon: "list-ordered",
-    group: "list",
-    shortcut: "1.",
-    variants: BOTH,
-  },
-  {
-    id: "task-list",
-    label: "To-do list",
-    keywords: ["todo", "task", "checkbox", "checklist", "check"],
-    icon: "check-list",
-    group: "list",
-    shortcut: "[ ]",
-    variants: BOTH,
-  },
-  {
-    id: "quote",
-    label: "Quote",
-    keywords: ["blockquote", "citation"],
-    icon: "quote",
-    group: "text",
-    shortcut: ">",
-    variants: FULL,
-  },
-  {
-    id: "code-block",
-    label: "Code",
-    keywords: ["pre", "snippet", "source", "fence"],
-    icon: "code-xml",
-    group: "text",
-    shortcut: "```",
-    variants: FULL,
-  },
-  {
-    id: "divider",
-    label: "Divider",
-    keywords: ["hr", "rule", "line", "separator"],
-    icon: "minus",
-    group: "insert",
-    shortcut: "---",
-    variants: FULL,
-  },
-  {
-    id: "table",
-    label: "Table",
-    keywords: ["grid", "rows", "columns", "cells"],
-    icon: "table-01",
-    group: "insert",
-    variants: FULL,
-  },
-  {
-    id: "image",
-    label: "Image",
-    keywords: ["picture", "photo", "img", "media"],
-    icon: "image-03",
-    group: "insert",
-    variants: FULL,
-  },
-];
-
+/** A catalog entry of the full preset. */
 export function getBlock(id: BlockId): BlockDef {
   const block = BLOCKS.find((b) => b.id === id);
   if (!block) throw new Error(`Unknown block: ${id}`);
   return block;
 }
 
-/** The blocks a variant offers, in catalog order. */
-export function blocksFor(variant: RichTextVariant): BlockDef[] {
-  return BLOCKS.filter((b) => b.variants.includes(variant));
+/** The entries a preset or a plugin list offers, in plugin order. Default: the `full` preset. */
+export function blocksFor(source: RichTextVariant | Plugins = "full"): BlockDef[] {
+  const plugins = typeof source === "string" ? corePresets[source] : source;
+  return [...registryOf(plugins).blocks];
 }
 
 const fold = (s: string) =>
@@ -189,14 +64,9 @@ export function filterBlocks<T extends Pick<BlockDef, "label" | "keywords">>(
 }
 
 /** One person, channel or record a mention can point at. The caller provides the list. */
-export interface MentionItem {
-  id: string;
-  label: string;
-  /** A second line: an email, a role. */
-  hint?: string;
-}
+export type MentionItem = ReferenceItem;
 
-/** Keeps the mention items that match the typed text (label, then hint), at most `limit`. */
+/** Keeps the items that match the typed text (label, then hint), at most `limit`. */
 export function filterMentions(
   items: ReadonlyArray<MentionItem>,
   query: string,

@@ -10,10 +10,14 @@ const ENTRIES = [
   "packages/scaffold/src/index.ts",
   // Blueprint's core renders the site's illustrations at build time and in the browser.
   "packages/blueprint/src/index.ts",
+  // Forgeron Sans: the glyph table and `textSvg` run at build time and in the browser.
+  "packages/font/src/index.ts",
   // The effects' core: presets and CPU passes run at build time and in a Worker (D-149).
   "packages/shaders/src/index.ts",
   // The rich text core (JSON, Markdown, static renderer) renders previews in a Worker.
   "packages/richtext/src/index.ts",
+  // The core halves of its plugins: a read-only place imports them with the core.
+  "packages/richtext/src/plugins/index.ts",
 ];
 
 let failed = false;
