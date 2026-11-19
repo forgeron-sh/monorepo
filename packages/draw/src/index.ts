@@ -52,6 +52,7 @@ export type { BoardDocument } from "./core/document";
 export { boundsOfItems, createDrawEngine, createDrawStore, remapCopies } from "./core/engine";
 export type { DrawEngineOptions, DrawStore } from "./core/engine";
 export { exportedItems, exportSvg } from "./core/export";
+export { farPrimitives } from "./core/far";
 export type { ExportOptions, ExportResult } from "./core/export";
 export { arrowFollow, changedIds, frameFollow } from "./core/follow";
 export { frameChildren, frameFor, membershipChanges } from "./core/frames";

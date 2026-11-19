@@ -4,6 +4,7 @@
 import { createElement, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import type { Bounds } from "@forgeron/canvas";
 import { colorCss, STICKY_COLORS } from "../core/palette";
+import { wash } from "../core/far";
 import { pagePaint, paintItem, type SvgNode } from "../core/paint";
 import { STICKY_PADDING, STICKY_TEXT } from "../core/text";
 import type { DrawItem } from "../core/types";
@@ -101,12 +102,7 @@ function EditField({
   );
 }
 
-/** Under this zoom the editor draws the far view of each item. */
-export const FAR_ZOOM = 0.35;
-
-/** A pattern drawn far out: its colour, as light as its dither. */
-const wash = (color: string, share: number) =>
-  `color-mix(in srgb, ${color} ${Math.round(share * 100)}%, transparent)`;
+export { FAR_ZOOM } from "../core/far";
 
 function farStyle(item: DrawItem): CSSProperties | null {
   const d = item.data;

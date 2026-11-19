@@ -11,14 +11,17 @@ import {
   Minimap,
   useCanvasState,
   ZoomControls,
+  type CanvasFar,
   type CanvasProps,
 } from "@forgeron/canvas/react";
 import { matchShortcut } from "@forgeron/ui";
 import {
   memo,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
+  useState,
   type ClipboardEvent as ReactClipboardEvent,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -26,8 +29,10 @@ import {
   type ReactNode,
 } from "react";
 import { parseHandle, portHandle } from "../core/controller";
+import { farEdges, farNode } from "../core/far";
 import { portOffset, type EdgeStyle } from "../core/geometry";
-import { isNodeItem, nodeOfItem, type FlowItemData } from "../core/items";
+import { isNodeItem, NODE_KIND, nodeOfItem, type FlowItemData } from "../core/items";
+import { indexGraph } from "../core/model";
 import type { FlowEdge, FlowNode, PortSide } from "../core/model";
 import { nodeStatus, type RunState, type RunStatus } from "../core/run";
 import { FlowConnectionWire, FlowEdges, FlowGroups } from "./layers";
@@ -74,6 +79,9 @@ export interface FlowCanvasProps<D> {
   className?: string;
   style?: CSSProperties;
 }
+
+/** DOM edges mounted on the first frame back from far; twice as many each frame after. */
+const EDGES_FIRST = 32;
 
 const FIELD = "input, textarea, select, [contenteditable=''], [contenteditable='true']";
 const isField = (t: EventTarget | null) => t instanceof Element && t.closest(FIELD) !== null;
@@ -156,12 +164,13 @@ export function FlowCanvas<D>({
   const pasteHandled = useRef(true);
   const copied = useRef<string | null>(null);
 
-  // Re-renders the nodes only when the zoom crosses `farZoom`, not at every step.
+  // Re-renders this only when the zoom crosses `farZoom`, not at every step; the nodes learn it
+  // from the canvas (`state.far`), which switches them a few at a time.
   const far = useCanvasState(store, (s) => s.viewport.zoom < farZoom);
   const renderItem = useCallback(
     (
       item: Parameters<CanvasProps<FlowItemData<D>>["renderItem"]>[0],
-      { selected }: { selected: boolean },
+      { selected, far }: { selected: boolean; far: boolean },
     ) => {
       if (!isNodeItem<D>(item)) return null;
       const node = nodeOfItem(item);
@@ -175,7 +184,60 @@ export function FlowCanvas<D>({
       }
       return <NodeView node={node} selected={selected} status={status} render={renderNode} />;
     },
-    [run, renderNode, far, nodeLabel],
+    [run, renderNode, nodeLabel],
+  );
+
+  // Back from far, the DOM edges come back a few dozen a frame (`edgeLimit`, null: all of them),
+  // while the far layer still draws every edge under them.
+  const graph = flow.current;
+  const [edgeLimit, setEdgeLimit] = useState<number | null>(null);
+  const [wasFar, setWasFar] = useState(far);
+  if (wasFar !== far) {
+    setWasFar(far);
+    setEdgeLimit(far ? null : EDGES_FIRST);
+  }
+  useEffect(() => {
+    if (edgeLimit === null) return;
+    const next = () =>
+      setEdgeLimit((n) => (n === null || n * 2 >= graph.edges.length ? null : n * 2));
+    if (typeof requestAnimationFrame !== "function") {
+      const id = setTimeout(next, 16);
+      return () => clearTimeout(id);
+    }
+    const id = requestAnimationFrame(next);
+    return () => cancelAnimationFrame(id);
+  }, [edgeLimit, graph.edges.length]);
+
+  // The far view on the GPU: nodes as labelled boxes, every edge as its line and arrowhead. The
+  // edges are packed when the graph, the run or the edge selection change, only while far or
+  // while the DOM edges come back.
+  const selectedEdges = flow.selectedEdges;
+  const edgesOnGpu = far || edgeLimit !== null;
+  const farBelow = useMemo(
+    () =>
+      edgesOnGpu
+        ? farEdges(indexGraph(graph), graph.edges, edgeStyle, run, selectedEdges)
+        : undefined,
+    [edgesOnGpu, graph, edgeStyle, run, selectedEdges],
+  );
+  const farKinds = useMemo<CanvasFar<FlowItemData<D>>["kinds"]>(
+    () => ({
+      [NODE_KIND]: (item, { selected }) => {
+        if (!isNodeItem<D>(item)) return null;
+        const node = nodeOfItem(item);
+        return farNode(
+          node,
+          nodeStatus(run, node.id),
+          nodeLabel ? nodeLabel(node) : node.id,
+          selected,
+        );
+      },
+    }),
+    [run, nodeLabel],
+  );
+  const farView = useMemo<CanvasFar<FlowItemData<D>>>(
+    () => ({ zoom: farZoom, kinds: farKinds, ...(farBelow ? { below: farBelow } : {}) }),
+    [farZoom, farKinds, farBelow],
   );
 
   const itemLabel = useCallback(
@@ -195,12 +257,19 @@ export function FlowCanvas<D>({
       below: (
         <>
           <FlowGroups flow={flow} />
-          <FlowEdges flow={flow} style={edgeStyle} run={run} onInsert={onInsert} />
+          <FlowEdges
+            flow={flow}
+            style={edgeStyle}
+            run={run}
+            onInsert={onInsert}
+            far={far}
+            limit={edgeLimit}
+          />
         </>
       ),
       above: <FlowConnectionWire flow={flow} style={edgeStyle} />,
     }),
-    [flow, edgeStyle, run, onInsert],
+    [flow, edgeStyle, run, onInsert, far, edgeLimit],
   );
 
   const onConnect = useCallback(
@@ -306,6 +375,7 @@ export function FlowCanvas<D>({
         store={store}
         label={label}
         renderItem={renderItem}
+        far={farView}
         itemLabel={itemLabel}
         layers={layers}
         onConnect={onConnect}

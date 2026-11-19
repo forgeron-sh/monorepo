@@ -5,6 +5,7 @@
 import { screenToWorld, type ConnectionEnd, type Item, type Point } from "@forgeron/canvas";
 import {
   Canvas,
+  type FarDraw,
   Minimap,
   useCanvasState,
   useConnection,
@@ -40,6 +41,7 @@ import { group, newGroupId, toggleLock, ungroup } from "../core/arrange";
 import { arrowEnds, canBind, layoutArrowFrom } from "../core/arrows";
 import { DEFAULT_STYLE, imageBounds, imageItem, type DrawStyle } from "../core/create";
 import { serializeBoard } from "../core/document";
+import { FAR_ZOOM, farPrimitives } from "../core/far";
 import type { DrawStore } from "../core/engine";
 import { pagePaint, paintItem } from "../core/paint";
 import { penFromPoints } from "../core/pen";
@@ -47,7 +49,7 @@ import { stickyHeight, textHeight, textWidth } from "../core/text";
 import type { ArrowData, DrawData, DrawItem } from "../core/types";
 import { download, exportSvgDocument, fileName, svgToPng } from "./export";
 import { Inspector } from "./inspector";
-import { DrawItemView, FAR_ZOOM, toReact } from "./render";
+import { DrawItemView, toReact } from "./render";
 import { createSession, createSignal, useSignal, type Signal } from "./signal";
 import { createTools } from "./tools";
 
@@ -229,7 +231,6 @@ export function DrawEditor({
   const tool = useCanvasState(store, (s) => s.tool);
   const items = useCanvasState(store, (s) => s.items) as ReadonlyArray<DrawItem>;
   const selection = useCanvasState(store, (s) => s.selection);
-  const far = useCanvasState(store, (s) => s.viewport.zoom < FAR_ZOOM);
 
   const startEditing = useCallback(
     (id: string, key: string, grow: boolean) => {
@@ -373,7 +374,7 @@ export function DrawEditor({
     editingText && "text" in editingText.data ? (editingText.data.text ?? "") : "";
 
   const renderItem = useCallback(
-    (item: Item<DrawData>) => {
+    (item: Item<DrawData>, { far }: { far: boolean }) => {
       const d = item.data;
       const frame = d.type !== "frame" && d.frame ? frames.get(d.frame) : undefined;
       return (
@@ -391,7 +392,25 @@ export function DrawEditor({
         />
       );
     },
-    [frames, prefix, editing, editingValue, typeText, finishEditing, singleArrow, far],
+    [frames, prefix, editing, editingValue, typeText, finishEditing, singleArrow],
+  );
+
+  // The far view on the GPU: every kind but images (they stay in the DOM); the item being typed
+  // and the selected arrow's ends stay in the DOM too.
+  const far = useMemo(() => {
+    const draw: FarDraw<DrawData> = (item) => {
+      const d = item.data;
+      const frame = d.type !== "frame" && d.frame ? frames.get(d.frame) : undefined;
+      return farPrimitives(item as DrawItem, frame);
+    };
+    const kinds: Record<string, FarDraw<DrawData>> = {};
+    for (const k of ["rectangle", "ellipse", "diamond", "sticky", "text", "arrow", "pen", "frame"])
+      kinds[k] = draw;
+    return kinds;
+  }, [frames]);
+  const keep = useMemo(
+    () => [...(editing ? [editing.id] : []), ...(singleArrow ? [singleArrow] : [])],
+    [editing, singleArrow],
   );
 
   /* ---- images, exports, the JSON clipboard */
@@ -532,6 +551,7 @@ export function DrawEditor({
         label={label}
         tools={tools}
         renderItem={renderItem}
+        far={{ zoom: FAR_ZOOM, kinds: far, keep }}
         itemLabel={drawItemLabel}
         onItemActivate={onActivate}
         onSurfaceDoubleClick={(point) => {

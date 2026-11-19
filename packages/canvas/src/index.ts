@@ -13,6 +13,25 @@ export {
   rectFromPoints,
   unionBounds,
 } from "./core/geometry";
+export {
+  createFarPack,
+  FAR_KIND,
+  FAR_STRIDE,
+  packFar,
+  parseCssColor,
+  resetFarPack,
+} from "./core/far";
+export type {
+  FarColor,
+  FarLine,
+  FarPack,
+  FarPrimitive,
+  FarRgba,
+  FarShape,
+  FarText,
+  FarTriangle,
+  PackOptions,
+} from "./core/far";
 export { DEFAULT_GRID, gridOffset, gridStep, snap, snapBounds, snapPoint } from "./core/grid";
 export type { GridOptions } from "./core/grid";
 export {

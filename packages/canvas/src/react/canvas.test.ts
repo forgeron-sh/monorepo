@@ -289,3 +289,99 @@ describe("<ZoomControls>", () => {
     expect(store.get("a")!.bounds.x).toBe(0);
   });
 });
+
+describe("the far view", () => {
+  // Each step of the DOM is one frame: several acts let them run.
+  const settle = async () => {
+    for (let i = 0; i < 80; i++) await act(async () => new Promise((r) => setTimeout(r, 5)));
+  };
+  const farView = {
+    zoom: 0.35,
+    kinds: {
+      card: (i: Item<{ title: string }>) => [{ type: "rect" as const, ...i.bounds, fill: "--bg" }],
+    },
+  };
+
+  it("draws the items of a far kind on the far layer, and hits them through the engine", async () => {
+    const store = createCanvasStore({
+      items: [
+        item("a", 0, 0, 0),
+        item("b", 200, 0, 1),
+        {
+          id: "n",
+          kind: "note",
+          bounds: { x: 400, y: 0, w: 100, h: 60 },
+          z: 2,
+          data: { title: "n" },
+        },
+      ],
+      grid: { snap: false },
+    });
+    const seen: Array<[string, boolean]> = [];
+    const surface = await mount(store, {
+      far: farView,
+      renderItem: (i: Item<{ title: string }>, s: { far: boolean }) => {
+        seen.push([i.id, s.far]);
+        return h("span", null, i.data.title);
+      },
+    });
+    await act(async () => store.setSize({ w: 800, h: 600 }));
+    const ids = () =>
+      [...surface.querySelectorAll<HTMLElement>("[data-canvas-item]")].map(
+        (e) => e.dataset.canvasItem,
+      );
+    expect(ids()).toEqual(["a", "b", "n"]);
+    const layer = surface.querySelector<HTMLElement>(".fg-canvas-far")!;
+    expect(layer.style.display).toBe("none");
+
+    await act(async () => store.setViewport({ x: 0, y: 0, zoom: 0.2 }));
+    await settle();
+    // Only the note, which has no far drawing, stays in the DOM, drawn as seen from far.
+    expect(ids()).toEqual(["n"]);
+    expect(seen.at(-1)).toEqual(["n", true]);
+    expect(layer.style.display).toBe("");
+    // A press on a card selects it: the engine's hit test, not the DOM.
+    await fire(surface, "pointerdown", { clientX: 45, clientY: 5 });
+    await fire(surface, "pointerup", { clientX: 45, clientY: 5 });
+    expect([...store.getState().selection]).toEqual(["b"]);
+
+    await act(async () => store.setViewport({ x: 0, y: 0, zoom: 1 }));
+    await settle();
+    expect(ids()).toEqual(["a", "b", "n"]);
+    expect(layer.style.display).toBe("none");
+  });
+
+  it("mounts the items again a few at a time after crossing back", async () => {
+    const many = Array.from({ length: 120 }, (_, i) =>
+      item(`i${i}`, (i % 12) * 60, Math.floor(i / 12) * 50, i),
+    );
+    const store = createCanvasStore({ items: many, grid: { snap: false } });
+    const surface = await mount(store, { far: farView });
+    await act(async () => store.setSize({ w: 800, h: 600 }));
+    await act(async () => store.setViewport({ x: 0, y: 0, zoom: 0.2 }));
+    await settle();
+    const count = () => surface.querySelectorAll("[data-canvas-item]").length;
+    expect(count()).toBe(0);
+    await act(async () => store.setViewport({ x: 0, y: 0, zoom: 1 }));
+    // The switch itself mounts nothing; the next frames do, a few dozen at a time.
+    expect(count()).toBe(0);
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+    expect(count()).toBeGreaterThan(0);
+    expect(count()).toBeLessThan(120);
+    await settle();
+    expect(count()).toBe(120);
+  });
+
+  it("keeps the items the consumer asks for in the DOM", async () => {
+    const store = make();
+    const surface = await mount(store, { far: { ...farView, keep: ["b"] } });
+    await act(async () => store.setSize({ w: 800, h: 600 }));
+    await act(async () => store.setViewport({ x: 0, y: 0, zoom: 0.2 }));
+    await settle();
+    expect(
+      [...surface.querySelectorAll<HTMLElement>("[data-canvas-item]")].map(
+        (e) => e.dataset.canvasItem,
+      ),
+    ).toEqual(["b"]);
+  });
+});

@@ -247,6 +247,46 @@ Draw at fit, one fix at a time (main thread per pan step, normal CPU): 7.3 → 6
 
 What is left: drawing 2,000 DOM items at 10 % is now the cost (paint 1.9 ms and layerize 0.9 ms of the 5.5), slightly more than before because the cull window keeps up to twice the overscan mounted; draw at fit stays above 4 ms a step on this machine and about 13 ms at 4× throttling. Zoom at fit still has 10 long tasks: the cull window moves in steps (hundreds of items mounted at once), and draw's far/near switch at 35 % re-renders every item. The next step is the WebGL2 renderer of D-148 for the far zoom (one instanced draw of the primitives, the DOM overlay only near), not more DOM work. Flow at fit churns more edges than before in bursts (20 nodes per wheel against 8) as the window moves, for less paint at 100 %.
 
+## Far-zoom renderer (20/11/2026)
+
+Below the far zoom (draw 35 %, flow 40 %) the items are no longer DOM: `<Canvas far={{ zoom, kinds, below, keep }}>` asks each kind for primitives (`kinds[kind](item, { selected }) → FarPrimitive[]`: rect, ellipse, diamond, polyline, triangle, one line of text), packs them as 64-byte instances (`core/far.ts`, pure) and draws them on one WebGL2 surface under the DOM items (`react/far-layer.ts`): one instanced call per layer (`below`: flow's edges; `items`: the culled items, then the selection's outlines), six vertices per instance, edges covered by signed distance (no multisampling), a stroke thinner than a device pixel drawn one pixel wide at its share of the colour, as the DOM's scaled borders are. A pan or a zoom sets three uniforms; the buffers are rebuilt only when the items, the selection or the cull window change. Without WebGL2, or when its context is lost, a 2D canvas draws the same instances. Colours are tokens or any CSS colour (`color-mix` included), resolved on the surface once and again on a theme change. Texts (flow's node names, frame names) go on a 2D canvas a margin larger than the view, moved by a CSS transform on a pan and redrawn on a zoom. Dither fills are a flat wash of their colour (40 %), as the DOM's far view drew them: a 4 × 4 pattern of 2-unit pixels is under a screen pixel at these zooms and would alias into moiré. Hit testing is the engine's (`hit`), as before. Near zoom is the DOM, unchanged.
+
+Crossing the threshold: the DOM moves towards what it must hold a few items a frame (the count adapted so a step takes about 6 ms, unmounting four times as many), while the far layer draws the items not mounted yet; `renderItem` learns the view from `state.far`, so mounted items do not re-render at the switch. Flow's DOM edges come back 32, 64, 128… a frame, the far layer drawing all edges until they are there.
+
+Same harness and machine as "After the fixes" (headless Chrome on the M4 through ANGLE/Metal, 1,440 × 900 at 2×, 120 wheel steps). Before is `a5bc6148`, after the working tree; both measured back to back. "cross" starts at 50 % and zooms out to 27 % and back twice (four crossings of draw's 35 % and flow's 40 %). Long tasks are main-thread tasks over 12 ms.
+
+| page, gesture   | main/step before → after | frame p50 / p95 before → after | paint       | long tasks (max ms) |
+| --------------- | -----------------------: | -----------------------------: | ----------- | ------------------- |
+| draw fit, pan   |            5.2 → **2.1** |         8.6 / 24.0 → 3.7 / 6.4 | 1.79 → 0.12 | 6 (19) → 0          |
+| draw fit, zoom  |            6.5 → **3.4** |        8.5 / 30.2 → 4.1 / 11.6 | 1.56 → 0.41 | 15 (40) → 0         |
+| draw cross      |            4.6 → **4.2** |         6.7 / 21.9 → 6.6 / 9.6 | 0.78 → 0.53 | 4 (35) → 1 (13)     |
+| draw 100 %, pan |                2.1 → 1.9 |          3.4 / 8.4 → 3.1 / 6.6 | 0.30 → 0.28 | 0 → 0               |
+| flow fit, pan   |            3.2 → **1.7** |         3.6 / 13.3 → 2.8 / 5.1 | 0.87 → 0.11 | 1 (13) → 0          |
+| flow fit, zoom  |            5.7 → **5.2** |        9.3 / 19.8 → 6.8 / 16.5 | 1.63 → 0.68 | 2 (28) → 3 (16)     |
+| flow cross      |                4.6 → 5.2 |        6.7 / 20.8 → 7.6 / 16.0 | 1.34 → 0.71 | 4 (24) → 1 (15)     |
+| flow 100 %, pan |                3.0 → 3.0 |        5.2 / 10.8 → 5.0 / 11.5 | 0.70 → 0.72 | 0 → 0               |
+
+At 4× CPU throttling:
+
+| page, gesture  | main/step before → after | frame p50 / p95 before → after | long tasks (max ms) |
+| -------------- | -----------------------: | -----------------------------: | ------------------- |
+| draw fit, pan  |           13.6 → **7.5** |       20.7 / 109 → 13.3 / 22.1 | 39 (64) → 3 (14)    |
+| draw fit, zoom |          17.8 → **11.0** |       56.9 / 150 → 14.8 / 22.7 | 52 (169) → 3 (14)   |
+| draw cross     |              15.6 → 14.6 |       41.5 / 162 → 27.7 / 54.4 | 59 (192) → 46 (55)  |
+| flow fit, pan  |            9.3 → **5.7** |       13.0 / 55.1 → 9.3 / 18.2 | 27 (52) → 2 (17)    |
+| flow fit, zoom |              13.7 → 13.5 |      35.2 / 72.1 → 23.1 / 50.8 | 55 (85) → 45 (31)   |
+| flow cross     |              13.9 → 12.8 |      31.3 / 59.0 → 17.6 / 49.3 | 62 (101) → 38 (46)  |
+
+The switch alone (one key from 50 % to 25 % and back, twice; main-thread tasks over 12 ms in the 5 s): draw 4 (27, 29, 33, 13) → 0, flow 0 → 0; at 4× draw 8 (78, 32, 47, 16, 68, 23, 41, 12) → 5 (21, 13, 17, 15, 15), flow 9 (max 39) → 10 (max 29). The long tasks left at 4× in "cross" are the near-zoom steps themselves (300 to 400 DOM items between 35 and 50 %), present before too.
+
+Draw at fit is now 2.1 ms a pan step (target 2), of which script 1.06: the minimap rebuilding its bitmap as the view leaves the items (its token colours are now read once per theme), the grid's dots and React when the cull window moves; the far layer itself is a few hundredths. Flow at fit zoom gains less: half of that gesture is above 40 % (it zooms to 110 %), where nodes are rich cards. The GPU does a little more per frame (3.7 → 4 to 5 ms on the GPU thread, a full-screen WebGL canvas redrawn each step), still far from a frame.
+
+Compositor layers stay 16 (draw) and 19 (flow) plus the far canvas at rest; while the DOM catches up after a switch, the items over the WebGL canvas are composited on their own (up to about 110 layers for a few frames).
+
+Screenshots (`scratchpad/far/shots`, 1,440 × 900 at 2×): near zoom is identical to the pixel in the 11 near states of the gallery's canvas, draw and flow pages (opening views, 50 to 200 %, panned; two first-run differences of the canvas page and one pixel at 200 % did not reproduce on a second run); at far zoom the boxes, ellipses, diamonds, stickies and frames match, pen strokes are slightly smoother, flow's names are drawn by the 2D canvas instead of the DOM (slightly brighter at 10 %).
+
+Not done: flow edges are clickable at far zoom only when selected (the DOM keeps those); dashed strokes (draw's dashed arrows, flow's skipped edges) and running edges' marching dashes are solid at far zoom; nothing hovers at far zoom (nothing did); flow's group frames stay DOM, so their 3 % wash now lies over the nodes; images stay DOM; a real GPU other than the M4, VoiceOver, touch.
+
 ## When to revisit
 
 - A scene that needs per-frame CPU work proportional to the visible items beyond culling (the isometric blueprint: depth sorting, animation, geometry generation), at thousands of items.

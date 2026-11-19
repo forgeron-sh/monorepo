@@ -99,6 +99,10 @@ export function Minimap<D = unknown>({
   const mapping = useRef<Mapping | null>(null);
   const bitmap = useRef<{ canvas: HTMLCanvasElement; key: unknown[] } | null>(null);
   const dragging = useRef(false);
+  const palette = useRef<{ theme: number; colors: Map<string, string> }>({
+    theme: -1,
+    colors: new Map(),
+  });
 
   const itemBounds = useMemo(() => unionBounds(items.map((i) => i.bounds)), [items]);
 
@@ -120,12 +124,15 @@ export function Minimap<D = unknown>({
     if (!sameMapping(mapping.current, next)) mapping.current = next;
     const m = mapping.current;
     if (!m) return;
-    const css = getComputedStyle(canvas);
-    const colors = new Map<string, string>();
+    // The tokens are read once per theme, not at every camera step.
+    if (palette.current.theme !== theme) palette.current = { theme, colors: new Map() };
+    const colors = palette.current.colors;
+    let css: CSSStyleDeclaration | null = null;
     const color = (value: string) => {
       if (!value.startsWith("--")) return value;
       let c = colors.get(value);
       if (c === undefined) {
+        css ??= getComputedStyle(canvas);
         c = css.getPropertyValue(value).trim();
         colors.set(value, c);
       }

@@ -120,10 +120,22 @@ export interface FlowEdgesProps<D> {
   run?: RunState | undefined;
   onInsert?: ((edge: FlowEdge, point: Point) => void) | undefined;
   edgeLabel?: ((edge: FlowEdge, from: FlowNode<D>, to: FlowNode<D>) => string) | undefined;
+  /** The far view is on: the canvas's far layer draws the edges; only the selected stay here. */
+  far?: boolean;
+  /** At most this many edges in the DOM (back from far, they come back a few at a time). */
+  limit?: number | null;
 }
 
 /** The edges of a flow, drawn under its nodes. */
-export function FlowEdges<D>({ flow, style, run, onInsert, edgeLabel }: FlowEdgesProps<D>) {
+export function FlowEdges<D>({
+  flow,
+  style,
+  run,
+  onInsert,
+  edgeLabel,
+  far = false,
+  limit = null,
+}: FlowEdgesProps<D>) {
   const graph = flow.current;
   const index = useMemo(() => indexGraph(graph), [graph]);
   // Each edge's path and box, computed when the graph changes, not when the camera moves.
@@ -200,6 +212,7 @@ export function FlowEdges<D>({ flow, style, run, onInsert, edgeLabel }: FlowEdge
     [flow],
   );
 
+  let budget = limit ?? Infinity;
   const preview = (() => {
     if (!drag) return null;
     const source = index.nodes.get(drag.edge.from.node);
@@ -211,8 +224,7 @@ export function FlowEdges<D>({ flow, style, run, onInsert, edgeLabel }: FlowEdge
     <WorldSvg className="fg-flow-edges">
       {shapes.map(({ edge, g, box }) => {
         const kept =
-          !cull ||
-          intersects(cull, box) ||
+          (!far && (!cull || intersects(cull, box)) && (limit === null || budget-- > 0)) ||
           flow.selectedEdges.has(edge.id) ||
           drag?.edge.id === edge.id;
         if (!kept) return null;

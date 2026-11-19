@@ -23,6 +23,7 @@ import { snapPoint } from "../core/grid";
 import { handlePosition, type BoxMode, type Direction } from "../core/hit";
 import { CANVAS_KEYMAP, DEFAULT_NUDGE, runCommand, type NudgeSteps } from "../core/keymap";
 import type { CanvasState } from "../core/engine";
+import type { FarPrimitive } from "../core/far";
 import type { CanvasStore } from "../core/store";
 import {
   gestureFor,
@@ -44,6 +45,7 @@ import type {
 } from "../core/types";
 import { boundsToScreen, screenToWorld, visibleWorld, wheelZoomFactor } from "../core/viewport";
 import { CanvasProvider, useCanvasState, useCullWindow } from "./context";
+import { createFarLayer, type FarLayer } from "./far-layer";
 import { createDomRenderer, type CanvasRenderer, type Primitive, type Scene } from "./renderer";
 
 /** What a consumer tool gets with each press. */
@@ -55,6 +57,35 @@ export interface CanvasToolApi<D = unknown> {
 
 export interface RenderItemState {
   selected: boolean;
+  /**
+   * The canvas is in its far view (`far.zoom`): the item is in the DOM only because its kind has
+   * no far drawing, it is focused, or the consumer keeps it (`far.keep`). Draw it as seen from far.
+   */
+  far: boolean;
+}
+
+/** How an item of a kind looks from far: primitives in world units, none for nothing. */
+export type FarDraw<D> = (
+  item: Item<D>,
+  state: { selected: boolean },
+) => ReadonlyArray<FarPrimitive> | null;
+
+/**
+ * The far view: below `zoom`, the items whose kind has a far drawing are drawn as primitives on one
+ * GPU surface (WebGL2; a 2D canvas without it) instead of the DOM. Hit testing stays the engine's.
+ */
+export interface CanvasFar<D> {
+  /** Under this zoom the far view is on; 0 turns it off. */
+  zoom: number;
+  /** Per kind, its far drawing; a kind without one stays in the DOM. */
+  kinds: Readonly<Record<string, FarDraw<D>>>;
+  /**
+   * Primitives that are not items, under them (flow's edges), in world units; drawn whenever given,
+   * in the far view or not: the consumer gives them while its own DOM is not there.
+   */
+  below?: ReadonlyArray<FarPrimitive>;
+  /** Items kept in the DOM in the far view too (one being edited, the ends of an arrow). */
+  keep?: ReadonlyArray<string>;
 }
 
 export interface CanvasProps<D = unknown> {
@@ -66,6 +97,8 @@ export interface CanvasProps<D = unknown> {
   renderItem: (item: Item<D>, state: RenderItemState) => ReactNode;
   /** The shape the renderer draws under the overlay; none by default. */
   primitive?: (item: Item<D>) => Primitive | null;
+  /** The far view: items drawn as primitives on the GPU below a zoom, instead of the DOM. */
+  far?: CanvasFar<D>;
   /** Draws the primitives; the DOM and SVG renderer by default. */
   renderer?: () => CanvasRenderer;
   /** Names the surface for assistive technology, e.g. "Flow editor". */
@@ -162,13 +195,22 @@ const worldTransform = (v: Viewport) => `translate(${v.x}px, ${v.y}px) scale(${v
 interface ItemViewProps<D> {
   item: Item<D>;
   selected: boolean;
+  far: boolean;
   tabbable: boolean;
   label: string;
   render: (item: Item<D>, state: RenderItemState) => ReactNode;
   onFocus: (id: string) => void;
 }
 
-function ItemViewInner<D>({ item, selected, tabbable, label, render, onFocus }: ItemViewProps<D>) {
+function ItemViewInner<D>({
+  item,
+  selected,
+  far,
+  tabbable,
+  label,
+  render,
+  onFocus,
+}: ItemViewProps<D>) {
   const b = item.bounds;
   return (
     <div
@@ -186,16 +228,95 @@ function ItemViewInner<D>({ item, selected, tabbable, label, render, onFocus }: 
       }}
       style={{ left: b.x, top: b.y, width: b.w, height: b.h }}
     >
-      {render(item, { selected })}
+      {render(item, { selected, far })}
     </div>
   );
 }
 const ItemView = memo(ItemViewInner) as typeof ItemViewInner;
 
+/**
+ * Items mounted per frame while the DOM catches up after a far/near switch: adapted to how long the
+ * last step took, so a step stays near `STEP_BUDGET` ms on any machine. Unmounting is cheaper.
+ */
+const FIRST_MOUNTS = 16;
+const STEP_BUDGET = 6;
+const UNMOUNTS_PER_MOUNT = 4;
+const NO_FAR: ReadonlyArray<FarPrimitive> = [];
+const nextFrame = (f: () => void): (() => void) => {
+  if (typeof requestAnimationFrame === "function") {
+    const id = requestAnimationFrame(f);
+    return () => cancelAnimationFrame(id);
+  }
+  const id = setTimeout(f, 16);
+  return () => clearTimeout(id);
+};
+
+/**
+ * What the DOM holds: the items in the cull window, plus the selected and the focused ones; in the
+ * far view, only those whose kind has no far drawing, the focused one and those the consumer keeps.
+ */
+function domTarget<D>(
+  s: {
+    store: CanvasStore<D>;
+    items: ReadonlyArray<Item<D>>;
+    culled: ReadonlyArray<Item<D>>;
+    selection: ReadonlySet<string>;
+    liveFocus: string | null;
+    farKinds: CanvasFar<D>["kinds"] | undefined;
+    keepKey: string;
+  },
+  farView: boolean,
+): ReadonlyArray<Item<D>> {
+  const { farKinds } = s;
+  const base =
+    farView && farKinds ? s.culled.filter((i) => farKinds[i.kind] === undefined) : s.culled;
+  const extra = farView ? (s.keepKey ? s.keepKey.split("\n") : []) : [...s.selection];
+  if (s.liveFocus) extra.push(s.liveFocus);
+  const ids = new Set(base.map((i) => i.id));
+  const missing = extra.filter((id) => !ids.has(id) && s.store.get(id));
+  if (missing.length === 0) return base;
+  // An off-screen selected or focused item: keep the document's order.
+  for (const id of missing) ids.add(id);
+  return s.items.filter((i) => ids.has(i.id));
+}
+
+/**
+ * One step of the DOM towards `want`: keeps what is wanted, mounts and unmounts a few more. Null
+ * once it is there.
+ */
+function stepMounted(
+  mounted: ReadonlySet<string>,
+  want: ReadonlyArray<{ id: string }>,
+  mounts: number,
+): ReadonlySet<string> | null {
+  const wanted = new Set(want.map((i) => i.id));
+  const next = new Set<string>();
+  let removed = 0;
+  let added = 0;
+  let done = true;
+  for (const id of mounted) {
+    if (wanted.has(id)) next.add(id);
+    else if (removed < mounts * UNMOUNTS_PER_MOUNT) removed++;
+    else {
+      next.add(id);
+      done = false;
+    }
+  }
+  for (const id of wanted) {
+    if (next.has(id)) continue;
+    if (added < mounts) {
+      next.add(id);
+      added++;
+    } else done = false;
+  }
+  return done ? null : next;
+}
+
 export function Canvas<D = unknown>({
   store,
   renderItem,
   primitive,
+  far,
   renderer: makeRenderer = createDomRenderer,
   label,
   itemLabel = defaultLabel,
@@ -227,6 +348,8 @@ export function Canvas<D = unknown>({
   const underRef = useRef<HTMLDivElement>(null);
   const overRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
+  const farRef = useRef<FarLayer | null>(null);
+  const farBelowSet = useRef<ReadonlyArray<FarPrimitive> | null>(null);
   const active = useRef<Active | null>(null);
   const space = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
@@ -261,6 +384,20 @@ export function Canvas<D = unknown>({
       rendererRef.current = null;
     };
   }, [makeRenderer]);
+
+  // The far layer exists while the canvas has a far view; it sits above the grid, under the items.
+  const farZoom = far && far.zoom > 0 ? far.zoom : 0;
+  const hasFarView = farZoom > 0;
+  useLayoutEffect(() => {
+    if (!hasFarView) return;
+    const layer = createFarLayer(underRef.current!);
+    farRef.current = layer;
+    farBelowSet.current = null;
+    return () => {
+      layer.destroy();
+      farRef.current = null;
+    };
+  }, [hasFarView]);
 
   /* ---- size and wheel */
 
@@ -736,23 +873,77 @@ export function Canvas<D = unknown>({
   // Culling: the overlay holds the items in the cull window, plus the selected and the focused
   // ones. The window moves in steps (hysteresis), so a small pan mounts and unmounts nothing.
   const cull = useCullWindow(store, overscan);
-  const shown = useMemo(() => {
+  const selectFar = useCallback(
+    (s: CanvasState<D>) => farZoom > 0 && s.viewport.zoom < farZoom,
+    [farZoom],
+  );
+  const isFar = useCanvasState(store, selectFar);
+  const farKinds = far?.kinds;
+  const keepKey = far?.keep?.join("\n") ?? "";
+
+  // The items in the cull window, bottom first: the index answers, read by id.
+  const culled = useMemo(() => {
     if (!cull) return items;
-    // The index answers bottom first: read those items by id rather than filtering them all.
     const visible = store.query({
       type: "visible",
       viewport: { x: -cull.x, y: -cull.y, zoom: 1 },
       size: { w: cull.w, h: cull.h },
     });
-    const ids = new Set(visible);
-    const extra = [...selection, ...(liveFocus ? [liveFocus] : [])].filter((id) => !ids.has(id));
-    if (extra.length === 0) {
-      return visible.map((id) => store.get(id)).filter((i): i is (typeof items)[number] => !!i);
+    return visible.map((id) => store.get(id)).filter((i): i is (typeof items)[number] => !!i);
+  }, [store, items, cull]);
+
+  // What the DOM should hold. In the far view: the items that have no far drawing, the focused
+  // one and those the consumer keeps; the rest is drawn by the far layer.
+  const target = useMemo(
+    () => domTarget({ store, items, culled, selection, liveFocus, farKinds, keepKey }, isFar),
+    [store, items, culled, selection, liveFocus, isFar, farKinds, keepKey],
+  );
+
+  // Crossing the far zoom changes what the DOM holds all at once (hundreds of items): the DOM
+  // catches up a few dozen items a frame instead, while the far layer draws those not there yet.
+  const targetRef = useRef(target);
+  const [phase, setPhase] = useState<ReadonlySet<string> | null>(null);
+  const [phaseFar, setPhaseFar] = useState(isFar);
+  // What the DOM held at the last render: where the steps start from when the view flips.
+  const [rendered, setRendered] = useState<ReadonlySet<string>>(() => new Set());
+  if (phaseFar !== isFar) {
+    setPhaseFar(isFar);
+    setPhase(phase ?? rendered);
+  }
+  useLayoutEffect(() => {
+    targetRef.current = target;
+  }, [target]);
+  const mounts = useRef({ perFrame: FIRST_MOUNTS, started: 0 });
+  useLayoutEffect(() => {
+    const m = mounts.current;
+    if (!m.started) return;
+    // How long the last step took, from its frame to its commit: the next one mounts accordingly.
+    const took = performance.now() - m.started;
+    m.started = 0;
+    if (took > STEP_BUDGET) m.perFrame = Math.max(4, Math.floor(m.perFrame / 2));
+    else if (took < STEP_BUDGET / 2) m.perFrame = Math.min(256, m.perFrame * 2);
+  }, [phase]);
+  useEffect(() => {
+    if (!phase) {
+      mounts.current.perFrame = FIRST_MOUNTS;
+      return;
     }
-    // An off-screen selected or focused item: keep the document's order.
-    for (const id of extra) ids.add(id);
-    return items.filter((i) => ids.has(i.id));
-  }, [store, items, cull, selection, liveFocus]);
+    return nextFrame(() => {
+      mounts.current.started = performance.now();
+      setPhase((p) => (p ? stepMounted(p, targetRef.current, mounts.current.perFrame) : null));
+    });
+  }, [phase]);
+
+  const shown = useMemo(
+    () => (phase ? items.filter((i) => phase.has(i.id)) : target),
+    [phase, items, target],
+  );
+  const shownIds = useMemo(() => new Set(shown.map((i) => i.id)), [shown]);
+  if (rendered !== shownIds) setRendered(shownIds);
+  const targetIds = useMemo(
+    () => (phase ? new Set(target.map((i) => i.id)) : null),
+    [phase, target],
+  );
 
   const tabbableId = useMemo(() => {
     if (liveFocus) return liveFocus;
@@ -775,6 +966,8 @@ export function Canvas<D = unknown>({
   );
 
   // What the selection chrome needs, apart from the camera: read by id, not by scanning the items.
+  // In the far view the far layer outlines the selection; the chrome outlines only the selected
+  // items still in the DOM, which cover the far layer.
   const chrome = useMemo(() => {
     void items; // the selected items' bounds change with them
     const selected: Item<D>[] = [];
@@ -786,11 +979,71 @@ export function Canvas<D = unknown>({
     }
     const single = selected.length === 1 ? selected[0]! : null;
     const handles = single ? store.query({ type: "handles", id: single.id }) : [];
-    return { selected, single, handles };
-  }, [store, items, selection, selectionChrome]);
+    const outlined = isFar ? selected.filter((i) => shownIds.has(i.id)) : selected;
+    return { selected, single, handles, outlined };
+  }, [store, items, selection, selectionChrome, isFar, shownIds]);
+
+  // The far layer's primitives: in the far view, the culled items that have a far drawing and the
+  // selection's outlines; while the DOM catches up after crossing back, the items not there yet.
+  // Rebuilt when the items, the selection or the window change, never on a camera move.
+  // Each item's primitives, kept while the item and the kinds stay the same objects.
+  const farCache = useMemo(
+    () =>
+      farKinds && new WeakMap<Item<D>, { selected: boolean; prims: ReadonlyArray<FarPrimitive> }>(),
+    [farKinds],
+  );
+  const farItems = useMemo(() => {
+    if (!farKinds || !farCache) return null;
+    if (!isFar && !phase) return null;
+    const cache = farCache;
+    const out: Array<FarPrimitive & { outset?: number }> = [];
+    const list = isFar ? culled : target.filter((i) => !shownIds.has(i.id));
+    for (const item of list) {
+      const drawFar = farKinds[item.kind];
+      if (!drawFar) continue;
+      const sel = selection.has(item.id);
+      let hit = cache.get(item);
+      if (!hit || hit.selected !== sel) {
+        hit = { selected: sel, prims: drawFar(item, { selected: sel }) ?? NO_FAR };
+        cache.set(item, hit);
+      }
+      for (const p of hit.prims) out.push(p);
+    }
+    if (isFar && selectionChrome) {
+      for (const item of chrome.selected) {
+        const b = item.bounds;
+        out.push({
+          type: "rect",
+          x: b.x,
+          y: b.y,
+          w: b.w,
+          h: b.h,
+          stroke: "--accent",
+          strokeWidth: 1,
+          strokeUnit: "screen",
+          outset: 0.5,
+        });
+      }
+    }
+    return out;
+  }, [
+    farKinds,
+    farCache,
+    isFar,
+    phase,
+    culled,
+    target,
+    shownIds,
+    selection,
+    selectionChrome,
+    chrome,
+  ]);
+  // Drawn whenever the consumer gives them: flow keeps its edges here until its DOM edges are back.
+  const farBelow = far?.below ?? NO_FAR;
 
   // The scene is put together with the camera of the moment, here and from the store listener.
   const parts = useRef({ primitives, chrome, band, lasso });
+  const farOn = useRef(false);
   const transform = useRef("");
   const draw = useCallback(() => {
     const { viewport, size } = store.getState();
@@ -800,6 +1053,7 @@ export function Canvas<D = unknown>({
       world.style.transform = t;
       transform.current = t;
     }
+    if (farOn.current) farRef.current?.draw(viewport, size);
     const renderer = rendererRef.current;
     if (!renderer) return;
     const p = parts.current;
@@ -809,7 +1063,7 @@ export function Canvas<D = unknown>({
       size,
       grid: { size: store.grid.size, visible: store.grid.visible },
       primitives: p.primitives,
-      outlines: p.chrome.selected.map((i) => boundsToScreen(viewport, i.bounds)),
+      outlines: p.chrome.outlined.map((i) => boundsToScreen(viewport, i.bounds)),
       handles: box ? p.chrome.handles.map((h) => ({ handle: h, at: handlePosition(box, h) })) : [],
       band: p.band,
       lasso: p.lasso,
@@ -817,9 +1071,22 @@ export function Canvas<D = unknown>({
   }, [store]);
 
   useLayoutEffect(() => {
+    const layer = farRef.current;
+    if (!layer) return;
+    const on = (farItems !== null && farItems.length > 0) || farBelow.length > 0;
+    if (on) {
+      if (farBelowSet.current !== farBelow) layer.set("below", farBelow);
+      farBelowSet.current = farBelow;
+      layer.set("items", farItems ?? NO_FAR);
+    }
+    layer.show(on);
+    farOn.current = on;
+  }, [farItems, farBelow, hasFarView]);
+
+  useLayoutEffect(() => {
     parts.current = { primitives, chrome, band, lasso };
     draw();
-  }, [primitives, chrome, band, lasso, draw, makeRenderer]);
+  }, [primitives, chrome, band, lasso, draw, makeRenderer, farItems, farBelow]);
 
   useLayoutEffect(() => {
     let { viewport, size } = store.getState();
@@ -902,6 +1169,7 @@ export function Canvas<D = unknown>({
                 key={item.id}
                 item={item}
                 selected={selection.has(item.id)}
+                far={targetIds && !targetIds.has(item.id) ? !isFar : isFar}
                 tabbable={item.id === tabbableId}
                 label={itemLabel(item)}
                 render={renderItem}
