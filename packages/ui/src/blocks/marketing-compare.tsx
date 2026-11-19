@@ -30,7 +30,7 @@ export function CompareTable({ label, columns, groups, className }: CompareTable
       <div className="fg-cmp-row fg-cmp-head" role="row">
         <span role="columnheader" />
         {columns.map((c) => (
-          <span key={c.name} role="columnheader" className="text-eyebrow">
+          <span key={c.name} role="columnheader" className="fg-cmp-cell text-eyebrow">
             <Icon icon={c.icon} size={12} />
             {c.name}
           </span>

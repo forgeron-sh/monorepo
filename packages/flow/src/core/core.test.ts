@@ -2,7 +2,7 @@ import { createCanvasStore } from "@forgeron/canvas";
 import { describe, expect, it } from "vitest";
 import { createFlowController, type FlowStore } from "./controller";
 import { generateFlowGraph } from "./generate";
-import { edgePath, portPoint } from "./geometry";
+import { edgeBounds, edgePath, portPoint } from "./geometry";
 import {
   canConnect,
   checkConnection,
@@ -189,6 +189,19 @@ describe("geometry", () => {
       { x: 0, y: 0, w: 240, h: 80 },
     ]);
     expect(back.d).toBe("M300 40H320V100H-26V40H-6");
+  });
+});
+
+describe("edge bounds", () => {
+  it("holds a bezier's control points, an orthogonal loop and the arrowhead", () => {
+    const back = edgePath({ x: 300, y: 40 }, { x: 0, y: 40 });
+    // A backward curve bulges right of its start and left of its end, to its control points.
+    expect(edgeBounds(back)).toEqual({ x: -159, y: 34, w: 612, h: 12 });
+    const loop = edgePath({ x: 300, y: 40 }, { x: 0, y: 40 }, "orthogonal");
+    const b = edgeBounds(loop);
+    expect(b.y + b.h).toBe(100);
+    expect(b.x).toBe(-26);
+    expect(b.x + b.w).toBe(320);
   });
 });
 

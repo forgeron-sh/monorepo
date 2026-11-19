@@ -22,6 +22,7 @@ import { gestureFor, type PressInput } from "./tools";
 import type { Item } from "./types";
 import {
   clampZoom,
+  cullWindow,
   fitBounds,
   lerpViewport,
   screenToWorld,
@@ -114,6 +115,24 @@ describe("viewport", () => {
     const mid = lerpViewport({ x: 0, y: 0, zoom: 1 }, { x: 100, y: 0, zoom: 4 }, 0.5);
     expect(mid.zoom).toBeCloseTo(2);
     expect(mid.x).toBe(50);
+  });
+  it("keeps the cull window while the view stays well inside it", () => {
+    const size = { w: 800, h: 600 };
+    expect(cullWindow(null, { x: 0, y: 0, zoom: 1 }, { w: 0, h: 0 }, 256)).toBeNull();
+    const first = cullWindow(null, { x: 0, y: 0, zoom: 1 }, size, 256)!;
+    expect(first.rect).toEqual({ x: -512, y: -512, w: 1824, h: 1624 });
+    // A pan of less than the overscan, and a small zoom out, keep it.
+    expect(cullWindow(first, { x: -200, y: 150, zoom: 1 }, size, 256)).toBe(first);
+    expect(cullWindow(first, { x: 40, y: 30, zoom: 0.9 }, size, 256)).toBe(first);
+    // Further, it moves with the view.
+    const moved = cullWindow(first, { x: -300, y: 0, zoom: 1 }, size, 256)!;
+    expect(moved).not.toBe(first);
+    expect(moved.rect.x).toBe(300 - 512);
+    // Zoomed in by more than half, it shrinks to the view.
+    expect(cullWindow(first, { x: 0, y: 0, zoom: 1.5 }, size, 256)).toBe(first);
+    const zoomed = cullWindow(first, { x: 0, y: 0, zoom: 1.6 }, size, 256)!;
+    expect(zoomed).not.toBe(first);
+    expect(zoomed.rect.w).toBeCloseTo((800 + 1024) / 1.6);
   });
 });
 

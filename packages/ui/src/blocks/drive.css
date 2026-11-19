@@ -484,9 +484,6 @@
   border-top: 4px solid var(--warning);
   background: var(--bg);
 }
-.fg-fbr-slides > i + i {
-  display: none;
-}
 .fg-fbr-hatch {
   position: absolute;
   inset: 0;

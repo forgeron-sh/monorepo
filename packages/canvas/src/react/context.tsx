@@ -5,12 +5,15 @@ import {
   createContext,
   useCallback,
   useContext,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 import type { CanvasState } from "../core/engine";
 import { createCanvasStore, type CanvasStore, type CanvasStoreOptions } from "../core/store";
+import type { Bounds } from "../core/types";
+import { cullWindow, type CullWindow } from "../core/viewport";
 
 const CanvasContext = createContext<CanvasStore<unknown> | null>(null);
 
@@ -51,6 +54,22 @@ export function useCanvasState<D, T>(
   select: (state: CanvasState<D>) => T,
 ): T {
   const get = useCallback(() => select(store.getState()), [store, select]);
+  return useSyncExternalStore(store.subscribe, get, get);
+}
+
+/**
+ * The world rectangle to render (`cullWindow`): the view plus `overscan` to twice `overscan` screen
+ * pixels around it. It is the same object while a pan or a zoom stays inside it, so a component
+ * that culls by it re-renders when the window moves, not at every step. Null before the surface has
+ * a size: render everything.
+ */
+export function useCullWindow<D>(store: CanvasStore<D>, overscan = 256): Bounds | null {
+  const last = useRef<CullWindow | null>(null);
+  const get = useCallback(() => {
+    const s = store.getState();
+    last.current = cullWindow(last.current, s.viewport, s.size, overscan);
+    return last.current?.rect ?? null;
+  }, [store, overscan]);
   return useSyncExternalStore(store.subscribe, get, get);
 }
 

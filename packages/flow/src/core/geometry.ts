@@ -100,6 +100,38 @@ export function edgePath(
 
 const boundsOf = <D>(n: FlowNode<D>): Bounds => ({ ...n.position, ...n.size });
 
+/**
+ * The box around an edge: its path (the absolute M, C, H and V commands that `edgePath` writes; a
+ * curve lies inside its control points) and its arrowhead. For culling edges out of view.
+ */
+export function edgeBounds(g: EdgeGeometry): Bounds {
+  let x1 = Math.min(g.from.x, g.to.x);
+  let y1 = Math.min(g.from.y, g.to.y) - ARROW;
+  let x2 = Math.max(g.from.x, g.to.x);
+  let y2 = Math.max(g.from.y, g.to.y) + ARROW;
+  let x = 0;
+  let y = 0;
+  const add = (px: number, py: number) => {
+    x = px;
+    y = py;
+    x1 = Math.min(x1, x);
+    y1 = Math.min(y1, y);
+    x2 = Math.max(x2, x);
+    y2 = Math.max(y2, y);
+  };
+  for (const [, cmd, args] of g.d.matchAll(/([MCHV])([^MCHV]*)/g)) {
+    const n = args!
+      .trim()
+      .split(/[\s,]+/)
+      .filter(Boolean)
+      .map(Number);
+    if (cmd === "H") for (const v of n) add(v, y);
+    else if (cmd === "V") for (const v of n) add(x, v);
+    else for (let i = 0; i + 1 < n.length; i += 2) add(n[i]!, n[i + 1]!);
+  }
+  return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+}
+
 /** The geometry of an edge in a graph, or null when one of its nodes is gone. */
 export function edgeGeometry<D>(
   index: GraphIndex<D>,

@@ -874,7 +874,6 @@ function Thumbnail({ item }: { item: DriveItem }) {
     return (
       <span className="fg-fbr-slides">
         <i />
-        <i />
       </span>
     );
   if (kind === "image" || kind === "video")

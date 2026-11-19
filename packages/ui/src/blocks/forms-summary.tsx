@@ -206,11 +206,11 @@ export function ResponseSummary({
           <dt>Responses</dt>
           <dd>{sum.responses}</dd>
         </div>
-        <div>
+        <div className="fg-fm-sum-next">
           <dt>Completed</dt>
           <dd>{sum.responses ? formPercent(sum.completion) : "–"}</dd>
         </div>
-        <div>
+        <div className="fg-fm-sum-next">
           <dt>Questions</dt>
           <dd>{sum.questions.length}</dd>
         </div>

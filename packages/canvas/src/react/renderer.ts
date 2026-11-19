@@ -63,13 +63,25 @@ const paint = (value: string | undefined, fallback: string) => {
 };
 const px = (n: number) => Math.round(n) + 0.5;
 
-/** The reference renderer: a 2D canvas for the dotted grid, SVG for shapes and the selection. */
+/**
+ * The reference renderer: a 2D canvas for the dotted grid, SVG for shapes and the selection. It
+ * writes to the DOM only what changed since the last scene (a pan touches the grid and one
+ * transform), and reads the grid colour once, again on a theme change or a resize.
+ */
 export function createDomRenderer(): CanvasRenderer {
   let grid: HTMLCanvasElement | null = null;
   let shapes: SVGSVGElement | null = null;
   let world: SVGGElement | null = null;
   let chrome: SVGSVGElement | null = null;
   let lastGrid = "";
+  let gridColor: string | null = null;
+  let last: Scene | null = null;
+  let shapesSize = "";
+  let chromeSize = "";
+  let transform = "";
+  let primitives: Scene["primitives"] | null = null;
+  let chromeKey = "";
+  let stopThemeWatch: (() => void) | null = null;
 
   const drawGrid = (scene: Scene) => {
     if (!grid) return;
@@ -85,10 +97,12 @@ export function createDomRenderer(): CanvasRenderer {
     if (grid.width !== w || grid.height !== h) {
       grid.width = w;
       grid.height = h;
+      gridColor = null;
     }
     ctx.clearRect(0, 0, w, h);
     if (!scene.grid.visible) return;
-    ctx.fillStyle = getComputedStyle(grid).getPropertyValue("--line-strong").trim() || "#2a2a2a";
+    gridColor ??= getComputedStyle(grid).getPropertyValue("--line-strong").trim() || "#2a2a2a";
+    ctx.fillStyle = gridColor;
     const step = gridStep(scene.grid.size, v.zoom);
     const dot = Math.max(1, Math.round(dpr));
     for (let y = gridOffset(v.y, step); y < size.h; y += step) {
@@ -96,6 +110,38 @@ export function createDomRenderer(): CanvasRenderer {
         ctx.fillRect(Math.round(x * dpr), Math.round(y * dpr), dot, dot);
       }
     }
+  };
+
+  /** A new theme changes the tokens: read the grid colour again and redraw. */
+  const watchTheme = () => {
+    const refresh = () => {
+      gridColor = null;
+      lastGrid = "";
+      if (last) drawGrid(last);
+    };
+    const root = document.documentElement;
+    const observer = typeof MutationObserver === "undefined" ? null : new MutationObserver(refresh);
+    observer?.observe(root, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class", "style"],
+    });
+    const media =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-color-scheme: dark)")
+        : null;
+    media?.addEventListener?.("change", refresh);
+    return () => {
+      observer?.disconnect();
+      media?.removeEventListener?.("change", refresh);
+    };
+  };
+
+  const setSize = (el: SVGSVGElement, size: Scene["size"], previous: string) => {
+    const key = `${size.w}x${size.h}`;
+    if (key === previous) return previous;
+    el.setAttribute("width", String(size.w));
+    el.setAttribute("height", String(size.h));
+    return key;
   };
 
   return {
@@ -109,88 +155,111 @@ export function createDomRenderer(): CanvasRenderer {
       chrome = svg("svg", { class: "fg-canvas-chrome", "aria-hidden": "true" });
       under.append(grid, shapes);
       over.append(chrome);
+      stopThemeWatch = watchTheme();
     },
     render(scene) {
+      last = scene;
       drawGrid(scene);
       const { viewport: v, size } = scene;
       if (world && shapes) {
-        shapes.setAttribute("width", String(size.w));
-        shapes.setAttribute("height", String(size.h));
-        world.setAttribute("transform", `translate(${v.x} ${v.y}) scale(${v.zoom})`);
-        world.replaceChildren(
-          ...scene.primitives.map(({ bounds: b, primitive: p, selected }) => {
-            const common = {
-              fill: paint(p.fill, "--bg"),
-              stroke: paint(p.stroke, "--line-strong"),
-              "stroke-width": 1,
-              "vector-effect": "non-scaling-stroke",
-              ...(selected ? { "data-selected": "" } : {}),
-            };
-            return p.shape === "ellipse"
-              ? svg("ellipse", {
-                  cx: b.x + b.w / 2,
-                  cy: b.y + b.h / 2,
-                  rx: b.w / 2,
-                  ry: b.h / 2,
-                  ...common,
-                })
-              : svg("rect", { x: b.x, y: b.y, width: b.w, height: b.h, ...common });
-          }),
-        );
+        shapesSize = setSize(shapes, size, shapesSize);
+        const t = `translate(${v.x} ${v.y}) scale(${v.zoom})`;
+        if (t !== transform) {
+          world.setAttribute("transform", t);
+          transform = t;
+        }
+        if (scene.primitives !== primitives) {
+          primitives = scene.primitives;
+          world.replaceChildren(
+            ...scene.primitives.map(({ bounds: b, primitive: p, selected }) => {
+              const common = {
+                fill: paint(p.fill, "--bg"),
+                stroke: paint(p.stroke, "--line-strong"),
+                "stroke-width": 1,
+                "vector-effect": "non-scaling-stroke",
+                ...(selected ? { "data-selected": "" } : {}),
+              };
+              return p.shape === "ellipse"
+                ? svg("ellipse", {
+                    cx: b.x + b.w / 2,
+                    cy: b.y + b.h / 2,
+                    rx: b.w / 2,
+                    ry: b.h / 2,
+                    ...common,
+                  })
+                : svg("rect", { x: b.x, y: b.y, width: b.w, height: b.h, ...common });
+            }),
+          );
+        }
       }
       if (chrome) {
-        chrome.setAttribute("width", String(size.w));
-        chrome.setAttribute("height", String(size.h));
-        const out: SVGElement[] = scene.outlines.map((r) =>
-          svg("rect", {
+        chromeSize = setSize(chrome, size, chromeSize);
+        // Screen space: what the chrome draws, rounded as it is drawn, decides whether it changed.
+        const out: Array<[string, Record<string, string | number>]> = scene.outlines.map((r) => [
+          "rect",
+          {
             class: "fg-canvas-outline",
             x: px(r.x),
             y: px(r.y),
             width: Math.round(r.w),
             height: Math.round(r.h),
-          }),
-        );
+          },
+        ]);
         for (const { at } of scene.handles) {
-          out.push(
-            svg("rect", {
+          out.push([
+            "rect",
+            {
               class: "fg-canvas-handle",
               x: Math.round(at.x) - 3.5,
               y: Math.round(at.y) - 3.5,
               width: 7,
               height: 7,
-            }),
-          );
+            },
+          ]);
         }
         if (scene.band) {
           const b = scene.band;
-          out.push(
-            svg("rect", {
+          out.push([
+            "rect",
+            {
               class: "fg-canvas-band",
               x: px(b.x),
               y: px(b.y),
               width: Math.round(b.w),
               height: Math.round(b.h),
-            }),
-          );
+            },
+          ]);
         }
         if (scene.lasso) {
-          out.push(
-            svg("polygon", {
+          out.push([
+            "polygon",
+            {
               class: "fg-canvas-lasso",
               points: scene.lasso.map((q) => `${Math.round(q.x)},${Math.round(q.y)}`).join(" "),
-            }),
+            },
+          ]);
+        }
+        const key = JSON.stringify(out);
+        if (key !== chromeKey) {
+          chromeKey = key;
+          chrome.replaceChildren(
+            ...out.map(([tag, attrs]) => svg(tag as "rect" | "polygon", attrs)),
           );
         }
-        chrome.replaceChildren(...out);
       }
     },
     unmount() {
+      stopThemeWatch?.();
+      stopThemeWatch = null;
       grid?.remove();
       shapes?.remove();
       chrome?.remove();
       grid = shapes = chrome = null;
       world = null;
-      lastGrid = "";
+      last = null;
+      lastGrid = shapesSize = chromeSize = transform = chromeKey = "";
+      gridColor = null;
+      primitives = null;
     },
   };
 }

@@ -618,7 +618,7 @@
   padding: var(--space-3);
   background: var(--bg-raised);
 }
-.fg-fm-sum-top > div + div {
+.fg-fm-sum-top > .fg-fm-sum-next {
   border-left: var(--border-width) solid var(--line);
 }
 .fg-fm-sum-top dt,
@@ -750,9 +750,10 @@
 }
 .fg-fm-nps > div {
   padding: var(--space-2);
-}
-.fg-fm-nps > div + div {
   border-left: var(--border-width) solid var(--line);
+}
+.fg-fm-nps > .fg-fm-nps-score {
+  border-left: 0;
 }
 .fg-fm-nps dd {
   margin: 0;

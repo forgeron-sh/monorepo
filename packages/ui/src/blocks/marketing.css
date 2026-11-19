@@ -478,7 +478,7 @@
 .fg-cmp-row > * {
   padding: 0 var(--gutter);
 }
-.fg-cmp-row > * + * {
+.fg-cmp-row > .fg-cmp-cell {
   border-left: 1px solid var(--line);
   align-self: stretch;
   display: flex;

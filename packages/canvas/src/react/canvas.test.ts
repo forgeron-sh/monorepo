@@ -198,6 +198,31 @@ describe("<Canvas>", () => {
   });
 });
 
+describe("culling", () => {
+  it("keeps the same item nodes through a small pan and follows a long one", async () => {
+    const store = createCanvasStore({
+      items: [item("a", 0, 0, 0), item("b", 200, 0, 1), item("far", 3000, 0, 2)],
+      grid: { snap: false },
+    });
+    const surface = await mount(store);
+    await act(async () => store.setSize({ w: 800, h: 600 }));
+    const ids = () =>
+      [...surface.querySelectorAll<HTMLElement>("[data-canvas-item]")].map(
+        (e) => e.dataset.canvasItem,
+      );
+    expect(ids()).toEqual(["a", "b"]);
+    const a = surface.querySelector('[data-canvas-item="a"]');
+    const world = surface.querySelector<HTMLElement>(".fg-canvas-world")!;
+    await act(async () => store.panBy(-120, 40));
+    // The camera moved the world layer; the items were neither re-created nor re-ordered.
+    expect(world.style.transform).toBe("translate(-120px, 40px) scale(1)");
+    expect(surface.querySelector('[data-canvas-item="a"]')).toBe(a);
+    expect(ids()).toEqual(["a", "b"]);
+    await act(async () => store.panBy(-2400, 0));
+    expect(ids()).toContain("far");
+  });
+});
+
 describe("renderers", () => {
   it("hands a plain scene to the renderer: primitives apart from the DOM overlay", async () => {
     const store = make();
@@ -220,6 +245,25 @@ describe("renderers", () => {
     expect(last.handles).toHaveLength(8);
     expect(surface.querySelector(".fg-canvas-chrome")).toBeNull();
     expect(surface.querySelectorAll("[role=option]")).toHaveLength(2);
+  });
+});
+
+describe("the DOM renderer", () => {
+  it("moves its shapes with the camera without rebuilding them", async () => {
+    const store = make();
+    const surface = await mount(store, {
+      primitive: () => ({ shape: "rect", fill: "--bg" }),
+    });
+    await act(async () => store.select(["a"]));
+    const shape = surface.querySelector(".fg-canvas-shapes rect");
+    const group = surface.querySelector(".fg-canvas-shapes g")!;
+    expect(surface.querySelectorAll(".fg-canvas-shapes rect")).toHaveLength(2);
+    expect(surface.querySelectorAll(".fg-canvas-chrome .fg-canvas-outline")).toHaveLength(1);
+    await act(async () => store.panBy(30, 10));
+    expect(group.getAttribute("transform")).toBe("translate(30 10) scale(1)");
+    expect(surface.querySelector(".fg-canvas-shapes rect")).toBe(shape);
+    // The selection is drawn in screen space: it follows the camera.
+    expect(surface.querySelector(".fg-canvas-outline")!.getAttribute("x")).toBe("30.5");
   });
 });
 

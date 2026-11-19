@@ -1,14 +1,22 @@
 // What a flow draws in world space around its nodes: group frames and edges under the nodes, the
 // wire of a connection being made above them. Edges are paths in one <WorldSvg>; each takes clicks
 // on a wide invisible stroke, shows an "insert" button halfway, and, selected, a handle at its end
-// to drag it to another input (or off, to delete it).
+// to drag it to another input (or off, to delete it). Only the edges whose box meets the canvas's
+// cull window are drawn, and an edge's insert button only while it is hovered or selected.
 
-import { screenToWorld, type Point } from "@forgeron/canvas";
-import { useCanvasState, useConnection, WorldSvg } from "@forgeron/canvas/react";
+import { intersects, screenToWorld, type Point } from "@forgeron/canvas";
+import { useCanvasState, useConnection, useCullWindow, WorldSvg } from "@forgeron/canvas/react";
 import { memo, useMemo, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { FlowApi } from "./use-flow";
 import { parseHandle } from "../core/controller";
-import { edgeGeometry, edgePath, groupBounds, portPoint, type EdgeStyle } from "../core/geometry";
+import {
+  edgeBounds,
+  edgeGeometry,
+  edgePath,
+  groupBounds,
+  portPoint,
+  type EdgeStyle,
+} from "../core/geometry";
 import { isNodeItem, nodeOfItem } from "../core/items";
 import { indexGraph, type FlowEdge, type FlowNode } from "../core/model";
 import { edgeStatus, type RunState, type RunStatus } from "../core/run";
@@ -58,6 +66,8 @@ const EdgeView = memo(function EdgeView({
   onInsert,
   onGrabEnd,
 }: EdgeViewProps) {
+  // The insert button shows on hover and on the selected edge (flow.css): it is only rendered then.
+  const [hover, setHover] = useState(false);
   return (
     <g
       className="fg-flow-edge"
@@ -67,6 +77,8 @@ const EdgeView = memo(function EdgeView({
       data-canvas-interactive=""
       aria-label={label}
       onPointerDown={(e) => onPress(edge, e)}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
     >
       <path className="fg-flow-edge-hit" d={d} vectorEffect="non-scaling-stroke" />
       <path className="fg-flow-edge-line" d={d} vectorEffect="non-scaling-stroke" />
@@ -74,7 +86,7 @@ const EdgeView = memo(function EdgeView({
         <path className="fg-flow-edge-flow" d={d} vectorEffect="non-scaling-stroke" />
       ) : null}
       <polygon className="fg-flow-edge-arrow" points={arrow} />
-      {onInsert && !readOnly ? (
+      {onInsert && !readOnly && (hover || selected) ? (
         <g
           className="fg-flow-edge-insert"
           transform={`translate(${mid.x} ${mid.y})`}
@@ -114,6 +126,16 @@ export interface FlowEdgesProps<D> {
 export function FlowEdges<D>({ flow, style, run, onInsert, edgeLabel }: FlowEdgesProps<D>) {
   const graph = flow.current;
   const index = useMemo(() => indexGraph(graph), [graph]);
+  // Each edge's path and box, computed when the graph changes, not when the camera moves.
+  const shapes = useMemo(
+    () =>
+      graph.edges.flatMap((edge) => {
+        const g = edgeGeometry(index, edge, style);
+        return g ? [{ edge, g, box: edgeBounds(g) }] : [];
+      }),
+    [graph, index, style],
+  );
+  const cull = useCullWindow(flow.store);
   const [drag, setDrag] = useState<{ edge: FlowEdge; point: Point } | null>(null);
   const readOnly = flow.store.readOnly;
   const { selectEdges, store } = flow;
@@ -187,9 +209,13 @@ export function FlowEdges<D>({ flow, style, run, onInsert, edgeLabel }: FlowEdge
 
   return (
     <WorldSvg className="fg-flow-edges">
-      {graph.edges.map((edge) => {
-        const g = edgeGeometry(index, edge, style);
-        if (!g) return null;
+      {shapes.map(({ edge, g, box }) => {
+        const kept =
+          !cull ||
+          intersects(cull, box) ||
+          flow.selectedEdges.has(edge.id) ||
+          drag?.edge.id === edge.id;
+        if (!kept) return null;
         const from = index.nodes.get(edge.from.node)!;
         const to = index.nodes.get(edge.to.node)!;
         return (

@@ -42,7 +42,15 @@ export {
   updateNode,
 } from "./core/graph";
 export type { ConnectError, ConnectOptions, ConnectResult } from "./core/graph";
-export { ARROW, edgeGeometry, edgePath, groupBounds, portOffset, portPoint } from "./core/geometry";
+export {
+  ARROW,
+  edgeBounds,
+  edgeGeometry,
+  edgePath,
+  groupBounds,
+  portOffset,
+  portPoint,
+} from "./core/geometry";
 export type { EdgeGeometry, EdgeStyle } from "./core/geometry";
 export { applyLayout, layoutGraph } from "./core/layout";
 export type { LayoutOptions, LayoutResult } from "./core/layout";

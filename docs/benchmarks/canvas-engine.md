@@ -204,6 +204,49 @@ The 14 tests of `packages/canvas/src/core/engine-contract.ts` are the bar. The c
 
 A thin TypeScript shell owning ids, data, history and selection, with the crate answering the spatial queries, is the realistic shape; it is also exactly what the TypeScript engine with an index would look like, which is one more reason to build that first: the shell is shared, and swapping the index for the crate later is local.
 
+## After the fixes (19/11/2026): the editors on a real GPU
+
+The engine was never the cost in the editors. A diagnosis with GPU traces (headless Chrome on the M4's GPU through ANGLE/Metal, 1,440 × 900 at 2×) put the cost of a pan or zoom step in the DOM around the engine: global sibling selectors in `@forgeron/ui` that restyled the whole canvas each time culling mounted or unmounted an item, culling that churned at every step, a renderer that rewrote the DOM every frame, `<Canvas>` re-rendering on every camera move, and a minimap repainting every item. Fixed in that order:
+
+1. **No universal sibling selectors in ui.** `.fg-avatars > * + *`, `.fg-cmp-row > * + *`, `.fg-fm-sum-top > div + div`, `.fg-fm-nps > div + div`, `.fg-display-layout + *` and `.fg-fbr-slides > i + i` became class selectors (a class on the cells, padding on the avatar stack, the hidden second slide removed). Boxes identical and screenshot hashes identical on the 11 gallery pages that show them.
+2. **A cull window with hysteresis** (`cullWindow`, `useCullWindow`): the view plus twice the overscan, kept while the view plus the overscan stays inside it and the zoom has not grown by half. A small pan mounts and unmounts nothing; a long one moves the window in steps.
+3. **The DOM renderer writes only what changed**: the size, the transform, the primitives (by identity) and the selection chrome (by what it draws); the grid colour is read once, again on a theme change or a resize.
+4. **The camera outside React**: `<Canvas>` subscribes to the items, the selection, the tool and the cull window; a store listener moves the world layer and redraws the renderer. No scan of every item per step.
+5. **The minimap's items in an offscreen bitmap**, rebuilt when the items, the selection, the colours or the mapping change; a camera move copies it and draws the frame, without rendering.
+6. **Flow edges culled** to those whose box (`edgeBounds`) meets the cull window, plus the selected and dragged ones; the insert button rendered only while its edge is hovered or selected (it was `display: none` otherwise).
+
+Tried and not kept: compositing the world layer (`will-change: transform`, with a backing element under the items it stays at 18 layers instead of 1,026) left draw at fit at 5.6 ms a step with more paint (2.4 ms), made zoom slower (7.7 ms, 16 long tasks) and moved pixels of the dither patterns at 50–75 %; dropping `vector-effect: non-scaling-stroke` from flow edges or from draw's far pen strokes changed nothing measurable (±0.1 ms).
+
+Main thread per wheel step, 120 steps per scenario; frame cost p50 / p95; style, layout and paint per step; long tasks are main-thread tasks over 12 ms. The draw page has 2,000 items, the flow page 500 nodes and 700 edges; "fit" is the page's opening view (10 %), "100 %" after the `0` key. Before is `98d358e1`; after is the working tree on `de9c93da` (the second of two runs; the first was up to 0.4 ms slower on draw and up to 0.9 ms on flow).
+
+| page, gesture    | before main/step | after main/step | frame p50 / p95 before → after | style       | layout      | paint       | long tasks |
+| ---------------- | ---------------: | --------------: | -----------------------------: | ----------- | ----------- | ----------- | ---------- |
+| draw fit, pan    |              7.3 |         **5.5** |       12.5 / 33.3 → 8.6 / 27.8 | 1.55 → 0.22 | 0.45 → 0.15 | 1.59 → 1.91 | 24 → 8     |
+| draw fit, zoom   |              7.4 |         **6.1** |       12.2 / 30.0 → 8.6 / 26.2 | 1.35 → 0.39 | 0.44 → 0.39 | 1.41 → 1.48 | 19 → 10    |
+| draw 100 %, pan  |              3.1 |         **2.5** |          5.9 / 7.1 → 4.0 / 9.7 | 0.43 → 0.13 | 0.15 → 0.08 | 0.30 → 0.42 | 0 → 0      |
+| draw 100 %, zoom |              3.4 |         **2.9** |         5.9 / 12.7 → 4.7 / 9.7 | 0.46 → 0.19 | 0.21 → 0.22 | 0.34 → 0.41 | 0 → 1      |
+| flow fit, pan    |              3.7 |         **2.4** |         5.1 / 15.3 → 2.4 / 9.9 | 0.34 → 0.10 | 0.29 → 0.06 | 0.84 → 0.69 | 0 → 0      |
+| flow fit, zoom   |              5.1 |         **4.3** |        9.3 / 14.2 → 7.3 / 15.6 | 0.75 → 0.20 | 0.37 → 0.34 | 1.44 → 1.33 | 2 → 2      |
+| flow 100 %, pan  |              3.6 |         **2.1** |          6.9 / 9.0 → 3.6 / 8.0 | 0.61 → 0.10 | 0.26 → 0.08 | 0.67 → 0.52 | 0 → 0      |
+| flow 100 %, zoom |              3.9 |         **3.3** |        6.8 / 14.9 → 5.5 / 14.6 | 0.59 → 0.19 | 0.30 → 0.29 | 0.69 → 0.67 | 1 → 1      |
+
+At 4× CPU throttling:
+
+| page, gesture    | main/step before → after | frame p50 / p95 before → after | style       | layout      | paint       | long tasks |
+| ---------------- | -----------------------: | -----------------------------: | ----------- | ----------- | ----------- | ---------- |
+| draw fit, pan    |          16.6 → **13.2** |        35.9 / 167 → 19.2 / 100 | 3.99 → 0.67 | 1.15 → 0.44 | 3.04 → 4.22 | 54 → 37    |
+| draw fit, zoom   |          17.4 → **16.9** |        43.2 / 151 → 36.9 / 160 | 3.62 → 1.53 | 1.17 → 1.42 | 2.89 → 3.27 | 63 → 44    |
+| draw 100 %, pan  |            7.6 → **4.5** |         14.3 / 19.0 → 7.5 / 18 | 1.06 → 0.26 | 0.35 → 0.17 | 0.79 → 0.76 | 0 → 0      |
+| draw 100 %, zoom |            9.9 → **8.3** |        17.5 / 45.4 → 14.5 / 35 | 1.43 → 0.56 | 0.62 → 0.65 | 0.94 → 1.05 | 28 → 15    |
+| flow fit, pan    |           10.1 → **7.6** |      12.7 / 55.9 → 10.2 / 46.4 | 1.02 → 0.45 | 0.77 → 0.23 | 2.07 → 1.73 | 35 → 23    |
+| flow fit, zoom   |          15.1 → **12.7** |      42.7 / 73.9 → 29.0 / 73.9 | 2.58 → 0.75 | 1.33 → 1.13 | 3.33 → 3.63 | 66 → 49    |
+| flow 100 %, pan  |           11.9 → **6.7** |      23.8 / 31.3 → 11.9 / 26.5 | 1.94 → 0.29 | 0.88 → 0.29 | 2.17 → 1.74 | 53 → 10    |
+| flow 100 %, zoom |           11.8 → **9.7** |      20.3 / 64.8 → 16.5 / 54.3 | 1.90 → 0.70 | 0.96 → 1.02 | 1.70 → 1.65 | 41 → 23    |
+
+Draw at fit, one fix at a time (main thread per pan step, normal CPU): 7.3 → 6.7 (selectors) → 6.4 (cull window) → 6.0 (renderer) → 5.6 (camera outside React) → 5.4 (minimap). Each fix's step was measured once; two runs of the same build differ by up to 0.4 ms on draw and 0.9 ms on flow. Compositor layers stay at 16 (draw) and 19 (flow). The editors' pixels are the same: 11 states of the canvas, draw and flow pages (opening view, 100 %, zoomed by keys, panned) are identical to the pixel before and after.
+
+What is left: drawing 2,000 DOM items at 10 % is now the cost (paint 1.9 ms and layerize 0.9 ms of the 5.5), slightly more than before because the cull window keeps up to twice the overscan mounted; draw at fit stays above 4 ms a step on this machine and about 13 ms at 4× throttling. Zoom at fit still has 10 long tasks: the cull window moves in steps (hundreds of items mounted at once), and draw's far/near switch at 35 % re-renders every item. The next step is the WebGL2 renderer of D-148 for the far zoom (one instanced draw of the primitives, the DOM overlay only near), not more DOM work. Flow at fit churns more edges than before in bursts (20 nodes per wheel against 8) as the window moves, for less paint at 100 %.
+
 ## When to revisit
 
 - A scene that needs per-frame CPU work proportional to the visible items beyond culling (the isometric blueprint: depth sorting, animation, geometry generation), at thousands of items.

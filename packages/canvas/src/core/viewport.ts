@@ -2,7 +2,7 @@
 // rectangle in view. Pure functions of a viewport; the translation is kept on whole pixels so the
 // grid and 1 px lines stay crisp.
 
-import { inflate, intersects } from "./geometry";
+import { containsBounds, inflate, intersects } from "./geometry";
 import type { Bounds, Point, Size, Viewport } from "./types";
 
 export interface ZoomLimits {
@@ -128,4 +128,34 @@ export function lerpViewport(a: Viewport, b: Viewport, t: number): Viewport {
 /** Whether a world rectangle shows in the view, with a margin in screen pixels: culling. */
 export function intersectsView(v: Viewport, size: Size, b: Bounds, margin = 0): boolean {
   return intersects(inflate(visibleWorld(v, size), margin / v.zoom), b);
+}
+
+/** The world rectangle whose items a surface renders, and the zoom it was taken at. */
+export interface CullWindow {
+  rect: Bounds;
+  zoom: number;
+}
+
+/**
+ * Culling with hysteresis: the view plus twice `overscan` screen pixels on each side, kept while the
+ * view plus `overscan` stays inside it and the zoom has not grown by half. A pan of less than
+ * `overscan` pixels, or a zoom out of a few steps, keeps the same window, so the same items stay
+ * mounted. Returns `previous` itself when it still holds; null before the surface has a size.
+ */
+export function cullWindow(
+  previous: CullWindow | null,
+  v: Viewport,
+  size: Size,
+  overscan: number,
+): CullWindow | null {
+  if (!size.w || !size.h) return null;
+  const view = visibleWorld(v, size);
+  if (
+    previous &&
+    v.zoom <= previous.zoom * 1.5 &&
+    containsBounds(previous.rect, inflate(view, overscan / v.zoom))
+  ) {
+    return previous;
+  }
+  return { rect: inflate(view, (overscan * 2) / v.zoom), zoom: v.zoom };
 }

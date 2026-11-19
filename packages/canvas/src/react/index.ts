@@ -9,6 +9,7 @@ export {
   useCanvasContext,
   useCanvasState,
   useCanvasStore,
+  useCullWindow,
 } from "./context";
 export type { UseCanvas } from "./context";
 export { useConnection, WorldSvg } from "./layers";

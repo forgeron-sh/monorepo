@@ -22,6 +22,7 @@ import { rectFromPoints } from "../core/geometry";
 import { snapPoint } from "../core/grid";
 import { handlePosition, type BoxMode, type Direction } from "../core/hit";
 import { CANVAS_KEYMAP, DEFAULT_NUDGE, runCommand, type NudgeSteps } from "../core/keymap";
+import type { CanvasState } from "../core/engine";
 import type { CanvasStore } from "../core/store";
 import {
   gestureFor,
@@ -42,7 +43,7 @@ import type {
   Viewport,
 } from "../core/types";
 import { boundsToScreen, screenToWorld, visibleWorld, wheelZoomFactor } from "../core/viewport";
-import { CanvasProvider, useCanvasState } from "./context";
+import { CanvasProvider, useCanvasState, useCullWindow } from "./context";
 import { createDomRenderer, type CanvasRenderer, type Primitive, type Scene } from "./renderer";
 
 /** What a consumer tool gets with each press. */
@@ -89,7 +90,10 @@ export interface CanvasProps<D = unknown> {
   boxMode?: BoxMode;
   /** Draws the 1 px accent outline and the resize handles of the selection; on by default. */
   selectionChrome?: boolean;
-  /** Screen pixels around the view whose items are still rendered; 256 by default. */
+  /**
+   * Screen pixels around the view whose items are still rendered; 256 by default. Up to twice as
+   * many are: the rendered window moves only when the view comes within this margin of its edge.
+   */
   overscan?: number;
   /** A connect gesture started on a `data-canvas-handle` ends: over an item, a handle, or nothing. */
   onConnect?: (from: ConnectionEnd, to: ConnectionEnd | null, point: Point) => void;
@@ -149,6 +153,11 @@ const HANDLE_REACH = 6;
 const cssEscape = (id: string) =>
   typeof CSS !== "undefined" && CSS.escape ? CSS.escape(id) : id.replace(/["\\]/g, "\\$&");
 const defaultLabel = (item: Item<unknown>) => `${item.kind} ${item.id}`;
+const NO_PRIMITIVES: Scene["primitives"] = [];
+const selectItems = <D,>(s: CanvasState<D>) => s.items;
+const selectSelection = <D,>(s: CanvasState<D>) => s.selection;
+const selectTool = <D,>(s: CanvasState<D>) => s.tool;
+const worldTransform = (v: Viewport) => `translate(${v.x}px, ${v.y}px) scale(${v.zoom})`;
 
 interface ItemViewProps<D> {
   item: Item<D>;
@@ -207,9 +216,14 @@ export function Canvas<D = unknown>({
   className,
   style,
 }: CanvasProps<D>) {
-  const state = useCanvasState(store, (s) => s);
-  const { items, selection, viewport, size, tool } = state;
+  // Narrow slices: the camera is not among them. A pan or a zoom moves the world layer and redraws
+  // the renderer from a store listener (below), and re-renders this component only when the cull
+  // window moves.
+  const items = useCanvasState(store, selectItems);
+  const selection = useCanvasState(store, selectSelection);
+  const tool = useCanvasState(store, selectTool);
   const rootRef = useRef<HTMLDivElement>(null);
+  const worldRef = useRef<HTMLDivElement>(null);
   const underRef = useRef<HTMLDivElement>(null);
   const overRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
@@ -714,16 +728,22 @@ export function Canvas<D = unknown>({
     });
   }, [store]);
 
-  // A focused item that was deleted no longer counts.
-  const liveFocus = focusId && items.some((i) => i.id === focusId) ? focusId : null;
+  // A focused item that was deleted no longer counts (`items` re-renders this when one is).
+  const liveFocus = focusId && store.get(focusId) ? focusId : null;
 
   /* ---- what is drawn */
 
-  // Culling: the overlay holds the items in view, plus the selected and the focused ones.
+  // Culling: the overlay holds the items in the cull window, plus the selected and the focused
+  // ones. The window moves in steps (hysteresis), so a small pan mounts and unmounts nothing.
+  const cull = useCullWindow(store, overscan);
   const shown = useMemo(() => {
-    if (!size.w) return items;
+    if (!cull) return items;
     // The index answers bottom first: read those items by id rather than filtering them all.
-    const visible = store.query({ type: "visible", viewport, size, margin: overscan });
+    const visible = store.query({
+      type: "visible",
+      viewport: { x: -cull.x, y: -cull.y, zoom: 1 },
+      size: { w: cull.w, h: cull.h },
+    });
     const ids = new Set(visible);
     const extra = [...selection, ...(liveFocus ? [liveFocus] : [])].filter((id) => !ids.has(id));
     if (extra.length === 0) {
@@ -732,7 +752,7 @@ export function Canvas<D = unknown>({
     // An off-screen selected or focused item: keep the document's order.
     for (const id of extra) ids.add(id);
     return items.filter((i) => ids.has(i.id));
-  }, [store, items, viewport, size, overscan, selection, liveFocus]);
+  }, [store, items, cull, selection, liveFocus]);
 
   const tabbableId = useMemo(() => {
     if (liveFocus) return liveFocus;
@@ -740,34 +760,77 @@ export function Canvas<D = unknown>({
     return first?.id ?? store.query({ type: "reading-order" })[0] ?? null;
   }, [store, liveFocus, items, selection]);
 
-  const scene = useMemo<Scene>(() => {
-    const selected =
-      selectionChrome && selection.size > 0 ? items.filter((i) => selection.has(i.id)) : [];
-    const single = selected.length === 1 ? selected[0]! : null;
-    const handles = single ? store.query({ type: "handles", id: single.id }) : [];
-    const box = single ? boundsToScreen(viewport, single.bounds) : null;
-    return {
-      viewport,
-      size,
-      grid: { size: store.grid.size, visible: store.grid.visible },
-      primitives: primitive
+  // Apart from the scene: the same array while only the camera moves, so the renderer keeps them.
+  const primitives = useMemo<Scene["primitives"]>(
+    () =>
+      primitive
         ? shown.flatMap((i) => {
             const p = primitive(i);
             return p
               ? [{ id: i.id, bounds: i.bounds, primitive: p, selected: selection.has(i.id) }]
               : [];
           })
-        : [],
-      outlines: selected.map((i) => boundsToScreen(viewport, i.bounds)),
-      handles: box ? handles.map((h) => ({ handle: h, at: handlePosition(box, h) })) : [],
-      band,
-      lasso,
-    };
-  }, [store, items, shown, selection, viewport, size, primitive, selectionChrome, band, lasso]);
+        : NO_PRIMITIVES,
+    [shown, primitive, selection],
+  );
+
+  // What the selection chrome needs, apart from the camera: read by id, not by scanning the items.
+  const chrome = useMemo(() => {
+    void items; // the selected items' bounds change with them
+    const selected: Item<D>[] = [];
+    if (selectionChrome) {
+      for (const id of selection) {
+        const item = store.get(id);
+        if (item) selected.push(item);
+      }
+    }
+    const single = selected.length === 1 ? selected[0]! : null;
+    const handles = single ? store.query({ type: "handles", id: single.id }) : [];
+    return { selected, single, handles };
+  }, [store, items, selection, selectionChrome]);
+
+  // The scene is put together with the camera of the moment, here and from the store listener.
+  const parts = useRef({ primitives, chrome, band, lasso });
+  const transform = useRef("");
+  const draw = useCallback(() => {
+    const { viewport, size } = store.getState();
+    const world = worldRef.current;
+    const t = worldTransform(viewport);
+    if (world && t !== transform.current) {
+      world.style.transform = t;
+      transform.current = t;
+    }
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    const p = parts.current;
+    const box = p.chrome.single ? boundsToScreen(viewport, p.chrome.single.bounds) : null;
+    renderer.render({
+      viewport,
+      size,
+      grid: { size: store.grid.size, visible: store.grid.visible },
+      primitives: p.primitives,
+      outlines: p.chrome.selected.map((i) => boundsToScreen(viewport, i.bounds)),
+      handles: box ? p.chrome.handles.map((h) => ({ handle: h, at: handlePosition(box, h) })) : [],
+      band: p.band,
+      lasso: p.lasso,
+    });
+  }, [store]);
 
   useLayoutEffect(() => {
-    rendererRef.current?.render(scene);
-  }, [scene, makeRenderer]);
+    parts.current = { primitives, chrome, band, lasso };
+    draw();
+  }, [primitives, chrome, band, lasso, draw, makeRenderer]);
+
+  useLayoutEffect(() => {
+    let { viewport, size } = store.getState();
+    return store.subscribe(() => {
+      const s = store.getState();
+      if (s.viewport === viewport && s.size === size) return;
+      viewport = s.viewport;
+      size = s.size;
+      draw();
+    });
+  }, [store, draw]);
 
   const toolDef = tools.find((t) => t.id === tool);
   const cursor = panning
@@ -823,10 +886,9 @@ export function Canvas<D = unknown>({
       >
         <div ref={underRef} className="fg-canvas-under" />
         <div
+          ref={worldRef}
           className="fg-canvas-world"
-          style={{
-            transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-          }}
+          style={{ transform: worldTransform(store.getState().viewport) }}
         >
           {layers?.below ? <div className="fg-canvas-layer">{layers.below}</div> : null}
           <div

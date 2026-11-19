@@ -90,6 +90,7 @@ export {
   boundsToScreen,
   centerOn,
   clampZoom,
+  cullWindow,
   DEFAULT_ZOOM,
   fitBounds,
   IDENTITY,
@@ -104,4 +105,4 @@ export {
   worldToScreen,
   zoomAt,
 } from "./core/viewport";
-export type { FitOptions, ZoomLimits } from "./core/viewport";
+export type { CullWindow, FitOptions, ZoomLimits } from "./core/viewport";

@@ -180,8 +180,8 @@
 .fg-display-layout .fg-seg-item {
   flex: 1;
 }
-.fg-display-layout + * {
-  margin-top: 8px;
+.fg-display-layout:not(:last-child) {
+  margin-bottom: 8px;
 }
 .fg-display > .fg-display-section:first-child {
   margin-top: 0;

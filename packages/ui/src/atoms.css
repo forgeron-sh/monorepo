@@ -1054,14 +1054,16 @@
   width: 8px;
   height: 8px;
 }
+/* Each avatar overlaps the one before by 4px; the padding gives the first one its 4px back. No
+   sibling combinator: a universal "* + *" makes the browser restyle siblings anywhere on the page
+   when children are added or removed (a canvas culling its items). */
 .fg-avatars {
   display: inline-flex;
   align-items: center;
-}
-.fg-avatars > * + * {
-  margin-left: -4px;
+  padding-left: 4px;
 }
 .fg-avatars > * {
+  margin-left: -4px;
   box-shadow: 0 0 0 2px var(--bg);
 }
 .fg-avatars-more {
