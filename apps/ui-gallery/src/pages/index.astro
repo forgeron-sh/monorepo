@@ -6,6 +6,7 @@ import Planned from "../components/Planned.astro";
 import ShaderGrid from "../components/shaders/ShaderGrid.astro";
 import { highlight } from "../lib/highlight";
 import { colors, identity } from "../lib/identity";
+import { marketing } from "../lib/marketing";
 import { shaders } from "../lib/shaders";
 import { atoms, blocks, pages } from "../registry";
 import "../styles/shaders.css";
@@ -58,13 +59,6 @@ const homeShaders = ["dither-field", "ember", "globe", "hearth"].flatMap((slug) 
                   ))}
                 </span>
               )}
-              {p.slug === "landing" && (
-                <span class="id-page">
-                  {[6, 22, 10, 14, 6].map((h, k) => (
-                    <span class={k === 1 ? "on" : undefined} style={`height:${h}px`} />
-                  ))}
-                </span>
-              )}
             </div>
             <div class="card-copy">
               <span class="t-mono dim">/0.1.{String(i + 1).padStart(2, "0")}</span>
@@ -96,9 +90,29 @@ const homeShaders = ["dither-field", "ember", "globe", "hearth"].flatMap((slug) 
     <a class="rail-more t-mono" href="/blocks">Every block →</a>
   </section>
 
-  <div class="rail spacer t-mono dim"><span>/0.5 → Pages</span><span>[ Soon ]</span></div>
+  <div class="rail spacer t-mono dim"><span>/0.5 → Marketing</span><span>[ Ready ]</span></div>
+  <section class="rail" aria-label="Marketing">
+    <ul class="grid">
+      {
+        marketing.map((g, i) => (
+          <li class="card">
+            <div class="card-copy">
+              <span class="t-mono dim">/0.5.{String(i + 1).padStart(2, "0")}</span>
+              <a class="card-name card-link" href={`/marketing/${g.slug}`}>
+                {g.name}
+              </a>
+              <span class="t-small">{g.summary}</span>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+    <a class="rail-more t-mono" href="/marketing">The landing page, put together →</a>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/0.6 → Pages</span><span>[ Soon ]</span></div>
   <section class="rail" aria-label="Pages, planned">
-    <Planned items={pages.slice(0, 8)} index="/0.5" />
+    <Planned items={pages.slice(0, 8)} index="/0.6" />
     <a class="rail-more t-mono" href="/pages">Every planned page →</a>
   </section>
 </Layout>

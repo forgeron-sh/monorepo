@@ -1,0 +1,58 @@
+---
+import DocsLayout from "../../components/DocsLayout.astro";
+import Landing from "../../components/marketing/Landing";
+import { entries } from "../../entries/marketing";
+import { marketing } from "../../lib/marketing";
+import "../../styles/marketing.css";
+
+// Every marketing block of forgeron.sh lives here, in six groups. The overview shows them put
+// together into one landing page, then lists the groups; each group has its own page.
+const count = (slugs: ReadonlyArray<string>) => slugs.filter((s) => entries.some((e) => e.slug === s)).length;
+const blockCount = marketing.reduce((n, g) => n + count(g.blocks), 0);
+---
+
+<DocsLayout
+  title="Marketing — Forgeron UI"
+  description="The marketing blocks of forgeron.sh in six groups, and the landing page they make together."
+  current="marketing"
+  page="marketing"
+  wide
+>
+  <header class="doc-head">
+    <span class="t-mono dim">Marketing <span class="accent">/</span> Overview</span>
+    <h1 class="f-title f-h3">Marketing</h1>
+    <p class="t-lead">Every block of a marketing page, in one place: six groups, and the landing page they make together.</p>
+  </header>
+
+  <section class="id-block" aria-labelledby="groups-title">
+    <div class="spacer-sm t-mono dim">
+      <span id="groups-title">/01 → Six groups</span><span>[ {blockCount} blocks ]</span>
+    </div>
+    <ol class="marketing-groups">
+      {
+        marketing.map((g, i) => (
+          <li>
+            <a class="marketing-group" href={`/marketing/${g.slug}`}>
+              <span class="t-mono accent">/{String(i + 1).padStart(2, "0")}</span>
+              <span class="marketing-group-name">{g.name}</span>
+              <span class="t-small">{g.summary}</span>
+              <span class="t-mono dim">{g.blocks.length} {g.blocks.length === 1 ? "block" : "blocks"}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section class="id-block" aria-label="The landing page">
+    <div class="spacer-sm t-mono dim"><span>/02 → The landing page, put together</span><span>[ Live ]</span></div>
+    <div class="landing-stage">
+      <Landing />
+    </div>
+  </section>
+
+  <nav class="pager-nav t-mono" aria-label="Next page">
+    <a href="/blocks">← Blocks</a>
+    <a href={`/marketing/${marketing[0]!.slug}`}>{marketing[0]!.name} →</a>
+  </nav>
+</DocsLayout>

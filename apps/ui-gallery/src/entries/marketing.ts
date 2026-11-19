@@ -1,4 +1,4 @@
-/* The marketing blocks (forgeron.sh): documented on /identity/landing, not among the blocks. */
+/* The marketing blocks (forgeron.sh): documented on the Marketing pages (/marketing), not among the blocks. */
 import type { Atom, PropRow } from "../types";
 
 const className: PropRow = { name: "className", type: "string", description: "Extra classes." };

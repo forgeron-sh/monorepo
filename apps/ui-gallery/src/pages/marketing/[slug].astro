@@ -1,0 +1,127 @@
+---
+import DocsLayout from "../../components/DocsLayout.astro";
+import {
+  ClosingCta,
+  ClosingFaq,
+  HeroBlock,
+  NavigationBottom,
+  NavigationTop,
+  PricingBlock,
+  ShowcaseBento,
+  ShowcaseCards,
+  ShowcaseFigures,
+  StoryBlock,
+} from "../../components/marketing/parts";
+import PropsTable from "../../components/PropsTable.astro";
+import { entries } from "../../entries/marketing";
+import { highlight } from "../../lib/highlight";
+import { marketing } from "../../lib/marketing";
+import { atoms } from "../../registry";
+import "../../styles/marketing.css";
+
+export function getStaticPaths() {
+  return marketing.map((group, i) => ({
+    params: { slug: group.slug },
+    props: { group, prev: marketing[i - 1], next: marketing[i + 1] },
+  }));
+}
+
+const { group, prev, next } = Astro.props;
+const blocks = group.blocks.map((slug) => entries.find((e) => e.slug === slug)!);
+const inside = atoms.filter((a) => group.atoms.includes(a.slug));
+const pieces = blocks.map((b, i) => ({
+  ...b,
+  index: `/${String(i + 1).padStart(2, "0")}`,
+  importLine: highlight(`import { ${b.imports.join(", ")} } from "@forgeron/ui";`),
+}));
+---
+
+<DocsLayout
+  title={`${group.name} — Marketing — Forgeron UI`}
+  description={group.summary}
+  current={`marketing/${group.slug}`}
+  page="marketing"
+  wide
+>
+  <header class="doc-head">
+    <span class="t-mono dim">Marketing <span class="accent">/</span> {group.name}</span>
+    <h1 class="f-title f-h3">{group.name}</h1>
+    <p class="t-lead">{group.summary}</p>
+  </header>
+
+  <section class="id-block" aria-label="Live">
+    <div class="spacer-sm t-mono dim">
+      <span>/01 → Live</span><span>[ {blocks.length} {blocks.length === 1 ? "block" : "blocks"} · {inside.length} atoms ]</span>
+    </div>
+    <div class="landing-stage">
+      <div class="landing">
+        {group.slug === "navigation" && (
+          <>
+            <NavigationTop />
+            <div class="marketing-gap fg-rail"><span class="t-mono dim">… the page …</span></div>
+            <NavigationBottom />
+          </>
+        )}
+        {group.slug === "hero" && <HeroBlock />}
+        {group.slug === "story" && <StoryBlock />}
+        {group.slug === "showcase" && (
+          <>
+            <ShowcaseCards />
+            <ShowcaseFigures />
+            <ShowcaseBento />
+          </>
+        )}
+        {group.slug === "pricing" && <PricingBlock />}
+        {group.slug === "closing" && (
+          <>
+            <ClosingFaq />
+            <ClosingCta />
+          </>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <section class="id-block" aria-labelledby="pieces-title">
+    <div class="spacer-sm t-mono dim"><span id="pieces-title">/02 → The blocks</span></div>
+    <ol class="landing-pieces">
+      {
+        pieces.map((p) => (
+          <li class="landing-piece" id={p.slug}>
+            <header class="landing-piece-head">
+              <span class="t-mono accent">{p.index}</span>
+              <h2 class="landing-piece-name">{p.name}</h2>
+              <p class="t-small">{p.summary}</p>
+            </header>
+            <div class="hero-cmd">
+              <div class="hero-cmd-code" id={`import-${p.slug}`} set:html={p.importLine} />
+              <button type="button" class="btn btn-sm" data-copy={`import-${p.slug}`}>Copy</button>
+            </div>
+            <PropsTable props={p.props} />
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  {
+    inside.length > 0 && (
+      <section class="id-block" aria-labelledby="atoms-title">
+        <div class="spacer-sm t-mono dim"><span id="atoms-title">/03 → The atoms inside</span></div>
+        <ul class="landing-atoms">
+          {inside.map((a) => (
+            <li>
+              <a href={`/docs/${a.slug}`}>{a.name}</a>
+              <span class="t-small">{a.summary}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <nav class="pager-nav t-mono" aria-label="Previous and next group">
+    {prev ? <a href={`/marketing/${prev.slug}`}>← {prev.name}</a> : <a href="/marketing">← Overview</a>}
+    {next ? <a href={`/marketing/${next.slug}`}>{next.name} →</a> : <a href="/editors">Editors →</a>}
+  </nav>
+</DocsLayout>
