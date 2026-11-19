@@ -139,6 +139,12 @@ export function set_var(handle: number, index: number, value: number): void;
 export function set_view(handle: number, u: number, ox: number, oy: number): void;
 
 /**
+ * The SIMD kernels against the scalar code they replace (`fg_blueprint_raster::simd`):
+ * the number of cases that differ, or `u32::MAX` in a module built without SIMD.
+ */
+export function simd_self_test(): number;
+
+/**
  * The palette slot of every pixel (u8): what the presenters read.
  */
 export function slots_ptr(handle: number): number;
@@ -194,6 +200,7 @@ export interface InitOutput {
   readonly set_shading: (a: number, b: number, c: number, d: number) => void;
   readonly set_var: (a: number, b: number, c: number) => void;
   readonly set_view: (a: number, b: number, c: number, d: number) => void;
+  readonly simd_self_test: () => number;
   readonly slots_ptr: (a: number) => number;
   readonly tags_ptr: (a: number) => number;
   readonly tone_ptr: (a: number) => number;

@@ -317,6 +317,16 @@ export function set_view(handle, u, ox, oy) {
 }
 
 /**
+ * The SIMD kernels against the scalar code they replace (`fg_blueprint_raster::simd`):
+ * the number of cases that differ, or `u32::MAX` in a module built without SIMD.
+ * @returns {number}
+ */
+export function simd_self_test() {
+  const ret = wasm.simd_self_test();
+  return ret >>> 0;
+}
+
+/**
  * The palette slot of every pixel (u8): what the presenters read.
  * @param {number} handle
  * @returns {number}

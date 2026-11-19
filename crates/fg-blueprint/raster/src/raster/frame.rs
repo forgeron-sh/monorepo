@@ -66,6 +66,9 @@ pub struct Frame {
     pub owner: Vec<u32>,
     /// ... and the block writing now: its lines and dots always win over its own faces.
     pub pen_owner: u32,
+    /// `(cos t, sin t)` at the 48 angles of a plate's ring, computed on first use: the same
+    /// values every frame, and V8-exact trig costs a software `fma` per term in WebAssembly.
+    pub ring: Vec<(f64, f64)>,
 }
 
 impl Frame {
@@ -85,6 +88,7 @@ impl Frame {
             pen_tag: 0,
             owner: Vec::new(),
             pen_owner: 0,
+            ring: Vec::new(),
         }
     }
 
@@ -120,6 +124,18 @@ impl Frame {
     /// Writes the pixels `from..to` of one row, without the depth test (painter mode).
     #[inline]
     pub fn write_run(&mut self, from: usize, to: usize, material: u8, ink: u8, tone: f64) {
+        #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+        if from <= to {
+            crate::simd::write_run(
+                &mut self.material,
+                &mut self.ink,
+                &mut self.tone,
+                &mut self.tags,
+                (from, to),
+                (material, ink, tone as f32, self.pen_tag),
+            );
+            return;
+        }
         self.material[from..to].fill(material);
         self.ink[from..to].fill(ink);
         self.tone[from..to].fill(tone as f32);

@@ -52,7 +52,54 @@ pub fn painter_order(
             out.push((b.layer, depth_key(b), i as u32));
         }
     }
-    out.sort_by(|a, b| compare(a.0, a.1, b.0, b.1));
+    merge_sort(out, |a, b| compare(a.0, a.1, b.0, b.1) == Ordering::Less);
+}
+
+/// A stable sort (`before(a, b)`: `a` goes strictly before `b`): the natural runs of `v` merged
+/// two by two. On a consistent order every stable sort gives the same result as `sort_by` (and as
+/// `Array.prototype.sort`); this one is a few hundred bytes of WebAssembly where the standard
+/// library's sort is 6 KB (docs/blueprint/engine.md, "SIMD and size notes").
+pub fn merge_sort<T: Copy>(v: &mut Vec<T>, before: impl Fn(&T, &T) -> bool) {
+    let n = v.len();
+    let mut runs: Vec<usize> = vec![0];
+    for i in 1..n {
+        if before(&v[i], &v[i - 1]) {
+            runs.push(i);
+        }
+    }
+    if runs.len() == 1 {
+        return;
+    }
+    runs.push(n);
+    let mut from = std::mem::take(v);
+    let mut to: Vec<T> = Vec::with_capacity(n);
+    while runs.len() > 2 {
+        to.clear();
+        let mut merged = vec![0];
+        // Runs t and t + 1 (the last one alone when their number is odd).
+        let mut t = 0;
+        while t + 1 < runs.len() {
+            let (a, b) = (runs[t], runs[t + 1]);
+            let c = runs.get(t + 2).copied().unwrap_or(b);
+            let (mut i, mut j) = (a, b);
+            while i < b && j < c {
+                if before(&from[j], &from[i]) {
+                    to.push(from[j]);
+                    j += 1;
+                } else {
+                    to.push(from[i]);
+                    i += 1;
+                }
+            }
+            to.extend_from_slice(&from[i..b]);
+            to.extend_from_slice(&from[j..c]);
+            merged.push(c);
+            t += 2;
+        }
+        runs = merged;
+        std::mem::swap(&mut from, &mut to);
+    }
+    *v = from;
 }
 
 #[cfg(test)]
@@ -72,6 +119,36 @@ mod tests {
         painter_order(&blocks, |_| true, &mut order);
         let idx: Vec<u32> = order.iter().map(|o| o.2).collect();
         assert_eq!(idx, vec![4, 2, 0, 3, 1]);
+    }
+
+    #[test]
+    fn merge_sort_is_sort_by() {
+        let mut seed = 0x853c_49e6_748f_ea9bu64;
+        let mut next = move || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed
+        };
+        for n in (0..70).chain([500, 1500]) {
+            for shape in 0..4 {
+                let mut v: Vec<(u64, usize)> = (0..n)
+                    .map(|i| {
+                        let key = match shape {
+                            0 => next() % 7,
+                            1 => i as u64 / 3,
+                            2 => (n - i) as u64 / 2,
+                            _ => (i as u64 % 13) * 3 + next() % 2,
+                        };
+                        (key, i)
+                    })
+                    .collect();
+                let mut want = v.clone();
+                want.sort_by(|a, b| a.0.cmp(&b.0));
+                merge_sort(&mut v, |a, b| a.0 < b.0);
+                assert_eq!(v, want, "{n} items, shape {shape}");
+            }
+        }
     }
 
     #[test]

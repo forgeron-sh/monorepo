@@ -35,6 +35,7 @@ export const set_palette: (a: number, b: number, c: number) => void;
 export const set_shading: (a: number, b: number, c: number, d: number) => void;
 export const set_var: (a: number, b: number, c: number) => void;
 export const set_view: (a: number, b: number, c: number, d: number) => void;
+export const simd_self_test: () => number;
 export const slots_ptr: (a: number) => number;
 export const tags_ptr: (a: number) => number;
 export const tone_ptr: (a: number) => number;

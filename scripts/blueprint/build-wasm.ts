@@ -49,10 +49,18 @@ if (version !== pinned)
   );
 const wasmOpt = tool("wasm-opt");
 
-// The same bytes on every machine: no absolute path of this checkout or of the cargo home.
+// The same bytes on every machine: no absolute path of this checkout or of the cargo home. WASM
+// SIMD (`simd128`, every current browser: Chrome 91, Firefox 89, Safari 16.4) for the raster's
+// SIMD kernels (`fg-blueprint-raster`'s `simd`), and no auto-vectorisation: it made the module
+// 1.2 KB larger for no measured speed, and only the kernels, checked against the scalar code,
+// use vectors (docs/blueprint/engine.md, "SIMD and size notes"). Here only, not in a
+// `.cargo/config.toml`: native tests and clippy stay scalar.
 const rustflags = [
   `--remap-path-prefix=${root}=/forgeron`,
   `--remap-path-prefix=${cargoHome}=/cargo`,
+  "-Ctarget-feature=+simd128",
+  "-Cllvm-args=-vectorize-loops=false",
+  "-Cllvm-args=-vectorize-slp=false",
 ];
 /**
  * Builds one module: `features` of fg-blueprint into `rel` (relative to the repository). The
@@ -90,8 +98,13 @@ function build(name: string, features: string, rel: string): void {
   const out = `${work}/${name}/out`;
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
+  // The producers and target-features sections first (nothing reads them), then for size until
+  // nothing more shrinks; -O3 measured slower and 3 KB larger.
   run(wasmOpt, [
+    "--strip-producers",
+    "--strip-target-features",
     "-Oz",
+    "--converge",
     "--all-features",
     `${raw}/fg_blueprint_bg.wasm`,
     "-o",

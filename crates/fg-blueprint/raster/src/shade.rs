@@ -82,29 +82,52 @@ pub fn shade(f: &mut Frame, dither: Option<usize>, glow: Option<Glow>) {
         )
         .enumerate()
     {
-        let thresholds = bayer.as_ref().map(|b| b.row(y));
-        for x in 0..w {
-            let mx = m[x];
-            c[x] = if mx == 0 {
-                Slot::NONE
-            } else if is_shaded(mx) {
-                let tx = t[x] as f64;
-                let on = match thresholds {
-                    Some(row) => tx > row[x & (row.len() - 1)],
-                    None => tx >= 0.5,
-                };
-                if on {
-                    k[x]
-                } else {
-                    Slot::BG
-                }
-            } else {
-                k[x]
-            };
-        }
+        shade_row(m, k, t, c, bayer.as_ref().map(|b| b.row(y)));
     }
     if let Some(g) = glow {
         halo(f, g.radius, g.density);
+    }
+}
+
+/// Shades one row (`thresholds`: the row's Bayer thresholds, or `None` for flat shading). The
+/// SIMD pass shades whole chunks of 16 pixels exactly as `shade_from` does; `shade_from` shades
+/// the rest (all of it in a native build).
+#[inline]
+fn shade_row(m: &[u8], k: &[u8], t: &[f32], c: &mut [u8], thresholds: Option<&[f64]>) {
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+    let done = crate::simd::shade_row(m, k, t, c, thresholds);
+    #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
+    let done = 0;
+    shade_from(m, k, t, c, thresholds, done);
+}
+
+/// The scalar shading of the pixels `from..` of one row: the reference of the SIMD pass.
+pub fn shade_from(
+    m: &[u8],
+    k: &[u8],
+    t: &[f32],
+    c: &mut [u8],
+    thresholds: Option<&[f64]>,
+    from: usize,
+) {
+    for x in from..c.len() {
+        let mx = m[x];
+        c[x] = if mx == 0 {
+            Slot::NONE
+        } else if is_shaded(mx) {
+            let tx = t[x] as f64;
+            let on = match thresholds {
+                Some(row) => tx > row[x & (row.len() - 1)],
+                None => tx >= 0.5,
+            };
+            if on {
+                k[x]
+            } else {
+                Slot::BG
+            }
+        } else {
+            k[x]
+        };
     }
 }
 

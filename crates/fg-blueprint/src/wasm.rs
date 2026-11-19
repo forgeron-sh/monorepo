@@ -380,6 +380,16 @@ mod debug {
         output(text.into_bytes())
     }
 
+    /// The SIMD kernels against the scalar code they replace (`fg_blueprint_raster::simd`):
+    /// the number of cases that differ, or `u32::MAX` in a module built without SIMD.
+    #[wasm_bindgen]
+    pub fn simd_self_test() -> u32 {
+        #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+        return fg_blueprint_raster::simd::self_test();
+        #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
+        u32::MAX
+    }
+
     /// The loaded scene's blocks, packed (in the output buffer); returns the length, 0 on error.
     #[wasm_bindgen]
     pub fn flat_blocks(handle: u32) -> usize {

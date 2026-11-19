@@ -62,6 +62,85 @@ fn inside(pts: &[Pt], x: f64, y: f64) -> bool {
     true
 }
 
+/// The inside test of one row, `inside(pts, x, y)` at a fixed `y`: a quad's, or any polygon's.
+enum RowTest<'a> {
+    Quad(Quad),
+    Polygon(&'a [Pt], f64),
+}
+
+impl RowTest<'_> {
+    #[inline]
+    fn inside(&self, x: f64) -> bool {
+        match self {
+            RowTest::Quad(q) => q.inside(x),
+            RowTest::Polygon(pts, y) => inside(pts, x, *y),
+        }
+    }
+}
+
+/// A quad (every face of a box) along one row: edge `i`'s cross product is
+/// `a[i] − b[i]·(x + 0.5 − px[i])`, `inside`'s expression with the factors that do not depend on
+/// `x` computed once per row. The same operations on the same operands: the same bits.
+struct Quad {
+    a: [f64; 4],
+    b: [f64; 4],
+    px: [f64; 4],
+}
+
+impl Quad {
+    #[inline]
+    fn new(pts: &[Pt; 4], y: f64) -> Self {
+        let mut q = Self {
+            a: [0.0; 4],
+            b: [0.0; 4],
+            px: [0.0; 4],
+        };
+        for i in 0..4 {
+            let (p, n) = (pts[i], pts[(i + 1) & 3]);
+            q.a[i] = (n.x - p.x) * (y + 0.5 - p.y);
+            q.b[i] = n.y - p.y;
+            q.px[i] = p.x;
+        }
+        q
+    }
+}
+
+impl Quad {
+    /// `inside`, without branches: it fails exactly when one cross product is positive and
+    /// another is neither positive nor zero (negative, or NaN, which `inside` counts as negative).
+    /// With SIMD, two edges a lane (IEEE operations lane by lane: the same bits).
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+    #[inline]
+    fn inside(&self, x: f64) -> bool {
+        use core::arch::wasm32::*;
+        let at = |v: &[f64; 4], i: usize| f64x2(v[i], v[i + 1]);
+        let xc = f64x2_splat(x + 0.5);
+        let zero = f64x2_splat(0.0);
+        let (mut pos, mut neg) = (zero, zero);
+        for i in [0, 2] {
+            let d = f64x2_sub(xc, at(&self.px, i));
+            let cross = f64x2_sub(at(&self.a, i), f64x2_mul(at(&self.b, i), d));
+            let positive = f64x2_gt(cross, zero);
+            pos = v128_or(pos, positive);
+            neg = v128_or(neg, v128_andnot(f64x2_ne(cross, zero), positive));
+        }
+        !(v128_any_true(pos) & v128_any_true(neg))
+    }
+
+    #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
+    #[inline]
+    fn inside(&self, x: f64) -> bool {
+        let (mut pos, mut neg) = (false, false);
+        for i in 0..4 {
+            let cross = self.a[i] - self.b[i] * (x + 0.5 - self.px[i]);
+            let positive = cross > 0.0;
+            pos |= positive;
+            neg |= !positive & (cross != 0.0);
+        }
+        !(pos & neg)
+    }
+}
+
 /// Twice the signed area of a polygon.
 fn area2(pts: &[Pt]) -> f64 {
     let n = pts.len();
@@ -108,10 +187,55 @@ pub fn fill_convex(
     let a2 = area2(pts);
     let spans = pts.len() >= 3 && a2.is_finite() && a2.abs() >= 2.0;
     let orient = if a2 > 0.0 { 1.0 } else { -1.0 };
+    let rows = Rows {
+        min_x,
+        max_x,
+        min_y,
+        max_y,
+        spans,
+        orient,
+    };
+    let pen = (material, ink, tone);
+    let quad = <&[Pt; 4]>::try_from(pts).ok();
+    fill_rows(f, pts, &rows, pen, plane, |y| match quad {
+        Some(q) => RowTest::Quad(Quad::new(q, y)),
+        None => RowTest::Polygon(pts, y),
+    });
+}
+
+/// The rows a polygon covers in the frame, and how to find their pixels.
+#[derive(Clone, Copy)]
+struct Rows {
+    min_x: f64,
+    max_x: f64,
+    min_y: f64,
+    max_y: f64,
+    /// One run per row (the polygon has an area), else a test per pixel.
+    spans: bool,
+    orient: f64,
+}
+
+fn fill_rows<'a>(
+    f: &mut Frame,
+    pts: &[Pt],
+    rows: &Rows,
+    (material, ink, tone): (u8, u8, f64),
+    plane: Option<&Plane>,
+    row_test: impl Fn(f64) -> RowTest<'a>,
+) {
+    let Rows {
+        min_x,
+        max_x,
+        min_y,
+        max_y,
+        spans,
+        orient,
+    } = *rows;
     let mut y = min_y;
     while y <= max_y {
+        let test = row_test(y);
         let (from, to) = if spans {
-            match span(pts, y, orient, min_x, max_x) {
+            match span(pts, &test, y, orient, min_x, max_x) {
                 Some(r) => r,
                 None => {
                     y += 1.0;
@@ -135,7 +259,7 @@ pub fn fill_convex(
         }
         let mut x = from;
         while x <= to {
-            if spans || inside(pts, x, y) {
+            if spans || test.inside(x) {
                 let d = match plane {
                     // At the pixel's own point, as `plot` rounds a line's points to it.
                     Some(p) if f.ztest => p.at(x, y),
@@ -150,7 +274,14 @@ pub fn fill_convex(
 }
 
 /// The run of pixels of row `y` (within `min_x..=max_x`) that pass the inside test, if any.
-fn span(pts: &[Pt], y: f64, orient: f64, min_x: f64, max_x: f64) -> Option<(f64, f64)> {
+fn span(
+    pts: &[Pt],
+    test: &RowTest,
+    y: f64,
+    orient: f64,
+    min_x: f64,
+    max_x: f64,
+) -> Option<(f64, f64)> {
     // Estimate: the intersection of the edges' half-planes along the row, in pixel x.
     let n = pts.len();
     let (mut lo, mut hi) = (f64::NEG_INFINITY, f64::INFINITY);
@@ -193,8 +324,8 @@ fn span(pts: &[Pt], y: f64, orient: f64, min_x: f64, max_x: f64) -> Option<(f64,
     };
     // The left end: from the guess, outwards while inside, else inwards until inside.
     let mut l = guess_l;
-    if inside(pts, l, y) {
-        while l > min_x && inside(pts, l - 1.0, y) {
+    if test.inside(l) {
+        while l > min_x && test.inside(l - 1.0) {
             l -= 1.0;
         }
     } else {
@@ -203,20 +334,59 @@ fn span(pts: &[Pt], y: f64, orient: f64, min_x: f64, max_x: f64) -> Option<(f64,
             if l > max_x {
                 return None;
             }
-            if inside(pts, l, y) {
+            if test.inside(l) {
                 break;
             }
         }
     }
     let mut r = guess_r.max(l);
-    if inside(pts, r, y) {
-        while r < max_x && inside(pts, r + 1.0, y) {
+    if test.inside(r) {
+        while r < max_x && test.inside(r + 1.0) {
             r += 1.0;
         }
     } else {
-        while r > l && !inside(pts, r, y) {
+        while r > l && !test.inside(r) {
             r -= 1.0;
         }
     }
     Some((l, r))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A small deterministic generator (xorshift).
+    fn rng(seed: &mut u64) -> f64 {
+        *seed ^= *seed << 13;
+        *seed ^= *seed >> 7;
+        *seed ^= *seed << 17;
+        (*seed >> 11) as f64 / (1u64 << 53) as f64
+    }
+
+    #[test]
+    fn quad_rows_test_as_inside() {
+        let mut seed = 0x9e37_79b9_7f4a_7c15;
+        let specials = [0.0, -0.0, 0.5, f64::NAN, f64::INFINITY, 1e-300, 3.0];
+        for k in 0..20_000u32 {
+            let mut v = |i: usize| {
+                if k.is_multiple_of(7) && i.is_multiple_of(3) {
+                    specials[(rng(&mut seed) * specials.len() as f64) as usize]
+                } else if k.is_multiple_of(3) {
+                    (rng(&mut seed) * 16.0).floor() * 0.5
+                } else {
+                    rng(&mut seed) * 40.0 - 10.0
+                }
+            };
+            let q: [Pt; 4] = std::array::from_fn(|i| Pt::new(v(2 * i), v(2 * i + 1), 0.0));
+            for y in 0..20 {
+                let y = y as f64 - 2.0;
+                let quad = Quad::new(&q, y);
+                for x in -2..22 {
+                    let x = x as f64;
+                    assert_eq!(quad.inside(x), inside(&q, x, y), "{q:?} at {x}, {y}");
+                }
+            }
+        }
+    }
 }

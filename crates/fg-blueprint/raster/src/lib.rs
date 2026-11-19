@@ -19,6 +19,8 @@ pub mod paint;
 pub mod raster;
 pub mod render;
 pub mod shade;
+#[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+pub mod simd;
 
 pub use block::{Block, BlockKind};
 pub use raster::frame::{Frame, Material, Slot};

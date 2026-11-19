@@ -20,6 +20,19 @@ pub fn line_bias(u: f64) -> f64 {
     LINE_BIAS + 1.25 / u
 }
 
+/// Points of a plate's ring.
+const RING: usize = 48;
+
+/// `(cos t, sin t)` of the ring's angles, `t = a / 48 · 2π` (cached in `Frame::ring`).
+pub fn ring_angles() -> Vec<(f64, f64)> {
+    (0..RING)
+        .map(|a| {
+            let t = (a as f64 / RING as f64) * std::f64::consts::PI * 2.0;
+            (cos(t), sin(t))
+        })
+        .collect()
+}
+
 pub fn draw_box(f: &mut Frame, s: &Block, view: &View) {
     let [x, y, z] = s.a;
     let [w, d, h] = s.b;
@@ -126,12 +139,15 @@ pub fn draw_box(f: &mut Frame, s: &Block, view: &View) {
         let c = v(w / 2.0, d / 2.0, h);
         let rad = js_min(w, d) * 0.16 * view.u;
         let ring = if accent { Slot::ACCENT } else { Slot::INK };
-        for a in 0..48 {
-            let t = (a as f64 / 48.0) * std::f64::consts::PI * 2.0;
+        if f.ring.is_empty() {
+            f.ring = ring_angles();
+        }
+        for a in 0..RING {
+            let (ca, sa) = f.ring[a];
             plot(
                 f,
-                c.x + cos(t) * rad,
-                c.y + sin(t) * rad * 0.5,
+                c.x + ca * rad,
+                c.y + sa * rad * 0.5,
                 Material::DETAIL,
                 ring,
                 1.0,
