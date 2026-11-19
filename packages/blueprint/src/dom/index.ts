@@ -11,9 +11,11 @@ export { present2d, type Presentable, type Presenter } from "./present-2d";
 export { liveWebGL2, MAX_WEBGL2, presentWebGL2, type WebGL2Presenter } from "./present-webgl2";
 export {
   type BlueprintWorker,
+  type ConnectOptions,
   connectWorker,
   playInWorker,
   type RemotePlayer,
+  simdSupported,
   type WorkerPlayOptions,
   workerSupported,
 } from "./remote";

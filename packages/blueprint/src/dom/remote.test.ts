@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { box, pixelate } from "../index";
 import { compileBlueprint } from "../format/compile";
 import { readBlueprint } from "../format/read";
 import type { BlueprintFile } from "../format/types";
 import { playCompiled } from "./play-compiled";
-import { connectWorker, playInWorker } from "./remote";
+import { connectWorker, playInWorker, simdSupported } from "./remote";
 import { type SceneResolver, serveBlueprint, type WorkerScope } from "./serve";
 
 // A path by hand: under jsdom the global `URL` is jsdom's (runtime.ts says why).
@@ -162,5 +162,130 @@ describe("playInWorker", () => {
     expect(other.puts.at(-1)!.data).toEqual(here.puts.at(-1)!.data);
     remote.destroy();
     script.destroy();
+  });
+});
+
+/** A worker that runs nothing: the page's side sees only the events the test dispatches. */
+function deadWorker() {
+  const target = new EventTarget();
+  const posted: unknown[] = [];
+  let terminated = 0;
+  const worker = Object.assign(target, {
+    postMessage: (m: unknown) => posted.push(m),
+    terminate: () => void terminated++,
+  }) as unknown as Worker;
+  const reply = (data: unknown) => target.dispatchEvent(new MessageEvent("message", { data }));
+  return { worker, posted, reply, terminated: () => terminated };
+}
+
+describe("connectWorker's onFail", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("reports an error event once, terminates the worker, and keeps it from the page", () => {
+    const dead = deadWorker();
+    const reasons: string[] = [];
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    connectWorker(dead.worker, { onFail: (r) => reasons.push(r) });
+    const first = new ErrorEvent("error", { message: "boom", cancelable: true });
+    dead.worker.dispatchEvent(first);
+    dead.worker.dispatchEvent(new ErrorEvent("error", { cancelable: true }));
+    dead.worker.dispatchEvent(new MessageEvent("messageerror"));
+    expect(reasons).toEqual(["boom"]);
+    expect(first.defaultPrevented).toBe(true);
+    expect(dead.terminated()).toBe(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("names a script that did not load", () => {
+    const dead = deadWorker();
+    const reasons: string[] = [];
+    connectWorker(dead.worker, { onFail: (r) => reasons.push(r) });
+    dead.worker.dispatchEvent(new Event("error", { cancelable: true }));
+    expect(reasons).toEqual(["the worker's script did not load"]);
+  });
+
+  it("reports an engine that did not start, and only logs a scene's error", () => {
+    const dead = deadWorker();
+    const reasons: string[] = [];
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    connectWorker(dead.worker, { onFail: (r) => reasons.push(r) });
+    dead.reply({ type: "error", id: 3, message: "a scene" });
+    expect(reasons).toEqual([]);
+    expect(log).toHaveBeenCalledTimes(1);
+    dead.reply({ type: "error", id: -1, message: "CompileError" });
+    expect(reasons).toEqual(["the engine did not start: CompileError"]);
+  });
+
+  it("fails a real worker whose scenes did not load", async () => {
+    const toWorker: ((e: MessageEvent) => void)[] = [];
+    const page = new EventTarget();
+    // The engine is already started by the tests above; the resolver's chunk fails instead.
+    serveBlueprint(Promise.reject(new Error("chunk 404")), {
+      engine: WASM,
+      scope: {
+        postMessage: (data) =>
+          setTimeout(() => page.dispatchEvent(new MessageEvent("message", { data }))),
+        addEventListener: (_type, fn) => toWorker.push(fn as (e: MessageEvent) => void),
+      },
+    });
+    const worker = Object.assign(page, { postMessage() {}, terminate() {} }) as unknown as Worker;
+    const reasons: string[] = [];
+    connectWorker(worker, { onFail: (r) => reasons.push(r) });
+    await settle();
+    expect(reasons).toEqual(["the engine did not start: Error: chunk 404"]);
+  });
+
+  it("times out from the first mount, unless a scene is ready", () => {
+    vi.useFakeTimers();
+    const silent = deadWorker();
+    const reasons: string[] = [];
+    const quiet = connectWorker(silent.worker, { onFail: (r) => reasons.push(r), timeout: 500 });
+    vi.advanceTimersByTime(1000);
+    expect(reasons).toEqual([]);
+    playInWorker(canvasOf(40, 30).canvas, quiet, "x");
+    vi.advanceTimersByTime(499);
+    expect(reasons).toEqual([]);
+    vi.advanceTimersByTime(1);
+    expect(reasons).toEqual(["no scene ready after 500 ms"]);
+    expect(silent.terminated()).toBe(1);
+
+    const live = deadWorker();
+    const fine = connectWorker(live.worker, { onFail: (r) => reasons.push(r), timeout: 500 });
+    playInWorker(canvasOf(40, 30).canvas, fine, "x");
+    live.reply({ type: "ready", id: 1, data: false });
+    vi.advanceTimersByTime(5000);
+    expect(reasons).toHaveLength(1);
+  });
+
+  it("is off without onFail: errors are logged, the worker is left running", () => {
+    const dead = deadWorker();
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    connectWorker(dead.worker);
+    dead.reply({ type: "error", id: -1, message: "CompileError" });
+    dead.worker.dispatchEvent(new Event("error", { cancelable: true }));
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(dead.terminated()).toBe(0);
+  });
+});
+
+describe("simdSupported", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("is true where the engine compiles, false where SIMD does not validate", () => {
+    expect(simdSupported()).toBe(true);
+    vi.spyOn(WebAssembly, "validate").mockReturnValue(false);
+    expect(simdSupported()).toBe(false);
+  });
+
+  it("is false without WebAssembly", () => {
+    vi.stubGlobal("WebAssembly", undefined);
+    try {
+      expect(simdSupported()).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

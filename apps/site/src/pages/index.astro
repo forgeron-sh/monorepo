@@ -706,14 +706,16 @@ const faq = [
   for (const li of items) li.addEventListener("mouseenter", () => pick(Number(li.dataset.layer)));
   for (const col of document.querySelectorAll(".stack-col")) col.addEventListener("mouseleave", () => pick(-1));
   // The drawing itself: the height under the pointer picks the layer (top of the drawing is the
-  // first layer). The stack fills about the middle seven tenths of the canvas height.
-  canvas?.addEventListener("mousemove", (e) => {
-    const r = canvas.getBoundingClientRect();
+  // first layer). The stack fills about the middle seven tenths of the canvas height. Listened on
+  // the box the canvas fills: the canvas may be replaced (a failed worker, canvas.ts).
+  const art = canvas?.parentElement;
+  art?.addEventListener("mousemove", (e) => {
+    const r = art.getBoundingClientRect();
     const y = (e.clientY - r.top) / r.height;
     const k = (y - 0.14) / 0.72;
     pick(k < 0 || k > 1 ? -1 : Math.min(5, Math.floor(k * 6)));
   });
-  canvas?.addEventListener("mouseleave", () => pick(-1));
+  art?.addEventListener("mouseleave", () => pick(-1));
 </script>
 
 <script>

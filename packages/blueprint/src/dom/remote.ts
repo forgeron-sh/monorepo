@@ -6,7 +6,11 @@
  * nothing. The worker runs `serveBlueprint` with a resolver from scene names to sources.
  *
  * `workerSupported()` says whether the browser can (OffscreenCanvas and module workers); a page
- * that gets false plays in the page with `playCompiled`.
+ * that gets false plays in the page with `playCompiled`. `simdSupported()` says whether it can run
+ * the engine at all (its module needs WebAssembly SIMD). `connectWorker(worker, { onFail })`
+ * reports a worker that cannot play (its script did not load or threw, the engine did not start,
+ * no scene was ready in time) once, after terminating it, so the page can play its scenes on fresh
+ * canvases instead: a canvas handed over cannot come back.
  */
 import { plan } from "../core/filters";
 import { resolvePalette } from "../core/palette";
@@ -31,6 +35,19 @@ export interface RemotePlayer {
   destroy(): void;
 }
 
+/** What `connectWorker` does when the worker cannot play. */
+export interface ConnectOptions {
+  /**
+   * Called once, after the worker is terminated, when it cannot play: an `error` or
+   * `messageerror` event, the engine or the resolver failing to start, or no scene `ready`
+   * within `timeout` of the first mount. The reason is not logged: the caller reports it. Without
+   * it, errors are logged and the worker is left as it is.
+   */
+  onFail?: (reason: string) => void;
+  /** Milliseconds from the first mount to the first `ready` before `onFail`; 10,000. */
+  timeout?: number;
+}
+
 /** A worker running `serveBlueprint`, seen from the page. */
 export interface BlueprintWorker {
   readonly worker: Worker;
@@ -43,6 +60,26 @@ interface Host extends BlueprintWorker {
   reduced: boolean;
   post(message: ToWorker, transfer?: Transferable[]): void;
   players: Map<number, (message: FromWorker) => void>;
+  /** Starts the wait for the first `ready` (the first mount calls it). */
+  arm(): void;
+}
+
+/**
+ * A WebAssembly module that uses one SIMD instruction (`i8x16.splat`, `i8x16.popcnt`): it
+ * validates only where `simd128` does, which the engine's module needs.
+ */
+const SIMD_PROBE = new Uint8Array([
+  0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15,
+  253, 98, 11,
+]);
+
+/** Whether the engine's module can compile here: WebAssembly with SIMD (`simd128`). */
+export function simdSupported(): boolean {
+  try {
+    return typeof WebAssembly === "object" && WebAssembly.validate(SIMD_PROBE);
+  } catch {
+    return false;
+  }
 }
 
 /** Whether scenes can play in a worker here: OffscreenCanvas and module workers. */
@@ -71,16 +108,33 @@ export function workerSupported(): boolean {
 }
 
 /** The page's side of a worker that runs `serveBlueprint`. */
-export function connectWorker(worker: Worker): BlueprintWorker {
+export function connectWorker(worker: Worker, options: ConnectOptions = {}): BlueprintWorker {
+  const { onFail, timeout = 10_000 } = options;
   const media =
     typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let waiting = false;
+  let failed = false;
+  const fail = (reason: string) => {
+    if (failed || !onFail) return;
+    failed = true;
+    clearTimeout(timer);
+    host.terminate();
+    onFail(reason);
+  };
   const host: Host = {
     worker,
     next: 1,
     reduced: media?.matches ?? false,
     post: (message, transfer = []) => worker.postMessage(message, transfer),
     players: new Map(),
+    arm() {
+      if (waiting || !onFail) return;
+      waiting = true;
+      timer = setTimeout(() => fail(`no scene ready after ${timeout} ms`), timeout);
+    },
     terminate() {
+      clearTimeout(timer);
       media?.removeEventListener("change", onMedia);
       worker.terminate();
       host.players.clear();
@@ -93,9 +147,23 @@ export function connectWorker(worker: Worker): BlueprintWorker {
   media?.addEventListener("change", onMedia);
   worker.addEventListener("message", (e: MessageEvent<FromWorker>) => {
     const m = e.data;
-    if (m.type === "error") console.error(`Blueprint worker: ${m.message}`);
-    else host.players.get(m.id)?.(m);
+    if (m.type === "error") {
+      // Id -1: the engine or the resolver did not start, so no scene ever will.
+      if (m.id === -1 && onFail) fail(`the engine did not start: ${m.message}`);
+      else console.error(`Blueprint worker: ${m.message}`);
+      return;
+    }
+    if (m.type === "ready" || m.type === "missing") clearTimeout(timer);
+    host.players.get(m.id)?.(m);
   });
+  if (onFail) {
+    worker.addEventListener("error", (e) => {
+      // Handled here: not reported again as the page's own uncaught error.
+      e.preventDefault();
+      fail(e.message || "the worker's script did not load");
+    });
+    worker.addEventListener("messageerror", () => fail("a message from the worker was unreadable"));
+  }
   return host;
 }
 
@@ -163,6 +231,7 @@ export function playInWorker(
     }
   });
 
+  host.arm();
   // The worker's presenter cannot style the element.
   canvas.style.imageRendering = "pixelated";
   const offscreen = canvas.transferControlToOffscreen();

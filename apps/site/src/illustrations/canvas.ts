@@ -18,6 +18,12 @@
  * comes near the screen; a browser without OffscreenCanvas or module workers plays them in the
  * page instead (`inline.ts`). Nothing here imports a scene function or the engine.
  *
+ * No canvas stays blank by accident (docs/blueprint/engine.md, Worker note 14): a browser whose
+ * WebAssembly has no SIMD cannot run the engine, so its iso canvases are never handed over and
+ * keep what the page draws without them (their box and background); a worker that fails (its
+ * script does not load or throws, the engine does not start, no scene is ready in 10 s) is
+ * reported once, and each canvas it held is replaced by a fresh clone played in the page.
+ *
  * Page scripts drive a scene through `isoCanvas(el)`: a typed handle instead of DOM events,
  * usable at once (what it is told before the engine starts is applied when it does).
  */
@@ -36,6 +42,7 @@ import {
   mountImage,
   playInWorker,
   type RemotePlayer,
+  simdSupported,
   type WorkerPlayOptions,
   workerSupported,
 } from "@forgeron/blueprint/dom";
@@ -120,23 +127,43 @@ type Play = (el: HTMLCanvasElement, name: string, options: WorkerPlayOptions) =>
 /** How canvases play once the engine is chosen, and the canvases waiting for it. */
 let play: Play | null = null;
 const waiting: (() => void)[] = [];
+/** The canvases playing, each with what moves it to a fresh canvas if the worker fails. */
+const playing: (() => void)[] = [];
 let starting = false;
+/** Whether the engine's module can run here at all (it needs WebAssembly SIMD). */
+const engine = simdSupported();
+
+function ready(p: Play) {
+  play = p;
+  for (const start of waiting.splice(0)) start();
+}
+
+/** Plays the scenes in the page (`inline.ts`). */
+function inPage() {
+  import("./inline").then(
+    (m) => ready(m.playInline),
+    (error: unknown) => console.error(`Blueprint: the scenes could not load (${String(error)}).`),
+  );
+}
 
 /** Starts the engine: in a worker where the browser can, else in the page. */
 function startEngine() {
   if (starting) return;
   starting = true;
   near?.disconnect();
-  const ready = (p: Play) => {
-    play = p;
-    for (const start of waiting.splice(0)) start();
-  };
-  if (workerSupported()) {
-    const worker = connectWorker(
-      new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }),
-    );
-    ready((el, name, options) => playInWorker(el, worker, name, options));
-  } else void import("./inline").then((m) => ready(m.playInline));
+  if (!workerSupported()) return inPage();
+  const worker = connectWorker(
+    new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }),
+    {
+      onFail(reason) {
+        console.error(`Blueprint worker failed (${reason}); the scenes play in the page.`);
+        play = null;
+        waiting.push(...playing.splice(0));
+        inPage();
+      },
+    },
+  );
+  ready((el, name, options) => playInWorker(el, worker, name, options));
 }
 
 /** The engine starts when an iso canvas comes within a screen's height of the viewport. */
@@ -169,8 +196,9 @@ function filtersOf(el: HTMLCanvasElement): Filter[] {
  * The handle of an iso canvas, mounting it on first use (the layout's script and the page's
  * scripts may run in any order). Null when the element names no scene.
  */
-export function isoCanvas(el: HTMLElement | null): IsoCanvas | null {
-  if (!(el instanceof HTMLCanvasElement)) return null;
+export function isoCanvas(target: HTMLElement | null): IsoCanvas | null {
+  if (!(target instanceof HTMLCanvasElement)) return null;
+  let el = target;
   const known = handles.get(el);
   if (known) return known;
   let name = el.dataset.iso ?? "";
@@ -201,6 +229,18 @@ export function isoCanvas(el: HTMLElement | null): IsoCanvas | null {
     for (const key of new Set(["active", "state", ...listeners.keys()])) forward(key);
     if (selected >= 0) player.set("active", selected);
     for (const [v, value] of values) player.set(v, value);
+    playing.push(restart);
+  };
+  // The worker failed: its canvas cannot come back, so a clone (same attributes, so the same
+  // styles) takes its place, and the scene starts again on it with what the page told it.
+  const restart = () => {
+    player?.destroy();
+    player = null;
+    const fresh = el.cloneNode(false) as HTMLCanvasElement;
+    el.replaceWith(fresh);
+    handles.set(fresh, handle);
+    el = fresh;
+    start();
   };
   const listen = (key: string, fn: (value: number, label: string) => void) => {
     let set = listeners.get(key);
@@ -240,6 +280,7 @@ export function isoCanvas(el: HTMLElement | null): IsoCanvas | null {
     },
   };
   handles.set(el, handle);
+  if (!engine) return handle;
   if (play) start();
   else {
     waiting.push(start);
