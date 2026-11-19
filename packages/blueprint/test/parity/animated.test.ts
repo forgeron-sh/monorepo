@@ -1,14 +1,13 @@
 /**
- * Animated parity (docs/blueprint/engine.md, P3): every routed scene of the site, played by the
- * engine's player (one `frame` call per frame), equals the TypeScript reference (`test/reference/`,
- * today's renderer) buffer for buffer at t ∈ {0, 0.37, 1.7, 4.3, 9.2, 31.4} × the active sweep ×
- * progress ∈ {0, 0.05, …, 1} for the scroll scenes, at every size and with the options the page
- * mounts it with (`sizes.json`):
+ * Animated parity (docs/blueprint/engine.md, P3, frozen in P4): every routed scene of the site,
+ * played by the engine's player (one `frame` call per frame), gives the frames of `golden.json`
+ * (those that equalled the TypeScript reference buffer for buffer until P4 deleted it) at
+ * t ∈ {0, 0.37, 1.7, 4.3, 9.2, 31.4} × the active sweep × progress ∈ {0, 0.05, …, 1} for the
+ * scroll scenes, at every size and with the options the page mounts it with (`sizes.json`):
  *
- * - a scene converted by hand (its `.bp.json` has timelines) plays **from data**: a
- *   `BlueprintScene` against the reference drawing the scene function's blocks;
+ * - a scene converted by hand (its `.bp.json` has timelines) plays **from data** (`BlueprintScene`);
  * - every other scene plays on the **script layer**: its function's blocks packed into the
- *   engine's block buffer each frame (`ScriptScene`), against the reference drawing the same blocks.
+ *   engine's block buffer each frame (`ScriptScene`).
  *
  * Stateful scenes (`stack6`'s spring, the village's walkers) are driven frame by frame by a fixed
  * sequence of dt = 1/60 from t = 0, and compared at the frames nearest the six times. The suite
@@ -23,13 +22,13 @@ import {
   ROUTED,
   sceneAtProgress,
 } from "../../../../apps/site/src/illustrations/library/samples";
-import type { Block, SceneFn } from "../../src/core/types";
-import { createScene, createScriptScene } from "../../src/engine/scene";
-import { readBlueprint } from "../../src/format/index";
+import type { Frame } from "../../src/core/frame";
+import type { SceneFn } from "../../src/core/types";
+import { createScene, createScriptScene, type ScriptScene } from "../../src/engine/scene";
+import { type Library, readBlueprint } from "../../src/format/index";
 import type { BlueprintFile } from "../../src/format/types";
-import { fit as referenceFit } from "../reference/project";
-import { render as referenceRender } from "../reference/render";
-import { dither, pixelate } from "../../src/index";
+import { fit } from "../../src/index";
+import { golden } from "./golden";
 import sizes from "./sizes.json";
 
 const repo = new URL("../../../../", import.meta.url);
@@ -37,31 +36,15 @@ const TIMES = [0, 0.37, 1.7, 4.3, 9.2, 31.4];
 const PROGRESS = Array.from({ length: 21 }, (_, i) => i / 20);
 const STATEFUL = new Set(["stack6", "erp-village"]);
 const DT = 1 / 60;
-const KEYS = ["material", "ink", "tone", "color"] as const;
-const FILTERS = [pixelate(2), dither({ matrix: 4 })];
+const frozen = golden("animated");
 
 interface Mount {
   page: string;
   options: { pixel: number; fill?: number; unit?: string; labels: boolean };
   sizes: [viewport: number, width: number, height: number][];
 }
-type Buffers = Record<(typeof KEYS)[number], ArrayLike<number>>;
 
 const mountsOf = (name: string) => (sizes.scenes as unknown as Record<string, Mount[]>)[name] ?? [];
-
-function differing(a: ArrayLike<number>, b: ArrayLike<number>): number {
-  let n = Math.abs(a.length - b.length);
-  for (let i = 0; i < Math.min(a.length, b.length); i++) if (!Object.is(a[i], b[i])) n++;
-  return n;
-}
-
-/** "" when equal, else what differs. */
-function compare(ref: Buffers, eng: Buffers): string {
-  return KEYS.map((k) => [k, differing(ref[k], eng[k])] as const)
-    .filter(([, n]) => n > 0)
-    .map(([k, n]) => `${n} ${k}`)
-    .join(", ");
-}
 
 function fileOf(name: string): BlueprintFile {
   return JSON.parse(
@@ -87,49 +70,45 @@ const fitOf = (m: Mount) => ({
   ...(m.options.unit === "any" ? { unit: "any" as const } : {}),
 });
 
-/** Plays a scene function on the script layer at one size; compares at each requested frame. */
+/**
+ * Plays a scene function on the script layer at one size; compares at each requested frame. With
+ * `control` (the site's control file of a scroll or hover scene), the function is the script
+ * layer of that data scene, as the site plays it (P4).
+ */
 function scriptCases(
   name: string,
   m: Mount,
   width: number,
   height: number,
-  record: (label: string, diff: string) => void,
+  record: (label: string, frame: Frame | string) => void,
+  control?: Library,
 ): void {
   const [w, h] = [Math.floor(width / 2), Math.floor(height / 2)];
   const fitOptions = fitOf(m);
   const probe = evaluate(name, { t: 0, active: 0 });
-  const view = referenceFit(probe, w, h, fitOptions);
+  const view = fit(probe, w, h, fitOptions);
   const progresses = isScroll(name) ? PROGRESS : [0];
   const actives = activesOf(name);
-  let drawn: readonly Block[] = [];
-  const capture =
-    (fn: SceneFn): SceneFn =>
-    (f) => {
-      const s = fn(f);
-      drawn = s.blocks;
-      return s;
-    };
-  const scene = createScriptScene(capture(sceneAtProgress(name, 0)), {
-    ...fitOptions,
-    labels: m.options.labels,
-  });
+  const options = { ...fitOptions, labels: m.options.labels };
+  const hybrid = control ? createScene(control, name, options) : null;
+  const scene = hybrid ?? createScriptScene(sceneAtProgress(name, 0), options);
+  const use = (fn: SceneFn) => (hybrid ? hybrid.script(fn) : (scene as ScriptScene).update(fn));
+  const setActive = (active: number) => {
+    if (!hybrid || hybrid.scope.includes("active")) scene.set("active", active);
+  };
+  use(sceneAtProgress(name, 0));
   scene.shading(4, null);
   scene.resize(w, h);
   record("fit", JSON.stringify(scene.view) === JSON.stringify(view) ? "" : "the fit differs");
-  const check = (t: number, active: number, progress: number) => {
-    const ref = referenceRender(
-      { blocks: drawn },
-      { width, height, filters: FILTERS, labels: m.options.labels, view },
-    ).frame;
-    record(`t=${t} a=${active} p=${progress}`, compare(ref, scene.snapshot()));
-  };
+  const check = (t: number, active: number, progress: number) =>
+    record(`t=${t} a=${active} p=${progress}`, scene.snapshot());
   if (STATEFUL.has(name)) {
     // A fixed dt sequence from t = 0 per active; the scroll sweep at each compared frame.
     const at = new Set(TIMES.map((t) => Math.round(t / DT)));
     const last = Math.max(...at);
     for (const active of actives) {
       if (name === "erp-village" && active !== actives[0]) break;
-      scene.set("active", active);
+      setActive(active);
       const fn = sceneAtProgress(name, 0);
       for (let k = 0; k <= last; k++) {
         const t = k * DT;
@@ -138,7 +117,7 @@ function scriptCases(
           continue;
         }
         for (const p of progresses) {
-          scene.update(capture(sceneAtProgress(name, p)));
+          use(sceneAtProgress(name, p));
           scene.frame(t, DT);
           check(t, active, p);
         }
@@ -146,9 +125,9 @@ function scriptCases(
     }
   } else
     for (const p of progresses) {
-      scene.update(capture(sceneAtProgress(name, p)));
+      use(sceneAtProgress(name, p));
       for (const active of actives) {
-        scene.set("active", active);
+        setActive(active);
         for (const t of TIMES) {
           scene.frame(t, DT);
           check(t, active, p);
@@ -171,14 +150,22 @@ describe.each(ROUTED)("%s", (name) => {
   it("plays its animated frames as today", async () => {
     const result: Result = { mode: data ? "data" : "script", cases: 0, failures: [] };
     results.set(name, result);
-    const record = (where: string) => (label: string, diff: string) => {
+    // A frame is checked against golden.json; a string is a failure of its own ("" for none).
+    const record = (where: string) => (label: string, got: Frame | string) => {
       result.cases++;
+      const diff = typeof got === "string" ? got : frozen.check(`${name} ${where} ${label}`, got);
       if (diff) result.failures.push(`${where} ${label}: ${diff}`);
     };
     if (!data) {
       for (const m of mounts)
         for (const [viewport, width, height] of m.sizes)
-          scriptCases(name, m, width, height, record(`${m.page || "/"} ${viewport}`));
+          scriptCases(
+            name,
+            m,
+            width,
+            height,
+            record(`${m.page || "/"} f${m.options.fill ?? "-"} ${viewport}`),
+          );
     } else {
       const lib = await readBlueprint(fileOf(name), { location: `${name}.bp.json` });
       for (const m of mounts) {
@@ -187,8 +174,8 @@ describe.each(ROUTED)("%s", (name) => {
         for (const [viewport, width, height] of m.sizes) {
           const [w, h] = [Math.floor(width / 2), Math.floor(height / 2)];
           scene.resize(w, h);
-          const view = referenceFit(evaluate(name, { t: 0, active: 0 }), w, h, fitOptions);
-          const rec = record(`${m.page || "/"} ${viewport}`);
+          const view = fit(evaluate(name, { t: 0, active: 0 }), w, h, fitOptions);
+          const rec = record(`${m.page || "/"} f${m.options.fill ?? "-"} ${viewport}`);
           rec("fit", JSON.stringify(scene.view) === JSON.stringify(view) ? "" : "the fit differs");
           for (const active of activesOf(name)) {
             if (scene.scope.includes("active")) scene.set("active", active);
@@ -196,12 +183,7 @@ describe.each(ROUTED)("%s", (name) => {
             for (const t of TIMES) {
               scene.frame(t, t - last);
               last = t;
-              const blocks = evaluate(name, { t, active });
-              const ref = referenceRender(
-                { blocks },
-                { width, height, filters: FILTERS, labels: m.options.labels, view },
-              ).frame;
-              rec(`t=${t} a=${active}`, compare(ref, scene.snapshot()));
+              rec(`t=${t} a=${active}`, scene.snapshot());
             }
           }
         }
@@ -216,7 +198,49 @@ describe.each(ROUTED)("%s", (name) => {
   });
 });
 
+// The site's control files (P4): the scroll and hover scenes play their function as the script
+// layer of a data scene with their vars and machines. Same frames as the script layer. The
+// village is left out: its walkers keep the history of every frame drawn before (P1 note 8), so
+// a second run cannot start from the state the first run started from.
+describe.each(["production-line", "resources", "stack6"])("%s from its control file", (name) => {
+  it("plays the frames of the script layer", async () => {
+    const file = JSON.parse(
+      readFileSync(
+        new URL(`apps/site/src/illustrations/library/control/${name}.bp.json`, repo),
+        "utf8",
+      ),
+    ) as BlueprintFile;
+    const control = await readBlueprint(file, { location: `${name}.bp.json` });
+    const failures: string[] = [];
+    let cases = 0;
+    for (const m of mountsOf(name))
+      for (const [viewport, width, height] of m.sizes) {
+        const where = `${m.page || "/"} f${m.options.fill ?? "-"} ${viewport}`;
+        const record = (label: string, got: Frame | string) => {
+          cases++;
+          const diff =
+            typeof got === "string" ? got : frozen.check(`${name} ${where} ${label}`, got);
+          if (diff) failures.push(`${where} ${label}: ${diff}`);
+        };
+        scriptCases(name, m, width, height, record, control);
+      }
+    console.log(
+      `${name} from its control file: ${cases} cases, ${failures.length || "all"} ${failures.length ? "differ" : "equal"}`,
+    );
+    expect(cases).toBeGreaterThan(0);
+    expect(failures.slice(0, 10)).toEqual([]);
+  });
+});
+
+describe("golden.json", () => {
+  it("has every frozen case drawn", () => {
+    if (results.size < ROUTED.length) return; // a filtered run
+    expect(frozen.missing()).toEqual([]);
+  });
+});
+
 afterAll(() => {
+  frozen.save();
   if (results.size < ROUTED.length) return; // a filtered run: keep the table as it is
   const cells = [
     ["Scene", "Plays from", "Cases", "Parity"],
@@ -240,7 +264,7 @@ afterAll(() => {
     [
       "# Blueprint parity status",
       "",
-      "Written by `animated.test.ts` (docs/blueprint/engine.md, P3): each routed scene of the site, how the engine plays it, and whether its animated frames equal the TypeScript reference (`material`, `ink`, `tone`, `color`, exact). **data**: the scene's `.bp.json` (converted by hand, `scripts/blueprint/by-hand.ts`) with its timelines; **script**: the scene function on the script layer, its blocks rasterised by the engine. A scene enters the data column only when it passes.",
+      "Written by `animated.test.ts` (docs/blueprint/engine.md, P3): each routed scene of the site, how the engine plays it, and whether its animated frames equal the frozen ones of `golden.json` (`material`, `ink`, `tone`, `color`, exact; frozen in P4 from frames equal to the TypeScript reference). **data**: the scene's `.bp.json` (converted by hand, `scripts/blueprint/by-hand.ts`) with its timelines; **script**: the scene function on the script layer, its blocks rasterised by the engine. A scene enters the data column only when it passes.",
       "",
       `${ROUTED.length} scenes: ${data} from data, ${ROUTED.length - data} on the script layer; ${equal} equal over ${cases} cases.`,
       "",

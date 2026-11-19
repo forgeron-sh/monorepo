@@ -16,14 +16,13 @@ import {
   Slot,
 } from "../index";
 import { bayer, matrix } from "./bayer";
-import { placeLabels } from "./draw";
-import { createFrame } from "./frame";
+import type { Frame } from "./frame";
+import type { Block } from "./types";
 import { paint, parseColor, resolvePalette } from "./palette";
 import { fit, project } from "./project";
-import { fillConvex, stroke } from "./raster";
 
 /** Pixels of `material`, grouped by row: the x of each. */
-function rows(frame: ReturnType<typeof createFrame>, keep: (i: number) => boolean) {
+function rows(frame: Frame, keep: (i: number) => boolean) {
   const out = new Map<number, number[]>();
   for (let y = 0; y < frame.height; y++)
     for (let x = 0; x < frame.width; x++)
@@ -80,12 +79,15 @@ describe("projection and fit", () => {
   });
 });
 
+// The raster is the engine's (P4 deleted the TypeScript one); its own tests are native
+// (`crates/fg-blueprint`), these check what `render` gives.
 describe("rasteriser", () => {
+  const at = (blocks: Block[], view = { u: 4, ox: 4, oy: 4 }) =>
+    render({ blocks }, { width: 64, height: 64, view }).frame;
+
   it("draws a 2:1 edge as runs of exactly two pixels per row", () => {
-    const f = createFrame(64, 64);
-    const view = { u: 4, ox: 4, oy: 4 };
-    stroke(f, project([0, 0, 0], view), project([10, 0, 0], view), Material.Edge, Slot.Ink);
-    const byRow = rows(f, (i) => f.material[i] === Material.Edge);
+    const f = at([line([0, 0, 0], [10, 0, 0])]);
+    const byRow = rows(f, (i) => f.material[i] !== Material.Empty);
     // 40 across, 20 down: 21 rows; Bresenham's ends hold one pixel, every row between holds two.
     expect(byRow.size).toBe(21);
     const widths = [...byRow.values()].map((xs) => xs.length);
@@ -94,33 +96,17 @@ describe("rasteriser", () => {
 
   it("draws the same pixels whichever end a line starts from (shared edges stay thin)", () => {
     const view = { u: 4, ox: 30, oy: 4 };
-    const a = project([0, 0, 0], view);
-    const b = project([0, 7, 0], view);
-    const one = createFrame(64, 64);
-    const two = createFrame(64, 64);
-    stroke(one, a, b, Material.Edge, Slot.Ink);
-    stroke(two, b, a, Material.Edge, Slot.Ink);
+    const one = at([line([0, 0, 0], [0, 7, 0])], view);
+    const two = at([line([0, 7, 0], [0, 0, 0])], view);
     expect([...two.material]).toEqual([...one.material]);
   });
 
-  it("fills a convex polygon with its material, ink and tone, and nothing outside", () => {
-    const f = createFrame(10, 10);
-    fillConvex(
-      f,
-      [
-        [2, 2],
-        [8, 2],
-        [8, 8],
-        [2, 8],
-      ],
-      Material.FaceTop,
-      Slot.Dim,
-      0.3,
-    );
-    expect(f.material[5 * 10 + 5]).toBe(Material.FaceTop);
-    expect(f.tone[5 * 10 + 5]).toBeCloseTo(0.3);
+  it("fills a box's faces, and nothing outside it", () => {
+    const f = at([box([0, 0, 0], [4, 4, 4])], { u: 4, ox: 32, oy: 24 });
+    const faces = [Material.FaceTop, Material.FaceLeft, Material.FaceRight] as number[];
+    expect(f.material.filter((m) => faces.includes(m)).length).toBeGreaterThan(0);
     expect(f.material[0]).toBe(Material.Empty);
-    expect(f.material[9 * 10 + 9]).toBe(Material.Empty);
+    expect(f.material[63 * 64 + 63]).toBe(Material.Empty);
   });
 
   it("writes no colour: shading is left to the filters", () => {
@@ -274,41 +260,6 @@ describe("svg", () => {
 });
 
 describe("label placement", () => {
-  const view = { u: 4, ox: 50, oy: 40 };
-  const disjoint = (a: { x0: number; y0: number; x1: number; y1: number }, b: typeof a) =>
-    a.x1 < b.x0 || b.x1 < a.x0 || a.y1 < b.y0 || b.y1 < a.y0;
-
-  it("keeps every plate inside the raster, near an edge included", () => {
-    const labels = [
-      label([-30, 0, 0], "Left edge"),
-      label([0, 0, 20], "Top"),
-      label([30, 30, 0], "Corner"),
-    ];
-    const plates = placeLabels(labels, view, 100, 80);
-    for (const r of plates) {
-      expect(r).not.toBeNull();
-      if (!r) continue;
-      expect(r.x0).toBeGreaterThanOrEqual(0);
-      expect(r.y0).toBeGreaterThanOrEqual(0);
-      expect(r.x1).toBeLessThanOrEqual(99);
-      expect(r.y1).toBeLessThanOrEqual(79);
-    }
-  });
-
-  it("never lets two plates touch: the later one moves up past the earlier one", () => {
-    const labels = [
-      label([5, 5, 2], "Repository"),
-      label([5, 5, 2], "Preview"),
-      label([6, 5, 2], "Production"),
-    ];
-    const plates = placeLabels(labels, view, 200, 160);
-    expect(plates.every((r) => r !== null)).toBe(true);
-    for (let i = 0; i < plates.length; i++)
-      for (let j = i + 1; j < plates.length; j++)
-        expect(disjoint(plates[i]!, plates[j]!)).toBe(true);
-    expect(plates[1]!.y1).toBeLessThan(plates[0]!.y0);
-  });
-
   it("rises off the drawing: a plate covers no pixel of a box under its anchor", () => {
     const scene = {
       blocks: [box([0, 0, 0], [8, 8, 6]), label([4, 4, 7], "Tool", { to: [4, 4, 6] })],
@@ -328,21 +279,25 @@ describe("label placement", () => {
     expect(covered).toBe(0);
   });
 
-  it("leaves out a label that cannot be placed rather than drawing it over another", () => {
-    const labels = [label([0, 0, 0], "Wide label"), label([0, 0, 0], "Wide label")];
-    const plates = placeLabels(labels, { u: 2, ox: 40, oy: 8 }, 80, 16);
-    expect(plates[0]).not.toBeNull();
-    expect(plates[1]).toBeNull();
-  });
-
   it("draws whole plates: as many frame pixels as the perimeter of each placed plate", () => {
     const scene = {
       blocks: [box([0, 0, 0], [6, 6, 2]), label([0, 0, 2], "Edge", { to: [0, 0, 2] })],
     };
-    const { frame, view: v } = render(scene, { width: 60, height: 40 });
-    const [r] = placeLabels([scene.blocks[1] as never], v, frame.width, frame.height);
-    expect(r).toBeTruthy();
+    const { frame } = render(scene, { width: 60, height: 40 });
+    // The plate is the box around its frame pixels.
+    const r = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    frame.material.forEach((m, i) => {
+      if (m !== Material.LabelFrame) return;
+      const [x, y] = [i % frame.width, Math.floor(i / frame.width)];
+      Object.assign(r, {
+        x0: Math.min(r.x0, x),
+        y0: Math.min(r.y0, y),
+        x1: Math.max(r.x1, x),
+        y1: Math.max(r.y1, y),
+      });
+    });
+    expect(r.x1).toBeGreaterThan(r.x0);
     const frameCount = frame.material.filter((m) => m === Material.LabelFrame).length;
-    expect(frameCount).toBe(2 * (r!.x1 - r!.x0) + 2 * (r!.y1 - r!.y0));
+    expect(frameCount).toBe(2 * (r.x1 - r.x0) + 2 * (r.y1 - r.y0));
   });
 });

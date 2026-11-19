@@ -719,7 +719,8 @@ const faq = [
 <script>
   // Opening: the scroll drives the village's story, the captions, and the final shrink that hands
   // the screen back to the navigation and the hero.
-  import { FOCUS, FRAME, STEPS, villageStore } from "../illustrations/village";
+  import { isoCanvas } from "../illustrations/canvas";
+  import { STEPS } from "../illustrations/village";
 
   const saga = document.querySelector<HTMLElement>(".saga");
   const stage = saga?.querySelector<HTMLElement>(".saga-stage");
@@ -728,6 +729,31 @@ const faq = [
   const screenEl = stage?.querySelector<HTMLElement>(".saga-screen");
   const captions = [...(stage?.querySelectorAll<HTMLElement>("[data-step]") ?? [])];
   const clamp = (v: number) => Math.min(1, Math.max(0, v));
+
+  // The village plays its story as a machine over the scroll (library/control/erp-village.bp.json):
+  // the page writes the progress, reads the current step from the machine's state, and turns
+  // that step's camera shot into a CSS transform.
+  const village = isoCanvas(stage?.querySelector<HTMLCanvasElement>('canvas[data-iso="erp-village"]') ?? null);
+  const camera = village?.camera;
+  // The framing box, projected: the page places a world point on screen with it.
+  const FRAME = (() => {
+    const box = camera?.fit.box ?? { min: [0, 0, 0], max: [0, 0, 0] };
+    const [ax, ay, az] = box.min;
+    const [bx, by, bz] = box.max;
+    return { minX: ax - by, maxX: bx - ay, minY: (ax + ay) / 2 - bz, maxY: (bx + by) / 2 - az, fill: camera?.fit.fill ?? 1 };
+  })();
+  // The step without a caption: its subject stays centred.
+  const CENTRED = new Set(["unfit"]);
+  let progress = 0;
+  let step = "intro";
+  let writing = false;
+  village?.on("state", (_, name) => {
+    if (name === step) return;
+    step = name;
+    // A state reached in a later frame moves the camera then; one reached while the page writes
+    // the progress is read by that same update.
+    if (!writing) update();
+  });
 
   // Captions come and go through a black-and-white corruption: a 4×4 Bayer mask switches their
   // pixels on (or off) level by level, while whole rows of the text jolt sideways and flicker
@@ -822,15 +848,18 @@ const faq = [
     if (!saga || !stage) return;
     const r = saga.getBoundingClientRect();
     const p = clamp(-r.top / Math.max(1, r.height - window.innerHeight));
-    villageStore.progress = p;
+    progress = p;
+    writing = true;
+    village?.set("progress", p);
+    writing = false;
     for (const c of captions) {
       const range = STEPS[c.dataset.step as keyof typeof STEPS];
       glitch(c, Boolean(range && p >= range[0] && p < range[1]));
     }
     // Camera: look at the step's focus, the point placed a little right of centre, clear of the
     // caption. The transform eases between steps (CSS transition).
-    const step = (Object.keys(STEPS) as (keyof typeof STEPS)[]).find((k) => p >= STEPS[k][0] && p < STEPS[k][1]) ?? "out";
-    const { at, zoom, centre } = FOCUS[step];
+    const { at, zoom } = camera?.shots?.[step] ?? { at: [0, 0, 0], zoom: 1 };
+    const centre = CENTRED.has(step);
     const cw = stage.clientWidth;
     const ch = stage.clientHeight;
     const bw = FRAME.maxX - FRAME.minX;
@@ -1136,7 +1165,7 @@ const faq = [
   function reveal() {
     const el = screenEl;
     const st = stage;
-    if (!el || !st || still.matches || villageStore.progress > 0.01) return;
+    if (!el || !st || still.matches || progress > 0.01) return;
     revealing = true;
     const DUR = 1900;
     const DELAY = 150;
@@ -1153,7 +1182,7 @@ const faq = [
     const frame = (now: number) => {
       if (!revealing) return;
       // Scrolling to the end of the story cuts the reveal short.
-      if (villageStore.progress > STEPS.out[0]) return end();
+      if (progress > STEPS.out[0]) return end();
       if (start < 0) start = now + DELAY;
       const t = Math.min(1, Math.max(0, (now - start) / DUR));
       // Slow at the start, fast across the screen, slowing again at the corners.
@@ -1202,12 +1231,18 @@ const faq = [
 </script>
 
 <script>
-  // Develop: the line stays pinned while its track scrolls by; the scroll moves the package and
-  // lights the stop it has reached.
-  import { lineStore } from "../illustrations/objects";
+  // Develop: the line stays pinned while its track scrolls by; the scroll moves the package, and
+  // the stop it has reached (the state of the scene's machine) lights up.
+  import { isoCanvas } from "../illustrations/canvas";
 
   const track = document.querySelector<HTMLElement>(".line-track");
   const stopEls = [...document.querySelectorAll<HTMLElement>("[data-stop]")];
+  const line = isoCanvas(document.getElementById("line-canvas"));
+  const STOPS = ["local", "preview", "production"];
+  line?.on("state", (_, name) => {
+    const at = STOPS.indexOf(name);
+    for (const li of stopEls) li.classList.toggle("on", Number(li.dataset.stop) === at);
+  });
   const onScroll = () => {
     if (!track) return;
     const r = track.getBoundingClientRect();
@@ -1215,9 +1250,7 @@ const faq = [
     const run = Math.max(1, r.height - (pin?.offsetHeight ?? 0));
     const top = pin ? parseFloat(getComputedStyle(pin).top) || 0 : 0;
     const p = Math.min(1, Math.max(0, (top - r.top) / run));
-    lineStore.progress = p;
-    const at = p < 0.33 ? 0 : p < 0.66 ? 1 : 2;
-    for (const li of stopEls) li.classList.toggle("on", Number(li.dataset.stop) === at);
+    line?.set("progress", p);
   };
   const placePin = () => {
     const pin = track?.querySelector<HTMLElement>(".line-pin");

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { box, label, line } from "../core/blocks";
 import { dither, palette, plan } from "../core/filters";
 import { paint, resolvePalette } from "../core/palette";
-import { render, renderTs } from "../core/render";
+import { render } from "../core/render";
 import { describeScene, flatten, readBlueprint, writeSceneBin } from "../format/index";
 import { fontRust, layoutRust } from "./codegen";
 import contract from "./fixtures/contract.bp.json";
@@ -85,12 +85,12 @@ describe("SceneBin: written in TypeScript, read in Rust", async () => {
     scene.dispose();
   });
 
-  it("draws the frame the reference draws from `flatten`", () => {
+  it("draws the frame immediate mode draws from `flatten`", () => {
     const scene = EngineScene.load(writeSceneBin(lib, "room"));
     scene.resize(180, 120);
     scene.draw();
     const fromData = scene.frame();
-    const reference = renderTs(
+    const reference = render(
       { blocks: flatten(lib, "room"), fit: { fill: 0.8, unit: "any" } },
       // A scene without filters is dithered by 4, as the site's canvases.
       { width: 180, height: 120, filters: [dither({ matrix: 4 })] },
@@ -109,7 +109,7 @@ describe("SceneBin: written in TypeScript, read in Rust", async () => {
 });
 
 describe("render on the engine", () => {
-  it("draws what the TypeScript raster draws", () => {
+  it("draws the frame the TypeScript raster drew (frozen in P4)", () => {
     const scene = {
       blocks: [
         box([0, 0, 0], [6, 4, 3], { floors: 1, vents: true, plate: true, accent: true }),
@@ -119,12 +119,16 @@ describe("render on the engine", () => {
         label([8, 1, 7], "plain", { plain: true, ink: "alert" }),
       ],
     };
-    const options = { width: 300, height: 200 };
-    const a = render(scene, options);
-    const b = renderTs(scene, options);
-    expect(a.view).toEqual(b.view);
-    for (const key of ["material", "ink", "tone", "color"] as const)
-      expect(a.frame[key]).toStrictEqual(b.frame[key]);
+    const a = render(scene, { width: 300, height: 200 });
+    // FNV-1a of the four buffers' bytes, from the frame that equalled the TypeScript raster.
+    let h = 0x811c9dc5;
+    for (const key of ["material", "ink", "tone", "color"] as const) {
+      const b = a.frame[key];
+      for (const byte of new Uint8Array(b.buffer, b.byteOffset, b.byteLength))
+        h = Math.imul(h ^ byte, 16777619);
+    }
+    expect(a.view).toEqual({ u: 14, ox: 129, oy: 72 });
+    expect((h >>> 0).toString(16)).toBe("2b5ecd30");
   });
 
   it("paints RGBA as `paint` does", () => {

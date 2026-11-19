@@ -16,6 +16,7 @@ import { frameView, sceneAt } from "../core/render";
 import type { ResolvedPalette } from "../core/palette";
 import { createFrame, type Frame, SLOT_NAMES } from "../core/frame";
 import type { Block, SceneSource, View } from "../core/types";
+import type { Scene } from "../format/types";
 import { type EncodedScene, encodeScene, type SceneBinOptions } from "../format/scenebin";
 import type { Library } from "../format/read";
 import { engineMemory, lastEngineError } from "./runtime";
@@ -33,6 +34,11 @@ const IN = offsets("inputs");
 const OUT = offsets("outputs");
 const IN_WORDS = sizeOf("inputs");
 const OUT_WORDS = sizeOf("outputs");
+const H = offsets("blocksHeader");
+const B = offsets("block");
+const BH = sizeOf("blocksHeader");
+const BW = sizeOf("block");
+const encoder = new TextEncoder();
 
 export { FRAME_FLAGS };
 
@@ -40,6 +46,7 @@ export { FRAME_FLAGS };
 export type FrameFlags = number;
 
 type Listener = (value: number, name: string) => void;
+type Cycle = { every: number; count: number };
 
 /** The views a handle reads and writes, refreshed when the module's memory grows. */
 interface Views {
@@ -192,207 +199,14 @@ abstract class Handle {
     return flags;
   }
 
-  dispose(): void {
-    wasm.free(this.handle);
-    this.handle = 0;
-    this.views = null;
-  }
-}
-
-/** A scene of a `.bp.json` library, played by the engine. */
-export class BlueprintScene extends Handle {
-  readonly encoded: EncodedScene;
-  private readonly slotOf = new Map<string, number>();
-  private readonly eventIndex = new Map<string, number>();
-  private last: Float64Array;
-  private readonly machineCount: number;
-
-  constructor(encoded: EncodedScene) {
-    engineMemory();
-    const memory = engineMemory();
-    const ptr = wasm.alloc(encoded.bytes.length);
-    new Uint8Array(memory.buffer, ptr, encoded.bytes.length).set(encoded.bytes);
-    const handle = wasm.load(ptr, encoded.bytes.length);
-    wasm.dealloc(ptr, encoded.bytes.length);
-    if (!handle) throw new BlueprintError(lastEngineError());
-    super(handle, encoded.scope);
-    this.encoded = encoded;
-    encoded.scope.forEach((n, i) => this.slotOf.set(n, i));
-    encoded.strings.forEach((s, i) => this.eventIndex.set(s, i));
-    this.machineCount = encoded.machines.length;
-    this.last = new Float64Array(OUT_WORDS + encoded.scope.length + this.machineCount).fill(
-      Number.NaN,
-    );
-  }
-
-  /** Sets a var or a root param by name (`set("progress", p)`, `set("active", 3)`). */
-  set(name: string, value: number): void {
-    const slot = this.slotOf.get(name);
-    if (slot === undefined) throw new BlueprintError(`no var or root param "${name}"`);
-    this.refresh().inputs[IN_WORDS + slot] = value;
-  }
-
-  /** Hands a var back to the scene (its cycle, its machine, its default). */
-  release(name: string): void {
-    this.set(name, Number.NaN);
-  }
-
-  /** Queues a named event for the machines (`"hover:stack"`, `"click:cta"`); unknown ones are dropped. */
-  emit(event: string): void {
-    const index = this.eventIndex.get(event);
-    if (index === undefined) return;
-    const i = this.refresh().inputs;
-    const n = i[IN.eventCount]!;
-    if (n >= MAX_EVENTS) return;
-    i[IN.event0 + n] = index;
-    i[IN.eventCount] = n + 1;
-  }
-
-  /** The value of a root scope name after the last frame. */
-  get(name: string): number {
-    const slot = this.slotOf.get(name);
-    return slot === undefined ? Number.NaN : this.refresh().outputs[OUT_WORDS + slot]!;
-  }
-
-  /** The current state of machine `machine` (its index by default). */
-  state(machine = 0): string | undefined {
-    const m = this.encoded.machines[machine];
-    if (!m) return undefined;
-    const o = this.refresh().outputs;
-    return m.states[o[OUT_WORDS + this.scope.length + machine]!];
-  }
-
-  /** One frame at `time` seconds, `dt` since the last: one call into the engine. */
-  frame(time: number, dt = 0): FrameFlags {
-    const i = this.refresh().inputs;
-    i[IN.time] = time;
-    i[IN.dt] = dt;
-    i[IN.blocks] = 0;
-    const flags = this.call();
-    if (flags & (FRAME_FLAGS.vars | FRAME_FLAGS.state | FRAME_FLAGS.hover) && this.hasListeners())
-      this.notify();
-    return flags;
-  }
-
-  private notify(): void {
-    const o = this.refresh().outputs;
-    const n = this.scope.length;
-    for (let k = 0; k < n; k++) {
-      const v = o[OUT_WORDS + k]!;
-      if (!Object.is(v, this.last[OUT_WORDS + k])) {
-        this.last[OUT_WORDS + k] = v;
-        this.emitTo(this.scope[k]!, v, this.scope[k]!);
-      }
-    }
-    for (let m = 0; m < this.machineCount; m++) {
-      const v = o[OUT_WORDS + n + m]!;
-      if (v !== this.last[OUT_WORDS + n + m]) {
-        this.last[OUT_WORDS + n + m] = v;
-        this.emitTo("state", v, this.encoded.machines[m]!.states[v] ?? "");
-      }
-    }
-    const hover = o[OUT.hover]!;
-    if (hover !== this.last[OUT.hover]) {
-      this.last[OUT.hover] = hover;
-      this.emitTo("hover", hover, hover > 0 ? (this.encoded.strings[hover - 1] ?? "") : "");
-    }
-  }
-}
-
-/** A scene of a `.bp.json` library: `createScene(lib, "village")`. */
-export function createScene(
-  lib: Library,
-  name: string,
-  options: SceneBinOptions = {},
-): BlueprintScene {
-  return new BlueprintScene(encodeScene(lib, name, options));
-}
-
-const H = offsets("blocksHeader");
-const B = offsets("block");
-const BH = sizeOf("blocksHeader");
-const BW = sizeOf("block");
-const encoder = new TextEncoder();
-
-/**
- * The script layer: a scene function (or a still block list) drawn by the engine, its blocks
- * packed straight into the handle's block buffer and rasterised in the frame's one call.
- */
-export class ScriptScene extends Handle {
-  private source: SceneSource;
+  /** Address of the handle's block buffer (the script layer's blocks). */
+  protected ptr = 0;
   private capacity = 0;
   private words: Float64Array | null = null;
   private bytes: Uint8Array | null = null;
-  private active = -1;
-  private host: number | null = null;
-  private cycle: { every: number; count: number } | null = null;
-  private readonly vars = new Map<string, number>();
-  fill: number | undefined;
-  unit: "even" | "any" | undefined;
-
-  constructor(
-    source: SceneSource,
-    options: { fill?: number; unit?: "even" | "any"; labels?: boolean } = {},
-  ) {
-    engineMemory();
-    super(wasm.create(), []);
-    this.source = source;
-    this.fill = options.fill;
-    this.unit = options.unit;
-    wasm.set_labels(this.handle, options.labels !== false);
-  }
-
-  /** Swaps the scene function or block list (a refit follows on the next `resize`). */
-  update(source: SceneSource): void {
-    this.source = source;
-  }
-
-  /** Highlights each index in turn (`mount`'s `cycle`). */
-  cycleActive(cycle: { every: number; count: number } | null): void {
-    this.cycle = cycle;
-  }
-
-  /** `set("active", n)` pins the highlighted index; other names are passed to the function. */
-  set(name: string, value: number): void {
-    if (name === "active") this.host = value;
-    else this.vars.set(name, value);
-  }
-
-  release(name: string): void {
-    if (name === "active") this.host = null;
-    else this.vars.delete(name);
-  }
-
-  /** A var given with `set` (the page's own inputs, `progress`). */
-  get(name: string): number {
-    return name === "active" ? this.active : (this.vars.get(name) ?? Number.NaN);
-  }
-
-  /** Sizes the raster and frames the scene on its picture at `t = 0` (`frameView`). */
-  override resize(width: number, height: number): void {
-    super.resize(width, height);
-    const view = frameView(this.source, this.width, this.height);
-    // `frameView` already honours the scene's own fit; a page's fill and unit come on top.
-    if (this.fill !== undefined || this.unit !== undefined) {
-      const probe = sceneAt(this.source, 0, 0);
-      this.fitOn(probe.blocks);
-    } else wasm.set_view(this.handle, view.u, view.ox, view.oy);
-  }
-
-  private fitOn(blocks: readonly Block[]): void {
-    const n = this.pack(blocks);
-    wasm.set_fit(
-      this.handle,
-      this.fill ?? Number.NaN,
-      this.unit === "any" ? 1 : this.unit === "even" ? 0 : -1,
-    );
-    if (!wasm.fit_blocks(this.handle, this.ptr, n)) throw new BlueprintError(lastEngineError());
-  }
-
-  private ptr = 0;
 
   /** Packs blocks into the handle's buffer; returns the byte length. */
-  private pack(blocks: readonly Block[]): number {
+  protected pack(blocks: readonly Block[]): number {
     let texts = 0;
     for (const b of blocks) if (b.kind === "label") texts += b.text.length * 3;
     const words = BH + blocks.length * BW;
@@ -478,6 +292,235 @@ export class ScriptScene extends Handle {
     }
     w[H.bytes] = text;
     return textBase + text;
+  }
+
+  dispose(): void {
+    wasm.free(this.handle);
+    this.handle = 0;
+    this.views = null;
+  }
+}
+
+/** A scene of a `.bp.json` library, played by the engine. */
+export class BlueprintScene extends Handle {
+  readonly encoded: EncodedScene;
+  private readonly slotOf = new Map<string, number>();
+  private readonly eventIndex = new Map<string, number>();
+  private last: Float64Array;
+  private readonly machineCount: number;
+  private layer: SceneSource | null = null;
+  private readonly activeVar: { slot: number; default: number; cycle?: Cycle } | null;
+
+  constructor(encoded: EncodedScene, vars: Scene["vars"] = {}) {
+    engineMemory();
+    const memory = engineMemory();
+    const ptr = wasm.alloc(encoded.bytes.length);
+    new Uint8Array(memory.buffer, ptr, encoded.bytes.length).set(encoded.bytes);
+    const handle = wasm.load(ptr, encoded.bytes.length);
+    wasm.dealloc(ptr, encoded.bytes.length);
+    if (!handle) throw new BlueprintError(lastEngineError());
+    super(handle, encoded.scope);
+    this.encoded = encoded;
+    encoded.scope.forEach((n, i) => this.slotOf.set(n, i));
+    encoded.strings.forEach((s, i) => this.eventIndex.set(s, i));
+    this.machineCount = encoded.machines.length;
+    this.last = new Float64Array(OUT_WORDS + encoded.scope.length + this.machineCount).fill(
+      Number.NaN,
+    );
+    const active = vars?.active;
+    const slot = this.slotOf.get("active");
+    this.activeVar =
+      active?.type === "int" && slot !== undefined
+        ? { slot, default: active.default, ...(active.cycle ? { cycle: active.cycle } : {}) }
+        : null;
+  }
+
+  /**
+   * A script layer under the scene's vars, machines and camera: a scene function whose blocks
+   * follow the scene's own each frame (P3 notes, "Interleaving"), drawn at the scene's `active`
+   * (the host's value, else its cycle, else its default; a machine's `set` does not reach it).
+   * The scene is then framed on the function's picture at `t = 0`, as `frameView` frames it,
+   * with the scene's fill and unit. `null` removes the layer (a refit follows on `resize`).
+   */
+  script(source: SceneSource | null): void {
+    this.layer = source;
+  }
+
+  override resize(width: number, height: number): void {
+    super.resize(width, height);
+    const layer = this.layer;
+    if (!layer) return;
+    const probe = sceneAt(layer, 0, 0);
+    const at = probe.fit?.at ?? 0;
+    const n = this.pack((at === 0 ? probe : sceneAt(layer, at, 0)).blocks);
+    if (!wasm.fit_blocks(this.handle, this.ptr, n)) throw new BlueprintError(lastEngineError());
+  }
+
+  /** The `active` the script layer draws at `time`: `mount`'s rule, on the scene's int var. */
+  private activeAt(time: number): number {
+    const v = this.activeVar;
+    if (!v) return -1;
+    const host = this.refresh().inputs[IN_WORDS + v.slot]!;
+    if (!Number.isNaN(host)) return host;
+    const c = v.cycle;
+    return c && c.every > 0 ? Math.floor(time / c.every) % c.count : v.default;
+  }
+
+  /** Sets a var or a root param by name (`set("progress", p)`, `set("active", 3)`). */
+  set(name: string, value: number): void {
+    const slot = this.slotOf.get(name);
+    if (slot === undefined) throw new BlueprintError(`no var or root param "${name}"`);
+    this.refresh().inputs[IN_WORDS + slot] = value;
+  }
+
+  /** Hands a var back to the scene (its cycle, its machine, its default). */
+  release(name: string): void {
+    this.set(name, Number.NaN);
+  }
+
+  /** Queues a named event for the machines (`"hover:stack"`, `"click:cta"`); unknown ones are dropped. */
+  emit(event: string): void {
+    const index = this.eventIndex.get(event);
+    if (index === undefined) return;
+    const i = this.refresh().inputs;
+    const n = i[IN.eventCount]!;
+    if (n >= MAX_EVENTS) return;
+    i[IN.event0 + n] = index;
+    i[IN.eventCount] = n + 1;
+  }
+
+  /** The value of a root scope name after the last frame. */
+  get(name: string): number {
+    const slot = this.slotOf.get(name);
+    return slot === undefined ? Number.NaN : this.refresh().outputs[OUT_WORDS + slot]!;
+  }
+
+  /** The current state of machine `machine` (its index by default). */
+  state(machine = 0): string | undefined {
+    const m = this.encoded.machines[machine];
+    if (!m) return undefined;
+    const o = this.refresh().outputs;
+    return m.states[o[OUT_WORDS + this.scope.length + machine]!];
+  }
+
+  /** One frame at `time` seconds, `dt` since the last: one call into the engine. */
+  frame(time: number, dt = 0): FrameFlags {
+    const layer = this.layer;
+    const n = layer ? this.pack(sceneAt(layer, time, this.activeAt(time)).blocks) : 0;
+    const i = this.refresh().inputs;
+    i[IN.time] = time;
+    i[IN.dt] = dt;
+    i[IN.blocks] = n;
+    const flags = this.call();
+    if (flags & (FRAME_FLAGS.vars | FRAME_FLAGS.state | FRAME_FLAGS.hover) && this.hasListeners())
+      this.notify();
+    return flags;
+  }
+
+  private notify(): void {
+    const o = this.refresh().outputs;
+    const n = this.scope.length;
+    for (let k = 0; k < n; k++) {
+      const v = o[OUT_WORDS + k]!;
+      if (!Object.is(v, this.last[OUT_WORDS + k])) {
+        this.last[OUT_WORDS + k] = v;
+        this.emitTo(this.scope[k]!, v, this.scope[k]!);
+      }
+    }
+    for (let m = 0; m < this.machineCount; m++) {
+      const v = o[OUT_WORDS + n + m]!;
+      if (v !== this.last[OUT_WORDS + n + m]) {
+        this.last[OUT_WORDS + n + m] = v;
+        this.emitTo("state", v, this.encoded.machines[m]!.states[v] ?? "");
+      }
+    }
+    const hover = o[OUT.hover]!;
+    if (hover !== this.last[OUT.hover]) {
+      this.last[OUT.hover] = hover;
+      this.emitTo("hover", hover, hover > 0 ? (this.encoded.strings[hover - 1] ?? "") : "");
+    }
+  }
+}
+
+/** A scene of a `.bp.json` library: `createScene(lib, "village")`. */
+export function createScene(
+  lib: Library,
+  name: string,
+  options: SceneBinOptions = {},
+): BlueprintScene {
+  return new BlueprintScene(encodeScene(lib, name, options), lib.scenes.get(name)?.vars);
+}
+
+/**
+ * The script layer: a scene function (or a still block list) drawn by the engine, its blocks
+ * packed straight into the handle's block buffer and rasterised in the frame's one call.
+ */
+export class ScriptScene extends Handle {
+  private source: SceneSource;
+  private active = -1;
+  private host: number | null = null;
+  private cycle: { every: number; count: number } | null = null;
+  private readonly vars = new Map<string, number>();
+  fill: number | undefined;
+  unit: "even" | "any" | undefined;
+
+  constructor(
+    source: SceneSource,
+    options: { fill?: number; unit?: "even" | "any"; labels?: boolean } = {},
+  ) {
+    engineMemory();
+    super(wasm.create(), []);
+    this.source = source;
+    this.fill = options.fill;
+    this.unit = options.unit;
+    wasm.set_labels(this.handle, options.labels !== false);
+  }
+
+  /** Swaps the scene function or block list (a refit follows on the next `resize`). */
+  update(source: SceneSource): void {
+    this.source = source;
+  }
+
+  /** Highlights each index in turn (`mount`'s `cycle`). */
+  cycleActive(cycle: { every: number; count: number } | null): void {
+    this.cycle = cycle;
+  }
+
+  /** `set("active", n)` pins the highlighted index; other names are passed to the function. */
+  set(name: string, value: number): void {
+    if (name === "active") this.host = value;
+    else this.vars.set(name, value);
+  }
+
+  release(name: string): void {
+    if (name === "active") this.host = null;
+    else this.vars.delete(name);
+  }
+
+  /** A var given with `set` (the page's own inputs, `progress`). */
+  get(name: string): number {
+    return name === "active" ? this.active : (this.vars.get(name) ?? Number.NaN);
+  }
+
+  /** Sizes the raster and frames the scene on its picture at `t = 0` (`frameView`). */
+  override resize(width: number, height: number): void {
+    super.resize(width, height);
+    const view = frameView(this.source, this.width, this.height);
+    // `frameView` already honours the scene's own fit; a page's fill and unit come on top.
+    if (this.fill !== undefined || this.unit !== undefined) {
+      const probe = sceneAt(this.source, 0, 0);
+      this.fitOn(probe.blocks);
+    } else wasm.set_view(this.handle, view.u, view.ox, view.oy);
+  }
+
+  private fitOn(blocks: readonly Block[]): void {
+    const n = this.pack(blocks);
+    wasm.set_fit(
+      this.handle,
+      this.fill ?? Number.NaN,
+      this.unit === "any" ? 1 : this.unit === "even" ? 0 : -1,
+    );
+    if (!wasm.fit_blocks(this.handle, this.ptr, n)) throw new BlueprintError(lastEngineError());
   }
 
   /** The highlighted index at `time`: the page's, else the cycle's, else -1 (`mount`). */

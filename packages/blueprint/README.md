@@ -28,7 +28,7 @@ const svg = renderSvg(examples.cube, { width: 480, height: 360, filters: [pixela
 
 An animated scene is a function of `{ t, active }` that returns data: `examples.cube`, `examples.stack`.
 
-`render` and `renderSvg` rasterise with the Rust core (`crates/fg-blueprint`, D-150), built into [`wasm/`](wasm/) and committed: no Rust is needed to use or test the package. Under Node and Bun the engine starts by itself; in a browser or a Worker, `await initBlueprint()` once first (a Worker passes a `WebAssembly.Module`). Until the site switches (docs/blueprint/engine.md, P4), `mount` keeps drawing with the TypeScript raster; [`test/reference/`](test/reference/) holds that renderer, frozen, as the parity oracle (`bunx vitest run --config packages/blueprint/vitest.config.ts`).
+`render` and `renderSvg` rasterise with the Rust core (`crates/fg-blueprint`, D-150), built into [`wasm/`](wasm/) and committed: no Rust is needed to use or test the package. Under Node and Bun the engine starts by itself; in a browser or a Worker, `await initBlueprint()` once first (a Worker passes a `WebAssembly.Module`). The site plays its scenes with `play` (`/dom`, P4); the TypeScript raster is gone, and the parity suites check the engine's frames against the hashes frozen from it, [`test/parity/golden.json`](test/parity/golden.json) (`bunx vitest run --config packages/blueprint/vitest.config.ts`).
 
 ## Layers
 
@@ -44,7 +44,7 @@ An animated scene is a function of `{ t, active }` that returns data: `examples.
 | Entry                        | Contents                                                                                                                                                                          | Runs                                    |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
 | `@forgeron/blueprint`        | blocks, scene, projection and fit, frame, filters, SVG                                                                                                                            | anywhere: no DOM, no React, no `node:*` |
-| `@forgeron/blueprint/dom`    | `mount(canvas, scene, options)`: observers, loop, tokens; `mountField`, `mountImage`                                                                                              | browser                                 |
+| `@forgeron/blueprint/dom`    | `play(canvas, scene, options)` and `mount`: observers, loop, tokens, presenters; `mountField`, `mountImage`                                                                       | browser                                 |
 | `@forgeron/blueprint/engine` | the Rust core: `initBlueprint`, immediate mode (`EngineHandle`), scenes from a SceneBin (`EngineScene`)                                                                           | anywhere: no DOM, no React, no `node:*` |
 | `@forgeron/blueprint/format` | the `.bp.json` format: types, schema, `readBlueprint`, `flatten`, `writeBlueprint`, `writeSceneBin`, the converter ([`docs/blueprint/format.md`](../../docs/blueprint/format.md)) | anywhere: no DOM, no React, no `node:*` |
 | `@forgeron/blueprint/react`  | `<Blueprint>` and the marker components                                                                                                                                           | server (SVG) and browser (canvas)       |

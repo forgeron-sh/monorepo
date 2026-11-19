@@ -30,7 +30,7 @@
     },
     "packages/blueprint": {
       "entry": ["test/browser/presenters.page.ts"],
-      "ignore": ["test/reference/**", "wasm/*.d.ts", "wasm/debug/**"]
+      "ignore": ["wasm/*.d.ts", "wasm/debug/**"]
     },
     "packages/canvas": {
       "entry": ["bench/run.ts", "bench/browser.ts", "bench/build-wasm.ts", "bench/browser/main.ts"]

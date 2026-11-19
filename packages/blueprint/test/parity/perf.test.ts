@@ -14,7 +14,7 @@ import { EngineHandle, EngineScene } from "../../src/engine/index";
 import { packBlocks } from "../../src/engine/pack";
 import { readBlueprint, writeSceneBin } from "../../src/format/index";
 import type { BlueprintFile } from "../../src/format/types";
-import { fit } from "../reference/project";
+import { fit } from "../../src/index";
 
 const repo = new URL("../../../../", import.meta.url);
 const SLACK = 3;

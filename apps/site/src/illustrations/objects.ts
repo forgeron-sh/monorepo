@@ -757,7 +757,7 @@ function ledger(t: number): Block[] {
   return out;
 }
 
-/** Scroll progress of the develop section's line, 0 to 1, written by the page. */
+/** Scroll progress of the develop section's line, 0 to 1: the page sets it on the canvas. */
 export const lineStore = { progress: 0 };
 
 /** A monitor on a stand (observability), a stepped line and bars on its +x screen. */

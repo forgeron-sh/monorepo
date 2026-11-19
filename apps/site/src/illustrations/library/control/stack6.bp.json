@@ -1,0 +1,28 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/control/stack6",
+  "scenes": {
+    "stack6": {
+      "title": "The anatomy",
+      "description": "Six plates, one per layer of the platform; the picked one rises apart from the rest.",
+      "depth": "painter",
+      "root": {
+        "instances": []
+      },
+      "camera": {
+        "view": 0,
+        "fit": {
+          "fill": 0.78,
+          "unit": "any"
+        }
+      },
+      "vars": {
+        "active": {
+          "type": "int",
+          "default": -1
+        }
+      }
+    }
+  }
+}

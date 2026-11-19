@@ -1,6 +1,6 @@
 import { type Filter, plan } from "../core/filters";
 import { type ResolvedPalette, paint, resolvePalette } from "../core/palette";
-import { frameView, rasterSize, renderTs } from "../core/render";
+import { frameView, rasterSize, render } from "../core/render";
 import { gridCell } from "../core/svg";
 import type { SceneSource, View } from "../core/types";
 
@@ -32,6 +32,9 @@ export interface Mounted {
  * is on screen, draws a single frame at `t = 0` under `prefers-reduced-motion`, and a static scene
  * once per size. Colours are read from the CSS variables of the palette, on the canvas (so a
  * scoped theme applies), when it mounts and on each resize.
+ *
+ * Frames come from the engine's immediate mode (`render`): in a browser, `await initBlueprint()`
+ * first. A page that drives scenes by vars, machines or hover uses `play`.
  */
 export function mount(
   canvas: HTMLCanvasElement,
@@ -76,7 +79,7 @@ export function mount(
       lastActive = active;
       options.onActive?.(active);
     }
-    const { frame, plan: p } = renderTs(source, {
+    const { frame, plan: p } = render(source, {
       width: state.width,
       height: state.height,
       filters: options.filters,

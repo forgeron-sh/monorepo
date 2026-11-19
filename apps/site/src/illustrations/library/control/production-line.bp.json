@@ -1,0 +1,64 @@
+{
+  "$schema": "https://blueprint.forgeron.sh/schema/v1.json",
+  "version": 1,
+  "id": "site/control/production-line",
+  "scenes": {
+    "production-line": {
+      "title": "The production line",
+      "description": "A package of code forged in the workshop rides the belt through the preview desk to the town, as the page scrolls.",
+      "depth": "painter",
+      "root": {
+        "instances": []
+      },
+      "camera": {
+        "view": 0,
+        "fit": {
+          "fill": 0.84,
+          "unit": "any"
+        }
+      },
+      "vars": {
+        "progress": {
+          "type": "progress",
+          "default": 0
+        }
+      },
+      "machines": {
+        "stops": {
+          "initial": "local",
+          "states": {
+            "local": {},
+            "preview": {},
+            "production": {}
+          },
+          "transitions": [
+            {
+              "from": "*",
+              "to": "local",
+              "when": {
+                "var": "progress",
+                "range": [0, 0.33]
+              }
+            },
+            {
+              "from": "*",
+              "to": "preview",
+              "when": {
+                "var": "progress",
+                "range": [0.33, 0.66]
+              }
+            },
+            {
+              "from": "*",
+              "to": "production",
+              "when": {
+                "var": "progress",
+                "range": [0.66, 1.01]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -48,10 +48,6 @@ export const SLOT_NAMES: readonly SlotName[] = [
   "alert",
 ];
 
-export function slotOf(name: SlotName): Slot {
-  return (SLOT_NAMES.indexOf(name) + 1) as Slot;
-}
-
 export interface Frame {
   readonly width: number;
   readonly height: number;
@@ -75,22 +71,4 @@ export function createFrame(width: number, height: number): Frame {
     tone: new Float32Array(n),
     color: new Uint8Array(n),
   };
-}
-
-/** Faces and fields are the only materials a dither may shade. */
-export function isShaded(material: number): boolean {
-  return (
-    material === Material.FaceTop ||
-    material === Material.FaceLeft ||
-    material === Material.FaceRight ||
-    material === Material.Field
-  );
-}
-
-export function isLabel(material: number): boolean {
-  return (
-    material === Material.LabelFill ||
-    material === Material.LabelFrame ||
-    material === Material.LabelText
-  );
 }

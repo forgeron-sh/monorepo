@@ -1,9 +1,7 @@
 import { renderBlocks } from "../engine/runtime";
-import { rasterize } from "./draw";
 import { type Filter, type Plan, plan } from "./filters";
-import { createFrame, type Frame } from "./frame";
+import type { Frame } from "./frame";
 import { fit } from "./project";
-import { shade } from "./shade";
 import type { Scene, SceneSource, View } from "./types";
 
 export interface RenderOptions {
@@ -66,20 +64,5 @@ export function render(source: SceneSource, options: RenderOptions): Rendered {
     dither: p.dither,
     glow: p.glow,
   });
-  return { frame, view, plan: p };
-}
-
-/**
- * `render` on the TypeScript raster: what `mount` draws the site's canvases with until the site
- * switches to the engine (docs/blueprint/engine.md, P4). Same frames, pixel for pixel.
- */
-export function renderTs(source: SceneSource, options: RenderOptions): Rendered {
-  const p = plan(options.filters);
-  const [w, h] = rasterSize(options.width, options.height, p.pixel);
-  const view = options.view ?? frameView(source, w, h);
-  const frame = createFrame(w, h);
-  const scene = sceneAt(source, options.t ?? 0, options.active ?? -1);
-  rasterize(frame, scene.blocks, view, { labels: options.labels });
-  shade(frame, p);
   return { frame, view, plan: p };
 }

@@ -7,7 +7,10 @@
  * `prefers-reduced-motion` (scroll and hover still change the picture), colours from the CSS
  * tokens on the canvas at mount and on each resize.
  *
- * The site keeps `mount` (the TypeScript raster) until it switches (P4).
+ * A data scene may carry a script layer (`script`): its vars, machines and camera are the file's,
+ * its pixels a scene function's (the site's scroll and hover scenes, P4). While the canvas is off
+ * screen, `set` on a scene with machines draws one frame at once, so that `on("state")` follows
+ * the host's inputs (a page reading its camera shot from the state) without the loop running.
  */
 import { type Filter, plan } from "../core/filters";
 import { type ResolvedPalette, resolvePalette } from "../core/palette";
@@ -49,6 +52,8 @@ export interface PlayOptions {
 export interface DataSource {
   lib: Library;
   scene: string;
+  /** A script layer drawn by the scene: a function whose blocks follow the scene's own. */
+  script?: SceneSource;
 }
 
 export interface Player {
@@ -94,7 +99,9 @@ export function play(
   const scene: BlueprintScene | ScriptScene = data
     ? createScene(source.lib, source.scene, fit)
     : createScriptScene(source, fit);
+  if (data && source.script) (scene as BlueprintScene).script(source.script);
   if (!data && options.cycle) (scene as ScriptScene).cycleActive(options.cycle);
+  const machines = data && (scene as BlueprintScene).encoded.machines.length > 0;
   if (options.active !== undefined) scene.set("active", options.active);
 
   let gl: WebGL2Presenter | null = options.presenter === "webgl2" ? presentWebGL2(canvas) : null;
@@ -221,7 +228,8 @@ export function play(
     presenter,
     set(name, value) {
       scene.set(name, value);
-      request();
+      if (machines && !visible) draw(now());
+      else request();
     },
     release(name) {
       scene.release(name);

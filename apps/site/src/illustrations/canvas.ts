@@ -1,16 +1,21 @@
 /**
- * Client side of the lab pages, on top of @forgeron/blueprint. The canvases are written in the
+ * Client side of the site's pages, on top of @forgeron/blueprint. The canvases are written in the
  * pages as plain `<canvas>` elements (so the pages' scoped styles reach them and they keep their
  * CSS size before any script runs); their attributes are the declarative options, read here once:
  *
- * - `canvas[data-iso=<scene>]`: an isometric scene of `SCENES` (`mount`). Options: `data-scale`
- *   (pixel size, 3), `data-fill`, `data-unit="any"`, `data-cycle` (seconds per highlighted index),
- *   `data-count` (how many indices the cycle visits, 5),
- *   `data-active`, `data-labels="off"`, `data-accent="off"`, `data-bg` (token of the background),
- *   `data-signal` (token for the signal family);
+ * - `canvas[data-iso=<scene>]`: an isometric scene of `SCENES`, played by the engine (`play`, the
+ *   2D presenter). Options: `data-scale` (pixel size, 3), `data-fill`, `data-unit="any"`,
+ *   `data-cycle` (seconds per highlighted index), `data-count` (how many indices the cycle
+ *   visits, 5), `data-active`, `data-labels="off"`, `data-accent="off"`, `data-bg` (token of the
+ *   background), `data-signal` (token for the signal family);
  * - `canvas[data-shader=ember|globe|dissolve|field]`: a generator field (`mountField`). Options:
  *   `data-px` (cell size, 4), `data-accent="off"`, `data-bg`, `data-ink`;
  * - `canvas[data-dither-img=<url>]`: a dithered picture (`mountImage`). Options: `data-px`, `data-gain`.
+ *
+ * A scene plays from data when it was converted by hand (`library/<scene>.bp.json` with its
+ * timelines), on the script layer otherwise (its function's blocks, rasterised by the engine).
+ * The scroll and hover scenes add a control file (`library/control/<scene>.bp.json`): its vars,
+ * machines and camera are data, its pixels stay the function's (docs/blueprint/engine.md, P4).
  *
  * Page scripts drive a scene through `isoCanvas(el)`: a typed handle instead of DOM events.
  */
@@ -20,23 +25,40 @@ import {
   type FieldMode,
   FIELD_MODES,
   type Filter,
+  initBlueprint,
   palette,
   pixelate,
-  type Scene,
-  type SceneFn,
 } from "@forgeron/blueprint";
 import {
-  type Mounted,
-  mount,
-  type MountOptions,
+  type DataSource,
   mountField,
   mountImage,
+  play,
+  type Player,
+  type PlayOptions,
 } from "@forgeron/blueprint/dom";
+import {
+  type BlueprintFile,
+  type Camera,
+  type Library,
+  readBlueprint,
+} from "@forgeron/blueprint/format";
+import cli from "./library/cli.bp.json";
+import village from "./library/control/erp-village.bp.json";
+import line from "./library/control/production-line.bp.json";
+import resources from "./library/control/resources.bp.json";
+import stack6 from "./library/control/stack6.bp.json";
+import hostServers from "./library/host-servers.bp.json";
+import mcp from "./library/mcp.bp.json";
+import usageIso from "./library/usage-iso.bp.json";
+import web from "./library/web.bp.json";
+import { lineStore } from "./objects";
 import { SCENES } from "./scenes";
+import { villageStore } from "./village";
 
 const token = (name: string, fallback: string): ColorRef => ({ var: name, fallback });
 
-/** A lab scene on a canvas. */
+/** A scene on a canvas. */
 export interface IsoCanvas {
   /** Highlights index `n`, or hands the highlight back to the cycle with -1. */
   select(n: number): void;
@@ -48,22 +70,88 @@ export interface IsoCanvas {
    * unsubscribe.
    */
   onActive(fn: (active: number) => void): () => void;
+  /** Sets a var of the scene (`set("progress", p)`); a value equal to the last one is ignored. */
+  set(name: string, value: number): void;
+  /**
+   * Calls `fn` when a var, a machine's state (`"state"`, with the state's name) or the hovered tag
+   * changes; at once with the current state if a frame was already drawn. Returns an unsubscribe.
+   */
+  on(name: string, fn: (value: number, label: string) => void): () => void;
+  /** The scene's camera from its file (framing box, shots), or null for a script scene. */
+  readonly camera: Camera | null;
 }
 
 const handles = new WeakMap<HTMLCanvasElement, IsoCanvas>();
 
-/** The scene's framing options from the attributes, merged into every frame of the scene. */
-function framing(el: HTMLCanvasElement, build: SceneFn): SceneFn {
-  const { fill, unit } = el.dataset;
-  if (fill === undefined && unit === undefined) return build;
-  const fit: Scene["fit"] = {
-    ...(fill !== undefined ? { fill: Number(fill) } : {}),
-    ...(unit === "any" ? { unit: "any" as const } : {}),
-  };
-  return (frame) => {
-    const s = build(frame);
-    return { ...s, fit: { ...s.fit, ...fit } };
-  };
+const asFile = (json: unknown) => json as BlueprintFile;
+const read = async (files: Record<string, unknown>) =>
+  new Map(
+    await Promise.all(
+      Object.entries(files).map(
+        async ([name, json]) =>
+          [name, await readBlueprint(asFile(json), { location: `${name}.bp.json` })] as const,
+      ),
+    ),
+  );
+
+const isField = (name: string | undefined): name is FieldMode =>
+  name !== undefined && name in FIELD_MODES;
+
+for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-dither-img]")) {
+  if (!c.dataset.ditherImg) continue;
+  mountImage(c, c.dataset.ditherImg ?? "", {
+    pixel: Number(c.dataset.px ?? 3),
+    gain: Number(c.dataset.gain ?? 1.1),
+  });
+}
+for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-shader]")) {
+  const { shader, px, accent, bg, ink } = c.dataset;
+  mountField(c, {
+    mode: isField(shader) ? shader : "ember",
+    pixel: Number(px ?? 4),
+    accent: accent !== "off",
+    colors: {
+      ...(bg ? { bg: token(bg, "#0a0a0a") } : {}),
+      ...(ink ? { ink: token(ink, "#ededed") } : {}),
+    },
+  });
+}
+
+// The engine starts once, then the libraries are read: page scripts importing this module wait
+// for both (top-level await), so `isoCanvas` stays synchronous for them.
+const [DATA, CONTROL] = await Promise.all([
+  read({ web, mcp, cli, "usage-iso": usageIso, "host-servers": hostServers }),
+  read({ "erp-village": village, "production-line": line, resources, stack6 }),
+  initBlueprint(),
+]);
+
+/** The module stores the scroll scenes' functions read their progress from. */
+const STORES: Record<string, { progress: number }> = {
+  "erp-village": villageStore,
+  "production-line": lineStore,
+};
+
+/**
+ * The scene's source: its data, its control file over its function (which reads the progress
+ * the page set, through its store), or its function.
+ */
+function sourceOf(
+  name: string,
+  vars: ReadonlyMap<string, number> = new Map(),
+): DataSource | (typeof SCENES)[string] | undefined {
+  const fn = SCENES[name];
+  const data = DATA.get(name);
+  if (data) return { lib: data, scene: name };
+  const control = CONTROL.get(name);
+  if (!control || !fn) return fn;
+  const store = STORES[name];
+  const script: typeof fn = store
+    ? (frame) => {
+        store.progress = vars.get("progress") ?? 0;
+        return fn(frame);
+      }
+    : fn;
+  return { lib: control, scene: name, script };
 }
 
 function filtersOf(el: HTMLCanvasElement): Filter[] {
@@ -89,67 +177,93 @@ export function isoCanvas(el: HTMLElement | null): IsoCanvas | null {
   if (!(el instanceof HTMLCanvasElement)) return null;
   const known = handles.get(el);
   if (known) return known;
-  const first = SCENES[el.dataset.iso ?? ""];
-  if (!first) return null;
-  const listeners = new Set<(active: number) => void>();
-  let current: number | undefined;
+  let name = el.dataset.iso ?? "";
+  if (!sourceOf(name)) return null;
+  const listeners = new Map<string, Set<(value: number, label: string) => void>>();
+  const latest = new Map<string, [number, string]>();
+  const values = new Map<string, number>();
   const cycle = Number(el.dataset.cycle ?? 0);
   const count = Number(el.dataset.count ?? 5);
-  let source = framing(el, first);
+  const { fill, unit } = el.dataset;
   let selected = el.dataset.active !== undefined ? Number(el.dataset.active) : -1;
-  const options = (): MountOptions => ({
-    filters: filtersOf(el),
-    ...(selected >= 0 ? { active: selected } : {}),
-    ...(cycle ? { cycle: { every: cycle, count } } : {}),
-    labels: el.dataset.labels !== "off",
-    onActive: (n) => {
-      current = n;
-      for (const fn of listeners) fn(n);
-    },
-  });
-  const mounted: Mounted = mount(el, source, options());
+  let lib: Library | null = null;
+  let player: Player;
+  let off: (() => void)[] = [];
+  /** Whether the scene has var `v` (a script scene takes any). */
+  const has = (v: string) =>
+    !lib || ((player.scene as { scope?: readonly string[] }).scope ?? []).includes(v);
+
+  const start = () => {
+    const source = sourceOf(name, values)!;
+    lib = typeof source === "object" && "lib" in source ? source.lib : null;
+    const options: PlayOptions = {
+      filters: filtersOf(el),
+      labels: el.dataset.labels !== "off",
+      overlay: false,
+      ...(fill !== undefined ? { fill: Number(fill) } : {}),
+      ...(unit === "any" ? { unit: "any" as const } : {}),
+      ...(!lib && cycle ? { cycle: { every: cycle, count } } : {}),
+    };
+    player = play(el, source, options);
+    if (selected >= 0 && has("active")) player.set("active", selected);
+    for (const [v, value] of values) if (has(v)) player.set(v, value);
+    off = ["active", "state", ...listeners.keys()]
+      .filter((key, i, all) => all.indexOf(key) === i)
+      .map((key) =>
+        player.on(key, (value, label) => {
+          latest.set(key, [value, label]);
+          for (const fn of listeners.get(key) ?? []) fn(value, label);
+        }),
+      );
+  };
+  const listen = (key: string, fn: (value: number, label: string) => void) => {
+    let set = listeners.get(key);
+    if (!set) {
+      listeners.set(key, (set = new Set()));
+      if (key !== "active" && key !== "state")
+        off.push(
+          player.on(key, (value, label) => {
+            latest.set(key, [value, label]);
+            for (const f of listeners.get(key) ?? []) f(value, label);
+          }),
+        );
+    }
+    set.add(fn);
+    const last = latest.get(key);
+    if (last) fn(last[0], last[1]);
+    return () => set.delete(fn);
+  };
+  start();
+
   const handle: IsoCanvas = {
     select(n) {
       selected = n;
-      mounted.update(source, options());
+      if (!has("active")) return;
+      if (n >= 0) player.set("active", n);
+      else player.release("active");
     },
-    show(name) {
-      const next = SCENES[name];
-      if (!next) return;
-      el.dataset.iso = name;
-      source = framing(el, next);
-      mounted.update(source, options());
+    show(next) {
+      if (!sourceOf(next)) return;
+      el.dataset.iso = next;
+      name = next;
+      for (const f of off) f();
+      player.destroy();
+      latest.clear();
+      start();
     },
-    onActive(fn) {
-      listeners.add(fn);
-      if (current !== undefined) fn(current);
-      return () => listeners.delete(fn);
+    onActive: (fn) => listen("active", (value) => fn(value)),
+    set(v, value) {
+      if (values.get(v) === value) return;
+      values.set(v, value);
+      if (has(v)) player.set(v, value);
+    },
+    on: listen,
+    get camera() {
+      return lib?.scenes.get(name)?.camera ?? null;
     },
   };
   handles.set(el, handle);
   return handle;
 }
 
-const isField = (name: string | undefined): name is FieldMode =>
-  name !== undefined && name in FIELD_MODES;
-
-for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-dither-img]")) {
-  if (!c.dataset.ditherImg) continue;
-  mountImage(c, c.dataset.ditherImg ?? "", {
-    pixel: Number(c.dataset.px ?? 3),
-    gain: Number(c.dataset.gain ?? 1.1),
-  });
-}
-for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-shader]")) {
-  const { shader, px, accent, bg, ink } = c.dataset;
-  mountField(c, {
-    mode: isField(shader) ? shader : "ember",
-    pixel: Number(px ?? 4),
-    accent: accent !== "off",
-    colors: {
-      ...(bg ? { bg: token(bg, "#0a0a0a") } : {}),
-      ...(ink ? { ink: token(ink, "#ededed") } : {}),
-    },
-  });
-}
 for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-iso]")) isoCanvas(c);

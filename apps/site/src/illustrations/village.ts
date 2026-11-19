@@ -2,7 +2,7 @@
  * The ERP village (home page opening): an island of absurd machines, one per department, around
  * the ERP itself, a stepped pyramid with two chimneys, with a customers' island over a rope
  * bridge and an island of external apps. The scroll drives the story through
- * `villageStore.progress`: it tinkers (a nailed-together shack), goes generic (smoke), plugs into
+ * `villageStore.progress` (written from the scene's `progress` var by `canvas.ts`): it tinkers (a nailed-together shack), goes generic (smoke), plugs into
  * everything (cables), breaks (the support's ticket pile catches, the ERP explodes, scrubbed by
  * the scroll), and burns.
  */
@@ -23,7 +23,7 @@ import {
   Z,
 } from "./parts";
 
-/** Scroll progress of the story, 0 to 1, written by the page and read by every frame. */
+/** Scroll progress of the story, 0 to 1, read by every frame: the page sets it on the canvas. */
 export const villageStore = { progress: 0 };
 
 /** The story's steps, as ranges of progress; the page's captions use the same ones. */
@@ -44,30 +44,8 @@ export const STEPS = {
   out: [0.9, 1],
 } as const;
 
-/** Where the camera looks at each step, and how close; the page turns it into a CSS transform. */
-export const FOCUS: Record<keyof typeof STEPS, { at: Vec3; zoom: number; centre?: boolean }> = {
-  intro: { at: [0, 0, 0], zoom: 1 },
-  complex: { at: [0, 0, 8], zoom: 1.7 },
-  unfit: { at: [-1, -49, 5], zoom: 1.8, centre: true },
-  support: { at: [-27, -26, 3], zoom: 1.9 },
-  excel: { at: [6, 20, 2], zoom: 1.9 },
-  upgrade: { at: [6, -6, 10], zoom: 1.45 },
-  lockin: { at: [-30, 33, 3], zoom: 1.7 },
-  ai: { at: [-42, 9, 3], zoom: 1.7 },
-  tinker: { at: [20, 18, 3], zoom: 1.9 },
-  generic: { at: [0, 0, 11], zoom: 1.6 },
-  plug: { at: [-8, -42, 6], zoom: 1.35 },
-  boom: { at: [0, 0, 0], zoom: 1 },
-  fire: { at: [0, 0, 5], zoom: 1.7 },
-  out: { at: [0, 0, 9], zoom: 1.35 },
-};
-
-/**
- * The scene is framed by the island and one anchor above its far corner, nothing else (everything
- * else is marked as scenery), so the page can place a world point on screen: the projected box
- * below, centred, at the largest unit that fits `fill` of the canvas.
- */
-export const FRAME = { minX: -78, maxX: 72, minY: -59, maxY: 37.2, fill: 0.98 } as const;
+// Where the camera looks at each step, and how close, and the box that frames the island: the
+// shots and the fit box of `library/control/erp-village.bp.json`, read by the page.
 
 const TAU = Math.PI * 2;
 const clamp = (v: number) => Math.min(1, Math.max(0, v));

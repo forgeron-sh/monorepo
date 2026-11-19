@@ -95,7 +95,7 @@ An instance places a part or an assembly:
 
 `{ "title", "description"?, "root": Assembly, "camera", "depth", "palette"?, "filters"?, "post"?, "labels"?, "vars"?, "timelines"?, "machines"? }`.
 
-- **`camera`**: `view` (a quarter turn of the whole world before projection), `fit` (`fill` in `(0, 1]`, `unit` `even` or `any`, an explicit world `box`, and `at`: the time and var values at which the framing is computed), `zooms`, named `shots`.
+- **`camera`**: `view` (a quarter turn of the whole world before projection), `fit` (`fill` in `(0, 1]`, `unit` `even` or `any`, an explicit world `box`, and `at`: the time and var values at which the framing is computed), `zooms`, named `shots`. The engine does not frame on `box` nor move to `shots` yet: a page reads them (the site's village turns the shot of its machine's state into a CSS transform, [`engine.md`](engine.md), P4 notes).
 - **`depth`**: `painter` (today's order, exactly) or `zbuffer` (a depth buffer; [`engine.md`](engine.md) §3).
 - **`filters`**: `pixel` (integer ≥ 1), `dither` (`2`, `4`, `8` or `"none"`), `glow`. `post`: `@forgeron/shaders` preset ids, outside parity.
 - **`vars`**: `time` (implicit as `t`, seconds), `progress` (0–1, written by the host), `int` (`default`, optional `cycle: { every, count }`), `pointer` (the hovered tag).

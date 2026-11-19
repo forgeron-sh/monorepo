@@ -23,9 +23,9 @@ It replaced the engine of the site's lab (the former `apps/site/src/lab/engine.t
  Scene                  blocks + fit options, or (t, active) → blocks
     │                   iso 2:1 projection, fit to the target (even unit)        core/project.ts
     ▼
- Rasteriser             low-resolution Frame: material · ink · tone per pixel    core/raster.ts, core/draw.ts
+ Rasteriser             low-resolution Frame: material · ink · tone per pixel    crates/fg-blueprint/raster
     │
- Filter chain           pixelate → dither → glow → palette → grid               core/filters.ts, core/shade.ts
+ Filter chain           pixelate → dither → glow → palette → grid               core/filters.ts, raster shade.rs
     │
  Outputs                SVG string (build, SSR, no JS)                          core/svg.ts
                         canvas, animated (browser)                              dom/mount.ts
@@ -129,7 +129,7 @@ Iso 2:1 only, no general 3D: `P(x, y, z) = [ox + (x − y)·u, oy + (x + y)·u/2
 
 `fit(blocks, width, height, options)` projects the framed blocks (every block not marked `decor`; a box contributes its eight corners, a line its ends, a dot or a label its anchor) at `u = 1`, takes the largest even unit that keeps them inside `fill` of the target (never below 2) and centres them. The result is a `View { u, ox, oy }`, computed once per size and reused for every frame: an animated scene does not jitter.
 
-Labels are placed after the drawing by `placeLabels` (`core/draw.ts`): a plate (a one-pixel frame on a solid fill) starts centred above its anchor and is moved inside the raster, so it is never clipped; it then rises until it keeps two pixels of air from the drawing (faint decor lines excepted) and from the plates placed before it, its leader growing to match, or goes down when there is no room above. When the drawing leaves no free spot, the plate stays on the first spot clear of other plates; a label that cannot avoid another plate is left out. Because the unit never falls below 2, a small canvas can hold a scene wider than its `fill`: give it a smaller `data-scale` rather than a smaller `data-fill`.
+Labels are placed after the drawing (`labels.rs` of the raster crate, formerly `placeLabels` in `core/draw.ts`): a plate (a one-pixel frame on a solid fill) starts centred above its anchor and is moved inside the raster, so it is never clipped; it then rises until it keeps two pixels of air from the drawing (faint decor lines excepted) and from the plates placed before it, its leader growing to match, or goes down when there is no room above. When the drawing leaves no free spot, the plate stays on the first spot clear of other plates; a label that cannot avoid another plate is left out. Because the unit never falls below 2, a small canvas can hold a scene wider than its `fill`: give it a smaller `data-scale` rather than a smaller `data-fill`.
 
 ### The frame buffer: materials, not colours
 
