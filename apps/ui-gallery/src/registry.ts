@@ -6,6 +6,7 @@ import { entries as dashboardBlocks } from "./entries/dashboard";
 import { entries as dataBlocks } from "./entries/data";
 import { entries as datahubBlocks } from "./entries/datahub";
 import { entries as driveBlocks } from "./entries/drive";
+import { entries as editorBlocks } from "./entries/editor";
 import { entries as fieldEntries } from "./entries/fields";
 import { entries as filteringBlocks } from "./entries/filtering";
 import { entries as financeBlocks } from "./entries/finance";
@@ -931,6 +932,7 @@ export const blocks: ReadonlyArray<Atom> = [
   ...financeBlocks,
   ...dashboardBlocks,
   ...formsBlocks,
+  ...editorBlocks,
   ...adminBlocks,
   ...structureBlocks,
 ];

@@ -200,4 +200,5 @@ export { Banner } from "./banner";
 export type { BannerProps } from "./banner";
 export * from "./blocks/forms";
 export * from "./blocks/admin";
+export * from "./blocks/editor";
 export * from "./blocks/structure";
