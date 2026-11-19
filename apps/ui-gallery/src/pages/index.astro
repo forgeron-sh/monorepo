@@ -116,3 +116,8 @@ const homeShaders = ["dither-field", "ember", "globe", "hearth"].flatMap((slug) 
     <a class="rail-more t-mono" href="/pages">Every planned page →</a>
   </section>
 </Layout>
+
+<script>
+  // The hero's dither field: only this page has one, so only this page loads its mount.
+  import "../lib/dither-field";
+</script>

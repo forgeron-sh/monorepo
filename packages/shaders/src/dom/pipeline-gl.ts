@@ -1,6 +1,7 @@
 import { type ColorRef, resolveRef, type RGB } from "../core/color";
 import type { CpuContext, FloatTable, GlChain, UniformSetter } from "../core/contract";
-import { type CompileOptions, compileStages, GL_VERTEX } from "../core/glsl";
+import { type CompileOptions, compileStages } from "../core/glsl";
+import { GL_VERTEX } from "../core/vertex";
 import type { ImagePixels } from "../core/sources/image";
 import { linkProgram } from "./gl";
 

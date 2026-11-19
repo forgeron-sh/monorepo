@@ -1,14 +1,13 @@
 import type { ColorRef } from "../core/color";
-import { bindChain } from "../core/contract";
-import { gridGlsl } from "../core/passes/grid.glsl";
-import { orderedGlsl } from "../core/passes/ordered.glsl";
-import { paletteGlsl } from "../core/passes/palette.glsl";
-import { pixelateStep } from "../core/passes/pixelate";
-import { fieldPreset } from "../core/presets";
+import {
+  FIELD_FRAGMENT,
+  FIELD_FRAGMENT_INK,
+  FIELD_MODE_UNIFORM,
+  FIELD_TONES_UNIFORM,
+} from "../core/field.baked";
+import { GL_VERTEX } from "../core/vertex";
 import { FIELD_MODES, type FieldMode } from "../core/sources/field";
-import { fieldGlsl } from "../core/sources/field.glsl";
-import { PIXEL_CONTEXT } from "./gl";
-import { glPipeline } from "./pipeline-gl";
+import { linkProgram, PIXEL_CONTEXT } from "./gl";
 import { animateCanvas, colorCache, prefersStill, type ShaderHandle } from "./surface";
 
 /** The four modes, in the order of the shader. */
@@ -29,35 +28,47 @@ export interface FieldOptions {
 }
 
 /**
- * Draws a generator field (`fieldPreset`, its GLSL side) on `canvas` with WebGL2 and keeps it drawn: resizes
- * with the canvas, follows the pointer over its parent, animates only while on screen, one frame
- * at `t = 0` when still. Null, leaving the canvas blank, where WebGL2 is unavailable or the
- * program does not compile.
+ * Draws a generator field (`fieldPreset`, its GLSL compiled at build time) on `canvas` with WebGL2
+ * and keeps it drawn: resizes with the canvas, follows the pointer over its parent, animates only
+ * while on screen, one frame at `t = 0` when still. Null, leaving the canvas blank, where WebGL2
+ * is unavailable or the program does not compile.
  */
 export function mountField(canvas: HTMLCanvasElement, options: FieldOptions): ShaderHandle | null {
   const gl = canvas.getContext("webgl2", PIXEL_CONTEXT);
   if (!gl) return null;
   const colors = options.colors ?? {};
-  const chain = bindChain(
-    fieldPreset({
-      mode: options.mode in FIELD_MODES ? options.mode : "ember",
-      accent: options.accent,
-      tones: [
-        colors.bg ?? { var: "--bg", fallback: "#0a0a0a" },
-        colors.ink ?? { var: "--ink", fallback: "#ededed" },
-        colors.accent ?? { var: "--accent", fallback: "#ff4f1f" },
-      ],
-    }),
-    { field: fieldGlsl },
-    { pixelate: pixelateStep, ordered: orderedGlsl, grid: gridGlsl, palette: paletteGlsl },
-  );
+  const mode = options.mode in FIELD_MODES ? options.mode : "ember";
+  const tones: readonly ColorRef[] = [
+    colors.bg ?? { var: "--bg", fallback: "#0a0a0a" },
+    colors.ink ?? { var: "--ink", fallback: "#ededed" },
+    colors.accent ?? { var: "--accent", fallback: "#ff4f1f" },
+  ];
   const colorsOf = colorCache(canvas);
-  let pipeline;
+  let program: WebGLProgram;
   try {
-    pipeline = glPipeline(gl, chain, { resolve: colorsOf.resolve });
+    // `fieldPreset`'s one stage, compiled at build time (`field.baked.ts`): the same text as
+    // `glPipeline` would compile from the chain, without bundling the generators.
+    program = linkProgram(
+      gl,
+      GL_VERTEX,
+      options.accent === false ? FIELD_FRAGMENT_INK : FIELD_FRAGMENT,
+      `shaders (field-${mode})`,
+    );
   } catch {
     return null;
   }
+  const at = (name: string) => gl.getUniformLocation(program, name);
+  const u = {
+    res: at("uRes"),
+    px: at("uPx"),
+    cells: at("uCells"),
+    time: at("uTime"),
+    mouse: at("uMouse"),
+    mode: at(FIELD_MODE_UNIFORM),
+    tones: at(FIELD_TONES_UNIFORM),
+  };
+  const vao = gl.createVertexArray();
+  const toneValues = new Float32Array(tones.length * 4);
   const win = canvas.ownerDocument.defaultView;
   const dpr = Math.min(win?.devicePixelRatio || 1, 2);
   const px = (options.pixel ?? 4) * dpr;
@@ -72,7 +83,31 @@ export function mountField(canvas: HTMLCanvasElement, options: FieldOptions): Sh
       colorsOf.reset();
     },
     draw(t) {
-      pipeline.render({ width: canvas.width, height: canvas.height, px, time: t, mouse });
+      // As `glPipeline` draws a chain of one stage: the inputs, the mode, the tones, one triangle.
+      const { width, height } = canvas;
+      gl.bindVertexArray(vao);
+      gl.useProgram(program);
+      gl.uniform2f(u.res, width, height);
+      gl.uniform1f(u.px, px);
+      gl.uniform2f(
+        u.cells,
+        Math.max(1, Math.ceil(width / px)),
+        Math.max(1, Math.ceil(height / px)),
+      );
+      gl.uniform1f(u.time, t);
+      gl.uniform2f(u.mouse, mouse[0], mouse[1]);
+      gl.uniform1f(u.mode, FIELD_MODES[mode]);
+      tones.forEach((ref, i) => {
+        const c = colorsOf.resolve(ref);
+        toneValues[i * 4] = c[0] / 255;
+        toneValues[i * 4 + 1] = c[1] / 255;
+        toneValues[i * 4 + 2] = c[2] / 255;
+        toneValues[i * 4 + 3] = 1;
+      });
+      gl.uniform4fv(u.tones, toneValues);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, width, height);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
   });
   const onPointer = (e: PointerEvent) => {

@@ -37,11 +37,3 @@ export function bayer(x: number, y: number, n: BayerSize = 4): number {
   const m = matrix(n);
   return ((m[(y & (n - 1)) * n + (x & (n - 1))] ?? 0) + 0.5) / (n * n);
 }
-
-/**
- * The same matrices in GLSL, without the half-step offset: `bayerN(cell)` is `matrix(N)` at
- * `cell` over `N²`, exactly (the site's field shader carried these three lines).
- */
-export const BAYER_GLSL = `float bayer2(vec2 a){a=floor(a);return fract(dot(a,vec2(.5,a.y*.75)));}
-float bayer4(vec2 a){return bayer2(.5*a)*.25+bayer2(a);}
-float bayer8(vec2 a){return bayer4(.5*a)*.25+bayer2(a);}`;

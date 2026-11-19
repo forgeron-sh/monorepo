@@ -15,8 +15,8 @@ const { github, docs, from } = Astro.props;
 
 <!--
   The hearth: the site's index in glued cells over a bed of embers, and the wordmark as iron just
-  out of the forge (`mountHearth` of @forgeron/shaders). Without JavaScript the wordmark is the static pixel
-  drawing in cold iron, at the same place.
+  out of the forge (`mountHearth` of @forgeron/shaders, loaded when the footer nears the screen).
+  Without JavaScript the wordmark is the static pixel drawing in cold iron, at the same place.
 -->
 <SiteFooter
   from={from}
@@ -52,9 +52,15 @@ const { github, docs, from } = Astro.props;
 />
 
 <script>
-  import { glyph, glyphWidth, textWidth } from "@forgeron/blueprint";
-  import { mountHearth } from "@forgeron/shaders/dom";
+  import { whenNear } from "../illustrations/near";
 
+  // The hearth's code loads when the footer comes within a screen's height of the viewport.
   const hearth = document.querySelector<HTMLElement>("[data-hearth]");
-  if (hearth) mountHearth(hearth, { face: { glyph, glyphWidth, textWidth } });
+  if (hearth)
+    whenNear(hearth, () => {
+      import("../illustrations/footer-hearth").then(
+        (m) => m.mountFooterHearth(hearth),
+        (error: unknown) => console.error(`The hearth could not load (${String(error)}).`),
+      );
+    });
 </script>

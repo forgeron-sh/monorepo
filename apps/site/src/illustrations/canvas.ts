@@ -12,6 +12,11 @@
  *   `data-px` (cell size, 4), `data-accent="off"`, `data-bg`, `data-ink`;
  * - `canvas[data-dither-img=<url>]`: a dithered picture (`mountImage`). Options: `data-px`, `data-gain`.
  *
+ * The fields and the pictures mount when their canvas comes within a screen's height of the
+ * viewport (`whenNear`, as the engine starts), and their code (`effects.ts`) loads then. One
+ * marked `data-eager` (above the fold: the home's hero field) is left to the page, which mounts
+ * it at once with `mountEffect` of `effects.ts`.
+ *
  * The iso scenes play in a worker (`worker.ts`, `playInWorker`): each canvas is handed over as
  * an OffscreenCanvas, and this page only sends its inputs and reads back the states and the
  * highlighted index. The engine and the scenes (`sources.ts`) load only when the first iso canvas
@@ -27,19 +32,9 @@
  * Page scripts drive a scene through `isoCanvas(el)`: a typed handle instead of DOM events,
  * usable at once (what it is told before the engine starts is applied when it does).
  */
-import {
-  type ColorRef,
-  dither,
-  type FieldMode,
-  FIELD_MODES,
-  type Filter,
-  palette,
-  pixelate,
-} from "@forgeron/blueprint";
+import { type ColorRef, dither, type Filter, palette, pixelate } from "@forgeron/blueprint";
 import {
   connectWorker,
-  mountField,
-  mountImage,
   playInWorker,
   type RemotePlayer,
   simdSupported,
@@ -56,6 +51,7 @@ import hostServers from "@forgeron/libraries/blueprints/host-servers.bp?meta";
 import mcp from "@forgeron/libraries/blueprints/mcp.bp?meta";
 import usageIso from "@forgeron/libraries/blueprints/usage-iso.bp?meta";
 import web from "@forgeron/libraries/blueprints/web.bp?meta";
+import { whenNear } from "./near";
 
 const token = (name: string, fallback: string): ColorRef => ({ var: name, fallback });
 
@@ -84,26 +80,17 @@ export interface IsoCanvas {
 
 const handles = new WeakMap<HTMLCanvasElement, IsoCanvas>();
 
-const isField = (name: string | undefined): name is FieldMode =>
-  name !== undefined && name in FIELD_MODES;
-
-for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-dither-img]")) {
-  if (!c.dataset.ditherImg) continue;
-  mountImage(c, c.dataset.ditherImg ?? "", {
-    pixel: Number(c.dataset.px ?? 3),
-    gain: Number(c.dataset.gain ?? 1.1),
-  });
-}
-for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-shader]")) {
-  const { shader, px, accent, bg, ink } = c.dataset;
-  mountField(c, {
-    mode: isField(shader) ? shader : "ember",
-    pixel: Number(px ?? 4),
-    accent: accent !== "off",
-    colors: {
-      ...(bg ? { bg: token(bg, "#0a0a0a") } : {}),
-      ...(ink ? { ink: token(ink, "#ededed") } : {}),
-    },
+// The effects (fields, dithered pictures) load and mount when they come near the screen; the
+// canvas keeps its CSS box and background until then.
+for (const c of document.querySelectorAll<HTMLCanvasElement>(
+  "canvas[data-dither-img]:not([data-eager]), canvas[data-shader]:not([data-eager])",
+)) {
+  if (!c.dataset.ditherImg && c.dataset.shader === undefined) continue;
+  whenNear(c, () => {
+    import("./effects").then(
+      (m) => m.mountEffect(c),
+      (error: unknown) => console.error(`The effects could not load (${String(error)}).`),
+    );
   });
 }
 

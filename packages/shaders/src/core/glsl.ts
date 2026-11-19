@@ -16,13 +16,6 @@ export interface GlStage {
   cellResolution: boolean;
 }
 
-/** A full-screen triangle without buffers (the same triangle as the site's field). */
-export const GL_VERTEX = `#version 300 es
-void main() {
-  vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
-  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
-}`;
-
 const HEADER = `#version 300 es
 precision highp float;
 uniform vec2 uRes;uniform float uTime;uniform float uPx;uniform vec2 uMouse;uniform vec2 uCells;`;

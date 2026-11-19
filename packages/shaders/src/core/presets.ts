@@ -6,6 +6,7 @@ import { IMAGE_PALETTE } from "./passes/image-dither";
 import { orderedCpu } from "./passes/ordered.cpu";
 import { FIELD_TONES } from "./passes/palette";
 import type { FieldMode } from "./sources/field";
+import { DITHER_FIELD_STEPS, ditherFieldTones, DITHER_FIELD_TONES } from "./dither-field";
 import { HEARTH_TONES } from "./sources/hearth";
 import { heatCpu } from "./sources/heat.cpu";
 import type { ToneFunction } from "./sources/tone";
@@ -57,19 +58,12 @@ export const fieldPreset = (o: FieldPresetOptions): Preset =>
     { type: "palette", tones: o.tones ?? FIELD_TONES, transparent: [] },
   ]);
 
-/** The dither field's tones by default: background, a strong line, the ember. */
-export const DITHER_FIELD_TONES = ["--bg", "--line-strong", "--accent"] as const;
-export const DITHER_FIELD_FALLBACKS = ["#0a0a0a", "#2e2e2e", "#ff4f1f"] as const;
-
 const DITHER_FIELD_ORDERED: Step = {
   type: "ordered",
   matrix: 8,
   centered: true,
   origin: "top",
-  steps: [
-    [0, 0.9],
-    [0.45, 1],
-  ],
+  steps: DITHER_FIELD_STEPS,
 };
 
 /**
@@ -80,13 +74,7 @@ const DITHER_FIELD_ORDERED: Step = {
 export const ditherFieldPreset = (tones: readonly string[] = DITHER_FIELD_TONES): Preset =>
   preset("dither-field", { type: "heat" }, [
     DITHER_FIELD_ORDERED,
-    {
-      type: "palette",
-      tones: tones.map((t, i) =>
-        t.startsWith("--") ? { var: t, fallback: DITHER_FIELD_FALLBACKS[i] ?? "#000" } : t,
-      ),
-      transparent: [],
-    },
+    { type: "palette", tones: ditherFieldTones(tones), transparent: [] },
   ]);
 
 /** Tone indices of a dither field frame. */

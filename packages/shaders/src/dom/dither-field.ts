@@ -1,10 +1,7 @@
-import { bindChain, type Frame } from "../core/contract";
-import { runCpu, toRgba } from "../core/cpu";
-import { orderedCpu } from "../core/passes/ordered.cpu";
-import { paletteCpu } from "../core/passes/palette.cpu";
-import { DITHER_FIELD_TONES, ditherFieldPreset } from "../core/presets";
-import { heatCpu } from "../core/sources/heat.cpu";
-import { animateCanvas, colorCache, prefersStill, type ShaderHandle } from "./surface";
+import type { RGB } from "../core/color";
+import { ditherFieldPixels } from "../core/fused";
+import { DITHER_FIELD_TONES, ditherFieldTones } from "../core/dither-field";
+import { animateCanvas, prefersStill, resolveColor, type ShaderHandle } from "./surface";
 
 export interface DitherFieldOptions {
   /** Side of one cell in CSS pixels (4 by default). */
@@ -19,7 +16,7 @@ export interface DitherFieldOptions {
 
 /**
  * Draws the dither field (`ditherFieldPreset`) on `canvas`, one canvas pixel per cell, on the
- * CPU, and keeps it drawn. Null without a 2D context.
+ * CPU (its chain fused into one loop, `ditherFieldPixels`), and keeps it drawn. Null without a 2D context.
  */
 export function mountDitherField(
   canvas: HTMLCanvasElement,
@@ -28,14 +25,10 @@ export function mountDitherField(
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   const px = options.pixel ?? 4;
-  const chain = bindChain(
-    ditherFieldPreset(options.tones ?? DITHER_FIELD_TONES),
-    { heat: heatCpu },
-    { ordered: orderedCpu, palette: paletteCpu },
-  );
-  const colors = colorCache(canvas);
+  const tones = ditherFieldTones(options.tones ?? DITHER_FIELD_TONES);
+  // Read again on each resize, as `colorCache` would (a theme change takes effect then).
+  let colors: RGB[] = [];
   let image: ImageData | null = null;
-  let frame: Frame | undefined;
 
   return animateCanvas(canvas, {
     still: prefersStill(canvas, options.still),
@@ -46,18 +39,11 @@ export function mountDitherField(
       canvas.width = w;
       canvas.height = h;
       image = ctx.createImageData(w, h);
-      colors.reset();
+      colors = tones.map((ref) => resolveColor(canvas, ref));
     },
     draw(t) {
       if (!image) return;
-      frame = runCpu(
-        chain,
-        image.width,
-        image.height,
-        { px: 1, time: t, resolve: colors.resolve },
-        frame,
-      );
-      toRgba(frame, image.data);
+      ditherFieldPixels(image.data, image.width, image.height, t, colors);
       ctx.putImageData(image, 0, 0);
     },
   });

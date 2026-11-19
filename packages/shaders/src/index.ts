@@ -1,7 +1,8 @@
 // @forgeron/shaders: the pixel effects of the lab language as a pipeline of passes with presets
 // (docs/shaders/design.md). The neutral core: no DOM, no Node; the browser glue is `./dom`.
 
-export { BAYER_GLSL, bayer, type BayerSize, matrix } from "./core/bayer";
+export { bayer, type BayerSize, matrix } from "./core/bayer";
+export { BAYER_GLSL } from "./core/bayer.glsl";
 export { type ColorRef, cssColor, parseColor, resolveRef, type RGB } from "./core/color";
 export {
   bindChain,
@@ -44,7 +45,8 @@ export {
   toTones,
   valueAt,
 } from "./core/cpu";
-export { type CompileOptions, compileStages, GL_VERTEX, type GlStage } from "./core/glsl";
+export { type CompileOptions, compileStages, type GlStage } from "./core/glsl";
+export { GL_VERTEX } from "./core/vertex";
 export { type ParamSpec, type ParamsSchema, type PresetIssue } from "./core/params";
 export {
   BLUE_NOISE_SIZE,
@@ -106,8 +108,8 @@ export {
   readPreset,
   SOURCES,
 } from "./core/preset";
+export { DITHER_FIELD_TONES } from "./core/dither-field";
 export {
-  DITHER_FIELD_TONES,
   ditherFieldFrame,
   ditherFieldPreset,
   ditheredImagePreset,
@@ -146,7 +148,8 @@ export {
 } from "./core/sources/hearth";
 export { hearthCpu } from "./core/sources/hearth.cpu";
 export { heatMeta } from "./core/sources/heat";
-export { heatCpu, heatLevel } from "./core/sources/heat.cpu";
+export { heatCpu } from "./core/sources/heat.cpu";
+export { heatLevel } from "./core/sources/heat";
 export { imageMeta, type ImagePixels } from "./core/sources/image";
 export { imageCpu } from "./core/sources/image.cpu";
 export { imageGlsl } from "./core/sources/image.glsl";

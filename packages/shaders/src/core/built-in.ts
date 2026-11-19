@@ -1,7 +1,7 @@
 import { PRESET_SCHEMA_ID, type Preset, type Step } from "./contract";
 import { FIELD_TONES } from "./passes/palette";
+import { DITHER_FIELD_FALLBACKS } from "./dither-field";
 import {
-  DITHER_FIELD_FALLBACKS,
   ditherFieldPreset,
   ditheredImagePreset,
   fieldPreset,

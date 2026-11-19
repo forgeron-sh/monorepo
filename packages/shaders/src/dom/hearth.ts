@@ -1,19 +1,17 @@
-import { bindChain, type Frame } from "../core/contract";
-import { runCpu, toRgba } from "../core/cpu";
-import { paletteCpu } from "../core/passes/palette.cpu";
-import { hearthPreset } from "../core/presets";
+import { hearthPixels } from "../core/fused";
 import {
   type CellRect,
   hearthCell,
+  hearthFrame,
   hearthGrid,
   type HearthGrid,
+  HEARTH_TONES,
   type PixelFace,
 } from "../core/sources/hearth";
-import { hearthCpu } from "../core/sources/hearth.cpu";
 import { colorCache, prefersStill, type ShaderHandle } from "./surface";
 
 /**
- * The hearth on a page (`hearthPreset`, on the CPU): sizes the grid to whole cells, draws only while on
+ * The hearth on a page (`hearthPreset`, on the CPU, fused into one loop: `hearthPixels`): sizes the grid to whole cells, draws only while on
  * screen and one still frame under `prefers-reduced-motion`; the canvas is upscaled with a gap on
  * each cell's right and top edges from 4 CSS pixels.
  */
@@ -44,12 +42,11 @@ export function mountHearth(root: HTMLElement, options: HearthOptions): ShaderHa
   const off = root.ownerDocument.createElement("canvas");
   const offCtx = off.getContext("2d");
   if (!offCtx) return null;
-  const chain = bindChain(hearthPreset(), { hearth: hearthCpu }, { palette: paletteCpu });
 
   let grid: HearthGrid | null = null;
   let cell = 4;
   let dpr = 1;
-  let frame: Frame | undefined;
+  let tones: Uint8Array<ArrayBuffer> | undefined;
   const colors = colorCache(root);
   let image: ImageData | null = null;
   let bellows: { x: number; y: number } | null = null;
@@ -87,19 +84,12 @@ export function mountHearth(root: HTMLElement, options: HearthOptions): ShaderHa
 
   const draw = (t: number) => {
     if (!grid || !image) return;
-    frame = runCpu(
-      chain,
-      grid.cols,
-      grid.rows,
-      {
-        px: 1,
-        time: t,
-        data: { grid, heat: bellows },
-        resolve: colors.resolve,
-      },
-      frame,
+    if (tones?.length !== grid.cols * grid.rows) tones = new Uint8Array(grid.cols * grid.rows);
+    hearthPixels(
+      image.data,
+      hearthFrame(grid, t, bellows, tones),
+      HEARTH_TONES.map(colors.resolve),
     );
-    toRgba(frame, image.data);
     offCtx.putImageData(image, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;

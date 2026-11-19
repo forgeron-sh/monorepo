@@ -1,4 +1,4 @@
-import { BAYER_GLSL } from "../bayer";
+import { BAYER_GLSL } from "../bayer.glsl";
 import { type GlslPass, glslFloat } from "../contract";
 import type { OrderedParams } from "./ordered";
 

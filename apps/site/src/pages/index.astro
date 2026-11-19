@@ -288,7 +288,7 @@ const faq = [
     <section id="top" class="saga">
       <div class="saga-stage">
         <figure class="saga-screen">
-          <canvas class="saga-bg" data-shader="field" data-px="4" data-accent="off" aria-hidden="true"></canvas>
+          <canvas class="saga-bg" data-shader="field" data-px="4" data-accent="off" data-eager aria-hidden="true"></canvas>
           <div class="saga-cam">
             <canvas data-iso="erp-village" data-scale="2" data-unit="any" data-fill="0.98" data-signal="--success" aria-hidden="true"></canvas>
           </div>
@@ -696,6 +696,14 @@ const faq = [
 <script>
   // Mounts every canvas of the page (scenes, fields), once.
   import "../illustrations/canvas";
+</script>
+
+<script>
+  // The hero's field is above the fold: it mounts at once, its code in the page's start (the
+  // other effects load when they come near the screen).
+  import { mountEffect } from "../illustrations/effects";
+
+  for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-eager]")) mountEffect(c);
 </script>
 
 <script>
