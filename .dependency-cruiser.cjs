@@ -91,6 +91,14 @@ module.exports = {
       to: { dependencyTypes: ["core"] },
     },
     {
+      // The libraries are shared assets (one folder per type: `blueprints/`), data that the site,
+      // the gallery and the parity tests read: they import no other package of ours.
+      name: "libraries-is-a-leaf",
+      severity: "error",
+      from: { path: "^packages/libraries/" },
+      to: { path: "^packages/(?!libraries/)" },
+    },
+    {
       name: "ui-does-not-import-sdk",
       severity: "error",
       from: { path: "^packages/ui/" },

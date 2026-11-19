@@ -6,7 +6,7 @@
  * everything (cables), breaks (the support's ticket pile catches, the ERP explodes, scrubbed by
  * the scroll), and burns.
  *
- * The site plays the village from data (`library/erp-village.bp`, written by
+ * The site plays the village from data (`@forgeron/libraries/blueprints/erp-village.bp`, written by
  * `scripts/blueprint/village.ts` from this function's computations); this function stays as the
  * reference its parity test compares with, the walkers aside (docs/blueprint/engine.md, "Village
  * as data notes").
@@ -36,7 +36,7 @@ export const villageStore = { progress: 0 };
 export { STEPS } from "./steps";
 
 // Where the camera looks at each step, and how close, and the box that frames the island: the
-// shots and the fit box of `library/erp-village.bp`, read by the page.
+// shots and the fit box of `@forgeron/libraries/blueprints/erp-village.bp`, read by the page.
 
 const TAU = Math.PI * 2;
 const clamp = (v: number) => Math.min(1, Math.max(0, v));

@@ -1,8 +1,9 @@
 /**
  * The village as data (docs/blueprint/engine.md, "Village as data notes"): the engine's blocks
- * of `library/erp-village.bp` equal `village.ts`'s, word for word in painter's order, at every
- * probe of the clock and the scroll, the walkers left out on both sides (the file's crowd is a
- * deterministic replacement of the function's simulation; its root param `crowd` turns it off).
+ * of `@forgeron/libraries/blueprints/erp-village.bp` equal `village.ts`'s, word for word in
+ * painter's order, at every probe of the clock and the scroll, the walkers left out on both
+ * sides (the file's crowd is a deterministic replacement of the function's simulation; its root
+ * param `crowd` turns it off).
  * Painter's order is the order the raster draws in; the conveyors' pulses follow the root's
  * blocks in the file, so the lists are compared sorted, as the raster sorts them. Under Node.
  */
@@ -97,7 +98,7 @@ const PROGRESS = [
 describe("erp-village from data", () => {
   it("draws village.ts's blocks, the walkers left out", async () => {
     const file = JSON.parse(
-      readFileSync(new URL("apps/site/src/illustrations/library/erp-village.bp", repo), "utf8"),
+      readFileSync(new URL("packages/libraries/blueprints/erp-village.bp", repo), "utf8"),
     ) as BlueprintFile;
     const lib = await readBlueprint(file, { location: "erp-village.bp" });
     const encoded = encodeScene(lib, "erp-village");

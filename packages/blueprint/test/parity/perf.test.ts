@@ -74,7 +74,7 @@ describe("perf (release module, p95)", () => {
   });
 
   it("load of the largest converted scene: ≤ 5 ms", async () => {
-    const dir = new URL("apps/site/src/illustrations/library/", repo);
+    const dir = new URL("packages/libraries/blueprints/", repo);
     const files = readdirSync(dir).filter((f) => f.endsWith(".bp"));
     let largest: { name: string; bin: Uint8Array } = { name: "", bin: new Uint8Array() };
     for (const f of files) {

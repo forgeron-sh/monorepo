@@ -48,7 +48,7 @@ const mountsOf = (name: string) => (sizes.scenes as unknown as Record<string, Mo
 
 function fileOf(name: string): BlueprintFile {
   return JSON.parse(
-    readFileSync(new URL(`apps/site/src/illustrations/library/${name}.bp`, repo), "utf8"),
+    readFileSync(new URL(`packages/libraries/blueprints/${name}.bp`, repo), "utf8"),
   ) as BlueprintFile;
 }
 
@@ -211,7 +211,7 @@ describe.each(ROUTED)("%s", (name) => {
 describe.each(["production-line", "resources", "stack6"])("%s from its control file", (name) => {
   it("plays the frames of the script layer", async () => {
     const file = JSON.parse(
-      readFileSync(new URL(`apps/site/src/illustrations/library/control/${name}.bp`, repo), "utf8"),
+      readFileSync(new URL(`packages/libraries/blueprints/control/${name}.bp`, repo), "utf8"),
     ) as BlueprintFile;
     const control = await readBlueprint(file, { location: `${name}.bp` });
     const failures: string[] = [];

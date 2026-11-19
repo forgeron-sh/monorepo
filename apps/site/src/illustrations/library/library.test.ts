@@ -10,6 +10,9 @@ import {
   staticBlocks,
   staticCounts,
 } from "@forgeron/blueprint/format";
+import { readdirSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ROUTED, SCENE_NAMES, samplesOf } from "./samples";
 
@@ -18,8 +21,30 @@ import { ROUTED, SCENE_NAMES, samplesOf } from "./samples";
 // scene converted by hand (scripts/blueprint/by-hand.ts) gives its whole picture at t = 0.
 // Run in `SCENE_NAMES` order, as the converter does, so stateful scenes see the same history.
 
+/** The Blueprint library (`@forgeron/libraries/blueprints`), as "./name.bp", "./control/name.bp". */
+const PATHS = readdirSync(
+  `${dirname(createRequire(import.meta.url).resolve("@forgeron/libraries/package.json"))}/blueprints`,
+  { recursive: true, encoding: "utf8" },
+)
+  .filter((f) => f.endsWith(".bp"))
+  .map((f) => `./${f}`)
+  .sort();
+
+/** Every file imported from the package with `query` (through `@forgeron/blueprint/vite`). */
+async function importAll<T>(query = ""): Promise<Record<string, T>> {
+  const entries = await Promise.all(
+    PATHS.map(async (path) => {
+      const module = (await import(`@forgeron/libraries/blueprints/${path.slice(2)}${query}`)) as {
+        default: T;
+      };
+      return [path, module.default] as const;
+    }),
+  );
+  return Object.fromEntries(entries);
+}
+
 /** Every file of the library, as written (`*.bp` imports through `@forgeron/blueprint/vite`). */
-const FILES = import.meta.glob<BlueprintFile>("./**/*.bp", { import: "default", eager: true });
+const FILES = await importAll<BlueprintFile>();
 const load = (name: string): BlueprintFile => FILES[`./${name}.bp`]!;
 
 /** How many entries of two buffers differ (an element loop: `toStrictEqual` is slow on them). */
@@ -84,18 +109,10 @@ describe("the converted library", () => {
 // Every file of the library as the site imports it, compiled at build time (`?compiled`, through
 // `@forgeron/blueprint/vite`), against the same file read as JSON: the same SceneBin bytes, with
 // and without a page's fit, and the same frames, outputs and states when played.
-const COMPILED = import.meta.glob<CompiledBlueprint>("./**/*.bp", {
-  query: "?compiled",
-  import: "default",
-  eager: true,
-});
+const COMPILED = await importAll<CompiledBlueprint>("?compiled");
 
 // The same files without their bytes (`?meta`): what the page reads of scenes the worker plays.
-const META = import.meta.glob<BlueprintMeta>("./**/*.bp", {
-  query: "?meta",
-  import: "default",
-  eager: true,
-});
+const META = await importAll<BlueprintMeta>("?meta");
 
 /** The frame's four buffers, the root scope and every machine's state, as one comparable value. */
 function played(scene: BlueprintScene, t: number, dt: number) {

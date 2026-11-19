@@ -1,7 +1,7 @@
 import { BlueprintViewer } from "@forgeron/blueprint-canvas";
-import { library } from "virtual:blueprint-library";
+import { library } from "@forgeron/libraries/blueprints";
 
-// The viewer on the site's Blueprint library (read at build time as data, see astro.config.ts),
+// The viewer on the Blueprint library (@forgeron/libraries/blueprints, each file loaded when opened),
 // opened on the ERP village.
 
 export default function BlueprintDemo() {

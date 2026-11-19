@@ -1,6 +1,6 @@
 // The mechanical pass of the Blueprint conversion (docs/blueprint/engine.md, §2 and P1): every
 // scene of the site's `SCENES` is sampled (`library/samples.ts`), the blocks every sample draws
-// become the scene's static part in `apps/site/src/illustrations/library/<scene>.bp`, and
+// become the scene's static part in `packages/libraries/blueprints/<scene>.bp`, and
 // `target/blueprint/convert-report.md` says what varies, which helper drew it, and what it still
 // needs in P3. Run: bun scripts/blueprint/convert-site.ts
 //
@@ -39,7 +39,7 @@ if (process.versions.bun) {
   process.exit(run.status ?? 1);
 }
 
-const LIBRARY = "apps/site/src/illustrations/library";
+const LIBRARY = "packages/libraries/blueprints";
 const REPORT = "target/blueprint/convert-report.md";
 
 // ── Which helper drew a block ───────────────────────────────────────────────

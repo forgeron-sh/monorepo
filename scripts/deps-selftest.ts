@@ -81,6 +81,13 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "libraries-is-a-leaf",
+    files: {
+      [`packages/libraries/blueprints/${F}.ts`]: `import "../../blueprint/src/${F}_target.ts";\n`,
+      [`packages/blueprint/src/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "permissions-is-a-leaf",
     files: {
       [`packages/permissions/src/${F}.ts`]: `import "../../manifest/src/${F}_target.ts";\n`,

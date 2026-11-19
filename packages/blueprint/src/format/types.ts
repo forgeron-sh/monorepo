@@ -35,7 +35,7 @@ export interface BlueprintFile {
 }
 
 export interface Import {
-  /** A path relative to this file, or a package path ("@forgeron/blueprint-library/office.bp"). */
+  /** A path relative to this file, or a package path ("@forgeron/libraries/blueprints/office.bp"). */
   from: string;
   /** Names to take; all when absent. */
   use?: string[];

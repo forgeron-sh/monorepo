@@ -1,5 +1,5 @@
 // The village as data (docs/blueprint/engine.md, "Village as data notes"): writes
-// apps/site/src/illustrations/library/erp-village.bp from this description of `village.ts`, part
+// packages/libraries/blueprints/erp-village.bp from this description of `village.ts`, part
 // by part in the function's drawing order. What the function computes each frame from the clock
 // and the scroll becomes `calc` tracks (one IEEE operation per step, in the function's order, so
 // every value is the function's, bit for bit), the prims read those params, the procedural
@@ -42,7 +42,7 @@ if (process.versions.bun) {
   process.exit(run.status ?? 1);
 }
 
-const LIBRARY = "apps/site/src/illustrations/library";
+const LIBRARY = "packages/libraries/blueprints";
 const OUT = `${LIBRARY}/erp-village.bp`;
 
 // ── village.ts's helpers, verbatim ───────────────────────────────────────────

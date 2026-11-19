@@ -4,25 +4,25 @@
  * OffscreenCanvas, by the in-page fallback (`inline.ts`); never by the page itself, which ships
  * none of the scene functions.
  *
- * A scene plays from data when it was converted by hand (`library/<scene>.bp` with its
- * timelines), on the script layer otherwise (its function's blocks, rasterised by the engine).
- * The scroll and hover scenes not converted yet add a control file (`library/control/<scene>.bp`):
- * its vars, machines and camera are data, its pixels stay the function's (docs/blueprint/
- * engine.md, P4). The village plays from data with its vars, machine and camera in one file.
+ * A scene plays from data when it was converted by hand (`<scene>.bp` of
+ * `@forgeron/libraries/blueprints`, with its timelines), on the script layer otherwise (its
+ * function's blocks, rasterised by the engine). The scroll and hover scenes not converted yet add
+ * a control file (`control/<scene>.bp`): its vars, machines and camera are data, its pixels stay
+ * the function's (docs/blueprint/engine.md, P4). The village plays from data with its vars, machine and camera in one file.
  * The files are imported compiled (`?compiled`, `@forgeron/blueprint/vite`): their SceneBin bytes,
  * not their JSON, and no reader or SceneBin writer.
  */
 import type { CompiledSource } from "@forgeron/blueprint/dom";
 import type { CompiledBlueprint } from "@forgeron/blueprint/format";
-import cli from "./library/cli.bp?compiled";
-import line from "./library/control/production-line.bp?compiled";
-import resources from "./library/control/resources.bp?compiled";
-import stack6 from "./library/control/stack6.bp?compiled";
-import hostServers from "./library/host-servers.bp?compiled";
-import mcp from "./library/mcp.bp?compiled";
-import village from "./library/erp-village.bp?compiled";
-import usageIso from "./library/usage-iso.bp?compiled";
-import web from "./library/web.bp?compiled";
+import cli from "@forgeron/libraries/blueprints/cli.bp?compiled";
+import line from "@forgeron/libraries/blueprints/control/production-line.bp?compiled";
+import resources from "@forgeron/libraries/blueprints/control/resources.bp?compiled";
+import stack6 from "@forgeron/libraries/blueprints/control/stack6.bp?compiled";
+import hostServers from "@forgeron/libraries/blueprints/host-servers.bp?compiled";
+import mcp from "@forgeron/libraries/blueprints/mcp.bp?compiled";
+import village from "@forgeron/libraries/blueprints/erp-village.bp?compiled";
+import usageIso from "@forgeron/libraries/blueprints/usage-iso.bp?compiled";
+import web from "@forgeron/libraries/blueprints/web.bp?compiled";
 import { lineStore } from "./objects";
 import { SCENES } from "./scenes";
 

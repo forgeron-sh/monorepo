@@ -37,7 +37,7 @@ const cases = [
     name,
     width: 212,
     height: 139,
-    file: JSON.parse(readFileSync(`${root}apps/site/src/illustrations/library/${name}.bp`, "utf8")),
+    file: JSON.parse(readFileSync(`${root}packages/libraries/blueprints/${name}.bp`, "utf8")),
   })),
 ];
 

@@ -732,9 +732,10 @@ const faq = [
   const captions = [...(stage?.querySelectorAll<HTMLElement>("[data-step]") ?? [])];
   const clamp = (v: number) => Math.min(1, Math.max(0, v));
 
-  // The village plays its story as a machine over the scroll (library/erp-village.bp):
-  // the page writes the progress, reads the current step from the machine's state, and turns
-  // that step's camera shot into a CSS transform.
+  // The village plays its story as a machine over the scroll
+  // (@forgeron/libraries/blueprints/erp-village.bp): the page writes the progress, reads the
+  // current step from the machine's state, and turns that step's camera shot into a CSS
+  // transform.
   const village = isoCanvas(stage?.querySelector<HTMLCanvasElement>('canvas[data-iso="erp-village"]') ?? null);
   const camera = village?.camera;
   // The framing box, projected: the page places a world point on screen with it.

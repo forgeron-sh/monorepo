@@ -14,6 +14,7 @@
     "@forgeron/blueprint-canvas": "workspace:*",
     "@forgeron/canvas": "workspace:*",
     "@forgeron/icons": "workspace:*",
+    "@forgeron/libraries": "workspace:*",
     "@forgeron/ui": "workspace:*",
     "astro": "7.4.5",
     "react": "19.3.1",

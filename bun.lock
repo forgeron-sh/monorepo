@@ -127,6 +127,7 @@
         "@astrojs/react": "7.1.2",
         "@forgeron/blueprint": "workspace:*",
         "@forgeron/icons": "workspace:*",
+        "@forgeron/libraries": "workspace:*",
         "@forgeron/ui": "workspace:*",
         "astro": "7.4.5",
         "react": "19.3.1",
@@ -148,6 +149,7 @@
         "@forgeron/blueprint-canvas": "workspace:*",
         "@forgeron/canvas": "workspace:*",
         "@forgeron/icons": "workspace:*",
+        "@forgeron/libraries": "workspace:*",
         "@forgeron/ui": "workspace:*",
         "astro": "7.4.5",
         "react": "19.3.1",
@@ -295,6 +297,14 @@
       "optionalPeers": [
         "react",
       ],
+    },
+    "packages/libraries": {
+      "name": "@forgeron/libraries",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@forgeron/tsconfig": "workspace:*",
+        "vite": "8.3.5",
+      },
     },
     "packages/manifest": {
       "name": "@forgeron/manifest",
@@ -661,6 +671,8 @@
     "@forgeron/icon-gallery": ["@forgeron/icon-gallery@workspace:apps/icon-gallery"],
 
     "@forgeron/icons": ["@forgeron/icons@workspace:packages/icons"],
+
+    "@forgeron/libraries": ["@forgeron/libraries@workspace:packages/libraries"],
 
     "@forgeron/manifest": ["@forgeron/manifest@workspace:packages/manifest"],
 

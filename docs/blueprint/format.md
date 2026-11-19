@@ -130,7 +130,7 @@ The still picture of a scene at given var values is: `t = 0`, every var at its d
 
 ## 7. Converted files
 
-`scripts/blueprint/convert-site.ts` writes one file per site scene (`apps/site/src/illustrations/library/<scene>.bp`, id `site/<scene>`): a part `static` with the blocks every sample of the scene function draws, in the order the first sample draws them, and a scene of the same name in painter mode with one instance of it. Its `vars` declare `active` and `progress` when the picture depends on them. What varies is listed in `target/blueprint/convert-report.md`.
+`scripts/blueprint/convert-site.ts` writes one file per site scene (`packages/libraries/blueprints/<scene>.bp`, `@forgeron/libraries/blueprints`, id `site/<scene>`): a part `static` with the blocks every sample of the scene function draws, in the order the first sample draws them, and a scene of the same name in painter mode with one instance of it. Its `vars` declare `active` and `progress` when the picture depends on them. What varies is listed in `target/blueprint/convert-report.md`.
 
 A scene converted **by hand** (`scripts/blueprint/by-hand.ts`, P3) has one part `body` with params, its varying blocks back as prims bound to those params at the places the function draws them, and a timeline `motion` whose tracks drive the params; the params' defaults are the picture at `t = 0`. The mechanical pass never writes over a file whose scene has timelines, vars or machines.
 

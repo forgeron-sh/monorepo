@@ -11,7 +11,7 @@ import type { BlueprintFile, Prim, Scene, Track } from "../../packages/blueprint
 import { blockToPrim, writeBlueprint } from "../../packages/blueprint/src/format";
 import { evaluate } from "../../apps/site/src/illustrations/library/samples";
 
-const LIBRARY = "apps/site/src/illustrations/library";
+const LIBRARY = "packages/libraries/blueprints";
 /** Times at which a block's place in the list is checked. */
 const PROBES = [
   0,

@@ -1156,9 +1156,9 @@ function framed(build: (t: number, active: number) => Block[]): SceneFn {
 
 /**
  * Every scene a lab canvas can show on the script layer, by the name its `data-iso` attribute
- * gives. The ERP village is not here: the site plays it from data (`library/erp-village.bp`), and
- * its function (`village.ts`) is the parity tests' reference (`library/samples.ts`), so the
- * worker that plays the scenes does not ship it.
+ * gives. The ERP village is not here: the site plays it from data
+ * (`@forgeron/libraries/blueprints/erp-village.bp`), and its function (`village.ts`) is the parity
+ * tests' reference (`library/samples.ts`), so the worker that plays the scenes does not ship it.
  */
 export const SCENES: Readonly<Record<string, SceneFn>> = {
   cube: examples.cube,

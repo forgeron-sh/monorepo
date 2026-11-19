@@ -99,7 +99,7 @@ describe.each(ROUTED)("%s", (name) => {
 
   it("data: the converted file as a SceneBin", async () => {
     const file = JSON.parse(
-      readFileSync(new URL(`apps/site/src/illustrations/library/${name}.bp`, repo), "utf8"),
+      readFileSync(new URL(`packages/libraries/blueprints/${name}.bp`, repo), "utf8"),
     ) as BlueprintFile;
     const lib = await readBlueprint(file, { location: `${name}.bp` });
     // A scene drawn with rigs (the village) has no picture `flatten` can give: the engine's
