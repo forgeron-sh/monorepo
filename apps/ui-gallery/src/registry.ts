@@ -2,6 +2,7 @@ import { entries as automationBlocks } from "./entries/automation";
 import { entries as dataBlocks } from "./entries/data";
 import { entries as datahubBlocks } from "./entries/datahub";
 import { entries as driveBlocks } from "./entries/drive";
+import { entries as fieldEntries } from "./entries/fields";
 import { entries as filteringBlocks } from "./entries/filtering";
 import { entries as hookEntries } from "./entries/hooks";
 import { entries as iconPickerBlocks } from "./entries/icon-picker";
@@ -772,6 +773,7 @@ export const atoms: ReadonlyArray<Atom> = [
       className,
     ],
   },
+  ...fieldEntries,
 ];
 
 const pickerProps = (extra: ReadonlyArray<PropRow> = []): ReadonlyArray<PropRow> => [

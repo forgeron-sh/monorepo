@@ -25,6 +25,8 @@ export interface CalendarProps {
   /** Days before `min` or after `max` cannot be chosen. */
   min?: string;
   max?: string;
+  /** A span of days shown as chosen: both ends in ember, the days between in a band. */
+  range?: { from: string | null; to: string | null };
   /** Names the grid, e.g. "Due date". */
   label?: string;
   className?: string;
@@ -43,6 +45,7 @@ export function Calendar({
   defaultMonth,
   min,
   max,
+  range,
   label = "Calendar",
   className,
 }: CalendarProps) {
@@ -133,7 +136,11 @@ export function Calendar({
           {weeks.map((week) => (
             <tr key={week[0]}>
               {week.map((iso) => {
-                const selected = iso === value;
+                const selected =
+                  iso === value ||
+                  (range !== undefined && (iso === range.from || iso === range.to));
+                const between =
+                  range?.from != null && range.to != null && iso > range.from && iso < range.to;
                 const disabled = out(iso);
                 return (
                   <td key={iso} role="gridcell" aria-selected={selected}>
@@ -148,6 +155,7 @@ export function Calendar({
                         "fg-cal-day",
                         parseIso(iso).getMonth() !== month && "fg-cal-out",
                         iso === today && "fg-cal-today",
+                        between && "fg-cal-in",
                         selected && "fg-cal-on",
                       )}
                       onClick={() => {
