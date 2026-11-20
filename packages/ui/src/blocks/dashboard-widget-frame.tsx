@@ -17,7 +17,7 @@ import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { Skeleton, SkeletonGroup } from "../skeleton";
-import { ActionMenu, type ActionMenuEntry } from "./navigation-action-menu";
+import { ActionMenu, type ActionMenuEntry } from "../action-menu";
 
 export interface WidgetFrameProps {
   title: ReactNode;

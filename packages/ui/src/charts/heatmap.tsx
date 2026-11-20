@@ -2,12 +2,14 @@
 // smooth ramp. A matrix (rows × columns) or a calendar (weeks of a period). A grid you can walk
 // with the arrows; the cell under the cursor is read aloud and written above the plot.
 
-import { useId, useState, type KeyboardEvent } from "react";
+import { useId, useState, type HTMLAttributes, type KeyboardEvent, type PointerEvent } from "react";
 import { cx } from "../cx";
 import { formatShort, MONTHS, parseIso } from "../dates";
-import { dashboardCalendarCells, dashboardHeatLevel } from "./dashboard-model";
+import { useChartApi } from "./chart";
+import { dashboardCalendarCells, dashboardHeatLevel } from "./model";
+import { useSeries } from "./parts";
 
-interface HeatmapBase {
+interface HeatmapBase extends Omit<HTMLAttributes<HTMLElement>, "title" | "children"> {
   /** Names the chart; also its caption. */
   title: string;
   /** Writes a value. */
@@ -18,7 +20,8 @@ interface HeatmapBase {
   unit?: string;
   /** Side of a cell in px, even. Default 14. */
   cell?: number;
-  className?: string;
+  /** The series in a `ChartContainer` config that colours the cells and names them in the tooltip. */
+  dataKey?: string;
 }
 
 export interface HeatmapMatrixProps extends HeatmapBase {
@@ -43,6 +46,8 @@ export interface HeatmapCalendarProps extends HeatmapBase {
 export type HeatmapProps = HeatmapMatrixProps | HeatmapCalendarProps;
 
 interface Cell {
+  /** Where the cell is: `Support · 14:00`, `Nov 12`. */
+  at: string;
   label: string;
   value: number;
   /** Day of a calendar cell. */
@@ -66,7 +71,7 @@ function plotOf(props: HeatmapProps, format: (v: number) => string): Plot {
       cells: props.rows.map((row, r) =>
         props.columns.map((col, c) => {
           const value = props.values[r]?.[c] ?? 0;
-          return { label: `${row} · ${col}: ${format(value)}`, value };
+          return { at: `${row} · ${col}`, label: `${row} · ${col}: ${format(value)}`, value };
         }),
       ),
     };
@@ -91,7 +96,12 @@ function plotOf(props: HeatmapProps, format: (v: number) => string): Plot {
         const date = week[r];
         if (!date) return null;
         const value = by.get(date) ?? 0;
-        return { label: `${formatShort(date)}: ${format(value)}`, value, date };
+        return {
+          at: formatShort(date),
+          label: `${formatShort(date)}: ${format(value)}`,
+          value,
+          date,
+        };
       }),
     ),
   };
@@ -101,9 +111,26 @@ function plotOf(props: HeatmapProps, format: (v: number) => string): Plot {
  * Cells in five dithered steps. Arrows walk the grid, Home and End jump along a row; every cell
  * has its label and value as text. The key below gives the scale in numbers.
  */
+/** The props that are data, not attributes of the figure. */
+const DATA_PROPS = ["rows", "columns", "values", "items", "from", "to", "weekStart"];
+
 export function Heatmap(props: HeatmapProps) {
-  const { title, format = String, highlight, unit = "", cell = 14, className } = props;
+  const {
+    title,
+    format = String,
+    highlight,
+    unit = "",
+    cell = 14,
+    dataKey,
+    className,
+    style,
+    ...others
+  } = props;
+  const rest: Record<string, unknown> = { ...others };
+  for (const key of DATA_PROPS) delete rest[key];
   const id = useId();
+  const chart = useChartApi();
+  const series = useSeries(dataKey, { fallback: "var(--accent)", name: title });
   const matrix = "rows" in props;
   const plot = plotOf(props, format);
   const rowsCount = plot.cells.length;
@@ -121,6 +148,15 @@ export function Heatmap(props: HeatmapProps) {
   const step = Math.max(1, Math.ceil((widest * 6.5) / (cell + 3)));
   const noun = unit ? ` ${unit}` : "";
 
+  /** Reads cell `r`, `c`: in the header, and in the container's tooltip. */
+  const read = (r: number, c: number, event?: PointerEvent<Element>) => {
+    setActive([r, c]);
+    const at = plot.cells[r]?.[c];
+    chart?.report(
+      at ? { label: at.at, payload: [series.line(`${format(at.value)}${noun}`, at)] } : null,
+      event,
+    );
+  };
   const focusCell = (r: number, c: number) => {
     setActive([r, c]);
     const el = document.getElementById(`${id}-${r}-${c}`);
@@ -158,7 +194,8 @@ export function Heatmap(props: HeatmapProps) {
   return (
     <figure
       className={cx("fg-dash-heat", className)}
-      style={{ ["--fg-dash-cell" as string]: `${cell}px` }}
+      style={{ ["--fg-dash-cell" as string]: `${cell}px`, ...series.style, ...style }}
+      {...(rest as HTMLAttributes<HTMLElement>)}
     >
       <div className="fg-dash-head">
         <figcaption className="fg-dash-title" id={`${id}-title`}>
@@ -178,6 +215,15 @@ export function Heatmap(props: HeatmapProps) {
           aria-describedby={`${id}-hint`}
           className="fg-dash-heat-grid"
           onKeyDown={onKeyDown}
+          onPointerLeave={chart ? () => chart.report(null) : undefined}
+          onBlur={
+            chart
+              ? (event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+                    chart.report(null);
+                }
+              : undefined
+          }
         >
           {plot.cells.map((row, r) => {
             const dim = highlight !== undefined && matrix && plot.rowLabels[r] !== highlight;
@@ -199,8 +245,8 @@ export function Heatmap(props: HeatmapProps) {
                         `fg-dash-l${dashboardHeatLevel(c.value, max)}`,
                         c.date !== undefined && c.date === highlight && "fg-dash-hc-hi",
                       )}
-                      onFocus={() => setActive([r, col])}
-                      onPointerEnter={() => setActive([r, col])}
+                      onFocus={() => read(r, col)}
+                      onPointerEnter={(event) => read(r, col, event)}
                     />
                   ) : (
                     <span key={col} role="presentation" className="fg-dash-hc fg-dash-hc-none" />

@@ -1,7 +1,7 @@
 // A gauge in pixels: a half ring, filled up to the value, a mark at the target, and the state said
 // in words (Behind, Close, On target) beside the figure, so tone is never the only signal.
 
-import { useId, useMemo } from "react";
+import { useId, useMemo, type HTMLAttributes } from "react";
 import { cx } from "../cx";
 import {
   dashboardFormatPercent,
@@ -9,10 +9,11 @@ import {
   dashboardGaugeThresholds,
   dashboardRing,
   type GaugeThreshold,
-} from "./dashboard-model";
-import { DASH_PX } from "./dashboard-parts";
+} from "./model";
+import { TONE_VARS, useReport, useSeries, useStateColors } from "./parts";
+import { PX } from "./scale";
 
-export interface GaugeProps {
+export interface GaugeProps extends Omit<HTMLAttributes<HTMLElement>, "title" | "children"> {
   /** Names the gauge. */
   title: string;
   /** Where it stands now. */
@@ -33,8 +34,14 @@ export interface GaugeProps {
   size?: number;
   /** Thickness of the arc in chart pixels. Default 10. */
   thickness?: number;
-  className?: string;
+  /**
+   * The series in a `ChartContainer` config that colours the arc and names it in the tooltip. Without
+   * it, the config keys `good`, `warn` and `bad` colour the states; the state is a word either way.
+   */
+  dataKey?: string;
 }
+
+const TONES = { good: "var(--success)", warn: "var(--warning)", bad: "var(--danger)" } as const;
 
 /** A value against a target on a half ring; the state is a word, the target a mark, the figures text. */
 export function Gauge({
@@ -47,9 +54,14 @@ export function Gauge({
   format = String,
   size = 200,
   thickness = 10,
+  dataKey,
   className,
+  style,
+  ...rest
 }: GaugeProps) {
   const id = useId();
+  const colors = useStateColors(TONE_VARS);
+  const report = useReport();
   const steps = thresholds ?? dashboardGaugeThresholds(target);
   const state = dashboardGaugeState(value, {
     target,
@@ -57,7 +69,7 @@ export function Gauge({
     thresholds: steps,
     ...(max !== undefined ? { max } : {}),
   });
-  const width = Math.max(32, Math.round(size / DASH_PX));
+  const width = Math.max(32, Math.round(size / PX));
   const cells = useMemo(
     () => dashboardRing(width, Math.min(thickness, width / 2), "half"),
     [width, thickness],
@@ -74,10 +86,18 @@ export function Gauge({
     else if (c.t <= state.fraction) fill = dots(fill, c.x, c.y);
     else if ((c.x + c.y) % 2 === 1) track = dots(track, c.x, c.y);
   }
+  const series = useSeries(dataKey, {
+    fallback: colors.color(state.tone, TONES[state.tone]),
+    name: title,
+  });
   const text = `${format(value)} of ${format(target)}, ${dashboardFormatPercent(state.ofTarget)} of the target: ${state.label}`;
   const ordered = [...steps].sort((a, b) => a.at - b.at);
   return (
-    <figure className={cx("fg-dash-gauge", className)}>
+    <figure
+      className={cx("fg-dash-gauge", className)}
+      style={{ ...colors.style, ...style }}
+      {...rest}
+    >
       <figcaption className="fg-dash-title" id={`${id}-title`}>
         {title}
       </figcaption>
@@ -89,17 +109,28 @@ export function Gauge({
         aria-valuemax={max ?? Math.max(target, value) * 1.25}
         aria-valuenow={value}
         aria-valuetext={text}
-        style={{ width: width * DASH_PX }}
+        style={{ width: width * PX }}
+        {...report(() => ({
+          label: title,
+          payload: [
+            series.line(`${format(value)} · ${state.label}`, { value, target }),
+            { dataKey: "target", name: "Target", value: format(target), color: "var(--ink)" },
+          ],
+        }))}
       >
         <svg
-          width={width * DASH_PX}
-          height={height * DASH_PX}
+          width={width * PX}
+          height={height * PX}
           viewBox={`0 0 ${width} ${height}`}
           shapeRendering="crispEdges"
           aria-hidden="true"
         >
           <path d={track} className="fg-dash-gauge-track" />
-          <path d={fill} className={cx("fg-dash-gauge-fill", `fg-dash-tone-${state.tone}`)} />
+          <path
+            d={fill}
+            className={cx("fg-dash-gauge-fill", `fg-dash-tone-${state.tone}`)}
+            style={series.own ? { fill: series.color } : undefined}
+          />
           <path d={mark} className="fg-dash-gauge-mark" />
         </svg>
         <span className="fg-dash-gauge-read">

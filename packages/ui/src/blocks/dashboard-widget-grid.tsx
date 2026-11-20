@@ -32,7 +32,7 @@ import {
   type WidgetLayout,
   type WidgetLimits,
 } from "./dashboard-model";
-import { useDashWidth } from "./dashboard-parts";
+import { useWidth } from "../charts/scale";
 
 export type { WidgetLayout } from "./dashboard-model";
 
@@ -112,7 +112,7 @@ export function WidgetGrid({
 }: WidgetGridProps) {
   const hint = useId();
   const root = useRef<HTMLDivElement>(null);
-  const [box, width] = useDashWidth<HTMLDivElement>(1200);
+  const [box, width] = useWidth<HTMLDivElement>(1200);
   const [stored, setStored] = useControllableState<ReadonlyArray<WidgetLayout>>({
     value: layoutProp,
     defaultValue: defaultLayout,

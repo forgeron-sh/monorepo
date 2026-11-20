@@ -1,8 +1,10 @@
 // A funnel: the stages a thing goes through, each a stepped bar as long as its share of the first
 // stage, with the count and the conversion from the stage before. The same numbers are a table.
 
+import type { HTMLAttributes } from "react";
 import { cx } from "../cx";
-import { dashboardFormatPercent, dashboardFunnel } from "./dashboard-model";
+import { dashboardFormatPercent, dashboardFunnel } from "./model";
+import { ChartTable, useReport, useSeries } from "./parts";
 
 export interface FunnelItem {
   label: string;
@@ -10,7 +12,7 @@ export interface FunnelItem {
   value: number;
 }
 
-export interface FunnelProps {
+export interface FunnelProps extends Omit<HTMLAttributes<HTMLElement>, "title" | "children"> {
   /** Names the chart; also its caption. */
   title: string;
   /** The stages, first to last. */
@@ -21,7 +23,8 @@ export interface FunnelProps {
   highlight?: string;
   /** What a stage counts, in the text alternative: `deals`. */
   unit?: string;
-  className?: string;
+  /** The series in a `ChartContainer` config that colours the bars and names them in the tooltip. */
+  dataKey?: string;
 }
 
 /**
@@ -35,23 +38,48 @@ export function Funnel({
   format = String,
   highlight,
   unit = "",
+  dataKey,
   className,
+  style,
+  ...rest
 }: FunnelProps) {
+  const series = useSeries(dataKey, { fallback: "var(--ink-muted)", name: title });
+  const report = useReport();
   const { rows, overall } = dashboardFunnel(items);
   const noun = unit ? ` ${unit}` : "";
   return (
-    <figure className={cx("fg-dash-funnel", className)}>
+    <figure
+      className={cx("fg-dash-funnel", className)}
+      style={{ ...series.style, ...style }}
+      {...rest}
+    >
       <figcaption className="fg-dash-title">{title}</figcaption>
       <ol className="fg-dash-fun-list">
-        {rows.map((row) => (
+        {rows.map((row, i) => (
           <li
             key={row.label}
             className={cx("fg-dash-fun-row", row.label === highlight && "fg-dash-hi")}
             title={`${row.label}: ${format(row.value)}${noun}${
               row.ofPrevious !== null
-                ? `, ${dashboardFormatPercent(row.ofPrevious)} of ${items[rows.indexOf(row) - 1]!.label}`
+                ? `, ${dashboardFormatPercent(row.ofPrevious)} of ${rows[i - 1]!.label}`
                 : ""
             }`}
+            {...report(() => ({
+              label: row.label,
+              payload: [
+                series.line(`${format(row.value)}${noun}`, row),
+                ...(row.ofPrevious !== null
+                  ? [
+                      {
+                        dataKey: "ofPrevious",
+                        name: `Of ${rows[i - 1]!.label}`,
+                        value: dashboardFormatPercent(row.ofPrevious),
+                        color: "var(--ink-dim)",
+                      },
+                    ]
+                  : []),
+              ],
+            }))}
           >
             <span className="fg-dash-fun-label">{row.label}</span>
             <span className="fg-dash-fun-track" aria-hidden="true">
@@ -73,27 +101,19 @@ export function Funnel({
           {rows[rows.length - 1]!.label}
         </p>
       ) : null}
-      <table className="fg-visually-hidden">
-        <caption>{title}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Stage</th>
-            <th scope="col">Count</th>
-            <th scope="col">Of the first stage</th>
-            <th scope="col">Of the stage before</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.label}>
-              <th scope="row">{row.label}</th>
-              <td>{format(row.value)}</td>
-              <td>{dashboardFormatPercent(row.ofFirst)}</td>
-              <td>{row.ofPrevious === null ? "" : dashboardFormatPercent(row.ofPrevious)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <ChartTable
+        caption={title}
+        columns={["Stage", "Count", "Of the first stage", "Of the stage before"]}
+        rows={rows.map((row) => ({
+          key: row.label,
+          head: row.label,
+          cells: [
+            format(row.value),
+            dashboardFormatPercent(row.ofFirst),
+            row.ofPrevious === null ? "" : dashboardFormatPercent(row.ofPrevious),
+          ],
+        }))}
+      />
     </figure>
   );
 }

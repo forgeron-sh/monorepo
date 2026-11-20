@@ -1,0 +1,1654 @@
+/* Primitives of the "charts" group (D-157): the pixel charts, the key figures and the chart parts
+   (container, tooltip, legend). Values come from tokens/tokens.css. Charts are pixels on or off:
+   dither steps and scan lines, never a gradient. */
+
+/* BarChart */
+.fg-bars {
+  margin: 0;
+  font: 400 14px/20px var(--font-sans);
+  color: var(--ink);
+}
+.fg-bars-title {
+  margin-bottom: var(--space-3);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.fg-bars-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-bars-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 160px) 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+.fg-bars-label {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-bars-track {
+  height: 16px;
+}
+.fg-bars-fill {
+  --fg-bar: var(--fg-bar-series, var(--ink-muted));
+  display: block;
+  height: 100%;
+  border-top: 2px solid var(--fg-bar);
+  background: repeating-linear-gradient(180deg, var(--fg-bar) 0 2px, transparent 2px 4px);
+}
+.fg-bars-hi .fg-bars-fill {
+  --fg-bar: var(--accent);
+}
+.fg-bars-hi .fg-bars-label {
+  color: var(--ink);
+}
+.fg-bars-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- LineChart */
+
+.fg-line {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-line-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.fg-line-title {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-line-readout {
+  display: inline-flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--space-2);
+  font: 400 11px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-line-readout b {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.fg-line-readout-label {
+  color: var(--ink-dim);
+}
+.fg-line-plot {
+  position: relative;
+  min-width: 0;
+  outline: none;
+  cursor: crosshair;
+}
+.fg-line-plot:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-line-plot svg {
+  display: block;
+}
+.fg-line-max {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  z-index: 1;
+  padding-right: 4px;
+  background: var(--bg);
+  color: var(--ink-dim);
+  font: 400 10.5px/12px var(--font-mono);
+}
+.fg-line-ink-accent {
+  fill: var(--fg-chart-c, var(--accent));
+}
+.fg-line-ink-grid {
+  fill: var(--line-strong);
+}
+.fg-line-ink-before {
+  fill: var(--ink-dim);
+}
+.fg-line-ink-hover {
+  fill: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.fg-line-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  overflow: hidden;
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Sparkline */
+
+.fg-spark {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  fill: var(--fg-chart-c, var(--accent));
+}
+.fg-spark-ink {
+  fill: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------- KpiRow */
+
+/* Cells glued by one 1px line: the row draws the top and left edges, each cell its right and
+   bottom ones, so a short last row leaves no empty box. */
+.fg-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+  margin: 0;
+  border-top: var(--border-width) solid var(--line);
+  border-left: var(--border-width) solid var(--line);
+  color: var(--ink);
+}
+.fg-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-right: var(--border-width) solid var(--line);
+  border-bottom: var(--border-width) solid var(--line);
+  background: var(--bg);
+}
+.fg-kpi-more {
+  margin: var(--space-1) 0 0;
+  font: 400 12px/16px var(--font-sans);
+}
+.fg-kpi dd {
+  margin: 0;
+}
+.fg-kpi-label {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-kpi-value {
+  font: 500 28px/32px var(--font-mono);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fg-kpi-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 16px;
+}
+.fg-kpi-change {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  min-width: 0;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-kpi-delta {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.fg-kpi-good {
+  color: var(--fg-tone-good, var(--success));
+}
+.fg-kpi-bad {
+  color: var(--fg-tone-bad, var(--danger));
+}
+.fg-kpi-flat {
+  color: var(--ink-muted);
+}
+/* The hint says what the change is against: it wraps under the delta rather than being cut. */
+.fg-kpi-hint {
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- series: colour and pattern */
+
+/* Six series, told apart by pattern as much as by colour. A chart pixel is two CSS pixels. */
+.fg-dash-s0 {
+  --c: var(--fg-series-0, var(--accent));
+  background: var(--c);
+}
+.fg-dash-s1 {
+  --c: var(--fg-series-1, var(--ink));
+  background: repeating-conic-gradient(var(--c) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+}
+.fg-dash-s2 {
+  --c: var(--fg-series-2, var(--ink-muted));
+  background: repeating-linear-gradient(180deg, var(--c) 0 2px, transparent 2px 4px);
+}
+.fg-dash-s3 {
+  --c: var(--fg-series-3, var(--accent));
+  background: conic-gradient(from 90deg at 2px 2px, transparent 75%, var(--c) 0) 0 0 / 4px 4px;
+}
+.fg-dash-s4 {
+  --c: var(--fg-series-4, var(--ink));
+  background: repeating-linear-gradient(90deg, var(--c) 0 2px, transparent 2px 4px);
+}
+.fg-dash-s5 {
+  --c: var(--fg-series-5, var(--ink-dim));
+  background: conic-gradient(from 90deg at 2px 2px, var(--c) 75%, transparent 0) 0 0 / 4px 4px;
+}
+.fg-dash-f0 {
+  fill: var(--fg-series-0, var(--accent));
+}
+.fg-dash-f3 {
+  fill: var(--fg-series-3, var(--accent));
+}
+.fg-dash-f1 {
+  fill: var(--fg-series-1, var(--ink));
+}
+.fg-dash-f4 {
+  fill: var(--fg-series-4, var(--ink));
+}
+.fg-dash-f2 {
+  fill: var(--fg-series-2, var(--ink-muted));
+}
+.fg-dash-f5 {
+  fill: var(--fg-series-5, var(--ink-dim));
+}
+.fg-dash-dim {
+  opacity: 0.3;
+}
+
+/* ---------------------------------------------------------------- shared: title, key, readout */
+
+:where(.fg-dash-funnel, .fg-dash-heat, .fg-dash-donut, .fg-dash-gauge, .fg-dash-stack) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-dash-title {
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fg-dash-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.fg-dash-readout {
+  flex: none;
+  color: var(--ink);
+  font: 400 11px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-dash-swatch {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.fg-dash-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-dash-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: 400 12px/16px var(--font-sans);
+  text-align: left;
+}
+button.fg-dash-legend-item {
+  cursor: pointer;
+}
+button.fg-dash-legend-item:hover {
+  color: var(--ink);
+  background: var(--bg-raised);
+}
+button.fg-dash-legend-item:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+button.fg-dash-legend-item[aria-pressed="true"] {
+  color: var(--ink);
+}
+.fg-dash-off .fg-dash-legend-label {
+  text-decoration: line-through;
+}
+.fg-dash-off .fg-dash-swatch {
+  opacity: 0.35;
+}
+.fg-dash-legend-value,
+.fg-dash-legend-share {
+  color: var(--ink);
+  font: 400 11.5px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-dash-legend-share {
+  color: var(--ink-dim);
+}
+
+/* ---------------------------------------------------------------- funnel */
+
+.fg-dash-fun-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-dash-fun-row {
+  --c: var(--fg-chart-c, var(--ink-muted));
+  display: grid;
+  grid-template-columns: minmax(64px, 120px) minmax(0, 1fr) minmax(72px, auto);
+  align-items: center;
+  gap: var(--space-3);
+}
+.fg-dash-fun-row.fg-dash-hi {
+  --c: var(--accent);
+}
+.fg-dash-fun-label {
+  overflow: hidden;
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dash-hi .fg-dash-fun-label {
+  color: var(--ink);
+}
+.fg-dash-fun-track {
+  position: relative;
+  height: 18px;
+}
+.fg-dash-fun-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-top: 2px solid var(--c);
+  background: repeating-linear-gradient(180deg, var(--c) 0 2px, transparent 2px 4px);
+}
+.fg-dash-fun-value {
+  text-align: right;
+  font: 400 12px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-dash-fun-value em {
+  min-width: 3ch;
+  margin-left: var(--space-2);
+  color: var(--ink-dim);
+  font-style: normal;
+}
+.fg-dash-fun-overall {
+  margin: var(--space-3) 0 0;
+  color: var(--ink-dim);
+  font: 400 11.5px/16px var(--font-mono);
+}
+.fg-dash-fun-overall b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------- donut and gauge */
+
+.fg-dash-donut-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-6);
+}
+.fg-dash-ring {
+  position: relative;
+  flex: none;
+}
+.fg-dash-ring svg,
+.fg-dash-gauge-body svg {
+  display: block;
+}
+.fg-dash-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.fg-dash-ring-center b {
+  font: 500 18px/24px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-dash-ring-center small,
+.fg-dash-gauge-read small {
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.fg-dash-donut .fg-dash-legend {
+  flex: 1 1 160px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+}
+.fg-dash-donut .fg-dash-legend-item {
+  width: 100%;
+}
+.fg-dash-donut .fg-dash-legend-label {
+  flex: 1;
+}
+
+.fg-dash-gauge-body {
+  position: relative;
+  max-width: 100%;
+}
+.fg-dash-gauge-track {
+  fill: var(--line-strong);
+}
+.fg-dash-gauge-mark {
+  fill: var(--ink);
+}
+.fg-dash-tone-good {
+  fill: var(--fg-tone-good, var(--success));
+}
+.fg-dash-tone-warn {
+  fill: var(--fg-tone-warn, var(--warning));
+}
+.fg-dash-tone-bad {
+  fill: var(--fg-tone-bad, var(--danger));
+}
+.fg-dash-gauge-read {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.fg-dash-gauge-read b {
+  font: 500 22px/28px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-dash-state {
+  margin-top: var(--space-1);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid currentColor;
+  font: 500 10.5px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: none;
+}
+.fg-dash-state.fg-dash-tone-good {
+  color: var(--fg-tone-good, var(--success));
+}
+.fg-dash-state.fg-dash-tone-warn {
+  color: var(--fg-tone-warn, var(--warning));
+}
+.fg-dash-state.fg-dash-tone-bad {
+  color: var(--fg-tone-bad, var(--danger));
+}
+.fg-dash-gauge-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-dim);
+  font: 400 11.5px/16px var(--font-mono);
+}
+.fg-dash-gauge-steps li {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+.fg-dash-gauge-steps .fg-dash-current {
+  color: var(--ink);
+}
+.fg-dash-gauge-steps .fg-dash-current > :first-child::before {
+  content: "■ ";
+}
+
+/* ---------------------------------------------------------------- stacked bar */
+
+.fg-dash-stack .fg-dash-legend {
+  margin-bottom: var(--space-3);
+}
+.fg-dash-stack-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-dash-stack-row {
+  display: grid;
+  grid-template-columns: minmax(64px, 128px) minmax(0, 1fr) minmax(40px, auto);
+  align-items: center;
+  gap: var(--space-3);
+}
+.fg-dash-stack-label {
+  overflow: hidden;
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dash-hi .fg-dash-stack-label {
+  color: var(--ink);
+  font-weight: 500;
+}
+.fg-dash-stack-track {
+  display: flex;
+  height: 18px;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.fg-dash-seg {
+  display: block;
+  flex: none;
+  min-width: 2px;
+  height: 100%;
+  border-right: 1px solid var(--bg);
+}
+.fg-dash-stack-total {
+  text-align: right;
+  font: 400 12px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-dash-stack-v .fg-dash-stack-list {
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+.fg-dash-stack-v .fg-dash-stack-row {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column-reverse;
+  align-items: stretch;
+  gap: var(--space-1);
+  min-width: 0;
+  text-align: center;
+}
+.fg-dash-stack-v .fg-dash-stack-track {
+  flex-direction: column-reverse;
+  margin-top: auto;
+  box-shadow: inset 0 -1px 0 var(--line-strong);
+}
+.fg-dash-stack-v .fg-dash-seg {
+  width: 100%;
+  min-width: 0;
+  min-height: 2px;
+  height: auto;
+  border-right: 0;
+  border-top: 1px solid var(--bg);
+}
+.fg-dash-stack-v .fg-dash-stack-label {
+  font-size: 11.5px;
+}
+.fg-dash-stack-v .fg-dash-stack-total {
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- heatmap */
+
+.fg-dash-heat {
+  --fg-dash-cell: 14px;
+}
+.fg-dash-heat-scroll {
+  overflow-x: auto;
+  padding: 2px;
+  margin: -2px;
+}
+.fg-dash-heat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: max-content;
+}
+.fg-dash-heat-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.fg-dash-heat-rl {
+  flex: none;
+  width: 72px;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font: 400 11px/1 var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-dash-hc {
+  flex: none;
+  width: var(--fg-dash-cell);
+  height: var(--fg-dash-cell);
+  background: var(--bg-sunk);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.fg-dash-hc-none {
+  background: none;
+  box-shadow: none;
+}
+.fg-dash-l1 {
+  background: conic-gradient(
+      from 90deg at 2px 2px,
+      var(--bg-sunk) 75%,
+      var(--fg-chart-c, var(--accent)) 0
+    )
+    0 0 / 4px 4px;
+}
+.fg-dash-l2 {
+  background: repeating-conic-gradient(var(--fg-chart-c, var(--accent)) 0 25%, var(--bg-sunk) 0 50%)
+    0 0 / 4px 4px;
+}
+.fg-dash-l3 {
+  background: conic-gradient(
+      from 90deg at 2px 2px,
+      var(--fg-chart-c, var(--accent)) 75%,
+      var(--bg-sunk) 0
+    )
+    0 0 / 4px 4px;
+}
+.fg-dash-l4 {
+  background: var(--fg-chart-c, var(--accent));
+  box-shadow: none;
+}
+.fg-dash-hc[role="gridcell"] {
+  cursor: crosshair;
+}
+.fg-dash-hc[role="gridcell"]:hover {
+  outline: 1px solid var(--ink);
+  outline-offset: 1px;
+}
+.fg-dash-hc[role="gridcell"]:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 1px;
+}
+.fg-dash-hc-hi {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.fg-dash-xl {
+  width: var(--fg-dash-cell);
+  overflow: visible;
+  background: none;
+  box-shadow: none;
+  color: var(--ink-dim);
+  font: 400 10px/12px var(--font-mono);
+  white-space: nowrap;
+}
+.fg-dash-heat-axis {
+  margin-top: 1px;
+}
+.fg-dash-heat-key {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: var(--space-2);
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+}
+.fg-dash-heat-key > :first-child {
+  margin-right: var(--space-1);
+}
+.fg-dash-heat-key > :last-child {
+  margin-left: var(--space-1);
+}
+.fg-dash-heat-key .fg-dash-hc {
+  width: 10px;
+  height: 10px;
+}
+
+/* ---------------------------------------------------------------- delta */
+
+.fg-dash-delta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  font: 400 12px/20px var(--font-mono);
+}
+.fg-dash-delta-value {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.fg-dash-delta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid currentColor;
+  font-variant-numeric: tabular-nums;
+}
+.fg-dash-delta-good {
+  background: var(--success-subtle);
+  color: var(--fg-tone-good, var(--success));
+}
+.fg-dash-delta-bad {
+  background: var(--danger-subtle);
+  color: var(--fg-tone-bad, var(--danger));
+}
+.fg-dash-delta-flat {
+  color: var(--ink-muted);
+}
+.fg-dash-delta-word {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-dash-delta-hint {
+  color: var(--ink-dim);
+}
+.fg-dash-delta-sm {
+  font-size: 11px;
+  line-height: 16px;
+}
+
+@media (max-width: 560px) {
+  .fg-dash-fun-row {
+    grid-template-columns: minmax(56px, 88px) minmax(0, 1fr) auto;
+    gap: var(--space-2);
+  }
+  .fg-dash-stack-row {
+    grid-template-columns: minmax(56px, 88px) minmax(0, 1fr) auto;
+  }
+}
+
+/* ---------------------------------------------------------------- ChartContainer, tooltip, legend */
+
+.fg-chart {
+  position: relative;
+  min-width: 0;
+}
+.fg-chart-tip-anchor {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 5;
+  pointer-events: none;
+}
+.fg-chart-tip-at {
+  top: auto;
+  right: auto;
+  transform: translate(12px, 12px);
+}
+.fg-chart-tip {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 128px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-raised);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font: 400 12px/16px var(--font-sans);
+}
+.fg-chart-tip-label {
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-chart-tip-items {
+  display: grid;
+  gap: var(--space-1);
+}
+.fg-chart-tip-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fg-chart-tip-mark {
+  --fg-mark: var(--accent);
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--fg-mark);
+}
+.fg-chart-tip-line .fg-chart-tip-mark {
+  width: 3px;
+  height: auto;
+  align-self: stretch;
+}
+.fg-chart-tip-dashed .fg-chart-tip-mark {
+  width: 3px;
+  height: auto;
+  align-self: stretch;
+  background: repeating-linear-gradient(180deg, var(--fg-mark) 0 3px, transparent 3px 5px);
+}
+.fg-chart-tip-name {
+  color: var(--ink-muted);
+}
+.fg-chart-tip-value {
+  margin-left: auto;
+  padding-left: var(--space-3);
+  font: 500 12px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-chart-legend-top {
+  margin-bottom: var(--space-3);
+}
+.fg-chart-legend-bottom {
+  margin-top: var(--space-3);
+}
+.fg-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- ColumnChart */
+
+.fg-cols {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-cols-ink {
+  fill: var(--fg-chart-c, var(--ink-muted));
+}
+.fg-cols-lit {
+  fill: var(--accent);
+}
+.fg-cols-target {
+  fill: var(--ink);
+}
+.fg-cols-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+}
+.fg-cols-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fg-cols-key b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.fg-cols-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+}
+.fg-cols-swatch-now {
+  border-top: 2px solid var(--fg-chart-c, var(--ink-muted));
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 2px,
+    var(--fg-chart-c, var(--ink-muted)) 2px 4px
+  );
+}
+.fg-cols-swatch-before {
+  border-top: 2px solid var(--ink-dim);
+  background: repeating-conic-gradient(var(--ink-dim) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+}
+.fg-cols-swatch-target {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px);
+}
+
+/* ---------------------------------------------------------------- Waffle */
+
+.fg-dash-waffle {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-dash-waffle-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+}
+.fg-dash-waffle-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--fg-waffle-cols), var(--fg-waffle-cell));
+  grid-auto-rows: var(--fg-waffle-cell);
+  gap: 2px;
+  flex: none;
+}
+.fg-dash-waffle-cell {
+  display: block;
+  box-shadow: inset 0 0 0 1px var(--c, transparent);
+  transition: opacity 120ms steps(2);
+}
+.fg-dash-waffle-empty {
+  background: repeating-linear-gradient(90deg, var(--line) 0 2px, transparent 2px 4px);
+  opacity: 0.6;
+}
+.fg-dash-waffle .fg-dash-legend {
+  flex: 1 1 180px;
+  flex-direction: column;
+  align-items: stretch;
+}
+.fg-dash-waffle .fg-dash-legend-item {
+  width: 100%;
+}
+.fg-dash-waffle .fg-dash-legend-label {
+  flex: 1;
+}
+.fg-dash-waffle-note {
+  margin: var(--space-3) 0 0;
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+}
+/* Among the parts, the note takes a line of its own. */
+.fg-dash-waffle-body > .fg-dash-waffle-note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------- StatusStrip */
+
+/* The worse the state, the taller and heavier the pixels: a low band, a checker, solid. */
+.fg-strip {
+  --fg-strip-ok: var(--success);
+  --fg-strip-degraded: var(--warning);
+  --fg-strip-down: var(--danger);
+  --fg-strip-none: var(--line-strong);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-strip-cells {
+  display: grid;
+  gap: 2px;
+  outline: none;
+  cursor: crosshair;
+}
+.fg-strip-cells:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-strip-cell {
+  display: block;
+  min-width: 2px;
+}
+/* Calm periods sit low: a solid band through the middle third, so incidents stand out by height. */
+.fg-strip-ok {
+  background: linear-gradient(
+    180deg,
+    transparent 0 34%,
+    var(--fg-strip-ok) 34% 66%,
+    transparent 66%
+  );
+}
+.fg-strip-swatch.fg-strip-ok {
+  background: linear-gradient(
+    180deg,
+    transparent 0 3px,
+    var(--fg-strip-ok) 3px 7px,
+    transparent 7px
+  );
+}
+.fg-strip-degraded {
+  background: repeating-conic-gradient(var(--fg-strip-degraded) 0 25%, transparent 0 50%) 0 0 / 4px
+    4px;
+}
+.fg-strip-down {
+  background: var(--fg-strip-down);
+}
+.fg-strip-none {
+  background: repeating-linear-gradient(180deg, var(--fg-strip-none) 0 2px, transparent 2px 4px);
+  opacity: 0.5;
+}
+.fg-strip-active {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.fg-strip-word-ok {
+  color: var(--fg-strip-ok);
+}
+.fg-strip-word-degraded {
+  color: var(--fg-strip-degraded);
+}
+.fg-strip-word-down {
+  color: var(--fg-strip-down);
+}
+.fg-strip-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+  white-space: nowrap;
+}
+.fg-strip-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-strip-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fg-strip-key b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.fg-strip-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+}
+
+/* ---------------------------------------------------------------- BulletChart */
+
+.fg-bullet {
+  margin: 0;
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+}
+.fg-bullet-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-bullet-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 140px) 1fr minmax(96px, auto);
+  align-items: center;
+  gap: var(--space-3);
+}
+.fg-bullet-label {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-bullet-track {
+  position: relative;
+  height: 20px;
+}
+/* Bands from the zero: densest first, so "further" reads lighter. */
+.fg-bullet-band {
+  position: absolute;
+  inset: 0 auto 0 0;
+}
+.fg-bullet-band-3 {
+  background: repeating-conic-gradient(var(--ink-dim) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+}
+.fg-bullet-band-2 {
+  background: conic-gradient(from 90deg at 2px 2px, transparent 75%, var(--ink-dim) 0) 0 0 / 4px 4px;
+}
+.fg-bullet-band-1 {
+  background: conic-gradient(from 90deg at 2px 2px, transparent 75%, var(--line-strong) 0) 0 0 / 4px
+    4px;
+  box-shadow: inset -2px 0 0 var(--line-strong);
+}
+.fg-bullet-bar {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  z-index: 5;
+  background: var(--fg-chart-c, var(--accent));
+}
+.fg-bullet-target {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 6;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+}
+.fg-bullet-value {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fg-bullet-value b {
+  font-weight: 500;
+}
+.fg-bullet-share {
+  color: var(--ink-dim);
+}
+.fg-bullet-met .fg-bullet-share {
+  color: var(--success);
+}
+
+/* ---------------------------------------------------------------- markers (events on a time chart) */
+
+/* A dotted rule down the plot and a numbered flag on top; the key under the axis says what. */
+.fg-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--fg-mark-x);
+  z-index: 2;
+  width: 2px;
+  margin-left: -1px;
+  background: repeating-linear-gradient(180deg, var(--ink-muted) 0 2px, transparent 2px 4px);
+  pointer-events: none;
+}
+.fg-mark .fg-mark-tag {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.fg-mark-on {
+  background: repeating-linear-gradient(180deg, var(--ink) 0 2px, transparent 2px 4px);
+}
+.fg-mark-on .fg-mark-tag {
+  background: var(--accent);
+  color: var(--accent-ink, var(--bg));
+}
+.fg-mark-tag {
+  display: inline-grid;
+  place-items: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  background: var(--ink);
+  color: var(--bg);
+  font: 500 10px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-mark-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-muted);
+  font: 400 11px/16px var(--font-sans);
+}
+.fg-mark-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fg-mark-at {
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+}
+.fg-mark-read {
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+.fg-strip-plot {
+  position: relative;
+}
+/* The flags sit above the strip, not on its cells. */
+.fg-strip-flagged {
+  margin-top: 18px;
+}
+/* On the strip the flag's stem stops at the cells, so it hides no state. */
+.fg-strip-flagged .fg-mark {
+  top: -18px;
+  bottom: auto;
+  height: 16px;
+}
+
+/* ---------------------------------------------------------------- Waterfall */
+
+.fg-fall {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-fall-plot {
+  position: relative;
+  display: grid;
+  margin-top: 18px;
+  outline: none;
+  cursor: crosshair;
+}
+.fg-fall-plot:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+.fg-fall-zero {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--line-strong);
+}
+.fg-fall-col {
+  position: relative;
+  min-width: 0;
+}
+.fg-fall-on {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.fg-fall-bar {
+  position: absolute;
+  right: 18%;
+  left: 18%;
+}
+/* A total is solid; a rise is scan lines under a solid top, a fall a checker over a solid bottom. */
+.fg-fall-total {
+  background: var(--fg-tone-total, var(--ink-muted));
+}
+/* A total whose foot is under the start of the scale: a band of dither says it is cut. */
+.fg-fall-cut {
+  box-shadow: inset 0 -8px 0 var(--bg);
+}
+.fg-fall-cut::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  left: 0;
+  height: 4px;
+  background: repeating-conic-gradient(var(--ink-muted) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+}
+.fg-fall-note {
+  margin: var(--space-2) 0 0;
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+}
+.fg-fall-on .fg-fall-total {
+  background: var(--ink);
+}
+.fg-fall-good {
+  --c: var(--fg-tone-good, var(--success));
+}
+.fg-fall-bad {
+  --c: var(--fg-tone-bad, var(--danger));
+}
+.fg-fall-up {
+  border-top: 2px solid var(--c);
+  background: repeating-linear-gradient(180deg, transparent 0 2px, var(--c) 2px 4px);
+}
+.fg-fall-down {
+  border-bottom: 2px solid var(--c);
+  background: repeating-conic-gradient(var(--c) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+}
+.fg-fall-value {
+  position: absolute;
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  transform: translateY(-100%);
+  padding-bottom: 2px;
+  color: var(--ink-muted);
+  font: 400 10.5px/14px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+.fg-fall-on .fg-fall-value {
+  color: var(--ink);
+}
+/* The level a bar ends at, carried across the gap to the next bar. */
+.fg-fall-link {
+  position: absolute;
+  left: 82%;
+  width: 36%;
+  height: 2px;
+  margin-top: -1px;
+  background: repeating-linear-gradient(90deg, var(--ink-dim) 0 2px, transparent 2px 4px);
+  z-index: 1;
+}
+.fg-fall-axis {
+  display: grid;
+  margin-top: var(--space-1);
+  color: var(--ink-dim);
+  font: 400 10.5px/14px var(--font-mono);
+}
+.fg-fall-axis span {
+  overflow: hidden;
+  padding: 0 2px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-fall-axis .fg-fall-axis-total {
+  color: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------- Dumbbell */
+
+.fg-bell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+}
+.fg-bell-key {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+}
+.fg-bell-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fg-bell-key .fg-bell-dot {
+  position: static;
+  transform: none;
+}
+.fg-bell-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-bell-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 140px) 1fr minmax(112px, auto);
+  align-items: center;
+  gap: var(--space-3);
+}
+.fg-bell-label {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-bell-track {
+  position: relative;
+  height: 20px;
+  background: linear-gradient(var(--line), var(--line)) center / 100% 2px no-repeat;
+}
+.fg-bell-good {
+  --c: var(--fg-tone-good, var(--success));
+}
+.fg-bell-bad {
+  --c: var(--fg-tone-bad, var(--danger));
+}
+.fg-bell-flat {
+  --c: var(--fg-tone-flat, var(--ink-dim));
+}
+.fg-bell-span {
+  position: absolute;
+  top: 7px;
+  height: 6px;
+  background: repeating-linear-gradient(90deg, var(--c) 0 2px, transparent 2px 4px);
+}
+.fg-bell-dot {
+  position: absolute;
+  top: 50%;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+}
+.fg-bell-from {
+  box-shadow: inset 0 0 0 2px var(--fg-bell-from-c, var(--ink-muted));
+  background: var(--bg);
+}
+.fg-bell-to {
+  background: var(--fg-bell-to-c, var(--ink));
+}
+.fg-bell-row .fg-bell-to {
+  background: var(--c);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.fg-bell-key .fg-bell-to {
+  background: var(--fg-bell-to-c, var(--ink));
+}
+.fg-bell-value {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fg-bell-value b {
+  font-weight: 500;
+}
+.fg-bell-delta {
+  color: var(--c);
+}
+
+/* ---------------------------------------------------------------- DivergingBar */
+
+.fg-div {
+  margin: 0;
+  color: var(--ink);
+  font: 400 14px/20px var(--font-sans);
+}
+.fg-div-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-div-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 140px) 1fr minmax(64px, auto);
+  align-items: center;
+  gap: var(--space-3);
+}
+.fg-div-sides {
+  margin-bottom: var(--space-1);
+}
+.fg-div-side-names {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+}
+.fg-div-label {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* The zero in the middle, drawn down every row so the rows make one axis. */
+.fg-div-track {
+  position: relative;
+  height: 16px;
+  background: linear-gradient(var(--ink-muted), var(--ink-muted)) center / 2px 100% no-repeat;
+}
+/* The rows close up around the axis, so the zero reads as one line. */
+.fg-div-list .fg-div-track {
+  height: calc(16px + var(--space-2));
+  background-clip: content-box;
+  padding: 0;
+}
+.fg-div-list .fg-div-bar {
+  top: calc(var(--space-2) / 2);
+  bottom: calc(var(--space-2) / 2);
+}
+.fg-div-good {
+  --c: var(--fg-tone-good, var(--success));
+}
+.fg-div-bad {
+  --c: var(--fg-tone-bad, var(--danger));
+}
+.fg-div-flat {
+  --c: var(--fg-tone-flat, var(--ink-dim));
+}
+.fg-div-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.fg-div-up .fg-div-bar {
+  border-right: 2px solid var(--c);
+  background: repeating-linear-gradient(180deg, var(--c) 0 2px, transparent 2px 4px);
+}
+.fg-div-down .fg-div-bar {
+  border-left: 2px solid var(--c);
+  background: repeating-conic-gradient(var(--c) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+}
+.fg-div-value {
+  color: var(--c);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Histogram */
+
+.fg-hist {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font: 400 13px/20px var(--font-sans);
+}
+.fg-hist-ink {
+  fill: var(--fg-chart-c, var(--ink-muted));
+}
+.fg-hist-tail {
+  fill: var(--accent);
+}
+.fg-hist-lit {
+  fill: var(--ink);
+}
+.fg-hist-mark {
+  position: absolute;
+  bottom: 2px;
+  z-index: 2;
+  width: 2px;
+  margin-left: -1px;
+  background: repeating-linear-gradient(180deg, var(--ink) 0 2px, transparent 2px 4px);
+  pointer-events: none;
+}
+.fg-hist-mark-label {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  padding: 0 3px;
+  background: var(--bg);
+  color: var(--ink-muted);
+  font: 400 10.5px/14px var(--font-mono);
+  white-space: nowrap;
+}
+.fg-hist-mark-label b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.fg-hist-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  color: var(--ink-dim);
+  font: 400 10.5px/16px var(--font-mono);
+}
+.fg-hist-summary b {
+  color: var(--ink);
+  font-weight: 500;
+}
+.fg-hist-over b {
+  color: var(--accent);
+}

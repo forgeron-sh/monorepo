@@ -1,0 +1,21 @@
+---
+import EntryGrid from "../components/EntryGrid.astro";
+import Layout from "../components/Layout.astro";
+import { charts } from "../registry";
+---
+
+<Layout title="Charts — Forgeron UI" description="Pixel charts and shadcn's chart parts: a container with a config, a tooltip, a legend, bars, lines, donuts, gauges, funnels and heatmaps." page="charts">
+  <section class="rail">
+    <header class="sec-head">
+      <div class="sec-index" aria-hidden="true">/0.4</div>
+      <div class="sec-title">
+        <span class="tag"><b>Charts</b></span>
+        <h1 class="f-title f-h2">Figures,<br />in pixels.</h1>
+      </div>
+    </header>
+  </section>
+  <div class="rail spacer t-mono dim"><span>/0.4 → Every chart</span><span>[ Ready ]</span></div>
+  <section class="rail" aria-label="Ready charts">
+    <EntryGrid entries={charts} index="/0.4" />
+  </section>
+</Layout>
