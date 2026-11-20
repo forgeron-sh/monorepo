@@ -12,6 +12,12 @@ import { box, dot, glide, lerp3, seg } from "./parts";
 
 type Out = Block[];
 
+/** A deterministic pseudo-random in [0, 1) for a seed: positions, sizes. */
+const hash = (n: number) => {
+  const v = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return v - Math.floor(v);
+};
+
 /** A slab under a group, below everything else. */
 function plinth(out: Out, at: Vec3, size: Vec3): void {
   box(out, at, size, { tone: [0.03, 0.08, 0.16], layer: -2 });
@@ -252,9 +258,68 @@ function release(t: number): Block[] {
   return out;
 }
 
+/**
+ * The canvas engine's spatial index: items scattered over a grid of cells, and a camera's view
+ * sweeping across them. What the view covers stays solid; the rest is culled to dashed outlines.
+ * Every two seconds a probe drops from above onto the visible item nearest the view's centre, and
+ * the hit item lights up in ember.
+ */
+function spatialIndex(t: number): Block[] {
+  const out: Out = [...floorGrid(-20, 20, -16, 16, 4)];
+  plinth(out, [-20, -16, 0], [40, 32, 0.6]);
+  const Z = 0.6;
+  // The view: a rectangle on the floor, panning in a slow figure of eight.
+  const cx = Math.sin(t * 0.35) * 9;
+  const cy = Math.sin(t * 0.23) * 6;
+  const hw = 8;
+  const hd = 5.5;
+  const corners: Vec3[] = [
+    [cx - hw, cy - hd, Z + 0.05],
+    [cx + hw, cy - hd, Z + 0.05],
+    [cx + hw, cy + hd, Z + 0.05],
+    [cx - hw, cy + hd, Z + 0.05],
+  ];
+  for (let k = 0; k < 4; k++) seg(out, corners[k]!, corners[(k + 1) % 4]!, "ink", 4);
+
+  // The items, and which of them the view covers.
+  const visible: { at: Vec3; size: Vec3; d: number }[] = [];
+  const items: { at: Vec3; size: Vec3; seen: boolean }[] = [];
+  for (let k = 0; k < 46; k++) {
+    const w = 1.6 + hash(k + 90) * 2.6;
+    const d = 1.2 + hash(k + 130) * 2.2;
+    const h = 0.6 + hash(k + 170) * 2.4;
+    const x = -19 + hash(k) * (38 - w);
+    const y = -15 + hash(k + 50) * (30 - d);
+    const seen = x + w > cx - hw && x < cx + hw && y + d > cy - hd && y < cy + hd;
+    const item = { at: [x, y, Z] as Vec3, size: [w, d, h] as Vec3, seen };
+    items.push(item);
+    if (seen) visible.push({ ...item, d: Math.hypot(x + w / 2 - cx, y + d / 2 - cy) });
+  }
+
+  // The probe: every two seconds, the visible item nearest the centre is hit.
+  const P = 2;
+  const u = (t % P) / P;
+  visible.sort((a, b) => a.d - b.d);
+  const target = visible[0];
+  for (const it of items) {
+    const hit = target !== undefined && it.at === target.at && u > 0.45;
+    box(out, it.at, it.size, it.seen ? { floors: it.size[2] / 2, accent: hit } : { ghost: true });
+  }
+  if (target) {
+    const [x, y] = target.at;
+    const [w, d, h] = target.size;
+    const top = Z + h;
+    const z = u < 0.45 ? top + (1 - glide(u / 0.45)) * 9 : top + 0.1;
+    seg(out, [x + w / 2, y + d / 2, top + 9], [x + w / 2, y + d / 2, z], "faint", 2);
+    dot(out, [x + w / 2, y + d / 2, z], "accent", 3);
+  }
+  return out;
+}
+
 export const BLOG_SCENES: Record<string, (t: number, active: number) => Block[]> = {
   manifesto,
   press,
   "modules-out": modulesOut,
   release,
+  "spatial-index": spatialIndex,
 };
