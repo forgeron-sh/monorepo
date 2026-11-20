@@ -38,13 +38,14 @@ const CLICK_SIZE: Record<ShapeKind, { w: number; h: number }> = {
 };
 
 const shapeView: KindView = {
-  overlay: (item) => !!(item.data as ShapeData).text,
+  // The GPU draws the label; the DOM holds the field while it is typed, and the label in the DOM
+  // view of an editor without the GPU.
   content(item, o) {
     const d = item.data as ShapeData;
     const edit = o.editing;
     return edit ? (
       <EditField {...edit} className="fgd-label fgd-field" label="Shape label" />
-    ) : d.text ? (
+    ) : d.text && !o.overlay ? (
       <div className="fgd-label">
         <span>{d.text}</span>
       </div>

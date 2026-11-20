@@ -8,7 +8,7 @@ import { colorCss } from "../core/palette";
 import { definePlugin, type KindSpec } from "../core/plugin";
 import { readCommon, readFill, readStroke, str, type Raw } from "../core/parse";
 import { DEFAULT_FILL, DEFAULT_STROKE, type DrawStyle } from "../core/style";
-import { gpuFill, gpuStroke } from "../core/gpu";
+import { gpuFill, gpuStroke, gpuText, type GpuOptions } from "../core/gpu";
 import { fillOf, n, strokeAttrs, textLines, wash, type SvgNode } from "../core/svg";
 import type { DrawData, DrawItem, ShapeData, ShapeKind } from "../core/types";
 
@@ -122,10 +122,24 @@ function farShape(item: DrawItem, frame?: Bounds): FarPrimitive[] {
   ];
 }
 
-/** The shape on the GPU: its fill (solid, pattern, opacity) and its stroke inside its box. */
-function gpuShape(item: DrawItem, frame?: Bounds): FarPrimitive[] {
+/**
+ * The shape on the GPU: its fill (solid, pattern, opacity), its stroke inside its box, its label
+ * centred in it (8 units in), as the DOM's label.
+ */
+function gpuShape(item: DrawItem, frame?: Bounds, options?: GpuOptions): FarPrimitive[] {
   const d = item.data as ShapeData;
   const type = item.kind === "ellipse" ? "ellipse" : item.kind === "diamond" ? "diamond" : "rect";
+  const label =
+    options?.words === false || !d.text
+      ? null
+      : gpuText(d.text, item.bounds, {
+          size: 14,
+          color: colorCss("ink"),
+          align: "center",
+          middle: true,
+          padding: 8,
+          ...(frame ? { frame } : {}),
+        });
   return [
     {
       type,
@@ -135,6 +149,7 @@ function gpuShape(item: DrawItem, frame?: Bounds): FarPrimitive[] {
       crisp: type === "rect",
       ...(frame ? { clip: frame } : {}),
     },
+    ...(label ? [label] : []),
   ];
 }
 

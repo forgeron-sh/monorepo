@@ -10,6 +10,7 @@
 // brings. The registry composes a list of core halves: every function of the core takes that list.
 
 import type { Bounds, FarPrimitive, ItemChange, KindDefinition, KindMap } from "@forgeron/canvas";
+import type { GpuOptions } from "./gpu";
 import type { PaintOptions, SvgNode } from "./svg";
 import type { DrawData, DrawItem } from "./types";
 
@@ -35,11 +36,11 @@ export interface KindSpec {
   /** What the item looks like from far, as canvas far primitives (zoom under `FAR_ZOOM`). */
   far?(item: DrawItem, frame?: Bounds): FarPrimitive[];
   /**
-   * The item on the GPU at every zoom, as canvas primitives: the same drawing as `paint`, words
-   * left out (the DOM shows them over it from `FAR_ZOOM` up). `frame` is the bounds of the frame
-   * that clips it. A kind without it is drawn in the DOM by `paint`.
+   * The item on the GPU at every zoom, as canvas primitives: the same drawing as `paint`, its words
+   * as glyphs (`gpuText`) unless `options.words` is false (its field is open over it). `frame` is
+   * the bounds of the frame that clips it. A kind without it is drawn in the DOM by `paint`.
    */
-  gpu?(item: DrawItem, frame?: Bounds): FarPrimitive[];
+  gpu?(item: DrawItem, frame?: Bounds, options?: GpuOptions): FarPrimitive[];
   /** Its box hides what lies under it (a sticky note, an image): the words under it are cut. */
   opaque?(item: DrawItem): boolean;
   /** The words an item holds, for its accessible name. */

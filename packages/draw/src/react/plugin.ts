@@ -113,7 +113,8 @@ export interface KindView {
   };
   /**
    * With the GPU drawing it: whether the item shows something in the DOM over that drawing from
-   * `FAR_ZOOM` up (its words, a name). The DOM holds only the items that do.
+   * `FAR_ZOOM` up (rich content a kind cannot draw on the GPU). The DOM holds only the items that
+   * do. The built-in kinds draw their words on the GPU (`gpuText`) and say no.
    */
   overlay?(item: DrawItem): boolean;
   /** Stays in the DOM when the board is seen from far while it is the single selected item. */

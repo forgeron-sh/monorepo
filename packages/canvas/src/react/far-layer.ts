@@ -1,8 +1,9 @@
 // The GPU layer: every primitive of the GPU view on one surface under the DOM items. WebGL2 draws
 // the packed instances in one instanced call per layer and per run between images (a pan or a
 // zoom sets three uniforms); a 2D canvas draws the same instances when WebGL2 is missing or its
-// context is lost. Texts big enough to read go on a 2D canvas above it, redrawn with the camera
-// only while there are some.
+// context is lost. Glyphs are instances too, sampled from an atlas (`glyph-atlas.ts`), so words
+// lie in the order of the drawing. Single-line `text` primitives (flow's names) big enough to read
+// go on a 2D canvas above it, redrawn with the camera only while there are some.
 
 import {
   createFarPack,
@@ -13,12 +14,15 @@ import {
   parseCssColor,
   resetFarPack,
   type FarColor,
+  type FarGlyphs,
   type FarPack,
   type FarPrimitive,
   type FarRgba,
   type FarText,
 } from "../core/far";
 import type { Size, Viewport } from "../core/types";
+import { createGlyphAtlas, GLYPH_ROW, type GlyphAtlas } from "./glyph-atlas";
+import { textMetrics } from "./text-metrics";
 
 /** The layers of the GPU view, drawn in this order: under the items, the items, the chrome. */
 export type FarLayerName = "below" | "items" | "chrome";
@@ -55,6 +59,7 @@ layout(location = 7) in vec4 a_pat;
 uniform vec3 u_view;
 uniform vec2 u_size;
 uniform float u_dpr;
+uniform highp sampler2D u_glyphs;
 out vec2 v_p;
 out vec2 v_dev;
 flat out vec4 v_a;
@@ -91,7 +96,40 @@ void main() {
   float unit = a_g1.y > 0.5 ? u_dpr : scale;
   v_dash = vec4(a_dash.xyz * unit, a_dash.w);
   vec2 pos;
-  if (kind < 2.5 || kind > 4.5) {
+  if (kind > 5.5) {
+    // A glyph: its cell in the atlas. Rasterised at this very size, it lands on whole device
+    // pixels at the quarter-pixel phase of its pen, as the DOM's text does; another size of it
+    // (the zoom is moving) is scaled until this one is ready.
+    int id = int(a_g0.w + 0.5);
+    ivec2 at = ivec2((id % ${GLYPH_ROW}) * 8, id / ${GLYPH_ROW});
+    vec4 info = texelFetch(u_glyphs, at + ivec2(4, 0), 0);
+    if (info.w < 0.5) {
+      gl_Position = vec4(-2.0, -2.0, 0.0, 1.0);
+      v_dev = vec2(0.0);
+      v_clip = vec4(0.0);
+      return;
+    }
+    // The line's top on a device pixel of the unscaled page, as the DOM lays it out.
+    vec2 o = dev(vec2(a_g0.x, floor(a_g0.y * u_dpr + 0.5) / u_dpr + a_g1.x));
+    float k = a_g0.z * scale / info.z;
+    vec4 r;
+    vec2 p0;
+    vec2 sz;
+    if (abs(k - 1.0) < 1e-4) {
+      float qx = floor(o.x * info.w + 0.5) / info.w;
+      float ix = floor(qx);
+      int phase = min(int((qx - ix) * info.w + 0.5), int(info.w + 0.5) - 1);
+      r = texelFetch(u_glyphs, at + ivec2(phase, 0), 0);
+      p0 = vec2(ix, floor(o.y + 0.5)) + info.xy;
+      sz = r.zw;
+    } else {
+      r = texelFetch(u_glyphs, at, 0);
+      p0 = o + info.xy * k;
+      sz = r.zw * k;
+    }
+    pos = p0 + q * sz;
+    v_p = r.xy + q * r.zw;
+  } else if (kind < 2.5 || kind > 4.5) {
     vec2 p0;
     vec2 p1;
     if ((flags & ${FAR_FLAG.chrome}) != 0) {
@@ -169,6 +207,8 @@ flat in float v_kind;
 uniform vec3 u_view;
 uniform float u_dpr;
 uniform sampler2D u_image;
+uniform sampler2D u_atlas;
+uniform vec2 u_atlasSize;
 uniform bool u_stencil;
 out vec4 o;
 float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
@@ -251,6 +291,11 @@ float sdTriangle(vec2 p, vec2 p0, vec2 p1, vec2 p2) {
 void main() {
   if (v_dev.x < v_clip.x || v_dev.y < v_clip.y || v_dev.x > v_clip.z || v_dev.y > v_clip.w) discard;
   float kind = v_kind;
+  if (kind > 5.5) {
+    float a = texture(u_atlas, v_p / u_atlasSize).a * v_fill.a;
+    o = vec4(v_fill.rgb * a, a);
+    return;
+  }
   if (kind > 4.5) {
     vec2 h = max(v_a.xy, vec2(1e-3));
     float c = cov(abs(v_p.x) - h.x) * cov(abs(v_p.y) - h.y);
@@ -354,7 +399,17 @@ interface GlState {
     dpr: WebGLUniformLocation | null;
     image: WebGLUniformLocation | null;
     stencil: WebGLUniformLocation | null;
+    atlas: WebGLUniformLocation | null;
+    atlasSize: WebGLUniformLocation | null;
+    glyphs: WebGLUniformLocation | null;
   };
+  /** The glyphs' pixels (alpha) and where each glyph is in them (a float table). */
+  atlas: WebGLTexture;
+  glyphs: WebGLTexture;
+  /** Rows the glyph table texture holds; -1 before its first upload. */
+  glyphRows: number;
+  /** The atlas texture holds pixels (it is allocated). */
+  atlasReady: boolean;
   layers: Record<FarLayerName, GlBuffer>;
   /** A small buffer for the polygons' triangles and covers. */
   scratch: GlBuffer;
@@ -412,6 +467,19 @@ function initGl(canvas: HTMLCanvasElement): GlState | null {
     const blank = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, blank);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    const texture = (filter: number) => {
+      const t = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return t;
+    };
+    const atlas = texture(gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    const glyphs = texture(gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 1, 1, 0, gl.RGBA, gl.FLOAT, new Float32Array(4));
     return {
       gl,
       program: prog,
@@ -421,7 +489,14 @@ function initGl(canvas: HTMLCanvasElement): GlState | null {
         dpr: gl.getUniformLocation(prog, "u_dpr"),
         image: gl.getUniformLocation(prog, "u_image"),
         stencil: gl.getUniformLocation(prog, "u_stencil"),
+        atlas: gl.getUniformLocation(prog, "u_atlas"),
+        atlasSize: gl.getUniformLocation(prog, "u_atlasSize"),
+        glyphs: gl.getUniformLocation(prog, "u_glyphs"),
       },
+      atlas,
+      glyphs,
+      glyphRows: -1,
+      atlasReady: false,
       layers: { below: make(), items: make(), chrome: make() },
       scratch: make(),
       blank,
@@ -467,6 +542,8 @@ interface Draw2dContext {
   color: (c: FarRgba) => string;
   pattern: (bits: number, fill: FarRgba) => CanvasPattern | null;
   image: (src: string) => CanvasImageSource | null;
+  /** A glyph's CSS font at `px` pixels and its cluster. */
+  glyph: (id: number, px: number) => { font: string; text: string } | null;
 }
 
 /** The same instances on a 2D canvas: slower per frame, for when WebGL2 is not there. */
@@ -503,6 +580,18 @@ function draw2d(packs: ReadonlyArray<FarPack>, k: Draw2dContext) {
         ctx.clip();
       }
       const dash = d[o + 16]! > 0 && d[o + 17]! > 0;
+      if (kind === FAR_KIND.glyph) {
+        // The same glyph, drawn by the same rasteriser at its pen.
+        const g = k.glyph(d[o + 3]!, d[o + 2]! * z);
+        if (g) {
+          if (ctx.font !== g.font) ctx.font = g.font;
+          ctx.textBaseline = "alphabetic";
+          ctx.fillStyle = color(u[o + 10]!);
+          ctx.fillText(g.text, sx(d[o]!), sy(Math.round(d[o + 1]! * dpr) / dpr + d[o + 4]!));
+        }
+        if (clipped) ctx.restore();
+        continue;
+      }
       if (kind === FAR_KIND.segment) {
         let w = d[o + 4]! * unit;
         let alpha = 1;
@@ -640,6 +729,33 @@ export function createFarLayer(host: HTMLElement): FarLayer {
   host.append(canvas);
   let gl = initGl(canvas);
   let ctx2d: CanvasRenderingContext2D | null = null;
+  const metrics = textMetrics(host);
+  // A glyph's cells go straight to the texture of the WebGL2 surface (the 2D one draws text).
+  const toTexture = (x: number, y: number, w: number, h: number, source: HTMLCanvasElement) => {
+    const s = gl;
+    if (!s) return;
+    const g = s.gl;
+    g.bindTexture(g.TEXTURE_2D, s.atlas);
+    if (!s.atlasReady || atlas.dirty.cleared) {
+      const n = atlas.size;
+      g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, n, n, 0, g.RGBA, g.UNSIGNED_BYTE, null);
+      s.atlasReady = true;
+      atlas.dirty.cleared = false;
+    }
+    // The run's pixels only: uploading the canvas itself would copy all of it each time.
+    const c = source.getContext("2d", { willReadFrequently: true });
+    const img = c?.getImageData(0, 0, w, h);
+    if (img) g.texSubImage2D(g.TEXTURE_2D, 0, x, y, w, h, g.RGBA, g.UNSIGNED_BYTE, img.data);
+  };
+  const atlas: GlyphAtlas = createGlyphAtlas(host, metrics, toTexture);
+  const glyphSource = !!metrics;
+  /** Glyphs laid out per pack at most: the rest a frame later. */
+  const GLYPHS_PER_PACK = 3000;
+  // Packed words, by primitive: dropped with the fonts or the theme's colours.
+  let glyphCache = new WeakMap<
+    FarGlyphs,
+    { data: Uint32Array; ids: ReadonlyMap<number, number> }
+  >();
   const colorStrings = new Map<number, string>();
 
   const fallback = () => {
@@ -653,6 +769,7 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     gl = null;
     for (const img of images.values()) img.texture = null;
     ctx2d = canvas.getContext("2d");
+    atlas.reset();
     sized = "";
   };
   if (!gl) ctx2d = canvas.getContext("2d");
@@ -770,12 +887,29 @@ export function createFarLayer(host: HTMLElement): FarLayer {
   const uploaded: Record<FarLayerName, number> = { below: -1, items: -1, chrome: -1 };
   const versions: Record<FarLayerName, number> = { below: 0, items: 0, chrome: 0 };
   const repack = (layer: FarLayerName) => {
-    packFar(resetFarPack(packs[layer]), sources[layer], { resolve, measure });
+    packFar(resetFarPack(packs[layer]), sources[layer], {
+      resolve,
+      measure,
+      ...(last ? { zoom: last.viewport.zoom } : {}),
+      ...(glyphSource
+        ? {
+            glyphs: {
+              advance: metrics!.advance,
+              kern: metrics!.kern,
+              baseline: metrics!.baseline,
+              id: atlas.id,
+              cache: glyphCache,
+              budget: GLYPHS_PER_PACK,
+            },
+          }
+        : {}),
+    });
     versions[layer] = ++version;
   };
 
   let visible = false;
   let sized = "";
+  let again = 0;
   let last: { viewport: Viewport; size: Size } | null = null;
 
   const sizeTo = (el: HTMLCanvasElement, size: Size, dpr: number) => {
@@ -986,8 +1120,98 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     g.disable(g.STENCIL_TEST);
   };
 
+  /* ---- glyphs: rasterised for the zoom of the moment, exactly once it rests */
+
+  let lastZoom = Number.NaN;
+  let movedAt = 0;
+  let settleTimer: ReturnType<typeof setTimeout> | null = null;
+  let more = 0;
+  const SETTLE_MS = 150;
+  /** Milliseconds of rasterising glyphs a frame at most. */
+  const GLYPH_BUDGET = 2;
+  /** Fills the atlas for this frame; asks for another frame while some is left. */
+  const prepareGlyphs = (viewport: Viewport, dpr: number) => {
+    const now = performance.now();
+    if (viewport.zoom !== lastZoom) {
+      lastZoom = viewport.zoom;
+      movedAt = now;
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
+        settleTimer = null;
+        redraw();
+      }, SETTLE_MS);
+    }
+    const settled = now - movedAt >= SETTLE_MS - 5;
+    let needed: Map<number, number> | null = null;
+    for (const layer of LAYERS) {
+      const ids = packs[layer].glyphs;
+      if (!ids.size) continue;
+      if (!needed) needed = ids;
+      else {
+        if (needed === packs.below.glyphs || needed === packs.items.glyphs)
+          needed = new Map(needed);
+        for (const [id, z] of ids) if ((needed.get(id) ?? Infinity) > z) needed.set(id, z);
+      }
+    }
+    if (!needed) return;
+    const left = atlas.prepare(needed, viewport.zoom, viewport.zoom * dpr, settled, GLYPH_BUDGET);
+    if (left && !more)
+      more =
+        win?.requestAnimationFrame(() => {
+          more = 0;
+          redraw();
+        }) ?? 0;
+  };
+
+  const uploadGlyphs = (s: GlState) => {
+    const g = s.gl;
+    const dirty = atlas.dirty;
+    if (dirty.cleared && s.atlasReady) {
+      // Started again with nothing drawn yet: transparent.
+      const n = atlas.size;
+      g.bindTexture(g.TEXTURE_2D, s.atlas);
+      g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, n, n, 0, g.RGBA, g.UNSIGNED_BYTE, null);
+      dirty.cleared = false;
+    }
+    const rows = atlas.rows;
+    const width = GLYPH_ROW * 8;
+    g.bindTexture(g.TEXTURE_2D, s.glyphs);
+    if (rows !== s.glyphRows) {
+      g.texImage2D(
+        g.TEXTURE_2D,
+        0,
+        g.RGBA32F,
+        width,
+        rows,
+        0,
+        g.RGBA,
+        g.FLOAT,
+        atlas.table.subarray(0, width * rows * 4),
+      );
+      s.glyphRows = rows;
+    } else {
+      for (const r of dirty.rows) {
+        if (r >= rows) continue;
+        g.texSubImage2D(
+          g.TEXTURE_2D,
+          0,
+          0,
+          r,
+          width,
+          1,
+          g.RGBA,
+          g.FLOAT,
+          atlas.table.subarray(r * width * 4, (r + 1) * width * 4),
+        );
+      }
+    }
+    atlas.clean();
+  };
+
   const drawGl = (s: GlState, viewport: Viewport, size: Size, dpr: number) => {
     const g = s.gl;
+    prepareGlyphs(viewport, dpr);
+    uploadGlyphs(s);
     g.viewport(0, 0, canvas.width, canvas.height);
     g.clearColor(0, 0, 0, 0);
     g.clearStencil(0);
@@ -999,6 +1223,13 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     g.uniform2f(s.u.size, size.w, size.h);
     g.uniform1f(s.u.dpr, dpr);
     g.uniform1i(s.u.stencil, 0);
+    g.activeTexture(g.TEXTURE1);
+    g.bindTexture(g.TEXTURE_2D, s.atlas);
+    g.uniform1i(s.u.atlas, 1);
+    g.uniform2f(s.u.atlasSize, atlas.size, atlas.size);
+    g.activeTexture(g.TEXTURE2);
+    g.bindTexture(g.TEXTURE_2D, s.glyphs);
+    g.uniform1i(s.u.glyphs, 2);
     g.activeTexture(g.TEXTURE0);
     g.uniform1i(s.u.image, 0);
     g.bindTexture(g.TEXTURE_2D, s.blank);
@@ -1041,6 +1272,21 @@ export function createFarLayer(host: HTMLElement): FarLayer {
 
   const draw = (viewport: Viewport, size: Size) => {
     last = { viewport, size };
+    // Words come in or go out of their zoom range: that layer is packed again (copies, mostly).
+    let partial = false;
+    for (const layer of LAYERS) {
+      const band = packs[layer].band;
+      if (viewport.zoom < band[0] || viewport.zoom >= band[1]) repack(layer);
+      partial ||= packs[layer].partial;
+    }
+    // Words left out for the budget: packed again next frame, with more of them laid out.
+    if (partial && !again)
+      again =
+        win?.requestAnimationFrame(() => {
+          again = 0;
+          for (const layer of LAYERS) if (packs[layer].partial) repack(layer);
+          redraw();
+        }) ?? 0;
     if (!visible || !size.w || !size.h) return;
     const dpr = win?.devicePixelRatio || 1;
     const key = `${size.w}x${size.h}@${dpr}`;
@@ -1072,6 +1318,8 @@ export function createFarLayer(host: HTMLElement): FarLayer {
           const img = imageOf(src);
           return img.ready ? img.el : null;
         },
+        glyph: (id, px) =>
+          metrics ? { font: metrics.css(atlas.font(id), px), text: atlas.cluster(id) } : null,
       });
     }
     drawTexts(viewport, size, dpr);
@@ -1084,11 +1332,19 @@ export function createFarLayer(host: HTMLElement): FarLayer {
 
   const refresh = () => {
     palette = new Map();
+    glyphCache = new WeakMap();
     fonts = null;
     patterns.clear();
     for (const layer of LAYERS) repack(layer);
     redraw();
   };
+  // A font has loaded: glyphs move and look different.
+  const unsubscribe = metrics?.subscribe(() => {
+    atlas.reset();
+    glyphCache = new WeakMap();
+    for (const layer of LAYERS) repack(layer);
+    redraw();
+  });
   const observer = typeof MutationObserver === "undefined" ? null : new MutationObserver(refresh);
   observer?.observe(doc.documentElement, {
     attributes: true,
@@ -1116,6 +1372,10 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     draw,
     show,
     destroy() {
+      unsubscribe?.();
+      if (settleTimer) clearTimeout(settleTimer);
+      if (more) win?.cancelAnimationFrame(more);
+      if (again) win?.cancelAnimationFrame(again);
       observer?.disconnect();
       media?.removeEventListener?.("change", refresh);
       canvas.removeEventListener("webglcontextlost", onLost);
@@ -1127,9 +1387,12 @@ export function createFarLayer(host: HTMLElement): FarLayer {
         }
         for (const img of images.values()) if (img.texture) g.deleteTexture(img.texture);
         g.deleteTexture(gl.blank);
+        g.deleteTexture(gl.atlas);
+        g.deleteTexture(gl.glyphs);
         g.deleteProgram(gl.program);
       }
       canvas.remove();
+      atlas.destroy();
       text?.remove();
       probe.remove();
       gl = null;

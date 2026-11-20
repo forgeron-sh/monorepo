@@ -78,29 +78,29 @@ A plugin has two halves in two entry points, so a read-only place (the SVG expor
 
 **The core half** (`DrawPlugin`, framework-free: no React, canvas React layer or ui): `id`, `name`, `description`, `requires` (ids of plugins that must be in the list), and
 
-| Field         | A plugin adds                                                                                                                                                                                   |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `kinds`       | item kinds (`KindSpec`): its `data.type`, the canvas hit test and resize rule, `parse` (JSON validation), `paint` (SVG), `far`, `gpu` (the drawing on the GPU at every zoom), `opaque`, `words` |
-| `engineRules` | hooks run inside the one undo step: `carry`, `remove`, `settle`, `follow` after a change, `select`, `copy` on those commands                                                                    |
-| `json`        | `migrate`: old kinds it still reads, turned into current items                                                                                                                                  |
-| `svg`         | what it adds to the SVG export: the items a frame brings (`scope`), `standalone`, clip paths (`layer`)                                                                                          |
-| `exports`     | ways out of the board (`ExportSpec`: id, name, mime, extension, `run`; to a file or the clipboard)                                                                                              |
+| Field         | A plugin adds                                                                                                                                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kinds`       | item kinds (`KindSpec`): its `data.type`, the canvas hit test and resize rule, `parse` (JSON validation), `paint` (SVG), `far`, `gpu` (the drawing on the GPU at every zoom, words included: `gpuText`), `opaque`, `words` |
+| `engineRules` | hooks run inside the one undo step: `carry`, `remove`, `settle`, `follow` after a change, `select`, `copy` on those commands                                                                                               |
+| `json`        | `migrate`: old kinds it still reads, turned into current items                                                                                                                                                             |
+| `svg`         | what it adds to the SVG export: the items a frame brings (`scope`), `standalone`, clip paths (`layer`)                                                                                                                     |
+| `exports`     | ways out of the board (`ExportSpec`: id, name, mime, extension, `run`; to a file or the clipboard)                                                                                                                         |
 
 **The editor half** (`EditorPlugin`): `core`, and what it contributes to the **slots** of the editor:
 
-| Slot       | A plugin adds                                                                                                      | Drawn by                          |
-| ---------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
-| `tools`    | tools (id, key, cursor, pointer handlers, dock icon): `(ctx) => ToolSpec[]`                                        | the dock (`toolbar`)              |
-| `kinds`    | how a kind looks in the DOM: content, style, far view, `overlay` (words over the GPU drawing), text typed in place | the editor                        |
-| `panels`   | an inspector panel for a `data.type` (fill, stroke, colour, text...)                                               | `inspector`                       |
-| `menu`     | buttons of the action rows (group, lock, align, export...), with `section`                                         | `inspector`                       |
-| `toolbar`  | buttons of the dock that are not tools (the image picker)                                                          | `toolbar`                         |
-| `keys`     | shortcuts, before the canvas sees them (`capture`) or after                                                        | the editor                        |
-| `overlays` | layers above the items (the pen's preview, what the eraser will remove)                                            | the editor                        |
-| `connect`  | dragging an item's end onto another item (an arrow's end)                                                          | the editor                        |
-| `surface`  | a double click on the empty board; `drop`: files dropped on the editor                                             | the editor                        |
-| `exports`  | exports that need a browser (the PNG), `prepareExport` (images inlined)                                            | the editor                        |
-| `ui`       | components next to the canvas: the interface plugins draw the dock, the panel                                      | `toolbar`, `inspector`, `minimap` |
+| Slot       | A plugin adds                                                                                                                                    | Drawn by                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| `tools`    | tools (id, key, cursor, pointer handlers, dock icon): `(ctx) => ToolSpec[]`                                                                      | the dock (`toolbar`)              |
+| `kinds`    | how a kind looks in the DOM: content, style, far view, `overlay` (DOM content over the GPU drawing, for kinds that need it), text typed in place | the editor                        |
+| `panels`   | an inspector panel for a `data.type` (fill, stroke, colour, text...)                                                                             | `inspector`                       |
+| `menu`     | buttons of the action rows (group, lock, align, export...), with `section`                                                                       | `inspector`                       |
+| `toolbar`  | buttons of the dock that are not tools (the image picker)                                                                                        | `toolbar`                         |
+| `keys`     | shortcuts, before the canvas sees them (`capture`) or after                                                                                      | the editor                        |
+| `overlays` | layers above the items (the pen's preview, what the eraser will remove)                                                                          | the editor                        |
+| `connect`  | dragging an item's end onto another item (an arrow's end)                                                                                        | the editor                        |
+| `surface`  | a double click on the empty board; `drop`: files dropped on the editor                                                                           | the editor                        |
+| `exports`  | exports that need a browser (the PNG), `prepareExport` (images inlined)                                                                          | the editor                        |
+| `ui`       | components next to the canvas: the interface plugins draw the dock, the panel                                                                    | `toolbar`, `inspector`, `minimap` |
 
 Without the plugin that draws a slot (`toolbar`, `inspector`, `minimap`), that part of the interface is simply not there; the keys of the tools work without the dock. A duplicate id, a missing dependency, a cycle, two plugins that own a kind or an export are refused with a `PluginError`. The body of the editor is rebuilt when the list changes, because the interface plugins hold the editor they were given (`EditorContext`).
 

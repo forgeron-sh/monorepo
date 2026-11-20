@@ -110,7 +110,8 @@ describe("<DrawEditor> tools", () => {
     expect(text?.data).toMatchObject({ type: "text", text: "Hello board, a longer line" });
     expect(text!.bounds.w).toBeGreaterThan(200);
     expect(surface.querySelector("textarea")).toBeNull();
-    expect(surface.querySelector(".fgd-text")?.textContent).toBe("Hello board, a longer line");
+    // Typing ended: the GPU draws the words, the DOM holds no text of its own.
+    expect(surface.querySelector(".fgd-text")).toBeNull();
     // Adding and typing are one step.
     await act(async () => store.undo());
     expect(store.getState().items).toHaveLength(0);

@@ -6,14 +6,20 @@
 
 import type { Bounds, FarPrimitive } from "@forgeron/canvas";
 import { registryOf } from "./defaults";
+import type { GpuOptions } from "./gpu";
 import type { Plugins } from "./plugin";
 import type { DrawItem } from "./types";
 
 export { FAR_ZOOM } from "./text";
 
 /** The GPU primitives of an item at every zoom, from its kind (`KindSpec.gpu`). */
-export function gpuPrimitives(item: DrawItem, frame?: Bounds, plugins?: Plugins): FarPrimitive[] {
-  return registryOf(plugins).kind(item.kind)?.gpu?.(item, frame) ?? [];
+export function gpuPrimitives(
+  item: DrawItem,
+  frame?: Bounds,
+  plugins?: Plugins,
+  options?: GpuOptions,
+): FarPrimitive[] {
+  return registryOf(plugins).kind(item.kind)?.gpu?.(item, frame, options) ?? [];
 }
 
 /** The far primitives of an item; `frame` is the bounds of the frame that clips it. */

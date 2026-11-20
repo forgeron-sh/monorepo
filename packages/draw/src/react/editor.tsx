@@ -4,11 +4,18 @@
 // and the minimap are plugins too; the zoom controls are the canvas's. The editor itself only hosts.
 
 import { screenToWorld, type ConnectionEnd, type Item, type Point } from "@forgeron/canvas";
-import { Canvas, useCanvasState, ZoomControls, type FarDraw } from "@forgeron/canvas/react";
+import {
+  Canvas,
+  textMetrics,
+  useCanvasState,
+  ZoomControls,
+  type FarDraw,
+} from "@forgeron/canvas/react";
 import { matchShortcut } from "@forgeron/ui";
 import {
   useCallback,
   useId,
+  useLayoutEffect,
   useRef,
   useMemo,
   useState,
@@ -21,6 +28,7 @@ import { FAR_ZOOM } from "../core/far";
 import { registryOf } from "../core/defaults";
 import type { Plugins } from "../core/plugin";
 import { DEFAULT_STYLE, type DrawStyle } from "../core/style";
+import { setTextMetrics } from "../core/text";
 import type { DrawData, DrawItem } from "../core/types";
 import { editorPresets } from "../plugins/editor/presets";
 import { download, fileName, tokenReader } from "./export";
@@ -126,6 +134,18 @@ function DrawEditorBody({
   // the text being typed, the counter of merge keys.
   const [live] = useState(() => createSession<DrawStyle, Editing>(style));
   const [signals] = useState(() => new Map<string, Signal<unknown>>());
+
+  // Texts are laid out with the metrics of the fonts the page uses, as the DOM would lay them out:
+  // the GPU's words, the heights of notes and texts, the export. Again when a font has loaded.
+  const [textVersion, setTextVersion] = useState(0);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const metrics = root ? textMetrics(root) : null;
+    if (!metrics) return;
+    setTextMetrics(metrics);
+    setTextVersion((v) => v + 1);
+    return metrics.subscribe(() => setTextVersion((v) => v + 1));
+  }, []);
 
   const items = useCanvasState(store, (s) => s.items) as ReadonlyArray<DrawItem>;
   const selection = useCanvasState(store, (s) => s.selection);
@@ -329,19 +349,21 @@ function DrawEditorBody({
     ],
   );
 
-  // Every kind that has a GPU drawing is on the GPU at every zoom (`KindSpec.gpu`); a kind without
-  // one is drawn in the DOM by its paint. The DOM holds the words over the drawing from `FAR_ZOOM`
-  // up (`KindView.overlay`), the item being typed and the selected item that keeps its DOM (an
-  // arrow's ends).
+  // Every kind that has a GPU drawing is on the GPU at every zoom (`KindSpec.gpu`), its words
+  // included; a kind without one is drawn in the DOM by its paint. The DOM holds the item being
+  // typed (its field: the GPU leaves its words out), the selected item that keeps its DOM (an
+  // arrow's ends), and what a third-party kind shows over its drawing (`KindView.overlay`).
   const gpuKinds = useMemo(() => {
+    void textVersion;
     const kinds: Record<string, FarDraw<DrawData>> = {};
     for (const id of registry.kindIds) {
       const spec = registry.kind(id);
       if (!spec?.gpu) continue;
-      kinds[id] = (item) => spec.gpu!(item as DrawItem, clipOf(item));
+      kinds[id] = (item, { kept }) =>
+        spec.gpu!(item as DrawItem, clipOf(item), kept ? { words: false } : undefined);
     }
     return kinds;
-  }, [registry, clipOf]);
+  }, [registry, clipOf, textVersion]);
   const overlay = useCallback(
     (item: Item<DrawData>) => slots.kinds.get(item.kind)?.overlay?.(item as DrawItem) ?? false,
     [slots],

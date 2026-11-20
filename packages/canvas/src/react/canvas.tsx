@@ -67,7 +67,8 @@ export interface RenderItemState {
 /** How an item of a kind looks from far: primitives in world units, none for nothing. */
 export type FarDraw<D> = (
   item: Item<D>,
-  state: { selected: boolean },
+  /** `kept`: the item is in `far.keep`, its DOM shows what it holds (a field being typed). */
+  state: { selected: boolean; kept: boolean },
 ) => ReadonlyArray<FarPrimitive> | null;
 
 /**
@@ -1014,7 +1015,11 @@ export function Canvas<D = unknown>({
   // Each item's primitives, kept while the item and the kinds stay the same objects.
   const farCache = useMemo(
     () =>
-      farKinds && new WeakMap<Item<D>, { selected: boolean; prims: ReadonlyArray<FarPrimitive> }>(),
+      farKinds &&
+      new WeakMap<
+        Item<D>,
+        { selected: boolean; kept: boolean; prims: ReadonlyArray<FarPrimitive> }
+      >(),
     [farKinds],
   );
   const farItems = useMemo(() => {
@@ -1023,19 +1028,25 @@ export function Canvas<D = unknown>({
     const cache = farCache;
     const list = isFar || gpuAll ? culled : target.filter((i) => !shownIds.has(i.id));
     const out: Array<FarPrimitive & { outset?: number }> = [];
+    const kept = keepKey ? new Set(keepKey.split("\n")) : null;
     for (const item of list) {
       const drawFar = farKinds[item.kind];
       if (!drawFar) continue;
       const sel = selection.has(item.id);
+      const keep = !!kept?.has(item.id);
       let hit = cache.get(item);
-      if (!hit || hit.selected !== sel) {
-        hit = { selected: sel, prims: drawFar(item, { selected: sel }) ?? NO_FAR };
+      if (!hit || hit.selected !== sel || hit.kept !== keep) {
+        hit = {
+          selected: sel,
+          kept: keep,
+          prims: drawFar(item, { selected: sel, kept: keep }) ?? NO_FAR,
+        };
         cache.set(item, hit);
       }
       for (const p of hit.prims) out.push(p);
     }
     return out;
-  }, [farKinds, farCache, isFar, phase, gpuAll, culled, target, shownIds, selection]);
+  }, [farKinds, farCache, isFar, phase, gpuAll, culled, target, shownIds, selection, keepKey]);
 
   // The selection on the GPU: its outlines in the far view; with `overlay`, at every zoom, with
   // the handles, the box and the lasso, rounded to screen pixels as the DOM chrome draws them.

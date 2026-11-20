@@ -25,6 +25,8 @@ export {
 export type {
   FarColor,
   FarDash,
+  FarGlyphs,
+  FarGlyphSource,
   FarImage,
   FarLine,
   FarPack,
@@ -37,6 +39,8 @@ export type {
   FarTriangle,
   PackOptions,
 } from "./core/far";
+export { clusters, ellipsize, lineWidth, placeLine, wrapText } from "./core/text";
+export type { FarFont, FarTextMetrics, PlacedLine } from "./core/text";
 export { DEFAULT_GRID, gridOffset, gridStep, snap, snapBounds, snapPoint } from "./core/grid";
 export type { GridOptions } from "./core/grid";
 export {

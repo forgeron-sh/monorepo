@@ -2,8 +2,9 @@
 // every zoom (`KindSpec.gpu`; `gpuPrimitives` in `far.ts` asks the kind). Dither patterns as bits, dashes as lengths, and the clip that cuts
 // the words the DOM shows over the drawing where an opaque box lies above them.
 
-import type { Bounds, FarDash, FarShape } from "@forgeron/canvas";
+import type { Bounds, FarDash, FarGlyphs, FarShape } from "@forgeron/canvas";
 import { colorCss, DRAW_PATTERNS, PATTERN_PIXEL } from "./palette";
+import { FAR_ZOOM, layoutLines, LINE_HEIGHT, measureLine } from "./text";
 import type { DrawDash, DrawFill, DrawStroke } from "./types";
 
 /** A pattern's 4 × 4 map as bits, `row * 4 + column` lit; 0 for an unknown pattern. */
@@ -39,6 +40,66 @@ export function gpuStroke(s: DrawStroke): Partial<FarShape> {
   if (!s.color || s.width <= 0) return {};
   const dash = dashLengths(s.dash, s.width);
   return { stroke: colorCss(s.color), strokeWidth: s.width, ...(dash ? { dash } : {}) };
+}
+
+/** What a kind's GPU drawing leaves out: its words while its field is open over it. */
+export interface GpuOptions {
+  /** Draw the words (default); false while the DOM's field shows them. */
+  words?: boolean;
+}
+
+/** The overlap of two boxes; the first one when there is no second. */
+function intersect(a: Bounds, b: Bounds | undefined): Bounds {
+  if (!b) return a;
+  const x = Math.max(a.x, b.x);
+  const y = Math.max(a.y, b.y);
+  return {
+    x,
+    y,
+    w: Math.max(0, Math.min(a.x + a.w, b.x + b.w) - x),
+    h: Math.max(0, Math.min(a.y + a.h, b.y + b.h) - y),
+  };
+}
+
+/**
+ * A text on the GPU, laid out as the DOM lays out the editor's field: in `box` less `padding`, by
+ * the lines of `layoutLines`, each `size × LINE_HEIGHT` high, aligned, at the top or in the middle
+ * (the top when they do not fit), cut by the item's box (and its frame). Drawn from `FAR_ZOOM` up,
+ * as the DOM's words were.
+ */
+export function gpuText(
+  text: string,
+  box: Bounds,
+  o: {
+    size: number;
+    color: string;
+    align?: "left" | "center" | "right";
+    middle?: boolean;
+    padding?: number;
+    frame?: Bounds;
+  },
+): FarGlyphs | null {
+  if (!text) return null;
+  const pad = o.padding ?? 0;
+  const inner = { x: box.x + pad, y: box.y + pad, w: box.w - pad * 2, h: box.h - pad * 2 };
+  const lines = layoutLines(text, inner.w, o.size);
+  const lh = o.size * LINE_HEIGHT;
+  // Centred while it fits; taller than its box, it starts at the top (the label's grid does).
+  const free = inner.h - lines.length * lh;
+  const top = o.middle && free > 0 ? inner.y + free / 2 : inner.y;
+  const align = o.align ?? "left";
+  return {
+    type: "glyphs",
+    font: { family: "sans", size: o.size },
+    color: o.color,
+    lineHeight: lh,
+    lines: lines.map((line, i) => {
+      const free = align === "left" ? 0 : inner.w - measureLine(line, o.size);
+      return { x: inner.x + (align === "center" ? free / 2 : free), y: top + i * lh, text: line };
+    }),
+    clip: intersect(box, o.frame),
+    minZoom: FAR_ZOOM,
+  };
 }
 
 /** Past this many boxes above an item, its words stay whole: the cells would cost more. */

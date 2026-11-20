@@ -11,8 +11,9 @@ import { boxTool } from "./kit";
 
 const frameView: KindView = {
   minimapColor: "--line-strong",
-  overlay: () => true,
-  content(item) {
+  // The GPU draws the name; this is the DOM view's.
+  content(item, o) {
+    if (o.overlay) return null;
     const d = item.data as FrameData;
     return (
       <span className="fgd-frame-name" title={d.name}>

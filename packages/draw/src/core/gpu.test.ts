@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FarLine, FarRuns, FarShape } from "@forgeron/canvas";
+import type { FarGlyphs, FarLine, FarRuns, FarShape } from "@forgeron/canvas";
 import {
   arrowItem,
   frameItem,
@@ -98,16 +98,48 @@ describe("the GPU drawing of the kinds", () => {
     } satisfies Partial<FarRuns>);
   });
 
-  it("leaves words to the DOM above the far zoom, and draws images and stickies", () => {
-    expect(gpuPrimitives(at(textItem({ x: 0, y: 0 }, "Hello", 20)))).toEqual([
-      expect.objectContaining({ maxZoom: 0.35 }),
+  it("draws the words as glyphs from the far zoom up, and images and stickies", () => {
+    const text = gpuPrimitives(at(textItem({ x: 0, y: 0 }, "Hello", 20)));
+    expect(text).toEqual([
+      expect.objectContaining({ type: "rect", maxZoom: 0.35 }),
+      expect.objectContaining({
+        type: "glyphs",
+        minZoom: 0.35,
+        font: { family: "sans", size: 20 },
+        lineHeight: 28,
+        lines: [{ x: 0, y: 0, text: "Hello" }],
+      }),
     ]);
     const frame = gpuPrimitives(at(frameItem({ x: 0, y: 0, w: 200, h: 100 }, "Plan")));
-    expect(frame.at(-1)).toMatchObject({ type: "text", text: "Plan", maxZoom: 0.35 });
+    expect(frame.at(-1)).toMatchObject({
+      type: "glyphs",
+      font: { family: "mono", size: 11 },
+      lineHeight: 16,
+      lines: [{ x: 8, y: 4, text: "Plan" }],
+      clip: { x: 8, y: 4, w: 184, h: 16 },
+      greek: true,
+    });
     expect(gpuPrimitives(at(imageItem({ x: 0, y: 0, w: 4, h: 3 }, "data:,", "a")))).toEqual([
       expect.objectContaining({ type: "image", src: "data:," }),
     ]);
-    expect(gpuPrimitives(at(stickyItem({ x: 0, y: 0 }, "a")))).toHaveLength(2);
+    const note = gpuPrimitives(at(stickyItem({ x: 0, y: 0 }, "a")));
+    expect(note.map((p) => p.type)).toEqual(["rect", "rect", "glyphs"]);
+    expect(note[2]).toMatchObject({
+      lines: [{ x: 12, y: 12, text: "a" }],
+      clip: { x: 0, y: 0, w: 160, h: 160 },
+    });
+  });
+
+  it("leaves the words out while their field is open, and centres a shape's label", () => {
+    const note = at(stickyItem({ x: 0, y: 0 }, "a"));
+    expect(gpuPrimitives(note, undefined, undefined, { words: false })).toHaveLength(2);
+    const box = at(shapeItem("rectangle", { x: 0, y: 0, w: 100, h: 100 }, {}, "Hi"));
+    const [, label] = gpuPrimitives(box, { x: 0, y: 0, w: 50, h: 200 }) as [FarShape, FarGlyphs];
+    // Two characters of the estimate (0.56 × 14 each) centred in 84 units; one line of 19.6
+    // centred in 84.
+    expect(label.lines[0]!.x).toBeCloseTo(8 + (84 - 2 * 14 * 0.56) / 2);
+    expect(label.lines[0]!.y).toBeCloseTo(8 + (84 - 19.6) / 2);
+    expect(label.clip).toEqual({ x: 0, y: 0, w: 50, h: 100 });
   });
 
   it("knows which boxes hide what is under them", () => {

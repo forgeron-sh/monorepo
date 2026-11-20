@@ -11,7 +11,7 @@ import { colorCss } from "../core/palette";
 import { definePlugin, type Changes, type KindSpec } from "../core/plugin";
 import { readCommon, str, type Raw } from "../core/parse";
 import { FONT_MONO, n, type SvgNode } from "../core/svg";
-import { FAR_ZOOM } from "../core/text";
+import { fitLine } from "../core/text";
 import { isFrame, type DrawData, type DrawItem, type FrameData } from "../core/types";
 
 /** World units of a frame's edge that grab it, and the height of its name strip. */
@@ -191,9 +191,12 @@ const frameKind: KindSpec = {
       },
     ];
   },
-  // Its edge and name strip; its name on the GPU only from far, the DOM shows it from `FAR_ZOOM` up.
-  gpu(item) {
+  // Its edge and name strip, and its name as the DOM set it: 11 px mono on a 16 px line, 8 units
+  // in, cut with an ellipsis; a bar of its width when it is under a screen pixel high.
+  gpu(item, _frame, options) {
     const b = item.bounds;
+    const name = (item.data as FrameData).name;
+    const w = Math.max(0, b.w - 16);
     return [
       { type: "rect", ...b, stroke: colorCss("line"), strokeWidth: 1, crisp: true },
       {
@@ -205,18 +208,20 @@ const frameKind: KindSpec = {
         fill: colorCss("raised"),
         crisp: true,
       },
-      {
-        type: "text",
-        x: b.x + 8,
-        y: b.y + 12,
-        text: (item.data as FrameData).name,
-        size: 11,
-        font: "mono",
-        color: colorCss("muted"),
-        maxWidth: Math.max(0, b.w - 16),
-        minSize: 1,
-        maxZoom: FAR_ZOOM,
-      },
+      ...(name && options?.words !== false
+        ? [
+            {
+              type: "glyphs" as const,
+              font: { family: "mono" as const, size: 11 },
+              color: colorCss("muted"),
+              lineHeight: 16,
+              lines: [{ x: b.x + 8, y: b.y + 4, text: fitLine(name, 11, w, "mono") }],
+              clip: { x: b.x + 8, y: b.y + 4, w, h: 16 },
+              minSize: 1,
+              greek: true,
+            },
+          ]
+        : []),
     ];
   },
   words: (item) => (item.data as FrameData).name,

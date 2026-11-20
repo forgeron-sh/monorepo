@@ -5,6 +5,7 @@
 // that has a far view, at every zoom for one that asks for it (`far.overlay`). Packing them into
 // instances is pure: the colours come from a resolver.
 
+import { placeLine, type FarFont, type FarTextMetrics } from "./text";
 import type { Bounds } from "./types";
 
 /**
@@ -132,7 +133,24 @@ export interface FarText extends FarCommon {
   minSize?: number;
 }
 
+/**
+ * Lines of text laid out by the caller (`wrapText`), drawn as glyphs from an atlas in the order of
+ * the other primitives, so what is drawn above a text hides it. Each line starts at its left end
+ * `x`; `y` is the top of its line box, `lineHeight` high; the baseline sits where the DOM puts it.
+ * Under `minSize` screen pixels of font size the lines are bars of their width (`greek`) or nothing.
+ */
+export interface FarGlyphs extends FarCommon {
+  type: "glyphs";
+  font: FarFont;
+  color: FarColor;
+  lineHeight: number;
+  lines: ReadonlyArray<{ x: number; y: number; text: string }>;
+  minSize?: number;
+  greek?: boolean;
+}
+
 export type FarPrimitive =
+  | FarGlyphs
   | FarShape
   | FarLine
   | FarTriangle
@@ -155,6 +173,7 @@ export const FAR_KIND = {
   segment: 3,
   triangle: 4,
   image: 5,
+  glyph: 6,
 } as const;
 
 /** Bits of an instance's flags (float 19). */
@@ -169,7 +188,10 @@ const NO_CLIP = 1e30;
  * pixels, outset in screen pixels or the triangle's last point, kind), `8–9` the zoom range it
  * shows in, `10` fill and `11` stroke as packed colours, `12–15` the clip rectangle, `16–19` dash
  * on, dash off, where the dash pattern starts along the path, flags (`FAR_FLAG`), `20–23` the
- * pattern's bits, its pixel, the image's index in `images`, the pattern's density.
+ * pattern's bits, its pixel, the image's index in `images`, the pattern's density. A glyph is
+ * `0–3` its pen's x, the top of its line box, its font size and its id in the atlas
+ * (`PackOptions.glyphs`), `4` its baseline below the line's top, its colour in `10`. The DOM puts
+ * a line box's top on a device pixel of the page before scaling it, and so does the surface.
  */
 export interface FarPack {
   data: Float32Array;
@@ -182,6 +204,12 @@ export interface FarPack {
   images: Array<{ index: number; src: string }>;
   /** The filled polygons, drawn before the instances. */
   polygons: Array<{ points: ReadonlyArray<number>; fill: FarRgba; clip?: Bounds }>;
+  /** The glyph ids the instances draw, each with the lowest zoom it is drawn from. */
+  glyphs: Map<number, number>;
+  /** Packed at `PackOptions.zoom`: the zooms it holds the right glyphs for, `[from, to)`. */
+  band: [number, number];
+  /** Some texts were left out for the glyph budget (`FarGlyphSource.budget`). */
+  partial: boolean;
 }
 
 export function createFarPack(capacity = 256): FarPack {
@@ -193,6 +221,9 @@ export function createFarPack(capacity = 256): FarPack {
     texts: [],
     images: [],
     polygons: [],
+    glyphs: new Map(),
+    band: [-Infinity, Infinity],
+    partial: false,
   };
 }
 
@@ -211,6 +242,31 @@ export interface PackOptions {
   resolve: (color: FarColor) => FarRgba;
   /** A text's width in world units at its size, for the bar drawn when it is too small to read. */
   measure?: (text: FarText) => number;
+  /** Lays glyphs out and names them: without it, `glyphs` primitives draw nothing. */
+  glyphs?: FarGlyphSource;
+  /**
+   * The zoom the pack is drawn at, if known: glyphs not drawn there are left out (a board seen from
+   * far packs none of its words), and `pack.band` says when to pack again.
+   */
+  zoom?: number;
+}
+
+/** The metrics of the fonts and the ids of their glyphs in the surface's atlas. */
+export interface FarGlyphSource extends FarTextMetrics {
+  /** A cluster of a font as a glyph id, the same for the same font and cluster. */
+  id(font: FarFont, cluster: string): number;
+  /**
+   * Each `glyphs` primitive's instances once packed (their bits), copied when it comes again: a
+   * board's words are laid out once per text, not once per pack. A new map when the fonts or the
+   * colours change.
+   */
+  cache?: WeakMap<FarGlyphs, { data: Uint32Array; ids: ReadonlyMap<number, number> }>;
+  /**
+   * With `cache`: how many glyphs a pack lays out at most (the rest come from the cache); texts
+   * past it are left out and the pack says it is `partial`, to be packed again a frame later. A
+   * board seen whole crossing the zoom its words appear at gets them over a few frames.
+   */
+  budget?: number;
 }
 
 /** Extra fields of an instance, after the first sixteen floats. */
@@ -303,6 +359,8 @@ export function packFar(
   options: PackOptions,
 ): FarPack {
   const { resolve, measure } = options;
+  // Glyphs laid out by this call, against `glyphs.budget`.
+  let laid = 0;
   for (const p of prims) {
     switch (p.type) {
       case "rect":
@@ -415,6 +473,98 @@ export function packFar(
         pack.polygons.push({ points: p.points, fill, ...(p.clip ? { clip: p.clip } : {}) });
         break;
       }
+      case "glyphs": {
+        const g = options.glyphs;
+        const color = resolve(p.color);
+        if (!(color >>> 24) || !p.lines.length) break;
+        const size = p.font.size;
+        const from = Math.max(p.minZoom ?? 0, (p.minSize ?? 0) / size);
+        const to = p.maxZoom ?? NO_CLIP;
+        if (p.greek && g && from > (p.minZoom ?? 0)) {
+          // Too small to read: a bar of each line's width, half the font's height, faded.
+          const h = size * 0.5;
+          const alpha = Math.round(((color >>> 24) & 0xff) * 0.35);
+          const bar = ((color & 0xffffff) | (alpha << 24)) >>> 0;
+          for (const line of p.lines) {
+            if (!line.text) continue;
+            const w = placeLine(g, p.font, line.text.replace(/ +$/, "")).width;
+            reserve(pack, 1);
+            const y = line.y + p.lineHeight / 2 - h / 2;
+            push(
+              pack,
+              p,
+              line.x,
+              y,
+              w,
+              h,
+              0,
+              0,
+              0,
+              FAR_KIND.rect,
+              bar,
+              0,
+              NONE,
+              Math.min(from, to),
+            );
+          }
+        }
+        if (!g || from >= to) break;
+        // At a known zoom, glyphs out of their range are left out: the pack says until which
+        // zooms it holds (`band`), and is packed again past them.
+        const zoom = options.zoom;
+        if (zoom !== undefined) {
+          for (const t of [from, to]) {
+            if (t <= zoom) pack.band[0] = Math.max(pack.band[0], t);
+            else pack.band[1] = Math.min(pack.band[1], t);
+          }
+          if (zoom < from || zoom >= to) break;
+        }
+        // Packed before (the same primitive, the same fonts and colours): its instances are copied.
+        const cache = g.cache;
+        const hit = cache?.get(p);
+        if (hit) {
+          const n = hit.data.length / FAR_STRIDE;
+          reserve(pack, n);
+          pack.colors.set(hit.data, pack.count * FAR_STRIDE);
+          pack.count += n;
+          for (const [id, z] of hit.ids) {
+            const seen = pack.glyphs.get(id);
+            if (seen === undefined || seen > z) pack.glyphs.set(id, z);
+          }
+          break;
+        }
+        if (cache && g.budget !== undefined) {
+          if (laid >= g.budget) {
+            pack.partial = true;
+            break;
+          }
+          for (const line of p.lines) laid += line.text.length;
+        }
+        const first = pack.count;
+        const ids = new Map<number, number>();
+        const base = g.baseline(p.font, p.lineHeight);
+        const span = { ...p, minZoom: from };
+        for (const line of p.lines) {
+          if (!line.text) continue;
+          const placed = placeLine(g, p.font, line.text);
+          reserve(pack, placed.clusters.length);
+          for (let i = 0; i < placed.clusters.length; i++) {
+            const c = placed.clusters[i]!;
+            if (c.trim() === "") continue;
+            const id = g.id(p.font, c);
+            const seen = pack.glyphs.get(id);
+            if (seen === undefined || seen > from) pack.glyphs.set(id, from);
+            ids.set(id, from);
+            const x = line.x + placed.xs[i]!;
+            push(pack, span, x, line.y, size, id, base, 0, 0, FAR_KIND.glyph, color, 0);
+          }
+        }
+        cache?.set(p, {
+          data: pack.colors.slice(first * FAR_STRIDE, pack.count * FAR_STRIDE),
+          ids,
+        });
+        break;
+      }
       case "text": {
         if (!p.text) break;
         pack.texts.push(p);
@@ -455,6 +605,9 @@ export function resetFarPack(pack: FarPack): FarPack {
   pack.texts = [];
   pack.images = [];
   pack.polygons = [];
+  pack.glyphs = new Map();
+  pack.band = [-Infinity, Infinity];
+  pack.partial = false;
   return pack;
 }
 

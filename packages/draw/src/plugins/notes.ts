@@ -5,6 +5,7 @@ import { STICKY_COLORS, colorCss } from "../core/palette";
 import { definePlugin, type KindSpec } from "../core/plugin";
 import { num, readCommon, str, type Raw } from "../core/parse";
 import { DEFAULT_TEXT_SIZE } from "../core/style";
+import { gpuText } from "../core/gpu";
 import { n, textLines, wash, type SvgNode } from "../core/svg";
 import {
   FAR_ZOOM,
@@ -121,10 +122,20 @@ const stickyKind: KindSpec = {
       },
     ];
   },
-  gpu(item, frame) {
+  gpu(item, frame, options) {
     const b = item.bounds;
-    const c = STICKY_COLORS[(item.data as StickyData).color] ?? STICKY_COLORS.amber;
+    const d = item.data as StickyData;
+    const c = STICKY_COLORS[d.color] ?? STICKY_COLORS.amber;
     const clip = frame ? { clip: frame } : {};
+    const words =
+      options?.words === false
+        ? null
+        : gpuText(d.text, b, {
+            size: STICKY_TEXT,
+            color: colorCss("ink"),
+            padding: STICKY_PADDING,
+            ...(frame ? { frame } : {}),
+          });
     return [
       {
         type: "rect",
@@ -136,6 +147,7 @@ const stickyKind: KindSpec = {
         ...clip,
       },
       { type: "rect", x: b.x, y: b.y, w: b.w, h: 4, fill: colorCss(c.edge), crisp: true, ...clip },
+      ...(words ? [words] : []),
     ];
   },
   opaque: () => true,
@@ -168,21 +180,30 @@ const textKind: KindSpec = {
       ? [{ type: "rect", ...item.bounds, fill: wash(colorCss(d.color), 0.25), ...clip }]
       : [];
   },
-  // From `FAR_ZOOM` up the DOM shows the words; under it, a wash of the box.
-  gpu(item, frame) {
+  // From `FAR_ZOOM` up its words; under it, a wash of the box.
+  gpu(item, frame, options) {
     const d = item.data as TextData;
     const clip = frame ? { clip: frame } : {};
-    return d.text
-      ? [
-          {
-            type: "rect",
-            ...item.bounds,
-            fill: wash(colorCss(d.color), 0.25),
-            maxZoom: FAR_ZOOM,
-            ...clip,
-          },
-        ]
-      : [];
+    if (!d.text) return [];
+    const words =
+      options?.words === false
+        ? null
+        : gpuText(d.text, item.bounds, {
+            size: d.size,
+            color: colorCss(d.color),
+            align: d.align,
+            ...(frame ? { frame } : {}),
+          });
+    return [
+      {
+        type: "rect",
+        ...item.bounds,
+        fill: wash(colorCss(d.color), 0.25),
+        maxZoom: FAR_ZOOM,
+        ...clip,
+      },
+      ...(words ? [words] : []),
+    ];
   },
   words: (item) => (item.data as TextData).text,
 };

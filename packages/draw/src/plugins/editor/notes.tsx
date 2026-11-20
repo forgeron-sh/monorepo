@@ -19,13 +19,13 @@ import {
   textItem,
 } from "../notes";
 
+// The GPU draws the words (`gpuText`); the DOM holds only the field while they are typed.
 const stickyView: KindView = {
-  overlay: (item) => (item.data as StickyData).text !== "",
   content(item, o) {
     const d = item.data as StickyData;
     return o.editing ? (
       <EditField {...o.editing} className="fgd-sticky-text fgd-field" label="Sticky note text" />
-    ) : (
+    ) : o.overlay ? null : (
       <div className="fgd-sticky-text">{d.text}</div>
     );
   },
@@ -37,24 +37,24 @@ const stickyView: KindView = {
     return { background: colorCss(c.paper), borderTop: `4px solid ${colorCss(c.edge)}` };
   },
   text: {
-    type(item, text, measured) {
+    // The height is the layout's (`stickyHeight`), the one the GPU draws the words with, not the
+    // field's: the two agree, and the board looks the same once typing ends.
+    type(item, text) {
       const d = item.data as StickyData;
       const b = item.bounds;
-      const h = Math.max(b.w, measured ?? stickyHeight(text, b.w));
-      return { data: { ...d, text }, bounds: { ...b, h: Math.max(stickyHeight("", b.w), h) } };
+      return { data: { ...d, text }, bounds: { ...b, h: stickyHeight(text, b.w) } };
     },
     discard: (item, cancel) => cancel && !(item.data as StickyData).text,
   },
 };
 
 const textView: KindView = {
-  overlay: (item) => (item.data as TextData).text !== "",
   content(item, o) {
     const d = item.data as TextData;
     const style = { fontSize: d.size, color: colorCss(d.color), textAlign: d.align } as const;
     return o.editing ? (
       <EditField {...o.editing} className="fgd-text fgd-field" style={style} label="Text" />
-    ) : (
+    ) : o.overlay ? null : (
       <div className="fgd-text" style={style}>
         {d.text}
       </div>
@@ -65,11 +65,11 @@ const textView: KindView = {
     return d.text ? { background: wash(colorCss(d.color), 0.25) } : null;
   },
   text: {
-    type(item, text, measured, grow) {
+    type(item, text, _measured, grow) {
       const d = item.data as TextData;
       const b = item.bounds;
       const w = grow ? Math.min(640, Math.max(d.size * 4, textWidth(text, d.size) + 8)) : b.w;
-      const h = Math.max(measured ?? 0, textHeight(text || " ", w, d.size));
+      const h = textHeight(text || " ", w, d.size);
       return { data: { ...d, text }, bounds: { ...b, w, h } };
     },
     discard: (item) => !(item.data as TextData).text.trim(),

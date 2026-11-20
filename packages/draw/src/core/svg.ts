@@ -6,7 +6,7 @@
 
 import type { Bounds } from "@forgeron/canvas";
 import { colorCss, colorHex, patternCells, PATTERN_PIXEL } from "./palette";
-import { LINE_HEIGHT, wrapLines } from "./text";
+import { baselineIn, layoutLines, LINE_HEIGHT } from "./text";
 import type { DrawColor, DrawDash, DrawFill, DrawStroke } from "./types";
 
 export interface SvgNode {
@@ -94,8 +94,9 @@ export function textLines(
   middle: boolean,
   family = FONT_SANS,
 ): SvgNode {
-  const lines = wrapLines(text, box.w, size);
+  const lines = layoutLines(text, box.w, size);
   const lh = size * LINE_HEIGHT;
+  const base = baselineIn(size, lh);
   const top = middle ? box.y + (box.h - lines.length * lh) / 2 : box.y;
   const x = align === "left" ? box.x : align === "right" ? box.x + box.w : box.x + box.w / 2;
   const anchor = align === "left" ? "start" : align === "right" ? "end" : "middle";
@@ -104,7 +105,7 @@ export function textLines(
     { fill: color, fontFamily: family, fontSize: size, textAnchor: anchor },
     lines.map((line, i) => ({
       tag: "tspan",
-      attrs: { x, y: Math.round((top + lh * i + size * 1.05) * 100) / 100 },
+      attrs: { x, y: Math.round((top + lh * i + base) * 100) / 100 },
       text: line,
     })),
   );
