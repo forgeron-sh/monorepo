@@ -4,7 +4,7 @@ import {
   ArtCard,
   Button,
   CardGrid,
-  Command,
+  CommandLine,
   CompareTable,
   Faq,
   FigureGrid,
@@ -14,11 +14,11 @@ import {
   PlanGrid,
   SectionBand,
   SectionHead,
-  SiteNav,
   Stepper,
   Title,
 } from "@forgeron/ui";
 import Footer from "../components/Footer.astro";
+import PagesNav from "../components/PagesNav.astro";
 import { GITHUB, plans, SELF_HOST } from "../data/plans";
 import { FORGERON_SEAT, READ_ON, stack } from "../data/stack";
 import { AI_READ_ON, aiCost, aiExample, aiModels, aiSources, BALANCE, fmt, lineCost, meterGroups, money, scenarioCost, scenarios } from "../data/usage";
@@ -159,21 +159,7 @@ const faq = [
   description="Forgeron Cloud at $14.99 per seat per month, or free and open source on your own Cloudflare account."
   bodyClass="home"
 >
-  <SiteNav
-    github={GITHUB}
-    start="#plans"
-    current="/pricing"
-    links={[
-      { href: "/#how", label: "How it works" },
-      { href: "/#develop", label: "Develop" },
-      { href: "#plans", label: "Plans" },
-      { href: "#savings", label: "Savings" },
-      { href: "#fuel", label: "Fuel" },
-      { href: "#why", label: "Why Cloud" },
-      { href: "#compare", label: "Compare" },
-      { href: "/pricing", label: "Pricing" },
-    ]}
-  />
+  <PagesNav current="/pricing" />
 
   <main class="pricing">
     <!-- 0.1 PLANS -->
@@ -499,7 +485,7 @@ const faq = [
         <div class="oss-actions">
           <Button href={GITHUB} size="lg" variant="primary"><Icon icon={GithubIcon} size={16} variant="mono" />GitHub</Button>
           <Button href={SELF_HOST} size="lg">Read the install guide</Button>
-          <Command>npx forgeron init</Command>
+          <CommandLine>npx forgeron init</CommandLine>
         </div>
       </div>
     </section>

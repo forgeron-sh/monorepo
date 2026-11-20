@@ -35,7 +35,7 @@ import {
   Bento,
   BentoCell,
   CardGrid,
-  Command,
+  CommandLine,
   CtaBand,
   Faq,
   Hero,
@@ -46,13 +46,13 @@ import {
   PlanGrid,
   SectionBand,
   SectionHead,
-  SiteNav,
   SoonTag,
   StoryList,
   StoryStep,
   Title,
 } from "@forgeron/ui";
 import Footer from "../components/Footer.astro";
+import PagesNav from "../components/PagesNav.astro";
 import Site from "../layouts/Site.astro";
 import { plans } from "../data/plans";
 import { bayerMaskPath } from "@forgeron/shaders";
@@ -60,11 +60,10 @@ import { bayerMaskPath } from "@forgeron/shaders";
 /**
  * The corruption of the opening, written at build time from the package's ordered dither
  * (`bayerMaskPath`, a `bayer-mask` preset): the captions' 17 masks (the cells on at each level of
- * the 4×4 Bayer tile, 4 px each) and the burn's fringe (the cells eaten at levels 5 and 11). The
- * page carries the paths, not the matrix.
+ * the 4×4 Bayer tile, 4 px each). The page carries the paths, not the matrix. The burns are the
+ * package's own presets (`burn-frame-close`, `burn-lobed-open`), drawn on the GPU.
  */
 const captionMasks = Array.from({ length: 17 }, (_, level) => bayerMaskPath(level, { cell: 4 }));
-const burnFringe = Object.fromEntries([5, 11].map((l) => [l, bayerMaskPath(l, { cell: 4, off: true })]));
 
 /** The public repository (Apache-2.0) and its documentation. */
 const GITHUB = "https://github.com/forgeron-sh/monorepo";
@@ -269,19 +268,7 @@ const faq = [
   description="Write an internal tool once with the Forgeron SDK. Your teams use it from Claude (MCP), the API, the web and the terminal, behind your company's SSO, on Cloudflare Workers. Open source, Apache-2.0."
   bodyClass="home"
 >
-  <SiteNav
-    github={GITHUB}
-    start="#start"
-    links={[
-      { href: "#how", label: "How it works" },
-      { href: "#anatomy", label: "Anatomy" },
-      { href: "#resources", label: "Resources" },
-      { href: "#access", label: "Access" },
-      { href: "#develop", label: "Develop" },
-      { href: "#host", label: "Hosting" },
-      { href: "/pricing", label: "Pricing" },
-    ]}
-  />
+  <PagesNav />
 
   <main>
     <!-- HERO: banner image, then title and call to action -->
@@ -298,7 +285,8 @@ const faq = [
             everything, explodes, and the village burns.
           </figcaption>
         </figure>
-        <canvas class="saga-burn" aria-hidden="true" data-fringe={JSON.stringify(burnFringe)}></canvas>
+        <canvas class="saga-burn" aria-hidden="true" hidden></canvas>
+        <canvas class="saga-burn saga-open" aria-hidden="true" hidden></canvas>
         <p class="saga-live text-eyebrow"><span class="saga-dot" aria-hidden="true"></span>Live</p>
         <button type="button" class="saga-skip text-eyebrow">Skip intro</button>
         <nav class="saga-toc" aria-label="Chapters">
@@ -331,7 +319,7 @@ const faq = [
             lead="Pick a ready-made tool. Shape it to your team with AI. Ship it to your people and your agents."
             action={{ href: "#start", label: "Get started" }}
           >
-            <Command slot="command" framed={false}>npx forgeron init</Command>
+            <CommandLine slot="command" framed={false}>npx forgeron init</CommandLine>
             <MarkBadge slot="badge">
               <Fragment slot="mark" set:html={ycMark} />
               Not backed by Y Combinator
@@ -741,6 +729,8 @@ const faq = [
   // the screen back to the navigation and the hero.
   import { isoCanvas } from "../illustrations/canvas";
   import { STEPS } from "../illustrations/steps";
+  import { builtInPresets, lobeAt } from "@forgeron/shaders";
+  import { mountPreset } from "@forgeron/shaders/dom";
 
   const saga = document.querySelector<HTMLElement>(".saga");
   const stage = saga?.querySelector<HTMLElement>(".saga-stage");
@@ -920,8 +910,7 @@ const faq = [
       const k = clamp((s - 0.3) / 0.7);
       const side = parseFloat(stage.style.getPropertyValue("--side")) || 0;
       const target = { l: side, t: top, r: cw - side, b: top + band };
-      const lerp = (a: number, b2: number) => Math.round(a + (b2 - a) * k);
-      burnRect = k > 0 && k < 1 ? { l: lerp(0, target.l), t: lerp(0, target.t), r: lerp(cw, target.r), b: lerp(ch, target.b), k } : null;
+      const front = burnFront(k, target, cw, ch);
       hero.style.visibility = k > 0 ? "visible" : "";
       // A clip, not a mask image: an inset is applied in the same frame, on the compositor. A
       // mask rebuilt as an SVG data URL on every scroll had to be decoded (asynchronously) and
@@ -931,10 +920,10 @@ const faq = [
         if (!revealing) screenEl.style.clipPath = "";
       }
       else {
-        const R = k >= 1 ? target : burnRect!;
+        const R = k >= 1 ? target : front;
         screenEl.style.clipPath = `inset(${R.t}px ${cw - R.r}px ${ch - R.b}px ${R.l}px)`;
       }
-      paintBurn(performance.now());
+      driveBurn(k, target, cw, ch);
       const open = Math.round(tail * k);
       stage.style.clipPath = open > 0 ? `inset(0 0 ${open}px 0)` : "";
     }
@@ -967,220 +956,67 @@ const faq = [
     window.scrollTo({ top: saga.offsetTop + saga.offsetHeight - window.innerHeight, behavior: "auto" });
   });
 
-  // The burn front's embers: ragged pixels along the line, white hot, ember, red, and sparks
-  // flying up from it. Drawn only while the front moves.
-  let burnRect: { l: number; t: number; r: number; b: number; k: number } | null = null;
-  const burnEl = stage?.querySelector<HTMLCanvasElement>(".saga-burn");
-  const burnCtx = burnEl?.getContext("2d");
-  const burnTone = (name: string, fallback: string) =>
-    getComputedStyle(stage ?? document.body).getPropertyValue(name).trim() || fallback;
-  // The fringe of the burning edge: two rings of 16 px, dithered by a 4×4 Bayer matrix of 4 px
-  // cells, the outer ring mostly eaten (5 of 16 cells left), the inner one mostly whole (11 of
-  // 16). Painted in the page's background over the village, through two cached patterns.
-  const fringe = new Map<number, CanvasPattern | null>();
-  const fringeCells: Record<number, string> = JSON.parse(burnEl?.dataset.fringe ?? "{}");
-  const eaten = (level: number) => {
-    if (!burnCtx) return null;
-    const known = fringe.get(level);
-    if (known !== undefined) return known;
-    const tile = document.createElement("canvas");
-    tile.width = tile.height = 16;
-    const t2 = tile.getContext("2d");
-    if (!t2) return null;
-    t2.fillStyle = burnTone("--bg", "#0a0a0a");
-    // Cells at or above `level` are the ones the burn has eaten (`burnFringe`, written at build
-    // time): whole 4 px squares, so the path fills exactly the pixels the squares did.
-    t2.fill(new Path2D(fringeCells[level] ?? ""));
-    const pattern = burnCtx.createPattern(tile, "repeat");
-    fringe.set(level, pattern);
-    return pattern;
-  };
-  const ring = (R: { l: number; t: number; r: number; b: number }, o: number, F: number) => {
-    if (!burnCtx) return;
-    const l = R.l + o;
-    const t = R.t + o;
-    const r = R.r - o;
-    const b = R.b - o;
-    burnCtx.fillRect(l, t, r - l, F);
-    burnCtx.fillRect(l, b - F, r - l, F);
-    burnCtx.fillRect(l, t + F, F, Math.max(0, b - t - 2 * F));
-    burnCtx.fillRect(r - F, t + F, F, Math.max(0, b - t - 2 * F));
-  };
-  let painted = false;
-  let colours: string[] | undefined;
-  /** Paints the fringe and the embers for the current front, in the frame that moved it. */
-  function paintBurn(now: number) {
-    if (!burnEl || !burnCtx) return;
-    if (!burnRect) {
-      if (revealing) return;
-      if (painted) burnCtx.clearRect(0, 0, burnEl.width, burnEl.height);
-      painted = false;
-      return;
-    }
-    // Sized only when the stage changes size: assigning `width` reallocates the canvas.
-    if (burnEl.width !== burnEl.clientWidth || burnEl.height !== burnEl.clientHeight) {
-      burnEl.width = burnEl.clientWidth;
-      burnEl.height = burnEl.clientHeight;
-    }
-    burnCtx.clearRect(0, 0, burnEl.width, burnEl.height);
-    painted = true;
-    const outer = eaten(5);
-    const inner = eaten(11);
-    if (outer) {
-      burnCtx.fillStyle = outer;
-      ring(burnRect, 0, 16);
-    }
-    if (inner) {
-      burnCtx.fillStyle = inner;
-      ring(burnRect, 16, 16);
-    }
-    colours ??= [burnTone("--ink", "#ededed"), burnTone("--accent", "#ff4f1f"), burnTone("--danger", "#ff6b81")];
-    const P = 4;
-    // A slow tick: each ember keeps its place for a while, so the edge glows rather than fizzes.
-    const tick = Math.floor(now / 180);
-    const { l, t, r, b, k } = burnRect;
-    // The embers thin out over the whole second half of the close: the fire dies down gently.
-    // It catches over the first fifth of the close and dies down over the second half.
-    const q = Math.min(1, Math.max(0, (1 - k) / 0.5));
-    const a = Math.min(1, Math.max(0, k / 0.2));
-    const life = q * q * (3 - 2 * q) * (a * a * (3 - 2 * a));
-    const rnd = (a: number, b2: number, c: number) => {
-      let h = (Math.imul(a | 0, 374761393) + Math.imul(b2 | 0, 668265263) + Math.imul(c | 0, 1274126177)) | 0;
-      h = Math.imul(h ^ (h >>> 13), 1274126177);
-      return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  // The burns are the package's: a `front` and its `sparks` as presets (`burn-frame-close` for the
+  // end of the story, `burn-lobed-open` for the opening), drawn on the GPU in 4 px cells over the
+  // village. The page keeps what it owns, the clip of the village in the DOM, and tells the
+  // preset how far along it is (`set`). Both read the same cell grid, so the clip and the fringe
+  // meet exactly: the grid is anchored at the canvas's bottom left, its top row may stick out.
+  const CELL = 4;
+  const burnEl = stage?.querySelector<HTMLCanvasElement>(".saga-burn:not(.saga-open)");
+  const openEl = stage?.querySelector<HTMLCanvasElement>(".saga-open");
+  type Burn = { set(inputs: { progress?: number }): void; destroy(): void };
+  /** The edge of the closing frame at progress `k`, in px on the cell grid, as the preset has it. */
+  const burnFront = (k: number, t: { l: number; t: number; r: number; b: number }, cw: number, ch: number) => {
+    const cols = Math.ceil(cw / CELL);
+    const rows = Math.ceil(ch / CELL);
+    const oy = ch - rows * CELL;
+    const at = (v: number) => Math.floor(v + 0.5);
+    return {
+      l: CELL * at(k * (t.l / cw) * cols),
+      r: CELL * at(cols + ((t.r / cw) * cols - cols) * k),
+      t: oy + CELL * at(k * (t.t / ch) * rows),
+      b: oy + CELL * at(rows + ((t.b / ch) * rows - rows) * k),
     };
-    // Each edge: walk along it, scatter pixels across it (white at the burn, ember, then red
-    // inwards), and now and then a spark thrown outwards.
-    const edges: [number, number, number, number, number, number][] = [
-      // x0, y0, length, along x (1) or y (0), outward normal x, outward normal y
-      [l, t, r - l, 1, 0, -1],
-      [l, b, r - l, 1, 0, 1],
-      [l, t, b - t, 0, -1, 0],
-      [r, t, b - t, 0, 1, 0],
-    ];
-    // One path per colour, filled once each: thousands of fillRect calls, each switching the
-    // fill style, cost more than the rest of the frame.
-    const paths = [new Path2D(), new Path2D(), new Path2D()];
-    for (const [x0, y0, len, ax, nx, ny] of edges) {
-      for (let u = 0; u < len; u += P) {
-        const n = Math.sin(u * 0.05 + now * 0.0012) * 3 + Math.sin(u * 0.017 - now * 0.0006) * 5;
-        const bx = x0 + (ax ? u : 0);
-        const by = y0 + (ax ? 0 : u);
-        for (let d = -2; d < 5; d++) {
-          if (rnd(u + x0 + y0, d, tick) > (0.5 - d * 0.07) * life) continue;
-          const off = 24 - n - d * P;
-          paths[d < 0 ? 0 : d < 2 ? 1 : 2]!.rect(Math.round((bx - nx * off) / P) * P, Math.round((by - ny * off) / P) * P, P, P);
-        }
-        if (rnd(u + x0, y0 + 7, tick) < 0.025 * life) {
-          const fly = 6 + rnd(u, 3, tick) * 40;
-          paths[1 + Math.floor(rnd(u, 5, tick) * 2)]!.rect(Math.round((bx + nx * fly) / P) * P, Math.round((by + ny * fly) / P) * P, P - 1, P - 1);
-        }
-      }
-    }
-    paths.forEach((path, i) => {
-      burnCtx.fillStyle = colours![i]!;
-      burnCtx.fill(path);
-    });
-  }
-  // While the front stands still, its embers keep glowing: a repaint per frame, only then.
-  const burn = (now: number) => {
-    requestAnimationFrame(burn);
-    if (burnRect) paintBurn(now);
   };
-  requestAnimationFrame(burn);
+  let closeBurn: Burn | null = null;
+  let closeKey = "";
+  /** Shows the closing burn while the front moves and drives it; off the screen otherwise. */
+  function driveBurn(k: number, t: { l: number; t: number; r: number; b: number }, cw: number, ch: number) {
+    if (!burnEl) return;
+    const on = k > 0 && k < 1;
+    burnEl.hidden = !on;
+    if (!on) return;
+    const key = `${cw}x${ch}:${t.l},${t.t},${t.r},${t.b}`;
+    if (key !== closeKey || !closeBurn) {
+      closeBurn?.destroy();
+      const base = builtInPresets()["burn-frame-close"]!;
+      closeBurn = mountPreset(burnEl, {
+        ...base,
+        source: { ...base.source, driven: true, outside: "keep", left: t.l / cw, top: t.t / ch, right: t.r / cw, bottom: t.b / ch },
+      });
+      closeKey = key;
+    }
+    closeBurn?.set({ progress: k });
+  }
 
   // The opening reveal: on load, the village spreads from the centre of the screen through the
   // same corruption as the closing burn, but without the fire: the fringe dithered in the page's
-  // background, and embers in white, grey and dark grey only. The front is not a circle: it
-  // bulges ahead in some places and lags in others, its lobes drifting slowly, and its fringe
-  // widens as it nears the edges of the screen.
+  // background, and embers in white, grey and dark grey only. The front bulges ahead in some
+  // places and lags in others, its lobes drifting slowly, and its fringe widens as it nears the
+  // edges of the screen. The lobes are the package's (`lobeAt`), so the clip follows the front.
   let revealing = false;
-  const lobes = Array.from({ length: 4 }, () => Math.random() * Math.PI * 2);
-  /** How far ahead (+1) or behind (−1) the front is at angle `th`. */
-  const lobe = (th: number, now: number) =>
-    (Math.sin(th * 3 + lobes[0]! + now * 0.0004) * 0.55 +
-      Math.sin(th * 5 + lobes[1]! - now * 0.0007) * 0.3 +
-      Math.sin(th * 9 + lobes[2]! + now * 0.001) * 0.2 +
-      Math.sin(th * 17 + lobes[3]!) * 0.1) /
-    1.15;
   const AMP = 0.18;
   const SIDES = 144;
-  /** The front's outline at radius `R`: one point per angle, `inset` pixels inside it. */
-  const outline = (cx: number, cy: number, R: number, now: number, inset = 0) => {
+  /** The front's outline at radius `R`, `time` seconds in: one point per angle. */
+  const outline = (cx: number, cy: number, R: number, time: number) => {
     const pts: [number, number][] = [];
     for (let i = 0; i < SIDES; i++) {
       const th = (i / SIDES) * Math.PI * 2;
-      const r = Math.max(0, R * (1 + AMP * lobe(th, now)) - inset);
+      const r = Math.max(0, R * (1 + AMP * lobeAt(th, time)));
       pts.push([cx + Math.cos(th) * r, cy + Math.sin(th) * r]);
     }
     return pts;
   };
-  function paintReveal(R: number, k: number, W: number, now: number) {
-    if (!burnEl || !burnCtx || !stage) return;
-    if (burnEl.width !== burnEl.clientWidth || burnEl.height !== burnEl.clientHeight) {
-      burnEl.width = burnEl.clientWidth;
-      burnEl.height = burnEl.clientHeight;
-    }
-    burnCtx.clearRect(0, 0, burnEl.width, burnEl.height);
-    painted = true;
-    const cx = stage.clientWidth / 2;
-    const cy = stage.clientHeight / 2;
-    // The fringe: two rings of `W` px inside the front, the outer mostly eaten.
-    const band = (i0: number, i1: number) => {
-      const path = new Path2D();
-      for (const inset of [i0, i1]) {
-        outline(cx, cy, R, now, inset).forEach(([x, y], i) => (i ? path.lineTo(x, y) : path.moveTo(x, y)));
-        path.closePath();
-      }
-      return path;
-    };
-    const outer = eaten(5);
-    const inner = eaten(11);
-    if (outer) {
-      burnCtx.fillStyle = outer;
-      burnCtx.fill(band(0, W), "evenodd");
-    }
-    if (inner) {
-      burnCtx.fillStyle = inner;
-      burnCtx.fill(band(W, 2 * W), "evenodd");
-    }
-    const greys = [burnTone("--ink", "#ededed"), burnTone("--ink-muted", "#a0a0a0"), burnTone("--ink-dim", "#5a5a5a")];
-    const P = 4;
-    const tick = Math.floor(now / 120);
-    // Catches at once, dies down over the last third.
-    const q = Math.min(1, Math.max(0, (1 - k) / 0.35));
-    const life = q * q * (3 - 2 * q);
-    const rnd = (a: number, b2: number, c: number) => {
-      let h = (Math.imul(a | 0, 374761393) + Math.imul(b2 | 0, 668265263) + Math.imul(c | 0, 1274126177)) | 0;
-      h = Math.imul(h ^ (h >>> 13), 1274126177);
-      return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-    };
-    const paths = [new Path2D(), new Path2D(), new Path2D()];
-    // Walk the front a pixel cell at a time: white at the front, grey, then dark grey inwards,
-    // spread over the fringe's width, and now and then a speck thrown outwards, ahead of it.
-    const spread = W / 16;
-    const steps = Math.max(24, Math.ceil((Math.PI * 2 * R * (1 + AMP)) / P));
-    for (let i = 0; i < steps; i++) {
-      const th = (i / steps) * Math.PI * 2;
-      const nx = Math.cos(th);
-      const ny = Math.sin(th);
-      const edge = R * (1 + AMP * lobe(th, now));
-      const n = (Math.sin(th * 9 + now * 0.002) * 3 + Math.sin(th * 23 - now * 0.0011) * 4) * spread;
-      for (let d = -2; d < 5; d++) {
-        if (rnd(i, d, tick) > (0.5 - d * 0.07) * life) continue;
-        const rr = edge - W * 1.5 + n - d * P * spread;
-        paths[d < 0 ? 0 : d < 2 ? 1 : 2]!.rect(Math.round((cx + nx * rr) / P) * P, Math.round((cy + ny * rr) / P) * P, P, P);
-      }
-      if (rnd(i, 7, tick) < 0.03 * life) {
-        const fly = (6 + rnd(i, 3, tick) * 40) * spread;
-        paths[1 + Math.floor(rnd(i, 5, tick) * 2)]!.rect(Math.round((cx + nx * (edge + fly)) / P) * P, Math.round((cy + ny * (edge + fly)) / P) * P, P - 1, P - 1);
-      }
-    }
-    paths.forEach((path, i) => {
-      burnCtx.fillStyle = greys[i]!;
-      burnCtx.fill(path);
-    });
-  }
   /** Plays the reveal once, only from the top of the story and never under reduced motion. */
   function reveal() {
     const el = screenEl;
@@ -1190,13 +1026,25 @@ const faq = [
     const DUR = 1900;
     const DELAY = 150;
     let start = -1;
+    let open: Burn | null = null;
+    let t0 = 0;
+    if (openEl) {
+      openEl.hidden = false;
+      const base = builtInPresets()["burn-lobed-open"]!;
+      t0 = performance.now();
+      open = mountPreset(openEl, {
+        ...base,
+        source: { ...base.source, driven: true, outside: "keep", ring: 3, grow: 9 },
+      });
+      open?.set({ progress: 0 });
+    }
     // Hidden at once, before the first frame paints the village whole.
     el.style.clipPath = "circle(0px at 50% 50%)";
     const end = () => {
       revealing = false;
       el.style.clipPath = "";
-      burnCtx?.clearRect(0, 0, burnEl?.width ?? 0, burnEl?.height ?? 0);
-      painted = false;
+      open?.destroy();
+      if (openEl) openEl.hidden = true;
       update();
     };
     const frame = (now: number) => {
@@ -1209,13 +1057,15 @@ const faq = [
       const k = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
       const cw = st.clientWidth;
       const ch = st.clientHeight;
-      // The fringe: 12 px a ring at the centre, 48 px by the edges, in whole pixel cells.
-      const W = Math.round((12 + 36 * k) / 4) * 4;
-      // Far enough that even the most lagging lobe clears the corners, fringe and embers with it.
-      const R = Math.round((k * (Math.hypot(cw, ch) / 2 + 3 * W + 48)) / (1 - AMP));
-      const pts = outline(cw / 2, ch / 2, R, now);
+      const cols = Math.ceil(cw / CELL);
+      const rows = Math.ceil(ch / CELL);
+      // The preset's front, in px: the fringe is 12 px a ring at the centre, 48 px by the edges, in
+      // whole cells, and the radius far enough that the most lagging lobe clears the corners.
+      const ring = Math.max(1, Math.floor(3 + 9 * k + 0.5));
+      const R = (CELL * (k * (Math.hypot(cols, rows) / 2 + 3 * ring + 12))) / (1 - AMP);
+      const pts = outline((cols * CELL) / 2, ch - rows * CELL + (rows * CELL) / 2, R, (now - t0) / 1000);
       el.style.clipPath = `polygon(${pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(",")})`;
-      if (R > 0) paintReveal(R, t, W, now);
+      open?.set({ progress: t });
       if (t >= 1) return end();
       requestAnimationFrame(frame);
     };
