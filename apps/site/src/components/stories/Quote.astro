@@ -1,0 +1,15 @@
+---
+interface Props {
+  /** Who said it. */
+  name: string;
+  /** Their role, and the company when it is not the story's. */
+  role: string;
+}
+const { name, role } = Astro.props;
+---
+
+<!-- A quote in a story, in the person's words: the text in ink, an ember rule, who said it under it. -->
+<figure class="story-quote">
+  <blockquote><slot /></blockquote>
+  <figcaption class="text-eyebrow"><b>{name}</b> · {role}</figcaption>
+</figure>

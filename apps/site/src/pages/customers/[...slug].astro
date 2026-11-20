@@ -1,0 +1,137 @@
+---
+import { PixelFigure, SectionBand } from "@forgeron/ui";
+import { render } from "astro:content";
+import Callout from "../../components/blog/Callout.astro";
+import Figure from "../../components/blog/Figure.astro";
+import PostArt from "../../components/blog/PostArt.astro";
+import Footer from "../../components/Footer.astro";
+import PagesNav from "../../components/PagesNav.astro";
+import Quote from "../../components/stories/Quote.astro";
+import StoryCard from "../../components/stories/StoryCard.astro";
+import { GITHUB } from "../../data/plans";
+import Site from "../../layouts/Site.astro";
+import { getStories, type Story } from "../../lib/stories";
+import "../../styles/blog.css";
+import "../../styles/stories.css";
+
+const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
+
+export async function getStaticPaths() {
+  const stories = await getStories();
+  return stories.map((story) => ({ params: { slug: story.id }, props: { story, stories } }));
+}
+
+interface Props {
+  story: Story;
+  stories: Story[];
+}
+const { story, stories } = Astro.props;
+const { data } = story;
+const { Content } = await render(story);
+const others = stories.filter((s) => s.id !== story.id).slice(0, 3);
+const industry = data.industry.toLowerCase().replace(/\s+/g, "-");
+const facts = [
+  { label: "Company", value: data.company },
+  { label: "Industry", value: data.industry },
+  { label: "Size", value: data.size },
+  { label: "Location", value: data.location },
+];
+---
+
+<Site title={`${data.company}: ${data.title} — Forgeron`} description={data.description} bodyClass="home" type="article">
+  <PagesNav current="/customers" />
+
+  <main class="post story">
+    <article>
+      <header class="fg-rail post-head">
+        <nav class="post-crumbs text-eyebrow" aria-label="Breadcrumb">
+          <a href="/customers">Customers</a>
+          <span aria-hidden="true">/</span>
+          <a href={`/customers?industry=${industry}#stories`}>{data.industry}</a>
+          {data.draft ? <span class="blog-draft">Draft</span> : null}
+        </nav>
+        <p class="story-company text-eyebrow">{data.company}</p>
+        <h1 class="post-title">{data.title}</h1>
+        <p class="post-lead">{data.description}</p>
+      </header>
+
+      {
+        data.scene ? (
+          <figure class="fg-rail post-cover">
+            <PostArt scene={data.scene} field fill={0.72} />
+          </figure>
+        ) : null
+      }
+
+      {
+        data.results.length > 0 ? (
+          <ul class="fg-rail fg-figures story-results" style={`--story-results: ${data.results.length}`}>
+            {data.results.map((r) => (
+              <li class="fg-ticks">
+                <PixelFigure text={r.value} size="lg" />
+                <span class="text-eyebrow fg-figures-label">{r.label}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null
+      }
+
+      <div class="fg-rail post-layout">
+        <aside class="post-side">
+          <div class="post-side-inner">
+            <dl class="story-facts">
+              {
+                facts.map((f) => (
+                  <div>
+                    <dt class="text-eyebrow">{f.label}</dt>
+                    <dd>{f.value}</dd>
+                  </div>
+                ))
+              }
+              <div>
+                <dt class="text-eyebrow">Uses</dt>
+                <dd class="story-uses">
+                  {data.uses.map((u) => <span class="fg-tag">{u}</span>)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </aside>
+        <div class="post-body prose">
+          <Quote name={data.quote.name} role={`${data.quote.role}, ${data.company}`}>
+            {data.quote.text}
+          </Quote>
+          <Content components={{ Figure, Callout, Quote }} />
+        </div>
+      </div>
+
+      <footer class="fg-rail post-foot">
+        <a class="post-back text-eyebrow" href="/customers">← All customers</a>
+      </footer>
+    </article>
+
+    {
+      others.length > 0 ? (
+        <>
+          <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="More stories" />
+          <section class="fg-rail post-next" aria-label="More stories">
+            <ul class="fg-cards blog-cards">
+              {others.map((s) => (
+                <StoryCard story={s} />
+              ))}
+              {Array.from({ length: (3 - (others.length % 3)) % 3 }, () => (
+                <li class="blog-card-fill" aria-hidden="true" />
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : null
+    }
+  </main>
+
+  <Footer github={GITHUB} docs={DOCS} from={others.length > 0 ? "/0.2" : "/0.1"} />
+</Site>
+
+<script>
+  import "../../illustrations/canvas";
+</script>

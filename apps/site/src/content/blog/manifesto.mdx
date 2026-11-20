@@ -1,0 +1,87 @@
+---
+title: "The Forgeron manifesto"
+description: "What we believe about internal tools, AI assistants and the software companies rent. Seven convictions, and what we build from them."
+date: 2026-11-20
+category: Company
+authors: [forgeron]
+scene: manifesto
+featured: true
+---
+
+Companies rent software they barely use, and build the tools they really need without any framework. Forgeron exists to fix both at once.
+
+## The suite you rent
+
+A business suite is paid per module and per user. It brings its own interface, its own data model, its own integrations. For a simple need, such as tracking contacts, leads or requests, a company buys an entire system and uses a fraction of it.
+
+Meanwhile, its real internal tools live elsewhere: a script on a laptop, a small server someone wrote one weekend, an admin page nobody dares to touch. They have no versions and no test environment, their API keys travel through chat, and nobody knows who uses them. When their author changes jobs, they die.
+
+None of this is technically hard. What is missing is a standard way to write, run and govern these tools.
+
+## The interface is moving
+
+We think teams will work through an assistant like Claude first. They will ask a question or request an action, and the application behind it will matter less than the answer.
+
+When that happens, the heavy interface of a suite loses its value. What matters is reliable data and well-defined actions, served with the right permissions. That layer should be light, and it should belong to the company.
+
+## Backend first
+
+The core of a tool is its data and its actions. Define them once, and serve them everywhere: to Claude through MCP (the protocol an assistant uses to call a tool), to other software through the API, to a person through the terminal or a web page.
+
+One action becomes four interfaces. A change in the code reaches all four in the next version.
+
+| Interface | What you get                                      | For `contacts.search`                   |
+| --------- | ------------------------------------------------- | --------------------------------------- |
+| MCP       | A tool Claude can call, described and typed       | `crm_contacts_search`                   |
+| API       | An authenticated HTTP route, with an OpenAPI file | `POST /t/crm/api/contacts.search`       |
+| CLI       | A command, with generated help                    | `forgeron crm contacts search "Durand"` |
+| Web       | A hook for React views                            | `useAction("contacts.search")`          |
+
+## Talk to your tools
+
+For many tasks, asking is faster than learning a screen. But a conversation does not replace everything: a sales pipeline or a dashboard still reads best as a view. So views stay, light, fed by the same actions as everything else.
+
+## Light, not integrated
+
+A CRM, a contact book, a gateway to Odoo: each tool does one thing, changes on its own and costs little to run. When a need changes, you change one small tool, not a system.
+
+## One shape for every tool
+
+Forgeron offers one way to write a tool, short and readable: a config file, tables, actions, views. Every developer in the company recognises it.
+
+The shape is what makes a tool maintainable by someone other than its author, transferable to another team, and governable by the people responsible for access. The more tools a company writes the same way, the simpler the next one gets.
+
+## Security is part of the shape
+
+An internal tool handles company data, so security cannot be an option left to each developer.
+
+- **One identity.** Everyone signs in with the company's SSO, whatever the interface.
+- **Permissions declared, then granted.** Every action declares its access level in the code, and no action is exposed without one. Who gets each level is decided by the people in charge of access, team by team, without a deployment.
+- **Secrets apart from the code.** The tool's own, and each person's, sealed by the platform and never shown to the developer.
+- **Every call recorded.** Who, when, through which interface, with what result.
+- **No security by prompt.** What Claude can do is bounded by the signed-in person's permissions, on the server. A sentence slipped into a conversation cannot widen them.
+
+## Open by default
+
+Forgeron is open source, under the Apache-2.0 licence. You can run all of it on your own Cloudflare account, where we have no access to your data.
+
+Forgeron Cloud, planned, will run it for you at one price per seat. One seat will cover every tool in the workspace, every template and every interface; each person still does only what their team is allowed to.
+
+## What we reuse, what we build
+
+We reuse what already works: Cloudflare Workers and their storage, Kysely for typed SQL, Zod for schemas, Vitest for tests, React for views, the MCP protocol.
+
+We build only what gives a tool its shape: its structure, its migrations, its build, the four interfaces generated from one action, the permission model, versions and environments.
+
+## What we will not do
+
+- Charge per module.
+- Hold your data: run Forgeron yourself, and it never leaves your Cloudflare account.
+- Let the interface decide what someone is allowed to do.
+- Add a second way to write a tool when the first one works.
+
+## Why "Forgeron"
+
+_Forgeron_ is French for blacksmith. Internal developers come to forge their own tools from bases, templates and building blocks that already exist, instead of depending on a suite that decides for them.
+
+The code is on [GitHub](https://github.com/forgeron-sh/monorepo). We write about how we build it here, on the [blog](/blog).

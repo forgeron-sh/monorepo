@@ -1,0 +1,83 @@
+---
+import { SectionHead } from "@forgeron/ui";
+import ChangeEntry from "../../components/changelog/ChangeEntry.astro";
+import Footer from "../../components/Footer.astro";
+import PagesNav from "../../components/PagesNav.astro";
+import { AREAS } from "../../content.config";
+import { GITHUB } from "../../data/plans";
+import Site from "../../layouts/Site.astro";
+import { byMonth, getChanges, slug } from "../../lib/changelog";
+import "../../styles/blog.css";
+import "../../styles/changelog.css";
+
+const DOCS = "https://github.com/forgeron-sh/monorepo/blob/main/docs/sdk.md";
+
+const changes = await getChanges();
+const months = byMonth(changes);
+const areas = AREAS.filter((a) => changes.some((c) => c.data.areas.includes(a)));
+---
+
+<Site
+  title="Changelog — Forgeron"
+  description="New features, improvements and fixes across Forgeron, dated, with the version that ships them."
+  bodyClass="home"
+>
+  <link slot="head" rel="alternate" type="application/rss+xml" title="Forgeron changelog" href="/changelog/rss.xml" />
+  <PagesNav current="/changelog" />
+
+  <main class="changelog">
+    <section class="fg-rail">
+      <SectionHead
+        index="/0.1"
+        title={["Every change,", "dated."]}
+        titleAs="h1"
+        lead="New features, improvements and fixes across Forgeron, with the version that ships them."
+      />
+    </section>
+
+    <section id="changes" class="fg-rail">
+      <div class="blog-bar changelog-bar">
+        <div class="blog-filter" role="group" aria-label="Filter by area">
+          <button type="button" class="fg-btn fg-btn-sm" data-filter="all" aria-pressed="true">All</button>
+          {
+            areas.map((a) => (
+              <button type="button" class="fg-btn fg-btn-sm" data-filter={slug(a)} aria-pressed="false">
+                {a}
+              </button>
+            ))
+          }
+        </div>
+        <div class="changelog-feeds text-eyebrow">
+          <a href="/changelog/rss.xml">RSS</a>
+        </div>
+      </div>
+
+      {
+        months.length === 0 ? (
+          <p class="blog-empty">No change yet.</p>
+        ) : (
+          months.map((m) => (
+            <div class="changelog-month" data-group>
+              <h2 class="changelog-month-band text-eyebrow">
+                <span>{m.month}</span>
+              </h2>
+              {m.changes.map((c) => (
+                <ChangeEntry change={c} />
+              ))}
+            </div>
+          ))
+        )
+      }
+      <p class="blog-empty" data-empty hidden>No change in this area yet.</p>
+    </section>
+  </main>
+
+  <Footer github={GITHUB} docs={DOCS} from="/0.1" />
+</Site>
+
+<script>
+  import "../../illustrations/canvas";
+  import { mountFilter } from "../../lib/filter";
+
+  mountFilter("#changes", "area", 1);
+</script>

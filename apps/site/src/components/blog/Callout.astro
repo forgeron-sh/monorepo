@@ -1,0 +1,14 @@
+---
+interface Props {
+  /** `note` in grey, `warning` in ember. */
+  kind?: "note" | "warning";
+  /** The label in brackets; the kind's name by default. */
+  label?: string;
+}
+const { kind = "note", label = kind === "warning" ? "Warning" : "Note" } = Astro.props;
+---
+
+<aside class:list={["post-callout", `post-callout-${kind}`]}>
+  <span class="fg-tag"><b>{label}</b></span>
+  <div class="post-callout-body"><slot /></div>
+</aside>

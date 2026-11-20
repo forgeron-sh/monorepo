@@ -6,6 +6,7 @@
  */
 import { machine } from "./machine";
 import { OBJECT_SCENES } from "./objects";
+import { BLOG_SCENES } from "./blog-scenes";
 import { arm, block, fan, rack, tray, wheel as wheel2, Z } from "./parts";
 import {
   type Block,
@@ -118,6 +119,7 @@ function scenery(y0: number, y1: number): Block[] {
 /** Scenes in world units, as a function of time and of an optional active index. */
 const BUILDS: Record<string, (t: number, active: number) => Block[]> = {
   ...OBJECT_SCENES,
+  ...BLOG_SCENES,
   blocks(t, active) {
     const pick = active >= 0 ? active : Math.floor(t / 2.5) % 3;
     const shapes: Block[] = [

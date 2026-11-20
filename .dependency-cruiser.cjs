@@ -3,11 +3,12 @@ module.exports = {
   forbidden: [
     { name: "no-cycles", severity: "error", from: {}, to: { circular: true } },
     {
-      // Vite's virtual modules (`virtual:…`, made by a plugin of the app's config) have no file.
+      // Vite's virtual modules (`virtual:…`, made by a plugin of the app's config) and Astro's
+      // (`astro:content`, `astro:assets`…, made by Astro at build time) have no file.
       name: "no-unresolved",
       severity: "error",
       from: {},
-      to: { couldNotResolve: true, pathNot: "^virtual:" },
+      to: { couldNotResolve: true, pathNot: "^(virtual|astro):" },
     },
     {
       // Blueprint's parity suite is the exception: it renders the site's scenes, the scenes the
