@@ -1,0 +1,35 @@
+---
+import type { Project } from "../data/projects";
+import { lastChange } from "../lib/git";
+import ProjectArt from "./ProjectArt.astro";
+import StatusTag from "./StatusTag.astro";
+
+/**
+ * A project in the index: its number and state, its specimen, its name and line, then the
+ * package and the date of its last change. The whole card leads to its page (the title's link is
+ * stretched over it).
+ */
+interface Props {
+  project: Project;
+}
+const { project: p } = Astro.props;
+const updated = lastChange(p.dir);
+---
+
+<article class="fg-cell fg-ticks fg-c2 fg-r2 lab-card">
+  <div class="lab-card-top text-eyebrow">
+    <span class="lab-card-id">{p.id}</span>
+    <StatusTag status={p.status} />
+  </div>
+  <div class="lab-card-art fg-dots" inert>
+    <ProjectArt art={p.art} />
+  </div>
+  <div class="lab-card-copy">
+    <h3 class="text-title-3"><a href={`/projects/${p.slug}`} class="lab-card-link">{p.name}</a></h3>
+    <p class="text-small lab-card-line">{p.line}</p>
+    <div class="lab-card-meta text-eyebrow">
+      <span>{p.pkg}</span>
+      {updated && <span>Upd {updated}</span>}
+    </div>
+  </div>
+</article>

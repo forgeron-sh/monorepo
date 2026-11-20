@@ -1,0 +1,34 @@
+---
+import { sceneSvg } from "../lib/render";
+import { bench } from "../lib/scenes";
+
+/**
+ * The bench of the hero, a Blueprint scene: the static SVG of its first frame at build (the
+ * picture without JavaScript), then the engine plays it on the canvas and the SVG goes.
+ */
+const svg = sceneSvg(bench, 560, 400);
+---
+
+<div class="lab-scene" data-scene="bench" aria-hidden="true">
+  <div class="lab-scene-static" set:html={svg} />
+  <canvas></canvas>
+</div>
+
+<script>
+  import { initBlueprint } from "@forgeron/blueprint";
+  import { mount } from "@forgeron/blueprint/dom";
+  import { bench, FILTERS } from "../lib/scenes";
+
+  const root = document.querySelector<HTMLElement>('[data-scene="bench"]');
+  const canvas = root?.querySelector("canvas");
+  if (root && canvas)
+    initBlueprint().then(
+      () =>
+        mount(canvas, bench, {
+          filters: FILTERS,
+          onDraw: () => root.setAttribute("data-live", ""),
+        }),
+      // The engine could not start: the static picture stays.
+      (error: unknown) => console.error(`The bench could not start (${String(error)}).`),
+    );
+</script>

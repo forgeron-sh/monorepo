@@ -1,0 +1,38 @@
+---
+import { GithubIcon } from "@forgeron/icons";
+import { Button, Icon } from "@forgeron/ui";
+import Lockup from "./Lockup.astro";
+import { REPO } from "../lib/links";
+
+interface Props {
+  current?: string;
+}
+const { current } = Astro.props;
+const links = [
+  { href: "/#stable", label: "Stable" },
+  { href: "/#experimental", label: "Experimental" },
+  { href: "/#papers", label: "Papers" },
+];
+---
+
+<nav class="fg-snav" aria-label="Main navigation">
+  <div class="fg-rail fg-snav-bar">
+    <a href="/" aria-label="Forgeron Lab, home"><Lockup /></a>
+    <div class="fg-snav-links text-eyebrow">
+      {
+        links.map((l) => (
+          <a href={l.href} aria-current={l.href === current ? "page" : undefined}>
+            {l.label}
+          </a>
+        ))
+      }
+    </div>
+    <div class="fg-snav-actions">
+      <Button href={REPO} size="sm">
+        <Icon icon={GithubIcon} size={16} variant="mono" />
+        GitHub
+      </Button>
+      <Button href="https://forgeron.sh" size="sm" variant="primary" marker>forgeron.sh</Button>
+    </div>
+  </div>
+</nav>

@@ -38,6 +38,12 @@
       "port": 5180
     },
     {
+      "name": "lab",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/lab", "dev"],
+      "port": 5184
+    },
+    {
       "name": "prototypes",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "5197", "--directory", "docs/prototypes"],

@@ -1,0 +1,66 @@
+---
+import { GithubIcon } from "@forgeron/icons";
+import { SiteFooter } from "@forgeron/ui";
+import { REPO } from "../lib/links";
+
+interface Props {
+  /** The coordinate of the page's last section. */
+  from: string;
+}
+const { from } = Astro.props;
+---
+
+<!--
+  The hearth of forgeron.sh: the index in glued cells over a bed of embers, the wordmark as iron
+  just out of the forge. Its code loads when the footer nears the screen; without JavaScript the
+  wordmark is the static pixel drawing.
+-->
+<SiteFooter
+  from={from}
+  columns={[
+    {
+      title: "Lab",
+      links: [
+        { href: "/#stable", label: "Stable" },
+        { href: "/#experimental", label: "Experimental" },
+        { href: "/#papers", label: "Papers" },
+      ],
+    },
+    {
+      title: "Sites",
+      links: [
+        { href: "https://forgeron.sh", label: "forgeron.sh" },
+        { href: "https://icons.forgeron.sh", label: "Icons" },
+        { href: "https://font.forgeron.sh", label: "Forgeron Sans" },
+      ],
+    },
+    {
+      title: "Open source",
+      links: [
+        { href: REPO, label: "GitHub", icon: GithubIcon },
+        { href: `${REPO}/blob/main/docs/DECISIONS.md`, label: "Decisions" },
+        { href: REPO, label: "License · Apache-2.0" },
+      ],
+    },
+  ]}
+  legal={["Open source · Apache-2.0", "Built in the open", "lab.forgeron.sh"]}
+/>
+
+<script>
+  import { glyph, glyphWidth, textWidth } from "@forgeron/font";
+  import { mountHearth } from "@forgeron/shaders/dom";
+
+  // The hearth's drawing starts when the footer comes within a screen's height of the viewport.
+  const hearth = document.querySelector<HTMLElement>("[data-hearth]");
+  if (hearth) {
+    const near = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        near.disconnect();
+        mountHearth(hearth, { face: { glyph, glyphWidth, textWidth } });
+      },
+      { rootMargin: "100% 0px" },
+    );
+    near.observe(hearth);
+  }
+</script>

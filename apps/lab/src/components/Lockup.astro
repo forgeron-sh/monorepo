@@ -1,0 +1,18 @@
+---
+import { Logo, PixelText } from "@forgeron/ui";
+
+/**
+ * The lab's lockup, after the logo decision: the anvil in ember, FORGERON in the pixel capitals,
+ * then the suffix in exactly the same type, only grey, after a dim slash.
+ */
+interface Props {
+  size?: number;
+}
+const { size = 22 } = Astro.props;
+---
+
+<span class="lab-lockup" style={`--word:${Math.round(size * 0.5)}px`}>
+  <Logo size={size} />
+  <PixelText text="/" className="lab-lockup-sep" />
+  <PixelText text="lab" className="lab-lockup-suffix" />
+</span>

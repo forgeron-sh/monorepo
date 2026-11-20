@@ -144,6 +144,28 @@
         "@types/react-dom": "19.3.0",
       },
     },
+    "apps/lab": {
+      "name": "@forgeron/lab-site",
+      "version": "0.0.0",
+      "dependencies": {
+        "@astrojs/react": "7.1.2",
+        "@forgeron/blueprint": "workspace:*",
+        "@forgeron/font": "workspace:*",
+        "@forgeron/icons": "workspace:*",
+        "@forgeron/shaders": "workspace:*",
+        "@forgeron/ui": "workspace:*",
+        "astro": "7.4.5",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+      },
+      "devDependencies": {
+        "@astrojs/check": "0.9.12",
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/node": "24.19.2",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+      },
+    },
     "apps/richtext": {
       "name": "@forgeron/richtext-site",
       "version": "0.0.0",
@@ -839,6 +861,8 @@
     "@forgeron/platform-contract": ["@forgeron/platform-contract@workspace:packages/platform-contract"],
 
     "@forgeron/playground": ["@forgeron/playground@workspace:packages/playground"],
+
+    "@forgeron/lab-site": ["@forgeron/lab-site@workspace:apps/lab"],
 
     "@forgeron/registry": ["@forgeron/registry@workspace:packages/registry"],
 

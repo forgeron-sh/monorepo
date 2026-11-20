@@ -63,6 +63,9 @@
     "apps/ui-gallery": {
       "ignoreDependencies": ["@astrojs/check"]
     },
+    "apps/lab": {
+      "ignoreDependencies": ["@astrojs/check"]
+    },
     "apps/blueprint": {
       "entry": ["scripts/check-links.ts"],
       "ignoreDependencies": ["@astrojs/check"]

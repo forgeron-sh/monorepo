@@ -1,0 +1,108 @@
+---
+import { GithubIcon } from "@forgeron/icons";
+import { Button, Icon, SectionBand, SoonTag, Title } from "@forgeron/ui";
+import BenchLog from "../../components/BenchLog.astro";
+import Layout from "../../components/Layout.astro";
+import PaperList from "../../components/PaperList.astro";
+import ProjectArt from "../../components/ProjectArt.astro";
+import StatusTag from "../../components/StatusTag.astro";
+import { papersOf } from "../../data/papers";
+import { PROJECTS, type Project, STATUS } from "../../data/projects";
+import { lastChange } from "../../lib/git";
+import { REPO } from "../../lib/links";
+
+export function getStaticPaths() {
+  return PROJECTS.map((project) => ({ params: { slug: project.slug }, props: { project } }));
+}
+
+interface Props {
+  project: Project;
+}
+const { project: p } = Astro.props;
+const papers = papersOf(p.slug);
+const updated = lastChange(p.dir);
+const facts = [
+  { label: "State", value: STATUS[p.status].label, note: STATUS[p.status].line },
+  { label: "Area", value: p.area },
+  { label: "Package", value: p.pkg, mono: true },
+  ...(updated ? [{ label: "Last change", value: updated, mono: true }] : []),
+];
+---
+
+<Layout title={`${p.name} — Forgeron Lab`} description={`${p.name}: ${p.line}`} last={papers.length ? "/0.3" : "/0.2"}>
+  <section class="fg-rail lab-phead" aria-labelledby="project-title">
+    <div class="lab-phead-copy">
+      <div class="lab-phead-eyebrow text-eyebrow">
+        <a href={`/#${p.status}`} class="lab-back">← Lab</a>
+        <span>{p.id}</span>
+        <StatusTag status={p.status} />
+      </div>
+      <Title as="h1" size="h2"><span id="project-title">{p.name}</span></Title>
+      <p class="text-lead">{p.line}</p>
+      <div class="lab-phead-actions">
+        {
+          p.site ? (
+            <Button href={p.site} variant="primary" marker>
+              Open {new URL(p.site).host}
+            </Button>
+          ) : null
+        }
+        <Button href={`${REPO}/tree/main/${p.dir}`}>
+          <Icon icon={GithubIcon} size={16} variant="mono" />
+          Source
+        </Button>
+        {
+          p.siteSoon ? (
+            <span class="lab-phead-soon text-eyebrow">
+              {p.siteSoon} <SoonTag />
+            </span>
+          ) : null
+        }
+      </div>
+    </div>
+    <div class="lab-phead-art fg-dots fg-ticks" inert>
+      <ProjectArt art={p.art} />
+    </div>
+  </section>
+
+  <SectionBand className="fg-rail" from="/0.0" to="/0.1" label="Facts" />
+  <section class="fg-rail" aria-label="Facts">
+    <ul class="fg-bento lab-facts">
+      {
+        facts.map((f) => (
+          <li class="fg-cell fg-ticks lab-fact">
+            <span class="text-eyebrow dim">{f.label}</span>
+            <span class:list={["lab-fact-value", { "text-code": f.mono }]}>{f.value}</span>
+            {f.note && <span class="text-small">{f.note}</span>}
+          </li>
+        ))
+      }
+    </ul>
+    <ul class="fg-bento lab-points">
+      {
+        p.points.map((pt, i) => (
+          <li class="fg-cell fg-ticks lab-point">
+            <span class="text-eyebrow accent">{String(i + 1).padStart(2, "0")}</span>
+            <span>{pt}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <SectionBand className="fg-rail" from="/0.1" to="/0.2" label="Bench" />
+  <section class="fg-rail lab-pbench" aria-label="Recent changes">
+    <BenchLog dirs={[p.dir]} count={8} title={`Last changes · ${p.dir}`} />
+  </section>
+
+  {
+    papers.length > 0 && (
+      <>
+        <SectionBand className="fg-rail" from="/0.2" to="/0.3" label="Papers" />
+        <section class="fg-rail" aria-label="Papers">
+          <PaperList papers={papers} />
+        </section>
+      </>
+    )
+  }
+</Layout>

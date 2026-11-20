@@ -1,0 +1,14 @@
+---
+import { STATUS, type Status } from "../data/projects";
+
+/** The state of a project: a square LED (green when stable, ember and blinking when experimental) and its name. */
+interface Props {
+  status: Status;
+}
+const { status } = Astro.props;
+---
+
+<span class:list={["lab-status", `lab-status-${status}`]}>
+  <span class="lab-status-led" aria-hidden="true"></span>
+  {STATUS[status].label}
+</span>
