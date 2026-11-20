@@ -6,11 +6,9 @@ export {
   addRecipients,
   applyConversationFormat,
   buildConversationRows,
-  CONVERSATION_EMOJI,
   conversationContactEmails,
   conversationDayKey,
   conversationDayLabel,
-  conversationEmojiName,
   conversationFirstUnread,
   conversationListTime,
   conversationMentionToken,
@@ -29,8 +27,6 @@ export {
   parseConversationInline,
   parseMentions,
   parseRecipientText,
-  pushRecentEmoji,
-  searchConversationEmoji,
   toggleConversationReaction,
 } from "./conversation-model";
 export type {
@@ -48,8 +44,6 @@ export type {
   ConversationRow,
   ConversationSection,
   ConversationUser,
-  EmojiCategory,
-  EmojiEntry,
   MentionOption,
   MentionTrigger,
   ParsedMention,
@@ -64,20 +58,12 @@ export type {
 } from "./conversation-presence";
 export { AttachmentList } from "./conversation-attachments";
 export type { AttachmentListProps } from "./conversation-attachments";
-export { EmojiPicker, ReactionBar } from "./conversation-emoji";
-export type { EmojiPickerProps, ReactionBarProps } from "./conversation-emoji";
-export {
-  conversationCaretPosition,
-  MentionPicker,
-  mentionOptionId,
-} from "./conversation-mention-picker";
-export type { MentionPickerProps } from "./conversation-mention-picker";
+export { ReactionBar } from "./conversation-emoji";
+export type { ReactionBarProps } from "./conversation-emoji";
 export { ConversationText, MessageItem } from "./conversation-message";
 export type { MessageHandlers, MessageItemProps } from "./conversation-message";
 export { MessageList } from "./conversation-message-list";
 export type { MessageListProps } from "./conversation-message-list";
-export { RichComposer } from "./conversation-composer";
-export type { ComposerSend, ComposerTrigger, RichComposerProps } from "./conversation-composer";
 export { ThreadPanel } from "./conversation-thread-panel";
 export type { ThreadPanelProps } from "./conversation-thread-panel";
 export { ConversationList } from "./conversation-list";
@@ -88,3 +74,10 @@ export type {
   RecipientFieldsValue,
   RecipientInputProps,
 } from "./conversation-recipients";
+export { InlineComments, inlineCommentAnchorTop } from "./conversation-comments";
+export type {
+  InlineComment,
+  InlineCommentsProps,
+  InlineThread,
+  InlineThreadFilter,
+} from "./conversation-comments";

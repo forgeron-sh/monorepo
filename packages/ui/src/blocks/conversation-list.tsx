@@ -4,10 +4,11 @@
 // (and j / k) move, Enter or a click opens. Richer than InboxList, for chats, mail and tickets.
 
 import { BellOffIcon, Pin02Icon } from "@forgeron/icons";
-import type { KeyboardEvent, ReactNode } from "react";
-import { useId, useState } from "react";
+import type { ReactNode } from "react";
+import { useState } from "react";
 import { Avatar } from "../avatar";
 import { cx } from "../cx";
+import { useCollection } from "../hooks/use-collection";
 import { Icon } from "../icon";
 import { AvatarGroup } from "../identity";
 import {
@@ -82,8 +83,6 @@ export function ConversationList({
   empty = "No conversations",
   className,
 }: ConversationListProps) {
-  const base = useId();
-  const rowId = (id: string) => `${base}-${id}`;
   const pinning = pinnedLabel !== false && items.some((i) => i.pinned);
   const groups = groupConversationItems(
     items,
@@ -91,49 +90,41 @@ export function ConversationList({
     pinnedLabel === false ? undefined : { label: pinnedLabel },
   );
   const flat = groups.flatMap((g) => g.items);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const activeId =
-    (cursor && flat.some((i) => i.id === cursor) ? cursor : null) ??
-    (selectedId && flat.some((i) => i.id === selectedId) ? selectedId : null) ??
-    flat[0]?.id ??
-    null;
+  // The cursor moves with the arrows; the selection is the conversation open, chosen with Enter,
+  // Space or a click, and the parent owns it.
+  const collection = useCollection({
+    items: flat,
+    getId: (i) => i.id,
+    selectionMode: "single",
+    selected: selectedId ? [selectedId] : [],
+    onSelectedChange: (ids) => {
+      if (ids[0] !== undefined) onSelect(ids[0]);
+    },
+    onAction: onSelect,
+    focusMode: "activedescendant",
+    focusFirst: true,
+    followFocus: false,
+    actOnDoubleClick: false,
+    clearOnEscape: false,
+    vimKeys: true,
+  });
+  const activeId = collection.activeId;
   const [mounted] = useState(() => new Date().toISOString());
   const nowIso = now ?? mounted;
-
-  const go = (to: number) => {
-    const item = flat[Math.max(0, Math.min(flat.length - 1, to))];
-    if (!item) return;
-    setCursor(item.id);
-    document.getElementById(rowId(item.id))?.scrollIntoView?.({ block: "nearest" });
-  };
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
-    const at = flat.findIndex((i) => i.id === activeId);
-    const k = event.key;
-    if (k === "ArrowDown" || k === "j") go(at + 1);
-    else if (k === "ArrowUp" || k === "k") go(at - 1);
-    else if (k === "Home") go(0);
-    else if (k === "End") go(flat.length - 1);
-    else if ((k === "Enter" || k === " ") && activeId) onSelect(activeId);
-    else return;
-    event.preventDefault();
-  };
 
   if (flat.length === 0)
     return <div className={cx("fg-conv-list", "fg-conv-list-empty", className)}>{empty}</div>;
 
   return (
     <div
-      className={cx("fg-conv-list", className)}
-      role="listbox"
-      aria-label={label}
-      tabIndex={0}
-      {...(activeId ? { "aria-activedescendant": rowId(activeId) } : {})}
-      onKeyDown={onKeyDown}
+      {...collection.getContainerProps({
+        className: cx("fg-conv-list", className),
+        role: "listbox",
+        "aria-label": label,
+      })}
     >
       {groups.map((group) => {
         const rows = group.items.map((item) => {
-          const selected = item.id === selectedId;
           const group2 = (item.people?.length ?? 0) > 1;
           const time =
             item.time ?? (item.at ? conversationListTime(item.at, nowIso, timeZone) : "");
@@ -141,19 +132,15 @@ export function ConversationList({
           return (
             <div
               key={item.id}
-              id={rowId(item.id)}
-              role="option"
-              aria-selected={selected}
-              className={cx(
-                "fg-conv-row",
-                unread > 0 && "fg-conv-row-unread",
-                item.muted && "fg-conv-row-muted",
-                item.id === activeId && "fg-conv-row-active",
-              )}
-              onClick={() => {
-                setCursor(item.id);
-                onSelect(item.id);
-              }}
+              {...collection.getItemProps(item.id, {
+                role: "option",
+                className: cx(
+                  "fg-conv-row",
+                  unread > 0 && "fg-conv-row-unread",
+                  item.muted && "fg-conv-row-muted",
+                  item.id === activeId && "fg-conv-row-active",
+                ),
+              })}
             >
               <span className="fg-conv-row-who" aria-hidden={group2 ? undefined : true}>
                 {group2 ? (

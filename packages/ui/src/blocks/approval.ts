@@ -50,29 +50,6 @@ export type { ApprovalAuditProps, ApprovalChainProps, ApprovalPerson } from "./a
 export { ParticipantList } from "./approval-participant-list";
 export type { ParticipantListProps } from "./approval-participant-list";
 export {
-  addPoint,
-  dataUrlToBlob,
-  isBlankSignature,
-  SIGNATURE_FONTS,
-  SignaturePad,
-  signatureBlob,
-  smoothStroke,
-  strokesBounds,
-  strokesPath,
-  strokesSvgDataUrl,
-  textSvgDataUrl,
-} from "./approval-signature-pad";
-export type {
-  Bounds,
-  Curve,
-  Point,
-  SignatureFont,
-  SignatureMode,
-  SignaturePadProps,
-  SignatureValue,
-  Stroke,
-} from "./approval-signature-pad";
-export {
   clampPage,
   clampZoom,
   DocumentViewer,

@@ -5,8 +5,15 @@
 
 import type { IconDefinition } from "@forgeron/icons";
 import { Building01Icon, Copy01Icon, GlobeIcon, Link01Icon, LockIcon } from "@forgeron/icons";
-import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Avatar } from "../avatar";
+import { useId, useState, type ReactNode } from "react";
+import {
+  AccessList,
+  AccessListEmpty,
+  AccessListFixed,
+  AccessListItem,
+  AccessListRole,
+  PeopleCombobox,
+} from "../access-list";
 import { Button } from "../button";
 import { Switch } from "../controls";
 import { cx } from "../cx";
@@ -102,7 +109,6 @@ export const DEFAULT_SHARE: ShareSettings = {
   link: { expires: "never", password: false, download: true },
 };
 
-const REMOVE = "\u0000remove";
 const SCOPE_ICON: Record<AccessScope, IconDefinition> = {
   restricted: LockIcon,
   organization: Building01Icon,
@@ -131,9 +137,6 @@ export function SharePanel({
     defaultValue,
     onChange,
   });
-  const [query, setQuery] = useState("");
-  const [listOpen, setListOpen] = useState(false);
-  const [active, setActive] = useState(0);
   const [newRole, setNewRole] = useState(defaultRole ?? roles[roles.length - 1]?.value ?? "viewer");
   const id = useId();
   const byId = new Map(directory.map((p) => [p.id, p]));
@@ -143,33 +146,11 @@ export function SharePanel({
     ...settings.people.map((g) => g.id),
     ...inherited.map((g) => g.person.id),
   ]);
-  const q = query.trim().toLowerCase();
-  const matches = directory.filter(
-    (p) =>
-      !taken.has(p.id) &&
-      (!q || p.name.toLowerCase().includes(q) || (p.hint ?? "").toLowerCase().includes(q)),
-  );
-  const at = Math.min(active, Math.max(matches.length - 1, 0));
+  const candidates = directory.filter((p) => !taken.has(p.id));
 
   const update = (patch: Partial<ShareSettings>) => setSettings({ ...settings, ...patch });
-  const add = (person: SharePerson) => {
+  const add = (person: SharePerson) =>
     update({ people: [...settings.people, { id: person.id, role: newRole }] });
-    setQuery("");
-    setActive(0);
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "ArrowDown") {
-      setListOpen(true);
-      setActive(Math.min(at + 1, matches.length - 1));
-    } else if (event.key === "ArrowUp") setActive(Math.max(at - 1, 0));
-    else if (event.key === "Enter" && listOpen && matches[at]) add(matches[at]);
-    else if (event.key === "Escape" && listOpen) {
-      event.stopPropagation();
-      setListOpen(false);
-    } else return;
-    event.preventDefault();
-  };
 
   const scopes: SelectMenuOption[] = [
     { value: "restricted", label: "Restricted", icon: LockIcon },
@@ -189,62 +170,13 @@ export function SharePanel({
   return (
     <div className={cx("fg-share", className)}>
       <div className="fg-share-add">
-        <div className="fg-share-combo">
-          <Input
-            role="combobox"
-            aria-label="Add people or teams"
-            aria-expanded={listOpen}
-            aria-controls={`${id}-list`}
-            aria-autocomplete="list"
-            {...(listOpen && matches[at]
-              ? { "aria-activedescendant": `${id}-${matches[at].id}` }
-              : {})}
-            placeholder="Add people or teams"
-            autoComplete="off"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setActive(0);
-              setListOpen(true);
-            }}
-            onFocus={() => setListOpen(true)}
-            onBlur={() => setListOpen(false)}
-            onKeyDown={onKeyDown}
-          />
-          {listOpen ? (
-            <ul
-              className="fg-share-list fg-pop"
-              id={`${id}-list`}
-              role="listbox"
-              aria-label="People and teams"
-            >
-              {matches.length === 0 ? (
-                <li className="fg-share-none" role="presentation">
-                  No match
-                </li>
-              ) : (
-                matches.map((p, i) => (
-                  <li
-                    key={p.id}
-                    id={`${id}-${p.id}`}
-                    role="option"
-                    aria-selected={i === at}
-                    className="fg-pop-row fg-share-option"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      add(p);
-                    }}
-                    onMouseEnter={() => setActive(i)}
-                  >
-                    <Avatar name={p.name} size={20} />
-                    <span className="fg-pop-label">{p.name}</span>
-                    {p.hint ? <span className="fg-pop-hint">{p.hint}</span> : null}
-                  </li>
-                ))
-              )}
-            </ul>
-          ) : null}
-        </div>
+        <PeopleCombobox
+          label="Add people or teams"
+          placeholder="Add people or teams"
+          people={candidates}
+          onAdd={add}
+          className="fg-share-combo"
+        />
         <SelectMenu
           label="Role for the people added"
           options={roles}
@@ -258,51 +190,37 @@ export function SharePanel({
         <h3 className="fg-share-eyebrow" id={`${id}-people`}>
           People with access
         </h3>
-        <ul className="fg-share-people">
+        <AccessList aria-label="People with access">
           {inherited.map((g) => (
-            <li key={`i-${g.person.id}`} className="fg-share-person">
-              <Avatar name={g.person.name} size={28} />
-              <div className="fg-share-who">
-                <b>{g.person.name}</b>
-                {g.person.hint ? <span>{g.person.hint}</span> : null}
-              </div>
-              <span className="fg-share-fixed">
+            <AccessListItem key={`i-${g.person.id}`} name={g.person.name} secondary={g.person.hint}>
+              <AccessListFixed>
                 {g.role}
                 {g.from ? ` · ${g.from}` : ""}
-              </span>
-            </li>
+              </AccessListFixed>
+            </AccessListItem>
           ))}
           {settings.people.map((g, i) => {
             const p = byId.get(g.id) ?? { id: g.id, name: g.id };
             return (
-              <li key={g.id} className="fg-share-person">
-                <Avatar name={p.name} size={28} />
-                <div className="fg-share-who">
-                  <b>{p.name}</b>
-                  {p.hint ? <span>{p.hint}</span> : null}
-                </div>
-                <SelectMenu
+              <AccessListItem key={g.id} name={p.name} secondary={p.hint}>
+                <AccessListRole
                   label={`Role of ${p.name}`}
-                  size="sm"
-                  options={[...roles, { value: REMOVE, label: "Remove access" }]}
+                  roles={roles}
                   value={g.role}
-                  onChange={(v) => {
-                    if (!v) return;
+                  onValueChange={(role) =>
                     update({
-                      people:
-                        v === REMOVE
-                          ? settings.people.filter((_, j) => j !== i)
-                          : settings.people.map((x, j) => (j === i ? { ...x, role: v } : x)),
-                    });
-                  }}
+                      people: settings.people.map((x, j) => (j === i ? { ...x, role } : x)),
+                    })
+                  }
+                  onRemove={() => update({ people: settings.people.filter((_, j) => j !== i) })}
                 />
-              </li>
+              </AccessListItem>
             );
           })}
           {inherited.length === 0 && settings.people.length === 0 ? (
-            <li className="fg-share-empty">Only you</li>
+            <AccessListEmpty>Only you</AccessListEmpty>
           ) : null}
-        </ul>
+        </AccessList>
       </section>
 
       <section className="fg-share-section" aria-labelledby={`${id}-general`}>

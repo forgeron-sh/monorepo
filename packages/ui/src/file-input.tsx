@@ -6,6 +6,7 @@ import type { DragEvent } from "react";
 import { useId, useRef, useState } from "react";
 import { Button } from "./button";
 import { cx } from "./cx";
+import { formatBytes } from "./format";
 import { useControllableState } from "./hooks/use-controllable";
 import { Icon } from "./icon";
 
@@ -38,18 +39,8 @@ export interface FileInputProps {
   className?: string;
 }
 
-/** "2.4 MB", "310 KB", "12 B". */
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB", "TB"];
-  let n = bytes / 1024;
-  let i = 0;
-  while (n >= 1024 && i < units.length - 1) {
-    n /= 1024;
-    i++;
-  }
-  return `${n >= 10 || Number.isInteger(n) ? Math.round(n) : n.toFixed(1)} ${units[i]}`;
-}
+/** "2.4 MB", "310 KB", "12 B": a file's size, in powers of 1024 (see `formatBytes`). */
+export const formatFileSize = (bytes: number): string => formatBytes(bytes, { base: 1024 });
 
 /** Does `file` match an `accept` list (`image/*,.pdf,application/json`)? An empty list matches. */
 export function matchesAccept(file: { name: string; type: string }, accept?: string): boolean {

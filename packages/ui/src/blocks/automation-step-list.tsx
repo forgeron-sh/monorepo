@@ -9,6 +9,7 @@ import { useControllableState } from "../hooks/use-controllable";
 import { cx } from "../cx";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
+import { sortableKeyStep } from "../sortable-model";
 import {
   findStep,
   flattenSteps,
@@ -73,9 +74,10 @@ export function StepList({
     const root = event.currentTarget;
     const order = flattenSteps(steps).map((s) => s.id);
     const i = order.indexOf(id);
-    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown") && editable) {
+    const step = event.altKey && editable ? sortableKeyStep(event.key) : null;
+    if (step && "delta" in step) {
       event.preventDefault();
-      setSteps(moveStep(steps, id, event.key === "ArrowUp" ? -1 : 1));
+      setSteps(moveStep(steps, id, step.delta));
       focusStep(root, id);
     } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();

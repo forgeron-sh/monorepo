@@ -9,8 +9,8 @@ export type {
   ActivityProps,
   CommentComposerProps,
 } from "./record-activity";
-export { CreateDialog, Modal } from "./record-create";
-export type { CreateDialogProps, CreateDraft, ModalProps } from "./record-create";
+export { CreateDialog } from "./record-create";
+export type { CreateDialogProps, CreateDraft } from "./record-create";
 export { PropertyChips, PropertyPanel, PropertyText } from "./record-properties";
 export type {
   PropertyChipsProps,

@@ -11,11 +11,12 @@ import { Segmented } from "../controls";
 import { cx } from "../cx";
 import { Field, Input } from "../form";
 import { useControllableState } from "../hooks/use-controllable";
+import { sortableDropPosition, sortableSlotIndex } from "../sortable-model";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
-import { ConditionBuilder, emptyCondition } from "./automation-condition-builder";
+import { ConditionBuilder, emptyCondition } from "../condition-builder";
 import type { ConditionGroup } from "./automation-model";
-import { ActionMenu, type ActionMenuEntry } from "./navigation-action-menu";
+import { ActionMenu, type ActionMenuEntry } from "../action-menu";
 import { QuestionCard } from "./forms-question-card";
 import { FormRenderer } from "./forms-renderer";
 import {
@@ -233,7 +234,7 @@ export function FormBuilder({
           .find((s) => s.id === from?.[0])
           ?.questions.findIndex((q) => q.id === dragging) ?? -1;
       // Dropping below its own place lands one earlier once the card has left.
-      const target = from?.[0] === sectionId && fromIndex < index ? index - 1 : index;
+      const target = from?.[0] === sectionId ? sortableSlotIndex(fromIndex, index) : index;
       setSchema(moveFormQuestionTo(schema, dragging, sectionId, target));
     }
     setDragging(null);
@@ -245,7 +246,8 @@ export function FormBuilder({
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
     const box = event.currentTarget.getBoundingClientRect();
-    const i = event.clientY > box.top + box.height / 2 ? index + 1 : index;
+    const i =
+      sortableDropPosition(event.clientY - box.top, box.height) === "after" ? index + 1 : index;
     if (over?.section !== sectionId || over.index !== i) setOver({ section: sectionId, index: i });
   };
 

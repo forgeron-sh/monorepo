@@ -31,23 +31,11 @@ import { cx } from "../cx";
 import { formatShortcut } from "../hooks/use-shortcuts";
 import { useDisclosure } from "../hooks/use-disclosure";
 import { Icon } from "../icon";
-import { SelectMenu, Tooltip, type SelectMenuOption } from "../overlays";
+import { SelectMenu, type SelectMenuOption } from "../overlays";
+import { Tooltip } from "../tooltip";
 
-/** What a view shows and how. */
-export interface DisplayOptions {
-  /** One of the layouts: `list`, `board`, or one the app adds. */
-  layout: string;
-  /** How records are grouped, e.g. `status`, or `none`. */
-  grouping: string;
-  /** How records are ordered, e.g. `priority`. */
-  ordering: string;
-  /** The switches on, by id: `{ subIssues: true, emptyGroups: false }`. */
-  toggles: Readonly<Record<string, boolean>>;
-  /** The properties shown on each record, by id: `["id", "status", "assignee"]`. */
-  properties: ReadonlyArray<string>;
-  /** Any other choice, by name: a timeline's `zoom`, the date a calendar places records on. */
-  options?: Readonly<Record<string, string>>;
-}
+export type { DisplayOptions } from "../filter-model";
+import type { DisplayOptions } from "../filter-model";
 
 /** One way to lay the records out. Add your own: `{ value: "timeline", label: "Timeline" }`. */
 export interface DisplayLayout {

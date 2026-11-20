@@ -43,69 +43,6 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "command-palette",
-    name: "Command palette",
-    summary: "⌘K: search pages, records and actions, arrows and Enter to run.",
-    imports: ["CommandPalette", "filterCommands"],
-    props: [
-      { name: "open / onOpenChange", type: "boolean / (open) => void", description: "Controlled." },
-      {
-        name: "groups",
-        type: "{ label, items: { id, label, icon?, glyph?, hint?, kbd?, keywords? }[] }[]",
-        description: "The results, by group; filtered on label, hint and keywords.",
-      },
-      { name: "onSelect", type: "(id: string) => void", description: "The row run; then closes." },
-      {
-        name: "placeholder",
-        type: "string",
-        default: `"Search or run a command…"`,
-        description: "In the field.",
-      },
-      {
-        name: "shortcut",
-        type: "string | string[]",
-        default: `["⌘", "K"]`,
-        description: "The key that opens it, at the end of the field.",
-      },
-      {
-        name: "emptyText",
-        type: "(query) => ReactNode",
-        description: "When nothing matches; No results for “…” by default.",
-      },
-    ],
-  },
-  {
-    slug: "action-menu",
-    name: "Action menu",
-    summary: "The actions on a record behind “…” or a right click, with submenus.",
-    imports: ["ActionMenu", "ContextMenu"],
-    props: [
-      {
-        name: "items",
-        type: "ActionMenuEntry[]",
-        description:
-          "{ id, label, icon?, glyph?, kbd?, danger?, checked?, items? }, { separator: true }, { heading }.",
-      },
-      {
-        name: "onSelect",
-        type: "(id: string) => void",
-        description: "The row chosen, in the menu or a submenu.",
-      },
-      {
-        name: "trigger",
-        type: "ReactElement",
-        description: "ActionMenu: the control that opens it, e.g. an IconButton.",
-      },
-      {
-        name: "children",
-        type: "ReactNode",
-        description: "ContextMenu: the area that opens it on right click.",
-      },
-      { name: "open / onOpenChange", type: "boolean / (open) => void", description: "Optional." },
-      { name: "label", type: "string", description: "Names the menu, e.g. Actions on OPS-40." },
-    ],
-  },
-  {
     slug: "inbox-list",
     name: "Inbox list",
     summary: "Notification rows: unread in bold with the ember LED, arrows to move.",

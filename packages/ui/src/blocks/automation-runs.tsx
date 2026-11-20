@@ -6,9 +6,10 @@ import type { IconDefinition } from "@forgeron/icons";
 import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { Segmented } from "../controls";
 import { cx } from "../cx";
-import { addDays, formatShort, parseIso } from "../dates";
+import { dayLabel, groupByDay } from "../dates";
 import { Icon } from "../icon";
 import { Led } from "../led";
+import { Feed, FeedGroup, FeedGroupLabel, FeedItem, FeedTime } from "../timeline";
 import { formatDuration, statusLook, type RunStatus } from "./automation-model";
 
 /* ---------------------------------------------------------------- RunBars */
@@ -107,12 +108,6 @@ export interface RunListProps {
   className?: string;
 }
 
-function dayName(day: string, today?: string) {
-  if (today && day === today) return `Today · ${formatShort(day)}`;
-  if (today && day === addDays(today, -1)) return `Yesterday · ${formatShort(day)}`;
-  return formatShort(day, today ? parseIso(today).getFullYear() : undefined);
-}
-
 /** Runs by day, newest first: state, time, number, trigger, error, duration. */
 export function RunList({
   runs,
@@ -127,13 +122,7 @@ export function RunList({
 }: RunListProps) {
   const [only, setOnly] = useState("all");
   const list = filter && only === "error" ? runs.filter((r) => r.status === "error") : runs;
-  const days: { day: string; runs: RunSummary[] }[] = [];
-  for (const run of list) {
-    const day = run.at.slice(0, 10);
-    const last = days[days.length - 1];
-    if (last?.day === day) last.runs.push(run);
-    else days.push({ day, runs: [run] });
-  }
+  const days = groupByDay(list, (run) => run.at);
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
@@ -167,12 +156,10 @@ export function RunList({
       {list.length === 0 ? <div className="fg-runs-empty">{empty}</div> : null}
       {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- arrows between the run buttons */}
       <div onKeyDown={onKeyDown}>
-        {days.map(({ day, runs: rows }) => (
-          <div key={day} className="fg-runs-group">
-            <h3 className="fg-runs-day">
-              <span>{dayName(day, today)}</span>
-            </h3>
-            <ol className="fg-runs-list">
+        {days.map(({ day, items: rows }) => (
+          <FeedGroup key={day}>
+            <FeedGroupLabel>{dayLabel(day, today)}</FeedGroupLabel>
+            <Feed connector={false} className="fg-runs-list">
               {rows.map((run) => {
                 const look = statusLook(run.status);
                 const time = run.at.slice(11, 19);
@@ -184,9 +171,9 @@ export function RunList({
                         {look.word}
                       </span>
                     </span>
-                    <time className="fg-runs-time" dateTime={`${day}T${time}`}>
+                    <FeedTime className="fg-runs-time" dateTime={`${day}T${time}`}>
                       {time}
-                    </time>
+                    </FeedTime>
                     {density === "full" ? (
                       <>
                         <span className="fg-runs-id">#{run.id}</span>
@@ -219,7 +206,7 @@ export function RunList({
                   </>
                 );
                 return (
-                  <li key={run.id} className={cx(run.status === "error" && "fg-runs-failed")}>
+                  <FeedItem key={run.id} className={cx(run.status === "error" && "fg-runs-failed")}>
                     {onSelect ? (
                       <button
                         type="button"
@@ -232,11 +219,11 @@ export function RunList({
                     ) : (
                       <div className="fg-runs-row">{line}</div>
                     )}
-                  </li>
+                  </FeedItem>
                 );
               })}
-            </ol>
-          </div>
+            </Feed>
+          </FeedGroup>
         ))}
       </div>
     </section>

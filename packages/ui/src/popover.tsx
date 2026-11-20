@@ -3,10 +3,11 @@
 
 import { Popover as Base } from "@base-ui/react/popover";
 import { Cancel01Icon } from "@forgeron/icons";
-import type { ReactElement, ReactNode } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { cx } from "./cx";
 import { useDisclosure } from "./hooks/use-disclosure";
 import { Icon } from "./icon";
+import { asChildProps } from "./as-child";
 
 export interface PopoverProps {
   /** The control that opens it: one element that takes a ref (a Button, an IconButton, a chip). */
@@ -35,8 +36,15 @@ export interface PopoverProps {
   className?: string;
 }
 
-/** A panel that opens from a button: any content, with an optional heading and close button. */
-export function Popover({
+/**
+ * With `trigger`: a panel that opens from a button, any content, with an optional heading and close
+ * button. Without: the root of shadcn's parts (`PopoverTrigger`, `PopoverContent`…), D-156.
+ */
+export function Popover(props: PopoverProps | PopoverRootProps) {
+  return props.trigger !== undefined ? <PopoverPanel {...props} /> : <PopoverRoot {...props} />;
+}
+
+function PopoverPanel({
   trigger,
   label,
   title,
@@ -86,4 +94,80 @@ export function Popover({
       </Base.Portal>
     </Base.Root>
   );
+}
+
+/* ---------------------------------------------------------------- shadcn parts (D-156) */
+
+// shadcn's Popover parts (D-156), on Base UI (D-147): `Popover` takes them when given no `trigger`.
+
+type Part<T> = Omit<T, "className"> & { className?: string };
+
+/** `trigger` stays undefined: with a trigger, `Popover` is the props-driven one. */
+export type PopoverRootProps = Omit<ComponentProps<typeof Base.Root>, "onOpenChange"> & {
+  trigger?: undefined;
+  onOpenChange?: (open: boolean) => void;
+};
+
+/** The root of the composed popover: `open`, `defaultOpen`, `onOpenChange`, `modal`. */
+function PopoverRoot({ trigger: _trigger, onOpenChange, ...props }: PopoverRootProps) {
+  return (
+    <Base.Root
+      {...props}
+      {...(onOpenChange ? { onOpenChange: (open: boolean) => onOpenChange(open) } : {})}
+    />
+  );
+}
+
+export type PopoverTriggerProps = Part<ComponentProps<typeof Base.Trigger>> & { asChild?: boolean };
+
+export function PopoverTrigger({ asChild, children, className, ...rest }: PopoverTriggerProps) {
+  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+}
+
+export type PopoverContentProps = Part<ComponentProps<typeof Base.Popup>> & {
+  side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
+  sideOffset?: number;
+};
+
+/** The panel, in a portal, placed by the trigger. */
+export function PopoverContent({
+  side = "bottom",
+  align = "center",
+  sideOffset = 6,
+  className,
+  children,
+  ...rest
+}: PopoverContentProps) {
+  return (
+    <Base.Portal>
+      <Base.Positioner
+        className="fg-pop-positioner"
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+      >
+        <Base.Popup {...rest} className={cx("fg-pop fg-popover", className)}>
+          <div className="fg-popover-body">{children}</div>
+        </Base.Popup>
+      </Base.Positioner>
+    </Base.Portal>
+  );
+}
+
+export function PopoverTitle({ className, ...rest }: Part<ComponentProps<typeof Base.Title>>) {
+  return <Base.Title {...rest} className={cx("fg-popover-title", className)} />;
+}
+
+export function PopoverDescription({
+  className,
+  ...rest
+}: Part<ComponentProps<typeof Base.Description>>) {
+  return <Base.Description {...rest} className={cx("fg-popover-desc", className)} />;
+}
+
+export type PopoverCloseProps = Part<ComponentProps<typeof Base.Close>> & { asChild?: boolean };
+
+export function PopoverClose({ asChild, children, className, ...rest }: PopoverCloseProps) {
+  return <Base.Close {...rest} className={className} {...asChildProps(asChild, children)} />;
 }

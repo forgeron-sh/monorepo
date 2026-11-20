@@ -4,41 +4,13 @@
 // with settings reads the same. There is no concept of role: a subject (a person, a team) holds a
 // state on each permission, and what it does not hold it inherits.
 
-import { addDays, formatShort } from "../dates";
+import { addDays } from "../dates";
+import { formatDuration } from "../format";
 
 /* ---------------------------------------------------------------- shared */
 
-const DAY = /^(\d{4})-(\d{2})-(\d{2})/;
-
-/** The `YYYY-MM-DD` of a stamp (`2026-11-18`, `2026-11-18T09:12:00Z`, `2026-11-18 09:12`), or null. */
-export function adminDay(stamp: string | null | undefined): string | null {
-  const m = stamp ? DAY.exec(stamp) : null;
-  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
-}
-
-/** Whole days from one day to another (negative when `to` is earlier); null when a stamp is not a date. */
-export function adminDaysBetween(from: string, to: string): number | null {
-  const a = adminDay(from);
-  const b = adminDay(to);
-  if (!a || !b) return null;
-  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
-}
-
-/** "Nov 18", with the year when it is not `thisYear`; the text itself when it is not a date. */
-export function formatAdminDate(stamp: string, thisYear?: number): string {
-  const day = adminDay(stamp);
-  return day ? formatShort(day, thisYear) : stamp;
-}
-
-/** "today", "yesterday", "3 days ago", "in 2 days": a day told from `today`. */
-export function relativeDay(stamp: string, today: string): string {
-  const n = adminDaysBetween(today, stamp);
-  if (n === null) return stamp;
-  if (n === 0) return "today";
-  if (n === -1) return "yesterday";
-  if (n === 1) return "tomorrow";
-  return n < 0 ? `${-n} days ago` : `in ${n} days`;
-}
+export { adminDay, adminDaysBetween, formatAdminDate, relativeDay } from "../dates";
+import { adminDay, adminDaysBetween, relativeDay } from "../dates";
 
 /** `1 item`, `2 items`. */
 export function adminPlural(n: number, one: string, many = `${one}s`): string {
@@ -598,26 +570,6 @@ export function groupScopes(
   return [...groups].map(([group, list]) => ({ group, scopes: list }));
 }
 
-/* ---------------------------------------------------------------- secrets */
-
-/** What stands for a hidden secret, whatever its length: nothing about the value leaks. */
-export const SECRET_MASK = "••••••••••••";
-
-/** How long a revealed secret stays on screen, in milliseconds. */
-export const SECRET_REVEAL_MS = 15_000;
-
-/** Whole seconds left before `hideAt`, never below zero. */
-export function secondsLeft(now: number, hideAt: number): number {
-  return Math.max(Math.ceil((hideAt - now) / 1000), 0);
-}
-
-/** Whether a value can be saved as a secret: not empty, no line break, not only spaces. */
-export function secretProblem(value: string): string | null {
-  if (!value.trim()) return "Type the new value.";
-  if (/[\r\n]/.test(value)) return "A secret is one line.";
-  return null;
-}
-
 /* ---------------------------------------------------------------- webhooks */
 
 export type EndpointStatus = "active" | "disabled" | "failing";
@@ -684,10 +636,7 @@ export interface WebhookDelivery {
 
 /** "84 ms", "1.2 s", "2 min"; an em dash when unknown. */
 export function formatDeliveryDuration(ms: number | undefined): string {
-  if (ms === undefined || !Number.isFinite(ms) || ms < 0) return "—";
-  if (ms < 1000) return `${Math.round(ms)} ms`;
-  if (ms < 60_000) return `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
-  return `${Math.round(ms / 60_000)} min`;
+  return ms !== undefined && ms < 0 ? "—" : formatDuration(ms, { compact: true });
 }
 
 /** The answer of a delivery in a few characters: `200`, `503`, or the status when there is no code. */

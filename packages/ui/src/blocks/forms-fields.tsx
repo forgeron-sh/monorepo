@@ -1,23 +1,16 @@
-// Three answers that need more than a control of the atoms, each usable alone in a form of your
-// own: a matrix (rows rated against the same columns), a ranking (items put in order, from the
-// keyboard too) and an address (street, postcode, city, country: typed, no lookup, no network).
+// Two answers that need more than a control of the atoms, each usable alone in a form of your
+// own: a matrix (rows rated against the same columns) and a ranking (items put in order, from the
+// keyboard too). The address field is a primitive: `address-field.tsx`.
 
 import { ArrowDown01Icon, ArrowUp01Icon, GripIcon } from "@forgeron/icons";
-import type { DragEvent, KeyboardEvent } from "react";
-import { useId, useRef, useState } from "react";
+import { useId } from "react";
 import { Button } from "../button";
-import { Combobox } from "../combobox";
 import { cx } from "../cx";
-import { Field, Input } from "../form";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
-import {
-  moveFormItem,
-  type FormAddress,
-  type FormMatrixAnswer,
-  type FormOption,
-} from "./forms-model";
+import { useSortable } from "../sortable";
+import { type FormMatrixAnswer, type FormOption } from "./forms-model";
 
 /* ---------------------------------------------------------------- MatrixField */
 
@@ -160,52 +153,25 @@ export function RankingField({
     defaultValue: defaultValue ?? null,
     onChange,
   });
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [over, setOver] = useState<string | null>(null);
-  const [said, setSaid] = useState("");
-  const list = useRef<HTMLOListElement>(null);
   const byId = new Map(items.map((i) => [i.id, i]));
   const ids = [
     ...(order ?? []).filter((x) => byId.has(x)),
     ...items.map((i) => i.id).filter((x) => !(order ?? []).includes(x)),
   ];
   const touched = order !== null;
-
-  const focusRow = (itemId: string) =>
-    requestAnimationFrame(() =>
-      list.current
-        ?.querySelector<HTMLElement>(`[data-item="${CSS.escape(itemId)}"] .fg-fm-rank-main`)
-        ?.focus(),
-    );
-
-  const moveTo = (itemId: string, to: number) => {
-    const from = ids.indexOf(itemId);
-    const target = Math.max(0, Math.min(ids.length - 1, to));
-    if (from < 0 || (from === target && touched)) return;
-    setOrder(moveFormItem(ids, from, target));
-    setSaid(`${byId.get(itemId)?.label ?? ""}, place ${target + 1} of ${ids.length}`);
-  };
-
-  const onKey = (itemId: string, event: KeyboardEvent<HTMLElement>) => {
-    if (disabled || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
-    event.preventDefault();
-    const at = ids.indexOf(itemId);
-    const step = event.key === "ArrowUp" ? -1 : 1;
-    if (event.altKey) {
-      moveTo(itemId, at + step);
-      focusRow(itemId);
-    } else {
-      const next = ids[at + step];
-      if (next) focusRow(next);
-    }
-  };
-
-  const onDrop = (itemId: string, event: DragEvent) => {
-    event.preventDefault();
-    if (dragging) moveTo(dragging, ids.indexOf(itemId));
-    setDragging(null);
-    setOver(null);
-  };
+  const sortable = useSortable({
+    items: ids,
+    getId: (x) => x,
+    getLabel: (x) => byId.get(x)?.label ?? "",
+    onReorder: (next) => setOrder(next),
+    announce: (move, itemId, count) =>
+      `${byId.get(itemId)?.label ?? ""}, place ${move.to + 1} of ${count}`,
+    label,
+    handle: true,
+    navigate: true,
+    disabled,
+    focusSelector: ".fg-fm-rank-main",
+  });
 
   return (
     <div
@@ -213,11 +179,11 @@ export function RankingField({
       className={cx("fg-fm-rank", !touched && "fg-fm-rank-fresh", className)}
     >
       <ol
-        ref={list}
-        className="fg-fm-rank-list"
-        aria-label={label}
-        aria-invalid={invalid || undefined}
-        aria-describedby={describedBy}
+        {...sortable.getListProps({
+          className: "fg-fm-rank-list",
+          "aria-invalid": invalid || undefined,
+          "aria-describedby": describedBy,
+        })}
       >
         {ids.map((itemId, i) => {
           const item = byId.get(itemId)!;
@@ -225,34 +191,18 @@ export function RankingField({
             <li
               key={itemId}
               data-item={itemId}
-              className={cx(
-                "fg-fm-rank-row",
-                dragging === itemId && "fg-fm-rank-dragging",
-                over === itemId && dragging !== itemId && "fg-fm-rank-over",
-              )}
-              onDragOver={(event) => {
-                if (!dragging || disabled) return;
-                event.preventDefault();
-                event.dataTransfer.dropEffect = "move";
-                if (over !== itemId) setOver(itemId);
-              }}
-              onDragLeave={() => setOver((o) => (o === itemId ? null : o))}
-              onDrop={(event) => onDrop(itemId, event)}
+              {...sortable.getItemProps(itemId, {
+                className: cx(
+                  "fg-fm-rank-row",
+                  sortable.getItemState(itemId).dragging && "fg-fm-rank-dragging",
+                  sortable.getItemState(itemId).over && "fg-fm-rank-over",
+                ),
+              })}
             >
               <span
+                {...sortable.getHandleProps(itemId)}
                 className="fg-fm-rank-grip"
-                aria-hidden="true"
-                draggable={!disabled}
                 title="Drag to reorder, or Alt + arrows"
-                onDragStart={(event) => {
-                  event.dataTransfer.effectAllowed = "move";
-                  event.dataTransfer.setData("text/plain", item.label);
-                  setDragging(itemId);
-                }}
-                onDragEnd={() => {
-                  setDragging(null);
-                  setOver(null);
-                }}
               >
                 <Icon icon={GripIcon} size={12} variant="mono" />
               </span>
@@ -262,7 +212,6 @@ export function RankingField({
                 disabled={disabled}
                 aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
                 aria-label={`${item.label}, place ${i + 1} of ${ids.length}${touched ? "" : ", not ordered yet"}. Alt and arrows move it.`}
-                onKeyDown={(event) => onKey(itemId, event)}
               >
                 <span className="fg-fm-rank-n">{i + 1}</span>
                 <span className="fg-fm-rank-label">{item.label}</span>
@@ -272,14 +221,14 @@ export function RankingField({
                 size="sm"
                 label={`Move ${item.label} up`}
                 disabled={disabled || i === 0}
-                onClick={() => moveTo(itemId, i - 1)}
+                onClick={() => sortable.moveTo(itemId, i - 1, { focus: false })}
               />
               <IconButton
                 icon={ArrowDown01Icon}
                 size="sm"
                 label={`Move ${item.label} down`}
                 disabled={disabled || i === ids.length - 1}
-                onClick={() => moveTo(itemId, i + 1)}
+                onClick={() => sortable.moveTo(itemId, i + 1, { focus: false })}
               />
             </li>
           );
@@ -291,110 +240,8 @@ export function RankingField({
         </Button>
       ) : null}
       <span className="fg-sr" aria-live="polite">
-        {said}
+        {sortable.status}
       </span>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------- AddressField */
-
-export type AddressPart = keyof FormAddress;
-
-export interface AddressFieldProps {
-  /** Names the group for assistive technology: the question. */
-  label: string;
-  value?: FormAddress;
-  defaultValue?: FormAddress;
-  onChange?: (value: FormAddress) => void;
-  /** The countries to choose from, as `{ value, label }`; absent, the country is typed. */
-  countries?: ReadonlyArray<{ value: string; label: string }>;
-  /** What is wrong, by part. */
-  errors?: Partial<Record<AddressPart, string>>;
-  /** Marks the parts that must be filled: all but the second line. */
-  required?: boolean;
-  disabled?: boolean;
-  id?: string;
-  describedBy?: string;
-  className?: string;
-}
-
-const PARTS: ReadonlyArray<{
-  key: AddressPart;
-  label: string;
-  auto: string;
-  span: "full" | "post" | "city";
-}> = [
-  { key: "line1", label: "Address line 1", auto: "address-line1", span: "full" },
-  { key: "line2", label: "Address line 2", auto: "address-line2", span: "full" },
-  { key: "postcode", label: "Postcode", auto: "postal-code", span: "post" },
-  { key: "city", label: "City", auto: "address-level2", span: "city" },
-  { key: "country", label: "Country", auto: "country-name", span: "full" },
-];
-
-/** A postal address as five fields. Nothing is looked up and nothing leaves the page. */
-export function AddressField({
-  label,
-  value,
-  defaultValue,
-  onChange,
-  countries,
-  errors,
-  required,
-  disabled,
-  id,
-  describedBy,
-  className,
-}: AddressFieldProps) {
-  const [address, setAddress] = useControllableState<FormAddress>({
-    value,
-    defaultValue: defaultValue ?? {},
-    onChange,
-  });
-  const set = (key: AddressPart, text: string) => setAddress({ ...address, [key]: text });
-  return (
-    <div
-      {...(id ? { id } : {})}
-      role="group"
-      aria-label={label}
-      aria-describedby={describedBy}
-      className={cx("fg-fm-address", className)}
-    >
-      {PARTS.map((p) => {
-        const optional = p.key === "line2" || !required;
-        return (
-          <Field
-            key={p.key}
-            label={optional && required ? `${p.label} (optional)` : p.label}
-            error={errors?.[p.key]}
-            className={cx("fg-fm-address-part", `fg-fm-address-${p.span}`)}
-          >
-            {(control) =>
-              p.key === "country" && countries ? (
-                <Combobox
-                  label={p.label}
-                  options={countries}
-                  value={address.country ?? null}
-                  onChange={(next) => set("country", next ?? "")}
-                  clearable
-                  disabled={disabled}
-                  id={control.id}
-                  aria-describedby={control["aria-describedby"]}
-                  aria-invalid={control["aria-invalid"]}
-                />
-              ) : (
-                <Input
-                  {...control}
-                  value={address[p.key] ?? ""}
-                  autoComplete={p.auto}
-                  disabled={disabled}
-                  onChange={(event) => set(p.key, event.target.value)}
-                />
-              )
-            }
-          </Field>
-        );
-      })}
     </div>
   );
 }

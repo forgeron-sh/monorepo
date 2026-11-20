@@ -24,8 +24,8 @@ import { IconButton } from "../identity";
 import { Led } from "../led";
 import { SelectMenu } from "../overlays";
 import { Tabs } from "../tabs";
-import { ExpressionInput } from "./automation-expression-input";
-import { JsonView } from "./automation-json-view";
+import { ExpressionInput } from "../expression-input";
+import { JsonView } from "../json-view";
 import {
   formatDuration,
   statusLook,

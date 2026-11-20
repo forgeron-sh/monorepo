@@ -9,7 +9,8 @@ import { Button } from "../button";
 import { Segmented } from "../controls";
 import { cx } from "../cx";
 import { Icon } from "../icon";
-import { JsonView } from "./automation-json-view";
+import { JsonView } from "../json-view";
+import { Feed, FeedItem, FeedTime } from "../timeline";
 import {
   adminPlural,
   canRedeliver,
@@ -58,7 +59,7 @@ function Row({
 }) {
   const id = useId();
   return (
-    <li className={cx("fg-adm-delivery", open && "fg-adm-delivery-open")}>
+    <FeedItem className={cx("fg-adm-delivery", open && "fg-adm-delivery-open")}>
       <div className="fg-adm-delivery-row">
         <button
           type="button"
@@ -81,7 +82,7 @@ function Row({
           </span>
           <span title="Duration">{formatDeliveryDuration(d.durationMs)}</span>
           <span title="Attempts">{adminPlural(d.attempts, "try", "tries")}</span>
-          <time>{d.at}</time>
+          <FeedTime dateTime={d.at.replace(" ", "T")}>{d.at}</FeedTime>
         </span>
         {onRedeliver && canRedeliver(d) ? (
           <Button
@@ -106,7 +107,7 @@ function Row({
           <JsonView label="Answer" value={d.response} maxHeight={220} empty="No answer recorded" />
         </div>
       ) : null}
-    </li>
+    </FeedItem>
   );
 }
 
@@ -152,7 +153,7 @@ export function DeliveryLog({
       {rows.length === 0 ? (
         <p className="fg-adm-empty">{current === "failed" ? "Nothing failed." : empty}</p>
       ) : (
-        <ul className="fg-adm-deliveries" aria-label="Deliveries">
+        <Feed connector={false} className="fg-adm-deliveries" aria-label="Deliveries">
           {rows.map((d) => (
             <Row
               key={d.id}
@@ -166,7 +167,7 @@ export function DeliveryLog({
               busy={redelivering.includes(d.id)}
             />
           ))}
-        </ul>
+        </Feed>
       )}
     </section>
   );

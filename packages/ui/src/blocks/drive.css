@@ -65,76 +65,14 @@
 
 /* ---------------------------------------------------------------- FolderTree */
 
-.fg-ftree,
-.fg-ftree-group {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+/* The rows come from the Tree primitive (parts-tree.css); these are the folder tree's own marks. */
 .fg-ftree {
-  font: 400 13px/18px var(--font-sans);
-  color: var(--ink);
+  --fg-tree-indent: var(--fg-ftree-indent, 16px);
 }
-.fg-ftree-item {
-  outline: none;
-}
-.fg-ftree-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding-right: var(--space-2);
-  border: 1px solid transparent;
-  color: var(--ink-muted);
-  cursor: pointer;
-  user-select: none;
-}
-.fg-ftree-row:hover {
-  background: var(--bg-raised);
-  color: var(--ink);
-}
-.fg-ftree-item:focus-visible > .fg-ftree-row {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: calc(-1 * var(--focus-width));
-}
-.fg-ftree-current {
-  background: color-mix(in srgb, var(--accent) 9%, var(--bg));
-  color: var(--ink);
-  font-weight: 500;
-}
-.fg-ftree-current .fg-ftree-icon {
-  color: var(--accent);
-}
-.fg-ftree-off {
-  color: var(--ink-dim);
-  cursor: not-allowed;
-}
-.fg-ftree-off:hover {
-  background: transparent;
-  color: var(--ink-dim);
-}
-.fg-ftree-over {
+.fg-ftree-row.fg-ftree-over {
   border: 1px dashed var(--accent);
   background: color-mix(in srgb, var(--accent) 7%, var(--bg));
   color: var(--ink);
-}
-.fg-ftree-twisty {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  color: var(--ink-dim);
-}
-.fg-ftree-twisty-open .fg-icon {
-  transform: rotate(90deg);
-}
-.fg-ftree-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 .fg-ftree-lock {
   color: var(--ink-dim);
@@ -498,112 +436,7 @@
   background: var(--bg-sunk);
 }
 
-/* ---------------------------------------------------------------- SelectionBar */
-
-.fg-selbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  min-height: 40px;
-  padding: 4px var(--space-2);
-  box-sizing: border-box;
-  border: 1px solid var(--line-strong);
-  background: var(--bg-raised);
-  color: var(--ink);
-  font: 400 13px/18px var(--font-sans);
-}
-.fg-selbar-count {
-  margin: 0 var(--space-2) 0 2px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.fg-selbar-rule {
-  width: 1px;
-  height: 18px;
-  margin: 0 4px;
-  background: var(--line-strong);
-}
-.fg-selbar-danger {
-  color: var(--danger);
-}
-
 /* ---------------------------------------------------------------- DropZone */
-
-.fg-dropzone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: 180px;
-  padding: var(--space-6) var(--space-4);
-  border: 1px dashed var(--line-strong);
-  background: var(--bg);
-  color: var(--ink-muted);
-  font: 400 13px/18px var(--font-sans);
-  text-align: center;
-}
-.fg-dropzone > p {
-  margin: 0;
-}
-.fg-dropzone-icon {
-  color: var(--ink-dim);
-}
-.fg-dropzone-title {
-  color: var(--ink);
-  font: 500 14px/20px var(--font-sans);
-}
-.fg-dropzone-text {
-  max-width: 36ch;
-  font-size: 12.5px;
-}
-.fg-dropzone .fg-btn {
-  margin-top: var(--space-2);
-}
-.fg-dropzone-active {
-  border-color: var(--accent);
-  background-color: color-mix(in srgb, var(--accent) 5%, var(--bg));
-  background-image: repeating-linear-gradient(
-    -45deg,
-    color-mix(in srgb, var(--accent) 25%, transparent) 0 1px,
-    transparent 1px 9px
-  );
-}
-.fg-dropzone-active .fg-dropzone-icon {
-  color: var(--accent);
-}
-.fg-dropzone-disabled {
-  opacity: 0.6;
-}
-.fg-dropzone-cover {
-  position: relative;
-}
-.fg-dropzone-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: grid;
-  place-items: center;
-  border: 1px dashed var(--accent);
-  background-color: color-mix(in srgb, var(--bg) 82%, transparent);
-  background-image: repeating-linear-gradient(
-    -45deg,
-    color-mix(in srgb, var(--accent) 25%, transparent) 0 1px,
-    transparent 1px 9px
-  );
-  pointer-events: none;
-}
-.fg-dropzone-overlay > span {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--line-strong);
-  background: var(--bg-raised);
-  color: var(--ink);
-  font: 500 13px/18px var(--font-sans);
-}
 
 /* ---------------------------------------------------------------- UploadQueue */
 
@@ -1172,34 +1005,12 @@
   gap: var(--space-2);
 }
 .fg-share-combo {
-  position: relative;
   flex: 1;
   min-width: 0;
-}
-.fg-share-combo .fg-input {
-  width: 100%;
 }
 .fg-share-role {
   width: 120px;
   flex: none;
-}
-.fg-share-list {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  left: 0;
-  z-index: 10;
-  max-height: 220px;
-  margin: 0;
-  overflow: auto;
-  list-style: none;
-}
-.fg-share-option[aria-selected="true"] {
-  background: var(--bg-sunk);
-}
-.fg-share-none {
-  padding: 8px 10px;
-  color: var(--ink-dim);
 }
 .fg-share-section {
   display: flex;
@@ -1209,33 +1020,9 @@
 .fg-share-eyebrow {
   margin: 0;
 }
-.fg-share-people {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.fg-share-person {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-}
-.fg-share-who {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-}
-.fg-share-who b {
-  overflow: hidden;
-  font-weight: 500;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
 .fg-share-hint {
   align-self: stretch;
 }
-.fg-share-who span,
 .fg-share-hint {
   overflow: hidden;
   color: var(--ink-dim);
@@ -1243,25 +1030,16 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.fg-share-fixed {
-  color: var(--ink-dim);
-  font: 400 11.5px/16px var(--font-mono);
-  white-space: nowrap;
-}
-.fg-share-empty {
-  color: var(--ink-dim);
-}
-.fg-share-person .fg-selm,
 .fg-share-general > .fg-selm {
   width: 120px;
   flex: none;
 }
-.fg-share .fg-selm-trigger {
+.fg-share .fg-selm .fg-selm-trigger {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
 }
-.fg-share .fg-selm-value > span {
+.fg-share .fg-selm .fg-selm-value > span {
   overflow: hidden;
   text-overflow: ellipsis;
 }

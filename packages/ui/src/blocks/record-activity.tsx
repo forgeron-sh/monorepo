@@ -9,6 +9,7 @@ import { Avatar } from "../avatar";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { Icon } from "../icon";
+import { Feed, FeedContent, FeedIndicator, FeedItem, FeedTime, FeedTitle } from "../timeline";
 
 interface ActivityBase {
   /** A stable key. */
@@ -43,42 +44,35 @@ export interface ActivityComment extends ActivityBase {
 
 export type ActivityItem = ActivityEvent | ActivityComment;
 
-const When = ({ time, dateTime }: { time: string; dateTime: string | undefined }) =>
-  dateTime ? (
-    <time className="fg-activity-when" dateTime={dateTime}>
-      {time}
-    </time>
-  ) : (
-    <span className="fg-activity-when">{time}</span>
-  );
-
 const face = (item: ActivityBase, size: number) => (
   <Avatar name={item.author} size={size} {...(item.avatar ? { src: item.avatar } : {})} />
 );
 
 function EventLine({ item }: { item: ActivityEvent }) {
   return (
-    <li className="fg-activity-event">
-      <span className="fg-activity-mark">{item.glyph ?? face(item, 16)}</span>
-      <span className="fg-activity-text">
-        <b>{item.author}</b> {item.text} <span aria-hidden="true">·</span>{" "}
-        <When time={item.time} dateTime={item.dateTime} />
-      </span>
-    </li>
+    <FeedItem className="fg-activity-event">
+      <FeedIndicator>{item.glyph ?? face(item, 16)}</FeedIndicator>
+      <FeedContent>
+        <FeedTitle>
+          <b>{item.author}</b> {item.text} <span aria-hidden="true">·</span>{" "}
+          <FeedTime {...(item.dateTime ? { dateTime: item.dateTime } : {})}>{item.time}</FeedTime>
+        </FeedTitle>
+      </FeedContent>
+    </FeedItem>
   );
 }
 
 function CommentCard({ item }: { item: ActivityComment }) {
   return (
-    <li className="fg-activity-item">
+    <FeedItem className="fg-activity-item">
+      <FeedIndicator>{face(item, 18)}</FeedIndicator>
       <article
         className={cx("fg-activity-comment", item.highlighted && "fg-activity-highlighted")}
         aria-label={`Comment by ${item.author}`}
       >
         <header className="fg-activity-head">
-          {face(item, 16)}
           <b>{item.author}</b>
-          <When time={item.time} dateTime={item.dateTime} />
+          <FeedTime {...(item.dateTime ? { dateTime: item.dateTime } : {})}>{item.time}</FeedTime>
         </header>
         {item.quote ? (
           <blockquote className="fg-activity-quote">
@@ -88,7 +82,7 @@ function CommentCard({ item }: { item: ActivityComment }) {
         ) : null}
         <div className="fg-activity-body">{item.body}</div>
       </article>
-    </li>
+    </FeedItem>
   );
 }
 
@@ -208,7 +202,7 @@ export function Activity({
         </h2>
         {actions}
       </div>
-      <ol className="fg-activity-list">
+      <Feed className="fg-activity-list">
         {items.map((item) =>
           item.kind === "event" ? (
             <EventLine key={item.id} item={item} />
@@ -216,7 +210,7 @@ export function Activity({
             <CommentCard key={item.id} item={item} />
           ),
         )}
-      </ol>
+      </Feed>
       {onSubmit ? (
         <CommentComposer
           onSubmit={onSubmit}

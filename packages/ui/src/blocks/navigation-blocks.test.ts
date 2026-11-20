@@ -1,19 +1,10 @@
 // @vitest-environment jsdom
-import { InboxIcon, MoreHorizontalIcon, Tick01Icon } from "@forgeron/icons";
-import { act, createElement as h, useState } from "react";
+import { InboxIcon, Tick01Icon } from "@forgeron/icons";
+import { act, createElement as h } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup as html } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { IconButton } from "../identity";
-import {
-  ActionMenu,
-  AppSidebar,
-  CommandPalette,
-  InboxList,
-  filterCommands,
-  type CommandPaletteGroup,
-  type InboxItem,
-} from "./navigation";
+import { AppSidebar, InboxList, type InboxItem } from "./navigation";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -34,78 +25,6 @@ const key = async (target: Element, k: string) =>
   act(async () => {
     target.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
   });
-
-const groups: CommandPaletteGroup[] = [
-  {
-    label: "Go to",
-    items: [
-      { id: "inbox", label: "Inbox", icon: InboxIcon },
-      { id: "settings", label: "Settings", keywords: ["preferences"] },
-    ],
-  },
-  {
-    label: "Issues",
-    items: [
-      { id: "OPS-40", label: "Supplier invoices arrive twice from Odoo", hint: "OPS-40" },
-      { id: "OPS-22", label: "Fire exit signage audit", hint: "OPS-22" },
-    ],
-  },
-];
-
-describe("filterCommands", () => {
-  it("keeps everything for an empty query", () => {
-    expect(filterCommands(groups, "  ")).toHaveLength(2);
-  });
-  it("matches label, hint and keywords, case-insensitively, and drops empty groups", () => {
-    expect(filterCommands(groups, "PREFER")).toEqual([
-      { label: "Go to", items: [groups[0]!.items[1]] },
-    ]);
-    expect(filterCommands(groups, "ops-22")[0]!.items.map((i) => i.id)).toEqual(["OPS-22"]);
-    expect(filterCommands(groups, "odoo twice")[0]!.items.map((i) => i.id)).toEqual(["OPS-40"]);
-    expect(filterCommands(groups, "nothing")).toEqual([]);
-  });
-});
-
-describe("CommandPalette", () => {
-  const Harness = ({ onSelect }: { onSelect: (id: string) => void }) => {
-    const [open, setOpen] = useState(true);
-    return h(CommandPalette, { open, onOpenChange: setOpen, groups, onSelect });
-  };
-
-  it("moves with the arrows, runs with Enter, then closes", async () => {
-    const onSelect = vi.fn<(id: string) => void>();
-    await mount(h(Harness, { onSelect }));
-    const input = document.querySelector<HTMLInputElement>("[role=combobox]")!;
-    expect(input).not.toBeNull();
-    const active = () => document.getElementById(input.getAttribute("aria-activedescendant")!);
-    expect(active()?.textContent).toContain("Inbox");
-    await key(input, "ArrowDown");
-    expect(active()?.textContent).toContain("Settings");
-    await key(input, "ArrowUp");
-    await key(input, "ArrowUp");
-    expect(active()?.textContent).toContain("Fire exit");
-    await key(input, "Enter");
-    expect(onSelect).toHaveBeenCalledWith("OPS-22");
-    expect(document.querySelector("[role=combobox]")).toBeNull();
-  });
-
-  it("filters as you type and says when nothing matches", async () => {
-    await mount(h(Harness, { onSelect: () => {} }));
-    const input = document.querySelector<HTMLInputElement>("[role=combobox]")!;
-    const type = async (value: string) =>
-      act(async () => {
-        const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
-        set.call(input, value);
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-      });
-    await type("signage");
-    expect(document.querySelectorAll("[role=option]")).toHaveLength(1);
-    expect(document.querySelector(".fg-palette-group")?.textContent).toBe("Issues");
-    await type("zzz");
-    expect(document.querySelectorAll("[role=option]")).toHaveLength(0);
-    expect(document.querySelector(".fg-palette-empty")?.textContent).toBe("No results for “zzz”");
-  });
-});
 
 describe("AppSidebar", () => {
   const markup = html(
@@ -175,49 +94,6 @@ describe("AppSidebar", () => {
     );
     await act(async () => el.querySelector<HTMLAnchorElement>(".fg-aside-item")!.click());
     expect(onNavigate.mock.calls[0]![0]).toBe("#/my");
-  });
-});
-
-describe("ActionMenu", () => {
-  it("renders its trigger, and its rows, submenus and danger row once open", async () => {
-    const onSelect = vi.fn<(id: string) => void>();
-    expect(
-      html(
-        h(ActionMenu, {
-          trigger: h(IconButton, { icon: MoreHorizontalIcon, label: "Issue actions" }),
-          items: [],
-          onSelect,
-        }),
-      ),
-    ).toContain('aria-label="Issue actions"');
-    await mount(
-      h(ActionMenu, {
-        trigger: h(IconButton, { icon: MoreHorizontalIcon, label: "Issue actions" }),
-        open: true,
-        label: "Actions on OPS-40",
-        items: [
-          {
-            id: "status",
-            label: "Status",
-            kbd: "S",
-            items: [{ id: "status:done", label: "Done", checked: true }],
-          },
-          { separator: true },
-          { id: "copy", label: "Copy ID" },
-          { id: "delete", label: "Delete issue", danger: true },
-        ],
-        onSelect,
-      }),
-    );
-    const menu = document.querySelector("[role=menu]")!;
-    expect(menu.getAttribute("aria-label")).toBe("Actions on OPS-40");
-    const rows = [...document.querySelectorAll("[role=menuitem]")];
-    expect(rows.map((r) => r.textContent)).toEqual(["StatusS", "Copy ID", "Delete issue"]);
-    expect(rows[0]!.getAttribute("aria-haspopup")).toBe("menu");
-    expect(rows[2]!.className).toContain("fg-amenu-danger");
-    expect(document.querySelector("[role=separator]")).not.toBeNull();
-    await act(async () => (rows[1] as HTMLElement).click());
-    expect(onSelect).toHaveBeenCalledWith("copy");
   });
 });
 

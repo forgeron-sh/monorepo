@@ -55,10 +55,6 @@ export {
   retentionUrgent,
   rowCells,
   samePrefs,
-  SECRET_MASK,
-  SECRET_REVEAL_MS,
-  secondsLeft,
-  secretProblem,
   setChannel,
   setChannelForEvents,
   setPermission,
@@ -110,8 +106,6 @@ export { InviteDialog } from "./admin-invite-dialog";
 export type { InviteDialogProps, InviteDraft, InviteRequest } from "./admin-invite-dialog";
 export { TokenManager } from "./admin-token-manager";
 export type { CreatedToken, TokenManagerProps } from "./admin-token-manager";
-export { SecretField } from "./admin-secret-field";
-export type { SecretFieldProps } from "./admin-secret-field";
 export { EndpointList } from "./admin-endpoints";
 export type { EndpointListProps, EndpointTestResult } from "./admin-endpoints";
 export { DeliveryLog } from "./admin-delivery-log";
@@ -120,3 +114,5 @@ export { ExportDialog } from "./admin-export-dialog";
 export type { ExportDialogProps } from "./admin-export-dialog";
 export { TrashList } from "./admin-trash-list";
 export type { TrashListProps } from "./admin-trash-list";
+export { AuditLog } from "./admin-audit-log";
+export type { AuditEvent, AuditLogProps } from "./admin-audit-log";

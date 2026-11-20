@@ -167,22 +167,6 @@
 
 /* ---------------------------------------------------------------- Address */
 
-.fg-fm-address {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: var(--space-3);
-  max-width: 480px;
-}
-.fg-fm-address-full {
-  grid-column: span 6;
-}
-.fg-fm-address-post {
-  grid-column: span 2;
-}
-.fg-fm-address-city {
-  grid-column: span 4;
-}
-
 /* ---------------------------------------------------------------- Form */
 
 .fg-fm {

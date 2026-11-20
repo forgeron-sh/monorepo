@@ -120,138 +120,32 @@ export function updateStep(steps: Steps, id: string, patch: Partial<AutomationSt
   return mapLists(steps, (list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
 }
 
-/* ---------------------------------------------------------------- References: {{ step.field }} */
+export {
+  findTokens,
+  tokenQueryAt,
+  insertToken,
+  tokenOf,
+  getPath,
+  resolveTemplate,
+  variablesFromSample,
+} from "../template-model";
+export type { TokenRange, VariableField, VariableSource } from "../template-model";
 
-/** One reference in a text: where it is and the path it reads. */
-export interface TokenRange {
-  from: number;
-  to: number;
-  path: string;
-}
-
-/** The `{{ … }}` of a text, in order. */
-export function findTokens(text: string): TokenRange[] {
-  const out: TokenRange[] = [];
-  for (const m of text.matchAll(/\{\{\s*([^{}]*?)\s*\}\}/g)) {
-    out.push({ from: m.index, to: m.index + m[0].length, path: m[1] ?? "" });
-  }
-  return out;
-}
-
-/** The reference being typed at the caret (`{{ deal.am|`): where its path starts, and the query. */
-export function tokenQueryAt(text: string, caret: number): { from: number; query: string } | null {
-  const m = /\{\{\s*([\w.$[\]-]*)$/.exec(text.slice(0, caret));
-  if (!m) return null;
-  const query = m[1] ?? "";
-  return { from: caret - query.length, query };
-}
-
-/**
- * Writes `path` in place of `text[from, to)`, closing the reference unless it is closed already,
- * and gives the new text and where the caret goes (after the `}}`).
- */
-export function insertToken(
-  text: string,
-  from: number,
-  to: number,
-  path: string,
-): { text: string; caret: number } {
-  const before = text.slice(0, from);
-  const after = text.slice(to);
-  const open = /\{\{$/.test(before) ? " " : "";
-  const closed = /^\s*\}\}/.exec(after);
-  const close = closed ? "" : " }}";
-  const next = `${before}${open}${path}${close}${after}`;
-  const caret =
-    before.length + open.length + path.length + (closed ? closed[0].length : close.length);
-  return { text: next, caret };
-}
-
-/** A reference to put in a text: `{{ deal.amount }}`. */
-export const tokenOf = (path: string) => `{{ ${path} }}`;
-
-/** Reads `a.b.0.c` in a value; `undefined` when a part is missing. */
-export function getPath(value: unknown, path: string): unknown {
-  let cur: unknown = value;
-  for (const part of path.split(".").filter(Boolean)) {
-    if (cur === null || typeof cur !== "object") return undefined;
-    cur = (cur as Record<string, unknown>)[part];
-  }
-  return cur;
-}
-
-/**
- * The text with its references read from `data`. A text that is one reference alone gives the
- * value itself (a number stays a number); `missing` lists the paths that read nothing.
- */
-export function resolveTemplate(
-  text: string,
-  data: unknown,
-): { value: unknown; missing: string[] } {
-  const tokens = findTokens(text);
-  const missing: string[] = [];
-  const read = (path: string) => {
-    const v = getPath(data, path);
-    if (v === undefined) missing.push(path);
-    return v;
-  };
-  const only = tokens[0];
-  if (tokens.length === 1 && only && only.from === 0 && only.to === text.length) {
-    return { value: read(only.path), missing };
-  }
-  let out = "";
-  let at = 0;
-  for (const t of tokens) {
-    const v = read(t.path);
-    out +=
-      text.slice(at, t.from) +
-      (v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v));
-    at = t.to;
-  }
-  return { value: out + text.slice(at), missing };
-}
-
-/** One value a previous step gives, to insert as a reference. */
-export interface VariableField {
-  /** The full path: `deal.amount`. */
-  path: string;
-  /** A type or an example, shown at the end of the row: `number`, `9600`. */
-  hint?: string;
-}
-
-/** The outputs of one previous step (or the trigger), as a group of the variable list. */
-export interface VariableSource {
-  /** The output variable of the step: `deal`. */
-  id: string;
-  /** The step: `Deal moved to Won`. */
-  label: string;
-  icon?: IconDefinition;
-  fields: ReadonlyArray<VariableField>;
-}
-
-/** The paths of a sample output, each with its value as hint: what a step gave in a test run. */
-export function variablesFromSample(
-  id: string,
-  label: string,
-  sample: unknown,
-  icon?: IconDefinition,
-): VariableSource {
-  const fields: VariableField[] = [];
-  const walk = (v: unknown, path: string, depth: number) => {
-    if (depth > 4) return;
-    if (Array.isArray(v)) {
-      fields.push({ path, hint: `${v.length} items` });
-      return;
-    }
-    if (v !== null && typeof v === "object") {
-      for (const [k, child] of Object.entries(v)) walk(child, `${path}.${k}`, depth + 1);
-      return;
-    }
-    fields.push({ path, hint: v === null ? "null" : String(v) });
-  };
-  walk(sample, id, 0);
-  return { id, label, fields, ...(icon ? { icon } : {}) };
-}
+export {
+  isConditionGroup,
+  OPERATOR_LABELS,
+  OPERATORS_BY_TYPE,
+  operatorTakesValue,
+  evaluateCondition,
+  describeCondition,
+} from "../condition-model";
+export type {
+  ConditionFieldType,
+  ConditionOperator,
+  ConditionField,
+  ConditionRule,
+  ConditionGroup,
+} from "../condition-model";
 
 /* ---------------------------------------------------------------- Schedules: cron */
 
@@ -475,165 +369,11 @@ export function cronToSpec(expr: string): ScheduleSpec {
   return asCron;
 }
 
-/* ---------------------------------------------------------------- Conditions */
-
-export type ConditionFieldType = "text" | "number" | "date" | "boolean" | "enum";
-
-export type ConditionOperator =
-  | "eq"
-  | "neq"
-  | "gt"
-  | "gte"
-  | "lt"
-  | "lte"
-  | "contains"
-  | "not_contains"
-  | "starts_with"
-  | "before"
-  | "after"
-  | "is_true"
-  | "is_false"
-  | "empty"
-  | "not_empty";
-
-export interface ConditionField {
-  /** The path read in the item: `deal.amount`. */
-  id: string;
-  label: string;
-  type: ConditionFieldType;
-  /** The choices of an `enum` field. */
-  options?: ReadonlyArray<{ value: string; label: string }>;
-  icon?: IconDefinition;
-}
-
-export interface ConditionRule {
-  id: string;
-  field: string;
-  operator: ConditionOperator;
-  /** Text as typed; may hold `{{ references }}`. */
-  value?: string;
-}
-
-export interface ConditionGroup {
-  id: string;
-  combinator: "and" | "or";
-  rules: ReadonlyArray<ConditionRule | ConditionGroup>;
-}
-
-export const isConditionGroup = (x: ConditionRule | ConditionGroup): x is ConditionGroup =>
-  "rules" in x;
-
-/** The words of each operator, as read in a sentence: `Amount is more than 5000`. */
-export const OPERATOR_LABELS: Record<ConditionOperator, string> = {
-  eq: "is",
-  neq: "is not",
-  gt: "is more than",
-  gte: "is at least",
-  lt: "is less than",
-  lte: "is at most",
-  contains: "contains",
-  not_contains: "does not contain",
-  starts_with: "starts with",
-  before: "is before",
-  after: "is after",
-  is_true: "is true",
-  is_false: "is false",
-  empty: "is empty",
-  not_empty: "is not empty",
-};
-
-/** The operators that make sense for each type of field, the usual one first. */
-export const OPERATORS_BY_TYPE: Record<ConditionFieldType, ReadonlyArray<ConditionOperator>> = {
-  text: ["eq", "neq", "contains", "not_contains", "starts_with", "empty", "not_empty"],
-  number: ["gt", "gte", "lt", "lte", "eq", "neq", "empty", "not_empty"],
-  date: ["before", "after", "eq", "empty", "not_empty"],
-  boolean: ["is_true", "is_false"],
-  enum: ["eq", "neq", "empty", "not_empty"],
-};
-
-/** Whether the operator compares to a value (`is empty` does not). */
-export const operatorTakesValue = (op: ConditionOperator) =>
-  !["is_true", "is_false", "empty", "not_empty"].includes(op);
-
-function testRule(rule: ConditionRule, actual: unknown): boolean {
-  const value = rule.value ?? "";
-  const isEmpty = actual === undefined || actual === null || actual === "";
-  const a = typeof actual === "string" ? actual : actual == null ? "" : String(actual);
-  const na = Number(actual);
-  const nb = Number(value);
-  const numeric = !isEmpty && value !== "" && !Number.isNaN(na) && !Number.isNaN(nb);
-  switch (rule.operator) {
-    case "eq":
-      return numeric ? na === nb : a === value;
-    case "neq":
-      return numeric ? na !== nb : a !== value;
-    case "gt":
-      return numeric && na > nb;
-    case "gte":
-      return numeric && na >= nb;
-    case "lt":
-      return numeric && na < nb;
-    case "lte":
-      return numeric && na <= nb;
-    case "contains":
-      return a.toLowerCase().includes(value.toLowerCase());
-    case "not_contains":
-      return !a.toLowerCase().includes(value.toLowerCase());
-    case "starts_with":
-      return a.toLowerCase().startsWith(value.toLowerCase());
-    case "before":
-      return !isEmpty && a < value;
-    case "after":
-      return !isEmpty && a > value;
-    case "is_true":
-      return actual === true || a === "true";
-    case "is_false":
-      return actual === false || a === "false";
-    case "empty":
-      return isEmpty || (Array.isArray(actual) && actual.length === 0);
-    case "not_empty":
-      return !(isEmpty || (Array.isArray(actual) && actual.length === 0));
-  }
-}
-
-/** Whether an item passes the condition. An empty group passes. */
-export function evaluateCondition(group: ConditionGroup, item: unknown): boolean {
-  if (group.rules.length === 0) return true;
-  const results = group.rules.map((r) =>
-    isConditionGroup(r) ? evaluateCondition(r, item) : testRule(r, getPath(item, r.field)),
-  );
-  return group.combinator === "and" ? results.every(Boolean) : results.some(Boolean);
-}
-
-/** The condition in one line: `Amount is more than 5000 and (Stage is Won or …)`. */
-export function describeCondition(
-  group: ConditionGroup,
-  fields: ReadonlyArray<ConditionField>,
-): string {
-  const parts = group.rules.map((r) => {
-    if (isConditionGroup(r)) return `(${describeCondition(r, fields)})`;
-    const field = fields.find((f) => f.id === r.field);
-    const label = field?.label ?? r.field;
-    if (!operatorTakesValue(r.operator)) return `${label} ${OPERATOR_LABELS[r.operator]}`;
-    const shown = field?.options?.find((o) => o.value === r.value)?.label ?? r.value ?? "";
-    return `${label} ${OPERATOR_LABELS[r.operator]} ${shown || "…"}`;
-  });
-  return parts.length ? parts.join(` ${group.combinator} `) : "Always";
-}
-
 /* ---------------------------------------------------------------- Runs */
 
 export type RunStatus = "queued" | "running" | "success" | "error" | "cancelled";
 
-/** `120 ms`, `1.4 s`, `2 min 05 s`. */
-export function formatDuration(ms: number | undefined): string {
-  if (ms === undefined || Number.isNaN(ms)) return "—";
-  if (ms < 1000) return `${Math.round(ms)} ms`;
-  if (ms < 60_000) return `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
-  const min = Math.floor(ms / 60_000);
-  const s = Math.round((ms % 60_000) / 1000);
-  return `${min} min ${pad(s)} s`;
-}
+export { formatDuration } from "../format";
 
 type Tone = "neutral" | "success" | "warning" | "danger" | "accent";
 

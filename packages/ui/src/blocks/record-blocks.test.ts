@@ -112,9 +112,7 @@ describe("Activity", () => {
     expect(out).toContain("<ol");
     expect(out.match(/<li/g)).toHaveLength(3);
     expect(out).toContain("<b>Hugo Bernard</b> moved it to In Review");
-    expect(out).toContain(
-      '<time class="fg-activity-when" dateTime="2026-11-17T08:00">2 h ago</time>',
-    );
+    expect(out).toMatch(/<time [^>]*dateTime="2026-11-17T08:00"[^>]*>2 h ago<\/time>/);
     expect(out).toContain('aria-label="Comment by Nadia Petit"');
     expect(out).toContain("fg-activity-highlighted");
     expect(out).toContain("<blockquote");

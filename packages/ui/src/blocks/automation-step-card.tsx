@@ -6,7 +6,7 @@ import { BoltIcon } from "@forgeron/icons";
 import type { ReactNode } from "react";
 import { cx } from "../cx";
 import { Icon } from "../icon";
-import { Led } from "../led";
+import { Status, StatusIndicator, StatusLabel } from "../status";
 import { statusLook, type AutomationStep } from "./automation-model";
 
 export interface StepCardProps extends Omit<AutomationStep, "id" | "branches"> {
@@ -81,10 +81,10 @@ export function StepCard({
         <div className="fg-step-main">{body}</div>
       )}
       {shown || disabled ? (
-        <span className="fg-step-state">
-          <Led tone={disabled ? "neutral" : look.tone} />
-          {disabled ? "Disabled" : look.word}
-        </span>
+        <Status tone={disabled ? "neutral" : look.tone} className="fg-step-state">
+          <StatusIndicator />
+          <StatusLabel>{disabled ? "Disabled" : look.word}</StatusLabel>
+        </Status>
       ) : null}
       {actions ? <span className="fg-step-actions">{actions}</span> : null}
       {error && status === "error" ? (

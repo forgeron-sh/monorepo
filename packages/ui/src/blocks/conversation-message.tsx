@@ -22,16 +22,16 @@ import { useControllableState } from "../hooks/use-controllable";
 import { IconButton } from "../identity";
 import { Popover } from "../popover";
 import { AttachmentList } from "./conversation-attachments";
-import { EmojiPicker, ReactionBar } from "./conversation-emoji";
+import { EmojiPicker, type EmojiCategory } from "../emoji-picker";
+import { ReactionBar } from "./conversation-emoji";
 import {
   conversationPlainText,
   conversationTime,
   parseConversationInline,
   type ConversationInline,
   type ConversationMessage,
-  type EmojiCategory,
 } from "./conversation-model";
-import { ActionMenu, type ActionMenuEntry } from "./navigation-action-menu";
+import { ActionMenu, type ActionMenuEntry } from "../action-menu";
 
 export interface MessageHandlers {
   /** Whose messages are "yours": edit and delete are offered on them, the author is marked. */

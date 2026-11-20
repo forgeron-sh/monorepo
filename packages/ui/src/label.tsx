@@ -1,12 +1,12 @@
-import type { ReactNode } from "react";
+import type { LabelHTMLAttributes } from "react";
 import { cx } from "./cx";
 
-export interface LabelProps {
-  className?: string;
-  children: ReactNode;
-}
+export type LabelProps = LabelHTMLAttributes<HTMLLabelElement>;
 
-/** Eyebrow for a section or block: mono capitals (`text-eyebrow`), `ink-muted`. */
-export function Label({ className, children }: LabelProps) {
-  return <span className={cx("fg-label-eyebrow", "text-eyebrow", className)}>{children}</span>;
+/**
+ * shadcn's Label (D-156): a `<label>` with the look of a field's label. `htmlFor` ties it to a
+ * control. The eyebrow of a section is `Eyebrow`.
+ */
+export function Label({ className, ...rest }: LabelProps) {
+  return <label {...rest} className={cx("fg-field-label", className)} />;
 }

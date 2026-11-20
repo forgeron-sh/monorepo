@@ -13,8 +13,9 @@ import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { Led } from "../led";
+import { defineStatuses } from "../status-model";
 import { formatDuration, statusLook, type StepStatus } from "./automation-model";
-import { JsonView } from "./automation-json-view";
+import { JsonView } from "../json-view";
 import type { RunSummary } from "./automation-runs";
 
 export interface RunStep {
@@ -47,13 +48,13 @@ export interface RunDetailProps {
   className?: string;
 }
 
-const RUN_TONE = {
-  success: "success",
-  error: "danger",
-  running: "neutral",
-  queued: "neutral",
-  cancelled: "warning",
-} as const;
+const RUN_STATUS = defineStatuses({
+  success: { label: "Succeeded", tone: "success" },
+  error: { label: "Failed", tone: "danger" },
+  running: { label: "Running", tone: "neutral" },
+  queued: { label: "Queued", tone: "neutral" },
+  cancelled: { label: "Cancelled", tone: "warning" },
+});
 
 /** A run: its steps as a waterfall, and the input, output and error of the one chosen. */
 export function RunDetail({
@@ -85,7 +86,7 @@ export function RunDetail({
   return (
     <section className={cx("fg-rund", className)} aria-label={`Run ${run.id}`}>
       <header className="fg-rund-head">
-        <Badge tone={RUN_TONE[run.status]} dot>
+        <Badge tone={RUN_STATUS.tone(run.status)} dot>
           {look.word}
         </Badge>
         <b className="fg-rund-id">#{run.id}</b>

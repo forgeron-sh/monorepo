@@ -239,170 +239,25 @@
   letter-spacing: 0.04em;
 }
 .fg-aud-list {
-  margin: 0;
-  padding: 0;
   border-top: 1px solid var(--line);
-  list-style: none;
 }
 .fg-aud-item {
-  display: grid;
-  grid-template-columns: 8px minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--line);
   color: var(--ink);
   font: 400 13px/18px var(--font-sans);
 }
-.fg-aud-dot {
-  width: 8px;
-  height: 8px;
-  margin-top: 5px;
-  background: var(--ink-dim);
-}
-.fg-aud-success .fg-aud-dot {
-  background: var(--success);
-}
-.fg-aud-danger .fg-aud-dot {
-  background: var(--danger);
-}
-.fg-aud-main {
-  display: flex;
-  flex-direction: column;
-}
-.fg-aud-detail {
-  color: var(--ink-muted);
+.fg-aud-item .fg-timeline-title {
+  color: var(--ink);
 }
 .fg-aud-when {
-  color: var(--ink-dim);
-  font: 400 11px/16px var(--font-mono);
-  white-space: nowrap;
+  margin-inline-start: auto;
+  font-size: 11px;
+  line-height: 18px;
+}
+.fg-aud-item .fg-timeline-description {
+  color: var(--ink-muted);
 }
 
 /* ---------------------------------------------------------------- SignaturePad */
-
-.fg-sig {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  max-width: 560px;
-  color: var(--ink);
-  font: 400 13px/18px var(--font-sans);
-}
-.fg-sig-disabled {
-  opacity: 0.6;
-}
-.fg-sig-draw,
-.fg-sig-type,
-.fg-sig-upload {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.fg-sig-surface {
-  position: relative;
-  border: 1px solid var(--line-strong);
-  background: var(--bg-sunk);
-}
-.fg-sig-canvas {
-  display: block;
-  width: 100%;
-  aspect-ratio: 3 / 1;
-  color: var(--ink);
-  cursor: crosshair;
-  touch-action: none;
-}
-.fg-sig-canvas:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: calc(-1 * var(--focus-width));
-}
-.fg-sig-placeholder {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  color: var(--ink-dim);
-  font: 400 12px/16px var(--font-mono);
-  text-transform: uppercase;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-.fg-sig-baseline {
-  position: absolute;
-  right: var(--space-4);
-  bottom: 22%;
-  left: var(--space-4);
-  border-bottom: 1px dashed var(--line-strong);
-  pointer-events: none;
-}
-.fg-sig-hint {
-  margin: 0;
-  color: var(--ink-dim);
-  font: 400 12px/16px var(--font-sans);
-}
-.fg-sig-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-.fg-sig-fonts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-.fg-sig-font {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--line-strong);
-  background: var(--bg);
-  color: var(--ink);
-  text-align: left;
-  cursor: pointer;
-}
-.fg-sig-font:hover {
-  background: var(--bg-raised);
-}
-.fg-sig-font[aria-checked="true"] {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-.fg-sig-font:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: 1px;
-}
-.fg-sig-sample {
-  overflow: hidden;
-  font-size: 26px;
-  line-height: 34px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.fg-sig-fontname {
-  color: var(--ink-dim);
-  font: 400 11px/16px var(--font-mono);
-  text-transform: uppercase;
-}
-.fg-sig-problem {
-  margin: 0;
-  color: var(--danger);
-}
-.fg-sig-preview {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-3);
-  border: 1px solid var(--line);
-  background: var(--bg-sunk);
-}
-.fg-sig-preview img {
-  max-width: 100%;
-  max-height: 96px;
-  /* The image is dark ink on a clear ground: in the dark theme it is lit to read. */
-  filter: var(--fg-sig-filter, none);
-}
-:root:not([data-theme="light"]) .fg-sig-preview img {
-  filter: invert(1);
-}
 
 /* ---------------------------------------------------------------- DocumentViewer */
 
@@ -846,9 +701,6 @@
   .fg-fp-panel {
     flex: 1 1 100%;
     width: auto;
-  }
-  .fg-sig-fonts {
-    grid-template-columns: 1fr;
   }
 }
 

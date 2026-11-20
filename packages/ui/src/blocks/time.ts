@@ -16,8 +16,6 @@ export { SlotPicker } from "./time-slots";
 export type { SlotChoice, SlotPickerProps } from "./time-slots";
 export { RecurrenceEditor } from "./time-recurrence";
 export type { RecurrenceEditorProps } from "./time-recurrence";
-export { DURATION_PRESETS, DurationInput, TimezonePicker, deviceTimezone } from "./time-fields";
-export type { DurationInputProps, TimezonePickerProps } from "./time-fields";
 export { ResourceSchedule, scheduleConflicts } from "./time-resources";
 export type { ResourceScheduleProps, ScheduleResource } from "./time-resources";
 export {

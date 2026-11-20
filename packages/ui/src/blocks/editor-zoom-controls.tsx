@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { cx } from "../cx";
 import { formatShortcut, useShortcuts } from "../hooks/use-shortcuts";
 import { Icon } from "../icon";
-import { Tooltip } from "../overlays";
+import { Tooltip } from "../tooltip";
 import {
   EDITOR_ZOOM_MAX,
   EDITOR_ZOOM_MIN,
@@ -15,7 +15,7 @@ import {
   editorStepZoom,
   editorZoomText,
 } from "./editor-model";
-import { ActionMenu, type ActionMenuEntry } from "./navigation-action-menu";
+import { ActionMenu, type ActionMenuEntry } from "../action-menu";
 
 export interface ZoomShortcuts {
   zoomIn?: string;

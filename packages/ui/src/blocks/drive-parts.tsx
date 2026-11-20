@@ -18,7 +18,7 @@ import {
 } from "@forgeron/icons";
 import type { CSSProperties } from "react";
 import { cx } from "../cx";
-import { formatShort } from "../dates";
+import { formatBytes, formatWhen } from "../format";
 import { Icon } from "../icon";
 
 /** What a file is, for its mark, its thumbnail and its preview. */
@@ -81,32 +81,7 @@ export function fileKindOf(name: string): FileKind {
   return EXTENSIONS.find(([re]) => re.test(ext))?.[1] ?? "other";
 }
 
-/** A size for people, in powers of 1000: `840 B`, `12.4 KB`, `3.1 MB`, `1.2 GB`; a dash when unknown. */
-export function formatBytes(bytes: number | null | undefined): string {
-  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) return "—";
-  if (bytes < 1000) return `${Math.round(bytes)} B`;
-  const units = ["KB", "MB", "GB", "TB"];
-  let value = bytes / 1000;
-  let unit = 0;
-  while (value >= 1000 && unit < units.length - 1) {
-    value /= 1000;
-    unit += 1;
-  }
-  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
-}
-
-/**
- * A date and time `YYYY-MM-DD HH:mm` (or a date alone) for a dense row: the time when it is
- * `today`, else the day, with the year when it is not this year's.
- */
-export function formatWhen(value: string | undefined, today?: string): string {
-  if (!value) return "—";
-  const [day, time] = value.split(/[ T]/);
-  if (!day) return value;
-  if (today && day === today) return time ? time.slice(0, 5) : "Today";
-  const year = today ? Number(today.slice(0, 4)) : undefined;
-  return formatShort(day, year);
-}
+export { formatBytes, formatWhen };
 
 /** The data type a file carries while it is dragged inside the Drive blocks: its ids as JSON. */
 export const DRIVE_DRAG_TYPE = "application/x-forgeron-drive";

@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
+import { Progress as BaseProgress } from "@base-ui/react/progress";
 import { cx } from "./cx";
 
 export interface KbdProps {
@@ -7,8 +8,31 @@ export interface KbdProps {
   className?: string;
 }
 
-/** A keyboard shortcut, one framed mono cap per key. */
-export function Kbd({ keys, className }: KbdProps) {
+/**
+ * A keyboard shortcut, one framed mono cap per key. Without `keys`: shadcn's `Kbd`, one cap around
+ * its children (`KbdGroup` groups several), D-156.
+ */
+export function Kbd(props: KbdProps | KbdCapProps) {
+  return props.keys !== undefined ? (
+    <KbdKeys {...(props as KbdProps)} />
+  ) : (
+    <KbdCap {...(props as KbdCapProps)} />
+  );
+}
+
+/** `keys` stays undefined: with keys, `Kbd` draws one cap per key. */
+export type KbdCapProps = HTMLAttributes<HTMLElement> & { keys?: undefined };
+
+function KbdCap({ keys: _keys, className, ...rest }: KbdCapProps) {
+  return <kbd {...rest} className={cx("fg-kbd", className)} />;
+}
+
+/** Several caps side by side (shadcn's `KbdGroup`). */
+export function KbdGroup({ className, ...rest }: HTMLAttributes<HTMLElement>) {
+  return <span {...rest} className={cx("fg-kbds", className)} />;
+}
+
+function KbdKeys({ keys, className }: KbdProps) {
   const list = typeof keys === "string" ? [keys] : keys;
   return (
     <span className={cx("fg-kbds", className)}>
@@ -36,8 +60,36 @@ export interface ProgressProps {
   className?: string;
 }
 
-/** How far a piece of work or a quota has gone: a sharp track filled from the left. */
-export function Progress({
+/**
+ * How far a piece of work or a quota has gone: a sharp track filled from the left. Without `label`:
+ * shadcn's Progress (`value` from 0 to 100), D-156.
+ */
+export function Progress(props: ProgressProps | ProgressRootProps) {
+  return props.label !== undefined ? (
+    <LabelledProgress {...(props as ProgressProps)} />
+  ) : (
+    <ProgressRoot {...(props as ProgressRootProps)} />
+  );
+}
+
+/** `label` stays undefined: with a label, `Progress` is the props-driven one. */
+export type ProgressRootProps = Omit<ComponentProps<typeof BaseProgress.Root>, "className"> & {
+  className?: string;
+  label?: undefined;
+};
+
+function ProgressRoot({ className, label: _label, children, ...rest }: ProgressRootProps) {
+  return (
+    <BaseProgress.Root {...rest} className={cx("fg-progress fg-progress-accent", className)}>
+      {children}
+      <BaseProgress.Track className="fg-progress-track">
+        <BaseProgress.Indicator className="fg-progress-fill" />
+      </BaseProgress.Track>
+    </BaseProgress.Root>
+  );
+}
+
+function LabelledProgress({
   label,
   value,
   max = 100,
@@ -90,6 +142,8 @@ export interface SeparatorProps {
   variant?: "line" | "hatch";
   /** A short mono label on a `hatch` band, e.g. "/0.2 → Settings". */
   children?: ReactNode;
+  /** shadcn's `decorative`: the line is only visual, hidden from assistive technology. */
+  decorative?: boolean;
   className?: string;
 }
 
@@ -98,6 +152,7 @@ export function Separator({
   orientation = "horizontal",
   variant = "line",
   children,
+  decorative,
   className,
 }: SeparatorProps) {
   if (variant === "hatch") {
@@ -110,8 +165,7 @@ export function Separator({
   return (
     <div
       className={cx("fg-sep", orientation === "vertical" && "fg-sep-vertical", className)}
-      role="separator"
-      aria-orientation={orientation}
+      {...(decorative ? { role: "none" } : { role: "separator", "aria-orientation": orientation })}
     />
   );
 }

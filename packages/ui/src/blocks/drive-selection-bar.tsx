@@ -1,15 +1,17 @@
 // The bar that takes the place of the filters while items are selected: how many, a way out, and
 // the actions on them. The actions are the screen's (`useActions`): the first ones as buttons,
-// the rest behind ⋯, the destructive one last.
+// the rest behind ⋯, the destructive one last. The parts are the primitive's (selection-bar.tsx);
+// this is the form built from `actions`.
 
-import { Cancel01Icon, MoreVerticalIcon } from "@forgeron/icons";
-import type { KeyboardEvent, ReactNode } from "react";
-import { Button } from "../button";
-import { cx } from "../cx";
-import { buildMenu, type Action } from "../hooks/use-actions";
-import { Icon } from "../icon";
-import { IconButton } from "../identity";
-import { ActionMenu } from "./navigation-action-menu";
+import type { ReactNode } from "react";
+import type { Action } from "../hooks/use-actions";
+import {
+  SelectionBar as Bar,
+  SelectionBarActions,
+  SelectionBarClear,
+  SelectionBarCount,
+  SelectionBarSeparator,
+} from "../selection-bar";
 
 export interface SelectionBarProps {
   /** How many items are selected; the bar is drawn for one or more. */
@@ -35,94 +37,22 @@ export function SelectionBar({
   onClear,
   actions,
   onAction,
-  inline = 4,
-  iconOnly = [],
+  inline,
+  iconOnly,
   children,
   className,
 }: SelectionBarProps) {
-  if (count < 1) return null;
-  const all = actions.filter((a) => !a.actions || a.actions.length > 0);
-  const shown = all.slice(0, inline);
-  const rest = all.slice(inline);
-  const run = (a: Action) => {
-    if (a.disabled) return;
-    a.run?.();
-    onAction?.(a.id);
-  };
-  const byId = new Map(
-    all.flatMap((a) => [a, ...(a.actions ?? [])]).map((a) => [a.id, a] as const),
-  );
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Escape") return;
-    event.stopPropagation();
-    onClear();
-  };
   return (
-    <div
-      role="toolbar"
-      aria-label="Selection"
-      className={cx("fg-selbar", className)}
-      onKeyDown={onKeyDown}
-    >
-      <IconButton icon={Cancel01Icon} label="Clear selection" size="sm" onClick={onClear} />
-      <b className="fg-selbar-count" aria-live="polite">
-        {children ?? `${count} selected`}
-      </b>
-      <span className="fg-selbar-rule" aria-hidden="true" />
-      {shown.map((a) =>
-        a.actions ? (
-          <ActionMenu
-            key={a.id}
-            items={buildMenu(a.actions)}
-            onSelect={(id) => {
-              const chosen = byId.get(id);
-              if (chosen) run(chosen);
-            }}
-            label={a.label}
-            trigger={
-              <Button variant="ghost" size="sm" disabled={a.disabled}>
-                {a.icon ? <Icon icon={a.icon} size={12} variant="mono" /> : null}
-                {a.label}
-              </Button>
-            }
-          />
-        ) : iconOnly.includes(a.id) && a.icon ? (
-          <IconButton
-            key={a.id}
-            icon={a.icon}
-            label={a.label}
-            title={a.label}
-            size="sm"
-            disabled={a.disabled}
-            className={cx(a.danger && "fg-selbar-danger")}
-            onClick={() => run(a)}
-          />
-        ) : (
-          <Button
-            key={a.id}
-            variant="ghost"
-            size="sm"
-            disabled={a.disabled}
-            className={cx(a.danger && "fg-selbar-danger")}
-            onClick={() => run(a)}
-          >
-            {a.icon ? <Icon icon={a.icon} size={12} variant="mono" /> : null}
-            {a.label}
-          </Button>
-        ),
-      )}
-      {rest.length > 0 ? (
-        <ActionMenu
-          items={buildMenu(rest)}
-          onSelect={(id) => {
-            const chosen = byId.get(id);
-            if (chosen) run(chosen);
-          }}
-          label="More actions"
-          align="end"
-          trigger={<IconButton icon={MoreVerticalIcon} label="More actions" size="sm" />}
-        />
-      ) : null}
-    </div>
+    <Bar count={count} onClear={onClear} {...(className ? { className } : {})}>
+      <SelectionBarClear />
+      <SelectionBarCount>{children}</SelectionBarCount>
+      <SelectionBarSeparator />
+      <SelectionBarActions
+        actions={actions}
+        {...(onAction ? { onAction } : {})}
+        {...(inline !== undefined ? { inline } : {})}
+        {...(iconOnly ? { iconOnly } : {})}
+      />
+    </Bar>
   );
 }

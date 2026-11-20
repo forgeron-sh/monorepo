@@ -10,7 +10,7 @@ import { useId, useState } from "react";
 import { cx } from "../cx";
 import { Icon } from "../icon";
 import { AppTile } from "../identity";
-import { ActionMenu, type ActionMenuEntry } from "./navigation-action-menu";
+import { ActionMenu, type ActionMenuEntry } from "../action-menu";
 
 export interface AppSidebarLink {
   /** Where the link goes; compared with `current`. Unused on a row with `items`: it only folds. */

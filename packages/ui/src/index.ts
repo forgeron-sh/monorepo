@@ -2,9 +2,30 @@ export { Badge, EnvTag } from "./badge";
 export type { BadgeProps, EnvTagProps } from "./badge";
 export { Button } from "./button";
 export type { ButtonProps } from "./button";
+export { cn, cx } from "./cx";
+export type { ClassValue } from "./cx";
 export { Chip } from "./chip";
 export type { ChipProps } from "./chip";
 export { Command } from "./command";
+export { ActionMenu } from "./action-menu";
+export { CommandPalette, filterCommands } from "./command-palette";
+export { ContextMenu } from "./context-menu";
+export { Modal } from "./modal";
+export type {
+  ActionMenuEntry,
+  ActionMenuHeading,
+  ActionMenuItem,
+  ActionMenuProps,
+  ActionMenuSeparator,
+} from "./action-menu";
+export type {
+  CommandPaletteGroup,
+  CommandPaletteItem,
+  CommandPaletteProps,
+} from "./command-palette";
+export type { ContextMenuProps } from "./context-menu";
+export type { ModalProps } from "./modal";
+export { CommandLine } from "./command-line";
 export { RadioGroup, Segmented, Switch } from "./controls";
 export type {
   RadioGroupProps,
@@ -14,11 +35,18 @@ export type {
   SwitchProps,
 } from "./controls";
 export { Kbd, Progress, Separator } from "./marks";
-export { AppTile, AvatarGroup, Breadcrumb, IconButton, SearchBox, Swatch } from "./identity";
+export {
+  AppTile,
+  AvatarGroup,
+  Breadcrumb,
+  BreadcrumbItem,
+  IconButton,
+  SearchBox,
+  Swatch,
+} from "./identity";
 export type {
   AppTileProps,
   AvatarGroupProps,
-  BreadcrumbItem,
   BreadcrumbProps,
   IconButtonProps,
   SearchBoxProps,
@@ -27,20 +55,24 @@ export type {
 export { Calendar } from "./calendar";
 export type { CalendarProps } from "./calendar";
 export { addDays, addMonths, formatShort, monthGrid, toIso } from "./dates";
-export { DatePicker, duePresets, SelectMenu, Toaster, Tooltip, useToast } from "./overlays";
+export { DatePicker, duePresets, SelectMenu, Toaster, useToast } from "./overlays";
+export { Tooltip } from "./tooltip";
 export type {
   DatePickerProps,
   DatePreset,
   SelectMenuOption,
   SelectMenuProps,
   ToasterProps,
-  TooltipProps,
 } from "./overlays";
+export type { TooltipProps } from "./tooltip";
 export type { KbdProps, ProgressProps, SeparatorProps } from "./marks";
 export type { CommandProps } from "./command";
+export type { CommandLineProps } from "./command-line";
 export { Icon } from "./icon";
 export type { IconProps } from "./icon";
+export { Eyebrow } from "./eyebrow";
 export { Label } from "./label";
+export type { EyebrowProps } from "./eyebrow";
 export type { LabelProps } from "./label";
 export { Led } from "./led";
 export type { LedProps } from "./led";
@@ -64,9 +96,17 @@ export { Board } from "./board";
 export type { BoardColumn, BoardProps } from "./board";
 export { Stat } from "./stat";
 export type { StatProps } from "./stat";
-export { BarChart } from "./bar-chart";
-export type { BarChartDatum, BarChartProps } from "./bar-chart";
 export { Select } from "./select";
+export {
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "./select";
+export type { SelectContentProps, SelectRootProps, SelectTriggerProps } from "./select";
 export type { SelectOption, SelectProps } from "./select";
 export { AppShell, Nav, Sidebar } from "./shell";
 export type { AppShellProps, NavItem, NavProps, SidebarProps } from "./shell";
@@ -78,10 +118,29 @@ export { Checkbox, Field, Input, Textarea } from "./form";
 export type { CheckboxProps, FieldProps } from "./form";
 export { Dialog } from "./dialog";
 export type { DialogProps } from "./dialog";
+export {
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from "./dialog";
+export type {
+  DialogCloseProps,
+  DialogContentProps,
+  DialogRootProps,
+  DialogTriggerProps,
+} from "./dialog";
 export { CopyBlock } from "./copy-block";
 export type { CopyBlockProps } from "./copy-block";
 export { Tabs } from "./tabs";
 export type { TabItem, TabsProps } from "./tabs";
+export { TabsContent, TabsList, TabsTrigger } from "./tabs";
+export type { TabsRootProps } from "./tabs";
 export { Markdown, safeHref, safeImage } from "./markdown";
 export type { MarkdownProps } from "./markdown";
 export { DetailList, ToolCard, ToolIcon } from "./tool-card";
@@ -144,7 +203,6 @@ export * from "./blocks/lists";
 export * from "./blocks/filtering";
 export * from "./blocks/record";
 export * from "./blocks/navigation";
-export * from "./blocks/data";
 export * from "./blocks/views";
 export * from "./blocks/marketing";
 export * from "./blocks/datahub";
@@ -157,7 +215,15 @@ export * from "./blocks/dashboard";
 export * from "./blocks/conversation";
 export * from "./hooks";
 export * from "./shaders";
-export * from "./blocks/icon-picker";
+export * from "./icon-picker";
+export { DiffView, FieldDiff, VersionCompare } from "./diff";
+export type {
+  CompareVersion,
+  DiffMode,
+  DiffViewProps,
+  FieldDiffProps,
+  VersionCompareProps,
+} from "./diff";
 export { Combobox, TagInput } from "./combobox";
 export type {
   ComboboxMultipleProps,
@@ -190,8 +256,41 @@ export { FileInput, formatFileSize, matchesAccept } from "./file-input";
 export type { FileInputProps, FileRejection } from "./file-input";
 export { Popover } from "./popover";
 export type { PopoverProps } from "./popover";
-export { Accordion, Collapsible } from "./collapsible";
-export type { AccordionItem, AccordionProps, CollapsibleProps } from "./collapsible";
+export {
+  PopoverClose,
+  PopoverContent,
+  PopoverDescription,
+  PopoverTitle,
+  PopoverTrigger,
+} from "./popover";
+export type {
+  PopoverCloseProps,
+  PopoverContentProps,
+  PopoverRootProps,
+  PopoverTriggerProps,
+} from "./popover";
+export { TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
+export type { TooltipContentProps, TooltipRootProps, TooltipTriggerProps } from "./tooltip";
+export {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "./dropdown-menu";
+export type {
+  DropdownMenuContentProps,
+  DropdownMenuItemProps,
+  DropdownMenuTriggerProps,
+} from "./dropdown-menu";
+export { Accordion, AccordionItem, Collapsible } from "./collapsible";
+export type { AccordionProps, CollapsibleProps } from "./collapsible";
 export { SplitPane } from "./split-pane";
 export type { SplitPaneProps } from "./split-pane";
 export { Toolbar, ToolbarButton, ToolbarGroup, ToolbarLink, ToolbarSeparator } from "./toolbar";
@@ -202,3 +301,21 @@ export * from "./blocks/forms";
 export * from "./blocks/admin";
 export * from "./blocks/editor";
 export * from "./blocks/structure";
+// shadcn parts and components, one barrel per group (D-156).
+export * from "./parts-forms";
+export * from "./parts-display";
+export * from "./parts-disclosure";
+export * from "./parts-overlays";
+export * from "./parts-data";
+export * from "./parts-menus";
+export * from "./parts-fields";
+export * from "./parts-charts";
+export * from "./parts-status";
+export * from "./parts-pickers";
+export * from "./parts-timeline";
+export type { FormatBytesOptions } from "./format";
+export { dayLabel, groupByDay } from "./dates";
+export * from "./parts-tree";
+export * from "./parts-access";
+export * from "./parts-collection";
+export * from "./parts-sortable";

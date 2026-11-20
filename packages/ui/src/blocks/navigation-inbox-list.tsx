@@ -3,10 +3,10 @@
 // ember LED of unread. One list stop on Tab; the arrows (and j / k) move the selection.
 
 import type { IconDefinition } from "@forgeron/icons";
-import type { KeyboardEvent, ReactNode } from "react";
-import { useId } from "react";
+import type { ReactNode } from "react";
 import { Avatar } from "../avatar";
 import { cx } from "../cx";
+import { useCollection } from "../hooks/use-collection";
 import { Icon } from "../icon";
 
 export interface InboxItem {
@@ -50,49 +50,40 @@ export function InboxList({
   empty = "No notifications",
   className,
 }: InboxListProps) {
-  const base = useId();
-  const rowId = (id: string) => `${base}-${id}`;
-  const index = items.findIndex((i) => i.id === selectedId);
-
-  const go = (next: number) => {
-    const item = items[Math.max(0, Math.min(items.length - 1, next))];
-    if (!item || item.id === selectedId) return;
-    onSelect(item.id);
-    document.getElementById(rowId(item.id))?.scrollIntoView?.({ block: "nearest" });
-  };
-  const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
-    const k = event.key;
-    if (k === "ArrowDown" || k === "j") go(index < 0 ? 0 : index + 1);
-    else if (k === "ArrowUp" || k === "k") go(index < 0 ? 0 : index - 1);
-    else if (k === "Home") go(0);
-    else if (k === "End") go(items.length - 1);
-    else return;
-    event.preventDefault();
-  };
+  // Selection follows the keyboard: the focused row is the selected one, and the parent owns both.
+  const collection = useCollection({
+    items,
+    getId: (i) => i.id,
+    selectionMode: "single",
+    selected: selectedId ? [selectedId] : [],
+    onSelectedChange: (ids) => {
+      if (ids[0] !== undefined) onSelect(ids[0]);
+    },
+    focused: selectedId,
+    focusMode: "activedescendant",
+    clearOnEscape: false,
+    vimKeys: true,
+  });
 
   if (items.length === 0) {
     return <div className={cx("fg-inbox fg-inbox-empty", className)}>{empty}</div>;
   }
   return (
     <ul
-      className={cx("fg-inbox", className)}
-      role="listbox"
-      aria-label={label}
-      tabIndex={0}
-      {...(index >= 0 ? { "aria-activedescendant": rowId(items[index]!.id) } : {})}
-      onKeyDown={onKeyDown}
+      {...collection.getContainerProps({
+        className: cx("fg-inbox", className),
+        role: "listbox",
+        "aria-label": label,
+      })}
     >
       {items.map((item) => {
-        const selected = item.id === selectedId;
         return (
           <li
             key={item.id}
-            id={rowId(item.id)}
-            role="option"
-            aria-selected={selected}
-            className={cx("fg-inbox-row", item.unread && "fg-inbox-unread")}
-            onClick={() => onSelect(item.id)}
+            {...collection.getItemProps(item.id, {
+              role: "option",
+              className: cx("fg-inbox-row", item.unread && "fg-inbox-unread"),
+            })}
           >
             <span className="fg-inbox-who" aria-hidden="true">
               {item.person ? (

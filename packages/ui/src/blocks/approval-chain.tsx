@@ -15,6 +15,15 @@ import { Textarea } from "../form";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
+import {
+  Feed,
+  FeedContent,
+  FeedDescription,
+  FeedIndicator,
+  FeedItem,
+  FeedTime,
+  FeedTitle,
+} from "../timeline";
 import { Segmented } from "../controls";
 import {
   addParticipant,
@@ -358,22 +367,22 @@ export function ApprovalAudit({
   return (
     <section className={cx("fg-aud", className)} aria-label={label}>
       <h3 className="fg-aud-title">{label}</h3>
-      <ol className="fg-aud-list">
+      <Feed className="fg-aud-list">
         {sorted.map((e) => (
-          <li key={e.id} className={cx("fg-aud-item", e.tone && `fg-aud-${e.tone}`)}>
-            <i className="fg-aud-dot" aria-hidden="true" />
-            <span className="fg-aud-main">
-              <span>
+          <FeedItem key={e.id} className="fg-aud-item">
+            <FeedIndicator tone={e.tone ?? "neutral"} />
+            <FeedContent>
+              <FeedTitle>
                 <b>{e.actor}</b> {e.action}
-              </span>
-              {e.detail ? <span className="fg-aud-detail">{e.detail}</span> : null}
-            </span>
-            <time className="fg-aud-when" dateTime={e.at}>
-              {formatStamp(e.at)}
-            </time>
-          </li>
+              </FeedTitle>
+              <FeedTime className="fg-aud-when" dateTime={e.at}>
+                {formatStamp(e.at)}
+              </FeedTime>
+              {e.detail ? <FeedDescription>{e.detail}</FeedDescription> : null}
+            </FeedContent>
+          </FeedItem>
         ))}
-      </ol>
+      </Feed>
     </section>
   );
 }

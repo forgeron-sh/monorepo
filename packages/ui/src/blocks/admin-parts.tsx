@@ -1,9 +1,16 @@
 // Small pieces the administration blocks share: the confirmation of a destructive action and the
 // mark of a state. Not exported from the package.
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from "../alert-dialog";
 import { Button } from "../button";
-import { Dialog } from "../dialog";
 
 export interface AdminConfirmProps {
   title: ReactNode;
@@ -31,24 +38,20 @@ export function AdminConfirm({
   onCancel,
   children,
 }: AdminConfirmProps) {
+  const cancel = useRef<HTMLButtonElement>(null);
   return (
-    <Dialog
-      title={title}
-      {...(description ? { description } : {})}
-      onClose={onCancel}
-      className="fg-adm-confirm"
-      footer={
-        <>
-          <Button data-autofocus onClick={onCancel}>
-            {cancelLabel}
-          </Button>
+    <AlertDialog open onOpenChange={(open) => !open && onCancel()}>
+      <AlertDialogContent className="fg-adm-confirm" initialFocus={cancel}>
+        <AlertDialogTitle>{title}</AlertDialogTitle>
+        {description ? <AlertDialogDescription>{description}</AlertDialogDescription> : null}
+        {children ? <div className="fg-dialog-body">{children}</div> : null}
+        <AlertDialogFooter>
+          <AlertDialogCancel ref={cancel}>{cancelLabel}</AlertDialogCancel>
           <Button variant={tone} disabled={busy} onClick={onConfirm}>
             {confirmLabel}
           </Button>
-        </>
-      }
-    >
-      {children}
-    </Dialog>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

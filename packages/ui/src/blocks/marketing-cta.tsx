@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "../button";
-import { Command } from "../command";
+import { CommandLine } from "../command-line";
 import { cx } from "../cx";
 import { titleLines } from "../section-head";
 import type { TitleLines } from "../section-head";
@@ -55,7 +55,7 @@ export function CtaBand({
           {command ? (
             <div className="fg-cta-cell">
               <span className="text-eyebrow fg-cta-label">{commandLabel}</span>
-              <Command>{command}</Command>
+              <CommandLine>{command}</CommandLine>
             </div>
           ) : null}
         </div>

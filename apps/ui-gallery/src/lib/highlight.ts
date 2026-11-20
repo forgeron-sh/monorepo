@@ -27,9 +27,12 @@ const lab: ThemeRegistration = {
 
 const highlighter = await createHighlighter({
   themes: [lab],
-  langs: ["tsx", "shellscript", "css"],
+  langs: ["tsx", "shellscript", "css", "jsonc"],
 });
 
-export function highlight(code: string, lang: "tsx" | "shellscript" | "css" = "tsx"): string {
+export function highlight(
+  code: string,
+  lang: "tsx" | "shellscript" | "css" | "jsonc" = "tsx",
+): string {
   return highlighter.codeToHtml(code.trimEnd(), { lang, theme: "forgeron-lab" });
 }

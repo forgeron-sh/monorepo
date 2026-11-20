@@ -1,5 +1,5 @@
 /* Blocks of the "time" group: time grid, availability, slots, recurrence, zones, durations.
-   Values come from tokens/tokens.css. Prefixes: fg-tg, fg-av, fg-slot, fg-rec, fg-tz, fg-dur. */
+   Values come from tokens/tokens.css. Prefixes: fg-tg, fg-av, fg-slot, fg-rec. */
 
 /* ---------------------------------------------------------------- time grid */
 .fg-tg {
@@ -647,47 +647,6 @@
 }
 
 /* ---------------------------------------------------------------- zone and duration */
-.fg-tz {
-  min-width: 240px;
-}
-.fg-dur {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-}
-.fg-dur-row,
-.fg-dur-presets {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-.fg-dur-num {
-  width: 104px;
-}
-.fg-dur-preset {
-  height: 26px;
-  padding: 0 8px;
-  border: var(--border-width) solid var(--line-strong);
-  border-radius: var(--radius-none);
-  background: var(--bg);
-  color: var(--ink-muted);
-  font: 400 11px/1 var(--font-mono);
-  cursor: pointer;
-}
-.fg-dur-preset:hover {
-  color: var(--ink);
-}
-.fg-dur-preset[aria-pressed="true"] {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--bg);
-}
-.fg-dur-preset:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: var(--focus-offset);
-}
 
 @media (max-width: 640px) {
   .fg-av-day,
@@ -701,8 +660,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .fg-tg *,
-  .fg-slot *,
-  .fg-dur * {
+  .fg-slot * {
     transition: none !important;
     animation: none !important;
   }

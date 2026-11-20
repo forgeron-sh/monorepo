@@ -17,6 +17,7 @@ import {
   useRef,
   useState,
   type DragEvent,
+  type HTMLAttributes,
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
@@ -25,10 +26,12 @@ import {
 import { Avatar } from "../avatar";
 import { cx } from "../cx";
 import { EmptyState } from "../feedback";
+import { useCollection } from "../hooks/use-collection";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { isMenuKey, RowMore } from "./lists-editing";
-import { ContextMenu, type ActionMenuEntry } from "./navigation-action-menu";
+import type { ActionMenuEntry } from "../action-menu";
+import { ContextMenu } from "../context-menu";
 import {
   DRIVE_DRAG_TYPE,
   FILE_KINDS,
@@ -156,27 +159,7 @@ export function sortDriveItems(
   });
 }
 
-/**
- * The selection after a click on `id`, as in a file manager: a plain click selects it alone, ⌘ or
- * Ctrl adds or removes it, ⇧ selects the run from the anchor (added to the rest with ⌘ too).
- */
-export function selectionAfterClick(
-  selected: ReadonlyArray<string>,
-  order: ReadonlyArray<string>,
-  id: string,
-  { shift = false, mod = false }: { shift?: boolean; mod?: boolean },
-  anchor: string | null,
-): string[] {
-  if (shift && anchor !== null && order.includes(anchor)) {
-    const a = order.indexOf(anchor);
-    const b = order.indexOf(id);
-    const run = order.slice(Math.min(a, b), Math.max(a, b) + 1);
-    const base = mod ? selected.filter((x) => !run.includes(x)) : [];
-    return [...base, ...run];
-  }
-  if (mod) return selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
-  return [id];
-}
+export { selectionAfterClick } from "../collection-model";
 
 interface Box {
   x: number;
@@ -186,7 +169,6 @@ interface Box {
 }
 
 const ROOT = "\u0000root";
-const STOP = "[data-fb-stop]";
 
 /** A folder's files, listed or in a grid, selected, dragged, opened and acted on. */
 export function FileBrowser({
@@ -218,11 +200,6 @@ export function FileBrowser({
   label = "Files",
   className,
 }: FileBrowserProps) {
-  const [sel, setSel] = useControllableState<ReadonlyArray<string>>({
-    value: selected,
-    defaultValue: defaultSelected,
-    onChange: (ids) => onSelectedChange?.([...ids]),
-  });
   const [order, setOrder] = useControllableState<FileSort | null>({
     value: sort,
     defaultValue: defaultSort,
@@ -235,119 +212,63 @@ export function FileBrowser({
     defaultValue: null,
     onChange: (id) => onRenamingChange?.(id),
   });
-  const [focusId, setFocusId] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [box, setBox] = useState<Box | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const anchor = useRef<string | null>(null);
   const dragged = useRef<string[]>([]);
   const drawing = useRef<{ x: number; y: number; base: string[]; moved: boolean } | null>(null);
   const body = useRef<HTMLDivElement>(null);
 
   const list = sortable ? sortDriveItems(items, order) : items;
-  const ids = list.map((i) => i.id);
-  const selection = sel.filter((id) => ids.includes(id));
-  const selSet = new Set(selection);
-  const stop = (focusId && ids.includes(focusId) && focusId) || selection[0] || ids[0];
+  const collection = useCollection({
+    items: list,
+    getId: (i) => i.id,
+    selectionMode: "multiple",
+    ...(selected ? { selected } : {}),
+    defaultSelected,
+    ...(onSelectedChange ? { onSelectedChange } : {}),
+    orientation: layout === "grid" ? "grid" : "vertical",
+    ...(onOpen ? { onAction: onOpen } : {}),
+    ignoreTarget: (t) => !!t.closest("input, textarea, [data-fb-stop]"),
+  });
+  const { selected: selection, selectedSet: selSet, setSelected: setSel } = collection;
   const labels = { ...COLUMN_LABELS, ...columnLabels };
   const when = (v: string | undefined) => (v && formatDate ? formatDate(v) : formatWhen(v, today));
   const target = (id: string) => (selSet.has(id) ? selection : [id]);
 
   const elements = () =>
     Array.from(body.current?.querySelectorAll<HTMLElement>("[data-fb-item]") ?? []);
-  const focusItem = (id: string) => {
-    setFocusId(id);
-    elements()
-      .find((el) => el.dataset.fbItem === id)
-      ?.focus();
-  };
 
   /* ------------------------------------------------------------ keyboard */
 
-  /** The item below or above in a grid: the nearest card of the next row; ±1 when unknown. */
-  const vertical = (at: number, down: boolean) => {
-    if (layout === "list") return at + (down ? 1 : -1);
-    const els = elements();
-    const from = els[at]?.getBoundingClientRect();
-    if (!from) return at;
-    const rows = els
-      .map((el, i) => ({ i, r: el.getBoundingClientRect() }))
-      .filter(({ r }) => (down ? r.top > from.top + 1 : r.top < from.top - 1));
-    if (rows.length === 0) return from.height === 0 ? at + (down ? 1 : -1) : at;
-    const edge = down
-      ? Math.min(...rows.map(({ r }) => r.top))
-      : Math.max(...rows.map(({ r }) => r.top));
-    const line = rows.filter(({ r }) => Math.abs(r.top - edge) < 2);
-    line.sort((a, b) => Math.abs(a.r.left - from.left) - Math.abs(b.r.left - from.left));
-    return line[0]!.i;
-  };
-
+  // The arrows, Home and End, ⌘A, Escape, Enter and Space are the collection's; these are the
+  // browser's own: the menu key, F2 and Delete.
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest("input, textarea, [data-fb-stop]")) return;
-    const el = (event.target as HTMLElement).closest<HTMLElement>("[data-fb-item]");
-    const id = el?.dataset.fbItem ?? null;
-    const at = id ? ids.indexOf(id) : -1;
-    const mod = event.metaKey || event.ctrlKey;
-    const go = (to: number) => {
-      const next = ids[Math.min(Math.max(to, 0), ids.length - 1)];
-      if (!next) return;
-      focusItem(next);
-      if (event.shiftKey) {
-        setSel(selectionAfterClick(selection, ids, next, { shift: true }, anchor.current ?? id));
-      } else if (!mod) {
-        setSel([next]);
-        anchor.current = next;
-      }
-    };
+    const target = event.target as HTMLElement;
+    if (target.closest("input, textarea, [data-fb-stop]")) return;
+    const id = target.closest<HTMLElement>("[data-fb-item]")?.dataset.fbItem ?? null;
+    const k = event.key;
     if (id && isMenuKey(event) && menu) {
-      event.preventDefault();
       if (!selSet.has(id)) setSel([id]);
       setMenuFor(id);
-      return;
-    }
-    const k = event.key;
-    if (k === "ArrowDown" || k === "ArrowUp") go(at < 0 ? 0 : vertical(at, k === "ArrowDown"));
-    else if (k === "ArrowRight" && layout === "grid") go(at + 1);
-    else if (k === "ArrowLeft" && layout === "grid") go(at - 1);
-    else if (k === "Home") go(0);
-    else if (k === "End") go(ids.length - 1);
-    else if (mod && k.toLowerCase() === "a") setSel(ids);
-    else if (k === "Escape" && selection.length > 0) setSel([]);
-    else if (k === "Enter" && id) onOpen?.(id);
-    else if (k === " " && id) {
-      setSel(mod ? selectionAfterClick(selection, ids, id, { mod: true }, null) : [id]);
-      anchor.current = id;
-    } else if (k === "F2" && id && onRename && !list[at]?.locked) setEditing(id);
-    else if ((k === "Delete" || k === "Backspace") && onDelete && selection.length > 0)
+    } else if (k === "F2" && id && onRename && !list.find((i) => i.id === id)?.locked) {
+      setEditing(id);
+    } else if ((k === "Delete" || k === "Backspace") && onDelete && selection.length > 0) {
       onDelete([...selection]);
-    else return;
+    } else return;
     event.preventDefault();
   };
 
   /* ------------------------------------------------------------ pointer */
 
-  const onItemClick = (event: MouseEvent, id: string) => {
-    if ((event.target as HTMLElement).closest(STOP)) return;
-    const mod = event.metaKey || event.ctrlKey;
-    setSel(selectionAfterClick(selection, ids, id, { shift: event.shiftKey, mod }, anchor.current));
-    if (!event.shiftKey) anchor.current = id;
-    setFocusId(id);
-  };
-
-  const toggle = (id: string) => {
-    setSel(selectionAfterClick(selection, ids, id, { mod: true }, null));
-    anchor.current = id;
-  };
+  const toggle = (id: string) => collection.toggle(id);
 
   const onContextMenu = (event: MouseEvent) => {
     const el = (event.target as HTMLElement).closest<HTMLElement>("[data-fb-item]");
     if (el) {
       const id = el.dataset.fbItem!;
-      if (!selSet.has(id)) {
-        setSel([id]);
-        anchor.current = id;
-      }
-      setFocusId(id);
+      if (!selSet.has(id)) collection.select(id);
+      collection.focus(id);
       return;
     }
     if (selection.length > 0) setSel([]);
@@ -508,7 +429,7 @@ export function FileBrowser({
     const name = value.trim();
     setEditing(null);
     if (name && name !== item.name) onRename?.(item.id, name);
-    requestAnimationFrame(() => focusItem(item.id));
+    requestAnimationFrame(() => collection.focus(item.id));
   };
 
   const nameOf = (item: DriveItem) =>
@@ -532,7 +453,7 @@ export function FileBrowser({
           if (e.key === "Enter") commit(item, e.currentTarget.value);
           if (e.key === "Escape") {
             setEditing(null);
-            requestAnimationFrame(() => focusItem(item.id));
+            requestAnimationFrame(() => collection.focus(item.id));
           }
         }}
         onBlur={(e) => {
@@ -584,26 +505,17 @@ export function FileBrowser({
       />
     ) : null;
 
-  const itemProps = (item: DriveItem) => ({
-    "data-fb-item": item.id,
-    role: "row" as const,
-    "aria-selected": selSet.has(item.id),
-    tabIndex: item.id === stop ? 0 : -1,
-    onClick: (e: MouseEvent) => onItemClick(e, item.id),
-    onDoubleClick: (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest(STOP)) onOpen?.(item.id);
-    },
-    onFocus: (e: { target: EventTarget; currentTarget: EventTarget }) => {
-      if (e.target === e.currentTarget) setFocusId(item.id);
-    },
-    ...itemDrag(item),
-  });
+  const itemProps = (item: DriveItem) =>
+    collection.getItemProps(item.id, {
+      role: "row",
+      "data-fb-item": item.id,
+    } as HTMLAttributes<HTMLElement>);
 
   const stateClass = (item: DriveItem) =>
     cx(
       selSet.has(item.id) && "fg-fbr-sel",
       over === item.id && "fg-fbr-over",
-      item.id === focusId && "fg-fbr-focus",
+      collection.isFocused(item.id) && "fg-fbr-focus",
     );
 
   const mark = (item: DriveItem, size: "sm" | "lg" | "xl" = "sm") => (
@@ -700,6 +612,7 @@ export function FileBrowser({
         <div
           key={item.id}
           {...itemProps(item)}
+          {...itemDrag(item)}
           className={cx("fg-fbr-row fg-fbr-item", stateClass(item))}
         >
           {check(item)}
@@ -735,6 +648,7 @@ export function FileBrowser({
               <div
                 key={item.id}
                 {...itemProps(item)}
+                {...itemDrag(item)}
                 className={cx("fg-fbr-tile fg-fbr-item", stateClass(item))}
               >
                 <span role="gridcell" className="fg-fbr-tile-main">
@@ -760,6 +674,7 @@ export function FileBrowser({
               <div
                 key={item.id}
                 {...itemProps(item)}
+                {...itemDrag(item)}
                 className={cx("fg-fbr-card fg-fbr-item", stateClass(item))}
               >
                 <span role="gridcell" className="fg-fbr-thumb">
@@ -781,9 +696,18 @@ export function FileBrowser({
     </>
   );
 
+  const container = collection.getContainerProps();
   const content = (
     <div
-      ref={body}
+      {...container}
+      ref={(node: HTMLDivElement | null) => {
+        body.current = node;
+        container.ref(node);
+      }}
+      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+        onKeyDown(event);
+        if (!event.defaultPrevented) container.onKeyDown?.(event);
+      }}
       {...(list.length > 0 ? { role: "grid", "aria-multiselectable": true } : { role: "region" })}
       aria-label={label}
       className={cx(
@@ -805,7 +729,6 @@ export function FileBrowser({
           : undefined
       }
       tabIndex={list.length === 0 ? 0 : -1}
-      onKeyDown={onKeyDown}
       onContextMenu={onContextMenu}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

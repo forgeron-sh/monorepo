@@ -300,69 +300,6 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "timezone-picker",
-    name: "Timezone picker",
-    summary: "A time zone found by typing, each row with its offset and the time there.",
-    imports: ["TimezonePicker", "deviceTimezone", "convertTime", "timezoneOffset"],
-    props: [
-      { name: "label", type: "string", description: "Names the field." },
-      controlled("value", "string | null", "An IANA zone, e.g. Europe/Paris."),
-      {
-        name: "onChange",
-        type: "(zone: string | null) => void",
-        description: "When a zone is chosen.",
-      },
-      {
-        name: "timezones",
-        type: "string[]",
-        default: "every zone the runtime knows",
-        description: "The zones offered.",
-      },
-      {
-        name: "now",
-        type: "number",
-        default: "when it appeared",
-        description: "UTC milliseconds the offsets and clocks are read at.",
-      },
-      {
-        name: "hour12 / clearable / disabled",
-        type: "boolean",
-        description: "AM and PM, a button to remove the choice, read only.",
-      },
-      className,
-    ],
-  },
-  {
-    slug: "duration-input",
-    name: "Duration input",
-    summary:
-      "Hours and minutes (75 minutes becomes 1 h 15) and the usual lengths as one-click presets.",
-    imports: ["DurationInput", "formatMinutes", "parseMinutes"],
-    props: [
-      { name: "label", type: "string", description: "Names the field." },
-      controlled("value", "number | null", "Minutes."),
-      {
-        name: "onChange",
-        type: "(minutes: number | null) => void",
-        description: "On every edit or preset.",
-      },
-      {
-        name: "presets",
-        type: "number[]",
-        default: "[15, 30, 45, 60, 90, 120]",
-        description: "The buttons; [] for none.",
-      },
-      {
-        name: "min / max / step",
-        type: "number",
-        default: "0 / 1440 / 5",
-        description: "Limits in minutes, and the step of the arrows on the minutes.",
-      },
-      { name: "disabled", type: "boolean", description: "Read only." },
-      className,
-    ],
-  },
-  {
     slug: "resource-schedule",
     name: "Resource schedule",
     summary:

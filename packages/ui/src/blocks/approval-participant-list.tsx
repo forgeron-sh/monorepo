@@ -3,18 +3,18 @@
 // move between rows. Every move is said in a live region.
 
 import { Cancel01Icon, Drag02Icon, Notification01Icon } from "@forgeron/icons";
-import type { DragEvent, KeyboardEvent, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { useState } from "react";
 import { Avatar } from "../avatar";
 import { Badge } from "../badge";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
+import { useSortable } from "../sortable";
 import {
   APPROVAL_STATUS_MARKS,
   APPROVAL_STATUS_NAMES,
-  moveItem,
   participantTone,
   type ApprovalParticipant,
   type ApprovalStatus,
@@ -74,75 +74,38 @@ export function ParticipantList({
   const canRemove = removable ?? editable;
   const names = { ...APPROVAL_STATUS_NAMES, ...statusLabels };
   const [active, setActive] = useState(0);
-  const [said, setSaid] = useState("");
-  const [dragFrom, setDragFrom] = useState<number | null>(null);
-  const [dragOver, setDragOver] = useState<number | null>(null);
-  const list = useRef<HTMLOListElement>(null);
-  const focusId = useRef<string | null>(null);
   const tab = Math.min(active, Math.max(people.length - 1, 0));
-
-  // After a move or a removal, the focus follows the row.
-  useEffect(() => {
-    const id = focusId.current;
-    if (!id) return;
-    focusId.current = null;
-    list.current?.querySelector<HTMLElement>(`[data-pid="${CSS.escape(id)}"]`)?.focus();
+  const sortable = useSortable({
+    items: people,
+    getId: (p) => p.id,
+    getLabel: (p) => p.name,
+    onReorder: (next, move) => {
+      setPeople(next);
+      setActive(move.to);
+    },
+    label,
+    disabled: !canMove,
+    navigate: true,
+    homeEnd: true,
   });
-
-  const move = (from: number, to: number) => {
-    if (to < 0 || to >= people.length || from === to) return;
-    const person = people[from]!;
-    setPeople(moveItem(people, from, to));
-    setActive(to);
-    focusId.current = person.id;
-    setSaid(`${person.name} moved to position ${to + 1} of ${people.length}.`);
-  };
 
   const remove = (index: number) => {
     const person = people[index]!;
     const next = people.filter((_, i) => i !== index);
     setPeople(next);
     const neighbour = next[Math.min(index, next.length - 1)];
-    focusId.current = neighbour?.id ?? null;
+    // After a removal, the focus goes to the row that took its place.
+    if (neighbour) requestAnimationFrame(() => sortable.focusItem(neighbour.id));
     setActive(Math.min(index, Math.max(next.length - 1, 0)));
-    setSaid(`${person.name} removed.`);
+    sortable.announce(`${person.name} removed.`);
   };
 
   const onKey = (event: KeyboardEvent<HTMLLIElement>, index: number) => {
     if (event.target !== event.currentTarget) return;
-    const { key } = event;
-    if (key === "ArrowUp" || key === "ArrowDown") {
-      event.preventDefault();
-      const to = index + (key === "ArrowDown" ? 1 : -1);
-      if (event.altKey) {
-        if (canMove) move(index, to);
-      } else if (to >= 0 && to < people.length) {
-        setActive(to);
-        list.current
-          ?.querySelector<HTMLElement>(`[data-pid="${CSS.escape(people[to]!.id)}"]`)
-          ?.focus();
-      }
-    } else if (key === "Home" || key === "End") {
-      event.preventDefault();
-      const to = key === "Home" ? 0 : people.length - 1;
-      if (event.altKey && canMove) move(index, to);
-      else {
-        setActive(to);
-        list.current
-          ?.querySelector<HTMLElement>(`[data-pid="${CSS.escape(people[to]!.id)}"]`)
-          ?.focus();
-      }
-    } else if ((key === "Delete" || key === "Backspace") && canRemove) {
+    if ((event.key === "Delete" || event.key === "Backspace") && canRemove) {
       event.preventDefault();
       remove(index);
     }
-  };
-
-  const onDrop = (event: DragEvent, to: number) => {
-    event.preventDefault();
-    if (dragFrom !== null) move(dragFrom, to);
-    setDragFrom(null);
-    setDragOver(null);
   };
 
   if (people.length === 0) {
@@ -151,46 +114,32 @@ export function ParticipantList({
 
   return (
     <div className={cx("fg-apl", className)}>
-      <ol ref={list} className="fg-apl-list" aria-label={label}>
+      <ol {...sortable.getListProps({ className: "fg-apl-list" })}>
         {people.map((p, i) => {
           const status = p.status;
           const mark = status ? APPROVAL_STATUS_MARKS[status] : null;
           return (
             <li
+              {...sortable.getItemProps(p.id, {
+                tabIndex: i === tab ? 0 : -1,
+                className: cx(
+                  "fg-apl-row",
+                  sortable.getItemState(p.id).dragging && "fg-apl-dragging",
+                  sortable.getItemState(p.id).over && "fg-apl-over",
+                ),
+                "aria-label": `${p.name}${p.role ? `, ${p.role}` : ""}${
+                  status ? `, ${names[status]}` : ""
+                }, ${i + 1} of ${people.length}`,
+                "aria-description": canMove
+                  ? "Alt and the up or down arrow moves this person."
+                  : undefined,
+                onFocus: (e) => {
+                  if (e.target === e.currentTarget) setActive(i);
+                },
+                onKeyDown: (e) => onKey(e as KeyboardEvent<HTMLLIElement>, i),
+              })}
               key={p.id}
               data-pid={p.id}
-              tabIndex={i === tab ? 0 : -1}
-              className={cx(
-                "fg-apl-row",
-                dragFrom === i && "fg-apl-dragging",
-                dragOver === i && dragFrom !== i && "fg-apl-over",
-              )}
-              aria-label={`${p.name}${p.role ? `, ${p.role}` : ""}${
-                status ? `, ${names[status]}` : ""
-              }, ${i + 1} of ${people.length}`}
-              aria-description={
-                canMove ? "Alt and the up or down arrow moves this person." : undefined
-              }
-              draggable={canMove}
-              onFocus={(e) => {
-                if (e.target === e.currentTarget) setActive(i);
-              }}
-              onKeyDown={(e) => onKey(e, i)}
-              onDragStart={(e) => {
-                setDragFrom(i);
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", p.id);
-              }}
-              onDragOver={(e) => {
-                if (dragFrom === null) return;
-                e.preventDefault();
-                setDragOver(i);
-              }}
-              onDrop={(e) => onDrop(e, i)}
-              onDragEnd={() => {
-                setDragFrom(null);
-                setDragOver(null);
-              }}
             >
               {canMove ? (
                 <span className="fg-apl-grip" aria-hidden="true">
@@ -246,7 +195,7 @@ export function ParticipantList({
         })}
       </ol>
       <p className="fg-sr" role="status" aria-live="polite">
-        {said}
+        {sortable.status}
       </p>
     </div>
   );

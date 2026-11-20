@@ -2,6 +2,7 @@
 // (arrows by `step`, Page Up and Down by `largeStep`, Home and End), the look is ours.
 
 import { Slider as Base } from "@base-ui/react/slider";
+import type { ComponentProps } from "react";
 import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
 
@@ -44,8 +45,57 @@ export interface SliderProps {
 
 const asArray = (v: SliderValue): number[] => (typeof v === "number" ? [v] : [...v]);
 
-/** One value, or a range, with ticks and a written value. Arrows, Page keys, Home and End work. */
-export function Slider({
+/**
+ * One value, or a range, with ticks and a written value. Arrows, Page keys, Home and End work.
+ * Without `label`: shadcn's Slider (`value` and `defaultValue` as number arrays, `onValueChange`),
+ * D-156.
+ */
+export function Slider(props: SliderProps | SliderRootProps) {
+  return props.label !== undefined ? (
+    <LabelledSlider {...(props as SliderProps)} />
+  ) : (
+    <SliderRoot {...(props as SliderRootProps)} />
+  );
+}
+
+/** `label` stays undefined: with a label, `Slider` is the props-driven one. */
+export type SliderRootProps = Omit<ComponentProps<typeof Base.Root>, "className"> & {
+  className?: string;
+  label?: undefined;
+};
+
+function SliderRoot({
+  className,
+  label: _label,
+  value,
+  defaultValue,
+  min = 0,
+  ...rest
+}: SliderRootProps) {
+  const shown = value ?? defaultValue ?? min;
+  const count = Array.isArray(shown) ? shown.length : 1;
+  return (
+    <Base.Root
+      {...rest}
+      min={min}
+      {...(value !== undefined ? { value } : {})}
+      {...(defaultValue !== undefined ? { defaultValue } : {})}
+      thumbAlignment="center"
+      className={cx("fg-slider", className)}
+    >
+      <Base.Control className="fg-slider-control">
+        <Base.Track className="fg-slider-track">
+          <Base.Indicator className="fg-slider-fill" />
+          {Array.from({ length: count }, (_, i) => (
+            <Base.Thumb key={i} index={i} className="fg-slider-thumb" />
+          ))}
+        </Base.Track>
+      </Base.Control>
+    </Base.Root>
+  );
+}
+
+function LabelledSlider({
   label,
   value,
   defaultValue,

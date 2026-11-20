@@ -7,10 +7,11 @@ import {
   Badge,
   Button,
   Chip,
-  Command,
+  cn,
+  CommandLine,
   EnvTag,
   Icon,
-  Label,
+  Eyebrow,
   Led,
   Link,
   Logo,
@@ -36,6 +37,30 @@ describe("Button", () => {
       /^<button[^>]*><span class="fg-led fg-led-current" aria-hidden="true"><\/span>Search/,
     );
     expect(out).toContain('<span class="fg-btn-kbd" aria-hidden="true">⌘K</span>');
+  });
+  it("reads shadcn's variant and size names", () => {
+    expect(html(h(Button, { variant: "default" }, "Go"))).toContain(
+      'class="fg-btn fg-btn-primary"',
+    );
+    expect(html(h(Button, { variant: "outline", size: "default" }, "Go"))).toContain(
+      'class="fg-btn fg-btn-secondary"',
+    );
+    expect(html(h(Button, { variant: "destructive", size: "icon" }, "×"))).toContain(
+      'class="fg-btn fg-btn-danger fg-btn-icon"',
+    );
+  });
+  it("draws its child as the button with asChild", () => {
+    expect(
+      html(
+        h(
+          Button,
+          { asChild: true, variant: "primary", kbd: "G" },
+          h("a", { href: "/go", className: "x" }, "Go"),
+        ),
+      ),
+    ).toBe(
+      '<a href="/go" class="fg-btn fg-btn-primary x">Go<span class="fg-btn-kbd" aria-hidden="true">G</span></a>',
+    );
   });
 });
 
@@ -65,7 +90,7 @@ describe("Badge and EnvTag", () => {
   });
 });
 
-describe("Tag, Chip, Label, Link, Command", () => {
+describe("Tag, Chip, Eyebrow, Link, CommandLine", () => {
   it("brackets a tag with its strong part", () => {
     expect(html(h(Tag, { strong: "/1.2" }, "Start"))).toBe(
       '<span class="fg-tag"><b>/1.2</b> Start</span>',
@@ -78,7 +103,7 @@ describe("Tag, Chip, Label, Link, Command", () => {
     );
   });
   it("sets the eyebrow label and the text link", () => {
-    expect(html(h(Label, { children: "Version" }))).toBe(
+    expect(html(h(Eyebrow, { children: "Version" }))).toBe(
       '<span class="fg-label-eyebrow text-eyebrow">Version</span>',
     );
     expect(html(h(Link, { href: "/docs", children: "Read the SDK" }))).toBe(
@@ -86,10 +111,10 @@ describe("Tag, Chip, Label, Link, Command", () => {
     );
   });
   it("hides the prompt from assistive technology", () => {
-    expect(html(h(Command, { children: "npx forgeron init" }))).toBe(
+    expect(html(h(CommandLine, { children: "npx forgeron init" }))).toBe(
       '<code class="fg-cmd"><span class="fg-cmd-prompt" aria-hidden="true">$</span>npx forgeron init</code>',
     );
-    expect(html(h(Command, { framed: false, children: "forgeron dev" }))).toContain(
+    expect(html(h(CommandLine, { framed: false, children: "forgeron dev" }))).toContain(
       'class="fg-cmd-inline"',
     );
   });
@@ -145,5 +170,11 @@ describe("Icon", () => {
   });
   it("is named with a title", () => {
     expect(html(h(Icon, { icon: LockIcon, title: "Locked" }))).toContain('aria-label="Locked"');
+  });
+});
+
+describe("cn", () => {
+  it("joins the clsx shapes, as shadcn's cn", () => {
+    expect(cn("a", false, null, ["b", ["c"]], { d: true, e: false }, 0, 1)).toBe("a b c d 1");
   });
 });

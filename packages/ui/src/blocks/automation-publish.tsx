@@ -15,6 +15,7 @@ import { Field, Input } from "../form";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { Led } from "../led";
+import { Status, StatusIndicator, StatusLabel } from "../status";
 import type { VersionChange } from "./automation-model";
 
 /* ---------------------------------------------------------------- ChangeList */
@@ -80,10 +81,10 @@ export function PublishBar({
         : { tone: "success" as const, text: `v${version} published` };
   return (
     <div className={cx("fg-pubbar", className)}>
-      <span className="fg-pubbar-state" aria-live="polite">
-        <Led tone={state.tone} />
-        {state.text}
-      </span>
+      <Status tone={state.tone} className="fg-pubbar-state" aria-live="polite">
+        <StatusIndicator />
+        <StatusLabel>{state.text}</StatusLabel>
+      </Status>
       {onActiveChange ? (
         <Switch
           label={active ? "Active" : "Inactive"}

@@ -1,5 +1,17 @@
+import { Drawer as Base } from "@base-ui/react/drawer";
 import { Cancel01Icon } from "@forgeron/icons";
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  type ComponentProps,
+  type HTMLAttributes,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+import { asChildProps } from "./as-child";
 import { cx } from "./cx";
 import { IconButton } from "./identity";
 
@@ -17,10 +29,20 @@ export interface DrawerProps {
 }
 
 /**
- * A panel on the side for the detail of one thing. Not modal: the page behind stays readable. Focus goes
- * in when it opens and returns to what had it when it closes; Escape closes it. Render it only while open.
+ * With `title`: a panel on the side for the detail of one thing. Not modal: the page behind stays
+ * readable. Focus goes in when it opens and returns to what had it when it closes; Escape closes it.
+ * Render it only while open. Without `title`: the root of shadcn's parts (`DrawerTrigger`,
+ * `DrawerContent`…), D-156, a modal panel that slides in from `direction` (default the bottom).
  */
-export function Drawer({
+export function Drawer(props: DrawerProps | DrawerRootProps) {
+  return props.title !== undefined ? (
+    <DrawerPanel {...(props as DrawerProps)} />
+  ) : (
+    <DrawerRoot {...(props as DrawerRootProps)} />
+  );
+}
+
+function DrawerPanel({
   title,
   description,
   onClose,
@@ -68,4 +90,90 @@ export function Drawer({
       {footer ? <footer className="fg-drawer-foot">{footer}</footer> : null}
     </aside>
   );
+}
+
+/* ---------------------------------------------------------------- shadcn parts (D-156) */
+
+type Part<T> = Omit<T, "className"> & { className?: string };
+type Direction = "top" | "right" | "bottom" | "left";
+
+const SWIPE = { top: "up", right: "right", bottom: "down", left: "left" } as const;
+const DirectionContext = createContext<Direction>("bottom");
+
+/** `title` stays undefined: with a title, `Drawer` is the props-driven panel. */
+export type DrawerRootProps = Omit<ComponentProps<typeof Base.Root>, "swipeDirection"> & {
+  title?: undefined;
+  /** The edge it slides in from. Default `bottom`. */
+  direction?: Direction;
+};
+
+function DrawerRoot({ title: _title, direction = "bottom", ...props }: DrawerRootProps) {
+  return (
+    <DirectionContext.Provider value={direction}>
+      <Base.Root {...props} swipeDirection={SWIPE[direction]} />
+    </DirectionContext.Provider>
+  );
+}
+
+export type DrawerTriggerProps = Part<ComponentProps<typeof Base.Trigger>> & { asChild?: boolean };
+
+/** Opens the drawer. `asChild` draws your own element. */
+export function DrawerTrigger({ asChild, children, className, ...rest }: DrawerTriggerProps) {
+  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+}
+
+export type DrawerCloseProps = Part<ComponentProps<typeof Base.Close>> & { asChild?: boolean };
+
+/** Closes the drawer. */
+export function DrawerClose({ asChild, children, className, ...rest }: DrawerCloseProps) {
+  return <Base.Close {...rest} className={className} {...asChildProps(asChild, children)} />;
+}
+
+export function DrawerPortal(props: ComponentProps<typeof Base.Portal>) {
+  return <Base.Portal {...props} />;
+}
+
+/** The scrim behind the drawer. */
+export function DrawerOverlay({ className, ...rest }: Part<ComponentProps<typeof Base.Backdrop>>) {
+  return <Base.Backdrop {...rest} className={cx("fg-dialog-backdrop", className)} />;
+}
+
+export type DrawerContentProps = Part<ComponentProps<typeof Base.Popup>>;
+
+/** The panel with its scrim, in a portal. Swipe it away, or press Escape. */
+export function DrawerContent({ className, children, ...rest }: DrawerContentProps) {
+  const direction = useContext(DirectionContext);
+  return (
+    <Base.Portal>
+      <Base.Backdrop className="fg-dialog-backdrop" />
+      <Base.Popup
+        {...rest}
+        data-side={direction}
+        className={cx("fg-sheet fg-sheet-popup", className)}
+      >
+        {direction === "bottom" ? <span className="fg-drawer-grip" aria-hidden="true" /> : null}
+        {children}
+      </Base.Popup>
+    </Base.Portal>
+  );
+}
+
+const box =
+  (base: string) =>
+  ({ className, ...rest }: HTMLAttributes<HTMLDivElement>) => (
+    <div {...rest} className={cx(base, className)} />
+  );
+
+export const DrawerHeader = box("fg-sheet-header");
+export const DrawerFooter = box("fg-sheet-foot");
+
+export function DrawerTitle({ className, ...rest }: Part<ComponentProps<typeof Base.Title>>) {
+  return <Base.Title {...rest} className={cx("fg-dialog-title", className)} />;
+}
+
+export function DrawerDescription({
+  className,
+  ...rest
+}: Part<ComponentProps<typeof Base.Description>>) {
+  return <Base.Description {...rest} className={cx("fg-dialog-desc", className)} />;
 }

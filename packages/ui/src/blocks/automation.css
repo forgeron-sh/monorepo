@@ -448,262 +448,19 @@ button.fg-step-main {
 
 /* The text is drawn twice: by the layer behind (with the chips) and by the control in front,
    whose glyphs are transparent. Both share the font, the padding and the border width. */
-.fg-expr {
-  position: relative;
-  min-width: 0;
-}
-.fg-expr-box {
-  position: relative;
-  background: var(--bg-sunk);
-}
-.fg-expr-mirror,
-.fg-expr-control {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 5px 52px 5px 12px;
-  border: var(--border-width) solid transparent;
-  font: 400 13px/20px var(--font-mono);
-  letter-spacing: 0;
-  white-space: pre;
-  overflow-wrap: normal;
-}
-.fg-expr-mirror {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  color: var(--ink);
-  pointer-events: none;
-}
-.fg-expr-control {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 32px;
-  border-color: var(--ink-dim);
-  border-radius: var(--radius-none);
-  background: transparent;
-  color: transparent;
-  caret-color: var(--ink);
-  outline: none;
-}
-.fg-expr-control::placeholder {
-  color: var(--ink-muted);
-}
-.fg-expr-control::selection {
-  background: color-mix(in srgb, var(--accent) 30%, transparent);
-  color: transparent;
-}
-.fg-expr-control:hover {
-  border-color: var(--ink-muted);
-}
-.fg-expr-control:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: var(--focus-offset);
-}
-.fg-expr-control[aria-invalid="true"] {
-  border-color: var(--danger);
-}
-.fg-expr-multi .fg-expr-mirror,
-.fg-expr-multi .fg-expr-control {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  scrollbar-gutter: stable;
-}
-.fg-expr-multi .fg-expr-control {
-  height: auto;
-  min-height: 52px;
-  resize: vertical;
-}
-.fg-expr-disabled .fg-expr-box {
-  background: var(--bg-raised);
-}
-.fg-expr-disabled .fg-expr-mirror {
-  color: var(--ink-dim);
-}
-.fg-expr-token {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
-  color: var(--ink);
-}
-.fg-expr-fx {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  height: 22px;
-  padding: 0 5px;
-  border: var(--border-width) solid var(--line-strong);
-  border-radius: var(--radius-none);
-  background: var(--bg);
-  color: var(--ink-dim);
-  font: 500 10px/1 var(--font-mono);
-  cursor: pointer;
-}
-.fg-expr-fx:hover,
-.fg-expr-fx-on {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.fg-expr-fx:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: var(--focus-offset);
-}
-.fg-expr-fx:disabled {
-  display: none;
-}
-.fg-expr-pop {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 30;
-  width: 100%;
-  min-width: 240px;
-  max-width: none;
-  max-height: 260px;
-  overflow: auto;
-  padding: 4px;
-}
-.fg-expr-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 6px 2px;
-  color: var(--ink-dim);
-  font: 500 10.5px/14px var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.fg-expr-option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 28px;
-  padding: 0 8px;
-  border: var(--border-width) solid transparent;
-  color: var(--ink-muted);
-  font: 400 12px/1 var(--font-mono);
-  cursor: pointer;
-}
-.fg-expr-option[aria-selected="true"] {
-  border-color: var(--line);
-  background: var(--bg-raised);
-  color: var(--ink);
-}
-.fg-expr-path {
-  flex: none;
-}
-.fg-expr-hint {
-  overflow: hidden;
-  margin-left: auto;
-  color: var(--ink-dim);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.fg-expr-preview {
-  overflow: hidden;
-  margin-top: 4px;
-  color: var(--ink-dim);
-  font: 400 11px/15px var(--font-mono);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.fg-expr-preview b {
-  color: var(--success);
-  font-weight: 400;
-}
-.fg-expr-preview-bad b {
-  color: var(--danger);
-}
 
 /* ---------------------------------------------------------------- ConditionBuilder */
 
-.fg-cond {
-  container-type: inline-size;
-  min-width: 0;
-  color: var(--ink);
-  font: 400 13px/18px var(--font-sans);
-}
-.fg-cond-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-.fg-cond-nested {
-  flex: 1;
-  padding: 8px;
-  border: var(--border-width) solid var(--line-strong);
-  background: var(--bg-raised);
-}
-.fg-cond-row {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 8px;
-  align-items: start;
-}
-.fg-cond-join {
-  display: flex;
-  align-items: center;
-  height: 32px;
-}
-.fg-cond-word {
-  color: var(--ink-dim);
-  font: 400 11px/1 var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.fg-cond-switch {
-  height: 24px;
-  padding: 0 8px;
-  border: var(--border-width) solid var(--line-strong);
-  border-radius: var(--radius-none);
-  background: var(--bg);
-  color: var(--ink);
-  font: 500 11px/1 var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.fg-cond-switch:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.fg-cond-switch:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: var(--focus-offset);
-}
-.fg-cond-rule {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.2fr) 24px;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.fg-cond-value {
-  min-width: 0;
-}
-.fg-cond-rule .fg-selm,
 .fg-sfields .fg-selm,
-.fg-cond-rule .fg-selm-trigger,
 .fg-sfields .fg-selm-trigger {
   width: 100%;
   min-width: 0;
 }
-.fg-cond-rule .fg-selm-value,
 .fg-sfields .fg-selm-value {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.fg-cond-empty {
-  color: var(--ink-dim);
-}
-.fg-cond-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.fg-cond-drop {
-  margin-left: auto;
-}
+
 @container (max-width: 400px) {
   .fg-cond-rule {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 24px;
@@ -815,66 +572,6 @@ button.fg-step-main {
 
 /* ---------------------------------------------------------------- JsonView */
 
-.fg-json {
-  min-width: 0;
-  margin: 0;
-}
-.fg-json-label {
-  margin-bottom: 4px;
-  color: var(--ink-dim);
-  font: 500 10.5px/14px var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.fg-json-box {
-  position: relative;
-  border: var(--border-width) solid var(--line);
-  background: var(--bg-sunk);
-}
-.fg-json-pre {
-  margin: 0;
-  overflow: auto;
-  padding: 10px 12px;
-  color: var(--ink-dim);
-  font: 400 11.5px/17px var(--font-mono);
-  white-space: pre;
-  user-select: text;
-}
-.fg-json-pre:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: calc(-1 * var(--focus-width));
-}
-.fg-json-k {
-  color: var(--ink);
-}
-.fg-json-s {
-  color: var(--success);
-}
-.fg-json-n,
-.fg-json-b {
-  color: var(--warning);
-}
-.fg-json-z {
-  color: var(--ink-dim);
-}
-.fg-json-copy {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: var(--bg);
-  opacity: 0;
-}
-.fg-json-box:hover .fg-json-copy,
-.fg-json-copy:focus-visible {
-  opacity: 1;
-}
-.fg-json-empty {
-  padding: 10px 12px;
-  border: var(--border-width) solid var(--line);
-  color: var(--ink-dim);
-  font: 400 12px/16px var(--font-sans);
-}
-
 /* ---------------------------------------------------------------- RunBars, RunList */
 
 .fg-runbars {
@@ -899,32 +596,6 @@ button.fg-step-main {
 }
 .fg-runs-bar {
   margin-bottom: var(--space-3);
-}
-.fg-runs-day {
-  display: flex;
-  align-items: center;
-  height: 24px;
-  margin: 0;
-  padding: 0 var(--space-2);
-  border-top: var(--border-width) solid var(--line);
-  border-bottom: var(--border-width) solid var(--line);
-  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
-  color: var(--ink-muted);
-  font: 500 11px/16px var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.fg-runs-day span {
-  padding: 0 6px;
-  background: var(--bg);
-}
-.fg-runs-group + .fg-runs-group {
-  margin-top: var(--space-4);
-}
-.fg-runs-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 .fg-runs-list > li {
   border-bottom: var(--border-width) solid var(--line);
@@ -1382,9 +1053,7 @@ button.fg-runs-row:hover,
 .fg-insp-test-error code {
   font: 500 11.5px/16px var(--font-mono);
 }
-.fg-insp-test-json .fg-json-box {
-  border: 0;
-}
+
 .fg-insp-foot {
   display: flex;
   align-items: center;

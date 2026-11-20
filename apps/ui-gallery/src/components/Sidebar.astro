@@ -2,7 +2,7 @@
 import { identity } from "../lib/identity";
 import { marketing } from "../lib/marketing";
 import { SHADER_GROUPS, shaders } from "../lib/shaders";
-import { atoms, blocks, hooks } from "../registry";
+import { atoms, blocks, charts, hooks } from "../registry";
 
 interface Props {
   /** The slug of the page shown: an atom, a block, `installation` or `identity/<page>` or `marketing/<group>`. */
@@ -44,16 +44,21 @@ const here = (slug: string) => (slug === current ? "page" : undefined);
     {atoms.map((a) => <a href={`/docs/${a.slug}`} aria-current={here(a.slug)}>{a.name}</a>)}
   </div>
   <div class="side-group">
-    <p class="side-head t-mono">/0.4 Blocks</p>
+    <p class="side-head t-mono">/0.4 Charts</p>
+    <a href="/charts" aria-current={here("charts")}>Overview</a>
+    {charts.map((c) => <a href={`/docs/${c.slug}`} aria-current={here(c.slug)}>{c.name}</a>)}
+  </div>
+  <div class="side-group">
+    <p class="side-head t-mono">/0.5 Blocks</p>
     {blocks.map((b) => <a href={`/docs/${b.slug}`} aria-current={here(b.slug)}>{b.name}</a>)}
   </div>
   <div class="side-group">
-    <p class="side-head t-mono">/0.5 Marketing</p>
+    <p class="side-head t-mono">/0.6 Marketing</p>
     <a href="/marketing" aria-current={here("marketing")}>Overview</a>
     {marketing.map((g) => <a href={`/marketing/${g.slug}`} aria-current={here(`marketing/${g.slug}`)}>{g.name}</a>)}
   </div>
   <div class="side-group">
-    <p class="side-head t-mono">/0.6 Editors</p>
+    <p class="side-head t-mono">/0.7 Editors</p>
     <a href="/editors" aria-current={here("editors")}>Overview</a>
     <a href="/editors/canvas" aria-current={here("editors/canvas")}>Canvas</a>
     <a href="/editors/flow" aria-current={here("editors/flow")}>Flow</a>
@@ -66,7 +71,7 @@ const here = (slug: string) => (slug === current ? "page" : undefined);
     {hooks.map((h) => <a href={`/docs/${h.slug}`} aria-current={here(h.slug)}>{h.name}</a>)}
   </div>
   <div class="side-group">
-    <p class="side-head t-mono">/0.7 Pages <span class="soon">Soon</span></p>
+    <p class="side-head t-mono">/0.8 Pages <span class="soon">Soon</span></p>
     <a href="/pages">Planned pages</a>
   </div>
 </aside>

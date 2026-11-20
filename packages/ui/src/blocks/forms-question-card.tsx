@@ -9,11 +9,10 @@ import {
   Cancel01Icon,
   Copy01Icon,
   Delete04Icon,
-  GripIcon,
   PlusSignIcon,
 } from "@forgeron/icons";
 import type { KeyboardEvent, ReactNode } from "react";
-import { useId, useRef } from "react";
+import { useId } from "react";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { Field, Input } from "../form";
@@ -21,6 +20,8 @@ import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { Switch } from "../controls";
+import { SortableHandle, useSortable } from "../sortable";
+import { sortableKeyStep } from "../sortable-model";
 import { NumberInput } from "../numbers";
 import { DatePicker, SelectMenu } from "../overlays";
 import {
@@ -61,13 +62,15 @@ function OptionsEditor({
   min = 1,
   disabled,
 }: OptionsEditorProps) {
-  const list = useRef<HTMLUListElement>(null);
-  const focusAt = (id: string) =>
-    requestAnimationFrame(() =>
-      list.current
-        ?.querySelector<HTMLInputElement>(`[data-option="${CSS.escape(id)}"] input`)
-        ?.focus(),
-    );
+  const sortable = useSortable({
+    items: value,
+    getId: (o) => o.id,
+    getLabel: (o) => o.label || noun,
+    onReorder: (next) => onChange(next),
+    drag: false,
+    focusSelector: "input",
+  });
+  const focusAt = (id: string) => requestAnimationFrame(() => sortable.focusItem(id));
   const add = (after?: number) => {
     const id = freshFormId("o", [...taken, ...value.map((o) => o.id)]);
     const at = after === undefined ? value.length : after + 1;
@@ -91,18 +94,17 @@ function OptionsEditor({
     } else if (event.key === "Backspace" && o.label === "" && value.length > min) {
       event.preventDefault();
       remove(index);
-    } else if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
-      event.preventDefault();
-      move(index, index + (event.key === "ArrowUp" ? -1 : 1));
-      focusAt(o.id);
     }
   };
   return (
     <fieldset className="fg-fm-opts" disabled={disabled}>
       <legend className="fg-field-label">{label}</legend>
-      <ul ref={list} className="fg-fm-opts-list">
+      <ul {...sortable.getListProps({ className: "fg-fm-opts-list" })}>
         {value.map((o, i) => (
-          <li key={o.id} data-option={o.id} className="fg-fm-opt">
+          <li
+            key={o.id}
+            {...sortable.getItemProps(o.id, { "data-option": o.id, className: "fg-fm-opt" })}
+          >
             <Input
               value={o.label}
               placeholder={`${noun} ${i + 1}`}
@@ -139,6 +141,9 @@ function OptionsEditor({
         <Icon icon={PlusSignIcon} size={12} variant="mono" />
         Add {noun.toLowerCase()}
       </Button>
+      <span className="fg-sr" role="status" aria-live="polite">
+        {sortable.status}
+      </span>
     </fieldset>
   );
 }
@@ -394,9 +399,10 @@ export function QuestionCard({
   const dis = readOnly ? { disabled: true } : {};
 
   const onRowKey = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown") && onMove) {
+    const step = event.altKey && onMove ? sortableKeyStep(event.key) : null;
+    if (step && "delta" in step) {
       event.preventDefault();
-      onMove(event.key === "ArrowUp" ? -1 : 1);
+      onMove?.(step.delta);
       const target = event.currentTarget;
       requestAnimationFrame(() => target.isConnected && target.focus());
     }
@@ -416,9 +422,8 @@ export function QuestionCard({
     >
       <div className="fg-fm-qc-row">
         {onMove && !readOnly ? (
-          <span
+          <SortableHandle
             className="fg-fm-qc-grip"
-            aria-hidden="true"
             draggable={Boolean(onDragStart)}
             title="Drag to reorder, or Alt + arrows"
             onDragStart={(event) => {
@@ -427,9 +432,7 @@ export function QuestionCard({
               onDragStart?.();
             }}
             onDragEnd={() => onDragEnd?.()}
-          >
-            <Icon icon={GripIcon} size={12} variant="mono" />
-          </span>
+          />
         ) : null}
         <button
           type="button"

@@ -22,6 +22,7 @@ import {
   type IconDefinition,
 } from "@forgeron/icons";
 import type { GridCell, GridColumn } from "../data-grid";
+import { moveItem as sortableMoveItem } from "../sortable-model";
 import {
   evaluateCondition,
   isConditionGroup,
@@ -258,13 +259,8 @@ export interface FormSchema {
 
 /* ---------------------------------------------------------------- Answers */
 
-export interface FormAddress {
-  line1?: string;
-  line2?: string;
-  postcode?: string;
-  city?: string;
-  country?: string;
-}
+export type { FormAddress } from "../address-field";
+import type { FormAddress } from "../address-field";
 
 export interface FormFileAnswer {
   name: string;
@@ -393,14 +389,9 @@ export function convertFormQuestion(q: FormQuestion, type: QuestionType): FormQu
   return keep;
 }
 
-/** Moves one item of a list: a copy. */
+/** Moves one item of a list: a copy. `to` is held inside the list. */
 export function moveFormItem<T>(list: ReadonlyArray<T>, from: number, to: number): T[] {
-  const next = [...list];
-  if (from < 0 || from >= next.length) return next;
-  const target = Math.max(0, Math.min(next.length - 1, to));
-  const [item] = next.splice(from, 1);
-  next.splice(target, 0, item!);
-  return next;
+  return sortableMoveItem(list, from, Math.max(0, Math.min(list.length - 1, to)));
 }
 
 const mapQuestions = (

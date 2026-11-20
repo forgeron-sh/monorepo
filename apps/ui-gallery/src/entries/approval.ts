@@ -112,48 +112,6 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "signature-pad",
-    name: "Signature pad",
-    summary: "Draw, type or upload a signature; a PNG data URL out. A pen for the keyboard.",
-    imports: ["SignaturePad", "signatureBlob", "SIGNATURE_FONTS"],
-    props: [
-      {
-        name: "value / defaultValue / onChange",
-        type: "{ dataUrl, method, text?, font? } | null",
-        description: "The signature: PNG data URL (SVG without a canvas). null when cleared.",
-      },
-      {
-        name: "modes / mode / onModeChange",
-        type: `("draw" | "type" | "upload")[]`,
-        default: "all three",
-        description: "The ways to sign, in order.",
-      },
-      {
-        name: "fonts",
-        type: "{ id, label, family, italic? }[]",
-        default: "SIGNATURE_FONTS",
-        description: "The fonts of the Type tab (system fonts).",
-      },
-      {
-        name: "ink",
-        type: "string",
-        description: "Colour of the exported image; dark by default, whatever the theme.",
-      },
-      {
-        name: "maxUploadSize",
-        type: "number",
-        default: "2 MB",
-        description: "Biggest image on the Upload tab, in bytes.",
-      },
-      {
-        name: "label / defaultText / disabled",
-        type: "string; string; boolean",
-        description: "Name, first typed name, off.",
-      },
-      className,
-    ],
-  },
-  {
     slug: "document-viewer",
     name: "Document viewer",
     summary:

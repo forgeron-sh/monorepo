@@ -12,11 +12,28 @@ import { entries as filteringBlocks } from "./entries/filtering";
 import { entries as financeBlocks } from "./entries/finance";
 import { entries as formsBlocks } from "./entries/forms";
 import { entries as hookEntries } from "./entries/hooks";
-import { entries as iconPickerBlocks } from "./entries/icon-picker";
+import { entries as iconPickerEntries } from "./entries/icon-picker";
 import { entries as listBlocks } from "./entries/lists";
 import { entries as navigationBlocks } from "./entries/navigation";
 import { entries as recordBlocks } from "./entries/record";
+import { entries as recordsBlocks } from "./entries/records";
 import { entries as structureBlocks } from "./entries/structure";
+import { entries as movedMenus } from "./entries/primitives-menus";
+import { entries as movedFields } from "./entries/primitives-fields";
+import { entries as primitivesStatus } from "./entries/primitives-status";
+import { entries as movedPickers } from "./entries/primitives-pickers";
+import { entries as primitivesTimeline } from "./entries/primitives-timeline";
+import { entries as primitivesTree } from "./entries/primitives-tree";
+import { entries as primitivesDiff } from "./entries/primitives-diff";
+import { entries as primitivesAccess } from "./entries/primitives-access";
+import { entries as primitivesCollection } from "./entries/primitives-collection";
+import { entries as primitivesSortable } from "./entries/primitives-sortable";
+import { entries as chartEntries } from "./entries/charts";
+import { entries as shadcnForms } from "./entries/shadcn-forms";
+import { entries as shadcnDisplay } from "./entries/shadcn-display";
+import { entries as shadcnDisclosure } from "./entries/shadcn-disclosure";
+import { entries as shadcnOverlays } from "./entries/shadcn-overlays";
+import { entries as shadcnData } from "./entries/shadcn-data";
 import { entries as timeBlocks } from "./entries/time";
 import { entries as viewBlocks } from "./entries/views";
 import {
@@ -119,6 +136,12 @@ export const atoms: ReadonlyArray<Atom> = [
     imports: ["Badge", "EnvTag"],
     props: [
       {
+        name: "variant",
+        type: '"default" | "secondary" | "destructive" | "outline"',
+        description: "shadcn's names (D-156); replaces tone when given.",
+      },
+      { name: "asChild", type: "boolean", description: "The one child element becomes the badge." },
+      {
         name: "tone",
         type: `"neutral" | "strong" | "success" | "warning" | "danger"`,
         default: `"neutral"`,
@@ -175,8 +198,14 @@ export const atoms: ReadonlyArray<Atom> = [
     slug: "kbd",
     name: "Kbd",
     summary: "A keyboard shortcut, one framed cap per key.",
-    imports: ["Kbd"],
+    imports: ["Kbd", "KbdGroup"],
     props: [
+      {
+        name: "Kbd (no keys) / KbdGroup",
+        type: "children",
+        description:
+          "Without keys: one key cap from its children; KbdGroup groups several (D-156).",
+      },
       {
         name: "keys",
         type: "string | string[]",
@@ -189,8 +218,13 @@ export const atoms: ReadonlyArray<Atom> = [
     slug: "avatar",
     name: "Avatar",
     summary: "A person's picture, else their initials, in a sharp square.",
-    imports: ["Avatar"],
+    imports: ["Avatar", "AvatarImage", "AvatarFallback"],
     props: [
+      {
+        name: "Avatar parts",
+        type: "Avatar (size: default | sm | lg), AvatarImage, AvatarFallback",
+        description: "Without name: the root of shadcn's parts, on Base UI (D-156).",
+      },
       { name: "name", type: "string", description: "Name or email; the initials come from it." },
       { name: "size", type: "number", default: "24", description: "In px." },
       { name: "src", type: "string", description: "The picture, when there is one." },
@@ -297,8 +331,24 @@ export const atoms: ReadonlyArray<Atom> = [
     slug: "select",
     name: "Select",
     summary: "One choice in a list that opens below: icons, hints, typeahead.",
-    imports: ["SelectMenu"],
+    imports: [
+      "SelectMenu",
+      "Select",
+      "SelectTrigger",
+      "SelectValue",
+      "SelectContent",
+      "SelectItem",
+      "SelectGroup",
+      "SelectLabel",
+      "SelectSeparator",
+    ],
     props: [
+      {
+        name: "Select parts",
+        type: "Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel, SelectSeparator",
+        description:
+          "shadcn's composition, on Base UI: Select without options takes value / defaultValue / onValueChange / items, the parts draw ours (D-156).",
+      },
       { name: "label", type: "string", description: "Names the control." },
       { name: "showLabel", type: "boolean", description: "Writes the label above." },
       {
@@ -356,6 +406,12 @@ export const atoms: ReadonlyArray<Atom> = [
     summary: "A square box that fills with ember when checked.",
     imports: ["Checkbox"],
     props: [
+      {
+        name: "Checkbox (no label)",
+        type: "checked / defaultChecked / onCheckedChange",
+        description:
+          "Without label: shadcn's checkbox on Base UI, next to a <Label htmlFor> (D-156).",
+      },
       { name: "label", type: "ReactNode", description: "Always written next to the box." },
       {
         name: "...rest",
@@ -369,8 +425,13 @@ export const atoms: ReadonlyArray<Atom> = [
     slug: "radio",
     name: "Radio group",
     summary: "One choice among a few, all visible. The chosen box holds a square.",
-    imports: ["RadioGroup"],
+    imports: ["RadioGroup", "RadioGroupItem"],
     props: [
+      {
+        name: "RadioGroup + RadioGroupItem",
+        type: "value / defaultValue / onValueChange; item: value",
+        description: "Without options: shadcn's composed radio group (D-156).",
+      },
       { name: "label", type: "ReactNode", description: "The question, said once (legend)." },
       {
         name: "options",
@@ -444,6 +505,11 @@ export const atoms: ReadonlyArray<Atom> = [
     summary: "An on/off setting that applies at once.",
     imports: ["Switch"],
     props: [
+      {
+        name: "Switch (no label)",
+        type: 'checked / defaultChecked / onCheckedChange / size: "default" | "sm"',
+        description: "Without label: shadcn's switch on Base UI (D-156).",
+      },
       { name: "label", type: "ReactNode", description: "Says what turns on." },
       {
         name: "...rest",
@@ -494,6 +560,11 @@ export const atoms: ReadonlyArray<Atom> = [
     summary: "How far a piece of work or a quota has gone.",
     imports: ["Progress"],
     props: [
+      {
+        name: "Progress (no label)",
+        type: "value: number (0–100)",
+        description: "Without label: shadcn's progress (D-156).",
+      },
       { name: "label", type: "string", description: "Written above, said to screen readers." },
       { name: "value", type: "number", description: "Absent: no known end." },
       { name: "max", type: "number", default: "100", description: "The end." },
@@ -528,6 +599,11 @@ export const atoms: ReadonlyArray<Atom> = [
     summary: "The shape of what is coming, in place of a spinner.",
     imports: ["Skeleton", "SkeletonText", "SkeletonGroup"],
     props: [
+      {
+        name: "className / style",
+        type: "HTMLAttributes<span>",
+        description: "Size it with your classes, as in shadcn; width and height win when given.",
+      },
       { name: "width / height", type: "number | string", description: "Skeleton: its box." },
       { name: "lines", type: "number", description: "SkeletonText: how many lines." },
       { name: "label", type: "string", description: "SkeletonGroup: the wait, said once." },
@@ -540,6 +616,7 @@ export const atoms: ReadonlyArray<Atom> = [
     summary: "A line between two groups, or the hatched band that opens a section.",
     imports: ["Separator"],
     props: [
+      { name: "decorative", type: "boolean", description: "role=none, as shadcn's (D-156)." },
       {
         name: "orientation",
         type: `"horizontal" | "vertical"`,
@@ -560,8 +637,21 @@ export const atoms: ReadonlyArray<Atom> = [
     slug: "breadcrumb",
     name: "Breadcrumb",
     summary: "Where the page sits: its parents as links, the page last.",
-    imports: ["Breadcrumb"],
+    imports: [
+      "Breadcrumb",
+      "BreadcrumbList",
+      "BreadcrumbItem",
+      "BreadcrumbLink",
+      "BreadcrumbPage",
+      "BreadcrumbSeparator",
+      "BreadcrumbEllipsis",
+    ],
     props: [
+      {
+        name: "Breadcrumb parts (no items)",
+        type: "BreadcrumbList, BreadcrumbItem, BreadcrumbLink (asChild), BreadcrumbPage, BreadcrumbSeparator, BreadcrumbEllipsis",
+        description: "Without items, shadcn's composed breadcrumb (D-156).",
+      },
       {
         name: "items",
         type: "{ label, href?, icon? }[]",
@@ -633,8 +723,13 @@ export const atoms: ReadonlyArray<Atom> = [
     slug: "tooltip",
     name: "Tooltip",
     summary: "A few words on hover or focus of a control. Not shown on touch.",
-    imports: ["Tooltip"],
+    imports: ["Tooltip", "TooltipProvider", "TooltipTrigger", "TooltipContent"],
     props: [
+      {
+        name: "Tooltip parts",
+        type: "TooltipProvider, Tooltip, TooltipTrigger (asChild), TooltipContent (side)",
+        description: "shadcn's composition: Tooltip without content is the root (D-156).",
+      },
       { name: "content", type: "ReactNode", description: "What the control does." },
       { name: "kbd", type: "string", description: "Its shortcut." },
       {
@@ -652,13 +747,109 @@ export const atoms: ReadonlyArray<Atom> = [
     slug: "tabs",
     name: "Tabs",
     summary: "Views of one page; arrows, Home and End move between them.",
-    imports: ["Tabs"],
+    imports: ["Tabs", "TabsList", "TabsTrigger", "TabsContent"],
     props: [
+      {
+        name: "Tabs parts",
+        type: "Tabs (value / defaultValue / onValueChange), TabsList, TabsTrigger, TabsContent",
+        description:
+          "shadcn's composition: Tabs without tabs is the root, a value ties a trigger to its content (D-156).",
+      },
       { name: "label", type: "string", description: "Names the tab list." },
       { name: "tabs", type: "{ id, label }[]", description: "The tabs." },
       { name: "value", type: "string", description: "The selected id." },
       { name: "onChange", type: "(id: string) => void", description: "On a new tab." },
       { name: "children", type: "ReactNode", description: "The panel of the selected tab." },
+      className,
+    ],
+  },
+  {
+    slug: "dialog",
+    name: "Dialog",
+    summary:
+      "A modal window over the page, composed as in shadcn. Focus stays inside; Escape closes.",
+    imports: [
+      "Dialog",
+      "DialogTrigger",
+      "DialogContent",
+      "DialogHeader",
+      "DialogFooter",
+      "DialogTitle",
+      "DialogDescription",
+      "DialogClose",
+      "DialogPopup",
+      "DialogViewport",
+    ],
+    props: [
+      {
+        name: "Dialog",
+        type: "open / defaultOpen / onOpenChange / modal",
+        description:
+          "The root. With title and onClose instead, the props-driven dialog (render it while open).",
+      },
+      {
+        name: "DialogTrigger / DialogClose",
+        type: "asChild?: boolean",
+        description: "Open or close it; asChild draws your own element (a Button).",
+      },
+      {
+        name: "DialogContent",
+        type: "showCloseButton?: boolean",
+        default: "true",
+        description: "The box and its scrim, in a portal, with the close button in the corner.",
+      },
+      {
+        name: "DialogHeader / DialogFooter",
+        type: "HTMLAttributes<div>",
+        description:
+          "Title and description at the top; the buttons at the bottom right, main one last.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "dropdown-menu",
+    name: "Dropdown menu",
+    summary:
+      "A menu from a button, composed as in shadcn: items, labels, checkboxes, radios, shortcuts.",
+    imports: [
+      "DropdownMenu",
+      "DropdownMenuTrigger",
+      "DropdownMenuContent",
+      "DropdownMenuItem",
+      "DropdownMenuLabel",
+      "DropdownMenuSeparator",
+      "DropdownMenuShortcut",
+      "DropdownMenuGroup",
+      "DropdownMenuCheckboxItem",
+      "DropdownMenuRadioGroup",
+      "DropdownMenuRadioItem",
+      "DropdownMenuSub",
+      "DropdownMenuSubTrigger",
+      "DropdownMenuSubContent",
+    ],
+    props: [
+      {
+        name: "DropdownMenu",
+        type: "open / defaultOpen / onOpenChange / modal",
+        description: "The root.",
+      },
+      {
+        name: "DropdownMenuContent",
+        type: '{ side?, align?: "start" | "center" | "end", sideOffset? }',
+        default: '"bottom", "start", 4',
+        description: "The menu, in a portal. Arrows and typeahead move; Escape returns focus.",
+      },
+      {
+        name: "DropdownMenuItem",
+        type: '{ variant?: "default" | "destructive", inset?, onClick, disabled }',
+        description: "One action.",
+      },
+      {
+        name: "DropdownMenuCheckboxItem / RadioGroup / RadioItem",
+        type: "checked, onCheckedChange / value, onValueChange",
+        description: "Choices that stay; a tick marks them.",
+      },
       className,
     ],
   },
@@ -783,6 +974,24 @@ export const atoms: ReadonlyArray<Atom> = [
     ],
   },
   ...fieldEntries,
+  // The shadcn components new in each group (D-156).
+  ...shadcnForms,
+  ...shadcnDisplay,
+  ...shadcnDisclosure,
+  ...shadcnOverlays,
+  ...shadcnData,
+  // Moved from the blocks into the primitives (D-157).
+  ...movedMenus,
+  ...movedFields,
+  ...primitivesStatus,
+  ...movedPickers,
+  ...primitivesTimeline,
+  ...primitivesTree,
+  ...primitivesDiff,
+  ...iconPickerEntries,
+  ...primitivesAccess,
+  ...primitivesCollection,
+  ...primitivesSortable,
 ];
 
 const pickerProps = (extra: ReadonlyArray<PropRow> = []): ReadonlyArray<PropRow> => [
@@ -916,11 +1125,11 @@ const pickers: ReadonlyArray<Atom> = [
 /** Composites of atoms, ready: the pickers, then the groups built after Tasks. */
 export const blocks: ReadonlyArray<Atom> = [
   ...pickers,
-  ...iconPickerBlocks,
   ...listBlocks,
   ...viewBlocks,
   ...filteringBlocks,
   ...recordBlocks,
+  ...recordsBlocks,
   ...navigationBlocks,
   ...dataBlocks,
   ...datahubBlocks,
@@ -941,12 +1150,17 @@ export const blocks: ReadonlyArray<Atom> = [
 export const hooks: ReadonlyArray<Atom> = hookEntries;
 
 /** Which group a page belongs to. */
-export const groupOf = (slug: string): "Atoms" | "Blocks" | "Hooks" =>
+/** The Charts category (D-157): the chart parts and every chart type. */
+export const charts: ReadonlyArray<Atom> = chartEntries;
+
+export const groupOf = (slug: string): "Atoms" | "Blocks" | "Hooks" | "Charts" =>
   blocks.some((b) => b.slug === slug)
     ? "Blocks"
     : hooks.some((h) => h.slug === slug)
       ? "Hooks"
-      : "Atoms";
+      : charts.some((c) => c.slug === slug)
+        ? "Charts"
+        : "Atoms";
 
 /** Whole screens, after the HTML prototypes of the apps. */
 export const pages: ReadonlyArray<Planned> = [

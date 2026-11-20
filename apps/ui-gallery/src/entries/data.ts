@@ -2,36 +2,9 @@
 import type { Atom, PropRow } from "../types";
 
 const className: PropRow = { name: "className", type: "string", description: "Extra classes." };
-const format: PropRow = {
-  name: "format",
-  type: "(value: number) => string",
-  default: "String",
-  description: "Writes a value.",
-};
 
 /** Gallery pages of the "data and shell" blocks, in order. */
 export const entries: ReadonlyArray<Atom> = [
-  {
-    slug: "kpi-row",
-    name: "KPI row",
-    summary: "Key figures side by side: label, figure, change and trend, in glued cells.",
-    imports: ["KpiRow"],
-    props: [
-      {
-        name: "items",
-        type: "{ label, value, delta?, better?, hint?, trend? }[]",
-        description:
-          "One cell each. delta is a ratio (0.12 reads +12%); better says which way is good news.",
-      },
-      {
-        name: "formatDelta",
-        type: "(delta: number) => string",
-        default: "signed percent",
-        description: "Writes a delta, for a change that is not a ratio: +3 tickets.",
-      },
-      className,
-    ],
-  },
   {
     slug: "stat",
     name: "Stat",
@@ -49,73 +22,26 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "line-chart",
-    name: "Line chart",
-    summary:
-      "A pixel step line over time. Hover or the arrows read a point; the values are a table too.",
-    imports: ["LineChart"],
-    props: [
-      { name: "title", type: "string", description: "Names the chart; also its caption." },
-      { name: "points", type: "{ label, value }[]", description: "In order, oldest first." },
-      {
-        name: "previous",
-        type: "number[]",
-        description: "The same points one period earlier, dotted in grey behind the line.",
-      },
-      format,
-      { name: "height", type: "number", default: "160", description: "Of the plot, in px." },
-      className,
-    ],
-  },
-  {
-    slug: "sparkline",
-    name: "Sparkline",
-    summary: "A small step line of a trend, next to a figure or in a row.",
-    imports: ["Sparkline"],
-    props: [
-      {
-        name: "values",
-        type: "number[]",
-        description: "Oldest first; drawn from lowest to highest.",
-      },
-      { name: "width / height", type: "number", default: "96 / 24", description: "In px." },
-      {
-        name: "tone",
-        type: `"accent" | "ink"`,
-        default: `"accent"`,
-        description: "Ember for the figure that matters, grey for a quiet one.",
-      },
-      {
-        name: "label",
-        type: "string",
-        description: "Names the trend; without it the line is decorative.",
-      },
-      className,
-    ],
-  },
-  {
-    slug: "bar-chart",
-    name: "Bar chart",
-    summary: "Horizontal pixel bars that carry their label and value. One may stand out.",
-    imports: ["BarChart"],
-    props: [
-      { name: "title", type: "string", description: "Names the chart; also its caption." },
-      { name: "data", type: "{ label, value }[]", description: "One bar each, in order." },
-      format,
-      {
-        name: "highlight",
-        type: "string",
-        description: "The label of the bar drawn in ember: this month, the leader.",
-      },
-      className,
-    ],
-  },
-  {
     slug: "table",
     name: "Table",
     summary: "Typed columns, 44px rows; a clickable row opens on Enter.",
-    imports: ["Table"],
+    imports: [
+      "Table",
+      "TableHeader",
+      "TableBody",
+      "TableFooter",
+      "TableRow",
+      "TableHead",
+      "TableCell",
+      "TableCaption",
+    ],
     props: [
+      {
+        name: "Table parts (no columns)",
+        type: "TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell, TableCaption",
+        description:
+          "Without columns, Table is shadcn's root and takes its parts; className on each (D-156).",
+      },
       {
         name: "columns",
         type: "{ key, header, align?, mono?, render? }[]",
@@ -187,33 +113,6 @@ export const entries: ReadonlyArray<Atom> = [
         name: "limitNote",
         type: "ReactNode",
         description: "When paging stops short, a way to narrow instead.",
-      },
-      className,
-    ],
-  },
-  {
-    slug: "audit-log",
-    name: "Audit log",
-    summary: "Who did what to which thing, by day. Refusals say so; detail folds open.",
-    imports: ["AuditLog"],
-    props: [
-      {
-        name: "events",
-        type: "{ id, at, actor, actorIcon?, action, target?, outcome?, detail? }[]",
-        description: "Newest first. at: YYYY-MM-DD HH:MM. outcome: ok, denied or failed.",
-      },
-      {
-        name: "today",
-        type: "string",
-        description: "YYYY-MM-DD: its day and the one before read Today and Yesterday.",
-      },
-      { name: "defaultExpanded", type: "string[]", description: "Rows open at first." },
-      { name: "label", type: "string", default: `"Audit log"`, description: "Its name." },
-      {
-        name: "empty",
-        type: "ReactNode",
-        default: `"Nothing happened yet"`,
-        description: "Shown when there is no event.",
       },
       className,
     ],
@@ -291,8 +190,26 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "drawer",
     name: "Drawer",
     summary: "A side panel for one record. Not modal; Escape closes, focus comes back.",
-    imports: ["Drawer"],
+    imports: [
+      "Drawer",
+      "DrawerTrigger",
+      "DrawerContent",
+      "DrawerHeader",
+      "DrawerFooter",
+      "DrawerTitle",
+      "DrawerDescription",
+      "DrawerClose",
+      "DrawerPortal",
+      "DrawerOverlay",
+    ],
     props: [
+      {
+        name: "Drawer parts / direction",
+        type: '"top" | "right" | "bottom" | "left"',
+        default: '"bottom"',
+        description:
+          "Without title, Drawer is shadcn's root (D-156): DrawerTrigger, DrawerContent, DrawerHeader, DrawerFooter, DrawerTitle, DrawerDescription, DrawerClose; direction is the edge it slides from.",
+      },
       { name: "title", type: "ReactNode", description: "Names the panel." },
       { name: "description", type: "ReactNode", description: "One line under the title." },
       { name: "onClose", type: "() => void", description: "Escape and the close button." },

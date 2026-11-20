@@ -16,7 +16,7 @@ import { DatePicker } from "../overlays";
 import { Popover } from "../popover";
 import { Switch } from "../controls";
 import { TimePicker } from "../time";
-import { TimezonePicker } from "./time-fields";
+import { TimezonePicker } from "../timezone-picker";
 import {
   defaultWeekly,
   formatMinutes,

@@ -1,6 +1,6 @@
-// Uploading: the drop zone (a framed area with its button, or an overlay over a whole view while
-// files are dragged over it), and the queue that follows each file: progress in blocks, cancel,
-// retry, minimise. The uploading itself is the caller's: these blocks draw its state.
+// Uploading: the queue that follows each file: progress in blocks, cancel, retry, minimise. The
+// uploading itself is the caller's: this block draws its state. The drop zone, where the files
+// land, is a primitive: `drop-zone.tsx`.
 
 import {
   AlertCircleIcon,
@@ -11,193 +11,13 @@ import {
   RefreshIcon,
   Upload01Icon,
 } from "@forgeron/icons";
-import { useId, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { BlockBar, fileKindOf, FileTypeMark, formatBytes } from "./drive-parts";
-
-/* ---------------------------------------------------------------- accept */
-
-/**
- * Whether a file matches an `accept` list as `<input type="file">` reads it: extensions
- * (`.pdf`), types (`image/png`) and families (`image/*`), separated by commas.
- */
-export function acceptsFile(file: { name: string; type: string }, accept?: string): boolean {
-  if (!accept || !accept.trim()) return true;
-  const name = file.name.toLowerCase();
-  const type = (file.type || "").toLowerCase();
-  return accept
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean)
-    .some((rule) =>
-      rule.startsWith(".")
-        ? name.endsWith(rule)
-        : rule.endsWith("/*")
-          ? type.startsWith(rule.slice(0, -1))
-          : type === rule,
-    );
-}
-
-const hasFiles = (event: DragEvent) =>
-  Array.from(event.dataTransfer?.types ?? []).includes("Files");
-
-/* ---------------------------------------------------------------- DropZone */
-
-export interface DropZoneProps {
-  /** The files dropped or chosen that match `accept`. */
-  onFiles: (files: File[]) => void;
-  /** The files left out by `accept` or `multiple`: say why. */
-  onReject?: (files: File[]) => void;
-  /** As on `<input type="file">`: `.pdf,image/*`. */
-  accept?: string;
-  /** Takes several files at once; true by default. */
-  multiple?: boolean;
-  disabled?: boolean;
-  /** The big line of the framed zone. */
-  title?: ReactNode;
-  /** A line under it: the types and the size allowed. */
-  description?: ReactNode;
-  /** The button that opens the file chooser. */
-  buttonLabel?: string;
-  /**
-   * A view to cover: the zone is then invisible until files are dragged over it, and shows the
-   * overlay with `overlayLabel`. Without children, it is a framed area with its button.
-   */
-  children?: ReactNode;
-  /** Said on the overlay: "Drop to upload to Contracts". */
-  overlayLabel?: ReactNode;
-  className?: string;
-}
-
-/** Where files land: a framed area with a button, or an overlay over a view while files are dragged. */
-export function DropZone({
-  onFiles,
-  onReject,
-  accept,
-  multiple = true,
-  disabled = false,
-  title = "Drop files here",
-  description,
-  buttonLabel = "Choose files",
-  children,
-  overlayLabel = "Drop to upload",
-  className,
-}: DropZoneProps) {
-  const [active, setActive] = useState(false);
-  const depth = useRef(0);
-  const input = useRef<HTMLInputElement>(null);
-  const hintId = useId();
-
-  const take = (list: FileList | File[] | null) => {
-    const files = Array.from(list ?? []);
-    if (files.length === 0) return;
-    const ok = files.filter((f) => acceptsFile(f, accept));
-    const kept = multiple ? ok : ok.slice(0, 1);
-    const rejected = files.filter((f) => !kept.includes(f));
-    if (kept.length > 0) onFiles(kept);
-    if (rejected.length > 0) onReject?.(rejected);
-  };
-
-  const drag = disabled
-    ? {}
-    : {
-        onDragEnter: (e: DragEvent) => {
-          if (!hasFiles(e)) return;
-          e.preventDefault();
-          depth.current += 1;
-          setActive(true);
-        },
-        onDragOver: (e: DragEvent) => {
-          if (!hasFiles(e)) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "copy";
-        },
-        onDragLeave: (e: DragEvent) => {
-          if (!hasFiles(e)) return;
-          depth.current = Math.max(0, depth.current - 1);
-          if (depth.current === 0) setActive(false);
-        },
-        onDrop: (e: DragEvent) => {
-          if (!hasFiles(e)) return;
-          // A folder or a row inside may have taken the drop already.
-          depth.current = 0;
-          setActive(false);
-          if (e.defaultPrevented) return;
-          e.preventDefault();
-          take(e.dataTransfer.files);
-        },
-      };
-
-  const chooser = (
-    <input
-      ref={input}
-      type="file"
-      className="fg-sr"
-      tabIndex={-1}
-      aria-hidden="true"
-      multiple={multiple}
-      {...(accept ? { accept } : {})}
-      disabled={disabled}
-      onChange={(e) => {
-        take(e.currentTarget.files);
-        e.currentTarget.value = "";
-      }}
-    />
-  );
-
-  if (children !== undefined) {
-    return (
-      <div className={cx("fg-dropzone-cover", active && "fg-dropzone-active", className)} {...drag}>
-        {children}
-        {active ? (
-          <div className="fg-dropzone-overlay" aria-hidden="true">
-            <span>
-              <Icon icon={Upload01Icon} size={24} />
-              {overlayLabel}
-            </span>
-          </div>
-        ) : null}
-        <span className="fg-sr" aria-live="polite">
-          {active ? overlayLabel : ""}
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={cx(
-        "fg-dropzone",
-        active && "fg-dropzone-active",
-        disabled && "fg-dropzone-disabled",
-        className,
-      )}
-      {...drag}
-    >
-      <Icon icon={Upload01Icon} size={36} className="fg-dropzone-icon" />
-      <p className="fg-dropzone-title">{active ? overlayLabel : title}</p>
-      {description ? (
-        <p className="fg-dropzone-text" id={hintId}>
-          {description}
-        </p>
-      ) : null}
-      <Button
-        size="sm"
-        disabled={disabled}
-        onClick={() => input.current?.click()}
-        {...(description ? { "aria-describedby": hintId } : {})}
-      >
-        <Icon icon={Upload01Icon} size={12} variant="mono" />
-        {buttonLabel}
-      </Button>
-      {chooser}
-    </div>
-  );
-}
 
 /* ---------------------------------------------------------------- UploadQueue */
 

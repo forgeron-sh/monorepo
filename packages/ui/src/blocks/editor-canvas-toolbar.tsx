@@ -10,9 +10,9 @@ import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { formatShortcut, useShortcuts } from "../hooks/use-shortcuts";
 import { Icon } from "../icon";
-import { Tooltip } from "../overlays";
+import { Tooltip } from "../tooltip";
 import { Toolbar } from "../toolbar";
-import { ActionMenu, type ActionMenuItem } from "./navigation-action-menu";
+import { ActionMenu, type ActionMenuItem } from "../action-menu";
 
 export interface EditorToolVariant {
   id: string;

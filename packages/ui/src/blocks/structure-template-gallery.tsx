@@ -3,10 +3,11 @@
 
 import type { IconDefinition } from "@forgeron/icons";
 import { File01Icon, Search01Icon } from "@forgeron/icons";
-import { useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { Input } from "../form";
+import { useCollection } from "../hooks/use-collection";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import {
@@ -101,7 +102,6 @@ export function TemplateGallery({
           : (templates[0]?.id ?? null),
     onChange: onSelectedChange,
   });
-  const grid = useRef<HTMLDivElement>(null);
   const searchId = useId();
 
   const categories = structureTemplateCategories(templates);
@@ -111,79 +111,37 @@ export function TemplateGallery({
   const entries = [...(showBlank ? [BLANK] : []), ...shown.map((t) => t.id)];
   const current = pointed === null ? BLANK : pointed;
   const template = templates.find((t) => t.id === pointed) ?? null;
-  const stop = entries.includes(current) ? current : entries[0];
 
-  const focusEntry = (id: string) => {
-    point(id === BLANK ? null : id);
-    Array.from(grid.current?.querySelectorAll<HTMLElement>("[data-template]") ?? [])
-      .find((el) => el.dataset.template === id)
-      ?.focus();
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const el = (event.target as HTMLElement).closest<HTMLElement>("[data-template]");
-    if (!el) return;
-    const id = el.dataset.template!;
-    const at = entries.indexOf(id);
-    const go = (to: number) => {
-      const next = entries[Math.min(Math.max(to, 0), entries.length - 1)];
-      if (next) focusEntry(next);
-    };
-    // Up and Down move by a row: the number of cards on the line of this one.
-    const cards = Array.from(grid.current?.querySelectorAll<HTMLElement>("[data-template]") ?? []);
-    const perRow = Math.max(1, cards.filter((c) => c.offsetTop === el.offsetTop).length);
-    switch (event.key) {
-      case "ArrowRight":
-        go(at + 1);
-        break;
-      case "ArrowLeft":
-        go(at - 1);
-        break;
-      case "ArrowDown":
-        go(at + perRow);
-        break;
-      case "ArrowUp":
-        go(at - perRow);
-        break;
-      case "Home":
-        go(0);
-        break;
-      case "End":
-        go(entries.length - 1);
-        break;
-      case "Enter":
-        onChoose(id === BLANK ? null : id);
-        break;
-      case " ":
-        point(id === BLANK ? null : id);
-        break;
-      default:
-        return;
-    }
-    event.preventDefault();
-  };
+  // The card pointed at is the selection and the one tab stop; the arrows move it by a row or a
+  // card, Enter and a double click choose, Space points.
+  const collection = useCollection({
+    items: entries,
+    getId: (id) => id,
+    selectionMode: "single",
+    selected: entries.includes(current) ? [current] : [],
+    onSelectedChange: (ids) => {
+      if (ids[0] !== undefined) point(ids[0] === BLANK ? null : ids[0]);
+    },
+    focused: entries.includes(current) ? current : null,
+    onAction: (id) => onChoose(id === BLANK ? null : id),
+    orientation: "grid",
+    clearOnEscape: false,
+  });
 
   const card = (id: string, name: string, info: TemplateItem | null) => {
     const on = current === id;
     return (
       <div
         key={id}
-        role="option"
         data-template={id}
-        aria-selected={on}
-        tabIndex={id === stop ? 0 : -1}
-        className={cx(
-          "fg-tgal-card",
-          on && "fg-tgal-card-current",
-          id === BLANK && "fg-tgal-card-blank",
-        )}
-        onClick={() => {
-          focusEntry(id);
-        }}
-        onDoubleClick={() => onChoose(id === BLANK ? null : id)}
-        onFocus={(e) => {
-          if (e.target === e.currentTarget) point(id === BLANK ? null : id);
-        }}
+        {...collection.getItemProps(id, {
+          role: "option",
+          className: cx(
+            "fg-tgal-card",
+            on && "fg-tgal-card-current",
+            id === BLANK && "fg-tgal-card-blank",
+          ),
+        })}
       >
         <span className="fg-tgal-thumb" aria-hidden="true">
           {info?.thumbnail ?? (
@@ -252,11 +210,11 @@ export function TemplateGallery({
           ) : null}
         </div>
         <div
-          ref={grid}
-          role="listbox"
-          aria-label="Templates"
-          className="fg-tgal-grid"
-          onKeyDown={onKeyDown}
+          {...collection.getContainerProps({
+            role: "listbox",
+            "aria-label": "Templates",
+            className: "fg-tgal-grid",
+          })}
         >
           {showBlank ? card(BLANK, blankInfo.name ?? "Blank", null) : null}
           {shown.map((t) => card(t.id, t.name, t))}

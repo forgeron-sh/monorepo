@@ -1,7 +1,7 @@
 import type { IconDefinition } from "@forgeron/icons";
 import type { ReactNode } from "react";
 import { Button } from "../button";
-import { Command } from "../command";
+import { CommandLine } from "../command-line";
 import { cx } from "../cx";
 import { Icon } from "../icon";
 import { titleLines } from "../section-head";
@@ -26,7 +26,7 @@ export interface HeroProps {
   lead: ReactNode;
   /**
    * The command to start with, shown before the action in the same frame: a string (drawn as an
-   * unframed `Command`), or your own element.
+   * unframed `CommandLine`), or your own element.
    */
   command?: ReactNode;
   /** The primary action, in ember with its marker. */
@@ -70,7 +70,11 @@ export function Hero({
       <div className="fg-hero-right">
         <p className="text-lead fg-hero-lead">{lead}</p>
         <div className="fg-hero-cta">
-          {typeof command === "string" ? <Command framed={false}>{command}</Command> : command}
+          {typeof command === "string" ? (
+            <CommandLine framed={false}>{command}</CommandLine>
+          ) : (
+            command
+          )}
           <Button href={action.href} size="lg" variant="primary" marker>
             {action.label}
           </Button>

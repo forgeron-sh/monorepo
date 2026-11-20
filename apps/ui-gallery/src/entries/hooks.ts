@@ -30,6 +30,68 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
+    slug: "use-collection",
+    name: "useCollection",
+    summary:
+      "The keyboard, focus and selection of a list of items: arrows, Home, End, typeahead, one or many selected, Enter opens.",
+    imports: ["useCollection", "type UseCollectionOptions"],
+    props: [
+      {
+        name: "items / getId / getText",
+        type: "T[] / (item) => string / (item) => string",
+        description: "The items in the order shown, their ids, and the text typeahead matches.",
+      },
+      {
+        name: "selectionMode",
+        type: `"none" | "single" | "multiple"`,
+        default: `"single"`,
+        description:
+          "multiple: Cmd/Ctrl click toggles, Shift click and Shift + arrows extend, Cmd/Ctrl A takes all. Escape clears.",
+      },
+      {
+        name: "selected / defaultSelected / onSelectedChange",
+        type: "string[] / (ids: string[]) => void",
+        description: "The ids selected, controlled or not.",
+      },
+      {
+        name: "focused / onFocusedChange",
+        type: "string | null / (id) => void",
+        description: "The item the focus is on, controlled or not.",
+      },
+      {
+        name: "orientation / columns",
+        type: `"vertical" | "horizontal" | "grid" / number`,
+        default: `"vertical"`,
+        description:
+          "The arrows that move. A grid moves by `columns`, or by the rows the page draws when not given.",
+      },
+      {
+        name: "focusMode",
+        type: `"roving" | "activedescendant"`,
+        default: `"roving"`,
+        description:
+          "roving: the items hold the focus, one tab stop. activedescendant: the container holds it and points at the item.",
+      },
+      {
+        name: "onAction",
+        type: "(id: string) => void",
+        description: "Enter on the focused item, and a double click on one.",
+      },
+      {
+        name: "followFocus / vimKeys / typeahead / clearOnEscape / ignoreTarget",
+        type: "boolean / boolean / boolean / boolean / (target) => boolean",
+        description:
+          "Moving the focus selects (default); j and k; typed words (with getText); Escape clears (default); events from a field or a button inside an item that are left to it.",
+      },
+      {
+        name: "returns",
+        type: "Collection",
+        description:
+          "selected, isSelected, focusedId, activeId, select, toggle, selectAll, clear, focus, and getContainerProps(props) / getItemProps(id, props): spread them on your markup (listbox and option, grid and row). The handlers you pass run first; preventDefault() skips ours.",
+      },
+    ],
+  },
+  {
     slug: "use-actions",
     name: "useActions",
     summary:
@@ -111,6 +173,26 @@ export const entries: ReadonlyArray<Atom> = [
         type: "[value, setValue]",
         description:
           "setValue takes a value or a function of the current one; onChange hears real changes only.",
+      },
+    ],
+  },
+  {
+    slug: "use-toast",
+    name: "useToast",
+    summary: "Raise a toast from anywhere under a Toaster: a message, a type, an Undo action.",
+    imports: ["useToast", "Toaster"],
+    props: [
+      {
+        name: "add(options)",
+        type: "{ title, description?, type?, actionProps? }",
+        description:
+          "type is “success” or “danger”; actionProps: { children: “Undo”, onClick } adds a button. Returns the toast id.",
+      },
+      { name: "close(id)", type: "(id) => void", description: "Dismisses a toast." },
+      {
+        name: "returns",
+        type: "{ toasts, add, close, update, promise }",
+        description: "The toast manager. Needs a Toaster above it; Toaster limit defaults to 3.",
       },
     ],
   },

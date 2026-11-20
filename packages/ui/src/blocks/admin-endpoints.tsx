@@ -3,6 +3,7 @@
 // back, and the app says what came of a test in `testResults`.
 
 import { Badge } from "../badge";
+import { defineStatuses } from "../status-model";
 import { Button } from "../button";
 import { Switch } from "../controls";
 import { cx } from "../cx";
@@ -13,7 +14,7 @@ import {
   visibleEvents,
   type WebhookEndpoint,
 } from "./admin-model";
-import { SecretField } from "./admin-secret-field";
+import { SecretField } from "../secret-field";
 
 export interface EndpointTestResult {
   ok: boolean;
@@ -48,7 +49,11 @@ export interface EndpointListProps {
   className?: string;
 }
 
-const TONE = { active: "success", disabled: "neutral", failing: "danger" } as const;
+const ENDPOINT_STATUS = defineStatuses({
+  active: { label: ENDPOINT_STATUS_NAMES.active, tone: "success" },
+  disabled: { label: ENDPOINT_STATUS_NAMES.disabled, tone: "neutral" },
+  failing: { label: ENDPOINT_STATUS_NAMES.failing, tone: "danger" },
+});
 
 /** The webhook endpoints of a workspace, each with its events, switch, test and secret. */
 export function EndpointList({
@@ -78,8 +83,8 @@ export function EndpointList({
               <code className="fg-adm-endpoint-url" title={e.url}>
                 {e.url}
               </code>
-              <Badge tone={TONE[e.status]} dot>
-                {ENDPOINT_STATUS_NAMES[e.status]}
+              <Badge tone={ENDPOINT_STATUS.tone(e.status)} dot>
+                {ENDPOINT_STATUS.label(e.status)}
               </Badge>
             </div>
             {e.description ? <p className="fg-adm-endpoint-desc">{e.description}</p> : null}

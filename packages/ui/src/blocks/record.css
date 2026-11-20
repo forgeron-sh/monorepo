@@ -113,44 +113,11 @@
   margin: 0;
   font: 500 14px/20px var(--font-sans);
 }
-.fg-activity-list {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.fg-activity-event {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 6px 0;
+.fg-activity-event .fg-timeline-title {
   color: var(--ink-muted);
 }
-.fg-activity-mark {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-}
-.fg-activity-text {
-  min-width: 0;
-}
-.fg-activity-event b,
-.fg-activity-head b,
-.fg-activity-quote b {
-  color: var(--ink);
-  font-weight: 500;
-}
-.fg-activity-when {
-  color: var(--ink-dim);
-  font: 400 11.5px/18px var(--font-mono);
-}
-.fg-activity-item {
-  padding: 6px 0 6px 28px;
-}
 .fg-activity-comment {
+  min-width: 0;
   padding: 10px 12px;
   border: var(--border-width) solid var(--line);
   background: var(--bg-raised);
@@ -222,86 +189,7 @@
   border-top: var(--border-width) solid var(--line);
 }
 
-/* ---------------------------------------------------------------- Modal and CreateDialog */
-
-/* Appears whole: no transition on open or close. */
-.fg-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  background: var(--scrim);
-}
-.fg-modal-viewport {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  box-sizing: border-box;
-  padding: 12vh var(--space-2) var(--space-2);
-  overflow-y: auto;
-}
-.fg-modal {
-  position: relative;
-  box-sizing: border-box;
-  width: min(750px, 100%);
-  padding: var(--space-3);
-  border: var(--border-width) solid var(--line-strong);
-  background: var(--bg);
-  box-shadow: var(--shadow-pop);
-  color: var(--ink);
-  font: 400 13px/20px var(--font-sans);
-}
-.fg-modal-sm {
-  width: min(480px, 100%);
-}
-.fg-modal:focus {
-  outline: none;
-}
-/* The lab's corner brackets, a little bolder than the frame. */
-.fg-modal::before,
-.fg-modal::after {
-  content: "";
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border: var(--border-width) solid var(--ink-dim);
-  background: var(--bg);
-}
-.fg-modal::before {
-  top: -4px;
-  left: -4px;
-}
-.fg-modal::after {
-  right: -4px;
-  bottom: -4px;
-}
-.fg-modal-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 28px;
-}
-.fg-modal-head .fg-selm-chip {
-  height: 24px;
-  font: 500 12px/1 var(--font-mono);
-}
-.fg-modal-sep {
-  color: var(--ink-dim);
-}
-.fg-modal-title {
-  margin: 0;
-  color: var(--ink);
-  font: 400 13px/20px var(--font-sans);
-}
-.fg-modal-close {
-  margin-left: auto;
-}
-.fg-modal-close:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: calc(-1 * var(--focus-width));
-}
+/* ---------------------------------------------------------------- CreateDialog (Modal: parts-menus.css) */
 
 .fg-create {
   display: flex;

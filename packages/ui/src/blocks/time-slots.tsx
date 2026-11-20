@@ -12,7 +12,7 @@ import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { formatTime } from "../time";
-import { TimezonePicker } from "./time-fields";
+import { TimezonePicker } from "../timezone-picker";
 import {
   daySlots,
   formatMinutes,

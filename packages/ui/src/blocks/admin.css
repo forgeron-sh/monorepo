@@ -488,92 +488,6 @@
 
 /* ---------------------------------------------------------------- SecretField */
 
-.fg-adm-secret {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--line-strong);
-  background: var(--bg);
-}
-.fg-adm-secret-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.fg-adm-secret-label {
-  font: 500 13px/18px var(--font-sans);
-}
-.fg-adm-secret-rot {
-  color: var(--ink-dim);
-  font: 400 11px/16px var(--font-mono);
-}
-.fg-adm-secret-hint {
-  margin: 0;
-  color: var(--ink-muted);
-}
-.fg-adm-secret-row,
-.fg-adm-secret-form {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.fg-adm-secret-form .fg-input {
-  flex: 1;
-  min-width: 180px;
-}
-.fg-adm-secret-value {
-  flex: 1;
-  min-width: 140px;
-  padding: 6px var(--space-2);
-  border: 1px solid var(--line);
-  background: var(--bg-sunk);
-  overflow-wrap: anywhere;
-  font: 400 12px/18px var(--font-mono);
-}
-.fg-adm-secret-masked {
-  color: var(--ink-dim);
-  letter-spacing: 0.1em;
-  user-select: none;
-}
-.fg-adm-secret-value:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: var(--focus-offset);
-}
-.fg-adm-secret-timer {
-  color: var(--warning);
-  font: 500 11px/16px var(--font-mono);
-}
-.fg-adm-secret-actions {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-}
-.fg-adm-secret-empty {
-  flex: 1;
-  color: var(--ink-dim);
-  font: 400 12px/16px var(--font-mono);
-}
-.fg-adm-secret-error {
-  flex-basis: 100%;
-  margin: 0;
-  color: var(--danger);
-}
-.fg-adm-secret-confirm {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border: 1px solid var(--danger);
-  background: var(--danger-subtle);
-}
-.fg-adm-secret-confirm > span {
-  flex: 1;
-}
-
 /* ---------------------------------------------------------------- EndpointList */
 
 .fg-adm-endpoints {
@@ -689,6 +603,10 @@
   gap: var(--space-3);
   color: var(--ink-muted);
   font: 400 11px/16px var(--font-mono);
+}
+.fg-adm-delivery-meta .fg-timeline-time {
+  color: inherit;
+  font: inherit;
 }
 .fg-adm-delivery-code {
   min-width: 52px;
@@ -822,5 +740,126 @@
   .fg-adm-confirm * {
     transition: none !important;
     animation: none !important;
+  }
+}
+
+/* The audit log (AuditLog), moved from the data group. */
+/* ---------------------------------------------------------------- AuditLog */
+
+.fg-audit {
+  color: var(--ink);
+  font: 400 13px/18px var(--font-sans);
+}
+.fg-audit-empty {
+  padding: var(--space-6) var(--space-4);
+  border: var(--border-width) solid var(--line);
+  color: var(--ink-muted);
+  text-align: center;
+}
+.fg-audit-row {
+  border-bottom: var(--border-width) solid var(--line);
+}
+.fg-audit-line {
+  display: grid;
+  grid-template-columns: 44px minmax(96px, 160px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.fg-audit-line {
+  cursor: pointer;
+}
+button.fg-audit-line:hover {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+button.fg-audit-line:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: -2px;
+}
+.fg-audit-time {
+  color: var(--ink-dim);
+  font: 400 12px/16px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.fg-audit-who {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.fg-audit-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: var(--border-width) solid var(--line-strong);
+  color: var(--ink-muted);
+}
+.fg-audit-actor {
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-audit-what {
+  overflow: hidden;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fg-audit-target {
+  margin-left: 6px;
+  color: var(--ink);
+  font: 400 12px/16px var(--font-mono);
+}
+.fg-audit-end {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 12px;
+}
+.fg-audit-chev {
+  color: var(--ink-dim);
+}
+.fg-audit-detail {
+  margin: 0 var(--space-2) var(--space-2) calc(44px + var(--space-3) + var(--space-2));
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--line-strong);
+  background: var(--bg-sunk);
+  color: var(--ink-muted);
+  font: 400 12px/18px var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.fg-audit-denied .fg-audit-detail {
+  border-left-color: var(--warning);
+}
+.fg-audit-failed .fg-audit-detail {
+  border-left-color: var(--danger);
+}
+@media (max-width: 640px) {
+  .fg-audit-line {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    padding-block: var(--space-2);
+  }
+  .fg-audit-end {
+    grid-row: 1;
+    grid-column: 3;
+  }
+  .fg-audit-what {
+    grid-row: 2;
+    grid-column: 2 / -1;
+    white-space: normal;
+  }
+  .fg-audit-detail {
+    margin-left: var(--space-2);
   }
 }

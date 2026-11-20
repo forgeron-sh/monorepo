@@ -11,8 +11,8 @@
 
 import type { IconDefinition } from "@forgeron/icons";
 import { useMemo, type ReactNode } from "react";
-import type { ActionMenuEntry, ActionMenuItem } from "../blocks/navigation-action-menu";
-import type { CommandPaletteGroup } from "../blocks/navigation-command-palette";
+import type { ActionMenuEntry, ActionMenuItem } from "../action-menu";
+import type { CommandPaletteGroup } from "../command-palette";
 import { formatShortcut, useShortcuts } from "./use-shortcuts";
 
 export interface Action {

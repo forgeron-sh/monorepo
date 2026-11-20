@@ -1,7 +1,38 @@
 ---
 import DocsLayout from "../../components/DocsLayout.astro";
 import { highlight } from "../../lib/highlight";
+import { THEME_ITEM } from "../../lib/shadcn/build";
 import { atoms } from "../../registry";
+
+// D-156: the shadcn registry served under /r/ installs the sources into the project.
+const r = new URL("/r/", Astro.site ?? "https://ui.forgeron.sh").href;
+const shadcn = [
+  {
+    title: "A shadcn project",
+    lang: "shellscript",
+    code: "# Next, Vite, Astro…: React 19 and a components.json. Skip if you have one.\nnpx shadcn@latest init",
+  },
+  {
+    title: "The Forgeron theme, if you want our look",
+    lang: "shellscript",
+    code: `# Ember primary, near-black or paper background, square corners, in your shadcn variables.\nnpx shadcn@latest add ${r}${THEME_ITEM}.json`,
+  },
+  {
+    title: "Add a component",
+    lang: "shellscript",
+    code: `# The sources land in components/forgeron/, with their styles and icons.\nnpx shadcn@latest add ${r}button.json`,
+  },
+  {
+    title: "Or name the registry once",
+    lang: "jsonc",
+    code: `// components.json, then: npx shadcn@latest add @forgeron/button @forgeron/issue-list\n"registries": {\n  "@forgeron": "${r}{name}.json"\n}`,
+  },
+  {
+    title: "Use it",
+    lang: "tsx",
+    code: `import { Button } from "@/components/forgeron/button";\n\nexport function Deploy() {\n  return <Button variant="default">Deploy</Button>;\n}`,
+  },
+] as const;
 
 const steps = [
   { title: "Add the package", lang: "shellscript", code: "bun add @forgeron/ui @forgeron/icons react react-dom" },
@@ -31,8 +62,33 @@ const steps = [
   <header class="doc-head">
     <span class="t-mono dim">Get started <span class="accent">/</span> Installation</span>
     <h1 class="f-title f-h3">Installation</h1>
-    <p class="t-lead">React 19, one stylesheet, no build step of its own.</p>
+    <p class="t-lead">React 19, with the shadcn CLI or as a package. One stylesheet, no build step of its own.</p>
   </header>
+  <h2 class="t-title spacer-sm" id="shadcn">Install with shadcn</h2>
+  <p class="t-body dim">
+    Every atom, block and hook is a shadcn registry item: the CLI copies its sources, its icons and its
+    styles into your project, and they follow your theme (<code>--background</code>,
+    <code>--primary</code>, <code>--radius</code>…). Your Tailwind classes win over ours.
+  </p>
+  <ol class="steps">
+    {
+      shadcn.map((s, i) => (
+        <li class="step">
+          <span class="step-n t-mono accent">/{String(i + 1).padStart(2, "0")}</span>
+          <div class="step-body">
+            <p class="t-title">{s.title}</p>
+            <div class="hero-cmd">
+              <div class="hero-cmd-code" id={`shadcn-${i}`} set:html={highlight(s.code, s.lang)} />
+              <button type="button" class="btn btn-sm" data-copy={`shadcn-${i}`}>
+                Copy
+              </button>
+            </div>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+  <h2 class="t-title spacer-sm" id="package">Or with the package</h2>
   <ol class="steps">
     {
       steps.map((s, i) => (

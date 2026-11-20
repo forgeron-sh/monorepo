@@ -1,5 +1,6 @@
-import { useId, type KeyboardEvent, type ReactNode } from "react";
+import { useId, type ComponentProps, type KeyboardEvent, type ReactNode } from "react";
 import { cx } from "./cx";
+import { Tabs as Base } from "@base-ui/react/tabs";
 
 export interface TabItem {
   id: string;
@@ -16,8 +17,16 @@ export interface TabsProps {
   className?: string;
 }
 
-/** Tabs with a panel. Left and Right (Home, End) move between them; only the selected one is a tab stop. */
-export function Tabs({ label, tabs, value, onChange, children, className }: TabsProps) {
+/**
+ * With `tabs`: tabs with a panel; Left and Right (Home, End) move between them, only the selected one
+ * is a tab stop. Without: the root of shadcn's parts (`TabsList`, `TabsTrigger`, `TabsContent`),
+ * D-156.
+ */
+export function Tabs(props: TabsProps | TabsRootProps) {
+  return props.tabs !== undefined ? <TabBar {...props} /> : <TabsRoot {...props} />;
+}
+
+function TabBar({ label, tabs, value, onChange, children, className }: TabsProps) {
   const id = useId();
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const index = tabs.findIndex((t) => t.id === value);
@@ -65,4 +74,33 @@ export function Tabs({ label, tabs, value, onChange, children, className }: Tabs
       </div>
     </div>
   );
+}
+
+/* ---------------------------------------------------------------- shadcn parts (D-156) */
+
+// shadcn's Tabs parts (D-156), on Base UI (D-147): `Tabs` takes them when given no `tabs`.
+
+type Part<T> = Omit<T, "className"> & { className?: string };
+
+/** `tabs` stays undefined: with tabs, `Tabs` is the props-driven one. */
+export type TabsRootProps = Part<ComponentProps<typeof Base.Root>> & { tabs?: undefined };
+
+/** The root of the composed tabs: `value`, `defaultValue`, `onValueChange`, `orientation`. */
+function TabsRoot({ className, tabs: _tabs, ...rest }: TabsRootProps) {
+  return <Base.Root {...rest} className={cx("fg-tabs", className)} />;
+}
+
+/** The row of tabs. Arrows move between them. */
+export function TabsList({ className, ...rest }: Part<ComponentProps<typeof Base.List>>) {
+  return <Base.List {...rest} className={cx("fg-tablist", className)} />;
+}
+
+/** One tab; `value` ties it to its `TabsContent`. */
+export function TabsTrigger({ className, ...rest }: Part<ComponentProps<typeof Base.Tab>>) {
+  return <Base.Tab {...rest} className={cx("fg-tab", className)} />;
+}
+
+/** The panel of the tab with the same `value`. */
+export function TabsContent({ className, ...rest }: Part<ComponentProps<typeof Base.Panel>>) {
+  return <Base.Panel {...rest} className={cx("fg-tabpanel", className)} />;
 }

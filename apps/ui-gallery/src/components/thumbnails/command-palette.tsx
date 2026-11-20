@@ -13,7 +13,7 @@ const rows = [
 export default function CommandPaletteThumbnail() {
   return (
     <div className="thumb">
-      <div className="fg-pop fg-palette" role="presentation">
+      <div className="fg-cmdk" role="presentation">
         <div className="fg-palette-head">
           <Icon icon={Search01Icon} size={12} variant="mono" className="fg-palette-glass" />
           <span className="fg-palette-input thumb-placeholder">Search or run a command…</span>

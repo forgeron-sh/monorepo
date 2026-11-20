@@ -121,6 +121,11 @@ export const entries: ReadonlyArray<Atom> = [
     summary: "A value on a track, or a range between two, with ticks and a written value.",
     imports: ["Slider"],
     props: [
+      {
+        name: "Slider (no label)",
+        type: "value / defaultValue: number[], onValueChange, min, max, step",
+        description: "Without label: shadcn's slider on Base UI, one thumb per value (D-156).",
+      },
       label("the slider; a range's thumbs read “from” and “to”"),
       value("number | [number, number]", "An array makes it a range."),
       onChange("(value) => void"),
@@ -485,8 +490,20 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "popover",
     name: "Popover",
     summary: "A panel that opens from a button and holds anything. Built on Base UI.",
-    imports: ["Popover"],
+    imports: [
+      "Popover",
+      "PopoverTrigger",
+      "PopoverContent",
+      "PopoverTitle",
+      "PopoverDescription",
+      "PopoverClose",
+    ],
     props: [
+      {
+        name: "Popover parts",
+        type: "Popover (open / defaultOpen / onOpenChange), PopoverTrigger (asChild), PopoverContent (side, align, sideOffset), PopoverTitle, PopoverDescription, PopoverClose",
+        description: "shadcn's composition: Popover without trigger is the root (D-156).",
+      },
       {
         name: "trigger",
         type: "ReactElement",
@@ -530,8 +547,13 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "collapsible",
     name: "Collapsible",
     summary: "One section that folds. Short stepped motion, none under reduced motion.",
-    imports: ["Collapsible"],
+    imports: ["Collapsible", "CollapsibleTrigger", "CollapsibleContent"],
     props: [
+      {
+        name: "Collapsible parts (no title)",
+        type: "open / defaultOpen / onOpenChange; CollapsibleTrigger asChild",
+        description: "Without title, shadcn's composed collapsible (D-156).",
+      },
       { name: "title", type: "ReactNode", description: "The button that folds and unfolds." },
       { name: "hint", type: "ReactNode", description: "Mono text at the end of the header." },
       {
@@ -559,8 +581,14 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Accordion",
     summary:
       "Collapsibles stacked: one open at a time, or several. Up and Down move between headers.",
-    imports: ["Accordion"],
+    imports: ["Accordion", "AccordionItem", "AccordionTrigger", "AccordionContent"],
     props: [
+      {
+        name: "Accordion parts (no items)",
+        type: 'type: "single" | "multiple", collapsible, value / defaultValue, onValueChange',
+        description:
+          "Without items, shadcn's composed accordion on Base UI: AccordionItem, AccordionTrigger, AccordionContent (D-156).",
+      },
       {
         name: "items",
         type: "AccordionItem[]",

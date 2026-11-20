@@ -3,6 +3,7 @@
 
 import { cx } from "../cx";
 import { Badge } from "../badge";
+import { defineStatuses, type StatusKey } from "../status-model";
 import { formatMoney } from "../numbers";
 import { signText, type Minor } from "./finance-model";
 
@@ -55,24 +56,24 @@ export function AmountBadge({
   );
 }
 
-const STATUS_TONES = {
-  draft: "neutral",
-  pending: "warning",
-  sent: "strong",
-  viewed: "strong",
-  accepted: "success",
-  approved: "success",
-  paid: "success",
-  partial: "warning",
-  overdue: "danger",
-  refused: "danger",
-  rejected: "danger",
-  failed: "danger",
-  void: "neutral",
-  refunded: "neutral",
-} as const;
+const FINANCE_STATUS = defineStatuses({
+  draft: { label: "Draft", tone: "neutral" },
+  pending: { label: "Pending", tone: "warning" },
+  sent: { label: "Sent", tone: "strong" },
+  viewed: { label: "Viewed", tone: "strong" },
+  accepted: { label: "Accepted", tone: "success" },
+  approved: { label: "Approved", tone: "success" },
+  paid: { label: "Paid", tone: "success" },
+  partial: { label: "Partial", tone: "warning" },
+  overdue: { label: "Overdue", tone: "danger" },
+  refused: { label: "Refused", tone: "danger" },
+  rejected: { label: "Rejected", tone: "danger" },
+  failed: { label: "Failed", tone: "danger" },
+  void: { label: "Void", tone: "neutral" },
+  refunded: { label: "Refunded", tone: "neutral" },
+});
 
-export type FinanceStatus = keyof typeof STATUS_TONES;
+export type FinanceStatus = StatusKey<typeof FINANCE_STATUS>;
 
 export interface StatusBadgeProps {
   /** A known status (`draft`, `sent`, `paid`, `overdue`…) or any word with its `tone`. */
@@ -85,7 +86,8 @@ export interface StatusBadgeProps {
 
 /** The state of an invoice, a quote, an expense or an order, in a word with a light. */
 export function StatusBadge({ status, tone, label, className }: StatusBadgeProps) {
-  const known = (STATUS_TONES as Record<string, StatusBadgeProps["tone"]>)[status.toLowerCase()];
+  const key = status.toLowerCase();
+  const known = FINANCE_STATUS.has(key) ? FINANCE_STATUS.tone(key) : undefined;
   const text = label ?? status.charAt(0).toUpperCase() + status.slice(1);
   return (
     <Badge tone={tone ?? known ?? "neutral"} dot {...(className ? { className } : {})}>

@@ -1,32 +1,64 @@
-import type { ReactNode } from "react";
+import { useRender } from "@base-ui/react/use-render";
+import { isValidElement, type ComponentProps, type ReactNode } from "react";
 import { cx } from "./cx";
 import { Led } from "./led";
 
-export interface BadgeProps {
+export interface BadgeProps extends Omit<ComponentProps<"span">, "children"> {
   tone?: "neutral" | "strong" | "success" | "warning" | "danger";
+  /** shadcn's name for the look; takes the place of `tone` when given. */
+  variant?: "default" | "secondary" | "destructive" | "outline";
   /** A square LED before the text, in the tone's color (states). */
   dot?: boolean;
   /** An identifier (v1.4.0, crm.contacts.list): its case is kept, where a badge is set in capitals. */
   mono?: boolean;
+  /** shadcn's `asChild`: the one child element (a link) becomes the badge. */
+  asChild?: boolean;
   className?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
-/** Short mono label in capitals: interface, status, role. */
-export function Badge({ tone = "neutral", dot, mono, className, children }: BadgeProps) {
-  return (
-    <span
-      className={cx(
-        "fg-badge",
-        tone !== "neutral" && `fg-badge-${tone}`,
-        mono && "fg-badge-mono",
-        className,
-      )}
-    >
-      {dot ? <Led tone="current" /> : null}
-      {children}
-    </span>
-  );
+const VARIANT_CLASS = {
+  default: "fg-badge-strong",
+  secondary: "fg-badge-secondary",
+  destructive: "fg-badge-danger",
+  outline: undefined,
+} as const;
+
+/** Short mono label in capitals: interface, status, role. Takes `tone` or shadcn's `variant`. */
+export function Badge({
+  tone = "neutral",
+  variant,
+  dot,
+  mono,
+  asChild,
+  className,
+  children,
+  ...rest
+}: BadgeProps) {
+  const look = variant
+    ? VARIANT_CLASS[variant]
+    : tone !== "neutral"
+      ? `fg-badge-${tone}`
+      : undefined;
+  const child = asChild && isValidElement(children);
+  return useRender({
+    defaultTagName: "span",
+    render: child ? children : undefined,
+    props: {
+      ...rest,
+      className: cx("fg-badge", look, mono && "fg-badge-mono", className),
+      ...(child
+        ? {}
+        : {
+            children: (
+              <>
+                {dot ? <Led tone="current" /> : null}
+                {children}
+              </>
+            ),
+          }),
+    },
+  });
 }
 
 /**

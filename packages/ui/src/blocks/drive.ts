@@ -37,8 +37,8 @@ export type {
 } from "./drive-file-browser";
 export { SelectionBar } from "./drive-selection-bar";
 export type { SelectionBarProps } from "./drive-selection-bar";
-export { acceptsFile, DropZone, UploadQueue, uploadSummary } from "./drive-upload";
-export type { DropZoneProps, UploadItem, UploadQueueProps, UploadStatus } from "./drive-upload";
+export { UploadQueue, uploadSummary } from "./drive-upload";
+export type { UploadItem, UploadQueueProps, UploadStatus } from "./drive-upload";
 export { StorageMeter } from "./drive-storage-meter";
 export type { StorageMeterProps, StoragePart } from "./drive-storage-meter";
 export { FilePreview } from "./drive-file-preview";

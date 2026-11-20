@@ -3,6 +3,7 @@
 // time-off request or a publication all read as a chain of steps with people in them.
 
 import type { IconDefinition } from "@forgeron/icons";
+import { moveById as sortableMoveById, moveItem as sortableMoveItem } from "../sortable-model";
 import {
   Calendar01Icon,
   CheckmarkSquare01Icon,
@@ -188,15 +189,7 @@ export function isOverdue(due: string | undefined, today: string, status: Approv
 /* ---------------------------------------------------------------- editing a list */
 
 /** A copy of `list` with the item at `from` moved to `to`; out of range, the list as it is. */
-export function moveItem<T>(list: ReadonlyArray<T>, from: number, to: number): T[] {
-  if (from < 0 || from >= list.length || to < 0 || to >= list.length || from === to) {
-    return [...list];
-  }
-  const next = [...list];
-  const [item] = next.splice(from, 1);
-  next.splice(to, 0, item as T);
-  return next;
-}
+export const moveItem = sortableMoveItem;
 
 /** The item with `id` moved by `delta` places (-1 up, +1 down). */
 export function moveById<T extends { id: string }>(
@@ -205,8 +198,7 @@ export function moveById<T extends { id: string }>(
   delta: number,
 ): T[] {
   const from = list.findIndex((x) => x.id === id);
-  if (from < 0) return [...list];
-  return moveItem(list, from, Math.min(Math.max(from + delta, 0), list.length - 1));
+  return sortableMoveById(list, (x) => x.id, id, from + delta);
 }
 
 /** Adds a person to a step, unless they are already somewhere in the chain. */

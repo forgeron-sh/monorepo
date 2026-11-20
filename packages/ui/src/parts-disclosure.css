@@ -1,0 +1,121 @@
+/* shadcn parts of the "disclosure" group (D-156). */
+
+.fg-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Collapsible, composed */
+.fg-collapsible-content {
+  color: var(--ink-muted);
+  font: 400 13px/20px var(--font-sans);
+}
+
+/* Breadcrumb, composed */
+.fg-crumb-ellipsis {
+  min-width: 24px;
+  justify-content: center;
+}
+.fg-crumbs li.fg-crumb-sep {
+  padding: 0 2px;
+}
+
+/* Pagination */
+.fg-pagination {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.fg-pagination-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-pagination .fg-btn {
+  text-decoration: none;
+}
+.fg-pagination-step {
+  gap: var(--space-2);
+}
+.fg-pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+}
+
+/* ScrollArea */
+.fg-scroll {
+  position: relative;
+  overflow: hidden;
+}
+.fg-scroll-viewport {
+  width: 100%;
+  height: 100%;
+  overscroll-behavior: contain;
+  outline: none;
+}
+.fg-scroll-viewport:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: -2px;
+}
+.fg-scrollbar {
+  display: flex;
+  touch-action: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity var(--motion-fast) steps(3, end);
+}
+.fg-scrollbar[data-hovering],
+.fg-scrollbar[data-scrolling] {
+  opacity: 1;
+}
+.fg-scrollbar[data-orientation="vertical"] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 10px;
+  padding: 1px;
+  border-left: var(--border-width) solid var(--line);
+}
+.fg-scrollbar[data-orientation="horizontal"] {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 10px;
+  padding: 1px;
+  flex-direction: column;
+  border-top: var(--border-width) solid var(--line);
+}
+.fg-scroll-thumb {
+  flex: 1;
+  background: var(--line-strong);
+}
+.fg-scroll-thumb:hover {
+  background: var(--ink-dim);
+}
+.fg-scroll-corner {
+  background: transparent;
+}
+
+/* HoverCard */
+.fg-hover-card {
+  width: 256px;
+  max-width: calc(100vw - 16px);
+  padding: var(--space-3);
+}

@@ -64,13 +64,8 @@ export type {
   QuestionTypeInfo,
   SummaryBucket,
 } from "./forms-model";
-export { AddressField, MatrixField, RankingField } from "./forms-fields";
-export type {
-  AddressFieldProps,
-  AddressPart,
-  MatrixFieldProps,
-  RankingFieldProps,
-} from "./forms-fields";
+export { MatrixField, RankingField } from "./forms-fields";
+export type { MatrixFieldProps, RankingFieldProps } from "./forms-fields";
 export { QuestionCard } from "./forms-question-card";
 export type { QuestionCardProps } from "./forms-question-card";
 export { FormBuilder } from "./forms-builder";

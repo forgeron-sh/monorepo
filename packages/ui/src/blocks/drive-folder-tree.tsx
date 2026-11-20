@@ -1,14 +1,15 @@
-// The folders of a drive as a tree: the WAI-ARIA tree pattern (arrows, Home, End, typeahead,
-// Enter), children loaded on first opening, and folders that take a drop of files or of items
-// dragged from a FileBrowser. The same tree picks a destination in the MoveDialog.
+// The folders of a drive as a tree, on the Tree primitive (arrows, Home, End, typeahead, Enter):
+// children loaded on first opening, and folders that take a drop of files or of items dragged
+// from a FileBrowser. The same tree picks a destination in the MoveDialog.
 
 import type { IconDefinition } from "@forgeron/icons";
-import { ArrowRight01Icon, Folder01Icon, LockIcon } from "@forgeron/icons";
-import { useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { Folder01Icon, LockIcon } from "@forgeron/icons";
+import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import { cx } from "../cx";
 import { Spinner } from "../feedback";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
+import { Tree, TreeGroup, TreeItem, TreeItemContent } from "../tree";
 import { isDriveDrag, readDriveDrop, type DriveDrop } from "./drive-parts";
 
 export interface FolderNode {
@@ -52,29 +53,8 @@ export interface FolderTreeProps {
   className?: string;
 }
 
-interface Visible {
-  node: FolderNode;
-  level: number;
-  parent: string | null;
-}
-
 const isLoaded = (n: FolderNode) => n.children !== undefined;
 const isBranch = (n: FolderNode) => (n.children ? n.children.length > 0 : !!n.hasChildren);
-
-/** The folders shown, in order, with their depth: the closed ones' children are left out. */
-function flatten(
-  nodes: ReadonlyArray<FolderNode>,
-  open: ReadonlySet<string>,
-  level = 1,
-  parent: string | null = null,
-  out: Visible[] = [],
-): Visible[] {
-  for (const node of nodes) {
-    out.push({ node, level, parent });
-    if (open.has(node.id) && node.children) flatten(node.children, open, level + 1, node.id, out);
-  }
-  return out;
-}
 
 /** The ids of the folders on the way to `id`, outermost first, `id` excluded; null when absent. */
 export function folderPath(nodes: ReadonlyArray<FolderNode>, id: string): string[] | null {
@@ -127,112 +107,33 @@ export function FolderTree({
       if (id !== null) onSelectedChange?.(id);
     },
   });
-  const [focusId, setFocusId] = useState<string | null>(null);
   const [loading, setLoading] = useState<ReadonlySet<string>>(new Set());
   const [over, setOver] = useState<string | null>(null);
-  const root = useRef<HTMLUListElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const open = new Set(openIds);
   const disabled = new Set(disabledIds);
-  const visible = flatten(folders, open);
-  const ids = visible.map((v) => v.node.id);
-  const stop =
-    (focusId && ids.includes(focusId) && focusId) ||
-    (current && ids.includes(current) && current) ||
-    ids[0];
 
-  const focusItem = (id: string) => {
-    setFocusId(id);
-    const items = root.current?.querySelectorAll<HTMLElement>("[data-folder]") ?? [];
-    Array.from(items)
-      .find((el) => el.dataset.folder === id)
-      ?.focus();
-  };
-
-  const setOpen = (node: FolderNode, next: boolean) => {
-    if (next === open.has(node.id)) return;
-    setOpenIds(next ? [...open, node.id] : [...open].filter((x) => x !== node.id));
-    if (next && !isLoaded(node) && node.hasChildren && onLoadChildren && !loading.has(node.id)) {
-      const wait = onLoadChildren(node.id);
-      if (wait && typeof (wait as Promise<unknown>).then === "function") {
-        setLoading((s) => new Set(s).add(node.id));
-        const done = () =>
-          setLoading((s) => {
-            const n = new Set(s);
-            n.delete(node.id);
-            return n;
-          });
-        (wait as Promise<unknown>).then(done, done);
-      }
+  const load = (node: FolderNode | null) => {
+    if (!node || isLoaded(node) || !node.hasChildren || !onLoadChildren || loading.has(node.id))
+      return;
+    const wait = onLoadChildren(node.id);
+    if (wait && typeof (wait as Promise<unknown>).then === "function") {
+      setLoading((s) => new Set(s).add(node.id));
+      const done = () =>
+        setLoading((s) => {
+          const n = new Set(s);
+          n.delete(node.id);
+          return n;
+        });
+      (wait as Promise<unknown>).then(done, done);
     }
   };
 
-  const choose = (id: string) => {
-    if (!disabled.has(id)) select(id);
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
-    const el = (event.target as HTMLElement).closest<HTMLElement>("[data-folder]");
-    if (!el) return;
-    const at = ids.indexOf(el.dataset.folder!);
-    const item = visible[at];
-    if (!item) return;
-    const { node } = item;
-    const move = (to: number) => {
-      const next = ids[Math.min(Math.max(to, 0), ids.length - 1)];
-      if (next) focusItem(next);
-    };
-    switch (event.key) {
-      case "ArrowDown":
-        move(at + 1);
-        break;
-      case "ArrowUp":
-        move(at - 1);
-        break;
-      case "Home":
-        move(0);
-        break;
-      case "End":
-        move(ids.length - 1);
-        break;
-      case "ArrowRight":
-        if (!isBranch(node)) break;
-        if (!open.has(node.id)) setOpen(node, true);
-        else if (visible[at + 1]?.parent === node.id) move(at + 1);
-        break;
-      case "ArrowLeft":
-        if (isBranch(node) && open.has(node.id)) setOpen(node, false);
-        else if (item.parent) focusItem(item.parent);
-        break;
-      case "Enter":
-        choose(node.id);
-        if (!disabled.has(node.id)) onOpen?.(node.id);
-        break;
-      case " ":
-        choose(node.id);
-        break;
-      case "*":
-        // Opens every sibling of the folder, as in a file manager.
-        setOpenIds([
-          ...open,
-          ...visible
-            .filter((v) => v.parent === item.parent && isBranch(v.node))
-            .map((v) => v.node.id),
-        ]);
-        break;
-      default: {
-        if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey) return;
-        // Typeahead: the next folder whose name starts with the letter.
-        const ch = event.key.toLowerCase();
-        const order = [...visible.slice(at + 1), ...visible.slice(0, at + 1)];
-        const hit = order.find((v) => v.node.name.toLowerCase().startsWith(ch));
-        if (hit) focusItem(hit.node.id);
-        else return;
-      }
-    }
-    event.preventDefault();
-    event.stopPropagation();
+  // The tree says which folders are open now; the ones that just opened may need their children.
+  const applyOpen = (ids: string[]) => {
+    setOpenIds(ids);
+    for (const id of ids) if (!open.has(id)) load(findFolder(folders, id));
   };
 
   const dropAllowed = (node: FolderNode) =>
@@ -258,7 +159,7 @@ export function FolderTree({
               clearHover();
               // A closed folder opens after a moment under the pointer, to drop deeper.
               if (isBranch(node) && !open.has(node.id))
-                hoverTimer.current = setTimeout(() => setOpen(node, true), 700);
+                hoverTimer.current = setTimeout(() => applyOpen([...open, node.id]), 700);
             }
           },
           onDragLeave: (e: DragEvent) => {
@@ -278,64 +179,34 @@ export function FolderTree({
       : {};
 
   const renderLevel = (nodes: ReadonlyArray<FolderNode>, level: number): ReactNode =>
-    nodes.map((node, i) => {
+    nodes.map((node) => {
       const branch = isBranch(node);
       const isOpen = branch && open.has(node.id);
       const off = disabled.has(node.id);
       const waiting = isOpen && (loading.has(node.id) || !isLoaded(node));
       return (
-        <li
+        <TreeItem
           key={node.id}
-          role="treeitem"
+          id={node.id}
+          textValue={node.name}
+          disabled={off}
+          hasChildren={branch}
           data-folder={node.id}
-          aria-level={level}
-          aria-setsize={nodes.length}
-          aria-posinset={i + 1}
-          aria-selected={current === node.id}
-          {...(branch ? { "aria-expanded": isOpen } : {})}
-          {...(off ? { "aria-disabled": true } : {})}
-          tabIndex={node.id === stop ? 0 : -1}
-          className="fg-ftree-item"
-          onFocus={(e) => {
-            if (e.target === e.currentTarget) setFocusId(node.id);
-          }}
         >
-          <div
-            className={cx(
-              "fg-ftree-row",
-              current === node.id && "fg-ftree-current",
-              off && "fg-ftree-off",
-              over === node.id && "fg-ftree-over",
-            )}
-            style={{ paddingLeft: `calc(${level - 1} * var(--fg-ftree-indent, 16px) + 4px)` }}
-            onClick={() => {
-              focusItem(node.id);
-              choose(node.id);
-            }}
+          <TreeItemContent
+            className={cx("fg-ftree-row", over === node.id && "fg-ftree-over")}
             onDoubleClick={() => {
               if (!off) onOpen?.(node.id);
             }}
             {...dragProps(node)}
           >
-            <span
-              className={cx("fg-ftree-twisty", isOpen && "fg-ftree-twisty-open")}
-              aria-hidden="true"
-              onClick={(e) => {
-                if (!branch) return;
-                e.stopPropagation();
-                setOpen(node, !isOpen);
-                focusItem(node.id);
-              }}
-            >
-              {branch ? <Icon icon={ArrowRight01Icon} size={12} variant="mono" /> : null}
-            </span>
             <Icon
               icon={node.icon ?? Folder01Icon}
               size={12}
               variant="mono"
-              className="fg-ftree-icon"
+              className="fg-tree-icon"
             />
-            <span className="fg-ftree-name">{node.name}</span>
+            <span className="fg-tree-name">{node.name}</span>
             {node.readOnly ? (
               <Icon
                 icon={LockIcon}
@@ -345,34 +216,36 @@ export function FolderTree({
                 title="Read-only"
               />
             ) : null}
-          </div>
+          </TreeItemContent>
           {isOpen ? (
             waiting ? (
               <div
                 className="fg-ftree-loading"
-                style={{ paddingLeft: `calc(${level} * var(--fg-ftree-indent, 16px) + 24px)` }}
+                style={{ paddingLeft: `calc(${level} * var(--fg-tree-indent, 16px) + 24px)` }}
               >
                 <Spinner label="Loading" />
               </div>
             ) : (
-              <ul role="group" className="fg-ftree-group">
-                {renderLevel(node.children ?? [], level + 1)}
-              </ul>
+              <TreeGroup>{renderLevel(node.children ?? [], level + 1)}</TreeGroup>
             )
           ) : null}
-        </li>
+        </TreeItem>
       );
     });
 
   return (
-    <ul
-      ref={root}
-      role="tree"
+    <Tree
       aria-label={label}
       className={cx("fg-ftree", className)}
-      onKeyDown={onKeyDown}
+      expanded={openIds}
+      onExpandedChange={applyOpen}
+      selected={current ? [current] : []}
+      onSelectedChange={(ids) => {
+        if (ids[0] !== undefined) select(ids[0]);
+      }}
+      onActivate={(id) => onOpen?.(id)}
     >
       {renderLevel(folders, 1)}
-    </ul>
+    </Tree>
   );
 }

@@ -15,8 +15,9 @@ import { NumberInput } from "../numbers";
 import { DatePicker, SelectMenu } from "../overlays";
 import { Rating, Scale } from "../rating";
 import { TimePicker } from "../time";
-import { SignaturePad, type SignatureValue } from "./approval-signature-pad";
-import { AddressField, MatrixField, RankingField, type AddressPart } from "./forms-fields";
+import { SignaturePad, type SignatureValue } from "../signature-pad";
+import { AddressField, type AddressPart } from "../address-field";
+import { MatrixField, RankingField } from "./forms-fields";
 import {
   cleanFormAnswers,
   formAnswerText,

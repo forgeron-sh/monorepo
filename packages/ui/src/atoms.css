@@ -115,6 +115,21 @@
   border-color: var(--danger);
   background: var(--danger-subtle);
 }
+.fg-btn-link {
+  height: auto;
+  padding: 0;
+  border-color: transparent;
+  color: var(--accent);
+}
+.fg-btn-link:hover {
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fg-btn-icon {
+  width: 32px;
+  padding: 0;
+}
 .fg-btn:disabled,
 .fg-btn[aria-disabled="true"] {
   cursor: not-allowed;
@@ -1324,6 +1339,34 @@ a.fg-crumb:focus-visible {
 .fg-pop-tick {
   display: inline-grid;
   color: var(--ink);
+}
+/* The shadcn parts (D-156): headings, separators, inset and destructive rows in a pop. */
+.fg-pop-row > .fg-pop-hint {
+  margin-left: auto;
+}
+.fg-pop-heading {
+  padding: 8px 8px 4px;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fg-pop-sep {
+  height: var(--border-width);
+  margin: 4px -4px;
+  background: var(--line);
+}
+.fg-pop-danger,
+.fg-pop-danger[data-highlighted] {
+  color: var(--danger);
+}
+.fg-pop-inset {
+  position: relative;
+  padding-left: 28px;
+}
+.fg-pop-mark {
+  position: absolute;
+  left: 8px;
 }
 .fg-selm-popup {
   min-width: max(200px, var(--anchor-width));

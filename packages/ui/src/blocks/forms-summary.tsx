@@ -3,7 +3,7 @@
 // how many skipped. Conditional questions are counted only for the people who were shown them.
 
 import { useId, useState } from "react";
-import { BarChart } from "../bar-chart";
+import { BarChart } from "../charts/bar-chart";
 import { Button } from "../button";
 import { Switch } from "../controls";
 import { CopyBlock } from "../copy-block";

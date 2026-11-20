@@ -101,70 +101,6 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "rich-composer",
-    name: "Rich composer",
-    summary:
-      "A box to write: @ and # pickers, a slash hook, markdown keys, files, preview, a reply bar, your send key.",
-    imports: [
-      "RichComposer",
-      "applyConversationFormat",
-      "findMentionTrigger",
-      "insertMention",
-      "parseMentions",
-    ],
-    props: [
-      {
-        name: "value / defaultValue / onChange",
-        type: "string",
-        description: "The draft. Uncontrolled, it empties once sent.",
-      },
-      {
-        name: "onSend",
-        type: "({ text, attachments, mentions, replyToId }) => void",
-        description: "On the button and the send key. Mentions are written @[Label](id) in text.",
-      },
-      {
-        name: "sendOn",
-        type: '"mod-enter" | "enter"',
-        default: '"mod-enter"',
-        description: "⌘↵ sends and Enter is a line; or Enter sends and ⇧↵ is a line.",
-      },
-      {
-        name: "triggers",
-        type: "{ char, label, options, atLineStart?, filter?, loading?, limit?, empty? }[]",
-        description:
-          "The pickers: @ for people, # for records, / (atLineStart) for commands. An option is { id, label, hint?, avatar?, insert? }; insert replaces the token (a command's text).",
-      },
-      {
-        name: "onTrigger",
-        type: "({ char, query } | null) => void",
-        description:
-          "The slash hook, and the way to load options from a server (set filter: false, loading, and pass the answer as options).",
-      },
-      {
-        name: "replyTo / onCancelReply",
-        type: "{ id, author, text } | null; () => void",
-        description: "A bar above the box; Escape cancels it.",
-      },
-      {
-        name: "attachments / onAttachmentsChange / attachmentOptions",
-        type: "File[]; (files) => void; false | { accept, maxSize, maxFiles, onReject }",
-        description: "Files go through FileInput behind the paperclip.",
-      },
-      {
-        name: "toolbar / maxRows / label / placeholder / sendLabel / onTyping",
-        type: "boolean; number; string; string; string; () => void",
-        description: "Bold (⌘B), italic (⌘I), code (⌘E), list (⌘⇧L), preview; grows to maxRows.",
-      },
-      {
-        name: "disabled / readOnly / readOnlyText",
-        type: "boolean; boolean; ReactNode",
-        description: "Locked states.",
-      },
-      className,
-    ],
-  },
-  {
     slug: "mention-picker",
     name: "Mention picker",
     summary: "The list that opens under a trigger typed in a box: the focus stays in the box.",
@@ -202,32 +138,6 @@ export const entries: ReadonlyArray<Atom> = [
         type: "{ top, left }; above | below",
         description:
           "px in a positioned parent; conversationCaretPosition(textarea, index) measures the caret.",
-      },
-      className,
-    ],
-  },
-  {
-    slug: "emoji-picker",
-    name: "Emoji picker",
-    summary:
-      "Search, categories, recents and a grid moved with the arrows. Emoji are user content.",
-    imports: ["EmojiPicker", "CONVERSATION_EMOJI", "searchConversationEmoji", "pushRecentEmoji"],
-    props: [
-      { name: "onSelect", type: "(emoji: string) => void", description: "The character chosen." },
-      {
-        name: "categories",
-        type: "{ id, label, mark, emoji: { char, name, keywords? }[] }[]",
-        description: "Your own set. The built-in one is small on purpose.",
-      },
-      {
-        name: "recents / defaultRecents / onRecentsChange",
-        type: "string[]",
-        description: "Newest first; kept by the picker unless you keep them (to store them).",
-      },
-      {
-        name: "columns / maxRecents / autoFocus / label",
-        type: "number; number; boolean; string",
-        description: "Layout and words.",
       },
       className,
     ],
@@ -414,6 +324,75 @@ export const entries: ReadonlyArray<Atom> = [
         type: '"list" | "grid"; string',
         description: "Rows, or tiles for pictures.",
       },
+      className,
+    ],
+  },
+  {
+    slug: "inline-comments",
+    name: "Inline comments",
+    summary: "Threads in the margin, each beside the block or text range it is about.",
+    imports: [
+      "InlineComments",
+      "inlineCommentAnchorTop",
+      "structureRebaseAnchor",
+      "structureLayoutThreads",
+    ],
+    props: [
+      {
+        name: "threads",
+        type: "InlineThread[]",
+        description:
+          "{ id, anchor, status: 'open' | 'resolved', comments: { id, author, avatar?, at, body }[] }. anchor: { kind: 'block', blockId } or { kind: 'range', blockId, start, end, quote? }.",
+      },
+      {
+        name: "anchorsIn",
+        type: "string | RefObject | HTMLElement",
+        description:
+          "The element of the document whose [data-block-id] children are the blocks. The cards sit beside their anchors, and move when the document changes.",
+      },
+      {
+        name: "measure",
+        type: "(anchor) => number | null",
+        description: "Where an anchor is (px from the top of the margin), instead of anchorsIn.",
+      },
+      {
+        name: "layout",
+        type: `"margin" | "stack"`,
+        default: `"margin"`,
+        description: "Beside the anchors, or one under the other.",
+      },
+      {
+        name: "filter / defaultFilter / onFilterChange",
+        type: `"open" | "resolved" | "all"`,
+        default: `"open"`,
+        description: "Which threads.",
+      },
+      {
+        name: "active / defaultActive / onActiveChange",
+        type: "string | null",
+        description: "The thread in front: it stays on its anchor and the others make room.",
+      },
+      {
+        name: "onReply",
+        type: "(threadId, text, mentions) => void",
+        description: "From the box under a thread.",
+      },
+      {
+        name: "onResolve / onReopen",
+        type: "(threadId) => void",
+        description: "The thread's buttons.",
+      },
+      {
+        name: "draft / onCreate / onCancelDraft",
+        type: "StructureAnchor | null; (anchor, text, mentions) => void",
+        description: "A selection to comment on: a card with a box at that place.",
+      },
+      {
+        name: "mentions",
+        type: "MentionOption[]",
+        description: "The people @ offers in the boxes (RichComposer).",
+      },
+      { name: "gap", type: "number", default: "8", description: "Space between two cards." },
       className,
     ],
   },

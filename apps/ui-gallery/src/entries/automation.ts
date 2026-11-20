@@ -222,58 +222,6 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "expression-input",
-    name: "Expression input",
-    summary:
-      "Text that takes {{ references }} to earlier steps: picked as they are typed, shown as chips.",
-    imports: ["ExpressionInput", "variablesFromSample"],
-    props: [
-      {
-        name: "value / defaultValue / onChange",
-        type: "string",
-        description: "The text, references included.",
-      },
-      variables,
-      { name: "multiline / rows", type: "boolean / number", description: "A textarea." },
-      {
-        name: "sample",
-        type: "unknown",
-        description: "Data of a test run: the line under the field says what the text becomes.",
-      },
-      { name: "id, aria-*", type: "string", description: "From Field, to tie it to its label." },
-      { name: "placeholder / disabled", type: "…", description: "As on an input." },
-      className,
-    ],
-  },
-  {
-    slug: "condition-builder",
-    name: "Condition builder",
-    summary: "Field, operator and value rows joined by and / or, with groups; said in one line.",
-    imports: ["ConditionBuilder", "describeCondition", "evaluateCondition"],
-    props: [
-      {
-        name: "value / defaultValue / onChange",
-        type: "{ id, combinator, rules: (Rule | Group)[] }",
-        description: "A rule is { id, field, operator, value? }.",
-      },
-      {
-        name: "fields",
-        type: "{ id, label, type, options?, icon? }[]",
-        description:
-          "type: text, number, date, boolean, enum. The operators and the value follow it.",
-      },
-      { ...variables, description: "Given, text and number values take {{ references }}." },
-      {
-        name: "maxDepth",
-        type: "number",
-        default: "2",
-        description: "How deep groups go; 1: no group.",
-      },
-      readOnly,
-      className,
-    ],
-  },
-  {
     slug: "schedule-editor",
     name: "Schedule editor",
     summary:
@@ -363,24 +311,6 @@ export const entries: ReadonlyArray<Atom> = [
         type: "ReactNode",
         description: "End of the header: replay, open in editor.",
       },
-      className,
-    ],
-  },
-  {
-    slug: "json-view",
-    name: "JSON view",
-    summary: "Input or output data in mono, coloured by kind; scrolls, copies.",
-    imports: ["JsonView"],
-    props: [
-      { name: "value", type: "unknown", description: "Any JSON value; undefined shows empty." },
-      { name: "label", type: "string", description: "Above it, and its name." },
-      {
-        name: "maxHeight",
-        type: `number | "none"`,
-        default: "320",
-        description: "Then it scrolls.",
-      },
-      { name: "copyable", type: "boolean", default: "true", description: "The copy button." },
       className,
     ],
   },

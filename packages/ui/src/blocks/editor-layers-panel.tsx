@@ -1,4 +1,4 @@
-// The layers of a canvas as a tree: groups that fold, a visibility and a lock on each layer, a name
+// The layers of a canvas as a flat tree on the Tree primitive: groups that fold, a visibility and a lock on each layer, a name
 // you rename in place, a selection of several. Reorder by dragging (before, after or into a group)
 // or with Alt and the arrows; the tree is plain data the editor owns.
 
@@ -13,29 +13,21 @@ import {
   ViewIcon,
   ViewOffSlashIcon,
 } from "@forgeron/icons";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type DragEvent,
-  type KeyboardEvent,
-  type MouseEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
+import { useSortable } from "../sortable";
+import { focusTreeItem, Tree, TreeItem } from "../tree";
 import {
   editorDescendantIds,
   editorDropLayer,
-  editorDropPlace,
   editorFindLayer,
   editorFlattenLayers,
   editorIndentLayer,
   editorIsGroup,
   editorOutdentLayer,
   editorReorderLayer,
-  editorSelectLayers,
   editorUpdateLayer,
   type EditorLayer,
   type EditorLayerRow,
@@ -68,8 +60,6 @@ export interface LayersPanelProps {
 }
 
 const MARK_OF = (layer: EditorLayer) => (editorIsGroup(layer) ? FolderClosedIcon : Square01Icon);
-
-type DropState = { id: string; place: "before" | "inside" | "after" } | null;
 
 /** The layers of a canvas: nested, selectable, renamable, reorderable by drag or keyboard. */
 export function LayersPanel({
@@ -105,36 +95,18 @@ export function LayersPanel({
   });
 
   const rows = editorFlattenLayers(tree, new Set(folded));
-  const list = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState<string | null>(null);
-  const [anchor, setAnchor] = useState<string | null>(null);
+  const list = useRef<HTMLElement>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [drop, setDrop] = useState<DropState>(null);
-  const [said, setSaid] = useState("");
   const focusId = useRef<string | null>(null);
-
-  const tabId = rows.some((r) => r.layer.id === active) ? active : (rows[0]?.layer.id ?? null);
 
   // After a move or a fold, the focus follows the row.
   useEffect(() => {
     const id = focusId.current;
     if (!id) return;
     focusId.current = null;
-    list.current?.querySelector<HTMLElement>(`[data-lid="${CSS.escape(id)}"]`)?.focus();
+    focusTreeItem(list.current, id);
   });
-
-  const focusRow = (id: string) => {
-    setActive(id);
-    list.current?.querySelector<HTMLElement>(`[data-lid="${CSS.escape(id)}"]`)?.focus();
-  };
-
-  const select = (row: EditorLayerRow, mode: "replace" | "toggle" | "range") => {
-    const next = editorSelectLayers(rows, picked, row.layer.id, mode, anchor);
-    setPicked(next);
-    if (mode !== "range") setAnchor(row.layer.id);
-  };
 
   const toggleFold = (id: string, open?: boolean) => {
     const isFolded = folded.includes(id);
@@ -142,16 +114,63 @@ export function LayersPanel({
     else if (!isFolded) setFolded([...folded, id]);
   };
 
+  // The tree says which groups are open now; the panel keeps the ones that are folded.
+  const setExpanded = (ids: string[]) => {
+    const on = new Set(ids);
+    const next = folded.filter((f) => !on.has(f));
+    for (const r of rows) {
+      if (editorIsGroup(r.layer) && !on.has(r.layer.id) && !next.includes(r.layer.id))
+        next.push(r.layer.id);
+    }
+    setFolded(next);
+  };
+
   const patch = (id: string, change: Partial<Omit<EditorLayer, "id" | "children">>) => {
     if (readOnly) return;
     setTree(editorUpdateLayer(tree, id, change));
   };
 
+  // Whatever the dragged layer holds cannot take it.
+  const forbiddenFor = (dragId: string) => {
+    const dragged = editorFindLayer(tree, dragId)?.layer;
+    return new Set(dragged ? [dragged.id, ...editorDescendantIds(dragged)] : []);
+  };
+  const rowOf = (id: string) => rows.find((r) => r.layer.id === id);
+  const sortable = useSortable({
+    items: rows,
+    getId: (row) => row.layer.id,
+    getLabel: (row) => row.layer.name,
+    // A tree moves by its own keys (below): Alt + arrows reorder, indent and outdent.
+    keyboard: false,
+    disabled: (id) => {
+      const row = rowOf(id);
+      return (
+        !row ||
+        readOnly === true ||
+        row.layer.locked === true ||
+        row.lockedByParent ||
+        renaming === id
+      );
+    },
+    nest: (id) => {
+      const row = rowOf(id);
+      return row !== undefined && editorIsGroup(row.layer);
+    },
+    nestRange: [0.28, 0.72],
+    canDrop: (dragId, overId) => !forbiddenFor(dragId).has(overId),
+    onItemDrop: ({ id, overId, position }) => {
+      const row = rowOf(overId);
+      if (!row) return;
+      const next = editorDropLayer(tree, id, row, position);
+      if (position === "inside") toggleFold(overId, true);
+      commitTree(next, id);
+    },
+  });
+
   const commitTree = (next: ReadonlyArray<EditorLayer>, id: string) => {
     if (next === tree) return;
     setTree(next);
     focusId.current = id;
-    setActive(id);
     const at = editorFindLayer(next, id);
     const layer = at?.layer;
     if (layer && at) {
@@ -159,7 +178,7 @@ export function LayersPanel({
         at.parentId === null
           ? next.length
           : (editorFindLayer(next, at.parentId)?.layer.children?.length ?? 0);
-      setSaid(`${layer.name} moved to position ${at.index + 1} of ${siblings}.`);
+      sortable.announce(`${layer.name} moved to position ${at.index + 1} of ${siblings}.`);
     }
   };
 
@@ -178,11 +197,15 @@ export function LayersPanel({
     setRenaming(null);
     focusId.current = id;
     if (keep && name !== "") patch(id, { name });
-    else focusRow(id);
+    else focusTreeItem(list.current, id);
   };
 
-  const onKey = (event: KeyboardEvent<HTMLDivElement>, row: EditorLayerRow, i: number) => {
-    if (event.target !== event.currentTarget) return;
+  // What the tree does not know: Alt + arrows reorder, F2 renames, H hides, L locks.
+  const onKey = (event: KeyboardEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.getAttribute("role") !== "treeitem") return;
+    const row = rows.find((r) => r.layer.id === target.dataset.lid);
+    if (!row) return;
     const id = row.layer.id;
     const { key } = event;
     const mod = event.metaKey || event.ctrlKey;
@@ -216,38 +239,9 @@ export function LayersPanel({
       return;
     }
 
-    if (key === "ArrowDown" || key === "ArrowUp") {
-      event.preventDefault();
-      const to = rows[i + (key === "ArrowDown" ? 1 : -1)];
-      if (!to) return;
-      focusRow(to.layer.id);
-      if (event.shiftKey) select(to, "range");
-    } else if (key === "Home" || key === "End") {
-      event.preventDefault();
-      const to = key === "Home" ? rows[0] : rows[rows.length - 1];
-      if (to) focusRow(to.layer.id);
-    } else if (key === "ArrowRight") {
-      event.preventDefault();
-      if (editorIsGroup(row.layer)) {
-        if (folded.includes(id)) toggleFold(id, true);
-        else if (rows[i + 1]?.parentId === id) focusRow(rows[i + 1]!.layer.id);
-      }
-    } else if (key === "ArrowLeft") {
-      event.preventDefault();
-      if (editorIsGroup(row.layer) && !folded.includes(id)) toggleFold(id, false);
-      else if (row.parentId) focusRow(row.parentId);
-    } else if (key === "Enter") {
-      event.preventDefault();
-      select(row, event.shiftKey ? "range" : mod ? "toggle" : "replace");
-    } else if (key === " ") {
-      event.preventDefault();
-      select(row, event.shiftKey ? "range" : "toggle");
-    } else if (key === "F2") {
+    if (key === "F2") {
       event.preventDefault();
       startRename(row);
-    } else if ((key === "a" || key === "A") && mod) {
-      event.preventDefault();
-      setPicked(rows.map((r) => r.layer.id));
     } else if (!mod && !readOnly && (key === "h" || key === "H")) {
       event.preventDefault();
       patch(id, { visible: row.layer.visible === false });
@@ -257,99 +251,66 @@ export function LayersPanel({
     }
   };
 
-  const onClickRow = (event: MouseEvent<HTMLDivElement>, row: EditorLayerRow) => {
-    if ((event.target as HTMLElement).closest("button, input")) return;
-    setActive(row.layer.id);
-    select(row, event.shiftKey ? "range" : event.metaKey || event.ctrlKey ? "toggle" : "replace");
-  };
-
-  const dragged = dragId ? editorFindLayer(tree, dragId)?.layer : undefined;
-  const forbidden = new Set(dragged ? [dragged.id, ...editorDescendantIds(dragged)] : []);
-
-  const onDragOver = (event: DragEvent<HTMLDivElement>, row: EditorLayerRow) => {
-    if (!dragId || forbidden.has(row.layer.id)) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    const box = event.currentTarget.getBoundingClientRect();
-    const place = editorDropPlace((event.clientY - box.top) / box.height, editorIsGroup(row.layer));
-    if (drop?.id !== row.layer.id || drop.place !== place) setDrop({ id: row.layer.id, place });
-  };
-
-  const onDrop = (event: DragEvent<HTMLDivElement>, row: EditorLayerRow) => {
-    event.preventDefault();
-    if (dragId && drop && !forbidden.has(row.layer.id)) {
-      const next = editorDropLayer(tree, dragId, row, drop.place);
-      if (drop.place === "inside") toggleFold(row.layer.id, true);
-      commitTree(next, dragId);
-    }
-    setDragId(null);
-    setDrop(null);
-  };
-
   if (rows.length === 0 && tree.length === 0) {
     return <p className={cx("fg-edt-layers-empty", className)}>{empty}</p>;
   }
 
   return (
     <div className={cx("fg-edt-layers", className)}>
-      <div
+      <Tree
         ref={list}
-        role="tree"
+        render={<div />}
         aria-label={label}
-        aria-multiselectable="true"
+        selectionMode="multiple"
+        selected={picked}
+        onSelectedChange={(ids) => setPicked(ids)}
+        expanded={rows
+          .filter((r) => editorIsGroup(r.layer) && !folded.includes(r.layer.id))
+          .map((r) => r.layer.id)}
+        onExpandedChange={setExpanded}
+        onKeyDown={onKey}
         className="fg-edt-layers-tree"
       >
-        {rows.map((row, i) => {
+        {rows.map((row) => {
           const { layer } = row;
           const id = layer.id;
           const group = editorIsGroup(layer);
           const isFolded = folded.includes(id);
-          const isSelected = picked.includes(id);
           const hidden = layer.visible === false || row.hiddenByParent;
           const locked = layer.locked === true || row.lockedByParent;
           const canMove = !readOnly && !locked;
           const editing = renaming === id;
           return (
-            <div
+            <TreeItem
               key={id}
-              role="treeitem"
+              id={id}
+              render={<div />}
+              pickOnClick
+              textValue={layer.name}
+              hasChildren={group}
+              level={row.depth + 1}
+              position={row.index + 1}
+              setSize={row.siblings}
               data-lid={id}
-              aria-level={row.depth + 1}
-              aria-posinset={row.index + 1}
-              aria-setsize={row.siblings}
-              aria-selected={isSelected}
-              aria-expanded={group ? !isFolded : undefined}
               aria-label={`${layer.name}${layer.kind ? `, ${layer.kind}` : ""}${hidden ? ", hidden" : ""}${locked ? ", locked" : ""}`}
               aria-description={canMove ? "Alt and the arrows move this layer." : undefined}
-              tabIndex={id === tabId ? 0 : -1}
-              draggable={canMove && !editing}
-              className={cx(
-                "fg-edt-layer",
-                isSelected && "fg-edt-layer-on",
-                hidden && "fg-edt-layer-hidden",
-                dragId === id && "fg-edt-layer-dragging",
-                drop?.id === id && `fg-edt-drop-${drop.place}`,
-              )}
+              {...sortable.getItemProps(id, {
+                className: cx(
+                  "fg-edt-layer",
+                  picked.includes(id) && "fg-edt-layer-on",
+                  hidden && "fg-edt-layer-hidden",
+                  sortable.getItemState(id).dragging && "fg-edt-layer-dragging",
+                  sortable.getItemState(id).over && `fg-edt-drop-${sortable.getItemState(id).over}`,
+                ),
+              })}
               style={{ paddingLeft: 6 + row.depth * 16 }}
-              onFocus={(e) => {
-                if (e.target === e.currentTarget) setActive(id);
+              onClick={(e) => {
+                // Its own buttons and the name field keep their clicks.
+                if ((e.target as HTMLElement).closest("button, input")) e.preventDefault();
               }}
-              onClick={(e) => onClickRow(e, row)}
               onDoubleClick={(e) => {
                 if ((e.target as HTMLElement).closest("button, input")) return;
                 startRename(row);
-              }}
-              onKeyDown={(e) => onKey(e, row, i)}
-              onDragStart={(e) => {
-                setDragId(id);
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", id);
-              }}
-              onDragOver={(e) => onDragOver(e, row)}
-              onDrop={(e) => onDrop(e, row)}
-              onDragEnd={() => {
-                setDragId(null);
-                setDrop(null);
               }}
             >
               {canMove ? (
@@ -433,12 +394,12 @@ export function LayersPanel({
                   variant="mono"
                 />
               </button>
-            </div>
+            </TreeItem>
           );
         })}
-      </div>
+      </Tree>
       <span className="fg-visually-hidden" role="status">
-        {said}
+        {sortable.status}
       </span>
     </div>
   );

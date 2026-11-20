@@ -205,38 +205,6 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "secret-field",
-    name: "Secret field",
-    summary:
-      "A hidden value: fixed-length mask, reveal for a few seconds, copy, replace, remove; set or not set.",
-    imports: ["SecretField", "SECRET_MASK", "SECRET_REVEAL_MS", "secretProblem"],
-    props: [
-      { name: "label", type: "string", description: "Names the secret." },
-      { name: "isSet", type: "boolean", description: "Not set shows a badge and Set value." },
-      {
-        name: "getValue / value",
-        type: "() => string | Promise<string>; string",
-        description:
-          "Where the value comes from, read only on Reveal or Copy. Hidden, it is never in the page.",
-      },
-      {
-        name: "revealTimeout",
-        type: "number",
-        default: "15000",
-        description:
-          "Milliseconds on screen; 0 keeps it until hidden. It also hides when the tab is left.",
-      },
-      { name: "rotatedAt / today", type: "string", description: "“Changed 3 days ago”." },
-      {
-        name: "onReplace",
-        type: "(value) => void | Promise<void>",
-        description: "The new value goes out and is not kept.",
-      },
-      { name: "onRemove / onCopy", type: "() => void", description: "Remove asks a second time." },
-      className,
-    ],
-  },
-  {
     slug: "endpoint-list",
     name: "Endpoint list",
     summary:
@@ -375,6 +343,33 @@ export const entries: ReadonlyArray<Atom> = [
         name: "notice / noun / empty",
         type: "boolean; string; string",
         description: "The retention banner; the word for one item.",
+      },
+      className,
+    ],
+  },
+  {
+    slug: "audit-log",
+    name: "Audit log",
+    summary: "Who did what to which thing, by day. Refusals say so; detail folds open.",
+    imports: ["AuditLog"],
+    props: [
+      {
+        name: "events",
+        type: "{ id, at, actor, actorIcon?, action, target?, outcome?, detail? }[]",
+        description: "Newest first. at: YYYY-MM-DD HH:MM. outcome: ok, denied or failed.",
+      },
+      {
+        name: "today",
+        type: "string",
+        description: "YYYY-MM-DD: its day and the one before read Today and Yesterday.",
+      },
+      { name: "defaultExpanded", type: "string[]", description: "Rows open at first." },
+      { name: "label", type: "string", default: `"Audit log"`, description: "Its name." },
+      {
+        name: "empty",
+        type: "ReactNode",
+        default: `"Nothing happened yet"`,
+        description: "Shown when there is no event.",
       },
       className,
     ],

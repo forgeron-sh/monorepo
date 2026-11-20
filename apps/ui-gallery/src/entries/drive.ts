@@ -153,32 +153,6 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "drop-zone",
-    name: "Drop zone",
-    summary: "Where files land: a framed area with its button, or an overlay over a whole view.",
-    imports: ["DropZone", "acceptsFile"],
-    props: [
-      { name: "onFiles", type: "(files: File[]) => void", description: "The files that match." },
-      { name: "onReject", type: "(files: File[]) => void", description: "The ones left out." },
-      { name: "accept", type: "string", description: "As on an input: .pdf,image/*." },
-      { name: "multiple", type: "boolean", default: "true", description: "Several files." },
-      {
-        name: "title / description / buttonLabel",
-        type: "ReactNode; ReactNode; string",
-        default: `"Drop files here"; —; "Choose files"`,
-        description: "The words of the framed zone.",
-      },
-      {
-        name: "children / overlayLabel",
-        type: "ReactNode",
-        description:
-          "A view to cover: invisible until files are dragged over, then the hatched overlay.",
-      },
-      { name: "disabled", type: "boolean", description: "No drop, no chooser." },
-      className,
-    ],
-  },
-  {
     slug: "upload-queue",
     name: "Upload queue",
     summary: "Each file uploading: progress in blocks, cancel, retry, minimise; the total sent.",

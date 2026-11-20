@@ -132,62 +132,6 @@
   color: var(--ink-dim);
 }
 
-/* BarChart */
-.fg-bars {
-  margin: 0;
-  font: 400 14px/20px var(--font-sans);
-  color: var(--ink);
-}
-.fg-bars-title {
-  margin-bottom: var(--space-3);
-  font: 500 11px/16px var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-.fg-bars-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.fg-bars-row {
-  display: grid;
-  grid-template-columns: minmax(80px, 160px) 1fr auto;
-  align-items: center;
-  gap: var(--space-3);
-}
-.fg-bars-label {
-  overflow: hidden;
-  color: var(--ink-muted);
-  font-size: 13px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.fg-bars-track {
-  height: 16px;
-}
-.fg-bars-fill {
-  --fg-bar: var(--ink-muted);
-  display: block;
-  height: 100%;
-  border-top: 2px solid var(--fg-bar);
-  background: repeating-linear-gradient(180deg, var(--fg-bar) 0 2px, transparent 2px 4px);
-}
-.fg-bars-hi .fg-bars-fill {
-  --fg-bar: var(--accent);
-}
-.fg-bars-hi .fg-bars-label {
-  color: var(--ink);
-}
-.fg-bars-value {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
 /* Focus: one solid 2px ring on everything interactive that is not a button */
 :where(
   .fg-nav-link,
@@ -527,6 +471,57 @@
   justify-content: flex-end;
   gap: var(--space-2);
   margin-top: var(--space-6);
+}
+/* The shadcn parts (D-156): the scrim and the box are siblings, the box is placed on its own. */
+.fg-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--scrim);
+}
+.fg-dialog-popup {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  z-index: 41;
+  display: grid;
+  gap: var(--space-4);
+  width: calc(100% - 2 * var(--space-4));
+  max-height: 80vh;
+  overflow-y: auto;
+  transform: translateX(-50%);
+}
+.fg-dialog-popup .fg-dialog-foot {
+  margin-top: var(--space-2);
+}
+.fg-dialog-header {
+  display: grid;
+  gap: var(--space-1);
+  padding-right: var(--space-6);
+}
+.fg-dialog-header .fg-dialog-desc {
+  margin: 0;
+}
+.fg-dialog-x {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.fg-dialog-x:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.fg-dialog-x:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
 }
 
 /* CopyBlock: the reference CodeBlock (assets/design-system/components) */

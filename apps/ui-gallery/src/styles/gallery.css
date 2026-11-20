@@ -128,10 +128,10 @@ code {
   align-items: flex-start;
   gap: 4px;
 }
-.thumb .fg-palette {
-  position: static;
+.thumb .fg-cmdk {
   width: 330px;
-  transform: none;
+  border-color: var(--line-strong);
+  background: var(--bg);
 }
 .thumb .fg-modal {
   width: 330px;

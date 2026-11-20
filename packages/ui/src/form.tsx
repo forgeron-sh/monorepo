@@ -1,4 +1,5 @@
-import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
+import type { ComponentProps, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
+import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
 import { useId } from "react";
 import { cx } from "./cx";
 
@@ -73,12 +74,37 @@ export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement
   label: ReactNode;
 }
 
-/** A square box that fills with `inverse` when checked. */
-export function Checkbox({ label, className, ...rest }: CheckboxProps) {
+/**
+ * With `label`: a square box that fills with `inverse` when checked, the label beside it. Without:
+ * shadcn's Checkbox (Base UI): `checked`, `defaultChecked`, `onCheckedChange`, no label, D-156.
+ */
+export function Checkbox(props: CheckboxProps | CheckboxRootProps) {
+  return props.label !== undefined ? (
+    <LabelledCheckbox {...(props as CheckboxProps)} />
+  ) : (
+    <CheckboxRoot {...(props as CheckboxRootProps)} />
+  );
+}
+
+function LabelledCheckbox({ label, className, ...rest }: CheckboxProps) {
   return (
     <label className={cx("fg-check", className)}>
       <input {...rest} type="checkbox" className="fg-check-input" />
       <span>{label}</span>
     </label>
+  );
+}
+
+/** `label` stays undefined: with a label, `Checkbox` is the native one. */
+export type CheckboxRootProps = Omit<ComponentProps<typeof BaseCheckbox.Root>, "className"> & {
+  className?: string;
+  label?: undefined;
+};
+
+function CheckboxRoot({ className, label: _label, ...rest }: CheckboxRootProps) {
+  return (
+    <BaseCheckbox.Root {...rest} className={cx("fg-checkbox", className)}>
+      <BaseCheckbox.Indicator className="fg-checkbox-indicator" />
+    </BaseCheckbox.Root>
   );
 }

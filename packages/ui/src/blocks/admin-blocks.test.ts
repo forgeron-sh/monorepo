@@ -686,7 +686,8 @@ describe("TokenManager", () => {
     const root = await mount(h(TokenManager, { ...base, onRevoke }));
     await click(byLabel(root, "Revoke CI deploy"));
     expect(onRevoke).not.toHaveBeenCalled();
-    expect(q("[role=dialog]")!.textContent).toContain("cannot be undone");
+    expect(q("[role=alertdialog]")!.textContent).toContain("cannot be undone");
+    await act(async () => new Promise((r) => setTimeout(r, 50)));
     expect(document.activeElement?.textContent).toBe("Cancel");
     await click(byText(document, "button", "Revoke token"));
     expect(onRevoke).toHaveBeenCalledWith("t1");
@@ -1039,7 +1040,7 @@ describe("TrashList", () => {
     const root = await mount(h(TrashList, { ...base, onDeleteForever }));
     await click(byLabel(root, "Delete Invoice 214 forever"));
     expect(onDeleteForever).not.toHaveBeenCalled();
-    expect(q("[role=dialog]")!.textContent).toContain("Delete “Invoice 214” forever?");
+    expect(q("[role=alertdialog]")!.textContent).toContain("Delete “Invoice 214” forever?");
     await click(byText(document, "button", "Cancel"));
     expect(onDeleteForever).not.toHaveBeenCalled();
     await click(byLabel(root, "Delete Invoice 214 forever"));

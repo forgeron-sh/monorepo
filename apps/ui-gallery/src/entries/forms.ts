@@ -288,43 +288,6 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "address-field",
-    name: "Address field",
-    summary:
-      "A postal address: two lines, postcode, city, country. Typed, with the browser's autocomplete, no lookup and no network.",
-    imports: ["AddressField"],
-    props: [
-      {
-        name: "label",
-        type: "string",
-        description: "Names the group for assistive technology: the question.",
-      },
-      {
-        name: "value / defaultValue",
-        type: "{ line1?, line2?, postcode?, city?, country? }",
-        description: "The address. Controlled or not.",
-      },
-      { name: "onChange", type: "(address) => void", description: "After every keystroke." },
-      {
-        name: "countries",
-        type: "{ value, label }[]",
-        description: "A searchable list for the country; absent, it is typed.",
-      },
-      {
-        name: "errors",
-        type: "Partial<Record<part, string>>",
-        description: "What is wrong, by part.",
-      },
-      {
-        name: "required",
-        type: "boolean",
-        description: "Marks the second line as optional; the rest is expected.",
-      },
-      { name: "disabled", type: "boolean", description: "Locks the fields." },
-      className,
-    ],
-  },
-  {
     slug: "response-summary",
     name: "Response summary",
     summary:

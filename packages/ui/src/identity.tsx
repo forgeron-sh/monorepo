@@ -1,10 +1,14 @@
 import type { IconDefinition } from "@forgeron/icons";
 import { Search01Icon } from "@forgeron/icons";
-import type {
-  AnchorHTMLAttributes,
-  ButtonHTMLAttributes,
-  InputHTMLAttributes,
-  ReactNode,
+import {
+  cloneElement,
+  isValidElement,
+  type AnchorHTMLAttributes,
+  type ButtonHTMLAttributes,
+  type ComponentProps,
+  type InputHTMLAttributes,
+  type ReactElement,
+  type ReactNode,
 } from "react";
 import { Avatar } from "./avatar";
 import { cx } from "./cx";
@@ -170,8 +174,19 @@ export interface BreadcrumbProps {
   className?: string;
 }
 
-/** Where the page sits: its parents as links, the page itself last, set apart by slashes. */
-export function Breadcrumb({ items, className }: BreadcrumbProps) {
+/**
+ * With `items`: where the page sits, its parents as links, the page itself last, set apart by
+ * slashes. Without: shadcn's `Breadcrumb` (`BreadcrumbList`, `BreadcrumbItem`…), D-156.
+ */
+export function Breadcrumb(props: BreadcrumbProps | BreadcrumbRootProps) {
+  return props.items !== undefined ? (
+    <BreadcrumbTrail {...(props as BreadcrumbProps)} />
+  ) : (
+    <BreadcrumbRoot {...(props as BreadcrumbRootProps)} />
+  );
+}
+
+function BreadcrumbTrail({ items, className }: BreadcrumbProps) {
   return (
     <nav aria-label="Breadcrumb" className={cx("fg-crumbs", className)}>
       <ol>
@@ -204,5 +219,77 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
         })}
       </ol>
     </nav>
+  );
+}
+
+/* ---------------------------------------------------------------- shadcn parts (D-156) */
+
+/** `items` stays undefined: with items, `Breadcrumb` is the props-driven one. */
+export type BreadcrumbRootProps = ComponentProps<"nav"> & { items?: undefined };
+
+function BreadcrumbRoot({ items: _items, className, ...rest }: BreadcrumbRootProps) {
+  return <nav aria-label="breadcrumb" {...rest} className={cx("fg-crumbs", className)} />;
+}
+
+export function BreadcrumbList({ className, ...rest }: ComponentProps<"ol">) {
+  return <ol {...rest} className={className} />;
+}
+
+export function BreadcrumbItem({ className, ...rest }: ComponentProps<"li">) {
+  return <li {...rest} className={className} />;
+}
+
+export type BreadcrumbLinkProps = ComponentProps<"a"> & { asChild?: boolean };
+
+/** A parent page. `asChild` draws your router's link instead of an `a`. */
+export function BreadcrumbLink({ asChild, className, children, ...rest }: BreadcrumbLinkProps) {
+  if (asChild && isValidElement(children)) {
+    const child = children as ReactElement<{ className?: string }>;
+    return cloneElement(child, {
+      ...rest,
+      ...child.props,
+      className: cx("fg-crumb", className, child.props.className),
+    } as Record<string, unknown>);
+  }
+  return (
+    <a {...rest} className={cx("fg-crumb", className)}>
+      {children}
+    </a>
+  );
+}
+
+/** The page itself: not a link, `aria-current="page"`. */
+export function BreadcrumbPage({ className, ...rest }: ComponentProps<"span">) {
+  return (
+    <span
+      role="link"
+      aria-disabled="true"
+      aria-current="page"
+      {...rest}
+      className={cx("fg-crumb", className)}
+    />
+  );
+}
+
+/** A slash between two items; give it children to draw something else. */
+export function BreadcrumbSeparator({ children, className, ...rest }: ComponentProps<"li">) {
+  return (
+    <li role="presentation" aria-hidden="true" {...rest} className={cx("fg-crumb-sep", className)}>
+      {children ?? "/"}
+    </li>
+  );
+}
+
+/** Three dots for the pages left out. */
+export function BreadcrumbEllipsis({ className, ...rest }: ComponentProps<"span">) {
+  return (
+    <span
+      role="presentation"
+      aria-hidden="true"
+      {...rest}
+      className={cx("fg-crumb fg-crumb-ellipsis", className)}
+    >
+      …<span className="fg-sr-only">More</span>
+    </span>
   );
 }

@@ -1,11 +1,9 @@
 /* Blocks of the "conversation" group: message list, composer, pickers, thread, list, recipients. Tokens only, sharp corners. */
 
 .fg-conv,
-.fg-conv-composer,
 .fg-conv-thread,
 .fg-conv-list,
-.fg-conv-rcpt,
-.fg-conv-emoji {
+.fg-conv-rcpt {
   color: var(--ink);
   font: 400 13px/18px var(--font-sans);
 }
@@ -176,88 +174,6 @@ a.fg-conv-file-name:hover {
 
 /* ---------------------------------------------------------------- EmojiPicker, ReactionBar */
 
-.fg-conv-emoji {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-width: 0;
-}
-.fg-conv-emoji-search {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-2);
-  border: var(--border-width) solid var(--line-strong);
-  background: var(--bg-sunk);
-  color: var(--ink-muted);
-}
-.fg-conv-emoji-search:focus-within {
-  border-color: var(--ink-muted);
-}
-.fg-conv-emoji-input {
-  flex: 1;
-  min-width: 0;
-  height: 28px;
-  border: 0;
-  border-radius: var(--radius-none);
-  background: transparent;
-  color: var(--ink);
-  font: 400 13px/18px var(--font-sans);
-}
-.fg-conv-emoji-input:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: 2px;
-}
-.fg-conv-emoji-tabs {
-  display: flex;
-  gap: 2px;
-  border-bottom: var(--border-width) solid var(--line);
-}
-.fg-conv-emoji-tab {
-  min-width: 28px;
-  height: 28px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: var(--radius-none);
-  background: transparent;
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-}
-.fg-conv-emoji-tab:hover {
-  background: var(--bg-sunk);
-}
-.fg-conv-emoji-tab[aria-pressed="true"] {
-  border-bottom-color: var(--accent);
-}
-.fg-conv-emoji-grid {
-  display: grid;
-  max-height: 200px;
-  overflow: auto;
-}
-.fg-conv-emoji-cell {
-  display: grid;
-  place-items: center;
-  height: 32px;
-  border: 0;
-  border-radius: var(--radius-none);
-  background: transparent;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-}
-.fg-conv-emoji-cell:hover {
-  background: var(--bg-sunk);
-}
-.fg-conv-emoji-empty {
-  grid-column: 1 / -1;
-  margin: 0;
-  padding: var(--space-3);
-  color: var(--ink-dim);
-  font: 400 12px/16px var(--font-mono);
-}
-.fg-conv-emoji-tab:focus-visible,
-.fg-conv-emoji-cell:focus-visible,
 .fg-conv-reaction:focus-visible,
 .fg-conv-jump:focus-visible,
 .fg-conv-quote:focus-visible,
@@ -300,70 +216,6 @@ a.fg-conv-file-name:hover {
 }
 .fg-conv-reaction:disabled {
   cursor: default;
-}
-
-/* ---------------------------------------------------------------- MentionPicker */
-
-.fg-conv-mention-pop {
-  z-index: 20;
-  min-width: 220px;
-  max-width: 320px;
-  border: var(--border-width) solid var(--line-strong);
-  background: var(--bg);
-  box-shadow: var(--shadow-pop);
-}
-.fg-conv-mention-pop-at {
-  position: absolute;
-}
-.fg-conv-mention-pop-at[data-placement="above"] {
-  transform: translateY(-100%);
-}
-.fg-conv-mention-list {
-  max-height: 220px;
-  margin: 0;
-  padding: 4px;
-  overflow: auto;
-  list-style: none;
-}
-.fg-conv-mention-opt {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 28px;
-  padding: 2px var(--space-2);
-  cursor: pointer;
-}
-.fg-conv-mention-opt[aria-selected="true"] {
-  background: var(--bg-sunk);
-  box-shadow: inset 2px 0 var(--accent);
-}
-.fg-conv-mention-mark {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  background: var(--bg-sunk);
-  color: var(--ink-muted);
-  font: 500 12px/1 var(--font-mono);
-}
-.fg-conv-mention-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.fg-conv-mention-hint {
-  flex: none;
-  color: var(--ink-dim);
-  font: 400 11px/16px var(--font-mono);
-}
-.fg-conv-mention-empty {
-  margin: 0;
-  padding: var(--space-3);
-  color: var(--ink-dim);
-  font: 400 12px/16px var(--font-mono);
 }
 
 /* ---------------------------------------------------------------- MessageList */
@@ -629,102 +481,6 @@ button.fg-conv-mention {
 
 /* ---------------------------------------------------------------- RichComposer */
 
-.fg-conv-composer {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  border: var(--border-width) solid var(--line-strong);
-  background: var(--bg-sunk);
-}
-.fg-conv-composer:focus-within {
-  border-color: var(--ink-muted);
-}
-.fg-conv-composer-locked {
-  background: var(--bg);
-}
-.fg-conv-replybar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
-  border-bottom: var(--border-width) solid var(--line);
-  background: var(--bg);
-  color: var(--ink-muted);
-  font: 400 12px/16px var(--font-sans);
-}
-.fg-conv-replybar-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.fg-conv-replybar-quote {
-  margin-left: var(--space-2);
-  color: var(--ink-dim);
-}
-.fg-conv-tools {
-  padding: 2px var(--space-1);
-  border-bottom: var(--border-width) solid var(--line);
-  background: var(--bg);
-}
-.fg-conv-composer-field {
-  position: relative;
-}
-.fg-conv-composer-input {
-  display: block;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 56px;
-  padding: var(--space-3);
-  border: 0;
-  border-radius: var(--radius-none);
-  background: transparent;
-  color: var(--ink);
-  font: 400 13px/20px var(--font-sans);
-  resize: none;
-}
-.fg-conv-composer-input[hidden] {
-  display: none;
-}
-.fg-conv-composer-input::placeholder {
-  color: var(--ink-dim);
-}
-.fg-conv-composer-input:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: calc(-1 * var(--focus-width));
-}
-.fg-conv-preview {
-  min-height: 56px;
-  padding: var(--space-3);
-  background: var(--bg);
-}
-.fg-conv-preview-empty {
-  margin: 0;
-  color: var(--ink-dim);
-  font: 400 12px/16px var(--font-mono);
-}
-.fg-conv-composer-files {
-  padding: var(--space-2);
-  border-top: var(--border-width) solid var(--line);
-}
-.fg-conv-composer-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2);
-  border-top: var(--border-width) solid var(--line);
-}
-.fg-conv-composer-hint {
-  color: var(--ink-dim);
-  font: 400 11px/16px var(--font-mono);
-}
-.fg-conv-composer-hint b {
-  color: var(--ink-muted);
-  font-weight: 500;
-}
-
 /* ---------------------------------------------------------------- ThreadPanel */
 
 .fg-conv-thread {
@@ -759,9 +515,7 @@ button.fg-conv-mention {
 .fg-conv-thread-list {
   flex: 1;
 }
-.fg-conv-thread > .fg-conv-composer {
-  margin: var(--space-3);
-}
+
 .fg-conv-thread > .fg-conv-typing {
   padding: 0 var(--space-4);
 }
@@ -976,4 +730,96 @@ button.fg-conv-mention {
   .fg-conv-scroll {
     scroll-behavior: auto;
   }
+}
+
+/* ---------------------------------------------------------------- InlineComments */
+
+.fg-icom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  font: 400 13px/18px var(--font-sans);
+  color: var(--ink);
+}
+.fg-icom-lane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.fg-icom-margin .fg-icom-lane {
+  display: block;
+}
+.fg-icom-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  outline: none;
+}
+.fg-icom-margin .fg-icom-card {
+  position: absolute;
+  right: 0;
+  left: 0;
+}
+.fg-icom-card:hover {
+  border-color: var(--line-strong);
+}
+.fg-icom-card:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: 2px;
+}
+.fg-icom-card-active {
+  z-index: 1;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-pop);
+}
+.fg-icom-card-done {
+  background: var(--bg-sunk);
+  color: var(--ink-muted);
+}
+.fg-icom-quote {
+  margin: 0;
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--accent);
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+.fg-icom-lost {
+  margin: 0;
+  color: var(--warning);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-icom-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-icom-head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.fg-icom-at {
+  margin-left: auto;
+  color: var(--ink-dim);
+  font: 400 11px/16px var(--font-mono);
+}
+.fg-icom-body {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.fg-icom-acts {
+  display: flex;
+  gap: var(--space-1);
+  justify-content: flex-end;
 }

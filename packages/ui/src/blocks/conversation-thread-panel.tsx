@@ -7,7 +7,7 @@ import type { KeyboardEvent } from "react";
 import { useId } from "react";
 import { cx } from "../cx";
 import { IconButton } from "../identity";
-import { RichComposer, type ComposerSend, type RichComposerProps } from "./conversation-composer";
+import { RichComposer, type ComposerSend, type RichComposerProps } from "../composer";
 import { MessageItem, type MessageHandlers } from "./conversation-message";
 import { MessageList, type MessageListProps } from "./conversation-message-list";
 import type { ConversationMessage } from "./conversation-model";

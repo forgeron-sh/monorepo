@@ -516,8 +516,9 @@ describe("SharePanel", () => {
     const el = await mount(h(SharePanel, { directory, onChange }));
     const input = el.querySelector<HTMLInputElement>('[role="combobox"]')!;
     await act(async () => input.focus());
+    await key(input, "ArrowDown");
     await typeInto(input, "nad");
-    expect(el.querySelectorAll('[role="option"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(1);
     await key(input, "Enter");
     const next = onChange.mock.lastCall![0] as ShareSettings;
     expect(next.people).toEqual([{ id: "np", role: "editor" }]);
