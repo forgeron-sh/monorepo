@@ -81,7 +81,9 @@ describe("<DrawEditor> tools", () => {
     expect(rect?.bounds).toEqual({ x: 100, y: 100, w: 200, h: 120 });
     expect([...store.getState().selection]).toEqual([rect!.id]);
     expect(store.getState().tool).toBe("select");
-    expect(surface.querySelector(`[data-canvas-item="${rect!.id}"] .fgd-svg rect`)).not.toBeNull();
+    // The GPU draws it: no DOM of its own (it has no words), the GPU surface is on.
+    expect(surface.querySelector(`[data-canvas-item="${rect!.id}"]`)).toBeNull();
+    expect(surface.querySelector<HTMLElement>(".fg-canvas-far")?.style.display).toBe("");
     await act(async () => store.undo());
     expect(store.getState().items).toHaveLength(0);
   });
@@ -211,7 +213,8 @@ describe("<DrawEditor> tools", () => {
     const [stroke] = store.getState().items as DrawItem[];
     expect(stroke?.kind).toBe("pen");
     expect(stroke!.bounds.x % 4).toBe(0);
-    expect(surface.querySelector(`[data-canvas-item="${stroke!.id}"] path`)).not.toBeNull();
+    expect(surface.querySelector(`[data-canvas-item="${stroke!.id}"]`)).toBeNull();
+    expect(surface.querySelector<HTMLElement>(".fg-canvas-far")?.style.display).toBe("");
   });
 
   it("picks tools with their keys and shows the inspector for a selection", async () => {

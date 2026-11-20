@@ -12,6 +12,7 @@ import {
   outlineOf,
   outlinePoint,
 } from "../core/geometry";
+import { dashLengths } from "../core/gpu";
 import { colorCss } from "../core/palette";
 import { definePlugin, type Changes, type KindSpec } from "../core/plugin";
 import { num, isObject, readCommon, readStroke, DrawFormatError, type Raw } from "../core/parse";
@@ -330,7 +331,37 @@ const arrowKind: KindSpec = {
     if (d.head === "both" && route.length > 1) head(route[1]!, route[0]!);
     return out;
   },
+  gpu: gpuArrow,
 };
+
+/** The arrow on the GPU: its route, butt-ended and dashed as `paint` strokes it, and its heads. */
+function gpuArrow(item: DrawItem, frame?: Bounds): FarPrimitive[] {
+  const d = item.data as ArrowData;
+  const clip = frame ? { clip: frame } : {};
+  const route = arrowRoute(item as DrawItem<ArrowData>);
+  const color = colorCss(d.stroke.color ?? "ink");
+  const w = Math.max(1, d.stroke.width);
+  const dash = dashLengths(d.stroke.dash, w);
+  const out: FarPrimitive[] = [
+    {
+      type: "line",
+      points: route.flatMap((p) => [p.x, p.y]),
+      color,
+      width: w,
+      cap: "butt",
+      ...(dash ? { dash } : {}),
+      ...clip,
+    },
+  ];
+  const size = 6 + w * 2;
+  const head = (from: Point, tip: Point) => {
+    const [a, b, c] = arrowHead(from, tip, size);
+    out.push({ type: "triangle", points: [a.x, a.y, b.x, b.y, c.x, c.y], fill: color, ...clip });
+  };
+  if (d.head !== "none" && route.length > 1) head(route.at(-2)!, route.at(-1)!);
+  if (d.head === "both" && route.length > 1) head(route[1]!, route[0]!);
+  return out;
+}
 
 export const arrow = definePlugin({
   id: "arrow",

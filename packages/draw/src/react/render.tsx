@@ -4,6 +4,7 @@
 // kind no plugin of the editor knows is drawn as a labelled dashed box: kept, never lost.
 
 import type { CSSProperties, ReactNode } from "react";
+import { overlayClip } from "../core/gpu";
 import { pagePaint } from "../core/svg";
 import type { Registry } from "../core/plugin";
 import type { DrawItem } from "../core/types";
@@ -41,7 +42,21 @@ export function DrawItemView({
   if (!spec) return <UnknownItem item={item} />;
   const b = item.bounds;
   const view = slots.kinds.get(item.kind);
-  const clip = frameClip(b, options.frame);
+  const cut = options.above?.length ? overlayClip(b, options.frame, options.above) : undefined;
+  const clip = cut ? { clipPath: cut } : frameClip(b, options.frame);
+  if (options.overlay) {
+    // The GPU draws the item: the DOM shows only what is over that drawing.
+    const own: CSSProperties | undefined = view?.style?.(item);
+    return (
+      <div
+        className="fgd-item"
+        data-type={item.data.type}
+        style={own || clip ? { ...clip, ...own } : undefined}
+      >
+        {view?.content?.(item, options) ?? null}
+      </div>
+    );
+  }
   if (options.far) {
     const node = view?.farNode?.(item, options);
     if (node) return <>{node}</>;

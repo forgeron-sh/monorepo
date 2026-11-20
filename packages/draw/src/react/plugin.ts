@@ -80,6 +80,13 @@ export interface ItemViewOptions {
    * pattern and no words, which nobody reads at that size and which cost the most to paint.
    */
   far?: boolean;
+  /**
+   * The GPU draws the item (`KindSpec.gpu`): only what it does not draw is in the DOM, the
+   * kind's `content` (its words, its field while it is typed, an arrow's ends).
+   */
+  overlay?: boolean;
+  /** With `overlay`: the opaque boxes above the item, world units; its words are cut there. */
+  above?: ReadonlyArray<{ x: number; y: number; w: number; h: number }>;
 }
 
 /** How a kind looks and behaves in the DOM, beyond its paint (`KindSpec.paint`, shared with the export). */
@@ -104,6 +111,11 @@ export interface KindView {
     /** Typing ended: should the item go (an empty text)? */
     discard?(item: DrawItem, cancel: boolean): boolean;
   };
+  /**
+   * With the GPU drawing it: whether the item shows something in the DOM over that drawing from
+   * `FAR_ZOOM` up (its words, a name). The DOM holds only the items that do.
+   */
+  overlay?(item: DrawItem): boolean;
   /** Stays in the DOM when the board is seen from far while it is the single selected item. */
   keepWhenSolo?: boolean;
   /** The token the minimap draws it in. */

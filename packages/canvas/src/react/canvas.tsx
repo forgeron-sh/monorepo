@@ -45,7 +45,7 @@ import type {
 } from "../core/types";
 import { boundsToScreen, screenToWorld, visibleWorld, wheelZoomFactor } from "../core/viewport";
 import { CanvasProvider, useCanvasState, useCullWindow } from "./context";
-import { createFarLayer, type FarLayer } from "./far-layer";
+import { createFarLayer, type FarLayer, type FarLayerName } from "./far-layer";
 import { createDomRenderer, type CanvasRenderer, type Primitive, type Scene } from "./renderer";
 
 /** What a consumer tool gets with each press. */
@@ -73,6 +73,7 @@ export type FarDraw<D> = (
 /**
  * The far view: below `zoom`, the items whose kind has a far drawing are drawn as primitives on one
  * GPU surface (WebGL2; a 2D canvas without it) instead of the DOM. Hit testing stays the engine's.
+ * With `overlay`, the GPU draws them at every zoom, and the DOM holds only what it must show.
  */
 export interface CanvasFar<D> {
   /** Under this zoom the far view is on; 0 turns it off. */
@@ -86,6 +87,13 @@ export interface CanvasFar<D> {
   below?: ReadonlyArray<FarPrimitive>;
   /** Items kept in the DOM in the far view too (one being edited, the ends of an arrow). */
   keep?: ReadonlyArray<string>;
+  /**
+   * The GPU draws the kinds at every zoom, the selection's outlines, its handles, the box and the
+   * lasso too. Above `zoom`, the DOM holds only the items in the cull window for which this says
+   * yes (their text, over the GPU drawing), the focused one and those kept; below it, as in the
+   * far view. `renderItem` then draws only what the GPU does not.
+   */
+  overlay?: (item: Item<D>) => boolean;
 }
 
 export interface CanvasProps<D = unknown> {
@@ -264,13 +272,19 @@ function domTarget<D>(
     liveFocus: string | null;
     farKinds: CanvasFar<D>["kinds"] | undefined;
     keepKey: string;
+    overlay: CanvasFar<D>["overlay"];
   },
   farView: boolean,
 ): ReadonlyArray<Item<D>> {
-  const { farKinds } = s;
+  const { farKinds, overlay } = s;
   const base =
-    farView && farKinds ? s.culled.filter((i) => farKinds[i.kind] === undefined) : s.culled;
-  const extra = farView ? (s.keepKey ? s.keepKey.split("\n") : []) : [...s.selection];
+    farView && farKinds
+      ? s.culled.filter((i) => farKinds[i.kind] === undefined)
+      : overlay && farKinds
+        ? s.culled.filter((i) => farKinds[i.kind] === undefined || overlay(i))
+        : s.culled;
+  const extra =
+    farView || (overlay && farKinds) ? (s.keepKey ? s.keepKey.split("\n") : []) : [...s.selection];
   if (s.liveFocus) extra.push(s.liveFocus);
   const ids = new Set(base.map((i) => i.id));
   const missing = extra.filter((id) => !ids.has(id) && s.store.get(id));
@@ -349,7 +363,8 @@ export function Canvas<D = unknown>({
   const overRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
   const farRef = useRef<FarLayer | null>(null);
-  const farBelowSet = useRef<ReadonlyArray<FarPrimitive> | null>(null);
+  // What each layer of the far layer was last given.
+  const farSet = useRef<Partial<Record<FarLayerName, ReadonlyArray<FarPrimitive>>>>({});
   const active = useRef<Active | null>(null);
   const space = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
@@ -392,7 +407,7 @@ export function Canvas<D = unknown>({
     if (!hasFarView) return;
     const layer = createFarLayer(underRef.current!);
     farRef.current = layer;
-    farBelowSet.current = null;
+    farSet.current = {};
     return () => {
       layer.destroy();
       farRef.current = null;
@@ -880,6 +895,9 @@ export function Canvas<D = unknown>({
   const isFar = useCanvasState(store, selectFar);
   const farKinds = far?.kinds;
   const keepKey = far?.keep?.join("\n") ?? "";
+  const overlay = hasFarView ? far?.overlay : undefined;
+  // Everything the kinds draw is on the GPU at every zoom.
+  const gpuAll = !!(overlay && farKinds);
 
   // The items in the cull window, bottom first: the index answers, read by id.
   const culled = useMemo(() => {
@@ -895,8 +913,9 @@ export function Canvas<D = unknown>({
   // What the DOM should hold. In the far view: the items that have no far drawing, the focused
   // one and those the consumer keeps; the rest is drawn by the far layer.
   const target = useMemo(
-    () => domTarget({ store, items, culled, selection, liveFocus, farKinds, keepKey }, isFar),
-    [store, items, culled, selection, liveFocus, isFar, farKinds, keepKey],
+    () =>
+      domTarget({ store, items, culled, selection, liveFocus, farKinds, keepKey, overlay }, isFar),
+    [store, items, culled, selection, liveFocus, isFar, farKinds, keepKey, overlay],
   );
 
   // Crossing the far zoom changes what the DOM holds all at once (hundreds of items): the DOM
@@ -909,6 +928,12 @@ export function Canvas<D = unknown>({
   if (phaseFar !== isFar) {
     setPhaseFar(isFar);
     setPhase(phase ?? rendered);
+  } else if (gpuAll && !phase && target.length > rendered.size + FIRST_MOUNTS) {
+    // The GPU draws everything already: when the window grows by many overlays at once (a zoom
+    // out), the DOM catches up with their words a few a frame too.
+    let added = 0;
+    for (const i of target) if (!rendered.has(i.id) && ++added > FIRST_MOUNTS) break;
+    if (added > FIRST_MOUNTS) setPhase(rendered);
   }
   useLayoutEffect(() => {
     targetRef.current = target;
@@ -979,9 +1004,9 @@ export function Canvas<D = unknown>({
     }
     const single = selected.length === 1 ? selected[0]! : null;
     const handles = single ? store.query({ type: "handles", id: single.id }) : [];
-    const outlined = isFar ? selected.filter((i) => shownIds.has(i.id)) : selected;
+    const outlined = gpuAll ? [] : isFar ? selected.filter((i) => shownIds.has(i.id)) : selected;
     return { selected, single, handles, outlined };
-  }, [store, items, selection, selectionChrome, isFar, shownIds]);
+  }, [store, items, selection, selectionChrome, isFar, shownIds, gpuAll]);
 
   // The far layer's primitives: in the far view, the culled items that have a far drawing and the
   // selection's outlines; while the DOM catches up after crossing back, the items not there yet.
@@ -994,10 +1019,10 @@ export function Canvas<D = unknown>({
   );
   const farItems = useMemo(() => {
     if (!farKinds || !farCache) return null;
-    if (!isFar && !phase) return null;
+    if (!isFar && !phase && !gpuAll) return null;
     const cache = farCache;
+    const list = isFar || gpuAll ? culled : target.filter((i) => !shownIds.has(i.id));
     const out: Array<FarPrimitive & { outset?: number }> = [];
-    const list = isFar ? culled : target.filter((i) => !shownIds.has(i.id));
     for (const item of list) {
       const drawFar = farKinds[item.kind];
       if (!drawFar) continue;
@@ -1009,40 +1034,69 @@ export function Canvas<D = unknown>({
       }
       for (const p of hit.prims) out.push(p);
     }
-    if (isFar && selectionChrome) {
-      for (const item of chrome.selected) {
-        const b = item.bounds;
+    return out;
+  }, [farKinds, farCache, isFar, phase, gpuAll, culled, target, shownIds, selection]);
+
+  // The selection on the GPU: its outlines in the far view; with `overlay`, at every zoom, with
+  // the handles, the box and the lasso, rounded to screen pixels as the DOM chrome draws them.
+  const farChrome = useMemo(() => {
+    if (!farKinds || !selectionChrome || (!isFar && !gpuAll)) return null;
+    const out: Array<FarPrimitive & { outset?: number }> = [];
+    const outline = {
+      stroke: "--accent",
+      strokeWidth: 1,
+      strokeUnit: "screen",
+      chrome: true,
+    } as const;
+    for (const item of chrome.selected) {
+      const b = item.bounds;
+      out.push({ type: "rect", ...b, ...outline, outset: 0.5 });
+    }
+    if (!gpuAll) return out;
+    if (chrome.single) {
+      for (const h of chrome.handles) {
+        const at = handlePosition(chrome.single.bounds, h);
         out.push({
           type: "rect",
-          x: b.x,
-          y: b.y,
-          w: b.w,
-          h: b.h,
-          stroke: "--accent",
-          strokeWidth: 1,
-          strokeUnit: "screen",
-          outset: 0.5,
+          x: at.x,
+          y: at.y,
+          w: 0,
+          h: 0,
+          fill: "--bg",
+          ...outline,
+          outset: 4,
         });
       }
     }
+    const v = store.getState().viewport;
+    const wash = "color-mix(in srgb, var(--accent) 7%, transparent)";
+    if (band) {
+      const tl = screenToWorld(v, { x: band.x, y: band.y });
+      out.push({
+        type: "rect",
+        ...tl,
+        w: band.w / v.zoom,
+        h: band.h / v.zoom,
+        fill: wash,
+        ...outline,
+        outset: 0.5,
+      });
+    }
+    if (lasso && lasso.length > 1) {
+      const points = lasso.flatMap((q) => {
+        const w = screenToWorld(v, { x: Math.round(q.x), y: Math.round(q.y) });
+        return [w.x, w.y];
+      });
+      out.push({ type: "polygon", points, fill: wash });
+      out.push({ type: "line", points, color: "--accent", width: 1, unit: "screen", closed: true });
+    }
     return out;
-  }, [
-    farKinds,
-    farCache,
-    isFar,
-    phase,
-    culled,
-    target,
-    shownIds,
-    selection,
-    selectionChrome,
-    chrome,
-  ]);
+  }, [store, farKinds, selectionChrome, isFar, gpuAll, chrome, band, lasso]);
   // Drawn whenever the consumer gives them: flow keeps its edges here until its DOM edges are back.
   const farBelow = far?.below ?? NO_FAR;
 
   // The scene is put together with the camera of the moment, here and from the store listener.
-  const parts = useRef({ primitives, chrome, band, lasso });
+  const parts = useRef({ primitives, chrome, band, lasso, gpu: gpuAll });
   const farOn = useRef(false);
   const transform = useRef("");
   const draw = useCallback(() => {
@@ -1064,29 +1118,47 @@ export function Canvas<D = unknown>({
       grid: { size: store.grid.size, visible: store.grid.visible },
       primitives: p.primitives,
       outlines: p.chrome.outlined.map((i) => boundsToScreen(viewport, i.bounds)),
-      handles: box ? p.chrome.handles.map((h) => ({ handle: h, at: handlePosition(box, h) })) : [],
-      band: p.band,
-      lasso: p.lasso,
+      handles:
+        box && !p.gpu
+          ? p.chrome.handles.map((h) => ({ handle: h, at: handlePosition(box, h) }))
+          : [],
+      band: p.gpu ? null : p.band,
+      lasso: p.gpu ? null : p.lasso,
     });
   }, [store]);
 
+  // Each layer is packed again only when its primitives change: a box drawn over a selection of
+  // thousands repacks the chrome, not the items.
   useLayoutEffect(() => {
     const layer = farRef.current;
     if (!layer) return;
-    const on = (farItems !== null && farItems.length > 0) || farBelow.length > 0;
+    const on =
+      (farItems !== null && farItems.length > 0) ||
+      farBelow.length > 0 ||
+      (farChrome !== null && farChrome.length > 0);
     if (on) {
-      if (farBelowSet.current !== farBelow) layer.set("below", farBelow);
-      farBelowSet.current = farBelow;
-      layer.set("items", farItems ?? NO_FAR);
+      const set = farSet.current;
+      const put = (name: FarLayerName, prims: ReadonlyArray<FarPrimitive>) => {
+        const was = set[name];
+        // The cull window moved but holds the same items (all of them, at fit): the same
+        // primitives, kept per item, so the layer is not packed again.
+        if (was === prims || (was?.length === prims.length && was.every((p, i) => p === prims[i])))
+          return;
+        set[name] = prims;
+        layer.set(name, prims);
+      };
+      put("below", farBelow);
+      put("items", farItems ?? NO_FAR);
+      put("chrome", farChrome ?? NO_FAR);
     }
     layer.show(on);
     farOn.current = on;
-  }, [farItems, farBelow, hasFarView]);
+  }, [farItems, farBelow, farChrome, hasFarView]);
 
   useLayoutEffect(() => {
-    parts.current = { primitives, chrome, band, lasso };
+    parts.current = { primitives, chrome, band, lasso, gpu: gpuAll };
     draw();
-  }, [primitives, chrome, band, lasso, draw, makeRenderer, farItems, farBelow]);
+  }, [primitives, chrome, band, lasso, gpuAll, draw, makeRenderer, farItems, farBelow, farChrome]);
 
   useLayoutEffect(() => {
     let { viewport, size } = store.getState();

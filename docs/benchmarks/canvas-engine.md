@@ -287,6 +287,64 @@ Screenshots (`scratchpad/far/shots`, 1,440 × 900 at 2×): near zoom is identica
 
 Not done: flow edges are clickable at far zoom only when selected (the DOM keeps those); dashed strokes (draw's dashed arrows, flow's skipped edges) and running edges' marching dashes are solid at far zoom; nothing hovers at far zoom (nothing did); flow's group frames stay DOM, so their 3 % wash now lies over the nodes; images stay DOM; a real GPU other than the M4, VoiceOver, touch.
 
+## Palier 1, step A (20/11/2026): draw's items on the GPU at every zoom
+
+The owner chose "palier 1" for the editors: FigJam-level performance, 10,000 to 50,000 items fluid at every zoom, the GPU drawing, the DOM only for text being edited and for flow's rich bodies near. Step A puts all of draw's drawing on the GPU at every zoom; text stays DOM (step B moves it to a glyph atlas), flow is step C.
+
+**Design.** `<Canvas far={{ zoom, kinds, keep, overlay }}>`: with `overlay`, the far layer is on at every zoom. Each kind gives its GPU drawing once per item object (`KindSpec.gpu` in draw, `core/gpu.ts` for the shared parts), cached by item, so a camera move packs nothing and a change packs the layer once. The instance grows to 96 bytes (`FAR_STRIDE` 24): dash on, off and start along the path, flags (`crisp`, `chrome`, caps), the pattern's 16 bits, its pixel and density, an image index. The shader works in device pixels: boxes, ellipses and diamonds with the stroke inside the box and centred on the path SVG strokes (the fill reaches that path), coverage by signed distance; `crisp` boxes (rectangles, stickies, frames, pen runs, images) have their edges on whole device pixels, as `shape-rendering: crispEdges`, unless under a device pixel; the 4 × 4 dither is computed per pixel in world space from the world's origin (as the SVG pattern in user space), and drawn as a wash of its density once a pattern pixel is under a device pixel; dashes run along a box from its top-left corner, an ellipse from its right end (arc length by Simpson's rule), a diamond from its top, a polyline continuously across its segments; arrows are butt-ended with their inner joints squared (the miter of an elbow); arrowheads are anti-aliased triangles; pen strokes are their runs of whole pixels (`penRuns`, the same runs as `strokePath`, cached per stroke); images are textures uploaded once loaded, drawn in their place in the order (one instanced call per run between images); frames clip their items by a per-instance clip rectangle; primitives carry a zoom range (a text's wash and a frame's GPU name end at 35 %, where the DOM's words begin). A third layer, `chrome`, draws the selection's outlines, the single selection's handles, the box and the lasso (filled through the stencil, any shape), rounded to screen pixels as the SVG chrome rounded them. The 2D canvas fallback draws the same instances (`setLineDash`, `CanvasPattern` anchored at the world's origin, `drawImage`, an even-odd path for the lasso).
+
+**The DOM text layer.** From 35 % up the DOM holds, in the cull window, only the items whose kind says they show something over the GPU drawing (`KindView.overlay`: a sticky's or a text's words, a shape's label, a frame's name), plus the item being typed (its field) and the selected arrow (its ends); below 35 % it holds nothing but those two. They sit in the world layer, so a pan moves one transform and restyles nothing. A selected item is no longer mounted for its outline. Because every word is above every GPU drawing, each overlay is cut (`clip-path: path(evenodd, …)`, `overlayClip`) where an opaque box lies above it in the order (`KindSpec.opaque`: stickies, images, solid rectangles); the boxes are split into disjoint cells, so overlaps stay hidden. When the cull window grows by more than 16 overlays at once (a zoom out), the DOM catches up a few a frame, as at the far/near switch. Hit testing, pointer handlers and the engine contract are unchanged. `paint` and the exports are unchanged; `KindSpec.far` and its golden stay as they were.
+
+**Parity** (1,440 × 900 at 2×, the demo board, same viewports before and after; differing pixels over 5.18 M):
+
+| area                                   |             100 % |           200 % | where it differs and why                                                                                                                  |
+| -------------------------------------- | ----------------: | --------------: | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| evidence (images, captions, stickies)  |                 0 |               0 | identical                                                                                                                                 |
+| roadmap (rectangles, dashed arrows)    |    5,462 (0.11 %) |  2,051 (0.04 %) | a dashed arrow under a label: the label's words are now over it                                                                           |
+| journey (rectangles, elbows, pen)      |    7,857 (0.15 %) |  4,243 (0.08 %) | anti-aliasing of diagonal arrows and arrowheads                                                                                           |
+| architecture (boxes, arrows, pen ring) |   16,991 (0.33 %) | 13,710 (0.26 %) | diagonal and dashed diagonal arrows (anti-aliasing, dash phase on a diagonal), arrowheads                                                 |
+| clusters (overlapping stickies, pens)  |   43,758 (0.84 %) | 34,711 (0.67 %) | words over pen strokes and arrows drawn above them, and those strokes' diagonals; overlapping stickies hide each other's words, as before |
+| dot voting (stickies, ellipses)        |    57,782 (1.1 %) |               – | the ellipses' anti-aliased edges (delta ≤ 77)                                                                                             |
+| metrics                                | 975,461 (delta 1) |               – | translucent fills: one level of 255 in the premultiplied alpha                                                                            |
+
+Rectangles, stickies, frames and their clipping, pen strokes, horizontal and vertical arrows (solid and dashed), dither patterns and images are identical at 100 % and 200 %. The selection chrome is identical (outline, handles, box); the lasso's fill is identical, its diagonal edge differs by anti-aliasing. Under 35 % the look changes on purpose: patterns are their density instead of a 40 % wash, diamonds have their border, pen strokes are their pixels, stickies their edge. At 40 % (a pattern pixel is 1.6 device pixels) the hatch is sampled per pixel where SVG resamples its tile. Screenshots: `scratchpad/pa-run/shots`.
+
+**Numbers.** Same harness and machine as "Far-zoom renderer" (headless Chrome on the M4 through ANGLE/Metal with `--use-angle=metal --enable-gpu-rasterization --ignore-gpu-blocklist`, 1,440 × 900 at 2×, 120 wheel steps; "cross" zooms out from 50 % to 27 % and back twice). Before is `58c00b0f`, after the working tree on it, both built and measured back to back. Main thread per wheel step; frame cost p50 / p95; GPU thread per step; long tasks are main-thread tasks over 12 ms.
+
+| page, gesture           | main/step before → after | frame p50 / p95 before → after | GPU thread | long tasks (max ms) |
+| ----------------------- | -----------------------: | -----------------------------: | ---------- | ------------------- |
+| board fit, pan          |                2.2 → 2.4 |          3.8 / 7.2 → 4.0 / 9.0 | 4.6 → 5.8  | 0 → 0               |
+| board fit, zoom         |                3.2 → 3.5 |         4.7 / 9.2 → 5.1 / 11.0 | 5.1 → 6.3  | 0 → 0               |
+| board 100 %, pan        |                2.4 → 2.5 |         3.3 / 12.6 → 3.8 / 9.8 | 3.3 → 4.7  | 0 → 0               |
+| board 100 %, zoom       |                3.4 → 3.5 |         5.4 / 15.8 → 5.7 / 9.3 | 2.8 → 4.7  | 2 (19) → 0          |
+| board cross             |            6.0 → **4.1** |        8.0 / 17.6 → 6.2 / 11.9 | 5.4 → 5.6  | 2 (22) → 0          |
+| 2,000 items fit, pan    |                2.2 → 1.8 |          3.8 / 6.9 → 3.3 / 6.0 | 4.0 → 4.5  | 0 → 0               |
+| 2,000 items fit, zoom   |                3.7 → 3.3 |         5.3 / 12.7 → 5.3 / 8.7 | 9.5 → 4.6  | 0 → 0               |
+| 2,000 items 100 %, pan  |            3.1 → **2.4** |        5.1 / 12.3 → 3.6 / 10.2 | 2.6 → 3.9  | 0 → 0               |
+| 2,000 items 100 %, zoom |            4.6 → **3.2** |         5.7 / 26.9 → 5.3 / 9.1 | 2.9 → 3.9  | 12 (24) → 0         |
+| 2,000 items cross       |            7.2 → **4.0** |       11.3 / 23.8 → 6.2 / 14.3 | 3.8 → 4.3  | 6 (26) → 0          |
+
+At 4× CPU throttling:
+
+| page, gesture           | main/step before → after | frame p50 / p95 before → after | long tasks (max ms) |
+| ----------------------- | -----------------------: | -----------------------------: | ------------------- |
+| board fit, pan          |                3.5 → 3.4 |        6.0 / 12.9 → 5.7 / 10.8 | 0 → 0               |
+| board fit, zoom         |                6.7 → 6.7 |      11.2 / 18.2 → 11.1 / 18.8 | 0 → 1 (13)          |
+| board 100 %, pan        |                3.6 → 3.4 |        5.4 / 20.1 → 5.2 / 17.6 | 4 (14) → 0          |
+| board 100 %, zoom       |                7.3 → 7.2 |      11.0 / 40.1 → 11.2 / 20.4 | 15 (56) → 1 (13)    |
+| board cross             |           15.4 → **9.5** |      26.6 / 79.5 → 15.8 / 31.4 | 61 (72) → 17 (23)   |
+| 2,000 items fit, pan    |                3.2 → 3.3 |        5.7 / 10.0 → 5.6 / 12.3 | 0 → 0               |
+| 2,000 items fit, zoom   |                7.0 → 7.6 |      10.8 / 16.3 → 12.1 / 18.0 | 0 → 0               |
+| 2,000 items 100 %, pan  |            6.7 → **3.4** |       10.9 / 24.7 → 5.1 / 15.0 | 9 (15) → 0          |
+| 2,000 items 100 %, zoom |            9.8 → **7.2** |      11.6 / 97.3 → 12.3 / 20.4 | 20 (77) → 1 (13)    |
+| 2,000 items cross       |          17.2 → **10.8** |       91.9 / 141 → 16.2 / 31.2 | 46 (79) → 18 (18)   |
+
+Gestures (main-thread tasks over 12 ms over the gesture; rAF interval p95): select all and drag 60 steps on the board at 100 %, 60 (max 73) → 1 (14), rAF p95 50 → 16.7 ms; on the 2,000 items at 100 %, 62 (max 207) → 0, p95 183 → 16.7; on the board at fit, 2 → 2. Typing 40 characters into a sticky at 100 %: 1 (18) → 0. At 4×: drag at 100 % 63 (max 274) → 61 (max 48), rAF p95 233 → 33; on the 2,000 items 61 (max 874) → 55 (max 27), p95 833 → 16.8; at fit 61 (47) → 61 (53); typing 40 (max 44) → 36 (max 24).
+
+Normal CPU: no frame above 16 ms at p95 and no long task in any pan or zoom. At 4×: no long task in pan; one of 13 ms in some zooms; the threshold crossing keeps 17–18 tasks of about 20 ms, which are the DOM words mounting as the window grows (layout and paint of a few hundred text boxes): step B removes them. The GPU thread does about 1 ms more a frame (a full-screen canvas, patterns per pixel), 3 to 6 ms, far from a frame. Dragging a selection of 2,618 items at 4× repacks the whole layer each step (about 20–25 ms of script); packing only the moved items' instances is the next lever.
+
+Not done in step A: words are above every GPU drawing (cut only by opaque boxes: a pen stroke or an arrow drawn above a sticky shows its words over it); the bind and erase highlights and the pen's preview stay a small `WorldSvg` while a gesture runs; nothing hovers (nothing did). What steps B and C need from this: B, the glyphs as a fourth instance kind (or a textured `runs`) in the same packs, so the overlay's words and their occlusion go; the zoom ranges are there for a text's levels of detail. C, flow's kinds through `gpu` and `overlay` (rich bodies are overlays near), its edges with the dashes and caps of `line`, and the DOM overlay held only for focus and the accessibility tree (the listbox now holds only overlays, the focused item and `keep`; a screen reader's list of items must come from the engine instead).
+
 ## When to revisit
 
 - A scene that needs per-frame CPU work proportional to the visible items beyond culling (the isometric blueprint: depth sorting, animation, geometry generation), at thousands of items.

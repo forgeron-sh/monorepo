@@ -46,6 +46,12 @@ export function textWidth(text: string, size: number): number {
   return Math.ceil(longest * size * CHAR_ADVANCE);
 }
 
+/**
+ * Under this zoom the board is seen from far: words are too small to read, the DOM shows none and
+ * the GPU draws a wash where a text is.
+ */
+export const FAR_ZOOM = 0.35;
+
 /** World units around the text of a sticky note. */
 export const STICKY_PADDING = 12;
 /** The font size of a sticky note's text. */

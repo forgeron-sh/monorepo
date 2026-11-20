@@ -1,10 +1,12 @@
-// The far layer: every primitive of the far view on one surface under the DOM items. WebGL2 draws
-// the packed instances in one instanced call per layer (a pan or a zoom sets three uniforms); a 2D
-// canvas draws the same instances when WebGL2 is missing or its context is lost. Texts big enough
-// to read go on a 2D canvas above it, redrawn with the camera only while there are some.
+// The GPU layer: every primitive of the GPU view on one surface under the DOM items. WebGL2 draws
+// the packed instances in one instanced call per layer and per run between images (a pan or a
+// zoom sets three uniforms); a 2D canvas draws the same instances when WebGL2 is missing or its
+// context is lost. Texts big enough to read go on a 2D canvas above it, redrawn with the camera
+// only while there are some.
 
 import {
   createFarPack,
+  FAR_FLAG,
   FAR_KIND,
   FAR_STRIDE,
   packFar,
@@ -18,8 +20,9 @@ import {
 } from "../core/far";
 import type { Size, Viewport } from "../core/types";
 
-/** The layers of the far view, drawn in this order. */
-export type FarLayerName = "below" | "items";
+/** The layers of the GPU view, drawn in this order: under the items, the items, the chrome. */
+export type FarLayerName = "below" | "items" | "chrome";
+const LAYERS: ReadonlyArray<FarLayerName> = ["below", "items", "chrome"];
 
 export interface FarLayer {
   /** Packs a layer's primitives: when they change, never on a camera move. */
@@ -33,9 +36,12 @@ export interface FarLayer {
   destroy(): void;
 }
 
-// The vertex shader turns one instance into a quad (or a triangle) in screen pixels; the fragment
-// shader covers it by its signed distance, so edges are smooth at any zoom, and a stroke or a line
-// thinner than a device pixel is drawn one pixel wide at its share of the colour, as the DOM does.
+// The vertex shader turns one instance into a quad in device pixels, one pixel larger than what it
+// covers; the fragment shader covers it by its signed distance, so edges are smooth at any zoom,
+// and crisp boxes (`FAR_FLAG.crisp`) have their edges on whole device pixels, as SVG's crispEdges.
+// A stroke or a line thinner than a device pixel is drawn one pixel wide at its share of the
+// colour, as the DOM does. Strokes are inside the box, centred on the path SVG would stroke: the
+// fill reaches that path, the stroke covers it, dashes run along it from where SVG starts it.
 const VERTEX = `#version 300 es
 precision highp float;
 layout(location = 0) in vec4 a_g0;
@@ -44,121 +50,267 @@ layout(location = 2) in vec2 a_zoom;
 layout(location = 3) in vec4 a_fill;
 layout(location = 4) in vec4 a_stroke;
 layout(location = 5) in vec4 a_clip;
+layout(location = 6) in vec4 a_dash;
+layout(location = 7) in vec4 a_pat;
 uniform vec3 u_view;
 uniform vec2 u_size;
 uniform float u_dpr;
 out vec2 v_p;
-out vec4 v_box;
-out vec4 v_fill;
-out vec4 v_stroke;
-out vec4 v_clip;
-out vec2 v_screen;
-vec2 screen(vec2 w) { return w * u_view.z + u_view.xy; }
+out vec2 v_dev;
+flat out vec4 v_a;
+flat out vec4 v_b;
+flat out vec4 v_fill;
+flat out vec4 v_stroke;
+flat out vec4 v_clip;
+flat out vec4 v_dash;
+flat out vec4 v_pat;
+flat out float v_kind;
+vec2 dev(vec2 w) { return (w * u_view.z + u_view.xy) * u_dpr; }
 void main() {
   int corner = gl_VertexID % 6;
   vec2 q = vec2(
     (corner == 1 || corner == 4 || corner == 5) ? 1.0 : 0.0,
     (corner == 2 || corner == 3 || corner == 5) ? 1.0 : 0.0);
   float kind = a_g1.w;
-  float px = 1.0 / u_dpr;
-  vec2 pos = vec2(-10.0);
+  int flags = int(a_dash.w + 0.5);
+  v_kind = kind;
   v_fill = a_fill;
   v_stroke = a_stroke;
+  v_pat = a_pat;
+  v_a = vec4(0.0);
+  v_b = vec4(0.0);
   v_p = vec2(0.0);
-  v_box = vec4(0.0, 0.0, 0.0, kind);
   if (u_view.z < a_zoom.x || u_view.z >= a_zoom.y) {
     gl_Position = vec4(-2.0, -2.0, 0.0, 1.0);
+    v_dev = vec2(0.0);
+    v_clip = vec4(0.0);
+    v_dash = vec4(0.0);
     return;
   }
-  if (kind < 2.5) {
-    vec2 size = a_g0.zw * u_view.z;
-    vec2 half_ = size * 0.5 + a_g1.z;
-    vec2 c = screen(a_g0.xy) + size * 0.5;
-    vec2 local = (q * 2.0 - 1.0) * (half_ + px);
+  float scale = u_view.z * u_dpr;
+  float unit = a_g1.y > 0.5 ? u_dpr : scale;
+  v_dash = vec4(a_dash.xyz * unit, a_dash.w);
+  vec2 pos;
+  if (kind < 2.5 || kind > 4.5) {
+    vec2 p0;
+    vec2 p1;
+    if ((flags & ${FAR_FLAG.chrome}) != 0) {
+      vec2 s0 = floor(a_g0.xy * u_view.z + u_view.xy + 0.5);
+      vec2 sz = floor(a_g0.zw * u_view.z + 0.5);
+      p0 = (s0 - floor(a_g1.z)) * u_dpr;
+      p1 = (s0 + sz + ceil(a_g1.z)) * u_dpr;
+    } else {
+      p0 = dev(a_g0.xy) - a_g1.z * u_dpr;
+      p1 = dev(a_g0.xy + a_g0.zw) + a_g1.z * u_dpr;
+      if ((flags & ${FAR_FLAG.crisp}) != 0) {
+        // On whole device pixels, unless the box is under one: then it is covered by its share.
+        vec2 big = vec2(greaterThanEqual(p1 - p0, vec2(1.0)));
+        p0 = mix(p0, floor(p0 + 0.5), big);
+        p1 = mix(p1, floor(p1 + 0.5), big);
+      }
+    }
+    float sw = kind > 4.5 ? 0.0 : a_g1.x * unit;
+    float share = 1.0;
+    if (sw > 0.0 && sw < 1.0) { share = sw; sw = 1.0; }
+    else if (sw > 0.0 && (flags & ${FAR_FLAG.crisp | FAR_FLAG.chrome}) != 0) sw = floor(sw + 0.5);
+    vec2 c = (p0 + p1) * 0.5;
+    vec2 h = (p1 - p0) * 0.5;
+    vec2 local = (q * 2.0 - 1.0) * (h + 1.0);
     pos = c + local;
     v_p = local;
-    float sw = a_g1.y > 0.5 ? a_g1.x : a_g1.x * u_view.z;
-    v_box = vec4(half_, sw, kind);
+    v_a = vec4(h, sw, share);
   } else if (kind < 3.5) {
-    vec2 a = screen(a_g0.xy);
-    vec2 b = screen(a_g0.zw);
-    float w = a_g1.y > 0.5 ? a_g1.x : a_g1.x * u_view.z;
+    vec2 a = dev(a_g0.xy);
+    vec2 b = dev(a_g0.zw);
+    float w = a_g1.x * unit;
     float cover = 1.0;
-    if (w < px) { cover = w / px; w = px; }
+    if (w < 1.0) { cover = max(w, 0.0); w = 1.0; }
     vec2 d = b - a;
     float len = length(d);
     vec2 dir = len > 1e-4 ? d / len : vec2(1.0, 0.0);
     vec2 nrm = vec2(-dir.y, dir.x);
     float hw = w * 0.5;
-    float ext = hw + px;
-    float along = mix(-ext, len + ext, q.x);
-    float across = (q.y * 2.0 - 1.0) * ext;
+    float e0 = (flags & ${FAR_FLAG.capStart}) != 0 ? hw : 0.0;
+    float e1 = (flags & ${FAR_FLAG.capEnd}) != 0 ? hw : 0.0;
+    float along = mix(-e0 - 1.0, len + e1 + 1.0, q.x);
+    float across = (q.y * 2.0 - 1.0) * (hw + 1.0);
     pos = a + dir * along + nrm * across;
-    v_p = vec2(along - len * 0.5, across);
-    v_box = vec4(len * 0.5 + hw, hw, cover, kind);
+    v_p = vec2(along, across);
+    v_a = vec4(len, hw, e0, e1);
+    v_b = vec4(cover, 0.0, 0.0, 0.0);
   } else {
-    vec2 p0 = screen(a_g0.xy);
-    vec2 p1 = screen(a_g0.zw);
-    vec2 p2 = screen(a_g1.xy);
-    pos = corner == 1 ? p1 : corner == 2 ? p2 : p0;
+    vec2 p0 = dev(a_g0.xy);
+    vec2 p1 = dev(a_g0.zw);
+    vec2 p2 = dev(a_g1.xy);
+    vec2 lo = min(p0, min(p1, p2)) - 1.0;
+    vec2 hi = max(p0, max(p1, p2)) + 1.0;
+    pos = mix(lo, hi, q);
+    v_a = vec4(p0, p1);
+    v_b = vec4(p2, 0.0, 0.0);
   }
-  vec2 c0 = screen(a_clip.xy);
-  v_clip = vec4(c0, c0 + a_clip.zw * u_view.z);
-  v_screen = pos;
-  vec2 clip = pos / u_size * 2.0 - 1.0;
+  v_clip = vec4(floor(dev(a_clip.xy) + 0.5), floor(dev(a_clip.xy + a_clip.zw) + 0.5));
+  v_dev = pos;
+  vec2 clip = pos / (u_size * u_dpr) * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
 }`;
 
 const FRAGMENT = `#version 300 es
 precision highp float;
 in vec2 v_p;
-in vec4 v_box;
-in vec4 v_fill;
-in vec4 v_stroke;
-in vec4 v_clip;
-in vec2 v_screen;
+in vec2 v_dev;
+flat in vec4 v_a;
+flat in vec4 v_b;
+flat in vec4 v_fill;
+flat in vec4 v_stroke;
+flat in vec4 v_clip;
+flat in vec4 v_dash;
+flat in vec4 v_pat;
+flat in float v_kind;
+uniform vec3 u_view;
 uniform float u_dpr;
+uniform sampler2D u_image;
+uniform bool u_stencil;
 out vec4 o;
-float boxDist(vec2 p, vec2 h) {
-  vec2 d = abs(p) - h;
-  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+float cov(float d) { return clamp(0.5 - d, 0.0, 1.0); }
+float dashCov(float s) {
+  float on = v_dash.x;
+  float off = v_dash.y;
+  if (on <= 0.0 || off <= 0.0) return 1.0;
+  float period = on + off;
+  float m = mod(s + v_dash.z, period);
+  float inside = m < on ? min(m, on - m) : -min(m - on, period - m);
+  return clamp(inside + 0.5, 0.0, 1.0);
+}
+float pattern() {
+  if (v_pat.x < 0.5) return 1.0;
+  if (v_pat.y * u_view.z * u_dpr < 1.0) return v_pat.w;
+  vec2 world = (v_dev / u_dpr - u_view.xy) / u_view.z;
+  vec2 cell = mod(floor(world / v_pat.y), 4.0);
+  int bit = int(cell.y) * 4 + int(cell.x);
+  return float((int(v_pat.x + 0.5) >> bit) & 1);
+}
+float rectArc(vec2 p, vec2 hc) {
+  float dt = abs(p.y + hc.y);
+  float dr = abs(p.x - hc.x);
+  float db = abs(p.y - hc.y);
+  float dl = abs(p.x + hc.x);
+  float m = min(min(dt, dr), min(db, dl));
+  if (m == dt) return p.x + hc.x;
+  if (m == dr) return 2.0 * hc.x + p.y + hc.y;
+  if (m == db) return 3.0 * hc.x + 2.0 * hc.y - p.x;
+  return 4.0 * hc.x + 3.0 * hc.y - p.y;
+}
+float ellipseArc(vec2 p, vec2 r) {
+  float t = atan(p.y * r.x, p.x * r.y);
+  if (t < 0.0) t += 6.28318531;
+  float step_ = t / 16.0;
+  float sum = 0.0;
+  for (int i = 0; i <= 16; i++) {
+    float u = step_ * float(i);
+    float f = length(vec2(r.x * sin(u), r.y * cos(u)));
+    sum += (i == 0 || i == 16 ? 1.0 : (i % 2 == 1 ? 4.0 : 2.0)) * f;
+  }
+  return sum * step_ / 3.0;
+}
+float diamondArc(vec2 p, vec2 hc) {
+  float len = length(hc);
+  vec2 a;
+  vec2 b;
+  float base;
+  if (p.x >= 0.0 && p.y < 0.0) { a = vec2(0.0, -hc.y); b = vec2(hc.x, 0.0); base = 0.0; }
+  else if (p.x >= 0.0) { a = vec2(hc.x, 0.0); b = vec2(0.0, hc.y); base = len; }
+  else if (p.y >= 0.0) { a = vec2(0.0, hc.y); b = vec2(-hc.x, 0.0); base = 2.0 * len; }
+  else { a = vec2(-hc.x, 0.0); b = vec2(0.0, -hc.y); base = 3.0 * len; }
+  return base + dot(p - a, (b - a) / max(len, 1e-3));
+}
+float sdEllipse(vec2 p, vec2 h) {
+  float k0 = length(p / h);
+  float k1 = length(p / (h * h));
+  return k1 > 0.0 ? k0 * (k0 - 1.0) / k1 : -min(h.x, h.y);
+}
+float sdDiamond(vec2 p, vec2 h) {
+  vec2 a = abs(p);
+  return (a.x / h.x + a.y / h.y - 1.0) / length(1.0 / h);
+}
+float sdTriangle(vec2 p, vec2 p0, vec2 p1, vec2 p2) {
+  vec2 e0 = p1 - p0;
+  vec2 e1 = p2 - p1;
+  vec2 e2 = p0 - p2;
+  vec2 v0 = p - p0;
+  vec2 v1 = p - p1;
+  vec2 v2 = p - p2;
+  vec2 q0 = v0 - e0 * clamp(dot(v0, e0) / max(dot(e0, e0), 1e-6), 0.0, 1.0);
+  vec2 q1 = v1 - e1 * clamp(dot(v1, e1) / max(dot(e1, e1), 1e-6), 0.0, 1.0);
+  vec2 q2 = v2 - e2 * clamp(dot(v2, e2) / max(dot(e2, e2), 1e-6), 0.0, 1.0);
+  float s = sign(e0.x * e2.y - e0.y * e2.x);
+  vec2 d = min(min(vec2(dot(q0, q0), s * (v0.x * e0.y - v0.y * e0.x)),
+                   vec2(dot(q1, q1), s * (v1.x * e1.y - v1.y * e1.x))),
+                   vec2(dot(q2, q2), s * (v2.x * e2.y - v2.y * e2.x)));
+  return -sqrt(d.x) * sign(d.y);
 }
 void main() {
-  if (v_screen.x < v_clip.x || v_screen.y < v_clip.y || v_screen.x > v_clip.z || v_screen.y > v_clip.w) discard;
-  float kind = v_box.w;
-  float px = 1.0 / u_dpr;
-  if (kind > 3.5) {
-    o = vec4(v_fill.rgb * v_fill.a, v_fill.a);
+  if (v_dev.x < v_clip.x || v_dev.y < v_clip.y || v_dev.x > v_clip.z || v_dev.y > v_clip.w) discard;
+  float kind = v_kind;
+  if (kind > 4.5) {
+    vec2 h = max(v_a.xy, vec2(1e-3));
+    float c = cov(abs(v_p.x) - h.x) * cov(abs(v_p.y) - h.y);
+    o = texture(u_image, clamp((v_p + h) / (2.0 * h), 0.0, 1.0)) * c;
     return;
   }
-  if (kind > 2.5) {
-    float a = clamp(0.5 - boxDist(v_p, v_box.xy) / px, 0.0, 1.0) * v_box.z * v_fill.a;
+  if (kind > 3.5) {
+    float c = cov(sdTriangle(v_dev, v_a.xy, v_a.zw, v_b.xy));
+    if (u_stencil) {
+      if (c < 0.5) discard;
+      o = vec4(0.0);
+      return;
+    }
+    float a = c * v_fill.a;
     o = vec4(v_fill.rgb * a, a);
     return;
   }
-  vec2 h = max(v_box.xy, vec2(1e-3));
-  float dist;
+  if (kind > 2.5) {
+    float along = max(-(v_p.x + v_a.z), v_p.x - (v_a.x + v_a.w));
+    float a = cov(along) * cov(abs(v_p.y) - v_a.y) * v_b.x * dashCov(v_p.x) * v_fill.a;
+    o = vec4(v_fill.rgb * a, a);
+    return;
+  }
+  vec2 h = max(v_a.xy, vec2(1e-3));
+  float sw = v_a.z;
+  bool dashed = sw > 0.0 && v_dash.x > 0.0;
+  float fillCov;
+  float strokeCov = 0.0;
+  float s = 0.0;
+  vec2 hc = sw > 0.0 ? max(h - sw * 0.5, vec2(1e-3)) : h;
   if (kind < 0.5) {
-    dist = boxDist(v_p, h);
+    vec2 ap = abs(v_p);
+    fillCov = cov(ap.x - hc.x) * cov(ap.y - hc.y);
+    if (sw > 0.0) {
+      vec2 hi = max(h - sw, vec2(0.0));
+      float outer = cov(ap.x - h.x) * cov(ap.y - h.y);
+      float inner = cov(ap.x - hi.x) * cov(ap.y - hi.y);
+      strokeCov = max(outer - inner, 0.0);
+      if (dashed) s = rectArc(v_p, hc);
+    }
   } else if (kind < 1.5) {
-    float k0 = length(v_p / h);
-    float k1 = length(v_p / (h * h));
-    dist = k1 > 0.0 ? k0 * (k0 - 1.0) / k1 : -min(h.x, h.y);
+    float d = sdEllipse(v_p, hc);
+    fillCov = cov(d);
+    if (sw > 0.0) {
+      strokeCov = cov(abs(d) - sw * 0.5);
+      if (dashed) s = ellipseArc(v_p, hc);
+    }
   } else {
-    vec2 p = abs(v_p);
-    dist = (p.x / h.x + p.y / h.y - 1.0) / length(1.0 / h);
+    float d = sdDiamond(v_p, hc);
+    fillCov = cov(d);
+    if (sw > 0.0) {
+      strokeCov = cov(abs(d) - sw * 0.5);
+      if (dashed) s = diamondArc(v_p, hc);
+    }
   }
-  float inside = clamp(0.5 - dist / px, 0.0, 1.0);
-  float fillA = v_fill.a * inside;
-  float strokeA = 0.0;
-  float sw = v_box.z;
-  if (sw > 0.0 && v_stroke.a > 0.0) {
-    float w = max(sw, px);
-    float inner = clamp(0.5 - (dist + w) / px, 0.0, 1.0);
-    strokeA = (inside - inner) * (sw / w) * v_stroke.a;
-  }
-  vec3 rgb = v_stroke.rgb * strokeA + v_fill.rgb * fillA * (1.0 - strokeA);
-  float a = strokeA + fillA * (1.0 - strokeA);
+  if (dashed) strokeCov *= dashCov(s);
+  strokeCov *= v_a.w * v_stroke.a;
+  float fa = fillCov * v_fill.a * pattern();
+  vec3 rgb = v_stroke.rgb * strokeCov + v_fill.rgb * fa * (1.0 - strokeCov);
+  float a = strokeCov + fa * (1.0 - strokeCov);
   o = vec4(rgb, a);
 }`;
 
@@ -186,6 +338,13 @@ function program(gl: WebGL2RenderingContext): WebGLProgram {
   return p;
 }
 
+interface GlBuffer {
+  vao: WebGLVertexArrayObject;
+  buffer: WebGLBuffer;
+  /** Bytes the buffer holds. */
+  capacity: number;
+}
+
 interface GlState {
   gl: WebGL2RenderingContext;
   program: WebGLProgram;
@@ -193,23 +352,43 @@ interface GlState {
     view: WebGLUniformLocation | null;
     size: WebGLUniformLocation | null;
     dpr: WebGLUniformLocation | null;
+    image: WebGLUniformLocation | null;
+    stencil: WebGLUniformLocation | null;
   };
-  layers: Record<
-    FarLayerName,
-    { vao: WebGLVertexArrayObject; buffer: WebGLBuffer; uploaded: number }
-  >;
+  layers: Record<FarLayerName, GlBuffer>;
+  /** A small buffer for the polygons' triangles and covers. */
+  scratch: GlBuffer;
+  /** What `u_image` samples when no image is drawn. */
+  blank: WebGLTexture;
+}
+
+/** Points the instance attributes of the bound buffer at instance `first`. */
+function pointAttributes(gl: WebGL2RenderingContext, first: number) {
+  const stride = FAR_STRIDE * 4;
+  const base = first * stride;
+  const attr = (loc: number, size: number, type: number, norm: boolean, offset: number) =>
+    gl.vertexAttribPointer(loc, size, type, norm, stride, base + offset);
+  attr(0, 4, gl.FLOAT, false, 0);
+  attr(1, 4, gl.FLOAT, false, 16);
+  attr(2, 2, gl.FLOAT, false, 32);
+  attr(3, 4, gl.UNSIGNED_BYTE, true, 40);
+  attr(4, 4, gl.UNSIGNED_BYTE, true, 44);
+  attr(5, 4, gl.FLOAT, false, 48);
+  attr(6, 4, gl.FLOAT, false, 64);
+  attr(7, 4, gl.FLOAT, false, 80);
 }
 
 function initGl(canvas: HTMLCanvasElement): GlState | null {
   let gl: WebGL2RenderingContext | null = null;
   try {
     gl = canvas.getContext("webgl2", {
-      // The shapes and lines cover their pixels by distance: no multisampling to pay for.
+      // The shapes and lines cover their pixels by distance: no multisampling to pay for. The
+      // stencil fills polygons (a lasso) of any shape.
       antialias: false,
       premultipliedAlpha: true,
       alpha: true,
       depth: false,
-      stencil: false,
+      stencil: true,
     });
   } catch {
     gl = null;
@@ -217,26 +396,22 @@ function initGl(canvas: HTMLCanvasElement): GlState | null {
   if (!gl) return null;
   try {
     const prog = program(gl);
-    const make = () => {
+    const make = (): GlBuffer => {
       const vao = gl.createVertexArray()!;
       const buffer = gl.createBuffer()!;
       gl.bindVertexArray(vao);
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      const stride = FAR_STRIDE * 4;
-      const attr = (loc: number, size: number, type: number, norm: boolean, offset: number) => {
+      for (let loc = 0; loc < 8; loc++) {
         gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, size, type, norm, stride, offset);
         gl.vertexAttribDivisor(loc, 1);
-      };
-      attr(0, 4, gl.FLOAT, false, 0);
-      attr(1, 4, gl.FLOAT, false, 16);
-      attr(2, 2, gl.FLOAT, false, 32);
-      attr(3, 4, gl.UNSIGNED_BYTE, true, 40);
-      attr(4, 4, gl.UNSIGNED_BYTE, true, 44);
-      attr(5, 4, gl.FLOAT, false, 48);
+      }
+      pointAttributes(gl, 0);
       gl.bindVertexArray(null);
-      return { vao, buffer, uploaded: -1 };
+      return { vao, buffer, capacity: 0 };
     };
+    const blank = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, blank);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
     return {
       gl,
       program: prog,
@@ -244,109 +419,204 @@ function initGl(canvas: HTMLCanvasElement): GlState | null {
         view: gl.getUniformLocation(prog, "u_view"),
         size: gl.getUniformLocation(prog, "u_size"),
         dpr: gl.getUniformLocation(prog, "u_dpr"),
+        image: gl.getUniformLocation(prog, "u_image"),
+        stencil: gl.getUniformLocation(prog, "u_stencil"),
       },
-      layers: { below: make(), items: make() },
+      layers: { below: make(), items: make(), chrome: make() },
+      scratch: make(),
+      blank,
     };
   } catch {
     return null;
   }
 }
 
+/** Uploads `data` to a buffer, growing it when it is too small. */
+function upload(gl: WebGL2RenderingContext, b: GlBuffer, data: Float32Array) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, b.buffer);
+  if (data.byteLength > b.capacity) {
+    const bytes = Math.max(data.byteLength, b.capacity * 2, FAR_STRIDE * 4 * 64);
+    gl.bufferData(gl.ARRAY_BUFFER, bytes, gl.DYNAMIC_DRAW);
+    b.capacity = bytes;
+  }
+  if (data.byteLength) gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
+}
+
+const inRange = (t: { minZoom?: number; maxZoom?: number }, zoom: number) =>
+  zoom >= (t.minZoom ?? 0) && zoom < (t.maxZoom ?? Infinity);
+
 const css = (c: FarRgba) =>
   `rgba(${c & 0xff},${(c >>> 8) & 0xff},${(c >>> 16) & 0xff},${((c >>> 24) & 0xff) / 255})`;
 
+/** The pixels of a pattern tile (4 × 4, lit cells in the colour), for the 2D canvas. */
+function patternTile(doc: Document, bits: number, color: string): HTMLCanvasElement {
+  const tile = doc.createElement("canvas");
+  tile.width = tile.height = 4;
+  const c = tile.getContext("2d");
+  if (c) {
+    c.fillStyle = color;
+    for (let i = 0; i < 16; i++) if (bits & (1 << i)) c.fillRect(i % 4, Math.floor(i / 4), 1, 1);
+  }
+  return tile;
+}
+
+interface Draw2dContext {
+  ctx: CanvasRenderingContext2D;
+  v: Viewport;
+  dpr: number;
+  color: (c: FarRgba) => string;
+  pattern: (bits: number, fill: FarRgba) => CanvasPattern | null;
+  image: (src: string) => CanvasImageSource | null;
+}
+
 /** The same instances on a 2D canvas: slower per frame, for when WebGL2 is not there. */
-function draw2d(
-  ctx: CanvasRenderingContext2D,
-  packs: ReadonlyArray<FarPack>,
-  v: Viewport,
-  dpr: number,
-  colors: Map<number, string>,
-) {
-  const color = (c: FarRgba) => {
-    let s = colors.get(c);
-    if (!s) {
-      s = css(c);
-      colors.set(c, s);
-    }
-    return s;
-  };
+function draw2d(packs: ReadonlyArray<FarPack>, k: Draw2dContext) {
+  const { ctx, v, dpr, color } = k;
   const z = v.zoom;
   const px = 1 / dpr;
+  const sx = (x: number) => x * z + v.x;
+  const sy = (y: number) => y * z + v.y;
+  const snap = (n: number) => Math.round(n * dpr) / dpr;
   for (const pack of packs) {
+    for (const poly of pack.polygons) {
+      const pts = poly.points;
+      ctx.beginPath();
+      ctx.moveTo(sx(pts[0]!), sy(pts[1]!));
+      for (let i = 2; i + 1 < pts.length; i += 2) ctx.lineTo(sx(pts[i]!), sy(pts[i + 1]!));
+      ctx.closePath();
+      ctx.fillStyle = color(poly.fill);
+      ctx.fill("evenodd");
+    }
     const d = pack.data;
     const u = pack.colors;
     for (let i = 0; i < pack.count; i++) {
       const o = i * FAR_STRIDE;
       if (z < d[o + 8]! || z >= d[o + 9]!) continue;
       const kind = d[o + 7]!;
+      const flags = d[o + 19]!;
+      const unit = d[o + 5]! > 0.5 ? 1 : z;
       const clipped = d[o + 14]! < 1e29;
       if (clipped) {
         ctx.save();
         ctx.beginPath();
-        ctx.rect(d[o + 12]! * z + v.x, d[o + 13]! * z + v.y, d[o + 14]! * z, d[o + 15]! * z);
+        ctx.rect(sx(d[o + 12]!), sy(d[o + 13]!), d[o + 14]! * z, d[o + 15]! * z);
         ctx.clip();
       }
+      const dash = d[o + 16]! > 0 && d[o + 17]! > 0;
       if (kind === FAR_KIND.segment) {
-        let w = d[o + 5]! > 0.5 ? d[o + 4]! : d[o + 4]! * z;
+        let w = d[o + 4]! * unit;
         let alpha = 1;
         if (w < px) {
           alpha = w / px;
           w = px;
         }
+        const x0 = sx(d[o]!);
+        const y0 = sy(d[o + 1]!);
+        const x1 = sx(d[o + 2]!);
+        const y1 = sy(d[o + 3]!);
+        const len = Math.hypot(x1 - x0, y1 - y0) || 1;
+        const ux = (x1 - x0) / len;
+        const uy = (y1 - y0) / len;
+        const e0 = flags & FAR_FLAG.capStart ? w / 2 : 0;
+        const e1 = flags & FAR_FLAG.capEnd ? w / 2 : 0;
         ctx.globalAlpha = alpha;
         ctx.strokeStyle = color(u[o + 10]!);
         ctx.lineWidth = w;
-        ctx.lineCap = "square";
+        ctx.lineCap = "butt";
+        if (dash) {
+          ctx.setLineDash([d[o + 16]! * unit, d[o + 17]! * unit]);
+          ctx.lineDashOffset = d[o + 18]! * unit - e0;
+        }
         ctx.beginPath();
-        ctx.moveTo(d[o]! * z + v.x, d[o + 1]! * z + v.y);
-        ctx.lineTo(d[o + 2]! * z + v.x, d[o + 3]! * z + v.y);
+        ctx.moveTo(x0 - ux * e0, y0 - uy * e0);
+        ctx.lineTo(x1 + ux * e1, y1 + uy * e1);
         ctx.stroke();
+        if (dash) ctx.setLineDash([]);
         ctx.globalAlpha = 1;
       } else if (kind === FAR_KIND.triangle) {
         ctx.fillStyle = color(u[o + 10]!);
         ctx.beginPath();
-        ctx.moveTo(d[o]! * z + v.x, d[o + 1]! * z + v.y);
-        ctx.lineTo(d[o + 2]! * z + v.x, d[o + 3]! * z + v.y);
-        ctx.lineTo(d[o + 4]! * z + v.x, d[o + 5]! * z + v.y);
+        ctx.moveTo(sx(d[o]!), sy(d[o + 1]!));
+        ctx.lineTo(sx(d[o + 2]!), sy(d[o + 3]!));
+        ctx.lineTo(sx(d[o + 4]!), sy(d[o + 5]!));
         ctx.fill();
       } else {
         const out = d[o + 6]!;
-        const x = d[o]! * z + v.x - out;
-        const y = d[o + 1]! * z + v.y - out;
-        const w = d[o + 2]! * z + out * 2;
-        const h = d[o + 3]! * z + out * 2;
-        const path = () => {
+        let x: number;
+        let y: number;
+        let w: number;
+        let h: number;
+        if (flags & FAR_FLAG.chrome) {
+          x = Math.round(sx(d[o]!)) - Math.floor(out);
+          y = Math.round(sy(d[o + 1]!)) - Math.floor(out);
+          w = Math.round(d[o + 2]! * z) + Math.floor(out) + Math.ceil(out);
+          h = Math.round(d[o + 3]! * z) + Math.floor(out) + Math.ceil(out);
+        } else {
+          x = sx(d[o]!) - out;
+          y = sy(d[o + 1]!) - out;
+          w = d[o + 2]! * z + out * 2;
+          h = d[o + 3]! * z + out * 2;
+          if (flags & FAR_FLAG.crisp && w >= px && h >= px) {
+            const x1 = snap(x + w);
+            const y1 = snap(y + h);
+            x = snap(x);
+            y = snap(y);
+            w = x1 - x;
+            h = y1 - y;
+          }
+        }
+        if (kind === FAR_KIND.image) {
+          const img = k.image(pack.images[d[o + 22]!]?.src ?? "");
+          if (img) ctx.drawImage(img, x, y, w, h);
+          if (clipped) ctx.restore();
+          continue;
+        }
+        const sw0 = d[o + 4]! * unit;
+        const sw = u[o + 11]! ? sw0 : 0;
+        const path = (inset: number) => {
+          const ix = x + inset;
+          const iy = y + inset;
+          const iw = Math.max(0, w - inset * 2);
+          const ih = Math.max(0, h - inset * 2);
           ctx.beginPath();
           if (kind === FAR_KIND.ellipse)
-            ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+            ctx.ellipse(ix + iw / 2, iy + ih / 2, iw / 2, ih / 2, 0, 0, Math.PI * 2);
           else if (kind === FAR_KIND.diamond) {
-            ctx.moveTo(x + w / 2, y);
-            ctx.lineTo(x + w, y + h / 2);
-            ctx.lineTo(x + w / 2, y + h);
-            ctx.lineTo(x, y + h / 2);
+            ctx.moveTo(ix + iw / 2, iy);
+            ctx.lineTo(ix + iw, iy + ih / 2);
+            ctx.lineTo(ix + iw / 2, iy + ih);
+            ctx.lineTo(ix, iy + ih / 2);
             ctx.closePath();
-          } else ctx.rect(x, y, w, h);
+          } else ctx.rect(ix, iy, iw, ih);
         };
         const fill = u[o + 10]!;
-        const stroke = u[o + 11]!;
-        if (fill) {
-          ctx.fillStyle = color(fill);
-          path();
-          ctx.fill();
+        if (fill >>> 24) {
+          const bits = d[o + 20]!;
+          const cell = d[o + 21]! * z;
+          let style: string | CanvasPattern | null = color(fill);
+          if (bits && cell * dpr >= 1) style = k.pattern(bits, fill);
+          else if (bits) ctx.globalAlpha = d[o + 23]!;
+          if (style && typeof style !== "string") {
+            // The tile's cells on the world's pattern grid, anchored at the world's origin.
+            style.setTransform?.(new DOMMatrix([cell, 0, 0, cell, v.x, v.y]));
+          }
+          if (style) {
+            ctx.fillStyle = style;
+            path(sw / 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
         }
-        if (stroke) {
-          const sw = d[o + 5]! > 0.5 ? d[o + 4]! : d[o + 4]! * z;
+        if (sw > 0) {
           const lw = Math.max(sw, px);
           ctx.globalAlpha = sw / lw;
-          ctx.strokeStyle = color(stroke);
+          ctx.strokeStyle = color(u[o + 11]!);
           ctx.lineWidth = lw;
-          ctx.save();
-          path();
-          ctx.clip();
-          ctx.lineWidth = lw * 2;
+          ctx.lineJoin = "miter";
+          if (dash) ctx.setLineDash([d[o + 16]! * unit, d[o + 17]! * unit]);
+          path(lw / 2);
           ctx.stroke();
-          ctx.restore();
+          if (dash) ctx.setLineDash([]);
           ctx.globalAlpha = 1;
         }
       }
@@ -381,6 +651,7 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     canvas.replaceWith(next);
     canvas = next;
     gl = null;
+    for (const img of images.values()) img.texture = null;
     ctx2d = canvas.getContext("2d");
     sized = "";
   };
@@ -485,14 +756,19 @@ export function createFarLayer(host: HTMLElement): FarLayer {
 
   /* ---- layers */
 
-  const packs: Record<FarLayerName, FarPack> = { below: createFarPack(), items: createFarPack() };
+  const packs: Record<FarLayerName, FarPack> = {
+    below: createFarPack(),
+    items: createFarPack(),
+    chrome: createFarPack(16),
+  };
   const sources: Record<FarLayerName, Array<FarPrimitive & { outset?: number }>> = {
     below: [],
     items: [],
+    chrome: [],
   };
   let version = 0;
-  const uploaded: Record<FarLayerName, number> = { below: -1, items: -1 };
-  const versions: Record<FarLayerName, number> = { below: 0, items: 0 };
+  const uploaded: Record<FarLayerName, number> = { below: -1, items: -1, chrome: -1 };
+  const versions: Record<FarLayerName, number> = { below: 0, items: 0, chrome: 0 };
   const repack = (layer: FarLayerName) => {
     packFar(resetFarPack(packs[layer]), sources[layer], { resolve, measure });
     versions[layer] = ++version;
@@ -517,9 +793,9 @@ export function createFarLayer(host: HTMLElement): FarLayer {
   let textAt: { viewport: Viewport; size: Size; dpr: number; version: number } | null = null;
   const drawTexts = (v: Viewport, size: Size, dpr: number) => {
     let any = false;
-    for (const layer of ["below", "items"] as const) {
+    for (const layer of LAYERS) {
       for (const t of packs[layer].texts) {
-        if (t.size * v.zoom >= (t.minSize ?? 6)) {
+        if (t.size * v.zoom >= (t.minSize ?? 6) && inRange(t, v.zoom)) {
           any = true;
           break;
         }
@@ -572,10 +848,10 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     const y1 = y0 + full.h / v.zoom;
     let font = "";
     let fill = "";
-    for (const layer of ["below", "items"] as const) {
+    for (const layer of LAYERS) {
       for (const t of packs[layer].texts) {
         const px = t.size * v.zoom;
-        if (px < (t.minSize ?? 6)) continue;
+        if (px < (t.minSize ?? 6) || !inRange(t, v.zoom)) continue;
         if (t.y + t.size < y0 || t.y - t.size > y1 || t.x > x1) continue;
         if (t.x + (t.maxWidth ?? measure(t)) < x0) continue;
         const f = fontOf(t, px);
@@ -583,12 +859,7 @@ export function createFarLayer(host: HTMLElement): FarLayer {
           c.font = f;
           font = f;
         }
-        const color = resolve(t.color);
-        let style = colorStrings.get(color);
-        if (!style) {
-          style = css(color);
-          colorStrings.set(color, style);
-        }
+        const style = colorString(resolve(t.color));
         if (style !== fill) {
           c.fillStyle = style;
           fill = style;
@@ -612,6 +883,162 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     }
   };
 
+  const colorString = (c: FarRgba) => {
+    let style = colorStrings.get(c);
+    if (!style) {
+      style = css(c);
+      colorStrings.set(c, style);
+    }
+    return style;
+  };
+  const patterns = new Map<string, CanvasPattern | null>();
+
+  /* ---- images: loaded when first drawn, uploaded once they have loaded */
+
+  interface LoadedImage {
+    el: HTMLImageElement;
+    ready: boolean;
+    texture: WebGLTexture | null;
+  }
+  const images = new Map<string, LoadedImage>();
+  const imageOf = (src: string): LoadedImage => {
+    let img = images.get(src);
+    if (!img) {
+      const el = new Image();
+      const entry: LoadedImage = { el, ready: false, texture: null };
+      el.decoding = "async";
+      el.onload = () => {
+        entry.ready = true;
+        redraw();
+      };
+      el.src = src;
+      images.set(src, entry);
+      img = entry;
+    }
+    return img;
+  };
+  const textureOf = (g: WebGL2RenderingContext, src: string): WebGLTexture | null => {
+    const img = imageOf(src);
+    if (!img.ready) return null;
+    if (img.texture) return img.texture;
+    const t = g.createTexture();
+    if (!t) return null;
+    g.bindTexture(g.TEXTURE_2D, t);
+    g.pixelStorei(g.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+    try {
+      g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, img.el);
+    } catch {
+      g.deleteTexture(t);
+      return null;
+    }
+    g.pixelStorei(g.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MIN_FILTER, g.LINEAR);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MAG_FILTER, g.LINEAR);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_S, g.CLAMP_TO_EDGE);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_T, g.CLAMP_TO_EDGE);
+    img.texture = t;
+    return t;
+  };
+
+  /* ---- WebGL2 */
+
+  /** A polygon filled through the stencil: its fan inverts the stencil, a cover paints the odd. */
+  const fillPolygon = (s: GlState, poly: FarPack["polygons"][number]) => {
+    const g = s.gl;
+    const pts = poly.points;
+    const n = Math.floor(pts.length / 2);
+    const tmp = createFarPack(n);
+    const fan: FarPrimitive[] = [];
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    for (let i = 0; i < n; i++) {
+      x0 = Math.min(x0, pts[i * 2]!);
+      y0 = Math.min(y0, pts[i * 2 + 1]!);
+      x1 = Math.max(x1, pts[i * 2]!);
+      y1 = Math.max(y1, pts[i * 2 + 1]!);
+      if (i < 1 || i + 1 >= n) continue;
+      fan.push({
+        type: "triangle",
+        points: [pts[0]!, pts[1]!, pts[i * 2]!, pts[i * 2 + 1]!, pts[i * 2 + 2]!, pts[i * 2 + 3]!],
+        fill: "#000",
+      });
+    }
+    const clip = poly.clip ? { clip: poly.clip } : {};
+    fan.push({ type: "rect", x: x0, y: y0, w: x1 - x0, h: y1 - y0, fill: "#000", ...clip });
+    packFar(tmp, fan, { resolve: () => poly.fill });
+    upload(g, s.scratch, tmp.data.subarray(0, tmp.count * FAR_STRIDE));
+    g.bindVertexArray(s.scratch.vao);
+    pointAttributes(g, 0);
+    g.enable(g.STENCIL_TEST);
+    g.colorMask(false, false, false, false);
+    g.stencilFunc(g.ALWAYS, 0, 0xff);
+    g.stencilOp(g.KEEP, g.KEEP, g.INVERT);
+    g.uniform1i(s.u.stencil, 1);
+    g.drawArraysInstanced(g.TRIANGLES, 0, 6, tmp.count - 1);
+    g.uniform1i(s.u.stencil, 0);
+    g.colorMask(true, true, true, true);
+    g.stencilFunc(g.NOTEQUAL, 0, 0xff);
+    g.stencilOp(g.ZERO, g.ZERO, g.ZERO);
+    pointAttributes(g, tmp.count - 1);
+    g.drawArraysInstanced(g.TRIANGLES, 0, 6, 1);
+    g.disable(g.STENCIL_TEST);
+  };
+
+  const drawGl = (s: GlState, viewport: Viewport, size: Size, dpr: number) => {
+    const g = s.gl;
+    g.viewport(0, 0, canvas.width, canvas.height);
+    g.clearColor(0, 0, 0, 0);
+    g.clearStencil(0);
+    g.clear(g.COLOR_BUFFER_BIT | g.STENCIL_BUFFER_BIT);
+    g.enable(g.BLEND);
+    g.blendFunc(g.ONE, g.ONE_MINUS_SRC_ALPHA);
+    g.useProgram(s.program);
+    g.uniform3f(s.u.view, viewport.x, viewport.y, viewport.zoom);
+    g.uniform2f(s.u.size, size.w, size.h);
+    g.uniform1f(s.u.dpr, dpr);
+    g.uniform1i(s.u.stencil, 0);
+    g.activeTexture(g.TEXTURE0);
+    g.uniform1i(s.u.image, 0);
+    g.bindTexture(g.TEXTURE_2D, s.blank);
+    for (const layer of LAYERS) {
+      const pack = packs[layer];
+      const l = s.layers[layer];
+      if (uploaded[layer] !== versions[layer]) {
+        upload(g, l, pack.data.subarray(0, pack.count * FAR_STRIDE));
+        uploaded[layer] = versions[layer];
+      }
+      for (const poly of pack.polygons) fillPolygon(s, poly);
+      if (!pack.count) continue;
+      g.bindVertexArray(l.vao);
+      g.bindBuffer(g.ARRAY_BUFFER, l.buffer);
+      // One call per run between images: each image binds its texture.
+      let from = 0;
+      const run = (to: number) => {
+        if (to <= from) return;
+        pointAttributes(g, from);
+        g.drawArraysInstanced(g.TRIANGLES, 0, 6, to - from);
+      };
+      for (const img of pack.images) {
+        const z0 = pack.data[img.index * FAR_STRIDE + 8]!;
+        const z1 = pack.data[img.index * FAR_STRIDE + 9]!;
+        if (viewport.zoom < z0 || viewport.zoom >= z1) continue;
+        run(img.index);
+        from = img.index + 1;
+        const t = textureOf(g, img.src);
+        if (!t) continue;
+        g.bindTexture(g.TEXTURE_2D, t);
+        pointAttributes(g, img.index);
+        g.drawArraysInstanced(g.TRIANGLES, 0, 6, 1);
+        g.bindTexture(g.TEXTURE_2D, s.blank);
+      }
+      run(pack.count);
+      if (from) pointAttributes(g, 0);
+    }
+    g.bindVertexArray(null);
+  };
+
   const draw = (viewport: Viewport, size: Size) => {
     last = { viewport, size };
     if (!visible || !size.w || !size.h) return;
@@ -621,39 +1048,31 @@ export function createFarLayer(host: HTMLElement): FarLayer {
       sizeTo(canvas, size, dpr);
       sized = key;
     }
-    if (gl) {
-      const g = gl.gl;
-      g.viewport(0, 0, canvas.width, canvas.height);
-      g.clearColor(0, 0, 0, 0);
-      g.clear(g.COLOR_BUFFER_BIT);
-      g.enable(g.BLEND);
-      g.blendFunc(g.ONE, g.ONE_MINUS_SRC_ALPHA);
-      g.useProgram(gl.program);
-      g.uniform3f(gl.u.view, viewport.x, viewport.y, viewport.zoom);
-      g.uniform2f(gl.u.size, size.w, size.h);
-      g.uniform1f(gl.u.dpr, dpr);
-      for (const layer of ["below", "items"] as const) {
-        const pack = packs[layer];
-        const l = gl.layers[layer];
-        if (uploaded[layer] !== versions[layer]) {
-          g.bindBuffer(g.ARRAY_BUFFER, l.buffer);
-          g.bufferData(
-            g.ARRAY_BUFFER,
-            pack.data.subarray(0, pack.count * FAR_STRIDE),
-            g.DYNAMIC_DRAW,
-          );
-          uploaded[layer] = versions[layer];
-        }
-        if (!pack.count) continue;
-        g.bindVertexArray(l.vao);
-        g.drawArraysInstanced(g.TRIANGLES, 0, 6, pack.count);
-      }
-      g.bindVertexArray(null);
-    } else if (ctx2d) {
+    if (gl) drawGl(gl, viewport, size, dpr);
+    else if (ctx2d) {
       ctx2d.setTransform(1, 0, 0, 1, 0, 0);
       ctx2d.clearRect(0, 0, canvas.width, canvas.height);
       ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-      draw2d(ctx2d, [packs.below, packs.items], viewport, dpr, colorStrings);
+      ctx2d.imageSmoothingEnabled = true;
+      draw2d([packs.below, packs.items, packs.chrome], {
+        ctx: ctx2d,
+        v: viewport,
+        dpr,
+        color: colorString,
+        pattern: (bits, fill) => {
+          const key = `${bits}|${fill}`;
+          let p = patterns.get(key);
+          if (p === undefined) {
+            p = ctx2d?.createPattern(patternTile(doc, bits, colorString(fill)), "repeat") ?? null;
+            patterns.set(key, p);
+          }
+          return p;
+        },
+        image: (src) => {
+          const img = imageOf(src);
+          return img.ready ? img.el : null;
+        },
+      });
     }
     drawTexts(viewport, size, dpr);
   };
@@ -666,8 +1085,8 @@ export function createFarLayer(host: HTMLElement): FarLayer {
   const refresh = () => {
     palette = new Map();
     fonts = null;
-    repack("below");
-    repack("items");
+    patterns.clear();
+    for (const layer of LAYERS) repack(layer);
     redraw();
   };
   const observer = typeof MutationObserver === "undefined" ? null : new MutationObserver(refresh);
@@ -702,10 +1121,12 @@ export function createFarLayer(host: HTMLElement): FarLayer {
       canvas.removeEventListener("webglcontextlost", onLost);
       if (gl) {
         const g = gl.gl;
-        for (const l of Object.values(gl.layers)) {
+        for (const l of [...Object.values(gl.layers), gl.scratch]) {
           g.deleteBuffer(l.buffer);
           g.deleteVertexArray(l.vao);
         }
+        for (const img of images.values()) if (img.texture) g.deleteTexture(img.texture);
+        g.deleteTexture(gl.blank);
         g.deleteProgram(gl.program);
       }
       canvas.remove();

@@ -1,5 +1,5 @@
 // Images, core half: a picture on the board, kept in the page (an object URL or a data URL), never
-// uploaded. It keeps its ratio when resized and is not part of the far view (it stays in the DOM).
+// uploaded. It keeps its ratio when resized; the GPU draws it as a texture.
 
 import type { Bounds, NewItem, Point } from "@forgeron/canvas";
 import { definePlugin, type KindSpec } from "../core/plugin";
@@ -44,6 +44,12 @@ const imageKind: KindSpec = {
       }),
     ];
   },
+  // A texture on the GPU, uploaded once it has loaded.
+  gpu(item, frame) {
+    const d = item.data as ImageData;
+    return [{ type: "image", ...item.bounds, src: d.src, ...(frame ? { clip: frame } : {}) }];
+  },
+  opaque: () => true,
   words: (item) => (item.data as ImageData).name,
 };
 

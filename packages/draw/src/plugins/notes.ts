@@ -6,7 +6,14 @@ import { definePlugin, type KindSpec } from "../core/plugin";
 import { num, readCommon, str, type Raw } from "../core/parse";
 import { DEFAULT_TEXT_SIZE } from "../core/style";
 import { n, textLines, wash, type SvgNode } from "../core/svg";
-import { STICKY_PADDING, STICKY_TEXT, stickyHeight, textHeight, textWidth } from "../core/text";
+import {
+  FAR_ZOOM,
+  STICKY_PADDING,
+  STICKY_TEXT,
+  stickyHeight,
+  textHeight,
+  textWidth,
+} from "../core/text";
 import type {
   DrawColor,
   DrawData,
@@ -114,6 +121,24 @@ const stickyKind: KindSpec = {
       },
     ];
   },
+  gpu(item, frame) {
+    const b = item.bounds;
+    const c = STICKY_COLORS[(item.data as StickyData).color] ?? STICKY_COLORS.amber;
+    const clip = frame ? { clip: frame } : {};
+    return [
+      {
+        type: "rect",
+        ...b,
+        fill: colorCss(c.paper),
+        stroke: colorCss(c.edge),
+        strokeWidth: 1,
+        crisp: true,
+        ...clip,
+      },
+      { type: "rect", x: b.x, y: b.y, w: b.w, h: 4, fill: colorCss(c.edge), crisp: true, ...clip },
+    ];
+  },
+  opaque: () => true,
   words: (item) => (item.data as StickyData).text,
 };
 
@@ -141,6 +166,22 @@ const textKind: KindSpec = {
     const clip = frame ? { clip: frame } : {};
     return d.text
       ? [{ type: "rect", ...item.bounds, fill: wash(colorCss(d.color), 0.25), ...clip }]
+      : [];
+  },
+  // From `FAR_ZOOM` up the DOM shows the words; under it, a wash of the box.
+  gpu(item, frame) {
+    const d = item.data as TextData;
+    const clip = frame ? { clip: frame } : {};
+    return d.text
+      ? [
+          {
+            type: "rect",
+            ...item.bounds,
+            fill: wash(colorCss(d.color), 0.25),
+            maxZoom: FAR_ZOOM,
+            ...clip,
+          },
+        ]
       : [];
   },
   words: (item) => (item.data as TextData).text,

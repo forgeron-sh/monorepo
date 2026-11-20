@@ -38,6 +38,7 @@ const CLICK_SIZE: Record<ShapeKind, { w: number; h: number }> = {
 };
 
 const shapeView: KindView = {
+  overlay: (item) => !!(item.data as ShapeData).text,
   content(item, o) {
     const d = item.data as ShapeData;
     const edit = o.editing;

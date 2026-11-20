@@ -15,6 +15,7 @@ export {
 } from "./core/geometry";
 export {
   createFarPack,
+  FAR_FLAG,
   FAR_KIND,
   FAR_STRIDE,
   packFar,
@@ -23,10 +24,14 @@ export {
 } from "./core/far";
 export type {
   FarColor,
+  FarDash,
+  FarImage,
   FarLine,
   FarPack,
+  FarPolygon,
   FarPrimitive,
   FarRgba,
+  FarRuns,
   FarShape,
   FarText,
   FarTriangle,

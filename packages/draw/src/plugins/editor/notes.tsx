@@ -20,6 +20,7 @@ import {
 } from "../notes";
 
 const stickyView: KindView = {
+  overlay: (item) => (item.data as StickyData).text !== "",
   content(item, o) {
     const d = item.data as StickyData;
     return o.editing ? (
@@ -47,6 +48,7 @@ const stickyView: KindView = {
 };
 
 const textView: KindView = {
+  overlay: (item) => (item.data as TextData).text !== "",
   content(item, o) {
     const d = item.data as TextData;
     const style = { fontSize: d.size, color: colorCss(d.color), textAlign: d.align } as const;

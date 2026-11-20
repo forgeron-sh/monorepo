@@ -11,6 +11,7 @@ import { colorCss } from "../core/palette";
 import { definePlugin, type Changes, type KindSpec } from "../core/plugin";
 import { readCommon, str, type Raw } from "../core/parse";
 import { FONT_MONO, n, type SvgNode } from "../core/svg";
+import { FAR_ZOOM } from "../core/text";
 import { isFrame, type DrawData, type DrawItem, type FrameData } from "../core/types";
 
 /** World units of a frame's edge that grab it, and the height of its name strip. */
@@ -187,6 +188,34 @@ const frameKind: KindSpec = {
         color: colorCss("muted"),
         maxWidth: Math.max(0, b.w - 16),
         minSize: 1,
+      },
+    ];
+  },
+  // Its edge and name strip; its name on the GPU only from far, the DOM shows it from `FAR_ZOOM` up.
+  gpu(item) {
+    const b = item.bounds;
+    return [
+      { type: "rect", ...b, stroke: colorCss("line"), strokeWidth: 1, crisp: true },
+      {
+        type: "rect",
+        x: b.x,
+        y: b.y,
+        w: b.w,
+        h: FRAME_TITLE,
+        fill: colorCss("raised"),
+        crisp: true,
+      },
+      {
+        type: "text",
+        x: b.x + 8,
+        y: b.y + 12,
+        text: (item.data as FrameData).name,
+        size: 11,
+        font: "mono",
+        color: colorCss("muted"),
+        maxWidth: Math.max(0, b.w - 16),
+        minSize: 1,
+        maxZoom: FAR_ZOOM,
       },
     ];
   },

@@ -34,6 +34,14 @@ export interface KindSpec {
   paint(item: DrawItem, options: PaintOptions): SvgNode[];
   /** What the item looks like from far, as canvas far primitives (zoom under `FAR_ZOOM`). */
   far?(item: DrawItem, frame?: Bounds): FarPrimitive[];
+  /**
+   * The item on the GPU at every zoom, as canvas primitives: the same drawing as `paint`, words
+   * left out (the DOM shows them over it from `FAR_ZOOM` up). `frame` is the bounds of the frame
+   * that clips it. A kind without it is drawn in the DOM by `paint`.
+   */
+  gpu?(item: DrawItem, frame?: Bounds): FarPrimitive[];
+  /** Its box hides what lies under it (a sticky note, an image): the words under it are cut. */
+  opaque?(item: DrawItem): boolean;
   /** The words an item holds, for its accessible name. */
   words?(item: DrawItem): string;
   /** The base name of the file when this item alone is exported (a frame's name). */

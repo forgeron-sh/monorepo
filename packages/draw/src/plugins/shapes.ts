@@ -8,6 +8,7 @@ import { colorCss } from "../core/palette";
 import { definePlugin, type KindSpec } from "../core/plugin";
 import { readCommon, readFill, readStroke, str, type Raw } from "../core/parse";
 import { DEFAULT_FILL, DEFAULT_STROKE, type DrawStyle } from "../core/style";
+import { gpuFill, gpuStroke } from "../core/gpu";
 import { fillOf, n, strokeAttrs, textLines, wash, type SvgNode } from "../core/svg";
 import type { DrawData, DrawItem, ShapeData, ShapeKind } from "../core/types";
 
@@ -121,6 +122,22 @@ function farShape(item: DrawItem, frame?: Bounds): FarPrimitive[] {
   ];
 }
 
+/** The shape on the GPU: its fill (solid, pattern, opacity) and its stroke inside its box. */
+function gpuShape(item: DrawItem, frame?: Bounds): FarPrimitive[] {
+  const d = item.data as ShapeData;
+  const type = item.kind === "ellipse" ? "ellipse" : item.kind === "diamond" ? "diamond" : "rect";
+  return [
+    {
+      type,
+      ...item.bounds,
+      ...gpuFill(d.fill),
+      ...gpuStroke(d.stroke),
+      crisp: type === "rect",
+      ...(frame ? { clip: frame } : {}),
+    },
+  ];
+}
+
 const shape = (label: string, canvas: KindSpec["canvas"]): KindSpec => ({
   type: "shape",
   label,
@@ -128,6 +145,12 @@ const shape = (label: string, canvas: KindSpec["canvas"]): KindSpec => ({
   parse: parseShape,
   paint: paintShape,
   far: farShape,
+  gpu: gpuShape,
+  // A box filled solid, opaque, hides the words under it; a curve or a pattern lets them show.
+  opaque: (item) => {
+    const f = (item.data as ShapeData).fill;
+    return item.kind === "rectangle" && f.type === "solid" && (f.opacity ?? 1) >= 1;
+  },
   words: (item) => str((item.data as ShapeData).text, ""),
 });
 

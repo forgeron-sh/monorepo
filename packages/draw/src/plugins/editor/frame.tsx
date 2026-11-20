@@ -11,6 +11,7 @@ import { boxTool } from "./kit";
 
 const frameView: KindView = {
   minimapColor: "--line-strong",
+  overlay: () => true,
   content(item) {
     const d = item.data as FrameData;
     return (

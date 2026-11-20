@@ -34,6 +34,9 @@ import {
 } from "./plugin";
 import { createSession, createSignal, type Signal } from "./signal";
 
+/** World units of a container's strip that hold its words (a frame's name). */
+const CONTAINER_STRIP = 24;
+
 /** Names an item for assistive technology: its kind and its words; unsupported ones say so. */
 export function drawItemLabel(item: Item<DrawData>, plugins?: Plugins): string {
   const spec = registryOf(plugins).kind(item.kind);
@@ -273,9 +276,32 @@ function DrawEditorBody({
       ? ((editingItem.data as { text?: string }).text ?? "")
       : "";
 
+  // The words the DOM shows over the GPU drawing are cut where an opaque box lies above them (a
+  // sticky note over another): asked for each item the DOM holds, again when the items change.
+  const aboveOf = useCallback(
+    (item: DrawItem): DrawItem["bounds"][] | undefined => {
+      void items;
+      // A container's words are in its strip (a frame's name): what lies over the rest is its
+      // content, not a cover.
+      const b = item.bounds;
+      const contains = slots.clips.some((c) => c.type === item.data.type);
+      const words = contains ? { ...b, h: Math.min(b.h, CONTAINER_STRIP) } : b;
+      let boxes: DrawItem["bounds"][] | undefined;
+      for (const id of store.query({ type: "in-rect", rect: words })) {
+        const other = store.get(id) as DrawItem | undefined;
+        if (!other || other.z <= item.z) continue;
+        if (registry.kind(other.kind)?.opaque?.(other)) (boxes ??= []).push(other.bounds);
+      }
+      return boxes;
+    },
+    [store, items, slots, registry],
+  );
+
   const renderItem = useCallback(
     (item: Item<DrawData>, { far }: { far: boolean }) => {
       const frame = clipOf(item);
+      const gpu = !!registry.kind(item.kind)?.gpu;
+      const above = gpu && !far ? aboveOf(item as DrawItem) : undefined;
       const options: ItemViewOptions = {
         idPrefix: prefix,
         ...(frame ? { frame } : {}),
@@ -284,23 +310,42 @@ function DrawEditorBody({
           : {}),
         solo: soloId === item.id,
         far,
+        ...(gpu ? { overlay: true } : {}),
+        ...(above ? { above } : {}),
       };
       return <DrawItemView item={item as DrawItem} options={options} slots={slots} />;
     },
-    [clipOf, prefix, editing, editingValue, typeText, finishEditing, soloId, slots],
+    [
+      clipOf,
+      prefix,
+      editing,
+      editingValue,
+      typeText,
+      finishEditing,
+      soloId,
+      slots,
+      registry,
+      aboveOf,
+    ],
   );
 
-  // The far view on the GPU: every kind that has one (images stay in the DOM); the item being typed
-  // and the selected item that keeps its DOM (an arrow's ends) stay in the DOM too.
-  const far = useMemo(() => {
+  // Every kind that has a GPU drawing is on the GPU at every zoom (`KindSpec.gpu`); a kind without
+  // one is drawn in the DOM by its paint. The DOM holds the words over the drawing from `FAR_ZOOM`
+  // up (`KindView.overlay`), the item being typed and the selected item that keeps its DOM (an
+  // arrow's ends).
+  const gpuKinds = useMemo(() => {
     const kinds: Record<string, FarDraw<DrawData>> = {};
     for (const id of registry.kindIds) {
       const spec = registry.kind(id);
-      if (!spec?.far) continue;
-      kinds[id] = (item) => spec.far!(item as DrawItem, clipOf(item));
+      if (!spec?.gpu) continue;
+      kinds[id] = (item) => spec.gpu!(item as DrawItem, clipOf(item));
     }
     return kinds;
   }, [registry, clipOf]);
+  const overlay = useCallback(
+    (item: Item<DrawData>) => slots.kinds.get(item.kind)?.overlay?.(item as DrawItem) ?? false,
+    [slots],
+  );
   const keep = useMemo(() => {
     const solo = soloId ? (store.get(soloId) as DrawItem | undefined) : undefined;
     return [
@@ -375,7 +420,7 @@ function DrawEditorBody({
         label={label}
         tools={slots.tools}
         renderItem={renderItem}
-        far={{ zoom: FAR_ZOOM, kinds: far, keep }}
+        far={{ zoom: FAR_ZOOM, kinds: gpuKinds, keep, overlay }}
         itemLabel={(item) => drawItemLabel(item, registry)}
         onItemActivate={onActivate}
         onSurfaceDoubleClick={(point) => {

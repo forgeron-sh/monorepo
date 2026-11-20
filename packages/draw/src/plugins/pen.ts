@@ -191,6 +191,39 @@ export function penHit(item: DrawItem<PenData>, point: Point, reach = 4): boolea
   return distanceToPolyline(local, line) <= data.weight / 2 + reach * Math.max(sx, sy);
 }
 
+/**
+ * A stroke's lit pixels as runs, `column, row, length` triples: each row's consecutive pixels, as
+ * `strokePath` draws them. Kept per stroke data, so a moved stroke is not computed again.
+ */
+const runsOf = new WeakMap<PenData, number[]>();
+export function penRuns(data: PenData): number[] {
+  let out = runsOf.get(data);
+  if (out) return out;
+  const rows = new Map<number, number[]>();
+  for (const p of strokePixels(data)) {
+    const row = rows.get(p.y);
+    if (row) row.push(p.x);
+    else rows.set(p.y, [p.x]);
+  }
+  out = [];
+  for (const y of [...rows.keys()].sort((a, b) => a - b)) {
+    const xs = rows.get(y)!.sort((a, b) => a - b);
+    let start = xs[0]!;
+    let prev = start;
+    for (let i = 1; i <= xs.length; i++) {
+      const x = xs[i];
+      if (x === prev + 1) {
+        prev = x;
+        continue;
+      }
+      out.push(start, y, prev - start + 1);
+      if (x !== undefined) start = prev = x;
+    }
+  }
+  runsOf.set(data, out);
+  return out;
+}
+
 const penKind: KindSpec = {
   type: "pen",
   label: "Pen stroke",
@@ -239,6 +272,23 @@ const penKind: KindSpec = {
       points.push(b.x + (d.points[i]! + 0.5) * sx, b.y + (d.points[i + 1]! + 0.5) * sy);
     }
     return [{ type: "line", points, color: colorCss(d.color), width: 1, ...clip }];
+  },
+  // On the GPU at every zoom, its runs of whole pixels: under a device pixel they fade to a line.
+  gpu(item, frame) {
+    const d = item.data as PenData;
+    const b = item.bounds;
+    return [
+      {
+        type: "runs",
+        x: b.x,
+        y: b.y,
+        sx: b.w / Math.max(1, d.cols),
+        sy: b.h / Math.max(1, d.rows),
+        runs: penRuns(d),
+        color: colorCss(d.color),
+        ...(frame ? { clip: frame } : {}),
+      },
+    ];
   },
 };
 

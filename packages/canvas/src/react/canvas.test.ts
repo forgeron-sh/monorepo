@@ -372,6 +372,33 @@ describe("the far view", () => {
     expect(count()).toBe(120);
   });
 
+  it("with an overlay, draws every item on the GPU at every zoom and keeps only overlays", async () => {
+    const store = make();
+    const surface = await mount(store, {
+      far: { ...farView, overlay: (i: Item<{ title: string }>) => i.id === "a" },
+    });
+    await act(async () => store.setSize({ w: 800, h: 600 }));
+    const ids = () =>
+      [...surface.querySelectorAll<HTMLElement>("[data-canvas-item]")].map(
+        (e) => e.dataset.canvasItem,
+      );
+    const layer = surface.querySelector<HTMLElement>(".fg-canvas-far")!;
+    // Near: the GPU draws both, the DOM holds what shows over it.
+    expect(layer.style.display).toBe("");
+    expect(ids()).toEqual(["a"]);
+    // A selected item is not mounted for its outline: the GPU draws the chrome too.
+    await fire(surface, "pointerdown", { clientX: 250, clientY: 20 });
+    await fire(surface, "pointerup", { clientX: 250, clientY: 20 });
+    expect([...store.getState().selection]).toEqual(["b"]);
+    expect(ids()).toEqual(["a"]);
+    expect(surface.querySelector(".fg-canvas-outline, .fg-canvas-handle")).toBeNull();
+    // Far: nothing in the DOM.
+    await act(async () => store.setViewport({ x: 0, y: 0, zoom: 0.2 }));
+    await settle();
+    expect(ids()).toEqual([]);
+    expect(layer.style.display).toBe("");
+  });
+
   it("keeps the items the consumer asks for in the DOM", async () => {
     const store = make();
     const surface = await mount(store, { far: { ...farView, keep: ["b"] } });

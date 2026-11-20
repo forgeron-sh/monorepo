@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { createFarPack, FAR_KIND, FAR_STRIDE, packFar, parseCssColor, resetFarPack } from "./far";
+import {
+  createFarPack,
+  FAR_FLAG,
+  FAR_KIND,
+  FAR_STRIDE,
+  packFar,
+  parseCssColor,
+  resetFarPack,
+} from "./far";
 
 const resolve = (c: string) => (c === "--none" ? 0 : c === "--half" ? 0x80ff0000 : 0xff00ff00);
 
@@ -72,6 +80,63 @@ describe("the far pack", () => {
     resetFarPack(pack);
     expect(pack.count).toBe(0);
     expect(pack.texts).toEqual([]);
+  });
+
+  it("packs dashes along a line, caps, patterns, runs, images and polygons", () => {
+    const pack = packFar(
+      createFarPack(),
+      [
+        {
+          type: "line",
+          points: [0, 0, 30, 0, 30, 40],
+          color: "--a",
+          width: 2,
+          cap: "butt",
+          dash: [8, 6],
+        },
+        {
+          type: "rect",
+          x: 0,
+          y: 0,
+          w: 10,
+          h: 10,
+          fill: "--half",
+          opacity: 0.5,
+          pattern: 0b1001,
+          patternPixel: 2,
+          crisp: true,
+        },
+        { type: "runs", x: 100, y: 200, sx: 4, sy: 4, runs: [1, 2, 3, 0, 5, 1], color: "--a" },
+        { type: "image", x: 0, y: 0, w: 4, h: 3, src: "data:image/png;base64,AA==" },
+        { type: "polygon", points: [0, 0, 10, 0, 0, 10], fill: "--a" },
+      ],
+      { resolve },
+    );
+    const d = pack.data;
+    const at = (i: number, f: number) => d[i * FAR_STRIDE + f];
+    expect(pack.count).toBe(6);
+    // The second segment's dashes go on where the first's stopped; only inner joints reach past.
+    expect([at(0, 16), at(0, 17), at(0, 18), at(1, 18)]).toEqual([8, 6, 0, 30]);
+    expect(at(0, 19)).toBe(FAR_FLAG.capEnd);
+    expect(at(1, 19)).toBe(FAR_FLAG.capStart);
+    // Half of a half-transparent fill; the pattern's bits and its density.
+    expect(pack.colors[2 * FAR_STRIDE + 10]! >>> 24).toBe(64);
+    expect([at(2, 19), at(2, 20), at(2, 21), at(2, 23)]).toEqual([FAR_FLAG.crisp, 9, 2, 2 / 16]);
+    // Each run a crisp box in world units.
+    expect([...d.subarray(3 * FAR_STRIDE, 3 * FAR_STRIDE + 4)]).toEqual([104, 208, 12, 4]);
+    expect([...d.subarray(4 * FAR_STRIDE, 4 * FAR_STRIDE + 4)]).toEqual([100, 220, 4, 4]);
+    expect(at(5, 7)).toBe(FAR_KIND.image);
+    expect(pack.images).toEqual([{ index: 5, src: "data:image/png;base64,AA==" }]);
+    expect(pack.polygons).toHaveLength(1);
+  });
+
+  it("keeps a primitive's zoom range", () => {
+    const pack = packFar(
+      createFarPack(),
+      [{ type: "rect", x: 0, y: 0, w: 1, h: 1, fill: "--a", minZoom: 0.5, maxZoom: 2 }],
+      { resolve },
+    );
+    expect([pack.data[8], pack.data[9]]).toEqual([0.5, 2]);
   });
 
   it("reads the colours a browser computes", () => {
