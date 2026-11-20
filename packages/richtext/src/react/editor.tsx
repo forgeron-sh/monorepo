@@ -106,8 +106,18 @@ function useStableList<T extends object>(list: ReadonlyArray<T>): ReadonlyArray<
 /**
  * The rich text editor: Tiptap on ProseMirror underneath, our own interface on top, every feature
  * a plugin. The content is JSON (`RichDoc`); with `collaboration` it lives in a Yjs document.
+ *
+ * Changing the list of plugins builds a new editor: the interface plugins hold the editor they
+ * were given, so the body is mounted again (with its content from `value`) instead of swapping
+ * the schema under a live view.
  */
-export function RichTextEditor({
+export function RichTextEditor(props: RichTextEditorProps) {
+  const list = props.plugins ?? editorPresets[props.variant ?? "full"];
+  const key = `${list.map(identity).join(",")}|${props.bubble ?? true}|${props.blockHandle ?? true}`;
+  return <RichTextEditorBody key={key} {...props} />;
+}
+
+function RichTextEditorBody({
   value,
   defaultValue,
   onChange,

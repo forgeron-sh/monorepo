@@ -1,0 +1,40 @@
+---
+import Layout from "../../components/Layout.astro";
+import { catalog, families, firstSentence } from "../../lib/catalog";
+---
+
+<Layout
+  title="Plugins — Richtext"
+  description="Every plugin of @forgeron/richtext by family: what it adds, what it requires, a live demo and the code to use it."
+  page="plugins"
+>
+  <header class="rail sec-head">
+    <span class="sec-index">0.1</span>
+    <div class="sec-title">
+      <h1 class="f-title f-h2">Plugins</h1>
+      <p class="t-lead">Each one adds a node, a mark or a place of the interface. Pick the ones your editor needs.</p>
+    </div>
+    <div class="sec-meta t-mono"><div>{catalog.length} plugins</div><div>{families.length} families</div></div>
+  </header>
+
+  {
+    families.map((f) => (
+      <>
+        <div class="rail spacer t-mono dim" id={f.id}>
+          <span>/ {f.label}</span>
+          <span>{f.blurb}</span>
+        </div>
+        <section class="rail rt-cards" aria-label={f.label}>
+          {f.docs.map((d) => (
+            <a class="rt-card" href={`/plugins/${d.id}`}>
+              <span class="t-mono dim">{d.id}</span>
+              <span class="t-title">{d.name}</span>
+              <span class="t-small muted">{firstSentence(d.summary)}</span>
+              {d.requires?.length ? <span class="t-mono dim">needs {d.requires.join(", ")}</span> : null}
+            </a>
+          ))}
+        </section>
+      </>
+    ))
+  }
+</Layout>

@@ -1,0 +1,171 @@
+---
+import Layout from "../components/Layout.astro";
+import CalloutDemo from "../islands/CalloutDemo";
+import Collab from "../islands/Collab";
+import { highlight } from "../lib/highlight";
+
+// The source of the worked example, read as text: what is shown is what runs.
+const sources = import.meta.glob("../lib/callout.ts", { query: "?raw", import: "default", eager: true });
+const calloutSource = Object.values(sources)[0] as string;
+
+const install = `bun add @forgeron/richtext @forgeron/ui react react-dom`;
+
+const minimal = `import { RichTextEditor } from "@forgeron/richtext/react";
+import "@forgeron/ui/styles.css";
+import "@forgeron/richtext/styles.css"; // after the styles of ui
+
+export function Page({ doc, save }) {
+  return <RichTextEditor defaultValue={doc} onChange={save} placeholder="Type / for blocks" />;
+}
+// \`doc\` and what \`onChange\` gives back is ProseMirror-compatible JSON.`;
+
+const picking = `import {
+  placeholder, bold, italic, link, heading,
+  listItem, bulletList, slash, bubble,
+} from "@forgeron/richtext/plugins/editor";
+
+// Module scope (or useMemo): a new list rebuilds the editor.
+const plugins = [placeholder, bold, italic, link, heading, listItem, bulletList, slash, bubble];
+
+<RichTextEditor plugins={plugins} defaultValue={doc} />;
+
+// Everywhere else the same list, as core halves, drives Markdown, plain text and the static view:
+import { toMarkdown, fromMarkdown } from "@forgeron/richtext";
+const cores = plugins.map((p) => p.core);
+const markdown = toMarkdown(doc, cores);   // a node no plugin knows is written as the text it holds
+const back = fromMarkdown(markdown, cores); // reads only what these plugins read`;
+
+const view = `import { RichTextView } from "@forgeron/richtext/react";
+import { bold, link } from "@forgeron/richtext/plugins"; // core halves: no ProseMirror loaded
+
+<RichTextView value={doc} plugins={[bold, link]} />;
+// No \`plugins\`: the full preset. A node no plugin knows shows as an "Unsupported block" box.`;
+
+const collab = `import { toYDoc, RichTextEditor } from "@forgeron/richtext/react";
+
+const doc = toYDoc(json, "default", plugins); // seed once, with the plugins the editors use
+const provider = new HocuspocusProvider({ url, name: "page-1", document: doc }); // or y-websocket
+
+<RichTextEditor
+  plugins={plugins}
+  collaboration={{ doc, provider, user: { name: "Ada", color: "#ff4f1f" } }}
+/>;
+// \`value\` is ignored and ProseMirror's history is dropped: Yjs keeps its own.
+// Give toYDoc and fromYDoc the same \`plugins\` as the editors: the schema is made from them.`;
+
+const slots = [
+  ["slash", "how each of its core.blocks acts (blocks, turnable)", "slash"],
+  ["bubble", "buttons above a selection (a ToolbarItem, with a field for a link)", "bubble"],
+  ["handle", "actions of the block menu (HandleAction)", "blockHandle"],
+  ["blockToolbar", "a toolbar over the block the cursor is in (a table's)", "blockToolbar"],
+  ["suggestion", "a trigger character and its provider (SuggestionSpec)", "the editor"],
+  ["ui", "React components next to the writing area", "the editor"],
+] as const;
+---
+
+<Layout
+  title="Use it — Richtext"
+  description="Install @forgeron/richtext, put a minimal editor on a page, pick plugins, show a read-only view, collaborate with Yjs and write a plugin of your own."
+  page="use"
+>
+  <header class="rail sec-head">
+    <span class="sec-index">0.3</span>
+    <div class="sec-title">
+      <h1 class="f-title f-h2">Use it</h1>
+      <p class="t-lead">From an empty page to your own plugin, in six steps.</p>
+    </div>
+    <div class="sec-meta t-mono"><div>Internal package</div><div>The API is not frozen</div></div>
+  </header>
+
+  <div class="rail spacer t-mono dim"><span>/01 → Install</span><span>a workspace package</span></div>
+  <section class="rail rt-section rt-prose">
+    <div class="code" set:html={highlight(install, "shellscript")} />
+    <p class="t-small muted">Import the styles once, after those of <code>@forgeron/ui</code>.</p>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/02 → A minimal editor</span><span>the preset, no list</span></div>
+  <section class="rail rt-section rt-prose">
+    <div class="code" set:html={highlight(minimal)} />
+    <p class="t-small muted">
+      Without <code>plugins</code> the editor takes the preset of <code>variant</code>: <code>full</code> is a page,
+      <code>minimal</code> is marks, lists and mentions for a comment.
+    </p>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/03 → Pick the plugins</span><span>one list is the whole configuration</span></div>
+  <section class="rail rt-section rt-prose">
+    <div class="code" set:html={highlight(picking)} />
+    <p class="t-small muted">
+      A plugin that needs another says so in <code>requires</code>; a duplicate id, a missing dependency, a cycle and
+      two owners of one node type throw a <code>PluginError</code>. <a href="/plugins">The catalog</a> lists them all;
+      <a href="/">the home page</a> rebuilds an editor from the ones you tick.
+    </p>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/04 → Read only</span><span>no ProseMirror</span></div>
+  <section class="rail rt-section rt-prose">
+    <div class="code" set:html={highlight(view)} />
+    <p class="t-small muted">
+      <code>toHtml</code> and <code>toTree</code> do the same outside React. Anything unsafe (a <code>javascript:</code>
+      link) is dropped.
+    </p>
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/05 → Collaboration</span><span>Yjs, two peers here</span></div>
+  <section class="rail rt-section rt-prose">
+    <div class="code" set:html={highlight(collab)} />
+    <Collab client:only="react" />
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/06 → Write a plugin</span><span>D-152</span></div>
+  <section class="rail rt-section rt-prose">
+    <h2 class="t-title">Two halves</h2>
+    <p class="t-small muted">
+      The <strong>core half</strong> (<code>CorePlugin</code>, made with <code>definePlugin</code>) has no React, Tiptap,
+      ProseMirror, Yjs or ui: its <code>id</code>, <code>name</code>, <code>requires</code>, the JSON
+      <code>nodes</code> and <code>marks</code> it owns with their Markdown, plain-text and static-view rules, its slash
+      <code>blocks</code> (id, label, keywords, icon name, group, shortcut), Markdown readers and a <code>migrate</code>
+      for old node types. The <strong>editor half</strong> (<code>EditorPlugin</code>, made with
+      <code>defineEditorPlugin</code>) has the <code>core</code>, the Tiptap <code>extensions</code> and what it
+      contributes to the slots. A read-only place imports <code>@forgeron/richtext/plugins</code> and never loads
+      the second.
+    </p>
+    <h2 class="t-title">Slots</h2>
+    <p class="t-small muted">
+      Named places of the interface. The content plugins contribute; the interface plugins draw. Without the plugin
+      that draws a slot, that part of the interface is not there.
+    </p>
+    <div class="table-wrap">
+      <table class="props">
+        <thead>
+          <tr><th scope="col">Slot</th><th scope="col">A plugin adds</th><th scope="col">Drawn by</th></tr>
+        </thead>
+        <tbody>
+          {
+            slots.map(([slot, adds, by]) => (
+              <tr>
+                <td><code>{slot}</code></td>
+                <td>{adds}</td>
+                <td>{by === "the editor" ? by : <a href={`/plugins/${by}`}><code>{by}</code></a>}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    <h2 class="t-title">A worked example: a callout, in one file</h2>
+    <p class="t-small muted">
+      A box that holds blocks, written as <code>:::callout</code> … <code>:::</code> in Markdown. This file is the one
+      the package's tests use (<code>packages/richtext/src/fixtures/</code>), with no help beyond the public API; it is
+      the real source of this site's demo below, not a copy pasted into the page.
+    </p>
+    <div class="code" set:html={highlight(calloutSource)} />
+    <CalloutDemo client:only="react" />
+    <h2 class="t-title">What to remember</h2>
+    <ul class="rt-notes-list-doc t-small">
+      <li>The id of the core half is the id everything refers to: <code>requires</code>, the options, the docs.</li>
+      <li>Unknown types degrade, they never crash: a node no plugin knows is kept in the JSON, shown as a box and written as its text.</li>
+      <li>To appear in this catalog, add a <code>PluginDoc</code> to a file of <code>packages/richtext/src/plugins/docs/</code>: the page, the demo and the options table follow.</li>
+    </ul>
+  </section>
+</Layout>

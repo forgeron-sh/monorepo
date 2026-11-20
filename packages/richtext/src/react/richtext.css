@@ -3,6 +3,12 @@
    the styles of @forgeron/ui. Colours are tokens only; the carets of collaborators take the colour
    their user gives (`--fg-rt-user`). */
 
+/* The plugins' own styles; an @import must come before every rule. */
+@import "./references.css";
+@import "./attachments.css";
+@import "./advanced.css";
+@import "./layout.css";
+
 .fg-rt {
   position: relative;
   color: var(--ink);

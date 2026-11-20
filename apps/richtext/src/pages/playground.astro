@@ -1,0 +1,31 @@
+---
+import Layout from "../components/Layout.astro";
+import Collab from "../islands/Collab";
+import Playground from "../islands/Playground";
+import { entries } from "../lib/entries";
+---
+
+<Layout
+  title="Playground — Richtext"
+  description="The full editor with its plugins ticked one by one, notes saved in your browser, the document as Markdown, JSON and text, and two editors collaborating on a Yjs document."
+  page="playground"
+>
+  <header class="rail sec-head">
+    <span class="sec-index">0.2</span>
+    <div class="sec-title">
+      <h1 class="f-title f-h2">Playground</h1>
+      <p class="t-lead">Notes in this browser, the plugins you tick, and the document as it is written out.</p>
+    </div>
+    <div class="sec-meta t-mono"><div>Nothing leaves this page</div></div>
+  </header>
+
+  <div class="rail spacer t-mono dim"><span>/ Notes</span><span>localStorage</span></div>
+  <section class="rail rt-section" aria-label="Notes">
+    <Playground entries={entries} client:only="react" />
+  </section>
+
+  <div class="rail spacer t-mono dim"><span>/ Collaboration</span><span>two editors, two Y.Docs, one relay</span></div>
+  <section class="rail rt-section" aria-label="Collaboration">
+    <Collab client:only="react" />
+  </section>
+</Layout>

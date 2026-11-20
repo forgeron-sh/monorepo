@@ -1,0 +1,53 @@
+---
+import { ForgeronIcon, MoonIcon, Sun02Icon, toSvg } from "@forgeron/icons";
+
+interface Props {
+  page: "home" | "plugins" | "playground" | "use" | "none";
+}
+const { page } = Astro.props;
+const mark = toSvg(ForgeronIcon, { size: 22 }) ?? "";
+const sun = toSvg(Sun02Icon, { size: 16 }) ?? "";
+const moon = toSvg(MoonIcon, { size: 16 }) ?? "";
+const links = [
+  ["/plugins", "/0.1 Plugins", "plugins"],
+  ["/playground", "/0.2 Playground", "playground"],
+  ["/use", "/0.3 Use it", "use"],
+] as const;
+---
+
+<nav class="nav" aria-label="Main navigation">
+  <div class="rail">
+    <a href="/" class="nav-brand" aria-label="Forgeron Richtext, home">
+      <span set:html={mark} />
+      <span class="nav-word">Forgeron<span class="dim">/</span><span class="accent">Richtext</span></span>
+    </a>
+    <div class="nav-links t-mono">
+      {
+        links.map(([href, label, id]) => (
+          <a href={href} aria-current={page === id ? "page" : undefined}>
+            {label}
+          </a>
+        ))
+      }
+    </div>
+    <button class="btn btn-sm nav-cta theme-toggle" type="button" aria-label="Switch between dark and light">
+      <span class="theme-sun" set:html={sun} />
+      <span class="theme-moon" set:html={moon} />
+    </button>
+  </div>
+</nav>
+
+<script>
+  const KEY = "forgeron.richtext-site.theme";
+  document.querySelector(".theme-toggle")?.addEventListener("click", () => {
+    const root = document.documentElement;
+    const light = root.dataset["theme"] !== "light";
+    if (light) root.dataset["theme"] = "light";
+    else delete root.dataset["theme"];
+    try {
+      localStorage.setItem(KEY, light ? "light" : "dark");
+    } catch {
+      // Not remembered: the choice lasts until the page closes.
+    }
+  });
+</script>

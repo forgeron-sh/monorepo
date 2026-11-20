@@ -7,6 +7,11 @@ export interface ViewElement {
   tag: string;
   attrs?: ViewAttrs;
   children?: ViewNode[];
+  /**
+   * Trusted HTML to put inside the element instead of `children` (typeset maths). It comes from a
+   * function the app gives a plugin, never from the document, and is not escaped: the app owns it.
+   */
+  html?: string;
 }
 
 /** A text string or an element. */
@@ -17,6 +22,13 @@ export const el = (tag: string, attrs?: ViewAttrs, children?: ViewNode[]): ViewE
   tag,
   ...(attrs ? { attrs } : {}),
   ...(children ? { children } : {}),
+});
+
+/** An element whose inside is trusted HTML (see `ViewElement.html`). */
+export const rawEl = (tag: string, attrs: ViewAttrs | undefined, html: string): ViewElement => ({
+  tag,
+  ...(attrs ? { attrs } : {}),
+  html,
 });
 
 /** Only schemes that cannot run code: anything else loses its URL. */

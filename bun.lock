@@ -144,6 +144,27 @@
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
       },
+    "apps/richtext": {
+      "name": "@forgeron/richtext-site",
+      "version": "0.0.0",
+      "dependencies": {
+        "@astrojs/react": "7.1.2",
+        "@forgeron/icons": "workspace:*",
+        "@forgeron/richtext": "workspace:*",
+        "@forgeron/ui": "workspace:*",
+        "astro": "7.4.5",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+        "shiki": "4.6.0",
+      },
+      "devDependencies": {
+        "@astrojs/check": "0.9.12",
+        "@forgeron/tsconfig": "workspace:*",
+        "@types/node": "24.19.2",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+      },
+    },
     },
     "apps/site": {
       "name": "@forgeron/site",
@@ -433,26 +454,26 @@
       },
       "devDependencies": {
         "@forgeron/sdk": "workspace:*",
-        "@tiptap/extension-blockquote": "3.34.0",
-        "@tiptap/extension-bold": "3.34.0",
-        "@tiptap/extension-code": "3.34.0",
-        "@tiptap/extension-code-block": "3.34.0",
         "@forgeron/tsconfig": "workspace:*",
         "@types/node": "24.19.2",
-        "@tiptap/extension-document": "3.34.0",
-        "@tiptap/extension-hard-break": "3.34.0",
-        "@tiptap/extension-heading": "3.34.0",
-        "@tiptap/extension-horizontal-rule": "3.34.0",
       },
     },
     "packages/richtext": {
       "name": "@forgeron/richtext",
+        "@tiptap/extension-document": "3.34.0",
+        "@tiptap/extension-hard-break": "3.34.0",
+        "@tiptap/extension-heading": "3.34.0",
+        "@tiptap/extension-horizontal-rule": "3.34.0",
       "version": "0.0.0",
       "dependencies": {
-        "@tiptap/extension-strike": "3.34.0",
         "@forgeron/icons": "workspace:*",
         "@forgeron/ui": "workspace:*",
         "@tiptap/core": "3.34.0",
+        "@tiptap/extension-blockquote": "3.34.0",
+        "@tiptap/extension-strike": "3.34.0",
+        "@tiptap/extension-bold": "3.34.0",
+        "@tiptap/extension-code": "3.34.0",
+        "@tiptap/extension-code-block": "3.34.0",
         "@tiptap/extension-text": "3.34.0",
         "@tiptap/extension-underline": "3.34.0",
         "@tiptap/extensions": "3.34.0",
@@ -471,7 +492,9 @@
         "@tiptap/react": "3.34.0",
         "@tiptap/suggestion": "3.34.0",
         "@tiptap/y-tiptap": "3.3.0",
-        "y-prosemirror": "1.3.7",
+        "highlight.js": "11.11.1",
+        "katex": "0.19.1",
+        "lowlight": "3.3.0",
         "y-protocols": "1.0.7",
         "yjs": "13.6.33",
       },
@@ -821,6 +844,8 @@
     "@forgeron/libraries": ["@forgeron/libraries@workspace:packages/libraries"],
 
     "@forgeron/manifest": ["@forgeron/manifest@workspace:packages/manifest"],
+    "@forgeron/richtext-site": ["@forgeron/richtext-site@workspace:apps/richtext"],
+
 
     "@forgeron/permissions": ["@forgeron/permissions@workspace:packages/permissions"],
 
@@ -1499,6 +1524,8 @@
     "graceful-fs": ["graceful-fs@4.2.11", "", {}, "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="],
 
     "h3": ["h3@1.15.11", "", { "dependencies": { "cookie-es": "^1.2.3", "crossws": "^0.3.5", "defu": "^6.1.6", "destr": "^2.0.5", "iron-webcrypto": "^1.2.1", "node-mock-http": "^1.0.4", "radix3": "^1.1.2", "ufo": "^1.6.3", "uncrypto": "^0.1.3" } }, "sha512-L3THSe2MPeBwgIZVSH5zLdBBU90TOxarvhK9d04IDY2AmVS8j2Jz2LIWtwsGOU3lu2I5jCN7FNvVfY2+XyF+mg=="],
+    "highlight.js": ["highlight.js@11.11.1", "", {}, "sha512-Xwwo44whKBVCYoliBQwaPvtd/2tYFkRQtXDWj1nackaV2JPXx3L0+Jvd8/qCJ2p+ML0/XVkJ2q+Mr+UVdpJK5w=="],
+
 
     "has-flag": ["has-flag@4.0.0", "", {}, "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ=="],
 
@@ -1567,6 +1594,8 @@
     "js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
 
     "js-yaml": ["js-yaml@4.3.2", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA=="],
+    "katex": ["katex@0.19.1", "", { "dependencies": { "commander": "^15.0.0" }, "bin": { "katex": "cli.js" } }, "sha512-jG8uKntjSEcm2EpQOh0XturpPuuC9r3Sq5HLHdsFdWZT27E672SF19QEi+of0/YeOy15lDgRhKvr5614uRrEfA=="],
+
 
     "jsdom": ["jsdom@30.1.3", "", { "dependencies": { "@asamuzakjp/css-color": "^7.1.3", "@asamuzakjp/dom-selector": "^10.0.3", "@bramus/specificity": "^2.4.2", "@csstools/css-syntax-patches-for-csstree": "^1.1.15", "@exodus/bytes": "^1.16.0", "css-tree": "^3.2.1", "data-urls": "^8.0.0", "decimal.js": "^10.6.0", "html-encoding-sniffer": "^7.0.0", "is-potential-custom-element-name": "^1.0.1", "lru-cache": "^11.5.3", "parse5": "^8.0.1", "saxes": "^6.0.0", "tough-cookie": "^6.0.2", "undici": "^8.12.1", "w3c-xmlserializer": "^6.0.0", "webidl-conversions": "^8.0.1", "whatwg-mimetype": "^5.0.0", "whatwg-url": "^17.2.0", "xml-name-validator": "^5.0.0" }, "peerDependencies": { "canvas": "^3.2.3" }, "optionalPeers": ["canvas"] }, "sha512-hQMUPvRgN7KxsfIytDQji7bimuJeRQa6Qo5+iuiZQk5CafeRxLIA10/cG5YCBFNpD9RO3oqIiN4CO1Y44kxqXg=="],
 
@@ -1629,6 +1658,8 @@
     "lightningcss-linux-x64-gnu": ["lightningcss-linux-x64-gnu@1.33.0", "", { "os": "linux", "cpu": "x64" }, "sha512-ar+Ju7LmcN0Jo4FpL4hpFybwNG9/3A/Br5KW2n2jyODg3MEZXaDYADdemoNS+BDNfMgKvylJLj4S5tyRActuAg=="],
 
     "lightningcss-linux-x64-musl": ["lightningcss-linux-x64-musl@1.33.0", "", { "os": "linux", "cpu": "x64" }, "sha512-RYiYbkokw0trfKqqzfF55lginwEPrD3OJDfTuJzFs1MK6iFnDenaz1fqLLtX4ITG3OktJQXOeTaw1awrBAlZPw=="],
+    "lowlight": ["lowlight@3.3.0", "", { "dependencies": { "@types/hast": "^3.0.0", "devlop": "^1.0.0", "highlight.js": "~11.11.0" } }, "sha512-0JNhgFoPvP6U6lE/UdVsSq99tn6DhjjpAj5MxG49ewd2mOBVtwWYIT8ClyABhq198aXXODMU6Ox8DrGy/CpTZQ=="],
+
 
     "lightningcss-win32-arm64-msvc": ["lightningcss-win32-arm64-msvc@1.33.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-1K+MPfLSFVpphzpdbfkhlWk6wBrTObBzS2T6db10PNOZgR9GoVsAWzwNyuhUYYbTp23j+4RrncfujZ4uAzXvwA=="],
 

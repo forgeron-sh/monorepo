@@ -26,6 +26,10 @@ function renderNode(node: ViewNode, key: number): ReactNode {
   }
   // A checkbox in a read-only view: shown, not clickable, and React does not warn about it.
   if (node.tag === "input") props["readOnly"] = true;
+  if (node.html !== undefined) {
+    props["dangerouslySetInnerHTML"] = { __html: node.html };
+    return createElement(node.tag, props);
+  }
   const kids = node.children?.map(renderNode);
   return createElement(node.tag, props, ...(kids ?? []));
 }

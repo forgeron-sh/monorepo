@@ -124,7 +124,13 @@ function writer(registry: Registry): MarkdownWriter {
  */
 export function toMarkdown(doc: RichNode, plugins?: Plugins): string {
   const registry = registryOf(plugins);
-  return writer(registry).blocks(registry.migrate(doc).content ?? []);
+  const root = registry.migrate(doc);
+  const isDoc = root.type === "doc";
+  if (isDoc) for (const hook of registry.documentHooks) hook.prepare?.(root);
+  const w = writer(registry);
+  let out = w.blocks(root.content ?? []);
+  if (isDoc) for (const hook of registry.documentHooks) out = hook.markdown?.(root, out, w) ?? out;
+  return out;
 }
 
 /* ================================================================== Import */
@@ -305,6 +311,7 @@ function parseBlocks(lines: string[], registry: Registry, r: MarkdownReader): Ri
 export function fromMarkdown(markdown: string, plugins?: Plugins): RichDoc {
   const registry = registryOf(plugins);
   const lines = markdown.replace(/\r\n?/g, "\n").replace(/\t/g, "    ").split("\n");
-  const content = reader(registry).blocks(lines);
-  return normalizeDoc({ type: "doc", content }, registry);
+  let root: RichNode = { type: "doc", content: reader(registry).blocks(lines) };
+  for (const hook of registry.documentHooks) root = hook.fromMarkdown?.(root) ?? root;
+  return normalizeDoc({ type: "doc", content: root.content ?? [] }, registry);
 }

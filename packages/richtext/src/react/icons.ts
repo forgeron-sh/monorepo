@@ -3,6 +3,7 @@
 
 import {
   BoldIcon,
+  Calculator01Icon,
   CheckListIcon,
   CodeXmlIcon,
   CopyIcon,
@@ -16,6 +17,7 @@ import {
   ListIcon,
   ListOrderedIcon,
   MinusIcon,
+  NoteIcon,
   PlusIcon,
   QuoteIcon,
   StrikethroughIcon,
@@ -39,10 +41,17 @@ const BLOCK_ICONS: Record<string, IconDefinition> = {
   minus: MinusIcon,
   "table-01": Table01Icon,
   "image-03": Image03Icon,
+  "calculator-01": Calculator01Icon,
+  note: NoteIcon,
 };
 
 /** The drawing for a catalog icon name; a plain list icon when the name is unknown. */
 export const blockIcon = (name: string): IconDefinition => BLOCK_ICONS[name] ?? ListIcon;
+
+/** A plugin names its catalog icons as strings; this adds the drawings for the names it uses. */
+export function registerBlockIcons(icons: Readonly<Record<string, IconDefinition>>): void {
+  Object.assign(BLOCK_ICONS, icons);
+}
 
 export const UI_ICONS = {
   bold: BoldIcon,

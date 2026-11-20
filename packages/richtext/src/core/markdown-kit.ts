@@ -3,7 +3,7 @@
 
 import type { RichMark, RichNode } from "./types";
 
-const PUNCT = /[\\`*_[\]<>~|]/g;
+const PUNCT = /[\\`*_[\]<>~|$]/g;
 
 /** Escapes the characters that would read as Markdown, and a line start that would read as a block. */
 export function escapeText(value: string, inTable = false): string {

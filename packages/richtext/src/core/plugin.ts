@@ -109,6 +109,22 @@ export interface NodeSpec {
   render?: (node: RichNode, writer: ViewWriter) => ViewNode[];
 }
 
+/**
+ * How a plugin changes what another plugin's node writes: the `reference` node is owned by the
+ * references plugin, and a plugin of one kind (a page, a date) says how its own references look.
+ * `next` gives what the rules before it (the owner's, then earlier decorations) would have written.
+ */
+export interface NodeDecoration {
+  markdown?: (
+    node: RichNode,
+    writer: MarkdownWriter,
+    inTable: boolean,
+    next: () => string,
+  ) => string;
+  text?: (node: RichNode, writer: TextWriter, next: () => string) => string;
+  render?: (node: RichNode, writer: ViewWriter, next: () => ViewNode[]) => ViewNode[];
+}
+
 export interface MarkSpec {
   /**
    * Where the mark sits among the marks of a text: lower is outermost (`link` 0, `bold` 1...).
@@ -126,6 +142,28 @@ export interface MarkSpec {
   render?: (mark: RichMark, children: ViewNode[]) => ViewElement;
 }
 
+/**
+ * What a plugin does to a whole document, as opposed to one node: numbering, a section appended at
+ * the end (footnotes), a pass over the finished static tree (syntax colouring). Each hook runs
+ * only when the root being written, read or rendered is a `doc`.
+ */
+export interface DocumentHooks {
+  /**
+   * Called first on the root before Markdown, plain text or the static view is made, so the node
+   * rules can look up what they need (the number of a footnote). Keep the result in a `WeakMap`
+   * keyed by the node objects: the walk hands the same objects to the rules.
+   */
+  prepare?(root: RichNode): void;
+  /** Markdown of the whole document, after its blocks are written. */
+  markdown?(root: RichNode, markdown: string, writer: MarkdownWriter): string;
+  /** Plain text of the whole document, after its blocks are written. */
+  text?(root: RichNode, text: string, writer: TextWriter): string;
+  /** The static tree of the whole document, after its blocks are rendered. */
+  render?(root: RichNode, tree: ViewNode[], writer: ViewWriter): ViewNode[];
+  /** The document read from Markdown, before it is normalised: resolves what refers forward. */
+  fromMarkdown?(root: RichNode): RichNode;
+}
+
 /* ================================================================== The plugin */
 
 export interface CorePlugin {
@@ -139,6 +177,11 @@ export interface CorePlugin {
   readonly nodes?: Readonly<Record<string, NodeSpec>>;
   /** The JSON mark types it owns. */
   readonly marks?: Readonly<Record<string, MarkSpec>>;
+  /**
+   * Rules layered over a node type another plugin owns (list that plugin in `requires`), applied in
+   * plugin order on top of the owner's. Each rule decides whether the node is its business.
+   */
+  readonly decorate?: Readonly<Record<string, NodeDecoration>>;
   /** Old node types it still reads, turned into the current ones when a document is normalised. */
   readonly migrate?: Readonly<Record<string, (node: RichNode) => RichNode>>;
   /** Entries it adds to the slash menu (and to the block handle's "turn into"). */
@@ -147,6 +190,8 @@ export interface CorePlugin {
     blocks?: ReadonlyArray<BlockReader>;
     inline?: ReadonlyArray<InlineReader>;
   };
+  /** Passes over the whole document (numbering, an appended section, a tree transform). */
+  readonly document?: DocumentHooks;
 }
 
 /** Typed identity: `definePlugin({ id: ... })` checks the shape and returns it. */
@@ -186,6 +231,8 @@ export interface Registry {
   emphasis(char: string, size: number): string | undefined;
   /** Largest emphasis size declared for a character, `0` when it is not a delimiter. */
   emphasisMax(char: string): number;
+  /** The document hooks of the plugins, in plugin order. */
+  readonly documentHooks: ReadonlyArray<DocumentHooks>;
 }
 
 /** Orders a plugin list by dependency and checks it. Throws `PluginError`. */
@@ -218,6 +265,26 @@ export function resolvePlugins(list: ReadonlyArray<CorePlugin>): CorePlugin[] {
 
 const RESERVED = new Set(["doc", "text"]);
 
+function decorateSpec(spec: NodeSpec, rules: NodeDecoration): NodeSpec {
+  const next: NodeSpec = { ...spec };
+  const { markdown, text, render } = rules;
+  if (markdown) {
+    next.markdown = (node, w, inTable) =>
+      markdown(node, w, inTable, () => spec.markdown?.(node, w, inTable) ?? "");
+  }
+  if (text) {
+    next.text = (node, w) =>
+      text(node, w, () =>
+        spec.text ? spec.text(node, w) : (node.content ?? []).map((c) => w.text(c)).join(""),
+      );
+  }
+  if (render) {
+    next.render = (node, w) =>
+      render(node, w, () => (spec.render ? spec.render(node, w) : w.children(node)));
+  }
+  return next;
+}
+
 /** Composes a plugin list into the lookups every function of the core uses. Throws `PluginError`. */
 export function createRegistry(list: ReadonlyArray<CorePlugin>): Registry {
   const plugins = resolvePlugins(list);
@@ -232,8 +299,10 @@ export function createRegistry(list: ReadonlyArray<CorePlugin>): Registry {
   const inline = new Map<string, InlineReader[]>();
   const emphasis = new Map<string, string>();
   const emphasisMax = new Map<string, number>();
+  const documentHooks: DocumentHooks[] = [];
 
   for (const plugin of plugins) {
+    if (plugin.document) documentHooks.push(plugin.document);
     for (const [type, spec] of Object.entries(plugin.nodes ?? {})) {
       const taken = nodes.get(type);
       if (RESERVED.has(type) || taken) {
@@ -242,6 +311,15 @@ export function createRegistry(list: ReadonlyArray<CorePlugin>): Registry {
         );
       }
       nodes.set(type, { spec, owner: plugin.id });
+    }
+    for (const [type, rules] of Object.entries(plugin.decorate ?? {})) {
+      const owner = nodes.get(type);
+      if (!owner) {
+        throw new PluginError(
+          `Plugin "${plugin.id}" decorates node type "${type}", which no plugin before it owns`,
+        );
+      }
+      owner.spec = decorateSpec(owner.spec, rules);
     }
     for (const [type, spec] of Object.entries(plugin.marks ?? {})) {
       const taken = marks.get(type);
@@ -303,5 +381,6 @@ export function createRegistry(list: ReadonlyArray<CorePlugin>): Registry {
     inlineReaders: (char) => inline.get(char) ?? [],
     emphasis: (char, size) => emphasis.get(`${char}${size}`),
     emphasisMax: (char) => emphasisMax.get(char) ?? 0,
+    documentHooks,
   };
 }

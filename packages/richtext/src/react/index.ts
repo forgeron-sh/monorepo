@@ -20,3 +20,4 @@ export { createLocalSync, createYDoc, fromYDoc, toYDoc } from "../collab/index";
 export type { LocalPeer, LocalSync } from "../collab/index";
 export type { CollaborationOptions } from "../tiptap/host";
 export { applyBlock, currentBlock } from "../tiptap/commands";
+export { datesPanel } from "./date-panel";

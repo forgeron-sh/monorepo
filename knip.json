@@ -67,6 +67,10 @@
       "entry": ["scripts/check-links.ts"],
       "ignoreDependencies": ["@astrojs/check"]
     },
+    "apps/richtext": {
+      "entry": ["scripts/check-links.ts"],
+      "ignoreDependencies": ["@astrojs/check"]
+    },
     "apps/cli": {
       "ignore": ["fixtures/**"],
       "ignoreDependencies": ["@forgeron/runtime", "kysely", "miniflare", "rolldown", "zod"]

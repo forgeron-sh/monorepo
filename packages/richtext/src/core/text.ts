@@ -22,9 +22,18 @@ export function toPlainText(
 ): string {
   const registry = registryOf(plugins);
   const separator = options.separator ?? "\n";
-  const out = textOf(registry.migrate(node), separator, registry)
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  const root = registry.migrate(node);
+  const isDoc = root.type === "doc";
+  if (isDoc) for (const hook of registry.documentHooks) hook.prepare?.(root);
+  let raw = textOf(root, separator, registry);
+  if (isDoc) {
+    const writer: TextWriter = {
+      sep: separator,
+      text: (child, s = separator) => textOf(registry.migrate(child), s, registry),
+    };
+    for (const hook of registry.documentHooks) raw = hook.text?.(root, raw, writer) ?? raw;
+  }
+  const out = raw.replace(/\n{3,}/g, "\n\n").trim();
   const max = options.maxLength;
   return max !== undefined && out.length > max ? `${out.slice(0, Math.max(0, max - 1))}…` : out;
 }

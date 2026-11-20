@@ -56,7 +56,16 @@ function toNode(node: RichNode, registry: Registry, inline = false): ViewNode[] 
 
 /** The document as a list of top-level view nodes. Unsafe URLs are dropped. */
 export function toTree(node: RichNode, plugins?: Plugins): ViewNode[] {
-  return toNode(node, registryOf(plugins));
+  const registry = registryOf(plugins);
+  const root = registry.migrate(node);
+  if (root.type !== "doc") return toNode(node, registry);
+  for (const hook of registry.documentHooks) hook.prepare?.(root);
+  let tree = toNode(node, registry);
+  const writer: ViewWriter = {
+    children: (n) => (n.content ?? []).flatMap((c) => toNode(c, registry)),
+  };
+  for (const hook of registry.documentHooks) tree = hook.render?.(root, tree, writer) ?? tree;
+  return tree;
 }
 
 const VOID = new Set(["br", "hr", "img", "input"]);
@@ -80,7 +89,8 @@ function serialize(node: ViewNode): string {
     })
     .join("");
   if (VOID.has(node.tag)) return `<${node.tag}${attrs}>`;
-  return `<${node.tag}${attrs}>${(node.children ?? []).map(serialize).join("")}</${node.tag}>`;
+  const inner = node.html ?? (node.children ?? []).map(serialize).join("");
+  return `<${node.tag}${attrs}>${inner}</${node.tag}>`;
 }
 
 /** The document as an HTML string, escaped, with only safe URLs. No script, no style. */

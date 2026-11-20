@@ -121,6 +121,19 @@ export const callout = defineEditorPlugin({
 
 Unknown types degrade, they never crash: a node no plugin of this editor knows is kept as is in the JSON (`parseDoc(value, plugins, { unknown: "keep" })`; the editor does it), shown as an "Unsupported block" box in the editor and the static view, and written as the text it holds in Markdown and plain text. The Markdown parser reads only what the plugins in the list read.
 
+## The catalog
+
+Beyond the plugins of `full`, the package ships opt-in plugins in families. An app lists the ones it wants: `plugins={[...fullEditorPlugins, ...layoutPlugins]}`. Each family has a ready list and its own subpath, for both halves (`@forgeron/richtext/plugins/<family>` and `.../plugins/editor/<family>`).
+
+| Family        | Plugins                                                           | Provided by the app                                    |
+| ------------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
+| `references`  | `pages` (`[[`), `tags` (`#`), `dates` (`!`, with `datesPanel`)    | a `search` per kind, `onCreate` for tags, `href`       |
+| `attachments` | `upload`, `attachment`, `audio`, `video`, `embed`                 | `upload(file, { signal, onProgress })`, `resolveEmbed` |
+| `layout`      | `callout`, `toggle`, `columns`, `toc`, `emoji`                    | nothing                                                |
+| `advanced`    | `codeHighlight` (lazy grammars), `math` (KaTeX, lazy), `footnote` | an optional `renderMath` for the static view           |
+
+Every plugin has a `PluginDoc` (`src/plugins/docs/*.ts`, the type is in `docs/types.ts`): summary, subpaths, requirements, options, a Markdown sample and a usage snippet. The site `apps/richtext` (`richtext.forgeron.sh`) builds its catalog pages and live demos from those files, so a new plugin with a docs file and an editor half appears there with no site change.
+
 ## References
 
 A **reference** is an inline `{ kind, id, label }` pointing at a thing of the app: a person, a page, a tag. The `references` plugin provides the node; the app provides, per kind, a trigger character and the candidates (`references={[{ kind: "page", char: "#", items }]}`). The legacy mention is the kind `user` (`mentions` and `onMentionQuery` are sugar for its provider): old documents with `mention` nodes are read as references, and `[@Label](mention:id)` stays its Markdown form (other kinds: `[Label](ref:kind:id)`).
