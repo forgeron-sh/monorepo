@@ -146,6 +146,17 @@ module.exports = {
       to: { path: "^packages/blueprint/src/(dom|react)/|^packages/icons/src/catalog\\.ts$" },
     },
     {
+      // The primitives sit below the blocks (D-157): a block may use a primitive, never the other way.
+      // Only the index barrel re-exports the blocks.
+      name: "ui-primitives-do-not-import-blocks",
+      severity: "error",
+      from: {
+        path: "^packages/ui/src/",
+        pathNot: "^packages/ui/src/(blocks/|index\\.ts$)|\\.test\\.tsx?$",
+      },
+      to: { path: "^packages/ui/src/blocks/" },
+    },
+    {
       // Editors on an infinite surface sit above the design system (D-148): ui never imports them.
       name: "ui-does-not-import-editors",
       severity: "error",

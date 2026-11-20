@@ -152,6 +152,13 @@ const cases: Case[] = [
     },
   },
   {
+    rule: "ui-primitives-do-not-import-blocks",
+    files: {
+      [`packages/ui/src/${F}.ts`]: `import "./blocks/${F}_target.ts";\n`,
+      [`packages/ui/src/blocks/${F}_target.ts`]: STUB,
+    },
+  },
+  {
     rule: "ui-does-not-import-editors",
     files: {
       [`packages/ui/src/${F}.ts`]: `import "../../canvas/src/${F}_target.ts";\n`,
