@@ -2,12 +2,10 @@
 // Base UI (unstyled, accessible primitives); the look is the lab language's, in atoms.css.
 
 import { Popover } from "@base-ui/react/popover";
-import { Select } from "@base-ui/react/select";
 import { Toast } from "@base-ui/react/toast";
-import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
 import type { IconDefinition } from "@forgeron/icons";
-import { ArrowDown01Icon, Calendar03Icon, Cancel01Icon, Tick02Icon } from "@forgeron/icons";
-import type { KeyboardEvent, ReactElement, ReactNode } from "react";
+import { Calendar03Icon, Cancel01Icon } from "@forgeron/icons";
+import type { KeyboardEvent, ReactNode } from "react";
 import { useState } from "react";
 import { useControllableState } from "./hooks/use-controllable";
 import { useDisclosure } from "./hooks/use-disclosure";
@@ -15,6 +13,14 @@ import { Calendar } from "./calendar";
 import { cx } from "./cx";
 import { addDays, formatShort, toIso, weekday } from "./dates";
 import { Icon } from "./icon";
+import {
+  Select,
+  SelectContent,
+  SelectFieldLabel,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./select";
 
 /* ---------------------------------------------------------------- SelectMenu */
 
@@ -98,26 +104,25 @@ export function SelectMenu({
     setOpen(false);
   };
   return (
-    <Select.Root<string>
+    <Select
       items={items}
       value={current}
-      onValueChange={(next) => choose(next)}
+      onValueChange={(next) => choose(next as string | null)}
       open={open}
       onOpenChange={setOpen}
       disabled={disabled}
     >
       <div className={cx("fg-selm", className)}>
-        <Select.Label className={showLabel ? "fg-field-label" : "fg-sr"}>{label}</Select.Label>
-        <Select.Trigger
-          className={cx(
-            "fg-selm-trigger",
-            variant === "chip" && "fg-selm-chip",
-            variant === "field" && size === "sm" && "fg-selm-sm",
-            markOnly && "fg-selm-mark",
-          )}
+        <SelectFieldLabel className={showLabel ? "fg-field-label" : "fg-sr"}>
+          {label}
+        </SelectFieldLabel>
+        <SelectTrigger
+          variant={variant}
+          size={size === "sm" ? "sm" : "default"}
+          className={markOnly ? "fg-selm-mark" : undefined}
         >
           {children ?? (
-            <Select.Value className="fg-selm-value" placeholder={placeholder}>
+            <SelectValue placeholder={placeholder}>
               {(current: string | null) => {
                 const option = current ? byValue.get(current) : undefined;
                 if (!option) return placeholder;
@@ -128,75 +133,24 @@ export function SelectMenu({
                   </>
                 );
               }}
-            </Select.Value>
+            </SelectValue>
           )}
-          {variant === "field" ? (
-            <Select.Icon className="fg-selm-caret">
-              <Icon icon={ArrowDown01Icon} size={12} variant="mono" />
-            </Select.Icon>
-          ) : null}
-        </Select.Trigger>
+        </SelectTrigger>
       </div>
-      <Select.Portal>
-        <Select.Positioner
-          className="fg-pop-positioner"
-          sideOffset={4}
-          align="start"
-          alignItemWithTrigger={false}
-        >
-          <Select.Popup className="fg-pop fg-selm-popup" onKeyDown={onDigit}>
-            <Select.List className="fg-pop-list">
-              {options.map((o, i) => (
-                <Select.Item
-                  key={o.value}
-                  value={o.value}
-                  disabled={o.disabled}
-                  className="fg-pop-row"
-                >
-                  {markOf(o)}
-                  <Select.ItemText className="fg-pop-label">{o.label}</Select.ItemText>
-                  {(o.hint ?? (numbered && i < 9)) ? (
-                    <span className="fg-pop-hint">{o.hint ?? String(i + 1)}</span>
-                  ) : null}
-                  <Select.ItemIndicator className="fg-pop-tick">
-                    <Icon icon={Tick02Icon} size={12} variant="mono" />
-                  </Select.ItemIndicator>
-                </Select.Item>
-              ))}
-            </Select.List>
-          </Select.Popup>
-        </Select.Positioner>
-      </Select.Portal>
-    </Select.Root>
-  );
-}
-
-/* ---------------------------------------------------------------- Tooltip */
-
-export interface TooltipProps {
-  /** A few words: what the control does. Never information found nowhere else. */
-  content: ReactNode;
-  /** A shortcut shown after the words. */
-  kbd?: string;
-  side?: "top" | "bottom" | "left" | "right";
-  /** The control it describes: one element that takes a ref (a Button, an IconButton). */
-  children: ReactElement;
-}
-
-/** A short label on hover or focus of a control, after a short delay. Not shown on touch. */
-export function Tooltip({ content, kbd, side = "top", children }: TooltipProps) {
-  return (
-    <BaseTooltip.Root>
-      <BaseTooltip.Trigger delay={400} render={children} />
-      <BaseTooltip.Portal>
-        <BaseTooltip.Positioner side={side} sideOffset={6} className="fg-pop-positioner">
-          <BaseTooltip.Popup className="fg-tooltip">
-            {content}
-            {kbd ? <kbd className="fg-tooltip-kbd">{kbd}</kbd> : null}
-          </BaseTooltip.Popup>
-        </BaseTooltip.Positioner>
-      </BaseTooltip.Portal>
-    </BaseTooltip.Root>
+      <SelectContent onKeyDown={onDigit}>
+        {options.map((o, i) => (
+          <SelectItem
+            key={o.value}
+            value={o.value}
+            disabled={o.disabled}
+            glyph={markOf(o)}
+            hint={o.hint ?? (numbered && i < 9 ? String(i + 1) : undefined)}
+          >
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

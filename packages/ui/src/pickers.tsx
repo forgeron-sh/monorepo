@@ -1,11 +1,9 @@
 // Pickers for the properties of a record (an issue, a lead, a ticket): a chip that says the
-// current value with its mark, a list with the same marks. Built on SelectMenu, and on Base UI's
-// Select for the labels (several at once).
+// current value with its mark, a list with the same marks. Each is a preset: its options are
+// exported (`statusOptions`, `priorityOptions`, `sizeOptions`, `quarterOptions`, `personOptions`)
+// so a caller can compose `Select`'s parts, `SelectMenu` or `Combobox` with them (D-156).
 
-import { Select } from "@base-ui/react/select";
-import { ArrowDown01Icon, Tick02Icon } from "@forgeron/icons";
 import { Avatar } from "./avatar";
-import { cx } from "./cx";
 import {
   PriorityGlyph,
   QuarterGlyph,
@@ -16,8 +14,15 @@ import {
   type StatusKind,
 } from "./glyphs";
 import type { ReactNode } from "react";
-import { Icon } from "./icon";
-import { SelectMenu } from "./overlays";
+import { SelectMenu, type SelectMenuOption } from "./overlays";
+import {
+  Select,
+  SelectContent,
+  SelectFieldLabel,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./select";
 
 interface PickerBase<T> {
   value?: T;
@@ -69,20 +74,31 @@ export interface StatusPickerProps extends PickerBase<StatusKind> {
   names?: Partial<Record<StatusKind, string>>;
 }
 
+const ALL_STATUSES: ReadonlyArray<StatusKind> = [
+  "backlog",
+  "todo",
+  "progress",
+  "review",
+  "done",
+  "canceled",
+];
+
+/** The six states with their glyph, in order; `value` is the state. */
+export const statusOptions: ReadonlyArray<SelectMenuOption> = ALL_STATUSES.map((s) => ({
+  value: s,
+  label: STATUS_NAMES[s],
+  glyph: <StatusGlyph status={s} />,
+}));
+
 /** Backlog to Done: the glyph tells the state, the digits choose it. */
-export function StatusPicker({
-  statuses = ["backlog", "todo", "progress", "review", "done", "canceled"],
-  names,
-  ...props
-}: StatusPickerProps) {
+export function StatusPicker({ statuses = ALL_STATUSES, names, ...props }: StatusPickerProps) {
   return (
     <SelectMenu
       label="Status"
       numbered
       options={statuses.map((s) => ({
-        value: s,
-        label: names?.[s] ?? STATUS_NAMES[s],
-        glyph: <StatusGlyph status={s} />,
+        ...statusOptions[ALL_STATUSES.indexOf(s)]!,
+        ...(names?.[s] ? { label: names[s] } : {}),
       }))}
       {...pass(
         props,
@@ -105,17 +121,17 @@ export const PRIORITY_NAMES: Record<PriorityLevel, string> = {
 
 export type PriorityPickerProps = PickerBase<PriorityLevel>;
 
+/** No priority to Low with their bars; `value` is the level as a string. */
+export const priorityOptions: ReadonlyArray<SelectMenuOption> = ([0, 1, 2, 3, 4] as const).map(
+  (p) => ({ value: String(p), label: PRIORITY_NAMES[p], glyph: <PriorityGlyph level={p} /> }),
+);
+
 /** No priority, Urgent, High, Medium, Low: bars, and an ember square for urgent. */
 export function PriorityPicker(props: PriorityPickerProps) {
-  const levels: PriorityLevel[] = [0, 1, 2, 3, 4];
   return (
     <SelectMenu
       label="Priority"
-      options={levels.map((p) => ({
-        value: String(p),
-        label: PRIORITY_NAMES[p],
-        glyph: <PriorityGlyph level={p} />,
-      }))}
+      options={priorityOptions}
       {...pass(
         props,
         (v) => Number(v ?? 0) as PriorityLevel,
@@ -141,21 +157,24 @@ export interface SizePickerProps extends PickerBase<SizeLevel> {
   points?: ReadonlyArray<number>;
 }
 
+/** XS to XL (and no estimate) with their square; `points` adds “n pt” hints. */
+export const sizeOptions = (points?: ReadonlyArray<number>): SelectMenuOption[] =>
+  ([0, 1, 2, 3, 4, 5] as const).map((l) => {
+    const pts = points?.[l];
+    return {
+      value: String(l),
+      label: SIZE_NAMES[l],
+      glyph: <SizeGlyph level={l} />,
+      ...(pts !== undefined && l > 0 ? { hint: `${pts} pt` } : {}),
+    };
+  });
+
 /** The size of a piece of work, XS to XL: a square that grows. */
 export function SizePicker({ points, ...props }: SizePickerProps) {
-  const levels: SizeLevel[] = [0, 1, 2, 3, 4, 5];
   return (
     <SelectMenu
       label="Size"
-      options={levels.map((l) => {
-        const pts = points?.[l];
-        return {
-          value: String(l),
-          label: SIZE_NAMES[l],
-          glyph: <SizeGlyph level={l} />,
-          ...(pts !== undefined && l > 0 ? { hint: `${pts} pt` } : {}),
-        };
-      })}
+      options={sizeOptions(points)}
       {...pass(
         props,
         (v) => Number(v ?? 0) as SizeLevel,
@@ -176,9 +195,9 @@ export interface QuarterPickerProps extends PickerBase<string | null> {
   clearable?: boolean;
 }
 
-/** A quarter of a year, `2026-Q4`: the four cells mark which one. */
-export function QuarterPicker({ years, clearable, ...props }: QuarterPickerProps) {
-  const options = years.flatMap((y) =>
+/** The four quarters of each year, `2026-Q4`, with the months as hint. */
+export const quarterOptions = (years: ReadonlyArray<number>): SelectMenuOption[] =>
+  years.flatMap((y) =>
     ([1, 2, 3, 4] as const).map((q) => ({
       value: `${y}-Q${q}`,
       label: `Q${q} ${y}`,
@@ -186,6 +205,10 @@ export function QuarterPicker({ years, clearable, ...props }: QuarterPickerProps
       hint: QUARTER_MONTHS[q - 1]!,
     })),
   );
+
+/** A quarter of a year, `2026-Q4`: the four cells mark which one. */
+export function QuarterPicker({ years, clearable, ...props }: QuarterPickerProps) {
+  const options = quarterOptions(years);
   return (
     <SelectMenu
       label="Quarter"
@@ -221,6 +244,17 @@ export interface PersonPickerProps extends PickerBase<string | null> {
   noneLabel?: string;
 }
 
+/** The people with their avatar, `me` first and marked “(you)”; `value` is the id. */
+export const personOptions = (people: ReadonlyArray<Person>, me?: string): SelectMenuOption[] =>
+  (me ? [...people.filter((p) => p.id === me), ...people.filter((p) => p.id !== me)] : people).map(
+    (p) => ({
+      value: p.id,
+      label: p.id === me ? `${p.name} (you)` : p.name,
+      glyph: <Avatar name={p.name} size={16} {...(p.src ? { src: p.src } : {})} />,
+      ...(p.hint ? { hint: p.hint } : {}),
+    }),
+  );
+
 /** Someone from the workspace: an assignee, an author, an owner. Typing a name jumps to it. */
 export function PersonPicker({
   label = "Assignee",
@@ -229,15 +263,7 @@ export function PersonPicker({
   noneLabel,
   ...props
 }: PersonPickerProps) {
-  const ordered = me
-    ? [...people.filter((p) => p.id === me), ...people.filter((p) => p.id !== me)]
-    : people;
-  const options = ordered.map((p) => ({
-    value: p.id,
-    label: p.id === me ? `${p.name} (you)` : p.name,
-    glyph: <Avatar name={p.name} size={16} {...(p.src ? { src: p.src } : {})} />,
-    ...(p.hint ? { hint: p.hint } : {}),
-  }));
+  const options = personOptions(people, me);
   return (
     <SelectMenu
       label={label}
@@ -293,22 +319,23 @@ export function LabelPicker({
   className,
 }: LabelPickerProps) {
   const byValue = new Map(labels.map((l) => [l.value, l]));
+  const swatch = (l: LabelOption) => (
+    <span className="fg-swatch-mark" style={{ background: l.color }} />
+  );
   return (
-    <Select.Root<string, true>
+    <Select
       multiple
       items={labels.map((l) => ({ value: l.value, label: l.label }))}
       {...(value !== undefined ? { value: [...value] } : {})}
       {...(defaultValue !== undefined ? { defaultValue: [...defaultValue] } : {})}
-      onValueChange={(next) => onChange?.(next)}
+      onValueChange={(next) => onChange?.(next as string[])}
       {...(open !== undefined ? { open } : {})}
       {...(onOpenChange ? { onOpenChange: (next: boolean) => onOpenChange(next) } : {})}
     >
-      <Select.Label className="fg-sr">Labels</Select.Label>
-      <Select.Trigger
-        className={cx("fg-selm-trigger", variant === "chip" && "fg-selm-chip", className)}
-      >
+      <SelectFieldLabel className="fg-sr">Labels</SelectFieldLabel>
+      <SelectTrigger variant={variant} className={className}>
         {children ?? (
-          <Select.Value className="fg-selm-value">
+          <SelectValue>
             {(chosen: string[]) =>
               chosen.length === 0 ? (
                 <span className="fg-selm-empty">Labels</span>
@@ -317,45 +344,23 @@ export function LabelPicker({
                   const l = byValue.get(v);
                   return l ? (
                     <span key={v} className="fg-label-chip">
-                      <span className="fg-swatch-mark" style={{ background: l.color }} />
+                      {swatch(l)}
                       {l.label}
                     </span>
                   ) : null;
                 })
               )
             }
-          </Select.Value>
+          </SelectValue>
         )}
-        {variant === "field" ? (
-          <Select.Icon className="fg-selm-caret">
-            <Icon icon={ArrowDown01Icon} size={12} variant="mono" />
-          </Select.Icon>
-        ) : null}
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Positioner
-          className="fg-pop-positioner"
-          sideOffset={4}
-          align="start"
-          alignItemWithTrigger={false}
-        >
-          <Select.Popup className="fg-pop fg-selm-popup">
-            <Select.List className="fg-pop-list">
-              {labels.map((l) => (
-                <Select.Item key={l.value} value={l.value} className="fg-pop-row">
-                  <span className="fg-check-box" aria-hidden="true">
-                    <Select.ItemIndicator>
-                      <Icon icon={Tick02Icon} size={12} variant="mono" />
-                    </Select.ItemIndicator>
-                  </span>
-                  <span className="fg-swatch-mark" style={{ background: l.color }} />
-                  <Select.ItemText className="fg-pop-label">{l.label}</Select.ItemText>
-                </Select.Item>
-              ))}
-            </Select.List>
-          </Select.Popup>
-        </Select.Positioner>
-      </Select.Portal>
-    </Select.Root>
+      </SelectTrigger>
+      <SelectContent>
+        {labels.map((l) => (
+          <SelectItem key={l.value} value={l.value} checkbox glyph={swatch(l)}>
+            {l.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

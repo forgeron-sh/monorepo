@@ -1,13 +1,247 @@
 // A typeahead (Combobox) and a field of typed-in tags (TagInput). The combobox takes its behaviour
 // from Base UI (D-147): roles, the highlighted option, the popup and its placement; the look is ours.
+// `Combobox` with `options` is the props-driven form; without, it is the root of shadcn-style parts
+// (`ComboboxInput`, `ComboboxContent`, `ComboboxItem`…) and the props form is built from them (D-156).
 
 import { Combobox as Base } from "@base-ui/react/combobox";
 import { ArrowDown01Icon, Cancel01Icon, PlusSignIcon, Tick02Icon } from "@forgeron/icons";
-import type { ClipboardEvent, KeyboardEvent, ReactNode } from "react";
+import type { ClipboardEvent, ComponentProps, KeyboardEvent, ReactNode } from "react";
 import { useRef, useState } from "react";
+import { asChildProps } from "./as-child";
 import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
 import { Icon } from "./icon";
+
+/* ---------------------------------------------------------------- parts (D-156) */
+
+type Part<T> = Omit<T, "className"> & { className?: string };
+
+/** `options` stays undefined: with options, `Combobox` is the props-driven one. */
+export type ComboboxRootProps = ComponentProps<typeof Base.Root> & { options?: undefined };
+
+function ComboboxRoot({ options: _options, ...props }: ComboboxRootProps) {
+  return <Base.Root {...props} />;
+}
+
+/** The chosen value, rendered by a function of it: `<ComboboxValue>{(v) => …}</ComboboxValue>`. */
+export function ComboboxValue(props: ComponentProps<typeof Base.Value>) {
+  return <Base.Value {...props} />;
+}
+
+/** The framed field around an input and its buttons (`ComboboxInput` makes it for you). */
+export function ComboboxInputGroup({
+  className,
+  disabled,
+  ...rest
+}: Part<ComponentProps<typeof Base.InputGroup>> & { disabled?: boolean }) {
+  return (
+    <Base.InputGroup
+      {...rest}
+      className={cx("fg-combo", disabled && "fg-combo-disabled", className)}
+    />
+  );
+}
+
+/** The text box, bare; inside `ComboboxInputGroup` or `ComboboxChips`. */
+export function ComboboxChipsInput({
+  className,
+  ...rest
+}: Part<ComponentProps<typeof Base.Input>>) {
+  return <Base.Input {...rest} className={cx("fg-combo-input", className)} />;
+}
+
+export type ComboboxInputProps = Part<ComponentProps<typeof Base.Input>> & {
+  /** The caret button that opens the list. Default `true`. */
+  showTrigger?: boolean;
+  /** A button that clears the choice. Default `false`. */
+  showClear?: boolean;
+  /** On the frame around the text box. */
+  groupClassName?: string;
+};
+
+/** The field: a text box with a caret and, if asked, a clear button, as in shadcn. */
+export function ComboboxInput({
+  showTrigger = true,
+  showClear = false,
+  groupClassName,
+  disabled,
+  className,
+  children,
+  ...rest
+}: ComboboxInputProps) {
+  return (
+    <ComboboxInputGroup disabled={disabled} className={groupClassName}>
+      <ComboboxChipsInput {...rest} disabled={disabled} className={className} />
+      {children}
+      {showClear ? <ComboboxClear /> : null}
+      {showTrigger ? <ComboboxTrigger /> : null}
+    </ComboboxInputGroup>
+  );
+}
+
+export type ComboboxTriggerProps = Part<ComponentProps<typeof Base.Trigger>> & {
+  asChild?: boolean;
+};
+
+/** The caret button; its children replace the caret. */
+export function ComboboxTrigger({ asChild, className, children, ...rest }: ComboboxTriggerProps) {
+  const inner = asChildProps(asChild, children);
+  return (
+    <Base.Trigger
+      {...rest}
+      className={cx("fg-combo-btn fg-combo-caret", className)}
+      {...("render" in inner ? inner : {})}
+    >
+      {"render" in inner
+        ? undefined
+        : (inner.children ?? <Icon icon={ArrowDown01Icon} size={12} variant="mono" />)}
+    </Base.Trigger>
+  );
+}
+
+/** A button that clears the choice; shown while there is one. */
+export function ComboboxClear({
+  className,
+  children,
+  ...rest
+}: Part<ComponentProps<typeof Base.Clear>>) {
+  return (
+    <Base.Clear {...rest} className={cx("fg-combo-btn", className)}>
+      {children ?? <Icon icon={Cancel01Icon} size={12} variant="mono" />}
+    </Base.Clear>
+  );
+}
+
+/** For `multiple`: the chips and the text box, in one wrapping row. */
+export function ComboboxChips({ className, ...rest }: Part<ComponentProps<typeof Base.Chips>>) {
+  return <Base.Chips {...rest} className={cx("fg-combo-chips", className)} />;
+}
+
+export type ComboboxChipProps = Part<ComponentProps<typeof Base.Chip>> & {
+  /** The remove button. Default `true`. */
+  showRemove?: boolean;
+  /** Its `aria-label`; default “Remove”. */
+  removeLabel?: string;
+};
+
+/** One chosen value of a `multiple` combobox, with its remove button. */
+export function ComboboxChip({
+  showRemove = true,
+  removeLabel,
+  className,
+  children,
+  ...rest
+}: ComboboxChipProps) {
+  return (
+    <Base.Chip {...rest} className={cx("fg-combo-chip", className)}>
+      {children}
+      {showRemove ? (
+        <Base.ChipRemove className="fg-combo-chip-x" aria-label={removeLabel ?? "Remove"}>
+          <Icon icon={Cancel01Icon} size={12} variant="mono" />
+        </Base.ChipRemove>
+      ) : null}
+    </Base.Chip>
+  );
+}
+
+export type ComboboxContentProps = Part<ComponentProps<typeof Base.Popup>> & {
+  side?: "top" | "bottom";
+  align?: "start" | "center" | "end";
+  sideOffset?: number;
+};
+
+/** The popup under the field, in a portal: put `ComboboxEmpty` and `ComboboxList` in it. */
+export function ComboboxContent({
+  side = "bottom",
+  align = "start",
+  sideOffset = 4,
+  className,
+  ...rest
+}: ComboboxContentProps) {
+  return (
+    <Base.Portal>
+      <Base.Positioner
+        className="fg-pop-positioner"
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+      >
+        <Base.Popup {...rest} className={cx("fg-pop fg-combo-popup", className)} />
+      </Base.Positioner>
+    </Base.Portal>
+  );
+}
+
+/** The options. Children are a function of the item when the root has `items`. */
+export function ComboboxList({ className, ...rest }: Part<ComponentProps<typeof Base.List>>) {
+  return <Base.List {...rest} className={cx("fg-pop-list", className)} />;
+}
+
+/** Says so when nothing matches. */
+export function ComboboxEmpty({ className, ...rest }: Part<ComponentProps<typeof Base.Empty>>) {
+  return <Base.Empty {...rest} className={cx("fg-combo-empty", className)} />;
+}
+
+/** A live line, e.g. “Loading…”. */
+export function ComboboxStatus({ className, ...rest }: Part<ComponentProps<typeof Base.Status>>) {
+  return <Base.Status {...rest} className={cx("fg-combo-status", className)} />;
+}
+
+export type ComboboxItemProps = Part<ComponentProps<typeof Base.Item>> & {
+  /** Any mark before the text: an avatar, a swatch, a glyph. */
+  glyph?: ReactNode;
+  /** Mono text at the end of the row. */
+  hint?: ReactNode;
+  /** The tick of the chosen row. Default `true`. */
+  indicator?: boolean;
+};
+
+/** One option; its children are its text. */
+export function ComboboxItem({
+  glyph,
+  hint,
+  indicator = true,
+  className,
+  children,
+  ...rest
+}: ComboboxItemProps) {
+  return (
+    <Base.Item {...rest} className={cx("fg-pop-row", className)}>
+      {glyph ?? null}
+      <span className="fg-pop-label">{children}</span>
+      {hint !== undefined && hint !== null ? <span className="fg-pop-hint">{hint}</span> : null}
+      {indicator ? (
+        <Base.ItemIndicator className="fg-pop-tick">
+          <Icon icon={Tick02Icon} size={12} variant="mono" />
+        </Base.ItemIndicator>
+      ) : null}
+    </Base.Item>
+  );
+}
+
+export function ComboboxGroup(props: ComponentProps<typeof Base.Group>) {
+  return <Base.Group {...props} />;
+}
+
+/** The name of a group, inside `ComboboxGroup`. */
+export function ComboboxLabel({
+  className,
+  ...rest
+}: Part<ComponentProps<typeof Base.GroupLabel>>) {
+  return <Base.GroupLabel {...rest} className={cx("fg-pop-heading", className)} />;
+}
+
+export function ComboboxSeparator({
+  className,
+  ...rest
+}: Part<ComponentProps<typeof Base.Separator>>) {
+  return <Base.Separator {...rest} className={cx("fg-pop-sep", className)} />;
+}
+
+/** Renders the items of a group or of the list: `<ComboboxCollection>{(item) => …}`. */
+export function ComboboxCollection(props: ComponentProps<typeof Base.Collection>) {
+  return <Base.Collection {...props} />;
+}
 
 /* ---------------------------------------------------------------- Combobox */
 
@@ -85,7 +319,11 @@ const contains = (item: Item, query: string) =>
  * mode Backspace removes the last chip. Options can come from a server (`onInputChange`, `loading`,
  * `filter={false}`) and the text typed can become an option (`onCreate`).
  */
-export function Combobox(props: ComboboxProps) {
+export function Combobox(props: ComboboxProps | ComboboxRootProps) {
+  return props.options !== undefined ? <PropsCombobox {...props} /> : <ComboboxRoot {...props} />;
+}
+
+function PropsCombobox(props: ComboboxProps) {
   const {
     label,
     options,
@@ -153,35 +391,32 @@ export function Combobox(props: ComboboxProps) {
   };
 
   const row = (item: Item) => (
-    <Base.Item
+    <ComboboxItem
       key={item.value}
       value={item}
       disabled={item.disabled}
-      className={cx("fg-pop-row", item.create !== undefined && "fg-combo-create")}
+      className={item.create !== undefined ? "fg-combo-create" : undefined}
+      glyph={
+        item.create !== undefined ? (
+          <Icon icon={PlusSignIcon} size={12} variant="mono" />
+        ) : (
+          item.glyph
+        )
+      }
+      hint={item.hint || undefined}
+      indicator={item.create === undefined}
     >
-      {item.create !== undefined ? (
-        <Icon icon={PlusSignIcon} size={12} variant="mono" />
-      ) : (
-        (item.glyph ?? null)
-      )}
-      <span className="fg-pop-label">{item.label}</span>
-      {item.hint ? <span className="fg-pop-hint">{item.hint}</span> : null}
-      {item.create === undefined ? (
-        <Base.ItemIndicator className="fg-pop-tick">
-          <Icon icon={Tick02Icon} size={12} variant="mono" />
-        </Base.ItemIndicator>
-      ) : null}
-    </Base.Item>
+      {item.label}
+    </ComboboxItem>
   );
 
   const input = (
-    <Base.Input
+    <ComboboxChipsInput
       id={id}
       aria-label={label}
       aria-describedby={props["aria-describedby"]}
       aria-invalid={props["aria-invalid"]}
       placeholder={multiple && chosen.length > 0 ? "" : placeholder}
-      className="fg-combo-input"
     />
   );
 
@@ -202,42 +437,31 @@ export function Combobox(props: ComboboxProps) {
   } as unknown as Parameters<typeof Base.Root>[0];
 
   return (
-    <Base.Root {...rootProps}>
-      <Base.InputGroup className={cx("fg-combo", disabled && "fg-combo-disabled", className)}>
+    <ComboboxRoot {...rootProps}>
+      <ComboboxInputGroup disabled={disabled} className={className}>
         {multiple ? (
-          <Base.Chips className="fg-combo-chips" aria-label={`${label}, chosen`}>
+          <ComboboxChips aria-label={`${label}, chosen`}>
             {chosen.map((c) => (
-              <Base.Chip key={c.value} className="fg-combo-chip" aria-label={c.label}>
+              <ComboboxChip key={c.value} aria-label={c.label} removeLabel={`Remove ${c.label}`}>
                 <span>{c.label}</span>
-                <Base.ChipRemove className="fg-combo-chip-x" aria-label={`Remove ${c.label}`}>
-                  <Icon icon={Cancel01Icon} size={12} variant="mono" />
-                </Base.ChipRemove>
-              </Base.Chip>
+              </ComboboxChip>
             ))}
             {input}
-          </Base.Chips>
+          </ComboboxChips>
         ) : (
           input
         )}
         {props.clearable !== false && !multiple && selected.length > 0 ? (
-          <Base.Clear className="fg-combo-btn" aria-label={`Clear ${label}`}>
-            <Icon icon={Cancel01Icon} size={12} variant="mono" />
-          </Base.Clear>
+          <ComboboxClear aria-label={`Clear ${label}`} />
         ) : null}
-        <Base.Trigger className="fg-combo-btn fg-combo-caret" aria-label={`Show ${label} options`}>
-          <Icon icon={ArrowDown01Icon} size={12} variant="mono" />
-        </Base.Trigger>
-      </Base.InputGroup>
-      <Base.Portal>
-        <Base.Positioner className="fg-pop-positioner" sideOffset={4} align="start">
-          <Base.Popup className="fg-pop fg-combo-popup">
-            <Base.Status className="fg-combo-status">{loading ? "Loading…" : null}</Base.Status>
-            <Base.Empty className="fg-combo-empty">{loading ? "" : emptyText}</Base.Empty>
-            <Base.List className="fg-pop-list">{(item: Item) => row(item)}</Base.List>
-          </Base.Popup>
-        </Base.Positioner>
-      </Base.Portal>
-    </Base.Root>
+        <ComboboxTrigger aria-label={`Show ${label} options`} />
+      </ComboboxInputGroup>
+      <ComboboxContent>
+        <ComboboxStatus>{loading ? "Loading…" : null}</ComboboxStatus>
+        <ComboboxEmpty>{loading ? "" : emptyText}</ComboboxEmpty>
+        <ComboboxList>{(item: Item) => row(item)}</ComboboxList>
+      </ComboboxContent>
+    </ComboboxRoot>
   );
 }
 

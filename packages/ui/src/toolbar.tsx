@@ -1,38 +1,43 @@
 // A row of tools that is one tab stop: arrows move between them (roving tabindex), Home and End go
-// to the ends. Base UI keeps the focus order; buttons and separators are ours.
+// to the ends. Base UI keeps the focus order; buttons and separators are ours. Every part forwards
+// the props of its Base UI part, takes `className`, and a button takes `render` or `asChild` so a
+// `Toggle` or a `DropdownMenuTrigger` can be a tool (D-156).
 
 import { Toolbar as Base } from "@base-ui/react/toolbar";
 import type { IconDefinition } from "@forgeron/icons";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
+import { asChildProps } from "./as-child";
 import { cx } from "./cx";
 import { Icon } from "./icon";
 
-export interface ToolbarProps {
+type Part<T, K extends string = never> = Omit<T, "className" | "children" | K> & {
+  className?: string;
+};
+
+export type ToolbarProps = Part<ComponentProps<typeof Base.Root>, "orientation" | "loopFocus"> & {
   /** Names the toolbar: "Text formatting". */
   label: string;
   orientation?: "horizontal" | "vertical";
   /** Arrows wrap from the last tool to the first. Default `true`. */
   loop?: boolean;
-  disabled?: boolean;
-  className?: string;
-  children: ReactNode;
-}
+  children?: ReactNode;
+};
 
 /** The container of `ToolbarButton`, `ToolbarGroup`, `ToolbarSeparator`, `ToolbarLink`. */
 export function Toolbar({
   label,
   orientation = "horizontal",
   loop = true,
-  disabled,
   className,
   children,
+  ...rest
 }: ToolbarProps) {
   return (
     <Base.Root
       aria-label={label}
+      {...rest}
       orientation={orientation}
       loopFocus={loop}
-      disabled={disabled}
       className={cx("fg-toolbar", orientation === "vertical" && "fg-toolbar-v", className)}
     >
       {children}
@@ -40,78 +45,101 @@ export function Toolbar({
   );
 }
 
-export interface ToolbarButtonProps {
-  /** Its name. Shown as text when there is no `icon`; said to assistive technology otherwise. */
-  label: string;
+export type ToolbarButtonProps = Part<ComponentProps<typeof Base.Button>> & {
+  /**
+   * Its name. Shown as text when there is no `icon` and no `children`; said to assistive
+   * technology (`aria-label`, tooltip) otherwise.
+   */
+  label?: string;
   icon?: IconDefinition;
   /** A toggle: `true` while the tool is on (bold, a view). Leave out for a plain action. */
   pressed?: boolean;
-  onClick?: () => void;
-  disabled?: boolean;
   /** Mono text after the label: a shortcut. */
   kbd?: string;
-  className?: string;
-}
+  /** The one child element becomes the tool (shadcn's `asChild`); same as `render`. */
+  asChild?: boolean;
+  /** What the tool shows, in place of `icon` / `label`. */
+  children?: ReactNode;
+};
 
-/** One tool: an icon, or a word in mono capitals. With `pressed` it toggles and says so. */
+/**
+ * One tool: an icon, a word in mono capitals, or whatever `children` are. With `pressed` it
+ * toggles and says so.
+ */
 export function ToolbarButton({
   label,
   icon,
   pressed,
-  onClick,
-  disabled,
   kbd,
+  asChild,
   className,
+  children,
+  ...rest
 }: ToolbarButtonProps) {
+  const content =
+    children ??
+    (icon ? <Icon icon={icon} size={12} variant="mono" /> : label ? <span>{label}</span> : null);
+  const inner = asChildProps(asChild, content);
+  const named = icon !== undefined || children !== undefined;
   return (
     <Base.Button
       type="button"
-      aria-label={icon ? label : undefined}
-      aria-pressed={pressed}
-      title={icon ? label : undefined}
-      disabled={disabled}
+      {...(named && label ? { "aria-label": label } : {})}
+      {...(icon && label ? { title: label } : {})}
+      {...(pressed !== undefined ? { "aria-pressed": pressed } : {})}
       focusableWhenDisabled
-      onClick={onClick}
-      className={cx("fg-tool", icon && !kbd && "fg-tool-icon", pressed && "fg-tool-on", className)}
+      {...rest}
+      className={cx(
+        "fg-tool",
+        icon && !kbd && !children && "fg-tool-icon",
+        pressed && "fg-tool-on",
+        className,
+      )}
+      {...("render" in inner ? inner : {})}
     >
-      {icon ? <Icon icon={icon} size={12} variant="mono" /> : <span>{label}</span>}
-      {kbd ? <span className="fg-tool-kbd">{kbd}</span> : null}
+      {"render" in inner ? undefined : (
+        <>
+          {inner.children}
+          {kbd ? <span className="fg-tool-kbd">{kbd}</span> : null}
+        </>
+      )}
     </Base.Button>
   );
 }
 
-export interface ToolbarLinkProps {
-  href: string;
-  children: ReactNode;
-  className?: string;
-}
+export type ToolbarLinkProps = Part<ComponentProps<typeof Base.Link>> & {
+  href?: string;
+  asChild?: boolean;
+  children?: ReactNode;
+};
 
 /** A link among the tools. */
-export function ToolbarLink({ href, children, className }: ToolbarLinkProps) {
+export function ToolbarLink({ asChild, className, children, ...rest }: ToolbarLinkProps) {
+  const inner = asChildProps(asChild, children);
   return (
-    <Base.Link href={href} className={cx("fg-tool", className)}>
-      {children}
+    <Base.Link {...rest} className={cx("fg-tool", className)} {...inner}>
+      {"render" in inner ? undefined : inner.children}
     </Base.Link>
   );
 }
 
 /** A thin line between two groups of tools. */
-export function ToolbarSeparator({ className }: { className?: string }) {
-  return <Base.Separator className={cx("fg-tool-sep", className)} />;
+export function ToolbarSeparator({
+  className,
+  ...rest
+}: Part<ComponentProps<typeof Base.Separator>>) {
+  return <Base.Separator {...rest} className={cx("fg-tool-sep", className)} />;
 }
 
-/** Tools that belong together, side by side with no gap. */
-export function ToolbarGroup({
-  label,
-  className,
-  children,
-}: {
+export type ToolbarGroupProps = Part<ComponentProps<typeof Base.Group>> & {
   label?: string;
-  className?: string;
-  children: ReactNode;
-}) {
+  children?: ReactNode;
+};
+
+/** Tools that belong together, side by side with no gap. */
+export function ToolbarGroup({ label, className, children, ...rest }: ToolbarGroupProps) {
   return (
-    <Base.Group aria-label={label} className={cx("fg-tool-group", className)}>
+    <Base.Group aria-label={label} {...rest} className={cx("fg-tool-group", className)}>
       {children}
     </Base.Group>
   );

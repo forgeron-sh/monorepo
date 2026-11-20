@@ -1,0 +1,94 @@
+/* Timeline (D-157): an ordered list of entries, a marker and a line, a title, a time and a detail. */
+
+.fg-timeline {
+  --fg-timeline-mark: 18px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-timeline-item {
+  position: relative;
+  min-width: 0;
+}
+
+/* With the connector: marker and content side by side, a line from marker to marker. */
+.fg-timeline[data-connector] {
+  color: var(--ink);
+  font: 400 12.5px/18px var(--font-sans);
+}
+.fg-timeline[data-connector] > .fg-timeline-item {
+  display: grid;
+  grid-template-columns: var(--fg-timeline-mark) minmax(0, 1fr);
+  column-gap: 10px;
+  padding: 6px 0;
+}
+.fg-timeline[data-connector] > .fg-timeline-item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: calc(6px + var(--fg-timeline-mark) + 2px);
+  bottom: -2px;
+  left: calc(var(--fg-timeline-mark) / 2);
+  width: var(--border-width);
+  background: var(--line);
+}
+.fg-timeline-indicator {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--fg-timeline-mark);
+  height: var(--fg-timeline-mark);
+}
+.fg-timeline-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  min-width: 0;
+  color: var(--ink-muted);
+}
+.fg-timeline-title {
+  min-width: 0;
+  color: var(--ink-muted);
+}
+.fg-timeline-title b {
+  color: var(--ink);
+  font-weight: 500;
+}
+/* Low specificity: a block that sets its own time (a mono column) wins by naming it. */
+:where(.fg-timeline-time) {
+  color: var(--ink-dim);
+  font: 400 11.5px/18px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fg-timeline-description {
+  flex-basis: 100%;
+  min-width: 0;
+  color: var(--ink-muted);
+}
+
+/* A group: its label is a closed band, the name on the background over the hatching. */
+.fg-timeline-group + .fg-timeline-group {
+  margin-top: var(--space-4);
+}
+.fg-timeline-group-label {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  margin: 0;
+  padding: 0 var(--space-2);
+  border-top: var(--border-width) solid var(--line);
+  border-bottom: var(--border-width) solid var(--line);
+  background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fg-timeline-group-label span {
+  padding: 0 6px;
+  background: var(--bg);
+}

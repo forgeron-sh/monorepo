@@ -78,3 +78,68 @@ export function formatLong(iso: string): string {
   const date = parseIso(iso);
   return `${WEEKDAYS[weekday(iso)]} ${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
+
+/** "45 min", "1 h", "1 h 30", "2 h": a duration in words. */
+export function formatMinutes(total: number): string {
+  const t = Math.max(0, Math.round(total));
+  const h = Math.floor(t / 60);
+  const m = t % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, "0")}`;
+}
+
+/* ---- stamps: dates and datetimes read by their day */
+
+const DAY_STAMP = /^(\d{4})-(\d{2})-(\d{2})/;
+
+/** The `YYYY-MM-DD` of a stamp (`2026-11-18`, `2026-11-18T09:12:00Z`, `2026-11-18 09:12`), or null. */
+export function adminDay(stamp: string | null | undefined): string | null {
+  const m = stamp ? DAY_STAMP.exec(stamp) : null;
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+}
+
+/** Whole days from one day to another (negative when `to` is earlier); null when a stamp is not a date. */
+export function adminDaysBetween(from: string, to: string): number | null {
+  const a = adminDay(from);
+  const b = adminDay(to);
+  if (!a || !b) return null;
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+}
+
+/** "Nov 18", with the year when it is not `thisYear`; the text itself when it is not a date. */
+export function formatAdminDate(stamp: string, thisYear?: number): string {
+  const day = adminDay(stamp);
+  return day ? formatShort(day, thisYear) : stamp;
+}
+
+/** "today", "yesterday", "3 days ago", "in 2 days": a day told from `today`. */
+export function relativeDay(stamp: string, today: string): string {
+  const n = adminDaysBetween(today, stamp);
+  if (n === null) return stamp;
+  if (n === 0) return "today";
+  if (n === -1) return "yesterday";
+  if (n === 1) return "tomorrow";
+  return n < 0 ? `${-n} days ago` : `in ${n} days`;
+}
+
+/** "Today · Nov 18", "Yesterday · Nov 17", else "Nov 2": the name of a day over a group of rows. */
+export function dayLabel(day: string, today?: string): string {
+  if (today && day === today) return `Today · ${formatShort(day)}`;
+  if (today && day === addDays(today, -1)) return `Yesterday · ${formatShort(day)}`;
+  return formatShort(day, today ? parseIso(today).getFullYear() : undefined);
+}
+
+/** Splits a list by the day of each item's stamp (`YYYY-MM-DD…`), keeping order; a run of one day is one group. */
+export function groupByDay<T>(
+  items: ReadonlyArray<T>,
+  stamp: (item: T) => string,
+): { day: string; items: T[] }[] {
+  const days: { day: string; items: T[] }[] = [];
+  for (const item of items) {
+    const day = stamp(item).slice(0, 10);
+    const last = days[days.length - 1];
+    if (last?.day === day) last.items.push(item);
+    else days.push({ day, items: [item] });
+  }
+  return days;
+}
