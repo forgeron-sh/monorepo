@@ -209,6 +209,20 @@ const boxes = [iso(60, 20, 18, 14, 22), iso(118, 66, 10, 10, 12), iso(30, 78, 8,
   )
 }
 {
+  art === "quill" && (
+    <div class="art art-doc art-quill" aria-hidden="true">
+      <span class="rt-h">Notes from the forge</span>
+      <span class="rt-l" style="width:90%" />
+      <span class="q-row">
+        <span class="rt-l q-cut" style="width:64%" />
+        <span class="q-need">[NEED: source]</span>
+      </span>
+      <span class="rt-l q-new" style="width:78%" />
+      <span class="rt-l" style="width:56%" />
+    </div>
+  )
+}
+{
   art === "richtext" && (
     <div class="art art-doc" aria-hidden="true">
       <span class="rt-h">Field notes</span>

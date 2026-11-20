@@ -1,6 +1,7 @@
 import {
   BookOpenTextIcon,
   DrawingCompassIcon,
+  FeatherIcon,
   FileTextIcon,
   FlowIcon,
   Grid3x3Icon,
@@ -18,7 +19,7 @@ import {
 export type Status = "stable" | "experimental";
 
 /** What a project is about; the same words tag the papers. */
-export type Area = "Design system" | "Type" | "Graphics" | "Editors";
+export type Area = "Design system" | "Type" | "Graphics" | "Editors" | "Writing";
 
 /** Which drawing stands for the project in its card (`ProjectArt.astro`). */
 export type Art =
@@ -30,7 +31,8 @@ export type Art =
   | "canvas"
   | "draw"
   | "flow"
-  | "richtext";
+  | "richtext"
+  | "quill";
 
 export interface Project {
   /** The permanent index of the project: `L-01`. Never reused. */
@@ -222,6 +224,25 @@ export const PROJECTS: readonly Project[] = [
     siteSoon: "richtext.forgeron.sh",
     icon: FileTextIcon,
     art: "richtext",
+  },
+  {
+    id: "L-10",
+    slug: "quill",
+    name: "Quill",
+    status: "experimental",
+    area: "Writing",
+    line: "A writing framework for agents: posts, stories, papers and changelogs.",
+    points: [
+      "An onboarding interview writes who you are, your readers and your voice",
+      "Six formats, each drawn from named blogs, style guides and papers",
+      "Fifty tells of generated prose, banned or capped, fixed from the facts",
+      "Every claim traced to a source, or marked as missing",
+      "A review in four passes and a cold read",
+    ],
+    pkg: "@forgeron/quill",
+    dir: "packages/quill",
+    icon: FeatherIcon,
+    art: "quill",
   },
 ];
 

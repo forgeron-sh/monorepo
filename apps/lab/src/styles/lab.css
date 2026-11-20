@@ -519,6 +519,25 @@ canvas {
   height: 6px;
   background: var(--line-strong);
 }
+/* Quill: a draft under review, one line struck and rewritten in ember, a claim waiting for its source. */
+.q-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.q-cut {
+  background: repeating-linear-gradient(-45deg, var(--line-strong) 0 2px, transparent 2px 4px);
+}
+.q-new {
+  background: var(--accent);
+}
+.q-need {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--accent);
+}
 .rt-slash {
   display: flex;
   align-items: center;
