@@ -40,10 +40,12 @@ const start: FlowGraph<Data> = {
   edges: [{ id: "e1", from: { node: "t", port: "out" }, to: { node: "a", port: "in" } }],
 };
 
-async function mount(): Promise<{ surface: HTMLElement; flow: () => FlowApi<Data> }> {
+async function mount(
+  graph: FlowGraph<Data> = start,
+): Promise<{ surface: HTMLElement; flow: () => FlowApi<Data> }> {
   let api: FlowApi<Data> | undefined;
   function Editor() {
-    const flow = useFlow<Data>({ graph: start, grid: { snap: false } });
+    const flow = useFlow<Data>({ graph, grid: { snap: false } });
     useEffect(() => {
       api = flow;
     });
@@ -80,10 +82,12 @@ describe("<FlowCanvas>", () => {
   it("renders nodes with their ports, and edges under them", async () => {
     const { surface } = await mount();
     const options = [...surface.querySelectorAll("[role=option]")];
+    // The edge too, in reading order (its middle is below the nodes' tops), named by its nodes.
     expect(options.map((o) => o.getAttribute("aria-label"))).toEqual([
       "Step t",
       "Step a",
       "Step b",
+      "Edge from Step t to Step a",
     ]);
     expect(surface.querySelectorAll("[data-canvas-handle]")).toHaveLength(5);
     // The edges are on the GPU layer, under the nodes; the DOM holds an edge's parts only while
@@ -156,5 +160,44 @@ describe("<FlowCanvas>", () => {
     await act(async () => new Promise((r) => setTimeout(r, 5)));
     expect(flow().current.nodes).toHaveLength(5);
     expect(flow().current.edges).toHaveLength(2);
+  });
+
+  it("lists the edges for assistive technology, the selected one active", async () => {
+    const { surface, flow } = await mount();
+    const edge = surface.querySelector<HTMLElement>('.fg-canvas-a11y [data-entry="e1"]')!;
+    expect(edge.getAttribute("role")).toBe("option");
+    expect(edge.getAttribute("aria-roledescription")).toBe("edge");
+    expect(edge.getAttribute("aria-selected")).toBe("false");
+    expect(surface.getAttribute("aria-activedescendant")).toBeNull();
+    await fire(surface, "pointerdown", { clientX: 270, clientY: 44 });
+    const now = surface.querySelector<HTMLElement>('.fg-canvas-a11y [data-entry="e1"]')!;
+    expect(now.getAttribute("aria-selected")).toBe("true");
+    expect(surface.getAttribute("aria-activedescendant")).toBe(now.id);
+    // A node selected: the node is the active descendant.
+    await act(async () => flow().store.select(["a"]));
+    expect(surface.getAttribute("aria-activedescendant")).toBe(
+      surface.querySelector('.fg-canvas-a11y [data-item="a"]')!.id,
+    );
+  });
+
+  it("keeps each group's label a button that selects the group's nodes", async () => {
+    const { surface, flow } = await mount({
+      ...start,
+      groups: [{ id: "g1", label: "Intake", nodes: ["a", "b"] }],
+    });
+    const button = surface.querySelector<HTMLButtonElement>('button[data-group-label="g1"]')!;
+    expect(button.getAttribute("aria-label")).toBe("Select the group Intake");
+    expect(button.tabIndex).toBe(0);
+    // The keyboard: Enter selects the group's nodes.
+    button.focus();
+    await key(button, "Enter");
+    expect([...flow().store.getState().selection].sort()).toEqual(["a", "b"]);
+    await act(async () => flow().store.clearSelection());
+    await key(button, " ");
+    expect([...flow().store.getState().selection].sort()).toEqual(["a", "b"]);
+    // The pointer: a press on it selects them too, not a box.
+    await act(async () => flow().store.clearSelection());
+    await fire(button, "pointerdown", { clientX: 310, clientY: 10 });
+    expect([...flow().store.getState().selection].sort()).toEqual(["a", "b"]);
   });
 });

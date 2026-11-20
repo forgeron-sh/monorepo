@@ -80,7 +80,47 @@ export interface GraphIndex<D = unknown> {
   in: Map<string, FlowEdge[]>;
 }
 
+const indexes = new WeakMap<FlowGraph<unknown>, GraphIndex<unknown>>();
+
+/**
+ * The nodes by id and the edges in and out of each node. Kept per graph object (graphs are never
+ * changed in place): the editor's layers ask for the same graph's index several times a change.
+ */
 export function indexGraph<D>(graph: FlowGraph<D>): GraphIndex<D> {
+  const known = indexes.get(graph as FlowGraph<unknown>);
+  if (known) return known as GraphIndex<D>;
+  const made = reindex(graph, last as { graph: FlowGraph<D>; index: GraphIndex<D> } | null);
+  indexes.set(graph as FlowGraph<unknown>, made as GraphIndex<unknown>);
+  last = { graph: graph as FlowGraph<unknown>, index: made as GraphIndex<unknown> };
+  return made;
+}
+
+/** The graph indexed last: the next one is often it with nodes moved (a drag). */
+let last: { graph: FlowGraph<unknown>; index: GraphIndex<unknown> } | null = null;
+
+/**
+ * The index of `graph` from the last one when they share their edges and their nodes' ids in
+ * order (only nodes changed: a drag): the edges by node are that index's, the nodes are read
+ * again.
+ */
+function reindex<D>(
+  graph: FlowGraph<D>,
+  prev: { graph: FlowGraph<D>; index: GraphIndex<D> } | null,
+): GraphIndex<D> {
+  const was = prev?.graph;
+  if (!prev || !was || was.edges !== graph.edges || was.nodes.length !== graph.nodes.length) {
+    return buildIndex(graph);
+  }
+  const nodes = new Map<string, FlowNode<D>>();
+  for (let i = 0; i < graph.nodes.length; i++) {
+    const n = graph.nodes[i]!;
+    if (n.id !== was.nodes[i]!.id) return buildIndex(graph);
+    nodes.set(n.id, n);
+  }
+  return { nodes, out: prev.index.out, in: prev.index.in };
+}
+
+function buildIndex<D>(graph: FlowGraph<D>): GraphIndex<D> {
   const nodes = new Map(graph.nodes.map((n) => [n.id, n] as const));
   const out = new Map<string, FlowEdge[]>();
   const into = new Map<string, FlowEdge[]>();

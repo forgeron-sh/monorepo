@@ -126,3 +126,34 @@ export function itemsToGraph<D>(items: ReadonlyArray<Item<unknown>>): FlowGraph<
   }
   return { version: FLOW_FORMAT_VERSION, nodes, edges, groups: [...groups.values()] };
 }
+
+/**
+ * `itemsToGraph`, from the graph read last time: when the items are the same ones in the same
+ * order with the same data (they only moved: a drag), the edges and groups are that graph's, and
+ * a node whose item is the same object is that graph's node. Otherwise read again.
+ */
+export function itemsToGraphAfter<D>(
+  items: ReadonlyArray<Item<unknown>>,
+  previous: { items: ReadonlyArray<Item<unknown>>; graph: FlowGraph<D> } | null,
+): FlowGraph<D> {
+  const was = previous?.items;
+  if (!previous || !was || was.length !== items.length) return itemsToGraph<D>(items);
+  for (let i = 0; i < items.length; i++) {
+    const a = was[i]!;
+    const b = items[i]!;
+    if (a !== b && (a.id !== b.id || a.kind !== b.kind || a.data !== b.data)) {
+      return itemsToGraph<D>(items);
+    }
+  }
+  const nodes: FlowNode<D>[] = [];
+  const old = previous.graph.nodes;
+  let j = 0;
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]!;
+    if (!isNodeItem<D>(item)) continue;
+    const kept = old[j];
+    nodes.push(was[i] === item && kept?.id === item.id ? kept : nodeOfItem(item));
+    j++;
+  }
+  return { ...previous.graph, nodes };
+}

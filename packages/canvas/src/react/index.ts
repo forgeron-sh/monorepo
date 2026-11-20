@@ -2,7 +2,14 @@
 // `import "@forgeron/canvas/styles.css"` (after `@forgeron/ui/styles.css`).
 
 export { Canvas } from "./canvas";
-export type { CanvasFar, CanvasProps, CanvasToolApi, FarDraw, RenderItemState } from "./canvas";
+export type {
+  CanvasFar,
+  CanvasListEntry,
+  CanvasProps,
+  CanvasToolApi,
+  FarDraw,
+  RenderItemState,
+} from "./canvas";
 export { createFarLayer } from "./far-layer";
 export type { FarLayer, FarLayerName } from "./far-layer";
 export { textMetrics } from "./text-metrics";

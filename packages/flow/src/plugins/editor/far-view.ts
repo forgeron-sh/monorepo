@@ -135,12 +135,52 @@ export interface FarEdgeState {
   arrows?: boolean;
 }
 
+/** What an edge's shape depends on of one of its nodes: where it is, its size, its ports. */
+interface NodePlace {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  inputs: FlowNode["inputs"];
+  outputs: FlowNode["outputs"];
+}
+
+const placeOf = <D>(n: FlowNode<D>): NodePlace => ({
+  x: n.position.x,
+  y: n.position.y,
+  w: n.size.w,
+  h: n.size.h,
+  inputs: n.inputs,
+  outputs: n.outputs,
+});
+
+/** The same node but for where it is. */
+const sameShape = <D>(a: NodePlace, n: FlowNode<D>) =>
+  a.w === n.size.w && a.h === n.size.h && a.inputs === n.inputs && a.outputs === n.outputs;
+
+/** An edge's shapes as they were made, and the nodes' places they were made for. */
+export interface FarEdgeEntry {
+  /** How it was drawn: its look besides its path (run state, under the pointer, arrowheads). */
+  key: string;
+  /** What is drawn now: the shapes made, or them moved (`group.dx`, `group.dy`). */
+  edge: FarEdge;
+  /** Its look, field by field (`key` says the same in one string). */
+  status?: RunStatus;
+  hot?: boolean;
+  arrows?: boolean;
+  /** The style it was drawn with, and its two nodes then. */
+  style?: EdgeStyle | EdgePath;
+  from?: NodePlace;
+  to?: NodePlace;
+}
+
 /**
  * Every edge of a graph, one group each (keyed by its id): its line (1.5 units, 2 when selected or
  * under the pointer; the DOM's non-scaling strokes still scale with the world's CSS zoom), dashed
  * when skipped, marching dashes over it while it runs, its arrowhead. `cache` keeps an edge's
- * shapes while its path and its look stay the same, so the canvas packs only the edges that
- * changed.
+ * shapes while its nodes and its look stay the same, so the canvas packs only the edges that
+ * changed; an edge whose two nodes moved by the same whole number of units (a selection dragged)
+ * keeps its shapes, moved by the group's offset: its path is not computed again.
  */
 export function farEdgeGroups<D>(
   index: GraphIndex<D>,
@@ -148,24 +188,49 @@ export function farEdgeGroups<D>(
   style: EdgeStyle | EdgePath,
   run: RunState | undefined,
   state: FarEdgeState = {},
-  cache?: Map<string, { key: string; edge: FarEdge }>,
+  cache?: Map<string, FarEdgeEntry>,
 ): FarEdge[] {
   const out: FarEdge[] = [];
   const path: EdgePath =
     typeof style === "function" ? style : (a, b, around) => edgePath(a, b, style, around);
   const arrows = state.arrows ?? true;
+  const { dragging, selected, hover } = state;
   for (const edge of edges) {
+    const source = index.nodes.get(edge.from.node);
+    const target = index.nodes.get(edge.to.node);
+    if (!source || !target) continue;
+    const status = dragging === edge.id ? "skipped" : run ? edgeStatus(run, edge.id) : "idle";
+    const hot = dragging !== edge.id && (!!selected?.has(edge.id) || hover === edge.id);
+    const hit = cache?.get(edge.id);
+    if (
+      hit?.from &&
+      hit.to &&
+      hit.status === status &&
+      hit.hot === hot &&
+      hit.arrows === arrows &&
+      hit.style === style &&
+      hit.edge.edge === edge &&
+      sameShape(hit.from, source) &&
+      sameShape(hit.to, target)
+    ) {
+      const dx = source.position.x - hit.from.x;
+      const dy = source.position.y - hit.from.y;
+      if (
+        target.position.x - hit.to.x === dx &&
+        target.position.y - hit.to.y === dy &&
+        Number.isInteger(dx) &&
+        Number.isInteger(dy)
+      ) {
+        const g = hit.edge.group;
+        if ((g.dx ?? 0) !== dx || (g.dy ?? 0) !== dy) {
+          hit.edge = moveEdge(hit.edge, dx, dy);
+        }
+        out.push(hit.edge);
+        continue;
+      }
+    }
     const g = edgeGeometryWith(index, edge, path);
     if (!g) continue;
-    const status = state.dragging === edge.id ? "skipped" : edgeStatus(run, edge.id);
-    const hot =
-      state.dragging !== edge.id && (!!state.selected?.has(edge.id) || state.hover === edge.id);
-    const key = `${g.d}|${g.arrow}|${status}|${hot}|${arrows}`;
-    const hit = cache?.get(edge.id);
-    if (hit && hit.key === key && hit.edge.edge === edge) {
-      out.push(hit.edge);
-      continue;
-    }
     const points = flattenPath(g.d);
     // A curve flattened joins its segments end to end (a square joint would overlap a translucent
     // stroke); an elbow's right angles reach past, as SVG's miter.
@@ -209,10 +274,39 @@ export function farEdgeGroups<D>(
       mid: g.mid,
       group: { key: edge.id, prims },
     };
-    cache?.set(edge.id, { key, edge: made });
+    cache?.set(edge.id, {
+      key: `${status}|${hot}|${arrows}`,
+      edge: made,
+      status,
+      hot,
+      arrows,
+      style,
+      from: placeOf(source),
+      to: placeOf(target),
+    });
     out.push(made);
   }
   return out;
+}
+
+/**
+ * An edge's shapes as made, drawn moved by `(dx, dy)` from where they were made: its group's offset
+ * (nothing packed again), its box and middle moved; its points stay as made (`FarEdge.dx`).
+ */
+function moveEdge(made: FarEdge, dx: number, dy: number): FarEdge {
+  // `made` may itself be drawn moved: its box and middle are moved back first.
+  const ox = dx - (made.dx ?? 0);
+  const oy = dy - (made.dy ?? 0);
+  const b = made.box;
+  return {
+    edge: made.edge,
+    points: made.points,
+    box: { x: b.x + ox, y: b.y + oy, w: b.w, h: b.h },
+    mid: { x: made.mid.x + ox, y: made.mid.y + oy },
+    group: { key: made.group.key, prims: made.group.prims, dx, dy },
+    dx,
+    dy,
+  };
 }
 
 /** Every edge of a graph as one list of primitives (lines and arrowheads), in order. */
@@ -244,7 +338,10 @@ export function edgeAt(
       p.y > b.y + b.h + tolerance
     )
       continue;
-    const d = distanceToPolyline(e.points, p);
+    const d = distanceToPolyline(
+      e.points,
+      e.dx || e.dy ? { x: p.x - (e.dx ?? 0), y: p.y - (e.dy ?? 0) } : p,
+    );
     if (d <= bestD) {
       bestD = d;
       best = e.edge;

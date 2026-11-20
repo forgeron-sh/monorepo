@@ -92,10 +92,15 @@ export function frameFollow(
   before: ReadonlyMap<string, DrawItem>,
   after: ReadonlyArray<DrawItem>,
   changed: ReadonlySet<string>,
+  get?: (id: string) => DrawItem | undefined,
 ): Changes {
   const moves = new Map<string, { dx: number; dy: number }>();
-  for (const item of after) {
-    if (!changed.has(item.id) || !isFrame(item)) continue;
+  // The changed items, by id when the engine can look them up, else from the list.
+  const candidates: Iterable<DrawItem | undefined> = get
+    ? [...changed].map(get)
+    : after.filter((i) => changed.has(i.id));
+  for (const item of candidates) {
+    if (!item || !isFrame(item)) continue;
     const was = before.get(item.id);
     if (was && translated(was, item)) {
       moves.set(item.id, { dx: item.bounds.x - was.bounds.x, dy: item.bounds.y - was.bounds.y });
@@ -237,7 +242,7 @@ export const frame = definePlugin({
     "A named area that carries its items, clips them and exports them: an item belongs to the frame holding its centre.",
   kinds: { frame: frameKind },
   engineRules: {
-    carry: ({ before, items, changed }) => frameFollow(before, items, changed),
+    carry: ({ before, items, changed, get }) => frameFollow(before, items, changed, get),
     settle: ({ before, items, ids }) => membershipChanges(items, settleSet(before, items, ids)),
     copy({ sources, copies }) {
       const ids = new Map<string, string>();

@@ -137,17 +137,25 @@ export function FlowEdges<D>({ ctx, view }: LayerProps<D>) {
   const graph = flow.current;
   const index = useMemo(() => indexGraph(graph), [graph]);
   const path = pathOf(core, view.edgeStyle);
-  // Each edge's path and box, computed when the graph changes, not when the camera moves.
+  const cull = useCullWindow(flow.store);
+  const [drag, setDrag] = useState<{ edge: FlowEdge; point: Point } | null>(null);
+  // Each edge's path and box, computed when the graph changes, not when the camera moves. On the
+  // GPU, only for the edges whose parts the DOM shows: hovered, selected or dragged.
+  const dragged = drag?.edge.id;
+  const { selectedEdges } = flow;
   const shapes = useMemo(
     () =>
-      graph.edges.flatMap((edge) => {
+      (gpu
+        ? graph.edges.filter(
+            (e) => e.id === hover.edge || e.id === dragged || selectedEdges.has(e.id),
+          )
+        : graph.edges
+      ).flatMap((edge) => {
         const g = edgeGeometryWith(index, edge, path);
         return g ? [{ edge, g, box: edgeBounds(g) }] : [];
       }),
-    [graph, index, path],
+    [graph, index, path, gpu, hover.edge, dragged, selectedEdges],
   );
-  const cull = useCullWindow(flow.store);
-  const [drag, setDrag] = useState<{ edge: FlowEdge; point: Point } | null>(null);
   const readOnly = flow.store.readOnly;
   const { selectEdges, store } = flow;
 

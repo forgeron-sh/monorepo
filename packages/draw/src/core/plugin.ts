@@ -65,6 +65,8 @@ export interface ChangeContext {
   readonly items: ReadonlyArray<DrawItem>;
   /** The ids that are not the same object before and after, removed ones included. */
   readonly changed: ReadonlySet<string>;
+  /** An item now, by id, from the engine's own table (no scan of `items`); given by the engine. */
+  readonly get?: (id: string) => DrawItem | undefined;
 }
 
 export interface SettleContext {

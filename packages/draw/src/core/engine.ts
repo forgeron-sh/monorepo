@@ -23,7 +23,7 @@ import {
   type TsEngineOptions,
 } from "@forgeron/canvas";
 import { registryOf } from "./defaults";
-import { changedIds } from "./follow";
+import { BeforeView, changedIds } from "./follow";
 import type { Changes, Plugins, Registry } from "./plugin";
 import type { DrawData, DrawItem } from "./types";
 
@@ -74,6 +74,24 @@ export function remapCopies(
   return out;
 }
 
+/** The ids a command can change, when it says so; null when any item may change. */
+function candidates(c: Command): ReadonlyArray<string> | null {
+  switch (c.type) {
+    case "drag":
+      return c.from.map(([id]) => id);
+    case "move":
+    case "remove":
+      return c.ids;
+    case "update":
+      return c.changes.map(([id]) => id);
+    case "resize":
+    case "resize-handle":
+      return [c.id];
+    default:
+      return null;
+  }
+}
+
 export interface DrawEngineOptions extends TsEngineOptions<DrawData> {
   /** The engine underneath; a TypeScript engine with the kinds of the plugins by default. */
   base?: CanvasEngine<DrawData>;
@@ -107,41 +125,69 @@ export function createDrawEngine(options: DrawEngineOptions = {}): DrawEngine {
     return id;
   };
 
+  const get = (id: string) => inner.get(id) as DrawItem | undefined;
+
+  /**
+   * What the items were before a change. For the commands that say which items they change (a drag
+   * step, a move, an update), only those are saved, and whatever a rule writes is saved before it
+   * is written: a step costs what it moves, not the board. Others take a snapshot of the board.
+   */
+  const beforeOf = (c: Command): BeforeView | Map<string, DrawItem> => {
+    const ids = candidates(c);
+    if (!ids) return snapshot();
+    const before = new BeforeView(get, items);
+    for (const id of ids) before.save(id);
+    return before;
+  };
+
   /** Applies `changes` in the current step: inside the gesture, or merged by `coalesce`. */
-  const write = (changes: Changes, coalesce?: string) => {
+  const write = (
+    changes: Changes,
+    coalesce?: string,
+    before?: BeforeView | Map<string, DrawItem>,
+  ) => {
     if (changes.length === 0) return;
+    if (before instanceof BeforeView) for (const [id] of changes) before.save(id);
     inner.dispatch({ type: "update", changes, ...(coalesce ? { coalesce } : {}) });
   };
 
   /** Writes what a rule says and adds the ids it changed to `changed`. */
-  const apply = (changes: Changes, coalesce: string | undefined, changed: Set<string>) => {
-    write(changes, coalesce);
+  const apply = (
+    changes: Changes,
+    coalesce: string | undefined,
+    changed: Set<string>,
+    before: BeforeView | Map<string, DrawItem>,
+  ) => {
+    write(changes, coalesce, before);
     for (const [id] of changes) changed.add(id);
   };
 
   /** The rules after a change, in the same step. */
-  const follow = (before: Map<string, DrawItem>, coalesce: string | undefined, settle: boolean) => {
-    const changed = changedIds(before, items());
+  const follow = (
+    before: BeforeView | Map<string, DrawItem>,
+    coalesce: string | undefined,
+    settle: boolean,
+  ) => {
+    const changed = before instanceof BeforeView ? before.changed() : changedIds(before, items());
     if (changed.size === 0) return;
     for (const rule of rules.carry) {
-      apply(rule({ before, items: items(), changed }), coalesce, changed);
+      apply(rule({ before, items: items(), changed, get }), coalesce, changed, before);
     }
     if (rules.remove.length) {
-      const present = new Set(items().map((i) => i.id));
-      const removed = new Set([...changed].filter((id) => !present.has(id)));
+      const removed = new Set([...changed].filter((id) => !inner.get(id)));
       if (removed.size) {
         for (const rule of rules.remove) {
-          apply(rule({ before, items: items(), removed }), coalesce, changed);
+          apply(rule({ before, items: items(), removed }), coalesce, changed, before);
         }
       }
     }
     if (settle) {
       for (const rule of rules.settle) {
-        apply(rule({ before, items: items(), ids: changed }), coalesce, changed);
+        apply(rule({ before, items: items(), ids: changed }), coalesce, changed, before);
       }
     } else for (const id of changed) touched.add(id);
     for (const rule of rules.follow) {
-      write(rule({ before, items: items(), changed }), coalesce);
+      write(rule({ before, items: items(), changed, get }), coalesce, before);
     }
   };
 
@@ -196,10 +242,16 @@ export function createDrawEngine(options: DrawEngineOptions = {}): DrawEngine {
       }
       if (c.phase === "end" && gesture && touched.size) {
         // Settle what the gesture moved, then put back what depends on what that changed.
-        const before = snapshot();
-        for (const rule of rules.settle) write(rule({ before, items: items(), ids: touched }));
+        const before = new BeforeView(get, items);
+        for (const rule of rules.settle) {
+          write(rule({ before, items: items(), ids: touched }), undefined, before);
+        }
         for (const rule of rules.follow) {
-          write(rule({ before, items: items(), changed: changedIds(before, items()) }));
+          write(
+            rule({ before, items: items(), changed: before.changed(), get }),
+            undefined,
+            before,
+          );
         }
       }
       gesture = false;
@@ -210,7 +262,7 @@ export function createDrawEngine(options: DrawEngineOptions = {}): DrawEngine {
       // The TypeScript engine merges repeated nudges of one selection under this key: what
       // follows them joins the same step. Another engine may not merge; nothing breaks.
       const coalesce = `nudge:${[...inner.getState().selection].sort().join(",")}`;
-      const before = snapshot();
+      const before = beforeOf(c);
       const r = inner.dispatch(c);
       if (r.ok) follow(before, coalesce, true);
       return r;
@@ -218,7 +270,7 @@ export function createDrawEngine(options: DrawEngineOptions = {}): DrawEngine {
     if (WITH_META.has(c.type) && !gesture) {
       const meta = c as { coalesce?: string };
       const coalesce = meta.coalesce ?? `draw:${++seq}`;
-      const before = snapshot();
+      const before = beforeOf(c);
       const r = run({ ...c, coalesce } as Command);
       if (r.ok) follow(before, coalesce, true);
       return r;
@@ -233,7 +285,7 @@ export function createDrawEngine(options: DrawEngineOptions = {}): DrawEngine {
         gesture = true;
         touched = new Set();
       }
-      const before = snapshot();
+      const before = beforeOf(c);
       const r = run(c);
       if (r.ok) follow(before, undefined, false);
       if (own) dispatch({ type: "gesture", phase: "end" });

@@ -2,14 +2,15 @@
 // the minimap. The toolbar plugin draws what the others contribute to the `toolbar` slot (its
 // buttons are the tools of the plugins, its choices their options); without it there is no toolbar.
 
+import type { Item } from "@forgeron/canvas";
 import { Minimap, ZoomControls } from "@forgeron/canvas/react";
+import { useCallback } from "react";
 import { IconButton, Segmented, Tooltip } from "@forgeron/ui";
 import type { FlowItemData } from "../../core/items";
 import { indexGraph } from "../../core/model";
 import { nodeStatus, type RunStatus } from "../../core/run";
 import {
   defineEditorPlugin,
-  type FarEdge,
   type FlowEditorContext,
   type FlowView,
   type ToolbarViewProps,
@@ -21,7 +22,7 @@ import {
   toolbar as toolbarCore,
   zoomControls as zoomCore,
 } from "../ui";
-import { farEdgeGroups, farGroups, farNode, groupFrames } from "./far-view";
+import { farEdgeGroups, farGroups, farNode, groupFrames, type FarEdgeEntry } from "./far-view";
 import { pathOf } from "./surface";
 
 export const deleteKeys = defineEditorPlugin({
@@ -41,6 +42,16 @@ export const deleteKeys = defineEditorPlugin({
   shortcuts: [{ keys: ["backspace", "delete"], tool: "delete" }],
 });
 
+/** The minimap, coloured by run state: the colours change with the run, not at every render. */
+function FlowMinimap({ view }: { ctx: FlowEditorContext<unknown>; view: FlowView<unknown> }) {
+  const run = view.run;
+  const colorOf = useCallback(
+    (item: Item<FlowItemData<unknown>>) => STATUS_COLOR[nodeStatus(run, item.id)],
+    [run],
+  );
+  return view.minimap ? <Minimap<FlowItemData<unknown>> colorOf={colorOf} /> : null;
+}
+
 export const far = defineEditorPlugin({
   core: farCore,
   far: {
@@ -48,7 +59,7 @@ export const far = defineEditorPlugin({
       farNode(node, status, label, selected, { farZoom, portColor }),
     edges: (ctx, graph, info, selected) => {
       // Each edge's shapes kept while its path and look stay: the canvas packs what changed.
-      const cache = ctx.local("far:edges", () => new Map<string, { key: string; edge: FarEdge }>());
+      const cache = ctx.local("far:edges", () => new Map<string, FarEdgeEntry>());
       return farEdgeGroups(
         indexGraph(graph),
         graph.edges,
@@ -138,12 +149,7 @@ export const minimap = defineEditorPlugin({
       {
         id: "minimap",
         order: 20,
-        component: ({ view }: { ctx: FlowEditorContext<unknown>; view: FlowView<unknown> }) =>
-          view.minimap ? (
-            <Minimap<FlowItemData<unknown>>
-              colorOf={(item) => STATUS_COLOR[nodeStatus(view.run, item.id)]}
-            />
-          ) : null,
+        component: FlowMinimap,
       },
     ],
   },

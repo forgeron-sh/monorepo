@@ -199,11 +199,15 @@ export interface EdgePart<D> {
 /** An edge on the GPU: its shapes (one canvas group) and where it can be clicked. */
 export interface FarEdge {
   edge: FlowEdge;
-  /** Its path flattened, world units. */
+  /** Its path flattened, world units, as made: drawn moved by `dx`, `dy` when they are given. */
   points: number[];
+  /** Where it is drawn: its box and middle with the move included. */
   box: Bounds;
   mid: Point;
   group: FarGroup;
+  /** How far it is drawn from `points` (a drag moved both its nodes); 0 when left out. */
+  dx?: number;
+  dy?: number;
 }
 
 /** A group's frame and its label's box, world units. */

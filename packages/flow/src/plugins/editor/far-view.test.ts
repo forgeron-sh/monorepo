@@ -128,4 +128,46 @@ describe("the far view of a flow", () => {
     expect(flattenPath(d).length / 2 - 1).toBe(48);
     expect(flattenPath(d, 8).length).toBe(2 + 8 * 2);
   });
+
+  it("keeps an edge's shapes when both its nodes move by the same whole units, moved by an offset", () => {
+    const edges = [{ id: "e", from: { node: "a", port: "out" }, to: { node: "b", port: "in" } }];
+    // The ports are the same objects from one graph to the next, as the items keep them.
+    const ports = { inputs: [{ id: "in" }], outputs: [{ id: "out" }] };
+    const at = (id: string, x: number, y: number) => ({ ...node(id, x, y), ...ports });
+    const graph = (dx: number, dy: number): FlowGraph<null> => ({
+      ...emptyGraph<null>(),
+      nodes: [at("a", dx, dy), at("b", 400 + dx, 100 + dy)],
+      edges,
+    });
+    const cache = new Map();
+    const [first] = farEdgeGroups(indexGraph(graph(0, 0)), edges, "bezier", undefined, {}, cache);
+    // Both moved by (30, 20): the same primitives, drawn moved; its box and middle moved.
+    const [moved] = farEdgeGroups(indexGraph(graph(30, 20)), edges, "bezier", undefined, {}, cache);
+    expect(moved!.group.prims).toBe(first!.group.prims);
+    expect(moved!.group).toMatchObject({ dx: 30, dy: 20 });
+    expect(moved!.box).toEqual({ ...first!.box, x: first!.box.x + 30, y: first!.box.y + 20 });
+    expect(moved!.mid).toEqual({ x: first!.mid.x + 30, y: first!.mid.y + 20 });
+    // The same again: the same object, nothing for the canvas to do.
+    const [again] = farEdgeGroups(indexGraph(graph(30, 20)), edges, "bezier", undefined, {}, cache);
+    expect(again).toBe(moved);
+    // The pointer finds it where it is drawn.
+    const fresh = farEdgeGroups(indexGraph(graph(30, 20)), edges, "bezier", undefined, {});
+    expect(edgeAt([moved!], fresh[0]!.mid, 6)?.id).toBe("e");
+    expect(edgeAt([moved!], first!.mid, 2)).toBeNull();
+    // One node alone, or a fraction of a unit: drawn again from its nodes.
+    const one: FlowGraph<null> = { ...graph(30, 20), nodes: [at("a", 30, 20), at("b", 400, 100)] };
+    const [apart] = farEdgeGroups(indexGraph(one), edges, "bezier", undefined, {}, cache);
+    expect(apart!.group.prims).not.toBe(first!.group.prims);
+    expect(apart!.group.dx).toBeUndefined();
+    const [half] = farEdgeGroups(
+      indexGraph(graph(30.5, 20)),
+      edges,
+      "bezier",
+      undefined,
+      {},
+      cache,
+    );
+    expect(half!.group.dx).toBeUndefined();
+    expect(half!.points).toEqual(fresh[0]!.points.map((v, i) => v + (i % 2 ? 0 : 0.5)));
+  });
 });

@@ -473,6 +473,81 @@ describe("engine rules of the bundled plugins, by stage", () => {
     expect(calls).toEqual([[r!.id]]);
   });
 
+  it("a drag step gives the rules the items before it, saved one by id, as one undo step", () => {
+    const seen: Array<{ size: number; moved: number | undefined; still: number | undefined }> = [];
+    let watching = false;
+    const spy = definePlugin({
+      id: "spy",
+      name: "Spy",
+      description: "Notes what the rules are given.",
+      engineRules: {
+        follow: ({ before, changed, items }) => {
+          if (!watching) return [];
+          const moved = [...changed][0]!;
+          const still = items.find((i) => !changed.has(i.id))!.id;
+          seen.push({
+            size: before.size,
+            moved: before.get(moved)?.bounds.x,
+            still: before.get(still)?.bounds.x,
+          });
+          return [];
+        },
+      },
+    });
+    const store = createDrawStore({ ...nostore, plugins: [rectangle, frame, arrow, spy] });
+    const get = (id: string) => store.get(id) as DrawItem | undefined;
+    const [f] = store.add(frameItem({ x: 0, y: 0, w: 400, h: 300 }, "F"));
+    const [r1, r2, r3] = store.add([
+      shapeItem("rectangle", { x: 40, y: 60, w: 80, h: 60 }),
+      shapeItem("rectangle", { x: 240, y: 60, w: 80, h: 60 }),
+      shapeItem("rectangle", { x: 900, y: 600, w: 80, h: 60 }),
+    ]);
+    const [a] = store.add(
+      arrowItem({ x: 0, y: 0 }, { x: 0, y: 0 }, get, { startBind: r1!.id, endBind: r2!.id }),
+    );
+    const moving = [f!, r1!, r2!, a!].map((i) => get(i.id)!);
+    const arrowWas = get(a!.id)!;
+    watching = true;
+    store.beginGesture("Move");
+    for (const dx of [20, 40]) {
+      store.dispatch({
+        type: "drag",
+        from: moving.map((i) => [i.id, i.bounds] as const),
+        anchor: { x: 0, y: 0, w: 0, h: 0 },
+        dx,
+        dy: 0,
+        snap: false,
+      });
+    }
+    watching = false;
+    store.endGesture();
+    // Each step: the moved items as they were, the others as they are; the whole board on demand.
+    expect(seen[0]).toMatchObject({ size: 5, moved: 0, still: 900 });
+    expect(seen[1]).toMatchObject({ size: 5, moved: 20, still: 900 });
+    // The arrow moved with both its items: bound as it was, moved by as much.
+    const now = get(a!.id)!;
+    expect(now.data).toBe(arrowWas.data);
+    expect(now.bounds).toEqual({ ...arrowWas.bounds, x: arrowWas.bounds.x + 40 });
+    expect(get(r3!.id)!.bounds.x).toBe(900);
+    store.undo();
+    expect(get(f!.id)!.bounds.x).toBe(0);
+    expect(get(a!.id)!.bounds).toEqual(arrowWas.bounds);
+    // Dragged alone, it lets go of both ends, as before.
+    store.beginGesture("Move");
+    store.dispatch({
+      type: "drag",
+      from: [[a!.id, arrowWas.bounds]],
+      anchor: { x: 0, y: 0, w: 0, h: 0 },
+      dx: 0,
+      dy: 200,
+      snap: false,
+    });
+    store.endGesture();
+    const alone = get(a!.id)!.data as { start: { bind?: string }; end: { bind?: string } };
+    expect(alone.start.bind).toBeUndefined();
+    expect(alone.end.bind).toBeUndefined();
+  });
+
   it("an engine exposes the registry it runs", () => {
     const engine = createDrawEngine({ plugins: [rectangle, text] });
     expect(engine.registry.kindIds).toEqual(["rectangle", "text"]);

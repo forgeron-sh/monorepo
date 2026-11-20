@@ -91,8 +91,12 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
     for (const l of [...listeners]) l();
   };
   /** Publishes `items`, bottom first and already in the index. */
-  const setItems = (items: Item<D>[], extra: Partial<CanvasState<D>> = {}) => {
-    const selection = pruneSelection(extra.selection ?? state.selection, (id) => index.has(id));
+  const setItems = (items: Item<D>[], extra: Partial<CanvasState<D>> = {}, kept = false) => {
+    // Nothing removed (`kept`: updates only): the selection stays as it is.
+    const selection =
+      kept && !extra.selection
+        ? state.selection
+        : pruneSelection(extra.selection ?? state.selection, (id) => index.has(id));
     setState({
       ...extra,
       items,
@@ -129,8 +133,11 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
   ): boolean => {
     if (readOnly || patches.length === 0) return false;
     if (gesture) {
-      for (const id of touchedIds(patches)) {
-        if (!gesture.before.has(id)) gesture.before.set(id, index.get(id) ?? null);
+      // Each id's item before the gesture first touched it (a drag step touches thousands).
+      const before = gesture.before;
+      for (const p of patches) {
+        const id = p.op === "update" ? p.id : p.item.id;
+        if (!before.has(id)) before.set(id, index.get(id) ?? null);
       }
     } else {
       history = record(history, {
@@ -139,7 +146,11 @@ export function createTsEngine<D = unknown>(options: TsEngineOptions<D> = {}): C
         ...(meta.coalesce ? { coalesce: meta.coalesce } : {}),
       });
     }
-    setItems(index.apply(state.items, patches), extra);
+    setItems(
+      index.apply(state.items, patches),
+      extra,
+      patches.every((p) => p.op === "update"),
+    );
     return true;
   };
 

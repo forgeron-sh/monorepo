@@ -489,6 +489,91 @@ Where it stands. Packing is no longer what a drag or a cull window move costs: a
 
 Not done in step C: edge labels (flow draws none today; the glyph path is there); the edges' names for assistive technology (they were `aria-label`s on DOM paths, not focusable; edges are not in the offscreen list) and the group labels' buttons (a press still selects); the edge under the pointer is found by a scan of the edges' boxes (fine at 2,800); edges are in the buffer whether in view or not (culling them by the window is the next lever for the GPU thread); after a jump to a new area near, flow's cards mount a few a frame and the GPU shows labelled boxes meanwhile; translucent orthogonal (running) edges double at their elbows; draw's and flow's engine and React costs in a drag of thousands of items at 4×; Forgeron Sans, shaping beyond the f-ligatures, VoiceOver itself (the list is checked in jsdom, not with a screen reader), touch, a GPU other than the M4.
 
+## Palier 1, closing (20/11/2026): drags that cost what they move, edges culled, edges and groups for assistive technology
+
+Step C left the drags of thousands of items at 4× CPU with a long task most steps: draw's engine rules, the store's commit and React's render of the editor and the inspector; flow's geometry of every edge, every step. The closing makes a step cost what it moves and what is in view.
+
+**Draw's engine.** The rules still run after each step, in the gesture's one undo step, but `before` is no longer a copy of the board: for a command that says which items it changes (a drag step, a move, an update, a resize, a removal) only those are saved, and whatever a rule writes is saved before it is written (`BeforeView`, `core/follow.ts`: any other id reads the item as it is, which is what it was; iterating builds the whole map once). The rules get `get(id)`, the engine's lookup: `frame`'s `carry` reads the changed items by id, `arrow`'s `follow` no longer builds a map of the board and skips an arrow moved by exactly as much as every item it is bound to (it lies on them as it did). Membership still settles when the gesture ends; behaviour and the undo step are unchanged (a new contract test drags a frame, two bound items and their arrow, checks what the rules see, the arrow kept, one undo, and an arrow dragged alone letting go). The TS engine no longer prunes the selection after updates (nothing can have left) and records a gesture's first values without allocating.
+
+**What the canvas draws.** `far.moves`: an item's drawing moved by whole world units, with the same data, size and flags, is its drawing moved; the canvas gives its group an offset and does not ask the kind again, so a select-all drag calls no kind and packs nothing (the buffer sees the same primitives and only places the offset). `far.depends`: a box the drawing also depends on (draw's clipping frame, read from the store), compared at each change and moved with the item, so draw's kinds stay one function when a frame moves (they were rebuilt at every step of a drag that moved a frame, and every item drawn again). The DOM renderer draws only the selection outlines that meet the surface (flow at 100 % drew 2,000 SVG outlines a step). `<Minimap>` draws outside React: at once for the camera, at the next frame for items and the selection, its exact redraw (every 120 ms at most while changes come) in a task of its own; its fill is set only when it changes. The offscreen list's options are memoised.
+
+**Draw's interface.** The properties panel is drawn again only when what it shows changes: not when items move, are resized or an arrow's ends follow; its panels and buttons read the items as they are when they act (a drag rendered its twenty tooltips every step).
+
+**Flow.** The graph read after a drag reuses the last one's edges and groups and the nodes that did not move (`itemsToGraphAfter`); `indexGraph` is kept per graph and rebuilt from the last one when only nodes changed; an edge whose two nodes moved by the same whole units keeps its shapes, moved by its group's offset (`FarEdge.dx`, `dy`; `edgeAt` hit-tests where it is drawn), and an edge whose nodes did not change is the same object; the DOM edge layer computes paths only for the edges it shows (hovered, selected, dragged); a card is not rendered again when its node only moves; the minimap's colours are memoised by run. Near (cards), the edges in the GPU buffer are those in the canvas's cull window plus those hovered, selected or dragged; from far, all of them (the view holds most, and a zoom would otherwise lay the buffer out at every step).
+
+**Assistive technology.** The canvas takes `listEntries` (`CanvasListEntry`: options that are not items, in reading order with them, at most 200, the nearest the view's centre chosen by selection, not a sort): flow lists its edges in the cull window, "Edge from A to B" with `nodeLabel`, described as `edge`, selected with the edge selection, the last selected one the surface's active descendant while no node is. Each group's label is a real button again (offscreen: over the drawing, a few dozen buttons were each a compositing layer, 32 → 47 layers at fit), "Select the group …"; Enter or Space selects the group's nodes, a press on the drawn label still does (the host finds it by its box). Tests: the edge in the list, its role, selection and active descendant; the button's name, Enter, Space and a press.
+
+**Parity** against `f090550b` (1,440 × 900 at 2×, `pd-run/shots`, `b-` before, `a-` after): draw identical to the pixel at all 16 shots (100 %, 200 %, 40 %, 20 %, fit); flow identical at 11 of 12 (100 % and 200 % of the four areas, 40 % reconciliation, 20 %, fit); 40 % routing differs by 1,009 pixels of 5.18 M (328 by more than 2 levels, at most 8): edges overlapping in another order, the buffer having laid them out again as they entered the cull window.
+
+**Numbers.** Same harness, scenarios and flags as step C (headless Chrome, `--use-angle=metal --enable-gpu-rasterization --ignore-gpu-blocklist`, 1,440 × 900 at 2×, 120 wheel steps); before is `f090550b`, after the working tree on it, built and measured back to back. The machine was not quiet: the load average stayed above 3 for the ten minutes waited (3.4 at the start, 5.4 to 6 during the runs, 3.8 at the end); an earlier run of the same builds (load 3 to 5) agrees on the drags and disagrees on pan and zoom at 4× by as much as the differences below. Final run, normal CPU:
+
+| page, gesture             | main/step before → after | frame p50 / p95 before → after | GPU thread    | long tasks (max ms) |
+| ------------------------- | -----------------------: | -----------------------------: | ------------- | ------------------- |
+| board fit, pan            |                2.2 → 2.2 |        2.3 / 15.5 → 2.5 / 12.4 | 5 → 5.08      | 0 → 0               |
+| board fit, zoom           |                3.0 → 2.6 |        4.4 / 12.6 → 3.9 / 10.7 | 6.5 → 6.42    | 0 → 0               |
+| board 100 %, pan          |                2.5 → 1.7 |            4.4 / 9.8 → 2.3 / 7 | 5.62 → 5.79   | 0 → 0               |
+| board 100 %, zoom         |                3.2 → 2.7 |        5.6 / 11.1 → 3.9 / 11.3 | 5.52 → 8.43   | 0 → 0               |
+| board cross               |                2.6 → 3.1 |           4 / 9.8 → 5.1 / 10.6 | 6.13 → 7.32   | 1 (15) → 1 (12)     |
+| 2,000 items fit, pan      |                2.5 → 1.5 |             3.7 / 12 → 2 / 6.4 | 4.69 → 3.4    | 0 → 0               |
+| 2,000 items fit, zoom     |                2.5 → 2.4 |            4 / 7.9 → 4.2 / 7.4 | 5.02 → 4.33   | 0 → 0               |
+| 2,000 items 100 %, pan    |                1.4 → 1.7 |          2.2 / 4.9 → 2.6 / 6.3 | 3.69 → 3.99   | 0 → 0               |
+| 2,000 items 100 %, zoom   |                2.4 → 2.4 |          4.1 / 7.8 → 4.1 / 7.3 | 4.01 → 3.65   | 0 → 0               |
+| 2,000 items cross         |                2.3 → 2.2 |          3.9 / 6.6 → 3.8 / 6.3 | 3.79 → 4.24   | 0 → 0               |
+| order-to-cash fit, pan    |                1.4 → 1.6 |          2.1 / 5.5 → 2.1 / 6.1 | 4.55 → 6.73   | 0 → 0               |
+| order-to-cash fit, zoom   |                2.5 → 3.7 |         3.9 / 7.6 → 5.6 / 12.1 | 4.31 → 5.23   | 0 → 1 (25)          |
+| order-to-cash 100 %, pan  |                1.2 → 2.0 |            2 / 3.1 → 3.7 / 5.6 | 3.6 → 4.2     | 0 → 0               |
+| order-to-cash 100 %, zoom |                2.5 → 3.0 |         3.8 / 7.6 → 4.8 / 10.2 | 3.56 → 3.93   | 0 → 0               |
+| order-to-cash cross       |                2.8 → 3.0 |              4 / 8.2 → 5 / 8.1 | 6.48 → 4.91   | 0 → 0               |
+| 2,000 nodes fit, pan      |                2.3 → 2.4 |             3 / 9.3 → 3 / 12.1 | 10.77 → 11.46 | 0 → 1 (12)          |
+| 2,000 nodes fit, zoom     |                3.8 → 3.7 |            6 / 12.5 → 5 / 14.8 | 3.81 → 9.56   | 1 (19) → 2 (27)     |
+| 2,000 nodes 100 %, pan    |                2.5 → 2.8 |          4.2 / 7.4 → 4.6 / 9.6 | 10.92 → 6.04  | 0 → 0               |
+| 2,000 nodes 100 %, zoom   |                3.5 → 4.0 |          5 / 10.8 → 5.4 / 13.5 | 10.13 → 5.33  | 0 → 0               |
+| 2,000 nodes cross         |                4.0 → 4.0 |          4.7 / 13.3 → 5 / 12.5 | 10.31 → 8.81  | 0 → 0               |
+
+At 4× CPU throttling (load 5.4 to 5.8):
+
+| page, gesture             | main/step before → after | frame p50 / p95 before → after | GPU thread  | long tasks (max ms) |
+| ------------------------- | -----------------------: | -----------------------------: | ----------- | ------------------- |
+| board fit, pan            |                8.1 → 5.6 |        8.9 / 36.3 → 6.5 / 28.1 | 4.9 → 4.17  | 19 (51) → 11 (33)   |
+| board fit, zoom           |               9.0 → 10.2 |      14.5 / 38.4 → 15.6 / 44.5 | 5.77 → 6.18 | 20 (34) → 24 (41)   |
+| board 100 %, pan          |                4.0 → 5.2 |        6.6 / 15.6 → 8.1 / 18.5 | 4.07 → 5.11 | 0 → 2 (14)          |
+| board 100 %, zoom         |                8.2 → 9.2 |        13.4 / 29.7 → 16.4 / 32 | 6.04 → 4.75 | 16 (21) → 19 (22)   |
+| board cross               |                8.0 → 8.0 |      13.2 / 29.5 → 13.3 / 28.1 | 3.96 → 5.44 | 12 (35) → 10 (33)   |
+| 2,000 items fit, pan      |                4.6 → 5.2 |          6 / 25.1 → 7.2 / 26.3 | 2.82 → 3.16 | 6 (18) → 12 (18)    |
+| 2,000 items fit, zoom     |                6.7 → 7.9 |      11.7 / 20.6 → 12.7 / 23.4 | 3.52 → 3.9  | 2 (21) → 5 (24)     |
+| 2,000 items 100 %, pan    |                3.5 → 3.9 |          6 / 14.1 → 6.4 / 14.2 | 2.76 → 3.81 | 0 → 0               |
+| 2,000 items 100 %, zoom   |                5.8 → 7.4 |      10.6 / 20.4 → 13.5 / 23.2 | 2.63 → 3.18 | 1 (14) → 4 (15)     |
+| 2,000 items cross         |                6.3 → 6.5 |        11.2 / 18.3 → 11.4 / 21 | 3.42 → 3.38 | 0 → 2 (14)          |
+| order-to-cash fit, pan    |                3.9 → 4.9 |        5.9 / 16.6 → 7.2 / 23.1 | 3.7 → 3.23  | 1 (12) → 4 (19)     |
+| order-to-cash fit, zoom   |                8.8 → 9.9 |          14 / 29.9 → 16 / 33.8 | 4.34 → 4.58 | 14 (35) → 21 (37)   |
+| order-to-cash 100 %, pan  |                3.0 → 5.9 |         5.3 / 9.4 → 9.2 / 13.7 | 2.82 → 3.7  | 0 → 2 (108)         |
+| order-to-cash 100 %, zoom |                7.9 → 9.0 |      12.3 / 31.4 → 14.7 / 35.9 | 3.46 → 3.76 | 17 (22) → 15 (26)   |
+| order-to-cash cross       |               10.7 → 9.5 |        17 / 38.8 → 15.8 / 29.4 | 3.91 → 4.08 | 37 (23) → 8 (20)    |
+| 2,000 nodes fit, pan      |                5.3 → 5.6 |        7.9 / 22.7 → 7.7 / 36.9 | 9.28 → 6.75 | 3 (16) → 10 (25)    |
+| 2,000 nodes fit, zoom     |              10.9 → 10.4 |      17.2 / 42.5 → 16.3 / 48.4 | 9.48 → 7.17 | 26 (56) → 31 (68)   |
+| 2,000 nodes 100 %, pan    |                8.2 → 8.3 |      14.2 / 26.4 → 14.2 / 31.4 | 3.63 → 5.02 | 13 (16) → 16 (19)   |
+| 2,000 nodes 100 %, zoom   |              11.6 → 11.6 |        17.2 / 56.7 → 19 / 49.8 | 7.93 → 5.73 | 31 (31) → 37 (39)   |
+| 2,000 nodes cross         |              12.9 → 12.9 |        20 / 50.8 → 17.8 / 50.4 | 9.3 → 9.53  | 33 (25) → 35 (39)   |
+
+Pan and zoom at 4× are within the noise of the two runs for draw (2,000 items at 100 %, zoom: 15 → 1 long tasks in the first, 1 → 4 in the second). Flow at 4× has a few more long tasks in pan and zoom near (2,000 nodes at 100 %: 4 → 13 and 13 → 16 in pan), from edges entering and leaving the buffer as the window moves (each lays the buffer out by copies), for a GPU thread down from 8 to 9 ms a step to 5 to 7.
+
+Gestures (main-thread tasks over 12 ms over 60 steps; two runs, before → after):
+
+| gesture                                        | normal CPU     | 4× CPU                                                                  |
+| ---------------------------------------------- | -------------- | ----------------------------------------------------------------------- |
+| draw, select all and drag, board 100 %         | 1 → 0; 0 → 0   | 54 → 3 (max 32); 41 → 28 (max 46)                                       |
+| draw, select all and drag, 2,000 items 100 %   | 0 → 0; 0 → 0   | 17 → 3 (max 24); 8 → 5 (max 29)                                         |
+| draw, select all and drag, board fit           | 1 → 1; 3 → 1   | 60 → 64 (26–43 → 14–20 ms a step); 60 → 61 (25–40 → 16–23)              |
+| draw, typing 40 characters                     | 0 → 0; 0 → 0   | 17 → 3; 11 → 1                                                          |
+| flow, select all and drag, order-to-cash 100 % | 0 → 0; 0 → 0   | 39 → 16; 58 → 20 (rAF p95 33 → 16.8)                                    |
+| flow, drag a group (16 nodes), 100 %           | 0 → 0; 0 → 0   | 22 → 7; 35 → 1                                                          |
+| flow, select all and drag, 2,000 nodes fit     | 1 → 1; 1 → 1   | 1 → 1; 1 → 1 (the first step)                                           |
+| flow, select all and drag, 2,000 nodes 100 %   | 18 → 0; 21 → 0 | 60 → 20 (33–117 → 14–28 ms); 60 → 18; rAF p50 33 → 16.7, p95 100 → 16.8 |
+
+Where it stands. Normal CPU: no long task in any drag, typing or group drag, and flow's 2,000 nodes at 100 % went from 18–21 to none. At 4×, the target of palier 1, no long task in a select-all drag of 2,000 items, is met only in part: 2,000 items have 3 to 5 (the first steps, as the gesture starts), the 2,618-item board 3 to 28 depending on the load, flow's 2,000 nodes 18 to 20 of 60 at 14–28 ms with every frame on time (rAF p50 16.7 ms), and a drag of the board at fit stays a long task a step (16–23 ms, from 26–43). A profile of a step at 4× (2,618 items) shows what is left: the canvas engine's own commit for every item moved (patches, the id table and the spatial index's cells, about 4 ms), the draw rules over the moved set (about 1.5 ms), React's render of the canvas (cull window, far groups, chrome, about 2 ms) and the far buffer placing 2,618 offsets; for flow, its loop over 2,800 edges (about 2 ms), the graph and index read again (about 1 ms) and React's reconciliation of the cards in view. The next levers are structural: the engine's spatial index updated once per gesture step for a moved set (a translation of a set of slots), a drag that moves the selection by one offset on the GPU instead of one per item, and flow's edges kept outside React.
+
+Not done in the closing: a visible focus for the offscreen group buttons (Enter selects and shows the selection; the label is not highlighted while its button has the focus); edge labels; a screen reader run (the lists are checked in jsdom); the pan and zoom regressions of flow near at 4× (edges entering the culled buffer); touch; a GPU other than the M4.
+
 ## When to revisit
 
 - A scene that needs per-frame CPU work proportional to the visible items beyond culling (the isometric blueprint: depth sorting, animation, geometry generation), at thousands of items.

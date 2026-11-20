@@ -16,7 +16,7 @@ import {
   reconnect,
   type ConnectResult,
 } from "./graph";
-import { graphToItems, isNodeItem, itemsToGraph, NODE_KIND, type FlowItemData } from "./items";
+import { graphToItems, isNodeItem, itemsToGraphAfter, NODE_KIND, type FlowItemData } from "./items";
 import { idsOf, nextId, type FlowGraph, type FlowNode, type PortRef, type PortSide } from "./model";
 import type { ConnectOptions, LayoutResult, Plugins, Registry } from "./plugin";
 import { parseFlow, serializeFlow } from "./serialize";
@@ -104,7 +104,10 @@ export function createFlowController<D>(
   const graph = () => {
     const items = store.getState().items;
     if (items !== cachedItems || !cached) {
-      cached = itemsToGraph<D>(items);
+      cached = itemsToGraphAfter<D>(
+        items,
+        cached && cachedItems ? { items: cachedItems as typeof items, graph: cached } : null,
+      );
       cachedItems = items;
     }
     return cached;

@@ -209,6 +209,38 @@ const translated = (was: DrawItem, now: DrawItem) =>
   was.bounds.h === now.bounds.h &&
   (was.bounds.x !== now.bounds.x || was.bounds.y !== now.bounds.y);
 
+/** Whether `now` is `was` moved by `(dx, dy)`, its size and data the same. */
+const movedBy = (was: DrawItem, now: DrawItem, dx: number, dy: number) =>
+  was.data === now.data &&
+  was.kind === now.kind &&
+  was.bounds.w === now.bounds.w &&
+  was.bounds.h === now.bounds.h &&
+  now.bounds.x - was.bounds.x === dx &&
+  now.bounds.y - was.bounds.y === dy;
+
+/** An arrow translated by exactly as much as each item it is bound to, all of them still there. */
+function movedWith(
+  was: DrawItem,
+  now: DrawItem,
+  startBind: string | undefined,
+  endBind: string | undefined,
+  before: ReadonlyMap<string, DrawItem>,
+  changed: ReadonlySet<string>,
+  get: Lookup,
+): boolean {
+  if (!translated(was, now)) return false;
+  const dx = now.bounds.x - was.bounds.x;
+  const dy = now.bounds.y - was.bounds.y;
+  for (const bind of [startBind, endBind]) {
+    if (bind === undefined) continue;
+    if (!changed.has(bind)) return false;
+    const a = before.get(bind);
+    const b = get(bind);
+    if (!a || !b || !movedBy(a, b, dx, dy)) return false;
+  }
+  return true;
+}
+
 /**
  * Arrows put back on their items: those bound to an item that changed (or is gone), and those
  * that changed themselves. An arrow moved on its own lets go of the ends whose item stayed.
@@ -217,9 +249,10 @@ export function arrowFollow(
   before: ReadonlyMap<string, DrawItem>,
   after: ReadonlyArray<DrawItem>,
   changed: ReadonlySet<string>,
+  lookup?: Lookup,
 ): Changes {
-  const byId = new Map(after.map((i) => [i.id, i]));
-  const get = (id: string) => byId.get(id);
+  let byId: Map<string, DrawItem> | null = null;
+  const get: Lookup = lookup ?? ((id) => (byId ??= new Map(after.map((i) => [i.id, i]))).get(id));
   const out: Changes = [];
   for (const item of after) {
     if (item.data.type !== "arrow") continue;
@@ -233,6 +266,9 @@ export function arrowFollow(
     if (!touched) continue;
     let arrow: DrawItem<ArrowData> = current;
     const was = before.get(item.id);
+    // Moved along with every item it is bound to (a selection dragged whole): it lies on them as
+    // it did, nothing to lay out again.
+    if (self && was && movedWith(was, item, start.bind, end.bind, before, changed, get)) continue;
     if (self && was && translated(was, item)) {
       // Dragged: an end whose item did not move with it is let go where it is.
       const keep = (bind: string | undefined) => (bind && changed.has(bind) ? bind : undefined);
@@ -370,7 +406,7 @@ export const arrow = definePlugin({
     "Lines and arrows, straight or elbow, bound to items: they follow when the items move, let go when an item is deleted, and stay bound to copies.",
   kinds: { arrow: arrowKind },
   engineRules: {
-    follow: ({ before, items, changed }) => arrowFollow(before, items, changed),
+    follow: ({ before, items, changed, get }) => arrowFollow(before, items, changed, get),
     copy({ sources, copies }) {
       const ids = new Map<string, string>();
       sources.forEach((s, i) => {

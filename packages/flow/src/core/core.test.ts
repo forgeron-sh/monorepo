@@ -16,7 +16,13 @@ import {
   removeNodes,
   topologicalOrder,
 } from "./graph";
-import { flowKinds, graphToItems, itemsToGraph, type FlowItemData } from "./items";
+import {
+  flowKinds,
+  graphToItems,
+  itemsToGraph,
+  itemsToGraphAfter,
+  type FlowItemData,
+} from "./items";
 import { applyLayout, layoutGraph } from "../plugins/layout";
 import { emptyGraph, indexGraph, type FlowGraph, type FlowNode } from "./model";
 import { planRun } from "../plugins/run";
@@ -511,5 +517,31 @@ describe("the controller on a canvas store", () => {
     expect(before.every((b) => b.x % 20 === 0 && b.y % 20 === 0)).toBe(true);
     store.undo();
     expect(store.get("b")!.bounds.y).toBe(900);
+  });
+});
+
+describe("reading a graph again after a drag", () => {
+  it("keeps the edges, the groups and the index when the items only moved", () => {
+    const graph = generateFlowGraph({ nodes: 40, edges: 56 });
+    const items = graphToItems(graph);
+    const first = itemsToGraph(items);
+    const firstIndex = indexGraph(first);
+    const moved = items.map((i, n) =>
+      n % 2 ? { ...i, bounds: { ...i.bounds, x: i.bounds.x + 30 } } : i,
+    );
+    const next = itemsToGraphAfter(moved, { items, graph: first });
+    expect(next).toEqual(itemsToGraph(moved));
+    expect(next.edges).toBe(first.edges);
+    expect(next.groups).toBe(first.groups);
+    // An item that did not change keeps its node.
+    expect(next.nodes[0]).toBe(first.nodes[0]);
+    const index = indexGraph(next);
+    expect(index.out).toBe(firstIndex.out);
+    expect(index.nodes.get(next.nodes[1]!.id)).toBe(next.nodes[1]);
+    // Data changed (an edge added, a port renamed): read again.
+    const changed = moved.map((i, n) => (n === 0 ? { ...i, data: { ...i.data, out: [] } } : i));
+    const again = itemsToGraphAfter(changed, { items: moved, graph: next });
+    expect(again).toEqual(itemsToGraph(changed));
+    expect(again.edges).not.toBe(first.edges);
   });
 });

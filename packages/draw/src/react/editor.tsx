@@ -367,6 +367,25 @@ function DrawEditorBody({
   // included; a kind without one is drawn in the DOM by its paint. The DOM holds the item being
   // typed (its field: the GPU leaves its words out), the selected item that keeps its DOM (an
   // arrow's ends), and what a third-party kind shows over its drawing (`KindView.overlay`).
+  // The frame that clips an item, read from the store when the item is drawn rather than baked
+  // into the drawing functions: a frame moving does not make every item drawn again; the canvas
+  // compares it (`depends`) and moves an item's drawing with its frame (`moves`: whole units of a
+  // drag). The same box as `clipOf`.
+  const clipNow = useCallback(
+    (item: Item<DrawData>) => {
+      for (const c of slots.clips) {
+        if (item.data.type === c.type) continue;
+        const ref = (item.data as unknown as Record<string, unknown>)[c.field];
+        if (typeof ref !== "string") continue;
+        const container = store.get(ref) as DrawItem | undefined;
+        return container && slots.clips.some((k) => k.type === container.data.type)
+          ? container.bounds
+          : undefined;
+      }
+      return undefined;
+    },
+    [store, slots],
+  );
   const gpuKinds = useMemo(() => {
     void textVersion;
     const kinds: Record<string, FarDraw<DrawData>> = {};
@@ -374,10 +393,10 @@ function DrawEditorBody({
       const spec = registry.kind(id);
       if (!spec?.gpu) continue;
       kinds[id] = (item, { kept }) =>
-        spec.gpu!(item as DrawItem, clipOf(item), kept ? { words: false } : undefined);
+        spec.gpu!(item as DrawItem, clipNow(item), kept ? { words: false } : undefined);
     }
     return kinds;
-  }, [registry, clipOf, textVersion]);
+  }, [registry, clipNow, textVersion]);
   const overlay = useCallback(
     (item: Item<DrawData>) => slots.kinds.get(item.kind)?.overlay?.(item as DrawItem) ?? false,
     [slots],
@@ -463,7 +482,7 @@ function DrawEditorBody({
         label={label}
         tools={slots.tools}
         renderItem={renderItem}
-        far={{ zoom: FAR_ZOOM, kinds: gpuKinds, keep, overlay }}
+        far={{ zoom: FAR_ZOOM, kinds: gpuKinds, keep, overlay, moves: true, depends: clipNow }}
         itemLabel={(item) => drawItemLabel(item, registry)}
         itemRole={(item) => registry.kind(item.kind)?.label.toLowerCase() ?? item.kind}
         onItemActivate={onActivate}

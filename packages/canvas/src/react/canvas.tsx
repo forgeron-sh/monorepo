@@ -107,6 +107,33 @@ export interface CanvasFar<D> {
    * below it, on the GPU.
    */
   chromeOverDom?: boolean;
+  /**
+   * An item's drawing moved by whole world units is its drawing moved by as much, given the same
+   * data, size and flags (and `depends` moved by as much): the far layer then moves it by an
+   * offset without asking `kinds` again (a drag of thousands). Off by default.
+   */
+  moves?: boolean;
+  /**
+   * A box an item's drawing depends on besides the item (the frame that clips it), or undefined.
+   * Read for every item at each change; asked again when it changes, moved with the item when it
+   * moved by as much. Lets `kinds` stay the same function when that box changes.
+   */
+  depends?: (item: Item<D>) => Bounds | undefined;
+}
+
+/** An option of the offscreen list that is not an item (an edge between two nodes). */
+export interface CanvasListEntry {
+  /** Unique among the entries. */
+  id: string;
+  /** Its name for assistive technology: "Edge from Order to Invoice". */
+  label: string;
+  /** What it is (`aria-roledescription`): "edge". */
+  role?: string;
+  selected?: boolean;
+  /** Where it reads in the list, world units (its middle). */
+  at: Point;
+  /** The surface's active descendant when no item is (the selected edge). */
+  active?: boolean;
 }
 
 export interface CanvasProps<D = unknown> {
@@ -128,6 +155,12 @@ export interface CanvasProps<D = unknown> {
   itemLabel?: (item: Item<D>) => string;
   /** What an item is, for assistive technology (`aria-roledescription`): "sticky note", "step". */
   itemRole?: (item: Item<D>) => string;
+  /**
+   * More options of the offscreen list, for what is drawn but is not an item (flow's edges): in
+   * reading order with the items, named and described the same way; at most 200, the nearest
+   * the view's centre. Give those in the cull window.
+   */
+  listEntries?: ReadonlyArray<CanvasListEntry>;
   /** Consumer tools, picked with `store.setTool(id)`; `select` and `pan` are built in. */
   tools?: ReadonlyArray<CanvasTool<CanvasToolApi<D>>>;
   /** React layers in world space below and above the items: edges, guides, a drop preview. */
@@ -260,6 +293,38 @@ function ItemViewInner<D>({
 }
 const ItemView = memo(ItemViewInner) as typeof ItemViewInner;
 
+/** An option of the offscreen list: rendered again when what it says changes, not as items move. */
+const A11yOption = memo(function A11yOption({
+  id,
+  item,
+  entry,
+  selected,
+  role,
+  label,
+}: {
+  id: string;
+  /** The item it stands for, or the consumer's entry. */
+  item?: string;
+  entry?: string;
+  selected: boolean;
+  role: string | undefined;
+  label: string;
+}) {
+  return (
+    <div
+      id={id}
+      role="option"
+      aria-selected={selected}
+      aria-roledescription={role}
+      aria-label={label}
+      data-item={item}
+      data-entry={entry}
+    >
+      {label}
+    </div>
+  );
+});
+
 /**
  * Items mounted per frame while the DOM catches up after a far/near switch: adapted to how long the
  * last step took, so a step stays near `STEP_BUDGET` ms on any machine. Unmounting is cheaper.
@@ -274,6 +339,85 @@ const UNMOUNTS_PER_MOUNT = 4;
 const A11Y_LIMIT = 200;
 const A11Y_SELECTED_OUT = 20;
 const NO_FAR: ReadonlyArray<FarPrimitive> = [];
+
+/** `b` is `a` moved by `(dx, dy)`, or both are missing. */
+const sameBox = (a: Bounds | undefined, b: Bounds | undefined, dx: number, dy: number) =>
+  a === b || (!!a && !!b && b.x - a.x === dx && b.y - a.y === dy && a.w === b.w && a.h === b.h);
+
+/** `now` is `was` moved by whole units, the same otherwise, and what it depends on moved too. */
+function movedWhole<D>(
+  was: Item<D>,
+  now: Item<D>,
+  wasDep: Bounds | undefined,
+  dep: Bounds | undefined,
+): boolean {
+  const dx = now.bounds.x - was.bounds.x;
+  const dy = now.bounds.y - was.bounds.y;
+  return (
+    Number.isInteger(dx) &&
+    Number.isInteger(dy) &&
+    now.kind === was.kind &&
+    now.data === was.data &&
+    now.locked === was.locked &&
+    now.bounds.w === was.bounds.w &&
+    now.bounds.h === was.bounds.h &&
+    sameBox(wasDep, dep, dx, dy)
+  );
+}
+
+/**
+ * The `A11Y_LIMIT` entries nearest `c`, in their order: the distance of the last one taken found
+ * by selection (no sort of thousands, no object per entry), ties broken by order.
+ */
+function nearest(entries: ReadonlyArray<CanvasListEntry>, c: Point): CanvasListEntry[] {
+  const d = new Float64Array(entries.length);
+  for (let i = 0; i < entries.length; i++) {
+    const dx = entries[i]!.at.x - c.x;
+    const dy = entries[i]!.at.y - c.y;
+    d[i] = dx * dx + dy * dy;
+  }
+  // The k-th smallest distance (quickselect on a copy).
+  const a = d.slice();
+  const k = A11Y_LIMIT - 1;
+  let lo = 0;
+  let hi = a.length - 1;
+  while (lo < hi) {
+    const pivot = a[(lo + hi) >> 1]!;
+    let i = lo;
+    let j = hi;
+    while (i <= j) {
+      while (a[i]! < pivot) i++;
+      while (a[j]! > pivot) j--;
+      if (i <= j) {
+        const t = a[i]!;
+        a[i] = a[j]!;
+        a[j] = t;
+        i++;
+        j--;
+      }
+    }
+    if (k <= j) hi = j;
+    else if (k >= i) lo = i;
+    else break;
+  }
+  const limit = a[k]!;
+  const out: CanvasListEntry[] = [];
+  for (let i = 0; i < entries.length && out.length < A11Y_LIMIT; i++) {
+    if (d[i]! < limit) out.push(entries[i]!);
+  }
+  for (let i = 0; i < entries.length && out.length < A11Y_LIMIT; i++) {
+    if (d[i] === limit) out.push(entries[i]!);
+  }
+  return out;
+}
+
+/** The screen boxes that meet the surface (a pixel of margin for the outline's own stroke). */
+const onScreen = (boxes: Bounds[], size: { w: number; h: number }) =>
+  !size.w || !size.h
+    ? boxes
+    : boxes.filter(
+        (b) => b.x + b.w >= -2 && b.y + b.h >= -2 && b.x <= size.w + 2 && b.y <= size.h + 2,
+      );
 const NO_GROUPS: ReadonlyArray<FarGroup> = [];
 
 /** Each selected item's outline as drawn first, per store: moved after by its group's offset. */
@@ -372,6 +516,7 @@ export function Canvas<D = unknown>({
   label,
   itemLabel = defaultLabel,
   itemRole,
+  listEntries,
   tools = [],
   layers,
   children,
@@ -1116,6 +1261,27 @@ export function Canvas<D = unknown>({
     return list.sort((a, b) => row(a) - row(b) || a.bounds.x - b.bounds.x);
   }, [listOn, culled, activeId, selection, store]);
   const optionId = (id: string) => `${uid}-o-${id.replace(/[^\w-]/g, "_")}`;
+  const entryId = (id: string) => `${uid}-e-${id.replace(/[^\w-]/g, "_")}`;
+
+  // The entries the consumer adds (at most as many as items), merged in reading order.
+  const a11yRows = useMemo(() => {
+    type Row =
+      | { item: Item<D>; entry?: undefined; y: number; x: number }
+      | { item?: undefined; entry: CanvasListEntry; y: number; x: number };
+    const rows: Row[] = a11yItems.map((item) => ({ item, y: item.bounds.y, x: item.bounds.x }));
+    if (!listOn || !listEntries?.length) return rows;
+    let entries: ReadonlyArray<CanvasListEntry> = listEntries;
+    if (entries.length > A11Y_LIMIT) {
+      const { viewport: v, size } = store.getState();
+      entries = nearest(listEntries, screenToWorld(v, { x: size.w / 2, y: size.h / 2 }));
+      const active = listEntries.find((e) => e.active);
+      if (active && !entries.includes(active)) entries = [...entries, active];
+    }
+    for (const entry of entries) rows.push({ entry, y: entry.at.y, x: entry.at.x });
+    const row = (r: Row) => Math.round(r.y / 20);
+    return rows.sort((a, b) => row(a) - row(b) || a.x - b.x);
+  }, [a11yItems, listOn, listEntries, store]);
+  const activeEntry = listOn && !activeId ? listEntries?.find((e) => e.active) : undefined;
 
   // Apart from the scene: the same array while only the camera moves, so the renderer keeps them.
   const primitives = useMemo<Scene["primitives"]>(
@@ -1157,21 +1323,33 @@ export function Canvas<D = unknown>({
   // selection's outlines; while the DOM catches up after crossing back, the items not there yet.
   // Rebuilt when the items, the selection or the window change, never on a camera move.
   // Each item's primitives, kept while the item and the kinds stay the same objects.
-  const farCache = useMemo(
-    () =>
+  const farMovesOn = !!far?.moves;
+  const farDepends = far?.depends;
+  // Per item id: what it was drawn from (its item, its flags, the box it depends on), its
+  // primitives as made, and where its item was then.
+  const farCache = useMemo(() => {
+    // A new `depends` or `moves` draws everything again, as new kinds do.
+    void farDepends;
+    void farMovesOn;
+    return (
       farKinds &&
-      new WeakMap<
-        Item<D>,
+      new Map<
+        string,
         {
+          item: Item<D>;
           selected: boolean;
           kept: boolean;
           shown: boolean;
+          dep: Bounds | undefined;
           prims: ReadonlyArray<FarPrimitive>;
           group: FarGroup;
+          /** The item's place when `prims` were made. */
+          x: number;
+          y: number;
         }
-      >(),
-    [farKinds],
-  );
+      >()
+    );
+  }, [farKinds, farDepends, farMovesOn]);
   const farItems = useMemo(() => {
     if (!farKinds || !farCache) return null;
     if (!isFar && !phase && !gpuAll) return null;
@@ -1187,16 +1365,55 @@ export function Canvas<D = unknown>({
       const sel = selection.has(item.id);
       const keep = !!kept?.has(item.id);
       const dom = shownIds.has(item.id);
-      let hit = cache.get(item);
-      if (!hit || hit.selected !== sel || hit.kept !== keep || hit.shown !== dom) {
+      const dep = farDepends?.(item);
+      let hit = cache.get(item.id);
+      const flags = !!hit && hit.selected === sel && hit.kept === keep && hit.shown === dom;
+      if (hit && flags && hit.item === item && sameBox(hit.dep, dep, 0, 0)) {
+        // The same item, drawn the same.
+      } else if (hit && flags && farMovesOn && movedWhole(hit.item, item, hit.dep, dep)) {
+        // Moved by whole units with what it depends on: its drawing moved, by an offset.
+        const dx = item.bounds.x - hit.x;
+        const dy = item.bounds.y - hit.y;
+        hit.item = item;
+        hit.dep = dep;
+        hit.group = { key: item.id, prims: hit.prims, dx, dy };
+      } else {
         const prims = drawFar(item, { selected: sel, kept: keep, shown: dom }) ?? NO_FAR;
-        hit = { selected: sel, kept: keep, shown: dom, prims, group: { key: item.id, prims } };
-        cache.set(item, hit);
+        hit = {
+          item,
+          selected: sel,
+          kept: keep,
+          shown: dom,
+          dep,
+          prims,
+          group: { key: item.id, prims },
+          x: item.bounds.x,
+          y: item.bounds.y,
+        };
+        cache.set(item.id, hit);
       }
       if (hit.prims.length) out.push(hit.group);
     }
+    // Items gone for good are let go; those out of the window are kept, as the layer keeps them.
+    if (cache.size > list.length * 4 + 4096) {
+      for (const id of cache.keys()) if (!store.get(id)) cache.delete(id);
+    }
     return out;
-  }, [farKinds, farCache, isFar, phase, gpuAll, culled, target, shownIds, selection, keepKey]);
+  }, [
+    farKinds,
+    farCache,
+    farMovesOn,
+    farDepends,
+    isFar,
+    phase,
+    gpuAll,
+    culled,
+    target,
+    shownIds,
+    selection,
+    keepKey,
+    store,
+  ]);
 
   // The selection on the GPU: its outlines in the far view; with `overlay`, at every zoom, with
   // the handles, the box and the lasso, rounded to screen pixels as the DOM chrome draws them.
@@ -1291,7 +1508,11 @@ export function Canvas<D = unknown>({
       size,
       grid: { size: store.grid.size, visible: store.grid.visible },
       primitives: p.primitives,
-      outlines: p.chrome.outlined.map((i) => boundsToScreen(viewport, i.bounds)),
+      // Only the outlines on screen: a selection of thousands, near, draws the few in view.
+      outlines: onScreen(
+        p.chrome.outlined.map((i) => boundsToScreen(viewport, i.bounds)),
+        size,
+      ),
       handles:
         box && !p.gpu
           ? p.chrome.handles.map((h) => ({ handle: h, at: handlePosition(box, h) }))
@@ -1394,7 +1615,13 @@ export function Canvas<D = unknown>({
         role="application"
         aria-roledescription="canvas"
         aria-label={label}
-        aria-activedescendant={listOn && activeId ? optionId(activeId) : undefined}
+        aria-activedescendant={
+          listOn && activeId
+            ? optionId(activeId)
+            : activeEntry
+              ? entryId(activeEntry.id)
+              : undefined
+        }
         tabIndex={0}
         data-tool={tool}
         data-panning={panning || undefined}
@@ -1457,19 +1684,27 @@ export function Canvas<D = unknown>({
             aria-label={`${label}: items`}
             aria-multiselectable="true"
           >
-            {a11yItems.map((item) => (
-              <div
-                key={item.id}
-                id={optionId(item.id)}
-                role="option"
-                aria-selected={selection.has(item.id)}
-                aria-roledescription={itemRole?.(item)}
-                aria-label={itemLabel(item)}
-                data-item={item.id}
-              >
-                {itemLabel(item)}
-              </div>
-            ))}
+            {a11yRows.map(({ item, entry }) =>
+              item ? (
+                <A11yOption
+                  key={item.id}
+                  id={optionId(item.id)}
+                  item={item.id}
+                  selected={selection.has(item.id)}
+                  role={itemRole?.(item)}
+                  label={itemLabel(item)}
+                />
+              ) : (
+                <A11yOption
+                  key={`\u0000${entry.id}`}
+                  id={entryId(entry.id)}
+                  entry={entry.id}
+                  selected={!!entry.selected}
+                  role={entry.role}
+                  label={entry.label}
+                />
+              ),
+            )}
           </div>
         ) : null}
         <div className="fg-visually-hidden" aria-live="polite" aria-atomic="true">

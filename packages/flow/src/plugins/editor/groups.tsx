@@ -14,8 +14,8 @@ export function FlowGroups<D>({ ctx, view }: LayerProps<D>) {
   const graph = flow.current;
   const index = useMemo(() => indexGraph(graph), [graph]);
   const spec = core.groups;
-  // On the GPU, the frames and labels are drawn there and the host takes a press on a label.
-  if (!spec || graph.groups.length === 0 || view.gpu) return null;
+  if (!spec || graph.groups.length === 0) return null;
+  if (view.gpu) return <GroupButtons ctx={ctx} />;
   return (
     <WorldSvg className="fg-flow-groups">
       {graph.groups.map((g) => {
@@ -45,6 +45,46 @@ export function FlowGroups<D>({ ctx, view }: LayerProps<D>) {
         );
       })}
     </WorldSvg>
+  );
+}
+
+/**
+ * On the GPU, the frames and labels are drawn there and the host takes a press on a label (it
+ * finds it by its box); each label is still a real button for the keyboard and assistive
+ * technology, offscreen (over the drawing, a few dozen buttons would each be a compositing layer):
+ * Enter or Space selects the group's nodes, as a press does.
+ */
+function GroupButtons<D>({ ctx }: { ctx: LayerProps<D>["ctx"] }) {
+  const { flow, core } = ctx;
+  const graph = flow.current;
+  const index = useMemo(() => indexGraph(graph), [graph]);
+  const spec = core.groups!;
+  const select = (nodes: ReadonlyArray<string>, add: boolean, el: Element) => {
+    flow.store.select(nodes, add ? "add" : "replace");
+    flow.selectEdges([]);
+    focusSurface(el);
+  };
+  return (
+    <div className="fg-visually-hidden fg-flow-group-buttons">
+      {graph.groups.map((g) => {
+        if (!spec.bounds(index, g.nodes)) return null;
+        return (
+          <button
+            key={g.id}
+            type="button"
+            className="fg-flow-group-button"
+            data-group-label={g.id}
+            aria-label={`Select the group ${g.label}`}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              e.stopPropagation();
+              select(g.nodes, e.shiftKey, e.currentTarget);
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }
 

@@ -6,8 +6,15 @@
 // frame with its ports, the level of detail, and the slots. A kind of node no plugin draws is kept
 // as a labelled dashed box.
 
-import { screenToWorld, type Point } from "@forgeron/canvas";
-import { Canvas, useCanvasState, type CanvasFar, type CanvasProps } from "@forgeron/canvas/react";
+import { intersects, screenToWorld, type Point } from "@forgeron/canvas";
+import {
+  Canvas,
+  useCanvasState,
+  useCullWindow,
+  type CanvasFar,
+  type CanvasListEntry,
+  type CanvasProps,
+} from "@forgeron/canvas/react";
 import { matchShortcut } from "@forgeron/ui";
 import {
   memo,
@@ -26,7 +33,7 @@ import { parseHandle, portHandle } from "../core/controller";
 import type { EdgeStyle } from "../core/geometry";
 import { isNodeItem, NODE_KIND, nodeOfItem, type FlowItemData } from "../core/items";
 import { portOffset } from "../core/geometry";
-import type { FlowEdge, FlowNode, PortSide } from "../core/model";
+import { indexGraph, type FlowEdge, type FlowNode, type PortSide } from "../core/model";
 import type { Registry } from "../core/plugin";
 import { nodeStatus, type RunState, type RunStatus } from "../core/run";
 import { edgeAt, groupLabelAt } from "../plugins/editor/far-view";
@@ -167,7 +174,26 @@ function NodeViewInner<D>({ node, selected, status, render, host, core }: NodeVi
     </div>
   );
 }
-const NodeView = memo(NodeViewInner) as typeof NodeViewInner;
+/** The same node but for where it is: a card is not drawn again as it is dragged. */
+const sameButPlace = <D,>(a: FlowNode<D>, b: FlowNode<D>) =>
+  a === b ||
+  (a.id === b.id &&
+    a.type === b.type &&
+    a.size.w === b.size.w &&
+    a.size.h === b.size.h &&
+    a.inputs === b.inputs &&
+    a.outputs === b.outputs &&
+    a.data === b.data);
+const NodeView = memo(
+  NodeViewInner,
+  (a, b) =>
+    sameButPlace(a.node, b.node) &&
+    a.selected === b.selected &&
+    a.status === b.status &&
+    a.render === b.render &&
+    a.host === b.host &&
+    a.core === b.core,
+) as typeof NodeViewInner;
 
 /** The panels over the surface about the selection; mounted only when a plugin brings one. */
 function Inspectors<D>({
@@ -324,10 +350,28 @@ function FlowBody<D>({
     () => farSlot?.groups?.(ctx, graph, { hover: hover.group }) ?? { frames: [], drawn: [] },
     [farSlot, ctx, graph, hover.group],
   );
-  const farBelow = useMemo(
-    () => [...farFrames.drawn, ...farEdges.map((e) => e.group)],
-    [farFrames, farEdges],
-  );
+  // Near (cards, at most a few hundred edges in view), the edges in the canvas's cull window go
+  // to the GPU (the same window as its items, so a pan inside it changes nothing), plus those
+  // hovered, selected or dragged; from far, all of them (the view holds most of them, and edges
+  // coming and going at every step of a zoom would lay the buffer out again). The pointer still
+  // finds any edge by its shape.
+  const cull = useCullWindow(store);
+  const edgeCull = far ? null : cull;
+  const farBelow = useMemo(() => {
+    const out = [...farFrames.drawn];
+    for (const e of farEdges) {
+      const id = e.edge.id;
+      if (
+        !edgeCull ||
+        intersects(edgeCull, e.box) ||
+        id === hover.edge ||
+        id === dragging ||
+        selectedEdges.has(id)
+      )
+        out.push(e.group);
+    }
+    return out;
+  }, [farFrames, farEdges, edgeCull, hover.edge, dragging, selectedEdges]);
   const portColor = useCallback(
     (type: string | undefined) => (type ? core.portType(type)?.color : undefined),
     [core],
@@ -359,6 +403,8 @@ function FlowBody<D>({
             below: farBelow,
             overlay: ALL,
             chromeOverDom: true,
+            // A node's box moved by whole units is its box moved: a drag packs nothing.
+            moves: true,
           }
         : undefined,
     [farSlot, farZoom, farKinds, farBelow],
@@ -377,6 +423,9 @@ function FlowBody<D>({
       // An edge's own parts (its insert button) keep it; a node, a port or chrome hide what is under.
       const part = t.closest<HTMLElement>("[data-edge]");
       if (part) return { edge: part.dataset.edge ?? null, group: null };
+      // A group's label button (over its drawn label): the group, as a press on the drawing.
+      const label = t.closest<HTMLElement>("[data-group-label]");
+      if (label) return { edge: null, group: label.dataset.groupLabel ?? null };
       if (
         t.closest(
           "[data-canvas-item], [data-canvas-overlay], [data-canvas-handle], [data-canvas-interactive]",
@@ -413,6 +462,74 @@ function FlowBody<D>({
     },
     [nodeLabel, shownRun],
   );
+
+  // The edges for assistive technology: options of the canvas's offscreen list (the DOM no longer
+  // holds them), those in the cull window, named by their nodes, the last selected one active.
+  const [labels] = useState(
+    () =>
+      new Map<
+        string,
+        {
+          edge: FlowEdge;
+          from: D;
+          to: D;
+          named: unknown;
+          label: string;
+          entry?: CanvasListEntry;
+        }
+      >(),
+  );
+  const listEntries = useMemo<CanvasListEntry[] | undefined>(() => {
+    if (!gpu) return undefined;
+    const index = indexGraph(graph);
+    const name = (n: FlowNode<D>) => (nodeLabel ? nodeLabel(n) : n.id);
+    const last = [...selectedEdges].at(-1);
+    const out: CanvasListEntry[] = [];
+    const seen = labels;
+    for (const e of farEdges) {
+      const id = e.edge.id;
+      const selected = selectedEdges.has(id);
+      if (cull && !intersects(cull, e.box) && !selected) continue;
+      const from = index.nodes.get(e.edge.from.node);
+      const to = index.nodes.get(e.edge.to.node);
+      if (!from || !to) continue;
+      let known = seen.get(id);
+      if (
+        !known ||
+        known.edge !== e.edge ||
+        known.from !== from.data ||
+        known.to !== to.data ||
+        known.named !== nodeLabel
+      ) {
+        const label =
+          view.edgeLabel?.(e.edge, from, to) ?? `Edge from ${name(from)} to ${name(to)}`;
+        known = { edge: e.edge, from: from.data, to: to.data, named: nodeLabel, label };
+        seen.set(id, known);
+      }
+      // The same entry while nothing it says changed: the list is not drawn again for a pan.
+      const active = id === last;
+      let entry = known.entry;
+      if (
+        !entry ||
+        entry.label !== known.label ||
+        entry.at !== e.mid ||
+        entry.selected !== selected ||
+        !!entry.active !== active
+      ) {
+        entry = {
+          id,
+          label: known.label,
+          role: "edge",
+          selected,
+          at: e.mid,
+          ...(active ? { active: true } : {}),
+        };
+        known.entry = entry;
+      }
+      out.push(entry);
+    }
+    return out;
+  }, [gpu, graph, farEdges, cull, selectedEdges, nodeLabel, view, labels]);
 
   const itemRole = useCallback(
     (item: Parameters<CanvasProps<FlowItemData<D>>["renderItem"]>[0]) => {
@@ -550,6 +667,7 @@ function FlowBody<D>({
           {...(farView ? { far: farView } : {})}
           itemLabel={itemLabel}
           itemRole={itemRole}
+          {...(listEntries ? { listEntries } : {})}
           layers={layers}
           onConnect={onConnect}
           canConnect={canConnect}
