@@ -12,9 +12,16 @@ const NODE_EDGE: Partial<Record<RunStatus, string>> = {
   running: "--accent",
   success: "--success",
   error: "--danger",
+  handled: "--danger",
 };
 
-/** A node from far: a box with a 2-unit border and its name at 26 units, cut to its width. */
+/** The square in the top-right corner of a node that failed and was handled, in world units. */
+const HANDLED_MARK = 20;
+
+/**
+ * A node from far: a box with a 2-unit border and its name at 26 units, cut to its width; a
+ * failure that was handled has a square in its top-right corner too.
+ */
 export function farNode<D>(
   node: FlowNode<D>,
   status: RunStatus,
@@ -42,10 +49,22 @@ export function farNode<D>(
       size: 26,
       weight: 500,
       color: status === "skipped" ? "--ink-dim" : "--ink-muted",
-      maxWidth: Math.max(0, w - 32),
+      maxWidth: Math.max(0, w - 32 - (status === "handled" ? HANDLED_MARK : 0)),
       // The DOM draws the name at any size, a grey smudge at 10 %: so does the far view.
       minSize: 1,
     },
+    ...(status === "handled"
+      ? [
+          {
+            type: "rect" as const,
+            x: x + w - HANDLED_MARK,
+            y,
+            w: HANDLED_MARK,
+            h: HANDLED_MARK,
+            fill: "--danger",
+          },
+        ]
+      : []),
   ];
 }
 

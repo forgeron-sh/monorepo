@@ -1,11 +1,17 @@
 // Run state: where each node and edge stands while a flow runs, to show a run (or a test) on the
 // canvas. `planRun` turns a graph and the outcome of each node into the frames of a run, wave by
 // wave: the nodes whose inputs are settled run together, then their outputs carry on. A node no
-// edge reaches is skipped, and so is everything after an error.
+// edge reaches is skipped, and so is everything after an error. A node that failed and sent its
+// failure out through an error port (to a retry, a dead-letter queue) is `handled`: it failed, the
+// flow went on; it is drawn as a failure, not as a success.
 
 import { indexGraph, type FlowGraph, type FlowNode } from "./model";
 
-export type RunStatus = "idle" | "running" | "success" | "error" | "skipped";
+/**
+ * `handled`: the node failed and its failure went on through one of its outputs (an `error` port
+ * to a retry): a failure the flow caught, shown as one.
+ */
+export type RunStatus = "idle" | "running" | "success" | "error" | "handled" | "skipped";
 
 export interface RunState {
   nodes: Readonly<Record<string, RunStatus>>;
@@ -19,10 +25,14 @@ export const nodeStatus = (run: RunState | undefined, id: string): RunStatus =>
 export const edgeStatus = (run: RunState | undefined, id: string): RunStatus =>
   run?.edges[id] ?? "idle";
 
-/** What one node did: succeeded through some of its outputs (all by default), or failed. */
+/**
+ * What one node did: succeeded through some of its outputs (all by default), or failed. A failure
+ * stops there, unless it names `ports` (its error output): those carry it on and the node is
+ * `handled`.
+ */
 export type NodeOutcome =
   | { status: "success"; ports?: ReadonlyArray<string> }
-  | { status: "error" };
+  | { status: "error"; ports?: ReadonlyArray<string> };
 
 /**
  * The frames of a run, the last one final. Edges carry `running` while items flow on them and
@@ -61,8 +71,9 @@ export function planRun<D>(
       snap();
       for (const n of run) {
         const outcome = decide(n);
-        nodes[n.id] = outcome.status;
-        const fired = outcome.status === "success" ? outcome.ports : [];
+        const caught = outcome.status === "error" && (outcome.ports?.length ?? 0) > 0;
+        nodes[n.id] = caught ? "handled" : outcome.status;
+        const fired = outcome.status === "success" || caught ? outcome.ports : [];
         for (const e of index.out.get(n.id)!) {
           const on = fired === undefined || fired.includes(e.from.port);
           edges[e.id] = on ? "running" : "skipped";
@@ -91,7 +102,14 @@ export function planRun<D>(
 
 /** How many nodes stand in each state. */
 export function countStatuses(run: RunState, ids: Iterable<string>): Record<RunStatus, number> {
-  const out: Record<RunStatus, number> = { idle: 0, running: 0, success: 0, error: 0, skipped: 0 };
+  const out: Record<RunStatus, number> = {
+    idle: 0,
+    running: 0,
+    success: 0,
+    error: 0,
+    handled: 0,
+    skipped: 0,
+  };
   for (const id of ids) out[nodeStatus(run, id)]++;
   return out;
 }

@@ -10,7 +10,15 @@ import type { IconDefinition } from "@forgeron/icons";
 export type StepKind = "trigger" | "action" | "logic";
 
 /** Where a step stands in a run (or a test): `idle` before anything ran. */
-export type StepStatus = "idle" | "running" | "success" | "error" | "skipped" | "reused";
+/** `handled`: the step failed and its failure went on to a handler (a retry): still a failure. */
+export type StepStatus =
+  | "idle"
+  | "running"
+  | "success"
+  | "error"
+  | "handled"
+  | "skipped"
+  | "reused";
 
 export interface AutomationStep {
   id: string;
@@ -636,6 +644,8 @@ export function statusLook(status: StepStatus | RunStatus): { tone: Tone; word: 
       return { tone: "success", word: "Succeeded" };
     case "error":
       return { tone: "danger", word: "Failed" };
+    case "handled":
+      return { tone: "danger", word: "Failed · handled" };
     case "running":
       return { tone: "accent", word: "Running" };
     case "queued":

@@ -12,10 +12,15 @@ export interface ZoomLimits {
   presets: ReadonlyArray<number>;
 }
 
+/**
+ * From 2 % to 400 %. The floor is low enough that "fit" shows a whole large board (a workshop of
+ * 18,000 world units fits a laptop screen at about 7 %); below the far zoom of an editor the items
+ * are GPU primitives, and the grid hides under `GRID_MIN_ZOOM`, so a far zoom stays cheap.
+ */
 export const DEFAULT_ZOOM: ZoomLimits = {
-  min: 0.1,
+  min: 0.02,
   max: 4,
-  presets: [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4],
+  presets: [0.02, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4],
 };
 
 export const IDENTITY: Viewport = { x: 0, y: 0, zoom: 1 };

@@ -90,6 +90,7 @@ const STATUS_COLOR: Partial<Record<RunStatus, string>> = {
   running: "--accent",
   success: "--success",
   error: "--danger",
+  handled: "--danger",
   skipped: "--line",
 };
 

@@ -124,6 +124,10 @@ button.fg-step-main {
   border-color: var(--danger);
   box-shadow: 0 0 0 1px var(--danger);
 }
+/* Failed, caught by an error port: the failure's colour, without the error's double line. */
+.fg-step-is-handled {
+  border-color: var(--danger);
+}
 .fg-step-is-running,
 .fg-step-selected {
   border-color: var(--accent);

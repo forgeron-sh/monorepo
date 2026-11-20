@@ -3,7 +3,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseBoard, type DrawItem } from "../packages/draw/src/index";
-import { checkConnection, parseFlow, planRun, type FlowGraph } from "../packages/flow/src/index";
+import {
+  checkConnection,
+  groupBounds,
+  indexGraph,
+  parseFlow,
+  planRun,
+  type FlowGraph,
+} from "../packages/flow/src/index";
 import { ORDER_TO_CASH_FILE, WORKSHOP_FILE } from "./demo-boards";
 import { demoOutcome, orderToCash, type DemoStep } from "./demo/order-to-cash";
 import { q1Workshop } from "./demo/workshop";
@@ -76,13 +83,30 @@ describe("order-to-cash.flow.json", () => {
     expect(refused).toEqual([]);
   });
 
-  it("runs mostly green, with skipped branches, a retry and one error", () => {
+  it("runs mostly green, with skipped branches, a handled failure, its retry and one error", () => {
     const run = planRun(graph, demoOutcome).at(-1)!;
     const count = (s: string) => graph.nodes.filter((n) => run.nodes[n.id] === s).length;
     expect(count("error")).toBe(1);
+    expect(count("handled")).toBe(1);
     expect(count("success")).toBeGreaterThan(count("skipped"));
-    const retried = graph.nodes.find((n) => n.data.title.startsWith("Retry: submit to SDI"));
-    expect(run.nodes[retried!.id]).toBe("success");
+    const byTitle = (title: string) => graph.nodes.find((n) => n.data.title === title)!;
+    expect(run.nodes[byTitle("Submit to SDI").id]).toBe("handled");
+    expect(run.nodes[byTitle("Retry: submit to SDI").id]).toBe("success");
+  });
+
+  it("keeps each group together: no two frames overlap", () => {
+    const index = indexGraph(graph);
+    const frames = graph.groups.map((g) => ({ id: g.id, b: groupBounds(index, g.nodes)! }));
+    const clashes = frames.flatMap((f, i) =>
+      frames
+        .slice(i + 1)
+        .filter(
+          ({ b }) =>
+            f.b.x < b.x + b.w && b.x < f.b.x + f.b.w && f.b.y < b.y + b.h && b.y < f.b.y + f.b.h,
+        )
+        .map((o) => `${f.id} × ${o.id}`),
+    );
+    expect(clashes).toEqual([]);
   });
 
   it("is what the generator writes", () => {

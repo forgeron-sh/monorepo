@@ -47,7 +47,7 @@ function Board({ items }) {
 ## The model
 
 - An **item** is `{ id, kind, bounds: { x, y, w, h }, z, locked?, data }`. `data` is the consumer's and passes through untouched.
-- The **viewport** is `{ x, y, zoom }`: `screen = world × zoom + (x, y)`. The translation stays on whole pixels so the grid and 1 px lines stay crisp. Zoom from 0.1 to 4, presets 10 % to 400 %.
+- The **viewport** is `{ x, y, zoom }`: `screen = world × zoom + (x, y)`. The translation stays on whole pixels so the grid and 1 px lines stay crisp. Zoom from 0.02 to 4, presets 2 % to 400 %: the floor is low so that fit (`1`) shows a whole large board; the grid dots thin out as the zoom falls and hide under 5 % (`GRID_MIN_ZOOM`).
 - The **grid** is 20 world units; moves and resizes snap to it, Alt frees them. Arrows nudge by 1, Shift by 10.
 - **History** is patches (`add`, `remove`, `update` with what it replaced). A drag or a resize between `gesture: begin` and `end` is one step; consecutive nudges of one selection merge into one step.
 - **JSON**: `{ "version": 1, "items": [...], "viewport"? }`. An unknown version, a malformed item or a duplicate id is refused (`CanvasFormatError`).

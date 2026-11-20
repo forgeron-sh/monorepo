@@ -2,7 +2,7 @@ import { createCanvasStore } from "@forgeron/canvas";
 import { describe, expect, it } from "vitest";
 import { createFlowController, type FlowStore } from "./controller";
 import { generateFlowGraph } from "./generate";
-import { edgeBounds, edgePath, portPoint } from "./geometry";
+import { edgeBounds, edgePath, groupBounds, portPoint } from "./geometry";
 import {
   canConnect,
   checkConnection,
@@ -16,7 +16,7 @@ import {
 } from "./graph";
 import { flowKinds, graphToItems, itemsToGraph, type FlowItemData } from "./items";
 import { applyLayout, layoutGraph } from "./layout";
-import { emptyGraph, type FlowGraph, type FlowNode } from "./model";
+import { emptyGraph, indexGraph, type FlowGraph, type FlowNode } from "./model";
 import { planRun } from "./run";
 import { FlowFormatError, parseFlow, serializeFlow } from "./serialize";
 
@@ -271,6 +271,72 @@ describe("auto-layout", () => {
     expect(overlaps).toBe(0);
   });
 
+  /** Frames that overlap, and nodes inside a frame they are not in, after a layout. */
+  const frameClashes = <D>(g: FlowGraph<D>) => {
+    const laid = applyLayout(g, layoutGraph(g));
+    const index = indexGraph(laid);
+    const frames = laid.groups.map((group) => ({ group, b: groupBounds(index, group.nodes)! }));
+    const hit = (a: { x: number; y: number; w: number; h: number }, b: typeof a) =>
+      a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    const clashes: string[] = [];
+    for (let i = 0; i < frames.length; i++) {
+      for (let j = i + 1; j < frames.length; j++) {
+        if (hit(frames[i]!.b, frames[j]!.b))
+          clashes.push(`${frames[i]!.group.id} × ${frames[j]!.group.id}`);
+      }
+      const own = new Set(frames[i]!.group.nodes);
+      for (const n of laid.nodes) {
+        if (!own.has(n.id) && hit(frames[i]!.b, { ...n.position, ...n.size }))
+          clashes.push(`${n.id} in ${frames[i]!.group.id}`);
+      }
+    }
+    return clashes;
+  };
+
+  it("keeps each group together: no two frames overlap, no node in another's frame", () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const g = generateFlowGraph({ nodes: 200, edges: 280, seed });
+      // Groups of runs of nodes, as a person makes them, and groups picked at random.
+      const runs = Array.from({ length: 8 }, (_, k) => ({
+        id: `run-${k}`,
+        label: `Run ${k}`,
+        nodes: g.nodes.slice(k * 20 + seed, k * 20 + seed + 12).map((n) => n.id),
+      }));
+      expect(frameClashes({ ...g, groups: runs })).toEqual([]);
+      let state = seed * 7919;
+      const rand = () => (state = (state * 48271) % 2147483647) / 2147483647;
+      const picked: FlowGraph["groups"] = Array.from({ length: 6 }, (_, k) => ({
+        id: `pick-${k}`,
+        label: `Pick ${k}`,
+        nodes: [],
+      }));
+      for (const n of g.nodes) {
+        const k = Math.floor(rand() * 10);
+        if (k < 6) picked[k]!.nodes.push(n.id);
+      }
+      expect(frameClashes({ ...g, groups: picked })).toEqual([]);
+    }
+  });
+
+  it("lays groups out deterministically, on the grid, nodes apart", () => {
+    const g = generateFlowGraph({ nodes: 120, edges: 170, seed: 9 });
+    const grouped = {
+      ...g,
+      groups: [0, 1, 2].map((k) => ({
+        id: `g${k}`,
+        label: `G${k}`,
+        nodes: g.nodes.slice(k * 30, k * 30 + 25).map((n) => n.id),
+      })),
+    };
+    const a = layoutGraph(grouped);
+    expect([...a.positions]).toEqual([...layoutGraph(structuredClone(grouped)).positions]);
+    for (const q of a.positions.values()) {
+      expect(q.x % 20).toBe(0);
+      expect(q.y % 20).toBe(0);
+    }
+    expect(a.layers.flat().sort()).toEqual(g.nodes.map((n) => n.id).sort());
+  });
+
   it("breaks cycles instead of failing on them", () => {
     const loop = graphOf(
       [node("a"), node("b"), node("c")],
@@ -327,6 +393,37 @@ describe("run state", () => {
     ).at(-1)!;
     expect(last.nodes.if).toBe("error");
     expect(last.nodes.yes).toBe("skipped");
+  });
+
+  it("shows a failure sent on through an error port as handled, not as a success", () => {
+    const retry = graphOf(
+      [
+        node("t", [], ["out"]),
+        node("call", ["in"], ["out", { id: "error", type: "error" }]),
+        node("retry", [{ id: "in", type: "error" }], ["ok"]),
+        node("next", [{ id: "in", multiple: true }]),
+      ],
+      [
+        ["t", "call"],
+        ["call", "next", "out"],
+        ["call", "retry", "error"],
+        ["retry", "next", "ok"],
+      ],
+    );
+    const decide = (n: FlowNode<Data>) =>
+      n.id === "call"
+        ? ({ status: "error", ports: ["error"] } as const)
+        : ({ status: "success" } as const);
+    const frames = planRun(retry, decide);
+    const last = frames.at(-1)!;
+    expect(last.nodes).toEqual({
+      t: "success",
+      call: "handled",
+      retry: "success",
+      next: "success",
+    });
+    expect(last.edges).toEqual({ e0: "success", e1: "skipped", e2: "success", e3: "success" });
+    expect(planRun(retry, decide)).toEqual(frames);
   });
 });
 

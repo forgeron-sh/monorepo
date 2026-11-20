@@ -21,8 +21,11 @@ import {
   type RunState,
 } from "../../packages/flow/src/index";
 
-/** What a node did in the demo run: the outputs it fired (all but errors by default), or failed. */
-type DemoRun = { ports: string[] } | { status: "error" };
+/**
+ * What a node did in the demo run: the outputs it fired (all but errors by default), or failed
+ * (with `ports`, through its error output to a retry: handled).
+ */
+type DemoRun = { ports: string[] } | { status: "error"; ports?: string[] };
 
 export interface DemoStep {
   /** The block of the gallery's catalog it is drawn as (icon, kind). */
@@ -36,7 +39,7 @@ export interface DemoStep {
 /** The outcome of a node in the demo run, for `planRun`. */
 export function demoOutcome(node: FlowNode<DemoStep>): NodeOutcome {
   const run = node.data.run;
-  if (run && "status" in run) return { status: "error" };
+  if (run && "status" in run) return run.ports ? { status: "error", ports: run.ports } : run;
   return {
     status: "success",
     ports: run?.ports ?? node.outputs.filter((p) => p.type !== "error").map((p) => p.id),
@@ -592,7 +595,7 @@ export function orderToCash(): { graph: FlowGraph<DemoStep>; json: string; run: 
       "invoice",
       "invoice",
       // Italy: SDI answers 503 once, the retry gets through.
-      c.cc === "IT" ? { ports: ["error"] } : undefined,
+      c.cc === "IT" ? { status: "error", ports: ["error"] } : undefined,
       c.cc === "IT" ? { ports: ["ok"] } : undefined,
     );
     const receipt = f.call(

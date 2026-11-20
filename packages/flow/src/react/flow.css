@@ -53,6 +53,21 @@
 .fg-flow-node-far[data-status="error"] {
   border-color: var(--danger);
 }
+/* Failed and handled (an error port took it on): the failure's colour and a corner mark. */
+.fg-flow-node-far[data-status="handled"] {
+  position: relative;
+  padding-right: 34px;
+  border-color: var(--danger);
+}
+.fg-flow-node-far[data-status="handled"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: var(--danger);
+}
 .fg-flow-node-far[data-status="skipped"] {
   border-style: dashed;
   color: var(--ink-dim);

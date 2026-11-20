@@ -91,7 +91,7 @@ describe("viewport", () => {
   });
   it("clamps the zoom", () => {
     expect(clampZoom(10)).toBe(4);
-    expect(clampZoom(0.01)).toBe(0.1);
+    expect(clampZoom(0.01)).toBe(0.02);
     expect(zoomAt(v, 100, { x: 0, y: 0 }).zoom).toBe(4);
   });
   it("steps through the presets", () => {
@@ -100,7 +100,8 @@ describe("viewport", () => {
     expect(stepZoom(1.2, 1)).toBe(1.5);
     expect(stepZoom(1.2, -1)).toBe(1);
     expect(stepZoom(4, 1)).toBe(4);
-    expect(stepZoom(0.1, -1)).toBe(0.1);
+    expect(stepZoom(0.1, -1)).toBe(0.05);
+    expect(stepZoom(0.02, -1)).toBe(0.02);
   });
   it("fits a rectangle in view, centred, without zooming past the cap", () => {
     const size = { w: 800, h: 600 };
@@ -110,6 +111,17 @@ describe("viewport", () => {
     expect(shown.x).toBeLessThanOrEqual(0);
     expect(shown.x + shown.w).toBeGreaterThanOrEqual(1360);
     expect(fitBounds({ x: 0, y: 0, w: 10, h: 10 }, size).zoom).toBe(1);
+  });
+  it("fits a board far wider than ten screens: the floor does not stop it", () => {
+    const size = { w: 1440, h: 900 };
+    const board = { x: -400, y: -300, w: 18_000, h: 6_000 };
+    const fit = fitBounds(board, size);
+    expect(fit.zoom).toBeLessThan(0.1);
+    const shown = visibleWorld(fit, size);
+    expect(shown.x).toBeLessThanOrEqual(board.x);
+    expect(shown.x + shown.w).toBeGreaterThanOrEqual(board.x + board.w);
+    expect(shown.y).toBeLessThanOrEqual(board.y);
+    expect(shown.y + shown.h).toBeGreaterThanOrEqual(board.y + board.h);
   });
   it("interpolates in log zoom", () => {
     const mid = lerpViewport({ x: 0, y: 0, zoom: 1 }, { x: 100, y: 0, zoom: 4 }, 0.5);
@@ -148,6 +160,7 @@ describe("grid", () => {
     expect(gridStep(20, 0.5)).toBe(20);
     expect(gridStep(20, 0.25)).toBe(20);
     expect(gridStep(20, 0.1)).toBe(16);
+    expect(gridStep(20, 0.02)).toBe(25.6);
     expect(gridOffset(-25, 20)).toBe(15);
   });
 });

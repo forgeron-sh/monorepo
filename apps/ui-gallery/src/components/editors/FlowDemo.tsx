@@ -61,7 +61,7 @@ interface StepData {
   /** Shown under the title instead of the catalog's (a demo document's steps say more). */
   subtitle?: string;
   /** What the step did in a demo document's run: the outputs it fired, or an error. */
-  run?: { ports: string[] } | { status: "error" };
+  run?: { ports: string[] } | { status: "error"; ports?: string[] };
 }
 
 interface CatalogEntry {
@@ -359,10 +359,14 @@ const DEMOS: Record<string, () => Promise<{ default: string }>> = {
   "order-to-cash": () => import("@forgeron/libraries/boards/order-to-cash.flow.json?raw"),
 };
 
-/** How a step of a demo document ran: as its `run` says, else through all its outputs but errors. */
+/**
+ * How a step of a demo document ran: as its `run` says (a failure with ports went on through its
+ * error output: handled), else through all its outputs but errors.
+ */
 function demoOutcome(node: FlowNode<StepData>): NodeOutcome {
   const run = node.data.run;
-  if (run && "status" in run) return { status: "error" };
+  if (run && "status" in run)
+    return run.ports ? { status: "error", ports: run.ports } : { status: "error" };
   return {
     status: "success",
     ports: run?.ports ?? node.outputs.filter((p) => p.type !== "error").map((p) => p.id),
@@ -660,7 +664,7 @@ export default function FlowDemo() {
   }
 
   const counts = useMemo(() => {
-    const c = { success: 0, skipped: 0, error: 0, running: 0 };
+    const c = { success: 0, skipped: 0, error: 0, handled: 0, running: 0 };
     for (const s of Object.values(run.nodes)) if (s in c) c[s as keyof typeof c]++;
     return c;
   }, [run]);
@@ -693,7 +697,9 @@ export default function FlowDemo() {
         <span className="fd-status t-mono dim" aria-live="polite">
           {run === IDLE_RUN
             ? `${flow.current.nodes.length} steps · ${flow.current.edges.length} edges`
-            : `${counts.success} done · ${counts.running} running · ${counts.skipped} not reached`}
+            : `${counts.success} done · ${counts.running} running · ${counts.skipped} not reached${
+                counts.handled ? ` · ${counts.handled} failed, handled` : ""
+              }${counts.error ? ` · ${counts.error} failed` : ""}`}
         </span>
       </div>
       <div className="fd-stage">

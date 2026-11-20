@@ -4,7 +4,7 @@
 // (D-148) can take its place. Rich content (text, forms) is not the renderer's: it stays in the DOM
 // overlay that `renderItem` fills. A renderer draws only; it never handles input.
 
-import { gridOffset, gridStep } from "../core/grid";
+import { GRID_MIN_ZOOM, gridOffset, gridStep } from "../core/grid";
 import type { Bounds, Handle, Point, Size, Viewport } from "../core/types";
 
 /** A shape the renderer draws for an item, under its DOM overlay. Colours: CSS or a token name. */
@@ -100,7 +100,7 @@ export function createDomRenderer(): CanvasRenderer {
       gridColor = null;
     }
     ctx.clearRect(0, 0, w, h);
-    if (!scene.grid.visible) return;
+    if (!scene.grid.visible || v.zoom < GRID_MIN_ZOOM) return;
     gridColor ??= getComputedStyle(grid).getPropertyValue("--line-strong").trim() || "#2a2a2a";
     ctx.fillStyle = gridColor;
     const step = gridStep(scene.grid.size, v.zoom);

@@ -13,6 +13,12 @@ export interface GridOptions {
 
 export const DEFAULT_GRID: GridOptions = { size: 20, snap: true, visible: true };
 
+/**
+ * Under this zoom the dots are not drawn: a dot would stand for 32 cells or more, a texture rather
+ * than a grid. Snapping is unchanged.
+ */
+export const GRID_MIN_ZOOM = 0.05;
+
 export function snap(value: number, size: number): number {
   return size > 0 ? Math.round(value / size) * size : value;
 }

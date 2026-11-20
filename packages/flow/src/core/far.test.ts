@@ -30,6 +30,12 @@ describe("the far view of a flow", () => {
       { type: "text", text: "Step a", size: 26, maxWidth: 208 },
     ]);
     expect(farNode(node("a", 0, 0), "idle", "a", true)[0]).toMatchObject({ stroke: "--accent" });
+    // A failure that was handled: the failure's colour, and a mark in the corner.
+    expect(farNode(node("a", 0, 0), "handled", "Step a", false)).toMatchObject([
+      { type: "rect", stroke: "--danger" },
+      { type: "text", maxWidth: 188 },
+      { type: "rect", x: 220, y: 0, w: 20, h: 20, fill: "--danger" },
+    ]);
     const g: FlowGraph<null> = {
       ...emptyGraph<null>(),
       nodes: [node("a", 0, 0), node("b", 400, 0)],
