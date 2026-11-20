@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { glyphSvg, gridPath, guides, layoutText } from "./plate";
+import { glyphSvg, gridPath, guides, joinRows, layoutText } from "./plate";
 
 const metrics = { ascender: 900, capHeight: 700, xHeight: 500, descender: -200 };
 
@@ -39,5 +39,11 @@ describe("plate geometry", () => {
     expect(svg).toContain(">BASE 0<");
     expect(svg).toContain('d="M0 0h100v100h-100z"');
     expect(glyphSvg([], { unit: 100, advance: 0, metrics })).toContain('aria-hidden="true"');
+  });
+});
+
+describe("joinRows", () => {
+  it("sets glyph bitmaps side by side", () => {
+    expect(joinRows([["#.", ".#"], ["##"]])).toEqual(["#.##", ".#"]);
   });
 });

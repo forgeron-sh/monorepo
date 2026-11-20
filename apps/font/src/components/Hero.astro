@@ -1,7 +1,7 @@
 ---
 import { ArrowDown01Icon, BookOpen01Icon, Layers01Icon, Settings01Icon, TableIcon } from "@forgeron/icons";
-import { layoutText } from "../lib/plate";
-import { haloCells, joinRows, revealCells } from "../lib/reveal";
+import { haloCells, revealCells } from "@forgeron/shaders";
+import { joinRows, layoutText } from "../lib/plate";
 import type { Specimen } from "../lib/specimen";
 import PxIcon from "./PxIcon.astro";
 
@@ -74,12 +74,18 @@ const revealData = lines.map((rows, i) => ({
 </section>
 
 <script>
-  import { END, frame, type RevealCell } from "../lib/reveal";
+  import {
+    REVEAL_END as END,
+    REVEAL_MARGIN as MARGIN,
+    type RevealCell,
+    revealFrame as frame,
+  } from "@forgeron/shaders";
 
-  // The reveal: every frame is painted afresh on a canvas at the screen's own resolution, whole
-  // font pixels only; then the canvases go and the text itself stays.
+  // The reveal of @forgeron/shaders (`revealCells` and `haloCells` at build time, `revealFrame`
+  // per frame), drawn here on one canvas per line laid over that line of the title, which
+  // `mountReveal` (one canvas, lines stacked) cannot do. Whole font pixels at the screen's own
+  // resolution; then the canvases go and the text itself stays.
   const DURATION = 1500;
-  const MARGIN = 3; // font pixels around a line, for the shifted and stray pixels
   const DARK_EMBER = "#b8360f"; // the second ember of the lab palette
   const title = document.querySelector<HTMLElement>("[data-reveal]");
   if (title?.classList.contains("revealing")) {

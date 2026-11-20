@@ -12,7 +12,7 @@
   "scripts": {
     "prepare": "git config --local core.hooksPath .git/hooks && lefthook install --force",
     "dev": "moon run :dev",
-    "check": "moon run :typecheck --concurrency 3 && bun run lint && bun run format:check && bun run test && bun run knip && bun run deps && bun run deps:selftest && bun run licenses && bun run neutral && bun run templates:check && bun run tokens:check",
+    "check": "moon run :typecheck --concurrency 3 && bun run lint && bun run format:check && bun run test && bun run knip && bun run deps && bun run deps:selftest && bun run licenses && bun run neutral && bun run effects && bun run templates:check && bun run tokens:check",
     "test": "vitest run --maxWorkers=4",
     "build": "moon run :build",
     "lint": "oxlint",
@@ -26,6 +26,7 @@
     "deploy:production": "bun run --filter '@forgeron/*' deploy:production",
     "licenses": "bun scripts/licenses.ts",
     "neutral": "bun scripts/check-neutral.ts",
+    "effects": "bun scripts/no-hand-effects.ts",
     "templates:check": "bun scripts/check-templates.ts",
     "tokens:check": "bun run --cwd packages/ui tokens:check",
     "packages:build": "bun run --cwd packages/permissions tsdown && bun run --cwd packages/manifest tsdown && bun run --cwd packages/runtime tsdown && bun run --cwd packages/sdk tsdown && bun run --cwd apps/cli tsdown && bun scripts/pack.ts",

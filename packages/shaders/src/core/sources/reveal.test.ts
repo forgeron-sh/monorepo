@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { BANDS, bandOf, END, frame, haloCells, joinRows, revealCells, wave } from "./reveal";
+import {
+  bandOf,
+  haloCells,
+  REVEAL_BANDS as BANDS,
+  REVEAL_END as END,
+  revealCells,
+  revealFrame as frame,
+} from "./reveal";
 
+// Moved from apps/font with the code it tests (the specimen's reveal is this source).
 describe("dither reveal", () => {
-  it("sets glyph bitmaps side by side", () => {
-    expect(joinRows([["#.", ".#"], ["##"]])).toEqual(["#.##", ".#"]);
-  });
-
   it("gives every inked pixel, and only those, a time in [0, 1)", () => {
     const lines = [["#.#", "###"], ["##"]];
     const cells = revealCells(lines);
@@ -49,15 +53,6 @@ describe("dither reveal", () => {
     expect(bandOf(BANDS[2] + 0.001)).toBe(3);
     expect(bandOf(BANDS[3])).toBe(4);
     expect(bandOf(5)).toBe(4);
-  });
-
-  it("shifts by whole pixels near the front and not at all once settled", () => {
-    for (const age of [-0.05, 0, 0.05, 0.1]) {
-      const [dx, dy] = wave(age, 3, 4, 0.37);
-      expect(Number.isInteger(dx) && Number.isInteger(dy)).toBe(true);
-      expect(Math.abs(dx)).toBeLessThanOrEqual(2);
-    }
-    expect(wave(BANDS[3], 3, 4, 0.37)).toEqual([0, 0]);
   });
 
   it("rings the letters with a halo of paper pixels, outside the bitmap too", () => {

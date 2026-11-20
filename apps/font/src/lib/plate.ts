@@ -118,3 +118,9 @@ const GUIDE_SHORT: Record<Guide["key"], string> = {
   baseline: "BASE",
   descender: "DESC",
 };
+
+/** Glyph bitmaps side by side: one string per row, `#` for ink. */
+export function joinRows(glyphs: readonly (readonly string[])[]): string[] {
+  const rows = Math.max(0, ...glyphs.map((g) => g.length));
+  return Array.from({ length: rows }, (_, r) => glyphs.map((g) => g[r] ?? "").join(""));
+}
