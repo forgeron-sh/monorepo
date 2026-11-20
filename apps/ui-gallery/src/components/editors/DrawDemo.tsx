@@ -1,6 +1,7 @@
 import {
   arrowItem,
   frameItem,
+  parseBoard,
   penFromPoints,
   shapeItem,
   stickyItem,
@@ -14,9 +15,15 @@ import { useEffect } from "react";
 
 // The live board of the gallery: a frame with a small plan (stickies, shapes in dither fills,
 // arrows bound to them, a title), a sketch frame with pixel pen strokes. `?items=2000` swaps it
-// for a generated board of that many items, a tenth of them pen strokes, to measure pan and zoom.
+// for a generated board of that many items, a tenth of them pen strokes, to measure pan and zoom;
+// `?board=q1-workshop` for a demo board of @forgeron/libraries/boards, loaded when asked for.
 
 type Store = ReturnType<typeof useDrawStore>;
+
+/** The demo boards of @forgeron/libraries/boards, each loaded when asked for. */
+const BOARDS: Record<string, () => Promise<{ default: string }>> = {
+  "q1-workshop": () => import("@forgeron/libraries/boards/q1-workshop.draw.json?raw"),
+};
 
 function wave(x: number, y: number, len: number, amp: number, seed: number) {
   return Array.from({ length: 24 }, (_, i) => ({
@@ -119,7 +126,33 @@ export default function DrawDemo() {
   const store = useDrawStore();
   useEffect(() => {
     if (store.getState().items.length) return;
-    const n = Number(new URLSearchParams(location.search).get("items") ?? 0);
+    const params = new URLSearchParams(location.search);
+    const board = BOARDS[params.get("board") ?? ""];
+    if (board) {
+      let live = true;
+      const t = performance.now();
+      void board().then(({ default: json }) => {
+        if (!live) return;
+        store.replace(parseBoard(json).items);
+        const fit = () => store.fitView({ padding: 32 });
+        if (store.getState().size.w) fit();
+        else {
+          const stop = store.subscribe(() => {
+            if (!store.getState().size.w) return;
+            stop();
+            fit();
+          });
+        }
+        (window as unknown as { __draw: unknown }).__draw = {
+          store,
+          loadMs: performance.now() - t,
+        };
+      });
+      return () => {
+        live = false;
+      };
+    }
+    const n = Number(params.get("items") ?? 0);
     if (n > 0) bigBoard(store, Math.min(n, 20000));
     else demoBoard(store);
     store.replace(store.getState().items);

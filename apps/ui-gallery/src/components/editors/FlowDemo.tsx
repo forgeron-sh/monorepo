@@ -4,6 +4,7 @@ import {
   generateFlowGraph,
   IDLE_RUN,
   layoutGraph,
+  parseFlow,
   planRun,
   serializeFlow,
   type EdgeStyle,
@@ -11,6 +12,7 @@ import {
   type FlowGraph,
   type FlowNode,
   type FlowPort,
+  type NodeOutcome,
   type PortRef,
   type RunState,
 } from "@forgeron/flow";
@@ -26,6 +28,7 @@ import {
   Invoice01Icon,
   Mail01Icon,
   Message01Icon,
+  PlugIcon,
   Task01Icon,
   TrophyIcon,
   type IconDefinition,
@@ -47,13 +50,18 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 // The live flow of the gallery: an automation (a trigger, steps, an If and its branches) on the
 // canvas. StepPicker adds a block (from the toolbar, a dropped connection or the "+" of an edge),
 // StepInspector edits the one selected, Run plays a run's states. `?nodes=500` loads a generated
-// flow of that size instead, for the performance measures.
+// flow of that size instead, for the performance measures; `?flow=order-to-cash` the demo
+// automation of @forgeron/libraries/boards, with the state of its demo run.
 
 interface StepData {
   /** The catalog entry: what the step is. */
   step: string;
   title: string;
   values: StepValues;
+  /** Shown under the title instead of the catalog's (a demo document's steps say more). */
+  subtitle?: string;
+  /** What the step did in a demo document's run: the outputs it fired, or an error. */
+  run?: { ports: string[] } | { status: "error" };
 }
 
 interface CatalogEntry {
@@ -75,6 +83,18 @@ const IN: FlowPort[] = [{ id: "in", type: "items" }];
 const OUT: FlowPort[] = [{ id: "out", type: "items" }];
 
 const catalog: CatalogEntry[] = [
+  {
+    id: "webhook",
+    label: "On a webhook",
+    group: "trigger",
+    icon: PlugIcon,
+    kind: "trigger",
+    subtitle: "Webhook · POST",
+    description: "When another app calls",
+    inputs: [],
+    outputs: OUT,
+    fields: [{ key: "path", label: "Path", type: "text" }],
+  },
   {
     id: "deal-won",
     label: "Deal moved to Won",
@@ -334,6 +354,21 @@ function stressGraph(count: number): FlowGraph<StepData> {
   return applyLayout(graph, layoutGraph(graph, LAYOUT));
 }
 
+/** The demo documents of @forgeron/libraries/boards, each loaded when asked for. */
+const DEMOS: Record<string, () => Promise<{ default: string }>> = {
+  "order-to-cash": () => import("@forgeron/libraries/boards/order-to-cash.flow.json?raw"),
+};
+
+/** How a step of a demo document ran: as its `run` says, else through all its outputs but errors. */
+function demoOutcome(node: FlowNode<StepData>): NodeOutcome {
+  const run = node.data.run;
+  if (run && "status" in run) return { status: "error" };
+  return {
+    status: "success",
+    ports: run?.ports ?? node.outputs.filter((p) => p.type !== "error").map((p) => p.id),
+  };
+}
+
 const sample = {
   deal: {
     name: "Transalp",
@@ -394,6 +429,38 @@ export default function FlowDemo() {
     };
   }, [store, load, autoLayout]);
 
+  // `?flow=order-to-cash`: a demo document, shown with the last frame of its run.
+  useEffect(() => {
+    const name = new URLSearchParams(window.location.search).get("flow");
+    const demo = name ? DEMOS[name] : undefined;
+    if (!demo) return;
+    let live = true;
+    const t = performance.now();
+    void demo().then(({ default: json }) => {
+      if (!live) return;
+      const graph = parseFlow<StepData>(json);
+      load(graph);
+      const fit = () => store.fitView({ padding: 24 });
+      if (store.getState().size.w) fit();
+      else {
+        const stop = store.subscribe(() => {
+          if (!store.getState().size.w) return;
+          stop();
+          fit();
+        });
+      }
+      setRun(planRun(graph, demoOutcome).at(-1)!);
+      (window as unknown as { __flow: unknown }).__flow = {
+        store,
+        autoLayout,
+        loadMs: performance.now() - t,
+      };
+    });
+    return () => {
+      live = false;
+    };
+  }, [store, load, autoLayout]);
+
   // The panel covers the right of the canvas on a wide screen: a step selected under it moves left.
   const keepClearOfPanel = useCallback(
     (id: string) => {
@@ -437,6 +504,7 @@ export default function FlowDemo() {
   const play = () => {
     stopRun();
     const frames = planRun(flow.current, (node) => {
+      if (node.data.run) return demoOutcome(node);
       if (node.data.step !== "if") return { status: "success" };
       return { status: "success", ports: [sample.deal.amount > 5000 ? "true" : "false"] };
     });
@@ -515,7 +583,7 @@ export default function FlowDemo() {
         <StepCard
           layout="node"
           title={node.data.title}
-          subtitle={c.subtitle}
+          subtitle={node.data.subtitle ?? c.subtitle}
           icon={c.icon}
           kind={c.kind}
           status={status}
@@ -573,7 +641,7 @@ export default function FlowDemo() {
         icon={c.icon}
         kind={c.kind}
         title={selected.data.title}
-        subtitle={c.subtitle}
+        subtitle={selected.data.subtitle ?? c.subtitle}
         onTitleChange={(title) =>
           flow.updateNode(selected.id, { data: { ...selected.data, title } }, "Rename")
         }
@@ -619,6 +687,9 @@ export default function FlowDemo() {
         <Button size="sm" variant="ghost" onClick={reset} disabled={run === IDLE_RUN}>
           Reset run
         </Button>
+        <a className="btn btn-sm" href="?flow=order-to-cash">
+          Load the order-to-cash demo
+        </a>
         <span className="fd-status t-mono dim" aria-live="polite">
           {run === IDLE_RUN
             ? `${flow.current.nodes.length} steps · ${flow.current.edges.length} edges`

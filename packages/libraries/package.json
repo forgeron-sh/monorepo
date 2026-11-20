@@ -8,7 +8,8 @@
   "exports": {
     "./package.json": "./package.json",
     "./blueprints": "./blueprints/index.ts",
-    "./blueprints/*": "./blueprints/*"
+    "./blueprints/*": "./blueprints/*",
+    "./boards/*": "./boards/*"
   },
   "devDependencies": {
     "@forgeron/tsconfig": "workspace:*",
