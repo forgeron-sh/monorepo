@@ -1,4 +1,4 @@
-import { bayer } from "@forgeron/blueprint";
+import { bayer } from "@forgeron/shaders";
 import { cx } from "./cx";
 import { PixelText } from "./pixel-text";
 

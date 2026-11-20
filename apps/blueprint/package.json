@@ -12,7 +12,6 @@
   "dependencies": {
     "@astrojs/react": "7.1.2",
     "@forgeron/blueprint": "workspace:*",
-    "@forgeron/blueprint-canvas": "workspace:*",
     "@forgeron/canvas": "workspace:*",
     "@forgeron/icons": "workspace:*",
     "@forgeron/libraries": "workspace:*",

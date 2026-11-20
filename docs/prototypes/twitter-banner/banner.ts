@@ -7,7 +7,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { png } from "./png.ts";
-import { textSvg } from "../../../packages/blueprint/src/core/font.ts";
+import { textSvg } from "../../../packages/font/src/index.ts";
 
 const OUT_W = 1500;
 const OUT_H = 500;

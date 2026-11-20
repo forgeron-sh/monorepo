@@ -1,5 +1,5 @@
 {
   "extends": "@forgeron/tsconfig/base.json",
-  "compilerOptions": { "jsx": "react-jsx", "lib": ["ES2023", "DOM"] },
+  "compilerOptions": { "jsx": "react-jsx", "lib": ["ES2023", "DOM", "DOM.Iterable"] },
   "include": ["src", "test", "vitest.config.ts"]
 }

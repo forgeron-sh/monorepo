@@ -3,9 +3,9 @@
 // owner decides scene by scene whether it moves to the z-buffer (D-150, question 1). Rows draw
 // when they come near the screen; the choices stay in this browser and copy out as JSON.
 
-import { plan, type ResolvedPalette, resolvePalette } from "@forgeron/blueprint";
-import { BlueprintScene } from "@forgeron/blueprint/engine";
-import { encodeScene, type Library } from "@forgeron/blueprint/format";
+import { plan, type ResolvedPalette, resolvePalette } from "../index";
+import { BlueprintScene } from "../engine";
+import { encodeScene, type Library } from "../format";
 import { Button, Segmented } from "@forgeron/ui";
 import { useEffect, useRef, useState } from "react";
 import { type LibraryEntry, type OpenedFile, openBlueprint } from "./document";

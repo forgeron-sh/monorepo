@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, createElement as h } from "react";
 import { createRoot } from "react-dom/client";
-import { engineMemory } from "@forgeron/blueprint/engine";
+import { engineMemory } from "../engine";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BlueprintStage } from "./stage";
 import { fakeCanvas, FILE } from "./test-fixtures";

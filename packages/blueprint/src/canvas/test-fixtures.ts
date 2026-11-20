@@ -1,5 +1,5 @@
 // The test scene and a 2D canvas that records its draws, shared by the stage and viewer suites.
-import type { BlueprintFile } from "@forgeron/blueprint/format";
+import type { BlueprintFile } from "../format";
 import { vi } from "vitest";
 
 /**

@@ -177,7 +177,7 @@ The state the components share, for your screens and your own components (`src/h
 
 ## Shaders
 
-The pixel effects of the Forgeron sites, in `src/shaders/`: the dither field (canvas), the WebGL field modes (ember, field, globe, dissolve), the dithered image, the hearth, the pixel reveal. Each one is a framework-free `mount…` function and a React component (`DitherField`, `FieldShader`, `DitheredImage`, `Hearth`, `PixelReveal`) that draws a still frame under reduced motion. They take the shader source and the Bayer matrix from `@forgeron/blueprint`'s core.
+The pixel effects of the Forgeron sites, in `src/shaders/`: the dither field (canvas), the WebGL field modes (ember, field, globe, dissolve), the dithered image, the hearth, the pixel reveal. Each one is a framework-free `mount…` function and a React component (`DitherField`, `FieldShader`, `DitheredImage`, `Hearth`, `PixelReveal`) that draws a still frame under reduced motion. They take the shader source and the Bayer matrix from `@forgeron/shaders`, and the bitmap face from `@forgeron/font`.
 
 Every atom and block, with live examples, its code and its props: `apps/ui-gallery` (`ui.forgeron.sh`, `bun run --cwd apps/ui-gallery dev`, port 5181).
 

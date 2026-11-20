@@ -1,4 +1,4 @@
-import { textSvg } from "@forgeron/blueprint";
+import { textSvg } from "@forgeron/font";
 import { CloudIcon, LockIcon } from "@forgeron/icons";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as html } from "react-dom/server";

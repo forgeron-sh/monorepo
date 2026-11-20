@@ -49,7 +49,7 @@ export {
   textSvg,
   type TextSvgOptions,
   textWidth,
-} from "./core/font";
+} from "@forgeron/font";
 export { initBlueprint } from "./engine/runtime";
 export { ditherImage, IMAGE_PALETTE, type ImagePalette } from "./core/image";
 export { renderSvg, toSvg } from "./core/svg";

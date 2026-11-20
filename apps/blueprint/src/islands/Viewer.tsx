@@ -1,4 +1,4 @@
-import { BlueprintViewer } from "@forgeron/blueprint-canvas";
+import { BlueprintViewer } from "@forgeron/blueprint/canvas";
 import { library } from "@forgeron/libraries/blueprints";
 
 // The P5 viewer on the library (each file loaded when opened). `?file=name.bp` opens that file

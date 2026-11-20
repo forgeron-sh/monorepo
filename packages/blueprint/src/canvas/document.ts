@@ -2,7 +2,7 @@
 // scenes with their vars, timelines and machines). The viewer is a tool: it reads files in the page
 // with `readBlueprint`, which the site never ships (it plays compiled scenes).
 
-import { type Library, readBlueprint, type Scene, type Var } from "@forgeron/blueprint/format";
+import { type Library, readBlueprint, type Scene, type Var } from "../format";
 
 /** A file the viewer can list before it is read: the site's library, a file picked or dropped. */
 export interface LibraryEntry {

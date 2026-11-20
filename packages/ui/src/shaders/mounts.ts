@@ -1,4 +1,4 @@
-import { glyph, glyphWidth, textWidth } from "@forgeron/blueprint";
+import { glyph, glyphWidth, textWidth } from "@forgeron/font";
 import {
   type CellRect,
   type ColorRef,

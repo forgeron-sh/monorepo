@@ -21,7 +21,7 @@ describe("generated Rust", () => {
     expect(read("crates/fg-blueprint/src/layout.rs").toString()).toBe(layoutRust());
   });
 
-  it("font.rs is generated from core/font.ts (bun scripts/blueprint/gen-font.ts)", () => {
+  it("font.rs is generated from @forgeron/font (bun scripts/blueprint/gen-font.ts)", () => {
     expect(read("crates/fg-blueprint/src/font.rs").toString()).toBe(fontRust());
   });
 });

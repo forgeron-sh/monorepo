@@ -1,8 +1,8 @@
-// @forgeron/blueprint-canvas: Blueprint scenes on @forgeron/canvas (docs/blueprint/engine.md, P5).
+// @forgeron/blueprint/canvas: Blueprint scenes on @forgeron/canvas (docs/blueprint/engine.md, P5).
 // A scene is an item kind and a layer, never the canvas's renderer: `blueprintKind` and
 // `<BlueprintLayer>` (with its `BlueprintStage`), and the viewer built on them. Canvas never imports
 // Blueprint (`canvas-does-not-import-blueprint`). Import the styles once:
-// `import "@forgeron/blueprint-canvas/styles.css"` (after the ui and canvas styles).
+// `import "@forgeron/blueprint/canvas.css"` (after the ui and canvas styles).
 
 export { type Compositor, createCompositor, type Picture, type Placement } from "./compositor";
 export {

@@ -1,4 +1,4 @@
-import { textSvg } from "@forgeron/blueprint";
+import { textSvg } from "@forgeron/font";
 import { describe, expect, it } from "vitest";
 import { HEARTH_TONES as TONES, hearthCell as cellSize, hearthFrame, hearthGrid } from "./index";
 

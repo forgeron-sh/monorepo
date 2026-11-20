@@ -1,5 +1,5 @@
 /* blueprint.forgeron.sh: the pages on top of lab.css; the viewer brings its own styles from
-   @forgeron/blueprint-canvas, @forgeron/canvas and @forgeron/ui. */
+   @forgeron/blueprint/canvas, @forgeron/canvas and @forgeron/ui. */
 
 .skip {
   position: absolute;

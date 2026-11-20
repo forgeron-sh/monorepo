@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { encodeScene, readBlueprint, type Turn } from "@forgeron/blueprint/format";
+import { encodeScene, readBlueprint, type Turn } from "../format";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { blueprintItem, type BlueprintItemData } from "./kind";
 import { withView } from "./scenes";

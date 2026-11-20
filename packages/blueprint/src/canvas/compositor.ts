@@ -4,7 +4,7 @@
 // uniform colours them, one scissored triangle per scene); the 2D canvas otherwise (the engine
 // paints RGBA, an offscreen canvas per scene, `drawImage` without smoothing).
 
-import type { ResolvedPalette } from "@forgeron/blueprint";
+import type { ResolvedPalette } from "../index";
 
 /** What the compositor reads from a scene handle after a frame. */
 export interface Picture {

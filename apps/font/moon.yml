@@ -1,3 +1,5 @@
+# `apps/font` and `packages/font` share a folder name: this project takes its own id.
+id: "font-site"
 language: typescript
 
 tasks:

@@ -4,7 +4,7 @@
 // it. Plain data: no React, no DOM.
 
 import type { Bounds, Item, KindDefinition } from "@forgeron/canvas";
-import type { Turn } from "@forgeron/blueprint/format";
+import type { Turn } from "../format";
 
 /** The `kind` of a Blueprint item. */
 export const BLUEPRINT_KIND = "blueprint";

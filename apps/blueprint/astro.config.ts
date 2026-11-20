@@ -17,7 +17,6 @@ export default defineConfig({
         "@forgeron/ui",
         "@forgeron/icons",
         "@forgeron/blueprint",
-        "@forgeron/blueprint-canvas",
         "@forgeron/libraries",
         "@forgeron/canvas",
       ],

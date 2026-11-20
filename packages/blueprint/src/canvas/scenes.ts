@@ -3,14 +3,8 @@
 // by rewriting two words of the scene record, so a view switch costs a `load` (well under a
 // millisecond for the largest scene), not a new encode.
 
-import { BlueprintScene } from "@forgeron/blueprint/engine";
-import {
-  encodeScene,
-  type EncodedScene,
-  type Library,
-  type Scene,
-  type Turn,
-} from "@forgeron/blueprint/format";
+import { BlueprintScene } from "../engine";
+import { encodeScene, type EncodedScene, type Library, type Scene, type Turn } from "../format";
 import type { BlueprintItemData, Depth } from "./kind";
 
 /** The scene a part or an assembly is framed in when shown alone. */

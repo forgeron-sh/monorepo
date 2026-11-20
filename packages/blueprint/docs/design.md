@@ -264,12 +264,12 @@ Done; [`migration.md`](migration.md) has the inventory, the decisions and the re
 1. `cube` and `stack`, in `src/examples/`, as reference scenes with tests (fit unit, regular 2:1 edges, dither confined to faces, SVG).
 2. The other scenes and the lab helpers (`racks`, `cable`, `crates`, `scenery`) live in the site (`apps/site/src/lab/scenes.ts`) as scene functions: they are the site's illustrations. Faint lines are marked `decor`, which the lab engine did implicitly.
 3. `canvas[data-iso]` is mounted with `mount` from a module script (no React island: it would add about 70 kB of gzip to pages that ship none and escape the pages' scoped styles). The `iso:scene`, `iso:select` and `iso:active` events became the typed handle `isoCanvas(el)` of the site.
-4. Forge Sans lives in `core/font.ts`; the site imports it.
+4. Forge Sans lives in `@forgeron/font` (`packages/font`); Blueprint and the site import it.
 5. Generators run in WebGL (above); dithered images on the CPU.
 
 ## Open points
 
-- **The bitmap face** lives here only (`src/core/font.ts`): the site imports it.
+- **The bitmap face** lives in `@forgeron/font` only (`packages/font/src/index.ts`): Blueprint, ui and the site import it.
 - **Fidelity to the lab engine** is checked by properties in the package tests (framing, 2:1 regularity, materials), and was checked pixel by pixel once, during the migration, by a harness outside the repository ([`migration.md`](migration.md)).
 - **One deliberate difference from the lab**: an edge shared by two faces (the front edge of a top face is also the top edge of the right face) is drawn once per face. The lab walked Bresenham from both ends, and its ties break differently in each direction, so some 2:1 edges came out three or four pixels wide per row. Blueprint walks every line from its upper end: the edge is drawn twice on the same pixels (the `cube` reference has 1 041 edge pixels where the old order gave 1 064). Dash phases now start from the upper end too.
 - **The public surface** (names, the `examples` export) is provisional while the site is the only consumer.

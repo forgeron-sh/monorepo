@@ -1,4 +1,4 @@
-import { textWidth } from "@forgeron/blueprint";
+import { textWidth } from "@forgeron/font";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it } from "vitest";

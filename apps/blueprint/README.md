@@ -13,7 +13,7 @@ bun apps/blueprint/scripts/check-links.ts   # after a build: links, anchors, the
 - `/`: what the format is, in a few lines. A library scene (`host-servers.bp`) plays live through `playCompiled`. Below it, a whole example file and its picture, drawn at build time.
 - `/format`: the normative text, rendered from `docs/blueprint/format.md` as it is (Astro's own Markdown, no copy), with a table of contents. Its relative links to `engine.md` go to the document on GitHub (`src/lib/doc-links.ts`).
 - `/library`: every part and assembly of `@forgeron/libraries/blueprints`, each framed alone and drawn as a static SVG at build time by the engine (`src/lib/parts.ts`). The SVGs use `var(--token, fallback)` colours. A part whose defaults draw nothing is first drawn with its flags on. If that still draws nothing (the village's parts take their sizes from `calc` tracks), it is drawn as it stands in its file's scene, at the progress and time where it draws the most. Search, a kind filter and a file filter all live in the address bar. Each card opens its file in the viewer.
-- `/viewer`: the P5 viewer (`@forgeron/blueprint-canvas`) on the library. `?file=name.bp` opens that file. A dropped or picked file is read in the page and never uploaded.
+- `/viewer`: the P5 viewer (`@forgeron/blueprint/canvas`) on the library. `?file=name.bp` opens that file. A dropped or picked file is read in the page and never uploaded.
 - `/schema/v1.json`: the JSON Schema that every `.bp` names in `$schema`, written from `SCHEMA` of `@forgeron/blueprint/format`. A test checks that it equals `packages/blueprint/schema/blueprint.v1.json`. `public/_headers` serves it with CORS and `application/schema+json`.
 
 ## Checks

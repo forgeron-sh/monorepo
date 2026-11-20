@@ -1,4 +1,4 @@
-import { textSvg } from "@forgeron/blueprint";
+import { textSvg } from "@forgeron/font";
 
 export interface PixelTextProps {
   /** Written in the pixel face (Forge Sans), capitals unless `keepCase`. */

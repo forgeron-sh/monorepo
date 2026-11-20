@@ -4,8 +4,8 @@
 // pointer. The chrome is @forgeron/ui's; the scene is an item of @forgeron/canvas drawn by
 // <BlueprintLayer> (docs/blueprint/engine.md, P5).
 
-import { engineStarted, initBlueprint } from "@forgeron/blueprint/engine";
-import type { Turn } from "@forgeron/blueprint/format";
+import { engineStarted, initBlueprint } from "../engine";
+import type { Turn } from "../format";
 import { Canvas, useCanvasStore, ZoomControls } from "@forgeron/canvas/react";
 import { PauseIcon, PlayIcon } from "@forgeron/icons";
 import {

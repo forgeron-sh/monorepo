@@ -1,10 +1,10 @@
 /**
  * The Rust sources generated from TypeScript: the binary layouts (`layout.ts` →
- * `crates/fg-blueprint/src/layout.rs`) and the bitmap face (`core/font.ts` →
+ * `crates/fg-blueprint/src/layout.rs`) and the bitmap face (`@forgeron/font` →
  * `crates/fg-blueprint/src/font.rs`). `scripts/blueprint/gen-layout.ts` and `gen-font.ts` write
  * them; `codegen.test.ts` fails when a checked-in file is stale.
  */
-import { GLYPHS } from "../core/font";
+import { GLYPHS } from "@forgeron/font";
 import {
   BLOCK_FLAGS,
   BLOCKS_MAGIC,
@@ -65,8 +65,8 @@ const rustChar = (c: string) =>
 export function fontRust(): string {
   const entries = Object.entries(GLYPHS).sort(([a], [b]) => a.codePointAt(0)! - b.codePointAt(0)!);
   const out: string[] = [
-    HEADER("packages/blueprint/src/core/font.ts", "scripts/blueprint/gen-font.ts"),
-    "//! The bitmap face of labels (`GLYPHS` of `core/font.ts`), sorted by code point.\n",
+    HEADER("packages/font/src/index.ts", "scripts/blueprint/gen-font.ts"),
+    "//! The bitmap face of labels (`GLYPHS` of `@forgeron/font`), sorted by code point.\n",
     "/// A glyph: its first row (0 = cap height) and its rows, `#` for a pixel.",
     "pub struct Glyph {",
     "    pub top: i32,",

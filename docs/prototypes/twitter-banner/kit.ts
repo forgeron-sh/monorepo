@@ -9,7 +9,7 @@
  *   bun docs/prototypes/twitter-banner/kit.ts
  */
 import { writeFileSync } from "node:fs";
-import { textSvg } from "../../../packages/blueprint/src/core/font.ts";
+import { textSvg } from "../../../packages/font/src/index.ts";
 import { anvilPath } from "../../../packages/ui/src/logo.tsx";
 import { png } from "./png.ts";
 

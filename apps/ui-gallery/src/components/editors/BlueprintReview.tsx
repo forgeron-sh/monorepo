@@ -1,4 +1,4 @@
-import { DepthReview } from "@forgeron/blueprint-canvas";
+import { DepthReview } from "@forgeron/blueprint/canvas";
 import { library } from "@forgeron/libraries/blueprints";
 
 // Every scene of the Blueprint library (@forgeron/libraries/blueprints) in painter's order and with

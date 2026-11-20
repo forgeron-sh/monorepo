@@ -1,4 +1,4 @@
-# @forgeron/font
+# @forgeron/font-site
 
 The specimen and download site of **Forgeron Sans**, the pixel typeface of the brand, served on `font.forgeron.sh`.
 

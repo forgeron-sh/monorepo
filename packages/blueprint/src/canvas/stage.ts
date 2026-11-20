@@ -11,9 +11,9 @@
 // - Hover is a lookup in the last frame's tag buffer, not an engine call; the pointer is also
 //   handed to the engine so machines see `hover:<tag>` and `leave`.
 
-import { plan, type ResolvedPalette, resolvePalette } from "@forgeron/blueprint";
-import { type BlueprintScene, FRAME_FLAGS } from "@forgeron/blueprint/engine";
-import type { EncodedScene, Library, Scene } from "@forgeron/blueprint/format";
+import { plan, type ResolvedPalette, resolvePalette } from "../index";
+import { type BlueprintScene, FRAME_FLAGS } from "../engine";
+import type { EncodedScene, Library, Scene } from "../format";
 import type { Item, Size, Viewport } from "@forgeron/canvas";
 import { type Compositor, createCompositor, type Placement } from "./compositor";
 import type { BlueprintItemData } from "./kind";

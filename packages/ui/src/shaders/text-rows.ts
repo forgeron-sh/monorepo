@@ -1,4 +1,4 @@
-import { glyph, glyphWidth } from "@forgeron/blueprint";
+import { glyph, glyphWidth } from "@forgeron/font";
 
 // The rows of a pixel title for the reveal (`mountReveal` of @forgeron/shaders): the face is
 // Blueprint's, so it is set here.

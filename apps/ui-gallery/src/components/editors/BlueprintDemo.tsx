@@ -1,4 +1,4 @@
-import { BlueprintViewer } from "@forgeron/blueprint-canvas";
+import { BlueprintViewer } from "@forgeron/blueprint/canvas";
 import { library } from "@forgeron/libraries/blueprints";
 
 // The viewer on the Blueprint library (@forgeron/libraries/blueprints, each file loaded when opened),
