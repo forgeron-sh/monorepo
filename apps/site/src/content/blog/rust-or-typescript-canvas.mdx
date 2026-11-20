@@ -5,7 +5,6 @@ date: 2026-11-20
 category: Engineering
 authors: [forgeron]
 scene: spatial-index
-draft: true
 ---
 
 Our canvas engine missed its own targets at 20,000 items: a hit test took half a millisecond, and moving 500 items took 67 ms. The question on the table was whether to move its core to Rust, compiled to WebAssembly. We built the Rust version, ported its algorithm back to TypeScript, and measured both. The algorithm fixed the engine in either language, so we kept TypeScript, and the Rust crate as a measured option.
