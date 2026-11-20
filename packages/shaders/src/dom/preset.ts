@@ -21,11 +21,21 @@ export interface PresetMountOptions {
   fps?: number;
   /** Forces a still frame (`true`) or motion (`false`); the reader's preference otherwise. */
   still?: boolean;
+  /** The driven values at the start. */
+  inputs?: PresetInputs;
+}
+
+/** What a page drives while a preset runs; what reads it says so (`front` with `driven`). */
+export interface PresetInputs {
+  /** 0 to 1: the scroll, an upload's share, a step of a flow. */
+  progress?: number;
 }
 
 export interface PresetHandle extends ShaderHandle {
   /** The side it runs on. */
   readonly side: "gpu" | "cpu";
+  /** Sets the driven values and draws at once (a still preset stays still until it is set). */
+  set(inputs: PresetInputs): void;
 }
 
 /** True when the preset's source and passes all have GLSL. */
@@ -47,6 +57,7 @@ export function mountPreset(
   const px = chainCellSize(chain) * dpr;
   const colors = colorCache(canvas);
   const still = prefersStill(canvas, options.still);
+  const inputs: PresetInputs = { ...options.inputs };
   const size = () => {
     canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
     canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
@@ -66,10 +77,21 @@ export function mountPreset(
       still,
       fps: options.fps ?? 60,
       resize: size,
-      draw: (t) => pipeline.render({ width: canvas.width, height: canvas.height, px, time: t }),
+      draw: (t) =>
+        pipeline.render({
+          width: canvas.width,
+          height: canvas.height,
+          px,
+          time: t,
+          progress: inputs.progress ?? 0,
+        }),
     });
     return {
       side: "gpu",
+      set(next) {
+        Object.assign(inputs, next);
+        handle.redraw();
+      },
       destroy() {
         handle.destroy();
         pipeline.dispose();
@@ -94,7 +116,7 @@ export function mountPreset(
         chain,
         canvas.width,
         canvas.height,
-        { px, time: t, resolve: colors.resolve },
+        { px, time: t, progress: inputs.progress ?? 0, resolve: colors.resolve },
         frame,
       );
       // A chain without a present pass ends at cell resolution: draw it scaled up, cell by cell,
@@ -114,5 +136,12 @@ export function mountPreset(
       ctx.drawImage(off, 0, canvas.height - h, frame.width * px, h);
     },
   });
-  return { side: "cpu", destroy: () => handle.destroy() };
+  return {
+    side: "cpu",
+    set(next) {
+      Object.assign(inputs, next);
+      handle.redraw();
+    },
+    destroy: () => handle.destroy(),
+  };
 }

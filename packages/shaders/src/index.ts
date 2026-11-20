@@ -48,35 +48,30 @@ export {
 export { type CompileOptions, compileStages, type GlStage } from "./core/glsl";
 export { GL_VERTEX } from "./core/vertex";
 export { type ParamSpec, type ParamsSchema, type PresetIssue } from "./core/params";
-export {
-  BLUE_NOISE_SIZE,
-  blueNoiseMask,
-  blueNoiseMeta,
-  type BlueNoiseParams,
-} from "./core/passes/blue-noise";
-export { blueNoiseCpu } from "./core/passes/blue-noise.cpu";
-export { blueNoiseGlsl } from "./core/passes/blue-noise.glsl";
-export { crtMeta, type CrtParams } from "./core/passes/crt";
-export { crtCpu } from "./core/passes/crt.cpu";
-export { crtGlsl } from "./core/passes/crt.glsl";
-export { edgesMeta, type EdgesParams } from "./core/passes/edges";
-export { edgesCpu } from "./core/passes/edges.cpu";
-export { edgesGlsl } from "./core/passes/edges.glsl";
-export {
-  floydSteinbergGlsl,
-  floydSteinbergMeta,
-  type FloydSteinbergParams,
-} from "./core/passes/floyd-steinberg";
-export { floydSteinbergCpu } from "./core/passes/floyd-steinberg.cpu";
+export { dissolveMeta, type DissolveParams } from "./core/passes/dissolve";
+export { dissolveCpu } from "./core/passes/dissolve.cpu";
+export { dissolveGlsl } from "./core/passes/dissolve.glsl";
+export { hatchMeta, type HatchParams } from "./core/passes/hatch";
+export { hatchCpu } from "./core/passes/hatch.cpu";
+export { hatchGlsl } from "./core/passes/hatch.glsl";
+export { sparksMeta, type SparksParams } from "./core/passes/sparks";
+export { hash24, sparksCpu } from "./core/passes/sparks.cpu";
+export { sparksGlsl } from "./core/passes/sparks.glsl";
+export { frontMeta, type FrontParams, lobeAt, LOBES } from "./core/sources/front";
+export { frontCpu } from "./core/sources/front.cpu";
+export { frontGlsl } from "./core/sources/front.glsl";
+export { revealMeta, type RevealParams } from "./core/passes/reveal";
+export { revealCpu } from "./core/passes/reveal.cpu";
+export { revealGlsl } from "./core/passes/reveal.glsl";
+export { ringMeta, type RingParams } from "./core/passes/ring";
+export { ringCpu } from "./core/passes/ring.cpu";
+export { ringGlsl } from "./core/passes/ring.glsl";
 export { binomial, glowMeta, type GlowParams } from "./core/passes/glow";
 export { glowCpu } from "./core/passes/glow.cpu";
 export { glowGlsl } from "./core/passes/glow.glsl";
 export { gridMeta, type GridParams } from "./core/passes/grid";
 export { gridCpu } from "./core/passes/grid.cpu";
 export { gridGlsl } from "./core/passes/grid.glsl";
-export { halftoneMeta, type HalftoneParams } from "./core/passes/halftone";
-export { halftoneCpu } from "./core/passes/halftone.cpu";
-export { halftoneGlsl } from "./core/passes/halftone.glsl";
 export {
   ditherImage,
   IMAGE_PALETTE,
@@ -94,9 +89,6 @@ export { FIELD_TONES, paletteMeta, type PaletteParams } from "./core/passes/pale
 export { paletteCpu } from "./core/passes/palette.cpu";
 export { paletteGlsl } from "./core/passes/palette.glsl";
 export { pixelateMeta, type PixelateParams, pixelateStep } from "./core/passes/pixelate";
-export { scanlinesMeta, type ScanlinesParams } from "./core/passes/scanlines";
-export { scanlinesCpu } from "./core/passes/scanlines.cpu";
-export { scanlinesGlsl } from "./core/passes/scanlines.glsl";
 export {
   chainOf,
   checkPreset,

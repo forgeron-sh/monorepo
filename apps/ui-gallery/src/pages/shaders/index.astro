@@ -1,12 +1,13 @@
 ---
 import Layout from "../../components/Layout.astro";
 import ShaderGrid from "../../components/shaders/ShaderGrid.astro";
+import { SHADER_GROUPS, shaders } from "../../lib/shaders";
 import "../../styles/shaders.css";
 ---
 
 <Layout
   title="Shaders — Forgeron UI"
-  description="The pixel fields and effects Forgeron draws online: ordered dither, dither field, WebGL fields, dithered images, hearth, reveal and burn."
+  description="A fast, flexible way to render pixel shaders (the primitives), and real cases built on it to copy (the examples)."
   page="shaders"
 >
   <section class="rail">
@@ -18,8 +19,17 @@ import "../../styles/shaders.css";
       </div>
     </header>
   </section>
-  <div class="rail spacer t-mono dim"><span>/0.2 → Every shader</span><span>[ Live ]</span></div>
-  <section class="rail" aria-label="Shaders">
-    <ShaderGrid index="/0.2" />
-  </section>
+  {
+    SHADER_GROUPS.map((g) => (
+      <>
+        <div class="rail spacer t-mono dim">
+          <span>{g.index} → {g.title}</span>
+          <span>[ {g.note} ]</span>
+        </div>
+        <section class="rail" aria-label={g.title}>
+          <ShaderGrid index={g.index} items={shaders.filter((s) => s.group === g.id)} />
+        </section>
+      </>
+    ))
+  }
 </Layout>

@@ -23,6 +23,11 @@ export interface Inputs {
   time: number;
   /** Pointer in 0..1, y up (`uMouse`). */
   mouse: readonly [number, number];
+  /**
+   * A value the page drives while the preset runs, 0 to 1 (`uProgress`): the scroll, an upload's
+   * share. What reads it says so (`front` with `driven`).
+   */
+  progress?: number;
   /** Output size in device pixels (`uRes`). */
   res: readonly [number, number];
   /** Device pixels per cell (`uPx`). */

@@ -2,18 +2,24 @@
 import { anvilPath, ditherPath } from "@forgeron/ui";
 import { presetSvg } from "../../lib/preset-svg";
 import type { DemoSpec } from "../../lib/shaders";
+import MountDemo from "./MountDemo";
 import PresetDemo from "./PresetDemo";
-import ShaderDemo from "./ShaderDemo";
 
-// One demo: static SVG drawn at build time for the ordered dither, a live island otherwise. A
-// preset's card (`card`) is a static SVG of it too (`presetSvg`): the grid ships no JavaScript
-// for the presets.
+// One demo: static SVG drawn at build time (a ramp, the anvil, and a preset on a card, so the
+// grid ships no JavaScript for presets), a live preset (`PresetDemo`), or a mount (`MountDemo`).
 interface Props {
   spec: DemoSpec;
   card?: boolean;
 }
 const { spec, card } = Astro.props;
-const still = spec.kind === "preset" && card ? presetSvg(spec.name) : null;
+const still =
+  spec.kind === "preset" && card
+    ? (() => {
+        const top = presetSvg(spec.preset, { base: Boolean(spec.under) });
+        const under = spec.under ? presetSvg(spec.under).paths : [];
+        return { ...top, paths: [...under, ...top.paths] };
+      })()
+    : null;
 ---
 
 {
@@ -30,8 +36,8 @@ const still = spec.kind === "preset" && card ? presetSvg(spec.name) : null;
       {still.paths.map((p) => <path fill={p.fill} d={p.d} />)}
     </svg>
   ) : spec.kind === "preset" ? (
-    <PresetDemo name={spec.name} pass={spec.pass} params={spec.params} live={spec.live} client:visible />
+    <PresetDemo preset={spec.preset} edit={spec.edit} live={spec.live} under={spec.under} faint={spec.faint} client:visible />
   ) : (
-    <ShaderDemo spec={spec} client:visible />
+    <MountDemo spec={spec} client:visible />
   )
 }

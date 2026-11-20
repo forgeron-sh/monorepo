@@ -33,6 +33,7 @@ export function runCpu(
   const ctx: CpuContext = {
     time: inputs.time ?? 0,
     mouse: inputs.mouse ?? [0.5, 0.2],
+    progress: inputs.progress ?? 0,
     res: [width, height],
     px,
     ...(inputs.data ? { data: inputs.data } : {}),

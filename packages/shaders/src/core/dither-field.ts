@@ -5,7 +5,7 @@ import type { ColorRef } from "./color";
 
 /** The dither field's tones by default: background, a strong line, the ember. */
 export const DITHER_FIELD_TONES = ["--bg", "--line-strong", "--accent"] as const;
-export const DITHER_FIELD_FALLBACKS = ["#0a0a0a", "#2e2e2e", "#ff4f1f"] as const;
+const DITHER_FIELD_FALLBACKS = ["#0a0a0a", "#2e2e2e", "#ff4f1f"] as const;
 
 /** The dither field's thresholds: `[offset, scale]` of each tone above the background. */
 export const DITHER_FIELD_STEPS: readonly (readonly [number, number])[] = [

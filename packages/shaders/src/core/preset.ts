@@ -13,26 +13,24 @@ import {
   type Step,
 } from "./contract";
 import { jsonSchemaOf, type PresetIssue, readParams } from "./params";
-import { blueNoiseMeta } from "./passes/blue-noise";
-import { blueNoiseCpu } from "./passes/blue-noise.cpu";
-import { blueNoiseGlsl } from "./passes/blue-noise.glsl";
-import { crtMeta } from "./passes/crt";
-import { crtCpu } from "./passes/crt.cpu";
-import { crtGlsl } from "./passes/crt.glsl";
-import { edgesMeta } from "./passes/edges";
-import { edgesCpu } from "./passes/edges.cpu";
-import { edgesGlsl } from "./passes/edges.glsl";
-import { floydSteinbergMeta } from "./passes/floyd-steinberg";
-import { floydSteinbergCpu } from "./passes/floyd-steinberg.cpu";
+import { dissolveMeta } from "./passes/dissolve";
+import { dissolveCpu } from "./passes/dissolve.cpu";
+import { dissolveGlsl } from "./passes/dissolve.glsl";
+import { hatchMeta } from "./passes/hatch";
+import { hatchCpu } from "./passes/hatch.cpu";
+import { hatchGlsl } from "./passes/hatch.glsl";
+import { revealMeta } from "./passes/reveal";
+import { revealCpu } from "./passes/reveal.cpu";
+import { revealGlsl } from "./passes/reveal.glsl";
+import { ringMeta } from "./passes/ring";
+import { ringCpu } from "./passes/ring.cpu";
+import { ringGlsl } from "./passes/ring.glsl";
 import { glowMeta } from "./passes/glow";
 import { glowCpu } from "./passes/glow.cpu";
 import { glowGlsl } from "./passes/glow.glsl";
 import { gridMeta } from "./passes/grid";
 import { gridCpu } from "./passes/grid.cpu";
 import { gridGlsl } from "./passes/grid.glsl";
-import { halftoneMeta } from "./passes/halftone";
-import { halftoneCpu } from "./passes/halftone.cpu";
-import { halftoneGlsl } from "./passes/halftone.glsl";
 import { imageDitherMeta } from "./passes/image-dither";
 import { imageDitherCpu } from "./passes/image-dither.cpu";
 import { imageDitherGlsl } from "./passes/image-dither.glsl";
@@ -43,10 +41,13 @@ import { paletteMeta } from "./passes/palette";
 import { paletteCpu } from "./passes/palette.cpu";
 import { paletteGlsl } from "./passes/palette.glsl";
 import { pixelateMeta, pixelateStep } from "./passes/pixelate";
-import { scanlinesMeta } from "./passes/scanlines";
-import { scanlinesCpu } from "./passes/scanlines.cpu";
-import { scanlinesGlsl } from "./passes/scanlines.glsl";
+import { sparksMeta } from "./passes/sparks";
+import { sparksCpu } from "./passes/sparks.cpu";
+import { sparksGlsl } from "./passes/sparks.glsl";
 import { constantMeta } from "./sources/constant";
+import { frontMeta } from "./sources/front";
+import { frontCpu } from "./sources/front.cpu";
+import { frontGlsl } from "./sources/front.glsl";
 import { constantCpu } from "./sources/constant.cpu";
 import { constantGlsl } from "./sources/constant.glsl";
 import { fieldMeta } from "./sources/field";
@@ -93,13 +94,12 @@ export const PASSES: Readonly<Record<string, PassDef<never>>> = {
   "image-dither": definePass(imageDitherMeta, imageDitherGlsl, imageDitherCpu),
   palette: definePass(paletteMeta, paletteGlsl, paletteCpu),
   grid: definePass(gridMeta, gridGlsl, gridCpu),
-  "blue-noise": definePass(blueNoiseMeta, blueNoiseGlsl, blueNoiseCpu),
-  "floyd-steinberg": definePass(floydSteinbergMeta, null, floydSteinbergCpu),
-  halftone: definePass(halftoneMeta, halftoneGlsl, halftoneCpu),
-  scanlines: definePass(scanlinesMeta, scanlinesGlsl, scanlinesCpu),
-  edges: definePass(edgesMeta, edgesGlsl, edgesCpu),
+  hatch: definePass(hatchMeta, hatchGlsl, hatchCpu),
+  dissolve: definePass(dissolveMeta, dissolveGlsl, dissolveCpu),
+  ring: definePass(ringMeta, ringGlsl, ringCpu),
+  reveal: definePass(revealMeta, revealGlsl, revealCpu),
+  sparks: definePass(sparksMeta, sparksGlsl, sparksCpu),
   glow: definePass(glowMeta, glowGlsl, glowCpu),
-  crt: definePass(crtMeta, crtGlsl, crtCpu),
 };
 
 /** The sources a preset may start from, by type. */
@@ -110,6 +110,7 @@ export const SOURCES: Readonly<Record<string, SourceDef<never>>> = {
   tone: defineSource(toneMeta, null, toneCpu),
   hearth: defineSource(hearthMeta, null, hearthCpu),
   constant: defineSource(constantMeta, constantGlsl, constantCpu),
+  front: defineSource(frontMeta, frontGlsl, frontCpu),
 };
 
 export class PresetError extends Error {

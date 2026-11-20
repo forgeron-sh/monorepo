@@ -9,6 +9,11 @@ export interface ShaderHandle {
   destroy(): void;
 }
 
+/** A handle that can draw its frame again at once (a driven value changed while it stands still). */
+export interface RedrawHandle extends ShaderHandle {
+  redraw(): void;
+}
+
 /** True when the canvas must stay still: the option when given, else the reader's preference. */
 export function prefersStill(el: Element, override?: boolean): boolean {
   if (override !== undefined) return override;
@@ -56,7 +61,7 @@ export interface AnimateCanvasOptions {
 export function animateCanvas(
   canvas: HTMLCanvasElement,
   options: AnimateCanvasOptions,
-): ShaderHandle {
+): RedrawHandle {
   const { resize, draw, still } = options;
   const step = 1000 / (options.fps ?? 60);
   const start = performance.now();
@@ -93,6 +98,7 @@ export function animateCanvas(
   seen.observe(canvas);
 
   return {
+    redraw: () => draw(now()),
     destroy() {
       visible = false;
       cancelAnimationFrame(raf);

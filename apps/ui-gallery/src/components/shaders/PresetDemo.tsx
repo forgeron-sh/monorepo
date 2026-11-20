@@ -1,59 +1,92 @@
-import { builtInPresets, type ParamSpec, PASSES, type Preset } from "@forgeron/shaders";
+import { type ParamSpec, PASSES, type Preset, SOURCES } from "@forgeron/shaders";
 import { mountPreset } from "@forgeron/shaders/dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import type { StepRef } from "../../lib/shaders";
 
 /**
- * A built-in preset of @forgeron/shaders (`builtInPresets()`) on a canvas, through `mountPreset`
- * (GPU when every step has GLSL, CPU otherwise). `pass` is the step the page is about; `params`
- * override its settings; `live` draws a control per setting from the pass's params schema, so the
- * page edits the preset as the editor will.
+ * A preset of @forgeron/shaders on a canvas, through `mountPreset` (GPU when every step has GLSL,
+ * CPU otherwise). With `live`, a control per setting of the step `edit` names, drawn from its
+ * params schema: the page edits the preset as the editor will. `under` is a preset drawn beneath
+ * (what shows through the transparent tones); `faint` draws it as forgeron.sh's hero does.
  */
 export interface PresetDemoProps {
-  name: string;
-  pass: string;
-  params?: Record<string, unknown>;
+  preset: Preset;
+  edit?: StepRef;
   live?: boolean;
+  under?: Preset;
+  faint?: boolean;
 }
 
 type Values = Record<string, unknown>;
 
-const withParams = (preset: Preset, pass: string, values: Values): Preset => ({
-  ...preset,
-  passes: preset.passes.map((step) => (step.type === pass ? { ...step, ...values } : step)),
-});
+const stepOf = (preset: Preset, ref: StepRef) =>
+  ref.on === "source" ? preset.source : preset.passes.find((s) => s.type === ref.type);
 
-export default function PresetDemo({ name, pass, params, live }: PresetDemoProps) {
-  const base = useMemo(() => builtInPresets()[name], [name]);
-  const step = base?.passes.find((s) => s.type === pass);
-  const [values, setValues] = useState<Values>(() => ({ ...step, ...params }));
+const withValues = (preset: Preset, ref: StepRef, values: Values): Preset => {
+  if (ref.on === "source") return { ...preset, source: { ...preset.source, ...values } };
+  const at = preset.passes.findIndex((s) => s.type === ref.type);
+  return { ...preset, passes: preset.passes.map((s, i) => (i === at ? { ...s, ...values } : s)) };
+};
+
+type Report = (side: string, problem: string) => void;
+
+/**
+ * One preset on its own canvas, given as JSON so that an equal preset keeps its mount. Keyed by
+ * that JSON where it is used: a canvas keeps the context kind it was first given.
+ */
+function PresetCanvas({
+  json,
+  report,
+  className,
+  style,
+}: {
+  json: string;
+  report?: Report;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const [side, setSide] = useState("");
-  const [problem, setProblem] = useState("");
-  const key = JSON.stringify(values);
-
   useEffect(() => {
     const canvas = ref.current;
-    if (!canvas || !base) return;
+    if (!canvas) return;
     try {
-      const handle = mountPreset(canvas, withParams(base, pass, JSON.parse(key) as Values));
-      setSide(handle?.side ?? "unavailable");
-      setProblem("");
+      const handle = mountPreset(canvas, JSON.parse(json) as Preset);
+      report?.(handle?.side ?? "unavailable", "");
       return () => handle?.destroy();
     } catch (e) {
-      setProblem(e instanceof Error ? e.message : String(e));
+      report?.("", e instanceof Error ? e.message : String(e));
       return undefined;
     }
-  }, [base, pass, key]);
+  }, [json, report]);
+  return <canvas ref={ref} className={className} style={style} aria-hidden="true" />;
+}
 
-  const schema = PASSES[pass]?.params ?? {};
+export default function PresetDemo({ preset, edit, live, under, faint }: PresetDemoProps) {
+  const [values, setValues] = useState<Values>(() => ({ ...(edit ? stepOf(preset, edit) : {}) }));
+  const [side, setSide] = useState("");
+  const [problem, setProblem] = useState("");
+  const report = useCallback<Report>((s, p) => {
+    setSide(s);
+    setProblem(p);
+  }, []);
+  const top = JSON.stringify(edit ? withValues(preset, edit, values) : preset);
+  const below = under ? JSON.stringify(under) : null;
+  const schema = edit ? ((edit.on === "source" ? SOURCES : PASSES)[edit.type]?.params ?? {}) : {};
+
   return (
     <div className="sh-preset">
-      {/* A fresh canvas per preset (`key`): a canvas keeps the context kind it was first given. */}
-      <canvas key={key} ref={ref} className="fg-shader" aria-hidden="true" />
-      {live ? (
+      {below ? <PresetCanvas key={below} json={below} /> : null}
+      <PresetCanvas
+        key={top}
+        json={top}
+        report={report}
+        className="fg-shader"
+        style={faint ? { opacity: 0.06, mixBlendMode: "screen" } : undefined}
+      />
+      {live && edit ? (
         <form className="sh-controls t-mono" onSubmit={(e) => e.preventDefault()}>
           <span className="dim">
-            {pass} · {side === "gpu" ? "GPU" : side === "cpu" ? "CPU" : side}
+            {edit.type} {edit.on} · {side === "gpu" ? "GPU" : side === "cpu" ? "CPU" : side}
           </span>
           {Object.entries(schema).map(([param, spec]) => (
             <Control
@@ -64,6 +97,7 @@ export default function PresetDemo({ name, pass, params, live }: PresetDemoProps
               onChange={(v) => setValues((old) => ({ ...old, [param]: v }))}
             />
           ))}
+          {Object.keys(schema).length === 0 ? <span className="dim">no settings</span> : null}
           {problem ? <span className="sh-problem">{problem}</span> : null}
         </form>
       ) : null}

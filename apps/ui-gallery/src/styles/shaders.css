@@ -148,18 +148,7 @@
   display: none;
 }
 
-.sh-burn {
-  position: absolute;
-  inset: 0;
-}
-.sh-burn > canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* A built-in preset of @forgeron/shaders: the canvas fills the stage, the controls sit on it. */
+/* A preset of @forgeron/shaders: its canvases (and one under it) fill the stage, the controls sit on it. */
 .sh-preset {
   position: absolute;
   inset: 0;

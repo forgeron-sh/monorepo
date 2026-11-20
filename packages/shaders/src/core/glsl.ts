@@ -18,7 +18,7 @@ export interface GlStage {
 
 const HEADER = `#version 300 es
 precision highp float;
-uniform vec2 uRes;uniform float uTime;uniform float uPx;uniform vec2 uMouse;uniform vec2 uCells;`;
+uniform vec2 uRes;uniform float uTime;uniform float uPx;uniform vec2 uMouse;uniform vec2 uCells;uniform float uProgress;`;
 
 export interface CompileOptions {
   /** Cuts a stage after every pass (tests: the framebuffer path gives the same pixels). */

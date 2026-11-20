@@ -1,10 +1,57 @@
 # Shaders: one pipeline of passes, with presets
 
-> Status: S1 built (19 November 2026): the package, its pass contract and presets, and the migration of today's effects with no visible change (S1 notes at the end). S2 built the same day: one side per module, the neighbourhood stages and seven new passes (S2 notes at the end); S2c the same day: GLSL compiled ahead of time, fused CPU loops and lazy mounts for page weight (S2c notes at the end); S3 and S4 to come. Applies D-149 and the handoff's "`@forgeron/shaders` (approved direction)" ([`../handoff/2026-11-18-ui-canvas-blueprint.md`](../handoff/2026-11-18-ui-canvas-blueprint.md)). Blueprint ([`../blueprint/engine.md`](../blueprint/engine.md), D-150) is its first client.
+> Status: S1 built (19 November 2026): the package, its pass contract and presets, and the migration of today's effects with no visible change (S1 notes at the end). S2 built the same day: one side per module, the neighbourhood stages and seven new passes (S2 notes at the end); S2c the same day: GLSL compiled ahead of time, fused CPU loops and lazy mounts for page weight (S2c notes at the end); S2d the 20 November 2026: the passes aligned on the roles (S2d notes at the end); S3 and S4 to come. Applies D-149 and the handoff's "`@forgeron/shaders` (approved direction)" ([`../handoff/2026-11-18-ui-canvas-blueprint.md`](../handoff/2026-11-18-ui-canvas-blueprint.md)). Blueprint ([`../blueprint/engine.md`](../blueprint/engine.md), D-150) is its first client.
 
-`@forgeron/shaders` gathers the pixel effects of the lab language. An effect is a **source** (a field, a picture, a scene buffer, text) that goes through a chain of **passes** (pixelate, ordered dither, palette, grid…) to an **output** (a live canvas, or a static PNG or SVG at build time). Each pass is written twice, in GLSL and on the CPU, with the same result. The settings of an effect are a **preset**: versioned JSON, shared by the site, code and, later, the pass editor.
+`@forgeron/shaders` gathers the pixel effects of the lab language, **organised by role** (section 0), not as a general effect library. An effect is a **source** (a field, a picture, a scene buffer, text) that goes through a chain of **passes** (pixelate, ordered dither, palette, grid…) to an **output** (a live canvas, or a static PNG or SVG at build time). Each pass is written twice, in GLSL and on the CPU, with the same result. The settings of an effect are a **preset**: versioned JSON, shared by the site, code and, later, the pass editor.
 
 **Fixed by the owner** (not reopened here): GLSL passes run on one WebGL2 context; a CPU pass moves to Rust (`crates/fg-shaders`) only when a measurement says so; `@forgeron/ui` keeps thin React wrappers; `shaders.forgeron.sh` takes over the gallery's Shaders section; Blueprint's pixels do not change.
+
+## 0. What the package is for: roles of the language (20 November 2026)
+
+`@forgeron/shaders` is not a catalogue of effects. It is the **vocabulary of matter and motion** of the lab language: how something lights up, fills, changes or reacts here. The matter is fixed by [`../design-taste.md`](../design-taste.md): whole pixels switched on or off, ordered (Bayer) dither, greys, one orange (`--accent`) on the anvil and on the heat, never blur, never an opacity fade, static output under `prefers-reduced-motion`, no drawing while off-screen.
+
+A page or a component asks for a **role**, not an effect. A role is a preset (or a family of presets) with a name, a place of use and a chain of passes:
+
+| Role       | Used for                                                  | Chain                                          | Palette |
+| ---------- | --------------------------------------------------------- | ---------------------------------------------- | ------- |
+| Background | hero, banners, app backgrounds                            | `field` → `ordered` → `palette`                | greys   |
+| Title      | reveal of a hero or page title                            | text → `reveal` (Bayer front) → `palette`      | greys   |
+| Image      | screenshots and illustrations as dither                   | `image` → `image-dither` (Bayer 4)             | greys   |
+| Transition | change of screen or state: one scene dissolves into other | scene A, scene B → Bayer mix over progress     | greys   |
+| Progress   | loading, upload, build: the hatched rail                  | bar → `hatch` (diagonal, animated) → `palette` | ember   |
+| Ember      | call to action, footer: the only place orange rises       | `hearth` → `ordered` → `palette`               | ember   |
+| Selection  | canvas editors: chosen area, background grid              | `grid` + `hatch` (marching) + corner brackets  | ember   |
+| Feedback   | click, success, error: a ring of pixels, then nothing     | `ring` (distance) → decay (Bayer) → `palette`  | ember   |
+
+A live sketch of the eight roles was shown to the owner on 20 November 2026 and agreed as the frame. The list is the working one: a role leaves when no page or editor asks for it, and a new need is first asked as a role.
+
+**Entry rule.** A pass or a source stays in the package only if it serves a role above. "It is easy to write" and "it exists elsewhere" are not reasons.
+
+### Two sections and a glue
+
+`@forgeron/shaders` serves two things, and the gallery's Shaders section shows exactly those two:
+
+1. **Primitives**: a fast, flexible system to render shaders for any use: sources and passes with a GLSL side and a CPU twin, chained as presets.
+2. **Examples**: real cases built on the primitives, reusable like blocks: a preview, the preset or mount, the code to copy. Background, Title, Image, Ember, Transition, Progress, Selection, Feedback, the two burns.
+
+The package is the glue between them and the one that keeps performance high: it compiles a chain to one GL program (fusing cell passes), bundles only the side and the passes a page runs, runs one WebGL2 context, draws only on screen and not at all under reduced motion, and falls back to the CPU only where a step has no GLSL. An example never carries its own rendering loop for long: it is a preset (or a thin mount) over the package. The ones that still do (the two burns, the specimen's `mountReveal`) are listed in the notes with what they lack. The names "role" and "render" above are the working words of the table below; in the gallery they are all examples.
+
+### Passes after the role cut
+
+| Pass or source                                           | Decision        | Why                                                                                                                 |
+| -------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `crt`, `scanlines`                                       | **retire**      | Generic retro look, no role. Not our language.                                                                      |
+| `floyd-steinberg`                                        | **retire**      | CPU only, error diffusion reads as a photo filter. Our matter is ordered.                                           |
+| `blue-noise`                                             | **retire**      | No role asks for it. Comes back if one does.                                                                        |
+| `glow`                                                   | keep            | Already whole pixels: the halo is dithered against the Bayer threshold, never blurred. Used by Ember and Selection. |
+| `edges`, `halftone`                                      | **retire**      | Contour lines of noise and round dots on a turned grid: not our matter, and no role asks for them.                  |
+| `reveal` (today a source and a mount)                    | **make a pass** | Title and Transition need it in a chain, with its front, palette steps and corruption wave as params.               |
+| `hatch`                                                  | **add**         | Diagonal hatch with a phase over time: Progress, Selection. The hatched rails of the landing as a pass.             |
+| `dissolve`                                               | **add**         | Bayer mix between two stages by a progress value: Transition.                                                       |
+| `ring`                                                   | **add**         | Distance ring from a point, with decay: Feedback. The point and the start time come from the page.                  |
+| `ordered`, `pixelate`, `palette`, `grid`, `image-dither` | keep            | The core of the matter.                                                                                             |
+
+The retirements and additions are phase **S2d** (section 5). Presets that name a retired pass are migrated or removed in the same change, with the gallery pages and the agreement cases of those passes.
 
 ## 1. What exists today (4f0579f6)
 
@@ -143,6 +190,10 @@ The package, the contract, the CPU and GLSL pipelines, presets and schema, the p
 
 Blue noise (a 64×64 tileable mask, ordered like Bayer), Floyd–Steinberg (CPU only: error diffusion is serial; on the GPU an approximation is not offered), halftone (dots on a rotated grid), scanlines, edges (Sobel on the value), CRT (barrel, mask, bloom), glow (separable, on the accent tones). The `neighbourhood` stages, the `scene` and `text` sources, and the burn and caption corruption of the site's home as presets. Each pass lands with its agreement test.
 
+### S2d: align the passes on the roles (built, 20 November 2026)
+
+Retire `crt`, `scanlines`, `floyd-steinberg` and `blue-noise` with their gallery pages, presets and agreement cases; turn `reveal` into a pass (the font specimen keeps its richer mount); add `hatch`, `dissolve` and `ring`; write one preset per role of section 0 and make the gallery's Shaders grid list roles first, passes second. Gate: every role renders in headless Chromium on GPU and CPU, agreement tests for the new passes, no page in the repository still names a retired pass.
+
 ### S3: Rust CPU passes, when measured
 
 `crates/fg-shaders` for the passes whose CPU cost is measured as too high (Floyd–Steinberg on a full hero, palette quantisation of large images, the build-time PNG and SVG of every preset), behind the same `cpu` signature; WASM shared with `fg-blueprint` or its own small module. Parity: the Rust pass equals the TypeScript one byte for byte under Node, as Blueprint's raster did.
@@ -218,7 +269,7 @@ Built 19 November 2026 on `chore/site-forgeron-sh` from `51529742`. Measured wit
    And a `constant` source (one value everywhere). The bug the check found on the way: making a texture bound it to the unit active at the time (the image's), so the pipeline now activates a unit before it makes or binds a texture.
 
 8. **The burn and the captions.** What became a preset, with parity: the corruption's masks. `bayerMaskPreset(level)` is a constant level through the 4×4 ordered dither; `bayerMaskPath(level, { cell: 4 })` writes the cells on (the captions' 17 masks) and `{ off: true }` the cells eaten (the burn's fringe at levels 5 and 11). The site's home writes them at build time into `data-masks` and `data-fringe` (the page no longer carries the Bayer table) and the gallery's burn demo receives them from its page; a test checks the 17 masks and the two fringes path for path against the strings the page built. What stays page code, and why: the fronts are vector geometry driven by the scroll and a clock (a rectangle lerped on the scroll, a 144-side lobed polygon whose edges the canvas antialiases, with the site's lobe phases drawn by `Math.random` on each load), and the embers are scattered `Path2D` rects along moving edges, overlapping in draw order, picked by an integer hash of time; neither is a function of a cell, so a chain of cell passes cannot draw them with pixel parity. The captions' jolt and dimming are DOM transforms and a class, not pixels.
-9. **The gallery.** Each S2 pass has a page (`/shaders/blue-noise`, `floyd-steinberg`, `halftone`, `scanlines`, `edges`, `glow`, `crt`), generated from `builtInPresets()` and the pass's params schema: the live demo (`PresetDemo`, `mountPreset` of `@forgeron/shaders/dom`: GPU when every step has GLSL, CPU otherwise) draws a control per setting, the options table is the schema, the snippets are the preset's JSON and the code that mounts it. The cards of the Shaders grid draw a preset as a static SVG at build time (`presetSvg`: the chain up to its palette on the CPU, one path per tone), so the grid ships no JavaScript for them. The ten S1 pages are unchanged.
+9. **The gallery.** Two groups in `apps/ui-gallery/src/lib/shaders/`. _Primitives_: a page per source and pass of the registry (`SOURCES`, `PASSES`), generated, so a new step gets a page; the live demo (`PresetDemo`, `mountPreset` of `@forgeron/shaders/dom`: GPU when every step has GLSL, CPU otherwise) shows the step on a built-in preset with a control per setting, the options table is its params schema, and "In the examples" lists the examples whose preset has it. _Examples_: a page per real case, each a built-in preset (the roles, the burns), with where Forgeron draws it and the component that wraps it. The three sources that need data from the page (a picture, a word in the pixel face, a tone function) are shown through their mount (`MountDemo`). The cards of the grid draw a preset as a static SVG at build time (`presetSvg`: the chain up to its palette on the CPU, one path per tone), so the grid ships no JavaScript for them.
 10. **Not done.** The `scene` and `text` sources (Blueprint's slot buffer, the pixel face); S3's Rust passes (none measured as needed yet: Floyd–Steinberg on the heat costs 3.1 ms a frame for 320×200 cells in Bun, against 2.1 for the ordered dither; the blue noise mask about 40 ms once); the build-time GLSL and the lazy mounts of point 4; real GPUs and browsers other than headless Chromium's SwiftShader.
 
 ## S2c notes
@@ -260,3 +311,35 @@ Built 19 November 2026 on `chore/site-forgeron-sh` from `98d358e1`, to bring eac
    Locally the hearth (CPU) draws 10 to 27 ms after its near intersection, and the fields' 100 to 260 ms are mostly compiling and linking their program in SwiftShader (on the home the field's code is already loaded with the hero); on 4G the chunk's fetch adds 60 to 170 ms. The hero field, eager, draws before its first intersection is reported, as before.
 
 9. **Not done.** The font's remaining 0.54 KB and the gallery's split (note 6); a Vite `?shader` import for chains of several stages (none live today); real GPUs and browsers other than headless Chromium.
+
+## S2d notes
+
+Done on 20 November 2026.
+
+1. **Retired**: `crt`, `scanlines`, `floyd-steinberg`, `blue-noise`, then `edges` and `halftone` the same day, with their files, registry entries, exports, gallery pages, built-in presets, agreement cases and vitest cases. The `present` pass `cut` flag and the float-table texture path stay in the contract (no pass uses them today); drop them if nothing needs them by S3.
+2. **`glow` was not reworked.** Its halo is already dithered whole pixels, so the design table's "soft glow" worry did not apply; it stays as it is.
+3. **Added**, each with GLSL and CPU, in the registry and the schema, and checked by `scripts/shaders/check-agreement.ts` (72 cases, all agree, 0 pixels differ in the new cases):
+   - `hatch`: diagonal stripes over chosen tones inside a rectangle, drifting with time. Integer test, exact.
+   - `dissolve`: cells take one tone in Bayer order as a progress grows, held or cycling. Dissolved into a transparent tone it shows the page under the canvas, which is how a Transition works (one canvas, no second scene source).
+   - `ring`: a ring of whole pixels spreading from a point, one tone per slice of its life, once or repeating.
+   - `reveal`: the cell-local form of the font specimen's reveal: a Bayer-jittered front scanning the rows, front tones before the settled one. It has no wave displacement, so `mountReveal` stays for the specimen.
+4. **One preset per role**: `role-background`, `role-title`, `role-image`, `role-transition`, `role-progress`, `role-ember`, `role-selection`, `role-feedback` in `builtInPresets()` (`rolePresets` in `built-in.ts`). `role-title` expects the page to give its mask through a `tone` source; `role-image` and `role-ember` need their runtime data (picture, wordmark grid) like their S1 twins.
+5. **Gallery**: pages for `hatch`, `dissolve`, `ring` and `reveal`; the pages of the four retired passes are gone. The grid still lists passes first; roles first is left to S4.
+6. **Not done**: the gallery was type-checked, not looked at in a browser; Selection has no corner brackets or background dots yet (they need a rectangle source or a `grid` of dots); S2d is not committed.
+
+### S2d: gallery and burn
+
+7. **The gallery follows two sections.** (Superseded the same day by the two-section split: Primitives, then Examples; the five field and image renders became versions of the Background and Image examples, the hearth is the Ember example, and the burns stay examples of their own.) First version, kept for the record: **three layers.** `lib/shaders.ts` gives every page a `group` (`role`, `render`, `primitive`); `/shaders` lists the three groups in that order with a spacer band each (`/0.2.1` Roles, `/0.2.2` Renders, `/0.2.3` Primitives), the sidebar groups them the same way, and a page's header names its group. The eight role pages are new: five reuse a render's demo (Background, Title, Image, Ember), three or four run their `role-*` preset with live controls (Transition, Progress, Selection, Feedback). Pass pages are `/shaders/pass-<name>` (the pass `dissolve` and `reveal` would otherwise collide with the field and reveal renders). The static card of a ring freezes at 0.45 s, when it is alive. Checked by a script (no duplicate slug, every card draws) and by `ui-gallery:typecheck`; not looked at in a browser.
+8. **Burn is two effects, in both directions (migrated in S2e, see below).** The gallery lists the frame burn (a rectangle closing onto a band, fire-coloured embers) and the lobed burn (a lobed ring from the centre, grey embers) as separate renders, each with a `close` and an `open` direction (the same front run backwards; the site uses frame/close and lobed/open). The frame is expressible in primitives: a source giving each cell a value by its ring distance from a shrinking rectangle (outer ring 5/16, inner 11/16, inside 1, outside 0), then `ordered` (Bayer 4), a palette with the background and a transparent tone, and a `sparks` pass for the embers. Two things stop it today: those two primitives do not exist (`front` source, `sparks` pass, with an integer hash that agrees on both sides), and the site drives it from the scroll, while a preset only knows its own params and the time. A mount needs an `update(params)` (or a `data` value read each frame) before a scroll can drive `progress`. **S2e**: add the `front` source and the `sparks` pass, give `mountPreset` a way to change a param while running, then replace the site's inline `paintBurn` and the gallery's copy (`apps/ui-gallery/src/shaders/burn.ts`) with the preset. The caption corruption already takes its masks from the package (`bayerMaskPath`).
+
+## S2e notes
+
+Done on 20 November 2026: the core can say what the burns need, and both burns are presets.
+
+1. **Driven inputs.** A preset can read a value the page sets while it runs: `uProgress` in GLSL, `ctx.progress` on the CPU, `progress` in `Inputs`. `mountPreset(canvas, preset, { inputs })` takes the first values and its handle has `set({ progress })`, which redraws at once (a still preset stays still until it is set). A source or pass opts in with a `driven` param (`front`); nothing else changes.
+2. **`front` source.** A moving edge as the level the dither reads: `shape` `rect` (closes onto a rectangle given as shares of the frame) or `lobed` (a ring from the centre with drifting lobes, ring width growing with the radius); `direction` `close` or `open` (the same front backwards); `outside` `page` (cover it: a canvas over a picture) or `keep` (the page clips the picture itself); progress from a param, a loop or the page. It writes the level in `r`, the distance to the edge in `g`, how alive it is in `b`. `lobeAt` is exported for a page that clips along the same front.
+3. **`sparks` pass.** Embers along the edge and a few flying sparks, on a tick, from an integer 24-bit hash that is exact in float32: the same embers on both sides.
+4. **Burn presets**: `burn-frame-close`, `burn-frame-open`, `burn-lobed-open`, `burn-lobed-close` (front → sparks → ordered 4×4 → palette whose tone 1 is transparent). 10 new agreement cases, all within 0.014 % of pixels; 4 new vitest cases (front geometry, direction, driven input, sparks).
+5. **Migrated.** The gallery's burn demos run these presets; its hand-written `shaders/burn.ts` is gone. The site's home page runs `burn-frame-close` driven by the scroll (progress = the page's `k`, the target band from its layout, `outside: keep`: the page keeps its clip, the canvas draws the fringe and the embers) and `burn-lobed-open` on load (progress = the clock; the clip polygon follows `lobeAt`); its ~280 lines of canvas painting are gone. The page snaps its clip to the preset's 4 px cell grid so the clip and the fringe meet. Checked on a static build: the close burn driven by the scroll draws on the real page; **the opening reveal was not seen running** (the browser pane does not fire `requestAnimationFrame`), only its end state and its code path.
+6. **The rule.** `bun run effects` (`scripts/no-hand-effects.ts`, in `bun run check`) fails when a site or gallery draws on a canvas outside a written list. The list today: the `/wild-erp` flat scenes and the font specimen's reveal mount (debts, with what moves them), plus three files that are not effects (icon export, the demo picture, the raw side of the image demo).
+7. **Still to do.** The flat scenes need a `scene` source; the specimen's reveal needs a `text` source (then the `reveal` pass replaces `mountReveal`); the lobed phases are fixed (the site drew them at random on each load); `hearth` and the dither field are still CPU sources.

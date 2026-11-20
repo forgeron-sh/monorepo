@@ -1,7 +1,7 @@
 ---
 import { identity } from "../lib/identity";
 import { marketing } from "../lib/marketing";
-import { shaders } from "../lib/shaders";
+import { SHADER_GROUPS, shaders } from "../lib/shaders";
 import { atoms, blocks, hooks } from "../registry";
 
 interface Props {
@@ -24,7 +24,20 @@ const here = (slug: string) => (slug === current ? "page" : undefined);
   <div class="side-group">
     <p class="side-head t-mono">/0.2 Shaders</p>
     <a href="/shaders" aria-current={here("shaders")}>Overview</a>
-    {shaders.map((s) => <a href={`/shaders/${s.slug}`} aria-current={here(`shaders/${s.slug}`)}>{s.name}</a>)}
+    {
+      SHADER_GROUPS.map((g) => (
+        <>
+          <p class="side-head t-mono dim">{g.title}</p>
+          {shaders
+            .filter((s) => s.group === g.id)
+            .map((s) => (
+              <a href={`/shaders/${s.slug}`} aria-current={here(`shaders/${s.slug}`)}>
+                {s.name}
+              </a>
+            ))}
+        </>
+      ))
+    }
   </div>
   <div class="side-group">
     <p class="side-head t-mono">/0.3 Atoms</p>

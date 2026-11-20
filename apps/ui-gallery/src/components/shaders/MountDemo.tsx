@@ -1,34 +1,22 @@
-import { DitherField, FieldShader, Hearth, mountDitheredImage, PixelReveal } from "@forgeron/ui";
+import { Hearth, mountDitheredImage, PixelReveal } from "@forgeron/ui";
 import { useEffect, useRef, useState } from "react";
 import type { DemoSpec } from "../../lib/shaders";
-import { mountBurn } from "../../shaders/burn";
 import { forgePicture } from "../../shaders/picture";
 
-/** One shader demo, by spec: a single island type for every demo of the Shaders section. */
-export default function ShaderDemo({ spec }: { spec: DemoSpec }) {
+type MountSpec = Extract<DemoSpec, { kind: "image" | "hearth" | "reveal" }>;
+
+/**
+ * The effects a preset cannot carry alone, through their mount: their source needs data from the
+ * page (a picture, a word in the pixel face, a text). Every other demo is a `PresetDemo`.
+ */
+export default function MountDemo({ spec }: { spec: MountSpec }) {
   switch (spec.kind) {
-    case "dither-field":
-      return <DitherField pixel={spec.pixel} tones={spec.tones} still={spec.still} />;
-    case "field":
-      return (
-        <FieldShader
-          mode={spec.mode}
-          pixel={spec.pixel}
-          accent={spec.accent}
-          still={spec.still}
-          style={spec.opacity ? { opacity: spec.opacity, mixBlendMode: "screen" } : undefined}
-        />
-      );
     case "image":
       return <ImageDemo pixel={spec.pixel} gain={spec.gain} raw={spec.raw} />;
     case "hearth":
       return <Hearth text={spec.text} cell={spec.cell} still={spec.still} className="sh-hearth" />;
     case "reveal":
       return <RevealDemo text={spec.text} pixel={spec.pixel} duration={spec.duration} />;
-    case "burn":
-      return <BurnDemo mode={spec.mode} fringe={spec.fringe} />;
-    default:
-      return null;
   }
 }
 
@@ -82,22 +70,6 @@ function RevealDemo({
       >
         Replay
       </button>
-    </div>
-  );
-}
-
-/** The burn over a dither field standing in for the site's village. */
-function BurnDemo({ mode, fringe }: { mode: "close" | "open"; fringe: Record<number, string> }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    const handle = mountBurn(ref.current, { mode, fringe });
-    return () => handle?.destroy();
-  }, [mode, fringe]);
-  return (
-    <div className="sh-burn">
-      <FieldShader mode="globe" pixel={4} />
-      <canvas ref={ref} aria-hidden="true" />
     </div>
   );
 }

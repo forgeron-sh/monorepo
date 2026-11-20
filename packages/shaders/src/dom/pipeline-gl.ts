@@ -23,6 +23,8 @@ export interface GlFrameInputs {
   px: number;
   time?: number;
   mouse?: readonly [number, number];
+  /** The driven value, 0 to 1 (`uProgress`). */
+  progress?: number;
   /** Pixels of an `image` source, uploaded when they change (by identity). */
   image?: ImagePixels;
 }
@@ -93,6 +95,7 @@ export function glPipeline(
       const ctx: CpuContext = {
         time: inputs.time ?? 0,
         mouse: inputs.mouse ?? [0.5, 0.2],
+        progress: inputs.progress ?? 0,
         res: [width, height],
         px,
         resolve,
@@ -123,6 +126,7 @@ export function glPipeline(
         set.f2("uCells", cols, rows);
         set.f1("uTime", ctx.time);
         set.f2("uMouse", ctx.mouse[0], ctx.mouse[1]);
+        set.f1("uProgress", inputs.progress ?? 0);
         if (s > 0) bind("uPrev", () => targets?.source(s));
         for (const chunk of stage.chunks) chunk.bind?.(set, ctx);
         gl.bindFramebuffer(gl.FRAMEBUFFER, last ? null : (targets?.target(s) ?? null));

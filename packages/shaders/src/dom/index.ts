@@ -16,7 +16,13 @@ export {
   type GlTextures,
 } from "./pipeline-gl";
 export { createGlPipeline, floatTargets, textureStore } from "./pipeline-gl-ext";
-export { mountPreset, type PresetHandle, type PresetMountOptions, runsOnGpu } from "./preset";
+export {
+  mountPreset,
+  type PresetHandle,
+  type PresetInputs,
+  type PresetMountOptions,
+  runsOnGpu,
+} from "./preset";
 export { mountReveal, type RevealHandle, type RevealOptions } from "./reveal";
 export {
   animateCanvas,

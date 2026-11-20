@@ -25,6 +25,8 @@ interface Case {
   height: number;
   px: number;
   time?: number;
+  /** The driven value (`uProgress`). */
+  progress?: number;
   image?: ImagePixels;
   /** Cut a stage per pass on the GPU (the framebuffer path). */
   split?: boolean;
@@ -165,73 +167,6 @@ function cases(): Case[] {
     const image = px === 1 ? pic : picture(Math.ceil(W2 / px), Math.ceil(H2 / px));
     out.push({ name, preset, width: W2, height: H2, px, image, exact, split });
   };
-  for (const origin of ["top", "bottom"] as const)
-    for (const steps of [[[0, 1]], FIELD] as [number, number][][])
-      add(
-        `blue-noise ${origin} ${steps.length} step(s)`,
-        on([{ type: "blue-noise", origin, steps }]),
-        true,
-      );
-  add(
-    "blue-noise + grid px 4",
-    on([
-      { type: "blue-noise", origin: "bottom", steps: FIELD },
-      { type: "grid", gap: 0.16, min: 4, tone: 0 },
-    ]),
-    true,
-    4,
-  );
-  for (const [size, angle] of [
-    [6, 45],
-    [4.5, 15],
-    [3, 0],
-  ] as const)
-    add(
-      `halftone size ${size} angle ${angle}`,
-      on([{ type: "halftone", size, angle, tone: 1 }], 2),
-      false,
-    );
-  add(
-    "scanlines on colours",
-    {
-      version: 1,
-      source: { type: "image" },
-      passes: [{ type: "scanlines", period: 3, width: 1, strength: 0.55, origin: "top" }],
-    },
-    false,
-  );
-  add(
-    "ordered + palette + scanlines bottom",
-    {
-      version: 1,
-      source: { type: "image" },
-      passes: [
-        { type: "ordered", matrix: 4, centered: true, origin: "top", steps: FIELD },
-        { type: "palette", tones: TONES.slice(0, 3), transparent: [] },
-        { type: "scanlines", period: 4, width: 2, strength: 0.3, origin: "bottom" },
-      ],
-    },
-    false,
-  );
-  for (const scale of [1, 3])
-    add(
-      `edges scale ${scale} + ordered`,
-      on([
-        { type: "edges", scale },
-        { type: "ordered", matrix: 8, centered: false, origin: "bottom", steps: FIELD },
-      ]),
-      false,
-    );
-  add(
-    "edges + ordered + grid px 4",
-    on([
-      { type: "edges", scale: 2 },
-      { type: "ordered", matrix: 8, centered: false, origin: "bottom", steps: FIELD },
-      { type: "grid", gap: 0.16, min: 4, tone: 0 },
-    ]),
-    false,
-    4,
-  );
   for (const [radius, strength, matrix] of [
     [1, 1, 4],
     [2, 1.5, 4],
@@ -256,21 +191,174 @@ function cases(): Case[] {
     4,
     true,
   );
-  for (const px of [1, 4])
-    add(
-      `crt px ${px}`,
+  // The role passes, on a flat source so that only they draw.
+  const flat = (passes: Preset["passes"], tones = 4): Preset => ({
+    version: 1,
+    source: { type: "constant", value: 1 },
+    passes: [
+      { type: "ordered", matrix: 4, centered: true, origin: "top", steps: [[0, 1]] },
+      ...passes,
+      { type: "palette", tones: TONES.slice(0, tones), transparent: [] },
+    ],
+  });
+  const role = (name: string, preset: Preset, exact: boolean, time: number) =>
+    out.push({ name, preset, width: 80, height: 40, px: 1, time, exact });
+  for (const direction of ["down", "up"] as const)
+    role(
+      `hatch ${direction} drifting`,
+      flat([
+        {
+          type: "hatch",
+          tone: 2,
+          over: [1],
+          period: 5,
+          width: 2,
+          speed: 6,
+          direction,
+          x0: 0.1,
+          x1: 0.7,
+          y0: 0.2,
+          y1: 0.8,
+        },
+      ]),
+      true,
+      1.7,
+    );
+  role(
+    "dissolve held at 0.4",
+    flat([{ type: "dissolve", tone: 0, over: [], progress: 0.4, cycle: 0, matrix: 8 }]),
+    true,
+    0,
+  );
+  role(
+    "dissolve cycle 3",
+    flat([{ type: "dissolve", tone: 0, over: [1], progress: 0, cycle: 3, matrix: 4 }]),
+    false,
+    0.7,
+  );
+  role(
+    "ring spreading",
+    flat([
       {
+        type: "ring",
+        cx: 0.4,
+        cy: 0.5,
+        speed: 0.4,
+        width: 2.5,
+        start: 0,
+        life: 1,
+        repeat: 0,
+        tones: [3, 2, 1],
+        matrix: 8,
+      },
+    ]),
+    false,
+    0.6,
+  );
+  role(
+    "ring repeating",
+    flat([
+      {
+        type: "ring",
+        cx: 0.5,
+        cy: 0.5,
+        speed: 0.4,
+        width: 3,
+        start: 0.2,
+        life: 1,
+        repeat: 2,
+        tones: [2],
+        matrix: 4,
+      },
+    ]),
+    false,
+    2.9,
+  );
+  role(
+    "reveal mid-sweep",
+    flat([
+      {
+        type: "reveal",
+        duration: 1.5,
+        hold: 1.5,
+        loop: false,
+        front: [3, 2],
+        band: 0.06,
+        dither: 0.12,
+        matrix: 8,
+      },
+    ]),
+    false,
+    0.6,
+  );
+  role(
+    "reveal looping",
+    flat([
+      {
+        type: "reveal",
+        duration: 1.5,
+        hold: 1.5,
+        loop: true,
+        front: [3],
+        band: 0.1,
+        dither: 0.2,
+        matrix: 4,
+      },
+    ]),
+    false,
+    4.1,
+  );
+  // The burns: a front, its sparks, the 4×4 dither, a palette; both shapes, both directions.
+  const burnCase = (name: string, front: Record<string, unknown>, time: number, progress = 0) =>
+    out.push({
+      name,
+      preset: {
         version: 1,
-        source: { type: "image" },
+        source: { type: "front", ...front },
         passes: [
-          { type: "ordered", matrix: 8, centered: false, origin: "bottom", steps: FIELD },
-          { type: "palette", tones: TONES.slice(0, 3), transparent: [] },
-          { type: "crt", curvature: 0.12, mask: 0.3, bloom: 0.35, vignette: 0.35 },
+          { type: "sparks", tick: 0.18, fly: 0.01 },
+          {
+            type: "ordered",
+            matrix: 4,
+            centered: false,
+            origin: "top",
+            steps: [
+              [0, 1],
+              [1.5, 0],
+              [2.5, 0],
+              [3.5, 0],
+            ],
+          },
+          { type: "palette", tones: TONES.slice(0, 5), transparent: [1] },
         ],
       },
-      false,
-      px,
-    );
+      width: 120,
+      height: 60,
+      px: 1,
+      time,
+      progress,
+      exact: false,
+    });
+  for (const [shape, direction] of [
+    ["rect", "close"],
+    ["rect", "open"],
+    ["lobed", "open"],
+    ["lobed", "close"],
+  ] as const)
+    for (const t of [0.7, 1.6])
+      burnCase(`burn ${shape} ${direction} t=${t}`, { shape, direction, cycle: 3, hold: 0.5 }, t);
+  burnCase(
+    "burn rect close driven 0.4",
+    { shape: "rect", direction: "close", driven: true },
+    2.1,
+    0.4,
+  );
+  burnCase(
+    "burn lobed open driven 0.7",
+    { shape: "lobed", direction: "open", driven: true },
+    2.1,
+    0.7,
+  );
   for (const level of [0, 5, 11, 16])
     out.push({
       name: `bayer mask level ${level} (constant source)`,
@@ -331,6 +419,7 @@ async function run(): Promise<{ cases: Result[] }> {
         height: c.height,
         px: c.px,
         time: c.time ?? 0,
+        progress: c.progress ?? 0,
         mouse: [0.5, 0.2] as const,
         ...(c.image ? { image: c.image } : {}),
       };
@@ -345,6 +434,7 @@ async function run(): Promise<{ cases: Result[] }> {
         runCpu(chainOf(c.preset), c.width, c.height, {
           px: c.px,
           time: c.time ?? 0,
+          progress: c.progress ?? 0,
           resolve,
           ...(c.image ? { data: { image: c.image } } : {}),
         }),

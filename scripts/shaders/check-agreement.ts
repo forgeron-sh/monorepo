@@ -21,10 +21,10 @@ if (!existsSync(chrome)) throw new Error(`no Chrome at ${chrome}: set CHROME`);
 const TOLERANCE: [RegExp, number][] = [
   [/^image-dither/, 0.001],
   [/^field /, 0.1],
-  [/^halftone/, 0.005],
-  [/scanlines/, 0.02],
-  [/^edges/, 0.01],
-  [/^crt/, 0.02],
+  [/^dissolve cycle/, 0.005],
+  [/^ring/, 0.01],
+  [/^burn/, 0.03],
+  [/^reveal/, 0.01],
 ];
 
 const build = await Bun.build({
