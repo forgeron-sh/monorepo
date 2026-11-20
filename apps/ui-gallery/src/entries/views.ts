@@ -84,6 +84,23 @@ export const entries: ReadonlyArray<Atom> = [
       },
       shared.getColor,
       {
+        name: "fields / startField / endField",
+        type: "RecordFields<T>, string",
+        description:
+          "The records model instead of getStart and getEnd: the date fields of the first and last day.",
+      },
+      {
+        name: "groupField",
+        type: "string",
+        description: "With fields and no groups: the field the rows are sectioned by.",
+      },
+      {
+        name: "labelField / markField / context",
+        type: "string, string, RecordContext",
+        description:
+          "The field read as the label, a field drawn before it, and what its marks need.",
+      },
+      {
         name: "getMilestones",
         type: "(record) => { id, label, date, done? }[]",
         default: "record.milestones",
@@ -159,6 +176,23 @@ export const entries: ReadonlyArray<Atom> = [
         description: "The day a record sits on, YYYY-MM-DD.",
       },
       shared.getColor,
+      {
+        name: "fields / dateField",
+        type: "RecordFields<T>, string",
+        description:
+          "The records model instead of getDate: the field a record sits on. getDate wins when both are given.",
+      },
+      {
+        name: "labelField / markField",
+        type: "string",
+        description:
+          "With fields: the field read as the label, and a field drawn before it (a status glyph).",
+      },
+      {
+        name: "context",
+        type: "RecordContext",
+        description: "The people, labels and today the marks of the fields need.",
+      },
       {
         name: "renderItem",
         type: "(record) => ReactNode",

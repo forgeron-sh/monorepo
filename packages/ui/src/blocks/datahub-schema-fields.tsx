@@ -3,15 +3,16 @@
 // opens the field, the ⋯ holds its actions.
 
 import { GripIcon, Key01Icon, MoreHorizontalIcon, PlusSignIcon } from "@forgeron/icons";
-import type { DragEvent, KeyboardEvent, ReactNode } from "react";
-import { useRef, useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { useState } from "react";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { ConstraintChip } from "../data-grid";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { useControllableState } from "../hooks/use-controllable";
-import { ActionMenu, type ActionMenuEntry } from "./navigation-action-menu";
+import { useSortable } from "../sortable";
+import { ActionMenu, type ActionMenuEntry } from "../action-menu";
 import { FieldTypeGlyph } from "./datahub-field-type";
 import { fieldTypeInfo, type DataField } from "./datahub-model";
 
@@ -43,13 +44,6 @@ const typeWords = (field: DataField) =>
     ? `${field.relation.multiple ? "relations" : "relation"} → ${field.relation.table}`
     : fieldTypeInfo(field.type).label;
 
-const move = <T,>(list: ReadonlyArray<T>, from: number, to: number) => {
-  const next = [...list];
-  const [item] = next.splice(from, 1);
-  next.splice(to, 0, item!);
-  return next;
-};
-
 /** The fields of a table: glyph, name, type, rules; drag or Alt + arrows to reorder. */
 export function SchemaFields({
   fields: fieldsProp,
@@ -70,103 +64,56 @@ export function SchemaFields({
     defaultValue: defaultFields,
     onChange: onReorder ? (next) => onReorder([...next]) : undefined,
   });
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [over, setOver] = useState<string | null>(null);
-  const [said, setSaid] = useState("");
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const list = useRef<HTMLUListElement>(null);
   // The primary key stays first: it is where tables keep it and what every other row points at.
   const movable = (field: DataField) => Boolean(onReorder) && !field.primary;
   const firstMovable = fields.findIndex((f) => !f.primary);
-
-  const focusRow = (id: string) =>
-    requestAnimationFrame(() =>
-      list.current
-        ?.querySelector<HTMLElement>(`[data-field="${CSS.escape(id)}"] .fg-dh-sf-main`)
-        ?.focus({ preventScroll: false }),
-    );
-
-  const moveTo = (id: string, to: number) => {
-    const from = fields.findIndex((f) => f.id === id);
-    const target = Math.max(firstMovable, Math.min(fields.length - 1, to));
-    if (from < 0 || target === from) return;
-    setFields(move(fields, from, target));
-    setSaid(`${fields[from]!.name}, position ${target + 1} of ${fields.length}`);
-  };
+  const sortable = useSortable({
+    items: fields,
+    getId: (f) => f.id,
+    getLabel: (f) => f.name,
+    onReorder: (next) => setFields(next),
+    announce: (move, field, count) => `${field.name}, position ${move.to + 1} of ${count}`,
+    label,
+    handle: true,
+    navigate: true,
+    focusSelector: ".fg-dh-sf-main",
+    range: [Math.max(firstMovable, 0), fields.length - 1],
+    disabled: (id) => !movable(fields.find((f) => f.id === id)!),
+    canDrop: (_dragged, overId) => movable(fields.find((f) => f.id === overId)!),
+  });
 
   const onKeyDown = (field: DataField, event: KeyboardEvent<HTMLElement>) => {
-    const at = fields.indexOf(field);
-    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
-      if (!movable(field)) return;
-      event.preventDefault();
-      moveTo(field.id, at + (event.key === "ArrowUp" ? -1 : 1));
-      focusRow(field.id);
-      return;
-    }
-    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-      event.preventDefault();
-      const next = fields[at + (event.key === "ArrowUp" ? -1 : 1)];
-      if (next) focusRow(next.id);
-      return;
-    }
     if (event.key === "F10" && event.shiftKey && fieldMenu) {
       event.preventDefault();
       setMenuFor(field.id);
     }
   };
 
-  const onDragOver = (field: DataField, event: DragEvent) => {
-    if (!dragging || !movable(field)) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    if (over !== field.id) setOver(field.id);
-  };
-  const onDrop = (field: DataField, event: DragEvent) => {
-    event.preventDefault();
-    if (dragging)
-      moveTo(
-        dragging,
-        fields.findIndex((f) => f.id === field.id),
-      );
-    setDragging(null);
-    setOver(null);
-  };
-
   return (
     <div className={cx("fg-dh-sf", className)}>
       {fields.length === 0 ? <p className="fg-dh-sf-empty">{empty}</p> : null}
-      <ul ref={list} className="fg-dh-sf-list" aria-label={label}>
+      <ul {...sortable.getListProps({ className: "fg-dh-sf-list" })}>
         {fields.map((field) => {
           const menu = fieldMenu?.(field);
           return (
             <li
               key={field.id}
               data-field={field.id}
-              className={cx(
-                "fg-dh-sf-row",
-                selected === field.id && "fg-dh-sf-current",
-                dragging === field.id && "fg-dh-sf-dragging",
-                over === field.id && dragging !== field.id && "fg-dh-sf-over",
-              )}
-              onDragOver={(event) => onDragOver(field, event)}
-              onDragLeave={() => setOver((o) => (o === field.id ? null : o))}
-              onDrop={(event) => onDrop(field, event)}
+              {...sortable.getItemProps(field.id, {
+                className: cx(
+                  "fg-dh-sf-row",
+                  selected === field.id && "fg-dh-sf-current",
+                  sortable.getItemState(field.id).dragging && "fg-dh-sf-dragging",
+                  sortable.getItemState(field.id).over && "fg-dh-sf-over",
+                ),
+              })}
             >
               {onReorder ? (
                 <span
+                  {...sortable.getHandleProps(field.id)}
                   className={cx("fg-dh-sf-grip", !movable(field) && "fg-dh-sf-fixed")}
-                  draggable={movable(field)}
-                  aria-hidden="true"
                   title={movable(field) ? "Drag to reorder, or Alt + arrows" : undefined}
-                  onDragStart={(event) => {
-                    event.dataTransfer.effectAllowed = "move";
-                    event.dataTransfer.setData("text/plain", field.name);
-                    setDragging(field.id);
-                  }}
-                  onDragEnd={() => {
-                    setDragging(null);
-                    setOver(null);
-                  }}
                 >
                   {movable(field) ? <Icon icon={GripIcon} size={12} variant="mono" /> : null}
                 </span>
@@ -239,7 +186,7 @@ export function SchemaFields({
         </Button>
       ) : null}
       <span className="fg-sr" aria-live="polite">
-        {said}
+        {sortable.status}
       </span>
     </div>
   );

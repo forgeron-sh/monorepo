@@ -34,18 +34,22 @@ import { IconButton } from "../identity";
 import {
   defaultLabel,
   isoWeek,
+  fieldDay,
   resolveAccessors,
   textField,
   type RecordAccessors,
+  type RecordFieldProps,
 } from "./views-parts";
 
 /** A month of weeks, or one week with every record of each day. */
 export type CalendarMode = "month" | "week";
 
-export interface CalendarViewProps<T> extends RecordAccessors<T> {
+export interface CalendarViewProps<T> extends RecordAccessors<T>, RecordFieldProps<T> {
   records: ReadonlyArray<T>;
   /** The day a record sits on, `YYYY-MM-DD`: `record.due`, else `record.date`. Records without one are left out. */
   getDate?: (record: T) => string | null | undefined;
+  /** With `fields`: the date field a record sits on; `getDate` wins when both are given. */
+  dateField?: string;
   /** The content of an item; the identifier and title of an issue by default. */
   renderItem?: (record: T) => ReactNode;
   /** The day in focus, `YYYY-MM-DD`: its month or its week is shown. */
@@ -118,13 +122,19 @@ export function CalendarView<T>({
   toolbar = true,
   label = "Calendar",
   className,
+  dateField,
   ...accessors
 }: CalendarViewProps<T>) {
   const [deviceToday] = useState(() => toIso(new Date()));
   const today = todayProp ?? deviceToday;
   const acc = resolveAccessors(accessors);
+  const { fields } = accessors;
   const dayOf = (r: T) =>
-    (getDate ? getDate(r) : (textField(r, "due") ?? textField(r, "date"))) ?? null;
+    (getDate
+      ? getDate(r)
+      : fields && dateField
+        ? fieldDay(fields, dateField, r)
+        : (textField(r, "due") ?? textField(r, "date"))) ?? null;
 
   const [date, setDate] = useControllableState<string>({
     value: dateProp,
@@ -391,7 +401,14 @@ export function CalendarView<T>({
                             >
                               <span className="fg-calv-sq" aria-hidden="true" />
                               <span className="fg-calv-text">
-                                {renderItem ? renderItem(r) : defaultLabel(r, name, "fg-calv-id")}
+                                {renderItem ? (
+                                  renderItem(r)
+                                ) : (
+                                  <>
+                                    {acc.mark(r)}
+                                    {defaultLabel(r, name, "fg-calv-id")}
+                                  </>
+                                )}
                               </span>
                             </button>
                           </li>

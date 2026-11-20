@@ -12,6 +12,7 @@ export {
   guessMapping,
   initialValues,
   isEmptyValue,
+  fieldsFromSchema,
   listOf,
   normalizeValues,
   parseCsv,

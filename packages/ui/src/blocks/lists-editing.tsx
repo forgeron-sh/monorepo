@@ -12,7 +12,8 @@ import { IconButton } from "../identity";
 import type { DatePreset } from "../overlays";
 import type { StatusKind } from "../glyphs";
 import type { LabelOption, Person } from "../pickers";
-import { ActionMenu, ContextMenu, type ActionMenuEntry } from "./navigation-action-menu";
+import { ActionMenu, type ActionMenuEntry } from "../action-menu";
+import { ContextMenu } from "../context-menu";
 import type { IssueItem } from "./lists-parts";
 
 /* ---------------------------------------------------------------- the options of an editor */
@@ -78,28 +79,6 @@ export interface IssueEditors {
 /** The properties of an issue that can be edited. */
 export type IssueField = keyof IssueEditors;
 
-/** The keys that open a picker on the current row, as in the Tasks app. */
-const ISSUE_FIELD_KEYS: Readonly<Record<string, IssueField>> = {
-  s: "status",
-  p: "priority",
-  a: "assignee",
-  l: "labels",
-  d: "due",
-};
-
-type Options<F extends IssueField> = Exclude<IssueEditors[F], false | undefined>;
-
-/** The options of a field's editor, or null when it is read-only. */
-export function issueEditor<F extends IssueField>(
-  editors: IssueEditors | undefined,
-  field: F,
-): Options<F> | null {
-  const given = editors?.[field];
-  if (given === false) return null;
-  if (given === undefined) return field === "author" ? null : ({} as Options<F>);
-  return given as Options<F>;
-}
-
 /* ---------------------------------------------------------------- the open field */
 
 interface OpenAt {
@@ -154,14 +133,18 @@ export function useFocusWithin() {
   };
 }
 
-/** S, P, A, L, D open the matching picker on the current row while the block has the focus. */
+/**
+ * A key per field (S, P, A, L, D on an issue) opens its picker on the current row while the block
+ * has the focus. `keys` maps the key to the field; `editable` leaves out the read-only ones.
+ */
 export function useFieldShortcuts(
   enabled: boolean,
-  open: (field: IssueField) => void,
-  editable: (field: IssueField) => boolean,
+  open: (field: string) => void,
+  editable: (field: string) => boolean,
+  keys: Readonly<Record<string, string>>,
 ) {
   const bindings = Object.fromEntries(
-    Object.entries(ISSUE_FIELD_KEYS)
+    Object.entries(keys)
       .filter(([, field]) => editable(field))
       .map(([key, field]) => [key, () => open(field)]),
   );

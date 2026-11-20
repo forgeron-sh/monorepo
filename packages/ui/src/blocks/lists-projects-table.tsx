@@ -12,9 +12,10 @@ import { formatShort } from "../dates";
 import { StatusGlyph, type StatusKind } from "../glyphs";
 import { Icon } from "../icon";
 import { Led } from "../led";
+import { defineStatuses } from "../status-model";
 import { DatePicker, SelectMenu, type DatePreset } from "../overlays";
 import { PersonPicker, type Person } from "../pickers";
-import type { ActionMenuEntry } from "./navigation-action-menu";
+import type { ActionMenuEntry } from "../action-menu";
 import { isMenuKey, RowMenuArea, RowMore, Stop, useOpenField } from "./lists-editing";
 import { thisYear } from "./lists-parts";
 
@@ -50,7 +51,11 @@ const STATUS_ORDER: ReadonlyArray<ProjectStatus> = [
   "completed",
   "canceled",
 ];
-const HEALTH_TONE = { track: "success", risk: "warning", off: "danger" } as const;
+const HEALTH = defineStatuses({
+  track: { label: "On track", tone: "success" },
+  risk: { label: "At risk", tone: "warning" },
+  off: { label: "Off track", tone: "danger" },
+});
 
 /** A project as the table shows it. */
 export interface ProjectItem {
@@ -202,7 +207,7 @@ const healthMark = (h: ProjectHealth) =>
   h === "none" ? (
     <span className="fg-ptable-noled" aria-hidden="true" />
   ) : (
-    <Led tone={HEALTH_TONE[h]} />
+    <Led tone={HEALTH.tone(h)} />
   );
 const ratio = (p: ProjectItem) => (p.issues > 0 ? p.done / p.issues : 0);
 

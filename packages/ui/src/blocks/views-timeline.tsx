@@ -27,10 +27,13 @@ import {
   defaultLabel,
   isoWeek,
   monthStart,
+  fieldDay,
   resolveAccessors,
   textField,
+  type RecordFieldProps,
   type RecordAccessors,
 } from "./views-parts";
+import { recordGroups } from "./records-fields";
 
 /* ------------------------------------------------------------------ geometry (pure) */
 
@@ -216,7 +219,7 @@ export interface TimelineHandle {
   scrollToToday: () => void;
 }
 
-export interface TimelineProps<T> extends RecordAccessors<T> {
+export interface TimelineProps<T> extends RecordAccessors<T>, RecordFieldProps<T> {
   /** The rows in sections, e.g. `useListView(...).groups`. A single group keyed `all` has no header. */
   groups?: ReadonlyArray<TimelineGroup<T>>;
   /** The rows without sections, when there are no `groups`. */
@@ -225,6 +228,11 @@ export interface TimelineProps<T> extends RecordAccessors<T> {
   getStart?: (record: T) => string | null | undefined;
   /** The last day: `record.end`, else `record.due`, else `record.target`. Alone, it is a point. */
   getEnd?: (record: T) => string | null | undefined;
+  /** With `fields`: the date fields of the first and the last day; `getStart` and `getEnd` win. */
+  startField?: string;
+  endField?: string;
+  /** With `fields`, and no `groups`: the field the rows are sectioned by (a status, a lead). */
+  groupField?: string;
   /** Diamonds on the row: `record.milestones` by default. */
   getMilestones?: (record: T) => ReadonlyArray<TimelineMilestone> | undefined;
   /** The content of the name cell; the identifier and title of an issue by default. */
@@ -305,6 +313,9 @@ export function Timeline<T>({
   records,
   getStart,
   getEnd,
+  startField,
+  endField,
+  groupField,
   getMilestones,
   renderLabel,
   renderBar,
@@ -332,10 +343,18 @@ export function Timeline<T>({
   const [deviceToday] = useState(() => toIso(new Date()));
   const today = todayProp ?? deviceToday;
   const acc = resolveAccessors(accessors);
-  const startOf = (r: T) => (getStart ? getStart(r) : textField(r, "start")) ?? null;
+  const { fields, context } = accessors;
+  const dateOf = (field: string | undefined, r: T) =>
+    fields && field ? fieldDay(fields, field, r) : undefined;
+  const startOf = (r: T) =>
+    (getStart ? getStart(r) : (dateOf(startField, r) ?? textField(r, "start"))) ?? null;
   const endOf = (r: T) =>
-    (getEnd ? getEnd(r) : (textField(r, "end") ?? textField(r, "due") ?? textField(r, "target"))) ??
-    null;
+    (getEnd
+      ? getEnd(r)
+      : (dateOf(endField, r) ??
+        textField(r, "end") ??
+        textField(r, "due") ??
+        textField(r, "target"))) ?? null;
   const milestonesOf = (r: T): ReadonlyArray<TimelineMilestone> => {
     if (getMilestones) return getMilestones(r) ?? [];
     const m = (r as { milestones?: unknown }).milestones;
@@ -365,9 +384,11 @@ export function Timeline<T>({
   const scroller = useRef<HTMLDivElement>(null);
   const hintId = useId();
 
-  const sections: ReadonlyArray<TimelineGroup<T>> = groups ?? [
-    { key: "all", name: label, records: records ?? [] },
-  ];
+  const sections: ReadonlyArray<TimelineGroup<T>> =
+    groups ??
+    (fields && groupField
+      ? recordGroups(fields, records ?? [], groupField, context)
+      : [{ key: "all", name: label, records: records ?? [] }]);
   const headed = !(sections.length === 1 && sections[0]!.key === "all");
   const rows: Row<T>[] = [];
   for (const g of sections) {
@@ -674,7 +695,14 @@ export function Timeline<T>({
                     {...(isCurrent ? { "aria-current": true } : {})}
                     onClick={() => open(id)}
                   >
-                    {renderLabel ? renderLabel(r) : defaultLabel(r, name, "fg-tl-id")}
+                    {renderLabel ? (
+                      renderLabel(r)
+                    ) : (
+                      <>
+                        {acc.mark(r)}
+                        {defaultLabel(r, name, "fg-tl-id")}
+                      </>
+                    )}
                   </button>
                 </div>
                 <div className="fg-tl-track">

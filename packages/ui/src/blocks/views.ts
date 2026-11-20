@@ -3,7 +3,7 @@
 
 export { CalendarView, calendarDays } from "./views-calendar";
 export type { CalendarMode, CalendarViewProps } from "./views-calendar";
-export type { RecordAccessors } from "./views-parts";
+export type { RecordAccessors, RecordFieldProps } from "./views-parts";
 export { Timeline, timelinePlace, timelinePxPerDay, timelineRange } from "./views-timeline";
 export type {
   TimelineDates,

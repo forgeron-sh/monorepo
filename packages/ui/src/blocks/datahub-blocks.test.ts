@@ -12,6 +12,7 @@ import {
   SchemaFields,
   TableList,
   checkRows,
+  fieldsFromSchema,
   fieldNameError,
   formatValue,
   guessMapping,
@@ -405,5 +406,32 @@ describe("ImportWizard", () => {
     await settle();
     expect(onImport).toHaveBeenCalledWith([{ id: null, name: "Brie", price: 12.5 }]);
     expect(root.querySelector('[role="status"]')?.textContent).toContain("1record added");
+  });
+});
+
+describe("fieldsFromSchema", () => {
+  const schema: DataField[] = [
+    { id: "name", name: "Name", type: "text" },
+    { id: "qty", name: "Qty", type: "number" },
+    { id: "due", name: "Due", type: "datetime" },
+    { id: "day", name: "Day", type: "date" },
+    { id: "kind", name: "Kind", type: "select", choices: [{ value: "a", label: "A" }] },
+    { id: "tags", name: "Tags", type: "multiSelect", choices: [{ value: "x", label: "X" }] },
+    { id: "owner", name: "Owner", type: "relation", relation: { table: "people" } },
+  ];
+  const f = fieldsFromSchema(schema);
+  const rec: DataRecord = {
+    id: "1",
+    values: { name: "Brie", qty: 3, day: "2026-11-02", kind: "a", tags: ["x"] },
+  };
+  it("keeps the types that have a kind, by field id", () => {
+    expect(f.keys).toEqual(["name", "qty", "day", "kind", "tags"]);
+    expect(f.values(rec, "qty")).toEqual(["3"]);
+    expect(f.text(rec, "kind")).toBe("A");
+    expect(f.text(rec, "tags")).toBe("X");
+  });
+  it("writes a change back into the values", () => {
+    expect(f.patch("qty", "4", rec)).toEqual({ values: { ...rec.values, qty: 4 } });
+    expect(f.patch("kind", null, rec)).toEqual({ values: { ...rec.values, kind: null } });
   });
 });

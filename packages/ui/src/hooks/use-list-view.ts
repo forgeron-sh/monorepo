@@ -3,8 +3,7 @@
 // LayoutSwitch) take what it returns; the layout renders `groups`.
 
 import { useMemo, useState } from "react";
-import type { DisplayOptions } from "../blocks/filtering-display-menu";
-import { matchesFilters, type Filter } from "../blocks/filtering-model";
+import { matchesFilters, type DisplayOptions, type Filter } from "../filter-model";
 
 /** One way to group records: the key of a record, and the order and names of the keys. */
 export interface ViewGrouping<T> {

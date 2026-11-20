@@ -6,10 +6,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CalendarView,
   calendarDays,
+  projectFields,
   Timeline,
   timelinePlace,
   timelineRange,
   type IssueItem,
+  type ProjectItem,
   type TimelineDates,
 } from "../index";
 
@@ -301,5 +303,55 @@ describe("CalendarView", () => {
     await act(async () => el.querySelector<HTMLButtonElement>("[data-more]")!.click());
     expect(onModeChange).toHaveBeenCalledWith("week");
     expect(el.querySelectorAll("[data-item]")).toHaveLength(5);
+  });
+});
+
+describe("views on the records model", () => {
+  const items: ProjectItem[] = [
+    { id: "a", name: "Alpha", status: "started", target: "2026-11-19", issues: 3, done: 1 },
+    { id: "b", name: "Beta", status: "planned", target: "2026-11-19", issues: 1, done: 0 },
+    { id: "c", name: "Gamma", status: "planned", issues: 0, done: 0 },
+  ];
+  it("places a calendar item by a date field, with a status mark", () => {
+    const out = html(
+      h(CalendarView<ProjectItem>, {
+        records: items,
+        today: TODAY,
+        fields: projectFields,
+        dateField: "target",
+        labelField: "name",
+        markField: "status",
+      }),
+    );
+    expect(out.match(/data-item=/g)).toHaveLength(2);
+    expect(out).toContain("Alpha");
+    expect(out).toContain("fg-ilist-mark");
+  });
+  it("lets getDate win over the date field", () => {
+    const out = html(
+      h(CalendarView<ProjectItem>, {
+        records: items,
+        today: TODAY,
+        fields: projectFields,
+        dateField: "target",
+        getDate: () => null,
+      }),
+    );
+    expect(out).not.toContain("data-item=");
+  });
+  it("sections a timeline by a field and ends bars on a date field", () => {
+    const out = html(
+      h(Timeline<ProjectItem>, {
+        records: items,
+        today: TODAY,
+        fields: projectFields,
+        endField: "target",
+        groupField: "status",
+        labelField: "name",
+      }),
+    );
+    expect(out).toContain("In Progress");
+    expect(out).toContain("Planned");
+    expect(out.match(/data-bar=/g)).toHaveLength(2);
   });
 });

@@ -2,6 +2,8 @@
 // fit an `IssueItem`), and whole-day arithmetic on `YYYY-MM-DD` strings.
 
 import type { ReactNode } from "react";
+import { RecordFieldMark } from "./records-fields";
+import type { RecordContext, RecordFields } from "./records-model";
 
 /** How a view reads its records. Every accessor has a default that reads the field of that name. */
 export interface RecordAccessors<T> {
@@ -11,6 +13,20 @@ export interface RecordAccessors<T> {
   getLabel?: (record: T) => string;
   /** A CSS colour for its mark, e.g. `var(--accent)`: `record.color` by default, else grey. */
   getColor?: (record: T) => string | undefined;
+}
+
+/**
+ * The records' fields (records-model) as an alternative to the accessors: a view then reads its
+ * dates, its label and its mark off them. An accessor given as well wins.
+ */
+export interface RecordFieldProps<T> {
+  fields?: RecordFields<T>;
+  /** The people, labels and today the fields' marks need. */
+  context?: RecordContext;
+  /** The field the label is read from, as text; `title`, `name`, then the id by default. */
+  labelField?: string;
+  /** A field drawn before the label as its mark: a status glyph, an avatar. */
+  markField?: string;
 }
 
 const read = (record: unknown, name: string): unknown =>
@@ -28,16 +44,39 @@ export interface ResolvedAccessors<T> {
   id: (record: T) => string;
   label: (record: T) => string;
   color: (record: T) => string | undefined;
+  /** The mark of `markField`, or null. */
+  mark: (record: T) => ReactNode;
 }
 
-export function resolveAccessors<T>(a: RecordAccessors<T>): ResolvedAccessors<T> {
+export function resolveAccessors<T>(
+  a: RecordAccessors<T> & RecordFieldProps<T>,
+): ResolvedAccessors<T> {
+  const { fields, labelField, markField, context = {} } = a;
   const id = a.getId ?? ((r: T) => textField(r, "id") ?? "");
+  const named = fields && labelField ? (r: T) => fields.text(r, labelField, context) : undefined;
   return {
     id,
-    label: a.getLabel ?? ((r: T) => textField(r, "title") ?? textField(r, "name") ?? id(r)),
+    label:
+      a.getLabel ?? named ?? ((r: T) => textField(r, "title") ?? textField(r, "name") ?? id(r)),
     color: a.getColor ?? ((r: T) => textField(r, "color")),
+    mark:
+      fields && markField
+        ? (r: T) => (
+            <RecordFieldMark
+              fields={fields}
+              name={markField}
+              record={r}
+              context={context}
+              view="row"
+            />
+          )
+        : () => null,
   };
 }
+
+/** The first value of a field as a day, `YYYY-MM-DD`: null when the field is unset. */
+export const fieldDay = <T,>(fields: RecordFields<T>, key: string, record: T): string | null =>
+  fields.values(record, key)?.[0] ?? null;
 
 /**
  * What a row or an item shows by default: the identifier in mono and the title when the record

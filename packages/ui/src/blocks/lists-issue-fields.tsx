@@ -1,166 +1,82 @@
-// One property of an issue in a row or a card, editable in place: the row's own mark becomes the
-// trigger of the matching picker, the list opens under it. Read-only, the mark is drawn as is.
+// The fields of an issue, described once (records-model): its status, priority, labels, people and
+// due date. The issue list, the issue board, the filters and the property panel of the Tasks app
+// all read them; `IssueEditingProps` is what both blocks add to the records' own editing props.
 
-import type { ReactNode } from "react";
-import { cx } from "../cx";
-import { useControllableState } from "../hooks/use-controllable";
-import { DatePicker } from "../overlays";
-import {
-  LabelPicker,
-  PersonPicker,
-  PriorityPicker,
-  StatusPicker,
-  type LabelOption,
-  type Person,
-} from "../pickers";
-import type { ActionMenuEntry } from "./navigation-action-menu";
-import {
-  issueEditor,
-  Stop,
-  useFieldShortcuts,
-  useFocusWithin,
-  useOpenField,
-  type IssueEditors,
-  type IssueField,
-  type RowMenuProps,
-} from "./lists-editing";
-import type { IssueContext, IssueItem } from "./lists-parts";
+import type { ActionMenuEntry } from "../action-menu";
+import { type PriorityLevel, type StatusKind } from "../glyphs";
+import { priorityOptions, statusOptions } from "../pickers";
+import type { IssueEditors } from "./lists-editing";
+import type { IssueItem } from "./lists-parts";
+import type { RecordEditors } from "./records-fields";
+import { defineFields, type RecordContext } from "./records-model";
+import type { LabelOption, Person } from "../pickers";
 
-/** What a block hands its rows when editing is on. */
-export interface IssueEdit {
-  editors: IssueEditors | undefined;
-  change: (id: string, patch: Partial<IssueItem>) => void;
-  /** The `open` / `onOpenChange` of a field's picker. */
-  openProps: (id: string, field: string) => { open: boolean; onOpenChange: (o: boolean) => void };
-  labels: ReadonlyArray<LabelOption>;
-  people: ReadonlyArray<Person>;
-  today: string | undefined;
-}
+const closed = (s: StatusKind) => s === "done" || s === "canceled";
 
-/**
- * A property of `issue`: `children` (the row's mark) alone when read-only, else the trigger of its
- * picker. `unset` draws it as a hidden anchor, for an empty property a shortcut can still open.
- */
-export function IssueFieldEditor({
-  edit,
-  issue,
-  field,
-  className,
-  unset,
-  children,
-}: {
-  edit: IssueEdit | null;
-  issue: IssueItem;
-  field: IssueField;
-  className?: string;
-  unset?: boolean;
-  children: ReactNode;
-}) {
-  const options = edit ? issueEditor(edit.editors, field) : null;
-  if (!edit || !options) return unset ? null : children;
-  const change = (patch: Partial<IssueItem>) => edit.change(issue.id, patch);
-  if (options.render) {
-    return unset ? null : <Stop className="fg-issue-custom">{options.render(issue, change)}</Stop>;
-  }
-  const trigger = cx("fg-issue-edit", unset ? "fg-issue-unset" : className);
-  const open = edit.openProps(issue.id, field);
-  const picker = (() => {
-    switch (field) {
-      case "status": {
-        const o = issueEditor(edit.editors, "status")!;
-        return (
-          <StatusPicker
-            value={issue.status}
-            onChange={(status) => change({ status })}
-            {...(o.statuses ? { statuses: o.statuses } : {})}
-            {...(o.names ? { names: o.names } : {})}
-            {...open}
-            className={trigger}
-          >
-            {children}
-          </StatusPicker>
-        );
-      }
-      case "priority":
-        return (
-          <PriorityPicker
-            value={issue.priority ?? 0}
-            onChange={(priority) => change({ priority })}
-            {...open}
-            className={trigger}
-          >
-            {children}
-          </PriorityPicker>
-        );
-      case "assignee": {
-        const o = issueEditor(edit.editors, "assignee")!;
-        const none = o.noneLabel === undefined ? "No assignee" : o.noneLabel;
-        return (
-          <PersonPicker
-            label="Assignee"
-            people={o.people ?? edit.people}
-            value={issue.assignee ?? null}
-            onChange={(assignee) => change({ assignee })}
-            {...(o.me ? { me: o.me } : {})}
-            {...(none ? { noneLabel: none } : {})}
-            {...open}
-            className={trigger}
-          >
-            {children}
-          </PersonPicker>
-        );
-      }
-      case "author": {
-        const o = issueEditor(edit.editors, "author")!;
-        return (
-          <PersonPicker
-            label="Author"
-            people={o.people ?? edit.people}
-            value={issue.author ?? null}
-            onChange={(author) => change({ author })}
-            {...(o.me ? { me: o.me } : {})}
-            {...open}
-            className={trigger}
-          >
-            {children}
-          </PersonPicker>
-        );
-      }
-      case "labels": {
-        const o = issueEditor(edit.editors, "labels")!;
-        return (
-          <LabelPicker
-            labels={o.labels ?? edit.labels}
-            value={issue.labels ?? []}
-            onChange={(labels) => change({ labels })}
-            {...open}
-            className={trigger}
-          >
-            {children}
-          </LabelPicker>
-        );
-      }
-      case "due": {
-        const o = issueEditor(edit.editors, "due")!;
-        return (
-          <DatePicker
-            label="Due date"
-            value={issue.due ?? null}
-            onChange={(due) => change({ due: due ?? undefined })}
-            {...(o.presets ? { presets: o.presets } : {})}
-            {...(o.clearable !== undefined ? { clearable: o.clearable } : {})}
-            {...(edit.today ? { today: edit.today } : {})}
-            {...open}
-            className={trigger}
-          >
-            {children}
-          </DatePicker>
-        );
-      }
-    }
-  })();
-  return <Stop className={unset ? "fg-issue-anchor" : undefined}>{picker}</Stop>;
-}
+/** The fields of an `IssueItem`: what `IssueList`, `IssueBoard` and the view's menus are built on. */
+export const issueFields = defineFields<IssueItem>({
+  priority: {
+    label: "Priority",
+    kind: "enum",
+    get: (r) => r.priority ?? 0,
+    options: priorityOptions,
+    none: "0",
+    shortcut: "p",
+    words: (label, value) => (value === "0" ? label : `${label} priority`),
+    set: (value) => ({ priority: Number(value ?? 0) as PriorityLevel }),
+    place: { row: "lead", card: "chips" },
+  },
+  id: {
+    label: "ID",
+    kind: "text",
+    mono: true,
+    get: (r) => r.id,
+    place: { row: "lead", card: "top" },
+  },
+  status: {
+    label: "Status",
+    kind: "status",
+    get: (r) => r.status,
+    options: statusOptions,
+    shortcut: "s",
+    place: { row: "lead", card: "lead" },
+  },
+  title: { label: "Title", kind: "text", get: (r) => r.title },
+  labels: {
+    label: "Labels",
+    kind: "labels",
+    get: (r) => r.labels,
+    shortcut: "l",
+    place: { card: "chips" },
+  },
+  author: {
+    label: "Author",
+    kind: "person",
+    compact: true,
+    hidden: true,
+    readOnly: true,
+    get: (r) => r.author,
+    words: (names) => (names ? `Created by ${names}` : "No author"),
+    place: { card: "who" },
+  },
+  assignee: {
+    label: "Assignee",
+    kind: "person",
+    empty: "No assignee",
+    get: (r) => r.assignee,
+    shortcut: "a",
+    place: { card: "who" },
+  },
+  due: {
+    label: "Due date",
+    kind: "date",
+    prefix: "Due ",
+    get: (r) => r.due,
+    shortcut: "d",
+    late: (r, today) => r.due !== undefined && r.due < today && !closed(r.status),
+    place: { card: "foot" },
+  },
+});
 
 /** The editing props shared by the issue list and the issue board. */
 export interface IssueEditingProps {
@@ -179,56 +95,34 @@ export interface IssueEditingProps {
   onRowAction?: (id: string, actionId: string) => void;
 }
 
-const rowOf = (id: string) => `[data-issue="${id.replace(/["\\]/g, "\\$&")}"]`;
-
-/** Editing, shortcuts and row menus of an issue block, from its props. */
-export function useIssueEditing(
-  { onIssueChange, editors, shortcuts = true, rowMenu, onRowAction }: IssueEditingProps,
-  ctx: IssueContext,
-  current: string | null,
-  visible: ReadonlyArray<string>,
-) {
-  const fields = useOpenField(rowOf);
-  const focus = useFocusWithin();
-  const [menuFor, setMenuFor] = useControllableState<string | null>({ defaultValue: null });
-  const edit: IssueEdit | null = onIssueChange
-    ? {
-        editors,
-        change: onIssueChange,
-        openProps: fields.props,
-        labels: ctx.labelList,
-        people: ctx.peopleList,
-        today: ctx.today,
-      }
-    : null;
-  const keyable = (field: IssueField) => {
-    const o = edit ? issueEditor(edit.editors, field) : null;
-    return o !== null && !o.render && ctx.shows(field);
-  };
-  useFieldShortcuts(
-    edit !== null && shortcuts && focus.inside && current !== null && visible.includes(current),
-    (field) => {
-      if (current !== null) fields.show(current, field);
-    },
-    keyable,
-  );
-  const menu = (issue: IssueItem): RowMenuProps => ({
-    items: rowMenu?.(issue),
-    onSelect: (actionId) => onRowAction?.(issue.id, actionId),
-    label: `Actions on ${issue.id}`,
-  });
+/** The editors of an issue as the records' own: the statuses offered are `values`. */
+export function issueEditors(
+  editors: IssueEditors | undefined,
+): RecordEditors<IssueItem> | undefined {
+  if (!editors) return undefined;
+  const { status, ...rest } = editors;
   return {
-    edit,
-    /** Rows hold controls: a focusable group rather than one button. */
-    interactive: edit !== null || rowMenu !== undefined,
-    rootProps: { ref: fields.root, ...focus.props },
-    menu,
-    menuOpen: (id: string) => ({
-      open: menuFor === id,
-      onOpenChange: (open: boolean) => setMenuFor(open ? id : null),
-    }),
-    openMenu: (id: string) => {
-      if (rowMenu) setMenuFor(id);
-    },
+    ...rest,
+    ...(status === undefined
+      ? {}
+      : {
+          status:
+            status === false
+              ? false
+              : { ...status, ...(status.statuses ? { values: status.statuses } : {}) },
+        }),
+  };
+}
+
+/** What an issue block hands the records' list or board besides its own props. */
+export function issueContext(
+  labels: ReadonlyArray<LabelOption> | undefined,
+  people: ReadonlyArray<Person> | undefined,
+  today: string | undefined,
+): RecordContext {
+  return {
+    ...(labels ? { labels } : {}),
+    ...(people ? { people } : {}),
+    ...(today ? { today } : {}),
   };
 }

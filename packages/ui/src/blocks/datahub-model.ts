@@ -3,6 +3,7 @@
 // check and write values. No React here: the blocks and the caller's server use the same rules.
 
 import type { IconDefinition } from "@forgeron/icons";
+import { defineFields, type RecordFieldDef, type RecordFields } from "./records-model";
 import {
   Attachment01Icon,
   BracesIcon,
@@ -502,4 +503,73 @@ export function guessMapping(
     used.add(field.id);
     return field.id;
   });
+}
+
+/* ---------------------------------------------------------------- as records-model fields */
+
+/**
+ * The fields of a table as `RecordFields` of its records, so the list, board, calendar and
+ * timeline of the records model can show a Data hub table: `fieldsFromSchema(schema)` and
+ * `<CalendarView fields={…} records={records} dateField="due" />`. Keys are the field ids.
+ *
+ * Only the types the model has a kind for come across: text, long text, email, url (text),
+ * number, date, select (enum) and multi-select (labels). Booleans, date-times, relations, files
+ * and JSON have no kind there (no mark, no ordering, no grouping that would mean the same), so
+ * they are left out; the grid and the form keep drawing and editing every type themselves.
+ */
+export function fieldsFromSchema(schema: ReadonlyArray<DataField>): RecordFields<DataRecord> {
+  const defs: Record<string, RecordFieldDef<DataRecord>> = {};
+  for (const f of schema) {
+    const read = (r: DataRecord): CellValue => r.values[f.id] ?? null;
+    const write = (value: string | string[] | null, r: DataRecord) => ({
+      values: {
+        ...r.values,
+        [f.id]: f.type === "number" && value !== null ? Number(value) : value,
+      },
+    });
+    const base = { label: f.name, set: write, ...(f.readOnly ? { readOnly: true } : {}) };
+    const options = (f.choices ?? []).map((c) => ({
+      value: c.value,
+      label: c.label,
+      ...(c.color ? { color: c.color } : {}),
+    }));
+    switch (f.type) {
+      case "text":
+      case "longText":
+      case "email":
+      case "url":
+        defs[f.id] = { ...base, kind: "text", get: (r) => listOf(read(r)).join(", ") };
+        break;
+      case "number":
+        defs[f.id] = {
+          ...base,
+          kind: "number",
+          mono: true,
+          get: (r) => {
+            const v = read(r);
+            return typeof v === "number" || typeof v === "string" ? v : null;
+          },
+        };
+        break;
+      case "date":
+        defs[f.id] = {
+          ...base,
+          kind: "date",
+          get: (r) => {
+            const v = read(r);
+            return typeof v === "string" && v ? v.slice(0, 10) : null;
+          },
+        };
+        break;
+      case "select":
+        defs[f.id] = { ...base, kind: "enum", options, get: (r) => listOf(read(r))[0] ?? null };
+        break;
+      case "multiSelect":
+        defs[f.id] = { ...base, kind: "labels", options, get: (r) => listOf(read(r)) };
+        break;
+      default:
+        break;
+    }
+  }
+  return defineFields<DataRecord>(defs);
 }

@@ -19,7 +19,7 @@ import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { SelectMenu } from "../overlays";
 import { LabelPicker } from "../pickers";
-import { ActionMenu, type ActionMenuEntry } from "./navigation-action-menu";
+import { ActionMenu, type ActionMenuEntry } from "../action-menu";
 import { FieldTypeGlyph } from "./datahub-field-type";
 import { RelationPicker } from "./datahub-relation-picker";
 import {
