@@ -4,7 +4,7 @@ The React components of the design system, and its tokens (generated from `asset
 
 ## Components
 
-`Badge`, `EnvTag`, `Button`, `Label`, `Logo`, plus the view building blocks:
+`Badge`, `EnvTag`, `Button`, `Eyebrow`, `CommandLine`, `Logo`, plus the view building blocks (`Label` is the form label and `Command` the ⌘K palette, as in shadcn: D-156):
 
 | Component                                      | Use                                                                                                      |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -56,6 +56,21 @@ The field primitives (typed, chosen, dragged, folded), each with `value` / `defa
 | `Toolbar` (+ `ToolbarButton`…) | A row of tools as one tab stop (roving), toggles with `pressed`                                               |
 | `Banner`                       | A page-level notice with an action, dismissible; the state always in a word                                   |
 
+Shared mechanics taken out of the blocks (D-160), each in parts with a props-driven form:
+
+| Component                                                 | Use                                                                                                     |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `defineStatuses`, `Status` (+ `StatusIndicator`…)         | One set of states (label, tone, glyph, order) for pickers, badges and marks; a state always in a word   |
+| `Tree` (+ `TreeItem`, `TreeItemContent`…)                 | APG tree: arrows, typeahead, selection; with `items`, the ready tree with rename, context menu and drag |
+| `Feed` (+ `FeedItem`, `FeedIndicator`, `FeedTime`…)       | A log of events, grouped by day if wanted                                                               |
+| `useSortable`, `Sortable` (+ `SortableItem`…)             | Reorder by drag and Alt + arrows, focus follows, each move announced                                    |
+| `useCollection`, `SelectionBar` (+ parts)                 | Roving focus, single, multiple and range selection, typeahead, grids; the bar of actions on a selection |
+| `AccessList` (+ parts), `PeopleCombobox`                  | People with a role each, remove, and the box to add them                                                |
+| `Combobox` parts, `statusOptions`, `personOptions`…       | shadcn's combobox parts; the option lists of the record pickers, to compose with `Select` or `Combobox` |
+| `DiffView`, `IconPicker`, `formatBytes`, `formatDuration` | Text and field diffs; the icon picker; one implementation of each formatter                             |
+
+Records (`src/blocks/records-*`): `defineFields` describes a record's fields once, and `RecordList`, `RecordBoard`, `useRecordView`, the filters, display menu and property editors read it. `IssueList` and `IssueBoard` are presets over `issueFields`; `projectFields` is a second one.
+
 Blocks, the composites of the apps (in `src/blocks/`, styles in `blocks.css`), after the Tasks prototype:
 
 | Block                                                              | Use                                                                                                                                     |
@@ -98,18 +113,27 @@ Editor chrome and guidance blocks, for any canvas-like or document editor (`src/
 
 Dashboard and analytics blocks, app-agnostic (nothing knows what is measured: the page passes numbers and turns a query into data; `src/blocks/dashboard-*`). Charts are pixels on or off (dither steps, scan lines), each with a text alternative and a key that does not rely on colour.
 
-| Block                                               | What it is                                                                                                                                        |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Funnel`, `dashboardFunnel`                         | Stages as stepped bars with count and conversion from the stage before; overall conversion                                                        |
-| `Heatmap`, `dashboardHeatLevel`                     | A matrix or a calendar in five dither steps; a grid walked with the arrows; the scale in numbers                                                  |
-| `Donut`, `dashboardRing`                            | A pixel ring cut into slices, six fill patterns; the key gives value and share, and spotlights a slice                                            |
-| `Gauge`, `dashboardGaugeState`                      | A value against a target on a half ring; the state is a word (Behind, Close, On target), `role="meter"`                                           |
-| `StackedBar`, `dashboardStack`                      | Horizontal or vertical bars split into series; the key turns a series on or off; shares with `normalize`                                          |
-| `WidgetGrid`, `dashboardPlace`, `dashboardSync`     | 12 columns of widgets, layout as plain data; edit mode: drag, resize corner, arrows (Shift resizes), push-down collisions; one column when narrow |
-| `WidgetFrame`                                       | Title, subtitle, menu, loading (skeleton), error with retry, empty, full size in a dialog, drag handle slot                                       |
-| `DateRangeCompare`, `dashboardCompareRanges`        | A period and what it is compared to (previous period, previous year, custom) and the two ranges it gives                                          |
-| `DeltaBadge`, `dashboardRatio`, `dashboardDeltaWay` | A change as an arrow, a sign and a word (Better, Worse, Flat); tone only repeats it                                                               |
-| `MetricPicker`, `dashboardQueryText`                | A measure, a grouping (with a slice of time) and filters, as a serialisable `DashboardQuery`; fetches nothing                                     |
+| Block                                                  | What it is                                                                                                                                        |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Funnel`, `dashboardFunnel`                            | Stages as stepped bars with count and conversion from the stage before; overall conversion                                                        |
+| `Heatmap`, `dashboardHeatLevel`                        | A matrix or a calendar in five dither steps; a grid walked with the arrows; the scale in numbers                                                  |
+| `Donut`, `dashboardRing`                               | A pixel ring cut into slices, six fill patterns; the key gives value and share, and spotlights a slice                                            |
+| `Gauge`, `dashboardGaugeState`                         | A value against a target on a half ring; the state is a word (Behind, Close, On target), `role="meter"`                                           |
+| `StackedBar`, `dashboardStack`                         | Horizontal or vertical bars split into series; the key turns a series on or off; shares with `normalize`                                          |
+| `ColumnChart`                                          | Columns over time from zero; the previous period as a dithered ghost beside each column, a target as a rule, a key; arrows read a column          |
+| `Waffle`, `dashboardWaffle`                            | Shares as a grid of squares (100 by default, largest remainder); each slice its own pattern; the key gives value and share and spotlights         |
+| `StatusStrip`, `dashboardStatusSummary`                | States over time, one cell per period (uptime, runs); the worse, the taller and heavier the pixels; share up, counts per state, arrows read one   |
+| `BulletChart`, `dashboardBullet`                       | Measures against targets, one row each: a bar over dithered bands, the target as a tick, the share of it in words, `role="meter"`                 |
+| `Waterfall`, `dashboardWaterfall`                      | From a start to an end through its changes; subtotals; a rise scan lines, a fall a checker; the scale is cut (and says so) when changes are small |
+| `Dumbbell`, `dashboardExtent`                          | Before and after on one scale, a row each; the segment in the tone of the change, the change written with arrow and sign; sorts by change         |
+| `DivergingBar`                                         | Values around a central zero, left or right; named sides (Under budget, Over budget); the tone follows which side is good news                    |
+| `Histogram`, `dashboardHistogram`                      | The spread of raw values in round-width bins; p50 and p95 rules; the tail past a threshold in ember, with its share                               |
+| `markers` on `LineChart`, `ColumnChart`, `StatusStrip` | Events at points: a numbered flag and rule over the point, a key under the axis, the event in the readout                                         |
+| `WidgetGrid`, `dashboardPlace`, `dashboardSync`        | 12 columns of widgets, layout as plain data; edit mode: drag, resize corner, arrows (Shift resizes), push-down collisions; one column when narrow |
+| `WidgetFrame`                                          | Title, subtitle, menu, loading (skeleton), error with retry, empty, full size in a dialog, drag handle slot                                       |
+| `DateRangeCompare`, `dashboardCompareRanges`           | A period and what it is compared to (previous period, previous year, custom) and the two ranges it gives                                          |
+| `DeltaBadge`, `dashboardRatio`, `dashboardDeltaWay`    | A change as an arrow, a sign and a word (Better, Worse, Flat); tone only repeats it                                                               |
+| `MetricPicker`, `dashboardQueryText`                   | A measure, a grouping (with a slice of time) and filters, as a serialisable `DashboardQuery`; fetches nothing                                     |
 
 Time and scheduling blocks, app-agnostic (agenda, time off, bookings, shifts, resource planning; `src/blocks/time-*`). Dates are `YYYY-MM-DD`, times `HH:mm` (`24:00` ends a day), zones are IANA names; the pure helpers (`layoutOverlaps`, `snapMinutes`, `expandRecurrence`, `convertTime`, `daySlots`, `findConflicts`…) are exported too:
 
@@ -161,6 +185,10 @@ Administration blocks, app-agnostic (a console, a people directory or any app wi
 | `VersionCompare`                                                                                                                                                                                                                                                  | Structure: the versions in a list; pick two (From, To) and see the text or field diff, restore an older one                                                                                                                                             |
 | `structureMove`, `structureShift`, `structureFlatten`, `structureFilter`, `structureHeadingsFrom`, `structureOrgLayout`, `structureRebaseAnchor`, `structureLayoutThreads`, `structureDiffSeq`, `structureDiffRows`, `structureDiffFields`, `structureCoverCells` | Structure: pure helpers (no React): tree moves and flattening, headings, org layout, comment anchors and layout, diff, cover pixels                                                                                                                     |
 
+## Layers
+
+Primitives (`src/*.tsx`, shadcn's composite shape, D-156) sit below the blocks (`src/blocks/`, the domain: issues, invoices, automations…); a primitive never imports a block (rule `ui-primitives-do-not-import-blocks`, D-157). The charts are in `src/charts/`, with shadcn's `ChartContainer`, `ChartTooltip` and `ChartLegend`. New names are exported through `src/parts-<group>.ts` and styled in `src/parts-<group>.css`.
+
 ## Hooks
 
 The state the components share, for your screens and your own components (`src/hooks/`):
@@ -182,6 +210,10 @@ The pixel effects of the Forgeron sites, in `src/shaders/`: the dither field (ca
 Every atom and block, with live examples, its code and its props: `apps/ui-gallery` (`ui.forgeron.sh`, `bun run --cwd apps/ui-gallery dev`, port 5181).
 
 Import `@forgeron/ui/styles.css` once. Components are stateless and render on the client (server rendering is out of scope).
+
+## With shadcn
+
+Every atom, block and hook is also an item of a shadcn registry served by the gallery (D-156): `npx shadcn@latest add https://ui.forgeron.sh/r/<slug>.json` copies the sources under `components/forgeron/`, with the icons they use, our private packages vendored, and the stylesheet (`forgeron` item). In that copy our tokens are `--fg-*` and read the host's shadcn variables (`--background`, `--primary`, `--border`, `--radius`…), the styles sit in `@layer components` so Tailwind utilities win, and `forgeron-theme` writes our palette into those variables. Most primitives also take shadcn's shape (D-156): a root keeps its props-driven form when given its own prop (`title`, `options`, `tabs`, `items`, `label`, `columns`, `name`, `keys`…) and is the root of shadcn's parts without it (Dialog, Select, Tabs, Popover, Tooltip, Drawer, ContextMenu, Accordion, Collapsible, Breadcrumb, Avatar, Table, Checkbox, Switch, RadioGroup, Slider, Progress, Kbd); Badge and Skeleton take shadcn's props directly; DropdownMenu, Sheet, AlertDialog, Card, Alert, Toggle, ToggleGroup, Pagination, ScrollArea, HoverCard, Label and Command are shadcn's own. The parts sit in the root's file and are built on Base UI; triggers take `asChild`. New parts are exported through `src/parts-<group>.ts` and styled in `src/parts-<group>.css`. `cn` (clsx shapes, no Tailwind merge) is exported next to `cx`; `Button` takes `asChild` and shadcn's `default`, `outline`, `destructive`, `link` and `icon` names. The registry is built from these sources by `apps/ui-gallery/src/lib/shadcn/`: nothing to keep in sync by hand.
 
 ## Notes
 

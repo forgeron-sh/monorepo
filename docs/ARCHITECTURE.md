@@ -54,7 +54,7 @@ forgeron/
 │   ├── site/               # forgeron.app marketing site (Astro, React islands)
 │   ├── icon-gallery/       # dev gallery of @forgeron/icons (Astro, React islands), not deployed
 │   ├── font/               # @forgeron/font-site, font.forgeron.sh: specimen and downloads of the Forgeron Sans typeface (Astro, static)
-│   ├── ui-gallery/         # ui.forgeron.sh: gallery of @forgeron/ui, examples, code and props (Astro, React islands)
+│   ├── ui-gallery/         # ui.forgeron.sh: gallery of @forgeron/ui, examples, code and props, shadcn registry under /r/ (Astro, React islands)
 │   ├── lab/                # @forgeron/lab-site, lab.forgeron.sh: index of the lab projects (stable, experimental) and its papers, read from docs/ (Astro, static)
 │   ├── blueprint/          # blueprint.forgeron.sh: the Blueprint format, its schema, the part library, the viewer (Astro, React island)
 │   └── richtext/           # richtext.forgeron.sh: the catalog of @forgeron/richtext plugins with a live demo of each, a playground, a guide (Astro, React islands)
@@ -69,7 +69,7 @@ forgeron/
 │   ├── registry/           # @forgeron/registry: platform D1 schema (migrations) and typed access layer
 │   ├── playground/         # @forgeron/playground: the playground page, for `forgeron play` and /t/<tool>/play
 │   ├── scaffold/           # @forgeron/scaffold: the files of a new tool or marketplace, for `forgeron init` and the gateway (D-123)
-│   ├── ui/                 # @forgeron/ui: design system atoms, components and tokens
+│   ├── ui/                 # @forgeron/ui: design system primitives (shadcn shape), charts/, blocks/, tokens
 │   ├── font/               # @forgeron/font: Forgeron Sans, the bitmap face (glyph table, measures, `textSvg`), read by ui and Blueprint
 │   ├── blueprint/          # @forgeron/blueprint: pixel illustrations (iso scenes, dithered fields, Forge Sans), for the site
 │   ├── shaders/            # @forgeron/shaders: the pixel effects as a pipeline of passes (GLSL and CPU) with JSON presets (D-149)
@@ -143,7 +143,7 @@ Design points:
 | `site`         | Astro, React islands                         | Worker + static assets                                            | Marketing site, public documentation eventually                                                                                                                                               |
 | `icon-gallery` | Astro, React islands, `@forgeron/icons`      | local only (`astro dev`, port 5179)                               | Gallery of `@forgeron/icons` (search, filters, detail, copy and download)                                                                                                                     |
 | `font`         | Astro, no framework                          | Worker + static assets (`font.forgeron.sh`), local port 5180      | Specimen of Forgeron Sans read from its OTF files: construction plate, glyph set, sizes, usage, licence; `/playground` tester; downloads with checksums                                       |
-| `ui-gallery`   | Astro, React islands, `@forgeron/ui`         | Worker + static assets (`ui.forgeron.sh`), local port 5181        | Gallery of `@forgeron/ui`: atoms with live examples, their code and props, installation; blocks and pages planned (Soon)                                                                      |
+| `ui-gallery`   | Astro, React islands, `@forgeron/ui`         | Worker + static assets (`ui.forgeron.sh`), local port 5181        | Gallery of `@forgeron/ui`: atoms with live examples, their code and props, installation; the shadcn registry `/r/<item>.json` (D-156); blocks and pages planned (Soon)                        |
 | `lab`          | Astro, `@forgeron/ui`, no hydration          | Worker + static assets (`lab.forgeron.sh`), local port 5184       | Index of the lab: stable and experimental projects (`src/data/projects.ts`), papers published from `docs/` (`src/data/papers.ts`) with Blueprint covers, a Blueprint bench in the hero        |
 | `blueprint`    | Astro, React island, `@forgeron/blueprint`   | Worker + static assets (`blueprint.forgeron.sh`), local port 5182 | The `.bp` format (from `docs/blueprint/format.md`), its schema at `/schema/v1.json`, the part library built as SVG, the P5 viewer; moon id `blueprint-site`                                   |
 | `richtext`     | Astro, React islands, `@forgeron/richtext`   | Worker + static assets (`richtext.forgeron.sh`), local port 5183  | The plugin catalog (docs read from `packages/richtext/src/plugins/docs/`, editor halves from `plugins/editor/`), a live editor per plugin, the playground, the guide; moon id `richtext-site` |
