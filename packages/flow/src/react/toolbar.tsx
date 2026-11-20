@@ -1,11 +1,13 @@
-// <FlowToolbar>: the flow's own commands, built from the atoms of `@forgeron/ui` like the canvas's
-// zoom controls: auto-layout, and the edge style. Place it in `<FlowCanvas>`'s children (over the
-// surface) or anywhere around it.
+// <FlowToolbar>: the flow's own commands, drawn by the `toolbar` plugin from what the other
+// plugins contribute to its slot: auto-layout, the edge style. Place it in `<FlowCanvas>`'s
+// children (over the surface) or anywhere around it. An editor without the `toolbar` plugin has no
+// toolbar: this renders nothing.
 
-import { animateViewport } from "@forgeron/canvas/react";
-import { HierarchySquare04Icon } from "@forgeron/icons";
-import { IconButton, Segmented, Tooltip } from "@forgeron/ui";
+import { useContext, useMemo } from "react";
 import type { EdgeStyle } from "../core/geometry";
+import { fullEditorPlugins } from "../plugins/editor/presets";
+import { FlowEditorReactContext, makeContext } from "./context";
+import { createEditorRegistry, type FlowView } from "./plugin";
 import type { FlowApi } from "./use-flow";
 
 export interface FlowToolbarProps<D> {
@@ -22,36 +24,27 @@ export function FlowToolbar<D>({
   onEdgeStyleChange,
   className,
 }: FlowToolbarProps<D>) {
-  const readOnly = flow.store.readOnly;
-  return (
-    <div
-      className={["fg-flow-toolbar", className].filter(Boolean).join(" ")}
-      role="toolbar"
-      aria-label="Flow"
-    >
-      {readOnly ? null : (
-        <Tooltip content="Auto-layout" kbd="⇧L">
-          <IconButton
-            icon={HierarchySquare04Icon}
-            label="Auto-layout"
-            onClick={() => {
-              flow.autoLayout();
-              animateViewport(flow.store, flow.store.fitViewport({ padding: 48, maxZoom: 1 }));
-            }}
-          />
-        </Tooltip>
-      )}
-      {onEdgeStyleChange ? (
-        <Segmented
-          label="Edges"
-          value={edgeStyle}
-          onChange={(v) => onEdgeStyleChange(v as EdgeStyle)}
-          options={[
-            { value: "bezier", label: "Curves" },
-            { value: "orthogonal", label: "Steps" },
-          ]}
-        />
-      ) : null}
-    </div>
+  const inside = useContext(FlowEditorReactContext);
+  // Inside <FlowCanvas> the toolbar is the one of its plugins; outside, of the `full` preset.
+  const outside = useMemo(
+    () => (inside ? null : makeContext(flow, createEditorRegistry<D>(fullEditorPlugins)).ctx),
+    [inside, flow],
   );
+  const ctx = (inside ?? outside) as NonNullable<typeof outside>;
+  const view = useMemo<FlowView<D>>(
+    () => ({
+      run: undefined,
+      edgeStyle,
+      far: false,
+      edgeLimit: null,
+      controls: true,
+      minimap: true,
+      onEdgeStyleChange: onEdgeStyleChange as FlowView<D>["onEdgeStyleChange"],
+      host: {},
+    }),
+    [edgeStyle, onEdgeStyleChange],
+  );
+  const Toolbar = ctx.registry.ui.toolbar;
+  if (!Toolbar) return null;
+  return <Toolbar ctx={ctx as never} view={view} className={className} />;
 }

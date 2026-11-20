@@ -4,9 +4,10 @@
 // the canvas's far layer.
 
 import type { FarPrimitive } from "@forgeron/canvas";
-import { edgeGeometry, type EdgeStyle } from "./geometry";
-import type { FlowEdge, FlowNode, GraphIndex } from "./model";
-import { edgeStatus, type RunState, type RunStatus } from "./run";
+import { edgeGeometryWith, type EdgePath, type EdgeStyle } from "../../core/geometry";
+import type { FlowEdge, FlowNode, GraphIndex } from "../../core/model";
+import { edgeStatus, type RunState, type RunStatus } from "../../core/run";
+import { edgePath } from "../edges";
 
 const NODE_EDGE: Partial<Record<RunStatus, string>> = {
   running: "--accent",
@@ -80,12 +81,12 @@ const HEAD: Partial<Record<RunStatus, string>> = {
   running: "--accent",
 };
 
-/** The points of an edge's path (`M`, `C`, `H`, `V` as `edgePath` writes them), curves flattened. */
+/** The points of an edge's path (`M`, `C`, `H`, `V`, `L` as the edge styles write them), curves flattened. */
 export function flattenPath(d: string, steps = 12): number[] {
   const out: number[] = [];
   let x = 0;
   let y = 0;
-  for (const [, cmd, args] of d.matchAll(/([MCHV])([^MCHV]*)/g)) {
+  for (const [, cmd, args] of d.matchAll(/([MCHVL])([^MCHVL]*)/g)) {
     const n = args!
       .trim()
       .split(/[\s,]+/)
@@ -95,6 +96,8 @@ export function flattenPath(d: string, steps = 12): number[] {
       x = n[0]!;
       y = n[1]!;
       out.push(x, y);
+    } else if (cmd === "L") {
+      for (let i = 0; i + 1 < n.length; i += 2) out.push((x = n[i]!), (y = n[i + 1]!));
     } else if (cmd === "H") {
       for (const v of n) out.push((x = v), y);
     } else if (cmd === "V") {
@@ -133,13 +136,15 @@ export function flattenPath(d: string, steps = 12): number[] {
 export function farEdges<D>(
   index: GraphIndex<D>,
   edges: ReadonlyArray<FlowEdge>,
-  style: EdgeStyle,
+  style: EdgeStyle | EdgePath,
   run: RunState | undefined,
   selected: ReadonlySet<string>,
 ): FarPrimitive[] {
   const out: FarPrimitive[] = [];
+  const path: EdgePath =
+    typeof style === "function" ? style : (a, b, around) => edgePath(a, b, style, around);
   for (const edge of edges) {
-    const g = edgeGeometry(index, edge, style);
+    const g = edgeGeometryWith(index, edge, path);
     if (!g) continue;
     const status = edgeStatus(run, edge.id);
     const sel = selected.has(edge.id);

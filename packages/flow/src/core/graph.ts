@@ -1,30 +1,51 @@
 // Edits of a flow graph as pure functions: each returns a new graph and leaves the one it was given
-// untouched. Connecting goes through `checkConnection`, which says why a connection is refused:
-// a missing port, the wrong direction, two types that do not match, an input already taken, a
-// cycle when cycles are forbidden.
+// untouched. Connecting goes through `checkConnection`, which asks the connection rules of the
+// plugins in force and gives the reason of the first that refuses: with the `full` preset a missing
+// port, two types that do not match, an input already taken, a cycle; with the minimal core alone,
+// nothing but a missing node or port.
 
+import { registryOrDefault } from "./defaults";
 import {
-  ANY,
+  addNodes,
+  extractSubgraph,
+  pasteSubgraph,
+  removeEdges,
+  removeNodes,
+  topologicalOrder,
+  updateNode,
+} from "./edit";
+import {
   idsOf,
   indexGraph,
   nextId,
   portOf,
+  reaches,
   type FlowEdge,
   type FlowGraph,
-  type FlowGroup,
   type FlowNode,
   type FlowPort,
   type GraphIndex,
   type PortRef,
 } from "./model";
+import type { ConnectOptions } from "./plugin";
 
-export interface ConnectOptions {
-  /** `forbid` (default): an edge that closes a loop is refused. `allow`: loops are drawn. */
-  cycles?: "forbid" | "allow";
-  /** Whether an output of type `from` may feed an input of type `to`. Equal types, or `any`. */
-  compatible?: (from: string, to: string) => boolean;
-}
+export type { ConnectOptions };
+export {
+  addNodes,
+  extractSubgraph,
+  pasteSubgraph,
+  reaches,
+  removeEdges,
+  removeNodes,
+  topologicalOrder,
+  updateNode,
+};
 
+/**
+ * Why a connection is refused: `missing-node` and `missing-port` from the core, then the reason of
+ * the rule that refused (`same-node`, `type`, `duplicate`, `fan-out`, `occupied`, `cycle` for the
+ * bundled ones; a plugin's own for its own).
+ */
 export type ConnectError =
   | "missing-node"
   | "missing-port"
@@ -33,28 +54,8 @@ export type ConnectError =
   | "duplicate"
   | "occupied"
   | "fan-out"
-  | "cycle";
-
-const defaultCompatible = (a: string, b: string) => a === b || a === ANY || b === ANY;
-
-/** Whether a path of edges leads from `start` to `goal`. */
-export function reaches<D>(index: GraphIndex<D>, start: string, goal: string): boolean {
-  if (start === goal) return true;
-  const seen = new Set([start]);
-  const stack = [start];
-  while (stack.length) {
-    const id = stack.pop()!;
-    for (const e of index.out.get(id) ?? []) {
-      const next = e.to.node;
-      if (next === goal) return true;
-      if (!seen.has(next)) {
-        seen.add(next);
-        stack.push(next);
-      }
-    }
-  }
-  return false;
-}
+  | "cycle"
+  | (string & {});
 
 /**
  * Why an edge from an output to an input would be refused, or null when it may be made. `ignore`
@@ -73,19 +74,29 @@ export function checkConnection<D>(
   const source = index.nodes.get(from.node);
   const target = index.nodes.get(to.node);
   if (!source || !target) return "missing-node";
-  if (source.id === target.id) return "same-node";
   const out = portOf(source, "out", from.port);
   const input = portOf(target, "in", to.port);
   if (!out || !input) return "missing-port";
-  const compatible = options.compatible ?? defaultCompatible;
-  if (!compatible(out.type ?? ANY, input.type ?? ANY)) return "type";
-  const leaving = (index.out.get(source.id) ?? []).filter((e) => e.from.port === out.id);
-  if (leaving.some((e) => e.to.node === target.id && e.to.port === input.id)) return "duplicate";
-  if (out.multiple === false && leaving.length > 0) return "fan-out";
-  const entering = (index.in.get(target.id) ?? []).filter((e) => e.to.port === input.id);
-  if (!input.multiple && entering.length > 0) return "occupied";
-  if ((options.cycles ?? "forbid") === "forbid" && reaches(index, target.id, source.id))
-    return "cycle";
+  const registry = registryOrDefault(options.plugins);
+  if (registry.rules.length === 0) return null;
+  const ctx = {
+    graph,
+    index,
+    from,
+    to,
+    source,
+    target,
+    out,
+    input,
+    leaving: (index.out.get(source.id) ?? []).filter((e) => e.from.port === out.id),
+    entering: (index.in.get(target.id) ?? []).filter((e) => e.to.port === input.id),
+    options,
+    registry,
+  };
+  for (const rule of registry.rules) {
+    const why = rule.check(ctx as never);
+    if (why) return why;
+  }
   return null;
 }
 
@@ -170,49 +181,13 @@ export function reconnect<D>(
   };
 }
 
-export function addNodes<D>(graph: FlowGraph<D>, nodes: ReadonlyArray<FlowNode<D>>): FlowGraph<D> {
-  const taken = idsOf(graph);
-  for (const n of nodes) {
-    if (taken.has(n.id)) throw new Error(`addNodes: the id "${n.id}" is taken.`);
-    taken.add(n.id);
-  }
-  return { ...graph, nodes: [...graph.nodes, ...nodes] };
-}
-
-/** Without these nodes, their edges, and their place in groups (a group left empty goes too). */
-export function removeNodes<D>(graph: FlowGraph<D>, ids: Iterable<string>): FlowGraph<D> {
-  const gone = new Set(ids);
-  return {
-    ...graph,
-    nodes: graph.nodes.filter((n) => !gone.has(n.id)),
-    edges: graph.edges.filter((e) => !gone.has(e.from.node) && !gone.has(e.to.node)),
-    groups: graph.groups
-      .map((g) => ({ ...g, nodes: g.nodes.filter((id) => !gone.has(id)) }))
-      .filter((g) => g.nodes.length > 0),
-  };
-}
-
-export function removeEdges<D>(graph: FlowGraph<D>, ids: Iterable<string>): FlowGraph<D> {
-  const gone = new Set(ids);
-  return { ...graph, edges: graph.edges.filter((e) => !gone.has(e.id)) };
-}
-
-/** A copy with fields of one node replaced. */
-export function updateNode<D>(
-  graph: FlowGraph<D>,
-  id: string,
-  patch: Partial<Omit<FlowNode<D>, "id">>,
-): FlowGraph<D> {
-  return { ...graph, nodes: graph.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) };
-}
-
-const firstCompatible = (
+const firstMatch = (
   outs: ReadonlyArray<FlowPort>,
   ins: ReadonlyArray<FlowPort>,
-  compatible: (a: string, b: string) => boolean,
+  matches: (out: FlowPort, input: FlowPort) => boolean,
 ) => {
   for (const o of outs) {
-    for (const i of ins) if (compatible(o.type ?? ANY, i.type ?? ANY)) return [o, i] as const;
+    for (const i of ins) if (matches(o, i)) return [o, i] as const;
   }
   return null;
 };
@@ -236,9 +211,10 @@ export function insertOnEdge<D>(
   const outPort = source && portOf(source, "out", edge.from.port);
   const inPort = target && portOf(target, "in", edge.to.port);
   if (!outPort || !inPort) return { ok: false, error: "missing-port" };
-  const compatible = options.compatible ?? defaultCompatible;
-  const enter = firstCompatible([outPort], node.inputs, compatible);
-  const leave = firstCompatible(node.outputs, [inPort], compatible);
+  const registry = registryOrDefault(options.plugins);
+  const matches = (o: FlowPort, i: FlowPort) => registry.matches(o, i, options);
+  const enter = firstMatch([outPort], node.inputs, matches);
+  const leave = firstMatch(node.outputs, [inPort], matches);
   if (!enter || !leave) return { ok: false, error: "type" };
   const withNode = addNodes(removeEdges(graph, [edgeId]), [node]);
   const taken = idsOf(withNode);
@@ -251,119 +227,4 @@ export function insertOnEdge<D>(
   };
   const next = { ...withNode, edges: [...withNode.edges, a, b] };
   return { ok: true, graph: next, edge: a, edges: [a, b] };
-}
-
-/* ---------------------------------------------------------------- Groups */
-
-/** Puts nodes in a new group, taking them out of the one they were in. */
-export function groupNodes<D>(
-  graph: FlowGraph<D>,
-  ids: Iterable<string>,
-  label: string,
-  id = nextId("group", idsOf(graph)),
-): FlowGraph<D> {
-  const known = new Set(graph.nodes.map((n) => n.id));
-  const members = [...new Set(ids)].filter((n) => known.has(n));
-  if (members.length === 0) return graph;
-  const taken = new Set(members);
-  const groups: FlowGroup[] = graph.groups
-    .map((g) => ({ ...g, nodes: g.nodes.filter((n) => !taken.has(n)) }))
-    .filter((g) => g.nodes.length > 0);
-  return { ...graph, groups: [...groups, { id, label, nodes: members }] };
-}
-
-export function ungroup<D>(graph: FlowGraph<D>, groupId: string): FlowGraph<D> {
-  return { ...graph, groups: graph.groups.filter((g) => g.id !== groupId) };
-}
-
-/* ---------------------------------------------------------------- Copy and paste */
-
-/** The nodes, the edges between them and the groups wholly inside: what a copy carries. */
-export function extractSubgraph<D>(graph: FlowGraph<D>, ids: Iterable<string>): FlowGraph<D> {
-  const keep = new Set(ids);
-  return {
-    version: graph.version,
-    nodes: graph.nodes.filter((n) => keep.has(n.id)),
-    edges: graph.edges.filter((e) => keep.has(e.from.node) && keep.has(e.to.node)),
-    groups: graph.groups.filter((g) => g.nodes.every((n) => keep.has(n))),
-  };
-}
-
-/**
- * Adds a copy of `fragment` (from `extractSubgraph`, or pasted JSON) under new ids, moved by
- * `offset`. Edges and groups follow their nodes. Gives the new graph and the ids, old to new.
- */
-export function pasteSubgraph<D>(
-  graph: FlowGraph<D>,
-  fragment: FlowGraph<D>,
-  offset: { x: number; y: number },
-  prefix = (node: FlowNode<D>) => node.type || "node",
-): { graph: FlowGraph<D>; ids: Map<string, string> } {
-  const taken = idsOf(graph);
-  const ids = new Map<string, string>();
-  const take = (old: string, p: string) => {
-    const id = nextId(p, taken);
-    taken.add(id);
-    ids.set(old, id);
-    return id;
-  };
-  const nodes = fragment.nodes.map((n) => ({
-    ...n,
-    id: take(n.id, prefix(n)),
-    position: { x: n.position.x + offset.x, y: n.position.y + offset.y },
-  }));
-  const edges = fragment.edges
-    .filter((e) => ids.has(e.from.node) && ids.has(e.to.node))
-    .map((e) => ({
-      id: take(`edge:${e.id}`, "edge"),
-      from: { node: ids.get(e.from.node)!, port: e.from.port },
-      to: { node: ids.get(e.to.node)!, port: e.to.port },
-    }));
-  const groups = fragment.groups
-    .map((g) => ({
-      id: take(`group:${g.id}`, "group"),
-      label: g.label,
-      nodes: g.nodes.filter((n) => ids.has(n)).map((n) => ids.get(n)!),
-    }))
-    .filter((g) => g.nodes.length > 0);
-  return {
-    graph: {
-      ...graph,
-      nodes: [...graph.nodes, ...nodes],
-      edges: [...graph.edges, ...edges],
-      groups: [...graph.groups, ...groups],
-    },
-    ids,
-  };
-}
-
-/* ---------------------------------------------------------------- Order */
-
-/**
- * The nodes in an order where every edge goes forward (Kahn's algorithm, ties in document order).
- * Nodes on a loop, which have no such place, come last in document order.
- */
-export function topologicalOrder<D>(graph: FlowGraph<D>): string[] {
-  const index = indexGraph(graph);
-  const pending = new Map(graph.nodes.map((n) => [n.id, index.in.get(n.id)!.length] as const));
-  const order: string[] = [];
-  const position = new Map(graph.nodes.map((n, i) => [n.id, i] as const));
-  let ready = graph.nodes.filter((n) => pending.get(n.id) === 0).map((n) => n.id);
-  while (ready.length) {
-    const next: string[] = [];
-    for (const id of ready) {
-      order.push(id);
-      for (const e of index.out.get(id)!) {
-        const left = pending.get(e.to.node)! - 1;
-        pending.set(e.to.node, left);
-        if (left === 0) next.push(e.to.node);
-      }
-    }
-    ready = next.sort((a, b) => position.get(a)! - position.get(b)!);
-  }
-  if (order.length < graph.nodes.length) {
-    const done = new Set(order);
-    for (const n of graph.nodes) if (!done.has(n.id)) order.push(n.id);
-  }
-  return order;
 }

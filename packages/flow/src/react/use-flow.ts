@@ -13,15 +13,28 @@ import {
 } from "../core/controller";
 import { flowKinds, graphToItems, type FlowItemData } from "../core/items";
 import { emptyGraph, type FlowGraph } from "../core/model";
+import type { FlowCorePlugin } from "../core/plugin";
 
-export interface UseFlowOptions<D> extends FlowControllerOptions {
+/** A plugin of a list: its two halves (`{ core, ... }`), or a core half alone. */
+type PluginEntry = FlowCorePlugin | { readonly core: FlowCorePlugin };
+const coreOf = (p: PluginEntry): FlowCorePlugin => ("core" in p ? p.core : p);
+
+export interface UseFlowOptions<D> extends Omit<FlowControllerOptions, "plugins"> {
   /** The graph to start from; later values are ignored (use `flow.load`). */
   graph?: FlowGraph<D>;
+  /**
+   * The plugins of the editor, editor halves or core halves (the `full` preset's when none): they
+   * decide the rules a connection answers to, the layout, the clipboard. `<FlowCanvas>` draws the
+   * same list unless it is given its own. Keep the list stable (module scope).
+   */
+  plugins?: ReadonlyArray<PluginEntry>;
   grid?: Partial<GridOptions>;
   readOnly?: boolean;
 }
 
 export interface FlowApi<D = unknown> extends FlowController<D> {
+  /** The plugin list `useFlow` was given, for `<FlowCanvas>` to draw; undefined for the default. */
+  pluginList: ReadonlyArray<PluginEntry> | undefined;
   /** The graph now; a new object after each change of the document. */
   current: FlowGraph<D>;
   selectedEdges: ReadonlySet<string>;
@@ -39,8 +52,13 @@ export function useFlow<D = unknown>(options: UseFlowOptions<D> = {}): FlowApi<D
       ...(options.grid ? { grid: options.grid } : {}),
       ...(options.readOnly ? { readOnly: true } : {}),
     });
-    return createFlowController(store, options);
+    const { plugins, ...rest } = options;
+    return createFlowController(store, {
+      ...rest,
+      ...(plugins ? { plugins: plugins.map(coreOf) } : {}),
+    });
   });
+  const pluginList = options.plugins;
   const items = useCanvasState(controller.store, (s) => s.items);
   // The controller caches the graph by the items it was read from.
   const current = useMemo(() => {
@@ -73,7 +91,7 @@ export function useFlow<D = unknown>(options: UseFlowOptions<D> = {}): FlowApi<D
     [],
   );
   return useMemo(
-    () => ({ ...controller, current, selectedEdges: live, selectEdges }),
-    [controller, current, live, selectEdges],
+    () => ({ ...controller, pluginList, current, selectedEdges: live, selectEdges }),
+    [controller, pluginList, current, live, selectEdges],
   );
 }

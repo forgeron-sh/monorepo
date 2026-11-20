@@ -209,6 +209,24 @@ const cases: Case[] = [
     files: { [`packages/flow/src/core/${F}.ts`]: `import "node:fs";\n` },
   },
   {
+    rule: "flow-core-is-framework-free",
+    files: {
+      [`packages/flow/src/plugins/${F}.ts`]: `import "./editor/${F}_target.ts";\n`,
+      [`packages/flow/src/plugins/editor/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "flow-core-is-framework-free",
+    files: {
+      [`packages/flow/src/plugins/${F}.ts`]: `import "../react/${F}_target.ts";\n`,
+      [`packages/flow/src/react/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "flow-core-stays-neutral",
+    files: { [`packages/flow/src/plugins/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
     rule: "ui-does-not-import-editors",
     files: {
       [`packages/ui/src/${F}.ts`]: `import "../../draw/src/${F}_target.ts";\n`,
@@ -239,6 +257,24 @@ const cases: Case[] = [
   {
     rule: "draw-core-stays-neutral",
     files: { [`packages/draw/src/core/${F}.ts`]: `import "node:fs";\n` },
+  },
+  {
+    rule: "draw-core-is-framework-free",
+    files: {
+      [`packages/draw/src/plugins/${F}.ts`]: `import "./editor/${F}_target.ts";\n`,
+      [`packages/draw/src/plugins/editor/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-core-is-framework-free",
+    files: {
+      [`packages/draw/src/core/${F}.ts`]: `import "../plugins/editor/${F}_target.ts";\n`,
+      [`packages/draw/src/plugins/editor/${F}_target.ts`]: STUB,
+    },
+  },
+  {
+    rule: "draw-core-stays-neutral",
+    files: { [`packages/draw/src/plugins/${F}.ts`]: `import "node:fs";\n` },
   },
   {
     rule: "ui-does-not-import-editors",

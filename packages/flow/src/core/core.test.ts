@@ -2,7 +2,9 @@ import { createCanvasStore } from "@forgeron/canvas";
 import { describe, expect, it } from "vitest";
 import { createFlowController, type FlowStore } from "./controller";
 import { generateFlowGraph } from "./generate";
-import { edgeBounds, edgePath, groupBounds, portPoint } from "./geometry";
+import { groupBounds } from "../plugins/groups";
+import { edgePath } from "../plugins/edges";
+import { edgeBounds, portPoint } from "./geometry";
 import {
   canConnect,
   checkConnection,
@@ -15,9 +17,9 @@ import {
   topologicalOrder,
 } from "./graph";
 import { flowKinds, graphToItems, itemsToGraph, type FlowItemData } from "./items";
-import { applyLayout, layoutGraph } from "./layout";
+import { applyLayout, layoutGraph } from "../plugins/layout";
 import { emptyGraph, indexGraph, type FlowGraph, type FlowNode } from "./model";
-import { planRun } from "./run";
+import { planRun } from "../plugins/run";
 import { FlowFormatError, parseFlow, serializeFlow } from "./serialize";
 
 type Data = { title: string };

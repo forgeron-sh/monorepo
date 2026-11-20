@@ -19,8 +19,13 @@
 // always gives the same drawing.
 
 import type { Point } from "@forgeron/canvas";
-import { portOffset } from "./geometry";
-import type { FlowGraph } from "./model";
+import { applyLayout } from "../core/edit";
+import { portOffset } from "../core/geometry";
+import type { FlowGraph } from "../core/model";
+import { definePlugin, type LayoutResult } from "../core/plugin";
+
+export { applyLayout };
+export type { LayoutResult };
 
 export interface LayoutOptions {
   /** Between two layers, in world units. 80 by default. */
@@ -43,17 +48,6 @@ export interface LayoutOptions {
    */
   groupPadding?: number;
   groupLabel?: number;
-}
-
-export interface LayoutResult {
-  /** The top-left corner of each node. */
-  positions: Map<string, Point>;
-  /** The nodes of each layer, top to bottom. */
-  layers: string[][];
-  /** Crossings left between the layers (virtual nodes included). */
-  crossings: number;
-  /** The edges turned around to break cycles. */
-  reversed: string[];
 }
 
 interface Vertex {
@@ -555,15 +549,16 @@ function inversions(values: number[]): number {
   return count;
 }
 
-/** The graph with every node where the layout put it. */
-export function applyLayout<D>(graph: FlowGraph<D>, layout: LayoutResult): FlowGraph<D> {
-  return {
-    ...graph,
-    nodes: graph.nodes.map((node) => {
-      const p = layout.positions.get(node.id);
-      return p && (p.x !== node.position.x || p.y !== node.position.y)
-        ? { ...node, position: p }
-        : node;
-    }),
-  };
-}
+/** The layered auto-layout as a plugin: one engine, `layered`, the default of the editor. */
+export const layeredLayout = definePlugin({
+  id: "layered",
+  name: "Layered auto-layout",
+  description:
+    "Lays the graph out left to right in layers (Sugiyama): cycles broken, crossings reduced, edges straightened, groups kept apart, on the grid.",
+  layouts: {
+    layered: {
+      label: "Layered, left to right",
+      layout: layoutGraph,
+    },
+  },
+});

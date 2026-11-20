@@ -198,19 +198,22 @@ module.exports = {
       to: { path: "^packages/(draw|blueprint)/" },
     },
     {
-      // The core of flow (the graph, its rules, the layout, run state, the controller) is data and
-      // pure functions on canvas's core: no React, no view, no ui, no Node module.
+      // The core of flow (the graph, the plugin host, the controller) and the core halves of its
+      // plugins (rules, layout, run planning, groups, the clipboard: `src/plugins/*.ts`) are data
+      // and pure functions on canvas's core: no React, no view, no editor half
+      // (`src/plugins/editor/`), no ui, no Node module. Its React half is checked by
+      // `scripts/flow-boundary.test.ts`, as dependency-cruiser does not follow `node_modules`.
       name: "flow-core-is-framework-free",
       severity: "error",
-      from: { path: "^packages/flow/src/(core/|index\\.ts$)" },
+      from: { path: "^packages/flow/src/(core/|index\\.ts$|plugins/[^/]+\\.ts$)" },
       to: {
-        path: "^packages/flow/src/react/|^packages/canvas/src/react/|^packages/ui/|(^|/)node_modules/(react|react-dom)/",
+        path: "^packages/flow/src/(react|plugins/editor)/|^packages/canvas/src/react/|^packages/ui/|(^|/)node_modules/(react|react-dom)/",
       },
     },
     {
       name: "flow-core-stays-neutral",
       severity: "error",
-      from: { path: "^packages/flow/src/(core/|index\\.ts$)" },
+      from: { path: "^packages/flow/src/(core/|index\\.ts$|plugins/[^/]+\\.ts$)" },
       to: { dependencyTypes: ["core"] },
     },
     {
@@ -221,19 +224,21 @@ module.exports = {
       to: { path: "^packages/(flow|blueprint)/" },
     },
     {
-      // The core of draw (kinds, the draw engine, arrows, frames, the pen, the board's JSON, the SVG
-      // export) is data and pure functions on canvas's core: no React, no view, no ui, no Node module.
+      // The core of draw (the plugin contract, the draw engine, the board's JSON, the SVG export,
+      // and the core halves of the plugins in `src/plugins/*.ts`: the kinds, the arrows, the frames,
+      // the pen) is data and pure functions on canvas's core: no React, no view, no ui, no editor
+      // half (`src/plugins/editor/`), no Node module. The editor reads it, never the reverse.
       name: "draw-core-is-framework-free",
       severity: "error",
-      from: { path: "^packages/draw/src/(core/|index\\.ts$)" },
+      from: { path: "^packages/draw/src/(core/|index\\.ts$|plugins/([^/]+\\.ts$|docs/))" },
       to: {
-        path: "^packages/draw/src/react/|^packages/canvas/src/react/|^packages/ui/|(^|/)node_modules/(react|react-dom)/",
+        path: "^packages/draw/src/(react|plugins/editor)/|^packages/canvas/src/react/|^packages/ui/|(^|/)node_modules/(react|react-dom)/",
       },
     },
     {
       name: "draw-core-stays-neutral",
       severity: "error",
-      from: { path: "^packages/draw/src/(core/|index\\.ts$)" },
+      from: { path: "^packages/draw/src/(core/|index\\.ts$|plugins/([^/]+\\.ts$|docs/))" },
       to: { dependencyTypes: ["core"] },
     },
     {

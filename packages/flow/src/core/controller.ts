@@ -4,27 +4,22 @@
 // pasted subgraph, a whole layout). The React layer and tests drive the same object.
 
 import type { CanvasStore, ConnectionEnd, Point } from "@forgeron/canvas";
+import type { LayoutOptions } from "../plugins/layout";
+import { registryOrDefault } from "./defaults";
+import { applyLayout, removeEdges, removeNodes, updateNode } from "./edit";
 import {
   checkConnection,
   connect,
-  extractSubgraph,
-  groupNodes,
   inputFor,
   insertOnEdge,
   outputFor,
-  pasteSubgraph,
   reconnect,
-  removeEdges,
-  removeNodes,
-  ungroup,
-  updateNode,
-  type ConnectOptions,
   type ConnectResult,
 } from "./graph";
 import { graphToItems, isNodeItem, itemsToGraph, NODE_KIND, type FlowItemData } from "./items";
-import { applyLayout, layoutGraph, type LayoutOptions, type LayoutResult } from "./layout";
 import { idsOf, nextId, type FlowGraph, type FlowNode, type PortRef, type PortSide } from "./model";
-import { FlowFormatError, parseFlow, serializeFlow } from "./serialize";
+import type { ConnectOptions, LayoutResult, Plugins, Registry } from "./plugin";
+import { parseFlow, serializeFlow } from "./serialize";
 
 export type FlowStore<D = unknown> = CanvasStore<FlowItemData<D>>;
 
@@ -37,14 +32,21 @@ export function parseHandle(handle: string | undefined): { side: PortSide; port:
 }
 
 export interface FlowControllerOptions {
-  connect?: ConnectOptions;
+  connect?: Omit<ConnectOptions, "plugins">;
+  /** The options of the layout engine (the layered one's by default). */
   layout?: LayoutOptions;
+  /** The core halves of the plugins in force; the `full` preset's when none. */
+  plugins?: Plugins;
 }
 
 export type NewNode<D> = Omit<FlowNode<D>, "id"> & { id?: string };
 
 export interface FlowController<D = unknown> {
   readonly store: FlowStore<D>;
+  /** The registry of the plugins in force. */
+  registry(): Registry;
+  /** Changes the plugins in force (the rules, the layout, the clipboard...); the document stays. */
+  setPlugins(plugins: Plugins): void;
   /** The graph the canvas holds now (cached until the items change). */
   graph(): FlowGraph<D>;
   /** Writes `next` to the canvas as one undo step; false when nothing changed. */
@@ -55,12 +57,23 @@ export interface FlowController<D = unknown> {
   /** The output and input a connect gesture between two canvas ends means, or null. */
   resolve(from: ConnectionEnd, to: ConnectionEnd): { from: PortRef; to: PortRef } | null;
   canConnectEnds(from: ConnectionEnd, to: ConnectionEnd): boolean;
+  /**
+   * Why a connect gesture between two canvas ends is refused (the reason code and its sentence),
+   * or null when it may be made (or means nothing, like a port onto the same node).
+   */
+  refusal(from: ConnectionEnd, to: ConnectionEnd): { reason: string; message: string } | null;
   connect(from: PortRef, to: PortRef): ConnectResult<D>;
   connectEnds(from: ConnectionEnd, to: ConnectionEnd): ConnectResult<D> | null;
   reconnect(edgeId: string, end: "from" | "to", ref: PortRef): ConnectResult<D>;
   removeEdges(ids: Iterable<string>): void;
   /** Adds a node (its id from its type when it has none), selects it, optionally fed by `from`. */
   addNode(node: NewNode<D>, from?: PortRef): FlowNode<D>;
+  /** Adds a node of a kind a plugin brings (its size, ports and data from the kind). */
+  addKind(
+    type: string,
+    init?: Partial<Omit<FlowNode<D>, "id" | "type">> & { id?: string },
+    from?: PortRef,
+  ): FlowNode<D>;
   insertOnEdge(edgeId: string, node: NewNode<D>): ConnectResult<D>;
   updateNode(id: string, patch: Partial<Omit<FlowNode<D>, "id">>, label?: string): void;
   /** Deletes the selected nodes (and their edges) and these edges, as one step. */
@@ -83,7 +96,10 @@ export function createFlowController<D>(
   let cached: FlowGraph<D> | null = null;
   let clipboard: string | null = null;
   let pasteCount = 0;
-  const rules = options.connect ?? {};
+  let registry = registryOrDefault(options.plugins);
+  // The rules are read at each call: the plugins may change under a running editor.
+  let ruleOptions: ConnectOptions = { ...options.connect, plugins: registry };
+  const rules = () => ruleOptions;
 
   const graph = () => {
     const items = store.getState().items;
@@ -151,7 +167,7 @@ export function createFlowController<D>(
         ? b.side === "in"
           ? { node: to.itemId, port: b.port }
           : null
-        : inputFor(g, source, to.itemId, rules);
+        : inputFor(g, source, to.itemId, rules());
       return target ? { from: source, to: target } : null;
     }
     // Dragged backwards, from an input to an output.
@@ -160,26 +176,21 @@ export function createFlowController<D>(
       ? b.side === "out"
         ? { node: to.itemId, port: b.port }
         : null
-      : outputFor(g, to.itemId, target, rules);
+      : outputFor(g, to.itemId, target, rules());
     return source ? { from: source, to: target } : null;
   };
 
   const doConnect = (from: PortRef, to: PortRef) => {
-    const r = connect(graph(), from, to, rules);
+    const r = connect(graph(), from, to, rules());
     if (r.ok) commit(r.graph, "Connect");
     return r;
   };
 
   const paste = (json = clipboard ?? undefined, at?: Point): string[] => {
-    if (!json) return [];
-    let fragment: FlowGraph<D>;
-    try {
-      fragment = parseFlow<D>(json);
-    } catch (e) {
-      if (e instanceof FlowFormatError) return [];
-      throw e;
-    }
-    if (fragment.nodes.length === 0) return [];
+    const board = registry.clipboard;
+    if (!json || !board) return [];
+    const fragment = board.read<D>(json);
+    if (!fragment || fragment.nodes.length === 0) return [];
     const minX = Math.min(...fragment.nodes.map((n) => n.position.x));
     const minY = Math.min(...fragment.nodes.map((n) => n.position.y));
     pasteCount++;
@@ -187,7 +198,7 @@ export function createFlowController<D>(
     const offset = at
       ? { x: at.x - minX, y: at.y - minY }
       : { x: step * pasteCount, y: step * pasteCount };
-    const { graph: next, ids } = pasteSubgraph(graph(), fragment, offset);
+    const { graph: next, ids } = board.paste(graph(), fragment, offset);
     commit(next, "Paste");
     const created = fragment.nodes.map((n) => ids.get(n.id)!);
     store.select(created);
@@ -196,8 +207,8 @@ export function createFlowController<D>(
 
   const copySelection = () => {
     const ids = selectedNodes();
-    if (ids.length === 0) return null;
-    clipboard = serializeFlow(extractSubgraph(graph(), ids));
+    if (ids.length === 0 || !registry.clipboard) return null;
+    clipboard = registry.clipboard.copy(graph(), ids);
     pasteCount = 0;
     return clipboard;
   };
@@ -207,8 +218,8 @@ export function createFlowController<D>(
     const full: FlowNode<D> = { ...node, id: node.id ?? nextId(node.type || "node", idsOf(g)) };
     let next: FlowGraph<D> = { ...g, nodes: [...g.nodes, full] };
     if (from) {
-      const to = inputFor(next, from, full.id, rules);
-      const r = to ? connect(next, from, to, rules) : null;
+      const to = inputFor(next, from, full.id, rules());
+      const r = to ? connect(next, from, to, rules()) : null;
       if (r?.ok) next = r.graph;
     }
     commit(next, "Add");
@@ -218,17 +229,39 @@ export function createFlowController<D>(
 
   return {
     store,
+    registry: () => registry,
+    setPlugins: (next) => {
+      registry = registryOrDefault(next);
+      ruleOptions = { ...options.connect, plugins: registry };
+    },
     graph,
     commit,
     load: (source) => {
-      const g = typeof source === "string" ? parseFlow<D>(source) : source;
+      const g = typeof source === "string" ? parseFlow<D>(source, registry) : source;
       store.replace(graphToItems(g));
     },
     toJSON: (space) => serializeFlow(graph(), space),
     resolve,
     canConnectEnds: (from, to) => {
       const r = resolve(from, to);
-      return !!r && checkConnection(graph(), r.from, r.to, rules) === null;
+      return !!r && checkConnection(graph(), r.from, r.to, rules()) === null;
+    },
+    refusal: (from, to) => {
+      const g = graph();
+      let r = resolve(from, to);
+      const a = parseHandle(from.handle);
+      if (!r && a?.side === "out" && !parseHandle(to.handle) && from.itemId !== to.itemId) {
+        // Dropped on a node no input of which takes it: the reason is the first input's.
+        const first = g.nodes.find((n) => n.id === to.itemId)?.inputs[0];
+        if (first)
+          r = {
+            from: { node: from.itemId, port: a.port },
+            to: { node: to.itemId, port: first.id },
+          };
+      }
+      if (!r) return null;
+      const reason = checkConnection(g, r.from, r.to, rules());
+      return reason ? { reason, message: registry.explain(reason) } : null;
     },
     connect: doConnect,
     connectEnds: (from, to) => {
@@ -236,16 +269,17 @@ export function createFlowController<D>(
       return r ? doConnect(r.from, r.to) : null;
     },
     reconnect: (edgeId, end, ref) => {
-      const r = reconnect(graph(), edgeId, end, ref, rules);
+      const r = reconnect(graph(), edgeId, end, ref, rules());
       if (r.ok) commit(r.graph, "Reconnect");
       return r;
     },
     removeEdges: (ids) => void commit(removeEdges(graph(), ids), "Delete"),
     addNode,
+    addKind: (type, init, from) => addNode(registry.createNode<D>(type, init), from),
     insertOnEdge: (edgeId, node) => {
       const g = graph();
       const full: FlowNode<D> = { ...node, id: node.id ?? nextId(node.type || "node", idsOf(g)) };
-      const r = insertOnEdge(g, edgeId, full, rules);
+      const r = insertOnEdge(g, edgeId, full, rules());
       if (r.ok) {
         commit(r.graph, "Insert");
         store.select([full.id]);
@@ -258,7 +292,9 @@ export function createFlowController<D>(
       commit(removeEdges(removeNodes(graph(), nodes), edgeIds), "Delete");
     },
     duplicateSelection: () => {
-      const json = serializeFlow(extractSubgraph(graph(), selectedNodes()));
+      const board = registry.clipboard;
+      if (!board) return [];
+      const json = board.copy(graph(), selectedNodes());
       const keep = clipboard;
       const keepCount = pasteCount;
       pasteCount = 0;
@@ -269,10 +305,17 @@ export function createFlowController<D>(
     },
     copySelection,
     paste,
-    groupSelection: (label) => void commit(groupNodes(graph(), selectedNodes(), label), "Group"),
-    ungroup: (groupId) => void commit(ungroup(graph(), groupId), "Ungroup"),
+    groupSelection: (label) => {
+      if (registry.groups) commit(registry.groups.group(graph(), selectedNodes(), label), "Group");
+    },
+    ungroup: (groupId) => {
+      if (registry.groups) commit(registry.groups.ungroup(graph(), groupId), "Ungroup");
+    },
     autoLayout: (overrides) => {
+      const engine = registry.layout();
       const g = graph();
+      // No layout plugin: nothing moves.
+      if (!engine) return { positions: new Map(), layers: [], crossings: 0, reversed: [] };
       const step = store.grid.size;
       const origin = g.nodes.length
         ? {
@@ -280,7 +323,12 @@ export function createFlowController<D>(
             y: Math.round(Math.min(...g.nodes.map((n) => n.position.y)) / step) * step,
           }
         : { x: 0, y: 0 };
-      const result = layoutGraph(g, { grid: step, origin, ...options.layout, ...overrides });
+      const result = engine.layout(g, {
+        grid: step,
+        origin,
+        ...options.layout,
+        ...overrides,
+      } as never);
       commit(applyLayout(g, result), "Auto-layout");
       return result;
     },

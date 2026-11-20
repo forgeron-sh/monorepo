@@ -18,6 +18,14 @@ const ENTRIES = [
   "packages/richtext/src/index.ts",
   // The core halves of its plugins: a read-only place imports them with the core.
   "packages/richtext/src/plugins/index.ts",
+  // The flow graph, its plugin host and the core halves of its plugins: a run plan on a server, a
+  // Worker validating a graph, a layout computed outside the browser.
+  // The board's JSON, its plugin host, the SVG export and the core halves of the draw plugins: a
+  // board preview in a Worker, an export at build time.
+  "packages/draw/src/index.ts",
+  "packages/draw/src/plugins/index.ts",
+  "packages/flow/src/index.ts",
+  "packages/flow/src/plugins/index.ts",
 ];
 
 let failed = false;

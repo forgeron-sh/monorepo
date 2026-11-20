@@ -201,3 +201,38 @@ export const tables: ReadonlyArray<ApiTable> = [
     ],
   },
 ];
+
+export const flowPluginsSnippet = `import { definePlugin } from "@forgeron/flow";
+import { FlowCanvas, defineEditorPlugin, useFlow } from "@forgeron/flow/react";
+import { minimalEditorPlugins, typedEditorPlugins } from "@forgeron/flow/plugins/editor";
+
+// A kind of node with a type of port of its own, and a rule that says why it refuses.
+const money = defineEditorPlugin({
+  core: definePlugin({
+    id: "money",
+    name: "Money",
+    description: "Invoices and payments.",
+    nodeKinds: {
+      invoice: { label: "Invoice", outputs: [{ id: "bill", type: "invoice" }] },
+      payment: { label: "Payment", inputs: [{ id: "due", type: "invoice" }] },
+    },
+    portTypes: { invoice: { label: "Invoice", color: "--accent" } },
+    connectionRules: [
+      {
+        id: "paid-once",
+        check: ({ source, target, graph }) =>
+          source.type === "invoice" && target.type === "payment" &&
+          graph.edges.some((e) => e.from.node === source.id)
+            ? "already-paid"
+            : null,
+        messages: { "already-paid": "An invoice is paid once." },
+      },
+    ],
+  }),
+  nodeRenderers: { invoice: (n) => <Invoice node={n} />, payment: (n) => <Payment node={n} /> },
+});
+
+// A list at module scope: nodes and edges, the rules, and yours. A new list rebuilds the editor.
+const plugins = [...typedEditorPlugins, money];
+const flow = useFlow({ graph, plugins });
+<FlowCanvas flow={flow} label="Billing" plugins={plugins} />;`;

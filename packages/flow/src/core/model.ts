@@ -112,3 +112,22 @@ export const idsOf = <D>(graph: FlowGraph<D>): Set<string> =>
     ...graph.edges.map((e) => e.id),
     ...graph.groups.map((g) => g.id),
   ]);
+
+/** Whether a path of edges leads from `start` to `goal`. */
+export function reaches<D>(index: GraphIndex<D>, start: string, goal: string): boolean {
+  if (start === goal) return true;
+  const seen = new Set([start]);
+  const stack = [start];
+  while (stack.length) {
+    const id = stack.pop()!;
+    for (const e of index.out.get(id) ?? []) {
+      const next = e.to.node;
+      if (next === goal) return true;
+      if (!seen.has(next)) {
+        seen.add(next);
+        stack.push(next);
+      }
+    }
+  }
+  return false;
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { farEdges, farNode, flattenPath } from "./far";
-import { edgePath } from "./geometry";
-import { emptyGraph, indexGraph, type FlowGraph, type FlowNode } from "./model";
+import { emptyGraph, indexGraph, type FlowGraph, type FlowNode } from "../../core/model";
+import { edgePath } from "../edges";
+import { farEdges, farNode, flattenPath } from "./far-view";
 
 const node = (id: string, x: number, y: number): FlowNode<null> => ({
   id,

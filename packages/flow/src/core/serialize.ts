@@ -11,6 +11,7 @@ import {
   type FlowNode,
   type FlowPort,
 } from "./model";
+import { registryOf, type Plugins } from "./plugin";
 
 export class FlowFormatError extends Error {
   override name = "FlowFormatError";
@@ -68,8 +69,12 @@ function readNode(raw: unknown, i: number): FlowNode {
   };
 }
 
-/** Reads a document written by `serializeFlow`, or throws a `FlowFormatError`. */
-export function parseFlow<D = unknown>(json: string): FlowGraph<D> {
+/**
+ * Reads a document written by `serializeFlow`, or throws a `FlowFormatError`. Node types and port
+ * types are never checked: a node no plugin knows is read as it is, and written back as it was.
+ * `plugins` may bring migrations of old node types (`FlowCorePlugin.migrate`); none by default.
+ */
+export function parseFlow<D = unknown>(json: string, plugins?: Plugins): FlowGraph<D> {
   let raw: unknown;
   try {
     raw = JSON.parse(json);
@@ -80,7 +85,11 @@ export function parseFlow<D = unknown>(json: string): FlowGraph<D> {
   if (raw.version !== FLOW_FORMAT_VERSION)
     throw new FlowFormatError(`Unknown version ${String(raw.version)}: this reads version 1.`);
   if (!Array.isArray(raw.nodes)) throw new FlowFormatError("nodes is not a list.");
-  const nodes = raw.nodes.map(readNode);
+  const registry = plugins ? registryOf(plugins) : undefined;
+  const nodes = raw.nodes.map((n, i) => {
+    const node = readNode(n, i);
+    return registry ? registry.migrate(node) : node;
+  });
   const ids = new Set<string>();
   const byId = new Map<string, FlowNode>();
   const claim = (id: string) => {
