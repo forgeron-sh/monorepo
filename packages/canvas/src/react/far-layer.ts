@@ -1,10 +1,18 @@
-// The GPU layer: every primitive of the GPU view on one surface under the DOM items. WebGL2 draws
-// the packed instances in one instanced call per layer and per run between images (a pan or a
-// zoom sets three uniforms); a 2D canvas draws the same instances when WebGL2 is missing or its
-// context is lost. Glyphs are instances too, sampled from an atlas (`glyph-atlas.ts`), so words
-// lie in the order of the drawing. Single-line `text` primitives (flow's names) big enough to read
-// go on a 2D canvas above it, redrawn with the camera only while there are some.
+// The GPU layer: every primitive of the GPU view on one surface under the DOM items. Each layer is a
+// buffer kept per group (`core/far-buffer.ts`: an item's drawing, an edge): a change packs and
+// uploads only the groups it touches, a group moved as a whole (a drag) only gets an offset, read
+// by the shader from a small texture. WebGL2 draws the instances in one instanced call per layer
+// and per run between images (a pan or a zoom sets three uniforms); a 2D canvas draws the same
+// instances when WebGL2 is missing or its context is lost. Glyphs are instances too, sampled from
+// an atlas (`glyph-atlas.ts`), so words lie in the order of the drawing; a one-line `text` is
+// drawn as glyphs. Marching dashes move with a time uniform, a frame at a time while some show.
 
+import {
+  createFarBuffer,
+  type FarBuffer,
+  type FarBufferUpdate,
+  type FarGroup,
+} from "../core/far-buffer";
 import {
   createFarPack,
   FAR_FLAG,
@@ -12,13 +20,14 @@ import {
   FAR_STRIDE,
   packFar,
   parseCssColor,
-  resetFarPack,
   type FarColor,
   type FarGlyphs,
+  type FarGlyphSource,
   type FarPack,
   type FarPrimitive,
   type FarRgba,
   type FarText,
+  type PackOptions,
 } from "../core/far";
 import type { Size, Viewport } from "../core/types";
 import { createGlyphAtlas, GLYPH_ROW, type GlyphAtlas } from "./glyph-atlas";
@@ -29,8 +38,13 @@ export type FarLayerName = "below" | "items" | "chrome";
 const LAYERS: ReadonlyArray<FarLayerName> = ["below", "items", "chrome"];
 
 export interface FarLayer {
-  /** Packs a layer's primitives: when they change, never on a camera move. */
-  set(layer: FarLayerName, prims: Iterable<FarPrimitive & { outset?: number }>): void;
+  /** A layer's primitives, as one group: packed when they change, never on a camera move. */
+  set(layer: FarLayerName, prims: ReadonlyArray<FarPrimitive & { outset?: number }>): void;
+  /**
+   * A layer's groups in drawing order (an item's drawing each): only the groups that changed are
+   * packed, a group moved as a whole is offset, not packed again (`far-buffer.ts`).
+   */
+  setGroups(layer: FarLayerName, groups: ReadonlyArray<FarGroup>): void;
   /** Draws with the camera of the moment. */
   draw(viewport: Viewport, size: Size): void;
   /** Shows or hides the surface; hidden, `draw` does nothing. */
@@ -39,6 +53,9 @@ export interface FarLayer {
   readonly mode: "webgl2" | "2d";
   destroy(): void;
 }
+
+/** Group offsets per row of the offsets texture. */
+const OFFSET_ROW = 1024;
 
 // The vertex shader turns one instance into a quad in device pixels, one pixel larger than what it
 // covers; the fragment shader covers it by its signed distance, so edges are smooth at any zoom,
@@ -56,7 +73,10 @@ layout(location = 4) in vec4 a_stroke;
 layout(location = 5) in vec4 a_clip;
 layout(location = 6) in vec4 a_dash;
 layout(location = 7) in vec4 a_pat;
+layout(location = 8) in float a_slot;
 uniform vec3 u_view;
+uniform float u_time;
+uniform highp sampler2D u_offsets;
 uniform vec2 u_size;
 uniform float u_dpr;
 uniform highp sampler2D u_glyphs;
@@ -77,6 +97,16 @@ void main() {
     (corner == 1 || corner == 4 || corner == 5) ? 1.0 : 0.0,
     (corner == 2 || corner == 3 || corner == 5) ? 1.0 : 0.0);
   float kind = a_g1.w;
+  // The group's offset (a moved item that was not packed again), added to every position.
+  int slot = int(a_slot + 0.5);
+  vec2 off = texelFetch(u_offsets, ivec2(slot % ${OFFSET_ROW}, slot / ${OFFSET_ROW}), 0).xy;
+  vec4 g0 = a_g0;
+  vec4 g1 = a_g1;
+  vec4 box = a_clip;
+  g0.xy += off;
+  box.xy += off;
+  if (kind > 2.5 && kind < 4.5) g0.zw += off;
+  if (kind > 3.5 && kind < 4.5) g1.xy += off;
   int flags = int(a_dash.w + 0.5);
   v_kind = kind;
   v_fill = a_fill;
@@ -93,14 +123,15 @@ void main() {
     return;
   }
   float scale = u_view.z * u_dpr;
-  float unit = a_g1.y > 0.5 ? u_dpr : scale;
-  v_dash = vec4(a_dash.xyz * unit, a_dash.w);
+  float unit = g1.y > 0.5 ? u_dpr : scale;
+  float march = (flags & ${FAR_FLAG.march}) != 0 ? a_pat.z * u_time : 0.0;
+  v_dash = vec4(a_dash.xy * unit, (a_dash.z - march) * unit, a_dash.w);
   vec2 pos;
   if (kind > 5.5) {
     // A glyph: its cell in the atlas. Rasterised at this very size, it lands on whole device
     // pixels at the quarter-pixel phase of its pen, as the DOM's text does; another size of it
     // (the zoom is moving) is scaled until this one is ready.
-    int id = int(a_g0.w + 0.5);
+    int id = int(g0.w + 0.5);
     ivec2 at = ivec2((id % ${GLYPH_ROW}) * 8, id / ${GLYPH_ROW});
     vec4 info = texelFetch(u_glyphs, at + ivec2(4, 0), 0);
     if (info.w < 0.5) {
@@ -110,8 +141,8 @@ void main() {
       return;
     }
     // The line's top on a device pixel of the unscaled page, as the DOM lays it out.
-    vec2 o = dev(vec2(a_g0.x, floor(a_g0.y * u_dpr + 0.5) / u_dpr + a_g1.x));
-    float k = a_g0.z * scale / info.z;
+    vec2 o = dev(vec2(g0.x, floor(g0.y * u_dpr + 0.5) / u_dpr + g1.x));
+    float k = g0.z * scale / info.z;
     vec4 r;
     vec2 p0;
     vec2 sz;
@@ -133,13 +164,13 @@ void main() {
     vec2 p0;
     vec2 p1;
     if ((flags & ${FAR_FLAG.chrome}) != 0) {
-      vec2 s0 = floor(a_g0.xy * u_view.z + u_view.xy + 0.5);
-      vec2 sz = floor(a_g0.zw * u_view.z + 0.5);
-      p0 = (s0 - floor(a_g1.z)) * u_dpr;
-      p1 = (s0 + sz + ceil(a_g1.z)) * u_dpr;
+      vec2 s0 = floor(g0.xy * u_view.z + u_view.xy + 0.5);
+      vec2 sz = floor(g0.zw * u_view.z + 0.5);
+      p0 = (s0 - floor(g1.z)) * u_dpr;
+      p1 = (s0 + sz + ceil(g1.z)) * u_dpr;
     } else {
-      p0 = dev(a_g0.xy) - a_g1.z * u_dpr;
-      p1 = dev(a_g0.xy + a_g0.zw) + a_g1.z * u_dpr;
+      p0 = dev(g0.xy) - g1.z * u_dpr;
+      p1 = dev(g0.xy + g0.zw) + g1.z * u_dpr;
       if ((flags & ${FAR_FLAG.crisp}) != 0) {
         // On whole device pixels, unless the box is under one: then it is covered by its share.
         vec2 big = vec2(greaterThanEqual(p1 - p0, vec2(1.0)));
@@ -147,7 +178,7 @@ void main() {
         p1 = mix(p1, floor(p1 + 0.5), big);
       }
     }
-    float sw = kind > 4.5 ? 0.0 : a_g1.x * unit;
+    float sw = kind > 4.5 ? 0.0 : g1.x * unit;
     float share = 1.0;
     if (sw > 0.0 && sw < 1.0) { share = sw; sw = 1.0; }
     else if (sw > 0.0 && (flags & ${FAR_FLAG.crisp | FAR_FLAG.chrome}) != 0) sw = floor(sw + 0.5);
@@ -158,9 +189,9 @@ void main() {
     v_p = local;
     v_a = vec4(h, sw, share);
   } else if (kind < 3.5) {
-    vec2 a = dev(a_g0.xy);
-    vec2 b = dev(a_g0.zw);
-    float w = a_g1.x * unit;
+    vec2 a = dev(g0.xy);
+    vec2 b = dev(g0.zw);
+    float w = g1.x * unit;
     float cover = 1.0;
     if (w < 1.0) { cover = max(w, 0.0); w = 1.0; }
     vec2 d = b - a;
@@ -177,16 +208,16 @@ void main() {
     v_a = vec4(len, hw, e0, e1);
     v_b = vec4(cover, 0.0, 0.0, 0.0);
   } else {
-    vec2 p0 = dev(a_g0.xy);
-    vec2 p1 = dev(a_g0.zw);
-    vec2 p2 = dev(a_g1.xy);
+    vec2 p0 = dev(g0.xy);
+    vec2 p1 = dev(g0.zw);
+    vec2 p2 = dev(g1.xy);
     vec2 lo = min(p0, min(p1, p2)) - 1.0;
     vec2 hi = max(p0, max(p1, p2)) + 1.0;
     pos = mix(lo, hi, q);
     v_a = vec4(p0, p1);
     v_b = vec4(p2, 0.0, 0.0);
   }
-  v_clip = vec4(floor(dev(a_clip.xy) + 0.5), floor(dev(a_clip.xy + a_clip.zw) + 0.5));
+  v_clip = vec4(floor(dev(box.xy) + 0.5), floor(dev(box.xy + box.zw) + 0.5));
   v_dev = pos;
   vec2 clip = pos / (u_size * u_dpr) * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
@@ -388,6 +419,9 @@ interface GlBuffer {
   buffer: WebGLBuffer;
   /** Bytes the buffer holds. */
   capacity: number;
+  /** The groups' offsets (`RG32F`, `OFFSET_ROW` a row) and the rows it holds; -1 before. */
+  offsets: WebGLTexture;
+  offsetRows: number;
 }
 
 interface GlState {
@@ -402,6 +436,8 @@ interface GlState {
     atlas: WebGLUniformLocation | null;
     atlasSize: WebGLUniformLocation | null;
     glyphs: WebGLUniformLocation | null;
+    offsets: WebGLUniformLocation | null;
+    time: WebGLUniformLocation | null;
   };
   /** The glyphs' pixels (alpha) and where each glyph is in them (a float table). */
   atlas: WebGLTexture;
@@ -431,6 +467,7 @@ function pointAttributes(gl: WebGL2RenderingContext, first: number) {
   attr(5, 4, gl.FLOAT, false, 48);
   attr(6, 4, gl.FLOAT, false, 64);
   attr(7, 4, gl.FLOAT, false, 80);
+  attr(8, 1, gl.FLOAT, false, 96);
 }
 
 function initGl(canvas: HTMLCanvasElement): GlState | null {
@@ -456,13 +493,17 @@ function initGl(canvas: HTMLCanvasElement): GlState | null {
       const buffer = gl.createBuffer()!;
       gl.bindVertexArray(vao);
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      for (let loc = 0; loc < 8; loc++) {
+      for (let loc = 0; loc < 9; loc++) {
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribDivisor(loc, 1);
       }
       pointAttributes(gl, 0);
       gl.bindVertexArray(null);
-      return { vao, buffer, capacity: 0 };
+      const offsets = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, offsets);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      return { vao, buffer, capacity: 0, offsets, offsetRows: -1 };
     };
     const blank = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, blank);
@@ -492,6 +533,8 @@ function initGl(canvas: HTMLCanvasElement): GlState | null {
         atlas: gl.getUniformLocation(prog, "u_atlas"),
         atlasSize: gl.getUniformLocation(prog, "u_atlasSize"),
         glyphs: gl.getUniformLocation(prog, "u_glyphs"),
+        offsets: gl.getUniformLocation(prog, "u_offsets"),
+        time: gl.getUniformLocation(prog, "u_time"),
       },
       atlas,
       glyphs,
@@ -517,9 +560,6 @@ function upload(gl: WebGL2RenderingContext, b: GlBuffer, data: Float32Array) {
   if (data.byteLength) gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
 }
 
-const inRange = (t: { minZoom?: number; maxZoom?: number }, zoom: number) =>
-  zoom >= (t.minZoom ?? 0) && zoom < (t.maxZoom ?? Infinity);
-
 const css = (c: FarRgba) =>
   `rgba(${c & 0xff},${(c >>> 8) & 0xff},${(c >>> 16) & 0xff},${((c >>> 24) & 0xff) / 255})`;
 
@@ -544,6 +584,10 @@ interface Draw2dContext {
   image: (src: string) => CanvasImageSource | null;
   /** A glyph's CSS font at `px` pixels and its cluster. */
   glyph: (id: number, px: number) => { font: string; text: string } | null;
+  /** The group offsets of the `i`th pack. */
+  offsets: (i: number) => Float32Array;
+  /** Seconds marching dashes have marched. */
+  time: number;
 }
 
 /** The same instances on a 2D canvas: slower per frame, for when WebGL2 is not there. */
@@ -551,10 +595,16 @@ function draw2d(packs: ReadonlyArray<FarPack>, k: Draw2dContext) {
   const { ctx, v, dpr, color } = k;
   const z = v.zoom;
   const px = 1 / dpr;
-  const sx = (x: number) => x * z + v.x;
-  const sy = (y: number) => y * z + v.y;
+  // The offset of the instance's group (a moved item not packed again).
+  let ox = 0;
+  let oy = 0;
+  const sx = (x: number) => (x + ox) * z + v.x;
+  const sy = (y: number) => (y + oy) * z + v.y;
   const snap = (n: number) => Math.round(n * dpr) / dpr;
-  for (const pack of packs) {
+  for (const [index, pack] of packs.entries()) {
+    const offsets = k.offsets(index);
+    ox = 0;
+    oy = 0;
     for (const poly of pack.polygons) {
       const pts = poly.points;
       ctx.beginPath();
@@ -569,6 +619,9 @@ function draw2d(packs: ReadonlyArray<FarPack>, k: Draw2dContext) {
     for (let i = 0; i < pack.count; i++) {
       const o = i * FAR_STRIDE;
       if (z < d[o + 8]! || z >= d[o + 9]!) continue;
+      const slot = d[o + 24]!;
+      ox = offsets[slot * 2] ?? 0;
+      oy = offsets[slot * 2 + 1] ?? 0;
       const kind = d[o + 7]!;
       const flags = d[o + 19]!;
       const unit = d[o + 5]! > 0.5 ? 1 : z;
@@ -587,7 +640,8 @@ function draw2d(packs: ReadonlyArray<FarPack>, k: Draw2dContext) {
           if (ctx.font !== g.font) ctx.font = g.font;
           ctx.textBaseline = "alphabetic";
           ctx.fillStyle = color(u[o + 10]!);
-          ctx.fillText(g.text, sx(d[o]!), sy(Math.round(d[o + 1]! * dpr) / dpr + d[o + 4]!));
+          const top = Math.round((d[o + 1]! + oy) * dpr) / dpr - oy;
+          ctx.fillText(g.text, sx(d[o]!), sy(top + d[o + 4]!));
         }
         if (clipped) ctx.restore();
         continue;
@@ -614,7 +668,8 @@ function draw2d(packs: ReadonlyArray<FarPack>, k: Draw2dContext) {
         ctx.lineCap = "butt";
         if (dash) {
           ctx.setLineDash([d[o + 16]! * unit, d[o + 17]! * unit]);
-          ctx.lineDashOffset = d[o + 18]! * unit - e0;
+          const march = flags & FAR_FLAG.march ? d[o + 22]! * k.time : 0;
+          ctx.lineDashOffset = (d[o + 18]! - march) * unit - e0;
         }
         ctx.beginPath();
         ctx.moveTo(x0 - ux * e0, y0 - uy * e0);
@@ -725,7 +780,6 @@ export function createFarLayer(host: HTMLElement): FarLayer {
   let canvas = doc.createElement("canvas");
   canvas.className = "fg-canvas-far";
   canvas.setAttribute("aria-hidden", "true");
-  let text: HTMLCanvasElement | null = null;
   host.append(canvas);
   let gl = initGl(canvas);
   let ctx2d: CanvasRenderingContext2D | null = null;
@@ -748,7 +802,6 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     if (img) g.texSubImage2D(g.TEXTURE_2D, 0, x, y, w, h, g.RGBA, g.UNSIGNED_BYTE, img.data);
   };
   const atlas: GlyphAtlas = createGlyphAtlas(host, metrics, toTexture);
-  const glyphSource = !!metrics;
   /** Glyphs laid out per pack at most: the rest a frame later. */
   const GLYPHS_PER_PACK = 3000;
   // Packed words, by primitive: dropped with the fonts or the theme's colours.
@@ -831,7 +884,6 @@ export function createFarLayer(host: HTMLElement): FarLayer {
   };
   let measurer: CanvasRenderingContext2D | null | undefined;
   const widths = new Map<string, number>();
-  const fitted = new Map<string, string>();
   const ctxForText = () => {
     if (measurer === undefined) measurer = doc.createElement("canvas").getContext("2d");
     return measurer;
@@ -847,64 +899,63 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     }
     return w;
   };
-  /** The text cut with an ellipsis to its width, measured once at its world size. */
-  const fit = (t: FarText) => {
-    if (t.maxWidth === undefined || measure(t) <= t.maxWidth) return t.text;
-    const key = `${t.font}|${t.weight}|${t.size}|${t.maxWidth}|${t.text}`;
-    let s = fitted.get(key);
-    if (s === undefined) {
-      const m = ctxForText();
-      s = t.text;
-      if (m) {
-        m.font = fontOf(t, t.size);
-        let lo = 0;
-        let hi = t.text.length;
-        while (lo < hi) {
-          const mid = (lo + hi + 1) >> 1;
-          if (m.measureText(`${t.text.slice(0, mid)}…`).width <= t.maxWidth) lo = mid;
-          else hi = mid - 1;
-        }
-        s = `${t.text.slice(0, lo)}…`;
-      }
-      fitted.set(key, s);
-    }
-    return s;
+  /* ---- layers: each a buffer of groups, packed per group (`far-buffer.ts`) */
+
+  const buffers: Record<FarLayerName, FarBuffer> = {
+    below: createFarBuffer(),
+    items: createFarBuffer(),
+    chrome: createFarBuffer(),
   };
-
-  /* ---- layers */
-
   const packs: Record<FarLayerName, FarPack> = {
-    below: createFarPack(),
-    items: createFarPack(),
-    chrome: createFarPack(16),
+    below: buffers.below.pack,
+    items: buffers.items.pack,
+    chrome: buffers.chrome.pack,
   };
-  const sources: Record<FarLayerName, Array<FarPrimitive & { outset?: number }>> = {
-    below: [],
-    items: [],
-    chrome: [],
+  /** What each layer still has to upload: every instance, ranges of them, offsets. */
+  interface Pending {
+    full: boolean;
+    ranges: Array<[number, number]>;
+    offsets: [number, number] | null;
+  }
+  const pending: Record<FarLayerName, Pending> = {
+    below: { full: true, ranges: [], offsets: [0, 0] },
+    items: { full: true, ranges: [], offsets: [0, 0] },
+    chrome: { full: true, ranges: [], offsets: [0, 0] },
   };
-  let version = 0;
-  const uploaded: Record<FarLayerName, number> = { below: -1, items: -1, chrome: -1 };
-  const versions: Record<FarLayerName, number> = { below: 0, items: 0, chrome: 0 };
-  const repack = (layer: FarLayerName) => {
-    packFar(resetFarPack(packs[layer]), sources[layer], {
+  const note = (layer: FarLayerName, u: FarBufferUpdate) => {
+    const p = pending[layer];
+    if (u.full) {
+      p.full = true;
+      p.ranges.length = 0;
+    } else if (!p.full) for (const r of u.ranges) p.ranges.push(r);
+    if (u.offsets) {
+      p.offsets = p.offsets
+        ? [Math.min(p.offsets[0], u.offsets[0]), Math.max(p.offsets[1], u.offsets[1])]
+        : u.offsets;
+    }
+  };
+  // The metrics and ids of the glyphs, one object until the fonts or the colours change (a text
+  // drawn as glyphs is kept per source).
+  let glyphs: FarGlyphSource | null = null;
+  const glyphSourceNow = (): FarGlyphSource | null => {
+    if (!metrics) return null;
+    glyphs ??= {
+      advance: metrics.advance,
+      kern: metrics.kern,
+      baseline: metrics.baseline,
+      id: atlas.id,
+      cache: glyphCache,
+    };
+    return glyphs;
+  };
+  const options = (): PackOptions => {
+    const g = glyphSourceNow();
+    return {
       resolve,
       measure,
       ...(last ? { zoom: last.viewport.zoom } : {}),
-      ...(glyphSource
-        ? {
-            glyphs: {
-              advance: metrics!.advance,
-              kern: metrics!.kern,
-              baseline: metrics!.baseline,
-              id: atlas.id,
-              cache: glyphCache,
-              budget: GLYPHS_PER_PACK,
-            },
-          }
-        : {}),
-    });
-    versions[layer] = ++version;
+      ...(g ? { glyphs: g, budget: { left: GLYPHS_PER_PACK } } : {}),
+    };
   };
 
   let visible = false;
@@ -918,102 +969,6 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     if (el.width !== w || el.height !== h) {
       el.width = w;
       el.height = h;
-    }
-  };
-
-  // The texts are drawn on a canvas a margin larger than the view: a pan within the margin moves
-  // it (a CSS transform), a zoom or a longer pan draws it again.
-  const MARGIN = 128;
-  let textAt: { viewport: Viewport; size: Size; dpr: number; version: number } | null = null;
-  const drawTexts = (v: Viewport, size: Size, dpr: number) => {
-    let any = false;
-    for (const layer of LAYERS) {
-      for (const t of packs[layer].texts) {
-        if (t.size * v.zoom >= (t.minSize ?? 6) && inRange(t, v.zoom)) {
-          any = true;
-          break;
-        }
-      }
-    }
-    if (!any) {
-      if (text) text.style.display = "none";
-      textAt = null;
-      return;
-    }
-    if (!text) {
-      text = doc.createElement("canvas");
-      text.className = "fg-canvas-far fg-canvas-far-text";
-      text.setAttribute("aria-hidden", "true");
-      text.style.inset = "auto";
-      text.style.left = `${-MARGIN}px`;
-      text.style.top = `${-MARGIN}px`;
-      canvas.after(text);
-    }
-    text.style.display = "";
-    const at = textAt;
-    if (
-      at &&
-      at.viewport.zoom === v.zoom &&
-      at.dpr === dpr &&
-      at.version === version &&
-      at.size.w === size.w &&
-      at.size.h === size.h &&
-      Math.abs(v.x - at.viewport.x) <= MARGIN &&
-      Math.abs(v.y - at.viewport.y) <= MARGIN
-    ) {
-      text.style.transform = `translate(${v.x - at.viewport.x}px, ${v.y - at.viewport.y}px)`;
-      return;
-    }
-    textAt = { viewport: v, size, dpr, version };
-    text.style.transform = "";
-    const full = { w: size.w + MARGIN * 2, h: size.h + MARGIN * 2 };
-    text.style.width = `${full.w}px`;
-    text.style.height = `${full.h}px`;
-    sizeTo(text, full, dpr);
-    const c = text.getContext("2d");
-    if (!c) return;
-    c.setTransform(1, 0, 0, 1, 0, 0);
-    c.clearRect(0, 0, text.width, text.height);
-    c.setTransform(dpr, 0, 0, dpr, MARGIN * dpr, MARGIN * dpr);
-    c.textBaseline = "middle";
-    const x0 = (-v.x - MARGIN) / v.zoom;
-    const y0 = (-v.y - MARGIN) / v.zoom;
-    const x1 = x0 + full.w / v.zoom;
-    const y1 = y0 + full.h / v.zoom;
-    let font = "";
-    let fill = "";
-    for (const layer of LAYERS) {
-      for (const t of packs[layer].texts) {
-        const px = t.size * v.zoom;
-        if (px < (t.minSize ?? 6) || !inRange(t, v.zoom)) continue;
-        if (t.y + t.size < y0 || t.y - t.size > y1 || t.x > x1) continue;
-        if (t.x + (t.maxWidth ?? measure(t)) < x0) continue;
-        const f = fontOf(t, px);
-        if (f !== font) {
-          c.font = f;
-          font = f;
-        }
-        const style = colorString(resolve(t.color));
-        if (style !== fill) {
-          c.fillStyle = style;
-          fill = style;
-        }
-        const x = t.x * v.zoom + v.x;
-        const y = t.y * v.zoom + v.y;
-        if (t.clip) {
-          c.save();
-          c.beginPath();
-          c.rect(
-            t.clip.x * v.zoom + v.x,
-            t.clip.y * v.zoom + v.y,
-            t.clip.w * v.zoom,
-            t.clip.h * v.zoom,
-          );
-          c.clip();
-          c.fillText(fit(t), x, y);
-          c.restore();
-        } else c.fillText(fit(t), x, y);
-      }
     }
   };
 
@@ -1233,15 +1188,20 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     g.activeTexture(g.TEXTURE0);
     g.uniform1i(s.u.image, 0);
     g.bindTexture(g.TEXTURE_2D, s.blank);
+    g.uniform1f(s.u.time, marchTime());
+    g.uniform1i(s.u.offsets, 3);
     for (const layer of LAYERS) {
       const pack = packs[layer];
       const l = s.layers[layer];
-      if (uploaded[layer] !== versions[layer]) {
-        upload(g, l, pack.data.subarray(0, pack.count * FAR_STRIDE));
-        uploaded[layer] = versions[layer];
-      }
+      uploadLayer(s, l, layer);
+      g.activeTexture(g.TEXTURE3);
+      g.bindTexture(g.TEXTURE_2D, s.blank);
+      g.activeTexture(g.TEXTURE0);
       for (const poly of pack.polygons) fillPolygon(s, poly);
       if (!pack.count) continue;
+      g.activeTexture(g.TEXTURE3);
+      g.bindTexture(g.TEXTURE_2D, l.offsets);
+      g.activeTexture(g.TEXTURE0);
       g.bindVertexArray(l.vao);
       g.bindBuffer(g.ARRAY_BUFFER, l.buffer);
       // One call per run between images: each image binds its texture.
@@ -1270,21 +1230,124 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     g.bindVertexArray(null);
   };
 
+  /** Uploads what a layer changed: its instances (all, or the ranges), its groups' offsets. */
+  const uploadLayer = (s: GlState, l: GlBuffer, layer: FarLayerName) => {
+    const g = s.gl;
+    const p = pending[layer];
+    const pack = packs[layer];
+    const bytes = pack.count * FAR_STRIDE * 4;
+    if (p.full || bytes > l.capacity) {
+      upload(g, l, pack.data.subarray(0, pack.count * FAR_STRIDE));
+    } else if (p.ranges.length) {
+      g.bindBuffer(g.ARRAY_BUFFER, l.buffer);
+      let ranges = p.ranges;
+      if (ranges.length > 32) {
+        // Many small writes cost more than one span.
+        let lo = Infinity;
+        let hi = -Infinity;
+        for (const [a, b] of ranges) {
+          lo = Math.min(lo, a);
+          hi = Math.max(hi, b);
+        }
+        ranges = [[lo, hi]];
+      }
+      for (const [a, b] of ranges) {
+        const to = Math.min(b, pack.count);
+        if (to <= a) continue;
+        g.bufferSubData(
+          g.ARRAY_BUFFER,
+          a * FAR_STRIDE * 4,
+          pack.data.subarray(a * FAR_STRIDE, to * FAR_STRIDE),
+        );
+      }
+    }
+    p.full = false;
+    p.ranges.length = 0;
+    const buffer = buffers[layer];
+    const rows = Math.max(1, Math.ceil(buffer.slots / OFFSET_ROW));
+    if (p.offsets || rows !== l.offsetRows) {
+      g.activeTexture(g.TEXTURE3);
+      g.bindTexture(g.TEXTURE_2D, l.offsets);
+      const table = buffer.offsets;
+      const need = rows * OFFSET_ROW * 2;
+      const data =
+        table.length >= need
+          ? table.subarray(0, need)
+          : (() => {
+              const t = new Float32Array(need);
+              t.set(table.subarray(0, Math.min(table.length, need)));
+              return t;
+            })();
+      if (rows !== l.offsetRows) {
+        g.texImage2D(g.TEXTURE_2D, 0, g.RG32F, OFFSET_ROW, rows, 0, g.RG, g.FLOAT, data);
+        l.offsetRows = rows;
+      } else if (p.offsets) {
+        const r0 = Math.floor(p.offsets[0] / OFFSET_ROW);
+        const r1 = Math.min(rows, Math.ceil(p.offsets[1] / OFFSET_ROW));
+        if (r1 > r0)
+          g.texSubImage2D(
+            g.TEXTURE_2D,
+            0,
+            0,
+            r0,
+            OFFSET_ROW,
+            r1 - r0,
+            g.RG,
+            g.FLOAT,
+            data.subarray(r0 * OFFSET_ROW * 2, r1 * OFFSET_ROW * 2),
+          );
+      }
+      g.activeTexture(g.TEXTURE0);
+      p.offsets = null;
+    }
+  };
+
+  /* ---- marching dashes: the time they march by, a frame at a time while some show */
+
+  const still =
+    typeof win?.matchMedia === "function"
+      ? win.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
+  const t0 = performance.now();
+  /** Seconds, wrapped every ten minutes so the shader's floats keep their precision. */
+  const marchTime = () => (still?.matches ? 0 : ((performance.now() - t0) / 1000) % 600);
+  let ticking = 0;
+  const tick = () => {
+    const animated = visible && !still?.matches && LAYERS.some((l) => packs[l].animated);
+    if (!animated || ticking) return;
+    ticking =
+      win?.requestAnimationFrame(() => {
+        ticking = 0;
+        redraw();
+      }) ?? 0;
+  };
+
+  const repackAll = () => {
+    glyphs = null;
+    const o = options();
+    for (const layer of LAYERS) note(layer, buffers[layer].repackAll(o));
+  };
+
   const draw = (viewport: Viewport, size: Size) => {
     last = { viewport, size };
-    // Words come in or go out of their zoom range: that layer is packed again (copies, mostly).
+    // Words come in or go out of their zoom range, or were left for the budget: the groups that
+    // hold them are packed again (copies, mostly), and only them.
     let partial = false;
     for (const layer of LAYERS) {
-      const band = packs[layer].band;
-      if (viewport.zoom < band[0] || viewport.zoom >= band[1]) repack(layer);
-      partial ||= packs[layer].partial;
+      const pack = packs[layer];
+      const band = pack.band;
+      if (viewport.zoom < band[0] || viewport.zoom >= band[1])
+        note(layer, buffers[layer].refresh({ ...options(), budget: { left: GLYPHS_PER_PACK } }));
+      partial ||= pack.partial;
     }
     // Words left out for the budget: packed again next frame, with more of them laid out.
     if (partial && !again)
       again =
         win?.requestAnimationFrame(() => {
           again = 0;
-          for (const layer of LAYERS) if (packs[layer].partial) repack(layer);
+          const o = options();
+          for (const layer of LAYERS)
+            if (packs[layer].partial) note(layer, buffers[layer].refresh(o));
           redraw();
         }) ?? 0;
     if (!visible || !size.w || !size.h) return;
@@ -1320,9 +1383,11 @@ export function createFarLayer(host: HTMLElement): FarLayer {
         },
         glyph: (id, px) =>
           metrics ? { font: metrics.css(atlas.font(id), px), text: atlas.cluster(id) } : null,
+        offsets: (layer) => buffers[LAYERS[layer]!].offsets,
+        time: marchTime(),
       });
     }
-    drawTexts(viewport, size, dpr);
+    tick();
   };
   const redraw = () => {
     if (last) draw(last.viewport, last.size);
@@ -1335,14 +1400,14 @@ export function createFarLayer(host: HTMLElement): FarLayer {
     glyphCache = new WeakMap();
     fonts = null;
     patterns.clear();
-    for (const layer of LAYERS) repack(layer);
+    repackAll();
     redraw();
   };
   // A font has loaded: glyphs move and look different.
   const unsubscribe = metrics?.subscribe(() => {
     atlas.reset();
     glyphCache = new WeakMap();
-    for (const layer of LAYERS) repack(layer);
+    repackAll();
     redraw();
   });
   const observer = typeof MutationObserver === "undefined" ? null : new MutationObserver(refresh);
@@ -1357,7 +1422,6 @@ export function createFarLayer(host: HTMLElement): FarLayer {
   const show = (on: boolean) => {
     visible = on;
     canvas.style.display = on ? "" : "none";
-    if (!on && text) text.style.display = "none";
   };
   show(false);
 
@@ -1366,8 +1430,10 @@ export function createFarLayer(host: HTMLElement): FarLayer {
       return gl ? "webgl2" : "2d";
     },
     set(layer, prims) {
-      sources[layer] = [...prims];
-      repack(layer);
+      note(layer, buffers[layer].update([{ key: "", prims }], options()));
+    },
+    setGroups(layer, groups) {
+      note(layer, buffers[layer].update(groups, options()));
     },
     draw,
     show,
@@ -1376,6 +1442,7 @@ export function createFarLayer(host: HTMLElement): FarLayer {
       if (settleTimer) clearTimeout(settleTimer);
       if (more) win?.cancelAnimationFrame(more);
       if (again) win?.cancelAnimationFrame(again);
+      if (ticking) win?.cancelAnimationFrame(ticking);
       observer?.disconnect();
       media?.removeEventListener?.("change", refresh);
       canvas.removeEventListener("webglcontextlost", onLost);
@@ -1384,6 +1451,7 @@ export function createFarLayer(host: HTMLElement): FarLayer {
         for (const l of [...Object.values(gl.layers), gl.scratch]) {
           g.deleteBuffer(l.buffer);
           g.deleteVertexArray(l.vao);
+          g.deleteTexture(l.offsets);
         }
         for (const img of images.values()) if (img.texture) g.deleteTexture(img.texture);
         g.deleteTexture(gl.blank);
@@ -1393,7 +1461,6 @@ export function createFarLayer(host: HTMLElement): FarLayer {
       }
       canvas.remove();
       atlas.destroy();
-      text?.remove();
       probe.remove();
       gl = null;
       ctx2d = null;

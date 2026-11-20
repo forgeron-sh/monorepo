@@ -411,4 +411,81 @@ describe("the far view", () => {
       ),
     ).toEqual(["b"]);
   });
+
+  describe("the offscreen list, when the GPU draws the items", () => {
+    const gpu = { ...farView, overlay: () => false };
+    const list = (surface: HTMLElement) =>
+      surface.querySelector<HTMLElement>(".fg-canvas-a11y[role=listbox]")!;
+    const options = (surface: HTMLElement) =>
+      [...list(surface).querySelectorAll<HTMLElement>("[role=option]")].map((o) => o.dataset.item);
+
+    it("holds the items of the cull window with their names and roles, not the DOM", async () => {
+      const store = createCanvasStore({
+        items: [item("a", 0, 0, 0), item("b", 200, 0, 1), item("far", 20000, 20000, 2)],
+        grid: { snap: false },
+      });
+      const surface = await mount(store, {
+        far: gpu,
+        itemLabel: (i: Item<{ title: string }>) => `Card ${i.data.title}`,
+        itemRole: () => "card",
+      });
+      await act(async () => store.setSize({ w: 800, h: 600 }));
+      expect(surface.querySelectorAll("[data-canvas-item]")).toHaveLength(0);
+      // The far item is out of the cull window: not mounted in the list either.
+      expect(options(surface)).toEqual(["a", "b"]);
+      const a = list(surface).querySelector("[data-item=a]")!;
+      expect(a.getAttribute("aria-label")).toBe("Card a");
+      expect(a.textContent).toBe("Card a");
+      expect(a.getAttribute("aria-roledescription")).toBe("card");
+      // One listbox for the items, the surface's.
+      expect(surface.querySelectorAll("[role=listbox]")).toHaveLength(1);
+    });
+
+    it("follows the selection with the surface's active descendant, and Tab walks the items", async () => {
+      const store = make();
+      const surface = await mount(store, { far: gpu });
+      await act(async () => store.setSize({ w: 800, h: 600 }));
+      expect(surface.hasAttribute("aria-activedescendant")).toBe(false);
+      // A click selects through the engine's hit test: the focus follows.
+      await fire(surface, "pointerdown", { clientX: 250, clientY: 20 });
+      await fire(surface, "pointerup", { clientX: 250, clientY: 20 });
+      const active = () => {
+        const id = surface.getAttribute("aria-activedescendant");
+        return id ? document.getElementById(id)?.dataset.item : null;
+      };
+      expect(active()).toBe("b");
+      expect(list(surface).querySelector("[data-item=b]")!.getAttribute("aria-selected")).toBe(
+        "true",
+      );
+      // Tab: the previous in reading order, selected; the DOM focus stays on the surface.
+      await act(async () => surface.focus());
+      await key(surface, "Tab", { shiftKey: true });
+      expect(active()).toBe("a");
+      expect([...store.getState().selection]).toEqual(["a"]);
+      expect(document.activeElement).toBe(surface);
+      await key(surface, "Escape");
+      expect(store.getState().selection.size).toBe(0);
+      expect(active()).toBeNull();
+      // From the surface, Tab goes into the items.
+      await key(surface, "Tab");
+      expect(active()).toBe("a");
+      // The focused item needs no DOM of its own.
+      expect(surface.querySelectorAll("[data-canvas-item]")).toHaveLength(0);
+    });
+
+    it("is culled: a few hundred options at most, the focused one always there", async () => {
+      const many = Array.from({ length: 1500 }, (_, i) =>
+        item(`i${i}`, (i % 50) * 110, Math.floor(i / 50) * 70, i),
+      );
+      const store = createCanvasStore({ items: many, grid: { snap: false } });
+      const surface = await mount(store, { far: gpu });
+      await act(async () => store.setSize({ w: 800, h: 600 }));
+      await act(async () => store.setViewport({ x: 0, y: 0, zoom: 0.1 }));
+      await settle();
+      expect(options(surface).length).toBe(200);
+      await act(async () => store.select(["i1499"]));
+      expect(options(surface)).toContain("i1499");
+      expect(options(surface).length).toBeLessThanOrEqual(201);
+    });
+  });
 });

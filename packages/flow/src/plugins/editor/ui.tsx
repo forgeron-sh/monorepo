@@ -9,6 +9,7 @@ import { indexGraph } from "../../core/model";
 import { nodeStatus, type RunStatus } from "../../core/run";
 import {
   defineEditorPlugin,
+  type FarEdge,
   type FlowEditorContext,
   type FlowView,
   type ToolbarViewProps,
@@ -20,7 +21,7 @@ import {
   toolbar as toolbarCore,
   zoomControls as zoomCore,
 } from "../ui";
-import { farEdges, farNode } from "./far-view";
+import { farEdgeGroups, farGroups, farNode, groupFrames } from "./far-view";
 import { pathOf } from "./surface";
 
 export const deleteKeys = defineEditorPlugin({
@@ -43,15 +44,26 @@ export const deleteKeys = defineEditorPlugin({
 export const far = defineEditorPlugin({
   core: farCore,
   far: {
-    node: (node, { status, selected, label }) => farNode(node, status, label, selected),
-    edges: (ctx, graph, view, selected) =>
-      farEdges(
+    node: (node, { status, selected, label, farZoom, portColor }) =>
+      farNode(node, status, label, selected, { farZoom, portColor }),
+    edges: (ctx, graph, info, selected) => {
+      // Each edge's shapes kept while its path and look stay: the canvas packs what changed.
+      const cache = ctx.local("far:edges", () => new Map<string, { key: string; edge: FarEdge }>());
+      return farEdgeGroups(
         indexGraph(graph),
         graph.edges,
-        pathOf(ctx.core, view.edgeStyle),
-        view.run,
-        selected,
-      ),
+        pathOf(ctx.core, info.edgeStyle),
+        info.run,
+        { selected, hover: info.hover, dragging: info.dragging, arrows: info.arrows },
+        cache,
+      );
+    },
+    groups: (ctx, graph, { hover }) => {
+      const spec = ctx.core.groups;
+      if (!spec || graph.groups.length === 0) return { frames: [], drawn: [] };
+      const frames = groupFrames(indexGraph(graph), graph.groups, spec.bounds);
+      return { frames, drawn: farGroups(frames, hover) };
+    },
   },
 });
 

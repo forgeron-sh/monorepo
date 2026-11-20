@@ -45,8 +45,10 @@ export type { ConnectError, ConnectResult } from "./core/graph";
 export { applyLayout } from "./core/edit";
 export {
   ARROW,
+  distanceToPolyline,
   edgeBounds,
   edgeGeometryWith,
+  flattenPath,
   portOffset,
   portPoint,
   straightPath,

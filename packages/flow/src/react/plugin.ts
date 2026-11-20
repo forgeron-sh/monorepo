@@ -7,7 +7,7 @@
 // This file imports no React at run time (the types only), so tests and tools can build a registry
 // without a renderer.
 
-import type { FarPrimitive } from "@forgeron/canvas";
+import type { Bounds, FarGroup, FarPrimitive } from "@forgeron/canvas";
 import type { IconDefinition } from "@forgeron/icons";
 import type { ComponentType, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import type { Point } from "@forgeron/canvas";
@@ -18,7 +18,7 @@ import {
   type FlowCorePlugin,
   type Registry,
 } from "../core/plugin";
-import type { FlowEdge, FlowGraph, FlowNode } from "../core/model";
+import type { FlowEdge, FlowGraph, FlowGroup, FlowNode } from "../core/model";
 import type { RunState, RunStatus } from "../core/run";
 import type { FlowApi } from "./use-flow";
 
@@ -47,6 +47,17 @@ export interface FlowView<D> {
   far: boolean;
   /** At most this many edges in the DOM (back from far, they come back a few at a time). */
   edgeLimit: number | null;
+  /**
+   * The flow is on the GPU at every zoom (a plugin brings the far view): edges and group frames
+   * are drawn there, and the DOM holds only what takes the pointer (an edge's parts while it is
+   * under the pointer, selected or dragged).
+   */
+  gpu: boolean;
+  /** The edge and the group label under the pointer (GPU view). */
+  hover: { edge: string | null; group: string | null };
+  /** The edge whose end is being dragged, and how to say so (the GPU draws it as skipped). */
+  dragging: string | null;
+  setDragging: (edge: string | null) => void;
   /** The `controls` and `minimap` props. */
   controls: boolean;
   minimap: boolean;
@@ -185,18 +196,60 @@ export interface EdgePart<D> {
   render(p: EdgePartProps<D>): ReactNode;
 }
 
-/** What the far level draws instead of the rich cards: plain primitives on the canvas's GPU layer. */
+/** An edge on the GPU: its shapes (one canvas group) and where it can be clicked. */
+export interface FarEdge {
+  edge: FlowEdge;
+  /** Its path flattened, world units. */
+  points: number[];
+  box: Bounds;
+  mid: Point;
+  group: FarGroup;
+}
+
+/** A group's frame and its label's box, world units. */
+export interface FarGroupFrame {
+  group: FlowGroup;
+  frame: Bounds;
+  label: Bounds;
+}
+
+/**
+ * The flow on the canvas's GPU layer, at every zoom: each node's box (under its rich card near, a
+ * labelled box with its ports from far), each edge, each group's frame. The host hit-tests the
+ * same shapes for clicks on an edge or a group's label. Without it, everything is DOM.
+ */
 export interface FarSlot<D> {
   node(
     node: FlowNode<D>,
-    info: { status: RunStatus; selected: boolean; label: string },
+    info: {
+      status: RunStatus;
+      selected: boolean;
+      label: string;
+      /** Under this zoom the node is its labelled box (its card is not mounted). */
+      farZoom: number;
+      /** The colour token of a port type, if a plugin gives it one. */
+      portColor: (type: string | undefined) => string | undefined;
+    },
   ): FarPrimitive[];
   edges?(
     ctx: FlowEditorContext<D>,
     graph: FlowGraph<D>,
-    info: { run: RunState | undefined; edgeStyle: string },
+    info: {
+      run: RunState | undefined;
+      edgeStyle: string;
+      /** The edge under the pointer and the one whose end is being dragged. */
+      hover: string | null;
+      dragging: string | null;
+      /** An `arrowhead` edge part is there. */
+      arrows: boolean;
+    },
     selected: ReadonlySet<string>,
-  ): FarPrimitive[];
+  ): FarEdge[];
+  groups?(
+    ctx: FlowEditorContext<D>,
+    graph: FlowGraph<D>,
+    info: { hover: string | null },
+  ): { frames: FarGroupFrame[]; drawn: FarGroup[] };
 }
 
 /** Native events on the editor's root. Each runs after the tools' keys; the first to say so wins. */

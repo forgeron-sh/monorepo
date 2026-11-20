@@ -6,15 +6,15 @@
 // frame with its ports, the level of detail, and the slots. A kind of node no plugin draws is kept
 // as a labelled dashed box.
 
-import { type Point } from "@forgeron/canvas";
+import { screenToWorld, type Point } from "@forgeron/canvas";
 import { Canvas, useCanvasState, type CanvasFar, type CanvasProps } from "@forgeron/canvas/react";
 import { matchShortcut } from "@forgeron/ui";
 import {
   memo,
   useCallback,
-  useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ClipboardEvent as ReactClipboardEvent,
   type CSSProperties,
@@ -29,7 +29,9 @@ import { portOffset } from "../core/geometry";
 import type { FlowEdge, FlowNode, PortSide } from "../core/model";
 import type { Registry } from "../core/plugin";
 import { nodeStatus, type RunState, type RunStatus } from "../core/run";
+import { edgeAt, groupLabelAt } from "../plugins/editor/far-view";
 import { presetPlugins, type FlowPreset } from "../plugins/editor/presets";
+import { focusSurface } from "../plugins/editor/surface";
 import { FlowEditorReactContext, makeContext } from "./context";
 import {
   createEditorRegistry,
@@ -89,8 +91,11 @@ export interface FlowCanvasProps<D> {
   style?: CSSProperties;
 }
 
-/** DOM edges mounted on the first frame back from far; twice as many each frame after. */
-const EDGES_FIRST = 32;
+/** Every node has a DOM body near (its card): the canvas mounts it over the GPU's box. */
+const ALL = () => true;
+const NO_HOVER = { edge: null, group: null } as const;
+/** How far from an edge's line a press still takes it, in screen pixels (`.fg-flow-edge-hit`). */
+const EDGE_REACH = 6;
 
 const FIELD = "input, textarea, select, [contenteditable=''], [contenteditable='true']";
 const isField = (t: EventTarget | null) => t instanceof Element && t.closest(FIELD) !== null;
@@ -270,39 +275,29 @@ function FlowBody<D>({
     [shownRun, registry, host, core, nodeLabel],
   );
 
-  // Back from far, the DOM edges come back a few dozen a frame (`edgeLimit`, null: all of them),
-  // while the far layer still draws every edge under them.
+  // On the GPU (a plugin brings the far view), every edge and group frame is drawn there at every
+  // zoom; the pointer finds them by their shapes. Without it, everything is DOM.
   const graph = flow.current;
-  const [edgeLimit, setEdgeLimit] = useState<number | null>(null);
-  const [wasFar, setWasFar] = useState(far);
-  if (wasFar !== far) {
-    setWasFar(far);
-    setEdgeLimit(far ? null : EDGES_FIRST);
-  }
-  useEffect(() => {
-    if (edgeLimit === null) return;
-    const next = () =>
-      setEdgeLimit((n) => (n === null || n * 2 >= graph.edges.length ? null : n * 2));
-    if (typeof requestAnimationFrame !== "function") {
-      const id = setTimeout(next, 16);
-      return () => clearTimeout(id);
-    }
-    const id = requestAnimationFrame(next);
-    return () => cancelAnimationFrame(id);
-  }, [edgeLimit, graph.edges.length]);
+  const gpu = !!farSlot;
+  const [hover, setHover] = useState<{ edge: string | null; group: string | null }>(NO_HOVER);
+  const [dragging, setDragging] = useState<string | null>(null);
 
   const view = useMemo<FlowView<D>>(
     () => ({
       run: shownRun,
       edgeStyle,
       far,
-      edgeLimit,
+      edgeLimit: null,
+      gpu,
+      hover,
+      dragging,
+      setDragging,
       controls,
       minimap,
       onInsert,
       host,
     }),
-    [shownRun, edgeStyle, far, edgeLimit, controls, minimap, onInsert, host],
+    [shownRun, edgeStyle, far, gpu, hover, dragging, controls, minimap, onInsert, host],
   );
   const [locals] = useState(() => new Map<string, unknown>());
   const made = useMemo(() => makeContext(flow, registry, locals), [flow, registry, locals]);
@@ -310,39 +305,102 @@ function FlowBody<D>({
   // What handlers read of the view: the one of the last render, set once it is committed.
   useLayoutEffect(() => setView(view));
 
-  // The far view on the GPU: nodes as labelled boxes, every edge as its line and arrowhead. The
-  // edges are packed when the graph, the run or the edge selection change, only while far or
-  // while the DOM edges come back.
+  // The flow on the GPU: each node's box (its card over it near; a labelled box with its ports
+  // from far), the group frames, then every edge, one canvas group each, so a change packs only
+  // what it touches.
   const selectedEdges = flow.selectedEdges;
-  const edgesOnGpu = !!farSlot && (far || edgeLimit !== null);
-  const farBelow = useMemo(
+  const arrows = useMemo(() => registry.edgeParts.some((p) => p.id === "arrowhead"), [registry]);
+  const farEdges = useMemo(
     () =>
-      edgesOnGpu
-        ? farSlot?.edges?.(ctx, graph, { run: shownRun, edgeStyle }, selectedEdges)
-        : undefined,
-    [edgesOnGpu, farSlot, ctx, graph, edgeStyle, shownRun, selectedEdges],
+      farSlot?.edges?.(
+        ctx,
+        graph,
+        { run: shownRun, edgeStyle, hover: hover.edge, dragging, arrows },
+        selectedEdges,
+      ) ?? [],
+    [farSlot, ctx, graph, shownRun, edgeStyle, hover.edge, dragging, arrows, selectedEdges],
+  );
+  const farFrames = useMemo(
+    () => farSlot?.groups?.(ctx, graph, { hover: hover.group }) ?? { frames: [], drawn: [] },
+    [farSlot, ctx, graph, hover.group],
+  );
+  const farBelow = useMemo(
+    () => [...farFrames.drawn, ...farEdges.map((e) => e.group)],
+    [farFrames, farEdges],
+  );
+  const portColor = useCallback(
+    (type: string | undefined) => (type ? core.portType(type)?.color : undefined),
+    [core],
   );
   const farKinds = useMemo<CanvasFar<FlowItemData<D>>["kinds"]>(
     () => ({
-      [NODE_KIND]: (item, { selected }) => {
-        if (!isNodeItem<D>(item) || !farSlot) return null;
+      [NODE_KIND]: (item, { selected, shown }) => {
+        // Its card is mounted over it (near, or focused): nothing under it, the card may be
+        // translucent (a skipped step).
+        if (!isNodeItem<D>(item) || !farSlot || shown) return null;
         const node = nodeOfItem(item);
         return farSlot.node(node, {
           status: nodeStatus(shownRun, node.id),
           selected,
           label: nodeLabel ? nodeLabel(node) : node.id,
+          farZoom,
+          portColor,
         });
       },
     }),
-    [shownRun, nodeLabel, farSlot],
+    [shownRun, nodeLabel, farSlot, farZoom, portColor],
   );
   const farView = useMemo<CanvasFar<FlowItemData<D>> | undefined>(
     () =>
       farSlot
-        ? { zoom: farZoom, kinds: farKinds, ...(farBelow ? { below: farBelow } : {}) }
+        ? {
+            zoom: farZoom,
+            kinds: farKinds,
+            below: farBelow,
+            overlay: ALL,
+            chromeOverDom: true,
+          }
         : undefined,
     [farSlot, farZoom, farKinds, farBelow],
   );
+
+  // What is under the pointer on the GPU: an edge (within its click reach) or a group's label.
+  const shapes = useRef({ edges: farEdges, frames: farFrames.frames });
+  useLayoutEffect(() => {
+    shapes.current = { edges: farEdges, frames: farFrames.frames };
+  }, [farEdges, farFrames]);
+  const pick = useCallback(
+    (e: { target: EventTarget | null; clientX: number; clientY: number }) => {
+      const t = e.target as Element | null;
+      const surface = t?.closest?.<HTMLElement>(".fg-canvas");
+      if (!t || !surface) return null;
+      // An edge's own parts (its insert button) keep it; a node, a port or chrome hide what is under.
+      const part = t.closest<HTMLElement>("[data-edge]");
+      if (part) return { edge: part.dataset.edge ?? null, group: null };
+      if (
+        t.closest(
+          "[data-canvas-item], [data-canvas-overlay], [data-canvas-handle], [data-canvas-interactive]",
+        )
+      )
+        return null;
+      const r = surface.getBoundingClientRect();
+      const v = store.getState().viewport;
+      const p = screenToWorld(v, { x: e.clientX - r.left, y: e.clientY - r.top });
+      const group = groupLabelAt(shapes.current.frames, p);
+      if (group) return { edge: null, group: group.id };
+      const edge = edgeAt(shapes.current.edges, p, EDGE_REACH / v.zoom);
+      return edge ? { edge: edge.id, group: null } : null;
+    },
+    [store],
+  );
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!gpu || e.buttons) return;
+    const next = pick(e) ?? NO_HOVER;
+    if (next.edge !== hover.edge || next.group !== hover.group) setHover(next);
+  };
+  const onPointerLeave = () => {
+    if (hover.edge || hover.group) setHover(NO_HOVER);
+  };
 
   const itemLabel = useCallback(
     (item: Parameters<CanvasProps<FlowItemData<D>>["renderItem"]>[0]) => {
@@ -354,6 +412,15 @@ function FlowBody<D>({
       return status === "idle" ? name : `${name}, ${status}`;
     },
     [nodeLabel, shownRun],
+  );
+
+  const itemRole = useCallback(
+    (item: Parameters<CanvasProps<FlowItemData<D>>["renderItem"]>[0]) => {
+      if (!isNodeItem<D>(item)) return "item";
+      const node = nodeOfItem(item);
+      return ((core.kind(node.type)?.label ?? node.type) || "node").toLowerCase();
+    },
+    [core],
   );
 
   const layers = useMemo(
@@ -442,6 +509,25 @@ function FlowBody<D>({
     }
   };
   const onPointerDownCapture = (e: ReactPointerEvent<HTMLDivElement>) => {
+    // On the GPU, a press on an edge's line or a group's label is theirs, not the canvas's (which
+    // would start a box): what the DOM's paths and label did.
+    const hit =
+      gpu && e.button === 0 && !(e.target as Element).closest("[data-edge]") ? pick(e) : null;
+    if (hit) {
+      e.stopPropagation();
+      e.preventDefault();
+      const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+      if (hit.group) {
+        const g = graph.groups.find((x) => x.id === hit.group);
+        if (g) store.select(g.nodes, e.shiftKey ? "add" : "replace");
+        flow.selectEdges([]);
+      } else if (hit.edge) {
+        if (!additive) store.clearSelection();
+        flow.selectEdges([hit.edge], additive ? "toggle" : "replace");
+      }
+      focusSurface(e.target as Element);
+      return;
+    }
     for (const h of registry.handlers) h.pointerDownCapture?.(ctx, e.nativeEvent);
   };
 
@@ -449,9 +535,11 @@ function FlowBody<D>({
     <FlowEditorReactContext.Provider value={ctx}>
       <div
         className={["fg-flow", className].filter(Boolean).join(" ")}
-        style={style}
+        style={hover.edge || hover.group ? { ...style, cursor: "pointer" } : style}
         onKeyDownCapture={onKeyDownCapture}
         onPointerDownCapture={onPointerDownCapture}
+        onPointerMove={onPointerMove}
+        onPointerLeave={onPointerLeave}
         onCopy={onCopy}
         onPaste={onPaste}
       >
@@ -461,6 +549,7 @@ function FlowBody<D>({
           renderItem={renderItem}
           {...(farView ? { far: farView } : {})}
           itemLabel={itemLabel}
+          itemRole={itemRole}
           layers={layers}
           onConnect={onConnect}
           canConnect={canConnect}

@@ -132,7 +132,9 @@ describe("the presets", () => {
     const { surface, root } = await mount({ graph: three });
     expect(root.querySelector('[role="toolbar"][aria-label="Flow"]')).not.toBeNull();
     expect(root.querySelector('button[aria-label="Auto-layout"]')).not.toBeNull();
-    expect(root.querySelector(".fg-flow-edge-arrow")).not.toBeNull();
+    // Edges and their arrowheads on the GPU layer.
+    expect(root.querySelector(".fg-canvas-far")).not.toBeNull();
+    expect(root.querySelector(".fg-flow-edge-line, .fg-flow-edge-arrow")).toBeNull();
     expect(surface.querySelectorAll("[data-canvas-handle]")).toHaveLength(6);
   });
 

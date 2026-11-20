@@ -5,7 +5,7 @@
 // that has a far view, at every zoom for one that asks for it (`far.overlay`). Packing them into
 // instances is pure: the colours come from a resolver.
 
-import { placeLine, type FarFont, type FarTextMetrics } from "./text";
+import { ellipsize, placeLine, type FarFont, type FarTextMetrics } from "./text";
 import type { Bounds } from "./types";
 
 /**
@@ -73,7 +73,17 @@ export interface FarLine extends FarCommon {
    * at them. Inner joints always reach past, which is a miter for the right angles of an elbow.
    */
   cap?: "square" | "butt";
+  /**
+   * Inner joints: `square` (by default) reach past them, a miter for right angles; `butt` meet end
+   * to end, for a curve flattened (a joint reaching past would overlap a translucent stroke).
+   */
+  joins?: "square" | "butt";
   dash?: FarDash;
+  /**
+   * The dashes march along the line at this speed, world units a second (items flowing along a
+   * running edge); still under reduced motion.
+   */
+  march?: number;
 }
 
 /** A filled triangle (an arrowhead), flat `[x0, y0, x1, y1, x2, y2]`. */
@@ -131,6 +141,10 @@ export interface FarText extends FarCommon {
   /** World units; the text is cut with an ellipsis past it. */
   maxWidth?: number;
   minSize?: number;
+  /** Drawn as glyphs: the line box's height (1.25 × `size` by default), centred on `y`. */
+  lineHeight?: number;
+  /** Drawn as glyphs: `y` is the baseline (an SVG `<text>`), not the middle of the line. */
+  baseline?: boolean;
 }
 
 /**
@@ -162,8 +176,8 @@ export type FarPrimitive =
 /** Packed colour: `r | g << 8 | b << 16 | a << 24`, straight alpha. */
 export type FarRgba = number;
 
-/** Floats per instance in a packed buffer (96 bytes). */
-export const FAR_STRIDE = 24;
+/** Floats per instance in a packed buffer (100 bytes). */
+export const FAR_STRIDE = 25;
 
 /** The instance kinds, as the shader reads them. */
 export const FAR_KIND = {
@@ -177,7 +191,7 @@ export const FAR_KIND = {
 } as const;
 
 /** Bits of an instance's flags (float 19). */
-export const FAR_FLAG = { crisp: 1, chrome: 2, capStart: 4, capEnd: 8 } as const;
+export const FAR_FLAG = { crisp: 1, chrome: 2, capStart: 4, capEnd: 8, march: 16 } as const;
 
 const NO_CLIP = 1e30;
 
@@ -188,7 +202,9 @@ const NO_CLIP = 1e30;
  * pixels, outset in screen pixels or the triangle's last point, kind), `8–9` the zoom range it
  * shows in, `10` fill and `11` stroke as packed colours, `12–15` the clip rectangle, `16–19` dash
  * on, dash off, where the dash pattern starts along the path, flags (`FAR_FLAG`), `20–23` the
- * pattern's bits, its pixel, the image's index in `images`, the pattern's density. A glyph is
+ * pattern's bits, its pixel, the image's index in `images` (a marching line's speed), the
+ * pattern's density, `24` the slot of the group the instance belongs to (`far-buffer.ts`: the
+ * group's offset, so a moved item is not packed again; 0 in a plain pack). A glyph is
  * `0–3` its pen's x, the top of its line box, its font size and its id in the atlas
  * (`PackOptions.glyphs`), `4` its baseline below the line's top, its colour in `10`. The DOM puts
  * a line box's top on a device pixel of the page before scaling it, and so does the surface.
@@ -210,6 +226,8 @@ export interface FarPack {
   band: [number, number];
   /** Some texts were left out for the glyph budget (`FarGlyphSource.budget`). */
   partial: boolean;
+  /** Some lines march (`FarLine.march`): the surface draws again each frame while they show. */
+  animated: boolean;
 }
 
 export function createFarPack(capacity = 256): FarPack {
@@ -224,6 +242,7 @@ export function createFarPack(capacity = 256): FarPack {
     glyphs: new Map(),
     band: [-Infinity, Infinity],
     partial: false,
+    animated: false,
   };
 }
 
@@ -249,6 +268,11 @@ export interface PackOptions {
    * far packs none of its words), and `pack.band` says when to pack again.
    */
   zoom?: number;
+  /**
+   * Glyphs still to lay out, shared by several packs (a layer packed group by group): each pack
+   * takes from it; past it, texts are left out as with `FarGlyphSource.budget`.
+   */
+  budget?: { left: number };
 }
 
 /** The metrics of the fonts and the ids of their glyphs in the surface's atlas. */
@@ -278,6 +302,8 @@ interface Extra {
   pattern?: number;
   patternPixel?: number;
   image?: number;
+  /** A marching line's speed (float 22, where an image's index goes). */
+  march?: number;
 }
 const NONE: Extra = {};
 
@@ -330,8 +356,9 @@ function push(
   const bits = extra.pattern ?? 0;
   d[o + 20] = bits;
   d[o + 21] = extra.patternPixel ?? 0;
-  d[o + 22] = extra.image ?? -1;
+  d[o + 22] = extra.image ?? extra.march ?? -1;
   d[o + 23] = bits ? density(bits) : 0;
+  d[o + 24] = 0;
   pack.count++;
 }
 
@@ -361,7 +388,9 @@ export function packFar(
   const { resolve, measure } = options;
   // Glyphs laid out by this call, against `glyphs.budget`.
   let laid = 0;
-  for (const p of prims) {
+  for (const raw of prims) {
+    // With glyphs, a one-line text is drawn as glyphs too, in the order of the rest.
+    const p = raw.type === "text" && options.glyphs ? textAsGlyphs(raw, options.glyphs) : raw;
     switch (p.type) {
       case "rect":
       case "ellipse":
@@ -406,6 +435,7 @@ export function packFar(
         const unit = p.unit === "screen" ? 1 : 0;
         const butt = p.cap === "butt" && !p.closed;
         const dashed = p.dash && p.dash[0] > 0 && p.dash[1] > 0;
+        const march = dashed && p.march ? p.march : 0;
         let along = 0;
         for (let i = 0; i < segs; i++) {
           const j = (i + 1) % n;
@@ -413,13 +443,20 @@ export function packFar(
           const y0 = pts[i * 2 + 1]!;
           const x1 = pts[j * 2]!;
           const y1 = pts[j * 2 + 1]!;
+          // An end reaches past unless butt-ended; an inner joint unless the joins are butt.
+          const flat = p.joins === "butt";
+          const capStart = i === 0 && !p.closed ? !butt : !flat;
+          const capEnd = i === segs - 1 && !p.closed ? !butt : !flat;
           const flags =
-            (butt && i === 0 ? 0 : FAR_FLAG.capStart) |
-            (butt && i === segs - 1 ? 0 : FAR_FLAG.capEnd);
+            (capStart ? FAR_FLAG.capStart : 0) |
+            (capEnd ? FAR_FLAG.capEnd : 0) |
+            (march ? FAR_FLAG.march : 0);
           push(pack, p, x0, y0, x1, y1, p.width, unit, 0, FAR_KIND.segment, color, 0, {
             flags,
             ...(dashed ? { dashOn: p.dash![0], dashOff: p.dash![1], dashStart: along } : {}),
+            ...(march ? { march } : {}),
           });
+          if (march) pack.animated = true;
           along += Math.hypot(x1 - x0, y1 - y0);
         }
         break;
@@ -533,7 +570,13 @@ export function packFar(
           }
           break;
         }
-        if (cache && g.budget !== undefined) {
+        if (cache && options.budget) {
+          if (options.budget.left <= 0) {
+            pack.partial = true;
+            break;
+          }
+          for (const line of p.lines) options.budget.left -= line.text.length;
+        } else if (cache && g.budget !== undefined) {
           if (laid >= g.budget) {
             pack.partial = true;
             break;
@@ -599,6 +642,40 @@ export function packFar(
   return pack;
 }
 
+const asGlyphs = new WeakMap<FarText, { source: FarGlyphSource; glyphs: FarGlyphs }>();
+
+/**
+ * A one-line `text` as `glyphs`: its line cut with an ellipsis to `maxWidth`, in a line box 1.25
+ * times its size centred on `y`, a bar under `minSize`. Kept per text and per glyph source.
+ */
+function textAsGlyphs(t: FarText, source: FarGlyphSource): FarGlyphs {
+  const hit = asGlyphs.get(t);
+  if (hit && hit.source === source) return hit.glyphs;
+  // (`source` is the surface's, the same object until its fonts change.)
+  const font: FarFont = {
+    family: t.font ?? "sans",
+    size: t.size,
+    ...(t.weight !== undefined ? { weight: t.weight } : {}),
+  };
+  const lineHeight = t.lineHeight ?? t.size * 1.25;
+  const text = t.maxWidth !== undefined ? ellipsize(source, font, t.text, t.maxWidth) : t.text;
+  const top = t.baseline ? t.y - source.baseline(font, lineHeight) : t.y - lineHeight / 2;
+  const glyphs: FarGlyphs = {
+    type: "glyphs",
+    font,
+    color: t.color,
+    lineHeight,
+    lines: [{ x: t.x, y: top, text }],
+    minSize: t.minSize ?? 6,
+    greek: true,
+    ...(t.clip ? { clip: t.clip } : {}),
+    ...(t.minZoom !== undefined ? { minZoom: t.minZoom } : {}),
+    ...(t.maxZoom !== undefined ? { maxZoom: t.maxZoom } : {}),
+  };
+  asGlyphs.set(t, { source, glyphs });
+  return glyphs;
+}
+
 /** Empties a pack, keeping its memory. */
 export function resetFarPack(pack: FarPack): FarPack {
   pack.count = 0;
@@ -608,6 +685,7 @@ export function resetFarPack(pack: FarPack): FarPack {
   pack.glyphs = new Map();
   pack.band = [-Infinity, Infinity];
   pack.partial = false;
+  pack.animated = false;
   return pack;
 }
 

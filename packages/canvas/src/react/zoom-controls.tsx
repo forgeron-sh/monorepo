@@ -11,6 +11,7 @@ import {
   Redo02Icon,
   Undo02Icon,
 } from "@forgeron/icons";
+import { memo } from "react";
 import { formatShortcut, Icon, IconButton, Kbd, Segmented, Tooltip } from "@forgeron/ui";
 import { CANVAS_KEYMAP, type CanvasCommand } from "../core/keymap";
 import { PAN_TOOL, SELECT_TOOL } from "../core/tools";
@@ -28,7 +29,11 @@ export interface ZoomControlsProps {
   className?: string;
 }
 
-export function ZoomControls({
+/**
+ * Memoised: it is a child the editor creates again at each of its renders (a drag re-renders the
+ * editor every step), and it reads what it shows from the store.
+ */
+export const ZoomControls = memo(function ZoomControls({
   tools = true,
   history = false,
   fitMaxZoom = 1,
@@ -132,7 +137,7 @@ export function ZoomControls({
       ) : null}
     </div>
   );
-}
+});
 
 export interface CanvasShortcutsProps {
   /** The commands to list, in this order; every one by default. */

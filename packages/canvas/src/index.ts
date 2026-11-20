@@ -39,6 +39,8 @@ export type {
   FarTriangle,
   PackOptions,
 } from "./core/far";
+export { createFarBuffer, farMoved } from "./core/far-buffer";
+export type { FarBuffer, FarBufferUpdate, FarGroup } from "./core/far-buffer";
 export { clusters, ellipsize, lineWidth, placeLine, wrapText } from "./core/text";
 export type { FarFont, FarTextMetrics, PlacedLine } from "./core/text";
 export { DEFAULT_GRID, gridOffset, gridStep, snap, snapBounds, snapPoint } from "./core/grid";

@@ -106,3 +106,75 @@ export function edgeGeometryWith<D>(
     boundsOf(target),
   ]);
 }
+
+/**
+ * The points of an edge's path (`M`, `C`, `H`, `V`, `L` as the edge styles write them), flat
+ * `[x0, y0, x1, y1…]`, curves flattened: into `steps` segments each, or, without it, into
+ * segments of about 8 world units (6 to 48 a curve): within a tenth of a unit of the curve on the
+ * bends edges make, smooth at 200 %.
+ */
+export function flattenPath(d: string, steps?: number): number[] {
+  const out: number[] = [];
+  let x = 0;
+  let y = 0;
+  for (const [, cmd, args] of d.matchAll(/([MCHVL])([^MCHVL]*)/g)) {
+    const n = args!
+      .trim()
+      .split(/[\s,]+/)
+      .filter(Boolean)
+      .map(Number);
+    if (cmd === "M") {
+      x = n[0]!;
+      y = n[1]!;
+      out.push(x, y);
+    } else if (cmd === "L") {
+      for (let i = 0; i + 1 < n.length; i += 2) out.push((x = n[i]!), (y = n[i + 1]!));
+    } else if (cmd === "H") {
+      for (const v of n) out.push((x = v), y);
+    } else if (cmd === "V") {
+      for (const v of n) out.push(x, (y = v));
+    } else {
+      for (let i = 0; i + 5 < n.length; i += 6) {
+        const [x1, y1, x2, y2, x3, y3] = n.slice(i, i + 6) as [
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+        ];
+        // The control polygon is longer than the curve: enough segments either way.
+        const hull =
+          Math.hypot(x1 - x, y1 - y) + Math.hypot(x2 - x1, y2 - y1) + Math.hypot(x3 - x2, y3 - y2);
+        const k = steps ?? Math.max(6, Math.min(48, Math.ceil(hull / 8)));
+        for (let s = 1; s <= k; s++) {
+          const t = s / k;
+          const u = 1 - t;
+          const a = u * u * u;
+          const b = 3 * u * u * t;
+          const c = 3 * u * t * t;
+          const e = t * t * t;
+          out.push(a * x + b * x1 + c * x2 + e * x3, a * y + b * y1 + c * y2 + e * y3);
+        }
+        x = x3;
+        y = y3;
+      }
+    }
+  }
+  return out;
+}
+
+/** The distance from `p` to a polyline, flat `[x0, y0, x1, y1…]`. */
+export function distanceToPolyline(points: ArrayLike<number>, p: Point): number {
+  let best = Infinity;
+  for (let i = 0; i + 3 < points.length; i += 2) {
+    const ax = points[i]!;
+    const ay = points[i + 1]!;
+    const dx = points[i + 2]! - ax;
+    const dy = points[i + 3]! - ay;
+    const len = dx * dx + dy * dy;
+    const t = len > 0 ? Math.max(0, Math.min(1, ((p.x - ax) * dx + (p.y - ay) * dy) / len)) : 0;
+    best = Math.min(best, Math.hypot(p.x - (ax + t * dx), p.y - (ay + t * dy)));
+  }
+  return best;
+}

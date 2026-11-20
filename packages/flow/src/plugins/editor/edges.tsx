@@ -43,6 +43,9 @@ interface EdgeViewProps<D> {
   selected: boolean;
   label: string;
   readOnly: boolean;
+  /** The line is on the GPU: here only the parts, shown as if hovered when `hover`. */
+  gpu: boolean;
+  hovered: boolean;
   onPress: (edge: FlowEdge, e: ReactPointerEvent<SVGGElement>) => void;
   onInsert: ((edge: FlowEdge, point: Point) => void) | undefined;
   beginDrag: (
@@ -64,12 +67,15 @@ function EdgeViewInner<D>({
   selected,
   label,
   readOnly,
+  gpu,
+  hovered,
   onPress,
   onInsert,
   beginDrag,
 }: EdgeViewProps<D>) {
   // The parts that show on hover (the insert button) read it here: they are only rendered then.
-  const [hover, setHover] = useState(false);
+  const [pointerOver, setHover] = useState(false);
+  const hover = gpu ? hovered : pointerOver;
   const drag = useCallback(
     (e: ReactPointerEvent<Element>, onDrop: (ev: PointerEvent) => void) =>
       beginDrag(edge, e, onDrop),
@@ -87,11 +93,15 @@ function EdgeViewInner<D>({
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >
-      <path className="fg-flow-edge-hit" d={d} vectorEffect="non-scaling-stroke" />
-      <path className="fg-flow-edge-line" d={d} vectorEffect="non-scaling-stroke" />
-      {status === "running" ? (
-        <path className="fg-flow-edge-flow" d={d} vectorEffect="non-scaling-stroke" />
-      ) : null}
+      {gpu ? null : (
+        <>
+          <path className="fg-flow-edge-hit" d={d} vectorEffect="non-scaling-stroke" />
+          <path className="fg-flow-edge-line" d={d} vectorEffect="non-scaling-stroke" />
+          {status === "running" ? (
+            <path className="fg-flow-edge-flow" d={d} vectorEffect="non-scaling-stroke" />
+          ) : null}
+        </>
+      )}
       {parts.map((part) => (
         <Fragment key={part.id}>
           {part.render({
@@ -118,7 +128,12 @@ const EdgeView = memo(EdgeViewInner) as typeof EdgeViewInner;
 /** The edges of a flow, drawn under its nodes. */
 export function FlowEdges<D>({ ctx, view }: LayerProps<D>) {
   const { flow, core, registry } = ctx;
-  const { run, far, edgeLimit: limit, onInsert, edgeLabel } = view;
+  const { run, far, edgeLimit: limit, onInsert, edgeLabel, gpu, hover, setDragging } = view;
+  // On the GPU, the arrowhead is drawn there with the line; the other parts take the pointer.
+  const parts = useMemo(
+    () => (gpu ? registry.edgeParts.filter((p) => p.id !== "arrowhead") : registry.edgeParts),
+    [gpu, registry],
+  );
   const graph = flow.current;
   const index = useMemo(() => indexGraph(graph), [graph]);
   const path = pathOf(core, view.edgeStyle);
@@ -152,6 +167,7 @@ export function FlowEdges<D>({ ctx, view }: LayerProps<D>) {
       const el = e.currentTarget as unknown as SVGElement;
       el.setPointerCapture?.(e.pointerId);
       setDrag({ edge, point: worldAt(flow, el, e.clientX, e.clientY) });
+      setDragging(edge.id);
       const move = (ev: PointerEvent) =>
         setDrag({ edge, point: worldAt(flow, el, ev.clientX, ev.clientY) });
       const stop = () => {
@@ -159,6 +175,7 @@ export function FlowEdges<D>({ ctx, view }: LayerProps<D>) {
         el.removeEventListener("pointerup", up);
         el.removeEventListener("pointercancel", stop);
         setDrag(null);
+        setDragging(null);
       };
       const up = (ev: PointerEvent) => {
         stop();
@@ -168,7 +185,7 @@ export function FlowEdges<D>({ ctx, view }: LayerProps<D>) {
       el.addEventListener("pointerup", up);
       el.addEventListener("pointercancel", stop);
     },
-    [flow],
+    [flow, setDragging],
   );
 
   let budget = limit ?? Infinity;
@@ -183,7 +200,8 @@ export function FlowEdges<D>({ ctx, view }: LayerProps<D>) {
     <WorldSvg className="fg-flow-edges">
       {shapes.map(({ edge, g, box }) => {
         const kept =
-          (!far && (!cull || intersects(cull, box)) && (limit === null || budget-- > 0)) ||
+          (!gpu && !far && (!cull || intersects(cull, box)) && (limit === null || budget-- > 0)) ||
+          (gpu && hover.edge === edge.id) ||
           flow.selectedEdges.has(edge.id) ||
           drag?.edge.id === edge.id;
         if (!kept) return null;
@@ -193,7 +211,7 @@ export function FlowEdges<D>({ ctx, view }: LayerProps<D>) {
           <EdgeView
             key={edge.id}
             ctx={ctx}
-            parts={registry.edgeParts}
+            parts={parts}
             edge={edge}
             d={g.d}
             arrow={g.arrow}
@@ -203,6 +221,8 @@ export function FlowEdges<D>({ ctx, view }: LayerProps<D>) {
             selected={flow.selectedEdges.has(edge.id)}
             label={edgeLabel?.(edge, from, to) ?? `Edge from ${from.id} to ${to.id}`}
             readOnly={readOnly}
+            gpu={gpu}
+            hovered={hover.edge === edge.id}
             onPress={onPress}
             onInsert={onInsert}
             beginDrag={beginDrag}

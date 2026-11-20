@@ -1,13 +1,25 @@
-// A flow seen from far (a zoom under `farZoom`), as canvas far primitives: each node a plain box
-// with its name, each edge its line and its arrowhead, in the colours of its run state. The same
-// look as the DOM's far view (`flow.css`, `.fg-flow-node-far` and the edges), drawn on the GPU by
-// the canvas's far layer.
+// A flow on the GPU (the canvas's far layer), at every zoom: each node a box (under its rich card
+// near, a labelled box with its ports and run marks from far), each edge its line, its dashes and
+// marching dashes, its arrowhead, each group its frame and label. The same look as the DOM drew
+// them (`flow.css`); the rich cards stay DOM above them near, and what takes clicks on an edge or a
+// group's label is a hit test on these same shapes (`edgeAt`, `groupLabelAt`).
 
-import type { FarPrimitive } from "@forgeron/canvas";
-import { edgeGeometryWith, type EdgePath, type EdgeStyle } from "../../core/geometry";
-import type { FlowEdge, FlowNode, GraphIndex } from "../../core/model";
+import type { Bounds, FarGroup, FarPrimitive, Point } from "@forgeron/canvas";
+import {
+  distanceToPolyline,
+  edgeBounds,
+  edgeGeometryWith,
+  flattenPath,
+  portOffset,
+  type EdgePath,
+  type EdgeStyle,
+} from "../../core/geometry";
+import type { FlowEdge, FlowGroup, FlowNode, GraphIndex } from "../../core/model";
 import { edgeStatus, type RunState, type RunStatus } from "../../core/run";
+import type { FarEdge, FarGroupFrame } from "../../react/plugin";
 import { edgePath } from "../edges";
+
+export { flattenPath };
 
 const NODE_EDGE: Partial<Record<RunStatus, string>> = {
   running: "--accent",
@@ -18,20 +30,31 @@ const NODE_EDGE: Partial<Record<RunStatus, string>> = {
 
 /** The square in the top-right corner of a node that failed and was handled, in world units. */
 const HANDLED_MARK = 20;
+/** A port's square (`.fg-flow-port`: 9 px, 5 px out of the node, 1 px border). */
+const PORT = 9;
+
+export interface FarNodeOptions {
+  /** The zoom under which the node is its labelled box (its card is not mounted): with ports. */
+  farZoom?: number;
+  /** The colour token of a port's type (`PortTypeSpec.color`), if it has one. */
+  portColor?: (type: string | undefined) => string | undefined;
+}
 
 /**
- * A node from far: a box with a 2-unit border and its name at 26 units, cut to its width; a
- * failure that was handled has a square in its top-right corner too.
+ * A node while the DOM does not hold its card (from far, or near while the cards come back): a
+ * box with a 2-unit border (dashed when skipped), its name at 26 units cut to its width, its ports,
+ * and a square in its top-right corner when a failure was handled.
  */
 export function farNode<D>(
   node: FlowNode<D>,
   status: RunStatus,
   label: string,
   selected: boolean,
+  options: FarNodeOptions = {},
 ): FarPrimitive[] {
   const { x, y } = node.position;
   const { w, h } = node.size;
-  return [
+  const out: FarPrimitive[] = [
     {
       type: "rect",
       x,
@@ -41,11 +64,14 @@ export function farNode<D>(
       fill: "--bg",
       stroke: selected ? "--accent" : (NODE_EDGE[status] ?? "--line-strong"),
       strokeWidth: 2,
+      ...(status === "skipped" ? { dash: [6, 6] as const } : {}),
     },
     {
       type: "text",
       x: x + 16,
-      y: y + 26,
+      // `.fg-flow-node-far`: 8 units of padding, a 32-unit line.
+      y: y + 8 + 16,
+      lineHeight: 32,
       text: label,
       size: 26,
       weight: 500,
@@ -54,19 +80,36 @@ export function farNode<D>(
       // The DOM draws the name at any size, a grey smudge at 10 %: so does the far view.
       minSize: 1,
     },
-    ...(status === "handled"
-      ? [
-          {
-            type: "rect" as const,
-            x: x + w - HANDLED_MARK,
-            y,
-            w: HANDLED_MARK,
-            h: HANDLED_MARK,
-            fill: "--danger",
-          },
-        ]
-      : []),
   ];
+  if (status === "handled") {
+    out.push({
+      type: "rect",
+      x: x + w - HANDLED_MARK,
+      y,
+      w: HANDLED_MARK,
+      h: HANDLED_MARK,
+      fill: "--danger",
+    });
+  }
+  if (options.farZoom !== undefined) {
+    const port = (side: "in" | "out", type: string | undefined, i: number, n: number) => {
+      const color = options.portColor?.(type);
+      out.push({
+        type: "rect",
+        x: side === "in" ? x - 5 : x + w - PORT + 5,
+        y: y + portOffset(h, i, n) - 5,
+        w: PORT,
+        h: PORT,
+        fill: "--bg",
+        stroke: selected ? "--accent" : (color ?? "--line-strong"),
+        strokeWidth: 1,
+        crisp: true,
+      });
+    };
+    node.inputs.forEach((p, i) => port("in", p.type, i, node.inputs.length));
+    node.outputs.forEach((p, i) => port("out", p.type, i, node.outputs.length));
+  }
+  return out;
 }
 
 const LINE: Partial<Record<RunStatus, string>> = {
@@ -81,58 +124,98 @@ const HEAD: Partial<Record<RunStatus, string>> = {
   running: "--accent",
 };
 
-/** The points of an edge's path (`M`, `C`, `H`, `V`, `L` as the edge styles write them), curves flattened. */
-export function flattenPath(d: string, steps = 12): number[] {
-  const out: number[] = [];
-  let x = 0;
-  let y = 0;
-  for (const [, cmd, args] of d.matchAll(/([MCHVL])([^MCHVL]*)/g)) {
-    const n = args!
-      .trim()
-      .split(/[\s,]+/)
-      .filter(Boolean)
-      .map(Number);
-    if (cmd === "M") {
-      x = n[0]!;
-      y = n[1]!;
-      out.push(x, y);
-    } else if (cmd === "L") {
-      for (let i = 0; i + 1 < n.length; i += 2) out.push((x = n[i]!), (y = n[i + 1]!));
-    } else if (cmd === "H") {
-      for (const v of n) out.push((x = v), y);
-    } else if (cmd === "V") {
-      for (const v of n) out.push(x, (y = v));
-    } else {
-      for (let i = 0; i + 5 < n.length; i += 6) {
-        const [x1, y1, x2, y2, x3, y3] = n.slice(i, i + 6) as [
-          number,
-          number,
-          number,
-          number,
-          number,
-          number,
-        ];
-        for (let s = 1; s <= steps; s++) {
-          const t = s / steps;
-          const u = 1 - t;
-          const a = u * u * u;
-          const b = 3 * u * u * t;
-          const c = 3 * u * t * t;
-          const e = t * t * t;
-          out.push(a * x + b * x1 + c * x2 + e * x3, a * y + b * y1 + c * y2 + e * y3);
-        }
-        x = x3;
-        y = y3;
-      }
+/** How an edge is shown besides its run state. */
+export interface FarEdgeState {
+  selected?: ReadonlySet<string>;
+  /** The edge under the pointer: drawn as the selected one. */
+  hover?: string | null;
+  /** The edge whose end is being dragged elsewhere: grey and dashed, as skipped. */
+  dragging?: string | null;
+  /** Draw the arrowheads (the `edge-arrows` plugin is there). */
+  arrows?: boolean;
+}
+
+/**
+ * Every edge of a graph, one group each (keyed by its id): its line (1.5 units, 2 when selected or
+ * under the pointer; the DOM's non-scaling strokes still scale with the world's CSS zoom), dashed
+ * when skipped, marching dashes over it while it runs, its arrowhead. `cache` keeps an edge's
+ * shapes while its path and its look stay the same, so the canvas packs only the edges that
+ * changed.
+ */
+export function farEdgeGroups<D>(
+  index: GraphIndex<D>,
+  edges: ReadonlyArray<FlowEdge>,
+  style: EdgeStyle | EdgePath,
+  run: RunState | undefined,
+  state: FarEdgeState = {},
+  cache?: Map<string, { key: string; edge: FarEdge }>,
+): FarEdge[] {
+  const out: FarEdge[] = [];
+  const path: EdgePath =
+    typeof style === "function" ? style : (a, b, around) => edgePath(a, b, style, around);
+  const arrows = state.arrows ?? true;
+  for (const edge of edges) {
+    const g = edgeGeometryWith(index, edge, path);
+    if (!g) continue;
+    const status = state.dragging === edge.id ? "skipped" : edgeStatus(run, edge.id);
+    const hot =
+      state.dragging !== edge.id && (!!state.selected?.has(edge.id) || state.hover === edge.id);
+    const key = `${g.d}|${g.arrow}|${status}|${hot}|${arrows}`;
+    const hit = cache?.get(edge.id);
+    if (hit && hit.key === key && hit.edge.edge === edge) {
+      out.push(hit.edge);
+      continue;
     }
+    const points = flattenPath(g.d);
+    // A curve flattened joins its segments end to end (a square joint would overlap a translucent
+    // stroke); an elbow's right angles reach past, as SVG's miter.
+    const curved = g.d.includes("C");
+    const prims: FarPrimitive[] = [
+      {
+        type: "line",
+        points,
+        color: hot ? "--accent" : (LINE[status] ?? "--line-strong"),
+        width: hot ? 2 : 1.5,
+        cap: "butt",
+        ...(curved ? { joins: "butt" as const } : {}),
+        ...(status === "skipped" ? { dash: [3, 4] as const } : {}),
+      },
+    ];
+    if (status === "running") {
+      // Items flowing: `.fg-flow-edge-flow`, 4 on 8 off, 12 units every 0.6 s.
+      prims.push({
+        type: "line",
+        points,
+        color: "--accent",
+        width: 2,
+        cap: "butt",
+        ...(curved ? { joins: "butt" as const } : {}),
+        dash: [4, 8],
+        march: 20,
+      });
+    }
+    const t = g.arrow.split(/[\s,]+/).map(Number);
+    if (arrows && t.length === 6) {
+      prims.push({
+        type: "triangle",
+        points: t as unknown as [number, number, number, number, number, number],
+        fill: hot ? "--accent" : (HEAD[status] ?? "--line-strong"),
+      });
+    }
+    const made: FarEdge = {
+      edge,
+      points,
+      box: edgeBounds(g),
+      mid: g.mid,
+      group: { key: edge.id, prims },
+    };
+    cache?.set(edge.id, { key, edge: made });
+    out.push(made);
   }
   return out;
 }
 
-/**
- * Every edge of a graph from far: its line and its arrowhead. The DOM's edges are non-scaling
- * strokes inside the world's CSS scale, which still scales them: 1.5 world units, 2 when selected.
- */
+/** Every edge of a graph as one list of primitives (lines and arrowheads), in order. */
 export function farEdges<D>(
   index: GraphIndex<D>,
   edges: ReadonlyArray<FlowEdge>,
@@ -140,28 +223,105 @@ export function farEdges<D>(
   run: RunState | undefined,
   selected: ReadonlySet<string>,
 ): FarPrimitive[] {
-  const out: FarPrimitive[] = [];
-  const path: EdgePath =
-    typeof style === "function" ? style : (a, b, around) => edgePath(a, b, style, around);
-  for (const edge of edges) {
-    const g = edgeGeometryWith(index, edge, path);
-    if (!g) continue;
-    const status = edgeStatus(run, edge.id);
-    const sel = selected.has(edge.id);
-    out.push({
-      type: "line",
-      points: flattenPath(g.d),
-      color: sel ? "--accent" : (LINE[status] ?? "--line-strong"),
-      width: sel ? 2 : 1.5,
-    });
-    const t = g.arrow.split(/[\s,]+/).map(Number);
-    if (t.length === 6) {
-      out.push({
-        type: "triangle",
-        points: t as unknown as [number, number, number, number, number, number],
-        fill: sel ? "--accent" : (HEAD[status] ?? "--line-strong"),
-      });
+  return farEdgeGroups(index, edges, style, run, { selected }).flatMap((e) => e.group.prims);
+}
+
+/** The edge whose line passes within `tolerance` world units of `p`, the topmost (last) first. */
+export function edgeAt(
+  edges: ReadonlyArray<FarEdge>,
+  p: Point,
+  tolerance: number,
+): FlowEdge | null {
+  let best: FlowEdge | null = null;
+  let bestD = tolerance;
+  for (let i = edges.length - 1; i >= 0; i--) {
+    const e = edges[i]!;
+    const b = e.box;
+    if (
+      p.x < b.x - tolerance ||
+      p.y < b.y - tolerance ||
+      p.x > b.x + b.w + tolerance ||
+      p.y > b.y + b.h + tolerance
+    )
+      continue;
+    const d = distanceToPolyline(e.points, p);
+    if (d <= bestD) {
+      bestD = d;
+      best = e.edge;
     }
   }
+  return best;
+}
+
+/** The frames of the groups (`groupBounds` of the groups plugin) and their labels' boxes. */
+export function groupFrames<D>(
+  index: GraphIndex<D>,
+  groups: ReadonlyArray<FlowGroup>,
+  bounds: (index: GraphIndex<D>, nodes: ReadonlyArray<string>) => Bounds | null,
+): FarGroupFrame[] {
+  const out: FarGroupFrame[] = [];
+  for (const group of groups) {
+    const b = bounds(index, group.nodes);
+    if (!b) continue;
+    out.push({
+      group,
+      frame: b,
+      label: { x: b.x, y: b.y, w: Math.max(60, group.label.length * 7 + 16), h: 20 },
+    });
+  }
   return out;
+}
+
+/** The label under `p`, the last drawn first. */
+export function groupLabelAt(frames: ReadonlyArray<FarGroupFrame>, p: Point): FlowGroup | null {
+  for (let i = frames.length - 1; i >= 0; i--) {
+    const l = frames[i]!.label;
+    if (p.x >= l.x && p.y >= l.y && p.x <= l.x + l.w && p.y <= l.y + l.h) return frames[i]!.group;
+  }
+  return null;
+}
+
+/**
+ * A group's frame (a 3 % wash, a dashed 1-unit line) and its label (a box and its name in mono 11
+ * at the baseline the SVG text had), one group each. SVG strokes straddle the path: the boxes are
+ * half a stroke larger, so the GPU's inside stroke lands where SVG's did.
+ */
+export function farGroups(frames: ReadonlyArray<FarGroupFrame>, hover?: string | null): FarGroup[] {
+  return frames.map(({ group, frame: b, label: l }) => ({
+    key: `group:${group.id}`,
+    prims: [
+      {
+        type: "rect",
+        x: b.x - 0.5,
+        y: b.y - 0.5,
+        w: b.w + 1,
+        h: b.h + 1,
+        fill: "color-mix(in srgb, var(--ink) 3%, transparent)",
+        stroke: "--line",
+        strokeWidth: 1,
+        dash: [4, 3],
+      },
+      {
+        type: "rect",
+        x: l.x - 0.5,
+        y: l.y - 0.5,
+        w: l.w + 1,
+        h: l.h + 1,
+        fill: "--bg",
+        stroke: hover === group.id ? "--accent" : "--line",
+        strokeWidth: 1,
+      },
+      {
+        type: "text",
+        x: b.x + 8,
+        y: b.y + 14,
+        baseline: true,
+        text: group.label,
+        size: 11,
+        font: "mono",
+        color: "--ink-muted",
+        minSize: 1,
+      },
+    ],
+  }));
 }

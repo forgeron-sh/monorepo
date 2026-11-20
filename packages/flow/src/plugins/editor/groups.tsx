@@ -9,12 +9,13 @@ import { groups as groupsCore } from "../groups";
 import { focusSurface } from "./surface";
 
 /** The frames of the groups, under the edges; a label that selects the group's nodes. */
-export function FlowGroups<D>({ ctx }: LayerProps<D>) {
+export function FlowGroups<D>({ ctx, view }: LayerProps<D>) {
   const { flow, core } = ctx;
   const graph = flow.current;
   const index = useMemo(() => indexGraph(graph), [graph]);
   const spec = core.groups;
-  if (!spec || graph.groups.length === 0) return null;
+  // On the GPU, the frames and labels are drawn there and the host takes a press on a label.
+  if (!spec || graph.groups.length === 0 || view.gpu) return null;
   return (
     <WorldSvg className="fg-flow-groups">
       {graph.groups.map((g) => {

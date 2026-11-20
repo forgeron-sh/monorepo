@@ -86,9 +86,14 @@ describe("<FlowCanvas>", () => {
       "Step b",
     ]);
     expect(surface.querySelectorAll("[data-canvas-handle]")).toHaveLength(5);
-    const edge = surface.querySelector('[data-edge="e1"] .fg-flow-edge-line')!;
-    // From t's output (240, 40) to a's input (300, 40), stopping at the arrowhead.
-    expect(edge.getAttribute("d")).toBe("M240 40C280 40 254 40 294 40");
+    // The edges are on the GPU layer, under the nodes; the DOM holds an edge's parts only while
+    // it is under the pointer (from t's output at 240, 40 to a's input at 300, 40).
+    expect(surface.querySelector(".fg-canvas-far")).not.toBeNull();
+    expect(surface.querySelector("[data-edge]")).toBeNull();
+    await fire(surface, "pointermove", { clientX: 270, clientY: 41, buttons: 0 });
+    expect(surface.querySelector('[data-edge="e1"]')).not.toBeNull();
+    await fire(surface, "pointermove", { clientX: 270, clientY: 60, buttons: 0 });
+    expect(surface.querySelector("[data-edge]")).toBeNull();
   });
 
   it("connects by dragging from an output port onto a node", async () => {
@@ -99,7 +104,6 @@ describe("<FlowCanvas>", () => {
     expect(flow().store.getState().connection?.over).toEqual({ itemId: "b" });
     await fire(surface, "pointerup", { clientX: 700, clientY: 40 });
     expect(flow().current.edges.map((e) => `${e.from.node}>${e.to.node}`)).toEqual(["t>a", "a>b"]);
-    expect(surface.querySelectorAll(".fg-flow-edge")).toHaveLength(2);
   });
 
   it("refuses a connection the rules forbid", async () => {
@@ -118,16 +122,17 @@ describe("<FlowCanvas>", () => {
     await act(async () => flow().store.select(["a"]));
     await key(surface, "Delete");
     expect(flow().current.nodes.map((n) => n.id)).toEqual(["t", "b"]);
-    expect(surface.querySelectorAll(".fg-flow-edge")).toHaveLength(0);
+    expect(flow().current.edges).toHaveLength(0);
     await key(surface, "z", MOD);
     expect(flow().current.edges).toHaveLength(1);
-    expect(surface.querySelectorAll(".fg-flow-edge")).toHaveLength(1);
   });
 
   it("selects an edge with a click and deletes it with Backspace", async () => {
     const { surface, flow } = await mount();
-    await fire(surface.querySelector('[data-edge="e1"]')!, "pointerdown");
+    // A press within reach of its line, on the surface: the edge, not a box.
+    await fire(surface, "pointerdown", { clientX: 270, clientY: 44 });
     expect([...flow().selectedEdges]).toEqual(["e1"]);
+    expect(flow().store.getState().selection.size).toBe(0);
     expect(surface.querySelector('[data-edge="e1"]')!.hasAttribute("data-selected")).toBe(true);
     await key(surface, "Backspace");
     expect(flow().current.edges).toHaveLength(0);

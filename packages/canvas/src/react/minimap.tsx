@@ -85,6 +85,29 @@ function useThemeVersion() {
   return version;
 }
 
+/** How often, at most, the items are drawn again while only they change (ms). */
+const ITEMS_EVERY = 120;
+
+/** The view's frame over the items. */
+function viewBox(
+  ctx: CanvasRenderingContext2D,
+  viewport: Viewport,
+  size: Size,
+  m: Mapping,
+  color: (value: string) => string,
+) {
+  if (!size.w) return;
+  const view = visibleWorld(viewport, size);
+  ctx.strokeStyle = color("--accent");
+  ctx.lineWidth = 1;
+  ctx.strokeRect(
+    Math.round(view.x * m.scale + m.ox) + 0.5,
+    Math.round(view.y * m.scale + m.oy) + 0.5,
+    Math.max(2, Math.round(view.w * m.scale) - 1),
+    Math.max(2, Math.round(view.h * m.scale) - 1),
+  );
+}
+
 export function Minimap<D = unknown>({
   width = 180,
   height = 112,
@@ -97,7 +120,10 @@ export function Minimap<D = unknown>({
   const theme = useThemeVersion();
   const ref = useRef<HTMLCanvasElement>(null);
   const mapping = useRef<Mapping | null>(null);
-  const bitmap = useRef<{ canvas: HTMLCanvasElement; key: unknown[] } | null>(null);
+  const bitmap = useRef<{ canvas: HTMLCanvasElement; key: unknown[]; at: number } | null>(null);
+  const later = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bumped when the items' bitmap, held back during a drag, is due: drawn then.
+  const [late, setLate] = useState(0);
   const dragging = useRef(false);
   const palette = useRef<{ theme: number; colors: Map<string, string> }>({
     theme: -1,
@@ -107,6 +133,7 @@ export function Minimap<D = unknown>({
   const itemBounds = useMemo(() => unionBounds(items.map((i) => i.bounds)), [items]);
 
   const draw = useCallback(() => {
+    void late; // a bitmap held back is due
     const canvas = ref.current;
     const ctx = canvas?.getContext?.("2d");
     if (!canvas || !ctx) return;
@@ -141,6 +168,31 @@ export function Minimap<D = unknown>({
     // The items: from the bitmap when nothing it depends on changed.
     const key = [items, selection, colorOf, theme, w, h, m];
     let cached = bitmap.current;
+    // Only the items moved (a drag: thousands of them, every step) or the mapping did (a pan at
+    // fit: the view is part of what is fitted): the bitmap is moved and scaled to the new mapping
+    // and drawn again at most every `ITEMS_EVERY` ms, exactly a little after the last change.
+    const now = performance.now();
+    if (
+      cached &&
+      cached.key.every((k, i) => i === 0 || i === 6 || k === key[i]) &&
+      (cached.key[0] !== items || cached.key[6] !== m)
+    ) {
+      const wait = ITEMS_EVERY - (now - cached.at);
+      if (wait > 0) {
+        if (!later.current)
+          later.current = setTimeout(() => {
+            later.current = null;
+            setLate((n) => n + 1);
+          }, wait);
+        const m0 = cached.key[6] as Mapping;
+        const k = m.scale / m0.scale;
+        ctx.setTransform(k, 0, 0, k, (m.ox - m0.ox * k) * dpr, (m.oy - m0.oy * k) * dpr);
+        ctx.drawImage(cached.canvas, 0, 0);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        viewBox(ctx, viewport, size, m, color);
+        return;
+      }
+    }
     if (!cached || cached.key.some((k, i) => k !== key[i])) {
       const layer = cached?.canvas ?? document.createElement("canvas");
       layer.width = w;
@@ -161,24 +213,20 @@ export function Minimap<D = unknown>({
           );
         }
       }
-      cached = { canvas: layer, key };
+      cached = { canvas: layer, key, at: now };
       bitmap.current = cached;
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(cached.canvas, 0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (size.w) {
-      const view = visibleWorld(viewport, size);
-      ctx.strokeStyle = color("--accent");
-      ctx.lineWidth = 1;
-      ctx.strokeRect(
-        Math.round(view.x * m.scale + m.ox) + 0.5,
-        Math.round(view.y * m.scale + m.oy) + 0.5,
-        Math.max(2, Math.round(view.w * m.scale) - 1),
-        Math.max(2, Math.round(view.h * m.scale) - 1),
-      );
-    }
-  }, [store, items, itemBounds, selection, colorOf, theme, width, height]);
+    viewBox(ctx, viewport, size, m, color);
+  }, [store, items, itemBounds, selection, colorOf, theme, width, height, late]);
+  useEffect(
+    () => () => {
+      if (later.current) clearTimeout(later.current);
+    },
+    [],
+  );
 
   // Redrawn when what it shows changes, and on every camera move without rendering.
   useLayoutEffect(() => {

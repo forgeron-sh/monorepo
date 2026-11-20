@@ -13,6 +13,7 @@ import {
 } from "@forgeron/canvas/react";
 import { matchShortcut } from "@forgeron/ui";
 import {
+  memo,
   useCallback,
   useId,
   useLayoutEffect,
@@ -22,6 +23,7 @@ import {
   type CSSProperties,
   type DragEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type ComponentType,
 } from "react";
 import type { DrawStore } from "../core/engine";
 import { FAR_ZOOM } from "../core/far";
@@ -39,6 +41,7 @@ import {
   type EditorPlugin,
   type ItemViewOptions,
   type Slots,
+  type UiProps,
 } from "./plugin";
 import { createSession, createSignal, type Signal } from "./signal";
 
@@ -46,6 +49,17 @@ import { createSession, createSignal, type Signal } from "./signal";
 const CONTAINER_STRIP = 24;
 
 /** Names an item for assistive technology: its kind and its words; unsupported ones say so. */
+/**
+ * A part of the interface a plugin brings: rendered again when its props change, not with every
+ * change of the editor (a drag re-renders the editor each step; the dock has nothing new to show).
+ */
+const UiSlot = memo(function UiSlot({
+  Component,
+  ...props
+}: UiProps & { Component: ComponentType<UiProps> }) {
+  return <Component {...props} />;
+});
+
 export function drawItemLabel(item: Item<DrawData>, plugins?: Plugins): string {
   const spec = registryOf(plugins).kind(item.kind);
   if (!spec) return `Unsupported item: ${item.kind}`;
@@ -421,7 +435,14 @@ function DrawEditorBody({
     slots.ui
       .filter((u) => (u.placement ?? "before-zoom") === placement)
       .map((u) => (
-        <u.Component key={u.id} ctx={ctx} slots={slots} style={style} onStyle={setStyle} />
+        <UiSlot
+          key={u.id}
+          Component={u.Component}
+          ctx={ctx}
+          slots={slots}
+          style={style}
+          onStyle={setStyle}
+        />
       ));
 
   return (
@@ -444,6 +465,7 @@ function DrawEditorBody({
         renderItem={renderItem}
         far={{ zoom: FAR_ZOOM, kinds: gpuKinds, keep, overlay }}
         itemLabel={(item) => drawItemLabel(item, registry)}
+        itemRole={(item) => registry.kind(item.kind)?.label.toLowerCase() ?? item.kind}
         onItemActivate={onActivate}
         onSurfaceDoubleClick={(point) => {
           for (const fn of slots.doubleClick) if (fn(ctx, point)) return;
