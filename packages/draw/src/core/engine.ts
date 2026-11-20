@@ -1,10 +1,15 @@
-// The draw engine: a `CanvasEngine` around any other (the TypeScript one by default) that keeps the
-// whiteboard's rules after every change, in the same undo step as the change:
-//   - a frame that moves takes its items along; membership is settled when a change ends;
-//   - bound arrows follow their items, and let go of an item when dragged away from it;
-//   - selecting an item of a group selects the group;
-//   - a copy (duplicate, paste) of arrows and groups points at the copies, not the originals.
-// It only speaks the engine interface, so a WebAssembly engine can sit underneath unchanged.
+// The draw engine: a `CanvasEngine` around any other (the TypeScript one by default) that runs the
+// rules of the plugins after every change, in the same undo step as the change. The engine itself
+// is neutral: it tracks the gesture, remembers what a gesture touched, keeps the clipboard and
+// calls the rules; what a rule does is the plugin's (`engineRules`):
+//   - `carry`:  a frame that moves takes its items along;
+//   - `remove`: what a deletion leaves behind;
+//   - `settle`: where an item belongs (frame membership), when a change ends;
+//   - `follow`: bound arrows go back onto their items, and let go of an item dragged away from;
+//   - `select`: selecting an item of a group selects the group;
+//   - `copy`:   a copy (duplicate, paste) of arrows and groups points at the copies.
+// With no plugin at all it is the canvas engine and nothing more. It only speaks the engine
+// interface, so a WebAssembly engine can sit underneath unchanged.
 
 import {
   createTsEngine,
@@ -15,16 +20,13 @@ import {
   type CanvasStore,
   type EngineCommand,
   type EngineResult,
-  type ItemChange,
   type TsEngineOptions,
 } from "@forgeron/canvas";
-import { expandGroups } from "./arrange";
-import { arrowFollow, changedIds, frameFollow } from "./follow";
-import { membershipChanges } from "./frames";
-import { drawKinds } from "./kinds";
-import type { ArrowEnd, DrawData, DrawItem } from "./types";
+import { registryOf } from "./defaults";
+import { changedIds } from "./follow";
+import type { Changes, Plugins, Registry } from "./plugin";
+import type { DrawData, DrawItem } from "./types";
 
-type Changes = Array<readonly [string, ItemChange<DrawData>]>;
 type Command = EngineCommand<DrawData>;
 
 /** Commands that change the document and take a `CommitMeta` (a label, a coalesce key). */
@@ -51,59 +53,45 @@ const LABELS: Partial<Record<Command["type"], string>> = {
 };
 
 /**
- * The changes that make copies point at copies: arrows bound to an item that was copied too are
- * bound to its copy, others let go; each copied group becomes a new group.
+ * The changes that make copies point at copies: what the `copy` rules of the plugins say (arrows
+ * bound to an item that was copied too are bound to its copy, others let go; each copied group
+ * becomes a new group; a copy of a frame's items is in the copy of the frame).
  */
 export function remapCopies(
   sources: ReadonlyArray<DrawItem>,
   copies: ReadonlyArray<DrawItem>,
   groupId: (old: string) => string,
+  plugins?: Plugins,
 ): Changes {
-  const ids = new Map<string, string>();
-  sources.forEach((s, i) => {
-    const c = copies[i];
-    if (c) ids.set(s.id, c.id);
-  });
-  const groups = new Map<string, string>();
+  let current = copies;
   const out: Changes = [];
-  copies.forEach((copy) => {
-    let data = copy.data;
-    if (data.group) {
-      let g = groups.get(data.group);
-      if (!g) {
-        g = groupId(data.group);
-        groups.set(data.group, g);
-      }
-      data = { ...data, group: g };
-    }
-    if (data.type !== "frame" && data.frame && ids.has(data.frame)) {
-      data = { ...data, frame: ids.get(data.frame)! };
-    }
-    if (data.type === "arrow") {
-      const end = (e: ArrowEnd) => {
-        if (!e.bind) return e;
-        const to = ids.get(e.bind);
-        const { bind: _b, ...rest } = e;
-        return to ? { ...rest, bind: to } : rest;
-      };
-      data = { ...data, start: end(data.start), end: end(data.end) };
-    }
-    if (data !== copy.data) out.push([copy.id, { data }]);
-  });
+  for (const rule of registryOf(plugins).rules.copy) {
+    const changes = rule({ sources, copies: current, newGroup: groupId });
+    out.push(...changes);
+    const by = new Map(changes);
+    current = current.map((c) => (by.has(c.id) ? ({ ...c, ...by.get(c.id) } as DrawItem) : c));
+  }
   return out;
 }
 
 export interface DrawEngineOptions extends TsEngineOptions<DrawData> {
-  /** The engine underneath; a TypeScript engine with the draw kinds by default. */
+  /** The engine underneath; a TypeScript engine with the kinds of the plugins by default. */
   base?: CanvasEngine<DrawData>;
+  /** The core halves of the plugins; the `full` preset by default. */
+  plugins?: Plugins;
 }
 
-export function createDrawEngine(options: DrawEngineOptions = {}): CanvasEngine<DrawData> {
-  const { base, ...rest } = options;
+/** A canvas engine that also tells which plugins' kinds and rules it runs. */
+export type DrawEngine = CanvasEngine<DrawData> & { readonly registry: Registry };
+
+export function createDrawEngine(options: DrawEngineOptions = {}): DrawEngine {
+  const { base, plugins, ...rest } = options;
+  const registry = registryOf(plugins);
+  const rules = registry.rules;
   const inner =
-    base ?? createTsEngine<DrawData>({ ...rest, kinds: { ...drawKinds, ...rest.kinds } });
+    base ?? createTsEngine<DrawData>({ ...rest, kinds: { ...registry.kinds, ...rest.kinds } });
   let gesture = false;
-  /** Items changed while a gesture is open: their frames are settled when it ends. */
+  /** Items changed while a gesture is open: they are settled when it ends. */
   let touched = new Set<string>();
   let clipboard: string | null = null;
   let seq = 0;
@@ -119,36 +107,51 @@ export function createDrawEngine(options: DrawEngineOptions = {}): CanvasEngine<
     return id;
   };
 
-  /** The items whose frame may have changed: all of them when a frame itself changed. */
-  const settleSet = (before: Map<string, DrawItem>, ids: ReadonlySet<string>) =>
-    [...ids].some((id) => (before.get(id) ?? inner.get(id))?.data.type === "frame")
-      ? undefined
-      : ids;
-
   /** Applies `changes` in the current step: inside the gesture, or merged by `coalesce`. */
   const write = (changes: Changes, coalesce?: string) => {
     if (changes.length === 0) return;
     inner.dispatch({ type: "update", changes, ...(coalesce ? { coalesce } : {}) });
   };
 
-  /** Frames, membership and arrows after a change, in the same step. */
+  /** Writes what a rule says and adds the ids it changed to `changed`. */
+  const apply = (changes: Changes, coalesce: string | undefined, changed: Set<string>) => {
+    write(changes, coalesce);
+    for (const [id] of changes) changed.add(id);
+  };
+
+  /** The rules after a change, in the same step. */
   const follow = (before: Map<string, DrawItem>, coalesce: string | undefined, settle: boolean) => {
     const changed = changedIds(before, items());
     if (changed.size === 0) return;
-    const framed = frameFollow(before, items(), changed);
-    write(framed, coalesce);
-    for (const [id] of framed) changed.add(id);
+    for (const rule of rules.carry) {
+      apply(rule({ before, items: items(), changed }), coalesce, changed);
+    }
+    if (rules.remove.length) {
+      const present = new Set(items().map((i) => i.id));
+      const removed = new Set([...changed].filter((id) => !present.has(id)));
+      if (removed.size) {
+        for (const rule of rules.remove) {
+          apply(rule({ before, items: items(), removed }), coalesce, changed);
+        }
+      }
+    }
     if (settle) {
-      const members = membershipChanges(items(), settleSet(before, changed));
-      write(members, coalesce);
-      for (const [id] of members) changed.add(id);
+      for (const rule of rules.settle) {
+        apply(rule({ before, items: items(), ids: changed }), coalesce, changed);
+      }
     } else for (const id of changed) touched.add(id);
-    write(arrowFollow(before, items(), changed), coalesce);
+    for (const rule of rules.follow) {
+      write(rule({ before, items: items(), changed }), coalesce);
+    }
   };
 
   /** The copies a duplicate or a paste made, pointed at each other. */
   const remap = (sources: ReadonlyArray<DrawItem>, result: EngineResult<DrawData>) => {
-    write(remapCopies(sources, result.created as DrawItem[], freshGroup));
+    const created = result.created as DrawItem[];
+    for (const rule of rules.copy) {
+      const copies = created.map((c) => (inner.get(c.id) as DrawItem | undefined) ?? c);
+      write(rule({ sources, copies, newGroup: freshGroup }));
+    }
   };
 
   const run = (c: Command): EngineResult<DrawData> => {
@@ -160,7 +163,9 @@ export function createDrawEngine(options: DrawEngineOptions = {}): CanvasEngine<
     if (c.type === "paste") {
       const json = c.json ?? clipboard;
       const r = inner.dispatch(c);
-      if (r.ok && json) remap(deserialize<DrawData>(json).items as DrawItem[], r);
+      if (r.ok && json && rules.copy.length) {
+        remap(deserialize<DrawData>(json).items as DrawItem[], r);
+      }
       return r;
     }
     if (c.type === "duplicate-selection") {
@@ -175,7 +180,10 @@ export function createDrawEngine(options: DrawEngineOptions = {}): CanvasEngine<
 
   const dispatch = (c: Command): EngineResult<DrawData> => {
     if (c.type === "select") {
-      return inner.dispatch({ ...c, ids: expandGroups(items(), c.ids) });
+      if (rules.select.length === 0) return inner.dispatch(c);
+      let ids = [...c.ids];
+      for (const rule of rules.select) ids = rule(items(), ids);
+      return inner.dispatch({ ...c, ids });
     }
     if (c.type === "gesture") {
       if (c.phase === "begin") {
@@ -187,10 +195,12 @@ export function createDrawEngine(options: DrawEngineOptions = {}): CanvasEngine<
         return r;
       }
       if (c.phase === "end" && gesture && touched.size) {
-        // Settle the frames of what the gesture moved, then the arrows of what that changed.
+        // Settle what the gesture moved, then put back what depends on what that changed.
         const before = snapshot();
-        write(membershipChanges(items(), settleSet(before, touched)));
-        write(arrowFollow(before, items(), changedIds(before, items())));
+        for (const rule of rules.settle) write(rule({ before, items: items(), ids: touched }));
+        for (const rule of rules.follow) {
+          write(rule({ before, items: items(), changed: changedIds(before, items()) }));
+        }
       }
       gesture = false;
       touched = new Set();
@@ -233,6 +243,7 @@ export function createDrawEngine(options: DrawEngineOptions = {}): CanvasEngine<
   };
 
   return {
+    registry,
     get settings() {
       return inner.settings;
     },
@@ -252,7 +263,7 @@ export function createDrawEngine(options: DrawEngineOptions = {}): CanvasEngine<
 
 export type DrawStore = CanvasStore<DrawData>;
 
-/** A store on the draw engine: `store.add(…)`, `store.undo()`… with the whiteboard's rules. */
+/** A store on the draw engine: `store.add(…)`, `store.undo()`… with the rules of the plugins. */
 export function createDrawStore(options: DrawEngineOptions = {}): DrawStore {
   return withCommands(createDrawEngine(options));
 }

@@ -1,10 +1,14 @@
-// The pixel pen: a stroke lands on a grid of pen pixels (4 world units, five to a canvas cell),
-// is simplified (Ramer–Douglas–Peucker, then repeated pixels dropped) and drawn as whole pixels
-// between its vertices (Bresenham), never as an anti-aliased curve.
+// The pixel pen, core half: a stroke lands on a grid of pen pixels (4 world units, five to a canvas
+// cell), is simplified (Ramer–Douglas–Peucker, then repeated pixels dropped) and drawn as whole
+// pixels between its vertices (Bresenham), never as an anti-aliased curve.
 
 import type { Bounds, Point } from "@forgeron/canvas";
-import { distanceToPolyline } from "./geometry";
-import type { DrawColor, DrawItem, PenData } from "./types";
+import { distanceToPolyline } from "../core/geometry";
+import { colorCss } from "../core/palette";
+import { definePlugin, type KindSpec } from "../core/plugin";
+import { num, readCommon, str, DrawFormatError, type Raw } from "../core/parse";
+import { n } from "../core/svg";
+import type { DrawColor, DrawItem, PenData } from "../core/types";
 
 /** World units per pen pixel. */
 export const PEN_PIXEL = 4;
@@ -186,3 +190,61 @@ export function penHit(item: DrawItem<PenData>, point: Point, reach = 4): boolea
   const line = pairs(data.points).map((p) => ({ x: p.x + 0.5, y: p.y + 0.5 }));
   return distanceToPolyline(local, line) <= data.weight / 2 + reach * Math.max(sx, sy);
 }
+
+const penKind: KindSpec = {
+  type: "pen",
+  label: "Pen stroke",
+  canvas: {
+    resize: { keepAspect: true, minW: 4, minH: 4 },
+    hitTest: (i, p) => penHit(i as DrawItem<PenData>, p),
+  },
+  parse(raw: Raw, at) {
+    const points = raw.points;
+    if (!Array.isArray(points) || points.length % 2 || !points.every(Number.isInteger))
+      throw new DrawFormatError(`${at}.data.points must be pairs of whole pixels.`);
+    return {
+      type: "pen",
+      points: points as number[],
+      cols: Math.max(1, num(raw.cols, 1)),
+      rows: Math.max(1, num(raw.rows, 1)),
+      color: str(raw.color, "ink"),
+      weight: Math.min(4, Math.max(1, Math.round(num(raw.weight, 1)))),
+      ...readCommon(raw),
+    };
+  },
+  paint(item, o) {
+    const d = item.data as PenData;
+    const b = item.bounds;
+    const sx = b.w / Math.max(1, d.cols);
+    const sy = b.h / Math.max(1, d.rows);
+    return [
+      n("path", {
+        d: strokePath(d),
+        fill: o.color(d.color),
+        shapeRendering: "crispEdges",
+        transform: `translate(${b.x} ${b.y}) scale(${sx} ${sy})`,
+      }),
+    ];
+  },
+  far(item, frame) {
+    // Far out, a stroke is its line: its pixels would be smaller than a screen pixel. The DOM's
+    // non-scaling stroke still takes the world's CSS scale, so the line is one world unit wide.
+    const d = item.data as PenData;
+    const b = item.bounds;
+    const clip = frame ? { clip: frame } : {};
+    const sx = b.w / Math.max(1, d.cols);
+    const sy = b.h / Math.max(1, d.rows);
+    const points: number[] = [];
+    for (let i = 0; i + 1 < d.points.length; i += 2) {
+      points.push(b.x + (d.points[i]! + 0.5) * sx, b.y + (d.points[i + 1]! + 0.5) * sy);
+    }
+    return [{ type: "line", points, color: colorCss(d.color), width: 1, ...clip }];
+  },
+};
+
+export const pen = definePlugin({
+  id: "pen",
+  name: "Pixel pen",
+  description: "Freehand strokes on a 4 px grid, simplified and drawn as whole pixels.",
+  kinds: { pen: penKind },
+});

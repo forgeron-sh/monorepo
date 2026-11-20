@@ -4,6 +4,7 @@
 
 import { exportSvg, type ExportResult } from "../core/export";
 import type { DrawItem } from "../core/types";
+import { inlineImages } from "../plugins/editor/media";
 
 /** Reads a token's value on an element of the page. */
 export const tokenReader = (el: Element | null) => {
@@ -11,29 +12,6 @@ export const tokenReader = (el: Element | null) => {
   const style = getComputedStyle(el);
   return (token: string) => style.getPropertyValue(token) || undefined;
 };
-
-const blobToDataUrl = (blob: Blob) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-
-/** The images of the items as data URLs, so the SVG holds them. */
-async function inlineImages(items: ReadonlyArray<DrawItem>): Promise<DrawItem[]> {
-  return Promise.all(
-    items.map(async (item) => {
-      if (item.data.type !== "image" || item.data.src.startsWith("data:")) return item;
-      try {
-        const blob = await (await fetch(item.data.src)).blob();
-        return { ...item, data: { ...item.data, src: await blobToDataUrl(blob) } };
-      } catch {
-        return item;
-      }
-    }),
-  );
-}
 
 export interface BrowserExportOptions {
   ids: Iterable<string>;

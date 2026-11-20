@@ -205,3 +205,20 @@
 .fgd-far {
   box-sizing: border-box;
 }
+
+/* An item no plugin of the editor knows: kept in the board, drawn as a labelled dashed box. */
+.fgd-unknown {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--ink-dim);
+  background: var(--bg-sunk);
+  pointer-events: none;
+}
+.fgd-unknown-label {
+  padding: 4px 8px;
+  color: var(--muted, var(--ink-muted));
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}

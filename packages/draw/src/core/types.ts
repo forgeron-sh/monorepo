@@ -27,7 +27,7 @@ export interface DrawStroke {
 }
 
 /** Fields every kind may carry. */
-interface Common {
+export interface DrawCommon {
   /** Items of one group are selected together. */
   group?: string;
   /** The frame the item belongs to: it moves with it and is clipped by it. */
@@ -36,7 +36,7 @@ interface Common {
 
 export type ShapeKind = "rectangle" | "ellipse" | "diamond";
 
-export interface ShapeData extends Common {
+export interface ShapeData extends DrawCommon {
   type: "shape";
   fill: DrawFill;
   stroke: DrawStroke;
@@ -47,7 +47,7 @@ export interface ShapeData extends Common {
 /** The colours of a sticky note, from the tokens. */
 export type StickyColor = "amber" | "green" | "rose" | "ember" | "grey";
 
-export interface StickyData extends Common {
+export interface StickyData extends DrawCommon {
   type: "sticky";
   color: StickyColor;
   text: string;
@@ -55,7 +55,7 @@ export interface StickyData extends Common {
 
 export type TextAlign = "left" | "center" | "right";
 
-export interface TextData extends Common {
+export interface TextData extends DrawCommon {
   type: "text";
   text: string;
   /** World units. */
@@ -74,7 +74,7 @@ export interface ArrowEnd {
 export type ArrowHead = "none" | "end" | "both";
 export type ArrowRoute = "straight" | "elbow";
 
-export interface ArrowData extends Common {
+export interface ArrowData extends DrawCommon {
   type: "arrow";
   start: ArrowEnd;
   end: ArrowEnd;
@@ -83,7 +83,7 @@ export interface ArrowData extends Common {
   stroke: DrawStroke;
 }
 
-export interface PenData extends Common {
+export interface PenData extends DrawCommon {
   type: "pen";
   /** Vertices in pen pixels, flat `[x0, y0, x1, y1…]`, simplified, on whole pixels. */
   points: number[];
@@ -102,7 +102,7 @@ export interface FrameData {
   group?: string;
 }
 
-export interface ImageData extends Common {
+export interface ImageData extends DrawCommon {
   type: "image";
   /** An object URL or a data URL; never uploaded. */
   src: string;

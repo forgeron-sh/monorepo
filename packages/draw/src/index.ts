@@ -1,22 +1,37 @@
-// @forgeron/draw: the whiteboard on @forgeron/canvas. Plain data and pure functions, no React and
-// no DOM: the item kinds (shapes, sticky notes, text, arrows, the pixel pen, frames, images), the
-// draw engine that keeps arrows on their items and frames around theirs, arranging, the board's
-// JSON and the SVG export. The editor is `@forgeron/draw/react`.
+// @forgeron/draw: the whiteboard on @forgeron/canvas, a minimal core and plugins (D-154). Plain
+// data and pure functions, no React and no DOM: the plugin contract (core half), the draw engine
+// that runs the plugins' rules in the same undo step as a change, the board's JSON, the SVG export
+// and the helpers of each kind. Every function takes the list of plugins it works with and defaults
+// to the `full` preset's core halves. The bundled plugins are in `@forgeron/draw/plugins`, the
+// editor and the editor halves in `@forgeron/draw/react` and `@forgeron/draw/plugins/editor`.
 
-export {
-  align,
-  distribute,
-  expandGroups,
-  group,
-  newGroupId,
-  toggleLock,
-  ungroup,
-} from "./core/arrange";
-export type { AlignEdge } from "./core/arrange";
+export { createRegistry, definePlugin, PluginError, resolvePlugins } from "./core/plugin";
+export type {
+  Changes,
+  ChangeContext,
+  CopyContext,
+  DrawPlugin,
+  EngineRules,
+  ExportContext,
+  ExportOutput,
+  ExportSpec,
+  KindSpec,
+  Plugins,
+  RawItem,
+  Registry,
+  RemoveContext,
+  SettleContext,
+  SvgRules,
+} from "./core/plugin";
+export { DEFAULT_REGISTRY, registryOf } from "./core/defaults";
+export { align, distribute, type AlignEdge } from "./plugins/align";
+export { expandGroups, group, newGroupId, ungroup } from "./plugins/groups";
+export { toggleLock } from "./plugins/lock";
 export {
   ARROW_GAP,
   ARROW_PAD,
   arrowEnds,
+  arrowFollow,
   arrowHead,
   arrowHit,
   arrowRoute,
@@ -24,8 +39,8 @@ export {
   layoutArrow,
   layoutArrowFrom,
   routeBetween,
-} from "./core/arrows";
-export type { ArrowGeometry, Lookup } from "./core/arrows";
+} from "./plugins/arrow";
+export type { ArrowGeometry, Lookup } from "./plugins/arrow";
 export {
   arrowItem,
   DEFAULT_FILL,
@@ -48,14 +63,14 @@ export {
   parseBoard,
   serializeBoard,
 } from "./core/document";
-export type { BoardDocument } from "./core/document";
+export type { BoardDocument, ParseOptions } from "./core/document";
 export { boundsOfItems, createDrawEngine, createDrawStore, remapCopies } from "./core/engine";
-export type { DrawEngineOptions, DrawStore } from "./core/engine";
-export { exportedItems, exportSvg } from "./core/export";
-export { farPrimitives } from "./core/far";
+export type { DrawEngine, DrawEngineOptions, DrawStore } from "./core/engine";
+export { exportedItems, exportName, exportSvg, exportSvgOf } from "./core/export";
+export { FAR_ZOOM, farPrimitives } from "./core/far";
 export type { ExportOptions, ExportResult } from "./core/export";
-export { arrowFollow, changedIds, frameFollow } from "./core/follow";
-export { frameChildren, frameFor, membershipChanges } from "./core/frames";
+export { changedIds } from "./core/follow";
+export { frameChildren, frameFollow, frameFor, membershipChanges } from "./plugins/frame";
 export {
   distanceToPolyline,
   distanceToSegment,
@@ -65,6 +80,9 @@ export {
 } from "./core/geometry";
 export { drawKinds, FRAME_EDGE, FRAME_TITLE, frameHit } from "./core/kinds";
 export { dashArray, exportPaint, pagePaint, paintItem, toMarkup } from "./core/paint";
+// What a plugin of your own paints and reads with.
+export { fillOf, n as svgNode, strokeAttrs, textLines, wash } from "./core/svg";
+export { isObject, num, readCommon, readFill, readStroke, str } from "./core/parse";
 export type { PaintOptions, SvgNode } from "./core/paint";
 export {
   colorCss,
@@ -88,8 +106,8 @@ export {
   strokePath,
   strokePixels,
   toPixels,
-} from "./core/pen";
-export type { PenOptions } from "./core/pen";
+} from "./plugins/pen";
+export type { PenOptions } from "./plugins/pen";
 export {
   STICKY_PADDING,
   STICKY_TEXT,
@@ -105,6 +123,7 @@ export type {
   ArrowHead,
   ArrowRoute,
   DrawColor,
+  DrawCommon,
   DrawDash,
   DrawData,
   DrawFill,

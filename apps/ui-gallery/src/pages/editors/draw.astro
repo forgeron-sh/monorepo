@@ -2,7 +2,13 @@
 import { formatShortcut, Kbd } from "@forgeron/ui";
 import DocsLayout from "../../components/DocsLayout.astro";
 import DrawDemo from "../../components/editors/DrawDemo";
-import { drawCovers, drawKeys, drawSnippet } from "../../components/editors/draw-docs";
+import DrawPluginsDemo from "../../components/editors/DrawPluginsDemo";
+import {
+  drawCovers,
+  drawKeys,
+  drawPluginsSnippet,
+  drawSnippet,
+} from "../../components/editors/draw-docs";
 import { highlight } from "../../lib/highlight";
 import "@forgeron/canvas/styles.css";
 import "@forgeron/draw/styles.css";
@@ -21,7 +27,7 @@ import "../../styles/editors.css";
     <p class="t-lead">A whiteboard on the canvas. Board is built on it.</p>
     <dl class="ed-facts t-mono">
       <div><dt class="dim">Package</dt><dd>@forgeron/draw</dd></div>
-      <div><dt class="dim">Layers</dt><dd>core (no React) · /react</dd></div>
+      <div><dt class="dim">Layers</dt><dd>core (no React) · /plugins · /plugins/editor · /react</dd></div>
       <div><dt class="dim">On</dt><dd>@forgeron/canvas · @forgeron/ui</dd></div>
     </dl>
   </header>
@@ -44,15 +50,25 @@ import "../../styles/editors.css";
     </p>
   </section>
 
+  <section class="ed-block-stack" aria-label="Plugins">
+    <div class="spacer-sm t-mono dim"><span>/01 → Features come from plugins</span></div>
+    <DrawPluginsDemo client:only="react" />
+    <p class="ed-hint t-mono">
+      <span>core only: the canvas, nothing to draw with</span>
+      <span>what a plugin removes stays in the board, shown as a dashed box</span>
+      <span><Kbd keys="X" />the star, a plugin of this page</span>
+    </p>
+  </section>
+
   <section class="ed-block-stack" aria-label="What it covers">
-    <div class="spacer-sm t-mono dim"><span>/01 → What it covers</span></div>
+    <div class="spacer-sm t-mono dim"><span>/02 → What it covers</span></div>
     <ul class="ed-list">
       {drawCovers.map((line) => <li>{line}</li>)}
     </ul>
   </section>
 
   <section class="ed-block-stack" aria-label="Use it">
-    <div class="spacer-sm t-mono dim"><span>/02 → Use it</span></div>
+    <div class="spacer-sm t-mono dim"><span>/03 → Use it</span></div>
     <section class="frame" data-show="code" aria-label="A board">
       <header class="frame-bar">
         <span class="t-mono"><span class="accent">/01</span> <span class="dim">→</span> A board</span>
@@ -62,10 +78,19 @@ import "../../styles/editors.css";
       </header>
       <div class="frame-code" id="code-draw-0" set:html={highlight(drawSnippet, "tsx")} />
     </section>
+    <section class="frame" data-show="code" aria-label="Plugins">
+      <header class="frame-bar">
+        <span class="t-mono"><span class="accent">/02</span> <span class="dim">→</span> Plugins</span>
+        <div class="frame-tools">
+          <button type="button" class="btn btn-sm" data-copy="code-draw-1">Copy</button>
+        </div>
+      </header>
+      <div class="frame-code" id="code-draw-1" set:html={highlight(drawPluginsSnippet, "tsx")} />
+    </section>
   </section>
 
   <section class="ed-block-stack" aria-label="Keys">
-    <div class="spacer-sm t-mono dim"><span>/03 → Keys</span></div>
+    <div class="spacer-sm t-mono dim"><span>/04 → Keys</span></div>
     <div class="ed-keys">
       {
         drawKeys.map((k) => (

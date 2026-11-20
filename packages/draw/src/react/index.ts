@@ -1,5 +1,5 @@
 // @forgeron/draw/react: the whiteboard editor. Import the styles once, after ui's and canvas's:
-// `import "@forgeron/draw/styles.css"`.
+// `import "@forgeron/draw/styles.css"`. The plugins are in `@forgeron/draw/plugins/editor`.
 
 export { DrawEditor, drawItemLabel } from "./editor";
 export type { DrawEditorProps } from "./editor";
@@ -13,10 +13,30 @@ export {
   toEditorStroke,
 } from "./inspector";
 export type { InspectorProps } from "./inspector";
-export { DrawItemView, FAR_ZOOM, frameClip, toReact } from "./render";
-export type { ItemViewOptions } from "./render";
+export { createEditorRegistry, defineEditorPlugin } from "./plugin";
+export type {
+  ConnectSpec,
+  DrawTool,
+  DropSpec,
+  EditorContext,
+  EditorPlugin,
+  EditorRegistry,
+  ItemViewOptions,
+  KeyInput,
+  KeySpec,
+  KindView,
+  MenuItem,
+  MenuState,
+  OverlaySpec,
+  PanelProps,
+  PanelSpec,
+  Slots,
+  ToolbarButtonSpec,
+  ToolSpec,
+  UiComponent,
+  UiProps,
+} from "./plugin";
+export { DrawItemView, FAR_ZOOM, frameClip, toReact, UnknownItem } from "./render";
 export { createSignal, useSignal } from "./signal";
 export type { Signal } from "./signal";
-export { bindTargetAt, createTools } from "./tools";
-export type { DrawTool, ToolContext } from "./tools";
 export { useDrawStore } from "./use-draw-store";
