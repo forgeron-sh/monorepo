@@ -4,13 +4,14 @@ The plan for closing the work started by D-156, D-157 and D-160. Each wave is a 
 separate agents with disjoint files; the orchestrating session wires the shared files and commits.
 
 **Status (21/11/2026)**: done. Waves 1, 2, 3 and 5 are recorded in D-161, wave 4 in D-162 (finance,
-the Data hub and four admin screens left `ui`). Left out of wave 3 on purpose: `dashboard-widget-grid` (a 2D layout).
+the Data hub and four admin screens left `ui`), the gallery's scope in D-163, waves 6 to 9 (every
+primitive and block in parts) in D-164. Left out of wave 3 on purpose: `dashboard-widget-grid` (a 2D layout).
 
 ## Conventions every task follows
 
 - **The shape.** A component with an inner structure is a set of compound parts, as in shadcn: a root
   and named parts (`XTrigger`, `XContent`, `XItem`…), each taking `className` and `...rest` and, where
-  it renders one element, `asChild` (`src/as-child.ts`) or Base UI's `render`. Controlled or not
+  it renders one element, `asChild` (`src/part.tsx`, D-164) or Base UI's `render`. Controlled or not
   through `useControllableState` (`src/hooks`). Base UI (`@base-ui/react`) underneath where it has
   the widget.
 - **Both APIs under one name.** The props form people use today keeps working: the root recognises it
@@ -82,3 +83,27 @@ from generic blocks. A first sort, to decide together:
 - Check every `/r/<item>.json` installs into a blank shadcn project.
 - Walk the gallery in a browser: every new composed example, light and dark, phone width.
 - `docs/DECISIONS.md`: one entry for waves 1 to 3, one for the decision of wave 4.
+
+## Wave 9: every block in shadcn parts (21/11/2026)
+
+The owner's rule: every block is composed from the primitives as much as possible (a missing
+primitive is created, generic, in `src/`), and is itself in shadcn's format: a root and named
+parts, both APIs under one name, as the primitives (see "Conventions").
+
+- **Shape of a block.** `IssueBoard` keeps its props (`issues`, `onMove`…) and becomes the
+  shorthand of its parts (`IssueBoard` without its data prop is the root; `IssueBoardColumn`,
+  `IssueBoardCard`…). Name the parts after the block (`ProjectsTableRow`, `SlotPickerDay`,
+  `AvailabilityEditorDay`…). Each part: `className`, `...rest`, `data-slot`, `asChild` where it is
+  one element. State shared between parts goes through a context (`useXxx` hook exported when a
+  consumer needs it). The model (`*-model.ts`) stays pure.
+- **Primitives first.** Lists with keyboard → `useCollection`; reorder → `useSortable`; trees →
+  `Tree`; popups → `Popover`/`Dialog`/`DropdownMenu` parts; tables → `Table` parts; boards →
+  `Board` parts; pickers → `Combobox`/`Select` parts; dates → the date parts; feeds → `Feed`; states →
+  `Status`. A new primitive goes in a new file under `src/` with its barrel `src/parts-<name>.ts`;
+  an existing primitive that lacks something is reported, not edited (another task owns them).
+- **Files of a task.** Its groups' `blocks/<group>-*.tsx`, `blocks/<group>.ts` (barrel: export the
+  new parts), `blocks/<group>.css`, `blocks/<group>-blocks.test.ts`, the gallery's
+  `apps/ui-gallery/src/entries/<group>.ts` and `src/examples/<slug>/` of its blocks. The composed
+  example is `01-default.tsx`, the props shorthand after. Never `src/index.ts`, `src/styles.css`,
+  `apps/ui-gallery/src/registry.ts`, `apps/ui-gallery/src/lib/shadcn/*`.
+- **Removed**: `RunDetail` (automation): little use.
