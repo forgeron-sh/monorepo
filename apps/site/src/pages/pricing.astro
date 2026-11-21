@@ -137,7 +137,7 @@ const faq = [
   },
   {
     q: "Is self-managed really free?",
-    a: "Yes. Forgeron is open source under the Apache-2.0 license. Cloudflare bills your account directly, at its own prices, for what your tools use.",
+    a: "Yes. Forgeron is open source: Apache-2.0 for what your tools import, AGPL-3.0 for the platform. Cloudflare bills your account directly, at its own prices, for what your tools use.",
   },
   {
     q: "What is the difference with Forgeron Cloud?",
@@ -477,10 +477,10 @@ const faq = [
       <canvas data-shader="dissolve" data-px="8" aria-hidden="true"></canvas>
       <div class="oss-inner">
         <span class="text-eyebrow dim">/0.7 · Open source</span>
-        <Title as="h2" size="h2">All of it,<br />Apache-2.0.</Title>
+        <Title as="h2" size="h2">All of it,<br />open source.</Title>
         <p class="text-small muted oss-lead">
-          The platform, the SDK, the CLI and the templates are open source. Read the code, run it on your own account, or
-          contribute.
+          The SDK, the CLI and the templates are Apache-2.0: the tools you write are yours. The platform that runs them
+          is AGPL-3.0. Read the code, run it on your own account, or contribute.
         </p>
         <div class="oss-actions">
           <Button href={GITHUB} size="lg" variant="primary"><Icon icon={GithubIcon} size={16} variant="mono" />GitHub</Button>
