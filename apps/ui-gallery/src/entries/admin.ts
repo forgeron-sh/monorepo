@@ -1,4 +1,4 @@
-/* Blocks of the "admin" group: permissions, notifications, invitations, tokens, secrets, webhooks, export and the trash, for any app with settings. */
+/* Blocks of the "admin" group: permissions, invitations, secrets, export, the trash and the audit log, for any app with settings. */
 import type { Atom, PropRow } from "../types";
 
 const className: PropRow = { name: "className", type: "string", description: "Extra classes." };
@@ -79,51 +79,6 @@ export const entries: ReadonlyArray<Atom> = [
     ],
   },
   {
-    slug: "notification-preferences",
-    name: "Notification preferences",
-    summary:
-      "Events by channels, a switch per group, a digest, quiet hours and a way back to the defaults.",
-    imports: [
-      "NotificationPreferences",
-      "inQuietHours",
-      "setChannel",
-      "setChannelForEvents",
-      "channelCoverage",
-      "samePrefs",
-    ],
-    props: [
-      { name: "label", type: "string", description: "Names the matrix." },
-      {
-        name: "events",
-        type: "{ id, label, description?, group? }[]",
-        description: "The rows; a group gets a header row with a switch per channel.",
-      },
-      {
-        name: "channels",
-        type: "{ id, label, unavailable? }[]",
-        description: "The columns; unavailable ones are dimmed and cannot be turned on.",
-      },
-      {
-        name: "value / defaultValue / onChange",
-        type: "{ channels: Record<eventId, channelId[]>, digest, quiet: { enabled, from, to } }",
-        description: "What was chosen. digest: off, hourly, daily, weekly.",
-      },
-      {
-        name: "defaults",
-        type: "NotificationPrefs",
-        description: "What Reset to default goes back to; without it, no button.",
-      },
-      {
-        name: "digest / quietHours",
-        type: "boolean",
-        default: "true",
-        description: "Show or hide each block.",
-      },
-      { name: "disabled", type: "boolean", description: "Locks everything." },
-      className,
-    ],
-  },
-  {
     slug: "invite-dialog",
     name: "Invite dialog",
     summary:
@@ -160,110 +115,6 @@ export const entries: ReadonlyArray<Atom> = [
         type: "boolean; number; number",
         description: "Options.",
       },
-    ],
-  },
-  {
-    slug: "token-manager",
-    name: "Token manager",
-    summary:
-      "Tokens with scopes, last use and expiry; create, see the token once, revoke after a confirmation.",
-    imports: ["TokenManager", "tokenExpiry", "tokenProblems", "expiryDay", "EXPIRY_CHOICES"],
-    props: [
-      {
-        name: "tokens",
-        type: "{ id, name, scopes, createdAt, lastUsedAt?, expiresAt?, prefix? }[]",
-        description: "Never the secret: only a short prefix to recognise it by.",
-      },
-      {
-        name: "scopes",
-        type: "{ id, label, description?, group? }[]",
-        description: "What a token can be given.",
-      },
-      today,
-      {
-        name: "onCreate",
-        type: "({ name, scopes, expiresAt }) => void",
-        description: "The form was valid: create it, then pass it back as `created`.",
-      },
-      {
-        name: "created",
-        type: "{ name, secret } | null",
-        description: "Shown once in a dialog, with a copy-now warning.",
-      },
-      {
-        name: "onCreatedClose",
-        type: "() => void",
-        description: "Drop `created` from the app's state.",
-      },
-      { name: "onRevoke", type: "(id) => void", description: "After the confirmation." },
-      {
-        name: "busy / expiryChoices / empty",
-        type: "boolean; ExpiryChoice[]; string",
-        description: "Options.",
-      },
-      className,
-    ],
-  },
-  {
-    slug: "endpoint-list",
-    name: "Endpoint list",
-    summary:
-      "Webhook endpoints: URL, events, status, a switch, a test button and the signing secret.",
-    imports: ["EndpointList"],
-    props: [
-      {
-        name: "endpoints",
-        type: "{ id, url, name?, description?, events, status, lastDeliveryAt?, secret?: { isSet, rotatedAt? } }[]",
-        description: "status: active, disabled, failing.",
-      },
-      { name: "onToggle", type: "(id, enabled) => void", description: "The switch." },
-      {
-        name: "onTest / testing / testResults",
-        type: "(id) => void; string[]; Record<id, { ok, code?, message? }>",
-        description: "Send a sample event; which are on their way; how the last went.",
-      },
-      {
-        name: "onSelect",
-        type: "(id) => void",
-        description: "Deliveries: open the log of an endpoint.",
-      },
-      {
-        name: "getSecret / onReplaceSecret",
-        type: "(id) => string | Promise<string>; (id, value) => void",
-        description: "For the SecretField of each endpoint.",
-      },
-      today,
-      className,
-    ],
-  },
-  {
-    slug: "delivery-log",
-    name: "Delivery log",
-    summary:
-      "Webhook deliveries: status, code, duration, tries; payload and answer as JSON; redeliver.",
-    imports: ["DeliveryLog", "formatDeliveryDuration", "filterDeliveries", "deliveryCounts"],
-    props: [
-      {
-        name: "deliveries",
-        type: "{ id, event, at, status, code?, durationMs?, attempts, url?, request?, response? }[]",
-        description: "status: success, failed, retrying, pending.",
-      },
-      {
-        name: "onRedeliver / redelivering",
-        type: "(id) => void; string[]",
-        description: "The button on every row that has an answer.",
-      },
-      {
-        name: "filter / defaultFilter / onFilterChange",
-        type: "'all' | 'failed'",
-        description: "Which rows.",
-      },
-      {
-        name: "showUrl / defaultOpen / empty",
-        type: "boolean; string[]; string",
-        description: "Options.",
-      },
-      className,
     ],
   },
   {

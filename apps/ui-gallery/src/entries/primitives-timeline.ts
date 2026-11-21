@@ -22,7 +22,7 @@ export const entries: ReadonlyArray<Atom> = [
         name: "Feed",
         type: "ol",
         description:
-          "The list (an ol). Name it with aria-label. Activity, AuditLog, RunList, DeliveryLog and ApprovalAudit are built on it.",
+          "The list (an ol). Name it with aria-label. Activity, AuditLog, RunList and ApprovalAudit are built on it.",
       },
       {
         name: "connector",

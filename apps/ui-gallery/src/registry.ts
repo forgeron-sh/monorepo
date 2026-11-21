@@ -4,12 +4,10 @@ import { entries as automationBlocks } from "./entries/automation";
 import { entries as conversationBlocks } from "./entries/conversation";
 import { entries as dashboardBlocks } from "./entries/dashboard";
 import { entries as dataBlocks } from "./entries/data";
-import { entries as datahubBlocks } from "./entries/datahub";
 import { entries as driveBlocks } from "./entries/drive";
 import { entries as editorBlocks } from "./entries/editor";
 import { entries as fieldEntries } from "./entries/fields";
 import { entries as filteringBlocks } from "./entries/filtering";
-import { entries as financeBlocks } from "./entries/finance";
 import { entries as formsBlocks } from "./entries/forms";
 import { entries as hookEntries } from "./entries/hooks";
 import { entries as iconPickerEntries } from "./entries/icon-picker";
@@ -1132,13 +1130,11 @@ export const blocks: ReadonlyArray<Atom> = [
   ...recordsBlocks,
   ...navigationBlocks,
   ...dataBlocks,
-  ...datahubBlocks,
   ...driveBlocks,
   ...automationBlocks,
   ...timeBlocks,
   ...conversationBlocks,
   ...approvalBlocks,
-  ...financeBlocks,
   ...dashboardBlocks,
   ...formsBlocks,
   ...editorBlocks,

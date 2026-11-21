@@ -4,13 +4,7 @@ import { Clock01Icon, Mail01Icon, Message01Icon } from "@forgeron/icons";
 import { act, createElement as h } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  ProductPicker,
-  RecipientInput,
-  RelationPicker,
-  StepPicker,
-  type ProductOption,
-} from "../index";
+import { RecipientInput, StepPicker } from "../index";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -41,66 +35,6 @@ const typeIn = (el: HTMLInputElement, value: string) =>
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(el, value);
     el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText" }));
   });
-const options = () => [...document.querySelectorAll('[role="option"]')];
-
-describe("RelationPicker", () => {
-  const targets = [
-    { id: "acme", label: "Acme", hint: "ACM-1" },
-    { id: "globex", label: "Globex" },
-    { id: "initech", label: "Initech" },
-  ];
-
-  it("picks one record and closes", async () => {
-    const onChange = vi.fn<(ids: string[]) => void>();
-    const el = await mount(h(RelationPicker, { label: "Company", targets, onChange }));
-    await click(el.querySelector(".fg-dh-relpick"));
-    expect(options()).toHaveLength(3);
-    expect(document.querySelector(".fg-fpop-head input")).not.toBeNull();
-    await click(options()[1]);
-    expect(onChange).toHaveBeenLastCalledWith(["globex"]);
-    expect(document.querySelector(".fg-dh-relpop")).toBeNull();
-    expect(el.querySelector(".fg-dh-relchip")?.textContent).toBe("Globex");
-  });
-
-  it("filters by what is typed, and ticks several", async () => {
-    const onChange = vi.fn<(ids: string[]) => void>();
-    const el = await mount(
-      h(RelationPicker, {
-        label: "Company",
-        targets,
-        multiple: true,
-        defaultValue: ["acme"],
-        onChange,
-      }),
-    );
-    await click(el.querySelector(".fg-dh-relpick"));
-    expect(document.querySelectorAll(".fg-check-box")).toHaveLength(3);
-    await typeIn(document.querySelector<HTMLInputElement>(".fg-fpop-head input")!, "in");
-    expect(options()).toHaveLength(1);
-    await click(options()[0]);
-    expect(onChange).toHaveBeenLastCalledWith(["acme", "initech"]);
-    expect(document.querySelector(".fg-dh-relpop")).not.toBeNull();
-  });
-});
-
-describe("ProductPicker", () => {
-  const products: ProductOption[] = [
-    { id: "a", label: "Anvil", hint: "SKU-1", unitPrice: 1500 },
-    { id: "b", label: "Bellows", hint: "SKU-2" },
-  ];
-  it("opens a search over the catalogue and picks with Enter", async () => {
-    const onPick = vi.fn<(product: ProductOption) => void>();
-    const el = await mount(h(ProductPicker, { products, onPick, currency: "EUR" }));
-    await click(el.querySelector(".fg-fin-pick"));
-    const input = document.querySelector<HTMLInputElement>(".fg-fpop-head input")!;
-    expect(input.getAttribute("role")).toBe("combobox");
-    await typeIn(input, "bel");
-    expect(options()).toHaveLength(1);
-    await key(input, "ArrowDown");
-    await key(input, "Enter");
-    expect(onPick).toHaveBeenCalledWith(products[1]);
-  });
-});
 
 describe("StepPicker on the combobox", () => {
   const steps = [

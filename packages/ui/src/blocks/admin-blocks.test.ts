@@ -7,28 +7,18 @@ import {
   adminDay,
   adminDaysBetween,
   bulkTarget,
-  canRedeliver,
-  channelCoverage,
   classifyInvites,
   columnCells,
-  DeliveryLog,
-  EndpointList,
   ExportDialog,
   exportFilename,
   exportPercent,
   exportProblem,
-  expiryDay,
-  filterDeliveries,
-  formatDeliveryDuration,
   gridMove,
-  groupEvents,
-  inQuietHours,
   InviteDialog,
   inviteSummary,
   isInviteEmail,
   nextPermissionState,
   normalizeEmail,
-  NotificationPreferences,
   parseEmails,
   PermissionMatrix,
   permissionAt,
@@ -39,32 +29,18 @@ import {
   retentionDaysLeft,
   retentionText,
   rowCells,
-  samePrefs,
   SECRET_MASK,
   SecretField,
   secondsLeft,
   secretProblem,
-  setChannel,
-  setChannelForEvents,
   setPermission,
   setPermissions,
   sharedState,
   sortByRetention,
-  TokenManager,
-  tokenExpiry,
-  tokenExpiryText,
-  tokenProblems,
   toggleIn,
   TrashList,
-  visibleScopes,
-  type ApiToken,
-  type NotificationChannel,
-  type NotificationEvent,
-  type NotificationPrefs,
   type PermissionColumn,
   type PermissionSubject,
-  type WebhookDelivery,
-  type WebhookEndpoint,
 } from "../index";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -198,67 +174,6 @@ describe("permission model", () => {
   });
 });
 
-const events: NotificationEvent[] = [
-  { id: "mention", label: "Someone mentions you", group: "Activity" },
-  { id: "assign", label: "Assigned to you", group: "Activity" },
-  { id: "invoice", label: "An invoice is paid", group: "Billing" },
-];
-const channels: NotificationChannel[] = [
-  { id: "email", label: "Email" },
-  { id: "push", label: "Push" },
-];
-
-describe("notification model", () => {
-  const empty: NotificationPrefs = {
-    channels: {},
-    digest: "off",
-    quiet: { enabled: false, from: "22:00", to: "07:00" },
-  };
-
-  it("turns channels on for an event or a group, and counts coverage", () => {
-    const one = setChannel(empty, "mention", "email", true);
-    expect(channelCoverage(one, ["mention", "assign"], "email")).toBe("some");
-    const both = setChannelForEvents(one, ["mention", "assign"], "email", true);
-    expect(channelCoverage(both, ["mention", "assign"], "email")).toBe("all");
-    expect(
-      channelCoverage(
-        setChannelForEvents(both, ["mention", "assign"], "email", false),
-        ["mention"],
-        "email",
-      ),
-    ).toBe("none");
-  });
-
-  it("groups events in order, ungrouped first", () => {
-    const groups = groupEvents([
-      { id: "a", label: "A", group: "X" },
-      { id: "b", label: "B" },
-      { id: "c", label: "C", group: "X" },
-    ]);
-    expect(groups.map((g) => [g.group, g.events.map((e) => e.id)])).toEqual([
-      [null, ["b"]],
-      ["X", ["a", "c"]],
-    ]);
-  });
-
-  it("compares preferences whatever the order", () => {
-    const a = setChannel(setChannel(empty, "mention", "email", true), "mention", "push", true);
-    const b = setChannel(setChannel(empty, "mention", "push", true), "mention", "email", true);
-    expect(samePrefs(a, b)).toBe(true);
-    expect(samePrefs(a, { ...b, digest: "daily" })).toBe(false);
-  });
-
-  it("finds quiet hours, past midnight too", () => {
-    const night = { enabled: true, from: "22:00", to: "07:00" };
-    expect(inQuietHours(night, "23:30")).toBe(true);
-    expect(inQuietHours(night, "06:59")).toBe(true);
-    expect(inQuietHours(night, "07:00")).toBe(false);
-    expect(inQuietHours(night, "12:00")).toBe(false);
-    expect(inQuietHours({ enabled: true, from: "12:00", to: "14:00" }, "13:00")).toBe(true);
-    expect(inQuietHours({ ...night, enabled: false }, "23:30")).toBe(false);
-  });
-});
-
 describe("invitation model", () => {
   it("reads addresses from a paste", () => {
     expect(parseEmails("a@x.io, Bob <B@x.io>\nA@x.io;  c@x.io")).toEqual([
@@ -287,65 +202,13 @@ describe("invitation model", () => {
   });
 });
 
-describe("token model", () => {
-  it("finds the expiry", () => {
-    expect(tokenExpiry({}, "2026-11-19")).toEqual({ state: "never" });
-    expect(tokenExpiry({ expiresAt: "2026-12-30" }, "2026-11-19")).toMatchObject({
-      state: "active",
-    });
-    expect(tokenExpiry({ expiresAt: "2026-11-22" }, "2026-11-19")).toEqual({
-      state: "soon",
-      days: 3,
-    });
-    expect(tokenExpiry({ expiresAt: "2026-11-10" }, "2026-11-19")).toMatchObject({
-      state: "expired",
-    });
-    expect(tokenExpiryText({ expiresAt: "2026-11-10" }, "2026-11-19")).toBe("Expired 9 days ago");
-    expect(tokenExpiryText({ expiresAt: "2026-11-20" }, "2026-11-19")).toBe("In 1 day");
-    expect(expiryDay("2026-11-19", 30)).toBe("2026-12-19");
-    expect(expiryDay("2026-11-19", null)).toBeNull();
-  });
-
-  it("says what a new token lacks", () => {
-    expect(tokenProblems({ name: " ", scopes: [], expiresAt: null })).toEqual({
-      name: "Give the token a name.",
-      scopes: "Choose at least one scope.",
-    });
-    expect(
-      tokenProblems({ name: "CI", scopes: ["a"], expiresAt: null }, [{ name: "ci" }]).name,
-    ).toContain("already");
-    expect(tokenProblems({ name: "CI", scopes: ["a"], expiresAt: null })).toEqual({});
-    expect(visibleScopes(["a", "b", "c", "d"], 2)).toEqual({ shown: ["a", "b"], more: 2 });
-  });
-});
-
-describe("secret, webhook, export and trash models", () => {
+describe("secret, export and trash models", () => {
   it("counts down and checks a new secret", () => {
     expect(secondsLeft(1000, 3500)).toBe(3);
     expect(secondsLeft(5000, 3500)).toBe(0);
     expect(secretProblem("")).not.toBeNull();
     expect(secretProblem("a\nb")).not.toBeNull();
     expect(secretProblem("fg_test_xxxxxxxx")).toBeNull();
-  });
-
-  const d = (id: string, status: WebhookDelivery["status"]): WebhookDelivery => ({
-    id,
-    event: "invoice.paid",
-    at: "2026-11-19 10:00",
-    status,
-    attempts: 1,
-  });
-
-  it("formats durations and filters deliveries", () => {
-    expect(formatDeliveryDuration(84)).toBe("84 ms");
-    expect(formatDeliveryDuration(1240)).toBe("1.2 s");
-    expect(formatDeliveryDuration(30_000)).toBe("30 s");
-    expect(formatDeliveryDuration(undefined)).toBe("—");
-    const list = [d("1", "success"), d("2", "failed"), d("3", "retrying"), d("4", "pending")];
-    expect(filterDeliveries(list, "failed").map((x) => x.id)).toEqual(["2", "3"]);
-    expect(filterDeliveries(list, "all")).toHaveLength(4);
-    expect(canRedeliver(d("4", "pending"))).toBe(false);
-    expect(canRedeliver(d("2", "failed"))).toBe(true);
   });
 
   it("checks an export", () => {
@@ -483,67 +346,6 @@ describe("PermissionMatrix", () => {
   });
 });
 
-/* ---------------------------------------------------------------- NotificationPreferences */
-
-describe("NotificationPreferences", () => {
-  const props = { label: "Notifications", events, channels };
-  const defaults: NotificationPrefs = {
-    channels: { mention: ["email"] },
-    digest: "daily",
-    quiet: { enabled: false, from: "22:00", to: "07:00" },
-  };
-
-  it("toggles one cell and a group", async () => {
-    const onChange = vi.fn<(v: NotificationPrefs) => void>();
-    const root = await mount(h(NotificationPreferences, { ...props, onChange }));
-    await click(byLabel(root, "Email: Someone mentions you"));
-    expect(onChange.mock.lastCall![0].channels.mention).toEqual(["email"]);
-    await click(root.querySelector(".fg-adm-np-grouprow input"));
-    expect(onChange.mock.lastCall![0].channels).toMatchObject({
-      mention: ["email"],
-      assign: ["email"],
-    });
-    expect(byLabel(root, "Email: Assigned to you")).toHaveProperty("checked", true);
-  });
-
-  it("sets the digest and the quiet hours", async () => {
-    const onChange = vi.fn<(v: NotificationPrefs) => void>();
-    const root = await mount(h(NotificationPreferences, { ...props, onChange }));
-    await click(byText(root, "[role=radio], button, label", "Daily"));
-    expect(onChange.mock.lastCall![0].digest).toBe("daily");
-    await click(
-      root.querySelector<HTMLInputElement>("input[role=switch][type=checkbox]:not([aria-hidden])")!,
-    );
-    await click([...root.querySelectorAll<HTMLInputElement>("input[role=switch]")].at(-1)!);
-    expect(onChange.mock.lastCall![0].quiet.enabled).toBe(true);
-    expect(root.textContent).toContain("22:00 to 07:00, next day");
-  });
-
-  it("resets to the defaults, and only when it differs", async () => {
-    const root = await mount(
-      h(NotificationPreferences, { ...props, defaultValue: defaults, defaults }),
-    );
-    const reset = () => byText(root, "button", "Reset to default") as HTMLButtonElement;
-    expect(reset().disabled).toBe(true);
-    await click(byLabel(root, "Push: Assigned to you"));
-    expect(reset().disabled).toBe(false);
-    await click(reset());
-    expect(byLabel(root, "Push: Assigned to you")).toHaveProperty("checked", false);
-    expect(reset().disabled).toBe(true);
-  });
-
-  it("dims a channel that is not set up", () => {
-    const out = html(
-      h(NotificationPreferences, {
-        ...props,
-        channels: [{ id: "sms", label: "SMS", unavailable: true }],
-      }),
-    );
-    expect(out).toContain("not set up");
-    expect(out).toContain("disabled");
-  });
-});
-
 /* ---------------------------------------------------------------- InviteDialog */
 
 describe("InviteDialog", () => {
@@ -607,91 +409,6 @@ describe("InviteDialog", () => {
     expect(dialog.textContent).toContain("Already a member");
     await click(byText(document, "button", "Invite more"));
     expect(onAgain).toHaveBeenCalled();
-  });
-});
-
-/* ---------------------------------------------------------------- TokenManager */
-
-describe("TokenManager", () => {
-  const scopes = [
-    { id: "read", label: "Read", group: "Invoices", description: "List and open" },
-    { id: "write", label: "Write", group: "Invoices" },
-  ];
-  const tokens: ApiToken[] = [
-    {
-      id: "t1",
-      name: "CI deploy",
-      scopes: ["read", "write", "x", "y"],
-      createdAt: "2026-10-01",
-      lastUsedAt: "2026-11-18",
-      expiresAt: "2026-11-22",
-      prefix: "fg_test_xxxx",
-    },
-    { id: "t2", name: "Old", scopes: ["read"], createdAt: "2026-01-01", expiresAt: "2026-11-01" },
-  ];
-  const base = { tokens, scopes, today: "2026-11-19", onCreate: () => {}, onRevoke: () => {} };
-
-  it("lists tokens with scopes, last use and expiry", () => {
-    const out = html(h(TokenManager, base));
-    expect(out).toContain("CI deploy");
-    expect(out).toContain("fg_test_xxxx…");
-    expect(out).toContain("+1");
-    expect(out).toContain("yesterday");
-    expect(out).toContain("Never");
-    expect(out).toContain("In 3 days");
-    expect(out).toContain("Expired 18 days ago");
-  });
-
-  it("asks for a name and a scope, then creates", async () => {
-    const onCreate = vi.fn<(arg?: unknown) => void>();
-    const root = await mount(h(TokenManager, { ...base, onCreate }));
-    await click(byText(root, "button", "Create token"));
-    await click(q(".fg-dialog-foot .fg-btn-primary"));
-    expect(onCreate).not.toHaveBeenCalled();
-    expect(q("[role=dialog]")!.textContent).toContain("Give the token a name.");
-    expect(q("[role=dialog]")!.textContent).toContain("Choose at least one scope.");
-    await typeInto(
-      q<HTMLInputElement>("[role=dialog] input[type=text], [role=dialog] input:not([type])")!,
-      "Deploy",
-    );
-    await click(q("[role=dialog] .fg-adm-scope input"));
-    await click(q("[role=dialog] .fg-dialog-foot .fg-btn-primary"));
-    expect(onCreate).toHaveBeenCalledWith({
-      name: "Deploy",
-      scopes: ["read"],
-      expiresAt: "2026-12-19",
-    });
-  });
-
-  it("shows a created token once, with a warning to copy it now", async () => {
-    const onCreatedClose = vi.fn<(arg?: unknown) => void>();
-    const root = await mount(
-      h(TokenManager, {
-        ...base,
-        created: { name: "Deploy", secret: "fg_test_xxxxxxxx" },
-        onCreatedClose,
-      }),
-    );
-    const dialog = q("[role=dialog]")!;
-    expect(dialog.textContent).toContain("Copy your token now");
-    expect(dialog.textContent).toContain("Shown once");
-    expect(dialog.textContent).toContain("fg_test_xxxxxxxx");
-    await click(byText(document, "button", "I have copied it"));
-    expect(onCreatedClose).toHaveBeenCalled();
-    expect(root).toBeTruthy();
-  });
-
-  it("revokes only after a confirmation", async () => {
-    const onRevoke = vi.fn<(arg?: unknown) => void>();
-    const root = await mount(h(TokenManager, { ...base, onRevoke }));
-    await click(byLabel(root, "Revoke CI deploy"));
-    expect(onRevoke).not.toHaveBeenCalled();
-    expect(q("[role=alertdialog]")!.textContent).toContain("cannot be undone");
-    await act(async () => new Promise((r) => setTimeout(r, 50)));
-    expect(document.activeElement?.textContent).toBe("Cancel");
-    await click(byText(document, "button", "Revoke token"));
-    expect(onRevoke).toHaveBeenCalledWith("t1");
-    expect(q("[role=dialog]")).toBeNull();
   });
 });
 
@@ -808,114 +525,6 @@ describe("SecretField", () => {
     expect(onRemove).not.toHaveBeenCalled();
     await click(byText(root, ".fg-adm-secret-confirm button", "Remove"));
     expect(onRemove).toHaveBeenCalledTimes(1);
-  });
-});
-
-/* ---------------------------------------------------------------- EndpointList and DeliveryLog */
-
-describe("EndpointList", () => {
-  const endpoints: WebhookEndpoint[] = [
-    {
-      id: "e1",
-      url: "https://example.test/hooks/a",
-      name: "Billing sync",
-      events: ["invoice.paid", "invoice.sent", "a", "b", "c", "d"],
-      status: "failing",
-      secret: { isSet: true, rotatedAt: "2026-11-01" },
-    },
-    { id: "e2", url: "https://example.test/hooks/b", events: [], status: "disabled" },
-  ];
-
-  it("lists endpoints with status, events and a hidden secret", () => {
-    const out = html(h(EndpointList, { endpoints, getSecret: () => "fg_test_xxxxxxxx" }));
-    expect(out).toContain("https://example.test/hooks/a");
-    expect(out).toContain("Failing");
-    expect(out).toContain("Disabled");
-    expect(out).toContain("+2");
-    expect(out).toContain("Signing secret");
-    expect(out).not.toContain("fg_test_xxxxxxxx");
-  });
-
-  it("toggles, tests and shows how the test went", async () => {
-    const onToggle = vi.fn<(arg?: unknown) => void>();
-    const onTest = vi.fn<(arg?: unknown) => void>();
-    const root = await mount(
-      h(EndpointList, {
-        endpoints,
-        onToggle,
-        onTest,
-        testResults: { e1: { ok: false, code: 503 } },
-        testing: ["e2"],
-      }),
-    );
-    await click(byLabel(root, "Send a test event to https://example.test/hooks/a"));
-    expect(onTest).toHaveBeenCalledWith("e1");
-    expect(root.textContent).toContain("Test failed · 503");
-    expect(
-      (byLabel(root, "Send a test event to https://example.test/hooks/b") as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-    const switches = root.querySelectorAll<HTMLInputElement>("input[role=switch]");
-    await click(switches[1]);
-    expect(onToggle).toHaveBeenCalledWith("e2", true);
-  });
-});
-
-describe("DeliveryLog", () => {
-  const deliveries: WebhookDelivery[] = [
-    {
-      id: "d1",
-      event: "invoice.paid",
-      at: "2026-11-19 10:00",
-      status: "success",
-      code: 200,
-      durationMs: 84,
-      attempts: 1,
-      request: { id: "evt_test_1" },
-      response: { ok: true },
-    },
-    {
-      id: "d2",
-      event: "invoice.sent",
-      at: "2026-11-19 09:00",
-      status: "failed",
-      code: 503,
-      durationMs: 1240,
-      attempts: 3,
-      request: { id: "evt_test_2" },
-    },
-    { id: "d3", event: "invoice.sent", at: "2026-11-19 08:00", status: "pending", attempts: 0 },
-  ];
-
-  it("shows code, duration and attempts on a row", () => {
-    const out = html(h(DeliveryLog, { deliveries }));
-    expect(out).toContain("503");
-    expect(out).toContain("1.2 s");
-    expect(out).toContain("3 tries");
-    expect(out).toContain("Delivered");
-  });
-
-  it("opens a row to show payload and answer as JSON", async () => {
-    const root = await mount(h(DeliveryLog, { deliveries }));
-    expect(root.textContent).not.toContain("evt_test_1");
-    const toggle = root.querySelector<HTMLElement>(".fg-adm-delivery-toggle")!;
-    await click(toggle);
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(root.textContent).toContain("evt_test_1");
-    expect(root.textContent).toContain("Payload sent");
-    await click(toggle);
-    expect(root.textContent).not.toContain("evt_test_1");
-  });
-
-  it("filters to failures and redelivers", async () => {
-    const onRedeliver = vi.fn<(arg?: unknown) => void>();
-    const root = await mount(h(DeliveryLog, { deliveries, onRedeliver, redelivering: ["d1"] }));
-    expect(root.querySelectorAll(".fg-adm-delivery")).toHaveLength(3);
-    expect(root.querySelectorAll("button[aria-label^=Redeliver]")).toHaveLength(2);
-    await click(byText(root, "button, label, [role=radio]", "Failed (1)"));
-    expect(root.querySelectorAll(".fg-adm-delivery")).toHaveLength(1);
-    await click(root.querySelector("button[aria-label^=Redeliver]"));
-    expect(onRedeliver).toHaveBeenCalledWith("d2");
   });
 });
 
