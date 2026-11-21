@@ -2155,3 +2155,15 @@ Rules of the log:
 - **Verified**: `bun run check` (but the site's illustration library, missing `.bp` files, and an older knip note on the gallery's shader snippets); every gallery page whose examples changed, without a console error; the filter, step and recipients popups opened; the app shell at 375 px in light, without horizontal scroll.
 - **Not verified**: the `/r/` items installed into a blank shadcn project (the registry test resolves every item and its files); every composed example in light and at phone width one by one.
 - **Open**: which blocks stay in `ui` (wave 4 of the plan), a decision with the owner.
+
+## D-162 — What stays in `ui`: blocks that make sense in many internal tools; finance, the Data hub and Forgeron's platform screens leave
+
+- **Date**: 21/11/2026 · **Status**: Active · Builds on D-157, D-161 · Wave 4 of `docs/handoff/2026-11-20-ui-shadcn-waves.md`
+- **Rule**: a block stays in `@forgeron/ui` when it makes sense in several kinds of internal tools (a signature, a file browser, a comment thread, a workflow, a dashboard); it leaves when it only makes sense for one business domain or for Forgeron's own platform. Leaving means moving into the app or template that uses it; when none does, it is deleted (the code stays in the history).
+- **Leave, deleted (no app or template imported them)**:
+  - finance, the whole group: line items, totals, receipt viewer, payment form, statement, the printable paper and its parts, the product picker. One domain, invoices and statements.
+  - the Data hub, the whole group: record grid and form, field type and field editor, schema fields, relation picker, CSV import and column mapping, table list. It is Forgeron's own database product; a grid of records is `DataGrid` or the records views, and the four kinds the grid needed (`boolean`, `relation`, `file`, `json`) stay in the records model, with their cell marks (`blocks/records.css`).
+  - from admin, the screens of Forgeron's platform: webhook endpoints and their delivery log, API tokens, notification preferences.
+- **Stay**: approval (signing), drive, conversation, forms, records and record, views, time, filtering, navigation, structure (outline, cover picker, template gallery, org chart), dashboard, automation (a workflow builder; the flow editor draws its nodes as `StepCard`s), lists (the issue presets of the records and the projects table, which the project presets read), editor (toolbars, panels, tour and onboarding: any canvas has them), marketing (the sites use them), and in admin the permission matrix, invitations, export, trash, audit log and secret field.
+- **Choices**: the issue presets stay although "issue" is a domain: they are twenty lines over the records model and the most common internal tool. A generic CSV import could come back as a block of its own if a tool asks for one.
+- **Applied in**: `packages/ui/src/blocks/` (the files of the groups removed, `blocks.css`, `records.css`, the admin barrel and model), `packages/ui/src/index.ts`, `packages/ui/README.md`, the gallery's entries, examples and registry.
