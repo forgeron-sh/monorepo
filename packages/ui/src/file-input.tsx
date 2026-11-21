@@ -19,7 +19,10 @@ export interface FileRejection {
   reason: "type" | "size" | "count";
 }
 
-export interface FileInputProps {
+export interface FileInputProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "defaultValue" | "children" | "className" | "id" | "aria-describedby"
+> {
   /** Names the field, e.g. "Attachments". */
   label: string;
   value?: File[];
@@ -149,7 +152,8 @@ function FileInputRoot({
   id,
   className,
   children,
-  ...aria
+  "aria-describedby": ariaDescribedBy,
+  ...rest
 }: FileInputRootProps) {
   const [files, setFiles] = useControllableState<File[]>({ value, defaultValue, onChange });
   const [over, setOver] = useState(false);
@@ -189,14 +193,16 @@ function FileInputRoot({
     accept,
     maxSize,
     inputId: id,
-    describedBy: aria["aria-describedby"],
+    describedBy: ariaDescribedBy,
     attach: setInput,
     open: () => input?.click(),
     listId,
   };
   return (
     <FileContext.Provider value={state}>
-      <div className={cx("fg-file", className)}>{children}</div>
+      <div data-slot="file-input" {...rest} className={cx("fg-file", className)}>
+        {children}
+      </div>
     </FileContext.Provider>
   );
 }
@@ -213,6 +219,7 @@ export function FileInputDrop({ className, children, ...rest }: ComponentProps<"
   };
   return (
     <div
+      data-slot="file-input-drop"
       {...rest}
       className={cx(
         "fg-file-drop",
@@ -254,7 +261,7 @@ export function FileInputDrop({ className, children, ...rest }: ComponentProps<"
 
 /** The line in the frame: "Drop files here, or". */
 export function FileInputHint({ className, ...rest }: ComponentProps<"span">) {
-  return <span {...rest} className={cx("fg-file-hint", className)} />;
+  return <span data-slot="file-input-hint" {...rest} className={cx("fg-file-hint", className)} />;
 }
 
 export type FileInputTriggerProps = Omit<ComponentProps<"button">, "onClick" | "className"> & {
@@ -268,7 +275,13 @@ export type FileInputTriggerProps = Omit<ComponentProps<"button">, "onClick" | "
 export function FileInputTrigger({ children, ...rest }: FileInputTriggerProps) {
   const f = useFile();
   return (
-    <Button size="sm" disabled={f.disabled} onClick={f.open} {...rest}>
+    <Button
+      size="sm"
+      disabled={f.disabled}
+      onClick={f.open}
+      data-slot="file-input-trigger"
+      {...rest}
+    >
       {rest.asChild ? (
         children
       ) : (
@@ -294,7 +307,7 @@ export function FileInputLimits({ className, children, ...rest }: ComponentProps
       .join(" · ");
   if (!text) return null;
   return (
-    <span {...rest} className={cx("fg-file-limits", className)}>
+    <span data-slot="file-input-limits" {...rest} className={cx("fg-file-limits", className)}>
       {text}
     </span>
   );
@@ -313,6 +326,7 @@ export function FileInputList({ className, children, ...rest }: FileInputListPro
     <ul
       id={f.listId}
       aria-label={`${f.label}, chosen`}
+      data-slot="file-input-list"
       {...rest}
       className={cx("fg-file-list", className)}
     >
@@ -337,7 +351,7 @@ export type FileInputItemProps = Omit<ComponentProps<"li">, "children"> & {
 export function FileInputItem({ file, index, className, children, ...rest }: FileInputItemProps) {
   const f = useFile();
   return (
-    <li {...rest} className={cx("fg-file-row", className)}>
+    <li data-slot="file-input-item" {...rest} className={cx("fg-file-row", className)}>
       {children ?? (
         <>
           <Icon icon={AttachmentIcon} size={12} variant="mono" />

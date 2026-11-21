@@ -19,7 +19,7 @@ const CHIP_LABEL: Record<ConstraintKind, string> = {
   masked: "Masked",
 };
 
-export interface ConstraintChipProps {
+export interface ConstraintChipProps extends Omit<HTMLAttributes<HTMLSpanElement>, "className"> {
   kind: ConstraintKind;
   /** More about the constraint (the table a foreign key points at), as a tooltip. */
   title?: string;
@@ -27,9 +27,14 @@ export interface ConstraintChipProps {
 }
 
 /** A constraint of a column, in words: `Primary`, `Not null`, `Unique`, `Foreign key`, `Masked`. */
-export function ConstraintChip({ kind, title, className }: ConstraintChipProps) {
+export function ConstraintChip({ kind, title, className, ...rest }: ConstraintChipProps) {
   return (
-    <span className={cx("fg-chip", `fg-chip-${kind}`, className)} title={title}>
+    <span
+      data-slot="constraint-chip"
+      {...rest}
+      className={cx("fg-chip", `fg-chip-${kind}`, className)}
+      title={title}
+    >
       {CHIP_LABEL[kind]}
     </span>
   );
@@ -53,7 +58,10 @@ export interface GridSort {
   descending: boolean;
 }
 
-export interface DataGridProps {
+export interface DataGridProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "className" | "role" | "children"
+> {
   /** Names the grid for assistive technology. */
   label: string;
   columns: ReadonlyArray<GridColumn>;
@@ -81,16 +89,35 @@ export const cellText = (cell: GridCell) =>
   cell === null ? "" : typeof cell === "object" ? "" : String(cell);
 
 /** The value of a cell: NULL and masked say what they are, never a value. */
-export function DataGridValue({ cell }: { cell: GridCell }) {
+export function DataGridValue({
+  cell,
+  className,
+  ...rest
+}: { cell: GridCell } & Omit<HTMLAttributes<HTMLSpanElement>, "children">) {
   if (cell !== null && typeof cell === "object") {
     return (
-      <span className="fg-cell-masked" title={cell.masked}>
+      <span
+        data-slot="data-grid-value"
+        {...rest}
+        className={cx("fg-cell-masked", className)}
+        title={cell.masked}
+      >
         masked
       </span>
     );
   }
-  if (cell === null) return <span className="fg-cell-null">NULL</span>;
-  return <span className="fg-cell-text">{String(cell)}</span>;
+  if (cell === null) {
+    return (
+      <span data-slot="data-grid-value" {...rest} className={cx("fg-cell-null", className)}>
+        NULL
+      </span>
+    );
+  }
+  return (
+    <span data-slot="data-grid-value" {...rest} className={cx("fg-cell-text", className)}>
+      {String(cell)}
+    </span>
+  );
 }
 
 /**
@@ -118,6 +145,7 @@ function DataGridRoot({
   return (
     <div
       tabIndex={0}
+      data-slot="data-grid"
       {...rest}
       role="region"
       aria-label={label ?? rest["aria-label"]}
@@ -132,13 +160,13 @@ function DataGridRoot({
 export function DataGridHeader({ className, ...rest }: HTMLAttributes<HTMLTableRowElement>) {
   return (
     <TableHeader>
-      <TableRow {...rest} className={className} />
+      <TableRow data-slot="data-grid-header" {...rest} className={className} />
     </TableHeader>
   );
 }
 
 export function DataGridBody(props: HTMLAttributes<HTMLTableSectionElement>) {
-  return <TableBody {...props} />;
+  return <TableBody data-slot="data-grid-body" {...props} />;
 }
 
 export type DataGridHeaderCellProps = Omit<ThHTMLAttributes<HTMLTableCellElement>, "onClick"> & {
@@ -162,6 +190,7 @@ export function DataGridHeaderCell({
     <TableHead
       scope="col"
       aria-sort={sorted || undefined}
+      data-slot="data-grid-header-cell"
       {...rest}
       className={cx(numeric && "fg-end", className)}
     >
@@ -218,6 +247,7 @@ export function DataGridRow({
     <TableRow
       tabIndex={onOpen ? 0 : undefined}
       aria-selected={selected}
+      data-slot="data-grid-row"
       {...rest}
       className={cx(onOpen && "fg-table-click", selected && "fg-grid-selected", className)}
       onClick={(event) => {
@@ -253,6 +283,7 @@ export function DataGridCell({
 }: DataGridCellProps) {
   return (
     <TableCell
+      data-slot="data-grid-cell"
       {...rest}
       className={cx(numeric && "fg-end", className)}
       onDoubleClick={
@@ -270,7 +301,12 @@ export type DataGridEmptyProps = TdHTMLAttributes<HTMLTableCellElement>;
 export function DataGridEmpty({ colSpan = 1000, className, ...rest }: DataGridEmptyProps) {
   return (
     <TableRow>
-      <TableCell {...rest} colSpan={colSpan} className={cx("fg-table-empty", className)} />
+      <TableCell
+        data-slot="data-grid-empty"
+        {...rest}
+        colSpan={colSpan}
+        className={cx("fg-table-empty", className)}
+      />
     </TableRow>
   );
 }
@@ -286,9 +322,10 @@ function DataGridTable({
   selectedRow,
   empty = "No rows",
   className,
+  ...rest
 }: DataGridProps) {
   return (
-    <DataGridRoot label={label} className={className}>
+    <DataGridRoot {...rest} label={label} className={className}>
       <DataGridHeader>
         {columns.map((column) => {
           const sorted = sort?.column === column.name;
@@ -330,7 +367,10 @@ function DataGridTable({
   );
 }
 
-export interface PagerProps {
+export interface PagerProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  "className" | "children" | "onChange"
+> {
   /** 1-based. */
   page: number;
   pageSize: number;
@@ -355,11 +395,17 @@ export function Pager({
   onPage,
   limitNote,
   className,
+  ...rest
 }: PagerProps) {
   const from = count === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = (page - 1) * pageSize + count;
   return (
-    <Pagination className={cx("fg-pager", className)} aria-label="Pages">
+    <Pagination
+      data-slot="pager"
+      {...rest}
+      className={cx("fg-pager", className)}
+      aria-label="Pages"
+    >
       <span className="fg-pager-range" aria-live="polite">
         {from}–{to}
         {total !== undefined && total >= 0 ? ` of ${total}` : ""}

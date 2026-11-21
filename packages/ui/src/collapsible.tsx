@@ -5,12 +5,15 @@ import { Accordion as BaseAccordion } from "@base-ui/react/accordion";
 import { Collapsible as Base } from "@base-ui/react/collapsible";
 import { ArrowDown01Icon } from "@forgeron/icons";
 import type { ComponentProps, ReactNode } from "react";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
 import { Icon } from "./icon";
 
-export interface CollapsibleProps {
+export interface CollapsibleProps extends Omit<
+  ComponentProps<"div">,
+  "title" | "children" | "className" | "defaultValue"
+> {
   /** The button that folds and unfolds. */
   title: ReactNode;
   /** Mono text at the end of the header: a count, a state. */
@@ -50,6 +53,7 @@ function CollapsibleBox({
   variant = "framed",
   className,
   children,
+  ...rest
 }: CollapsibleProps) {
   const [isOpen, setOpen] = useControllableState<boolean>({
     value: open,
@@ -58,6 +62,8 @@ function CollapsibleBox({
   });
   return (
     <Base.Root
+      data-slot="collapsible"
+      {...rest}
       open={isOpen}
       onOpenChange={(next) => setOpen(next)}
       disabled={disabled}
@@ -83,7 +89,10 @@ export interface AccordionItem {
   disabled?: boolean;
 }
 
-export interface AccordionProps {
+export interface AccordionProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className" | "defaultValue" | "onChange" | "dir"
+> {
   items: ReadonlyArray<AccordionItem>;
   /** The values of the sections that are open. */
   value?: string[];
@@ -118,10 +127,13 @@ function AccordionList({
   headingLevel = 3,
   disabled,
   className,
+  ...rest
 }: AccordionProps) {
   const [open, setOpen] = useControllableState<string[]>({ value, defaultValue, onChange });
   return (
     <BaseAccordion.Root
+      data-slot="accordion"
+      {...rest}
       value={open}
       onValueChange={(next) => setOpen(next as string[])}
       multiple={multiple}
@@ -172,6 +184,7 @@ export type CollapsibleRootProps = Part<
 function CollapsibleRoot({ title: _title, onOpenChange, ...props }: CollapsibleRootProps) {
   return (
     <Base.Root
+      data-slot="collapsible"
       {...props}
       {...(onOpenChange ? { onOpenChange: (open: boolean) => onOpenChange(open) } : {})}
     />
@@ -189,14 +202,27 @@ export function CollapsibleTrigger({
   className,
   ...rest
 }: CollapsibleTriggerProps) {
-  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Trigger
+      data-slot="collapsible-trigger"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export type CollapsibleContentProps = Part<ComponentProps<typeof Base.Panel>>;
 
 /** What folds. */
 export function CollapsibleContent({ className, ...rest }: CollapsibleContentProps) {
-  return <Base.Panel {...rest} className={cx("fg-fold-panel fg-collapsible-content", className)} />;
+  return (
+    <Base.Panel
+      data-slot="collapsible-content"
+      {...rest}
+      className={cx("fg-fold-panel fg-collapsible-content", className)}
+    />
+  );
 }
 
 /** `items` stays undefined: with items, `Accordion` is the props-driven one. */
@@ -242,6 +268,7 @@ function AccordionRoot({
   const initial = list(defaultValue);
   return (
     <BaseAccordion.Root
+      data-slot="accordion"
       {...rest}
       multiple={many}
       {...(controlled ? { value: controlled } : {})}
@@ -267,7 +294,13 @@ export type AccordionItemProps = Part<ComponentProps<typeof BaseAccordion.Item>>
 
 /** One section: a `value`, its `AccordionTrigger` and its `AccordionContent`. */
 export function AccordionItem({ className, ...rest }: AccordionItemProps) {
-  return <BaseAccordion.Item {...rest} className={cx("fg-fold fg-fold-item", className)} />;
+  return (
+    <BaseAccordion.Item
+      data-slot="accordion-item"
+      {...rest}
+      className={cx("fg-fold fg-fold-item", className)}
+    />
+  );
 }
 
 export type AccordionTriggerProps = Part<ComponentProps<typeof BaseAccordion.Trigger>>;
@@ -276,7 +309,11 @@ export type AccordionTriggerProps = Part<ComponentProps<typeof BaseAccordion.Tri
 export function AccordionTrigger({ className, children, ...rest }: AccordionTriggerProps) {
   return (
     <BaseAccordion.Header className="fg-fold-header">
-      <BaseAccordion.Trigger {...rest} className={cx("fg-fold-trigger", className)}>
+      <BaseAccordion.Trigger
+        data-slot="accordion-trigger"
+        {...rest}
+        className={cx("fg-fold-trigger", className)}
+      >
         <Icon icon={ArrowDown01Icon} size={12} variant="mono" className="fg-fold-caret" />
         <span className="fg-fold-title">{children}</span>
       </BaseAccordion.Trigger>
@@ -289,7 +326,7 @@ export type AccordionContentProps = Part<ComponentProps<typeof BaseAccordion.Pan
 /** What a section holds when it is open. */
 export function AccordionContent({ className, children, ...rest }: AccordionContentProps) {
   return (
-    <BaseAccordion.Panel {...rest} className="fg-fold-panel">
+    <BaseAccordion.Panel data-slot="accordion-content" {...rest} className="fg-fold-panel">
       <div className={cx("fg-fold-body", className)}>{children}</div>
     </BaseAccordion.Panel>
   );

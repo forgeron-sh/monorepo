@@ -1,12 +1,20 @@
 // Two panes with a divider between them that can be dragged or moved with the arrow keys.
 // `SplitPane` takes the props form (`first`, `second`) or, as in shadcn, its parts:
 // `SplitPanePanel` twice (the second `secondary`) around a `SplitPaneHandle` (D-156).
+// It is a preset of `Resizable` (src/resizable.tsx) in its px mode: one implementation.
 
-import type { ComponentProps, CSSProperties, KeyboardEvent, PointerEvent, ReactNode } from "react";
-import { createContext, use, useId, useRef } from "react";
+import type { ComponentProps, CSSProperties, ReactNode } from "react";
+import { Children, cloneElement, isValidElement } from "react";
 import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
-import { renderPart, type Part } from "./shell-part";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+  registerResizablePart,
+  type ResizablePanelProps,
+} from "./resizable";
+import { type Part } from "./part";
 
 export interface SplitPaneProps {
   /** Names the divider for assistive technology: "Resize the sidebar". */
@@ -51,33 +59,6 @@ export interface SplitPaneRootProps extends Omit<
   keyStep?: number;
 }
 
-const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), Math.max(lo, hi));
-
-interface SplitState {
-  current: number;
-  row: boolean;
-  min: number;
-  max: number | undefined;
-  defaultSize: number;
-  firstId: string;
-  set: (next: number) => void;
-  /** Sets the size and says it is final. */
-  commit: (next: number) => void;
-  end: () => void;
-  keyStep: number;
-  limit: () => number;
-  /** The drag in progress: where the pane was and where the pointer was. */
-  dragFrom: () => { from: number; at: number } | null;
-  startDrag: (from: number, at: number) => void;
-  stopDrag: () => boolean;
-}
-const SplitContext = createContext<SplitState | null>(null);
-const useSplit = (part: string): SplitState => {
-  const state = use(SplitContext);
-  if (!state) throw new Error(`${part} must be inside a SplitPane`);
-  return state;
-};
-
 /**
  * Two panes and a divider. Drag it, or focus it and press the arrows (Shift for bigger jumps),
  * Home and End for the limits; a double click goes back to the first size. The size is yours
@@ -119,170 +100,59 @@ function SplitPaneRoot({
     defaultValue: defaultSize,
     onChange,
   });
-  const root = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ from: number; at: number } | null>(null);
-  const firstId = useId();
   const row = direction === "horizontal";
-
-  /** The most the first pane may take now: what the container leaves to the second. */
-  const limit = () => {
-    const box = root.current?.getBoundingClientRect();
-    const measured = box ? (row ? box.width : box.height) : 0;
-    // Not laid out (hidden, or no layout engine): nothing to hold the first pane back.
-    const total = measured > 0 ? measured : Infinity;
-    const room = total - minSecond - 8;
-    return Math.min(max ?? Infinity, room);
-  };
-  const set = (next: number) => setCurrent(Math.round(clamp(next, min, limit())));
-  const commit = (next: number) => {
-    const clamped = Math.round(clamp(next, min, limit()));
-    setCurrent(clamped);
-    onChangeEnd?.(clamped);
-  };
-
-  const state: SplitState = {
-    current,
-    row,
-    min,
-    max,
-    defaultSize,
-    firstId,
-    set,
-    commit,
-    end: () => onChangeEnd?.(current),
-    keyStep,
-    limit,
-    dragFrom: () => drag.current,
-    startDrag: (from, at) => {
-      drag.current = { from, at };
-    },
-    stopDrag: () => {
-      const was = drag.current !== null;
-      drag.current = null;
-      return was;
-    },
-  };
-
+  // The panels get their limits here (px): the first its size, the second its minimum.
+  const panels = Children.map(children, (child) => {
+    if (!isValidElement<SplitPanePanelProps>(child) || child.type !== SplitPanePanel) return child;
+    return cloneElement(
+      child,
+      child.props.secondary
+        ? { minSize: minSecond }
+        : { defaultSize, minSize: min, ...(max !== undefined ? { maxSize: max } : {}) },
+    );
+  });
   return (
-    <SplitContext value={state}>
-      <div
-        {...rest}
-        ref={root}
-        className={cx("fg-split", row ? "fg-split-row" : "fg-split-col", className)}
-        style={
-          {
-            "--fg-split-size": `${current}px`,
-            "--fg-split-min": `${min}px`,
-            "--fg-split-min-second": `${minSecond}px`,
-            ...(max !== undefined ? { "--fg-split-max": `${max}px` } : {}),
-            ...style,
-          } as CSSProperties
-        }
-      >
-        {children}
-      </div>
-    </SplitContext>
+    <ResizablePanelGroup
+      {...rest}
+      unit="px"
+      direction={direction}
+      layout={[current, 0]}
+      keyStep={keyStep}
+      onLayout={(layout) => setCurrent(layout[0]!)}
+      onLayoutChanged={(layout) => onChangeEnd?.(layout[0]!)}
+      className={cx("fg-split", row ? "fg-split-row" : "fg-split-col", className)}
+      style={{ "--fg-split-size": `${current}px`, ...style } as CSSProperties}
+    >
+      {panels}
+    </ResizablePanelGroup>
   );
 }
 
-export interface SplitPanePanelProps extends Part<ComponentProps<"div">> {
+export interface SplitPanePanelProps
+  extends
+    Part<Omit<ComponentProps<"div">, "id">>,
+    Pick<ResizablePanelProps, "defaultSize" | "minSize" | "maxSize"> {
   /** The pane that takes what the first leaves. Default: the first one, which has the size. */
   secondary?: boolean;
   asChild?: boolean;
 }
-/** One of the two panes. */
-export function SplitPanePanel({ secondary, asChild, className, ...rest }: SplitPanePanelProps) {
-  const split = useSplit("SplitPanePanel");
-  return renderPart(
-    "div",
-    cx(secondary ? "fg-split-second" : "fg-split-first", className),
-    asChild,
-    {
-      ...(secondary ? {} : { id: split.firstId }),
-      ...rest,
-    },
+/** One of the two panes: a `ResizablePanel`. */
+export function SplitPanePanel({ secondary, className, ...rest }: SplitPanePanelProps) {
+  return (
+    <ResizablePanel
+      className={cx(secondary ? "fg-split-second" : "fg-split-first", className)}
+      {...rest}
+    />
   );
 }
+registerResizablePart(SplitPanePanel, "panel");
 
 export interface SplitPaneHandleProps extends Part<Omit<ComponentProps<"div">, "aria-label">> {
   /** Names the divider for assistive technology: "Resize the sidebar". */
   label: string;
 }
 /** The divider: drag it, or focus it and use the arrows, Home and End; a double click resets. */
-export function SplitPaneHandle({
-  label,
-  className,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
-  onPointerCancel,
-  onKeyDown,
-  onDoubleClick,
-  ...rest
-}: SplitPaneHandleProps) {
-  const split = useSplit("SplitPaneHandle");
-  const { current, row, min, max } = split;
-
-  const down = (event: PointerEvent<HTMLDivElement>) => {
-    onPointerDown?.(event);
-    if (event.defaultPrevented) return;
-    event.preventDefault();
-    event.currentTarget.focus();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    split.startDrag(current, row ? event.clientX : event.clientY);
-  };
-  const move = (event: PointerEvent<HTMLDivElement>) => {
-    onPointerMove?.(event);
-    const drag = split.dragFrom();
-    if (!drag) return;
-    split.set(drag.from + (row ? event.clientX : event.clientY) - drag.at);
-  };
-  const up = (event: PointerEvent<HTMLDivElement>) => {
-    onPointerUp?.(event);
-    if (split.stopDrag()) split.end();
-  };
-  const cancel = (event: PointerEvent<HTMLDivElement>) => {
-    onPointerCancel?.(event);
-    if (split.stopDrag()) split.end();
-  };
-  const keys = (event: KeyboardEvent<HTMLDivElement>) => {
-    onKeyDown?.(event);
-    if (event.defaultPrevented) return;
-    const jump = split.keyStep * (event.shiftKey ? 4 : 1);
-    const less = row ? "ArrowLeft" : "ArrowUp";
-    const more = row ? "ArrowRight" : "ArrowDown";
-    let next: number;
-    if (event.key === less) next = current - jump;
-    else if (event.key === more) next = current + jump;
-    else if (event.key === "Home") next = min;
-    else if (event.key === "End") next = split.limit();
-    else return;
-    event.preventDefault();
-    split.commit(next);
-  };
-
-  return (
-    <div
-      role="separator"
-      tabIndex={0}
-      aria-orientation={row ? "vertical" : "horizontal"}
-      aria-controls={split.firstId}
-      aria-valuenow={current}
-      aria-valuemin={min}
-      {...(max !== undefined ? { "aria-valuemax": max } : {})}
-      aria-valuetext={`${current} px`}
-      {...rest}
-      aria-label={label}
-      className={cx("fg-split-bar", className)}
-      onPointerDown={down}
-      onPointerMove={move}
-      onPointerUp={up}
-      onPointerCancel={cancel}
-      onKeyDown={keys}
-      onDoubleClick={(event) => {
-        onDoubleClick?.(event);
-        if (!event.defaultPrevented) split.commit(split.defaultSize);
-      }}
-    />
-  );
+export function SplitPaneHandle({ label, className, ...rest }: SplitPaneHandleProps) {
+  return <ResizableHandle {...rest} aria-label={label} className={cx("fg-split-bar", className)} />;
 }
+registerResizablePart(SplitPaneHandle, "handle");

@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode, SelectHTMLAttributes } from "react";
 import { cx } from "./cx";
 import { Select as Base } from "@base-ui/react/select";
 import { ArrowDown01Icon, Tick02Icon } from "@forgeron/icons";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { Icon } from "./icon";
 
 export interface SelectOption {
@@ -30,6 +30,7 @@ function NativeSelect({ options, placeholder, className, ...rest }: SelectProps)
   const controlled = rest.value !== undefined;
   return (
     <select
+      data-slot="native-select"
       {...rest}
       className={cx("fg-select", className)}
       {...(placeholder !== undefined && !controlled && rest.defaultValue === undefined
@@ -84,6 +85,7 @@ export function SelectTrigger({
   const inner = asChildProps(asChild, children);
   return (
     <Base.Trigger
+      data-slot="select-trigger"
       {...rest}
       className={cx(
         "fg-selm-trigger",
@@ -109,7 +111,9 @@ export function SelectTrigger({
 
 /** The chosen value, or `placeholder`. */
 export function SelectValue({ className, ...rest }: Part<ComponentProps<typeof Base.Value>>) {
-  return <Base.Value {...rest} className={cx("fg-selm-value", className)} />;
+  return (
+    <Base.Value data-slot="select-value" {...rest} className={cx("fg-selm-value", className)} />
+  );
 }
 
 export type SelectContentProps = Part<ComponentProps<typeof Base.Popup>> & {
@@ -136,7 +140,11 @@ export function SelectContent({
         sideOffset={sideOffset}
         alignItemWithTrigger={false}
       >
-        <Base.Popup {...rest} className={cx("fg-pop fg-selm-popup", className)}>
+        <Base.Popup
+          data-slot="select-content"
+          {...rest}
+          className={cx("fg-pop fg-selm-popup", className)}
+        >
           <Base.List className="fg-pop-list">{children}</Base.List>
         </Base.Popup>
       </Base.Positioner>
@@ -163,7 +171,7 @@ export function SelectItem({
   ...rest
 }: SelectItemProps) {
   return (
-    <Base.Item {...rest} className={cx("fg-pop-row", className)}>
+    <Base.Item data-slot="select-item" {...rest} className={cx("fg-pop-row", className)}>
       {checkbox ? (
         <span className="fg-check-box" aria-hidden="true">
           <SelectItemIndicator className="" />
@@ -184,7 +192,7 @@ export function SelectItemIndicator({
   ...rest
 }: Part<ComponentProps<typeof Base.ItemIndicator>>) {
   return (
-    <Base.ItemIndicator {...rest} className={className}>
+    <Base.ItemIndicator data-slot="select-item-indicator" {...rest} className={className}>
       {children ?? <Icon icon={Tick02Icon} size={12} variant="mono" />}
     </Base.ItemIndicator>
   );
@@ -192,21 +200,33 @@ export function SelectItemIndicator({
 
 /** The label of the whole select (for assistive technology); `className="fg-sr"` hides it. */
 export function SelectFieldLabel({ className, ...rest }: Part<ComponentProps<typeof Base.Label>>) {
-  return <Base.Label {...rest} className={className} />;
+  return <Base.Label data-slot="select-field-label" {...rest} className={className} />;
 }
 
 export function SelectGroup({ className, ...rest }: Part<ComponentProps<typeof Base.Group>>) {
-  return <Base.Group {...rest} className={className} />;
+  return <Base.Group data-slot="select-group" {...rest} className={className} />;
 }
 
 /** The name of a group, inside `SelectGroup`. */
 export function SelectLabel({ className, ...rest }: Part<ComponentProps<typeof Base.GroupLabel>>) {
-  return <Base.GroupLabel {...rest} className={cx("fg-pop-heading", className)} />;
+  return (
+    <Base.GroupLabel
+      data-slot="select-label"
+      {...rest}
+      className={cx("fg-pop-heading", className)}
+    />
+  );
 }
 
 export function SelectSeparator({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Separator>>) {
-  return <Base.Separator {...rest} className={cx("fg-pop-sep", className)} />;
+  return (
+    <Base.Separator
+      data-slot="select-separator"
+      {...rest}
+      className={cx("fg-pop-sep", className)}
+    />
+  );
 }

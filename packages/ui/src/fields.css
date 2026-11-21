@@ -710,6 +710,36 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+.fg-popover:has(.fg-popover-arrow) {
+  position: relative;
+  overflow: visible;
+}
+.fg-popover-arrow {
+  position: absolute;
+  display: block;
+  width: 10px;
+  height: 10px;
+}
+.fg-popover-arrow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--bg-raised, var(--bg));
+  border: var(--border-width) solid var(--line-strong);
+  transform: rotate(45deg);
+}
+.fg-popover-arrow[data-side="top"] {
+  bottom: -5px;
+}
+.fg-popover-arrow[data-side="bottom"] {
+  top: -5px;
+}
+.fg-popover-arrow[data-side="left"] {
+  right: -5px;
+}
+.fg-popover-arrow[data-side="right"] {
+  left: -5px;
+}
 .fg-popover-desc {
   margin: 0 0 var(--space-3);
   color: var(--ink-muted);
@@ -829,22 +859,9 @@
 .fg-split-col {
   flex-direction: column;
 }
-.fg-split-first {
-  flex: 0 0 var(--fg-split-size);
-  overflow: auto;
-  min-width: 0;
-  min-height: 0;
-}
-.fg-split-row > .fg-split-first {
-  min-width: var(--fg-split-min);
-  max-width: min(var(--fg-split-max, 100%), calc(100% - var(--fg-split-min-second) - 8px));
-}
-.fg-split-col > .fg-split-first {
-  min-height: var(--fg-split-min);
-  max-height: min(var(--fg-split-max, 100%), calc(100% - var(--fg-split-min-second) - 8px));
-}
+/* The panes take their size from the Resizable group, inline (flex). */
+.fg-split-first,
 .fg-split-second {
-  flex: 1 1 0;
   overflow: auto;
   min-width: 0;
   min-height: 0;

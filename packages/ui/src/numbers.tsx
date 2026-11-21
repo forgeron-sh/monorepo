@@ -53,7 +53,18 @@ export function parseNumber(input: string, locale?: string): number | null {
 
 /* ---------------------------------------------------------------- NumberInput */
 
-export interface NumberInputProps {
+export interface NumberInputProps extends Omit<
+  ComponentProps<"div">,
+  | "prefix"
+  | "onChange"
+  | "defaultValue"
+  | "children"
+  | "className"
+  | "id"
+  | "placeholder"
+  | "aria-describedby"
+  | "aria-invalid"
+> {
   /** Names the field for assistive technology. */
   label: string;
   value?: number | null;
@@ -163,8 +174,14 @@ function NumberInputRoot({
   className,
   bare,
   children,
-  ...aria
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
+  ...rest
 }: NumberInputRootProps & { bare?: boolean }) {
+  const aria = {
+    ...(ariaDescribedBy !== undefined ? { "aria-describedby": ariaDescribedBy } : {}),
+    ...(ariaInvalid !== undefined ? { "aria-invalid": ariaInvalid } : {}),
+  };
   const [current, setCurrent] = useControllableState<number | null>({
     value,
     defaultValue,
@@ -236,6 +253,8 @@ function NumberInputRoot({
   return (
     <NumberContext.Provider value={state}>
       <div
+        data-slot="number-input"
+        {...rest}
         className={cx(
           "fg-num",
           bare && "fg-num-bare",
@@ -266,6 +285,7 @@ export function NumberInputDecrement({
       tabIndex={-1}
       disabled={n.disabled || n.readOnly || n.atMin}
       aria-label={`Decrease ${n.label}`}
+      data-slot="number-input-decrement"
       {...rest}
       className={cx("fg-num-btn", className)}
       onClick={(event) => {
@@ -292,6 +312,7 @@ export function NumberInputIncrement({
       tabIndex={-1}
       disabled={n.disabled || n.readOnly || n.atMax}
       aria-label={`Increase ${n.label}`}
+      data-slot="number-input-increment"
       {...rest}
       className={cx("fg-num-btn", className)}
       onClick={(event) => {
@@ -306,7 +327,9 @@ export function NumberInputIncrement({
 
 /** Text beside the number, inside the frame: a unit, a symbol. Put it before or after the field. */
 export function NumberInputAffix({ className, ...rest }: ComponentProps<"span">) {
-  return <span {...rest} className={cx("fg-num-affix", className)} />;
+  return (
+    <span data-slot="number-input-affix" {...rest} className={cx("fg-num-affix", className)} />
+  );
 }
 
 /** The field: a spin button that reads and writes the number in the locale. */
@@ -321,6 +344,7 @@ export function NumberInputField({
   return (
     <input
       {...n.aria}
+      data-slot="number-input-field"
       id={n.id}
       type="text"
       inputMode={n.digits > 0 ? "decimal" : "numeric"}
@@ -375,7 +399,17 @@ export function formatMoney(minor: number, currency: string, locale?: string): s
   );
 }
 
-export interface MoneyInputProps {
+export interface MoneyInputProps extends Omit<
+  ComponentProps<"div">,
+  | "onChange"
+  | "defaultValue"
+  | "children"
+  | "className"
+  | "id"
+  | "placeholder"
+  | "aria-describedby"
+  | "aria-invalid"
+> {
   label: string;
   /** In minor units (cents): `1250` is 12.50 in EUR. An integer, so nothing drifts. */
   value?: number | null;
@@ -443,6 +477,7 @@ export function MoneyInput({
   return (
     <MoneyContext.Provider value={{ symbol, currency, before }}>
       <NumberInputRoot
+        data-slot="money-input"
         {...rest}
         label={label}
         locale={locale}
@@ -473,7 +508,7 @@ export function MoneyInput({
 
 /** The amount field of a `MoneyInput`: the number, in the locale, in major units. */
 export function MoneyInputField(props: ComponentProps<typeof NumberInputField>) {
-  return <NumberInputField {...props} />;
+  return <NumberInputField data-slot="money-input-field" {...props} />;
 }
 
 /** The symbol of the currency (`€`, `$`), with its code for assistive technology. */
@@ -481,7 +516,11 @@ export function MoneyInputSymbol({ className, ...rest }: ComponentProps<"span">)
   const money = useContext(MoneyContext);
   if (!money) throw new Error("MoneyInputSymbol goes inside <MoneyInput>.");
   return (
-    <NumberInputAffix {...rest} {...(className ? { className } : {})}>
+    <NumberInputAffix
+      data-slot="money-input-symbol"
+      {...rest}
+      {...(className ? { className } : {})}
+    >
       <span title={money.currency}>
         {money.symbol}
         <span className="fg-sr"> ({money.currency})</span>
@@ -507,7 +546,10 @@ const COMMON_CURRENCIES = [
   "CZK",
 ] as const;
 
-export interface CurrencyPickerProps {
+export interface CurrencyPickerProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "defaultValue" | "children" | "className"
+> {
   /** Names the control. Default "Currency". */
   label?: string;
   /** An ISO 4217 code. */
@@ -560,6 +602,7 @@ export function CurrencyPicker(props: CurrencyPickerProps | SelectRootProps) {
     variant = "field",
     disabled,
     className,
+    ...rest
   } = props as CurrencyPickerProps;
   const items = currencies.map((code) => ({ value: code, label: currencyLabel(code, locale) }));
   return (
@@ -569,7 +612,7 @@ export function CurrencyPicker(props: CurrencyPickerProps | SelectRootProps) {
       onValueChange={(next) => next && onChange?.(next as string)}
       {...(disabled !== undefined ? { disabled } : {})}
     >
-      <div className={cx("fg-selm", className)}>
+      <div data-slot="currency-picker" {...rest} className={cx("fg-selm", className)}>
         <SelectFieldLabel className="fg-sr">{label}</SelectFieldLabel>
         <SelectTrigger variant={variant} size={size === "sm" ? "sm" : "default"}>
           <SelectValue placeholder="Choose…">
@@ -595,7 +638,12 @@ export type CurrencyPickerItemProps = Omit<SelectItemProps, "value" | "children"
 /** One currency of the list: `EUR · Euro`, its symbol at the end of the row. */
 export function CurrencyPickerItem({ code, locale, ...rest }: CurrencyPickerItemProps) {
   return (
-    <SelectItem {...rest} value={code} hint={symbolOf(code, locale)}>
+    <SelectItem
+      data-slot="currency-picker-item"
+      {...rest}
+      value={code}
+      hint={symbolOf(code, locale)}
+    >
       {currencyLabel(code, locale)}
     </SelectItem>
   );

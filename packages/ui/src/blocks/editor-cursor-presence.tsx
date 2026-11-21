@@ -1,9 +1,31 @@
 // The other people in an editor: their cursors with a name, and what they have selected outlined
 // with their name on it. The name is always written, so the colour never carries the meaning. A
 // cursor moves in steps rather than gliding, and not at all with reduced motion.
+//
+// `CursorPresence` with no children draws everyone in `cursors`. With children it is the root of
+// the parts:
+//
+//   <CursorPresence label="People here" cursors={cursors} view={view}>
+//     <CursorPresenceList />
+//     <div aria-hidden="true">
+//       {cursors.map((c) => (
+//         <CursorPresenceCursor key={c.id} cursor={c}>
+//           <CursorPresenceSelection />
+//           <CursorPresencePointer />
+//         </CursorPresenceCursor>
+//       ))}
+//     </div>
+//   </CursorPresence>
 
-import type { CSSProperties } from "react";
+import {
+  createContext,
+  useContext,
+  type ComponentProps,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { cx } from "../cx";
+import type { Part } from "../part";
 import {
   editorPresenceTone,
   editorProject,
@@ -26,7 +48,7 @@ export interface EditorCursor {
   status?: string;
 }
 
-export interface CursorPresenceProps {
+export interface CursorPresenceProps extends Part<Omit<ComponentProps<"div">, "children">> {
   /** Names the layer for assistive technology: "People here". */
   label: string;
   cursors: ReadonlyArray<EditorCursor>;
@@ -34,7 +56,31 @@ export interface CursorPresenceProps {
   view?: EditorView;
   /** Writes who is here as a list that only assistive technology reads. Default `true`. */
   announce?: boolean;
-  className?: string;
+  /** The parts. Without them, the list, then each cursor with its selection and pointer. */
+  children?: ReactNode;
+}
+
+interface PresenceContext {
+  cursors: ReadonlyArray<EditorCursor>;
+  label: string;
+  view: EditorView | undefined;
+  at: (p: EditorPoint) => EditorPoint;
+}
+
+const Ctx = createContext<PresenceContext | null>(null);
+
+function usePresence(part: string): PresenceContext {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <CursorPresence>.`);
+  return ctx;
+}
+
+const CursorCtx = createContext<EditorCursor | null>(null);
+
+function useCursor(part: string): EditorCursor {
+  const ctx = useContext(CursorCtx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <CursorPresenceCursor>.`);
+  return ctx;
 }
 
 // The cursor is drawn as pixels: rows of a width, from the tip down, then the tail.
@@ -93,63 +139,140 @@ export function CursorPresence({
   cursors,
   view,
   announce = true,
+  children,
   className,
+  ...rest
 }: CursorPresenceProps) {
   const at = (p: EditorPoint): EditorPoint => (view ? editorProject(p, view) : p);
   return (
-    <div className={cx("fg-edt-presence", className)} aria-hidden={announce ? undefined : "true"}>
-      {announce ? (
-        <ul className="fg-visually-hidden" aria-label={label}>
-          {cursors.map((c) => (
-            <li key={c.id}>
-              {c.name}
-              {c.status ? `, ${c.status}` : ""}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <div aria-hidden="true">
-        {cursors.map((c) => {
-          const tone = editorPresenceTone(c.id, c.color);
-          const style = { "--edt-who": tone.color, "--edt-who-ink": tone.ink } as CSSProperties;
-          const sel = c.selection
-            ? (() => {
-                const a = at(c.selection);
-                const z = view?.zoom ?? 1;
-                return { x: a.x, y: a.y, w: c.selection.w * z, h: c.selection.h * z };
-              })()
-            : null;
-          const p = c.x !== undefined && c.y !== undefined ? at({ x: c.x, y: c.y }) : null;
-          return (
-            <div key={c.id} style={style}>
-              {sel ? (
-                <div
-                  className="fg-edt-sel"
-                  style={{
-                    transform: `translate(${sel.x}px, ${sel.y}px)`,
-                    width: sel.w,
-                    height: sel.h,
-                  }}
-                >
-                  <span className="fg-edt-who fg-edt-who-sel">{c.name}</span>
-                </div>
-              ) : null}
-              {p ? (
-                <div
-                  className="fg-edt-cursor"
-                  style={{ transform: `translate(${p.x}px, ${p.y}px)` }}
-                >
-                  <Arrow color={tone.color} />
-                  <span className="fg-edt-who">
-                    {c.name}
-                    {c.status ? <span className="fg-edt-who-status"> · {c.status}</span> : null}
-                  </span>
-                </div>
-              ) : null}
+    <Ctx.Provider value={{ cursors, label, view, at }}>
+      <div
+        data-slot="cursor-presence"
+        {...rest}
+        className={cx("fg-edt-presence", className)}
+        aria-hidden={announce ? undefined : "true"}
+      >
+        {children ?? (
+          <>
+            {announce ? <CursorPresenceList /> : null}
+            <div aria-hidden="true">
+              {cursors.map((c) => (
+                <CursorPresenceCursor key={c.id} cursor={c}>
+                  <CursorPresenceSelection />
+                  <CursorPresencePointer />
+                </CursorPresenceCursor>
+              ))}
             </div>
-          );
-        })}
+          </>
+        )}
       </div>
+    </Ctx.Provider>
+  );
+}
+
+/** Who is here, as a list only assistive technology reads. */
+export function CursorPresenceList({
+  className,
+  ...rest
+}: Part<Omit<ComponentProps<"ul">, "children">>) {
+  const { cursors, label } = usePresence("CursorPresenceList");
+  return (
+    <ul
+      aria-label={label}
+      data-slot="cursor-presence-list"
+      {...rest}
+      className={cx("fg-visually-hidden", className)}
+    >
+      {cursors.map((c) => (
+        <li key={c.id}>
+          {c.name}
+          {c.status ? `, ${c.status}` : ""}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export type CursorPresenceCursorProps = Part<Omit<ComponentProps<"div">, "children">> & {
+  cursor: EditorCursor;
+  /** `CursorPresenceSelection` and `CursorPresencePointer`. */
+  children?: ReactNode;
+};
+
+/** One person: gives its colour to the selection and the pointer inside. */
+export function CursorPresenceCursor({
+  cursor,
+  className,
+  style,
+  children,
+  ...rest
+}: CursorPresenceCursorProps) {
+  const tone = editorPresenceTone(cursor.id, cursor.color);
+  return (
+    <CursorCtx.Provider value={cursor}>
+      <div
+        data-slot="cursor-presence-cursor"
+        {...rest}
+        className={className}
+        style={{ "--edt-who": tone.color, "--edt-who-ink": tone.ink, ...style } as CSSProperties}
+      >
+        {children}
+      </div>
+    </CursorCtx.Provider>
+  );
+}
+
+/** What the person has selected, outlined, with their name. Nothing when they have no selection. */
+export function CursorPresenceSelection({
+  className,
+  style,
+  ...rest
+}: Part<Omit<ComponentProps<"div">, "children">>) {
+  const { at, view } = usePresence("CursorPresenceSelection");
+  const c = useCursor("CursorPresenceSelection");
+  if (!c.selection) return null;
+  const a = at(c.selection);
+  const z = view?.zoom ?? 1;
+  return (
+    <div
+      data-slot="cursor-presence-selection"
+      {...rest}
+      className={cx("fg-edt-sel", className)}
+      style={{
+        transform: `translate(${a.x}px, ${a.y}px)`,
+        width: c.selection.w * z,
+        height: c.selection.h * z,
+        ...style,
+      }}
+    >
+      <span className="fg-edt-who fg-edt-who-sel">{c.name}</span>
+    </div>
+  );
+}
+
+/** The person's pointer, with their name and status. Nothing when they have no position. */
+export function CursorPresencePointer({
+  className,
+  style,
+  ...rest
+}: Part<Omit<ComponentProps<"div">, "children">>) {
+  const { at } = usePresence("CursorPresencePointer");
+  const c = useCursor("CursorPresencePointer");
+  if (c.x === undefined || c.y === undefined) return null;
+  const p = at({ x: c.x, y: c.y });
+  const tone = editorPresenceTone(c.id, c.color);
+  return (
+    <div
+      data-slot="cursor-presence-pointer"
+      {...rest}
+      className={cx("fg-edt-cursor", className)}
+      style={{ transform: `translate(${p.x}px, ${p.y}px)`, ...style }}
+    >
+      <Arrow color={tone.color} />
+      <span className="fg-edt-who">
+        {c.name}
+        {c.status ? <span className="fg-edt-who-status"> · {c.status}</span> : null}
+      </span>
     </div>
   );
 }

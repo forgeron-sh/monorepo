@@ -16,7 +16,6 @@
 //     <DisplayReset />
 //   </DisplayMenu>
 
-import { Popover } from "@base-ui/react/popover";
 import type { IconDefinition } from "@forgeron/icons";
 import {
   Calendar03Icon,
@@ -31,6 +30,7 @@ import { cx } from "../cx";
 import { formatShortcut } from "../hooks/use-shortcuts";
 import { useDisclosure } from "../hooks/use-disclosure";
 import { Icon } from "../icon";
+import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import { SelectMenu, type SelectMenuOption } from "../overlays";
 import { Tooltip } from "../tooltip";
 
@@ -109,6 +109,7 @@ export function DisplayLayouts({
   return (
     <Segmented
       label="Layout"
+      data-slot="display-layouts"
       className="fg-display-layout"
       value={value.layout}
       onChange={(layout) => patch({ layout })}
@@ -138,7 +139,7 @@ export function DisplaySelect({ name, label, options }: DisplaySelectProps) {
   const top = name === "grouping" || name === "ordering";
   const current = top ? value[name] : (value.options?.[name] ?? options[0]?.value ?? "");
   return (
-    <div className="fg-display-row">
+    <div data-slot="display-select" className="fg-display-row">
       <span>{label}</span>
       <SelectMenu
         label={label}
@@ -159,6 +160,7 @@ export function DisplayToggle({ id, label }: DisplayChoice) {
   const { value, patch } = useDisplay("DisplayToggle");
   return (
     <Switch
+      data-slot="display-toggle"
       className="fg-display-switch"
       label={label}
       checked={Boolean(value.toggles[id])}
@@ -184,7 +186,12 @@ export function DisplayProperties({
         : properties.map((p) => p.id).filter((p) => p === id || value.properties.includes(p)),
     });
   return (
-    <div className="fg-display-section" role="group" aria-labelledby={headingId}>
+    <div
+      data-slot="display-properties"
+      className="fg-display-section"
+      role="group"
+      aria-labelledby={headingId}
+    >
       <span id={headingId} className="fg-display-heading">
         {label}
       </span>
@@ -193,6 +200,7 @@ export function DisplayProperties({
           <button
             key={p.id}
             type="button"
+            data-slot="display-property"
             className="fg-display-prop"
             aria-pressed={value.properties.includes(p.id)}
             onClick={() => toggle(p.id)}
@@ -210,6 +218,7 @@ export function DisplaySection({ title, children }: { title?: string; children: 
   const headingId = useId();
   return (
     <div
+      data-slot="display-section"
       className="fg-display-section"
       {...(title ? { role: "group", "aria-labelledby": headingId } : {})}
     >
@@ -241,7 +250,7 @@ export function DisplayReset({ label = "Reset to default" }: { label?: string })
   const { reset, changed } = useDisplay("DisplayReset");
   if (!reset || !changed) return null;
   return (
-    <div className="fg-display-foot">
+    <div data-slot="display-reset" className="fg-display-foot">
       <button type="button" className="fg-btn fg-btn-sm fg-btn-ghost" onClick={reset}>
         {label}
       </button>
@@ -320,19 +329,24 @@ export function DisplayMenu({
     </>
   );
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger className={cx("fg-btn fg-btn-sm fg-display-trigger", className)}>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        data-slot="display-menu-trigger"
+        className={cx("fg-btn fg-btn-sm fg-display-trigger", className)}
+      >
         <Icon icon={SlidersHorizontalIcon} size={12} variant="mono" />
         <span className="fg-display-trigger-text">{label}</span>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner className="fg-pop-positioner" sideOffset={4} align="end">
-          <Popover.Popup className="fg-pop fg-display" aria-label="Display options">
-            <Ctx.Provider value={ctx}>{parts}</Ctx.Provider>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={4}
+        data-slot="display-menu-content"
+        className="fg-display"
+        aria-label="Display options"
+      >
+        <Ctx.Provider value={ctx}>{parts}</Ctx.Provider>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -353,7 +367,12 @@ export function LayoutSwitch({
   className,
 }: LayoutSwitchProps) {
   return (
-    <div role="group" aria-label="Layout" className={cx("fg-seg fg-seg-icons", className)}>
+    <div
+      data-slot="layout-switch"
+      role="group"
+      aria-label="Layout"
+      className={cx("fg-seg fg-seg-icons", className)}
+    >
       {layouts.map((l) => (
         <Tooltip
           key={l.value}

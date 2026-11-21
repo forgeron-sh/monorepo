@@ -45,14 +45,62 @@ export type {
   PlacedField,
   StepMode,
 } from "./approval-model";
-export { ApprovalAudit, ApprovalChain } from "./approval-chain";
+export {
+  ApprovalAudit,
+  ApprovalAuditItem,
+  ApprovalAuditList,
+  ApprovalAuditTitle,
+  ApprovalChain,
+  ApprovalChainAdd,
+  ApprovalChainAudit,
+  ApprovalChainBody,
+  ApprovalChainComments,
+  ApprovalChainControls,
+  ApprovalChainDue,
+  ApprovalChainFoot,
+  ApprovalChainHeader,
+  ApprovalChainLive,
+  ApprovalChainMode,
+  ApprovalChainModes,
+  ApprovalChainPeople,
+  ApprovalChainRail,
+  ApprovalChainStatus,
+  ApprovalChainStep,
+  ApprovalChainStepHead,
+  ApprovalChainSteps,
+  ApprovalChainTitle,
+} from "./approval-chain";
 export type { ApprovalAuditProps, ApprovalChainProps, ApprovalPerson } from "./approval-chain";
-export { ParticipantList } from "./approval-participant-list";
+export {
+  ParticipantList,
+  ParticipantListActions,
+  ParticipantListBadge,
+  ParticipantListGrip,
+  ParticipantListItem,
+  ParticipantListLive,
+  ParticipantListOrder,
+  ParticipantListRemind,
+  ParticipantListRemove,
+  ParticipantListRows,
+  ParticipantListTone,
+  ParticipantListWhen,
+  ParticipantListWho,
+} from "./approval-participant-list";
 export type { ParticipantListProps } from "./approval-participant-list";
 export {
   clampPage,
   clampZoom,
   DocumentViewer,
+  DocumentViewerMain,
+  DocumentViewerPage,
+  DocumentViewerPager,
+  DocumentViewerPages,
+  DocumentViewerSearch,
+  DocumentViewerSeparator,
+  DocumentViewerThumbs,
+  DocumentViewerThumbsToggle,
+  DocumentViewerToolbar,
+  DocumentViewerZoom,
   fitScale,
   stepZoom,
   ZOOM_MAX,
@@ -66,7 +114,28 @@ export type {
   SearchHit,
   ZoomValue,
 } from "./approval-document-viewer";
-export { FieldPlacer } from "./approval-field-placer";
+export {
+  FieldPlacer,
+  FieldPlacerAssignee,
+  FieldPlacerBox,
+  FieldPlacerHint,
+  FieldPlacerItem,
+  FieldPlacerLayer,
+  FieldPlacerList,
+  FieldPlacerLive,
+  FieldPlacerPanel,
+  FieldPlacerPlace,
+  FieldPlacerStage,
+  FieldPlacerTools,
+  FieldPlacerTypes,
+} from "./approval-field-placer";
 export type { FieldPlacerProps } from "./approval-field-placer";
-export { SealBadge } from "./approval-seal-badge";
+export {
+  SealBadge,
+  SealBadgeBody,
+  SealBadgeFacts,
+  SealBadgeMark,
+  SealBadgeTop,
+  SealBadgeWho,
+} from "./approval-seal-badge";
 export type { SealBadgeProps } from "./approval-seal-badge";

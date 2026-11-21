@@ -6,12 +6,35 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AddressField,
   FormBuilder,
+  FormBuilderAddPage,
+  FormBuilderEdit,
+  FormBuilderMeta,
+  FormBuilderSections,
+  FormBuilderToolbar,
+  FormQuestionField,
+  FormQuestionFieldControl,
+  FormQuestionFieldTitle,
   FormRenderer,
+  FormRendererActions,
+  FormRendererPages,
+  FormRendererProgress,
   MatrixField,
+  MatrixFieldColumns,
+  MatrixFieldRows,
   QuestionCard,
+  QuestionCardBody,
+  QuestionCardFields,
+  QuestionCardRow,
+  QuestionCardSummary,
   RankingField,
+  RankingFieldKeep,
+  RankingFieldList,
   ResponseSummary,
+  ResponseSummaryList,
+  ResponseSummaryTotals,
   ShareLinkPanel,
+  ShareLinkPanelLink,
+  ShareLinkPanelSwitch,
   cleanFormAnswers,
   convertFormQuestion,
   duplicateFormQuestion,
@@ -802,5 +825,137 @@ describe("ResponseSummary and ShareLinkPanel", () => {
     await click(root.querySelector('[role="switch"]')!);
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(root.querySelector(".fg-fm-share-closed")).not.toBeNull();
+  });
+});
+
+describe("forms blocks in parts", () => {
+  const options = [
+    { id: "a", label: "Alpha" },
+    { id: "b", label: "Beta" },
+  ];
+
+  it("MatrixField: the parts build the table, data-slot and className kept", async () => {
+    const el = await mount(
+      h(
+        MatrixField,
+        { label: "Rate", rows: options, columns: options, className: "mine" },
+        h(MatrixFieldColumns, { className: "cols" }),
+        h(MatrixFieldRows),
+      ),
+    );
+    expect(el.querySelector("[data-slot=matrix-field]")!.className).toContain("mine");
+    expect(el.querySelector("[data-slot=matrix-field-columns]")!.className).toBe("cols");
+    expect(el.querySelectorAll("[data-slot=matrix-field-cell]")).toHaveLength(4);
+  });
+
+  it("RankingField: parts share the order; Keep is only there until it is ordered", async () => {
+    const onChange = vi.fn<(v: string[] | null) => void>();
+    const el = await mount(
+      h(
+        RankingField,
+        { label: "Rank", items: options, onChange },
+        h(RankingFieldList),
+        h(RankingFieldKeep, { className: "keep" }),
+      ),
+    );
+    expect(el.querySelectorAll("[data-slot=ranking-field-item]")).toHaveLength(2);
+    await click(el.querySelector("[data-slot=ranking-field-keep]")!);
+    expect(onChange).toHaveBeenCalledWith(["a", "b"]);
+  });
+
+  it("QuestionCard: the row and the body are parts, and a part outside says so", async () => {
+    const q = newFormQuestion("shortText", "q1");
+    const el = await mount(
+      h(
+        QuestionCard,
+        { defaultValue: q, defaultOpen: true, className: "card" },
+        h(QuestionCardRow, null, h(QuestionCardSummary)),
+        h(QuestionCardBody, null, h(QuestionCardFields)),
+      ),
+    );
+    expect(el.querySelector("[data-slot=question-card]")!.className).toContain("card");
+    expect(el.querySelector("[data-slot=question-card-handle]")).toBeNull();
+    expect(el.querySelector("[data-slot=question-card-fields]")).not.toBeNull();
+    expect(el.querySelector(".fg-fm-qc-limits, [data-slot=question-card-limits]")).toBeNull();
+    await click(el.querySelector("[data-slot=question-card-summary]")!);
+    expect(el.querySelector("[data-slot=question-card-body]")).toBeNull();
+    expect(() => html(h(QuestionCardSummary))).toThrow(/go inside a <QuestionCard>/);
+  });
+
+  it("FormQuestionField: parts compose the question", async () => {
+    const q: FormQuestion = { id: "n", type: "shortText", title: "Name", required: true };
+    const el = await mount(
+      h(
+        FormQuestionField,
+        { question: q },
+        h(FormQuestionFieldTitle, { className: "t" }),
+        h(FormQuestionFieldControl),
+      ),
+    );
+    expect(el.querySelector("label[data-slot=form-question-title]")!.className).toContain("t");
+    expect(el.querySelector("[data-slot=form-question-help]")).toBeNull();
+    expect(el.querySelector("input")).not.toBeNull();
+  });
+
+  it("FormRenderer: the parts you place are the ones drawn", async () => {
+    const el = await mount(
+      h(
+        FormRenderer,
+        { schema, className: "form" },
+        h(FormRendererProgress),
+        h(FormRendererPages),
+        h(FormRendererActions, { className: "acts" }),
+      ),
+    );
+    expect(el.querySelector("[data-slot=form-renderer]")!.className).toContain("form");
+    expect(el.querySelector("[data-slot=form-renderer-header]")).toBeNull();
+    expect(el.querySelector("[data-slot=form-renderer-page]")).not.toBeNull();
+    expect(el.querySelector("[data-slot=form-renderer-actions]")!.className).toContain("acts");
+    expect(el.querySelector("[data-slot=form-renderer-submit]")!.textContent).toBe("Next");
+  });
+
+  it("FormBuilder: the mode switch and the edit view are parts", async () => {
+    const el = await mount(
+      h(
+        FormBuilder,
+        { defaultValue: emptyForm() },
+        h(FormBuilderToolbar),
+        h(FormBuilderEdit, null, h(FormBuilderMeta), h(FormBuilderSections), h(FormBuilderAddPage)),
+      ),
+    );
+    expect(el.querySelector("[data-slot=form-builder-meta]")).not.toBeNull();
+    expect(el.querySelectorAll("[data-slot=form-builder-section]")).toHaveLength(1);
+    await click(el.querySelector("[data-slot=form-builder-add-page]")!);
+    expect(el.querySelectorAll("[data-slot=form-builder-section]")).toHaveLength(2);
+    expect(el.querySelector("[data-slot=form-builder-preview]")).toBeNull();
+  });
+
+  it("ResponseSummary: totals and list as parts", () => {
+    const out = html(
+      h(
+        ResponseSummary,
+        { schema, responses: [], className: "sum" },
+        h(ResponseSummaryTotals),
+        h(ResponseSummaryList),
+      ),
+    );
+    expect(out).toContain("sum");
+    expect(out).toContain("response-summary-totals");
+    expect(out).not.toContain("No response yet.");
+  });
+
+  it("ShareLinkPanel: the parts read the same switch", async () => {
+    const el = await mount(
+      h(
+        ShareLinkPanel,
+        { url: "https://example.com/f/x" },
+        h(ShareLinkPanelLink),
+        h(ShareLinkPanelSwitch),
+      ),
+    );
+    expect(el.textContent).toContain("https://example.com/f/x");
+    expect(el.querySelector("[data-slot=share-link-panel-closed]")).toBeNull();
+    await click(el.querySelector('[role="switch"]')!);
+    expect(el.querySelector("[data-slot=share-link-panel-closed]")).toBeNull();
   });
 });

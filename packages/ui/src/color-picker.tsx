@@ -160,7 +160,9 @@ export function ColorPickerRoot({
   return (
     <ColorContext.Provider value={state}>
       {inline ? (
-        <div className={cx("fg-color-inline", className)}>{children}</div>
+        <div data-slot="color-picker" className={cx("fg-color-inline", className)}>
+          {children}
+        </div>
       ) : (
         <Popover open={open} onOpenChange={(next) => setOpen(next)}>
           {children}
@@ -184,6 +186,7 @@ export function ColorPickerTrigger({
     <PopoverTrigger
       disabled={c.disabled}
       aria-label={`${c.label}: ${name}`}
+      data-slot="color-picker-trigger"
       {...(rest as object)}
       className={cx("fg-selm-trigger fg-color-trigger", !c.value && "fg-selm-empty", className)}
     >
@@ -213,6 +216,7 @@ export function ColorPickerContent({
       align="start"
       sideOffset={4}
       aria-label={c.label}
+      data-slot="color-picker-content"
       {...rest}
       className={cx("fg-color-pop", className)}
     >
@@ -223,7 +227,9 @@ export function ColorPickerContent({
 
 /** The column that holds the swatches, the hex field and the remove button. */
 export function ColorPickerPanel({ className, ...rest }: ComponentProps<"div">) {
-  return <div {...rest} className={cx("fg-color-panel", className)} />;
+  return (
+    <div data-slot="color-picker-panel" {...rest} className={cx("fg-color-panel", className)} />
+  );
 }
 
 /** The grid of squares, one tab stop; arrows move in two dimensions. Default: the palette. */
@@ -256,6 +262,7 @@ export function ColorPickerSwatches({
     <div
       role="radiogroup"
       aria-label={c.label}
+      data-slot="color-picker-swatches"
       {...rest}
       ref={grid}
       className={cx("fg-color-grid", className)}
@@ -304,6 +311,7 @@ export function ColorPickerSwatch({
       aria-label={`${name}, ${value}`}
       title={name}
       tabIndex={stop ? 0 : -1}
+      data-slot="color-picker-swatch"
       {...rest}
       className={cx("fg-color-cell", on && "fg-color-on", className)}
       style={{ background: value, ...style }}
@@ -334,6 +342,7 @@ export function ColorPickerInput({
         spellCheck={false}
         aria-invalid={bad || undefined}
         maxLength={7}
+        data-slot="color-picker-input"
         {...rest}
         value={shown}
         onChange={(event) => {
@@ -363,6 +372,7 @@ export function ColorPickerClear({
   return (
     <button
       type="button"
+      data-slot="color-picker-clear"
       {...rest}
       className={cx("fg-range-preset", className)}
       onClick={(event) => {

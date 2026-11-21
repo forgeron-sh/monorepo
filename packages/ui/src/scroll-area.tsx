@@ -11,7 +11,7 @@ export type ScrollAreaProps = Part<ComponentProps<typeof Base.Root>>;
 /** A box that scrolls: give it a size (`height`, `max-height`) and children. Both bars when needed. */
 export function ScrollArea({ className, children, ...rest }: ScrollAreaProps) {
   return (
-    <Base.Root {...rest} className={cx("fg-scroll", className)}>
+    <Base.Root data-slot="scroll-area" {...rest} className={cx("fg-scroll", className)}>
       <Base.Viewport className="fg-scroll-viewport">{children}</Base.Viewport>
       <ScrollBar />
       <Base.Corner className="fg-scroll-corner" />
@@ -27,7 +27,12 @@ export type ScrollBarProps = Part<Omit<ComponentProps<typeof Base.Scrollbar>, "o
 /** A bar and its thumb. `ScrollArea` already draws the vertical one; shadcn's examples add the horizontal. */
 export function ScrollBar({ orientation = "vertical", className, ...rest }: ScrollBarProps) {
   return (
-    <Base.Scrollbar {...rest} orientation={orientation} className={cx("fg-scrollbar", className)}>
+    <Base.Scrollbar
+      data-slot="scroll-bar"
+      {...rest}
+      orientation={orientation}
+      className={cx("fg-scrollbar", className)}
+    >
       <Base.Thumb className="fg-scroll-thumb" />
     </Base.Scrollbar>
   );

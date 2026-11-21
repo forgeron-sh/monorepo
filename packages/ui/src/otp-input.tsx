@@ -7,7 +7,10 @@ import { createContext, useContext, useRef } from "react";
 import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
 
-export interface OtpInputProps {
+export interface OtpInputProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "defaultValue" | "children" | "className" | "aria-invalid" | "aria-describedby"
+> {
   /** Names the group, e.g. "Verification code". Each cell reads "… character 3 of 6". */
   label: string;
   /** How many characters. Default 6. */
@@ -34,7 +37,10 @@ export interface OtpInputProps {
 
 /* ---------------------------------------------------------------- InputOTP (parts) */
 
-export interface InputOTPProps {
+export interface InputOTPProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "defaultValue" | "children" | "className" | "aria-invalid" | "aria-describedby"
+> {
   /** Names the group. Each cell reads "… character 3 of 6". Default "One-time code". */
   label?: string;
   /** How many characters, so how many `InputOTPSlot`. Default 6. */
@@ -97,8 +103,14 @@ export function InputOTP({
   autoFocus,
   className,
   children,
-  ...aria
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
+  ...rest
 }: InputOTPProps) {
+  const aria = {
+    ...(ariaInvalid !== undefined ? { "aria-invalid": ariaInvalid } : {}),
+    ...(ariaDescribedBy !== undefined ? { "aria-describedby": ariaDescribedBy } : {}),
+  };
   const [code, setCode] = useControllableState<string>({ value, defaultValue, onChange });
   const cells = useRef<Array<HTMLInputElement | null>>([]);
   const allowed = type === "numeric" ? /[0-9]/ : /[a-z0-9]/i;
@@ -142,7 +154,13 @@ export function InputOTP({
 
   return (
     <OtpContext.Provider value={state}>
-      <div role="group" aria-label={label} className={cx("fg-otp", className)}>
+      <div
+        role="group"
+        aria-label={label}
+        data-slot="input-otp"
+        {...rest}
+        className={cx("fg-otp", className)}
+      >
         {children}
       </div>
     </OtpContext.Provider>
@@ -151,13 +169,25 @@ export function InputOTP({
 
 /** Cells that sit together; put a `InputOTPSeparator` between groups. */
 export function InputOTPGroup({ className, ...rest }: ComponentProps<"div">) {
-  return <div role="presentation" {...rest} className={cx("fg-otp-group", className)} />;
+  return (
+    <div
+      role="presentation"
+      data-slot="input-otp-group"
+      {...rest}
+      className={cx("fg-otp-group", className)}
+    />
+  );
 }
 
 /** The dash between two groups of cells. Decorative. */
 export function InputOTPSeparator({ className, children, ...rest }: ComponentProps<"div">) {
   return (
-    <div aria-hidden="true" {...rest} className={cx("fg-otp-sep", className)}>
+    <div
+      aria-hidden="true"
+      data-slot="input-otp-separator"
+      {...rest}
+      className={cx("fg-otp-sep", className)}
+    >
       {children ?? <span className="fg-otp-dash" />}
     </div>
   );
@@ -212,6 +242,7 @@ export function InputOTPSlot({ index, className, ...rest }: InputOTPSlotProps) {
     <input
       ref={(el) => otp.register(index, el)}
       {...otp.aria}
+      data-slot="input-otp-slot"
       {...rest}
       className={cx("fg-otp-cell", className)}
       type={otp.mask ? "password" : "text"}

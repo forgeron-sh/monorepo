@@ -24,8 +24,8 @@ export function PixelTitle({
   const lines = text.split("\n").map((line) => line.split(" ").filter(Boolean));
   return (
     <Tag
-      {...rest}
       data-slot="pixel-title"
+      {...rest}
       className={cx("fg-pixel-title", `fg-pixel-title-${size}`, className)}
     >
       <span className="fg-sr">{text.replace(/\n/g, " ")}</span>

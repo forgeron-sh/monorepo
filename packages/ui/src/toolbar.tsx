@@ -6,7 +6,7 @@
 import { Toolbar as Base } from "@base-ui/react/toolbar";
 import type { IconDefinition } from "@forgeron/icons";
 import type { ComponentProps, ReactNode } from "react";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { cx } from "./cx";
 import { Icon } from "./icon";
 
@@ -35,6 +35,7 @@ export function Toolbar({
   return (
     <Base.Root
       aria-label={label}
+      data-slot="toolbar"
       {...rest}
       orientation={orientation}
       loopFocus={loop}
@@ -88,6 +89,7 @@ export function ToolbarButton({
       {...(icon && label ? { title: label } : {})}
       {...(pressed !== undefined ? { "aria-pressed": pressed } : {})}
       focusableWhenDisabled
+      data-slot="toolbar-button"
       {...rest}
       className={cx(
         "fg-tool",
@@ -117,7 +119,7 @@ export type ToolbarLinkProps = Part<ComponentProps<typeof Base.Link>> & {
 export function ToolbarLink({ asChild, className, children, ...rest }: ToolbarLinkProps) {
   const inner = asChildProps(asChild, children);
   return (
-    <Base.Link {...rest} className={cx("fg-tool", className)} {...inner}>
+    <Base.Link data-slot="toolbar-link" {...rest} className={cx("fg-tool", className)} {...inner}>
       {"render" in inner ? undefined : inner.children}
     </Base.Link>
   );
@@ -128,7 +130,13 @@ export function ToolbarSeparator({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Separator>>) {
-  return <Base.Separator {...rest} className={cx("fg-tool-sep", className)} />;
+  return (
+    <Base.Separator
+      data-slot="toolbar-separator"
+      {...rest}
+      className={cx("fg-tool-sep", className)}
+    />
+  );
 }
 
 export type ToolbarGroupProps = Part<ComponentProps<typeof Base.Group>> & {
@@ -139,7 +147,12 @@ export type ToolbarGroupProps = Part<ComponentProps<typeof Base.Group>> & {
 /** Tools that belong together, side by side with no gap. */
 export function ToolbarGroup({ label, className, children, ...rest }: ToolbarGroupProps) {
   return (
-    <Base.Group aria-label={label} {...rest} className={cx("fg-tool-group", className)}>
+    <Base.Group
+      aria-label={label}
+      data-slot="toolbar-group"
+      {...rest}
+      className={cx("fg-tool-group", className)}
+    >
       {children}
     </Base.Group>
   );

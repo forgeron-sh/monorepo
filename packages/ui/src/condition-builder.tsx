@@ -6,7 +6,7 @@
 // them (D-157).
 
 import { Cancel01Icon, PlusSignIcon } from "@forgeron/icons";
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, type ComponentProps, type ReactNode } from "react";
 import {
   isConditionGroup,
   OPERATOR_LABELS,
@@ -26,7 +26,10 @@ import { Icon } from "./icon";
 import { IconButton } from "./identity";
 import { SelectMenu } from "./overlays";
 
-export interface ConditionBuilderProps {
+export interface ConditionBuilderProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "defaultValue" | "children" | "className"
+> {
   value?: ConditionGroup;
   defaultValue?: ConditionGroup;
   onChange?: (value: ConditionGroup) => void;
@@ -99,6 +102,7 @@ export function ConditionBuilder({
   label = "Condition",
   children,
   className,
+  ...rest
 }: ConditionBuilderProps) {
   const [root, setRoot] = useControllableState<ConditionGroup>({
     value,
@@ -125,12 +129,17 @@ export function ConditionBuilder({
   };
   return (
     <ConditionContext.Provider value={state}>
-      <div className={cx("fg-cond", className)}>{children ?? <ConditionBuilderGroup />}</div>
+      <div data-slot="condition-builder" {...rest} className={cx("fg-cond", className)}>
+        {children ?? <ConditionBuilderGroup />}
+      </div>
     </ConditionContext.Provider>
   );
 }
 
-export interface ConditionBuilderGroupProps {
+export interface ConditionBuilderGroupProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className"
+> {
   /** The group to draw; the root of the builder by default. */
   group?: ConditionGroup;
   /** 1 for the root group. */
@@ -146,15 +155,18 @@ export function ConditionBuilderGroup({
   depth = 1,
   parent,
   className,
+  ...rest
 }: ConditionBuilderGroupProps) {
   const c = useCondition();
   const group = groupProp ?? c.root;
   const { readOnly, change } = c;
   return (
     <div
-      className={cx("fg-cond-group", depth > 1 && "fg-cond-nested", className)}
       role="group"
       aria-label={depth === 1 ? c.label : "Group"}
+      data-slot="condition-builder-group"
+      {...rest}
+      className={cx("fg-cond-group", depth > 1 && "fg-cond-nested", className)}
     >
       {group.rules.length === 0 ? (
         <div className="fg-cond-empty">
@@ -244,7 +256,10 @@ export function ConditionBuilderGroup({
   );
 }
 
-export interface ConditionBuilderRuleProps {
+export interface ConditionBuilderRuleProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className"
+> {
   rule: ConditionRule;
   /** The group the rule is in: edits and Remove go through it. */
   group: ConditionGroup;
@@ -252,7 +267,12 @@ export interface ConditionBuilderRuleProps {
 }
 
 /** One rule: the field, the operator, the value, and a button that removes it. */
-export function ConditionBuilderRule({ rule, group, className }: ConditionBuilderRuleProps) {
+export function ConditionBuilderRule({
+  rule,
+  group,
+  className,
+  ...rest
+}: ConditionBuilderRuleProps) {
   const { fields, variables, readOnly, change } = useCondition();
   const onChange = (next: ConditionRule) =>
     change(group.id, (g) => ({
@@ -305,7 +325,7 @@ export function ConditionBuilderRule({ rule, group, className }: ConditionBuilde
     }
   }
   return (
-    <div className={cx("fg-cond-rule", className)}>
+    <div data-slot="condition-builder-rule" {...rest} className={cx("fg-cond-rule", className)}>
       <SelectMenu
         className="fg-cond-field"
         label="Field"

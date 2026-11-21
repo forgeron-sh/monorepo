@@ -152,6 +152,7 @@ export function TimePicker({
         role="group"
         aria-label={label}
         id={id}
+        data-slot="time-picker"
         {...aria}
       >
         {children ?? (
@@ -237,6 +238,7 @@ export function TimePickerSegment({ segment: seg, className, ...rest }: TimePick
       aria-valuenow={shown ?? undefined}
       aria-valuetext={shown === null ? "Empty" : pad(shown)}
       aria-disabled={disabled || undefined}
+      data-slot="time-picker-segment"
       {...rest}
       className={cx("fg-time-seg", className)}
       onKeyDown={disabled ? undefined : onKey}
@@ -250,11 +252,11 @@ export function TimePickerSegment({ segment: seg, className, ...rest }: TimePick
 export type TimePickerPartProps = Omit<TimePickerSegmentProps, "segment">;
 
 export function TimePickerHour(props: TimePickerPartProps) {
-  return <TimePickerSegment {...props} segment="hour" />;
+  return <TimePickerSegment data-slot="time-picker-hour" {...props} segment="hour" />;
 }
 
 export function TimePickerMinute(props: TimePickerPartProps) {
-  return <TimePickerSegment {...props} segment="minute" />;
+  return <TimePickerSegment data-slot="time-picker-minute" {...props} segment="minute" />;
 }
 
 /** The colon between hour and minute. */
@@ -264,7 +266,12 @@ export function TimePickerSeparator({
   ...rest
 }: Part<ComponentProps<"span">>) {
   return (
-    <span aria-hidden="true" {...rest} className={cx("fg-time-colon", className)}>
+    <span
+      aria-hidden="true"
+      data-slot="time-picker-separator"
+      {...rest}
+      className={cx("fg-time-colon", className)}
+    >
       {children ?? ":"}
     </span>
   );
@@ -282,6 +289,7 @@ export function TimePickerPeriod({
       type="button"
       disabled={disabled || !t}
       aria-label={`${label}, ${afternoon ? "PM" : "AM"}. Switch`}
+      data-slot="time-picker-period"
       {...rest}
       className={cx("fg-time-period", className)}
       onClick={() => t && put((t.h + 12) % 24, t.m)}
@@ -323,6 +331,7 @@ export function TimePickerList({ className, ...rest }: TimePickerListProps) {
       <PopoverTrigger
         disabled={disabled}
         aria-label={`${label}: choose from a list`}
+        data-slot="time-picker-list"
         {...rest}
         className={cx("fg-time-open", className)}
       >
@@ -396,7 +405,10 @@ export function rangePresets(today: string): RangePreset[] {
   ];
 }
 
-export interface DateRangePickerProps {
+export interface DateRangePickerProps extends Omit<
+  ComponentProps<"button">,
+  "onChange" | "defaultValue" | "children" | "className" | "value" | "placeholder"
+> {
   /** Names the control, e.g. "Period". */
   label: string;
   value?: DateRange;
@@ -525,7 +537,10 @@ function DateRangePickerRoot({
   );
 }
 
-export interface DateRangePickerTriggerProps {
+export interface DateRangePickerTriggerProps extends Omit<
+  ComponentProps<"button">,
+  "children" | "className" | "placeholder"
+> {
   /** Names the control, e.g. "Period". */
   label: string;
   placeholder?: string;
@@ -545,10 +560,13 @@ export function DateRangePickerTrigger({
   disabled,
   children,
   className,
+  ...rest
 }: DateRangePickerTriggerProps) {
   const { text } = useRange("DateRangePickerTrigger");
   return (
     <PopoverTrigger
+      data-slot="date-range-picker-trigger"
+      {...(rest as object)}
       disabled={disabled}
       className={cx(
         "fg-selm-trigger fg-range-trigger",
@@ -568,7 +586,10 @@ export function DateRangePickerTrigger({
   );
 }
 
-export interface DateRangePickerContentProps {
+export interface DateRangePickerContentProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className"
+> {
   /** Names the panel, e.g. "Period". */
   label: string;
   children?: ReactNode;
@@ -580,6 +601,7 @@ export function DateRangePickerContent({
   label,
   children,
   className,
+  ...rest
 }: DateRangePickerContentProps) {
   return (
     <PopoverContent
@@ -587,6 +609,8 @@ export function DateRangePickerContent({
       align="start"
       sideOffset={4}
       aria-label={label}
+      data-slot="date-range-picker-content"
+      {...(rest as object)}
       className={cx("fg-datepop fg-range-pop", className)}
     >
       {children}
@@ -594,19 +618,30 @@ export function DateRangePickerContent({
   );
 }
 
-export interface DateRangePickerPresetsProps {
+export interface DateRangePickerPresetsProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className"
+> {
   /** `rangePresets(today)` by default, `[]` for none. */
   presets?: ReadonlyArray<RangePreset>;
   className?: string;
 }
 
 /** The quick picks: a chip each, choosing one applies the range. */
-export function DateRangePickerPresets({ presets, className }: DateRangePickerPresetsProps) {
+export function DateRangePickerPresets({
+  presets,
+  className,
+  ...rest
+}: DateRangePickerPresetsProps) {
   const { today, apply } = useRange("DateRangePickerPresets");
   const picks = presets ?? rangePresets(today);
   if (picks.length === 0) return null;
   return (
-    <div className={cx("fg-range-presets", className)}>
+    <div
+      data-slot="date-range-picker-presets"
+      {...rest}
+      className={cx("fg-range-presets", className)}
+    >
       {picks.map((p) => (
         <button
           key={p.label}
@@ -642,18 +677,25 @@ export function DateRangePickerCalendar(props: DateRangePickerCalendarProps) {
   );
 }
 
-export interface DateRangePickerFooterProps {
+export interface DateRangePickerFooterProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className"
+> {
   /** Offers to remove the range. Default `true`. */
   clearable?: boolean;
   className?: string;
 }
 
 /** What the range is, or what to choose next, and the Clear button. */
-export function DateRangePickerFooter({ clearable = true, className }: DateRangePickerFooterProps) {
+export function DateRangePickerFooter({
+  clearable = true,
+  className,
+  ...rest
+}: DateRangePickerFooterProps) {
   const { range, anchor, year, text, apply } = useRange("DateRangePickerFooter");
   const has = range.from !== null && range.to !== null;
   return (
-    <div className={cx("fg-range-foot", className)}>
+    <div data-slot="date-range-picker-footer" {...rest} className={cx("fg-range-foot", className)}>
       <span className="fg-range-state" aria-live="polite">
         {anchor !== null
           ? `From ${formatShort(anchor, year)}: choose the end`
@@ -692,6 +734,7 @@ function DateRangePickerField({
   disabled,
   className,
   children,
+  ...rest
 }: DateRangePickerProps) {
   return (
     <DateRangePickerRoot
@@ -705,6 +748,7 @@ function DateRangePickerField({
       {...(onOpenChange ? { onOpenChange } : {})}
     >
       <DateRangePickerTrigger
+        {...rest}
         label={label}
         {...(placeholder !== undefined ? { placeholder } : {})}
         {...(variant ? { variant } : {})}

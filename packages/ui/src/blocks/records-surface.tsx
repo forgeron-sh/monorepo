@@ -2,7 +2,7 @@
 // the properties shown, and editing in place (a field's mark becomes its picker, S P A L D open
 // one, a row has a menu). The views (records-list, records-board) only lay it out.
 
-import type { HTMLAttributes, ReactNode } from "react";
+import { createContext, useContext, type HTMLAttributes, type ReactNode } from "react";
 import type { ActionMenuEntry } from "../action-menu";
 import { cx } from "../cx";
 import { useCollection, type Collection } from "../hooks/use-collection";
@@ -106,6 +106,58 @@ export interface Surface<R extends RecordItem> {
   rootProps: (extra: HTMLAttributes<HTMLElement>) => HTMLAttributes<HTMLElement>;
   /** The props of a row or a card, but for its class and content. */
   itemProps: (record: R) => Record<string, unknown>;
+}
+
+/** What the parts of a list or a board read: the surface of the root that holds them. */
+export const RecordSurfaceContext = createContext<Surface<RecordItem> | null>(null);
+
+/** The surface (current record, selection, folded groups, editing) of the enclosing list or board. */
+export function useRecordSurfaceContext<R extends RecordItem = RecordItem>(
+  part = "a record part",
+): Surface<R> {
+  const surface = useContext(RecordSurfaceContext);
+  if (!surface) throw new Error(`<${part}> goes inside a <RecordList> or a <RecordBoard>.`);
+  return surface as unknown as Surface<R>;
+}
+
+const SURFACE_KEYS = [
+  "fields",
+  "context",
+  "properties",
+  "titleField",
+  "itemAttr",
+  "selected",
+  "defaultSelected",
+  "onSelectedChange",
+  "selectionMode",
+  "selection",
+  "defaultSelection",
+  "onSelectionChange",
+  "onOpen",
+  "collapsed",
+  "defaultCollapsed",
+  "onCollapsedChange",
+  "onRecordChange",
+  "editors",
+  "shortcuts",
+  "rowMenu",
+  "onRowAction",
+] as const;
+type SurfaceKey = (typeof SURFACE_KEYS)[number];
+
+/**
+ * Splits the props of a list or a board: the ones `useRecordSurface` reads, and the rest (the
+ * view's own props and the element's attributes).
+ */
+export function splitSurface<R, P extends RecordSurfaceProps<R>>(
+  props: P,
+): [RecordSurfaceProps<R>, Omit<P, SurfaceKey>] {
+  const surface: Record<string, unknown> = {};
+  const rest: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(props)) {
+    ((SURFACE_KEYS as ReadonlyArray<string>).includes(key) ? surface : rest)[key] = value;
+  }
+  return [surface as unknown as RecordSurfaceProps<R>, rest as never];
 }
 
 const escapeId = (id: string) => id.replace(/["\\]/g, "\\$&");

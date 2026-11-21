@@ -1,6 +1,14 @@
 // A rating in pixel stars (one slider for assistive technology) and a row of numbers (Scale, NPS).
 
-import type { HTMLAttributes, KeyboardEvent, PointerEvent, ReactNode } from "react";
+import type {
+  ComponentProps,
+  HTMLAttributes,
+  KeyboardEvent,
+  MutableRefObject,
+  PointerEvent,
+  ReactNode,
+  SVGAttributes,
+} from "react";
 import { createContext, useContext, useRef, useState } from "react";
 import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
@@ -33,7 +41,10 @@ const cells = (from: number, to: number) => {
 const FULL = cells(0, 12);
 const LEFT = cells(0, 6);
 
-export interface StarProps {
+export interface StarProps extends Omit<
+  SVGAttributes<SVGSVGElement>,
+  "className" | "children" | "fill" | "size"
+> {
   /** `1` lit, `0.5` the left half lit, `0` empty. */
   fill?: 0 | 0.5 | 1;
   /** In px; a multiple of 12 keeps every pixel whole. */
@@ -42,9 +53,11 @@ export interface StarProps {
 }
 
 /** One pixel star, decorative: ember when lit, a dim grey when not. */
-export function Star({ fill = 1, size = 24, className }: StarProps) {
+export function Star({ fill = 1, size = 24, className, ...rest }: StarProps) {
   return (
     <svg
+      data-slot="star"
+      {...rest}
       className={cx("fg-star", className)}
       viewBox="0 0 12 12"
       width={size}
@@ -59,7 +72,10 @@ export function Star({ fill = 1, size = 24, className }: StarProps) {
   );
 }
 
-export interface RatingProps {
+export interface RatingProps extends Omit<
+  HTMLAttributes<HTMLSpanElement>,
+  "onChange" | "defaultValue" | "children" | "className" | "id" | "role"
+> {
   /** Names the rating, e.g. "Quality". */
   label: string;
   /** 0 to `max`; `null` for none yet. */
@@ -120,6 +136,7 @@ function RatingRoot({
   id,
   className,
   children,
+  ...rest
 }: RatingProps | RatingRootProps) {
   const [current, setCurrent] = useControllableState<number | null>({
     value,
@@ -145,6 +162,8 @@ function RatingRoot({
       <RatingContext.Provider value={state}>
         <span
           id={id}
+          data-slot="rating"
+          {...rest}
           role="img"
           aria-label={`${label}: ${text}`}
           className={cx("fg-rating fg-rating-read", className)}
@@ -184,6 +203,8 @@ function RatingRoot({
     <RatingContext.Provider value={state}>
       <span
         id={id}
+        data-slot="rating"
+        {...rest}
         role="slider"
         tabIndex={disabled ? -1 : 0}
         aria-label={label}
@@ -221,7 +242,12 @@ export function RatingItem({ index, className, children, ...rest }: RatingItemPr
   if (!state) throw new Error("RatingItem goes inside <Rating>.");
   const fill = state.fillOf(index);
   return (
-    <span {...rest} data-star={index} className={cx("fg-rating-cell", className)}>
+    <span
+      data-slot="rating-item"
+      {...rest}
+      data-star={index}
+      className={cx("fg-rating-cell", className)}
+    >
       {typeof children === "function"
         ? children(fill)
         : (children ?? <Star fill={fill} size={state.size} />)}
@@ -231,7 +257,10 @@ export function RatingItem({ index, className, children, ...rest }: RatingItemPr
 
 /* ---------------------------------------------------------------- Scale */
 
-export interface ScaleProps {
+export interface ScaleProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "onChange" | "defaultValue" | "children" | "className"
+> {
   /** The question, said once for the whole row. */
   label: string;
   value?: number | null;
@@ -255,35 +284,129 @@ export interface ScaleProps {
 
 const npsTone = (n: number) => (n <= 6 ? "bad" : n <= 8 ? "mid" : "good");
 
-/** A row of numbers to pick one from: a satisfaction scale, a Net Promoter Score question. */
-export function Scale({
-  label,
+/** `label` stays undefined: with a label, `Scale` is the props-driven one. */
+export interface ScaleRootProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "onChange" | "defaultValue" | "className"
+> {
+  label?: undefined;
+  value?: number | null;
+  defaultValue?: number | null;
+  onChange?: (value: number | null) => void;
+  min?: number;
+  max?: number;
+  nps?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
+  className?: string;
+}
+
+interface ScaleState {
+  current: number | null;
+  setCurrent: (value: number | null) => void;
+  min: number;
+  max: number;
+  nps: boolean;
+  readOnly: boolean;
+  disabled: boolean;
+  cells: MutableRefObject<Map<number, HTMLButtonElement>>;
+}
+
+const ScaleContext = createContext<ScaleState | null>(null);
+
+/** The chosen number, the bounds and the options of the enclosing `Scale`. */
+export function useScale(): ScaleState {
+  const state = useContext(ScaleContext);
+  if (!state) throw new Error("useScale must be used inside a Scale");
+  return state;
+}
+
+/**
+ * A row of numbers to pick one from: a satisfaction scale, a Net Promoter Score question. With
+ * `label`, the props-driven one; without, the root of the parts (`ScaleLabel`, `ScaleRow`,
+ * `ScaleItem`, `ScaleEnds`).
+ */
+export function Scale(props: ScaleProps | ScaleRootProps) {
+  return props.label !== undefined ? (
+    <PropsScale {...(props as ScaleProps)} />
+  ) : (
+    <ScaleRoot {...(props as ScaleRootProps)} />
+  );
+}
+
+function PropsScale({ label, lowLabel, highLabel, readOnly, ...rest }: ScaleProps) {
+  const { min = 0, max = 10 } = rest;
+  return (
+    <ScaleRoot readOnly={readOnly} {...rest}>
+      <ScaleLabel>{label}</ScaleLabel>
+      <ScaleRow label={label}>
+        {Array.from({ length: max - min + 1 }, (_, i) => (
+          <ScaleItem key={min + i} value={min + i} />
+        ))}
+      </ScaleRow>
+      {lowLabel || highLabel ? (
+        <ScaleEnds>
+          <span>{lowLabel}</span>
+          <span>{highLabel}</span>
+        </ScaleEnds>
+      ) : null}
+    </ScaleRoot>
+  );
+}
+
+function ScaleRoot({
   value,
   defaultValue = null,
   onChange,
   min = 0,
   max = 10,
-  lowLabel,
-  highLabel,
-  nps,
-  readOnly,
-  disabled,
+  nps = false,
+  readOnly = false,
+  disabled = false,
+  label: _label,
   className,
-}: ScaleProps) {
+  ...rest
+}: ScaleRootProps) {
   const [current, setCurrent] = useControllableState<number | null>({
     value,
     defaultValue,
     onChange,
   });
-  const numbers = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-  const refs = useRef<Array<HTMLButtonElement | null>>([]);
+  const cells = useRef(new Map<number, HTMLButtonElement>());
+  return (
+    <ScaleContext.Provider
+      value={{ current, setCurrent, min, max, nps, readOnly, disabled, cells }}
+    >
+      <div data-slot="scale" {...rest} className={cx("fg-scale", className)} />
+    </ScaleContext.Provider>
+  );
+}
+
+/** The question, said once for the whole row. */
+export function ScaleLabel({
+  className,
+  ...rest
+}: Omit<ComponentProps<"div">, "className"> & { className?: string }) {
+  return <div data-slot="scale-label" {...rest} className={cx("fg-field-label", className)} />;
+}
+
+export interface ScaleRowProps extends Omit<ComponentProps<"div">, "className"> {
+  /** Names the group; for a read-only scale, the chosen number is added. */
+  label?: string;
+  className?: string;
+}
+
+/** The numbers, in one radio group: the arrow keys, Home and End move between them. */
+export function ScaleRow({ label, className, style, onKeyDown, ...rest }: ScaleRowProps) {
+  const { current, setCurrent, min, max, readOnly, disabled, cells } = useScale();
   const stop = current ?? min;
   const go = (n: number) => {
     const next = clamp(n, min, max);
     setCurrent(next);
-    refs.current[next - min]?.focus();
+    cells.current.get(next)?.focus();
   };
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const keys = (event: KeyboardEvent<HTMLDivElement>) => {
+    onKeyDown?.(event);
     const moves: Record<string, number> = {
       ArrowRight: stop + 1,
       ArrowDown: stop + 1,
@@ -297,49 +420,73 @@ export function Scale({
     event.preventDefault();
     go(to);
   };
-
   return (
-    <div className={cx("fg-scale", className)}>
-      <div className="fg-field-label">{label}</div>
-      <div
-        role={readOnly ? "img" : "radiogroup"}
-        aria-label={readOnly ? `${label}: ${current ?? "no answer"}` : label}
-        aria-disabled={disabled || undefined}
-        className="fg-scale-row"
-        onKeyDown={readOnly || disabled ? undefined : onKeyDown}
-        style={{ gridTemplateColumns: `repeat(${numbers.length}, minmax(0, 1fr))` }}
-      >
-        {numbers.map((n) => {
-          const on = n === current;
-          return (
-            <button
-              key={n}
-              ref={(el) => {
-                refs.current[n - min] = el;
-              }}
-              type="button"
-              role={readOnly ? undefined : "radio"}
-              aria-checked={readOnly ? undefined : on}
-              tabIndex={readOnly || disabled ? -1 : n === stop ? 0 : -1}
-              disabled={disabled}
-              className={cx(
-                "fg-scale-cell",
-                on && "fg-scale-on",
-                on && nps && `fg-scale-${npsTone(n)}`,
-              )}
-              onClick={() => !readOnly && setCurrent(on ? null : n)}
-            >
-              {n}
-            </button>
-          );
-        })}
-      </div>
-      {lowLabel || highLabel ? (
-        <div className="fg-scale-ends" aria-hidden="true">
-          <span>{lowLabel}</span>
-          <span>{highLabel}</span>
-        </div>
-      ) : null}
-    </div>
+    <div
+      data-slot="scale-row"
+      role={readOnly ? "img" : "radiogroup"}
+      {...(label !== undefined
+        ? { "aria-label": readOnly ? `${label}: ${current ?? "no answer"}` : label }
+        : {})}
+      aria-disabled={disabled || undefined}
+      {...rest}
+      className={cx("fg-scale-row", className)}
+      onKeyDown={readOnly || disabled ? onKeyDown : keys}
+      style={{ gridTemplateColumns: `repeat(${max - min + 1}, minmax(0, 1fr))`, ...style }}
+    />
+  );
+}
+
+export interface ScaleItemProps extends Omit<ComponentProps<"button">, "className" | "value"> {
+  /** The number this cell stands for; it is the label unless there are children. */
+  value: number;
+  className?: string;
+}
+
+/** One number of the scale: a radio, chosen by a click, toggled off by a second one. */
+export function ScaleItem({ value, className, children, onClick, ...rest }: ScaleItemProps) {
+  const { current, setCurrent, min, nps, readOnly, disabled, cells } = useScale();
+  const on = value === current;
+  const stop = current ?? min;
+  return (
+    <button
+      ref={(el) => {
+        if (el) cells.current.set(value, el);
+        else cells.current.delete(value);
+      }}
+      data-slot="scale-item"
+      type="button"
+      role={readOnly ? undefined : "radio"}
+      aria-checked={readOnly ? undefined : on}
+      tabIndex={readOnly || disabled ? -1 : value === stop ? 0 : -1}
+      disabled={disabled}
+      {...rest}
+      className={cx(
+        "fg-scale-cell",
+        on && "fg-scale-on",
+        on && nps && `fg-scale-${npsTone(value)}`,
+        className,
+      )}
+      onClick={(event) => {
+        onClick?.(event);
+        if (!readOnly) setCurrent(on ? null : value);
+      }}
+    >
+      {children ?? value}
+    </button>
+  );
+}
+
+/** Under the first and the last number: "Not likely", "Extremely likely". Decorative. */
+export function ScaleEnds({
+  className,
+  ...rest
+}: Omit<ComponentProps<"div">, "className"> & { className?: string }) {
+  return (
+    <div
+      data-slot="scale-ends"
+      aria-hidden="true"
+      {...rest}
+      className={cx("fg-scale-ends", className)}
+    />
   );
 }

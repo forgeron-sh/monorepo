@@ -77,19 +77,94 @@ export type {
   EditorSize,
   EditorView,
 } from "./editor-model";
-export { CanvasToolbar } from "./editor-canvas-toolbar";
+export {
+  CanvasToolbar,
+  CanvasToolbarRedo,
+  CanvasToolbarSeparator,
+  CanvasToolbarTool,
+  CanvasToolbarTools,
+  CanvasToolbarUndo,
+} from "./editor-canvas-toolbar";
 export type { CanvasToolbarProps, EditorTool, EditorToolVariant } from "./editor-canvas-toolbar";
-export { ZoomControls } from "./editor-zoom-controls";
-export type { ZoomControlsProps, ZoomShortcuts } from "./editor-zoom-controls";
-export { Minimap } from "./editor-minimap";
+export {
+  ZoomControls,
+  ZoomControlsIn,
+  ZoomControlsOut,
+  ZoomControlsValue,
+} from "./editor-zoom-controls";
+export type {
+  ZoomControlsButtonProps,
+  ZoomControlsProps,
+  ZoomShortcuts,
+} from "./editor-zoom-controls";
+export {
+  Minimap,
+  MinimapCanvas,
+  MinimapHandle,
+  MinimapStatus,
+  MinimapViewport,
+} from "./editor-minimap";
 export type { MinimapItem, MinimapProps } from "./editor-minimap";
-export { LayersPanel } from "./editor-layers-panel";
-export type { LayersPanelProps } from "./editor-layers-panel";
-export { CommentPin, PinLayer } from "./editor-comment-pins";
-export type { CommentPinProps, EditorPinData, PinLayerProps } from "./editor-comment-pins";
-export { CursorPresence } from "./editor-cursor-presence";
-export type { CursorPresenceProps, EditorCursor } from "./editor-cursor-presence";
-export { FillPicker, PatternSwatch, StrokePicker } from "./editor-style-pickers";
+export {
+  LayersPanel,
+  LayersPanelEmpty,
+  LayersPanelExtra,
+  LayersPanelFold,
+  LayersPanelGrip,
+  LayersPanelKind,
+  LayersPanelLock,
+  LayersPanelMark,
+  LayersPanelName,
+  LayersPanelRow,
+  LayersPanelTree,
+  LayersPanelVisibility,
+} from "./editor-layers-panel";
+export type {
+  LayersPanelProps,
+  LayersPanelRowProps,
+  LayersPanelTreeProps,
+} from "./editor-layers-panel";
+export {
+  CommentPin,
+  PinLayer,
+  PinLayerItem,
+  PinLayerThread,
+  PinLayerTrigger,
+} from "./editor-comment-pins";
+export type {
+  CommentPinProps,
+  EditorPinData,
+  PinLayerItemProps,
+  PinLayerProps,
+} from "./editor-comment-pins";
+export {
+  CursorPresence,
+  CursorPresenceCursor,
+  CursorPresenceList,
+  CursorPresencePointer,
+  CursorPresenceSelection,
+} from "./editor-cursor-presence";
+export type {
+  CursorPresenceCursorProps,
+  CursorPresenceProps,
+  EditorCursor,
+} from "./editor-cursor-presence";
+export {
+  FillPicker,
+  FillPickerColor,
+  FillPickerOpacity,
+  FillPickerPatterns,
+  FillPickerType,
+  PatternSwatch,
+  StrokePicker,
+  StrokePickerCap,
+  StrokePickerColor,
+  StrokePickerDash,
+  StrokePickerOpacity,
+  StrokePickerPreview,
+  StrokePickerWidth,
+  StyleRow,
+} from "./editor-style-pickers";
 export type {
   EditorFill,
   EditorStroke,
@@ -97,9 +172,43 @@ export type {
   StrokeField,
   StrokePickerProps,
 } from "./editor-style-pickers";
-export { ShortcutsSheet } from "./editor-shortcuts-sheet";
-export type { ShortcutsSheetProps } from "./editor-shortcuts-sheet";
-export { Tour } from "./editor-tour";
+export {
+  ShortcutsSheet,
+  ShortcutsSheetContent,
+  ShortcutsSheetFooter,
+  ShortcutsSheetRow,
+  ShortcutsSheetSearch,
+  ShortcutsSheetSection,
+  ShortcutsSheetSections,
+} from "./editor-shortcuts-sheet";
+export type { ShortcutsSheetContentProps, ShortcutsSheetProps } from "./editor-shortcuts-sheet";
+export {
+  Tour,
+  TourBack,
+  TourBody,
+  TourClose,
+  TourCount,
+  TourDots,
+  TourFooter,
+  TourHeader,
+  TourNav,
+  TourNext,
+  TourSkip,
+  TourTitle,
+} from "./editor-tour";
 export type { TourLabels, TourProps, TourStep, TourTarget } from "./editor-tour";
-export { OnboardingChecklist } from "./editor-onboarding";
-export type { OnboardingChecklistProps, OnboardingStep } from "./editor-onboarding";
+export {
+  OnboardingChecklist,
+  OnboardingChecklistBody,
+  OnboardingChecklistComplete,
+  OnboardingChecklistHeader,
+  OnboardingChecklistList,
+  OnboardingChecklistProgress,
+  OnboardingChecklistStep,
+  OnboardingChecklistToggle,
+} from "./editor-onboarding";
+export type {
+  OnboardingChecklistProps,
+  OnboardingChecklistStepProps,
+  OnboardingStep,
+} from "./editor-onboarding";

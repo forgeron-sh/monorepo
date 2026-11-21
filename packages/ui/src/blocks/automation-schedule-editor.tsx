@@ -1,13 +1,23 @@
 // When a scheduled automation runs, after the Schedule trigger of the Flows prototype: a few plain
 // shapes (every n minutes, hourly, daily, on some weekdays, monthly) and cron for the rest. The
 // value is always a cron expression; the line under it says it in words, with the next runs.
+//
+// Without children it is the editor above. With children they are the parts:
+//
+//   <ScheduleEditor defaultValue="0 8 * * 1-5" timezone="Europe/Paris" from={now}>
+//     <ScheduleEditorModes />
+//     <ScheduleEditorControls />
+//     <ScheduleEditorSummary />
+//     <ScheduleEditorNext />
+//   </ScheduleEditor>
 
-import { useState } from "react";
-import { Input } from "../form";
-import { Segmented } from "../controls";
+import { createContext, useContext, useState, type ComponentProps, type ReactNode } from "react";
+import { Segmented, SegmentedItem } from "../controls";
 import { cx } from "../cx";
+import { Input } from "../form";
 import { useControllableState } from "../hooks/use-controllable";
 import { SelectMenu } from "../overlays";
+import { renderPart } from "../part";
 import {
   cronToSpec,
   describeCron,
@@ -19,7 +29,10 @@ import {
 
 type Mode = ScheduleSpec["mode"];
 
-export interface ScheduleEditorProps {
+export interface ScheduleEditorProps extends Omit<
+  ComponentProps<"div">,
+  "className" | "onChange" | "defaultValue"
+> {
   /** A cron expression: `0 8 * * 1-5`. */
   value?: string;
   defaultValue?: string;
@@ -37,6 +50,37 @@ export interface ScheduleEditorProps {
   modes?: ReadonlyArray<Mode>;
   disabled?: boolean;
   className?: string;
+  asChild?: boolean;
+  /** The parts. Without them the editor is drawn whole. */
+  children?: ReactNode;
+}
+
+interface ScheduleEditorContext {
+  cron: string;
+  setCron: (cron: string) => void;
+  /** The shape shown: the cron tab stays on cron even when a plain shape could say it. */
+  mode: Mode;
+  setMode: (mode: Mode) => void;
+  modes: ReadonlyArray<Mode>;
+  spec: ScheduleSpec;
+  /** Writes a shape as its cron expression. */
+  set: (spec: ScheduleSpec) => void;
+  /** The schedule in words; `null` when the expression is not valid. */
+  summary: string | null;
+  timezone: string | undefined;
+  timezones: ReadonlyArray<string> | undefined;
+  onTimezoneChange: ((timezone: string) => void) | undefined;
+  runs: string[];
+  disabled: boolean;
+}
+
+const Ctx = createContext<ScheduleEditorContext | null>(null);
+
+/** The editor a part is in: its cron, its shape and its summary. */
+export function useScheduleEditor(part = "useScheduleEditor"): ScheduleEditorContext {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <ScheduleEditor>.`);
+  return ctx;
 }
 
 const MODE_LABELS: Record<Mode, string> = {
@@ -87,61 +131,229 @@ export function ScheduleEditor({
   from,
   preview = 3,
   modes = ["minutes", "hours", "daily", "weekly", "monthly", "cron"],
-  disabled,
+  disabled = false,
   className,
+  asChild,
+  children,
+  ...rest
 }: ScheduleEditorProps) {
   const [cron, setCron] = useControllableState({ value, defaultValue, onChange });
   const parsed = cronToSpec(cron);
-  const [mode, setMode] = useState<Mode>(parsed.mode);
+  const [picked, setPicked] = useState<Mode>(parsed.mode);
   // The cron tab keeps showing cron even when a plain shape could say it; otherwise the shape
   // follows the value.
-  const shownMode: Mode = mode === "cron" ? "cron" : parsed.mode;
-  const spec: ScheduleSpec = shownMode === "cron" ? { mode: "cron", cron } : parsed;
-  const set = (next: ScheduleSpec) => setCron(specToCron(next));
+  const mode: Mode = picked === "cron" ? "cron" : parsed.mode;
+  const spec: ScheduleSpec = mode === "cron" ? { mode: "cron", cron } : parsed;
   const summary = describeCron(cron);
-  const runs = from && summary ? nextRuns(cron, from, preview) : [];
+  const ctx: ScheduleEditorContext = {
+    cron,
+    setCron,
+    mode,
+    setMode: (next) => {
+      setPicked(next);
+      if (next !== "cron" && next !== parsed.mode) setCron(specToCron(defaultFor(next, parsed)));
+    },
+    modes,
+    spec,
+    set: (next) => setCron(specToCron(next)),
+    summary,
+    timezone,
+    timezones,
+    onTimezoneChange,
+    runs: from && summary ? nextRuns(cron, from, preview) : [],
+    disabled,
+  };
+  return (
+    <Ctx.Provider value={ctx}>
+      {renderPart("div", cx("fg-sched", className), asChild, {
+        "data-slot": "schedule-editor",
+        ...rest,
+        children: children ?? (
+          <>
+            <ScheduleEditorModes />
+            <ScheduleEditorControls />
+            <ScheduleEditorSummary />
+            <ScheduleEditorNext />
+          </>
+        ),
+      })}
+    </Ctx.Provider>
+  );
+}
 
-  const number = (
-    label: string,
-    v: number,
-    min: number,
-    max: number,
-    apply: (n: number) => void,
-  ) => (
+/* ---------------------------------------------------------------- parts */
+
+/** The shapes offered, as segments. */
+export function ScheduleEditorModes({
+  className,
+  ...rest
+}: Omit<ComponentProps<typeof Segmented>, "options" | "value" | "onChange">) {
+  const { mode, setMode, modes } = useScheduleEditor("ScheduleEditorModes");
+  return (
+    <Segmented
+      label="Repeat"
+      data-slot="schedule-editor-modes"
+      {...rest}
+      className={className}
+      value={mode}
+      onChange={(m) => setMode(m as Mode)}
+    >
+      {modes.map((m) => (
+        <SegmentedItem key={m} value={m}>
+          {MODE_LABELS[m]}
+        </SegmentedItem>
+      ))}
+    </Segmented>
+  );
+}
+
+export interface ScheduleEditorNumberProps extends Omit<
+  ComponentProps<typeof Input>,
+  "value" | "onChange" | "type"
+> {
+  value: number;
+  min: number;
+  max: number;
+  /** Hears the number, rounded and kept between `min` and `max`. */
+  onValueChange: (n: number) => void;
+}
+
+/** A whole number in a mono field: minutes, hours, a day of the month. */
+export function ScheduleEditorNumber({
+  value,
+  min,
+  max,
+  onValueChange,
+  className,
+  ...rest
+}: ScheduleEditorNumberProps) {
+  const { disabled } = useScheduleEditor("ScheduleEditorNumber");
+  return (
     <Input
-      className="fg-sched-num"
+      data-slot="schedule-editor-number"
       type="number"
       mono
-      aria-label={label}
       min={min}
       max={max}
-      value={v}
+      value={value}
       disabled={disabled}
+      {...rest}
+      className={cx("fg-sched-num", className)}
       onChange={(e) => {
         const n = Math.round(Number(e.target.value));
-        if (!Number.isNaN(n)) apply(Math.max(min, Math.min(max, n)));
+        if (!Number.isNaN(n)) onValueChange(Math.max(min, Math.min(max, n)));
       }}
     />
   );
-  const time = (t: string, apply: (t: string) => void) => (
+}
+
+export interface ScheduleEditorTimeProps extends Omit<
+  ComponentProps<typeof Input>,
+  "value" | "onChange" | "type"
+> {
+  /** `HH:MM`. */
+  value: string;
+  onValueChange: (time: string) => void;
+}
+
+/** A time of day, `HH:MM`. */
+export function ScheduleEditorTime({
+  value,
+  onValueChange,
+  className,
+  ...rest
+}: ScheduleEditorTimeProps) {
+  const { disabled } = useScheduleEditor("ScheduleEditorTime");
+  return (
     <Input
-      className="fg-sched-time"
+      data-slot="schedule-editor-time"
       type="time"
       mono
       aria-label="Time"
-      value={t}
+      value={value}
       disabled={disabled}
-      onChange={(e) => e.target.value && apply(e.target.value)}
+      {...rest}
+      className={cx("fg-sched-time", className)}
+      onChange={(e) => e.target.value && onValueChange(e.target.value)}
     />
   );
+}
 
-  let controls = null;
+/** The days of the week to press, Monday first; one stays on. */
+export function ScheduleEditorDays({
+  className,
+  ...rest
+}: Omit<ComponentProps<"div">, "children">) {
+  const { spec, set, disabled } = useScheduleEditor("ScheduleEditorDays");
+  if (spec.mode !== "weekly") return null;
+  return (
+    <div
+      data-slot="schedule-editor-days"
+      role="group"
+      aria-label="Days"
+      {...rest}
+      className={cx("fg-sched-days", className)}
+    >
+      {WEEK.map((d) => {
+        const on = spec.days.includes(d);
+        return (
+          <button
+            key={d}
+            type="button"
+            className="fg-sched-day"
+            aria-pressed={on}
+            aria-label={WEEKDAY_NAMES[d]}
+            disabled={disabled || (on && spec.days.length === 1)}
+            onClick={() =>
+              set({ ...spec, days: on ? spec.days.filter((x) => x !== d) : [...spec.days, d] })
+            }
+          >
+            {WEEKDAY_NAMES[d]!.slice(0, 2)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The cron expression, as text. */
+export function ScheduleEditorCron({
+  className,
+  ...rest
+}: Omit<ComponentProps<typeof Input>, "value" | "onChange">) {
+  const { cron, setCron, summary, disabled } = useScheduleEditor("ScheduleEditorCron");
+  return (
+    <Input
+      data-slot="schedule-editor-cron"
+      mono
+      aria-label="Cron expression"
+      aria-invalid={summary ? undefined : true}
+      spellCheck={false}
+      value={cron}
+      disabled={disabled}
+      {...rest}
+      className={cx("fg-sched-cron", className)}
+      onChange={(e) => setCron(e.target.value)}
+    />
+  );
+}
+
+/** The fields of the shape chosen, on one row. Give it children to lay them out yourself. */
+export function ScheduleEditorControls({ className, children, ...rest }: ComponentProps<"div">) {
+  const { spec, set } = useScheduleEditor("ScheduleEditorControls");
+  let controls: ReactNode = null;
   switch (spec.mode) {
     case "minutes":
       controls = (
         <>
           <span>Every</span>
-          {number("Minutes", spec.every, 1, 59, (every) => set({ ...spec, every }))}
+          <ScheduleEditorNumber
+            aria-label="Minutes"
+            value={spec.every}
+            min={1}
+            max={59}
+            onValueChange={(every) => set({ ...spec, every })}
+          />
           <span>minutes</span>
         </>
       );
@@ -150,9 +362,21 @@ export function ScheduleEditor({
       controls = (
         <>
           <span>Every</span>
-          {number("Hours", spec.every, 1, 23, (every) => set({ ...spec, every }))}
+          <ScheduleEditorNumber
+            aria-label="Hours"
+            value={spec.every}
+            min={1}
+            max={23}
+            onValueChange={(every) => set({ ...spec, every })}
+          />
           <span>hours, at minute</span>
-          {number("Minute", spec.minute, 0, 59, (minute) => set({ ...spec, minute }))}
+          <ScheduleEditorNumber
+            aria-label="Minute"
+            value={spec.minute}
+            min={0}
+            max={59}
+            onValueChange={(minute) => set({ ...spec, minute })}
+          />
         </>
       );
       break;
@@ -160,38 +384,16 @@ export function ScheduleEditor({
       controls = (
         <>
           <span>Every day at</span>
-          {time(spec.time, (t) => set({ ...spec, time: t }))}
+          <ScheduleEditorTime value={spec.time} onValueChange={(time) => set({ ...spec, time })} />
         </>
       );
       break;
     case "weekly":
       controls = (
         <>
-          <div className="fg-sched-days" role="group" aria-label="Days">
-            {WEEK.map((d) => {
-              const on = spec.days.includes(d);
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  className="fg-sched-day"
-                  aria-pressed={on}
-                  aria-label={WEEKDAY_NAMES[d]}
-                  disabled={disabled || (on && spec.days.length === 1)}
-                  onClick={() =>
-                    set({
-                      ...spec,
-                      days: on ? spec.days.filter((x) => x !== d) : [...spec.days, d],
-                    })
-                  }
-                >
-                  {WEEKDAY_NAMES[d]!.slice(0, 2)}
-                </button>
-              );
-            })}
-          </div>
+          <ScheduleEditorDays />
           <span>at</span>
-          {time(spec.time, (t) => set({ ...spec, time: t }))}
+          <ScheduleEditorTime value={spec.time} onValueChange={(time) => set({ ...spec, time })} />
         </>
       );
       break;
@@ -199,67 +401,81 @@ export function ScheduleEditor({
       controls = (
         <>
           <span>On day</span>
-          {number("Day of the month", spec.day, 1, 28, (day) => set({ ...spec, day }))}
+          <ScheduleEditorNumber
+            aria-label="Day of the month"
+            value={spec.day}
+            min={1}
+            max={28}
+            onValueChange={(day) => set({ ...spec, day })}
+          />
           <span>at</span>
-          {time(spec.time, (t) => set({ ...spec, time: t }))}
+          <ScheduleEditorTime value={spec.time} onValueChange={(time) => set({ ...spec, time })} />
         </>
       );
       break;
     case "cron":
-      controls = (
-        <Input
-          className="fg-sched-cron"
-          mono
-          aria-label="Cron expression"
-          aria-invalid={summary ? undefined : true}
-          spellCheck={false}
-          value={cron}
-          disabled={disabled}
-          onChange={(e) => setCron(e.target.value)}
-        />
-      );
+      controls = <ScheduleEditorCron />;
       break;
   }
-
   return (
-    <div className={cx("fg-sched", className)}>
-      <Segmented
-        label="Repeat"
-        options={modes.map((m) => ({ value: m, label: MODE_LABELS[m] }))}
-        value={shownMode}
-        onChange={(m) => {
-          const next = m as Mode;
-          setMode(next);
-          if (next !== "cron" && next !== parsed.mode) set(defaultFor(next, parsed));
-        }}
-      />
-      <div className="fg-sched-row">{controls}</div>
-      <div className="fg-sched-summary" aria-live="polite">
-        <span className={cx("fg-sched-words", !summary && "fg-sched-bad")}>
-          <span aria-hidden="true">→ </span>
-          {summary ?? "Not a valid cron expression: minute hour day month weekday"}
-        </span>
-        {summary && timezone && !timezones ? <span className="fg-sched-tz">{timezone}</span> : null}
-        {timezones ? (
-          <SelectMenu
-            className="fg-sched-tzpick"
-            label="Timezone"
-            size="sm"
-            options={timezones.map((t) => ({ value: t, label: t }))}
-            value={timezone ?? null}
-            onChange={(t) => t && onTimezoneChange?.(t)}
-            disabled={disabled}
-          />
-        ) : null}
-        {shownMode !== "cron" ? <code className="fg-sched-expr">{cron}</code> : null}
-      </div>
-      {runs.length ? (
-        <ol className="fg-sched-next" aria-label="Next runs">
-          {runs.map((r) => (
-            <li key={r}>{formatRun(r)}</li>
-          ))}
-        </ol>
-      ) : null}
+    <div data-slot="schedule-editor-controls" {...rest} className={cx("fg-sched-row", className)}>
+      {children ?? controls}
     </div>
+  );
+}
+
+/** The schedule in words, its timezone (or a picker of them) and its expression. */
+export function ScheduleEditorSummary({ className, children, ...rest }: ComponentProps<"div">) {
+  const { cron, mode, summary, timezone, timezones, onTimezoneChange, disabled } =
+    useScheduleEditor("ScheduleEditorSummary");
+  return (
+    <div
+      data-slot="schedule-editor-summary"
+      aria-live="polite"
+      {...rest}
+      className={cx("fg-sched-summary", className)}
+    >
+      {children ?? (
+        <>
+          <span className={cx("fg-sched-words", !summary && "fg-sched-bad")}>
+            <span aria-hidden="true">→ </span>
+            {summary ?? "Not a valid cron expression: minute hour day month weekday"}
+          </span>
+          {summary && timezone && !timezones ? (
+            <span className="fg-sched-tz">{timezone}</span>
+          ) : null}
+          {timezones ? (
+            <SelectMenu
+              className="fg-sched-tzpick"
+              label="Timezone"
+              size="sm"
+              options={timezones.map((t) => ({ value: t, label: t }))}
+              value={timezone ?? null}
+              onChange={(t) => t && onTimezoneChange?.(t)}
+              disabled={disabled}
+            />
+          ) : null}
+          {mode !== "cron" ? <code className="fg-sched-expr">{cron}</code> : null}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The next runs, as a list. Nothing without `from` or when the expression is not valid. */
+export function ScheduleEditorNext({ className, ...rest }: Omit<ComponentProps<"ol">, "children">) {
+  const { runs } = useScheduleEditor("ScheduleEditorNext");
+  if (runs.length === 0) return null;
+  return (
+    <ol
+      data-slot="schedule-editor-next"
+      aria-label="Next runs"
+      {...rest}
+      className={cx("fg-sched-next", className)}
+    >
+      {runs.map((r) => (
+        <li key={r}>{formatRun(r)}</li>
+      ))}
+    </ol>
   );
 }

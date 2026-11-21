@@ -4,7 +4,7 @@
 // the field with `aria-activedescendant`, so the focus never leaves the query.
 
 import type { IconDefinition } from "@forgeron/icons";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 import {
   CommandDialog,
@@ -63,7 +63,10 @@ export function filterCommands(
     .filter((g) => g.items.length > 0);
 }
 
-export interface CommandPaletteProps {
+export interface CommandPaletteProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className" | "onSelect" | "title"
+> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   groups: ReadonlyArray<CommandPaletteGroup>;
@@ -103,6 +106,7 @@ function PalettePreset({
   shortcut = ["⌘", "K"],
   emptyText,
   className,
+  ...rest
 }: CommandPaletteProps) {
   return (
     <CommandDialog
@@ -110,6 +114,7 @@ function PalettePreset({
       onOpenChange={(next) => onOpenChange(next)}
       title={label}
       shouldFilter={false}
+      commandProps={rest}
       {...(className ? { className } : {})}
     >
       <PaletteBody

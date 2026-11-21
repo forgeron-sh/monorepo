@@ -603,10 +603,15 @@ button.fg-edt-layer-fold:hover {
   box-shadow: 0 0 0 100vmax var(--scrim);
   pointer-events: none;
 }
-.fg-edt-tour-card {
+.fg-edt-tour-anchor {
   position: fixed;
+  pointer-events: none;
+}
+.fg-pop.fg-popover.fg-edt-tour-card,
+.fg-edt-tour-card {
   box-sizing: border-box;
   width: 320px;
+  min-width: 0;
   max-width: calc(100vw - 16px);
   padding: var(--space-3);
   border: var(--border-width) solid var(--line-strong);
@@ -614,40 +619,22 @@ button.fg-edt-layer-fold:hover {
   box-shadow: var(--shadow-pop);
   color: var(--ink);
   font: 400 13px/18px var(--font-sans);
-  pointer-events: auto;
   outline: none;
 }
 .fg-edt-tour-card:focus-visible {
   outline: var(--focus-width) solid var(--focus);
   outline-offset: 2px;
 }
-.fg-edt-tour-arrow {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border: var(--border-width) solid var(--line-strong);
-  background: var(--bg);
-  transform: rotate(45deg);
+.fg-edt-tour-centered {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 91;
+  transform: translate(-50%, -50%);
 }
-.fg-edt-tour-card[data-side="bottom"] .fg-edt-tour-arrow {
-  top: -6px;
-  border-right: 0;
-  border-bottom: 0;
-}
-.fg-edt-tour-card[data-side="top"] .fg-edt-tour-arrow {
-  bottom: -6px;
-  border-top: 0;
-  border-left: 0;
-}
-.fg-edt-tour-card[data-side="right"] .fg-edt-tour-arrow {
-  left: -6px;
-  border-top: 0;
-  border-right: 0;
-}
-.fg-edt-tour-card[data-side="left"] .fg-edt-tour-arrow {
-  right: -6px;
-  border-bottom: 0;
-  border-left: 0;
+/* The tour sits over the page and its block layer; the popover's positioner goes above them. */
+.fg-pop-positioner:has(> .fg-edt-tour-card) {
+  z-index: 91;
 }
 .fg-edt-tour-head {
   display: flex;

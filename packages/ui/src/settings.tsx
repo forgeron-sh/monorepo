@@ -7,7 +7,7 @@ import { ArrowRight01Icon } from "@forgeron/icons";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 import { cx } from "./cx";
 import { Icon } from "./icon";
-import { hasPart, renderPart, type Part } from "./shell-part";
+import { hasPart, renderPart, type Part } from "./part";
 
 interface AsChild {
   asChild?: boolean;
@@ -37,6 +37,7 @@ export function SettingsGroup({
   const parts = hasPart(children, [SettingsGroupHeader, SettingsGroupCard]);
   return (
     <section
+      data-slot="settings-group"
       {...rest}
       className={cx("fg-sgroup", tone === "danger" && "fg-sgroup-danger", className)}
     >
@@ -53,12 +54,18 @@ export function SettingsGroup({
 
 export interface SettingsGroupHeaderProps extends Part<ComponentProps<"header">>, AsChild {}
 export function SettingsGroupHeader({ asChild, className, ...rest }: SettingsGroupHeaderProps) {
-  return renderPart("header", cx("fg-sgroup-head", className), asChild, rest);
+  return renderPart("header", cx("fg-sgroup-head", className), asChild, {
+    "data-slot": "settings-group-header",
+    ...rest,
+  });
 }
 export interface SettingsGroupTitleProps extends Part<ComponentProps<"h2">>, AsChild {}
 /** An `h2`; `asChild` for another level. */
 export function SettingsGroupTitle({ asChild, className, ...rest }: SettingsGroupTitleProps) {
-  return renderPart("h2", cx("fg-sgroup-title", className), asChild, rest);
+  return renderPart("h2", cx("fg-sgroup-title", className), asChild, {
+    "data-slot": "settings-group-title",
+    ...rest,
+  });
 }
 export interface SettingsGroupDescriptionProps extends Part<ComponentProps<"p">>, AsChild {}
 export function SettingsGroupDescription({
@@ -66,12 +73,18 @@ export function SettingsGroupDescription({
   className,
   ...rest
 }: SettingsGroupDescriptionProps) {
-  return renderPart("p", cx("fg-sgroup-desc", className), asChild, rest);
+  return renderPart("p", cx("fg-sgroup-desc", className), asChild, {
+    "data-slot": "settings-group-description",
+    ...rest,
+  });
 }
 export interface SettingsGroupCardProps extends Part<ComponentProps<"div">>, AsChild {}
 /** The card the rows are in. */
 export function SettingsGroupCard({ asChild, className, ...rest }: SettingsGroupCardProps) {
-  return renderPart("div", cx("fg-sgroup-card", className), asChild, rest);
+  return renderPart("div", cx("fg-sgroup-card", className), asChild, {
+    "data-slot": "settings-group-card",
+    ...rest,
+  });
 }
 
 export interface SettingsRowProps extends Part<Omit<ComponentProps<"div">, "children">> {
@@ -101,7 +114,10 @@ const plainClick = (e: MouseEvent) =>
 export function SettingsRow(props: SettingsRowProps | SettingsRowRootProps) {
   if (props.label === undefined) {
     const { asChild, className, label: _label, ...rest } = props as SettingsRowRootProps;
-    return renderPart("div", cx("fg-srow", className), asChild, rest);
+    return renderPart("div", cx("fg-srow", className), asChild, {
+      "data-slot": "settings-row",
+      ...rest,
+    });
   }
   const { label, description, children, href, onNavigate, value, className, ...rest } =
     props as SettingsRowProps;
@@ -114,6 +130,7 @@ export function SettingsRow(props: SettingsRowProps | SettingsRowRootProps) {
   if (href !== undefined) {
     return (
       <a
+        data-slot="settings-row"
         {...(rest as ComponentProps<"a">)}
         className={cx("fg-srow fg-srow-link", className)}
         href={href}
@@ -136,7 +153,7 @@ export function SettingsRow(props: SettingsRowProps | SettingsRowRootProps) {
     );
   }
   return (
-    <div {...rest} className={cx("fg-srow", className)}>
+    <div data-slot="settings-row" {...rest} className={cx("fg-srow", className)}>
       {text}
       {children ? <SettingsRowControl>{children}</SettingsRowControl> : null}
     </div>
@@ -146,20 +163,35 @@ export function SettingsRow(props: SettingsRowProps | SettingsRowRootProps) {
 export interface SettingsRowPartProps extends Part<ComponentProps<"span">>, AsChild {}
 /** Label and description, left. */
 export function SettingsRowText({ asChild, className, ...rest }: SettingsRowPartProps) {
-  return renderPart("span", cx("fg-srow-text", className), asChild, rest);
+  return renderPart("span", cx("fg-srow-text", className), asChild, {
+    "data-slot": "settings-row-text",
+    ...rest,
+  });
 }
 export function SettingsRowLabel({ asChild, className, ...rest }: SettingsRowPartProps) {
-  return renderPart("span", cx("fg-srow-label", className), asChild, rest);
+  return renderPart("span", cx("fg-srow-label", className), asChild, {
+    "data-slot": "settings-row-label",
+    ...rest,
+  });
 }
 export function SettingsRowDescription({ asChild, className, ...rest }: SettingsRowPartProps) {
-  return renderPart("span", cx("fg-srow-desc", className), asChild, rest);
+  return renderPart("span", cx("fg-srow-desc", className), asChild, {
+    "data-slot": "settings-row-description",
+    ...rest,
+  });
 }
 export interface SettingsRowControlProps extends Part<ComponentProps<"div">>, AsChild {}
 /** The control, right. */
 export function SettingsRowControl({ asChild, className, ...rest }: SettingsRowControlProps) {
-  return renderPart("div", cx("fg-srow-control", className), asChild, rest);
+  return renderPart("div", cx("fg-srow-control", className), asChild, {
+    "data-slot": "settings-row-control",
+    ...rest,
+  });
 }
 /** The current value, before the chevron of a link row. */
 export function SettingsRowValue({ asChild, className, ...rest }: SettingsRowPartProps) {
-  return renderPart("span", cx("fg-srow-value", className), asChild, rest);
+  return renderPart("span", cx("fg-srow-value", className), asChild, {
+    "data-slot": "settings-row-value",
+    ...rest,
+  });
 }

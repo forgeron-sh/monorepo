@@ -10,17 +10,30 @@ import {
   classifyInvites,
   columnCells,
   ExportDialog,
+  ExportDialogColumns,
+  ExportDialogFooter,
+  ExportDialogHeader,
+  ExportDialogOptions,
+  ExportDialogPreview,
   exportFilename,
   exportPercent,
   exportProblem,
   gridMove,
   InviteDialog,
+  InviteDialogEmails,
+  InviteDialogFooter,
+  InviteDialogHeader,
+  InviteDialogMessage,
+  InviteDialogResults,
   inviteSummary,
   isInviteEmail,
   nextPermissionState,
   normalizeEmail,
   parseEmails,
   PermissionMatrix,
+  PermissionMatrixBar,
+  PermissionMatrixGrid,
+  PermissionMatrixKeys,
   permissionAt,
   permissionDiff,
   permissionKey,
@@ -39,6 +52,9 @@ import {
   sortByRetention,
   toggleIn,
   TrashList,
+  TrashListBar,
+  TrashListRow,
+  TrashListRows,
   type PermissionColumn,
   type PermissionSubject,
 } from "../index";
@@ -682,5 +698,157 @@ describe("TrashList", () => {
     const out = html(h(TrashList, { ...base, items: [], onEmpty: () => {} }));
     expect(out).toContain("The trash is empty.");
     expect(out).toContain("disabled");
+  });
+});
+
+describe("administration parts", () => {
+  // The parts form puts its dialog in a portal: unmount it so the next case starts clean.
+  let unmount: (() => Promise<void>) | undefined;
+  afterEach(async () => {
+    await unmount?.();
+    unmount = undefined;
+  });
+  const mount = async (element: Parameters<ReturnType<typeof createRoot>["render"]>[0]) => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    unmount = async () => {
+      await act(async () => root.unmount());
+      host.remove();
+    };
+    await act(async () => root.render(element));
+    return host;
+  };
+  const mark = (out: string) => out.replace(/ data-slot="[^"]*"/g, "");
+  it("composes a PermissionMatrix and leaves out the parts it is not given", () => {
+    const out = html(
+      h(
+        PermissionMatrix,
+        { label: "Permissions", subjects, columns, className: "mine" },
+        h(PermissionMatrixGrid, { className: "g" }),
+        h(PermissionMatrixKeys),
+      ),
+    );
+    expect(out).toContain('data-slot="permission-matrix"');
+    expect(out).toContain("fg-adm fg-adm-pm mine");
+    expect(out).toContain('data-slot="permission-matrix-grid"');
+    expect(out).toContain("fg-adm-pm-scroll g");
+    expect(out).toContain('data-slot="permission-matrix-keys"');
+    expect(out).not.toContain("fg-adm-pm-bar");
+    expect(out).not.toContain("Text summary");
+    expect(html(h(PermissionMatrix, { label: "P", subjects, columns }))).toContain("Text summary");
+    expect(() => html(h(PermissionMatrixBar))).toThrow(/goes inside a <PermissionMatrix>/);
+  });
+
+  it("opens the InviteDialog parts in a dialog and invites from its own footer", async () => {
+    const onInvite = vi.fn<(arg?: unknown) => void>();
+    await mount(
+      h(
+        InviteDialog,
+        {
+          onInvite,
+          onClose: () => {},
+          defaultValue: { emails: ["new@x.io"], teams: [], message: "" },
+        },
+        h(InviteDialogHeader),
+        h(InviteDialogEmails),
+        h(InviteDialogMessage),
+        h(InviteDialogResults),
+        h(InviteDialogFooter),
+      ),
+    );
+    const dialog = q("[role=dialog]")!;
+    expect(dialog.textContent).toContain("Invite people");
+    expect(dialog.textContent).toContain("1 invitation to send");
+    expect(dialog.querySelector("[data-slot=invite-dialog-footer]")).toBeTruthy();
+    await click(byText(document, "button", "Invite"));
+    expect(onInvite).toHaveBeenCalledWith({ emails: ["new@x.io"], teams: [], message: "" });
+  });
+
+  it("shows the result in the parts form too", async () => {
+    await mount(
+      h(
+        InviteDialog,
+        {
+          onInvite: () => {},
+          onClose: () => {},
+          result: [{ email: "a@x.io", outcome: "invited" }],
+        },
+        h(InviteDialogHeader),
+        h(InviteDialogEmails),
+        h(InviteDialogResults),
+        h(InviteDialogFooter),
+      ),
+    );
+    const dialog = q("[role=dialog]")!;
+    expect(dialog.textContent).toContain("Invitations");
+    expect(dialog.querySelectorAll("[data-slot=invite-dialog-results] li")).toHaveLength(1);
+    expect(dialog.querySelector("[data-slot=invite-dialog-emails]")).toBeNull();
+  });
+
+  it("composes an ExportDialog and starts the export from its footer", async () => {
+    const onExport = vi.fn<(arg?: unknown) => void>();
+    await mount(
+      h(
+        ExportDialog,
+        {
+          columns: [
+            { id: "name", label: "Name" },
+            { id: "email", label: "Email" },
+          ],
+          name: "Members",
+          today: "2026-11-19",
+          onExport,
+          onClose: () => {},
+        },
+        h(ExportDialogHeader),
+        h(ExportDialogOptions, null, h(ExportDialogColumns)),
+        h(ExportDialogPreview),
+        h(ExportDialogFooter),
+      ),
+    );
+    const dialog = q("[role=dialog]")!;
+    expect(dialog.querySelector("[data-slot=export-dialog-columns]")).toBeTruthy();
+    expect(dialog.querySelector("[data-slot=export-dialog-formats]")).toBeNull();
+    expect(dialog.textContent).toContain("members-2026-11-19.csv");
+    await click(byText(document, "button", "Export"));
+    expect(onExport).toHaveBeenCalledWith(expect.objectContaining({ columns: ["name", "email"] }));
+  });
+
+  it("places the parts of a TrashList and acts from a row", async () => {
+    const onRestore = vi.fn<(arg?: unknown) => void>();
+    const entry = {
+      id: "a",
+      name: "Invoice 214",
+      kind: "Invoice",
+      deletedBy: "Ada",
+      deletedAt: "2026-11-18",
+    };
+    const root = await mount(
+      h(
+        TrashList,
+        {
+          items: [entry],
+          today: "2026-11-19",
+          onRestore,
+          onDeleteForever: () => {},
+          className: "mine",
+        },
+        h(TrashListBar),
+        h(TrashListRows, null, h(TrashListRow, { entry, className: "r" })),
+      ),
+    );
+    expect(root.querySelector("[data-slot=trash-list]")?.className).toContain("mine");
+    expect(root.querySelector("[data-slot=trash-list-notice]")).toBeNull();
+    expect(root.querySelector("[data-slot=trash-list-row]")?.className).toContain("r");
+    await click(byLabel(root, "Restore Invoice 214"));
+    expect(onRestore).toHaveBeenCalledWith(["a"]);
+    expect(
+      mark(
+        html(
+          h(TrashList, { items: [], today: "2026-11-19", onRestore, onDeleteForever: () => {} }),
+        ),
+      ),
+    ).toContain("The trash is empty.");
   });
 });

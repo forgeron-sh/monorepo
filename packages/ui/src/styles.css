@@ -1,9 +1,9 @@
 @import "../tokens/tokens.css";
 @import "./atoms.css";
+@import "./parts-input-group.css";
 @import "./components.css";
 @import "./fields.css";
 @import "./blocks.css";
-@import "./shaders/shaders.css";
 @import "./parts-forms.css";
 @import "./parts-display.css";
 @import "./parts-disclosure.css";
@@ -21,3 +21,8 @@
 @import "./parts-diff.css";
 @import "./parts-icon-picker.css";
 @import "./parts-shell.css";
+@import "./parts-resizable.css";
+@import "./parts-period-nav.css";
+@import "./parts-event-grid.css";
+@import "./parts-day-grid.css";
+@import "./parts-slot-list.css";

@@ -55,13 +55,62 @@ export type {
   PermissionValue,
   TrashEntry,
 } from "./admin-model";
-export { PermissionMatrix } from "./admin-permission-matrix";
+export {
+  PermissionMatrix,
+  PermissionMatrixBar,
+  PermissionMatrixChanges,
+  PermissionMatrixGrid,
+  PermissionMatrixKeys,
+  PermissionMatrixLegend,
+  PermissionMatrixStatus,
+  PermissionMatrixSummary,
+  usePermissionMatrix,
+} from "./admin-permission-matrix";
 export type { PermissionMatrixProps } from "./admin-permission-matrix";
-export { InviteDialog } from "./admin-invite-dialog";
+export {
+  InviteDialog,
+  InviteDialogActions,
+  InviteDialogBody,
+  InviteDialogEmails,
+  InviteDialogFooter,
+  InviteDialogHeader,
+  InviteDialogMessage,
+  InviteDialogResults,
+  InviteDialogTeams,
+  useInviteDialog,
+} from "./admin-invite-dialog";
 export type { InviteDialogProps, InviteDraft, InviteRequest } from "./admin-invite-dialog";
-export { ExportDialog } from "./admin-export-dialog";
+export {
+  ExportDialog,
+  ExportDialogActions,
+  ExportDialogColumns,
+  ExportDialogDone,
+  ExportDialogError,
+  ExportDialogFooter,
+  ExportDialogFormats,
+  ExportDialogHeader,
+  ExportDialogOptions,
+  ExportDialogPreview,
+  ExportDialogProgress,
+  ExportDialogRanges,
+  useExportDialog,
+} from "./admin-export-dialog";
 export type { ExportDialogProps } from "./admin-export-dialog";
-export { TrashList } from "./admin-trash-list";
+export {
+  TrashList,
+  TrashListBar,
+  TrashListEmpty,
+  TrashListNotice,
+  TrashListRow,
+  TrashListRows,
+  useTrashList,
+} from "./admin-trash-list";
 export type { TrashListProps } from "./admin-trash-list";
-export { AuditLog } from "./admin-audit-log";
+export {
+  AuditLog,
+  AuditLogDay,
+  AuditLogEmpty,
+  AuditLogEvent,
+  useAuditLog,
+} from "./admin-audit-log";
 export type { AuditEvent, AuditLogProps } from "./admin-audit-log";

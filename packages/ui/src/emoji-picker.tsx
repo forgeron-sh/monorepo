@@ -339,7 +339,13 @@ function EmojiPickerRoot({
   return (
     <EmojiContext.Provider value={state}>
       <GridContext.Provider value={grid}>
-        <div {...rest} className={cx("fg-conv-emoji", className)} role="group" aria-label={label}>
+        <div
+          data-slot="emoji-picker"
+          {...rest}
+          className={cx("fg-conv-emoji", className)}
+          role="group"
+          aria-label={label}
+        >
           {children}
         </div>
       </GridContext.Provider>
@@ -347,7 +353,10 @@ function EmojiPickerRoot({
   );
 }
 
-export interface EmojiPickerSearchProps {
+export interface EmojiPickerSearchProps extends Omit<
+  ComponentProps<"div">,
+  "className" | "children" | "placeholder"
+> {
   /** Focuses the search box on mount (in a popup). */
   autoFocus?: boolean | undefined;
   placeholder?: string;
@@ -359,11 +368,16 @@ export function EmojiPickerSearch({
   autoFocus,
   placeholder = "Search",
   className,
+  ...rest
 }: EmojiPickerSearchProps) {
   const e = useEmoji();
   const focusAt = useFocusAt(e);
   return (
-    <div className={cx("fg-conv-emoji-search", className)}>
+    <div
+      data-slot="emoji-picker-search"
+      {...rest}
+      className={cx("fg-conv-emoji-search", className)}
+    >
       <Icon icon={Search01Icon} size={12} variant="mono" />
       <input
         type="search"
@@ -386,11 +400,17 @@ export function EmojiPickerSearch({
 }
 
 /** The row of categories (and Recent once something was chosen); hidden while searching. */
-export function EmojiPickerTabs({ className }: { className?: string }) {
+export function EmojiPickerTabs({ className, ...rest }: Omit<ComponentProps<"div">, "children">) {
   const e = useEmoji();
   if (e.searching) return null;
   return (
-    <div className={cx("fg-conv-emoji-tabs", className)} role="group" aria-label="Categories">
+    <div
+      role="group"
+      aria-label="Categories"
+      data-slot="emoji-picker-tabs"
+      {...rest}
+      className={cx("fg-conv-emoji-tabs", className)}
+    >
       {e.tabs.map((tabItem) => (
         <button
           key={tabItem.id}
@@ -409,7 +429,12 @@ export function EmojiPickerTabs({ className }: { className?: string }) {
 }
 
 /** The emoji of the category or of the search, moved through with the arrows. */
-export function EmojiPickerGrid({ className }: { className?: string }) {
+export function EmojiPickerGrid({
+  className,
+  style,
+  onKeyDown,
+  ...rest
+}: Omit<ComponentProps<"div">, "children">) {
   const e = useEmoji();
   const grid = useContext(GridContext);
   const focusAt = useFocusAt(e);
@@ -428,14 +453,19 @@ export function EmojiPickerGrid({ className }: { className?: string }) {
   };
   return (
     <div
-      ref={grid}
-      className={cx("fg-conv-emoji-grid", className)}
-      style={{ gridTemplateColumns: `repeat(${e.columns}, 1fr)` }}
       role="group"
       aria-label={
         e.searching ? "Results" : (e.tabs.find((t) => t.id === e.category)?.label ?? e.label)
       }
-      onKeyDown={onKey}
+      data-slot="emoji-picker-grid"
+      {...rest}
+      ref={grid}
+      className={cx("fg-conv-emoji-grid", className)}
+      style={{ gridTemplateColumns: `repeat(${e.columns}, 1fr)`, ...style }}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        if (!event.defaultPrevented) onKey(event);
+      }}
     >
       {e.entries.map((entry, index) => (
         <button

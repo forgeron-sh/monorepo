@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { cx } from "./cx";
-import { renderPart } from "./shell-part";
+import { renderPart } from "./part";
 
 export interface ChipProps extends Omit<ComponentProps<"span">, "className" | "children"> {
   /** Lit in ember: the selected or active one of a set. */

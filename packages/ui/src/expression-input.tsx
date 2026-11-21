@@ -15,6 +15,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentProps,
   type KeyboardEvent,
   type ReactNode,
   type RefObject,
@@ -31,7 +32,20 @@ import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
 import { Icon } from "./icon";
 
-export interface ExpressionInputProps {
+type Part<T> = Omit<T, "className"> & { className?: string };
+
+export interface ExpressionInputProps extends Omit<
+  ComponentProps<"div">,
+  | "className"
+  | "children"
+  | "defaultValue"
+  | "onChange"
+  | "id"
+  | "placeholder"
+  | "aria-label"
+  | "aria-describedby"
+  | "aria-invalid"
+> {
   value?: string;
   defaultValue?: string;
   onChange?: (value: string) => void;
@@ -135,6 +149,7 @@ export function ExpressionInput({
   "aria-label": ariaLabel,
   children,
   className,
+  ...rest
 }: ExpressionInputProps) {
   const uid = useId();
   const listId = `${uid}-list`;
@@ -260,6 +275,8 @@ export function ExpressionInput({
       <ControlContext.Provider value={control}>
         <MirrorContext.Provider value={mirror}>
           <div
+            data-slot="expression-input"
+            {...rest}
             className={cx(
               "fg-expr",
               multiline && "fg-expr-multi",
@@ -285,18 +302,17 @@ export function ExpressionInput({
 }
 
 /** The frame that holds the field, its button and its list. */
-export function ExpressionInputBox({
-  className,
-  children,
-}: {
-  className?: string;
-  children?: ReactNode;
-}) {
-  return <div className={cx("fg-expr-box", className)}>{children}</div>;
+export function ExpressionInputBox({ className, ...rest }: Part<ComponentProps<"div">>) {
+  return (
+    <div data-slot="expression-input-box" {...rest} className={cx("fg-expr-box", className)} />
+  );
 }
 
 /** The control, with the layer behind it that draws the references as chips. */
-export function ExpressionInputField({ className }: { className?: string }) {
+export function ExpressionInputField({
+  className,
+  ...rest
+}: Part<Omit<ComponentProps<"input">, "value" | "type">>) {
   const x = useExpression();
   const control = useContext(ControlContext);
   const mirror = useContext(MirrorContext);
@@ -311,6 +327,8 @@ export function ExpressionInputField({ className }: { className?: string }) {
   layer.push(`${x.value.slice(at)}${x.multiline ? "\n" : ""}`);
 
   const shared = {
+    "data-slot": "expression-input-field",
+    ...rest,
     id: x.id,
     ref: control,
     className: cx("fg-expr-control", className),
@@ -355,16 +373,25 @@ export function ExpressionInputField({ className }: { className?: string }) {
           ),
         )}
       </div>
-      {x.multiline ? <textarea {...shared} rows={x.rows} /> : <input {...shared} type="text" />}
+      {x.multiline ? (
+        <textarea {...(shared as ComponentProps<"textarea">)} rows={x.rows} />
+      ) : (
+        <input {...shared} type="text" />
+      )}
     </>
   );
 }
 
 /** The `{{ }}` button: opens the list of references at the caret. */
-export function ExpressionInputTrigger({ className }: { className?: string }) {
+export function ExpressionInputTrigger({
+  className,
+  ...rest
+}: Part<Omit<ComponentProps<"button">, "type">>) {
   const x = useExpression();
   return (
     <button
+      data-slot="expression-input-trigger"
+      {...rest}
       type="button"
       className={cx("fg-expr-fx", x.tokens.length > 0 && "fg-expr-fx-on", className)}
       aria-label="Insert a reference to a previous step"
@@ -379,22 +406,24 @@ export function ExpressionInputTrigger({ className }: { className?: string }) {
 }
 
 /** The outputs of the previous steps that match what is typed, grouped by step. */
-export function ExpressionInputList({ className }: { className?: string }) {
+export function ExpressionInputList({ className, ...rest }: Part<ComponentProps<"div">>) {
   const x = useExpression();
   if (!x.open) return null;
   return (
     <div
-      className={cx("fg-expr-pop fg-pop", className)}
-      id={x.listId}
+      data-slot="expression-input-list"
       role="listbox"
       aria-label="Outputs of previous steps"
+      {...rest}
+      className={cx("fg-expr-pop fg-pop", className)}
+      id={x.listId}
     >
       {x.variables.map((source) => {
         const rowsOf = x.options.filter((o) => o.source === source);
         if (rowsOf.length === 0) return null;
         return (
           <div key={source.id} role="group" aria-label={source.label}>
-            <div className="fg-expr-group">
+            <div data-slot="expression-input-group" className="fg-expr-group">
               {source.icon ? <Icon icon={source.icon} size={12} variant="mono" /> : null}
               <span>{source.label}</span>
             </div>
@@ -406,6 +435,7 @@ export function ExpressionInputList({ className }: { className?: string }) {
                   id={x.optionId(i)}
                   role="option"
                   aria-selected={i === x.current}
+                  data-slot="expression-input-option"
                   className="fg-expr-option"
                   onPointerDown={(e) => e.preventDefault()}
                   onPointerMove={() => i !== x.current && x.setActive(i)}
@@ -424,11 +454,13 @@ export function ExpressionInputList({ className }: { className?: string }) {
 }
 
 /** What the text becomes with the sample data; nothing without a sample or a reference. */
-export function ExpressionInputPreview({ className }: { className?: string }) {
+export function ExpressionInputPreview({ className, ...rest }: Part<ComponentProps<"div">>) {
   const { resolved } = useExpression();
   if (!resolved) return null;
   return (
     <div
+      data-slot="expression-input-preview"
+      {...rest}
       className={cx(
         "fg-expr-preview",
         resolved.missing.length > 0 && "fg-expr-preview-bad",

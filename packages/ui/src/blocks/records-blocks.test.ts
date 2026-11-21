@@ -7,8 +7,20 @@ import {
   issueFields,
   projectFields,
   RecordBoard,
+  RecordBoardAdd,
+  RecordBoardCard,
+  RecordBoardCards,
+  RecordBoardColumn,
+  RecordBoardColumnHeader,
+  RecordBoardColumnToggle,
+  RecordCard,
   RecordFieldMark,
   RecordList,
+  RecordListGroup,
+  RecordListHeader,
+  RecordListRow,
+  RecordListRows,
+  RecordListToggle,
   recordGroups,
   type IssueItem,
   type ProjectItem,
@@ -82,7 +94,7 @@ describe("a second preset", () => {
         columns: recordGroups(projectFields, projects, "status", ctx, { keepEmpty: true }),
       }),
     );
-    expect(board.match(/class="fg-iboard-col"/g)).toHaveLength(5);
+    expect(board.match(/class="fg-board-col fg-iboard-col"/g)).toHaveLength(5);
   });
 });
 
@@ -153,5 +165,111 @@ describe("the boolean, relation, file and json kinds", () => {
     }
     expect(mark(docs[0]!, "meta", "row")).toContain("{&quot;a&quot;:1}");
     expect(mark(docs[0]!, "meta", "cell")).toContain("fg-rec-text");
+  });
+});
+
+describe("the parts of the list and the board", () => {
+  const projects: ProjectItem[] = [
+    {
+      id: "p1",
+      name: "Closing",
+      status: "started",
+      health: "risk",
+      lead: "hb",
+      issues: 4,
+      done: 1,
+    },
+    { id: "p2", name: "Portal", status: "planned", issues: 2, done: 0 },
+  ];
+  const base = { fields: projectFields, titleField: "name", context: ctx };
+  const groups = recordGroups(projectFields, projects, "status", ctx);
+
+  it("composes a list from groups, headers, toggles and rows, with data-slot and className", () => {
+    const out = html(
+      h(
+        RecordList as never,
+        { ...base, groups, className: "mine", id: "list" },
+        groups.map((group) =>
+          h(
+            RecordListGroup as never,
+            { key: group.key, group, className: "g" },
+            h(RecordListHeader as never, { className: "h" }, h(RecordListToggle as never)),
+            h(
+              RecordListRows as never,
+              { className: "r" },
+              group.records.map((record) =>
+                h(RecordListRow as never, { key: record.id, record, className: "row" }),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(out).toContain('data-slot="record-list"');
+    expect(out).toContain('class="fg-ilist mine"');
+    expect(out).toContain('id="list"');
+    expect(out).toContain('class="fg-ilist-group g"');
+    expect(out).toContain('class="fg-ilist-head h"');
+    expect(out).toContain('class="fg-ilist-rows r"');
+    expect(out).toContain('<li data-slot="record-list-row" class="row">');
+    expect(out).toContain('data-slot="record-row"');
+    expect(out).toContain("Closing");
+    expect(out).toContain("In Progress");
+  });
+  it("draws a group of the shorthand the same as the group part alone", () => {
+    const shorthand = html(h(RecordList as never, { ...base, groups }));
+    const parts = html(
+      h(
+        RecordList as never,
+        { ...base, groups },
+        groups.map((group) => h(RecordListGroup as never, { key: group.key, group })),
+      ),
+    );
+    expect(parts).toBe(shorthand);
+  });
+  it("composes a board from columns, headers, lanes and cards", () => {
+    const columns = recordGroups(projectFields, projects, "status", ctx, { keepEmpty: true });
+    const out = html(
+      h(
+        RecordBoard as never,
+        { ...base, columns, onAdd: () => {}, className: "mine", noun: "project" },
+        columns.slice(0, 2).map((column) =>
+          h(
+            RecordBoardColumn as never,
+            { key: column.key, column },
+            h(RecordBoardColumnHeader as never, null, h(RecordBoardColumnToggle as never)),
+            h(
+              RecordBoardCards as never,
+              null,
+              column.records.map((record) =>
+                h(RecordBoardCard as never, { key: record.id, record, className: "c" }),
+              ),
+              h(RecordBoardAdd as never),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(out).toContain('data-slot="record-board"');
+    expect(out).toContain('class="fg-board fg-iboard mine"');
+    expect(out.match(/data-slot="record-board-column"/g)).toHaveLength(2);
+    expect(out).toContain('class="fg-board-card fg-iboard-item c"');
+    expect(out).toContain("New project");
+    expect(out).toContain("Closing");
+  });
+  it("draws a card on its own inside a board's own children", () => {
+    const columns = recordGroups(projectFields, projects, "status", ctx);
+    const out = html(
+      h(
+        RecordBoard as never,
+        { ...base, columns },
+        h(RecordCard as never, { record: projects[0], className: "solo" }),
+      ),
+    );
+    expect(out).toContain("fg-iboard-card solo");
+  });
+  it("refuses a part outside its root", () => {
+    expect(() => html(h(RecordListRows as never))).toThrow(/RecordList/);
+    expect(() => html(h(RecordBoardCards as never))).toThrow(/RecordBoard/);
   });
 });

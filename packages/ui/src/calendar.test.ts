@@ -110,7 +110,7 @@ describe("atoms from the app prototypes", () => {
   it("names an icon button by its label", () => {
     const out = html(h(IconButton, { icon: CloudIcon, label: "Sync", variant: "boxed" }));
     expect(out).toMatch(
-      /^<button type="button" aria-label="Sync" class="fg-iconbtn fg-iconbtn-boxed">/,
+      /^<button type="button" aria-label="Sync" class="fg-btn fg-btn-ghost fg-btn-icon fg-iconbtn fg-iconbtn-boxed">/,
     );
   });
   it("draws an app tile, named only when asked", () => {

@@ -347,6 +347,7 @@ function TreeRoot({
     props: {
       role: "tree",
       ...(selectionMode === "multiple" ? { "aria-multiselectable": true } : {}),
+      "data-slot": "tree",
       ...rest,
       className: cx("fg-tree", className),
       onKeyDown: keyDown,
@@ -441,6 +442,7 @@ export function TreeItem({
       "data-expanded": open ? "" : undefined,
       "data-disabled": disabled ? "" : undefined,
       tabIndex: stop ? 0 : -1,
+      "data-slot": "tree-item",
       ...rest,
       className: cx("fg-tree-item", className),
       onFocus: (event: React.FocusEvent<HTMLElement>) => {
@@ -482,6 +484,7 @@ export function TreeItemIndicator({
   return (
     <span
       aria-hidden="true"
+      data-slot="tree-item-indicator"
       {...rest}
       className={cx("fg-tree-twisty", item.expanded && "fg-tree-twisty-open", className)}
       onClick={(event) => {
@@ -521,6 +524,7 @@ export function TreeItemContent({
   const item = useTreeItem();
   const props = {
     "data-tree-row": item.id,
+    "data-slot": "tree-item-content",
     ...rest,
     className: cx(
       "fg-tree-row",
@@ -573,6 +577,7 @@ export function TreeGroup({ render, className, children, ref, ...rest }: TreeGro
     ref,
     props: {
       role: "group",
+      "data-slot": "tree-group",
       ...rest,
       className: cx("fg-tree-group", className),
       children: positioned(children),
@@ -638,7 +643,10 @@ export interface TreeMove<D = unknown> {
   items: TreeNode<D>[];
 }
 
-export interface TreeItemsProps<D = unknown> {
+export interface TreeItemsProps<D = unknown> extends Omit<
+  ComponentProps<"ul">,
+  "children" | "className" | "onKeyDown" | "onContextMenu" | "ref" | "onSelect"
+> {
   items: ReadonlyArray<TreeNode<D>>;
   /** The open nodes. */
   expanded?: ReadonlyArray<string>;
@@ -720,6 +728,7 @@ function TreeFromItems<D = unknown>({
   empty,
   label = "Tree",
   className,
+  ...rest
 }: TreeItemsProps<D>) {
   type N = TreeNode<D>;
   const [openIds, setOpenIds] = useControllableState<ReadonlyArray<string>>({
@@ -1033,6 +1042,7 @@ function TreeFromItems<D = unknown>({
 
   const list = (
     <TreeRoot
+      {...(rest as object)}
       ref={root}
       aria-label={label}
       className={className}

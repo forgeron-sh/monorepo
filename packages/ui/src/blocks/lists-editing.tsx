@@ -4,7 +4,14 @@
 // own marks as triggers.
 
 import { MoreHorizontalIcon } from "@forgeron/icons";
-import { useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useRef,
+  useState,
+  type ComponentProps,
+  type FocusEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { useShortcuts } from "../hooks/use-shortcuts";
@@ -12,8 +19,18 @@ import { IconButton } from "../identity";
 import type { DatePreset } from "../overlays";
 import type { StatusKind } from "../glyphs";
 import type { LabelOption, Person } from "../pickers";
-import { ActionMenu, type ActionMenuEntry } from "../action-menu";
-import { ContextMenu } from "../context-menu";
+import { ActionMenu, MenuEntries, type ActionMenuEntry, type MenuKit } from "../action-menu";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "../context-menu";
 import type { IssueItem } from "./lists-parts";
 
 /* ---------------------------------------------------------------- the options of an editor */
@@ -157,12 +174,18 @@ export function useFieldShortcuts(
  * Wraps an editor inside a row: a click or a key on it, or in its list (a portal, which React
  * still bubbles through the row), stays with the editor and never opens the row.
  */
-export function Stop({ children, className }: { children: ReactNode; className?: string }) {
+export function Stop({ children, className, ...rest }: ComponentProps<"span">) {
   return (
     <span
+      data-slot="row-stop"
+      {...rest}
       className={cx("fg-issue-stop", className)}
-      onClick={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        rest.onClick?.(event);
+        event.stopPropagation();
+      }}
       onKeyDown={(event) => {
+        rest.onKeyDown?.(event);
         if (/^(Enter| |Arrow.*|Home|End)$/.test(event.key)) event.stopPropagation();
       }}
     >
@@ -178,14 +201,37 @@ export interface RowMenuProps {
   label: string;
 }
 
-/** The right-click menu of a row, when it has one. */
+const CONTEXT_KIT: MenuKit = {
+  Item: ContextMenuItem,
+  Separator: ContextMenuSeparator,
+  Label: ContextMenuLabel,
+  Sub: ContextMenuSub,
+  SubTrigger: ContextMenuSubTrigger,
+  SubContent: ContextMenuSubContent,
+};
+
+/**
+ * The right-click menu of a row, when it has one. `asChild`: the one child element (a `<tr>`) is
+ * the area itself, where it would else sit in a wrapper that a table cannot hold.
+ */
 export function RowMenuArea({
   items,
   onSelect,
   label,
   children,
-}: RowMenuProps & { children: ReactNode }) {
+  asChild,
+}: RowMenuProps & { children: ReactNode; asChild?: boolean }) {
   if (!items || items.length === 0) return children;
+  if (asChild) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+        <ContextMenuContent className="fg-amenu" aria-label={label}>
+          <MenuEntries items={items} onSelect={onSelect} kit={CONTEXT_KIT} />
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
   return (
     <ContextMenu items={items} onSelect={onSelect} label={label} areaClassName="fg-row-area">
       {children}

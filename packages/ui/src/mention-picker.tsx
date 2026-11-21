@@ -3,7 +3,7 @@
 // aria-activedescendant, so the person keeps typing; the caller moves the active row with the arrows
 // and chooses with Enter or Tab. A click chooses too.
 
-import { useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, type ComponentProps } from "react";
 import { Avatar } from "./avatar";
 import { cx } from "./cx";
 import { conversationPlainText, type MentionOption } from "./composer-model";
@@ -34,8 +34,175 @@ export interface MentionPickerProps {
   className?: string;
 }
 
-/** A listbox of options at the caret: avatar or mark, the label, a hint. Presentational. */
-export function MentionPicker({
+/** `options` stays undefined: with options, `MentionPicker` is the props-driven one. */
+export type MentionPickerRootProps = Omit<ComponentProps<"div">, "id" | "onSelect"> & {
+  options?: undefined;
+  activeIndex: number;
+  onActiveIndexChange?: (index: number) => void;
+  /** Called by `MentionPickerItem` on a click. */
+  onSelect?: (option: MentionOption) => void;
+  id: string;
+  position?: { top: number; left: number };
+  placement?: "above" | "below";
+  /** The trigger character the default rows show (`@`, `#`). */
+  mark?: string;
+};
+
+interface PickerState {
+  id: string;
+  activeIndex: number;
+  onActiveIndexChange: ((index: number) => void) | undefined;
+  onSelect: ((option: MentionOption) => void) | undefined;
+  mark: string | undefined;
+}
+
+const PickerContext = createContext<PickerState | null>(null);
+
+function usePicker(): PickerState {
+  const state = useContext(PickerContext);
+  if (!state) throw new Error("MentionPicker parts go inside <MentionPicker>.");
+  return state;
+}
+
+/**
+ * A listbox of options at the caret: avatar or mark, the label, a hint. Presentational: the box
+ * keeps the focus, the caller moves `activeIndex`. With `options`, the whole list; without, the
+ * root of `MentionPickerList`, `MentionPickerItem` and `MentionPickerEmpty`.
+ *
+ * It is not built on `Combobox` or `Command`: both own their text input and their highlighted
+ * row, and here both belong to the caller's text box.
+ */
+export function MentionPicker(props: MentionPickerProps | MentionPickerRootProps) {
+  return props.options !== undefined ? (
+    <MentionPickerOptions {...(props as MentionPickerProps)} />
+  ) : (
+    <MentionPickerRoot {...(props as MentionPickerRootProps)} />
+  );
+}
+
+function MentionPickerRoot({
+  options: _options,
+  activeIndex,
+  onActiveIndexChange,
+  onSelect,
+  id,
+  position,
+  placement = "above",
+  mark,
+  className,
+  style,
+  ...rest
+}: MentionPickerRootProps) {
+  return (
+    <PickerContext.Provider value={{ id, activeIndex, onActiveIndexChange, onSelect, mark }}>
+      <div
+        data-slot="mention-picker"
+        {...rest}
+        className={cx("fg-conv-mention-pop", position && "fg-conv-mention-pop-at", className)}
+        data-placement={placement}
+        style={position ? { top: position.top, left: position.left, ...style } : style}
+        // The box keeps the focus: a press on the list must not blur it.
+        onMouseDown={(event) => {
+          rest.onMouseDown?.(event);
+          event.preventDefault();
+        }}
+      />
+    </PickerContext.Provider>
+  );
+}
+
+/** The listbox, scrolling; it keeps the highlighted row in view. */
+export function MentionPickerList({
+  label,
+  className,
+  ...rest
+}: Omit<ComponentProps<"ul">, "id"> & { label?: string }) {
+  const { id, activeIndex } = usePicker();
+  const list = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    list.current?.children[activeIndex]?.scrollIntoView?.({ block: "nearest" });
+  }, [activeIndex]);
+  return (
+    <ul
+      ref={list}
+      data-slot="mention-picker-list"
+      role="listbox"
+      aria-label={label}
+      {...rest}
+      id={id}
+      className={cx("fg-conv-mention-list", className)}
+    />
+  );
+}
+
+export type MentionPickerItemProps = Omit<ComponentProps<"li">, "id" | "onSelect"> & {
+  option: MentionOption;
+  /** The row's place in the list: what `activeIndex` points at. */
+  index: number;
+};
+
+/** One row. Its children replace the default avatar or mark, label and hint. */
+export function MentionPickerItem({
+  option,
+  index,
+  className,
+  children,
+  onClick,
+  onMouseMove,
+  ...rest
+}: MentionPickerItemProps) {
+  const { id, activeIndex, onActiveIndexChange, onSelect, mark } = usePicker();
+  return (
+    <li
+      data-slot="mention-picker-item"
+      {...rest}
+      id={mentionOptionId(id, index)}
+      role="option"
+      aria-selected={index === activeIndex}
+      className={cx("fg-conv-mention-opt", className)}
+      onMouseMove={(event) => {
+        onMouseMove?.(event);
+        if (index !== activeIndex) onActiveIndexChange?.(index);
+      }}
+      onClick={(event) => {
+        onClick?.(event);
+        onSelect?.(option);
+      }}
+    >
+      {children ?? (
+        <>
+          {option.avatar !== undefined || mark === "@" ? (
+            <Avatar
+              name={option.label}
+              size={20}
+              {...(option.avatar ? { src: option.avatar } : {})}
+            />
+          ) : mark ? (
+            <span className="fg-conv-mention-mark" aria-hidden="true">
+              {mark}
+            </span>
+          ) : null}
+          <span className="fg-conv-mention-label">{conversationPlainText(option.label)}</span>
+          {option.hint ? <span className="fg-conv-mention-hint">{option.hint}</span> : null}
+        </>
+      )}
+    </li>
+  );
+}
+
+/** What shows when nothing matches. */
+export function MentionPickerEmpty({ className, ...rest }: ComponentProps<"p">) {
+  return (
+    <p
+      data-slot="mention-picker-empty"
+      role="status"
+      {...rest}
+      className={cx("fg-conv-mention-empty", className)}
+    />
+  );
+}
+
+function MentionPickerOptions({
   options,
   activeIndex,
   onActiveIndexChange,
@@ -45,55 +212,30 @@ export function MentionPicker({
   empty = "No match",
   loading,
   position,
-  placement = "above",
+  placement,
   mark,
   className,
 }: MentionPickerProps) {
-  const list = useRef<HTMLUListElement>(null);
-  useEffect(() => {
-    list.current?.children[activeIndex]?.scrollIntoView?.({ block: "nearest" });
-  }, [activeIndex]);
   return (
-    <div
-      className={cx("fg-conv-mention-pop", position && "fg-conv-mention-pop-at", className)}
-      data-placement={placement}
-      style={position ? { top: position.top, left: position.left } : undefined}
-      // The box keeps the focus: a press on the list must not blur it.
-      onMouseDown={(event) => event.preventDefault()}
+    <MentionPickerRoot
+      activeIndex={activeIndex}
+      onActiveIndexChange={onActiveIndexChange}
+      onSelect={onSelect}
+      id={id}
+      position={position}
+      placement={placement}
+      mark={mark}
+      className={className}
     >
-      <ul ref={list} id={id} role="listbox" aria-label={label} className="fg-conv-mention-list">
+      <MentionPickerList label={label}>
         {options.map((option, index) => (
-          <li
-            key={option.id}
-            id={mentionOptionId(id, index)}
-            role="option"
-            aria-selected={index === activeIndex}
-            className="fg-conv-mention-opt"
-            onMouseMove={() => index !== activeIndex && onActiveIndexChange?.(index)}
-            onClick={() => onSelect(option)}
-          >
-            {option.avatar !== undefined || mark === "@" ? (
-              <Avatar
-                name={option.label}
-                size={20}
-                {...(option.avatar ? { src: option.avatar } : {})}
-              />
-            ) : mark ? (
-              <span className="fg-conv-mention-mark" aria-hidden="true">
-                {mark}
-              </span>
-            ) : null}
-            <span className="fg-conv-mention-label">{conversationPlainText(option.label)}</span>
-            {option.hint ? <span className="fg-conv-mention-hint">{option.hint}</span> : null}
-          </li>
+          <MentionPickerItem key={option.id} option={option} index={index} />
         ))}
-      </ul>
+      </MentionPickerList>
       {options.length === 0 ? (
-        <p className="fg-conv-mention-empty" role="status">
-          {loading ? "Searching…" : empty}
-        </p>
+        <MentionPickerEmpty>{loading ? "Searching…" : empty}</MentionPickerEmpty>
       ) : null}
-    </div>
+    </MentionPickerRoot>
   );
 }
 

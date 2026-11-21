@@ -9,7 +9,7 @@ export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
 /** A standalone text link: mono, uppercase, ember on hover ("Read the SDK →"). */
 export function Link({ className, children, ...rest }: LinkProps) {
   return (
-    <a {...rest} className={cx("fg-link", className)}>
+    <a data-slot="link" {...rest} className={cx("fg-link", className)}>
       {children}
     </a>
   );

@@ -10,8 +10,19 @@ import {
   FieldDiff,
   InlineComments,
   OrgChart,
+  OrgChartCanvas,
+  OrgChartCards,
   Outline,
+  OutlineContent,
+  OutlineList,
+  OutlineTitle,
   TemplateGallery,
+  TemplateGalleryCategories,
+  TemplateGalleryGrid,
+  TemplateGalleryPane,
+  TemplateGallerySearch,
+  CoverPickerGallery,
+  CoverPickerStage,
   Tree,
   VersionCompare,
   type CoverValue,
@@ -754,5 +765,80 @@ describe("VersionCompare", () => {
     const el = await mount(h(VersionCompare, { versions: records }));
     expect(el.querySelector(".fg-fdiff-table")).not.toBeNull();
     expect(el.textContent).toContain("Acme SAS");
+  });
+});
+
+describe("structure parts", () => {
+  const headings = [
+    { id: "p-a", text: "Alpha", level: 1 },
+    { id: "p-b", text: "Beta", level: 2 },
+  ];
+
+  it("Outline: parts build the panel, with data-slot and className", async () => {
+    const el = await mount(
+      h(
+        Outline,
+        { headings, className: "mine" },
+        h(OutlineTitle, null, "Contents"),
+        h(OutlineContent, { className: "box" }, h(OutlineList)),
+      ),
+    );
+    expect(q(el, "nav").dataset.slot).toBe("outline");
+    expect(q(el, "nav").className).toContain("mine");
+    expect(q(el, "[data-slot=outline-title]").textContent).toBe("Contents");
+    expect(q(el, "[data-slot=outline-content]").className).toBe("box");
+    expect(el.querySelectorAll("[data-slot=outline-link]")).toHaveLength(2);
+    expect(html(h(Outline, { headings }))).toContain("On this page");
+  });
+
+  it("Outline: a part outside its root says so", () => {
+    expect(() => html(h(OutlineList))).toThrow(/inside an <Outline>/);
+  });
+
+  it("OrgChart: canvas and cards are parts, asChild-free but classed", async () => {
+    const people: OrgPerson[] = [{ id: "a", name: "Ada", children: [{ id: "b", name: "Bo" }] }];
+    const el = await mount(
+      h(
+        OrgChart,
+        { roots: people, className: "x" },
+        h(OrgChartCanvas, { className: "cv" }, h(OrgChartCards)),
+      ),
+    );
+    expect(q(el, "[data-slot=org-chart]").className).toContain("x");
+    expect(q(el, "[data-slot=org-chart-canvas]").className).toContain("cv");
+    expect(el.querySelectorAll("[data-slot=org-chart-card]")).toHaveLength(2);
+    expect(el.querySelector("svg")).toBeNull();
+    expect(q(el, "[data-slot=org-chart-fold]").textContent).toBe("−");
+  });
+
+  it("TemplateGallery: the parts share the search and the pointed card", async () => {
+    const templates: TemplateItem[] = [
+      { id: "one", name: "Weekly notes", category: "Notes" },
+      { id: "two", name: "Roadmap", category: "Plans" },
+    ];
+    const onChoose = vi.fn<(id: string | null) => void>();
+    const el = await mount(
+      h(
+        TemplateGallery,
+        { templates, onChoose },
+        h(TemplateGallerySearch),
+        h(TemplateGalleryCategories),
+        h(TemplateGalleryGrid),
+        h(TemplateGalleryPane),
+      ),
+    );
+    expect(el.querySelectorAll("[data-slot=template-gallery-card]")).toHaveLength(3);
+    await typeInto(q<HTMLInputElement>(el, "input[type=search]"), "road");
+    expect(el.querySelectorAll("[data-slot=template-gallery-card]")).toHaveLength(1);
+    expect(q(el, "[data-slot=template-gallery-pane]")).not.toBeNull();
+  });
+
+  it("CoverPicker: the gallery part alone shows the patterns", async () => {
+    const el = await mount(
+      h(CoverPicker, { upload: false, link: false }, h(CoverPickerStage), h(CoverPickerGallery)),
+    );
+    expect(q(el, "[data-slot=cover-picker]")).not.toBeNull();
+    expect(el.querySelector("[data-slot=cover-picker-gallery] .fg-coverpick-tile")).not.toBeNull();
+    expect(el.querySelector("[data-slot=cover-picker-link]")).toBeNull();
   });
 });

@@ -178,7 +178,8 @@
   outline: var(--focus-width) solid var(--focus);
   outline-offset: var(--focus-offset);
 }
-.fg-display {
+.fg-display,
+.fg-display.fg-popover {
   width: 320px;
   max-width: calc(100vw - 16px);
   padding: 12px;
@@ -193,7 +194,7 @@
 .fg-display-layout:not(:last-child) {
   margin-bottom: 8px;
 }
-.fg-display > .fg-display-section:first-child {
+.fg-display > .fg-popover-body > .fg-display-section:first-child {
   margin-top: 0;
   padding-top: 0;
   border-top: 0;

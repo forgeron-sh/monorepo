@@ -6,8 +6,27 @@ import { renderToStaticMarkup as html } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   IssueBoard,
+  IssueBoardAdd,
+  IssueBoardCard,
+  IssueBoardCards,
+  IssueBoardColumn,
+  IssueBoardColumnActions,
+  IssueBoardColumnHeader,
+  IssueBoardColumnToggle,
   IssueList,
+  IssueListAdd,
+  IssueListGroup,
+  IssueListHeader,
+  IssueListRow,
+  IssueListRows,
+  IssueListToggle,
   ProjectsTable,
+  ProjectsTableBody,
+  ProjectsTableCell,
+  ProjectsTableHead,
+  ProjectsTableHeader,
+  ProjectsTableName,
+  ProjectsTableRow,
   type IssueGroup,
   type IssueItem,
   type ProjectItem,
@@ -159,7 +178,7 @@ describe("IssueList", () => {
 describe("IssueBoard", () => {
   it("draws a column per group, a card per issue", () => {
     const out = html(h(IssueBoard, { columns: groups, labels, people, today: "2026-11-17" }));
-    expect(out.match(/class="fg-iboard-col"/g)).toHaveLength(3);
+    expect(out.match(/class="fg-board-col fg-iboard-col"/g)).toHaveLength(3);
     expect(out).toContain("Due Nov 12");
     expect(out).toContain("Bug");
     expect(out).not.toContain("fg-iboard-count");
@@ -173,6 +192,37 @@ describe("IssueBoard", () => {
     expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-42");
     await key(document.activeElement!, "ArrowLeft");
     expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-40");
+  });
+  it("moves down and up inside a lane and stops at its ends", async () => {
+    const root = await mount(h(IssueBoard, { columns: groups }));
+    const first = root.querySelector<HTMLElement>('[data-issue="OPS-40"]')!;
+    first.focus();
+    await key(first, "ArrowUp");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-40");
+    await key(document.activeElement!, "ArrowDown");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-41");
+    await key(document.activeElement!, "ArrowDown");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-41");
+    await key(document.activeElement!, "ArrowUp");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-40");
+  });
+  it("keeps the rank across lanes, skips an empty lane and stops at the last one", async () => {
+    const root = await mount(h(IssueBoard, { columns: groups }));
+    const second = root.querySelector<HTMLElement>('[data-issue="OPS-41"]')!;
+    second.focus();
+    await key(second, "ArrowRight");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-42");
+    await key(document.activeElement!, "ArrowRight");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-42");
+    await key(document.activeElement!, "ArrowLeft");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-40");
+  });
+  it("skips a folded lane with the arrows", async () => {
+    const root = await mount(h(IssueBoard, { columns: groups, defaultCollapsed: ["todo"] }));
+    const last = root.querySelector<HTMLElement>('[data-issue="OPS-41"]')!;
+    last.focus();
+    await key(last, "ArrowRight");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-41");
   });
   it("folds a column to a strip", async () => {
     const root = await mount(h(IssueBoard, { columns: groups, defaultCollapsed: ["todo"] }));
@@ -368,7 +418,8 @@ const projects: ProjectItem[] = [
 describe("ProjectsTable", () => {
   it("draws the columns, the progress, the lead", () => {
     const out = html(h(ProjectsTable, { projects, people, today: "2026-11-17" }));
-    expect(out).toContain('role="table"');
+    expect(out).toContain("<table");
+    expect(out).toContain('scope="col"');
     expect(out).toContain("At risk");
     expect(out).toContain("No updates");
     expect(out).toContain('aria-valuenow="40"');
@@ -449,5 +500,231 @@ describe("ProjectsTable", () => {
     await press(root.querySelector('[aria-label="Actions on Year-end closing"]')!);
     await choose("menuitem", "Archive");
     expect(onRowAction).toHaveBeenCalledWith("q4", "archive");
+  });
+});
+
+describe("IssueList parts", () => {
+  const composed = (props: Record<string, unknown> = {}) =>
+    h(
+      IssueList,
+      { groups, labels, people, today: "2026-11-17", onAdd: () => {}, ...props },
+      groups.map((group) =>
+        h(
+          IssueListGroup,
+          { key: group.key, group, className: "mine" },
+          h(IssueListHeader, null, h(IssueListToggle), h(IssueListAdd)),
+          h(
+            IssueListRows,
+            null,
+            group.issues.map((issue) => h(IssueListRow, { key: issue.id, record: issue })),
+          ),
+        ),
+      ),
+    );
+  it("draws what the shorthand draws, with a data-slot and the class on every part", () => {
+    const parts = html(composed());
+    expect(parts).toContain('data-slot="record-list"');
+    expect(parts).toContain('data-slot="record-list-group"');
+    expect(parts).toContain('data-slot="record-list-header"');
+    expect(parts).toContain('data-slot="record-list-toggle"');
+    expect(parts).toContain('data-slot="record-list-rows"');
+    expect(parts).toContain('data-slot="record-list-row"');
+    expect(parts).toContain('class="fg-ilist-group mine"');
+    expect(parts).toContain('data-issue="OPS-42"');
+    expect(parts).toContain("Urgent priority");
+    // the same rows as the shorthand (it also draws the empty group's header: hidden here by the caller)
+    const short = html(
+      h(IssueList, { groups, labels, people, today: "2026-11-17", onAdd: () => {} }),
+    );
+    expect(parts.match(/data-issue=/g)).toEqual(short.match(/data-issue=/g));
+  });
+  it("takes the attributes of its root", () => {
+    const out = html(h(IssueList, { groups, id: "mine", "aria-describedby": "x" } as never));
+    expect(out).toContain('id="mine"');
+    expect(out).toContain('aria-describedby="x"');
+  });
+  it("folds a group and adds to it from the parts", async () => {
+    const onAdd = vi.fn<(key: string) => void>();
+    const root = await mount(composed({ onAdd }));
+    const toggle = root.querySelector<HTMLButtonElement>(".fg-ilist-toggle")!;
+    await act(async () => toggle.click());
+    expect(root.querySelector('[data-issue="OPS-40"]')).toBeNull();
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    await act(async () =>
+      root.querySelector<HTMLButtonElement>('[aria-label="New issue in Todo"]')!.click(),
+    );
+    expect(onAdd).toHaveBeenCalledWith("todo");
+  });
+  it("keeps the arrows and the selection", async () => {
+    const onSelectedChange = vi.fn<(id: string) => void>();
+    const root = await mount(composed({ onSelectedChange }));
+    const first = root.querySelector<HTMLElement>('[data-issue="OPS-40"]')!;
+    first.focus();
+    await key(first, "ArrowDown");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-41");
+    expect(onSelectedChange).toHaveBeenLastCalledWith("OPS-41");
+  });
+  it("lets a row be your own element", () => {
+    const out = html(
+      h(
+        IssueList,
+        { groups: [groups[0]!] },
+        h(
+          IssueListGroup,
+          { group: groups[0]! },
+          h(
+            IssueListRows,
+            null,
+            h(
+              IssueListRow,
+              { record: groups[0]!.issues[0]!, asChild: true },
+              h("li", { className: "mine" }, "custom"),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(out).toContain('data-slot="record-list-row"');
+    expect(out).toContain('class="mine"');
+    expect(out).toContain(">custom</li>");
+    expect(out).not.toMatch(/class="fg-ilist-row[ "]/);
+  });
+  it("refuses a part outside its list", () => {
+    expect(() => html(h(IssueListToggle))).toThrow(/RecordList/);
+  });
+});
+
+describe("IssueBoard parts", () => {
+  const composed = (props: Record<string, unknown> = {}) =>
+    h(
+      IssueBoard,
+      { columns: groups, labels, people, today: "2026-11-17", onAdd: () => {}, ...props },
+      groups.map((column) =>
+        h(
+          IssueBoardColumn,
+          { key: column.key, column, className: "mine" },
+          h(IssueBoardColumnHeader, null, h(IssueBoardColumnToggle), h(IssueBoardColumnActions)),
+          h(
+            IssueBoardCards,
+            null,
+            column.issues.map((issue) => h(IssueBoardCard, { key: issue.id, record: issue })),
+            h(IssueBoardAdd),
+          ),
+        ),
+      ),
+    );
+  it("draws a column per group from the parts, an IssueGroup as the column", () => {
+    const out = html(composed());
+    expect(out).toContain('data-slot="record-board"');
+    expect(out.match(/data-slot="record-board-column"/g)).toHaveLength(3);
+    expect(out.match(/data-slot="record-board-card"/g)).toHaveLength(3);
+    expect(out).toContain('data-slot="record-board-column-toggle"');
+    expect(out).toContain('data-slot="record-board-add"');
+    expect(out).toContain("fg-iboard-col mine");
+    expect(out).toContain("Due Nov 12");
+  });
+  it("folds a column to a strip from its toggle and adds from its lane", async () => {
+    const onAdd = vi.fn<(key: string) => void>();
+    const root = await mount(composed({ onAdd }));
+    const toggle = root.querySelector<HTMLButtonElement>(".fg-iboard-toggle")!;
+    await act(async () => toggle.click());
+    expect(root.querySelector('[data-issue="OPS-40"]')).toBeNull();
+    expect(root.querySelector(".fg-iboard-folded")).not.toBeNull();
+    await act(async () => root.querySelector<HTMLButtonElement>(".fg-iboard-add")!.click());
+    expect(onAdd).toHaveBeenCalled();
+  });
+  it("keeps the arrows between lanes", async () => {
+    const root = await mount(composed());
+    const first = root.querySelector<HTMLElement>('[data-issue="OPS-41"]')!;
+    first.focus();
+    await key(first, "ArrowRight");
+    expect(document.activeElement?.getAttribute("data-issue")).toBe("OPS-42");
+  });
+  it("refuses a part outside its board", () => {
+    expect(() => html(h(IssueBoardColumnToggle))).toThrow(/RecordBoard/);
+  });
+});
+
+describe("ProjectsTable parts", () => {
+  const composed = (props: Record<string, unknown> = {}) =>
+    h(
+      ProjectsTable,
+      { projects, people, today: "2026-11-17", sortable: true, ...props },
+      h(
+        ProjectsTableHeader,
+        null,
+        h(ProjectsTableHead, { column: "name" }),
+        h(ProjectsTableHead, { column: "status" }),
+        h(ProjectsTableHead, { column: "progress" }),
+      ),
+      h(
+        ProjectsTableBody,
+        null,
+        projects.map((project) =>
+          h(
+            ProjectsTableRow,
+            { key: project.id, project, className: "mine" },
+            h(ProjectsTableName, { project }),
+            h(ProjectsTableCell, { project, column: "status" }),
+            h(ProjectsTableCell, { project, column: "progress" }),
+          ),
+        ),
+      ),
+    );
+  it("draws only the columns the parts name, on the Table parts", () => {
+    const out = html(composed());
+    expect(out).toContain('data-slot="projects-table"');
+    expect(out).toContain('data-slot="projects-table-header"');
+    expect(out.match(/data-slot="projects-table-head"/g)).toHaveLength(3);
+    expect(out.match(/data-slot="projects-table-row"/g)).toHaveLength(2);
+    expect(out).toContain('class="fg-table-row fg-ptable-row mine"');
+    expect(out).toContain('data-column="progress"');
+    expect(out).not.toContain('data-column="lead"');
+    expect(out).toContain("Lyon depot");
+  });
+  it("sorts from a head part, rows in the new order", async () => {
+    const root = await mount(
+      h(
+        ProjectsTable,
+        { projects, sortable: true },
+        h(
+          ProjectsTableHeader,
+          null,
+          h(ProjectsTableHead, { column: "name" }),
+          h(ProjectsTableHead, { column: "progress" }),
+        ),
+        h(ProjectsTableBody),
+      ),
+    );
+    const names = () => [...root.querySelectorAll(".fg-ptable-title")].map((n) => n.textContent);
+    const progress = [...root.querySelectorAll<HTMLButtonElement>(".fg-ptable-sort")].find(
+      (b) => b.textContent === "Progress",
+    )!;
+    expect(progress).toBeDefined();
+    await act(async () => progress.click());
+    expect(names()).toEqual(["Year-end closing", "Lyon depot"]);
+  });
+  it("moves between rows with the arrows and opens with Enter", async () => {
+    const onOpen = vi.fn<(id: string) => void>();
+    const root = await mount(h(ProjectsTable, { projects, onOpen }));
+    const first = root.querySelector<HTMLElement>('tr[data-project="lyon"]')!;
+    expect(first.getAttribute("tabindex")).toBe("0");
+    first.focus();
+    await key(first, "ArrowDown");
+    expect(document.activeElement?.getAttribute("data-project")).toBe("q4");
+    await key(document.activeElement!, "Enter");
+    expect(onOpen).toHaveBeenCalledWith("q4");
+  });
+  it("leaves the keys of a control inside a row to the control", async () => {
+    const onOpen = vi.fn<(id: string) => void>();
+    const root = await mount(h(ProjectsTable, { projects, onOpen }));
+    const name = root.querySelector<HTMLButtonElement>(".fg-ptable-open")!;
+    name.focus();
+    await key(name, "ArrowDown");
+    expect(document.activeElement).toBe(name);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+  it("refuses a part outside its table", () => {
+    expect(() => html(h(ProjectsTableHead, { column: "name" }))).toThrow(/ProjectsTable/);
   });
 });

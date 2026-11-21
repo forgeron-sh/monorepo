@@ -1,9 +1,28 @@
 // A miniature of the world with the part on screen drawn as a rectangle: drag it to pan, click the
 // map to jump, drag its corner to zoom, or use the arrows. It draws the items as plain rectangles
 // from a prop and holds no state of its own: the editor owns the viewport.
+//
+// `Minimap` with no children draws the usual map. With children it is the root of the parts:
+//
+//   <Minimap label="Overview" items={items} viewport={vp} onViewportChange={setVp}>
+//     <MinimapCanvas />
+//     <MinimapViewport><MinimapHandle /></MinimapViewport>
+//     <MinimapStatus />
+//   </Minimap>
 
-import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type KeyboardEvent,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import { cx } from "../cx";
+import type { Part } from "../part";
 import {
   editorBoundsOf,
   editorCenterViewport,
@@ -12,6 +31,7 @@ import {
   editorPanViewport,
   editorScaleViewport,
   editorToMap,
+  type EditorMapFit,
   type EditorRect,
 } from "./editor-model";
 
@@ -21,7 +41,9 @@ export interface MinimapItem extends EditorRect {
   tone?: "default" | "accent" | "muted";
 }
 
-export interface MinimapProps {
+export interface MinimapProps extends Part<
+  Omit<ComponentProps<"div">, "children" | "onPointerDown">
+> {
   /** Names the map: "Canvas overview". */
   label: string;
   /** The items, in world units. */
@@ -44,7 +66,33 @@ export interface MinimapProps {
   limits?: { minW: number; maxW: number };
   /** World units per arrow press. Default a tenth of the viewport's width. */
   step?: number;
-  className?: string;
+  /** The parts of the map. Without them: the canvas, the viewport with its handle, the status. */
+  children?: ReactNode;
+}
+
+interface MapContext {
+  label: string;
+  items: ReadonlyArray<MinimapItem>;
+  area: EditorRect;
+  fit: EditorMapFit;
+  width: number;
+  height: number;
+  viewport: EditorRect;
+  vp: EditorRect;
+  interactive: boolean;
+  resizable: boolean;
+  said: string;
+  onFrameDown: (event: PointerEvent<HTMLDivElement>) => void;
+  onHandleDown: (event: PointerEvent<HTMLSpanElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+}
+
+const Ctx = createContext<MapContext | null>(null);
+
+function useMap(part: string): MapContext {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <Minimap>.`);
+  return ctx;
 }
 
 type Drag =
@@ -64,7 +112,10 @@ export function Minimap({
   resizable = true,
   limits,
   step,
+  children,
   className,
+  style,
+  ...rest
 }: MinimapProps) {
   // Without a world, the items' bounds with a margin (the viewport alone when there are none);
   // it does not follow the viewport, so the map keeps its scale while it is dragged.
@@ -197,72 +248,165 @@ export function Minimap({
     }
   };
 
+  const ctx: MapContext = {
+    label,
+    items,
+    area,
+    fit,
+    width,
+    height,
+    viewport,
+    vp,
+    interactive,
+    resizable,
+    said,
+    onFrameDown,
+    onHandleDown,
+    onKeyDown,
+  };
+
+  return (
+    <Ctx.Provider value={ctx}>
+      <div
+        ref={host}
+        data-slot="minimap"
+        {...rest}
+        className={cx(
+          "fg-edt-map",
+          interactive && "fg-edt-map-live",
+          grabbing && "fg-edt-map-grab",
+          className,
+        )}
+        style={{ width, height, ...style }}
+        onPointerDown={onBackgroundDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+      >
+        {children ?? (
+          <>
+            <MinimapCanvas />
+            <MinimapViewport>
+              <MinimapHandle />
+            </MinimapViewport>
+            <MinimapStatus />
+          </>
+        )}
+      </div>
+    </Ctx.Provider>
+  );
+}
+
+/** The drawing: the world and the items as rectangles. */
+export function MinimapCanvas({
+  className,
+  ...rest
+}: Part<Omit<ComponentProps<"svg">, "children">>) {
+  const { area, fit, items, width, height } = useMap("MinimapCanvas");
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+      data-slot="minimap-canvas"
+      {...rest}
+      className={cx("fg-edt-map-svg", className)}
+    >
+      <rect
+        x={fit.offsetX}
+        y={fit.offsetY}
+        width={area.w * fit.scale}
+        height={area.h * fit.scale}
+        className="fg-edt-map-world"
+      />
+      {items.map((item) => {
+        const r = editorToMap(item, area, fit);
+        return (
+          <rect
+            key={item.id}
+            x={r.x}
+            y={r.y}
+            width={Math.max(r.w, 1)}
+            height={Math.max(r.h, 1)}
+            className={cx("fg-edt-map-item", item.tone && `fg-edt-map-${item.tone}`)}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+/** The rectangle of what is on screen: drag it, or use the arrows when it has focus. */
+export function MinimapViewport({
+  className,
+  style,
+  children,
+  ...rest
+}: Part<ComponentProps<"div">>) {
+  const m = useMap("MinimapViewport");
   return (
     <div
-      ref={host}
-      className={cx(
-        "fg-edt-map",
-        interactive && "fg-edt-map-live",
-        grabbing && "fg-edt-map-grab",
-        className,
-      )}
-      style={{ width, height }}
-      onPointerDown={onBackgroundDown}
-      onPointerMove={onMove}
-      onPointerUp={onUp}
-      onPointerCancel={onUp}
+      role="application"
+      aria-roledescription="viewport"
+      aria-label={m.label}
+      aria-description={
+        m.interactive
+          ? `Arrow keys pan, Shift makes bigger steps${m.resizable ? ", plus and minus zoom" : ""}, Home centres.`
+          : undefined
+      }
+      tabIndex={0}
+      data-slot="minimap-viewport"
+      {...rest}
+      className={cx("fg-edt-map-frame", className)}
+      style={{
+        left: m.vp.x,
+        top: m.vp.y,
+        width: Math.max(m.vp.w, 4),
+        height: Math.max(m.vp.h, 4),
+        ...style,
+      }}
+      onPointerDown={m.onFrameDown}
+      onKeyDown={m.onKeyDown}
     >
-      <svg
-        className="fg-edt-map-svg"
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        shapeRendering="crispEdges"
-        aria-hidden="true"
-      >
-        <rect
-          x={fit.offsetX}
-          y={fit.offsetY}
-          width={area.w * fit.scale}
-          height={area.h * fit.scale}
-          className="fg-edt-map-world"
-        />
-        {items.map((item) => {
-          const r = editorToMap(item, area, fit);
-          return (
-            <rect
-              key={item.id}
-              x={r.x}
-              y={r.y}
-              width={Math.max(r.w, 1)}
-              height={Math.max(r.h, 1)}
-              className={cx("fg-edt-map-item", item.tone && `fg-edt-map-${item.tone}`)}
-            />
-          );
-        })}
-      </svg>
-      <div
-        role="application"
-        aria-roledescription="viewport"
-        aria-label={label}
-        aria-description={
-          interactive
-            ? `Arrow keys pan, Shift makes bigger steps${resizable ? ", plus and minus zoom" : ""}, Home centres.`
-            : undefined
-        }
-        tabIndex={0}
-        className="fg-edt-map-frame"
-        style={{ left: vp.x, top: vp.y, width: Math.max(vp.w, 4), height: Math.max(vp.h, 4) }}
-        onPointerDown={onFrameDown}
-        onKeyDown={onKeyDown}
-      >
-        {interactive && resizable ? (
-          <span className="fg-edt-map-handle" aria-hidden="true" onPointerDown={onHandleDown} />
-        ) : null}
-      </div>
-      <span className="fg-visually-hidden" role="status">
-        {said}
-      </span>
+      {children}
     </div>
+  );
+}
+
+/** The corner of the viewport that zooms when dragged. Nothing when the map is not live or not `resizable`. */
+export function MinimapHandle({
+  className,
+  ...rest
+}: Part<Omit<ComponentProps<"span">, "children">>) {
+  const m = useMap("MinimapHandle");
+  if (!m.interactive || !m.resizable) return null;
+  return (
+    <span
+      aria-hidden="true"
+      data-slot="minimap-handle"
+      {...rest}
+      className={cx("fg-edt-map-handle", className)}
+      onPointerDown={m.onHandleDown}
+    />
+  );
+}
+
+/** What a key press did, said to assistive technology. */
+export function MinimapStatus({
+  className,
+  ...rest
+}: Part<Omit<ComponentProps<"span">, "children">>) {
+  const { said } = useMap("MinimapStatus");
+  return (
+    <span
+      role="status"
+      data-slot="minimap-status"
+      {...rest}
+      className={cx("fg-visually-hidden", className)}
+    >
+      {said}
+    </span>
   );
 }

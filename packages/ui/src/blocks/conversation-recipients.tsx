@@ -3,10 +3,21 @@
 // group that expands into its members, an address that is not valid marked in the danger tone and
 // said. The chips, the text box and the list of suggestions are the Combobox parts (several
 // choices, the list filtered here); the block adds the typing of free addresses and the paste.
+//
+// With props it is the usual field. With children it is a frame, and the parts compose it:
+//
+//   <RecipientInput label="To" contacts={contacts}>
+//     <RecipientInputLabel />
+//     <RecipientInputField><RecipientInputBox /><RecipientInputSuggestions /></RecipientInputField>
+//     <RecipientInputStatus />
+//   </RecipientInput>
+//
+// RecipientFields is To with Cc and Bcc: `RecipientFieldsRow`, `RecipientFieldsInput` (`name`),
+// `RecipientFieldsToggles`.
 
 import { UserGroup03Icon } from "@forgeron/icons";
-import type { ClipboardEvent, KeyboardEvent } from "react";
-import { useId, useMemo, useRef, useState } from "react";
+import type { ClipboardEvent, KeyboardEvent, ReactNode, RefObject } from "react";
+import { createContext, useContext, useId, useMemo, useRef, useState } from "react";
 import { Avatar } from "../avatar";
 import {
   Combobox,
@@ -28,8 +39,12 @@ import {
   parseRecipientText,
   type ConversationContact,
 } from "./conversation-model";
+import { part, type PartProps } from "../part";
 
-export interface RecipientInputProps {
+export interface RecipientInputProps extends Omit<
+  PartProps<"div">,
+  "children" | "onChange" | "defaultValue" | "placeholder"
+> {
   /** The field's name, written before it: "To", "Cc". */
   label: string;
   /** The addresses, as written. */
@@ -46,8 +61,179 @@ export interface RecipientInputProps {
   disabled?: boolean;
   /** Hears what was added: a paste, a group (to say so, or to check the addresses on a server). */
   onAdd?: (added: string[]) => void;
-  className?: string;
+  /** The parts (`RecipientInputLabel`, `RecipientInputField`…). Without them, the field is built from the props. */
+  children?: ReactNode;
 }
+
+interface FieldContext {
+  id: string;
+  label: string;
+  tags: string[];
+  contacts: ReadonlyArray<ConversationContact>;
+  suggestions: ConversationContact[];
+  validate: (address: string) => boolean;
+  placeholder: string | undefined;
+  max: number | undefined;
+  disabled: boolean | undefined;
+  draft: string;
+  setDraft: (draft: string) => void;
+  setTags: (tags: string[]) => void;
+  setOpen: (open: boolean) => void;
+  highlight: (contact: ConversationContact | undefined) => void;
+  said: string;
+  nameOf: (address: string) => string | undefined;
+  choose: (contact: ConversationContact) => void;
+  commit: () => void;
+  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  onPaste: (event: ClipboardEvent<HTMLInputElement>) => void;
+}
+const FieldCtx = createContext<FieldContext | null>(null);
+const InputRefCtx = createContext<RefObject<HTMLInputElement | null> | null>(null);
+
+function useField(name: string): FieldContext {
+  const ctx = useContext(FieldCtx);
+  if (!ctx) throw new Error(`<${name}> goes inside a <RecipientInput>.`);
+  return ctx;
+}
+
+/* ---------------------------------------------------------------- parts */
+
+/** The field's name, written before it: "To", "Cc". */
+export function RecipientInputLabel({ children, ...rest }: PartProps<"span">) {
+  const { id, label } = useField("RecipientInputLabel");
+  return part(
+    "span",
+    "recipient-input-label",
+    "fg-conv-rcpt-label",
+    { ...rest, children: children ?? label },
+    { id: `${id}-label` },
+  );
+}
+
+/** The Combobox: its state is the field's. Put the box and the suggestions in it. */
+export function RecipientInputField({ children }: { children?: ReactNode }) {
+  const f = useField("RecipientInputField");
+  return (
+    <Combobox
+      multiple
+      autoHighlight
+      filter={null}
+      items={f.suggestions}
+      value={f.tags}
+      disabled={f.disabled}
+      itemToStringLabel={(contact: ConversationContact | string) =>
+        typeof contact === "string" ? contact : contact.name
+      }
+      onValueChange={(next: Array<ConversationContact | string>) => {
+        const picked = next.find((v): v is ConversationContact => typeof v !== "string");
+        if (picked) f.choose(picked);
+        else f.setTags(next as string[]);
+      }}
+      inputValue={f.draft}
+      onInputValueChange={(next: string) => f.setDraft(next)}
+      onOpenChange={(next: boolean) => f.setOpen(next)}
+      onItemHighlighted={(contact: ConversationContact | undefined) => {
+        f.highlight(contact);
+      }}
+    >
+      {children}
+    </Combobox>
+  );
+}
+
+/** The box: the chips of the addresses and the text field. */
+export function RecipientInputBox({ className }: { className?: string }) {
+  const f = useField("RecipientInputBox");
+  const inputRef = useContext(InputRefCtx);
+  const focusInput = (event: { target: unknown; currentTarget: unknown }) => {
+    if (event.target === event.currentTarget) inputRef?.current?.focus();
+  };
+  return (
+    <ComboboxInputGroup
+      data-slot="recipient-input-box"
+      disabled={f.disabled}
+      className={cx("fg-conv-rcpt-box", className)}
+      onClick={focusInput}
+    >
+      <ComboboxChips aria-label={`${f.label}, added`} onClick={focusInput}>
+        {f.tags.map((tag) => {
+          const bad = !f.validate(tag);
+          const name = f.nameOf(tag);
+          return (
+            <ComboboxChip
+              key={tag}
+              className={bad ? "fg-combo-chip-bad" : undefined}
+              title={bad ? "Not a valid address" : name ? tag : undefined}
+              removeLabel={`Remove ${name ?? tag}`}
+            >
+              <span>{name ?? tag}</span>
+              {bad ? <span className="fg-sr">, not a valid address</span> : null}
+            </ComboboxChip>
+          );
+        })}
+        <ComboboxChipsInput
+          ref={inputRef}
+          aria-labelledby={`${f.id}-label`}
+          placeholder={f.tags.length > 0 ? "" : f.placeholder}
+          disabled={f.disabled || (f.max !== undefined && f.tags.length >= f.max)}
+          onKeyDown={f.onKeyDown}
+          onPaste={f.onPaste}
+          onBlur={() => {
+            if (f.draft.trim()) f.commit();
+          }}
+        />
+      </ComboboxChips>
+    </ComboboxInputGroup>
+  );
+}
+
+/** The list of suggestions: people, and groups that expand into their members. */
+export function RecipientInputSuggestions() {
+  const { label } = useField("RecipientInputSuggestions");
+  return (
+    <ComboboxContent>
+      <ComboboxList aria-label={`${label}, suggestions`}>
+        {(contact: ConversationContact) => (
+          <ComboboxItem
+            key={contact.id}
+            value={contact}
+            indicator={false}
+            glyph={
+              contact.members ? (
+                <span className="fg-conv-mention-mark" aria-hidden="true">
+                  <Icon icon={UserGroup03Icon} size={12} variant="mono" />
+                </span>
+              ) : (
+                <Avatar
+                  name={contact.name}
+                  size={20}
+                  {...(contact.avatar ? { src: contact.avatar } : {})}
+                />
+              )
+            }
+            hint={contact.members ? `${contact.members.length} people` : contact.email}
+          >
+            {contact.name}
+          </ComboboxItem>
+        )}
+      </ComboboxList>
+    </ComboboxContent>
+  );
+}
+
+/** The polite line that says "3 recipients added.". */
+export function RecipientInputStatus(props: PartProps<"span">) {
+  const { said } = useField("RecipientInputStatus");
+  return part(
+    "span",
+    "recipient-input-status",
+    "fg-sr",
+    { ...props, children: props.children ?? said },
+    { role: "status", "aria-live": "polite" },
+  );
+}
+
+/* ---------------------------------------------------------------- the field */
 
 /** An address field with suggestions, groups, validity and paste. */
 export function RecipientInput({
@@ -61,7 +247,10 @@ export function RecipientInput({
   max,
   disabled,
   onAdd,
+  children,
   className,
+  asChild,
+  ...rest
 }: RecipientInputProps) {
   const id = useId();
   const [tags, setTags] = useControllableState<string[]>({ value, defaultValue, onChange });
@@ -160,100 +349,54 @@ export function RecipientInput({
     setDraft("");
   };
 
-  const focusInput = (event: { target: unknown; currentTarget: unknown }) => {
-    if (event.target === event.currentTarget) input.current?.focus();
+  const ctx: FieldContext = {
+    id,
+    label,
+    tags,
+    contacts,
+    suggestions,
+    validate,
+    placeholder,
+    max,
+    disabled,
+    draft,
+    setDraft,
+    setTags,
+    setOpen,
+    highlight: (contact) => {
+      highlighted.current = contact;
+    },
+    said,
+    nameOf,
+    choose,
+    commit,
+    onKeyDown,
+    onPaste,
   };
   return (
-    <div className={cx("fg-conv-rcpt", disabled && "fg-combo-disabled", className)}>
-      <span className="fg-conv-rcpt-label" id={`${id}-label`}>
-        {label}
-      </span>
-      <Combobox
-        multiple
-        autoHighlight
-        filter={null}
-        items={suggestions}
-        value={tags}
-        disabled={disabled}
-        itemToStringLabel={(contact: ConversationContact | string) =>
-          typeof contact === "string" ? contact : contact.name
-        }
-        onValueChange={(next: Array<ConversationContact | string>) => {
-          const picked = next.find((v): v is ConversationContact => typeof v !== "string");
-          if (picked) choose(picked);
-          else setTags(next as string[]);
-        }}
-        inputValue={draft}
-        onInputValueChange={(next: string) => setDraft(next)}
-        onOpenChange={(next: boolean) => setOpen(next)}
-        onItemHighlighted={(contact: ConversationContact | undefined) => {
-          highlighted.current = contact;
-        }}
-      >
-        <ComboboxInputGroup disabled={disabled} className="fg-conv-rcpt-box" onClick={focusInput}>
-          <ComboboxChips aria-label={`${label}, added`} onClick={focusInput}>
-            {tags.map((tag) => {
-              const bad = !validate(tag);
-              const name = nameOf(tag);
-              return (
-                <ComboboxChip
-                  key={tag}
-                  className={bad ? "fg-combo-chip-bad" : undefined}
-                  title={bad ? "Not a valid address" : name ? tag : undefined}
-                  removeLabel={`Remove ${name ?? tag}`}
-                >
-                  <span>{name ?? tag}</span>
-                  {bad ? <span className="fg-sr">, not a valid address</span> : null}
-                </ComboboxChip>
-              );
-            })}
-            <ComboboxChipsInput
-              ref={input}
-              aria-labelledby={`${id}-label`}
-              placeholder={tags.length > 0 ? "" : placeholder}
-              disabled={disabled || (max !== undefined && tags.length >= max)}
-              onKeyDown={onKeyDown}
-              onPaste={onPaste}
-              onBlur={() => {
-                if (draft.trim()) commit();
-              }}
-            />
-          </ComboboxChips>
-        </ComboboxInputGroup>
-        <ComboboxContent>
-          <ComboboxList aria-label={`${label}, suggestions`}>
-            {(contact: ConversationContact) => (
-              <ComboboxItem
-                key={contact.id}
-                value={contact}
-                indicator={false}
-                glyph={
-                  contact.members ? (
-                    <span className="fg-conv-mention-mark" aria-hidden="true">
-                      <Icon icon={UserGroup03Icon} size={12} variant="mono" />
-                    </span>
-                  ) : (
-                    <Avatar
-                      name={contact.name}
-                      size={20}
-                      {...(contact.avatar ? { src: contact.avatar } : {})}
-                    />
-                  )
-                }
-                hint={contact.members ? `${contact.members.length} people` : contact.email}
-              >
-                {contact.name}
-              </ComboboxItem>
-            )}
-          </ComboboxList>
-        </ComboboxContent>
-      </Combobox>
-      <span className="fg-sr" role="status" aria-live="polite">
-        {said}
-      </span>
-    </div>
+    <FieldCtx.Provider value={ctx}>
+      <InputRefCtx.Provider value={input}>
+        {part("div", "recipient-input", cx("fg-conv-rcpt", disabled && "fg-combo-disabled"), {
+          className,
+          asChild,
+          ...rest,
+          children: children ?? (
+            <>
+              <RecipientInputLabel />
+              <RecipientInputField>
+                <RecipientInputBox />
+                <RecipientInputSuggestions />
+              </RecipientInputField>
+              <RecipientInputStatus />
+            </>
+          ),
+        })}
+      </InputRefCtx.Provider>
+    </FieldCtx.Provider>
   );
 }
+
+/* ---------------------------------------------------------------- To, Cc, Bcc */
 
 export interface RecipientFieldsValue {
   to: string[];
@@ -261,7 +404,10 @@ export interface RecipientFieldsValue {
   bcc: string[];
 }
 
-export interface RecipientFieldsProps {
+export interface RecipientFieldsProps extends Omit<
+  PartProps<"div">,
+  "children" | "onChange" | "defaultValue"
+> {
   value?: RecipientFieldsValue;
   defaultValue?: RecipientFieldsValue;
   onChange?: (value: RecipientFieldsValue) => void;
@@ -270,10 +416,74 @@ export interface RecipientFieldsProps {
   disabled?: boolean;
   /** The words for the three fields. Default To, Cc, Bcc. */
   labels?: { to?: string; cc?: string; bcc?: string };
-  className?: string;
+  /** The parts (`RecipientFieldsRow`, `RecipientFieldsInput`, `RecipientFieldsToggles`). */
+  children?: ReactNode;
 }
 
 const NONE: RecipientFieldsValue = { to: [], cc: [], bcc: [] };
+
+interface FieldsContext {
+  fields: RecipientFieldsValue;
+  setFields: (value: RecipientFieldsValue) => void;
+  showCc: boolean;
+  showBcc: boolean;
+  setShowCc: (show: boolean) => void;
+  setShowBcc: (show: boolean) => void;
+  words: { to: string; cc: string; bcc: string };
+  shared: Pick<RecipientInputProps, "contacts" | "validate" | "disabled">;
+}
+const FieldsCtx = createContext<FieldsContext | null>(null);
+
+function useFields(name: string): FieldsContext {
+  const ctx = useContext(FieldsCtx);
+  if (!ctx) throw new Error(`<${name}> goes inside a <RecipientFields>.`);
+  return ctx;
+}
+
+/** A line of the fields: To and its toggles. */
+export function RecipientFieldsRow(props: PartProps<"div">) {
+  return part("div", "recipient-fields-row", "fg-conv-rcpts-row", props);
+}
+
+/** One of the three fields; Cc and Bcc show once revealed. Its own props go to the `RecipientInput`. */
+export function RecipientFieldsInput({
+  name,
+  ...rest
+}: { name: "to" | "cc" | "bcc" } & Partial<RecipientInputProps>) {
+  const { fields, setFields, showCc, showBcc, words, shared } = useFields("RecipientFieldsInput");
+  if ((name === "cc" && !showCc) || (name === "bcc" && !showBcc)) return null;
+  return (
+    <RecipientInput
+      label={words[name]}
+      value={fields[name]}
+      onChange={(next) => setFields({ ...fields, [name]: next })}
+      {...shared}
+      {...rest}
+    />
+  );
+}
+
+/** The buttons that reveal Cc and Bcc; gone once both are shown. */
+export function RecipientFieldsToggles({ children, ...rest }: PartProps<"span">) {
+  const { showCc, showBcc, setShowCc, setShowBcc, words } = useFields("RecipientFieldsToggles");
+  return part("span", "recipient-fields-toggles", "fg-conv-rcpts-toggles", {
+    ...rest,
+    children: children ?? (
+      <>
+        {!showCc ? (
+          <button type="button" className="fg-conv-rcpts-toggle" onClick={() => setShowCc(true)}>
+            {words.cc}
+          </button>
+        ) : null}
+        {!showBcc ? (
+          <button type="button" className="fg-conv-rcpts-toggle" onClick={() => setShowBcc(true)}>
+            {words.bcc}
+          </button>
+        ) : null}
+      </>
+    ),
+  });
+}
 
 /** To, with Cc and Bcc revealed by two buttons (open from the start when they hold addresses). */
 export function RecipientFields({
@@ -284,7 +494,10 @@ export function RecipientFields({
   validate,
   disabled,
   labels,
+  children,
   className,
+  asChild,
+  ...rest
 }: RecipientFieldsProps) {
   const [fields, setFields] = useControllableState<RecipientFieldsValue>({
     value,
@@ -300,43 +513,24 @@ export function RecipientFields({
     ...(disabled ? { disabled } : {}),
   };
   return (
-    <div className={cx("fg-conv-rcpts", className)}>
-      <div className="fg-conv-rcpts-row">
-        <RecipientInput
-          label={words.to}
-          value={fields.to}
-          onChange={(to) => setFields({ ...fields, to })}
-          {...shared}
-        />
-        <span className="fg-conv-rcpts-toggles">
-          {!showCc ? (
-            <button type="button" className="fg-conv-rcpts-toggle" onClick={() => setShowCc(true)}>
-              {words.cc}
-            </button>
-          ) : null}
-          {!showBcc ? (
-            <button type="button" className="fg-conv-rcpts-toggle" onClick={() => setShowBcc(true)}>
-              {words.bcc}
-            </button>
-          ) : null}
-        </span>
-      </div>
-      {showCc ? (
-        <RecipientInput
-          label={words.cc}
-          value={fields.cc}
-          onChange={(cc) => setFields({ ...fields, cc })}
-          {...shared}
-        />
-      ) : null}
-      {showBcc ? (
-        <RecipientInput
-          label={words.bcc}
-          value={fields.bcc}
-          onChange={(bcc) => setFields({ ...fields, bcc })}
-          {...shared}
-        />
-      ) : null}
-    </div>
+    <FieldsCtx.Provider
+      value={{ fields, setFields, showCc, showBcc, setShowCc, setShowBcc, words, shared }}
+    >
+      {part("div", "recipient-fields", "fg-conv-rcpts", {
+        className,
+        asChild,
+        ...rest,
+        children: children ?? (
+          <>
+            <RecipientFieldsRow>
+              <RecipientFieldsInput name="to" />
+              <RecipientFieldsToggles />
+            </RecipientFieldsRow>
+            <RecipientFieldsInput name="cc" />
+            <RecipientFieldsInput name="bcc" />
+          </>
+        ),
+      })}
+    </FieldsCtx.Provider>
   );
 }

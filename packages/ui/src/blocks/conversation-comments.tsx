@@ -3,9 +3,35 @@
 // open and resolved filter, replies, resolve and reopen, and mentions through the RichComposer.
 // The block draws no highlight and edits no text: the document is yours; it only reads where
 // the anchors are.
+//
+// With `threads` alone it is the usual margin. With children it is a frame, and the parts compose
+// it (a thread's own parts go inside `InlineCommentsThread`):
+//
+//   <InlineComments threads={threads} anchorsIn="#doc" onReply={reply} onResolve={resolve}>
+//     <InlineCommentsBar />
+//     <InlineCommentsLane>
+//       <InlineCommentsDraft />
+//       <InlineCommentsThreads renderThread={(t) => (
+//         <InlineCommentsThread thread={t}>
+//           <InlineCommentsQuote /><InlineCommentsEntries /><InlineCommentsComposer /><InlineCommentsActions />
+//         </InlineCommentsThread>
+//       )} />
+//       <InlineCommentsEmpty />
+//     </InlineCommentsLane>
+//   </InlineComments>
 
 import { CheckmarkCircle01Icon, Message01Icon, RefreshIcon } from "@forgeron/icons";
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { Avatar } from "../avatar";
 import { Button } from "../button";
 import { Segmented } from "../controls";
@@ -16,6 +42,7 @@ import { Icon } from "../icon";
 import { RichComposer, type ComposerSend } from "../composer";
 import type { MentionOption, ParsedMention } from "./conversation-model";
 import { ConversationText } from "./conversation-message";
+import { part, type PartProps } from "../part";
 import { structureLayoutThreads, type StructureAnchor } from "./structure-model";
 import type { OutlineTarget } from "./structure-outline";
 
@@ -39,7 +66,7 @@ export interface InlineThread {
 
 export type InlineThreadFilter = "open" | "resolved" | "all";
 
-export interface InlineCommentsProps {
+export interface InlineCommentsProps extends Omit<PartProps<"section">, "children" | "onReset"> {
   threads: ReadonlyArray<InlineThread>;
   /**
    * The element of the document whose `[data-block-id]` children are the blocks the anchors name.
@@ -71,7 +98,8 @@ export interface InlineCommentsProps {
   gap?: number;
   /** Names the region. Default "Comments". */
   label?: string;
-  className?: string;
+  /** The parts (`InlineCommentsBar`, `InlineCommentsLane`). Without them, the margin is built from the props. */
+  children?: ReactNode;
 }
 
 /** Where a text offset of a block is: the block's node and the offset in it. */
@@ -123,6 +151,342 @@ const resolveRoot = (target: OutlineTarget | undefined): HTMLElement | null => {
 
 const DEFAULT_HEIGHT = 120;
 
+interface CommentsContext {
+  list: ReadonlyArray<InlineThread>;
+  shown: InlineThreadFilter;
+  setShown: (filter: InlineThreadFilter) => void;
+  open: number;
+  resolved: number;
+  front: string | null;
+  setFront: (id: string | null) => void;
+  replying: string | null;
+  setReplying: (id: string | null) => void;
+  margin: boolean;
+  anchorsIn: OutlineTarget | undefined;
+  tops: ReadonlyMap<string, number | null>;
+  laid: ReadonlyMap<string, number>;
+  laneHeight: number | undefined;
+  total: number;
+  lane: { current: HTMLDivElement | null };
+  card: (id: string) => (el: HTMLElement | null) => void;
+  draft: StructureAnchor | null;
+  triggers:
+    | Array<{ char: string; label: string; options: ReadonlyArray<MentionOption> }>
+    | undefined;
+  send: (m: ComposerSend, then: (text: string, mentions: ParsedMention[]) => void) => void;
+  onReply: InlineCommentsProps["onReply"];
+  onResolve: InlineCommentsProps["onResolve"];
+  onReopen: InlineCommentsProps["onReopen"];
+  onCreate: InlineCommentsProps["onCreate"];
+  onCancelDraft: InlineCommentsProps["onCancelDraft"];
+}
+const CommentsCtx = createContext<CommentsContext | null>(null);
+interface ThreadContext {
+  thread: InlineThread;
+  done: boolean;
+}
+const ThreadCtx = createContext<ThreadContext | null>(null);
+
+function useComments(name: string): CommentsContext {
+  const ctx = useContext(CommentsCtx);
+  if (!ctx) throw new Error(`<${name}> goes inside an <InlineComments>.`);
+  return ctx;
+}
+function useThread(name: string): ThreadContext {
+  const ctx = useContext(ThreadCtx);
+  if (!ctx) throw new Error(`<${name}> goes inside an <InlineCommentsThread>.`);
+  return ctx;
+}
+
+/* ---------------------------------------------------------------- parts */
+
+/** The Open / Resolved / All filter. */
+export function InlineCommentsBar({ children, ...rest }: PartProps<"div">) {
+  const { shown, setShown, open, resolved } = useComments("InlineCommentsBar");
+  return part("div", "inline-comments-bar", "fg-icom-bar", {
+    ...rest,
+    children: children ?? (
+      <Segmented
+        label="Show"
+        value={shown}
+        onChange={(v) => setShown(v as InlineThreadFilter)}
+        options={[
+          { value: "open", label: `Open ${open}` },
+          { value: "resolved", label: `Resolved ${resolved}` },
+          { value: "all", label: "All" },
+        ]}
+      />
+    ),
+  });
+}
+
+/** The column the cards are laid out in, beside the document. */
+export function InlineCommentsLane({ children, style, ...rest }: PartProps<"div">) {
+  const { lane, margin, total, laneHeight } = useComments("InlineCommentsLane");
+  return part(
+    "div",
+    "inline-comments-lane",
+    "fg-icom-lane",
+    {
+      ...rest,
+      style: margin && total > 0 ? { ...style, height: laneHeight } : style,
+      children: children ?? (
+        <>
+          <InlineCommentsDraft />
+          <InlineCommentsThreads />
+          <InlineCommentsEmpty />
+        </>
+      ),
+    },
+    { ref: lane },
+  );
+}
+
+/** The quote a thread is anchored to, when it is a range of text. */
+export function InlineCommentsQuote({
+  anchor,
+  ...rest
+}: PartProps<"blockquote"> & { anchor?: StructureAnchor }) {
+  const thread = useContext(ThreadCtx)?.thread;
+  const a = anchor ?? thread?.anchor;
+  if (!a || a.kind !== "range" || !a.quote) return null;
+  return part("blockquote", "inline-comments-quote", "fg-icom-quote", {
+    ...rest,
+    children: rest.children ?? a.quote,
+  });
+}
+
+/** The comments of a thread: the first, then its replies. */
+export function InlineCommentsEntries(props: PartProps<"ol">) {
+  const { thread } = useThread("InlineCommentsEntries");
+  return part("ol", "inline-comments-entries", "fg-icom-list", {
+    ...props,
+    children:
+      props.children ??
+      thread.comments.map((c) => (
+        <li key={c.id} className="fg-icom-comment" data-slot="inline-comments-entry">
+          <div className="fg-icom-head">
+            <Avatar name={c.author} size={20} {...(c.avatar ? { src: c.avatar } : {})} />
+            <b>{c.author}</b>
+            <span className="fg-icom-at">{c.at}</span>
+          </div>
+          <p className="fg-icom-body">
+            <ConversationText body={c.body} />
+          </p>
+        </li>
+      )),
+  });
+}
+
+/** The box to reply, shown while the person is replying to this thread. */
+export function InlineCommentsComposer() {
+  const { thread } = useThread("InlineCommentsComposer");
+  const { replying, setReplying, triggers, send, onReply } = useComments("InlineCommentsComposer");
+  if (replying !== thread.id) return null;
+  return (
+    <RichComposer
+      label="Reply"
+      placeholder="Reply…"
+      sendLabel="Reply"
+      toolbar={false}
+      attachmentOptions={false}
+      maxRows={5}
+      autoFocus
+      {...(triggers ? { triggers } : {})}
+      onSend={(m) =>
+        send(m, (text, found) => {
+          onReply?.(thread.id, text, found);
+          setReplying(null);
+        })
+      }
+    />
+  );
+}
+
+/** Reply, Cancel, and Resolve or Reopen. */
+export function InlineCommentsActions({ children, ...rest }: PartProps<"div">) {
+  const { thread, done } = useThread("InlineCommentsActions");
+  const { replying, setReplying, setFront, onReopen, onResolve } =
+    useComments("InlineCommentsActions");
+  return part("div", "inline-comments-actions", "fg-icom-acts", {
+    ...rest,
+    children: children ?? (
+      <>
+        {replying !== thread.id && !done ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              setFront(thread.id);
+              setReplying(thread.id);
+            }}
+          >
+            <Icon icon={Message01Icon} size={12} variant="mono" />
+            Reply
+          </Button>
+        ) : null}
+        {replying === thread.id ? (
+          <Button size="sm" variant="ghost" onClick={() => setReplying(null)}>
+            Cancel
+          </Button>
+        ) : null}
+        {done ? (
+          <Button size="sm" variant="ghost" onClick={() => onReopen?.(thread.id)}>
+            <Icon icon={RefreshIcon} size={12} variant="mono" />
+            Reopen
+          </Button>
+        ) : (
+          <Button size="sm" variant="ghost" onClick={() => onResolve?.(thread.id)}>
+            <Icon icon={CheckmarkCircle01Icon} size={12} variant="mono" />
+            Resolve
+          </Button>
+        )}
+      </>
+    ),
+  });
+}
+
+/** One thread as a card, beside its anchor. Without children: quote, comments, composer, actions. */
+export function InlineCommentsThread({
+  thread,
+  children,
+  ...rest
+}: Omit<PartProps<"article">, "children"> & { thread: InlineThread; children?: ReactNode }) {
+  const { margin, anchorsIn, tops, laid, front, setFront, setReplying, card } =
+    useComments("InlineCommentsThread");
+  const on = front === thread.id;
+  const done = thread.status === "resolved";
+  const first = thread.comments[0];
+  const lostAnchor = margin && tops.has(thread.id) && tops.get(thread.id) == null && !!anchorsIn;
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape" && event.target === event.currentTarget) {
+      setFront(null);
+      setReplying(null);
+    }
+  };
+  return (
+    <ThreadCtx.Provider value={{ thread, done }}>
+      {part(
+        "article",
+        "inline-comments-thread",
+        cx("fg-icom-card", on && "fg-icom-card-active", done && "fg-icom-card-done"),
+        {
+          ...rest,
+          children: children ?? (
+            <>
+              <InlineCommentsQuote />
+              {lostAnchor ? <p className="fg-icom-lost">The text it was about is gone.</p> : null}
+              <InlineCommentsEntries />
+              <InlineCommentsComposer />
+              <InlineCommentsActions />
+            </>
+          ),
+        },
+        {
+          ref: card(thread.id),
+          "data-thread": thread.id,
+          "aria-label": `Comment by ${first?.author ?? "someone"}${done ? ", resolved" : ""}`,
+          tabIndex: 0,
+          style: margin ? { top: laid.get(thread.id) ?? 0 } : undefined,
+          onFocus: (e: { target: unknown; currentTarget: unknown }) => {
+            if (e.target === e.currentTarget) setFront(thread.id);
+          },
+          onClick: () => setFront(thread.id),
+          onKeyDown,
+        },
+      )}
+    </ThreadCtx.Provider>
+  );
+}
+
+/** The cards of the threads shown by the filter; `renderThread` draws a card your way. */
+export function InlineCommentsThreads({
+  renderThread,
+}: {
+  renderThread?: (thread: InlineThread) => ReactNode;
+}) {
+  const { list } = useComments("InlineCommentsThreads");
+  return (
+    <>
+      {list.map((t) =>
+        renderThread ? (
+          <Fragment key={t.id}>{renderThread(t)}</Fragment>
+        ) : (
+          <InlineCommentsThread key={t.id} thread={t} />
+        ),
+      )}
+    </>
+  );
+}
+
+/** The card with a box to write the first comment of a new thread, at the selection. */
+export function InlineCommentsDraft({
+  children,
+  ...rest
+}: Omit<PartProps<"article">, "children"> & { children?: ReactNode }) {
+  const { draft, margin, laid, card, triggers, send, onCreate, onCancelDraft } =
+    useComments("InlineCommentsDraft");
+  if (!draft) return null;
+  return part(
+    "article",
+    "inline-comments-draft",
+    "fg-icom-card fg-icom-card-active fg-icom-draft",
+    {
+      ...rest,
+      children: children ?? (
+        <>
+          <InlineCommentsQuote anchor={draft} />
+          <RichComposer
+            label="New comment"
+            placeholder="Comment…"
+            sendLabel="Comment"
+            toolbar={false}
+            attachmentOptions={false}
+            maxRows={6}
+            autoFocus
+            {...(triggers ? { triggers } : {})}
+            onSend={(m) => send(m, (text, found) => onCreate?.(draft, text, found))}
+          />
+          <div className="fg-icom-acts">
+            <Button size="sm" variant="ghost" onClick={onCancelDraft}>
+              Cancel
+            </Button>
+          </div>
+        </>
+      ),
+    },
+    {
+      ref: card("draft"),
+      "aria-label": "New comment",
+      style: margin ? { top: laid.get("draft") ?? 0 } : undefined,
+    },
+  );
+}
+
+/** What is shown when the filter leaves no thread. */
+export function InlineCommentsEmpty({ children }: { children?: ReactNode }) {
+  const { list, draft, shown } = useComments("InlineCommentsEmpty");
+  if (list.length > 0 || draft) return null;
+  return (
+    <>
+      {children ?? (
+        <EmptyState
+          title={shown === "resolved" ? "Nothing resolved" : "No comments"}
+          icon={Message01Icon}
+          description={
+            shown === "resolved"
+              ? "Resolved threads are kept here."
+              : "Select text in the page to start a thread."
+          }
+        />
+      )}
+    </>
+  );
+}
+
+/* ---------------------------------------------------------------- the margin */
+
 /** The comment threads of a document, laid out in its margin beside the text they are about. */
 export function InlineComments({
   threads,
@@ -144,7 +508,10 @@ export function InlineComments({
   mentions = [],
   gap = 8,
   label = "Comments",
+  children,
   className,
+  asChild,
+  ...rest
 }: InlineCommentsProps) {
   const [shown, setShown] = useControllableState<InlineThreadFilter>({
     value: filter,
@@ -160,7 +527,7 @@ export function InlineComments({
   const [tops, setTops] = useState<ReadonlyMap<string, number | null>>(new Map());
   const [heights, setHeights] = useState<ReadonlyMap<string, number>>(new Map());
   const [tick, setTick] = useState(0);
-  const lane = useRef<HTMLDivElement>(null);
+  const lane = useRef<HTMLDivElement | null>(null);
   const cards = useRef(new Map<string, HTMLElement>());
 
   const open = threads.filter((t) => t.status === "open").length;
@@ -250,176 +617,58 @@ export function InlineComments({
     const text = m.text.trim();
     if (text) then(text, m.mentions);
   };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLElement>, id: string) => {
-    if (event.key === "Escape" && event.target === event.currentTarget) {
-      setFront(null);
-      setReplying(null);
-    }
-    void id;
+  const card = (id: string) => (el: HTMLElement | null) => {
+    if (el) cards.current.set(id, el);
+    else cards.current.delete(id);
   };
 
-  const thread = (t: InlineThread) => {
-    const on = front === t.id;
-    const done = t.status === "resolved";
-    const [first, ...rest] = t.comments;
-    const lostAnchor = margin && tops.has(t.id) && tops.get(t.id) == null && !!anchorsIn;
-    return (
-      <article
-        key={t.id}
-        ref={(el) => {
-          if (el) cards.current.set(t.id, el);
-          else cards.current.delete(t.id);
-        }}
-        data-thread={t.id}
-        aria-label={`Comment by ${first?.author ?? "someone"}${done ? ", resolved" : ""}`}
-        tabIndex={0}
-        className={cx("fg-icom-card", on && "fg-icom-card-active", done && "fg-icom-card-done")}
-        style={margin ? { top: laid.get(t.id) ?? 0 } : undefined}
-        onFocus={(e) => {
-          if (e.target === e.currentTarget) setFront(t.id);
-        }}
-        onClick={() => setFront(t.id)}
-        onKeyDown={(e) => onKeyDown(e, t.id)}
-      >
-        {t.anchor.kind === "range" && t.anchor.quote ? (
-          <blockquote className="fg-icom-quote">{t.anchor.quote}</blockquote>
-        ) : null}
-        {lostAnchor ? <p className="fg-icom-lost">The text it was about is gone.</p> : null}
-        <ol className="fg-icom-list">
-          {[first, ...rest].filter(Boolean).map((c) => (
-            <li key={c!.id} className="fg-icom-comment">
-              <div className="fg-icom-head">
-                <Avatar name={c!.author} size={20} {...(c!.avatar ? { src: c!.avatar } : {})} />
-                <b>{c!.author}</b>
-                <span className="fg-icom-at">{c!.at}</span>
-              </div>
-              <p className="fg-icom-body">
-                <ConversationText body={c!.body} />
-              </p>
-            </li>
-          ))}
-        </ol>
-        {replying === t.id ? (
-          <RichComposer
-            label="Reply"
-            placeholder="Reply…"
-            sendLabel="Reply"
-            toolbar={false}
-            attachmentOptions={false}
-            maxRows={5}
-            autoFocus
-            {...(triggers ? { triggers } : {})}
-            onSend={(m) =>
-              send(m, (text, found) => {
-                onReply?.(t.id, text, found);
-                setReplying(null);
-              })
-            }
-          />
-        ) : null}
-        <div className="fg-icom-acts">
-          {replying !== t.id && !done ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                setFront(t.id);
-                setReplying(t.id);
-              }}
-            >
-              <Icon icon={Message01Icon} size={12} variant="mono" />
-              Reply
-            </Button>
-          ) : null}
-          {replying === t.id ? (
-            <Button size="sm" variant="ghost" onClick={() => setReplying(null)}>
-              Cancel
-            </Button>
-          ) : null}
-          {done ? (
-            <Button size="sm" variant="ghost" onClick={() => onReopen?.(t.id)}>
-              <Icon icon={RefreshIcon} size={12} variant="mono" />
-              Reopen
-            </Button>
-          ) : (
-            <Button size="sm" variant="ghost" onClick={() => onResolve?.(t.id)}>
-              <Icon icon={CheckmarkCircle01Icon} size={12} variant="mono" />
-              Resolve
-            </Button>
-          )}
-        </div>
-      </article>
-    );
+  const ctx: CommentsContext = {
+    list,
+    shown,
+    setShown,
+    open,
+    resolved,
+    front,
+    setFront,
+    replying,
+    setReplying,
+    margin,
+    anchorsIn,
+    tops,
+    laid,
+    laneHeight: margin ? Math.max(floor - gap, 0) : undefined,
+    total: ids.length,
+    lane,
+    card,
+    draft,
+    triggers,
+    send,
+    onReply,
+    onResolve,
+    onReopen,
+    onCreate,
+    onCancelDraft,
   };
-
-  const total = ids.length;
-  const laneHeight = margin ? Math.max(floor - gap, 0) : undefined;
 
   return (
-    <section aria-label={label} className={cx("fg-icom", `fg-icom-${layout}`, className)}>
-      <div className="fg-icom-bar">
-        <Segmented
-          label="Show"
-          value={shown}
-          onChange={(v) => setShown(v as InlineThreadFilter)}
-          options={[
-            { value: "open", label: `Open ${open}` },
-            { value: "resolved", label: `Resolved ${resolved}` },
-            { value: "all", label: "All" },
-          ]}
-        />
-      </div>
-      <div
-        ref={lane}
-        className="fg-icom-lane"
-        style={margin && total > 0 ? { height: laneHeight } : undefined}
-      >
-        {draft ? (
-          <article
-            ref={(el) => {
-              if (el) cards.current.set("draft", el);
-              else cards.current.delete("draft");
-            }}
-            className="fg-icom-card fg-icom-card-active fg-icom-draft"
-            aria-label="New comment"
-            style={margin ? { top: laid.get("draft") ?? 0 } : undefined}
-          >
-            {draft.kind === "range" && draft.quote ? (
-              <blockquote className="fg-icom-quote">{draft.quote}</blockquote>
-            ) : null}
-            <RichComposer
-              label="New comment"
-              placeholder="Comment…"
-              sendLabel="Comment"
-              toolbar={false}
-              attachmentOptions={false}
-              maxRows={6}
-              autoFocus
-              {...(triggers ? { triggers } : {})}
-              onSend={(m) => send(m, (text, found) => onCreate?.(draft, text, found))}
-            />
-            <div className="fg-icom-acts">
-              <Button size="sm" variant="ghost" onClick={onCancelDraft}>
-                Cancel
-              </Button>
-            </div>
-          </article>
-        ) : null}
-        {list.map(thread)}
-        {list.length === 0 && !draft ? (
-          <EmptyState
-            title={shown === "resolved" ? "Nothing resolved" : "No comments"}
-            icon={Message01Icon}
-            description={
-              shown === "resolved"
-                ? "Resolved threads are kept here."
-                : "Select text in the page to start a thread."
-            }
-          />
-        ) : null}
-      </div>
-    </section>
+    <CommentsCtx.Provider value={ctx}>
+      {part(
+        "section",
+        "inline-comments",
+        cx("fg-icom", `fg-icom-${layout}`),
+        {
+          className,
+          asChild,
+          ...rest,
+          children: children ?? (
+            <>
+              <InlineCommentsBar />
+              <InlineCommentsLane />
+            </>
+          ),
+        },
+        { "aria-label": label },
+      )}
+    </CommentsCtx.Provider>
   );
 }

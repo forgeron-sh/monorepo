@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AppShell,
   AuditLog,
+  AuditLogDay,
+  AuditLogEvent,
   BarChart,
   Drawer,
   KpiRow,
@@ -151,6 +153,31 @@ describe("AuditLog", () => {
   });
   it("says when there is nothing", () => {
     expect(html(h(AuditLog, { events: [], empty: "Quiet" }))).toContain("Quiet");
+  });
+});
+
+describe("AuditLog parts", () => {
+  const event: AuditEvent = {
+    id: "a",
+    at: "2026-11-18 09:42",
+    actor: "Camille Roy",
+    action: "deployed",
+    detail: "Request body.",
+  };
+  it("composes the days and the events, and folds an event open", async () => {
+    const el = await mount(
+      h(
+        AuditLog,
+        { events: [event], today: "2026-11-18", className: "mine" },
+        h(AuditLogDay, { day: "2026-11-18" }, h(AuditLogEvent, { event, className: "ev" })),
+      ),
+    );
+    expect(el.querySelector("[data-slot=audit-log]")?.className).toBe("fg-audit mine");
+    expect(el.querySelector("[data-slot=audit-log-day]")).toBeTruthy();
+    const row = el.querySelector("[data-slot=audit-log-event]")!;
+    expect(row.className).toContain("ev");
+    await act(async () => row.querySelector<HTMLButtonElement>("button")!.click());
+    expect(row.querySelector<HTMLElement>(".fg-audit-detail")!.hidden).toBe(false);
   });
 });
 

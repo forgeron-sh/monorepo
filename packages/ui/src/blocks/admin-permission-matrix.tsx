@@ -4,6 +4,10 @@
 // is a grid for the keyboard (arrows, Home, End, Page keys), its headers stay in view, and a text
 // summary says the same in words. There is no role here: a subject holds states, and what it does
 // not hold it inherits.
+//
+// A root with parts. Without children it draws the usual block; with children, they place its
+// regions: `PermissionMatrixBar` (`PermissionMatrixLegend`, `PermissionMatrixChanges`),
+// `PermissionMatrixGrid`, `PermissionMatrixKeys`, `PermissionMatrixSummary`.
 
 import {
   Cancel01Icon,
@@ -12,8 +16,8 @@ import {
   ArrowDown01Icon,
   ArrowRight01Icon,
 } from "@forgeron/icons";
-import type { KeyboardEvent } from "react";
-import { useId, useState } from "react";
+import type { ComponentProps, KeyboardEvent, ReactNode } from "react";
+import { createContext, useContext, useId, useState } from "react";
 import { Avatar } from "../avatar";
 import { cx } from "../cx";
 import { useCollection } from "../hooks/use-collection";
@@ -66,6 +70,8 @@ export interface PermissionMatrixProps {
   subjectLabel?: string;
   /** The words for the three states. */
   stateNames?: Partial<Record<PermissionState, string>>;
+  /** The regions of the block; without them, the bar, the grid, the keys and the summary. */
+  children?: ReactNode;
   className?: string;
 }
 
@@ -101,6 +107,40 @@ function Mark({
   );
 }
 
+interface MatrixContext {
+  label: string;
+  subjects: ReadonlyArray<PermissionSubject>;
+  columns: ReadonlyArray<PermissionColumn>;
+  grid: PermissionValue;
+  readOnly: boolean;
+  inherited: PermissionMatrixProps["inherited"];
+  maxHeight: number;
+  subjectLabel: string;
+  names: Record<PermissionState, string>;
+  id: string;
+  size: { rows: number; cols: number };
+  collection: ReturnType<typeof useCollection<{ row: number; col: number }>>;
+  item: (row: number, col: number) => ReturnType<MatrixContext["collection"]["getItemProps"]>;
+  changes: ReturnType<typeof permissionDiff>;
+  changed: ReadonlySet<string>;
+  subjectName: (id: string) => string;
+  colName: (id: string) => string;
+  activate: (row: number, col: number) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
+  summaryOpen: boolean;
+  setSummaryOpen: (open: boolean) => void;
+  said: string;
+}
+
+const Ctx = createContext<MatrixContext | null>(null);
+
+/** The grid and what it knows, for a part of your own inside a `PermissionMatrix`. */
+export function usePermissionMatrix(part = "usePermissionMatrix"): MatrixContext {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <PermissionMatrix>.`);
+  return ctx;
+}
+
 /** A grid of subjects by permissions: allow, deny or inherit, in bulk by row and column. */
 export function PermissionMatrix({
   label,
@@ -116,6 +156,7 @@ export function PermissionMatrix({
   summaryOpen = false,
   subjectLabel = "People and teams",
   stateNames,
+  children,
   className,
 }: PermissionMatrixProps) {
   const [grid, setGrid] = useControllableState<PermissionValue>({ value, defaultValue, onChange });
@@ -213,161 +254,309 @@ export function PermissionMatrix({
     }
   };
 
-  const summary = permissionSummary(grid, subjects, columns);
+  const ctx: MatrixContext = {
+    label,
+    subjects,
+    columns,
+    grid,
+    readOnly,
+    inherited,
+    maxHeight,
+    subjectLabel,
+    names,
+    id,
+    size,
+    collection,
+    item,
+    changes,
+    changed,
+    subjectName,
+    colName,
+    activate,
+    onKeyDown,
+    summaryOpen: open,
+    setSummaryOpen: setOpen,
+    said,
+  };
 
   return (
-    <div className={cx("fg-adm fg-adm-pm", className)}>
-      <div className="fg-adm-pm-bar">
-        <ul className="fg-adm-legend" aria-label="Legend">
-          {(["allow", "deny", "inherit"] as const).map((s) => (
-            <li key={s}>
-              <Mark state={s} />
-              {names[s]}
-            </li>
-          ))}
-        </ul>
-        <span className="fg-adm-pm-changes" role="status">
-          {changes.length ? `${adminPlural(changes.length, "unsaved change")}` : ""}
-        </span>
+    <Ctx.Provider value={ctx}>
+      <div data-slot="permission-matrix" className={cx("fg-adm fg-adm-pm", className)}>
+        {children ?? (
+          <>
+            <PermissionMatrixBar />
+            <PermissionMatrixGrid />
+            <PermissionMatrixKeys />
+            <PermissionMatrixSummary />
+            <PermissionMatrixStatus />
+          </>
+        )}
       </div>
-      <div className="fg-adm-pm-scroll" style={{ maxHeight }}>
-        <table
-          {...collection.getContainerProps({ onKeyDown })}
-          role="grid"
-          aria-label={label}
-          aria-readonly={readOnly || undefined}
-          aria-rowcount={size.rows}
-          aria-colcount={size.cols}
-          aria-describedby={`${id}-keys`}
-          className="fg-adm-pm-table"
-        >
-          <TableHeader>
-            <TableRow>
-              <TableHead className="fg-adm-pm-corner" scope="col">
-                {subjectLabel}
-              </TableHead>
-              {columns.map((c, i) => {
-                const shared = sharedState(grid, columnCells(c.id, subjects));
-                return (
-                  <TableHead
-                    key={c.id}
-                    scope="col"
-                    data-r={0}
-                    data-c={i + 1}
-                    aria-label={`${colName(c.id)}, column${readOnly ? "" : ", Enter sets all"}`}
-                    className="fg-adm-pm-colhead"
-                    {...item(0, i + 1)}
-                    onClick={() => activate(0, i + 1)}
-                  >
-                    {c.group ? <span className="fg-adm-pm-group">{c.group}</span> : null}
-                    <span className="fg-adm-pm-action">
-                      {c.label}
-                      <Mark state={shared} />
-                    </span>
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {subjects.map((s, r) => {
-              const shared = sharedState(grid, rowCells(s.id, columns));
+    </Ctx.Provider>
+  );
+}
+
+/** The top row: the legend and the count of unsaved changes. Its children replace both. */
+export function PermissionMatrixBar({ className, children, ...rest }: ComponentProps<"div">) {
+  return (
+    <div data-slot="permission-matrix-bar" {...rest} className={cx("fg-adm-pm-bar", className)}>
+      {children ?? (
+        <>
+          <PermissionMatrixLegend />
+          <PermissionMatrixChanges />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** What the three marks mean. */
+export function PermissionMatrixLegend({ className, ...rest }: ComponentProps<"ul">) {
+  const { names } = usePermissionMatrix("PermissionMatrixLegend");
+  return (
+    <ul
+      data-slot="permission-matrix-legend"
+      aria-label="Legend"
+      {...rest}
+      className={cx("fg-adm-legend", className)}
+    >
+      {(["allow", "deny", "inherit"] as const).map((s) => (
+        <li key={s}>
+          <Mark state={s} />
+          {names[s]}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** "2 unsaved changes", said politely. */
+export function PermissionMatrixChanges({ className, ...rest }: ComponentProps<"span">) {
+  const { changes } = usePermissionMatrix("PermissionMatrixChanges");
+  return (
+    <span
+      data-slot="permission-matrix-changes"
+      role="status"
+      {...rest}
+      className={cx("fg-adm-pm-changes", className)}
+    >
+      {changes.length ? `${adminPlural(changes.length, "unsaved change")}` : ""}
+    </span>
+  );
+}
+
+/** The grid: a scrolling table whose headers stay in view, for the keyboard. */
+export function PermissionMatrixGrid({ className, ...rest }: ComponentProps<"div">) {
+  const {
+    label,
+    subjects,
+    columns,
+    grid,
+    readOnly,
+    inherited,
+    maxHeight,
+    subjectLabel,
+    names,
+    id,
+    size,
+    collection,
+    item,
+    changed,
+    colName,
+    activate,
+    onKeyDown,
+  } = usePermissionMatrix("PermissionMatrixGrid");
+  return (
+    <div
+      data-slot="permission-matrix-grid"
+      {...rest}
+      className={cx("fg-adm-pm-scroll", className)}
+      style={{ maxHeight, ...rest.style }}
+    >
+      <table
+        {...collection.getContainerProps({ onKeyDown })}
+        role="grid"
+        aria-label={label}
+        aria-readonly={readOnly || undefined}
+        aria-rowcount={size.rows}
+        aria-colcount={size.cols}
+        aria-describedby={`${id}-keys`}
+        className="fg-adm-pm-table"
+      >
+        <TableHeader>
+          <TableRow>
+            <TableHead className="fg-adm-pm-corner" scope="col">
+              {subjectLabel}
+            </TableHead>
+            {columns.map((c, i) => {
+              const shared = sharedState(grid, columnCells(c.id, subjects));
               return (
-                <TableRow key={s.id}>
-                  <TableHead
-                    scope="row"
-                    data-r={r + 1}
-                    data-c={0}
-                    aria-label={`${s.name}${s.kind ? `, ${s.kind}` : ""}${readOnly ? "" : ", Enter sets all"}`}
-                    className="fg-adm-pm-rowhead"
-                    {...item(r + 1, 0)}
-                    onClick={() => activate(r + 1, 0)}
-                  >
-                    <span className="fg-adm-pm-rowinner">
-                      <Avatar name={s.name} size={20} />
-                      <span className="fg-adm-pm-name">
-                        <span>{s.name}</span>
-                        {s.hint ? <span className="fg-adm-pm-hint">{s.hint}</span> : null}
-                      </span>
-                      <Mark state={shared} />
-                    </span>
-                  </TableHead>
-                  {columns.map((c, i) => {
-                    const state = permissionAt(grid, s.id, c.id);
-                    const ghost = state === "inherit" ? inherited?.(s.id, c.id) : undefined;
-                    const isChanged = changed.has(`${s.id}\u0000${c.id}`);
-                    return (
-                      <TableCell
-                        key={c.id}
-                        role="gridcell"
-                        data-r={r + 1}
-                        data-c={i + 1}
-                        data-state={state}
-                        data-changed={isChanged || undefined}
-                        aria-readonly={readOnly || undefined}
-                        aria-label={`${s.name}, ${colName(c.id)}: ${names[state]}${
-                          ghost ? ` (${names[ghost].toLowerCase()})` : ""
-                        }${isChanged ? ", unsaved change" : ""}`}
-                        className={cx(
-                          "fg-adm-pm-cell",
-                          isChanged && "fg-adm-pm-changed",
-                          readOnly && "fg-adm-pm-ro",
-                        )}
-                        {...item(r + 1, i + 1)}
-                        onClick={() => activate(r + 1, i + 1)}
-                      >
-                        <Mark state={state} ghost={ghost} />
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
+                <TableHead
+                  key={c.id}
+                  scope="col"
+                  data-r={0}
+                  data-c={i + 1}
+                  aria-label={`${colName(c.id)}, column${readOnly ? "" : ", Enter sets all"}`}
+                  className="fg-adm-pm-colhead"
+                  {...item(0, i + 1)}
+                  onClick={() => activate(0, i + 1)}
+                >
+                  {c.group ? <span className="fg-adm-pm-group">{c.group}</span> : null}
+                  <span className="fg-adm-pm-action">
+                    {c.label}
+                    <Mark state={shared} />
+                  </span>
+                </TableHead>
               );
             })}
-          </TableBody>
-        </table>
-      </div>
-      <p id={`${id}-keys`} className="fg-adm-pm-keys">
-        {readOnly
-          ? "Read only. Arrows move between cells."
-          : "Arrows move. Space or Enter cycles a cell, or sets a whole row or column from its header. A allows, D denies, I inherits."}
-      </p>
-      <div className="fg-adm-pm-summary">
-        <button
-          type="button"
-          className="fg-adm-disclosure"
-          aria-expanded={open}
-          aria-controls={`${id}-summary`}
-          onClick={() => setOpen(!open)}
-        >
-          <Icon icon={open ? ArrowDown01Icon : ArrowRight01Icon} size={12} variant="mono" />
-          Text summary
-        </button>
-        {open ? (
-          <div id={`${id}-summary`} className="fg-adm-pm-summary-body">
-            <ul>
-              {summary.map((x) => (
-                <li key={x.subjectId}>{x.text}</li>
-              ))}
-            </ul>
-            {changes.length ? (
-              <>
-                <p className="fg-adm-pm-summary-title">Unsaved changes</p>
-                <ul>
-                  {changes.map((c) => (
-                    <li key={`${c.subjectId}${c.columnId}`}>
-                      {subjectName(c.subjectId)}, {colName(c.columnId)}:{" "}
-                      {names[c.from].toLowerCase()} to {names[c.to].toLowerCase()}.
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-      <span className="fg-sr" role="status" aria-live="polite">
-        {said}
-      </span>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {subjects.map((s, r) => {
+            const shared = sharedState(grid, rowCells(s.id, columns));
+            return (
+              <TableRow key={s.id}>
+                <TableHead
+                  scope="row"
+                  data-r={r + 1}
+                  data-c={0}
+                  aria-label={`${s.name}${s.kind ? `, ${s.kind}` : ""}${readOnly ? "" : ", Enter sets all"}`}
+                  className="fg-adm-pm-rowhead"
+                  {...item(r + 1, 0)}
+                  onClick={() => activate(r + 1, 0)}
+                >
+                  <span className="fg-adm-pm-rowinner">
+                    <Avatar name={s.name} size={20} />
+                    <span className="fg-adm-pm-name">
+                      <span>{s.name}</span>
+                      {s.hint ? <span className="fg-adm-pm-hint">{s.hint}</span> : null}
+                    </span>
+                    <Mark state={shared} />
+                  </span>
+                </TableHead>
+                {columns.map((c, i) => {
+                  const state = permissionAt(grid, s.id, c.id);
+                  const ghost = state === "inherit" ? inherited?.(s.id, c.id) : undefined;
+                  const isChanged = changed.has(`${s.id}\u0000${c.id}`);
+                  return (
+                    <TableCell
+                      key={c.id}
+                      role="gridcell"
+                      data-r={r + 1}
+                      data-c={i + 1}
+                      data-state={state}
+                      data-changed={isChanged || undefined}
+                      aria-readonly={readOnly || undefined}
+                      aria-label={`${s.name}, ${colName(c.id)}: ${names[state]}${
+                        ghost ? ` (${names[ghost].toLowerCase()})` : ""
+                      }${isChanged ? ", unsaved change" : ""}`}
+                      className={cx(
+                        "fg-adm-pm-cell",
+                        isChanged && "fg-adm-pm-changed",
+                        readOnly && "fg-adm-pm-ro",
+                      )}
+                      {...item(r + 1, i + 1)}
+                      onClick={() => activate(r + 1, i + 1)}
+                    >
+                      <Mark state={state} ghost={ghost} />
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </table>
     </div>
+  );
+}
+
+/** What the keys do, in a sentence; the grid is described by it. */
+export function PermissionMatrixKeys({ className, ...rest }: ComponentProps<"p">) {
+  const { id, readOnly } = usePermissionMatrix("PermissionMatrixKeys");
+  return (
+    <p
+      data-slot="permission-matrix-keys"
+      id={`${id}-keys`}
+      {...rest}
+      className={cx("fg-adm-pm-keys", className)}
+    >
+      {readOnly
+        ? "Read only. Arrows move between cells."
+        : "Arrows move. Space or Enter cycles a cell, or sets a whole row or column from its header. A allows, D denies, I inherits."}
+    </p>
+  );
+}
+
+/** The grid said in words, behind a "Text summary" button. */
+export function PermissionMatrixSummary({ className, ...rest }: ComponentProps<"div">) {
+  const {
+    id,
+    grid,
+    subjects,
+    columns,
+    changes,
+    names,
+    summaryOpen,
+    setSummaryOpen,
+    subjectName,
+    colName,
+  } = usePermissionMatrix("PermissionMatrixSummary");
+  const summary = permissionSummary(grid, subjects, columns);
+  return (
+    <div
+      data-slot="permission-matrix-summary"
+      {...rest}
+      className={cx("fg-adm-pm-summary", className)}
+    >
+      <button
+        type="button"
+        className="fg-adm-disclosure"
+        aria-expanded={summaryOpen}
+        aria-controls={`${id}-summary`}
+        onClick={() => setSummaryOpen(!summaryOpen)}
+      >
+        <Icon icon={summaryOpen ? ArrowDown01Icon : ArrowRight01Icon} size={12} variant="mono" />
+        Text summary
+      </button>
+      {summaryOpen ? (
+        <div id={`${id}-summary`} className="fg-adm-pm-summary-body">
+          <ul>
+            {summary.map((x) => (
+              <li key={x.subjectId}>{x.text}</li>
+            ))}
+          </ul>
+          {changes.length ? (
+            <>
+              <p className="fg-adm-pm-summary-title">Unsaved changes</p>
+              <ul>
+                {changes.map((c) => (
+                  <li key={`${c.subjectId}${c.columnId}`}>
+                    {subjectName(c.subjectId)}, {colName(c.columnId)}: {names[c.from].toLowerCase()}{" "}
+                    to {names[c.to].toLowerCase()}.
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The live line that says what a key changed. */
+export function PermissionMatrixStatus({ className, ...rest }: ComponentProps<"span">) {
+  const { said } = usePermissionMatrix("PermissionMatrixStatus");
+  return (
+    <span
+      data-slot="permission-matrix-status"
+      role="status"
+      aria-live="polite"
+      {...rest}
+      className={cx("fg-sr", className)}
+    >
+      {said}
+    </span>
   );
 }

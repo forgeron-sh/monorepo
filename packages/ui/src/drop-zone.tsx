@@ -30,7 +30,10 @@ export const acceptsFile: (file: { name: string; type: string }, accept?: string
 const hasFiles = (event: DragEvent) =>
   Array.from(event.dataTransfer?.types ?? []).includes("Files");
 
-export interface DropZoneProps {
+export interface DropZoneProps extends Omit<
+  ComponentProps<"div">,
+  "className" | "title" | "children"
+> {
   /** The files dropped or chosen that match `accept`. */
   onFiles: (files: File[]) => void;
   /** The files left out by `accept` or `multiple`: say why. */
@@ -113,9 +116,11 @@ function DropZoneBox({
   children,
   overlayLabel = "Drop to upload",
   className,
+  ...rest
 }: DropZoneProps) {
   return (
     <DropZoneRoot
+      {...rest}
       onDropFiles={onFiles}
       {...(onReject ? { onReject } : {})}
       {...(accept !== undefined ? { accept } : {})}
@@ -216,6 +221,7 @@ function DropZoneRoot({
   return (
     <DropContext.Provider value={state}>
       <div
+        data-slot="drop-zone"
         {...rest}
         {...drag}
         className={cx(
@@ -246,19 +252,34 @@ function DropZoneRoot({
 }
 
 /** The upload icon of the framed zone. */
-export function DropZoneIcon({ className }: { className?: string }) {
-  return <Icon icon={Upload01Icon} size={36} className={cx("fg-dropzone-icon", className)} />;
+export function DropZoneIcon({ className, ...rest }: Omit<ComponentProps<"span">, "children">) {
+  return (
+    <Icon
+      icon={Upload01Icon}
+      size={36}
+      data-slot="drop-zone-icon"
+      {...rest}
+      className={cx("fg-dropzone-icon", className)}
+    />
+  );
 }
 
 /** The big line of the framed zone. */
 export function DropZoneTitle({ className, ...rest }: ComponentProps<"p">) {
-  return <p {...rest} className={cx("fg-dropzone-title", className)} />;
+  return <p data-slot="drop-zone-title" {...rest} className={cx("fg-dropzone-title", className)} />;
 }
 
 /** A line under the title: what is allowed. Describes the button. */
 export function DropZoneDescription({ className, ...rest }: ComponentProps<"p">) {
   const { hintId } = useDropZone();
-  return <p id={hintId} {...rest} className={cx("fg-dropzone-text", className)} />;
+  return (
+    <p
+      id={hintId}
+      data-slot="drop-zone-description"
+      {...rest}
+      className={cx("fg-dropzone-text", className)}
+    />
+  );
 }
 
 export type DropZoneTriggerProps = Omit<ComponentProps<"button">, "onClick" | "className"> & {
@@ -276,6 +297,7 @@ export function DropZoneTrigger({ asChild, children, ...rest }: DropZoneTriggerP
       size="sm"
       disabled={disabled}
       onClick={open}
+      data-slot="drop-zone-trigger"
       {...rest}
       {...(asChild ? { asChild } : {})}
     >
@@ -295,15 +317,18 @@ export function DropZoneTrigger({ asChild, children, ...rest }: DropZoneTriggerP
 export function DropZoneOverlay({
   className,
   children = "Drop to upload",
-}: {
-  className?: string;
-  children?: ReactNode;
-}) {
+  ...rest
+}: Omit<ComponentProps<"div">, "children"> & { children?: ReactNode }) {
   const { active } = useDropZone();
   return (
     <>
       {active ? (
-        <div className={cx("fg-dropzone-overlay", className)} aria-hidden="true">
+        <div
+          data-slot="drop-zone-overlay"
+          {...rest}
+          className={cx("fg-dropzone-overlay", className)}
+          aria-hidden="true"
+        >
           <span>
             <Icon icon={Upload01Icon} size={24} />
             {children}

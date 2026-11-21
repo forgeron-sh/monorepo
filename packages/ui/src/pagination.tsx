@@ -18,6 +18,7 @@ export function Pagination({ className, ...rest }: ComponentProps<"nav">) {
     <nav
       role="navigation"
       aria-label="pagination"
+      data-slot="pagination"
       {...rest}
       className={cx("fg-pagination", className)}
     />
@@ -26,11 +27,17 @@ export function Pagination({ className, ...rest }: ComponentProps<"nav">) {
 
 /** The list of items. */
 export function PaginationContent({ className, ...rest }: ComponentProps<"ul">) {
-  return <ul {...rest} className={cx("fg-pagination-content", className)} />;
+  return (
+    <ul
+      data-slot="pagination-content"
+      {...rest}
+      className={cx("fg-pagination-content", className)}
+    />
+  );
 }
 
 export function PaginationItem(props: ComponentProps<"li">) {
-  return <li {...props} />;
+  return <li data-slot="pagination-item" {...props} />;
 }
 
 export type PaginationLinkProps = ComponentProps<"a"> & {
@@ -60,13 +67,14 @@ export function PaginationLink({
   if (asChild && isValidElement(children)) {
     const child = children as ReactElement<{ className?: string }>;
     return cloneElement(child, {
+      "data-slot": "pagination-link",
       ...props,
       ...child.props,
       className: cx(classes, child.props.className),
     } as Record<string, unknown>);
   }
   return (
-    <a {...props} className={classes}>
+    <a data-slot="pagination-link" {...props} className={classes}>
       {children}
     </a>
   );
@@ -80,6 +88,7 @@ export function PaginationPrevious({ className, text = "Previous", ...rest }: St
     <PaginationLink
       aria-label="Go to previous page"
       size="default"
+      data-slot="pagination-previous"
       {...rest}
       className={cx("fg-pagination-step", className)}
     >
@@ -95,6 +104,7 @@ export function PaginationNext({ className, text = "Next", ...rest }: Step) {
     <PaginationLink
       aria-label="Go to next page"
       size="default"
+      data-slot="pagination-next"
       {...rest}
       className={cx("fg-pagination-step", className)}
     >
@@ -107,7 +117,12 @@ export function PaginationNext({ className, text = "Next", ...rest }: Step) {
 /** Three dots for the pages left out. */
 export function PaginationEllipsis({ className, ...rest }: ComponentProps<"span">) {
   return (
-    <span aria-hidden="true" {...rest} className={cx("fg-pagination-ellipsis", className)}>
+    <span
+      aria-hidden="true"
+      data-slot="pagination-ellipsis"
+      {...rest}
+      className={cx("fg-pagination-ellipsis", className)}
+    >
       …<span className="fg-sr-only">More pages</span>
     </span>
   );

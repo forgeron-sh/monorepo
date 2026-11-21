@@ -24,7 +24,10 @@ export type MenuEntry =
   | { kind: "text"; label: ReactNode }
   | { kind: "separator" };
 
-export interface MenuProps {
+export interface MenuProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className" | "onSelect" | "title"
+> {
   /** What the button shows: a name, an avatar, a chevron. */
   trigger: ReactNode;
   /** Accessible name of the button and of the menu. */
@@ -150,6 +153,7 @@ function MenuPreset({
   placement = "below",
   align = "start",
   className,
+  ...rest
 }: MenuProps) {
   const [open, setOpen] = useState(false);
   const list = useRef<HTMLDivElement>(null);
@@ -164,7 +168,7 @@ function MenuPreset({
   }, [open]);
 
   return (
-    <div className={cx("fg-menu", className)}>
+    <div data-slot="menu" {...rest} className={cx("fg-menu", className)}>
       <DropdownMenu open={open} onOpenChange={(next) => setOpen(next)}>
         <DropdownMenuTrigger className="fg-menu-trigger" aria-label={label}>
           {trigger}

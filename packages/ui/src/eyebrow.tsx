@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { cx } from "./cx";
-import { renderPart } from "./shell-part";
+import { renderPart } from "./part";
 
 export interface EyebrowProps extends Omit<ComponentProps<"span">, "className" | "children"> {
   className?: string;

@@ -5,9 +5,21 @@ import { renderToStaticMarkup as html } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CalendarView,
+  CalendarViewBody,
+  CalendarViewNext,
+  CalendarViewTitle,
+  CalendarViewToday,
+  CalendarViewToolbar,
+  Timeline,
+  TimelineBar,
+  TimelineLabel,
+  TimelineRow,
+  TimelineRows,
+  TimelineScroller,
+  TimelineToolbar,
+  TimelineTrack,
   calendarDays,
   projectFields,
-  Timeline,
   timelinePlace,
   timelineRange,
   type IssueItem,
@@ -353,5 +365,83 @@ describe("views on the records model", () => {
     expect(out).toContain("In Progress");
     expect(out).toContain("Planned");
     expect(out.match(/data-bar=/g)).toHaveLength(2);
+  });
+});
+
+describe("the views blocks in parts", () => {
+  it("composes the CalendarView from its toolbar and the grid", async () => {
+    const records = [{ id: "a", title: "Ship", date: "2026-11-18" }];
+    const { el } = await mount(
+      h(
+        CalendarView<{ id: string; title: string; date: string }>,
+        { records, today: TODAY, className: "mine", "aria-label": "Plan" } as never,
+        h(
+          CalendarViewToolbar,
+          null,
+          h(CalendarViewToday),
+          h(CalendarViewNext),
+          h(CalendarViewTitle, { className: "when" }),
+        ),
+        h(CalendarViewBody, { maxPerDay: 2 }),
+      ),
+    );
+    const root = el.querySelector<HTMLElement>('[data-slot="calendar-view"]')!;
+    expect(root.classList.contains("mine")).toBe(true);
+    expect(root.getAttribute("aria-label")).toBe("Plan");
+    expect(el.querySelector(".when")?.textContent).toBe("November 2026");
+    // The previous arrow was left out.
+    expect(el.querySelector('[aria-label="Previous month"]')).toBeNull();
+    expect(el.querySelector('[data-slot="day-grid"]')).not.toBeNull();
+    expect(el.querySelector('[data-day="2026-11-18"] [data-item="a"]')).not.toBeNull();
+    await act(async () =>
+      el.querySelector<HTMLButtonElement>('[aria-label="Next month"]')!.click(),
+    );
+    expect(el.querySelector(".when")?.textContent).toBe("December 2026");
+  });
+
+  it("composes the Timeline and lets a row be drawn from its parts", async () => {
+    const { el } = await mount(
+      h(
+        Timeline<Project>,
+        { records: projects, today: TODAY, defaultZoom: "weeks" },
+        h(TimelineToolbar),
+        h(
+          TimelineScroller,
+          null,
+          h(
+            "div",
+            null,
+            h(TimelineRows<Project>, {
+              children: (row) =>
+                row.kind === "record"
+                  ? h(
+                      TimelineRow<Project>,
+                      { key: row.key, record: row.record, className: "mine" },
+                      h(TimelineLabel<Project>, { record: row.record }),
+                      h(
+                        TimelineTrack<Project>,
+                        { record: row.record },
+                        h(TimelineBar<Project>, { record: row.record }),
+                      ),
+                    )
+                  : null,
+            }),
+          ),
+        ),
+      ),
+    );
+    expect(el.querySelector('[data-slot="timeline"]')?.classList.contains("fg-tl-weeks")).toBe(
+      true,
+    );
+    expect(el.querySelectorAll(".fg-tl-row.mine")).toHaveLength(3);
+    expect(el.querySelectorAll("[data-bar]")).toHaveLength(3);
+    expect(el.querySelector(".fg-tl-pill")).toBeNull();
+  });
+
+  it("says it is empty in the parts form too, through the shorthand", async () => {
+    const { el } = await mount(
+      h(Timeline<Project>, { records: [], today: TODAY, empty: "Nothing" }),
+    );
+    expect(el.querySelector(".fg-tl-empty")?.textContent).toBe("Nothing");
   });
 });

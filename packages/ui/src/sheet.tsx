@@ -3,7 +3,7 @@
 import { Dialog as Base } from "@base-ui/react/dialog";
 import { Cancel01Icon } from "@forgeron/icons";
 import type { ComponentProps, HTMLAttributes } from "react";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { cx } from "./cx";
 import { Icon } from "./icon";
 
@@ -17,13 +17,27 @@ export function Sheet(props: ComponentProps<typeof Base.Root>) {
 export type SheetTriggerProps = Part<ComponentProps<typeof Base.Trigger>> & { asChild?: boolean };
 
 export function SheetTrigger({ asChild, children, className, ...rest }: SheetTriggerProps) {
-  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Trigger
+      data-slot="sheet-trigger"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export type SheetCloseProps = Part<ComponentProps<typeof Base.Close>> & { asChild?: boolean };
 
 export function SheetClose({ asChild, children, className, ...rest }: SheetCloseProps) {
-  return <Base.Close {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Close
+      data-slot="sheet-close"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export type SheetContentProps = Part<ComponentProps<typeof Base.Popup>> & {
@@ -44,7 +58,12 @@ export function SheetContent({
   return (
     <Base.Portal>
       <Base.Backdrop className="fg-dialog-backdrop" />
-      <Base.Popup {...rest} data-side={side} className={cx("fg-sheet fg-sheet-popup", className)}>
+      <Base.Popup
+        data-slot="sheet-content"
+        {...rest}
+        data-side={side}
+        className={cx("fg-sheet fg-sheet-popup", className)}
+      >
         {children}
         {showCloseButton ? (
           <Base.Close className="fg-dialog-x" aria-label="Close">
@@ -57,20 +76,28 @@ export function SheetContent({
 }
 
 export function SheetHeader({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...rest} className={cx("fg-sheet-header", className)} />;
+  return <div data-slot="sheet-header" {...rest} className={cx("fg-sheet-header", className)} />;
 }
 
 export function SheetFooter({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...rest} className={cx("fg-sheet-foot", className)} />;
+  return <div data-slot="sheet-footer" {...rest} className={cx("fg-sheet-foot", className)} />;
 }
 
 export function SheetTitle({ className, ...rest }: Part<ComponentProps<typeof Base.Title>>) {
-  return <Base.Title {...rest} className={cx("fg-dialog-title", className)} />;
+  return (
+    <Base.Title data-slot="sheet-title" {...rest} className={cx("fg-dialog-title", className)} />
+  );
 }
 
 export function SheetDescription({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Description>>) {
-  return <Base.Description {...rest} className={cx("fg-dialog-desc", className)} />;
+  return (
+    <Base.Description
+      data-slot="sheet-description"
+      {...rest}
+      className={cx("fg-dialog-desc", className)}
+    />
+  );
 }

@@ -19,6 +19,36 @@ import {
   StrokePicker,
   Tour,
   ZoomControls,
+  ZoomControlsIn,
+  ZoomControlsValue,
+  CanvasToolbarTool,
+  CanvasToolbarUndo,
+  CursorPresenceCursor,
+  CursorPresencePointer,
+  CursorPresenceSelection,
+  FillPickerColor,
+  FillPickerType,
+  LayersPanelFold,
+  LayersPanelName,
+  LayersPanelRow,
+  LayersPanelTree,
+  MinimapCanvas,
+  MinimapHandle,
+  MinimapViewport,
+  OnboardingChecklistBody,
+  OnboardingChecklistHeader,
+  OnboardingChecklistList,
+  PinLayerItem,
+  PinLayerThread,
+  PinLayerTrigger,
+  ShortcutsSheetContent,
+  ShortcutsSheetSearch,
+  ShortcutsSheetSections,
+  StrokePickerPreview,
+  StrokePickerWidth,
+  TourBody,
+  TourNext,
+  TourTitle,
   editorBoundsOf,
   editorCenterViewport,
   editorChecklistProgress,
@@ -989,7 +1019,7 @@ describe("Tour", () => {
     const onFinish = vi.fn<(...args: unknown[]) => void>();
     await withTargets({ onStepChange, onFinish });
     const btn = (t: string) =>
-      [...document.querySelectorAll<HTMLElement>(".fg-edt-tour button")].find((b) =>
+      [...document.querySelectorAll<HTMLElement>('[role="dialog"] button')].find((b) =>
         b.textContent?.includes(t),
       )!;
     await click(btn("Next"));
@@ -1022,6 +1052,16 @@ describe("Tour", () => {
     expect(q('[role="dialog"]')!.textContent).toContain("Second");
     await key(q('[role="dialog"]')!, "ArrowLeft");
     expect(q('[role="dialog"]')!.textContent).toContain("First");
+  });
+
+  it("anchors the card to its target in a popover, and a step with none in a dialog", async () => {
+    await withTargets();
+    expect(q(".fg-pop-positioner")?.contains(q('[role="dialog"]'))).toBe(true);
+    expect(q('[role="dialog"]')!.getAttribute("data-side")).not.toBe("center");
+    await key(q('[role="dialog"]')!, "ArrowRight");
+    await key(q('[role="dialog"]')!, "ArrowRight");
+    expect(q(".fg-pop-positioner")).toBeNull();
+    expect(q('[role="dialog"]')!.getAttribute("data-side")).toBe("center");
   });
 
   it("returns the focus to what had it", async () => {
@@ -1117,5 +1157,193 @@ describe("OnboardingChecklist", () => {
       }),
     );
     expect(el.textContent).toContain("Well done");
+  });
+});
+
+describe("editor blocks in parts", () => {
+  const noop = () => {};
+  const fn = () => vi.fn<(...args: unknown[]) => void>();
+
+  it("ZoomControls takes its parts, and keeps more controls after the default bar", async () => {
+    const onZoomChange = fn();
+    const el = await mount(
+      h(ZoomControls, { zoom: 1, onZoomChange }, h(ZoomControlsIn), h(ZoomControlsValue)),
+    );
+    const bar = q("[data-slot='zoom-controls']", el)!;
+    expect(q("[aria-label='Zoom out']", bar)).toBeNull();
+    await click(q("[data-slot='zoom-controls-in']", bar)!);
+    expect(onZoomChange).toHaveBeenCalledWith(1.5);
+    const extra = await mount(
+      h(ZoomControls, { zoom: 1, onZoomChange: noop }, h("i", { className: "more" })),
+    );
+    expect(q("[aria-label='Zoom out']", extra)).not.toBeNull();
+    expect(q(".more", extra)).not.toBeNull();
+  });
+
+  it("CanvasToolbar parts pick tools, undo and keep the context", async () => {
+    const onChange = fn();
+    const onUndo = fn();
+    const tools = [
+      { id: "a", label: "Alpha", icon: Square01Icon },
+      { id: "b", label: "Beta", icon: Square01Icon },
+    ];
+    const el = await mount(
+      h(
+        CanvasToolbar,
+        { label: "Tools", tools, onChange, onUndo, shortcuts: false },
+        h(CanvasToolbarTool, { tool: tools[1]! }),
+        h(CanvasToolbarUndo),
+      ),
+    );
+    expect(el.querySelectorAll("[data-slot='canvas-toolbar-tool']")).toHaveLength(1);
+    await click(q("[data-slot='canvas-toolbar-tool']", el)!);
+    expect(onChange).toHaveBeenCalledWith("b");
+    await click(q("[data-slot='canvas-toolbar-undo']", el)!);
+    expect(onUndo).toHaveBeenCalled();
+    expect(() => html(h(CanvasToolbarUndo))).toThrow(/CanvasToolbar/);
+  });
+
+  it("PinLayer parts open one thread from its trigger", async () => {
+    const pin = { id: "p", x: 10, y: 20, author: "Ana", preview: "Hello" };
+    const onOpenChange = fn();
+    const el = await mount(
+      h(
+        PinLayer,
+        { label: "Comments", pins: [pin], onOpenChange },
+        h(
+          PinLayerItem,
+          { pin },
+          h(PinLayerTrigger),
+          h(PinLayerThread, null, h("p", { className: "mine" }, "Mine")),
+        ),
+      ),
+    );
+    await click(q(".fg-edt-pin", el)!);
+    expect(onOpenChange).toHaveBeenLastCalledWith("p");
+    expect(q(".mine")?.textContent).toBe("Mine");
+  });
+
+  it("CursorPresence parts draw the pointer and the selection of one person", () => {
+    const c = { id: "a", name: "Ana", x: 1, y: 2, selection: { x: 0, y: 0, w: 5, h: 5 } };
+    const out = html(
+      h(
+        CursorPresence,
+        { label: "People", cursors: [c] },
+        h(
+          CursorPresenceCursor,
+          { cursor: c },
+          h(CursorPresenceSelection),
+          h(CursorPresencePointer),
+        ),
+      ),
+    );
+    expect(out).toContain("fg-edt-sel");
+    expect(out).toContain("fg-edt-cursor");
+    expect(out).not.toContain("fg-visually-hidden");
+  });
+
+  it("Minimap parts: no handle without a live map", () => {
+    const vp = { x: 0, y: 0, w: 10, h: 10 };
+    const out = html(
+      h(
+        Minimap,
+        { label: "Map", viewport: vp },
+        h(MinimapCanvas),
+        h(MinimapViewport, null, h(MinimapHandle)),
+      ),
+    );
+    expect(out).toContain("fg-edt-map-frame");
+    expect(out).not.toContain("fg-edt-map-handle");
+    const live = html(
+      h(
+        Minimap,
+        { label: "Map", viewport: vp, onViewportChange: noop },
+        h(MinimapViewport, null, h(MinimapHandle)),
+      ),
+    );
+    expect(live).toContain("fg-edt-map-handle");
+  });
+
+  it("LayersPanel parts draw the rows you choose", async () => {
+    const el = await mount(
+      h(
+        LayersPanel,
+        { label: "Layers", layers: [{ id: "a", name: "Alpha" }] },
+        h(LayersPanelTree, {
+          children: (row: { layer: { id: string } }) =>
+            h(
+              LayersPanelRow,
+              { key: row.layer.id, row: row as never },
+              h(LayersPanelFold),
+              h(LayersPanelName),
+            ),
+        }),
+      ),
+    );
+    expect(q("[data-slot='layers-panel-row']", el)).not.toBeNull();
+    expect(q("[data-slot='layers-panel-name']", el)?.textContent).toBe("Alpha");
+    expect(q("[data-slot='layers-panel-lock']", el)).toBeNull();
+  });
+
+  it("StrokePicker and FillPicker take their parts in the order given", async () => {
+    const stroke = html(
+      h(StrokePicker, { label: "Stroke" }, h(StrokePickerWidth), h(StrokePickerPreview)),
+    );
+    expect(stroke.indexOf("Width")).toBeLessThan(stroke.indexOf("fg-edt-style-preview"));
+    expect(stroke).not.toContain("Ends");
+    const onChange = fn();
+    const el = await mount(
+      h(FillPicker, { label: "Fill", onChange }, h(FillPickerType), h(FillPickerColor)),
+    );
+    expect(q("[aria-label='Fill type']", el)).not.toBeNull();
+    expect(q("[data-slot='fill-picker-patterns']", el)).toBeNull();
+  });
+
+  it("ShortcutsSheet parts: your own title and sections", async () => {
+    await mount(
+      h(
+        ShortcutsSheet,
+        { open: true, actions: [{ id: "u", label: "Undo", shortcut: "mod+z", group: "Edit" }] },
+        h(
+          ShortcutsSheetContent,
+          { title: "Keys" },
+          h(ShortcutsSheetSearch),
+          h(ShortcutsSheetSections),
+        ),
+      ),
+    );
+    expect(q("[data-slot='shortcuts-sheet-content']")?.textContent).toContain("Keys");
+    expect(q("[data-slot='shortcuts-sheet-content']")?.textContent).toContain("Undo");
+  });
+
+  it("OnboardingChecklist parts: header and list without the bar", async () => {
+    const el = await mount(
+      h(
+        OnboardingChecklist,
+        { title: "Go", steps: [{ id: "a", title: "A" }] },
+        h(OnboardingChecklistHeader),
+        h(OnboardingChecklistBody, null, h(OnboardingChecklistList)),
+      ),
+    );
+    expect(q("[data-slot='onboarding-checklist-step']", el)).not.toBeNull();
+    expect(q(".fg-edt-check-bar", el)).toBeNull();
+  });
+
+  it("Tour parts: only the parts given make the card", async () => {
+    const onFinish = fn();
+    await mount(
+      h(
+        Tour,
+        { label: "Tour", open: true, onFinish, steps: [{ id: "s", title: "Hi", body: "Body" }] },
+        h(TourTitle),
+        h(TourBody),
+        h(TourNext),
+      ),
+    );
+    const card = q(".fg-edt-tour-card")!;
+    expect(card.textContent).toContain("Hi");
+    expect(card.querySelector(".fg-edt-tour-dots")).toBeNull();
+    await click([...card.querySelectorAll("button")].find((b) => b.textContent === "Done")!);
+    expect(onFinish).toHaveBeenCalled();
   });
 });

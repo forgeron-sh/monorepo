@@ -7,9 +7,12 @@ import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { cx } from "./cx";
 import { useDisclosure } from "./hooks/use-disclosure";
 import { Icon } from "./icon";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 
-export interface PopoverProps {
+export interface PopoverProps extends Omit<
+  ComponentProps<"div">,
+  "title" | "children" | "className" | "onChange"
+> {
   /** The control that opens it: one element that takes a ref (a Button, an IconButton, a chip). */
   trigger: ReactElement;
   /** Names the panel for assistive technology, and is its heading when `title` is not given. */
@@ -59,6 +62,7 @@ function PopoverPanel({
   showClose,
   modal = false,
   className,
+  ...rest
 }: PopoverProps) {
   const { open, setOpen } = useDisclosure({
     open: openProp,
@@ -71,6 +75,8 @@ function PopoverPanel({
       <Base.Portal>
         <Base.Positioner className="fg-pop-positioner" side={side} align={align} sideOffset={6}>
           <Base.Popup
+            data-slot="popover-content"
+            {...(rest as object)}
             className={cx("fg-pop fg-popover", className)}
             aria-label={title ? undefined : label}
             style={width ? { width, maxWidth: "none" } : undefined}
@@ -121,20 +127,33 @@ function PopoverRoot({ trigger: _trigger, onOpenChange, ...props }: PopoverRootP
 export type PopoverTriggerProps = Part<ComponentProps<typeof Base.Trigger>> & { asChild?: boolean };
 
 export function PopoverTrigger({ asChild, children, className, ...rest }: PopoverTriggerProps) {
-  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Trigger
+      data-slot="popover-trigger"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export type PopoverContentProps = Part<ComponentProps<typeof Base.Popup>> & {
   side?: "top" | "bottom" | "left" | "right";
   align?: "start" | "center" | "end";
   sideOffset?: number;
+  /**
+   * What the panel is placed against instead of its trigger: an element, a ref to one, or a virtual
+   * element (`{ getBoundingClientRect }`), passed to Base UI's Positioner.
+   */
+  anchor?: ComponentProps<typeof Base.Positioner>["anchor"];
 };
 
-/** The panel, in a portal, placed by the trigger. */
+/** The panel, in a portal, placed by the trigger (or by `anchor`). */
 export function PopoverContent({
   side = "bottom",
   align = "center",
   sideOffset = 6,
+  anchor,
   className,
   children,
   ...rest
@@ -146,8 +165,13 @@ export function PopoverContent({
         side={side}
         align={align}
         sideOffset={sideOffset}
+        {...(anchor !== undefined ? { anchor } : {})}
       >
-        <Base.Popup {...rest} className={cx("fg-pop fg-popover", className)}>
+        <Base.Popup
+          data-slot="popover-content"
+          {...rest}
+          className={cx("fg-pop fg-popover", className)}
+        >
           <div className="fg-popover-body">{children}</div>
         </Base.Popup>
       </Base.Positioner>
@@ -155,19 +179,41 @@ export function PopoverContent({
   );
 }
 
+/** The arrow of the panel, pointing at the trigger or the anchor; place it inside `PopoverContent`. */
+export function PopoverArrow({ className, ...rest }: Part<ComponentProps<typeof Base.Arrow>>) {
+  return (
+    <Base.Arrow data-slot="popover-arrow" {...rest} className={cx("fg-popover-arrow", className)} />
+  );
+}
+
 export function PopoverTitle({ className, ...rest }: Part<ComponentProps<typeof Base.Title>>) {
-  return <Base.Title {...rest} className={cx("fg-popover-title", className)} />;
+  return (
+    <Base.Title data-slot="popover-title" {...rest} className={cx("fg-popover-title", className)} />
+  );
 }
 
 export function PopoverDescription({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Description>>) {
-  return <Base.Description {...rest} className={cx("fg-popover-desc", className)} />;
+  return (
+    <Base.Description
+      data-slot="popover-description"
+      {...rest}
+      className={cx("fg-popover-desc", className)}
+    />
+  );
 }
 
 export type PopoverCloseProps = Part<ComponentProps<typeof Base.Close>> & { asChild?: boolean };
 
 export function PopoverClose({ asChild, children, className, ...rest }: PopoverCloseProps) {
-  return <Base.Close {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Close
+      data-slot="popover-close"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }

@@ -7,7 +7,10 @@ export interface TabItem {
   label: ReactNode;
 }
 
-export interface TabsProps {
+export interface TabsProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "children" | "className"
+> {
   label: string;
   tabs: ReadonlyArray<TabItem>;
   value: string;
@@ -26,7 +29,7 @@ export function Tabs(props: TabsProps | TabsRootProps) {
   return props.tabs !== undefined ? <TabBar {...props} /> : <TabsRoot {...props} />;
 }
 
-function TabBar({ label, tabs, value, onChange, children, className }: TabsProps) {
+function TabBar({ label, tabs, value, onChange, children, className, ...rest }: TabsProps) {
   const id = useId();
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const index = tabs.findIndex((t) => t.id === value);
@@ -46,8 +49,14 @@ function TabBar({ label, tabs, value, onChange, children, className }: TabsProps
     event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
   };
   return (
-    <div className={cx("fg-tabs", className)}>
-      <div role="tablist" aria-label={label} className="fg-tablist" onKeyDown={onKeyDown}>
+    <div data-slot="tabs" {...rest} className={cx("fg-tabs", className)}>
+      <div
+        role="tablist"
+        aria-label={label}
+        data-slot="tabs-list"
+        className="fg-tablist"
+        onKeyDown={onKeyDown}
+      >
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -57,6 +66,7 @@ function TabBar({ label, tabs, value, onChange, children, className }: TabsProps
             aria-selected={tab.id === value}
             aria-controls={`${id}-panel`}
             tabIndex={tab.id === value ? 0 : -1}
+            data-slot="tabs-trigger"
             className="fg-tab"
             onClick={() => onChange(tab.id)}
           >
@@ -68,6 +78,7 @@ function TabBar({ label, tabs, value, onChange, children, className }: TabsProps
         role="tabpanel"
         id={`${id}-panel`}
         aria-labelledby={`${id}-${value}`}
+        data-slot="tabs-content"
         className="fg-tabpanel"
       >
         {children}
@@ -87,20 +98,20 @@ export type TabsRootProps = Part<ComponentProps<typeof Base.Root>> & { tabs?: un
 
 /** The root of the composed tabs: `value`, `defaultValue`, `onValueChange`, `orientation`. */
 function TabsRoot({ className, tabs: _tabs, ...rest }: TabsRootProps) {
-  return <Base.Root {...rest} className={cx("fg-tabs", className)} />;
+  return <Base.Root data-slot="tabs" {...rest} className={cx("fg-tabs", className)} />;
 }
 
 /** The row of tabs. Arrows move between them. */
 export function TabsList({ className, ...rest }: Part<ComponentProps<typeof Base.List>>) {
-  return <Base.List {...rest} className={cx("fg-tablist", className)} />;
+  return <Base.List data-slot="tabs-list" {...rest} className={cx("fg-tablist", className)} />;
 }
 
 /** One tab; `value` ties it to its `TabsContent`. */
 export function TabsTrigger({ className, ...rest }: Part<ComponentProps<typeof Base.Tab>>) {
-  return <Base.Tab {...rest} className={cx("fg-tab", className)} />;
+  return <Base.Tab data-slot="tabs-trigger" {...rest} className={cx("fg-tab", className)} />;
 }
 
 /** The panel of the tab with the same `value`. */
 export function TabsContent({ className, ...rest }: Part<ComponentProps<typeof Base.Panel>>) {
-  return <Base.Panel {...rest} className={cx("fg-tabpanel", className)} />;
+  return <Base.Panel data-slot="tabs-content" {...rest} className={cx("fg-tabpanel", className)} />;
 }

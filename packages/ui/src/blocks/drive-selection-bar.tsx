@@ -3,7 +3,7 @@
 // the rest behind ⋯, the destructive one last. The parts are the primitive's (selection-bar.tsx);
 // this is the form built from `actions`.
 
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import type { Action } from "../hooks/use-actions";
 import {
   SelectionBar as Bar,
@@ -13,7 +13,10 @@ import {
   SelectionBarSeparator,
 } from "../selection-bar";
 
-export interface SelectionBarProps {
+export interface SelectionBarProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className" | "onClear" | "ref"
+> {
   /** How many items are selected; the bar is drawn for one or more. */
   count: number;
   /** The way out: the × and Escape. */
@@ -41,9 +44,10 @@ export function SelectionBar({
   iconOnly,
   children,
   className,
+  ...rest
 }: SelectionBarProps) {
   return (
-    <Bar count={count} onClear={onClear} {...(className ? { className } : {})}>
+    <Bar count={count} onClear={onClear} {...rest} {...(className ? { className } : {})}>
       <SelectionBarClear />
       <SelectionBarCount>{children}</SelectionBarCount>
       <SelectionBarSeparator />

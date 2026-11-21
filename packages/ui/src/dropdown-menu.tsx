@@ -4,7 +4,7 @@
 import { Menu as Base } from "@base-ui/react/menu";
 import { ArrowRight01Icon, Tick02Icon } from "@forgeron/icons";
 import type { ComponentProps, HTMLAttributes } from "react";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { cx } from "./cx";
 import { Icon } from "./icon";
 
@@ -25,7 +25,14 @@ export function DropdownMenuTrigger({
   className,
   ...rest
 }: DropdownMenuTriggerProps) {
-  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Trigger
+      data-slot="dropdown-menu-trigger"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export type DropdownMenuContentProps = Part<ComponentProps<typeof Base.Popup>> & {
@@ -50,7 +57,11 @@ export function DropdownMenuContent({
         align={align}
         sideOffset={sideOffset}
       >
-        <Base.Popup {...rest} className={cx("fg-pop fg-pop-list", className)} />
+        <Base.Popup
+          data-slot="dropdown-menu-content"
+          {...rest}
+          className={cx("fg-pop fg-pop-list", className)}
+        />
       </Base.Positioner>
     </Base.Portal>
   );
@@ -71,6 +82,7 @@ export function DropdownMenuItem({
 }: DropdownMenuItemProps) {
   return (
     <Base.Item
+      data-slot="dropdown-menu-item"
       {...rest}
       className={cx(
         "fg-pop-row",
@@ -83,7 +95,7 @@ export function DropdownMenuItem({
 }
 
 export function DropdownMenuGroup({ className, ...rest }: Part<ComponentProps<typeof Base.Group>>) {
-  return <Base.Group {...rest} className={className} />;
+  return <Base.Group data-slot="dropdown-menu-group" {...rest} className={className} />;
 }
 
 /** A heading in the menu; not an item. */
@@ -92,16 +104,31 @@ export function DropdownMenuLabel({
   className,
   ...rest
 }: HTMLAttributes<HTMLDivElement> & { inset?: boolean }) {
-  return <div {...rest} className={cx("fg-pop-heading", inset && "fg-pop-inset", className)} />;
+  return (
+    <div
+      data-slot="dropdown-menu-label"
+      {...rest}
+      className={cx("fg-pop-heading", inset && "fg-pop-inset", className)}
+    />
+  );
 }
 
 export function DropdownMenuSeparator({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div role="separator" {...rest} className={cx("fg-pop-sep", className)} />;
+  return (
+    <div
+      role="separator"
+      data-slot="dropdown-menu-separator"
+      {...rest}
+      className={cx("fg-pop-sep", className)}
+    />
+  );
 }
 
 /** A shortcut on the right of an item, e.g. ⌘K. */
 export function DropdownMenuShortcut({ className, ...rest }: HTMLAttributes<HTMLSpanElement>) {
-  return <span {...rest} className={cx("fg-pop-hint", className)} />;
+  return (
+    <span data-slot="dropdown-menu-shortcut" {...rest} className={cx("fg-pop-hint", className)} />
+  );
 }
 
 export function DropdownMenuCheckboxItem({
@@ -110,7 +137,11 @@ export function DropdownMenuCheckboxItem({
   ...rest
 }: Part<ComponentProps<typeof Base.CheckboxItem>>) {
   return (
-    <Base.CheckboxItem {...rest} className={cx("fg-pop-row fg-pop-inset", className)}>
+    <Base.CheckboxItem
+      data-slot="dropdown-menu-checkbox-item"
+      {...rest}
+      className={cx("fg-pop-row fg-pop-inset", className)}
+    >
       <Base.CheckboxItemIndicator className="fg-pop-tick fg-pop-mark">
         <Icon icon={Tick02Icon} size={12} variant="mono" />
       </Base.CheckboxItemIndicator>
@@ -120,7 +151,7 @@ export function DropdownMenuCheckboxItem({
 }
 
 export function DropdownMenuRadioGroup(props: ComponentProps<typeof Base.RadioGroup>) {
-  return <Base.RadioGroup {...props} />;
+  return <Base.RadioGroup data-slot="dropdown-menu-radio-group" {...props} />;
 }
 
 export function DropdownMenuRadioItem({
@@ -129,7 +160,11 @@ export function DropdownMenuRadioItem({
   ...rest
 }: Part<ComponentProps<typeof Base.RadioItem>>) {
   return (
-    <Base.RadioItem {...rest} className={cx("fg-pop-row fg-pop-inset", className)}>
+    <Base.RadioItem
+      data-slot="dropdown-menu-radio-item"
+      {...rest}
+      className={cx("fg-pop-row fg-pop-inset", className)}
+    >
       <Base.RadioItemIndicator className="fg-pop-tick fg-pop-mark">
         <Icon icon={Tick02Icon} size={12} variant="mono" />
       </Base.RadioItemIndicator>
@@ -150,7 +185,11 @@ export function DropdownMenuSubTrigger({
   ...rest
 }: Part<ComponentProps<typeof Base.SubmenuTrigger>> & { inset?: boolean }) {
   return (
-    <Base.SubmenuTrigger {...rest} className={cx("fg-pop-row", inset && "fg-pop-inset", className)}>
+    <Base.SubmenuTrigger
+      data-slot="dropdown-menu-sub-trigger"
+      {...rest}
+      className={cx("fg-pop-row", inset && "fg-pop-inset", className)}
+    >
       <span className="fg-pop-label">{children}</span>
       <Icon icon={ArrowRight01Icon} size={12} variant="mono" />
     </Base.SubmenuTrigger>
@@ -164,7 +203,11 @@ export function DropdownMenuSubContent({
   return (
     <Base.Portal>
       <Base.Positioner className="fg-pop-positioner" sideOffset={2} alignOffset={-5}>
-        <Base.Popup {...rest} className={cx("fg-pop fg-pop-list", className)} />
+        <Base.Popup
+          data-slot="dropdown-menu-sub-content"
+          {...rest}
+          className={cx("fg-pop fg-pop-list", className)}
+        />
       </Base.Positioner>
     </Base.Portal>
   );

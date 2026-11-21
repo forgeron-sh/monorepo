@@ -16,7 +16,7 @@ import {
   TableIcon,
   TextAlignLeftIcon,
 } from "@forgeron/icons";
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 import { cx } from "../cx";
 import { formatBytes, formatWhen } from "../format";
 import { Icon } from "../icon";
@@ -118,7 +118,7 @@ export function readDriveDrop(dt: DataTransfer | null): DriveDrop {
   return { ids, files: Array.from(dt.files ?? []) };
 }
 
-export interface FileTypeMarkProps {
+export interface FileTypeMarkProps extends Omit<ComponentProps<"span">, "className" | "style"> {
   /** The kind, for the icon and the colour; `fileKindOf(name)` finds it from a name. */
   kind: FileKind;
   /** Another icon in place of the kind's: a team drive, an app's folder. */
@@ -130,6 +130,7 @@ export interface FileTypeMarkProps {
   /** Names the mark when it stands without the file's name; decorative otherwise. */
   label?: string;
   className?: string;
+  style?: CSSProperties;
 }
 
 /** The square mark of a file's kind: its pixel icon in its colour, framed. */
@@ -140,15 +141,19 @@ export function FileTypeMark({
   size = "sm",
   label,
   className,
+  style,
+  ...rest
 }: FileTypeMarkProps) {
   const info = FILE_KINDS[kind];
   const px = size === "xl" ? 36 : size === "lg" ? 24 : 12;
   return (
     <span
-      className={cx("fg-ftype", size !== "sm" && `fg-ftype-${size}`, className)}
-      style={{ "--fg-ftype-tone": tone ?? info.tone } as CSSProperties}
+      data-slot="file-type-mark"
       title={info.label}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
+      {...rest}
+      className={cx("fg-ftype", size !== "sm" && `fg-ftype-${size}`, className)}
+      style={{ "--fg-ftype-tone": tone ?? info.tone, ...style } as CSSProperties}
     >
       <Icon icon={icon ?? info.icon} size={px} variant="mono" />
     </span>
@@ -172,7 +177,8 @@ export function BlockBar({
   runs,
   cells = 30,
   className,
-}: {
+  ...rest
+}: Omit<ComponentProps<"span">, "className"> & {
   runs: ReadonlyArray<BlockRun>;
   cells?: number;
   className?: string;
@@ -186,7 +192,12 @@ export function BlockBar({
   }
   while (tones.length < cells) tones.push(null);
   return (
-    <span className={cx("fg-blockbar", className)} aria-hidden="true">
+    <span
+      data-slot="block-bar"
+      aria-hidden="true"
+      {...rest}
+      className={cx("fg-blockbar", className)}
+    >
       {tones.map((tone, i) => (
         <i key={i} className={tone ? `fg-blockbar-${tone}` : undefined} />
       ))}

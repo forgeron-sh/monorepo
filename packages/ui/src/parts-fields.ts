@@ -131,3 +131,7 @@ export {
 export type { ComposerSend, ComposerTrigger, RichComposerProps } from "./composer";
 export { conversationCaretPosition, MentionPicker, mentionOptionId } from "./mention-picker";
 export type { MentionPickerProps } from "./mention-picker";
+export { SegmentedItem } from "./controls";
+export type { SegmentedItemProps, SegmentedRootProps } from "./controls";
+export { MentionPickerEmpty, MentionPickerItem, MentionPickerList } from "./mention-picker";
+export type { MentionPickerItemProps, MentionPickerRootProps } from "./mention-picker";

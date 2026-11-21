@@ -4,6 +4,13 @@ import { Radio as BaseRadio } from "@base-ui/react/radio";
 import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
 import { Switch as BaseSwitch } from "@base-ui/react/switch";
 import { cx } from "./cx";
+import { useControllableState } from "./hooks/use-controllable";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+  type ToggleGroupItemProps,
+  type ToggleGroupProps,
+} from "./toggle-group";
 
 export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "role"> {
   label: ReactNode;
@@ -168,7 +175,17 @@ export interface SegmentedOption {
   ariaLabel?: string;
 }
 
-export interface SegmentedProps {
+export interface SegmentedProps extends Omit<
+  SegmentedRootProps,
+  | "options"
+  | "label"
+  | "value"
+  | "defaultValue"
+  | "onChange"
+  | "iconOnly"
+  | "className"
+  | "children"
+> {
   /** Names the group for assistive technology, e.g. "View". */
   label: string;
   options: ReadonlyArray<SegmentedOption>;
@@ -179,33 +196,106 @@ export interface SegmentedProps {
   className?: string;
 }
 
-/** A switch between a few views or modes of the same thing: the chosen segment is filled in ink. */
-export function Segmented({
+/** `options` stays undefined: with options, `Segmented` is the props-driven one. */
+export type SegmentedRootProps = Omit<
+  ToggleGroupProps,
+  | "value"
+  | "defaultValue"
+  | "onValueChange"
+  | "onChange"
+  | "multiple"
+  | "type"
+  | "variant"
+  | "size"
+  | "label"
+> & {
+  options?: undefined;
+  /** Names the group for assistive technology. */
+  label?: string;
+  /** The chosen segment's `value`. */
+  value?: string;
+  defaultValue?: string;
+  onChange?: (value: string) => void;
+  iconOnly?: boolean;
+};
+
+/**
+ * A switch between a few views or modes of the same thing: the chosen segment is filled in ink.
+ * With `options`, the props-driven one; without, the root of `SegmentedItem` parts. Both are a
+ * single-selection `ToggleGroup`, so the arrow keys move between the segments.
+ */
+export function Segmented(props: SegmentedProps | SegmentedRootProps) {
+  return props.options !== undefined ? (
+    <SegmentedOptions {...(props as SegmentedProps)} />
+  ) : (
+    <SegmentedRoot {...(props as SegmentedRootProps)} />
+  );
+}
+
+function SegmentedRoot({
+  options: _options,
+  label,
+  value,
+  defaultValue,
+  onChange,
+  iconOnly,
+  className,
+  ...rest
+}: SegmentedRootProps) {
+  const [chosen, setChosen] = useControllableState({
+    value,
+    defaultValue: defaultValue ?? "",
+    onChange,
+  });
+  return (
+    <ToggleGroup
+      data-slot="segmented"
+      aria-label={label}
+      {...rest}
+      value={chosen === "" ? [] : [chosen]}
+      // Pressing the chosen segment again keeps it chosen: a segmented control always has one.
+      onValueChange={(next) => next[0] !== undefined && setChosen(next[0])}
+      className={cx("fg-seg", iconOnly && "fg-seg-icons", className)}
+    />
+  );
+}
+
+export type SegmentedItemProps = ToggleGroupItemProps;
+
+/** One segment of a composed `Segmented`; `value` is required. */
+export function SegmentedItem({ className, ...rest }: SegmentedItemProps) {
+  return (
+    <ToggleGroupItem
+      data-slot="segmented-item"
+      {...rest}
+      className={cx("fg-seg-item", className)}
+    />
+  );
+}
+
+function SegmentedOptions({
   label,
   options,
   value,
   onChange,
   iconOnly,
   className,
+  ...rest
 }: SegmentedProps) {
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className={cx("fg-seg", iconOnly && "fg-seg-icons", className)}
+    <SegmentedRoot
+      {...rest}
+      label={label}
+      value={value}
+      onChange={onChange}
+      iconOnly={iconOnly}
+      className={className}
     >
       {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          className="fg-seg-item"
-          aria-pressed={o.value === value}
-          aria-label={o.ariaLabel}
-          onClick={() => onChange(o.value)}
-        >
+        <SegmentedItem key={o.value} value={o.value} aria-label={o.ariaLabel}>
           {o.label}
-        </button>
+        </SegmentedItem>
       ))}
-    </div>
+    </SegmentedRoot>
   );
 }

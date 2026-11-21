@@ -298,6 +298,22 @@
 .fg-cmd-prompt {
   color: var(--accent);
 }
+.fg-cmd-copy {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  height: 24px;
+  border: var(--border-width) solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-muted);
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.fg-cmd-copy:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
 
 /* Icon */
 .fg-icon {
@@ -822,44 +838,32 @@
   outline-offset: var(--focus-offset);
 }
 
-/* Segmented: a row of mono segments; the chosen one is filled in ink. */
+/* Segmented: a row of mono segments; the chosen one is filled in ink. A ToggleGroup (parts-forms.css)
+   dressed with these rules. */
 .fg-seg {
   display: inline-flex;
   border: var(--border-width) solid var(--line-strong);
   background: var(--bg);
 }
-.fg-seg-item {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.fg-toggle.fg-seg-item {
   gap: 6px;
   height: 30px;
+  min-width: 0;
   padding: 0 var(--space-3);
   border: 0;
-  border-radius: var(--radius-none);
-  background: transparent;
-  color: var(--ink-muted);
-  font: 400 11px/1 var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  cursor: pointer;
+  font-size: 11px;
 }
 .fg-seg-item + .fg-seg-item {
   border-left: var(--border-width) solid var(--line-strong);
 }
-.fg-seg-item:hover:not([aria-pressed="true"]) {
+.fg-toggle.fg-seg-item:hover:not([data-pressed]):not([data-disabled]) {
+  background: transparent;
   color: var(--ink);
 }
-.fg-seg-item[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--bg);
-}
 .fg-seg-item:focus-visible {
-  outline: var(--focus-width) solid var(--focus);
   outline-offset: -4px;
 }
-.fg-seg-icons .fg-seg-item {
+.fg-seg-icons .fg-toggle.fg-seg-item {
   width: 30px;
   padding: 0;
 }
@@ -1000,8 +1004,8 @@
   cursor: not-allowed;
 }
 
-/* Icon button: one pixel icon in a square, framed on hover (ghost) or always (boxed). */
-.fg-iconbtn {
+/* Icon button: a Button (ghost, icon) with one pixel icon in a square, framed on hover (ghost) or always (boxed). */
+.fg-btn.fg-iconbtn {
   display: inline-grid;
   flex: none;
   place-items: center;
@@ -1017,27 +1021,28 @@
     border-color var(--motion-fast),
     color var(--motion-fast);
 }
-.fg-iconbtn:hover {
+.fg-btn.fg-iconbtn:hover {
+  background: transparent;
   border-color: var(--line-strong);
   color: var(--ink);
 }
-.fg-iconbtn-boxed {
+.fg-btn.fg-iconbtn-boxed {
   border-color: var(--line-strong);
   color: var(--ink);
 }
-.fg-iconbtn-boxed:hover {
+.fg-btn.fg-iconbtn-boxed:hover {
   border-color: var(--ink);
 }
-.fg-iconbtn-sm {
+.fg-btn.fg-iconbtn-sm {
   width: 24px;
   height: 24px;
 }
-.fg-iconbtn:disabled {
+.fg-btn.fg-iconbtn:disabled {
   cursor: not-allowed;
   color: var(--ink-dim);
   border-color: transparent;
 }
-.fg-iconbtn[data-popup-open] {
+.fg-btn.fg-iconbtn[data-popup-open] {
   border-color: var(--line-strong);
   color: var(--ink);
 }
@@ -1093,25 +1098,11 @@
   line-height: 1;
 }
 
-/* Search box */
-.fg-search {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+/* Search box: an InputGroup (parts-input-group.css) one line high, the query bare inside. */
+.fg-input-group.fg-search {
+  flex-wrap: nowrap;
   height: 32px;
   padding: 0 var(--space-2) 0 var(--space-3);
-  border: var(--border-width) solid var(--line-strong);
-  background: var(--bg-sunk);
-  color: var(--ink-dim);
-  transition: border-color var(--motion-fast);
-}
-.fg-search:hover {
-  border-color: var(--ink-dim);
-}
-.fg-search:focus-within {
-  border-color: var(--ink-muted);
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: var(--focus-offset);
 }
 .fg-search-input {
   flex: 1;

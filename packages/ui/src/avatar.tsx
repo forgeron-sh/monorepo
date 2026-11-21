@@ -2,10 +2,13 @@
 // (`Avatar`, `AvatarImage`, `AvatarFallback`, Base UI) when there is no `name`, D-156.
 
 import { Avatar as Base } from "@base-ui/react/avatar";
-import type { ComponentProps } from "react";
+import type { ComponentProps, HTMLAttributes } from "react";
 import { cx } from "./cx";
 
-export interface AvatarProps {
+export interface AvatarProps extends Omit<
+  HTMLAttributes<HTMLSpanElement>,
+  "className" | "children"
+> {
   /** The person's name or email; the initials come from it. */
   name: string;
   size?: number;
@@ -43,12 +46,14 @@ export function Avatar(props: AvatarProps | AvatarRootProps) {
   );
 }
 
-function AvatarInitials({ name, size = 24, className, src }: AvatarProps) {
+function AvatarInitials({ name, size = 24, className, src, style, ...rest }: AvatarProps) {
   return (
     <span
       aria-hidden="true"
+      data-slot="avatar"
+      {...rest}
       className={cx("fg-avatar", className)}
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.42), ...style }}
     >
       {src ? <img src={src} alt="" width={size} height={size} /> : initials(name)}
     </span>
@@ -60,15 +65,24 @@ function AvatarRoot({ size = "default", className, ...rest }: AvatarRootProps) {
     <Base.Root
       data-size={size}
       className={cx("fg-avatar", "fg-avatar-part", className)}
+      data-slot="avatar"
       {...rest}
     />
   );
 }
 
 export function AvatarImage({ className, ...rest }: Part<ComponentProps<typeof Base.Image>>) {
-  return <Base.Image className={cx("fg-avatar-image", className)} {...rest} />;
+  return (
+    <Base.Image className={cx("fg-avatar-image", className)} data-slot="avatar-image" {...rest} />
+  );
 }
 
 export function AvatarFallback({ className, ...rest }: Part<ComponentProps<typeof Base.Fallback>>) {
-  return <Base.Fallback className={cx("fg-avatar-fallback", className)} {...rest} />;
+  return (
+    <Base.Fallback
+      className={cx("fg-avatar-fallback", className)}
+      data-slot="avatar-fallback"
+      {...rest}
+    />
+  );
 }

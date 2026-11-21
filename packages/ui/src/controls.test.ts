@@ -1,7 +1,11 @@
 import { createElement as h } from "react";
-import { renderToStaticMarkup as html } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Kbd, Progress, RadioGroup, Segmented, Separator, Switch } from "./index";
+
+// The markup these cases pin, without the shadcn `data-slot` names (data-slot.test.ts checks them).
+const html = (...args: Parameters<typeof renderToStaticMarkup>) =>
+  renderToStaticMarkup(...args).replace(/ data-slot="[^"]*"/g, "");
 
 describe("Switch", () => {
   it("is a checkbox with the switch role, inside its label", () => {
@@ -45,9 +49,9 @@ describe("Segmented", () => {
         ],
       }),
     );
-    expect(out).toMatch(/^<div role="group" aria-label="View" class="fg-seg">/);
-    expect(out).toContain('aria-pressed="false">List</button>');
-    expect(out).toContain('aria-pressed="true">Board</button>');
+    expect(out).toMatch(/^<div[^>]*role="group"[^>]*aria-label="View"[^>]*class="[^"]*fg-seg"/);
+    expect(out).toMatch(/aria-pressed="false"[^>]*>List<\/button>/);
+    expect(out).toMatch(/aria-pressed="true"[^>]*>Board<\/button>/);
   });
 });
 

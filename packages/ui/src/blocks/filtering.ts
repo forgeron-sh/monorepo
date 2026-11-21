@@ -23,8 +23,39 @@ export type {
   DisplaySelectProps,
   LayoutSwitchProps,
 } from "./filtering-display-menu";
-export { FilterBar, FilterMenu } from "./filtering-filter-bar";
-export type { FilterBarProps, FilterMenuProps } from "./filtering-filter-bar";
+export {
+  FilterBar,
+  FilterBarAdd,
+  FilterBarChips,
+  FilterBarClear,
+  FilterBarGap,
+  FilterChip,
+  FilterChipField,
+  FilterChipOperator,
+  FilterChipRemove,
+  FilterChipValues,
+  FilterMenu,
+  FilterMenuContent,
+  FilterMenuTrigger,
+  useFilterMenu,
+} from "./filtering-filter-bar";
+export type {
+  FilterBarProps,
+  FilterChipProps,
+  FilterMenuProps,
+  FilterMenuTriggerProps,
+} from "./filtering-filter-bar";
+export {
+  FieldList,
+  FieldListEmpty,
+  FieldListInput,
+  FieldListItems,
+  ValueList,
+  ValueListEmpty,
+  ValueListInput,
+  ValueListItems,
+} from "./filtering-picker";
+export type { FieldListProps, ValueListProps } from "./filtering-picker";
 export {
   matchesFilters,
   operatorText,
@@ -33,5 +64,19 @@ export {
   toggleFilterValue,
 } from "./filtering-model";
 export type { Filter, FilterField, FilterOperator, FilterOption } from "./filtering-model";
-export { ViewHeader } from "./filtering-view-header";
-export type { ViewHeaderProps, ViewTab } from "./filtering-view-header";
+export {
+  ViewHeader,
+  ViewHeaderActions,
+  ViewHeaderBar,
+  ViewHeaderCount,
+  ViewHeaderName,
+  ViewHeaderTab,
+  ViewHeaderTabs,
+  ViewHeaderTitle,
+} from "./filtering-view-header";
+export type {
+  ViewHeaderProps,
+  ViewHeaderRootProps,
+  ViewHeaderTabProps,
+  ViewTab,
+} from "./filtering-view-header";

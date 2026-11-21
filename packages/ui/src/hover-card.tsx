@@ -3,7 +3,7 @@
 
 import { PreviewCard as Base } from "@base-ui/react/preview-card";
 import { createContext, useContext, type ComponentProps } from "react";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { cx } from "./cx";
 
 type Part<T> = Omit<T, "className"> & { className?: string };
@@ -44,6 +44,7 @@ export function HoverCardTrigger({ asChild, children, className, ...rest }: Hove
     <Base.Trigger
       delay={openDelay ?? 700}
       closeDelay={closeDelay ?? 300}
+      data-slot="hover-card-trigger"
       {...rest}
       className={className}
       {...asChildProps(asChild, children)}
@@ -73,7 +74,11 @@ export function HoverCardContent({
         align={align}
         sideOffset={sideOffset}
       >
-        <Base.Popup {...rest} className={cx("fg-pop fg-hover-card", className)} />
+        <Base.Popup
+          data-slot="hover-card-content"
+          {...rest}
+          className={cx("fg-pop fg-hover-card", className)}
+        />
       </Base.Positioner>
     </Base.Portal>
   );

@@ -15,7 +15,7 @@ import {
 import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
 import { IconButton } from "./identity";
-import { hasPart, renderPart, type Part } from "./shell-part";
+import { hasPart, renderPart, type Part } from "./part";
 
 /* ------------------------------------------------------------------------------------ Nav */
 
@@ -94,7 +94,11 @@ function NavRoot({
   onNavigate: _onNavigate,
   ...rest
 }: NavRootProps) {
-  return renderPart("nav", cx("fg-nav", className), asChild, { ...rest, "aria-label": label });
+  return renderPart("nav", cx("fg-nav", className), asChild, {
+    "data-slot": "nav",
+    ...rest,
+    "aria-label": label,
+  });
 }
 
 export interface NavHeadingProps extends Part<ComponentProps<"p">> {
@@ -102,21 +106,27 @@ export interface NavHeadingProps extends Part<ComponentProps<"p">> {
 }
 /** A small title above a list. */
 export function NavHeading({ asChild, className, ...rest }: NavHeadingProps) {
-  return renderPart("p", cx("fg-nav-heading", className), asChild, rest);
+  return renderPart("p", cx("fg-nav-heading", className), asChild, {
+    "data-slot": "nav-heading",
+    ...rest,
+  });
 }
 
 export interface NavListProps extends Part<ComponentProps<"ul">> {
   asChild?: boolean;
 }
 export function NavList({ asChild, className, ...rest }: NavListProps) {
-  return renderPart("ul", cx("fg-nav-list", className), asChild, rest);
+  return renderPart("ul", cx("fg-nav-list", className), asChild, {
+    "data-slot": "nav-list",
+    ...rest,
+  });
 }
 
 export interface NavListItemProps extends Part<ComponentProps<"li">> {
   asChild?: boolean;
 }
 export function NavListItem({ asChild, className, ...rest }: NavListItemProps) {
-  return renderPart("li", className, asChild, rest);
+  return renderPart("li", className, asChild, { "data-slot": "nav-list-item", ...rest });
 }
 
 export interface NavLinkProps extends Part<ComponentProps<"a">> {
@@ -137,6 +147,7 @@ export function NavLink({
   ...rest
 }: NavLinkProps) {
   return renderPart("a", cx("fg-nav-link", className), asChild, {
+    "data-slot": "nav-link",
     ...rest,
     href,
     "aria-current": current ? "page" : rest["aria-current"],
@@ -154,14 +165,23 @@ export interface NavLabelProps extends Part<ComponentProps<"span">> {
 }
 /** The text of a link, with its icon before it. */
 export function NavLabel({ asChild, className, ...rest }: NavLabelProps) {
-  return renderPart("span", cx("fg-nav-label", className), asChild, rest);
+  return renderPart("span", cx("fg-nav-label", className), asChild, {
+    "data-slot": "nav-label",
+    ...rest,
+  });
 }
 export function NavIcon({ asChild, className, ...rest }: NavLabelProps) {
-  return renderPart("span", cx("fg-nav-icon", className), asChild, rest);
+  return renderPart("span", cx("fg-nav-icon", className), asChild, {
+    "data-slot": "nav-icon",
+    ...rest,
+  });
 }
 /** A count or a state at the end of a link. */
 export function NavBadge({ asChild, className, ...rest }: NavLabelProps) {
-  return renderPart("span", cx("fg-nav-badge", className), asChild, rest);
+  return renderPart("span", cx("fg-nav-badge", className), asChild, {
+    "data-slot": "nav-badge",
+    ...rest,
+  });
 }
 
 /* --------------------------------------------------------------------------------- Sidebar */
@@ -228,7 +248,12 @@ export function Sidebar({ header, footer, className, children, ...rest }: Sideba
   const { open } = useSidebar();
   const parts = hasPart(children, [SidebarHeader, SidebarContent, SidebarFooter]);
   return (
-    <div {...rest} className={cx("fg-sidebar", className)} data-state={open ? "open" : "collapsed"}>
+    <div
+      data-slot="sidebar"
+      {...rest}
+      className={cx("fg-sidebar", className)}
+      data-state={open ? "open" : "collapsed"}
+    >
       {header ? <SidebarHeader>{header}</SidebarHeader> : null}
       {parts ? children : <SidebarContent>{children}</SidebarContent>}
       {footer ? <SidebarFooter>{footer}</SidebarFooter> : null}
@@ -242,41 +267,63 @@ interface AsChild {
 
 export interface SidebarHeaderProps extends Part<ComponentProps<"div">>, AsChild {}
 export function SidebarHeader({ asChild, className, ...rest }: SidebarHeaderProps) {
-  return renderPart("div", cx("fg-sidebar-head", className), asChild, rest);
+  return renderPart("div", cx("fg-sidebar-head", className), asChild, {
+    "data-slot": "sidebar-header",
+    ...rest,
+  });
 }
 export function SidebarContent({ asChild, className, ...rest }: SidebarHeaderProps) {
-  return renderPart("div", cx("fg-sidebar-body", className), asChild, rest);
+  return renderPart("div", cx("fg-sidebar-body", className), asChild, {
+    "data-slot": "sidebar-content",
+    ...rest,
+  });
 }
 export function SidebarFooter({ asChild, className, ...rest }: SidebarHeaderProps) {
-  return renderPart("div", cx("fg-sidebar-foot", className), asChild, rest);
+  return renderPart("div", cx("fg-sidebar-foot", className), asChild, {
+    "data-slot": "sidebar-footer",
+    ...rest,
+  });
 }
 /** A rule between two groups. */
 export function SidebarSeparator({ className, ...rest }: Part<ComponentProps<"hr">>) {
-  return <hr {...rest} className={cx("fg-sidebar-sep", className)} />;
+  return <hr data-slot="sidebar-separator" {...rest} className={cx("fg-sidebar-sep", className)} />;
 }
 
 /** A group of the body: a label and a menu. */
 export function SidebarGroup({ asChild, className, ...rest }: SidebarHeaderProps) {
   return renderPart("div", cx("fg-sidebar-group", className), asChild, {
     role: "group",
+    "data-slot": "sidebar-group",
     ...rest,
   });
 }
 export interface SidebarGroupLabelProps extends Part<ComponentProps<"p">>, AsChild {}
 export function SidebarGroupLabel({ asChild, className, ...rest }: SidebarGroupLabelProps) {
-  return renderPart("p", cx("fg-sidebar-group-label", className), asChild, rest);
+  return renderPart("p", cx("fg-sidebar-group-label", className), asChild, {
+    "data-slot": "sidebar-group-label",
+    ...rest,
+  });
 }
 export function SidebarGroupContent({ asChild, className, ...rest }: SidebarHeaderProps) {
-  return renderPart("div", cx("fg-sidebar-group-content", className), asChild, rest);
+  return renderPart("div", cx("fg-sidebar-group-content", className), asChild, {
+    "data-slot": "sidebar-group-content",
+    ...rest,
+  });
 }
 
 export interface SidebarMenuProps extends Part<ComponentProps<"ul">>, AsChild {}
 export function SidebarMenu({ asChild, className, ...rest }: SidebarMenuProps) {
-  return renderPart("ul", cx("fg-sidebar-menu", className), asChild, rest);
+  return renderPart("ul", cx("fg-sidebar-menu", className), asChild, {
+    "data-slot": "sidebar-menu",
+    ...rest,
+  });
 }
 export interface SidebarMenuItemProps extends Part<ComponentProps<"li">>, AsChild {}
 export function SidebarMenuItem({ asChild, className, ...rest }: SidebarMenuItemProps) {
-  return renderPart("li", cx("fg-sidebar-item", className), asChild, rest);
+  return renderPart("li", cx("fg-sidebar-item", className), asChild, {
+    "data-slot": "sidebar-menu-item",
+    ...rest,
+  });
 }
 
 export interface SidebarMenuButtonProps extends Part<ComponentProps<"button">> {
@@ -295,6 +342,7 @@ export function SidebarMenuButton({
 }: SidebarMenuButtonProps) {
   return renderPart("button", cx("fg-sidebar-btn", className), asChild, {
     ...(asChild ? {} : { type: type ?? "button" }),
+    "data-slot": "sidebar-menu-button",
     ...rest,
     "aria-current": isActive ? "page" : rest["aria-current"],
     "data-active": isActive ? "" : undefined,
@@ -306,7 +354,10 @@ export function SidebarMenuBadge({
   className,
   ...rest
 }: Part<ComponentProps<"span">> & AsChild) {
-  return renderPart("span", cx("fg-nav-badge", className), asChild, rest);
+  return renderPart("span", cx("fg-nav-badge", className), asChild, {
+    "data-slot": "sidebar-menu-badge",
+    ...rest,
+  });
 }
 
 export interface SidebarTriggerProps extends Omit<
@@ -324,6 +375,7 @@ export function SidebarTrigger({
   const { open, toggle } = useSidebar();
   return (
     <IconButton
+      data-slot="sidebar-trigger"
       {...(rest as object)}
       icon={open ? Cancel01Icon : Menu01Icon}
       label={label}
@@ -426,6 +478,7 @@ function AppShellRoot({
   return (
     <ShellContext value={{ menuOpen: open, toggle, sideId, contentId }}>
       <div
+        data-slot="app-shell"
         {...rest}
         className={cx(
           "fg-shell",
@@ -457,7 +510,7 @@ export function AppShellHeader({
 }: AppShellHeaderProps) {
   const shell = useShell("AppShellHeader");
   return (
-    <header {...rest} className={cx("fg-topbar", className)}>
+    <header data-slot="app-shell-header" {...rest} className={cx("fg-topbar", className)}>
       {menuButton ? (
         <IconButton
           icon={shell.menuOpen ? Cancel01Icon : Menu01Icon}
@@ -478,6 +531,7 @@ export function AppShellSidebar({ asChild, className, ...rest }: AppShellSidebar
   const shell = useShell("AppShellSidebar");
   return renderPart("aside", cx("fg-shell-side", className), asChild, {
     id: shell.sideId,
+    "data-slot": "app-shell-sidebar",
     ...rest,
   });
 }
@@ -489,6 +543,7 @@ export function AppShellMain({ asChild, className, ...rest }: AppShellMainProps)
   return renderPart("div", cx("fg-shell-main", className), asChild, {
     id: shell.contentId,
     tabIndex: -1,
+    "data-slot": "app-shell-main",
     ...rest,
   });
 }

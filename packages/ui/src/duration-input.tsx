@@ -158,7 +158,7 @@ function DurationInputRoot({
   };
   return (
     <DurationContext.Provider value={state}>
-      <div role="group" {...rest} className={cx("fg-dur", className)}>
+      <div role="group" data-slot="duration-input" {...rest} className={cx("fg-dur", className)}>
         {children}
       </div>
     </DurationContext.Provider>
@@ -169,10 +169,13 @@ export type DurationInputRowProps = ComponentProps<"div">;
 
 /** The line of the two number fields. */
 export function DurationInputRow({ className, ...rest }: DurationInputRowProps) {
-  return <div {...rest} className={cx("fg-dur-row", className)} />;
+  return <div data-slot="duration-input-row" {...rest} className={cx("fg-dur-row", className)} />;
 }
 
-export interface DurationInputPartProps {
+export interface DurationInputPartProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className" | "placeholder" | "onChange" | "defaultValue" | "aria-invalid"
+> {
   /** Names the field for assistive technology. */
   label?: string;
   placeholder?: string;
@@ -184,10 +187,13 @@ export function DurationInputHours({
   label = "Hours",
   placeholder = "0",
   className,
+  ...rest
 }: DurationInputPartProps) {
   const d = useDuration();
   return (
     <NumberInput
+      data-slot="duration-input-hours"
+      {...rest}
       className={cx("fg-dur-num", className)}
       label={label}
       value={d.hours}
@@ -211,10 +217,13 @@ export function DurationInputMinutes({
   label = "Minutes",
   placeholder = "0",
   className,
+  ...rest
 }: DurationInputPartProps) {
   const d = useDuration();
   return (
     <NumberInput
+      data-slot="duration-input-minutes"
+      {...rest}
       className={cx("fg-dur-num", className)}
       label={label}
       value={d.minutes}
@@ -238,7 +247,14 @@ export type DurationInputPresetsProps = ComponentProps<"div">;
 
 /** The group of the usual lengths. */
 export function DurationInputPresets({ className, ...rest }: DurationInputPresetsProps) {
-  return <div role="group" {...rest} className={cx("fg-dur-presets", className)} />;
+  return (
+    <div
+      role="group"
+      data-slot="duration-input-presets"
+      {...rest}
+      className={cx("fg-dur-presets", className)}
+    />
+  );
 }
 
 export type DurationInputPresetProps = Omit<ComponentProps<"button">, "onClick" | "children"> & {
@@ -259,6 +275,7 @@ export function DurationInputPreset({
     <button
       type="button"
       disabled={d.disabled}
+      data-slot="duration-input-preset"
       {...rest}
       className={cx("fg-dur-preset", className)}
       aria-pressed={d.total === minutes}

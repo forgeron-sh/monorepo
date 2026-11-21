@@ -40,11 +40,63 @@ export type {
   WidgetLayout,
   WidgetLimits,
 } from "./dashboard-model";
-export { WidgetFrame } from "./dashboard-widget-frame";
+export {
+  useWidgetFrame,
+  WidgetFrame,
+  WidgetFrameBody,
+  WidgetFrameContent,
+  WidgetFrameExpand,
+  WidgetFrameFooter,
+  WidgetFrameGrip,
+  WidgetFrameHeader,
+  WidgetFrameMenu,
+  WidgetFrameSubtitle,
+  WidgetFrameTitle,
+  WidgetFrameTitles,
+  WidgetFrameTools,
+} from "./dashboard-widget-frame";
 export type { WidgetFrameProps } from "./dashboard-widget-frame";
-export { WidgetGrid } from "./dashboard-widget-grid";
-export type { DashboardWidget, WidgetGridProps } from "./dashboard-widget-grid";
-export { DateRangeCompare } from "./dashboard-compare";
+export {
+  useWidgetGrid,
+  WidgetGrid,
+  WidgetGridCanvas,
+  WidgetGridContent,
+  WidgetGridEditBar,
+  WidgetGridGrab,
+  WidgetGridItem,
+  WidgetGridRemove,
+  WidgetGridResize,
+  WidgetGridStatus,
+} from "./dashboard-widget-grid";
+export type {
+  DashboardWidget,
+  WidgetGridCanvasProps,
+  WidgetGridItemProps,
+  WidgetGridProps,
+} from "./dashboard-widget-grid";
+export {
+  DateRangeCompare,
+  DateRangeCompareCustom,
+  DateRangeComparePeriod,
+  DateRangeCompareSelect,
+  DateRangeCompareSummary,
+  DateRangeCompareVs,
+  useDateRangeCompare,
+} from "./dashboard-compare";
 export type { DateRangeCompareProps } from "./dashboard-compare";
-export { MetricPicker } from "./dashboard-metric-picker";
-export type { GroupingOption, MetricOption, MetricPickerProps } from "./dashboard-metric-picker";
+export {
+  MetricPicker,
+  MetricPickerFilter,
+  MetricPickerGrouping,
+  MetricPickerMeasure,
+  MetricPickerStep,
+  MetricPickerSteps,
+  MetricPickerSummary,
+  useMetricPicker,
+} from "./dashboard-metric-picker";
+export type {
+  GroupingOption,
+  MetricOption,
+  MetricPickerProps,
+  MetricPickerStepProps,
+} from "./dashboard-metric-picker";

@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import type { IconDefinition } from "@forgeron/icons";
 import { cx } from "./cx";
 import { Icon } from "./icon";
-import { hasPart, renderPart } from "./shell-part";
+import { hasPart, renderPart } from "./part";
 
 type PartProps<T extends "div" | "p"> = ComponentProps<T> & { asChild?: boolean };
 
@@ -27,8 +27,8 @@ export function Notice({
 }: NoticeProps) {
   const root = {
     role: tone === "danger" || tone === "warning" ? "alert" : "status",
-    ...rest,
     "data-slot": "notice",
+    ...rest,
     className: cx("fg-notice", `fg-notice-${tone}`, className),
   };
   if (!title && !action && hasPart(children, [NoticeTitle, NoticeDescription, NoticeAction])) {
@@ -57,23 +57,23 @@ export function Notice({
 
 export function NoticeTitle({ className, asChild, ...rest }: PartProps<"p">) {
   return renderPart("p", cx("fg-notice-title", className), asChild, {
-    ...rest,
     "data-slot": "notice-title",
+    ...rest,
   });
 }
 
 export function NoticeDescription({ className, asChild, ...rest }: PartProps<"div">) {
   return renderPart("div", cx("fg-notice-text", className), asChild, {
-    ...rest,
     "data-slot": "notice-description",
+    ...rest,
   });
 }
 
 /** The thing to do next, at the end of the notice. */
 export function NoticeAction({ className, asChild, ...rest }: PartProps<"div">) {
   return renderPart("div", cx("fg-notice-action", className), asChild, {
-    ...rest,
     "data-slot": "notice-action",
+    ...rest,
   });
 }
 
@@ -118,11 +118,11 @@ export function EmptyState(props: EmptyStateProps | EmptyStatePartsProps) {
       action: _a,
       ...rest
     } = props;
-    return <div {...rest} data-slot="empty-state" className={classes} />;
+    return <div data-slot="empty-state" {...rest} className={classes} />;
   }
   const { variant: _v, className: _c, title, icon, description, action, ...rest } = props;
   return (
-    <div {...rest} data-slot="empty-state" className={classes}>
+    <div data-slot="empty-state" {...rest} className={classes}>
       {icon ? <Icon icon={icon} size={36} className="fg-empty-icon" /> : null}
       <p className="fg-empty-title">{title}</p>
       {description ? <p className="fg-empty-text">{description}</p> : null}
@@ -145,30 +145,30 @@ export function EmptyStateIcon({
   ...rest
 }: EmptyStateIconProps) {
   return renderPart("div", cx("fg-empty-icon", className), asChild, {
-    ...rest,
     "data-slot": "empty-state-icon",
+    ...rest,
     children: icon ? <Icon icon={icon} size={36} /> : children,
   });
 }
 
 export function EmptyStateTitle({ className, asChild, ...rest }: PartProps<"p">) {
   return renderPart("p", cx("fg-empty-title", className), asChild, {
-    ...rest,
     "data-slot": "empty-state-title",
+    ...rest,
   });
 }
 
 export function EmptyStateDescription({ className, asChild, ...rest }: PartProps<"p">) {
   return renderPart("p", cx("fg-empty-text", className), asChild, {
-    ...rest,
     "data-slot": "empty-state-description",
+    ...rest,
   });
 }
 
 export function EmptyStateActions({ className, asChild, ...rest }: PartProps<"div">) {
   return renderPart("div", cx("fg-empty-action", className), asChild, {
-    ...rest,
     "data-slot": "empty-state-actions",
+    ...rest,
   });
 }
 
@@ -180,7 +180,7 @@ export interface SpinnerProps extends Omit<ComponentProps<"span">, "children"> {
 /** Eight pixels on a ring lighting in turn: the loading state. Nothing turns, nothing bounces. */
 export function Spinner({ label = "Loading", className, ...rest }: SpinnerProps) {
   return (
-    <span role="status" {...rest} data-slot="spinner" className={cx("fg-spinner", className)}>
+    <span role="status" data-slot="spinner" {...rest} className={cx("fg-spinner", className)}>
       <span className="fg-spinner-mark" aria-hidden="true" />
       <span className="fg-spinner-label">{label}</span>
     </span>

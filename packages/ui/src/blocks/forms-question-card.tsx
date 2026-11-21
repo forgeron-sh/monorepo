@@ -2,6 +2,20 @@
 // choice (or the rows and columns of a matrix), the limits of the answer. Closed it is a row with
 // a handle: drag it, or Alt + Up and Alt + Down on the row, to move it; duplicate and delete sit at
 // its end. The logic (show-if) is a slot, so the card knows nothing of the other questions.
+//
+// With props the card draws all of it; with children you place the parts:
+//
+//   <QuestionCard value={q} onChange={setQ} index={1} onDelete={remove}>
+//     <QuestionCardRow>
+//       <QuestionCardSummary />
+//       <QuestionCardDelete />
+//     </QuestionCardRow>
+//     <QuestionCardBody>
+//       <QuestionCardFields />
+//       <QuestionCardChoices />
+//       <QuestionCardLimits />
+//     </QuestionCardBody>
+//   </QuestionCard>
 
 import {
   ArrowDown01Icon,
@@ -11,8 +25,7 @@ import {
   Delete04Icon,
   PlusSignIcon,
 } from "@forgeron/icons";
-import type { KeyboardEvent, ReactNode } from "react";
-import { useId } from "react";
+import { useId, type ComponentProps, type KeyboardEvent, type ReactNode } from "react";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { Field, Input } from "../form";
@@ -20,6 +33,7 @@ import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { Switch } from "../controls";
+import { partContext } from "../part";
 import { SortableHandle, useSortable } from "../sortable";
 import { sortableKeyStep } from "../sortable-model";
 import { NumberInput } from "../numbers";
@@ -314,7 +328,10 @@ function Limits({ q, set, disabled }: LimitsProps) {
 
 /* ---------------------------------------------------------------- The card */
 
-export interface QuestionCardProps {
+export interface QuestionCardProps extends Omit<
+  ComponentProps<"section">,
+  "ref" | "onChange" | "defaultValue" | "children"
+> {
   /** The question. Controlled or not. */
   value?: FormQuestion;
   defaultValue?: FormQuestion;
@@ -342,13 +359,449 @@ export interface QuestionCardProps {
   hasLogic?: boolean;
   /** Text only, no controls. */
   readOnly?: boolean;
-  className?: string;
+  /** The parts: `QuestionCardRow` and `QuestionCardBody`. Without them, the whole card. */
+  children?: ReactNode;
 }
+
+interface QuestionCardContext {
+  q: FormQuestion;
+  setQ: (next: FormQuestion) => void;
+  patch: (next: Partial<FormQuestion>) => void;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  bodyId: string;
+  index: number | undefined;
+  info: ReturnType<typeof formQuestionInfo>;
+  problems: ReadonlyArray<string>;
+  taken: string[];
+  logic: ReactNode;
+  hasLogic: boolean | undefined;
+  readOnly: boolean | undefined;
+  onDuplicate: (() => void) | undefined;
+  onDelete: (() => void) | undefined;
+  onMove: ((delta: -1 | 1) => void) | undefined;
+  onDragStart: (() => void) | undefined;
+  onDragEnd: (() => void) | undefined;
+  setLimit: LimitsProps["set"];
+  setRange: (r: Partial<FormRange>) => void;
+}
+
+const [QuestionCardCtx, useQuestionCard] = partContext<QuestionCardContext>("QuestionCard");
+
+/** The state of the enclosing `QuestionCard`: the question, whether it is open, the callbacks. */
+export { useQuestionCard };
 
 const RANGE_FROM = [
   { value: "0", label: "0" },
   { value: "1", label: "1" },
 ];
+
+export type QuestionCardHandleProps = Omit<ComponentProps<typeof SortableHandle>, "draggable">;
+
+/** The grip of the row: drag it, or Alt + arrows on the summary, to move the question. */
+export function QuestionCardHandle({ className, ...rest }: QuestionCardHandleProps) {
+  const { q, info, onMove, readOnly, onDragStart, onDragEnd } = useQuestionCard();
+  if (!onMove || readOnly) return null;
+  const title = q.title.trim();
+  return (
+    <SortableHandle
+      data-slot="question-card-handle"
+      draggable={Boolean(onDragStart)}
+      title="Drag to reorder, or Alt + arrows"
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", title || info.label);
+        onDragStart?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      {...rest}
+      className={cx("fg-fm-qc-grip", className)}
+    />
+  );
+}
+
+export type QuestionCardSummaryProps = Omit<ComponentProps<"button">, "ref">;
+
+/** The row's button: number, type, title and flags. It opens and closes the card. */
+export function QuestionCardSummary({
+  className,
+  children,
+  onClick,
+  onKeyDown,
+  ...rest
+}: QuestionCardSummaryProps) {
+  const { q, info, index, open, setOpen, bodyId, onMove, hasLogic, problems } = useQuestionCard();
+  const title = q.title.trim();
+  const onRowKey = (event: KeyboardEvent<HTMLButtonElement>) => {
+    onKeyDown?.(event);
+    const step = event.altKey && onMove ? sortableKeyStep(event.key) : null;
+    if (step && "delta" in step) {
+      event.preventDefault();
+      onMove?.(step.delta);
+      const target = event.currentTarget;
+      requestAnimationFrame(() => target.isConnected && target.focus());
+    }
+  };
+  return (
+    <button
+      type="button"
+      data-slot="question-card-summary"
+      aria-expanded={open}
+      aria-controls={bodyId}
+      aria-keyshortcuts={onMove ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
+      {...rest}
+      className={cx("fg-fm-qc-main", className)}
+      onClick={(event) => {
+        onClick?.(event);
+        if (!event.defaultPrevented) setOpen(!open);
+      }}
+      onKeyDown={onRowKey}
+    >
+      {children ?? (
+        <>
+          {index !== undefined ? <span className="fg-fm-qc-n">{index}</span> : null}
+          <Icon icon={info.icon} size={12} variant="mono" className="fg-fm-qc-glyph" />
+          <span className={cx("fg-fm-qc-title", !title && "fg-fm-qc-untitled")}>
+            {title || "Untitled question"}
+          </span>
+          <span className="fg-fm-qc-type">{info.label}</span>
+          {q.required ? <span className="fg-fm-qc-flag">Required</span> : null}
+          {hasLogic ? <span className="fg-fm-qc-flag">Logic</span> : null}
+          {problems.length ? (
+            <span className="fg-fm-qc-flag fg-fm-qc-flag-bad">
+              {problems.length} {problems.length === 1 ? "problem" : "problems"}
+            </span>
+          ) : null}
+        </>
+      )}
+    </button>
+  );
+}
+
+export type QuestionCardActionProps = Omit<ComponentProps<"button">, "ref" | "children">;
+
+/** Duplicates the question; absent when there is no `onDuplicate` or the card is read-only. */
+export function QuestionCardDuplicate(props: QuestionCardActionProps) {
+  const { onDuplicate, readOnly } = useQuestionCard();
+  if (readOnly || !onDuplicate) return null;
+  return (
+    <IconButton
+      data-slot="question-card-duplicate"
+      icon={Copy01Icon}
+      size="sm"
+      label="Duplicate question"
+      onClick={onDuplicate}
+      {...props}
+    />
+  );
+}
+
+/** Deletes the question; absent when there is no `onDelete` or the card is read-only. */
+export function QuestionCardDelete(props: QuestionCardActionProps) {
+  const { onDelete, readOnly } = useQuestionCard();
+  if (readOnly || !onDelete) return null;
+  return (
+    <IconButton
+      data-slot="question-card-delete"
+      icon={Delete04Icon}
+      size="sm"
+      label="Delete question"
+      onClick={onDelete}
+      {...props}
+    />
+  );
+}
+
+export type QuestionCardRowProps = Omit<ComponentProps<"div">, "ref">;
+
+/** The closed card: a handle, the summary, duplicate and delete. Its children replace them. */
+export function QuestionCardRow({ className, children, ...rest }: QuestionCardRowProps) {
+  return (
+    <div data-slot="question-card-row" {...rest} className={cx("fg-fm-qc-row", className)}>
+      {children ?? (
+        <>
+          <QuestionCardHandle />
+          <QuestionCardSummary />
+          <QuestionCardDuplicate />
+          <QuestionCardDelete />
+        </>
+      )}
+    </div>
+  );
+}
+
+export type QuestionCardProblemsProps = Omit<ComponentProps<"ul">, "ref">;
+
+/** What is wrong with the question; nothing when there is no problem. */
+export function QuestionCardProblems({ className, ...rest }: QuestionCardProblemsProps) {
+  const { problems } = useQuestionCard();
+  if (!problems.length) return null;
+  return (
+    <ul
+      data-slot="question-card-problems"
+      aria-label="Problems with this question"
+      {...rest}
+      className={cx("fg-fm-qc-problems", className)}
+    >
+      {problems.map((p) => (
+        <li key={p}>{p}</li>
+      ))}
+    </ul>
+  );
+}
+
+/** The title, the help, the type, "Required" and the placeholder. */
+export function QuestionCardFields({ className, ...rest }: Omit<ComponentProps<"div">, "ref">) {
+  const { q, setQ, patch, readOnly } = useQuestionCard();
+  const dis = readOnly ? { disabled: true } : {};
+  return (
+    <div data-slot="question-card-fields" {...rest} className={cx("fg-fm-qc-fields", className)}>
+      <Field label="Question">
+        {(control) => (
+          <Input
+            {...control}
+            value={q.title}
+            placeholder="What do you want to ask?"
+            onChange={(event) => patch({ title: event.target.value })}
+            {...dis}
+          />
+        )}
+      </Field>
+      <Field label="Help text" hint="Shown under the question.">
+        {(control) => (
+          <Input
+            {...control}
+            value={q.help ?? ""}
+            onChange={(event) => {
+              const { help: _h, ...others } = q;
+              setQ(event.target.value ? { ...others, help: event.target.value } : others);
+            }}
+            {...dis}
+          />
+        )}
+      </Field>
+      <div className="fg-fm-qc-grid">
+        <SelectMenu
+          label="Type"
+          showLabel
+          options={FORM_QUESTION_TYPES.map((t) => ({
+            value: t.type,
+            label: t.label,
+            icon: t.icon,
+            hint: t.hint,
+          }))}
+          value={q.type}
+          onChange={(next) => next && setQ(convertFormQuestion(q, next as QuestionType))}
+          {...dis}
+        />
+        <div className="fg-fm-qc-req">
+          <Switch
+            label="Required"
+            checked={q.required === true}
+            onChange={(event) => {
+              const { required: _r, ...others } = q;
+              setQ(event.target.checked ? { ...others, required: true } : others);
+            }}
+            {...dis}
+          />
+        </div>
+      </div>
+      {q.type === "shortText" || q.type === "longText" || q.type === "number" ? (
+        <Field label="Placeholder">
+          {(control) => (
+            <Input
+              {...control}
+              value={q.placeholder ?? ""}
+              onChange={(event) => {
+                const { placeholder: _p, ...others } = q;
+                setQ(event.target.value ? { ...others, placeholder: event.target.value } : others);
+              }}
+              {...dis}
+            />
+          )}
+        </Field>
+      ) : null}
+    </div>
+  );
+}
+
+/** The options of a choice or a ranking, or the rows and columns of a matrix. */
+export function QuestionCardChoices() {
+  const { q, setQ, patch, taken, readOnly } = useQuestionCard();
+  const dis = readOnly ? { disabled: true } : {};
+  return (
+    <>
+      {isChoiceType(q.type) || q.type === "ranking" ? (
+        <OptionsEditor
+          label={q.type === "ranking" ? "Items to rank" : "Options"}
+          noun={q.type === "ranking" ? "Item" : "Option"}
+          value={q.options ?? []}
+          onChange={(options) => patch({ options })}
+          taken={taken}
+          min={q.type === "ranking" ? 2 : 1}
+          {...dis}
+        />
+      ) : null}
+      {q.type === "matrix" ? (
+        <>
+          <OptionsEditor
+            label="Rows"
+            noun="Row"
+            value={q.options ?? []}
+            onChange={(options) => patch({ options })}
+            taken={taken}
+            {...dis}
+          />
+          <OptionsEditor
+            label="Columns"
+            noun="Column"
+            value={q.columns ?? []}
+            onChange={(columns) => patch({ columns })}
+            taken={taken}
+            min={2}
+            {...dis}
+          />
+          <Switch
+            label="Several columns per row"
+            checked={q.multiple === true}
+            onChange={(event) => {
+              const { multiple: _m, ...others } = q;
+              setQ(event.target.checked ? { ...others, multiple: true } : others);
+            }}
+            {...dis}
+          />
+        </>
+      ) : null}
+    </>
+  );
+}
+
+/** The stars of a rating, or the range and the end labels of a scale. */
+export function QuestionCardRange({ className, ...rest }: Omit<ComponentProps<"div">, "ref">) {
+  const { q, patch, setRange, readOnly } = useQuestionCard();
+  const dis = readOnly ? { disabled: true } : {};
+  if (q.type === "rating") {
+    return (
+      <div data-slot="question-card-range" {...rest} className={cx("fg-fm-qc-grid", className)}>
+        {numberField("Stars", q.range?.max ?? 5, (x) => setRange({ min: 1, max: x ?? 5 }), {
+          min: 2,
+          max: 10,
+          ...dis,
+        })}
+      </div>
+    );
+  }
+  if (q.type !== "scale") return null;
+  return (
+    <div data-slot="question-card-range" {...rest} className={cx("fg-fm-qc-grid", className)}>
+      <Switch
+        label="Net promoter score (0 to 10)"
+        checked={q.range?.nps === true}
+        onChange={(event) => {
+          if (event.target.checked) patch({ range: { ...q.range, min: 0, max: 10, nps: true } });
+          else {
+            const { nps: _n, ...others } = q.range ?? { min: 1, max: 5 };
+            patch({ range: { ...others, min: 1, max: 5 } });
+          }
+        }}
+        {...dis}
+      />
+      {q.range?.nps ? null : (
+        <>
+          <SelectMenu
+            label="From"
+            showLabel
+            options={RANGE_FROM}
+            value={String(q.range?.min ?? 1)}
+            onChange={(next) => next && setRange({ min: Number(next) })}
+            {...dis}
+          />
+          {numberField("To", q.range?.max ?? 5, (x) => setRange({ max: x ?? 5 }), {
+            min: 2,
+            max: 10,
+            ...dis,
+          })}
+        </>
+      )}
+      <Field label="Low end label">
+        {(control) => (
+          <Input
+            {...control}
+            value={q.range?.lowLabel ?? ""}
+            placeholder="Not at all"
+            onChange={(event) => {
+              const { lowLabel: _l, ...others } = q.range ?? { min: 1, max: 5 };
+              patch({
+                range: event.target.value ? { ...others, lowLabel: event.target.value } : others,
+              });
+            }}
+            {...dis}
+          />
+        )}
+      </Field>
+      <Field label="High end label">
+        {(control) => (
+          <Input
+            {...control}
+            value={q.range?.highLabel ?? ""}
+            placeholder="Very much"
+            onChange={(event) => {
+              const { highLabel: _l, ...others } = q.range ?? { min: 1, max: 5 };
+              patch({
+                range: event.target.value ? { ...others, highLabel: event.target.value } : others,
+              });
+            }}
+            {...dis}
+          />
+        )}
+      </Field>
+    </div>
+  );
+}
+
+/** The limits of the answer, by type: lengths, bounds, dates, files. */
+export function QuestionCardLimits() {
+  const { q, setLimit, readOnly } = useQuestionCard();
+  return <Limits q={q} set={setLimit} disabled={readOnly} />;
+}
+
+/** The show-if of the question (the `logic` prop of the card). */
+export function QuestionCardLogic({ className, ...rest }: Omit<ComponentProps<"div">, "ref">) {
+  const { logic } = useQuestionCard();
+  if (!logic) return null;
+  return (
+    <div data-slot="question-card-logic" {...rest} className={cx("fg-fm-qc-logic", className)}>
+      {logic}
+    </div>
+  );
+}
+
+export type QuestionCardBodyProps = Omit<ComponentProps<"div">, "ref">;
+
+/** The open card: shown only while it is open. Its children replace the usual parts. */
+export function QuestionCardBody({ className, children, ...rest }: QuestionCardBodyProps) {
+  const { open, bodyId } = useQuestionCard();
+  if (!open) return null;
+  return (
+    <div
+      id={bodyId}
+      data-slot="question-card-body"
+      {...rest}
+      className={cx("fg-fm-qc-body", className)}
+    >
+      {children ?? (
+        <>
+          <QuestionCardProblems />
+          <QuestionCardFields />
+          <QuestionCardChoices />
+          <QuestionCardRange />
+          <QuestionCardLimits />
+          <QuestionCardLogic />
+        </>
+      )}
+    </div>
+  );
+}
 
 /** A question edited in place, behind a row with a handle. */
 export function QuestionCard({
@@ -369,7 +822,9 @@ export function QuestionCard({
   logic,
   hasLogic,
   readOnly,
+  children,
   className,
+  ...rest
 }: QuestionCardProps) {
   const [q, setQ] = useControllableState<FormQuestion>({
     value,
@@ -382,291 +837,61 @@ export function QuestionCard({
     onChange: onOpenChange,
   });
   const uid = useId();
-  const info = formQuestionInfo(q.type);
   const patch = (next: Partial<FormQuestion>) => setQ({ ...q, ...next });
-  const taken = [...takenIds, q.id];
   const setLimit: LimitsProps["set"] = (key, val) => {
     const next = { ...(q.validation ?? {}) } as Record<string, unknown>;
     if (val === undefined || val === "") delete next[key];
     else next[key] = val;
-    const { validation: _old, ...rest } = q;
-    setQ(Object.keys(next).length ? { ...rest, validation: next as FormValidation } : rest);
+    const { validation: _old, ...others } = q;
+    setQ(Object.keys(next).length ? { ...others, validation: next as FormValidation } : others);
   };
-  const setRange = (r: Partial<FormRange>) => {
-    const range = { ...(q.range ?? { min: 1, max: 5 }), ...r };
-    patch({ range });
-  };
-  const dis = readOnly ? { disabled: true } : {};
-
-  const onRowKey = (event: KeyboardEvent<HTMLElement>) => {
-    const step = event.altKey && onMove ? sortableKeyStep(event.key) : null;
-    if (step && "delta" in step) {
-      event.preventDefault();
-      onMove?.(step.delta);
-      const target = event.currentTarget;
-      requestAnimationFrame(() => target.isConnected && target.focus());
-    }
-  };
-
+  const setRange = (r: Partial<FormRange>) =>
+    patch({ range: { ...(q.range ?? { min: 1, max: 5 }), ...r } });
   const title = q.title.trim();
   return (
-    <section
-      className={cx(
-        "fg-fm-qc",
-        open && "fg-fm-qc-open",
-        problems.length > 0 && "fg-fm-qc-bad",
-        className,
-      )}
-      aria-label={title || `Question ${index ?? ""}`.trim()}
-      data-question={q.id}
+    <QuestionCardCtx.Provider
+      value={{
+        q,
+        setQ,
+        patch,
+        open,
+        setOpen,
+        bodyId: `${uid}-body`,
+        index,
+        info: formQuestionInfo(q.type),
+        problems,
+        taken: [...takenIds, q.id],
+        logic,
+        hasLogic,
+        readOnly,
+        onDuplicate,
+        onDelete,
+        onMove,
+        onDragStart,
+        onDragEnd,
+        setLimit,
+        setRange,
+      }}
     >
-      <div className="fg-fm-qc-row">
-        {onMove && !readOnly ? (
-          <SortableHandle
-            className="fg-fm-qc-grip"
-            draggable={Boolean(onDragStart)}
-            title="Drag to reorder, or Alt + arrows"
-            onDragStart={(event) => {
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", title || info.label);
-              onDragStart?.();
-            }}
-            onDragEnd={() => onDragEnd?.()}
-          />
-        ) : null}
-        <button
-          type="button"
-          className="fg-fm-qc-main"
-          aria-expanded={open}
-          aria-controls={`${uid}-body`}
-          aria-keyshortcuts={onMove ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
-          onClick={() => setOpen(!open)}
-          onKeyDown={onRowKey}
-        >
-          {index !== undefined ? <span className="fg-fm-qc-n">{index}</span> : null}
-          <Icon icon={info.icon} size={12} variant="mono" className="fg-fm-qc-glyph" />
-          <span className={cx("fg-fm-qc-title", !title && "fg-fm-qc-untitled")}>
-            {title || "Untitled question"}
-          </span>
-          <span className="fg-fm-qc-type">{info.label}</span>
-          {q.required ? <span className="fg-fm-qc-flag">Required</span> : null}
-          {hasLogic ? <span className="fg-fm-qc-flag">Logic</span> : null}
-          {problems.length ? (
-            <span className="fg-fm-qc-flag fg-fm-qc-flag-bad">
-              {problems.length} {problems.length === 1 ? "problem" : "problems"}
-            </span>
-          ) : null}
-        </button>
-        {!readOnly && onDuplicate ? (
-          <IconButton
-            icon={Copy01Icon}
-            size="sm"
-            label="Duplicate question"
-            onClick={onDuplicate}
-          />
-        ) : null}
-        {!readOnly && onDelete ? (
-          <IconButton icon={Delete04Icon} size="sm" label="Delete question" onClick={onDelete} />
-        ) : null}
-      </div>
-      {open ? (
-        <div id={`${uid}-body`} className="fg-fm-qc-body">
-          {problems.length ? (
-            <ul className="fg-fm-qc-problems" aria-label="Problems with this question">
-              {problems.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
-          ) : null}
-          <Field label="Question">
-            {(control) => (
-              <Input
-                {...control}
-                value={q.title}
-                placeholder="What do you want to ask?"
-                onChange={(event) => patch({ title: event.target.value })}
-                {...dis}
-              />
-            )}
-          </Field>
-          <Field label="Help text" hint="Shown under the question.">
-            {(control) => (
-              <Input
-                {...control}
-                value={q.help ?? ""}
-                onChange={(event) => {
-                  const { help: _h, ...rest } = q;
-                  setQ(event.target.value ? { ...rest, help: event.target.value } : rest);
-                }}
-                {...dis}
-              />
-            )}
-          </Field>
-          <div className="fg-fm-qc-grid">
-            <SelectMenu
-              label="Type"
-              showLabel
-              options={FORM_QUESTION_TYPES.map((t) => ({
-                value: t.type,
-                label: t.label,
-                icon: t.icon,
-                hint: t.hint,
-              }))}
-              value={q.type}
-              onChange={(next) => next && setQ(convertFormQuestion(q, next as QuestionType))}
-              {...dis}
-            />
-            <div className="fg-fm-qc-req">
-              <Switch
-                label="Required"
-                checked={q.required === true}
-                onChange={(event) => {
-                  const { required: _r, ...rest } = q;
-                  setQ(event.target.checked ? { ...rest, required: true } : rest);
-                }}
-                {...dis}
-              />
-            </div>
-          </div>
-          {q.type === "shortText" || q.type === "longText" || q.type === "number" ? (
-            <Field label="Placeholder">
-              {(control) => (
-                <Input
-                  {...control}
-                  value={q.placeholder ?? ""}
-                  onChange={(event) => {
-                    const { placeholder: _p, ...rest } = q;
-                    setQ(event.target.value ? { ...rest, placeholder: event.target.value } : rest);
-                  }}
-                  {...dis}
-                />
-              )}
-            </Field>
-          ) : null}
-          {isChoiceType(q.type) || q.type === "ranking" ? (
-            <OptionsEditor
-              label={q.type === "ranking" ? "Items to rank" : "Options"}
-              noun={q.type === "ranking" ? "Item" : "Option"}
-              value={q.options ?? []}
-              onChange={(options) => patch({ options })}
-              taken={taken}
-              min={q.type === "ranking" ? 2 : 1}
-              {...dis}
-            />
-          ) : null}
-          {q.type === "matrix" ? (
-            <>
-              <OptionsEditor
-                label="Rows"
-                noun="Row"
-                value={q.options ?? []}
-                onChange={(options) => patch({ options })}
-                taken={taken}
-                {...dis}
-              />
-              <OptionsEditor
-                label="Columns"
-                noun="Column"
-                value={q.columns ?? []}
-                onChange={(columns) => patch({ columns })}
-                taken={taken}
-                min={2}
-                {...dis}
-              />
-              <Switch
-                label="Several columns per row"
-                checked={q.multiple === true}
-                onChange={(event) => {
-                  const { multiple: _m, ...rest } = q;
-                  setQ(event.target.checked ? { ...rest, multiple: true } : rest);
-                }}
-                {...dis}
-              />
-            </>
-          ) : null}
-          {q.type === "rating" ? (
-            <div className="fg-fm-qc-grid">
-              {numberField("Stars", q.range?.max ?? 5, (x) => setRange({ min: 1, max: x ?? 5 }), {
-                min: 2,
-                max: 10,
-                ...dis,
-              })}
-            </div>
-          ) : null}
-          {q.type === "scale" ? (
-            <div className="fg-fm-qc-grid">
-              <Switch
-                label="Net promoter score (0 to 10)"
-                checked={q.range?.nps === true}
-                onChange={(event) => {
-                  if (event.target.checked)
-                    patch({ range: { ...q.range, min: 0, max: 10, nps: true } });
-                  else {
-                    const { nps: _n, ...rest } = q.range ?? { min: 1, max: 5 };
-                    patch({ range: { ...rest, min: 1, max: 5 } });
-                  }
-                }}
-                {...dis}
-              />
-              {q.range?.nps ? null : (
-                <>
-                  <SelectMenu
-                    label="From"
-                    showLabel
-                    options={RANGE_FROM}
-                    value={String(q.range?.min ?? 1)}
-                    onChange={(next) => next && setRange({ min: Number(next) })}
-                    {...dis}
-                  />
-                  {numberField("To", q.range?.max ?? 5, (x) => setRange({ max: x ?? 5 }), {
-                    min: 2,
-                    max: 10,
-                    ...dis,
-                  })}
-                </>
-              )}
-              <Field label="Low end label">
-                {(control) => (
-                  <Input
-                    {...control}
-                    value={q.range?.lowLabel ?? ""}
-                    placeholder="Not at all"
-                    onChange={(event) => {
-                      const { lowLabel: _l, ...rest } = q.range ?? { min: 1, max: 5 };
-                      patch({
-                        range: event.target.value
-                          ? { ...rest, lowLabel: event.target.value }
-                          : rest,
-                      });
-                    }}
-                    {...dis}
-                  />
-                )}
-              </Field>
-              <Field label="High end label">
-                {(control) => (
-                  <Input
-                    {...control}
-                    value={q.range?.highLabel ?? ""}
-                    placeholder="Very much"
-                    onChange={(event) => {
-                      const { highLabel: _l, ...rest } = q.range ?? { min: 1, max: 5 };
-                      patch({
-                        range: event.target.value
-                          ? { ...rest, highLabel: event.target.value }
-                          : rest,
-                      });
-                    }}
-                    {...dis}
-                  />
-                )}
-              </Field>
-            </div>
-          ) : null}
-          <Limits q={q} set={setLimit} disabled={readOnly} />
-          {logic ? <div className="fg-fm-qc-logic">{logic}</div> : null}
-        </div>
-      ) : null}
-    </section>
+      <section
+        data-slot="question-card"
+        aria-label={title || `Question ${index ?? ""}`.trim()}
+        {...rest}
+        data-question={q.id}
+        className={cx(
+          "fg-fm-qc",
+          open && "fg-fm-qc-open",
+          problems.length > 0 && "fg-fm-qc-bad",
+          className,
+        )}
+      >
+        {children ?? (
+          <>
+            <QuestionCardRow />
+            <QuestionCardBody />
+          </>
+        )}
+      </section>
+    </QuestionCardCtx.Provider>
   );
 }

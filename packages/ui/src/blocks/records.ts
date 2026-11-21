@@ -37,17 +37,62 @@ export type {
   RecordGroup,
   RecordPropertiesProps,
 } from "./records-fields";
-export { RecordFieldSlot, useRecordSurface } from "./records-surface";
+export {
+  RecordFieldSlot,
+  RecordSurfaceContext,
+  useRecordSurface,
+  useRecordSurfaceContext,
+} from "./records-surface";
 export type {
   RecordEditingProps,
   RecordItem,
   RecordSurfaceProps,
   Surface,
 } from "./records-surface";
-export { RecordList, RecordRow } from "./records-list";
-export type { RecordListProps } from "./records-list";
-export { RecordBoard, RecordCard } from "./records-board";
-export type { RecordBoardProps } from "./records-board";
+export {
+  RecordList,
+  RecordListAdd,
+  RecordListGroup,
+  RecordListHeader,
+  RecordListRow,
+  RecordListRows,
+  RecordListToggle,
+  RecordRow,
+  useRecordList,
+  useRecordListGroup,
+} from "./records-list";
+export type {
+  RecordListGroupProps,
+  RecordListHeaderProps,
+  RecordListProps,
+  RecordListRowProps,
+  RecordListRowsProps,
+  RecordListToggleProps,
+  RecordRowProps,
+} from "./records-list";
+export {
+  RecordBoard,
+  RecordBoardAdd,
+  RecordBoardCard,
+  RecordBoardCards,
+  RecordBoardColumn,
+  RecordBoardColumnActions,
+  RecordBoardColumnHeader,
+  RecordBoardColumnToggle,
+  RecordCard,
+  useRecordBoard,
+  useRecordBoardColumn,
+} from "./records-board";
+export type {
+  RecordBoardCardProps,
+  RecordBoardCardsProps,
+  RecordBoardColumnActionsProps,
+  RecordBoardColumnHeaderProps,
+  RecordBoardColumnProps,
+  RecordBoardColumnToggleProps,
+  RecordBoardProps,
+  RecordCardProps,
+} from "./records-board";
 export { useRecordView } from "./records-view";
 export type { RecordView } from "./records-view";
 export { PROJECT_HEALTHS, PROJECT_STATUSES, projectFields } from "./records-projects";

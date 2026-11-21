@@ -105,7 +105,13 @@ export function Command({
 
   return (
     <Context.Provider value={{ query, setQuery, active, setActive, count, shouldFilter, listId }}>
-      <div {...rest} ref={root} className={cx("fg-cmdk", className)} onKeyDown={keyDown}>
+      <div
+        data-slot="command"
+        {...rest}
+        ref={root}
+        className={cx("fg-cmdk", className)}
+        onKeyDown={keyDown}
+      >
         {children}
       </div>
     </Context.Provider>
@@ -135,6 +141,7 @@ export function CommandInput({
       <Icon icon={Search01Icon} size={12} variant="mono" className="fg-palette-glass" />
       <input
         aria-label={placeholder}
+        data-slot="command-input"
         {...rest}
         className={cx("fg-palette-input", className)}
         type="text"
@@ -164,6 +171,7 @@ export function CommandList({ className, ...rest }: HTMLAttributes<HTMLDivElemen
     <div
       role="listbox"
       aria-label="Results"
+      data-slot="command-list"
       {...rest}
       id={ctx.listId}
       className={cx("fg-palette-list", className)}
@@ -176,7 +184,12 @@ export function CommandEmpty({ className, children, ...rest }: HTMLAttributes<HT
   const ctx = useCommand("CommandEmpty");
   if (ctx.count > 0) return null;
   return (
-    <div role="presentation" {...rest} className={cx("fg-palette-empty", className)}>
+    <div
+      role="presentation"
+      data-slot="command-empty"
+      {...rest}
+      className={cx("fg-palette-empty", className)}
+    >
       {children}
     </div>
   );
@@ -194,6 +207,7 @@ export function CommandGroup({ heading, className, children, ...rest }: CommandG
     <div
       role="group"
       {...(heading ? { "aria-labelledby": id } : {})}
+      data-slot="command-group"
       {...rest}
       className={cx("fg-cmdk-group", className)}
     >
@@ -211,7 +225,14 @@ export function CommandGroup({ heading, className, children, ...rest }: CommandG
 export function CommandSeparator({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
   const ctx = useCommand("CommandSeparator");
   if (ctx.shouldFilter && ctx.query.trim() !== "") return null;
-  return <div role="separator" {...rest} className={cx("fg-pop-sep", className)} />;
+  return (
+    <div
+      role="separator"
+      data-slot="command-separator"
+      {...rest}
+      className={cx("fg-pop-sep", className)}
+    />
+  );
 }
 
 export type CommandItemProps = Omit<HTMLAttributes<HTMLDivElement>, "onSelect"> & {
@@ -258,6 +279,7 @@ export function CommandItem({
   const on = ctx.active === id;
   return (
     <div
+      data-slot="command-item"
       {...rest}
       id={id}
       role="option"
@@ -284,7 +306,7 @@ export function CommandItem({
 
 /** A shortcut at the end of a row, in mono. */
 export function CommandShortcut({ className, ...rest }: HTMLAttributes<HTMLSpanElement>) {
-  return <span {...rest} className={cx("fg-pop-hint", className)} />;
+  return <span data-slot="command-shortcut" {...rest} className={cx("fg-pop-hint", className)} />;
 }
 
 export type CommandDialogProps = Omit<DialogRootProps, "title" | "children"> & {
@@ -297,6 +319,8 @@ export type CommandDialogProps = Omit<DialogRootProps, "title" | "children"> & {
   showCloseButton?: boolean;
   /** Passed to the `Command` that wraps the children: `false` to filter yourself. */
   shouldFilter?: boolean;
+  /** The other props of that `Command` (its `data-*`, `aria-*`, handlers). */
+  commandProps?: Omit<CommandProps, "shouldFilter" | "children">;
 };
 
 /** A `Command` in a dialog (on the Dialog parts): `open`, `onOpenChange`, Escape and focus trap. It wraps its children in a `Command`, as shadcn's does. */
@@ -306,6 +330,7 @@ export function CommandDialog({
   className,
   showCloseButton = false,
   shouldFilter,
+  commandProps,
   children,
   ...props
 }: CommandDialogProps) {
@@ -316,7 +341,9 @@ export function CommandDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <Command {...(shouldFilter === undefined ? {} : { shouldFilter })}>{children}</Command>
+        <Command {...commandProps} {...(shouldFilter === undefined ? {} : { shouldFilter })}>
+          {children}
+        </Command>
       </DialogContent>
     </Dialog>
   );

@@ -24,7 +24,10 @@ import {
 } from "./dates";
 import { IconButton } from "./identity";
 
-export interface CalendarProps {
+export interface CalendarProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "className" | "children" | "defaultValue"
+> {
   /** The chosen day, `YYYY-MM-DD`. */
   value?: string;
   onChange?: (value: string) => void;
@@ -90,6 +93,7 @@ export function Calendar(props: CalendarProps | CalendarRootProps) {
     label = "Calendar",
     className,
     children,
+    ...rest
   } = props;
   const [deviceToday] = useState(() => toIso(new Date()));
   const today = todayProp ?? deviceToday;
@@ -133,7 +137,7 @@ export function Calendar(props: CalendarProps | CalendarRootProps) {
 
   return (
     <CalendarContext.Provider value={state}>
-      <div className={cx("fg-cal", className)}>
+      <div data-slot="calendar" {...rest} className={cx("fg-cal", className)}>
         {children ?? (
           <>
             <CalendarHeader />
@@ -154,7 +158,7 @@ export type CalendarHeaderProps = Part<ComponentProps<"div">>;
 /** The row above the grid: previous month, the month's name, next month. Its children replace them. */
 export function CalendarHeader({ className, children, ...rest }: CalendarHeaderProps) {
   return (
-    <div {...rest} className={cx("fg-cal-head", className)}>
+    <div data-slot="calendar-header" {...rest} className={cx("fg-cal-head", className)}>
       {children ?? (
         <>
           <CalendarPrevious />
@@ -172,24 +176,38 @@ export type CalendarTitleProps = Part<ComponentProps<"span">>;
 export function CalendarTitle({ className, children, ...rest }: CalendarTitleProps) {
   const { title } = useCalendar("CalendarTitle");
   return (
-    <span aria-live="polite" {...rest} className={cx("fg-cal-title", className)}>
+    <span
+      aria-live="polite"
+      data-slot="calendar-title"
+      {...rest}
+      className={cx("fg-cal-title", className)}
+    >
       {children ?? title}
     </span>
   );
 }
 
-export interface CalendarStepProps {
+export interface CalendarStepProps extends Omit<
+  ComponentProps<"button">,
+  "children" | "className" | "onClick"
+> {
   /** Names the button. */
   label?: string;
   className?: string;
 }
 
 /** The button to the month before. */
-export function CalendarPrevious({ label = "Previous month", className }: CalendarStepProps) {
+export function CalendarPrevious({
+  label = "Previous month",
+  className,
+  ...rest
+}: CalendarStepProps) {
   const { focus, setFocus } = useCalendar("CalendarPrevious");
   return (
     <IconButton
       size="sm"
+      data-slot="calendar-previous"
+      {...rest}
       {...(className ? { className } : {})}
       icon={ArrowLeft01Icon}
       label={label}
@@ -199,11 +217,13 @@ export function CalendarPrevious({ label = "Previous month", className }: Calend
 }
 
 /** The button to the month after. */
-export function CalendarNext({ label = "Next month", className }: CalendarStepProps) {
+export function CalendarNext({ label = "Next month", className, ...rest }: CalendarStepProps) {
   const { focus, setFocus } = useCalendar("CalendarNext");
   return (
     <IconButton
       size="sm"
+      data-slot="calendar-next"
+      {...rest}
       {...(className ? { className } : {})}
       icon={ArrowRight01Icon}
       label={label}
@@ -247,6 +267,7 @@ export function CalendarGrid({ className, renderDay, onKeyDown, ...rest }: Calen
     <table
       role="grid"
       aria-label={`${label}, ${title}`}
+      data-slot="calendar-grid"
       {...rest}
       ref={grid}
       className={cx("fg-cal-grid", className)}
@@ -284,7 +305,13 @@ export function CalendarCell({ date, className, children, ...rest }: CalendarCel
   const selected =
     date === value || (range !== undefined && (date === range.from || date === range.to));
   return (
-    <td role="gridcell" aria-selected={selected} {...rest} className={className}>
+    <td
+      role="gridcell"
+      aria-selected={selected}
+      data-slot="calendar-cell"
+      {...rest}
+      className={className}
+    >
       {children}
     </td>
   );
@@ -319,6 +346,7 @@ export function CalendarDay({
       disabled={disabled}
       aria-label={formatLong(date)}
       aria-current={date === today ? "date" : undefined}
+      data-slot="calendar-day"
       {...rest}
       className={cx(
         "fg-cal-day",

@@ -7,7 +7,13 @@ import {
   addParticipant,
   addPoint,
   ApprovalAudit,
+  ApprovalAuditList,
+  ApprovalAuditTitle,
   ApprovalChain,
+  ApprovalChainHeader,
+  ApprovalChainStep,
+  ApprovalChainSteps,
+  ApprovalChainTitle,
   boxAt,
   chainProgress,
   chainStatus,
@@ -15,7 +21,14 @@ import {
   clampZoom,
   dataUrlToBlob,
   DocumentViewer,
+  DocumentViewerMain,
+  DocumentViewerPages,
+  DocumentViewerPager,
+  DocumentViewerToolbar,
   FieldPlacer,
+  FieldPlacerList,
+  FieldPlacerPanel,
+  FieldPlacerStage,
   fitScale,
   formatStamp,
   hashPrefix,
@@ -24,11 +37,18 @@ import {
   moveItem,
   nudgeField,
   ParticipantList,
+  ParticipantListItem,
+  ParticipantListLive,
+  ParticipantListRows,
+  ParticipantListWho,
   participantsWithoutField,
   removeParticipant,
   resizeField,
   resolveChain,
   SealBadge,
+  SealBadgeFacts,
+  SealBadgeMark,
+  SealBadgeWho,
   SignaturePad,
   smoothStroke,
   stepStatus,
@@ -549,5 +569,106 @@ describe("FieldPlacer", () => {
     expect(root.querySelector(".fg-fp-types")).toBeNull();
     await key(root.querySelector<HTMLElement>(".fg-fp-box")!, "Delete");
     expect(root.querySelector(".fg-fp-box")).not.toBeNull();
+  });
+});
+
+describe("parts form", () => {
+  it("SealBadge takes its parts, and keeps trailing children in the shorthand", async () => {
+    const parts = await mount(
+      h(
+        SealBadge,
+        { who: "Léa", at: "2026-11-19T14:32:10Z", hash: "abcdef0123456789", className: "mine" },
+        h(SealBadgeMark),
+        h(SealBadgeWho),
+        h(SealBadgeFacts),
+      ),
+    );
+    expect(parts.querySelector("figure")?.classList.contains("mine")).toBe(true);
+    expect(parts.querySelector('[data-slot="seal-badge-who"]')?.textContent).toContain("Léa");
+    expect(parts.querySelector('[data-slot="seal-badge-facts"] code')?.textContent).toBe(
+      "abcd ef01",
+    );
+    expect(parts.querySelector('[data-slot="seal-badge-top"]')).toBeNull();
+    const shorthand = await mount(
+      h(SealBadge, { who: "Léa", at: "2026-11-19T14:32:10Z" }, h("a", { href: "#proof" }, "Proof")),
+    );
+    expect(shorthand.querySelector('[data-slot="seal-badge-body"] a')?.textContent).toBe("Proof");
+  });
+
+  it("ParticipantList composes its rows and keeps the sortable list props", async () => {
+    const el = await mount(
+      h(
+        ParticipantList,
+        { label: "Signers", defaultValue: [p("a"), p("b")], editable: true },
+        h(ParticipantListRows, {
+          renderItem: (person: ApprovalParticipant, index: number) =>
+            h(ParticipantListItem, { person, index }, h(ParticipantListWho)),
+        }),
+        h(ParticipantListLive),
+      ),
+    );
+    expect(el.querySelectorAll('[data-slot="participant-list-item"]')).toHaveLength(2);
+    expect(
+      el.querySelector('[data-slot="participant-list-rows"]')?.getAttribute("aria-label"),
+    ).toBe("Signers");
+    expect(el.querySelectorAll('[data-slot="participant-list-remove"]')).toHaveLength(0);
+  });
+
+  it("ApprovalChain and ApprovalAudit compose from parts", async () => {
+    const steps: ApprovalStep[] = [{ id: "s1", participants: [p("a")] }];
+    const el = await mount(
+      h(
+        "div",
+        null,
+        h(
+          ApprovalChain,
+          { label: "Chain", defaultValue: steps },
+          h(ApprovalChainHeader),
+          h(ApprovalChainSteps, {
+            renderStep: (step: ApprovalStep, index: number) =>
+              h(ApprovalChainStep, { step, index }, h(ApprovalChainTitle)),
+          }),
+        ),
+        h(
+          ApprovalAudit,
+          { events: [{ id: "e", actor: "Léa", action: "approved", at: "2026-11-19T14:32:10Z" }] },
+          h(ApprovalAuditTitle),
+          h(ApprovalAuditList),
+        ),
+      ),
+    );
+    expect(el.querySelector('[data-slot="approval-chain-title"]')?.textContent).toBe("Step 1");
+    expect(el.querySelector('[data-slot="approval-chain-header"]')).not.toBeNull();
+    expect(el.querySelector('[data-slot="approval-audit-item"]')?.textContent).toContain("Léa");
+  });
+
+  it("DocumentViewer and FieldPlacer compose from parts", async () => {
+    const el = await mount(
+      h(
+        "div",
+        null,
+        h(
+          DocumentViewer,
+          { label: "Doc", pages },
+          h(DocumentViewerToolbar, null, h(DocumentViewerPager)),
+          h(DocumentViewerMain, null, h(DocumentViewerPages)),
+        ),
+        h(
+          FieldPlacer,
+          { label: "Fields", pages, participants: people, defaultValue: [] },
+          h(FieldPlacerStage),
+          h(FieldPlacerPanel, null, h(FieldPlacerList)),
+        ),
+      ),
+    );
+    expect(el.querySelector('[data-slot="document-viewer-toolbar"]')?.getAttribute("role")).toBe(
+      "toolbar",
+    );
+    expect(el.querySelectorAll('[data-slot="document-viewer-page"]').length).toBeGreaterThanOrEqual(
+      3,
+    );
+    expect(el.querySelector('[data-slot="field-placer-panel"]')?.textContent).toContain(
+      "No box yet.",
+    );
   });
 });

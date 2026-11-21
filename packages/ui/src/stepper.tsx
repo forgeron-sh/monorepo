@@ -52,7 +52,7 @@ function StepperBox({ label, value, ...rest }: StepperProps) {
 function StepperRoot({ label, value: _value, className, children, ...rest }: StepperRootProps) {
   return (
     <LabelContext.Provider value={label}>
-      <span {...rest} className={cx("fg-stepper", className)}>
+      <span data-slot="stepper" {...rest} className={cx("fg-stepper", className)}>
         {children}
       </span>
     </LabelContext.Provider>
@@ -64,18 +64,32 @@ export type StepperButtonProps = ComponentProps<"button">;
 /** The minus button. `data-step="-1"`. Its children replace the glyph. */
 export function StepperDecrement(props: StepperButtonProps) {
   const label = useContext(LabelContext);
-  return <StepperButton step={-1} aria-label={`Fewer: ${label}`} {...props} />;
+  return (
+    <StepperButton
+      step={-1}
+      aria-label={`Fewer: ${label}`}
+      data-slot="stepper-decrement"
+      {...props}
+    />
+  );
 }
 
 /** The plus button. `data-step="1"`. Its children replace the glyph. */
 export function StepperIncrement(props: StepperButtonProps) {
   const label = useContext(LabelContext);
-  return <StepperButton step={1} aria-label={`More: ${label}`} {...props} />;
+  return (
+    <StepperButton
+      step={1}
+      aria-label={`More: ${label}`}
+      data-slot="stepper-increment"
+      {...props}
+    />
+  );
 }
 
 function StepperButton({ step, children, ...rest }: StepperButtonProps & { step: 1 | -1 }) {
   return (
-    <button type="button" data-step={step} {...rest}>
+    <button type="button" data-step={step} data-slot="stepper-button" {...rest}>
       {children ?? <Icon icon={step === 1 ? PlusSignIcon : MinusSignIcon} size={12} />}
     </button>
   );
@@ -92,6 +106,7 @@ export function StepperField(props: ComponentProps<"input">) {
       max="9999"
       step="1"
       aria-label={label}
+      data-slot="stepper-field"
       {...props}
     />
   );

@@ -1,10 +1,25 @@
 // The folders of a drive as a tree, on the Tree primitive (arrows, Home, End, typeahead, Enter):
 // children loaded on first opening, and folders that take a drop of files or of items dragged
 // from a FileBrowser. The same tree picks a destination in the MoveDialog.
+//
+// A root with parts. Without children, `FolderTree` draws a `FolderTreeItem` for each folder; with
+// children they are yours (the root still takes `folders` for the drops and the loading):
+//
+//   <FolderTree folders={folders} onSelectedChange={go}>
+//     {folders.map((f) => <FolderTreeItem key={f.id} node={f} />)}
+//   </FolderTree>
 
 import type { IconDefinition } from "@forgeron/icons";
 import { Folder01Icon, LockIcon } from "@forgeron/icons";
-import { useRef, useState, type DragEvent, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useRef,
+  useState,
+  type ComponentProps,
+  type DragEvent,
+  type ReactNode,
+} from "react";
 import { cx } from "../cx";
 import { Spinner } from "../feedback";
 import { useControllableState } from "../hooks/use-controllable";
@@ -50,6 +65,8 @@ export interface FolderTreeProps {
   canDrop?: (folderId: string) => boolean;
   /** Names the tree for assistive technology. */
   label?: string;
+  /** The items, composed from the parts; without them, one `FolderTreeItem` for each folder. */
+  children?: ReactNode;
   className?: string;
 }
 
@@ -78,6 +95,24 @@ export function findFolder(nodes: ReadonlyArray<FolderNode>, id: string): Folder
   return null;
 }
 
+interface FolderTreeContext {
+  open: ReadonlySet<string>;
+  disabled: ReadonlySet<string>;
+  loading: ReadonlySet<string>;
+  over: string | null;
+  onOpen: ((id: string) => void) | undefined;
+  dragProps: (node: FolderNode) => Record<string, unknown>;
+}
+
+const Ctx = createContext<FolderTreeContext | null>(null);
+
+/** Which folders are open, loading or under a drop, for a part of your own. */
+export function useFolderTree(part = "useFolderTree"): FolderTreeContext {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <FolderTree>.`);
+  return ctx;
+}
+
 /** The folders of a drive as a tree you drive from the keyboard, and drop files on. */
 export function FolderTree({
   folders,
@@ -93,6 +128,7 @@ export function FolderTree({
   onDrop,
   canDrop,
   label = "Folders",
+  children,
   className,
 }: FolderTreeProps) {
   const [openIds, setOpenIds] = useControllableState<ReadonlyArray<string>>({
@@ -178,74 +214,92 @@ export function FolderTree({
         }
       : {};
 
-  const renderLevel = (nodes: ReadonlyArray<FolderNode>, level: number): ReactNode =>
-    nodes.map((node) => {
-      const branch = isBranch(node);
-      const isOpen = branch && open.has(node.id);
-      const off = disabled.has(node.id);
-      const waiting = isOpen && (loading.has(node.id) || !isLoaded(node));
-      return (
-        <TreeItem
-          key={node.id}
-          id={node.id}
-          textValue={node.name}
-          disabled={off}
-          hasChildren={branch}
-          data-folder={node.id}
-        >
-          <TreeItemContent
-            className={cx("fg-ftree-row", over === node.id && "fg-ftree-over")}
-            onDoubleClick={() => {
-              if (!off) onOpen?.(node.id);
-            }}
-            {...dragProps(node)}
-          >
-            <Icon
-              icon={node.icon ?? Folder01Icon}
-              size={12}
-              variant="mono"
-              className="fg-tree-icon"
-            />
-            <span className="fg-tree-name">{node.name}</span>
-            {node.readOnly ? (
-              <Icon
-                icon={LockIcon}
-                size={12}
-                variant="mono"
-                className="fg-ftree-lock"
-                title="Read-only"
-              />
-            ) : null}
-          </TreeItemContent>
-          {isOpen ? (
-            waiting ? (
-              <div
-                className="fg-ftree-loading"
-                style={{ paddingLeft: `calc(${level} * var(--fg-tree-indent, 16px) + 24px)` }}
-              >
-                <Spinner label="Loading" />
-              </div>
-            ) : (
-              <TreeGroup>{renderLevel(node.children ?? [], level + 1)}</TreeGroup>
-            )
-          ) : null}
-        </TreeItem>
-      );
-    });
-
   return (
-    <Tree
-      aria-label={label}
-      className={cx("fg-ftree", className)}
-      expanded={openIds}
-      onExpandedChange={applyOpen}
-      selected={current ? [current] : []}
-      onSelectedChange={(ids) => {
-        if (ids[0] !== undefined) select(ids[0]);
-      }}
-      onActivate={(id) => onOpen?.(id)}
+    <Ctx.Provider value={{ open, disabled, loading, over, onOpen, dragProps }}>
+      <Tree
+        data-slot="folder-tree"
+        aria-label={label}
+        className={cx("fg-ftree", className)}
+        expanded={openIds}
+        onExpandedChange={applyOpen}
+        selected={current ? [current] : []}
+        onSelectedChange={(ids) => {
+          if (ids[0] !== undefined) select(ids[0]);
+        }}
+        onActivate={(id) => onOpen?.(id)}
+      >
+        {children ?? folders.map((node) => <FolderTreeItem key={node.id} node={node} />)}
+      </Tree>
+    </Ctx.Provider>
+  );
+}
+
+const LevelCtx = createContext(1);
+
+export interface FolderTreeItemProps extends Omit<
+  ComponentProps<typeof TreeItem>,
+  "id" | "children"
+> {
+  /** The folder, with the subfolders it shows once open. */
+  node: FolderNode;
+}
+
+/** One folder: its row (icon, name, lock) and, once open, its subfolders as `FolderTreeItem`s. */
+export function FolderTreeItem({ node, className, ...rest }: FolderTreeItemProps) {
+  const { open, disabled, loading, over, onOpen, dragProps } = useFolderTree("FolderTreeItem");
+  const level = useContext(LevelCtx);
+  const branch = isBranch(node);
+  const isOpen = branch && open.has(node.id);
+  const off = disabled.has(node.id);
+  const waiting = isOpen && (loading.has(node.id) || !isLoaded(node));
+  return (
+    <TreeItem
+      data-slot="folder-tree-item"
+      id={node.id}
+      textValue={node.name}
+      disabled={off}
+      hasChildren={branch}
+      data-folder={node.id}
+      {...rest}
+      className={className}
     >
-      {renderLevel(folders, 1)}
-    </Tree>
+      <TreeItemContent
+        className={cx("fg-ftree-row", over === node.id && "fg-ftree-over")}
+        onDoubleClick={() => {
+          if (!off) onOpen?.(node.id);
+        }}
+        {...dragProps(node)}
+      >
+        <Icon icon={node.icon ?? Folder01Icon} size={12} variant="mono" className="fg-tree-icon" />
+        <span className="fg-tree-name">{node.name}</span>
+        {node.readOnly ? (
+          <Icon
+            icon={LockIcon}
+            size={12}
+            variant="mono"
+            className="fg-ftree-lock"
+            title="Read-only"
+          />
+        ) : null}
+      </TreeItemContent>
+      {isOpen ? (
+        waiting ? (
+          <div
+            className="fg-ftree-loading"
+            style={{ paddingLeft: `calc(${level} * var(--fg-tree-indent, 16px) + 24px)` }}
+          >
+            <Spinner label="Loading" />
+          </div>
+        ) : (
+          <LevelCtx.Provider value={level + 1}>
+            <TreeGroup>
+              {(node.children ?? []).map((child) => (
+                <FolderTreeItem key={child.id} node={child} />
+              ))}
+            </TreeGroup>
+          </LevelCtx.Provider>
+        )
+      ) : null}
+    </TreeItem>
   );
 }

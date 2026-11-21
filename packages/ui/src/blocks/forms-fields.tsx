@@ -1,9 +1,23 @@
 // Two answers that need more than a control of the atoms, each usable alone in a form of your
 // own: a matrix (rows rated against the same columns) and a ranking (items put in order, from the
 // keyboard too). The address field is a primitive: `address-field.tsx`.
+//
+// Both are a root and parts. With no children they draw everything; with children you place the
+// parts:
+//
+//   <MatrixField label="Rate" rows={rows} columns={columns}>
+//     <MatrixFieldColumns />
+//     <MatrixFieldRows />
+//   </MatrixField>
+//
+//   <RankingField label="Rank" items={items}>
+//     <RankingFieldList />
+//     <RankingFieldKeep />
+//     <RankingFieldStatus />
+//   </RankingField>
 
 import { ArrowDown01Icon, ArrowUp01Icon, GripIcon } from "@forgeron/icons";
-import { useId } from "react";
+import { createContext, useContext, useId, type ComponentProps, type ReactNode } from "react";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
@@ -11,10 +25,108 @@ import { Icon } from "../icon";
 import { IconButton } from "../identity";
 import { useSortable } from "../sortable";
 import { type FormMatrixAnswer, type FormOption } from "./forms-model";
+import { partContext } from "../part";
 
 /* ---------------------------------------------------------------- MatrixField */
 
-export interface MatrixFieldProps {
+interface MatrixContext {
+  uid: string;
+  rows: ReadonlyArray<FormOption>;
+  columns: ReadonlyArray<FormOption>;
+  multiple: boolean;
+  disabled: boolean | undefined;
+  chosen: (row: string, col: string) => boolean;
+  pick: (row: string, col: string, on: boolean) => void;
+}
+
+const [MatrixCtx, useMatrix] = partContext<MatrixContext>("MatrixField");
+
+/** The state of the enclosing `MatrixField`: its rows and columns, and what is chosen. */
+export { useMatrix as useMatrixField };
+
+export type MatrixFieldColumnsProps = Omit<ComponentProps<"thead">, "ref">;
+
+/** The header row: one heading per column. Its children replace them. */
+export function MatrixFieldColumns({ className, children, ...rest }: MatrixFieldColumnsProps) {
+  const { columns } = useMatrix();
+  return (
+    <thead data-slot="matrix-field-columns" {...rest} className={className}>
+      <tr>
+        <td />
+        {children ??
+          columns.map((c) => (
+            <th key={c.id} scope="col">
+              {c.label}
+            </th>
+          ))}
+      </tr>
+    </thead>
+  );
+}
+
+export interface MatrixFieldCellProps extends Omit<ComponentProps<"input">, "ref" | "type" | "id"> {
+  row: string;
+  column: string;
+}
+
+/** One radio (or box) where a row meets a column. */
+export function MatrixFieldCell({ row, column, className, ...rest }: MatrixFieldCellProps) {
+  const { uid, rows, columns, multiple, disabled, chosen, pick } = useMatrix();
+  const r = rows.find((x) => x.id === row);
+  const c = columns.find((x) => x.id === column);
+  return (
+    <td>
+      <input
+        data-slot="matrix-field-cell"
+        type={multiple ? "checkbox" : "radio"}
+        name={`${uid}-${row}`}
+        aria-label={`${r?.label ?? row}: ${c?.label ?? column}`}
+        checked={chosen(row, column)}
+        disabled={disabled}
+        {...rest}
+        className={cx(multiple ? "fg-check-input" : "fg-radio-input", className)}
+        onChange={(event) => {
+          rest.onChange?.(event);
+          pick(row, column, event.target.checked);
+        }}
+      />
+    </td>
+  );
+}
+
+export interface MatrixFieldRowProps extends Omit<ComponentProps<"tr">, "ref" | "id"> {
+  /** The id of the row. */
+  row: string;
+}
+
+/** One row: its label and a cell per column. Its children replace the cells. */
+export function MatrixFieldRow({ row, className, children, ...rest }: MatrixFieldRowProps) {
+  const { rows, columns } = useMatrix();
+  const r = rows.find((x) => x.id === row);
+  return (
+    <tr data-slot="matrix-field-row" {...rest} className={className}>
+      <th scope="row">{r?.label ?? row}</th>
+      {children ?? columns.map((c) => <MatrixFieldCell key={c.id} row={row} column={c.id} />)}
+    </tr>
+  );
+}
+
+export type MatrixFieldRowsProps = Omit<ComponentProps<"tbody">, "ref">;
+
+/** The body: one `MatrixFieldRow` per row. */
+export function MatrixFieldRows({ className, children, ...rest }: MatrixFieldRowsProps) {
+  const { rows } = useMatrix();
+  return (
+    <tbody data-slot="matrix-field-rows" {...rest} className={className}>
+      {children ?? rows.map((r) => <MatrixFieldRow key={r.id} row={r.id} />)}
+    </tbody>
+  );
+}
+
+export interface MatrixFieldProps extends Omit<
+  ComponentProps<"div">,
+  "ref" | "onChange" | "defaultValue" | "children"
+> {
   /** Names the matrix for assistive technology: the question. */
   label: string;
   rows: ReadonlyArray<FormOption>;
@@ -29,8 +141,8 @@ export interface MatrixFieldProps {
   invalid?: boolean;
   /** The id of the help or error that describes the matrix. */
   describedBy?: string;
-  id?: string;
-  className?: string;
+  /** The parts, inside the table: `MatrixFieldColumns` and `MatrixFieldRows`. */
+  children?: ReactNode;
 }
 
 /** Rows against columns, one radio (or box) per cell. Arrows move along a row, as for any radio group. */
@@ -45,8 +157,9 @@ export function MatrixField({
   disabled,
   invalid,
   describedBy,
-  id,
+  children,
   className,
+  ...rest
 }: MatrixFieldProps) {
   const uid = useId();
   const [answer, setAnswer] = useControllableState<FormMatrixAnswer>({
@@ -66,57 +179,235 @@ export function MatrixField({
     const now = answer[row];
     const list = Array.isArray(now) ? now : now ? [now] : [];
     const next = on ? [...list, col] : list.filter((c) => c !== col);
-    const { [row]: _gone, ...rest } = answer;
-    setAnswer(next.length ? { ...rest, [row]: next } : rest);
+    const { [row]: _gone, ...others } = answer;
+    setAnswer(next.length ? { ...others, [row]: next } : others);
   };
   return (
-    <div
-      {...(id ? { id } : {})}
-      role="group"
-      aria-label={label}
-      aria-invalid={invalid || undefined}
-      aria-describedby={describedBy}
-      className={cx("fg-fm-matrix", className)}
-    >
-      <table className="fg-fm-matrix-table">
-        <thead>
-          <tr>
-            <td />
-            {columns.map((c) => (
-              <th key={c.id} scope="col">
-                {c.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <th scope="row">{r.label}</th>
-              {columns.map((c) => (
-                <td key={c.id}>
-                  <input
-                    type={multiple ? "checkbox" : "radio"}
-                    className={multiple ? "fg-check-input" : "fg-radio-input"}
-                    name={`${uid}-${r.id}`}
-                    aria-label={`${r.label}: ${c.label}`}
-                    checked={chosen(r.id, c.id)}
-                    disabled={disabled}
-                    onChange={(event) => pick(r.id, c.id, event.target.checked)}
-                  />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <MatrixCtx.Provider value={{ uid, rows, columns, multiple, disabled, chosen, pick }}>
+      <div
+        data-slot="matrix-field"
+        {...rest}
+        role="group"
+        aria-label={label}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        className={cx("fg-fm-matrix", className)}
+      >
+        <table className="fg-fm-matrix-table">
+          {children ?? (
+            <>
+              <MatrixFieldColumns />
+              <MatrixFieldRows />
+            </>
+          )}
+        </table>
+      </div>
+    </MatrixCtx.Provider>
   );
 }
 
 /* ---------------------------------------------------------------- RankingField */
 
-export interface RankingFieldProps {
+interface RankingContext {
+  ids: string[];
+  byId: Map<string, FormOption>;
+  touched: boolean;
+  sortable: ReturnType<typeof useSortable<string>>;
+  disabled: boolean | undefined;
+  invalid: boolean | undefined;
+  describedBy: string | undefined;
+  keep: () => void;
+}
+
+const [RankingCtx, useRanking] = partContext<RankingContext>("RankingField");
+
+/** The state of the enclosing `RankingField`: the order, and the sortable behind it. */
+export { useRanking as useRankingField };
+
+/** The item a `RankingFieldItem` is drawing, for the parts inside it. */
+const RankItemCtx = createContext<{ id: string; index: number } | null>(null);
+
+function useRankItem(part: string) {
+  const ctx = useContext(RankItemCtx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <RankingFieldItem>.`);
+  const rank = useRanking();
+  return { ...ctx, item: rank.byId.get(ctx.id)!, rank };
+}
+
+export type RankingFieldHandleProps = Omit<ComponentProps<"span">, "ref">;
+
+/** The grip to drag an item by. */
+export function RankingFieldHandle({ className, children, ...rest }: RankingFieldHandleProps) {
+  const { id, rank } = useRankItem("RankingFieldHandle");
+  return (
+    <span
+      data-slot="ranking-field-handle"
+      title="Drag to reorder, or Alt + arrows"
+      {...rank.sortable.getHandleProps(id)}
+      {...rest}
+      className={cx("fg-fm-rank-grip", className)}
+    >
+      {children ?? <Icon icon={GripIcon} size={12} variant="mono" />}
+    </span>
+  );
+}
+
+export type RankingFieldMainProps = Omit<ComponentProps<"button">, "ref">;
+
+/** The item itself: its place and its label. It takes the focus; Alt + arrows move it. */
+export function RankingFieldMain({ className, children, ...rest }: RankingFieldMainProps) {
+  const { item, index, rank } = useRankItem("RankingFieldMain");
+  return (
+    <button
+      type="button"
+      data-slot="ranking-field-main"
+      disabled={rank.disabled}
+      aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+      aria-label={`${item.label}, place ${index + 1} of ${rank.ids.length}${rank.touched ? "" : ", not ordered yet"}. Alt and arrows move it.`}
+      {...rest}
+      className={cx("fg-fm-rank-main", className)}
+    >
+      {children ?? (
+        <>
+          <span className="fg-fm-rank-n">{index + 1}</span>
+          <span className="fg-fm-rank-label">{item.label}</span>
+        </>
+      )}
+    </button>
+  );
+}
+
+export type RankingFieldMoveProps = Omit<ComponentProps<"button">, "ref" | "children">;
+
+/** The button that moves the item one place up. */
+export function RankingFieldUp(props: RankingFieldMoveProps) {
+  const { id, index, item, rank } = useRankItem("RankingFieldUp");
+  return (
+    <IconButton
+      data-slot="ranking-field-up"
+      icon={ArrowUp01Icon}
+      size="sm"
+      label={`Move ${item.label} up`}
+      disabled={rank.disabled || index === 0}
+      onClick={() => rank.sortable.moveTo(id, index - 1, { focus: false })}
+      {...props}
+    />
+  );
+}
+
+/** The button that moves the item one place down. */
+export function RankingFieldDown(props: RankingFieldMoveProps) {
+  const { id, index, item, rank } = useRankItem("RankingFieldDown");
+  return (
+    <IconButton
+      data-slot="ranking-field-down"
+      icon={ArrowDown01Icon}
+      size="sm"
+      label={`Move ${item.label} down`}
+      disabled={rank.disabled || index === rank.ids.length - 1}
+      onClick={() => rank.sortable.moveTo(id, index + 1, { focus: false })}
+      {...props}
+    />
+  );
+}
+
+export interface RankingFieldItemProps extends Omit<ComponentProps<"li">, "ref" | "id"> {
+  /** The id of the item. */
+  id: string;
+}
+
+/** One item of the list. Its children replace the handle, the label and the two arrows. */
+export function RankingFieldItem({ id, className, children, ...rest }: RankingFieldItemProps) {
+  const { ids, sortable } = useRanking();
+  const index = ids.indexOf(id);
+  const state = sortable.getItemState(id);
+  return (
+    <RankItemCtx.Provider value={{ id, index }}>
+      <li
+        data-item={id}
+        data-slot="ranking-field-item"
+        {...sortable.getItemProps(id, {
+          ...rest,
+          className: cx(
+            "fg-fm-rank-row",
+            state.dragging && "fg-fm-rank-dragging",
+            state.over && "fg-fm-rank-over",
+            className,
+          ),
+        })}
+      >
+        {children ?? (
+          <>
+            <RankingFieldHandle />
+            <RankingFieldMain />
+            <RankingFieldUp />
+            <RankingFieldDown />
+          </>
+        )}
+      </li>
+    </RankItemCtx.Provider>
+  );
+}
+
+export type RankingFieldListProps = Omit<ComponentProps<"ol">, "ref">;
+
+/** The ordered list. Its children replace the default `RankingFieldItem` per item. */
+export function RankingFieldList({ className, children, ...rest }: RankingFieldListProps) {
+  const { ids, sortable, invalid, describedBy } = useRanking();
+  return (
+    <ol
+      data-slot="ranking-field-list"
+      {...sortable.getListProps({
+        ...rest,
+        className: cx("fg-fm-rank-list", className),
+        "aria-invalid": invalid || undefined,
+        "aria-describedby": describedBy,
+      })}
+    >
+      {children ?? ids.map((id) => <RankingFieldItem key={id} id={id} />)}
+    </ol>
+  );
+}
+
+export type RankingFieldKeepProps = Omit<ComponentProps<"button">, "ref" | "onClick">;
+
+/** "Keep this order": accepts the order given, shown until the respondent has ordered the list. */
+export function RankingFieldKeep({ className, children, ...rest }: RankingFieldKeepProps) {
+  const { touched, disabled, keep } = useRanking();
+  if (touched || disabled) return null;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      data-slot="ranking-field-keep"
+      {...rest}
+      className={cx("fg-fm-rank-keep", className)}
+      onClick={keep}
+    >
+      {children ?? "Keep this order"}
+    </Button>
+  );
+}
+
+/** What the last move says, for assistive technology. */
+export function RankingFieldStatus({ className, ...rest }: Omit<ComponentProps<"span">, "ref">) {
+  const { sortable } = useRanking();
+  return (
+    <span
+      data-slot="ranking-field-status"
+      aria-live="polite"
+      {...rest}
+      className={cx("fg-sr", className)}
+    >
+      {sortable.status}
+    </span>
+  );
+}
+
+export interface RankingFieldProps extends Omit<
+  ComponentProps<"div">,
+  "ref" | "onChange" | "defaultValue" | "children"
+> {
   /** Names the list for assistive technology: the question. */
   label: string;
   items: ReadonlyArray<FormOption>;
@@ -127,8 +418,8 @@ export interface RankingFieldProps {
   disabled?: boolean;
   invalid?: boolean;
   describedBy?: string;
-  id?: string;
-  className?: string;
+  /** The parts: `RankingFieldList`, `RankingFieldKeep`, `RankingFieldStatus`. */
+  children?: ReactNode;
 }
 
 /**
@@ -145,8 +436,9 @@ export function RankingField({
   disabled,
   invalid,
   describedBy,
-  id,
+  children,
   className,
+  ...rest
 }: RankingFieldProps) {
   const [order, setOrder] = useControllableState<string[] | null>({
     value,
@@ -174,74 +466,31 @@ export function RankingField({
   });
 
   return (
-    <div
-      {...(id ? { id } : {})}
-      className={cx("fg-fm-rank", !touched && "fg-fm-rank-fresh", className)}
+    <RankingCtx.Provider
+      value={{
+        ids,
+        byId,
+        touched,
+        sortable,
+        disabled,
+        invalid,
+        describedBy,
+        keep: () => setOrder(ids),
+      }}
     >
-      <ol
-        {...sortable.getListProps({
-          className: "fg-fm-rank-list",
-          "aria-invalid": invalid || undefined,
-          "aria-describedby": describedBy,
-        })}
+      <div
+        data-slot="ranking-field"
+        {...rest}
+        className={cx("fg-fm-rank", !touched && "fg-fm-rank-fresh", className)}
       >
-        {ids.map((itemId, i) => {
-          const item = byId.get(itemId)!;
-          return (
-            <li
-              key={itemId}
-              data-item={itemId}
-              {...sortable.getItemProps(itemId, {
-                className: cx(
-                  "fg-fm-rank-row",
-                  sortable.getItemState(itemId).dragging && "fg-fm-rank-dragging",
-                  sortable.getItemState(itemId).over && "fg-fm-rank-over",
-                ),
-              })}
-            >
-              <span
-                {...sortable.getHandleProps(itemId)}
-                className="fg-fm-rank-grip"
-                title="Drag to reorder, or Alt + arrows"
-              >
-                <Icon icon={GripIcon} size={12} variant="mono" />
-              </span>
-              <button
-                type="button"
-                className="fg-fm-rank-main"
-                disabled={disabled}
-                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                aria-label={`${item.label}, place ${i + 1} of ${ids.length}${touched ? "" : ", not ordered yet"}. Alt and arrows move it.`}
-              >
-                <span className="fg-fm-rank-n">{i + 1}</span>
-                <span className="fg-fm-rank-label">{item.label}</span>
-              </button>
-              <IconButton
-                icon={ArrowUp01Icon}
-                size="sm"
-                label={`Move ${item.label} up`}
-                disabled={disabled || i === 0}
-                onClick={() => sortable.moveTo(itemId, i - 1, { focus: false })}
-              />
-              <IconButton
-                icon={ArrowDown01Icon}
-                size="sm"
-                label={`Move ${item.label} down`}
-                disabled={disabled || i === ids.length - 1}
-                onClick={() => sortable.moveTo(itemId, i + 1, { focus: false })}
-              />
-            </li>
-          );
-        })}
-      </ol>
-      {!touched && !disabled ? (
-        <Button variant="ghost" size="sm" className="fg-fm-rank-keep" onClick={() => setOrder(ids)}>
-          Keep this order
-        </Button>
-      ) : null}
-      <span className="fg-sr" aria-live="polite">
-        {sortable.status}
-      </span>
-    </div>
+        {children ?? (
+          <>
+            <RankingFieldList />
+            <RankingFieldKeep />
+            <RankingFieldStatus />
+          </>
+        )}
+      </div>
+    </RankingCtx.Provider>
   );
 }

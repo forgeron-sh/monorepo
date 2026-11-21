@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { cx } from "./cx";
-import { renderPart } from "./shell-part";
+import { renderPart } from "./part";
 
 export interface TitleProps extends Omit<ComponentProps<"h2">, "className" | "children"> {
   as?: "h1" | "h2" | "h3" | "h4" | "p";

@@ -2,6 +2,15 @@
 // a lasso, the keyboard (arrows, ⇧ arrows, ⌘A, Escape, Enter, Space, F2, Delete); a right click or
 // the ⋯ of a row opens the actions of the selection (ContextMenu, from `useActions(…).menu`);
 // items drag onto folders, files from the computer drop on a folder or on the list.
+//
+// A root with parts. Without children, `FileBrowser` draws the layout it is given: the header and
+// a `FileBrowserRow` for each item (list), or `FileBrowserTiles` and `FileBrowserCards` (grid), and
+// `FileBrowserEmpty` when there is nothing. With children they are yours:
+//
+//   <FileBrowser items={items} selected={sel} onSelectedChange={setSel}>
+//     <FileBrowserHeader />
+//     {items.map((i) => <FileBrowserRow key={i.id} item={i} />)}
+//   </FileBrowser>
 
 import type { IconDefinition } from "@forgeron/icons";
 import {
@@ -14,8 +23,11 @@ import {
   UserGroupIcon,
 } from "@forgeron/icons";
 import {
+  createContext,
+  useContext,
   useRef,
   useState,
+  type ComponentProps,
   type DragEvent,
   type HTMLAttributes,
   type KeyboardEvent,
@@ -123,6 +135,8 @@ export interface FileBrowserProps {
   empty?: ReactNode;
   /** Names the list for assistive technology. */
   label?: string;
+  /** The parts of the browser; without them, the layout drawn from `items`. */
+  children?: ReactNode;
   className?: string;
 }
 
@@ -170,6 +184,36 @@ interface Box {
 
 const ROOT = "\u0000root";
 
+interface BrowserContext {
+  list: ReadonlyArray<DriveItem>;
+  folders: ReadonlyArray<DriveItem>;
+  files: ReadonlyArray<DriveItem>;
+  layout: "list" | "grid";
+  columns: ReadonlyArray<FileColumn>;
+  header: (key: FileSortKey) => ReactNode;
+  check: (item: DriveItem) => ReactNode;
+  itemProps: (item: DriveItem) => HTMLAttributes<HTMLElement>;
+  itemDrag: (item: DriveItem) => Record<string, unknown>;
+  stateClass: (item: DriveItem) => string;
+  mark: (item: DriveItem, size?: "sm" | "lg" | "xl") => ReactNode;
+  nameOf: (item: DriveItem) => ReactNode;
+  marks: (item: DriveItem) => ReactNode;
+  more: (item: DriveItem) => ReactNode;
+  cellOf: (item: DriveItem, col: FileColumn) => ReactNode;
+  empty: ReactNode;
+  onDropFiles: boolean;
+  box: Box | null;
+}
+
+const BrowserCtx = createContext<BrowserContext | null>(null);
+
+/** The items, the layout and the helpers of the enclosing `FileBrowser`, for a part of your own. */
+export function useFileBrowser(part = "useFileBrowser"): BrowserContext {
+  const ctx = useContext(BrowserCtx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <FileBrowser>.`);
+  return ctx;
+}
+
 /** A folder's files, listed or in a grid, selected, dragged, opened and acted on. */
 export function FileBrowser({
   items,
@@ -198,6 +242,7 @@ export function FileBrowser({
   lasso = true,
   empty,
   label = "Files",
+  children,
   className,
 }: FileBrowserProps) {
   const [order, setOrder] = useControllableState<FileSort | null>({
@@ -596,109 +641,33 @@ export function FileBrowser({
     </span>
   );
 
-  const listView = (
-    <>
-      <div role="row" className="fg-fbr-row fg-fbr-head" data-fb-head="">
-        <span role="columnheader" className="fg-fbr-check">
-          <span className="fg-sr">Selected</span>
-        </span>
-        {header("name")}
-        {columns.map(header)}
-        <span role="columnheader" className="fg-fbr-actions">
-          <span className="fg-sr">Actions</span>
-        </span>
-      </div>
-      {list.map((item) => (
-        <div
-          key={item.id}
-          {...itemProps(item)}
-          {...itemDrag(item)}
-          className={cx("fg-fbr-row fg-fbr-item", stateClass(item))}
-        >
-          {check(item)}
-          <span role="gridcell" className="fg-fbr-c-name">
-            {mark(item)}
-            {nameOf(item)}
-            {marks(item)}
-          </span>
-          {columns.map((col) => (
-            <span key={col} role="gridcell" className={`fg-fbr-c-${col}`}>
-              {cellOf(item, col)}
-            </span>
-          ))}
-          <span role="gridcell" className="fg-fbr-actions">
-            {more(item)}
-          </span>
-        </div>
-      ))}
-    </>
-  );
-
   const folders = list.filter(isFolder);
   const files = list.filter((i) => !isFolder(i));
-  const gridView = (
-    <>
-      {folders.length > 0 ? (
-        <div role="rowgroup" aria-label="Folders" className="fg-fbr-section">
-          <span className="fg-fbr-eyebrow" aria-hidden="true">
-            Folders
-          </span>
-          <div className="fg-fbr-tiles">
-            {folders.map((item) => (
-              <div
-                key={item.id}
-                {...itemProps(item)}
-                {...itemDrag(item)}
-                className={cx("fg-fbr-tile fg-fbr-item", stateClass(item))}
-              >
-                <span role="gridcell" className="fg-fbr-tile-main">
-                  {mark(item)}
-                  {nameOf(item)}
-                  {marks(item)}
-                </span>
-                <span role="gridcell" className="fg-fbr-actions">
-                  {more(item)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      {files.length > 0 ? (
-        <div role="rowgroup" aria-label="Files" className="fg-fbr-section">
-          <span className="fg-fbr-eyebrow" aria-hidden="true">
-            Files
-          </span>
-          <div className="fg-fbr-cards">
-            {files.map((item) => (
-              <div
-                key={item.id}
-                {...itemProps(item)}
-                {...itemDrag(item)}
-                className={cx("fg-fbr-card fg-fbr-item", stateClass(item))}
-              >
-                <span role="gridcell" className="fg-fbr-thumb">
-                  <Thumbnail item={item} />
-                  {item.starred || item.locked || item.shared ? (
-                    <span className="fg-fbr-badges">{marks(item)}</span>
-                  ) : null}
-                </span>
-                <span role="gridcell" className="fg-fbr-card-foot">
-                  {mark(item)}
-                  {nameOf(item)}
-                  {more(item)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
+  const ctx: BrowserContext = {
+    list,
+    folders,
+    files,
+    layout,
+    columns,
+    header,
+    check,
+    itemProps,
+    itemDrag,
+    stateClass,
+    mark,
+    nameOf,
+    marks,
+    more,
+    cellOf,
+    empty,
+    onDropFiles: Boolean(onDropFiles),
+    box,
+  };
 
   const container = collection.getContainerProps();
   const content = (
     <div
+      data-slot="file-browser"
       {...container}
       ref={(node: HTMLDivElement | null) => {
         body.current = node;
@@ -736,40 +705,246 @@ export function FileBrowser({
       onPointerCancel={onPointerUp}
       {...rootDrop}
     >
-      {list.length === 0
-        ? (empty ?? (
-            <EmptyState
-              variant="hatch"
-              icon={Folder01Icon}
-              title="This folder is empty"
-              description={onDropFiles ? "Drop files here to upload them." : undefined}
-            />
-          ))
-        : layout === "grid"
-          ? gridView
-          : listView}
-      {box ? (
-        <span
-          className="fg-fbr-lasso"
-          aria-hidden="true"
-          style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
-        />
-      ) : null}
+      {children ?? (
+        <>
+          {list.length === 0 ? (
+            <FileBrowserEmpty />
+          ) : layout === "grid" ? (
+            <>
+              <FileBrowserTiles />
+              <FileBrowserCards />
+            </>
+          ) : (
+            <>
+              <FileBrowserHeader />
+              {list.map((item) => (
+                <FileBrowserRow key={item.id} item={item} />
+              ))}
+            </>
+          )}
+          <FileBrowserLasso />
+        </>
+      )}
     </div>
   );
 
-  if (!menu) return content;
+  if (!menu) return <BrowserCtx.Provider value={ctx}>{content}</BrowserCtx.Provider>;
   return (
-    <ContextMenu
-      items={menu(selection.length > 0 ? [...selection] : [])}
-      onSelect={(actionId) => onAction?.(actionId, [...selection])}
-      label={
-        selection.length === 1 ? "Actions on the item" : `Actions on ${selection.length} items`
-      }
-      areaClassName="fg-fbr-area"
+    <BrowserCtx.Provider value={ctx}>
+      <ContextMenu
+        items={menu(selection.length > 0 ? [...selection] : [])}
+        onSelect={(actionId) => onAction?.(actionId, [...selection])}
+        label={
+          selection.length === 1 ? "Actions on the item" : `Actions on ${selection.length} items`
+        }
+        areaClassName="fg-fbr-area"
+      >
+        {content}
+      </ContextMenu>
+    </BrowserCtx.Provider>
+  );
+}
+
+/* ---------------------------------------------------------------- parts */
+
+/** The header row of the list: a box column, the name, the columns, the actions. */
+export function FileBrowserHeader({ className, children, ...rest }: ComponentProps<"div">) {
+  const { columns, header } = useFileBrowser("FileBrowserHeader");
+  return (
+    <div
+      data-slot="file-browser-header"
+      role="row"
+      data-fb-head=""
+      {...rest}
+      className={cx("fg-fbr-row fg-fbr-head", className)}
     >
-      {content}
-    </ContextMenu>
+      {children ?? (
+        <>
+          <span role="columnheader" className="fg-fbr-check">
+            <span className="fg-sr">Selected</span>
+          </span>
+          {header("name")}
+          {columns.map(header)}
+          <span role="columnheader" className="fg-fbr-actions">
+            <span className="fg-sr">Actions</span>
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+type ItemPart = Omit<ComponentProps<"div">, "children"> & {
+  item: DriveItem;
+  children?: ReactNode;
+};
+
+/** One item of the list: its box, name, columns and menu. */
+export function FileBrowserRow({ item, className, children, ...rest }: ItemPart) {
+  const { itemProps, itemDrag, stateClass, check, mark, nameOf, marks, columns, cellOf, more } =
+    useFileBrowser("FileBrowserRow");
+  return (
+    <div
+      data-slot="file-browser-row"
+      {...itemProps(item)}
+      {...itemDrag(item)}
+      {...rest}
+      className={cx("fg-fbr-row fg-fbr-item", stateClass(item), className)}
+    >
+      {children ?? (
+        <>
+          {check(item)}
+          <span role="gridcell" className="fg-fbr-c-name">
+            {mark(item)}
+            {nameOf(item)}
+            {marks(item)}
+          </span>
+          {columns.map((col) => (
+            <span key={col} role="gridcell" className={`fg-fbr-c-${col}`}>
+              {cellOf(item, col)}
+            </span>
+          ))}
+          <span role="gridcell" className="fg-fbr-actions">
+            {more(item)}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The folders of the grid, as tiles under a "Folders" band; nothing without a folder. */
+export function FileBrowserTiles({ className, children, ...rest }: ComponentProps<"div">) {
+  const { folders } = useFileBrowser("FileBrowserTiles");
+  if (folders.length === 0 && children === undefined) return null;
+  return (
+    <div
+      data-slot="file-browser-tiles"
+      role="rowgroup"
+      aria-label="Folders"
+      {...rest}
+      className={cx("fg-fbr-section", className)}
+    >
+      <span className="fg-fbr-eyebrow" aria-hidden="true">
+        Folders
+      </span>
+      <div className="fg-fbr-tiles">
+        {children ?? folders.map((item) => <FileBrowserTile key={item.id} item={item} />)}
+      </div>
+    </div>
+  );
+}
+
+/** One folder of the grid. */
+export function FileBrowserTile({ item, className, children, ...rest }: ItemPart) {
+  const { itemProps, itemDrag, stateClass, mark, nameOf, marks, more } =
+    useFileBrowser("FileBrowserTile");
+  return (
+    <div
+      data-slot="file-browser-tile"
+      {...itemProps(item)}
+      {...itemDrag(item)}
+      {...rest}
+      className={cx("fg-fbr-tile fg-fbr-item", stateClass(item), className)}
+    >
+      {children ?? (
+        <>
+          <span role="gridcell" className="fg-fbr-tile-main">
+            {mark(item)}
+            {nameOf(item)}
+            {marks(item)}
+          </span>
+          <span role="gridcell" className="fg-fbr-actions">
+            {more(item)}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The files of the grid, as cards under a "Files" band; nothing without a file. */
+export function FileBrowserCards({ className, children, ...rest }: ComponentProps<"div">) {
+  const { files } = useFileBrowser("FileBrowserCards");
+  if (files.length === 0 && children === undefined) return null;
+  return (
+    <div
+      data-slot="file-browser-cards"
+      role="rowgroup"
+      aria-label="Files"
+      {...rest}
+      className={cx("fg-fbr-section", className)}
+    >
+      <span className="fg-fbr-eyebrow" aria-hidden="true">
+        Files
+      </span>
+      <div className="fg-fbr-cards">
+        {children ?? files.map((item) => <FileBrowserCard key={item.id} item={item} />)}
+      </div>
+    </div>
+  );
+}
+
+/** One file of the grid: its picture, then its mark, name and menu. */
+export function FileBrowserCard({ item, className, children, ...rest }: ItemPart) {
+  const { itemProps, itemDrag, stateClass, mark, nameOf, marks, more } =
+    useFileBrowser("FileBrowserCard");
+  return (
+    <div
+      data-slot="file-browser-card"
+      {...itemProps(item)}
+      {...itemDrag(item)}
+      {...rest}
+      className={cx("fg-fbr-card fg-fbr-item", stateClass(item), className)}
+    >
+      {children ?? (
+        <>
+          <span role="gridcell" className="fg-fbr-thumb">
+            <Thumbnail item={item} />
+            {item.starred || item.locked || item.shared ? (
+              <span className="fg-fbr-badges">{marks(item)}</span>
+            ) : null}
+          </span>
+          <span role="gridcell" className="fg-fbr-card-foot">
+            {mark(item)}
+            {nameOf(item)}
+            {more(item)}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** What is shown when the folder has no item: your `empty`, or the default state. */
+export function FileBrowserEmpty({ children }: { children?: ReactNode }) {
+  const { empty, onDropFiles } = useFileBrowser("FileBrowserEmpty");
+  return (
+    <>
+      {children ?? empty ?? (
+        <EmptyState
+          variant="hatch"
+          icon={Folder01Icon}
+          title="This folder is empty"
+          description={onDropFiles ? "Drop files here to upload them." : undefined}
+        />
+      )}
+    </>
+  );
+}
+
+/** The rectangle drawn while selecting from the empty space. */
+export function FileBrowserLasso({ className, style, ...rest }: ComponentProps<"span">) {
+  const { box } = useFileBrowser("FileBrowserLasso");
+  if (!box) return null;
+  return (
+    <span
+      data-slot="file-browser-lasso"
+      aria-hidden="true"
+      {...rest}
+      className={cx("fg-fbr-lasso", className)}
+      style={{ left: box.x, top: box.y, width: box.w, height: box.h, ...style }}
+    />
   );
 }
 

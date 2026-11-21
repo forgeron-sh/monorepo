@@ -19,6 +19,7 @@ export function ToggleGroup({ variant, size, type, className, ...rest }: ToggleG
     <Style.Provider value={{ variant, size }}>
       <Base
         {...(type === "multiple" ? { multiple: true } : {})}
+        data-slot="toggle-group"
         {...rest}
         data-variant={variant ?? "default"}
         className={cx("fg-toggle-group", className)}
@@ -35,6 +36,7 @@ export function ToggleGroupItem({ variant, size, className, ...rest }: ToggleGro
   const group = useContext(Style);
   return (
     <BaseToggle
+      data-slot="toggle-group-item"
       {...rest}
       className={cx(
         toggleClass({ variant: variant ?? group.variant, size: size ?? group.size }),

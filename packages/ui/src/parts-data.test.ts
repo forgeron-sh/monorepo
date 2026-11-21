@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, createElement as h, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
-import { renderToStaticMarkup as html } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   Command,
@@ -25,6 +25,10 @@ import {
   TableHeader,
   TableRow,
 } from "./index";
+
+// The markup these cases pin, without the shadcn `data-slot` names (data-slot.test.ts checks them).
+const html = (...args: Parameters<typeof renderToStaticMarkup>) =>
+  renderToStaticMarkup(...args).replace(/ data-slot="[^"]*"/g, "");
 
 // shadcn's Table, Label and Command parts next to the props-driven Table (D-156).
 

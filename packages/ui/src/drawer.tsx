@@ -11,11 +11,14 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { cx } from "./cx";
 import { IconButton } from "./identity";
 
-export interface DrawerProps {
+export interface DrawerProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  "title" | "className" | "children" | "onKeyDown"
+> {
   title: ReactNode;
   description?: ReactNode;
   /** Escape and the close button. */
@@ -50,6 +53,7 @@ function DrawerPanel({
   actions,
   className,
   children,
+  ...rest
 }: DrawerProps) {
   const id = useId();
   const box = useRef<HTMLElement>(null);
@@ -71,6 +75,8 @@ function DrawerPanel({
       role="complementary"
       aria-labelledby={`${id}-title`}
       tabIndex={-1}
+      data-slot="drawer"
+      {...rest}
       className={cx("fg-drawer", className)}
       onKeyDown={onKeyDown}
     >
@@ -119,14 +125,28 @@ export type DrawerTriggerProps = Part<ComponentProps<typeof Base.Trigger>> & { a
 
 /** Opens the drawer. `asChild` draws your own element. */
 export function DrawerTrigger({ asChild, children, className, ...rest }: DrawerTriggerProps) {
-  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Trigger
+      data-slot="drawer-trigger"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export type DrawerCloseProps = Part<ComponentProps<typeof Base.Close>> & { asChild?: boolean };
 
 /** Closes the drawer. */
 export function DrawerClose({ asChild, children, className, ...rest }: DrawerCloseProps) {
-  return <Base.Close {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Close
+      data-slot="drawer-close"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export function DrawerPortal(props: ComponentProps<typeof Base.Portal>) {
@@ -135,7 +155,13 @@ export function DrawerPortal(props: ComponentProps<typeof Base.Portal>) {
 
 /** The scrim behind the drawer. */
 export function DrawerOverlay({ className, ...rest }: Part<ComponentProps<typeof Base.Backdrop>>) {
-  return <Base.Backdrop {...rest} className={cx("fg-dialog-backdrop", className)} />;
+  return (
+    <Base.Backdrop
+      data-slot="drawer-overlay"
+      {...rest}
+      className={cx("fg-dialog-backdrop", className)}
+    />
+  );
 }
 
 export type DrawerContentProps = Part<ComponentProps<typeof Base.Popup>>;
@@ -147,6 +173,7 @@ export function DrawerContent({ className, children, ...rest }: DrawerContentPro
     <Base.Portal>
       <Base.Backdrop className="fg-dialog-backdrop" />
       <Base.Popup
+        data-slot="drawer-content"
         {...rest}
         data-side={direction}
         className={cx("fg-sheet fg-sheet-popup", className)}
@@ -159,21 +186,29 @@ export function DrawerContent({ className, children, ...rest }: DrawerContentPro
 }
 
 const box =
-  (base: string) =>
+  (slot: string, base: string) =>
   ({ className, ...rest }: HTMLAttributes<HTMLDivElement>) => (
-    <div {...rest} className={cx(base, className)} />
+    <div data-slot={slot} {...rest} className={cx(base, className)} />
   );
 
-export const DrawerHeader = box("fg-sheet-header");
-export const DrawerFooter = box("fg-sheet-foot");
+export const DrawerHeader = box("drawer-header", "fg-sheet-header");
+export const DrawerFooter = box("drawer-footer", "fg-sheet-foot");
 
 export function DrawerTitle({ className, ...rest }: Part<ComponentProps<typeof Base.Title>>) {
-  return <Base.Title {...rest} className={cx("fg-dialog-title", className)} />;
+  return (
+    <Base.Title data-slot="drawer-title" {...rest} className={cx("fg-dialog-title", className)} />
+  );
 }
 
 export function DrawerDescription({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Description>>) {
-  return <Base.Description {...rest} className={cx("fg-dialog-desc", className)} />;
+  return (
+    <Base.Description
+      data-slot="drawer-description"
+      {...rest}
+      className={cx("fg-dialog-desc", className)}
+    />
+  );
 }

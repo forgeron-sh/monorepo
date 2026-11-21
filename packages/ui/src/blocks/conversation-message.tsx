@@ -3,6 +3,18 @@
 // (sending, failed with a retry, edited, deleted), its files, its reactions, the thread it opened
 // and, on hover or focus, its actions: react, reply in a thread, and a menu. MessageList and
 // ThreadPanel are made of these.
+//
+// With `message` alone it is the usual message. With children it is a frame, and the parts compose
+// it. Whatever else it is given (`id`, `onClick`, a collection's item props…) goes on the article.
+//
+//   <MessageItem message={m} currentUserId="me" onReact={react}>
+//     <MessageItemSide />
+//     <MessageItemMain>
+//       <MessageItemHeader /><MessageItemQuote /><MessageItemBody /><MessageItemState />
+//       <MessageItemAttachments /><MessageItemReactions /><MessageItemReplies />
+//     </MessageItemMain>
+//     <MessageItemActions />
+//   </MessageItem>
 
 import {
   Copy01Icon,
@@ -13,14 +25,13 @@ import {
   ReplyIcon,
   SmilePlusIcon,
 } from "@forgeron/icons";
-import type { KeyboardEvent, ReactNode } from "react";
-import { useState } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { Avatar } from "../avatar";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { IconButton } from "../identity";
-import { Popover } from "../popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import { AttachmentList } from "./conversation-attachments";
 import { EmojiPicker, type EmojiCategory } from "../emoji-picker";
 import { ReactionBar } from "./conversation-emoji";
@@ -31,6 +42,7 @@ import {
   type ConversationInline,
   type ConversationMessage,
 } from "./conversation-model";
+import { part, type PartProps } from "../part";
 import { ActionMenu, type ActionMenuEntry } from "../action-menu";
 
 export interface MessageHandlers {
@@ -61,18 +73,6 @@ export interface MessageHandlers {
   /** Your own emoji set. */
   categories?: ReadonlyArray<EmojiCategory>;
   timeZone?: string | undefined;
-}
-
-export interface MessageItemProps extends MessageHandlers {
-  message: ConversationMessage;
-  /** Shows the author's name, avatar and time. Default `true`. */
-  head?: boolean;
-  /** `0` for the one message that is a tab stop of its list, `-1` for the others. */
-  tabIndex?: 0 | -1;
-  menuOpen?: boolean;
-  onMenuOpenChange?: (open: boolean) => void;
-  onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void;
-  className?: string;
 }
 
 function Inline({
@@ -149,15 +149,320 @@ export function ConversationText({
   return <Inline parts={parseConversationInline(body)} onMentionClick={onMentionClick} />;
 }
 
-/** One message, with its toolbar and menu. A list gives it `head`, `tabIndex` and `onKeyDown`. */
+/* ---------------------------------------------------------------- context */
+
+interface MessageContext extends MessageHandlers {
+  message: ConversationMessage;
+  head: boolean;
+  mine: boolean;
+  time: string;
+  settled: boolean;
+  menuItems: ReadonlyArray<ActionMenuEntry>;
+  choose: (id: string) => void;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  picking: boolean;
+  setPicking: (open: boolean) => void;
+}
+
+const MessageCtx = createContext<MessageContext | null>(null);
+
+/** The message a part is in, with what it can do: for your own parts inside a `MessageItem`. */
+export function useMessageItem(who = "useMessageItem"): MessageContext {
+  const ctx = useContext(MessageCtx);
+  if (!ctx) throw new Error(`<${who}> goes inside a <MessageItem>.`);
+  return ctx;
+}
+
+/* ---------------------------------------------------------------- parts */
+
+/** The avatar of the first message of a run, the time of the others. */
+export function MessageItemSide({ children, ...rest }: PartProps<"div">) {
+  const { message, head, time } = useMessageItem("MessageItemSide");
+  const author = message.author;
+  return part("div", "message-item-side", "fg-conv-msg-side", {
+    ...rest,
+    children:
+      children ??
+      (head ? (
+        <Avatar
+          name={author?.name ?? "?"}
+          size={28}
+          {...(author?.avatar ? { src: author.avatar } : {})}
+        />
+      ) : (
+        <time className="fg-conv-msg-time" dateTime={message.at}>
+          {time}
+        </time>
+      )),
+  });
+}
+
+/** The column of the message: header, quote, text, files, reactions, replies. */
+export function MessageItemMain(props: PartProps<"div">) {
+  return part("div", "message-item-main", "fg-conv-msg-main", props);
+}
+
+/** Author, role and time; only on the first message of a run. */
+export function MessageItemHeader({ children, ...rest }: PartProps<"header">) {
+  const { message, head, time } = useMessageItem("MessageItemHeader");
+  if (!head) return null;
+  const author = message.author;
+  return part("header", "message-item-header", "fg-conv-msg-header", {
+    ...rest,
+    children: children ?? (
+      <>
+        <b className="fg-conv-msg-author">{author?.name}</b>
+        {author?.role ? <span className="fg-conv-msg-role">{author.role}</span> : null}
+        <time className="fg-conv-msg-when" dateTime={message.at}>
+          {time}
+        </time>
+      </>
+    ),
+  });
+}
+
+/** The message this one answers; a press goes to it. */
+export function MessageItemQuote({
+  children,
+  ...rest
+}: Omit<PartProps<"button">, "onClick" | "disabled">) {
+  const { message, onJumpTo } = useMessageItem("MessageItemQuote");
+  const quote = message.replyTo;
+  if (!quote) return null;
+  return part(
+    "button",
+    "message-item-quote",
+    "fg-conv-quote",
+    {
+      ...rest,
+      children: children ?? (
+        <>
+          <b>{quote.author}</b>
+          <span>{conversationPlainText(quote.text)}</span>
+        </>
+      ),
+    },
+    {
+      type: "button",
+      disabled: !onJumpTo || !quote.id,
+      "aria-label": `In reply to ${quote.author}: ${conversationPlainText(quote.text)}`,
+      onClick: () => quote.id && onJumpTo?.(quote.id),
+    },
+  );
+}
+
+/** The text, "(edited)", or "This message was deleted.". */
+export function MessageItemBody({ children, ...rest }: PartProps<"div">) {
+  const { message, onMentionClick } = useMessageItem("MessageItemBody");
+  return part("div", "message-item-body", "fg-conv-msg-body", {
+    ...rest,
+    children: children ?? (
+      <>
+        {message.deleted ? (
+          <em className="fg-conv-deleted">This message was deleted.</em>
+        ) : message.body !== undefined ? (
+          <ConversationText body={message.body} onMentionClick={onMentionClick} />
+        ) : null}
+        {message.edited && !message.deleted ? (
+          <span className="fg-conv-edited"> (edited)</span>
+        ) : null}
+      </>
+    ),
+  });
+}
+
+/** "Sending…", or "Not sent." with Retry and Discard; nothing for a message that went through. */
+export function MessageItemState({ children, ...rest }: PartProps<"div">) {
+  const { message, onRetry, onDiscard } = useMessageItem("MessageItemState");
+  if (message.status === "sending") {
+    return part("span", "message-item-state", "fg-conv-state", {
+      ...rest,
+      children: children ?? "Sending…",
+    });
+  }
+  if (message.status !== "failed") return null;
+  return part(
+    "div",
+    "message-item-state",
+    "fg-conv-failed-bar",
+    {
+      ...rest,
+      children: children ?? (
+        <>
+          <span className="fg-conv-failed-text">Not sent.</span>
+          {onRetry ? (
+            <Button variant="secondary" size="sm" onClick={() => onRetry(message)}>
+              Retry
+            </Button>
+          ) : null}
+          {onDiscard ? (
+            <Button variant="ghost" size="sm" onClick={() => onDiscard(message)}>
+              Discard
+            </Button>
+          ) : null}
+        </>
+      ),
+    },
+    { role: "alert" },
+  );
+}
+
+/** The files of the message, as tiles. */
+export function MessageItemAttachments() {
+  const { message } = useMessageItem("MessageItemAttachments");
+  if (message.deleted || (message.attachments?.length ?? 0) === 0) return null;
+  return <AttachmentList items={message.attachments!} layout="grid" />;
+}
+
+/** The reactions of the message. */
+export function MessageItemReactions() {
+  const { message, currentUserId, onReact, categories } = useMessageItem("MessageItemReactions");
+  const reactions = message.reactions ?? [];
+  if (message.deleted || reactions.length === 0) return null;
+  return (
+    <ReactionBar
+      reactions={reactions}
+      currentUserId={currentUserId}
+      canAdd={onReact !== undefined}
+      readOnly={onReact === undefined}
+      onToggle={(emoji) => onReact?.(message.id, emoji)}
+      {...(categories ? { categories } : {})}
+    />
+  );
+}
+
+/** "3 replies · last 09:10": opens the thread. */
+export function MessageItemReplies({
+  children,
+  ...rest
+}: Omit<PartProps<"button">, "onClick" | "disabled">) {
+  const { message, onOpenThread, timeZone } = useMessageItem("MessageItemReplies");
+  const replies = message.replyCount ?? 0;
+  if (message.deleted || replies === 0) return null;
+  return part(
+    "button",
+    "message-item-replies",
+    "fg-conv-replies",
+    {
+      ...rest,
+      children: children ?? (
+        <>
+          {replies} {replies === 1 ? "reply" : "replies"}
+          {message.lastReplyAt ? (
+            <span className="fg-conv-replies-last">
+              {" "}
+              · last {conversationTime(message.lastReplyAt, timeZone)}
+            </span>
+          ) : null}
+        </>
+      ),
+    },
+    { type: "button", disabled: !onOpenThread, onClick: () => onOpenThread?.(message) },
+  );
+}
+
+/** The toolbar shown on hover or focus: react, reply in a thread, and the menu. */
+export function MessageItemActions({ children, ...rest }: PartProps<"div">) {
+  const {
+    message,
+    settled,
+    menuItems,
+    choose,
+    open,
+    setOpen,
+    picking,
+    setPicking,
+    onReact,
+    onOpenThread,
+    categories,
+  } = useMessageItem("MessageItemActions");
+  if (!settled || !(onReact || onOpenThread || menuItems.length > 0)) return null;
+  const author = message.author;
+  return part(
+    "div",
+    "message-item-actions",
+    "fg-conv-msg-actions",
+    {
+      ...rest,
+      children: children ?? (
+        <>
+          {onReact ? (
+            <Popover open={picking} onOpenChange={setPicking}>
+              <PopoverTrigger asChild>
+                <IconButton icon={SmilePlusIcon} label="Add a reaction" size="sm" variant="boxed" />
+              </PopoverTrigger>
+              <PopoverContent align="end" aria-label="Add a reaction" style={{ width: 300 }}>
+                <EmojiPicker
+                  autoFocus
+                  {...(categories ? { categories } : {})}
+                  onSelect={(emoji) => {
+                    onReact(message.id, emoji);
+                    setPicking(false);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+          ) : null}
+          {onOpenThread ? (
+            <IconButton
+              icon={MessageSquareIcon}
+              label="Reply in thread"
+              size="sm"
+              variant="boxed"
+              onClick={() => onOpenThread(message)}
+            />
+          ) : null}
+          {menuItems.length > 0 ? (
+            <ActionMenu
+              items={[...menuItems]}
+              onSelect={choose}
+              label={`Actions on the message of ${author?.name ?? "the system"}`}
+              open={open}
+              onOpenChange={setOpen}
+              align="end"
+              trigger={
+                <IconButton
+                  icon={MoreHorizontalIcon}
+                  label="More actions"
+                  size="sm"
+                  variant="boxed"
+                />
+              }
+            />
+          ) : null}
+        </>
+      ),
+    },
+    { role: "group", "aria-label": "Message actions" },
+  );
+}
+
+/* ---------------------------------------------------------------- the message */
+
+export interface MessageItemProps
+  extends MessageHandlers, Omit<PartProps<"article">, "children" | "onCopy" | "tabIndex"> {
+  message: ConversationMessage;
+  /** Shows the author's name, avatar and time. Default `true`. */
+  head?: boolean;
+  /** `0` for the one message that is a tab stop of its list, `-1` for the others. */
+  tabIndex?: number;
+  menuOpen?: boolean;
+  onMenuOpenChange?: (open: boolean) => void;
+  /** The parts. Without them, the message is built from the props. */
+  children?: ReactNode;
+}
+
+/** One message, with its toolbar and menu. A list gives it `head` and its collection's item props. */
 export function MessageItem({
   message,
   head = true,
   tabIndex = -1,
   menuOpen,
   onMenuOpenChange,
-  onKeyDown,
+  children,
   className,
+  asChild,
   currentUserId,
   onReact,
   onReply,
@@ -173,6 +478,7 @@ export function MessageItem({
   onMentionClick,
   categories,
   timeZone,
+  ...rest
 }: MessageItemProps) {
   const [open, setOpen] = useControllableState<boolean>({
     value: menuOpen,
@@ -213,170 +519,75 @@ export function MessageItem({
     onAction?.(id, message);
   };
 
-  const hasToolbar = settled && (onReact || onOpenThread || items.length > 0);
-  const replies = message.replyCount ?? 0;
-  const reactions = message.reactions ?? [];
+  const ctx: MessageContext = {
+    message,
+    head,
+    mine,
+    time,
+    settled,
+    menuItems: items,
+    choose,
+    open,
+    setOpen,
+    picking,
+    setPicking,
+    currentUserId,
+    onReact,
+    onReply,
+    onOpenThread,
+    onEdit,
+    onDelete,
+    onRetry,
+    onDiscard,
+    onCopy,
+    onJumpTo,
+    actions,
+    onAction,
+    onMentionClick,
+    categories,
+    timeZone,
+  };
 
   return (
-    <article
-      className={cx(
-        "fg-conv-msg",
-        head && "fg-conv-msg-head",
-        mine && "fg-conv-msg-mine",
-        message.status === "sending" && "fg-conv-msg-sending",
-        message.status === "failed" && "fg-conv-msg-failed",
-        message.deleted && "fg-conv-msg-deleted",
-        (open || picking) && "fg-conv-msg-active",
-        className,
+    <MessageCtx.Provider value={ctx}>
+      {part(
+        "article",
+        "message-item",
+        cx(
+          "fg-conv-msg",
+          head && "fg-conv-msg-head",
+          mine && "fg-conv-msg-mine",
+          message.status === "sending" && "fg-conv-msg-sending",
+          message.status === "failed" && "fg-conv-msg-failed",
+          message.deleted && "fg-conv-msg-deleted",
+          (open || picking) && "fg-conv-msg-active",
+        ),
+        {
+          className,
+          asChild,
+          ...rest,
+          children: children ?? (
+            <>
+              <MessageItemSide />
+              <MessageItemMain>
+                <MessageItemHeader />
+                <MessageItemQuote />
+                <MessageItemBody />
+                <MessageItemState />
+                <MessageItemAttachments />
+                <MessageItemReactions />
+                <MessageItemReplies />
+              </MessageItemMain>
+              <MessageItemActions />
+            </>
+          ),
+        },
+        {
+          "data-mid": message.id,
+          tabIndex,
+          "aria-label": `${author?.name ?? "System"}, ${time}`,
+        },
       )}
-      data-mid={message.id}
-      tabIndex={tabIndex}
-      aria-label={`${author?.name ?? "System"}, ${time}`}
-      onKeyDown={onKeyDown}
-    >
-      <div className="fg-conv-msg-side">
-        {head ? (
-          <Avatar
-            name={author?.name ?? "?"}
-            size={28}
-            {...(author?.avatar ? { src: author.avatar } : {})}
-          />
-        ) : (
-          <time className="fg-conv-msg-time" dateTime={message.at}>
-            {time}
-          </time>
-        )}
-      </div>
-      <div className="fg-conv-msg-main">
-        {head ? (
-          <header className="fg-conv-msg-header">
-            <b className="fg-conv-msg-author">{author?.name}</b>
-            {author?.role ? <span className="fg-conv-msg-role">{author.role}</span> : null}
-            <time className="fg-conv-msg-when" dateTime={message.at}>
-              {time}
-            </time>
-          </header>
-        ) : null}
-        {message.replyTo ? (
-          <button
-            type="button"
-            className="fg-conv-quote"
-            disabled={!onJumpTo || !message.replyTo.id}
-            aria-label={`In reply to ${message.replyTo.author}: ${conversationPlainText(message.replyTo.text)}`}
-            onClick={() => message.replyTo?.id && onJumpTo?.(message.replyTo.id)}
-          >
-            <b>{message.replyTo.author}</b>
-            <span>{conversationPlainText(message.replyTo.text)}</span>
-          </button>
-        ) : null}
-        <div className="fg-conv-msg-body">
-          {message.deleted ? (
-            <em className="fg-conv-deleted">This message was deleted.</em>
-          ) : message.body !== undefined ? (
-            <ConversationText body={message.body} onMentionClick={onMentionClick} />
-          ) : null}
-          {message.edited && !message.deleted ? (
-            <span className="fg-conv-edited"> (edited)</span>
-          ) : null}
-        </div>
-        {message.status === "sending" ? <span className="fg-conv-state">Sending…</span> : null}
-        {message.status === "failed" ? (
-          <div className="fg-conv-failed-bar" role="alert">
-            <span className="fg-conv-failed-text">Not sent.</span>
-            {onRetry ? (
-              <Button variant="secondary" size="sm" onClick={() => onRetry(message)}>
-                Retry
-              </Button>
-            ) : null}
-            {onDiscard ? (
-              <Button variant="ghost" size="sm" onClick={() => onDiscard(message)}>
-                Discard
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-        {!message.deleted && (message.attachments?.length ?? 0) > 0 ? (
-          <AttachmentList items={message.attachments!} layout="grid" />
-        ) : null}
-        {!message.deleted && reactions.length > 0 ? (
-          <ReactionBar
-            reactions={reactions}
-            currentUserId={currentUserId}
-            canAdd={onReact !== undefined}
-            readOnly={onReact === undefined}
-            onToggle={(emoji) => onReact?.(message.id, emoji)}
-            {...(categories ? { categories } : {})}
-          />
-        ) : null}
-        {!message.deleted && replies > 0 ? (
-          <button
-            type="button"
-            className="fg-conv-replies"
-            disabled={!onOpenThread}
-            onClick={() => onOpenThread?.(message)}
-          >
-            {replies} {replies === 1 ? "reply" : "replies"}
-            {message.lastReplyAt ? (
-              <span className="fg-conv-replies-last">
-                {" "}
-                · last {conversationTime(message.lastReplyAt, timeZone)}
-              </span>
-            ) : null}
-          </button>
-        ) : null}
-      </div>
-      {hasToolbar ? (
-        <div className="fg-conv-msg-actions" role="group" aria-label="Message actions">
-          {onReact ? (
-            <Popover
-              label="Add a reaction"
-              open={picking}
-              onOpenChange={setPicking}
-              width={300}
-              align="end"
-              trigger={
-                <IconButton icon={SmilePlusIcon} label="Add a reaction" size="sm" variant="boxed" />
-              }
-            >
-              <EmojiPicker
-                autoFocus
-                {...(categories ? { categories } : {})}
-                onSelect={(emoji) => {
-                  onReact(message.id, emoji);
-                  setPicking(false);
-                }}
-              />
-            </Popover>
-          ) : null}
-          {onOpenThread ? (
-            <IconButton
-              icon={MessageSquareIcon}
-              label="Reply in thread"
-              size="sm"
-              variant="boxed"
-              onClick={() => onOpenThread(message)}
-            />
-          ) : null}
-          {items.length > 0 ? (
-            <ActionMenu
-              items={items}
-              onSelect={choose}
-              label={`Actions on the message of ${author?.name ?? "the system"}`}
-              open={open}
-              onOpenChange={setOpen}
-              align="end"
-              trigger={
-                <IconButton
-                  icon={MoreHorizontalIcon}
-                  label="More actions"
-                  size="sm"
-                  variant="boxed"
-                />
-              }
-            />
-          ) : null}
-        </div>
-      ) : null}
-    </article>
+    </MessageCtx.Provider>
   );
 }

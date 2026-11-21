@@ -1,0 +1,287 @@
+/* The EventGrid primitive: events on a grid of hours. Values come from tokens/tokens.css.
+   Prefix: fg-eg. */
+
+.fg-eg {
+  --fg-hatch: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 9px);
+  --fg-eg-gutter: 52px;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+}
+.fg-eg-top {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--bg);
+}
+.fg-eg-headrow {
+  display: flex;
+  border-bottom: var(--border-width) solid var(--line-strong);
+}
+.fg-eg-gutter {
+  flex: none;
+  width: var(--fg-eg-gutter);
+}
+.fg-eg-gutter-label {
+  padding: 6px 6px 0 0;
+  color: var(--ink-dim);
+  font: 500 10px/14px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-align: right;
+  text-transform: uppercase;
+}
+.fg-eg-heads {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(var(--fg-eg-n), minmax(0, 1fr));
+  min-width: 0;
+}
+.fg-eg-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-left: var(--border-width) solid var(--line);
+  color: var(--ink-muted);
+  font: 500 11px/16px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fg-eg-head-today {
+  color: var(--accent);
+}
+.fg-eg-head-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-eg-head-sub {
+  color: var(--ink-dim);
+}
+.fg-eg-swatch {
+  flex: none;
+  width: 8px;
+  height: 8px;
+}
+.fg-eg-alldayrow {
+  min-height: 28px;
+}
+.fg-eg-allday-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 3px;
+  border-left: var(--border-width) solid var(--line);
+}
+.fg-eg-chip {
+  --c: var(--ink-muted);
+  display: block;
+  width: 100%;
+  height: 20px;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 0;
+  border-left: 2px solid var(--c);
+  background: color-mix(in srgb, var(--c) 18%, var(--bg));
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fg-eg-chip:hover {
+  background: color-mix(in srgb, var(--c) 28%, var(--bg));
+}
+.fg-eg-body {
+  position: relative;
+  display: flex;
+}
+.fg-eg-hours {
+  position: relative;
+  flex: none;
+  width: var(--fg-eg-gutter);
+}
+.fg-eg-hour {
+  position: absolute;
+  right: 6px;
+  transform: translateY(-50%);
+  color: var(--ink-dim);
+  font: 400 10.5px/1 var(--font-mono);
+}
+.fg-eg-cols {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(var(--fg-eg-n), minmax(0, 1fr));
+  min-width: 0;
+}
+.fg-eg-col {
+  position: relative;
+  min-width: 0;
+  border-left: var(--border-width) solid var(--line);
+  background-image:
+    linear-gradient(to bottom, var(--line) 0 1px, transparent 1px),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--line) 50%, transparent) 0 1px,
+      transparent 1px
+    );
+  background-size:
+    100% var(--fg-eg-hour),
+    100% calc(var(--fg-eg-hour) / 2);
+  user-select: none;
+}
+.fg-eg-weekend {
+  background-color: color-mix(in srgb, var(--bg-raised) 45%, transparent);
+}
+.fg-eg-col:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-width) * -1);
+}
+.fg-eg-off {
+  position: absolute;
+  right: 0;
+  left: 0;
+  background-image: var(--fg-hatch);
+  pointer-events: none;
+}
+.fg-eg-ghost {
+  position: absolute;
+  right: 4px;
+  left: 1px;
+  z-index: 3;
+  border: var(--border-width) dashed var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font: 500 10.5px/14px var(--font-mono);
+  pointer-events: none;
+}
+.fg-eg-ghost > span {
+  padding: 0 4px;
+}
+.fg-eg-slot {
+  position: absolute;
+  z-index: 1;
+  min-width: 0;
+}
+.fg-eg-slot-drag {
+  z-index: 3;
+  opacity: 0.85;
+}
+.fg-eg-event {
+  --c: var(--ink-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 2px 6px;
+  border: 0;
+  border-left: 2px solid var(--c);
+  background: color-mix(in srgb, var(--c) 18%, var(--bg));
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+}
+.fg-eg-event:hover {
+  background: color-mix(in srgb, var(--c) 28%, var(--bg));
+}
+.fg-eg-event:focus-visible,
+.fg-eg-chip:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-width) * -1);
+}
+.fg-eg-movable {
+  cursor: grab;
+  touch-action: none;
+}
+.fg-eg-slot-drag .fg-eg-event {
+  cursor: grabbing;
+}
+.fg-eg-current {
+  outline: var(--border-width) solid var(--ink);
+}
+.fg-eg-event-title {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fg-eg-event-time {
+  color: var(--ink-muted);
+  font: 400 10.5px/13px var(--font-mono);
+  white-space: nowrap;
+}
+.fg-eg-compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.fg-eg-compact .fg-eg-event-title {
+  flex: 0 1 auto;
+  min-width: 2ch;
+}
+.fg-eg-compact .fg-eg-event-time {
+  flex: 0 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fg-eg-grip {
+  position: absolute;
+  right: 0;
+  bottom: -2px;
+  left: 0;
+  height: 6px;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.fg-eg-slot:hover .fg-eg-grip::after {
+  content: "";
+  position: absolute;
+  right: 40%;
+  bottom: 3px;
+  left: 40%;
+  height: 2px;
+  background: var(--ink);
+}
+.fg-eg-now {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  border-top: var(--border-width) solid var(--accent);
+  pointer-events: none;
+}
+.fg-eg-now::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-eg * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

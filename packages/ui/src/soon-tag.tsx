@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { cx } from "./cx";
-import { renderPart } from "./shell-part";
+import { renderPart } from "./part";
 
 export interface SoonTagProps extends ComponentProps<"span"> {
   /** `Soon` by default. */

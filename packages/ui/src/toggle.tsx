@@ -21,5 +21,7 @@ export type ToggleProps = Omit<ComponentProps<typeof Base>, "className"> &
 
 /** A button that stays pressed (shadcn's Toggle on Base UI): `pressed`, `defaultPressed`, `onPressedChange`. */
 export function Toggle({ variant, size, className, ...rest }: ToggleProps) {
-  return <Base {...rest} className={cx(toggleClass({ variant, size }), className)} />;
+  return (
+    <Base data-slot="toggle" {...rest} className={cx(toggleClass({ variant, size }), className)} />
+  );
 }

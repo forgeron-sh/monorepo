@@ -457,6 +457,7 @@ export function Sortable<T = unknown>({
     render,
     ref: ref ? [ref, api.listRef] : api.listRef,
     props: {
+      "data-slot": "sortable",
       ...api.getListProps(rest),
       "data-orientation": orientation,
       className: cx("fg-sortable", className),
@@ -490,6 +491,7 @@ export function SortableItem({ id, render, className, children, ref, ...rest }: 
     ref,
     props: {
       tabIndex: 0,
+      "data-slot": "sortable-item",
       ...api.getItemProps(id, rest),
       className: cx("fg-sortable-item", className),
       children,
@@ -516,6 +518,7 @@ export function SortableHandle({ render, className, children, ref, ...rest }: So
     ref,
     props: {
       "aria-hidden": true,
+      "data-slot": "sortable-handle",
       ...(api && id !== null ? api.getHandleProps(id, rest) : rest),
       className: cx("fg-sortable-handle", className),
       children: children ?? <Icon icon={GripIcon} size={12} variant="mono" />,
@@ -546,6 +549,7 @@ export function SortableDropIndicator({
     props: {
       "aria-hidden": true,
       "data-position": position ?? undefined,
+      "data-slot": "sortable-drop-indicator",
       ...rest,
       className: cx("fg-sortable-indicator", className),
     },
@@ -562,7 +566,13 @@ export interface SortableStatusProps extends Part<ComponentProps<"span">> {
 export function SortableStatus({ text, className, ...rest }: SortableStatusProps) {
   const api = use(SortableContext);
   return (
-    <span role="status" aria-live="polite" {...rest} className={cx("fg-sr", className)}>
+    <span
+      role="status"
+      aria-live="polite"
+      data-slot="sortable-status"
+      {...rest}
+      className={cx("fg-sr", className)}
+    >
       {text ?? api?.status}
     </span>
   );

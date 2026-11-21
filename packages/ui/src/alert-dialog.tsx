@@ -3,7 +3,7 @@
 
 import { AlertDialog as Base } from "@base-ui/react/alert-dialog";
 import type { ComponentProps, HTMLAttributes } from "react";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { cx } from "./cx";
 
 type Part<T> = Omit<T, "className"> & { className?: string };
@@ -23,7 +23,14 @@ export function AlertDialogTrigger({
   className,
   ...rest
 }: AlertDialogTriggerProps) {
-  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Trigger
+      data-slot="alert-dialog-trigger"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 /** The dialog with its scrim, in a portal. Focus is trapped; Escape cancels. */
@@ -34,28 +41,48 @@ export function AlertDialogContent({
   return (
     <Base.Portal>
       <Base.Backdrop className="fg-dialog-backdrop" />
-      <Base.Popup {...rest} className={cx("fg-dialog fg-dialog-popup", className)} />
+      <Base.Popup
+        data-slot="alert-dialog-content"
+        {...rest}
+        className={cx("fg-dialog fg-dialog-popup", className)}
+      />
     </Base.Portal>
   );
 }
 
 export function AlertDialogHeader({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...rest} className={cx("fg-dialog-header", className)} />;
+  return (
+    <div data-slot="alert-dialog-header" {...rest} className={cx("fg-dialog-header", className)} />
+  );
 }
 
 export function AlertDialogFooter({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...rest} className={cx("fg-dialog-foot", className)} />;
+  return (
+    <div data-slot="alert-dialog-footer" {...rest} className={cx("fg-dialog-foot", className)} />
+  );
 }
 
 export function AlertDialogTitle({ className, ...rest }: Part<ComponentProps<typeof Base.Title>>) {
-  return <Base.Title {...rest} className={cx("fg-dialog-title", className)} />;
+  return (
+    <Base.Title
+      data-slot="alert-dialog-title"
+      {...rest}
+      className={cx("fg-dialog-title", className)}
+    />
+  );
 }
 
 export function AlertDialogDescription({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Description>>) {
-  return <Base.Description {...rest} className={cx("fg-dialog-desc", className)} />;
+  return (
+    <Base.Description
+      data-slot="alert-dialog-description"
+      {...rest}
+      className={cx("fg-dialog-desc", className)}
+    />
+  );
 }
 
 export type AlertDialogButtonProps = Part<ComponentProps<typeof Base.Close>> & {
@@ -71,6 +98,7 @@ export function AlertDialogAction({
 }: AlertDialogButtonProps) {
   return (
     <Base.Close
+      data-slot="alert-dialog-action"
       {...rest}
       className={cx("fg-btn fg-btn-primary", className)}
       {...asChildProps(asChild, children)}
@@ -87,6 +115,7 @@ export function AlertDialogCancel({
 }: AlertDialogButtonProps) {
   return (
     <Base.Close
+      data-slot="alert-dialog-cancel"
       {...rest}
       className={cx("fg-btn fg-btn-secondary", className)}
       {...asChildProps(asChild, children)}

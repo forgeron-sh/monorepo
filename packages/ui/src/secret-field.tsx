@@ -13,6 +13,7 @@ import {
   useId,
   useRef,
   useState,
+  type ComponentProps,
   type ReactNode,
 } from "react";
 import { formatAdminDate, relativeDay } from "./dates";
@@ -39,7 +40,10 @@ export function secretProblem(value: string): string | null {
   return null;
 }
 
-export interface SecretFieldProps {
+export interface SecretFieldProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className" | "onCopy" | "role"
+> {
   /** Names the secret: "Signing secret". */
   label: string;
   /** Whether a value is stored. Unset shows "Not set" and a button to set one. */
@@ -124,6 +128,7 @@ export function SecretField({
   hint,
   children,
   className,
+  ...rest
 }: SecretFieldProps) {
   const id = useId();
   const [shown, setShown] = useState<string | null>(null);
@@ -268,9 +273,11 @@ export function SecretField({
   return (
     <SecretContext.Provider value={state}>
       <div
-        className={cx("fg-adm fg-adm-secret", className)}
         role="group"
         aria-labelledby={`${id}-label`}
+        data-slot="secret-field"
+        {...rest}
+        className={cx("fg-adm fg-adm-secret", className)}
       >
         {children ?? (
           <>
@@ -289,10 +296,10 @@ export function SecretField({
 }
 
 /** The label, whether a value is set, and when it was last changed. */
-export function SecretFieldHeader({ className }: { className?: string }) {
+export function SecretFieldHeader({ className, ...rest }: Omit<ComponentProps<"div">, "children">) {
   const { id, label, isSet, rotated } = useSecret();
   return (
-    <div className={cx("fg-adm-secret-head", className)}>
+    <div data-slot="secret-field-header" {...rest} className={cx("fg-adm-secret-head", className)}>
       <span id={`${id}-label`} className="fg-adm-secret-label">
         {label}
       </span>
@@ -309,32 +316,30 @@ export function SecretFieldHeader({ className }: { className?: string }) {
 }
 
 /** One line under the label: the `hint` of the field, or your own children. */
-export function SecretFieldHint({
-  className,
-  children,
-}: {
-  className?: string;
-  children?: ReactNode;
-}) {
+export function SecretFieldHint({ className, children, ...rest }: ComponentProps<"p">) {
   const { hint } = useSecret();
   const words = children ?? hint;
-  return words ? <p className={cx("fg-adm-secret-hint", className)}>{words}</p> : null;
+  return words ? (
+    <p data-slot="secret-field-hint" {...rest} className={cx("fg-adm-secret-hint", className)}>
+      {words}
+    </p>
+  ) : null;
 }
 
 /** The form that asks for a new value while replacing; the value or "Nothing stored yet" otherwise. */
-export function SecretFieldBody({ className }: { className?: string }) {
+export function SecretFieldBody({ className, ...rest }: Omit<ComponentProps<"div">, "children">) {
   const s = useSecret();
-  if (s.mode === "replace") return <SecretFieldForm className={className} />;
+  if (s.mode === "replace") return <SecretFieldForm {...(rest as object)} className={className} />;
   if (s.isSet) {
     return (
-      <div className={cx("fg-adm-secret-row", className)}>
+      <div data-slot="secret-field-body" {...rest} className={cx("fg-adm-secret-row", className)}>
         <SecretFieldValue />
         <SecretFieldActions />
       </div>
     );
   }
   return (
-    <div className={cx("fg-adm-secret-row", className)}>
+    <div data-slot="secret-field-body" {...rest} className={cx("fg-adm-secret-row", className)}>
       <span className="fg-adm-secret-empty">Nothing stored yet.</span>
       {s.canReplace ? (
         <Button size="sm" variant="primary" onClick={() => s.setMode("replace")}>
@@ -346,11 +351,13 @@ export function SecretFieldBody({ className }: { className?: string }) {
 }
 
 /** The mask, or the secret while it is shown, with the seconds left before it hides. */
-export function SecretFieldValue({ className }: { className?: string }) {
+export function SecretFieldValue({ className, ...rest }: Omit<ComponentProps<"code">, "children">) {
   const s = useSecret();
   return (
     <>
       <code
+        data-slot="secret-field-value"
+        {...rest}
         className={cx("fg-adm-secret-value", s.shown === null && "fg-adm-secret-masked", className)}
         {...(s.shown === null ? { "aria-label": "Hidden" } : {})}
         tabIndex={s.shown === null ? undefined : 0}
@@ -367,10 +374,17 @@ export function SecretFieldValue({ className }: { className?: string }) {
 }
 
 /** Reveal or Hide, Copy, Replace and Remove, for what the field was given the means to do. */
-export function SecretFieldActions({ className }: { className?: string }) {
+export function SecretFieldActions({
+  className,
+  ...rest
+}: Omit<ComponentProps<"span">, "children">) {
   const s = useSecret();
   return (
-    <span className={cx("fg-adm-secret-actions", className)}>
+    <span
+      data-slot="secret-field-actions"
+      {...rest}
+      className={cx("fg-adm-secret-actions", className)}
+    >
       {s.canRead ? (
         <Button
           size="sm"
@@ -406,12 +420,19 @@ export function SecretFieldActions({ className }: { className?: string }) {
 }
 
 /** The password field and Save and Cancel that send a new value. */
-export function SecretFieldForm({ className }: { className?: string }) {
+export function SecretFieldForm({
+  className,
+  onSubmit,
+  ...rest
+}: Omit<ComponentProps<"form">, "children">) {
   const s = useSecret();
   return (
     <form
+      data-slot="secret-field-form"
+      {...rest}
       className={cx("fg-adm-secret-form", className)}
       onSubmit={(e) => {
+        onSubmit?.(e);
         e.preventDefault();
         s.save();
       }}
@@ -447,14 +468,19 @@ export function SecretFieldForm({ className }: { className?: string }) {
 }
 
 /** The second click that removes the secret; shown after Remove. */
-export function SecretFieldConfirm({ className }: { className?: string }) {
+export function SecretFieldConfirm({
+  className,
+  ...rest
+}: Omit<ComponentProps<"div">, "children">) {
   const s = useSecret();
   if (s.mode !== "remove") return null;
   return (
     <div
-      className={cx("fg-adm-secret-confirm", className)}
       role="group"
       aria-label={`Remove ${s.label}?`}
+      data-slot="secret-field-confirm"
+      {...rest}
+      className={cx("fg-adm-secret-confirm", className)}
     >
       <span>Remove this secret? Whatever uses it stops working.</span>
       <Button size="sm" variant="danger" autoFocus onClick={s.remove}>

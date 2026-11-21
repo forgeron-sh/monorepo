@@ -7,7 +7,13 @@
 // built from them (D-157).
 
 import { Delete02Icon, Undo02Icon } from "@forgeron/icons";
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
+import type {
+  ComponentProps,
+  KeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+  RefObject,
+} from "react";
 import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
 import { Button } from "./button";
 import { Segmented } from "./controls";
@@ -264,7 +270,10 @@ function exportText(text: string, font: SignatureFont, ink: string): string {
 
 /* ---------------------------------------------------------------- component */
 
-export interface SignaturePadProps {
+export interface SignaturePadProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "defaultValue" | "children" | "className"
+> {
   /** Names the pad: "Your signature". */
   label?: string;
   value?: SignatureValue | null;
@@ -355,6 +364,7 @@ export function SignaturePad({
   disabled,
   children,
   className,
+  ...rest
 }: SignaturePadProps) {
   const [current, setCurrent] = useControllableState<SignatureValue | null>({
     value,
@@ -555,9 +565,11 @@ export function SignaturePad({
     <PadContext.Provider value={state}>
       <CanvasContext.Provider value={canvas}>
         <div
-          className={cx("fg-sig", disabled && "fg-sig-disabled", className)}
           role="group"
           aria-label={label}
+          data-slot="signature-pad"
+          {...rest}
+          className={cx("fg-sig", disabled && "fg-sig-disabled", className)}
         >
           {children ?? (
             <>
@@ -578,11 +590,14 @@ export function SignaturePad({
 }
 
 /** The tabs that choose how to sign; hidden when only one way is offered. */
-export function SignaturePadModes() {
+export function SignaturePadModes({ className, ...rest }: { className?: string }) {
   const pad = usePad();
   if (pad.modes.length < 2) return null;
   return (
     <Segmented
+      data-slot="signature-pad-modes"
+      {...rest}
+      {...(className ? { className } : {})}
       label={`${pad.label}: how to sign`}
       options={pad.modes.map((m) => ({ value: m, label: MODE_LABELS[m] }))}
       value={pad.mode}
@@ -592,13 +607,13 @@ export function SignaturePadModes() {
 }
 
 /** The drawing area with its hint, Undo and Clear; shown in the draw mode. */
-export function SignaturePadDraw({ className }: { className?: string }) {
+export function SignaturePadDraw({ className, ...rest }: Omit<ComponentProps<"div">, "children">) {
   const pad = usePad();
   const canvas = useContext(CanvasContext);
   if (pad.mode !== "draw") return null;
   const { disabled, strokes } = pad;
   return (
-    <div className={cx("fg-sig-draw", className)}>
+    <div data-slot="signature-pad-draw" {...rest} className={cx("fg-sig-draw", className)}>
       <div className="fg-sig-surface">
         <canvas
           ref={canvas}
@@ -646,12 +661,12 @@ export function SignaturePadDraw({ className }: { className?: string }) {
 }
 
 /** The name field and the choice of fonts; shown in the type mode. */
-export function SignaturePadType({ className }: { className?: string }) {
+export function SignaturePadType({ className, ...rest }: Omit<ComponentProps<"div">, "children">) {
   const pad = usePad();
   if (pad.mode !== "type") return null;
   const { disabled, label, text, fonts, fontId } = pad;
   return (
-    <div className={cx("fg-sig-type", className)}>
+    <div data-slot="signature-pad-type" {...rest} className={cx("fg-sig-type", className)}>
       <Input
         aria-label={`${label}: your name`}
         placeholder="Type your name"
@@ -689,11 +704,14 @@ export function SignaturePadType({ className }: { className?: string }) {
 }
 
 /** The image chooser; shown in the upload mode. */
-export function SignaturePadUpload({ className }: { className?: string }) {
+export function SignaturePadUpload({
+  className,
+  ...rest
+}: Omit<ComponentProps<"div">, "children">) {
   const pad = usePad();
   if (pad.mode !== "upload") return null;
   return (
-    <div className={cx("fg-sig-upload", className)}>
+    <div data-slot="signature-pad-upload" {...rest} className={cx("fg-sig-upload", className)}>
       <FileInput
         label={`${pad.label}: image`}
         accept="image/png,image/jpeg,image/svg+xml"
@@ -714,11 +732,14 @@ export function SignaturePadUpload({ className }: { className?: string }) {
 }
 
 /** The image made from a typed name or an uploaded file; nothing while drawing. */
-export function SignaturePadPreview({ className }: { className?: string }) {
+export function SignaturePadPreview({
+  className,
+  ...rest
+}: Omit<ComponentProps<"div">, "children">) {
   const pad = usePad();
   if (!pad.preview || pad.mode === "draw") return null;
   return (
-    <div className={cx("fg-sig-preview", className)}>
+    <div data-slot="signature-pad-preview" {...rest} className={cx("fg-sig-preview", className)}>
       <img src={pad.preview.dataUrl} alt={`${pad.label} preview`} />
     </div>
   );

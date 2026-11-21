@@ -3,10 +3,10 @@
 
 import { Tooltip as Base } from "@base-ui/react/tooltip";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { cx } from "./cx";
 
-export interface TooltipProps {
+export interface TooltipProps extends Omit<ComponentProps<"div">, "content" | "children"> {
   /** A few words: what the control does. Never information found nowhere else. */
   content: ReactNode;
   /** A shortcut shown after the words. */
@@ -28,13 +28,17 @@ export function Tooltip(props: TooltipProps | TooltipRootProps) {
   );
 }
 
-function TooltipLabel({ content, kbd, side = "top", children }: TooltipProps) {
+function TooltipLabel({ content, kbd, side = "top", children, className, ...rest }: TooltipProps) {
   return (
     <Base.Root>
       <Base.Trigger delay={400} render={children} />
       <Base.Portal>
         <Base.Positioner side={side} sideOffset={6} className="fg-pop-positioner">
-          <Base.Popup className="fg-tooltip">
+          <Base.Popup
+            data-slot="tooltip-content"
+            {...(rest as object)}
+            className={cx("fg-tooltip", className)}
+          >
             {content}
             {kbd ? <kbd className="fg-tooltip-kbd">{kbd}</kbd> : null}
           </Base.Popup>
@@ -62,7 +66,14 @@ function TooltipRoot({ content: _content, ...props }: TooltipRootProps) {
 export type TooltipTriggerProps = Part<ComponentProps<typeof Base.Trigger>> & { asChild?: boolean };
 
 export function TooltipTrigger({ asChild, children, className, ...rest }: TooltipTriggerProps) {
-  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Trigger
+      data-slot="tooltip-trigger"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export type TooltipContentProps = Part<ComponentProps<typeof Base.Popup>> & {
@@ -80,7 +91,7 @@ export function TooltipContent({
   return (
     <Base.Portal>
       <Base.Positioner className="fg-pop-positioner" side={side} sideOffset={sideOffset}>
-        <Base.Popup {...rest} className={cx("fg-tooltip", className)} />
+        <Base.Popup data-slot="tooltip-content" {...rest} className={cx("fg-tooltip", className)} />
       </Base.Positioner>
     </Base.Portal>
   );

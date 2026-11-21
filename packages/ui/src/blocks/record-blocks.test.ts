@@ -5,10 +5,37 @@ import { renderToStaticMarkup as html } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   Activity,
+  ActivityCommentBody,
+  ActivityCommentHeader,
+  ActivityCommentItem,
+  ActivityEventItem,
+  ActivityHeader,
+  ActivityList,
+  ActivityTitle,
   CommentComposer,
+  CommentComposerFooter,
+  CommentComposerInput,
+  CommentComposerSubmit,
   CreateDialog,
+  CreateDialogClose,
+  CreateDialogContent,
+  CreateDialogDescription,
+  CreateDialogFooter,
+  CreateDialogForm,
+  CreateDialogHeader,
+  CreateDialogHeading,
+  CreateDialogMore,
+  CreateDialogProperties,
+  CreateDialogSubmit,
+  CreateDialogTitle,
   PropertyChips,
   PropertyPanel,
+  PropertyPanelGroup,
+  PropertyPanelHeading,
+  PropertyPanelLabel,
+  PropertyPanelList,
+  PropertyPanelRow,
+  PropertyPanelValue,
   PropertyText,
   StatusPicker,
 } from "../index";
@@ -64,11 +91,15 @@ describe("PropertyPanel", () => {
     );
     expect(out).toContain('aria-label="Properties"');
     expect(out.match(/<section/g)).toHaveLength(2);
-    expect(out).toContain('<h3 class="fg-props-heading">Labels</h3>');
-    expect(out).toContain('<dt class="fg-props-label">Status</dt>');
+    expect(out).toContain(
+      '<h3 data-slot="property-panel-heading" class="fg-props-heading">Labels</h3>',
+    );
+    expect(out).toContain(
+      '<dt data-slot="property-panel-label" class="fg-props-label">Status</dt>',
+    );
     expect(out).toContain("In Review");
     expect(out).toContain("fg-props-dim");
-    expect(out).toContain('<dt class="fg-sr">Labels</dt>');
+    expect(out).toContain('<dt data-slot="property-panel-label" class="fg-sr">Labels</dt>');
     expect(out).toContain("fg-props-wide");
   });
 
@@ -199,5 +230,159 @@ describe("CreateDialog", () => {
   it("renders nothing while closed", async () => {
     await mount(h(CreateDialog, { open: false, onOpenChange: () => {}, onSubmit: () => {} }));
     expect(document.querySelector(".fg-create")).toBeNull();
+  });
+});
+
+describe("PropertyPanel parts", () => {
+  it("composes groups, rows, labels and values, and takes classes and attributes", () => {
+    const out = html(
+      h(
+        PropertyPanel,
+        { className: "mine", id: "panel" },
+        h(
+          PropertyPanelGroup,
+          { className: "g" },
+          h(PropertyPanelHeading, null, "Properties"),
+          h(
+            PropertyPanelList,
+            null,
+            h(
+              PropertyPanelRow,
+              { wide: true },
+              h(PropertyPanelLabel, { srOnly: true }, "Labels"),
+              h(PropertyPanelValue, null, "Bug"),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(out).toContain('data-slot="property-panel"');
+    expect(out).toContain('aria-label="Properties"');
+    expect(out).toContain('class="fg-props mine"');
+    expect(out).toContain('id="panel"');
+    expect(out).toContain('class="fg-props-group g"');
+    expect(out).toContain('class="fg-props-row fg-props-wide"');
+    expect(out).toContain('<dt data-slot="property-panel-label" class="fg-sr">Labels</dt>');
+    expect(out).toContain('<dd data-slot="property-panel-value" class="fg-props-value">Bug</dd>');
+  });
+  it("hands its props to the child element with asChild", () => {
+    const out = html(
+      h(PropertyPanelRow, { asChild: true, className: "x" }, h("li", { className: "y" }, "v")),
+    );
+    expect(out).toContain('data-slot="property-panel-row"');
+    expect(out).toContain('class="fg-props-row x y"');
+    expect(out).toMatch(/^<li /);
+    expect(out).not.toContain("<div");
+  });
+});
+
+describe("Activity parts", () => {
+  it("composes the header, the list and its entries on the Feed parts", () => {
+    const [event, , comment] = items as [ActivityItem, ActivityItem, ActivityItem];
+    const out = html(
+      h(
+        Activity,
+        { className: "mine" },
+        h(ActivityHeader, null, h(ActivityTitle, null, "History")),
+        h(
+          ActivityList,
+          null,
+          h(ActivityEventItem, { item: event as never }),
+          h(
+            ActivityCommentItem,
+            { item: comment as never },
+            h(ActivityCommentHeader),
+            h(ActivityCommentBody, null, "Custom body"),
+          ),
+        ),
+      ),
+    );
+    expect(out).toContain('data-slot="activity"');
+    expect(out).toMatch(/aria-labelledby="([^"]+)"[\s\S]*<h2[^>]*id="\1"/);
+    expect(out).toContain('data-slot="activity-title"');
+    expect(out).toContain('data-slot="activity-list"');
+    expect(out).toContain('class="fg-timeline fg-activity-list"');
+    expect(out).toContain('data-slot="activity-event"');
+    expect(out).toContain('data-slot="activity-comment"');
+    expect(out).toContain("Custom body");
+    expect(out).toContain("fg-activity-highlighted");
+    expect(out).not.toContain("<blockquote");
+  });
+  it("refuses a comment part outside a comment", () => {
+    expect(() => html(h(ActivityCommentBody))).toThrow(/ActivityCommentItem/);
+  });
+});
+
+describe("CommentComposer parts", () => {
+  it("shares the draft between the input and the submit button", async () => {
+    const onSubmit = vi.fn<(value: unknown) => void>();
+    const el = await mount(
+      h(
+        CommentComposer,
+        { onSubmit, submitLabel: "Reply", placeholder: "Say…" },
+        h(CommentComposerInput, { className: "box" }),
+        h(CommentComposerFooter, { className: "foot" }, h(CommentComposerSubmit)),
+      ),
+    );
+    const box = el.querySelector("textarea")!;
+    const button = el.querySelector("button")!;
+    expect(box.getAttribute("data-slot")).toBe("comment-composer-input");
+    expect(box.className).toBe("fg-composer-input box");
+    expect(box.placeholder).toBe("Say…");
+    expect(button.textContent).toContain("Reply");
+    expect(button.disabled).toBe(true);
+    await type(box, " Done ");
+    expect(button.disabled).toBe(false);
+    await press(box, { key: "Enter", metaKey: true });
+    expect(onSubmit).toHaveBeenCalledWith("Done");
+    expect(box.value).toBe("");
+  });
+});
+
+describe("CreateDialog parts", () => {
+  const composed = (props: Record<string, unknown> = {}) =>
+    h(
+      CreateDialog,
+      { open: true, onOpenChange: () => {}, onSubmit: () => {}, ...props },
+      h(
+        CreateDialogContent,
+        null,
+        h(CreateDialogHeader, null, h(CreateDialogHeading, null, "New lead"), h(CreateDialogClose)),
+        h(
+          CreateDialogForm,
+          null,
+          h(CreateDialogTitle),
+          h(CreateDialogDescription),
+          h(CreateDialogProperties, null, "chips"),
+          h(
+            CreateDialogFooter,
+            null,
+            h(CreateDialogMore),
+            h(CreateDialogSubmit, null, "Create lead"),
+          ),
+        ),
+      ),
+    );
+  it("draws the modal from the parts", async () => {
+    await mount(composed());
+    expect(document.body.textContent).toContain("New lead");
+    expect(document.querySelector('[data-slot="create-dialog-form"]')).not.toBeNull();
+    expect(document.querySelector('[data-slot="create-dialog-properties"]')).not.toBeNull();
+    expect(document.querySelector('[data-slot="create-dialog-submit"]')!.textContent).toContain(
+      "Create lead",
+    );
+  });
+  it("refuses an empty title, then creates and closes", async () => {
+    const onSubmit = vi.fn<(value: unknown) => void>();
+    const onOpenChange = vi.fn<(open: boolean) => void>();
+    await mount(composed({ onSubmit, onOpenChange }));
+    const title = document.querySelector<HTMLInputElement>(".fg-create-title")!;
+    await press(title, { key: "Enter", metaKey: true });
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(title.getAttribute("aria-invalid")).toBe("true");
+    await type(title, "Ada");
+    await press(title, { key: "Enter", metaKey: true });
+    expect(onSubmit).toHaveBeenCalledWith({ title: "Ada", description: "", createMore: false });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

@@ -2,6 +2,7 @@
 // issue, its priority, its size, a quarter. Taken from the Tasks prototype. "#" is the main tone,
 // "o" the secondary one (35%).
 
+import type { SVGAttributes } from "react";
 import { cx } from "./cx";
 
 type Cell = "#" | "o" | "";
@@ -105,10 +106,12 @@ function path(rows: Rows, mark: "#" | "o"): string {
   return d;
 }
 
-function Glyph({ rows, className, size = 12 }: { rows: Rows; className?: string; size?: number }) {
+function Glyph({ rows, className, size = 12, ...rest }: { rows: Rows } & GlyphProps) {
   const secondary = path(rows, "o");
   return (
     <svg
+      data-slot="glyph"
+      {...rest}
       className={cx("fg-glyph", className)}
       viewBox="0 0 12 12"
       width={size}
@@ -122,7 +125,7 @@ function Glyph({ rows, className, size = 12 }: { rows: Rows; className?: string;
   );
 }
 
-export interface GlyphProps {
+export interface GlyphProps extends Omit<SVGAttributes<SVGSVGElement>, "className" | "children"> {
   size?: number;
   className?: string;
 }
@@ -130,7 +133,12 @@ export interface GlyphProps {
 /** The status of an issue, in its colour: in progress amber, in review green, done in ember. */
 export function StatusGlyph({ status, ...rest }: GlyphProps & { status: StatusKind }) {
   return (
-    <Glyph rows={STATUS[status]} {...rest} className={cx(`fg-st-${status}`, rest.className)} />
+    <Glyph
+      rows={STATUS[status]}
+      data-slot="status-glyph"
+      {...rest}
+      className={cx(`fg-st-${status}`, rest.className)}
+    />
   );
 }
 
@@ -139,6 +147,7 @@ export function PriorityGlyph({ level, ...rest }: GlyphProps & { level: Priority
   return (
     <Glyph
       rows={PRIORITY[level]}
+      data-slot="priority-glyph"
       {...rest}
       className={cx(level === 1 ? "fg-pr-urgent" : "fg-pr", rest.className)}
     />
@@ -146,9 +155,23 @@ export function PriorityGlyph({ level, ...rest }: GlyphProps & { level: Priority
 }
 
 export function SizeGlyph({ level, ...rest }: GlyphProps & { level: SizeLevel }) {
-  return <Glyph rows={SIZE[level]} {...rest} className={cx("fg-pr", rest.className)} />;
+  return (
+    <Glyph
+      rows={SIZE[level]}
+      data-slot="size-glyph"
+      {...rest}
+      className={cx("fg-pr", rest.className)}
+    />
+  );
 }
 
 export function QuarterGlyph({ quarter: q, ...rest }: GlyphProps & { quarter: 1 | 2 | 3 | 4 }) {
-  return <Glyph rows={quarter(q)} {...rest} className={cx("fg-pr", rest.className)} />;
+  return (
+    <Glyph
+      rows={quarter(q)}
+      data-slot="quarter-glyph"
+      {...rest}
+      className={cx("fg-pr", rest.className)}
+    />
+  );
 }

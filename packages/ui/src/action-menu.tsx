@@ -148,7 +148,10 @@ export function MenuEntries({
   });
 }
 
-export interface MenuBase {
+export interface MenuBase extends Omit<
+  ComponentProps<"div">,
+  "children" | "className" | "onSelect" | "title"
+> {
   /** The rows, separators, headings and submenus, in order. */
   items: ReadonlyArray<ActionMenuEntry>;
   /** Called with the `id` of the row chosen, in the menu or a submenu; the menu then closes. */
@@ -192,6 +195,7 @@ function ActionMenuPreset({
   side = "bottom",
   align = "start",
   className,
+  ...rest
 }: ActionMenuProps) {
   return (
     <DropdownMenu
@@ -200,6 +204,7 @@ function ActionMenuPreset({
     >
       <DropdownMenuTrigger render={trigger} />
       <DropdownMenuContent
+        {...rest}
         side={side}
         align={align}
         className={cx("fg-amenu", className)}

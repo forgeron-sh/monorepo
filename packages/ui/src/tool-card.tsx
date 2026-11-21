@@ -2,7 +2,7 @@ import { useRender } from "@base-ui/react/use-render";
 import { isValidElement, type ComponentProps, type MouseEvent, type ReactNode } from "react";
 import { cx } from "./cx";
 
-export interface ToolIconProps {
+export interface ToolIconProps extends Omit<ComponentProps<"span">, "className" | "children"> {
   /** The tool's name: its first letters make the mark. */
   name: string;
   size?: "md" | "lg";
@@ -10,12 +10,14 @@ export interface ToolIconProps {
 }
 
 /** A square monogram. Black and white, sharp corners: a tool has no logo of its own here. */
-export function ToolIcon({ name, size = "md", className }: ToolIconProps) {
+export function ToolIcon({ name, size = "md", className, ...rest }: ToolIconProps) {
   const letters = name.replace(/[^\p{L}\p{N}]/gu, "").slice(0, 2) || "?";
   return (
     <span
-      className={cx("fg-toolicon", size === "lg" && "fg-toolicon-lg", className)}
       aria-hidden="true"
+      data-slot="tool-icon"
+      {...rest}
+      className={cx("fg-toolicon", size === "lg" && "fg-toolicon-lg", className)}
     >
       {letters}
     </span>
@@ -159,6 +161,7 @@ export function ToolCardLink({
     defaultTagName: "a",
     render: child ? children : undefined,
     props: {
+      "data-slot": "tool-card-link",
       ...rest,
       href,
       className: cx("fg-toolcard-link", className),

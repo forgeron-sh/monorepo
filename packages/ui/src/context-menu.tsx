@@ -6,7 +6,7 @@ import { ContextMenu as BaseContextMenu } from "@base-ui/react/context-menu";
 import { Menu } from "@base-ui/react/menu";
 import { ArrowRight01Icon, Tick02Icon } from "@forgeron/icons";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { MenuEntries, type MenuBase, type MenuKit } from "./action-menu";
 import { cx } from "./cx";
 import { Icon } from "./icon";
@@ -37,11 +37,12 @@ function ContextMenuList({
   children,
   areaClassName,
   className,
+  ...rest
 }: ContextMenuProps) {
   return (
     <ContextMenuRoot>
       <ContextMenuTrigger className={areaClassName}>{children}</ContextMenuTrigger>
-      <ContextMenuContent className={cx("fg-amenu", className)} aria-label={label}>
+      <ContextMenuContent {...rest} className={cx("fg-amenu", className)} aria-label={label}>
         <MenuEntries items={items} onSelect={onSelect} kit={CONTEXT_KIT} />
       </ContextMenuContent>
     </ContextMenuRoot>
@@ -73,7 +74,12 @@ export function ContextMenuTrigger({
   ...rest
 }: ContextMenuTriggerProps) {
   return (
-    <BaseContextMenu.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />
+    <BaseContextMenu.Trigger
+      data-slot="context-menu-trigger"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
   );
 }
 
@@ -84,7 +90,11 @@ export function ContextMenuContent({ className, ...rest }: ContextMenuContentPro
   return (
     <BaseContextMenu.Portal>
       <BaseContextMenu.Positioner className="fg-pop-positioner">
-        <BaseContextMenu.Popup {...rest} className={cx("fg-pop fg-pop-list", className)} />
+        <BaseContextMenu.Popup
+          data-slot="context-menu-content"
+          {...rest}
+          className={cx("fg-pop fg-pop-list", className)}
+        />
       </BaseContextMenu.Positioner>
     </BaseContextMenu.Portal>
   );
@@ -105,6 +115,7 @@ export function ContextMenuItem({
 }: ContextMenuItemProps) {
   return (
     <BaseContextMenu.Item
+      data-slot="context-menu-item"
       {...rest}
       className={cx(
         "fg-pop-row",
@@ -120,7 +131,7 @@ export function ContextMenuGroup({
   className,
   ...rest
 }: Part<ComponentProps<typeof BaseContextMenu.Group>>) {
-  return <BaseContextMenu.Group {...rest} className={className} />;
+  return <BaseContextMenu.Group data-slot="context-menu-group" {...rest} className={className} />;
 }
 
 /** A heading in the menu; not an item. */
@@ -129,16 +140,31 @@ export function ContextMenuLabel({
   className,
   ...rest
 }: HTMLAttributes<HTMLDivElement> & { inset?: boolean }) {
-  return <div {...rest} className={cx("fg-pop-heading", inset && "fg-pop-inset", className)} />;
+  return (
+    <div
+      data-slot="context-menu-label"
+      {...rest}
+      className={cx("fg-pop-heading", inset && "fg-pop-inset", className)}
+    />
+  );
 }
 
 export function ContextMenuSeparator({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div role="separator" {...rest} className={cx("fg-pop-sep", className)} />;
+  return (
+    <div
+      role="separator"
+      data-slot="context-menu-separator"
+      {...rest}
+      className={cx("fg-pop-sep", className)}
+    />
+  );
 }
 
 /** A shortcut on the right of an item, e.g. ⌘K. */
 export function ContextMenuShortcut({ className, ...rest }: HTMLAttributes<HTMLSpanElement>) {
-  return <span {...rest} className={cx("fg-pop-hint", className)} />;
+  return (
+    <span data-slot="context-menu-shortcut" {...rest} className={cx("fg-pop-hint", className)} />
+  );
 }
 
 export function ContextMenuCheckboxItem({
@@ -147,7 +173,11 @@ export function ContextMenuCheckboxItem({
   ...rest
 }: Part<ComponentProps<typeof BaseContextMenu.CheckboxItem>>) {
   return (
-    <BaseContextMenu.CheckboxItem {...rest} className={cx("fg-pop-row fg-pop-inset", className)}>
+    <BaseContextMenu.CheckboxItem
+      data-slot="context-menu-checkbox-item"
+      {...rest}
+      className={cx("fg-pop-row fg-pop-inset", className)}
+    >
       <BaseContextMenu.CheckboxItemIndicator className="fg-pop-tick fg-pop-mark">
         <Icon icon={Tick02Icon} size={12} variant="mono" />
       </BaseContextMenu.CheckboxItemIndicator>
@@ -157,7 +187,7 @@ export function ContextMenuCheckboxItem({
 }
 
 export function ContextMenuRadioGroup(props: ComponentProps<typeof BaseContextMenu.RadioGroup>) {
-  return <BaseContextMenu.RadioGroup {...props} />;
+  return <BaseContextMenu.RadioGroup data-slot="context-menu-radio-group" {...props} />;
 }
 
 export function ContextMenuRadioItem({
@@ -166,7 +196,11 @@ export function ContextMenuRadioItem({
   ...rest
 }: Part<ComponentProps<typeof BaseContextMenu.RadioItem>>) {
   return (
-    <BaseContextMenu.RadioItem {...rest} className={cx("fg-pop-row fg-pop-inset", className)}>
+    <BaseContextMenu.RadioItem
+      data-slot="context-menu-radio-item"
+      {...rest}
+      className={cx("fg-pop-row fg-pop-inset", className)}
+    >
       <BaseContextMenu.RadioItemIndicator className="fg-pop-tick fg-pop-mark">
         <Icon icon={Tick02Icon} size={12} variant="mono" />
       </BaseContextMenu.RadioItemIndicator>
@@ -188,6 +222,7 @@ export function ContextMenuSubTrigger({
 }: Part<ComponentProps<typeof BaseContextMenu.SubmenuTrigger>> & { inset?: boolean }) {
   return (
     <BaseContextMenu.SubmenuTrigger
+      data-slot="context-menu-sub-trigger"
       {...rest}
       className={cx("fg-pop-row", inset && "fg-pop-inset", className)}
     >
@@ -204,7 +239,11 @@ export function ContextMenuSubContent({
   return (
     <Menu.Portal>
       <Menu.Positioner className="fg-pop-positioner" sideOffset={2} alignOffset={-5}>
-        <BaseContextMenu.Popup {...rest} className={cx("fg-pop fg-pop-list", className)} />
+        <BaseContextMenu.Popup
+          data-slot="context-menu-sub-content"
+          {...rest}
+          className={cx("fg-pop fg-pop-list", className)}
+        />
       </Menu.Positioner>
     </Menu.Portal>
   );

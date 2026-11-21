@@ -33,8 +33,8 @@ export function PixelText({ text, label, bold, keepCase, className, ...rest }: P
       viewBox={viewBox}
       fill="currentColor"
       shapeRendering="crispEdges"
-      {...rest}
       data-slot="pixel-text"
+      {...rest}
       className={className}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
     >

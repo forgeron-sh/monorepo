@@ -1,5 +1,5 @@
 import { createElement as h } from "react";
-import { renderToStaticMarkup as html } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   LabelPicker,
@@ -12,6 +12,10 @@ import {
   StatusGlyph,
   StatusPicker,
 } from "./index";
+
+// The markup these cases pin, without the shadcn `data-slot` names (data-slot.test.ts checks them).
+const html = (...args: Parameters<typeof renderToStaticMarkup>) =>
+  renderToStaticMarkup(...args).replace(/ data-slot="[^"]*"/g, "");
 
 describe("glyphs", () => {
   it("draws on the 12-pixel grid, decorative, in the colour of its meaning", () => {

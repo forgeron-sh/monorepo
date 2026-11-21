@@ -18,7 +18,7 @@ import {
   MailSend01Icon,
   ViewIcon,
 } from "@forgeron/icons";
-import type { ChangeEvent, KeyboardEvent, ReactNode, RefObject } from "react";
+import type { ChangeEvent, ComponentProps, KeyboardEvent, ReactNode, RefObject } from "react";
 import {
   createContext,
   useContext,
@@ -52,7 +52,7 @@ import { matchShortcut } from "./hooks/use-shortcuts";
 import { Icon } from "./icon";
 import { IconButton } from "./identity";
 import { Markdown } from "./markdown";
-import { Toolbar, ToolbarButton, ToolbarSeparator } from "./toolbar";
+import { Toolbar, ToolbarButton, ToolbarSeparator, type ToolbarProps } from "./toolbar";
 
 export interface ComposerTrigger {
   /** The character that opens the picker: `@` for people, `#` for records, `/` for commands. */
@@ -82,7 +82,10 @@ export interface ComposerSend {
   replyToId: string | null;
 }
 
-export interface RichComposerProps {
+export interface RichComposerProps extends Omit<
+  ComponentProps<"form">,
+  "onChange" | "defaultValue" | "children" | "className" | "onSubmit" | "onSelect" | "title"
+> {
   /** The draft, when the caller keeps it. */
   value?: string;
   defaultValue?: string;
@@ -221,6 +224,7 @@ export function Composer({
   autoFocus,
   children,
   className,
+  ...rest
 }: RichComposerProps) {
   const id = useId();
   const [text, setText] = useControllableState<string>({ value, defaultValue, onChange });
@@ -457,6 +461,8 @@ export function Composer({
     <ComposerContext.Provider value={state}>
       <AreaContext.Provider value={area}>
         <form
+          data-slot="composer"
+          {...rest}
           ref={root}
           className={cx("fg-conv-composer", locked && "fg-conv-composer-locked", className)}
           onSubmit={(event) => {
@@ -479,12 +485,14 @@ export function Composer({
   );
 }
 
+type ComposerPartProps = Omit<ComponentProps<"div">, "children">;
+
 /** The bar above the box that says which message is being answered, with a cancel. */
-export function ComposerReplyBar({ className }: { className?: string }) {
+export function ComposerReplyBar({ className, ...rest }: ComposerPartProps) {
   const { replyTo, onCancelReply } = useComposer();
   if (!replyTo) return null;
   return (
-    <div className={cx("fg-conv-replybar", className)}>
+    <div data-slot="composer-reply-bar" {...rest} className={cx("fg-conv-replybar", className)}>
       <span className="fg-conv-replybar-text">
         Replying to <b>{replyTo.author}</b>
         <span className="fg-conv-replybar-quote">{conversationPlainText(replyTo.text)}</span>
@@ -497,11 +505,20 @@ export function ComposerReplyBar({ className }: { className?: string }) {
 }
 
 /** The formatting buttons, the pickers' buttons, attach and preview. */
-export function ComposerToolbar({ className }: { className?: string }) {
+export function ComposerToolbar({
+  className,
+  ...rest
+}: Omit<ToolbarProps, "label" | "children" | "disabled">) {
   const c = useComposer();
   const { triggers } = c;
   return (
-    <Toolbar label="Formatting" className={cx("fg-conv-tools", className)} disabled={c.locked}>
+    <Toolbar
+      label="Formatting"
+      data-slot="composer-toolbar"
+      {...rest}
+      className={cx("fg-conv-tools", className)}
+      disabled={c.locked}
+    >
       <ToolbarButton label="Bold" icon={BoldIcon} onClick={() => c.format("bold")} />
       <ToolbarButton label="Italic" icon={ItalicIcon} onClick={() => c.format("italic")} />
       <ToolbarButton label="Code" icon={CodeXmlIcon} onClick={() => c.format("code")} />
@@ -547,12 +564,12 @@ export function ComposerToolbar({ className }: { className?: string }) {
 }
 
 /** The textarea, the preview that replaces it, and the picker that opens at the caret. */
-export function ComposerField({ className }: { className?: string }) {
+export function ComposerField({ className, ...rest }: ComposerPartProps) {
   const c = useComposer();
   const area = useContext(AreaContext);
   const { id, definition, options } = c;
   return (
-    <div className={cx("fg-conv-composer-field", className)}>
+    <div data-slot="composer-field" {...rest} className={cx("fg-conv-composer-field", className)}>
       <label htmlFor={`${id}-box`} className="fg-sr">
         {c.label}
       </label>
@@ -612,11 +629,11 @@ export function ComposerField({ className }: { className?: string }) {
 }
 
 /** The chosen files, shown once the attach button is pressed or a file is there. */
-export function ComposerFiles({ className }: { className?: string }) {
+export function ComposerFiles({ className, ...rest }: ComposerPartProps) {
   const c = useComposer();
   if (!c.showAttach) return null;
   return (
-    <div className={cx("fg-conv-composer-files", className)}>
+    <div data-slot="composer-files" {...rest} className={cx("fg-conv-composer-files", className)}>
       <FileInput
         label="Attachments"
         multiple
@@ -629,11 +646,11 @@ export function ComposerFiles({ className }: { className?: string }) {
 }
 
 /** The line under the box: what the send key is, and the Send button. */
-export function ComposerFooter({ className }: { className?: string }) {
+export function ComposerFooter({ className, ...rest }: ComposerPartProps) {
   const c = useComposer();
   const kbd = c.sendOn === "enter" ? "↵" : "⌘↵";
   return (
-    <div className={cx("fg-conv-composer-foot", className)}>
+    <div data-slot="composer-footer" {...rest} className={cx("fg-conv-composer-foot", className)}>
       <span className="fg-conv-composer-hint">
         {c.readOnly ? (
           c.readOnlyText

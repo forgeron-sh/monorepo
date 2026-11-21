@@ -2,9 +2,31 @@
 import { InboxIcon, Tick01Icon } from "@forgeron/icons";
 import { act, createElement as h } from "react";
 import { createRoot } from "react-dom/client";
-import { renderToStaticMarkup as html } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AppSidebar, InboxList, type InboxItem } from "./navigation";
+import {
+  AppSidebar,
+  AppSidebarFold,
+  AppSidebarFooter,
+  AppSidebarHeader,
+  AppSidebarItem,
+  AppSidebarLink,
+  AppSidebarMenu,
+  AppSidebarNav,
+  AppSidebarSection,
+  AppSidebarSwitcher,
+  InboxList,
+  InboxListPreview,
+  InboxListRow,
+  InboxListTime,
+  InboxListTitle,
+  InboxListWho,
+  type InboxItem,
+} from "./navigation";
+
+// The markup these cases pin, without the shadcn `data-slot` names (data-slot.test.ts checks them).
+const html = (...args: Parameters<typeof renderToStaticMarkup>) =>
+  renderToStaticMarkup(...args).replace(/ data-slot="[^"]*"/g, "");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -56,7 +78,9 @@ describe("AppSidebar", () => {
     }),
   );
   it("is a labelled navigation landmark with the current page marked", () => {
-    expect(markup).toContain('<nav class="fg-aside-nav" aria-label="Tasks navigation">');
+    expect(markup).toContain(
+      '<nav aria-label="Tasks navigation" class="fg-sidebar-body fg-aside-nav">',
+    );
     expect(markup).toMatch(/href="#\/team\/OPS\/issues" aria-current="page"/);
     expect(markup.match(/aria-current/g)).toHaveLength(1);
   });
@@ -142,5 +166,105 @@ describe("InboxList", () => {
     expect(html(h(InboxList, { items: [], onSelect: () => {}, empty: "All read" }))).toContain(
       "All read",
     );
+  });
+});
+
+describe("navigation parts", () => {
+  const markup = renderToStaticMarkup(
+    h(
+      AppSidebar,
+      { current: "#/inbox", className: "mine" },
+      h(
+        AppSidebarHeader,
+        null,
+        h(AppSidebarSwitcher, { app: { name: "Tasks", icon: Tick01Icon } }),
+      ),
+      h(
+        AppSidebarNav,
+        { "aria-label": "Tasks navigation" },
+        h(
+          AppSidebarMenu,
+          null,
+          h(
+            AppSidebarItem,
+            null,
+            h(AppSidebarLink, { href: "#/inbox", icon: InboxIcon, count: 3 }, "Inbox"),
+          ),
+        ),
+        h(
+          AppSidebarSection,
+          { label: "Teams" },
+          h(
+            AppSidebarMenu,
+            null,
+            h(
+              AppSidebarItem,
+              null,
+              h(
+                AppSidebarFold,
+                { label: "Ops", initial: "O" },
+                h(AppSidebarLink, { href: "#/ops", nested: true }, "Issues"),
+              ),
+            ),
+          ),
+        ),
+      ),
+      h(AppSidebarFooter, null, "Help"),
+    ),
+  );
+  it("names every part and keeps the classes of the preset", () => {
+    for (const slot of [
+      "app-sidebar",
+      "app-sidebar-header",
+      "app-sidebar-switcher",
+      "app-sidebar-nav",
+      "app-sidebar-menu",
+      "app-sidebar-item",
+      "app-sidebar-link",
+      "app-sidebar-section",
+      "app-sidebar-fold",
+      "app-sidebar-footer",
+    ])
+      expect(markup).toContain(`data-slot="${slot}"`);
+    expect(markup).toContain('class="fg-sidebar fg-aside mine"');
+    expect(markup).toContain("fg-sidebar-body fg-aside-nav");
+  });
+  it("marks the link of the current page from the root", () => {
+    expect(markup.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(markup).toMatch(/href="#\/inbox" aria-current="page"/);
+  });
+  it("tells the clicks of the links to the root's onNavigate", async () => {
+    const onNavigate = vi.fn<(href: string) => void>();
+    const el = await mount(
+      h(
+        AppSidebar,
+        { onNavigate: (href: string, event) => (event.preventDefault(), onNavigate(href)) },
+        h(AppSidebarLink, { href: "#/x" }, "X"),
+      ),
+    );
+    await act(async () => el.querySelector<HTMLElement>("a")!.click());
+    expect(onNavigate).toHaveBeenCalledWith("#/x");
+  });
+  it("composes the rows of an InboxList", () => {
+    const items: InboxItem[] = [{ id: "a", title: "T", preview: "P", time: "2h", unread: true }];
+    const out = renderToStaticMarkup(
+      h(
+        InboxList,
+        { items, selectedId: "a", onSelect: () => {}, className: "mine" },
+        h(
+          InboxListRow,
+          { id: "a", unread: true, className: "row" },
+          h(InboxListWho, { person: "Hugo Bernard" }),
+          h(InboxListTitle, { reference: "OPS-1" }, "T"),
+          h(InboxListTime, { unread: true }, "2h"),
+          h(InboxListPreview, null, "P"),
+        ),
+      ),
+    );
+    expect(out).toContain('data-slot="inbox-list"');
+    expect(out).toContain('data-slot="inbox-list-row"');
+    expect(out).toContain("fg-inbox-row fg-inbox-unread row");
+    expect(out).toContain('class="fg-inbox mine"');
+    expect(out).toContain("fg-led-accent");
   });
 });

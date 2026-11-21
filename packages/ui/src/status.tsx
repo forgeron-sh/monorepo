@@ -66,6 +66,7 @@ function StatusRoot({
     defaultTagName: "span",
     render: child ? children : undefined,
     props: {
+      "data-slot": "status",
       ...rest,
       "data-tone": tone,
       className: cx("fg-status", className),
@@ -85,10 +86,17 @@ export interface StatusIndicatorProps extends Omit<ComponentProps<"span">, "chil
 export function StatusIndicator({ className, children, ...rest }: StatusIndicatorProps) {
   const tone = useContext(ToneContext);
   if (children === undefined || children === null || children === false) {
-    return <Led tone={ledTone(tone)} className={className} />;
+    return (
+      <Led data-slot="status-indicator" {...rest} tone={ledTone(tone)} className={className} />
+    );
   }
   return (
-    <span {...rest} aria-hidden="true" className={cx("fg-status-indicator", className)}>
+    <span
+      data-slot="status-indicator"
+      {...rest}
+      aria-hidden="true"
+      className={cx("fg-status-indicator", className)}
+    >
       {children}
     </span>
   );
@@ -96,7 +104,7 @@ export function StatusIndicator({ className, children, ...rest }: StatusIndicato
 
 /** The state in a word: what assistive technology reads. */
 export function StatusLabel({ className, ...rest }: ComponentProps<"span">) {
-  return <span {...rest} className={cx("fg-status-label", className)} />;
+  return <span data-slot="status-label" {...rest} className={cx("fg-status-label", className)} />;
 }
 
 /** What `StatusOf` reads from a set made by `defineStatuses`. */

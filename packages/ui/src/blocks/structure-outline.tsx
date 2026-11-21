@@ -1,13 +1,32 @@
 // The table of contents of a document: from a list of headings, or read from the headings of an
 // element of the page, nested by level. The heading you are reading is marked as you scroll
 // (scroll-spy), a click scrolls to one, and a branch folds.
+//
+// With props it is the whole panel; with children it is the root of the parts:
+//
+//   <Outline headings={headings}>
+//     <OutlineTitle>Contents</OutlineTitle>
+//     <OutlineContent><OutlineList /></OutlineContent>
+//   </Outline>
 
 import { ArrowRight01Icon } from "@forgeron/icons";
-import { useEffect, useId, useRef, useState, type MouseEvent, type RefObject } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ComponentProps,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
-import { Tree, TreeGroup, TreeItem, TreeItemContent } from "../tree";
+import { PartElement as Part } from "../part";
+import { Tree, TreeGroup, TreeItem, TreeItemContent, type TreeRootProps } from "../tree";
 import {
   structureActiveHeading,
   structureHeadingsFrom,
@@ -57,6 +76,8 @@ export interface OutlineProps {
   onOpenChange?: (open: boolean) => void;
   /** Shown when there is no heading. */
   empty?: string;
+  /** The parts. Without them the outline draws its title and its list. */
+  children?: ReactNode;
   className?: string;
 }
 
@@ -68,6 +89,206 @@ const resolve = (target: OutlineTarget | undefined): HTMLElement | null => {
 
 const reduced = () =>
   typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------------------------------------------------------------- context */
+
+interface OutlineContext {
+  tree: ReadonlyArray<StructureOutlineNode>;
+  current: string | null;
+  folded: ReadonlyArray<string>;
+  setFolded: (ids: ReadonlyArray<string>) => void;
+  branches: string[];
+  expanded: string[];
+  collapsible: boolean;
+  foldable: boolean;
+  shown: boolean;
+  setShown: (open: boolean) => void;
+  panel: string;
+  title: string;
+  empty: string;
+  reach: (id: string) => void;
+  go: (id: string, event: MouseEvent<HTMLAnchorElement>) => void;
+}
+
+const Ctx = createContext<OutlineContext | null>(null);
+
+/** The state of the enclosing `Outline`: the nested headings, the one read, what is folded. */
+export function useOutline(): OutlineContext {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error("Outline parts go inside an <Outline>.");
+  return ctx;
+}
+
+const holds = (node: StructureOutlineNode, id: string | null): boolean =>
+  !!id && node.children.some((c) => c.id === id || holds(c, id));
+
+/* ---------------------------------------------------------------- parts */
+
+export type OutlineTitleProps = Omit<ComponentProps<"p">, "ref"> & { asChild?: boolean };
+
+/** The heading of the panel: a button that folds the whole outline when it is `foldable`. */
+export function OutlineTitle({ asChild, className, children, ...rest }: OutlineTitleProps) {
+  const { foldable, shown, setShown, panel, title } = useOutline();
+  const text = children ?? title;
+  if (foldable) {
+    return (
+      <button
+        type="button"
+        data-slot="outline-title"
+        aria-expanded={shown}
+        aria-controls={panel}
+        {...(rest as ComponentProps<"button">)}
+        className={cx("fg-outline-head fg-outline-head-button", className)}
+        onClick={() => setShown(!shown)}
+      >
+        <Icon
+          icon={ArrowRight01Icon}
+          size={12}
+          variant="mono"
+          className={cx("fg-outline-fold", shown && "fg-outline-fold-open")}
+        />
+        {text}
+      </button>
+    );
+  }
+  return (
+    <Part
+      as="p"
+      asChild={asChild}
+      data-slot="outline-title"
+      {...rest}
+      className={cx("fg-outline-head", className)}
+    >
+      {text}
+    </Part>
+  );
+}
+
+export type OutlineContentProps = Omit<ComponentProps<"div">, "ref"> & { asChild?: boolean };
+
+/** What folds behind the title: the list. */
+export function OutlineContent({ asChild, className, children, ...rest }: OutlineContentProps) {
+  const { panel, shown } = useOutline();
+  return (
+    <Part
+      asChild={asChild}
+      id={panel}
+      hidden={!shown}
+      data-slot="outline-content"
+      {...rest}
+      className={className}
+    >
+      {children}
+    </Part>
+  );
+}
+
+export interface OutlineLinkProps extends Omit<ComponentProps<"a">, "ref" | "id"> {
+  /** The id of the heading it goes to. */
+  id: string;
+}
+
+/** The link to one heading: marks itself as the location when it is the one read. */
+export function OutlineLink({ id, className, onClick, children, ...rest }: OutlineLinkProps) {
+  const { current, go } = useOutline();
+  return (
+    <a
+      href={`#${id}`}
+      tabIndex={-1}
+      data-slot="outline-link"
+      {...(current === id ? { "aria-current": "location" as const } : {})}
+      {...rest}
+      className={cx("fg-outline-link", className)}
+      onClick={(e) => {
+        onClick?.(e);
+        if (!e.defaultPrevented) go(id, e);
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
+export interface OutlineItemProps extends Omit<ComponentProps<"li">, "ref" | "id"> {
+  node: StructureOutlineNode;
+}
+
+/** One heading and the ones under it. Its children replace the link. */
+export function OutlineItem({ node, className, children, ...rest }: OutlineItemProps) {
+  const { current, folded, collapsible } = useOutline();
+  const branch = node.children.length > 0;
+  const fold = collapsible && branch && folded.includes(node.id);
+  return (
+    <TreeItem
+      id={node.id}
+      textValue={node.text}
+      data-slot="outline-item"
+      {...rest}
+      className={cx("fg-outline-item", className)}
+    >
+      <TreeItemContent
+        indicator={collapsible}
+        className={cx(
+          "fg-outline-row",
+          current === node.id && "fg-outline-active",
+          fold && holds(node, current) && "fg-outline-within",
+        )}
+      >
+        {children ?? <OutlineLink id={node.id}>{node.text}</OutlineLink>}
+      </TreeItemContent>
+      {branch ? (
+        <TreeGroup className="fg-outline-list">
+          <OutlineItems nodes={node.children} />
+        </TreeGroup>
+      ) : null}
+    </TreeItem>
+  );
+}
+
+/** The items of some nodes (default: the top ones), one `OutlineItem` each. */
+export function OutlineItems({ nodes }: { nodes?: ReadonlyArray<StructureOutlineNode> }) {
+  const { tree } = useOutline();
+  return (nodes ?? tree).map((node) => <OutlineItem key={node.id} node={node} />);
+}
+
+export interface OutlineListProps extends Omit<
+  TreeRootProps,
+  "items" | "expanded" | "onExpandedChange" | "selected" | "onSelectedChange" | "onActivate"
+> {
+  /** Shown when there is no heading. Default: the `empty` of the outline. */
+  empty?: ReactNode;
+}
+
+/** The tree of headings, or the empty note. Its children replace the default `OutlineItems`. */
+export function OutlineList({ empty, className, children, ...rest }: OutlineListProps) {
+  const ctx = useOutline();
+  if (ctx.tree.length === 0) {
+    return (
+      <p data-slot="outline-empty" className="fg-outline-empty">
+        {empty ?? ctx.empty}
+      </p>
+    );
+  }
+  return (
+    <Tree
+      data-slot="outline-list"
+      aria-label={ctx.title}
+      {...rest}
+      className={cx("fg-outline-list", className)}
+      expanded={ctx.expanded}
+      onExpandedChange={(open) => {
+        if (ctx.collapsible) ctx.setFolded(ctx.branches.filter((id) => !open.includes(id)));
+      }}
+      selected={ctx.current ? [ctx.current] : []}
+      onSelectedChange={(ids) => {
+        if (ids[0] && ids[0] !== ctx.current) ctx.reach(ids[0]);
+      }}
+      onActivate={ctx.reach}
+    >
+      {children ?? <OutlineItems />}
+    </Tree>
+  );
+}
 
 /** The headings of a document as a table of contents that follows your reading. */
 export function Outline({
@@ -91,8 +312,10 @@ export function Outline({
   defaultOpen = true,
   onOpenChange,
   empty = "No headings yet",
+  children,
   className,
-}: OutlineProps) {
+  ...rest
+}: OutlineProps & Omit<ComponentProps<"nav">, keyof OutlineProps | "ref">) {
   const [read, setRead] = useState<ReadonlyArray<OutlineHeading>>([]);
   const [current, setCurrent] = useControllableState<string | null>({
     value: active,
@@ -200,9 +423,6 @@ export function Outline({
     el.focus({ preventScroll: true });
   };
 
-  const holds = (node: StructureOutlineNode, id: string | null): boolean =>
-    !!id && node.children.some((c) => c.id === id || holds(c, id));
-
   // The Tree keeps what is open; the outline keeps what is folded. Without `collapsible`, all open.
   const branches: string[] = [];
   const collect = (nodes: ReadonlyArray<StructureOutlineNode>) => {
@@ -214,79 +434,36 @@ export function Outline({
   collect(tree);
   const expanded = collapsible ? branches.filter((id) => !folded.includes(id)) : branches;
 
-  const renderItems = (nodes: ReadonlyArray<StructureOutlineNode>) =>
-    nodes.map((node) => {
-      const branch = node.children.length > 0;
-      const fold = collapsible && branch && folded.includes(node.id);
-      return (
-        <TreeItem key={node.id} id={node.id} textValue={node.text} className="fg-outline-item">
-          <TreeItemContent
-            indicator={collapsible}
-            className={cx(
-              "fg-outline-row",
-              current === node.id && "fg-outline-active",
-              fold && holds(node, current) && "fg-outline-within",
-            )}
-          >
-            <a
-              href={`#${node.id}`}
-              className="fg-outline-link"
-              tabIndex={-1}
-              {...(current === node.id ? { "aria-current": "location" as const } : {})}
-              onClick={(e) => go(node.id, e)}
-            >
-              {node.text}
-            </a>
-          </TreeItemContent>
-          {branch ? (
-            <TreeGroup className="fg-outline-list">{renderItems(node.children)}</TreeGroup>
-          ) : null}
-        </TreeItem>
-      );
-    });
+  const ctx: OutlineContext = {
+    tree,
+    current,
+    folded,
+    setFolded,
+    branches,
+    expanded,
+    collapsible,
+    foldable,
+    shown,
+    setShown,
+    panel,
+    title,
+    empty,
+    reach,
+    go,
+  };
 
   return (
-    <nav aria-label={title} className={cx("fg-outline", className)}>
-      {foldable ? (
-        <button
-          type="button"
-          className="fg-outline-head fg-outline-head-button"
-          aria-expanded={shown}
-          aria-controls={panel}
-          onClick={() => setShown(!shown)}
-        >
-          <Icon
-            icon={ArrowRight01Icon}
-            size={12}
-            variant="mono"
-            className={cx("fg-outline-fold", shown && "fg-outline-fold-open")}
-          />
-          {title}
-        </button>
-      ) : (
-        <p className="fg-outline-head">{title}</p>
-      )}
-      <div id={panel} hidden={!shown}>
-        {tree.length ? (
-          <Tree
-            className="fg-outline-list"
-            aria-label={title}
-            expanded={expanded}
-            onExpandedChange={(open) => {
-              if (collapsible) setFolded(branches.filter((id) => !open.includes(id)));
-            }}
-            selected={current ? [current] : []}
-            onSelectedChange={(ids) => {
-              if (ids[0] && ids[0] !== current) reach(ids[0]);
-            }}
-            onActivate={reach}
-          >
-            {renderItems(tree)}
-          </Tree>
-        ) : (
-          <p className="fg-outline-empty">{empty}</p>
+    <Ctx.Provider value={ctx}>
+      <nav aria-label={title} data-slot="outline" {...rest} className={cx("fg-outline", className)}>
+        {children ?? (
+          <>
+            <OutlineTitle />
+            <OutlineContent>
+              <OutlineList />
+            </OutlineContent>
+          </>
         )}
-      </div>
-    </nav>
+      </nav>
+    </Ctx.Provider>
   );
 }

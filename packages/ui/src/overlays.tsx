@@ -36,7 +36,10 @@ export interface SelectMenuOption {
   disabled?: boolean;
 }
 
-export interface SelectMenuProps {
+export interface SelectMenuProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "defaultValue" | "children" | "className"
+> {
   /** Names the control for assistive technology (and is shown above it with `showLabel`). */
   label: string;
   showLabel?: boolean;
@@ -86,6 +89,7 @@ export function SelectMenu({
   onOpenChange,
   children,
   className,
+  ...rest
 }: SelectMenuProps) {
   const items = options.map((o) => ({ value: o.value, label: o.label }));
   const byValue = new Map(options.map((o) => [o.value, o]));
@@ -112,7 +116,7 @@ export function SelectMenu({
       onOpenChange={setOpen}
       disabled={disabled}
     >
-      <div className={cx("fg-selm", className)}>
+      <div data-slot="select-menu" {...rest} className={cx("fg-selm", className)}>
         <SelectFieldLabel className={showLabel ? "fg-field-label" : "fg-sr"}>
           {label}
         </SelectFieldLabel>
@@ -175,6 +179,7 @@ export type ToastProps = Part<Omit<ComponentProps<typeof Base.Root>, "toast">> &
 export function Toast({ toast, className, children, ...rest }: ToastProps) {
   return (
     <Base.Root
+      data-slot="toast"
       {...rest}
       toast={toast}
       className={cx("fg-toast", toast.type && `fg-toast-${toast.type}`, className)}
@@ -195,23 +200,39 @@ export function Toast({ toast, className, children, ...rest }: ToastProps) {
 
 /** Groups the title and the description. */
 export function ToastContent({ className, ...rest }: Part<ComponentProps<typeof Base.Content>>) {
-  return <Base.Content {...rest} className={cx("fg-toast-content", className)} />;
+  return (
+    <Base.Content
+      data-slot="toast-content"
+      {...rest}
+      className={cx("fg-toast-content", className)}
+    />
+  );
 }
 
 export function ToastTitle({ className, ...rest }: Part<ComponentProps<typeof Base.Title>>) {
-  return <Base.Title {...rest} className={cx("fg-toast-title", className)} />;
+  return (
+    <Base.Title data-slot="toast-title" {...rest} className={cx("fg-toast-title", className)} />
+  );
 }
 
 export function ToastDescription({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Description>>) {
-  return <Base.Description {...rest} className={cx("fg-toast-text", className)} />;
+  return (
+    <Base.Description
+      data-slot="toast-description"
+      {...rest}
+      className={cx("fg-toast-text", className)}
+    />
+  );
 }
 
 /** The button of the toast's `actionProps`; give it children to draw your own. */
 export function ToastAction({ className, ...rest }: Part<ComponentProps<typeof Base.Action>>) {
-  return <Base.Action {...rest} className={cx("fg-toast-action", className)} />;
+  return (
+    <Base.Action data-slot="toast-action" {...rest} className={cx("fg-toast-action", className)} />
+  );
 }
 
 /** Dismisses the toast. Without children, a cross. */
@@ -221,7 +242,12 @@ export function ToastClose({
   ...rest
 }: Part<ComponentProps<typeof Base.Close>>) {
   return (
-    <Base.Close aria-label="Dismiss" {...rest} className={cx("fg-toast-close", className)}>
+    <Base.Close
+      aria-label="Dismiss"
+      data-slot="toast-close"
+      {...rest}
+      className={cx("fg-toast-close", className)}
+    >
       {children ?? <Icon icon={Cancel01Icon} size={12} variant="mono" />}
     </Base.Close>
   );
@@ -238,7 +264,10 @@ function ToastList({ render }: { render?: ((toast: ToastObject) => ReactNode) | 
   );
 }
 
-export interface ToasterProps {
+export interface ToasterProps extends Omit<
+  ComponentProps<typeof Base.Viewport>,
+  "className" | "children"
+> {
   children?: ReactNode;
   /** How many toasts show at once; older ones wait. */
   limit?: number;
@@ -252,12 +281,18 @@ export interface ToasterProps {
  * Wrap the app once: toasts added with `useToast().add({ title })` show at the bottom right,
  * are announced, pause on hover, and F6 reaches them from the keyboard.
  */
-export function Toaster({ children, limit = 3, renderToast, viewportClassName }: ToasterProps) {
+export function Toaster({
+  children,
+  limit = 3,
+  renderToast,
+  viewportClassName,
+  ...rest
+}: ToasterProps) {
   return (
     <Base.Provider limit={limit}>
       {children}
       <Base.Portal>
-        <Base.Viewport className={cx("fg-toasts", viewportClassName)}>
+        <Base.Viewport data-slot="toaster" {...rest} className={cx("fg-toasts", viewportClassName)}>
           <ToastList render={renderToast} />
         </Base.Viewport>
       </Base.Portal>
@@ -291,7 +326,10 @@ export function duePresets(today: string): DatePreset[] {
   ];
 }
 
-export interface DatePickerProps {
+export interface DatePickerProps extends Omit<
+  ComponentProps<"button">,
+  "onChange" | "defaultValue" | "children" | "className" | "value" | "placeholder"
+> {
   /** Names the control, e.g. "Due date". */
   label: string;
   /** `YYYY-MM-DD`, or null for none. */
@@ -380,7 +418,10 @@ function DatePickerRoot({
   );
 }
 
-export interface DatePickerTriggerProps {
+export interface DatePickerTriggerProps extends Omit<
+  ComponentProps<"button">,
+  "children" | "className" | "placeholder"
+> {
   /** Names the control, e.g. "Due date". */
   label: string;
   placeholder?: string;
@@ -398,11 +439,14 @@ export function DatePickerTrigger({
   variant = "chip",
   children,
   className,
+  ...rest
 }: DatePickerTriggerProps) {
   const { value, today } = useDatePicker("DatePickerTrigger");
   const year = Number(today.slice(0, 4));
   return (
     <PopoverTrigger
+      data-slot="date-picker-trigger"
+      {...(rest as object)}
       className={cx(
         "fg-selm-trigger",
         variant === "chip" && "fg-selm-chip",
@@ -421,7 +465,10 @@ export function DatePickerTrigger({
   );
 }
 
-export interface DatePickerContentProps {
+export interface DatePickerContentProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className"
+> {
   /** Names the panel, e.g. "Due date". */
   label: string;
   children?: ReactNode;
@@ -429,13 +476,15 @@ export interface DatePickerContentProps {
 }
 
 /** The panel under the trigger: presets, then the calendar. */
-export function DatePickerContent({ label, children, className }: DatePickerContentProps) {
+export function DatePickerContent({ label, children, className, ...rest }: DatePickerContentProps) {
   return (
     <PopoverContent
       side="bottom"
       align="start"
       sideOffset={4}
       aria-label={label}
+      data-slot="date-picker-content"
+      {...(rest as object)}
       className={cx("fg-datepop", className)}
     >
       {children}
@@ -443,7 +492,10 @@ export function DatePickerContent({ label, children, className }: DatePickerCont
   );
 }
 
-export interface DatePickerPresetsProps {
+export interface DatePickerPresetsProps extends Omit<
+  ComponentProps<"div">,
+  "children" | "className"
+> {
   /** `duePresets(today)` by default, `[]` for none. */
   presets?: ReadonlyArray<DatePreset>;
   /** Offers to remove the date. Default `true`. */
@@ -459,13 +511,14 @@ export function DatePickerPresets({
   clearable = true,
   label = "date",
   className,
+  ...rest
 }: DatePickerPresetsProps) {
   const { value, choose, today } = useDatePicker("DatePickerPresets");
   const picks = presets ?? duePresets(today);
   const year = Number(today.slice(0, 4));
   if (picks.length === 0 && !(clearable && value)) return null;
   return (
-    <div className={cx("fg-pop-list", className)}>
+    <div data-slot="date-picker-presets" {...rest} className={cx("fg-pop-list", className)}>
       {picks.map((p) => (
         <button key={p.label} type="button" className="fg-pop-row" onClick={() => choose(p.value)}>
           <Icon icon={Calendar03Icon} size={12} variant="mono" />
@@ -515,6 +568,7 @@ function DatePickerField({
   onOpenChange,
   children,
   className,
+  ...rest
 }: DatePickerProps) {
   return (
     <DatePickerRoot
@@ -526,6 +580,7 @@ function DatePickerField({
       {...(onOpenChange ? { onOpenChange } : {})}
     >
       <DatePickerTrigger
+        {...rest}
         label={label}
         {...(placeholder !== undefined ? { placeholder } : {})}
         {...(variant ? { variant } : {})}

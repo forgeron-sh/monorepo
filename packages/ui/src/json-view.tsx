@@ -5,11 +5,11 @@
 // view built from them (D-157).
 
 import { Copy01Icon, Tick02Icon } from "@forgeron/icons";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ComponentProps, type ReactNode } from "react";
 import { cx } from "./cx";
 import { IconButton } from "./identity";
 
-export interface JsonViewProps {
+export interface JsonViewProps extends Omit<ComponentProps<"figure">, "className" | "children"> {
   /** Any value JSON can write; `undefined` shows `empty`. */
   value: unknown;
   /** Names the block for assistive technology, and is shown above it. */
@@ -75,6 +75,7 @@ export function JsonView({
   empty = "No data",
   children,
   className,
+  ...rest
 }: JsonViewProps) {
   const [copied, setCopied] = useState(false);
   const text = value === undefined ? undefined : JSON.stringify(value, null, 2);
@@ -90,7 +91,7 @@ export function JsonView({
   };
   return (
     <JsonContext.Provider value={state}>
-      <figure className={cx("fg-json", className)}>
+      <figure data-slot="json-view" {...rest} className={cx("fg-json", className)}>
         {children ?? (
           <>
             <JsonViewLabel />
@@ -105,19 +106,20 @@ export function JsonView({
 }
 
 /** The caption above the text: the `label` of the view. Nothing without one. */
-export function JsonViewLabel({
-  className,
-  children,
-}: {
-  className?: string;
-  children?: ReactNode;
-}) {
+export function JsonViewLabel({ className, children, ...rest }: ComponentProps<"figcaption">) {
   const { label } = useJson();
   const words = children ?? label;
-  return words ? <figcaption className={cx("fg-json-label", className)}>{words}</figcaption> : null;
+  return words ? (
+    <figcaption data-slot="json-view-label" {...rest} className={cx("fg-json-label", className)}>
+      {words}
+    </figcaption>
+  ) : null;
 }
 
-export interface JsonViewContentProps {
+export interface JsonViewContentProps extends Omit<
+  ComponentProps<"div">,
+  "className" | "children"
+> {
   maxHeight?: number | "none";
   /** Shown when the value is `undefined`. */
   empty?: ReactNode;
@@ -132,11 +134,18 @@ export function JsonViewContent({
   empty = "No data",
   className,
   children,
+  ...rest
 }: JsonViewContentProps) {
   const { text, label } = useJson();
-  if (text === undefined) return <div className={cx("fg-json-empty", className)}>{empty}</div>;
+  if (text === undefined) {
+    return (
+      <div data-slot="json-view-content" {...rest} className={cx("fg-json-empty", className)}>
+        {empty}
+      </div>
+    );
+  }
   return (
-    <div className={cx("fg-json-box", className)}>
+    <div data-slot="json-view-content" {...rest} className={cx("fg-json-box", className)}>
       <pre
         className="fg-json-pre"
         style={maxHeight === "none" ? undefined : { maxHeight }}
@@ -153,10 +162,15 @@ export function JsonViewContent({
 }
 
 /** The button at the top right that copies the whole text. */
-export function JsonViewCopy({ className }: { className?: string }) {
+export function JsonViewCopy({
+  className,
+  ...rest
+}: Omit<ComponentProps<"button">, "children" | "onClick">) {
   const { copied, copy, blur } = useJson();
   return (
     <IconButton
+      data-slot="json-view-copy"
+      {...rest}
       className={cx("fg-json-copy", className)}
       icon={copied ? Tick02Icon : Copy01Icon}
       label={copied ? "Copied" : "Copy JSON"}

@@ -45,6 +45,7 @@ export function Badge({
     defaultTagName: "span",
     render: child ? children : undefined,
     props: {
+      "data-slot": "badge",
       ...rest,
       className: cx("fg-badge", look, mono && "fg-badge-mono", className),
       ...(child
@@ -67,16 +68,16 @@ export function Badge({
  */
 const ENV_LABEL = { production: "Production", channel: "Channel", preview: "Branch" } as const;
 
-export interface EnvTagProps {
+export interface EnvTagProps extends Omit<ComponentProps<"span">, "children" | "className"> {
   env: keyof typeof ENV_LABEL;
   className?: string;
   children?: ReactNode;
 }
 
 /** The channel of a version: shape carries the information, not the tint. */
-export function EnvTag({ env, className, children }: EnvTagProps) {
+export function EnvTag({ env, className, children, ...rest }: EnvTagProps) {
   return (
-    <span className={cx("fg-env", `fg-env-${env}`, className)}>
+    <span data-slot="env-tag" {...rest} className={cx("fg-env", `fg-env-${env}`, className)}>
       <Led tone="current" className="fg-env-mark" />
       {children ?? ENV_LABEL[env]}
     </span>

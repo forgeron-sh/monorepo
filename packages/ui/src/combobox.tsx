@@ -5,9 +5,9 @@
 
 import { Combobox as Base } from "@base-ui/react/combobox";
 import { ArrowDown01Icon, Cancel01Icon, PlusSignIcon, Tick02Icon } from "@forgeron/icons";
-import type { ClipboardEvent, ComponentProps, KeyboardEvent, ReactNode } from "react";
-import { useRef, useState } from "react";
-import { asChildProps } from "./as-child";
+import type { ClipboardEvent, ComponentProps, KeyboardEvent, ReactNode, RefObject } from "react";
+import { createContext, useContext, useRef, useState } from "react";
+import { asChildProps } from "./part";
 import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
 import { Icon } from "./icon";
@@ -38,6 +38,7 @@ export function ComboboxInputGroup({
 }: Part<ComponentProps<typeof Base.InputGroup>> & { disabled?: boolean }) {
   return (
     <Base.InputGroup
+      data-slot="combobox-input-group"
       {...rest}
       className={cx("fg-combo", disabled && "fg-combo-disabled", className)}
     />
@@ -49,7 +50,13 @@ export function ComboboxChipsInput({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Input>>) {
-  return <Base.Input {...rest} className={cx("fg-combo-input", className)} />;
+  return (
+    <Base.Input
+      data-slot="combobox-chip-input"
+      {...rest}
+      className={cx("fg-combo-input", className)}
+    />
+  );
 }
 
 export type ComboboxInputProps = Part<ComponentProps<typeof Base.Input>> & {
@@ -73,7 +80,12 @@ export function ComboboxInput({
 }: ComboboxInputProps) {
   return (
     <ComboboxInputGroup disabled={disabled} className={groupClassName}>
-      <ComboboxChipsInput {...rest} disabled={disabled} className={className} />
+      <ComboboxChipsInput
+        data-slot="combobox-input"
+        {...rest}
+        disabled={disabled}
+        className={className}
+      />
       {children}
       {showClear ? <ComboboxClear /> : null}
       {showTrigger ? <ComboboxTrigger /> : null}
@@ -90,6 +102,7 @@ export function ComboboxTrigger({ asChild, className, children, ...rest }: Combo
   const inner = asChildProps(asChild, children);
   return (
     <Base.Trigger
+      data-slot="combobox-trigger"
       {...rest}
       className={cx("fg-combo-btn fg-combo-caret", className)}
       {...("render" in inner ? inner : {})}
@@ -108,7 +121,7 @@ export function ComboboxClear({
   ...rest
 }: Part<ComponentProps<typeof Base.Clear>>) {
   return (
-    <Base.Clear {...rest} className={cx("fg-combo-btn", className)}>
+    <Base.Clear data-slot="combobox-clear" {...rest} className={cx("fg-combo-btn", className)}>
       {children ?? <Icon icon={Cancel01Icon} size={12} variant="mono" />}
     </Base.Clear>
   );
@@ -116,7 +129,9 @@ export function ComboboxClear({
 
 /** For `multiple`: the chips and the text box, in one wrapping row. */
 export function ComboboxChips({ className, ...rest }: Part<ComponentProps<typeof Base.Chips>>) {
-  return <Base.Chips {...rest} className={cx("fg-combo-chips", className)} />;
+  return (
+    <Base.Chips data-slot="combobox-chips" {...rest} className={cx("fg-combo-chips", className)} />
+  );
 }
 
 export type ComboboxChipProps = Part<ComponentProps<typeof Base.Chip>> & {
@@ -135,7 +150,7 @@ export function ComboboxChip({
   ...rest
 }: ComboboxChipProps) {
   return (
-    <Base.Chip {...rest} className={cx("fg-combo-chip", className)}>
+    <Base.Chip data-slot="combobox-chip" {...rest} className={cx("fg-combo-chip", className)}>
       {children}
       {showRemove ? (
         <Base.ChipRemove className="fg-combo-chip-x" aria-label={removeLabel ?? "Remove"}>
@@ -168,7 +183,11 @@ export function ComboboxContent({
         align={align}
         sideOffset={sideOffset}
       >
-        <Base.Popup {...rest} className={cx("fg-pop fg-combo-popup", className)} />
+        <Base.Popup
+          data-slot="combobox-content"
+          {...rest}
+          className={cx("fg-pop fg-combo-popup", className)}
+        />
       </Base.Positioner>
     </Base.Portal>
   );
@@ -176,17 +195,25 @@ export function ComboboxContent({
 
 /** The options. Children are a function of the item when the root has `items`. */
 export function ComboboxList({ className, ...rest }: Part<ComponentProps<typeof Base.List>>) {
-  return <Base.List {...rest} className={cx("fg-pop-list", className)} />;
+  return <Base.List data-slot="combobox-list" {...rest} className={cx("fg-pop-list", className)} />;
 }
 
 /** Says so when nothing matches. */
 export function ComboboxEmpty({ className, ...rest }: Part<ComponentProps<typeof Base.Empty>>) {
-  return <Base.Empty {...rest} className={cx("fg-combo-empty", className)} />;
+  return (
+    <Base.Empty data-slot="combobox-empty" {...rest} className={cx("fg-combo-empty", className)} />
+  );
 }
 
 /** A live line, e.g. “Loading…”. */
 export function ComboboxStatus({ className, ...rest }: Part<ComponentProps<typeof Base.Status>>) {
-  return <Base.Status {...rest} className={cx("fg-combo-status", className)} />;
+  return (
+    <Base.Status
+      data-slot="combobox-status"
+      {...rest}
+      className={cx("fg-combo-status", className)}
+    />
+  );
 }
 
 export type ComboboxItemProps = Part<ComponentProps<typeof Base.Item>> & {
@@ -211,7 +238,7 @@ export function ComboboxItem({
   ...rest
 }: ComboboxItemProps) {
   return (
-    <Base.Item {...rest} className={cx("fg-pop-row", className)}>
+    <Base.Item data-slot="combobox-item" {...rest} className={cx("fg-pop-row", className)}>
       {glyph ?? null}
       <span className="fg-pop-label">{children}</span>
       {hint !== undefined && hint !== null ? <span className="fg-pop-hint">{hint}</span> : null}
@@ -227,11 +254,11 @@ export function ComboboxItem({
 
 /** Shows its children only while its row is chosen: a checkbox's tick, in a row's `glyph`. */
 export function ComboboxItemIndicator(props: ComponentProps<typeof Base.ItemIndicator>) {
-  return <Base.ItemIndicator {...props} />;
+  return <Base.ItemIndicator data-slot="combobox-item-indicator" {...props} />;
 }
 
 export function ComboboxGroup(props: ComponentProps<typeof Base.Group>) {
-  return <Base.Group {...props} />;
+  return <Base.Group data-slot="combobox-group" {...props} />;
 }
 
 /** The name of a group, inside `ComboboxGroup`. */
@@ -239,14 +266,26 @@ export function ComboboxLabel({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.GroupLabel>>) {
-  return <Base.GroupLabel {...rest} className={cx("fg-pop-heading", className)} />;
+  return (
+    <Base.GroupLabel
+      data-slot="combobox-label"
+      {...rest}
+      className={cx("fg-pop-heading", className)}
+    />
+  );
 }
 
 export function ComboboxSeparator({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Separator>>) {
-  return <Base.Separator {...rest} className={cx("fg-pop-sep", className)} />;
+  return (
+    <Base.Separator
+      data-slot="combobox-separator"
+      {...rest}
+      className={cx("fg-pop-sep", className)}
+    />
+  );
 }
 
 /** Renders the items of a group or of the list: `<ComboboxCollection>{(item) => …}`. */
@@ -266,7 +305,17 @@ export interface ComboboxOption {
   disabled?: boolean;
 }
 
-interface ComboboxShared {
+interface ComboboxShared extends Omit<
+  ComponentProps<"div">,
+  | "onChange"
+  | "defaultValue"
+  | "children"
+  | "className"
+  | "id"
+  | "placeholder"
+  | "aria-describedby"
+  | "aria-invalid"
+> {
   /** Names the control for assistive technology. */
   label: string;
   options: ReadonlyArray<ComboboxOption>;
@@ -348,6 +397,15 @@ function PropsCombobox(props: ComboboxProps) {
     disabled,
     id,
     className,
+    // What the root part reads or the input takes by name; the rest goes on the frame.
+    value: _value,
+    defaultValue: _defaultValue,
+    onChange: _onChange,
+    multiple: _multiple,
+    clearable: _clearable,
+    "aria-describedby": _describedBy,
+    "aria-invalid": _invalid,
+    ...rest
   } = props;
   const multiple = props.multiple === true;
   const [raw, setRaw] = useControllableState<string[] | string | null>({
@@ -449,7 +507,7 @@ function PropsCombobox(props: ComboboxProps) {
 
   return (
     <ComboboxRoot {...rootProps}>
-      <ComboboxInputGroup disabled={disabled} className={className}>
+      <ComboboxInputGroup data-slot="combobox" {...rest} disabled={disabled} className={className}>
         {multiple ? (
           <ComboboxChips aria-label={`${label}, chosen`}>
             {chosen.map((c) => (
@@ -478,13 +536,11 @@ function PropsCombobox(props: ComboboxProps) {
 
 /* ---------------------------------------------------------------- TagInput */
 
-export interface TagInputProps {
-  /** Names the field for assistive technology. */
-  label: string;
+/** The behaviour of a tag field, shared by its root and its parts. */
+interface TagInputBehaviour {
   value?: string[];
   defaultValue?: string[];
   onChange?: (value: string[]) => void;
-  placeholder?: string;
   /**
    * What ends a tag, in typed or pasted text. Default: a comma, a semicolon, a space or a new
    * line. Pass `/[,;\n]+/` for tags that hold spaces.
@@ -497,28 +553,106 @@ export interface TagInputProps {
   /** Lets the same tag in twice. Default `false`. */
   allowDuplicates?: boolean;
   disabled?: boolean;
+}
+
+export interface TagInputProps
+  extends
+    TagInputBehaviour,
+    Omit<
+      ComponentProps<"div">,
+      | "onChange"
+      | "defaultValue"
+      | "className"
+      | "id"
+      | "children"
+      | "aria-describedby"
+      | "aria-invalid"
+    > {
+  /** Names the field for assistive technology. */
+  label: string;
+  placeholder?: string;
   id?: string;
   "aria-describedby"?: string | undefined;
   "aria-invalid"?: boolean | undefined;
   className?: string;
 }
 
-/** Tags typed in: Enter or a separator ends one, a paste is split, Backspace removes the last. */
-export function TagInput({
-  label,
+/** `label` stays undefined: with a label, `TagInput` is the props-driven one. */
+export interface TagInputRootProps
+  extends
+    TagInputBehaviour,
+    Omit<ComponentProps<"div">, "onChange" | "defaultValue" | "className"> {
+  label?: undefined;
+  className?: string;
+}
+
+interface TagInputState {
+  tags: string[];
+  setTags: (tags: string[]) => void;
+  draft: string;
+  take: (raw: string, final: boolean) => void;
+  input: RefObject<HTMLInputElement | null>;
+  disabled: boolean;
+  full: boolean;
+  validate: ((tag: string) => boolean) | undefined;
+  separators: RegExp;
+}
+
+const TagInputContext = createContext<TagInputState | null>(null);
+
+/** The tags, the draft and the actions of the enclosing `TagInput`. */
+export function useTagInput(): TagInputState {
+  const state = useContext(TagInputContext);
+  if (!state) throw new Error("useTagInput must be used inside a TagInput");
+  return state;
+}
+
+/**
+ * Tags typed in: Enter or a separator ends one, a paste is split, Backspace removes the last. With
+ * `label`, the props-driven field; without, the root of the parts (`TagInputList`, `TagInputTags`,
+ * `TagInputTag`, `TagInputField`). It is free text, not a choice among options: for that, the
+ * `ComboboxChips` parts.
+ */
+export function TagInput(props: TagInputProps | TagInputRootProps) {
+  return props.label !== undefined ? (
+    <PropsTagInput {...(props as TagInputProps)} />
+  ) : (
+    <TagInputRoot {...(props as TagInputRootProps)} />
+  );
+}
+
+function PropsTagInput({ label, placeholder, id, className, ...props }: TagInputProps) {
+  const { "aria-describedby": ariaDescribedBy, "aria-invalid": ariaInvalid, ...rest } = props;
+  return (
+    <TagInputRoot {...rest} {...(className !== undefined ? { className } : {})}>
+      <TagInputList aria-label={`${label}, added`}>
+        <TagInputTags />
+        <TagInputField
+          id={id}
+          aria-label={label}
+          aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
+          placeholder={placeholder}
+        />
+      </TagInputList>
+    </TagInputRoot>
+  );
+}
+
+function TagInputRoot({
   value,
   defaultValue = [],
   onChange,
-  placeholder,
   separators = /[\s,;]+/,
   validate,
   max,
   allowDuplicates = false,
-  disabled,
-  id,
+  disabled = false,
+  label: _label,
   className,
-  ...aria
-}: TagInputProps) {
+  onClick,
+  ...rest
+}: TagInputRootProps) {
   const [tags, setTags] = useControllableState<string[]>({ value, defaultValue, onChange });
   const [draft, setDraft] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -535,78 +669,141 @@ export function TagInput({
   /** Commits every complete piece of `raw`; the last one stays in the field unless `final`. */
   const take = (raw: string, final: boolean) => {
     const parts = raw.split(separators);
-    const rest = final ? "" : (parts.pop() ?? "");
+    const left = final ? "" : (parts.pop() ?? "");
     add(parts);
-    setDraft(rest);
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      if (draft.trim()) {
-        event.preventDefault();
-        take(draft, true);
-      }
-    } else if (event.key === "Backspace" && draft === "" && tags.length > 0) {
-      setTags(tags.slice(0, -1));
-    }
-  };
-  const onPaste = (event: ClipboardEvent<HTMLInputElement>) => {
-    const pasted = event.clipboardData.getData("text");
-    if (!separators.test(pasted)) return;
-    event.preventDefault();
-    take(draft + pasted, true);
+    setDraft(left);
   };
 
   return (
-    <div
-      className={cx("fg-combo fg-tagin", disabled && "fg-combo-disabled", className)}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) input.current?.focus();
+    <TagInputContext.Provider
+      value={{
+        tags,
+        setTags,
+        draft,
+        take,
+        input,
+        disabled,
+        full: max !== undefined && tags.length >= max,
+        validate,
+        separators,
       }}
     >
-      <ul className="fg-combo-chips" aria-label={`${label}, added`}>
-        {tags.map((tag) => {
-          const bad = validate ? !validate(tag) : false;
-          return (
-            <li
-              key={tag}
-              className={cx("fg-combo-chip", bad && "fg-combo-chip-bad")}
-              title={bad ? "Not valid" : undefined}
-            >
-              <span>{tag}</span>
-              {bad ? <span className="fg-sr">, not valid</span> : null}
-              <button
-                type="button"
-                className="fg-combo-chip-x"
-                aria-label={`Remove ${tag}`}
-                disabled={disabled}
-                onClick={() => {
-                  setTags(tags.filter((t) => t !== tag));
-                  input.current?.focus();
-                }}
-              >
-                <Icon icon={Cancel01Icon} size={12} variant="mono" />
-              </button>
-            </li>
-          );
-        })}
-        <li className="fg-tagin-item">
-          <input
-            ref={input}
-            id={id}
-            {...aria}
-            className="fg-combo-input"
-            aria-label={label}
-            placeholder={tags.length > 0 ? "" : placeholder}
-            disabled={disabled || (max !== undefined && tags.length >= max)}
-            value={draft}
-            onChange={(event) => take(event.target.value, false)}
-            onKeyDown={onKeyDown}
-            onPaste={onPaste}
-            onBlur={() => draft.trim() && take(draft, true)}
-          />
-        </li>
-      </ul>
-    </div>
+      <div
+        data-slot="tag-input"
+        {...rest}
+        className={cx("fg-combo fg-tagin", disabled && "fg-combo-disabled", className)}
+        onClick={(event) => {
+          onClick?.(event);
+          if (event.target === event.currentTarget) input.current?.focus();
+        }}
+      />
+    </TagInputContext.Provider>
+  );
+}
+
+/** The row of tags and the field: `TagInputTags` and `TagInputField` go inside. */
+export function TagInputList({ className, ...rest }: Part<ComponentProps<"ul">>) {
+  return <ul data-slot="tag-input-list" {...rest} className={cx("fg-combo-chips", className)} />;
+}
+
+export interface TagInputTagProps extends Omit<Part<ComponentProps<"li">>, "value"> {
+  value: string;
+  /** The remove button's `aria-label`; default `Remove <tag>`. */
+  removeLabel?: string;
+}
+
+/** One tag with its remove button, danger-toned when `validate` refuses it. */
+export function TagInputTag({
+  value,
+  removeLabel,
+  className,
+  children,
+  ...rest
+}: TagInputTagProps) {
+  const { tags, setTags, input, disabled, validate } = useTagInput();
+  const bad = validate ? !validate(value) : false;
+  return (
+    <li
+      data-slot="tag-input-tag"
+      title={bad ? "Not valid" : undefined}
+      {...rest}
+      className={cx("fg-combo-chip", bad && "fg-combo-chip-bad", className)}
+    >
+      <span>{children ?? value}</span>
+      {bad ? <span className="fg-sr">, not valid</span> : null}
+      <button
+        type="button"
+        className="fg-combo-chip-x"
+        aria-label={removeLabel ?? `Remove ${value}`}
+        disabled={disabled}
+        onClick={() => {
+          setTags(tags.filter((t) => t !== value));
+          input.current?.focus();
+        }}
+      >
+        <Icon icon={Cancel01Icon} size={12} variant="mono" />
+      </button>
+    </li>
+  );
+}
+
+/** Every tag of the field, as `TagInputTag`s; renders no element of its own. */
+export function TagInputTags() {
+  const { tags } = useTagInput();
+  return (
+    <>
+      {tags.map((tag) => (
+        <TagInputTag key={tag} value={tag} />
+      ))}
+    </>
+  );
+}
+
+/** The text box where tags are typed: Enter or a separator ends one, a paste is split. */
+export function TagInputField({
+  className,
+  placeholder,
+  disabled,
+  onKeyDown,
+  onPaste,
+  onBlur,
+  ...rest
+}: Part<ComponentProps<"input">>) {
+  const { tags, setTags, draft, take, input, disabled: off, full, separators } = useTagInput();
+  return (
+    <li data-slot="tag-input-field-item" className="fg-tagin-item">
+      <input
+        ref={input}
+        data-slot="tag-input-field"
+        {...rest}
+        className={cx("fg-combo-input", className)}
+        placeholder={tags.length > 0 ? "" : placeholder}
+        disabled={disabled || off || full}
+        value={draft}
+        onChange={(event) => take(event.target.value, false)}
+        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+          onKeyDown?.(event);
+          if (event.key === "Enter") {
+            if (draft.trim()) {
+              event.preventDefault();
+              take(draft, true);
+            }
+          } else if (event.key === "Backspace" && draft === "" && tags.length > 0) {
+            setTags(tags.slice(0, -1));
+          }
+        }}
+        onPaste={(event: ClipboardEvent<HTMLInputElement>) => {
+          onPaste?.(event);
+          const pasted = event.clipboardData.getData("text");
+          if (!separators.test(pasted)) return;
+          event.preventDefault();
+          take(draft + pasted, true);
+        }}
+        onBlur={(event) => {
+          onBlur?.(event);
+          if (draft.trim()) take(draft, true);
+        }}
+      />
+    </li>
   );
 }

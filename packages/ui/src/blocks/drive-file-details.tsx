@@ -1,6 +1,11 @@
 // The details of a file or a folder, in a side panel: its mark, name and kind; who has access
 // and how far it is open; its properties (owner, size, location, dates); then, in tabs, its
 // versions (restore, download, upload a new one) and its activity.
+//
+// Roots with parts. `FileDetails` (`FileDetailsHeader`, `FileDetailsBody` with `FileDetailsAccess`
+// and `FileDetailsProperties` in its sections) and `VersionList` (`VersionListNote`,
+// `VersionListItems`, `VersionListRow`, `VersionListUpload`). Without children each draws all its
+// regions; with children they are yours.
 
 import {
   Building01Icon,
@@ -11,7 +16,7 @@ import {
   Upload01Icon,
 } from "@forgeron/icons";
 import type { IconDefinition } from "@forgeron/icons";
-import type { ReactNode } from "react";
+import { createContext, useContext, type ComponentProps, type ReactNode } from "react";
 import { Avatar } from "../avatar";
 import { Button } from "../button";
 import { cx } from "../cx";
@@ -47,7 +52,25 @@ export interface VersionListProps {
   onUpload?: () => void;
   /** A line above the list: how long old versions are kept. */
   retention?: ReactNode;
+  /** The regions of the list; without them, the note, the rows and the upload button. */
+  children?: ReactNode;
   className?: string;
+}
+
+interface VersionsContext {
+  versions: ReadonlyArray<FileVersion>;
+  retention: ReactNode;
+  onRestore: ((id: string) => void) | undefined;
+  onDownload: ((id: string) => void) | undefined;
+  onUpload: (() => void) | undefined;
+}
+
+const VersionsCtx = createContext<VersionsContext | null>(null);
+
+function useVersions(part: string): VersionsContext {
+  const ctx = useContext(VersionsCtx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <VersionList>.`);
+  return ctx;
 }
 
 /** The versions of a file, newest first: who, when, why; restore or download an older one. */
@@ -57,56 +80,110 @@ export function VersionList({
   onDownload,
   onUpload,
   retention,
+  children,
   className,
 }: VersionListProps) {
   return (
-    <div className={cx("fg-versions", className)}>
-      {retention ? <p className="fg-versions-note">{retention}</p> : null}
-      <ol className="fg-versions-list">
-        {versions.map((v, i) => (
-          <li key={v.id} className={cx("fg-versions-row", i === 0 && "fg-versions-current")}>
-            <span className="fg-versions-label">{v.label}</span>
-            <div className="fg-versions-text">
-              <b>{i === 0 ? "Current version" : v.at}</b>
-              <span className="fg-versions-by">
-                <Avatar name={v.by} size={16} />
-                {v.by}
-                {v.size !== undefined ? ` · ${formatBytes(v.size)}` : ""}
-                {i === 0 ? ` · ${v.at}` : ""}
-              </span>
-              {v.note ? <i className="fg-versions-why">{v.note}</i> : null}
-            </div>
-            <span className="fg-versions-acts">
-              {i === 0 ? (
-                <span className="fg-versions-chip">Current</span>
-              ) : (
-                <>
-                  {onRestore ? (
-                    <Button size="sm" onClick={() => onRestore(v.id)}>
-                      Restore
-                    </Button>
-                  ) : null}
-                  {onDownload ? (
-                    <IconButton
-                      icon={Download01Icon}
-                      label={`Download ${v.label}`}
-                      size="sm"
-                      onClick={() => onDownload(v.id)}
-                    />
-                  ) : null}
-                </>
-              )}
-            </span>
-          </li>
-        ))}
-      </ol>
-      {onUpload ? (
-        <Button size="sm" onClick={onUpload}>
+    <VersionsCtx.Provider value={{ versions, retention, onRestore, onDownload, onUpload }}>
+      <div data-slot="version-list" className={cx("fg-versions", className)}>
+        {children ?? (
+          <>
+            <VersionListNote />
+            <VersionListItems />
+            <VersionListUpload />
+          </>
+        )}
+      </div>
+    </VersionsCtx.Provider>
+  );
+}
+
+/** The line above the list: how long old versions are kept. */
+export function VersionListNote({ className, children, ...rest }: ComponentProps<"p">) {
+  const { retention } = useVersions("VersionListNote");
+  const text = children ?? retention;
+  return text ? (
+    <p data-slot="version-list-note" {...rest} className={cx("fg-versions-note", className)}>
+      {text}
+    </p>
+  ) : null;
+}
+
+/** The rows, newest first; the first one is the current version. */
+export function VersionListItems({ className, children, ...rest }: ComponentProps<"ol">) {
+  const { versions } = useVersions("VersionListItems");
+  return (
+    <ol data-slot="version-list-items" {...rest} className={cx("fg-versions-list", className)}>
+      {children ??
+        versions.map((v, i) => <VersionListRow key={v.id} version={v} current={i === 0} />)}
+    </ol>
+  );
+}
+
+/** The button under the list that uploads a new version. */
+export function VersionListUpload({ children, ...rest }: ComponentProps<typeof Button>) {
+  const { onUpload } = useVersions("VersionListUpload");
+  if (!onUpload) return null;
+  return (
+    <Button data-slot="version-list-upload" size="sm" onClick={onUpload} {...rest}>
+      {children ?? (
+        <>
           <Icon icon={Upload01Icon} size={12} variant="mono" />
           Upload new version
-        </Button>
-      ) : null}
-    </div>
+        </>
+      )}
+    </Button>
+  );
+}
+
+/** One version: its label, who and when, why, and Restore and Download unless it is the current one. */
+export function VersionListRow({
+  version: v,
+  current: isCurrent,
+  className,
+  ...rest
+}: Omit<ComponentProps<"li">, "children"> & { version: FileVersion; current?: boolean }) {
+  const { onRestore, onDownload } = useVersions("VersionListRow");
+  const i = isCurrent ? 0 : 1;
+  return (
+    <li
+      data-slot="version-list-row"
+      {...rest}
+      className={cx("fg-versions-row", i === 0 && "fg-versions-current", className)}
+    >
+      <span className="fg-versions-label">{v.label}</span>
+      <div className="fg-versions-text">
+        <b>{i === 0 ? "Current version" : v.at}</b>
+        <span className="fg-versions-by">
+          <Avatar name={v.by} size={16} />
+          {v.by}
+          {v.size !== undefined ? ` · ${formatBytes(v.size)}` : ""}
+          {i === 0 ? ` · ${v.at}` : ""}
+        </span>
+        {v.note ? <i className="fg-versions-why">{v.note}</i> : null}
+      </div>
+      <span className="fg-versions-acts">
+        {i === 0 ? (
+          <span className="fg-versions-chip">Current</span>
+        ) : (
+          <>
+            {onRestore ? (
+              <Button size="sm" onClick={() => onRestore(v.id)}>
+                Restore
+              </Button>
+            ) : null}
+            {onDownload ? (
+              <IconButton
+                icon={Download01Icon}
+                label={`Download ${v.label}`}
+                size="sm"
+                onClick={() => onDownload(v.id)}
+              />
+            ) : null}
+          </>
+        )}
+      </span>
+    </li>
   );
 }
 
@@ -161,6 +238,8 @@ export interface FileDetailsProps {
   onTabChange?: (tab: FileDetailsTab) => void;
   /** An × in the header. */
   onClose?: () => void;
+  /** The regions of the panel; without them, the header and the body. */
+  children?: ReactNode;
   className?: string;
 }
 
@@ -170,33 +249,26 @@ const SCOPE_ICON: Record<AccessScope, IconDefinition> = {
   link: GlobeIcon,
 };
 
+interface DetailsContext extends Omit<FileDetailsProps, "children" | "className" | "kind"> {
+  kind: FileKind;
+  tabs: ReadonlyArray<{ id: string; label: string }>;
+  shown: FileDetailsTab;
+  setCurrent: (tab: FileDetailsTab) => void;
+}
+
+const DetailsCtx = createContext<DetailsContext | null>(null);
+
+/** What the panel shows: the file, its tabs, the tab open, for a part of your own. */
+export function useFileDetails(part = "useFileDetails"): DetailsContext {
+  const ctx = useContext(DetailsCtx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <FileDetails>.`);
+  return ctx;
+}
+
 /** A file's or a folder's details: access, properties, versions and activity. */
-export function FileDetails({
-  name,
-  kind,
-  icon,
-  size,
-  contents,
-  owner,
-  location,
-  modified,
-  created,
-  fields = [],
-  access,
-  versions,
-  onRestoreVersion,
-  onDownloadVersion,
-  onUploadVersion,
-  retention,
-  activity,
-  tab,
-  defaultTab = "details",
-  onTabChange,
-  onClose,
-  className,
-}: FileDetailsProps) {
-  const k = kind ?? fileKindOf(name);
-  const info = FILE_KINDS[k];
+export function FileDetails({ children, className, ...props }: FileDetailsProps) {
+  const { name, versions, activity, tab, defaultTab = "details", onTabChange } = props;
+  const k = props.kind ?? fileKindOf(name);
   const tabs = [
     { id: "details", label: "Details" },
     ...(versions ? [{ id: "versions", label: "Versions" }] : []),
@@ -208,6 +280,161 @@ export function FileDetails({
     onChange: onTabChange,
   });
   const shown = tabs.some((t) => t.id === current) ? current : "details";
+  return (
+    <DetailsCtx.Provider value={{ ...props, kind: k, tabs, shown, setCurrent }}>
+      <aside
+        data-slot="file-details"
+        className={cx("fg-fdet", className)}
+        aria-label={`Details of ${name}`}
+      >
+        {children ?? (
+          <>
+            <FileDetailsHeader />
+            <FileDetailsBody />
+          </>
+        )}
+      </aside>
+    </DetailsCtx.Provider>
+  );
+}
+
+/** The mark, the name, the kind and size, and the × that closes the panel. */
+export function FileDetailsHeader({ className, children, ...rest }: ComponentProps<"header">) {
+  const { name, kind: k, icon, size, onClose } = useFileDetails("FileDetailsHeader");
+  const info = FILE_KINDS[k];
+  return (
+    <header data-slot="file-details-header" {...rest} className={cx("fg-fdet-head", className)}>
+      {children ?? (
+        <>
+          <FileTypeMark kind={k} size="lg" {...(icon ? { icon } : {})} />
+          <div className="fg-fdet-titles">
+            <h2 className="fg-fdet-name">{name}</h2>
+            <p className="fg-fdet-kind">
+              {info.label}
+              {k !== "folder" && size !== undefined ? ` · ${formatBytes(size)}` : ""}
+            </p>
+          </div>
+          {onClose ? (
+            <IconButton icon={Cancel01Icon} label="Close details" size="sm" onClick={onClose} />
+          ) : null}
+        </>
+      )}
+    </header>
+  );
+}
+
+/** The tabs and the panel of the one open: details, versions or activity. Children replace the panel. */
+export function FileDetailsBody({ className, children, ...rest }: ComponentProps<"div">) {
+  const {
+    tabs,
+    shown,
+    setCurrent,
+    versions,
+    onRestoreVersion,
+    onDownloadVersion,
+    onUploadVersion,
+    retention,
+    activity,
+  } = useFileDetails("FileDetailsBody");
+  const sections = <FileDetailsSections />;
+  const panel =
+    children ??
+    (shown === "versions" && versions ? (
+      <VersionList
+        versions={versions}
+        {...(onRestoreVersion ? { onRestore: onRestoreVersion } : {})}
+        {...(onDownloadVersion ? { onDownload: onDownloadVersion } : {})}
+        {...(onUploadVersion ? { onUpload: onUploadVersion } : {})}
+        retention={retention}
+      />
+    ) : shown === "activity" ? (
+      activity
+    ) : (
+      sections
+    ));
+  return tabs.length > 1 ? (
+    <Tabs
+      label="Details"
+      tabs={tabs}
+      value={shown}
+      onChange={(id) => setCurrent(id as FileDetailsTab)}
+      className="fg-fdet-tabs"
+    >
+      <div data-slot="file-details-body" {...rest} className={cx("fg-fdet-body", className)}>
+        {panel}
+      </div>
+    </Tabs>
+  ) : (
+    <div data-slot="file-details-body" {...rest} className={cx("fg-fdet-body", className)}>
+      {children ?? sections}
+    </div>
+  );
+}
+
+/** The two sections of the Details tab: who has access, then the properties. */
+export function FileDetailsSections({ className, children, ...rest }: ComponentProps<"div">) {
+  return (
+    <div data-slot="file-details-sections" {...rest} className={cx("fg-fdet-sections", className)}>
+      {children ?? (
+        <>
+          <FileDetailsAccess />
+          <FileDetailsProperties />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Who has access and how far it is open; nothing is drawn without `access`. */
+export function FileDetailsAccess({ className, ...rest }: ComponentProps<"section">) {
+  const { access } = useFileDetails("FileDetailsAccess");
+  if (!access) return null;
+  return (
+    <section
+      data-slot="file-details-access"
+      aria-label="Who has access"
+      {...rest}
+      className={cx("fg-fdet-section", className)}
+    >
+      <div className="fg-fdet-eyebrow">
+        <span>Who has access</span>
+        {access.onManage ? (
+          <Button variant="ghost" size="sm" onClick={access.onManage}>
+            Manage
+          </Button>
+        ) : null}
+      </div>
+      <div className="fg-fdet-access">
+        <AvatarGroup names={access.people} max={6} size={22} />
+        <span className="fg-fdet-people">
+          {access.people.length === 0
+            ? "Only you"
+            : access.people.length === 1
+              ? access.people[0]
+              : `${access.people[0]} and ${access.people.length - 1} more`}
+        </span>
+      </div>
+      <p className="fg-fdet-scope">
+        <Icon icon={SCOPE_ICON[access.scope ?? "restricted"]} size={12} variant="mono" />
+        {access.summary ?? "Restricted to the people above"}
+      </p>
+    </section>
+  );
+}
+
+/** The properties: type, size, location, owner, dates, then your own `fields`. */
+export function FileDetailsProperties({ className, ...rest }: ComponentProps<"section">) {
+  const {
+    kind: k,
+    size,
+    contents,
+    owner,
+    location,
+    modified,
+    created,
+    fields = [],
+  } = useFileDetails("FileDetailsProperties");
+  const info = FILE_KINDS[k];
   const sizeText =
     k === "folder"
       ? [contents, size !== undefined ? formatBytes(size) : null].filter(Boolean).join(" · ")
@@ -227,90 +454,18 @@ export function FileDetails({
       : []),
     ...fields,
   ];
-
-  const details = (
-    <div className="fg-fdet-sections">
-      {access ? (
-        <section className="fg-fdet-section" aria-label="Who has access">
-          <div className="fg-fdet-eyebrow">
-            <span>Who has access</span>
-            {access.onManage ? (
-              <Button variant="ghost" size="sm" onClick={access.onManage}>
-                Manage
-              </Button>
-            ) : null}
-          </div>
-          <div className="fg-fdet-access">
-            <AvatarGroup names={access.people} max={6} size={22} />
-            <span className="fg-fdet-people">
-              {access.people.length === 0
-                ? "Only you"
-                : access.people.length === 1
-                  ? access.people[0]
-                  : `${access.people[0]} and ${access.people.length - 1} more`}
-            </span>
-          </div>
-          <p className="fg-fdet-scope">
-            <Icon icon={SCOPE_ICON[access.scope ?? "restricted"]} size={12} variant="mono" />
-            {access.summary ?? "Restricted to the people above"}
-          </p>
-        </section>
-      ) : null}
-      <section
-        className="fg-fdet-section"
-        aria-label={k === "folder" ? "Folder details" : "File details"}
-      >
-        <div className="fg-fdet-eyebrow">
-          <span>{k === "folder" ? "Folder details" : "File details"}</span>
-        </div>
-        <DetailList items={rows} className="fg-fdet-list" />
-      </section>
-    </div>
-  );
-
-  const panel =
-    shown === "versions" && versions ? (
-      <VersionList
-        versions={versions}
-        {...(onRestoreVersion ? { onRestore: onRestoreVersion } : {})}
-        {...(onDownloadVersion ? { onDownload: onDownloadVersion } : {})}
-        {...(onUploadVersion ? { onUpload: onUploadVersion } : {})}
-        retention={retention}
-      />
-    ) : shown === "activity" ? (
-      activity
-    ) : (
-      details
-    );
-
+  const title = k === "folder" ? "Folder details" : "File details";
   return (
-    <aside className={cx("fg-fdet", className)} aria-label={`Details of ${name}`}>
-      <header className="fg-fdet-head">
-        <FileTypeMark kind={k} size="lg" {...(icon ? { icon } : {})} />
-        <div className="fg-fdet-titles">
-          <h2 className="fg-fdet-name">{name}</h2>
-          <p className="fg-fdet-kind">
-            {info.label}
-            {k !== "folder" && size !== undefined ? ` · ${formatBytes(size)}` : ""}
-          </p>
-        </div>
-        {onClose ? (
-          <IconButton icon={Cancel01Icon} label="Close details" size="sm" onClick={onClose} />
-        ) : null}
-      </header>
-      {tabs.length > 1 ? (
-        <Tabs
-          label="Details"
-          tabs={tabs}
-          value={shown}
-          onChange={(id) => setCurrent(id as FileDetailsTab)}
-          className="fg-fdet-tabs"
-        >
-          <div className="fg-fdet-body">{panel}</div>
-        </Tabs>
-      ) : (
-        <div className="fg-fdet-body">{details}</div>
-      )}
-    </aside>
+    <section
+      data-slot="file-details-properties"
+      aria-label={title}
+      {...rest}
+      className={cx("fg-fdet-section", className)}
+    >
+      <div className="fg-fdet-eyebrow">
+        <span>{title}</span>
+      </div>
+      <DetailList items={rows} className="fg-fdet-list" />
+    </section>
   );
 }

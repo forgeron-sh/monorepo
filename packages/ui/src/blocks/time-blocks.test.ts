@@ -1,15 +1,38 @@
 // @vitest-environment jsdom
 import { act, createElement as h } from "react";
 import { createRoot } from "react-dom/client";
+import { renderToStaticMarkup as html } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { EventGridBody, EventGridHeader } from "../event-grid";
 import {
   AvailabilityEditor,
+  AvailabilityEditorExceptions,
+  AvailabilityEditorWeek,
   DurationInput,
   RecurrenceEditor,
+  RecurrenceEditorDays,
+  RecurrenceEditorEvery,
+  RecurrenceEditorSummary,
+  RecurrenceEditorToggle,
   ResourceSchedule,
+  ResourceScheduleBody,
+  ResourceScheduleConflicts,
+  ResourceScheduleToolbar,
   SlotPicker,
+  SlotPickerBody,
+  SlotPickerDays,
+  SlotPickerHeader,
+  SlotPickerList,
+  SlotPickerTimes,
+  SlotPickerTitle,
   TimeGrid,
+  TimeGridBody,
+  TimeGridTitle,
+  TimeGridToday,
+  TimeGridToolbar,
+  TimeGridViews,
   TimezonePicker,
+  useTimeGrid,
   convertTime,
   daySlots,
   defaultWeekly,
@@ -279,11 +302,11 @@ describe("TimeGrid", () => {
     const el = await mount(
       h(TimeGrid<Meeting>, { records: meetings, date: "2026-11-18", now: NOW }),
     );
-    expect(el.querySelectorAll(".fg-tg-head")).toHaveLength(5);
+    expect(el.querySelectorAll(".fg-eg-head")).toHaveLength(5);
     expect(el.querySelectorAll("[data-event]")).toHaveLength(4);
-    expect(el.querySelector(".fg-tg-now")).not.toBeNull();
-    expect(el.querySelector(".fg-tg-head-today")?.textContent).toContain("Wed 18");
-    expect(el.querySelector(".fg-tg-alldayrow")).not.toBeNull();
+    expect(el.querySelector(".fg-eg-now")).not.toBeNull();
+    expect(el.querySelector(".fg-eg-head-today")?.textContent).toContain("Wed 18");
+    expect(el.querySelector(".fg-eg-alldayrow")).not.toBeNull();
     const standup = el.querySelector<HTMLElement>('[data-event="m1"]')!.parentElement!;
     expect(standup.style.left).toContain("0%");
     expect(standup.style.width).toContain("50%");
@@ -306,7 +329,7 @@ describe("TimeGrid", () => {
       (b) => b.textContent === "Day",
     )!;
     await act(async () => day.click());
-    expect(el.querySelectorAll(".fg-tg-head")).toHaveLength(1);
+    expect(el.querySelectorAll(".fg-eg-head")).toHaveLength(1);
   });
 
   it("moves an event with the arrows and resizes it with Shift", async () => {
@@ -343,7 +366,7 @@ describe("TimeGrid", () => {
     const col = el.querySelector<HTMLElement>('[data-col="2026-11-18"]')!;
     col.focus();
     await key(col, "ArrowDown");
-    expect(el.querySelector(".fg-tg-ghost")).not.toBeNull();
+    expect(el.querySelector(".fg-eg-ghost")).not.toBeNull();
     await key(col, "ArrowDown", { shiftKey: true });
     await key(col, "Enter");
     expect(onCreate).toHaveBeenCalledTimes(1);
@@ -375,11 +398,11 @@ describe("TimeGrid", () => {
         workingHours: defaultWeekly(),
       }),
     );
-    expect(el.querySelectorAll(".fg-tg-col")).toHaveLength(2);
-    expect(el.querySelectorAll(".fg-tg-off").length).toBe(4);
-    const second = el.querySelectorAll(".fg-tg-col")[1]!;
+    expect(el.querySelectorAll(".fg-eg-col")).toHaveLength(2);
+    expect(el.querySelectorAll(".fg-eg-off").length).toBe(4);
+    const second = el.querySelectorAll(".fg-eg-col")[1]!;
     expect(second.querySelector('[data-event="r"]')).not.toBeNull();
-    expect(el.querySelectorAll(".fg-tg-col")[0]!.querySelector("[data-event]")).toBeNull();
+    expect(el.querySelectorAll(".fg-eg-col")[0]!.querySelector("[data-event]")).toBeNull();
   });
 });
 
@@ -527,5 +550,176 @@ describe("ResourceSchedule", () => {
     expect(el.textContent).toContain("Conflict with another block");
     expect(onConflicts).toHaveBeenCalled();
     expect([...onConflicts.mock.calls[0]![0].keys()].sort()).toEqual(["1", "2"]);
+  });
+});
+
+describe("the time blocks in parts", () => {
+  it("composes the TimeGrid from its toolbar and the parts of the grid", async () => {
+    const el = await mount(
+      h(
+        TimeGrid<Meeting>,
+        {
+          records: meetings,
+          date: "2026-11-18",
+          now: NOW,
+          className: "mine",
+          "data-testid": "agenda",
+        } as never,
+        h(
+          TimeGridToolbar,
+          null,
+          h(TimeGridToday),
+          h(TimeGridTitle, { className: "when" }),
+          h(TimeGridViews),
+        ),
+        h(TimeGridBody, null, h(EventGridHeader), h(EventGridBody)),
+      ),
+    );
+    const root = el.querySelector<HTMLElement>('[data-slot="time-grid"]')!;
+    expect(root.classList.contains("fg-tg")).toBe(true);
+    expect(root.classList.contains("mine")).toBe(true);
+    expect(root.dataset.testid).toBe("agenda");
+    expect(el.querySelector('[data-slot="time-grid-title"]')?.classList.contains("when")).toBe(
+      true,
+    );
+    expect(el.querySelectorAll(".fg-eg-head")).toHaveLength(5);
+    expect(el.querySelectorAll("[data-event]")).toHaveLength(4);
+    // Previous and next were left out of the toolbar.
+    expect(el.querySelector('[aria-label="Next week"]')).toBeNull();
+    const day = [...el.querySelectorAll<HTMLElement>(".fg-seg button")].find(
+      (b) => b.textContent === "Day",
+    )!;
+    await act(async () => day.click());
+    expect(el.querySelectorAll(".fg-eg-head")).toHaveLength(1);
+  });
+
+  it("gives the date and the view to any part through useTimeGrid", async () => {
+    const Probe = () => h("output", null, useTimeGrid().view);
+    const el = await mount(
+      h(
+        TimeGrid<Meeting>,
+        { records: meetings, date: "2026-11-18", defaultView: "week" },
+        h(Probe),
+      ),
+    );
+    expect(el.querySelector("output")?.textContent).toBe("week");
+    expect(() => html(h(TimeGridTitle))).toThrow("goes inside a TimeGrid");
+  });
+
+  it("hands its element to the child with asChild", async () => {
+    const el = await mount(
+      h(
+        TimeGrid<Meeting>,
+        { records: meetings, date: "2026-11-18", now: NOW },
+        h(TimeGridToolbar, { asChild: true }, h("nav", { className: "bar" }, "x")),
+      ),
+    );
+    const nav = el.querySelector("nav")!;
+    expect(nav.className).toContain("fg-pn");
+    expect(nav.className).toContain("bar");
+    expect(nav.textContent).toBe("x");
+  });
+
+  it("composes the AvailabilityEditor: the week alone, or with the exceptions", async () => {
+    const value = { timezone: "Europe/Paris", weekly: defaultWeekly(), exceptions: [] };
+    const el = await mount(
+      h(
+        AvailabilityEditor,
+        { defaultValue: value, "aria-label": "Hours" } as never,
+        h(AvailabilityEditorWeek),
+      ),
+    );
+    expect(el.querySelector('[data-slot="availability-editor"]')?.getAttribute("aria-label")).toBe(
+      "Hours",
+    );
+    expect(el.querySelectorAll(".fg-av-day")).toHaveLength(7);
+    expect(el.querySelector(".fg-av-zone")).toBeNull();
+    expect(el.querySelector(".fg-av-exceptions")).toBeNull();
+    const again = await mount(
+      h(AvailabilityEditor, { defaultValue: value }, h(AvailabilityEditorExceptions)),
+    );
+    expect(again.querySelector(".fg-av-exceptions")).not.toBeNull();
+    expect(again.querySelector(".fg-av-week")).toBeNull();
+  });
+
+  it("composes the SlotPicker and keeps the choice between its parts", async () => {
+    const availability = { timezone: "Europe/Paris", weekly: defaultWeekly(), exceptions: [] };
+    const onChange = vi.fn<(...args: any[]) => void>();
+    const el = await mount(
+      h(
+        SlotPicker,
+        {
+          availability,
+          duration: 60,
+          defaultDate: "2026-11-18",
+          now: "2026-11-18T08:00",
+          onChange,
+        },
+        h(SlotPickerHeader),
+        h(
+          SlotPickerBody,
+          { className: "side" },
+          h(SlotPickerDays),
+          h(SlotPickerTimes, null, h(SlotPickerTitle), h(SlotPickerList, { className: "times" })),
+        ),
+      ),
+    );
+    expect(el.querySelector(".fg-slot-body")?.classList.contains("side")).toBe(true);
+    expect(el.querySelectorAll(".fg-slot-day")).toHaveLength(7);
+    const options = el.querySelectorAll<HTMLElement>('[role="option"]');
+    expect(options.length).toBeGreaterThan(0);
+    await act(async () => options[0]!.click());
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(el.querySelector('[role="option"][aria-selected="true"]')).not.toBeNull();
+    // The summary was left out of this composition.
+    expect(el.querySelector(".fg-slot-summary")).toBeNull();
+    // The list is a listbox of the SlotList primitive, moved by the arrows.
+    const list = el.querySelector<HTMLElement>('[role="listbox"]')!;
+    expect(list.dataset.slot).toBe("slot-list");
+    const first = list.querySelectorAll<HTMLElement>('[role="option"]');
+    first[0]!.focus();
+    await key(first[0]!, "ArrowRight");
+    expect(document.activeElement).toBe(first[1]);
+  });
+
+  it("composes the RecurrenceEditor from the parts it needs", async () => {
+    const el = await mount(
+      h(
+        RecurrenceEditor,
+        { start: "2026-11-18", optional: false },
+        h(RecurrenceEditorToggle),
+        h(RecurrenceEditorEvery),
+        h(RecurrenceEditorDays),
+        h(RecurrenceEditorSummary, { className: "says" }),
+      ),
+    );
+    // Not optional: no switch, the rule is on from the start.
+    expect(el.querySelector('input[role="switch"]')).toBeNull();
+    expect(el.querySelector(".fg-rec-row")).not.toBeNull();
+    expect(el.querySelector(".fg-rec-days")).not.toBeNull();
+    expect(el.querySelector(".fg-rec-summary")?.classList.contains("says")).toBe(true);
+    expect(el.querySelector(".fg-rec-end")).toBeNull();
+    expect(el.querySelector(".fg-rec-next")).toBeNull();
+  });
+
+  it("composes the ResourceSchedule: the timeline parts and the list of clashes", async () => {
+    const blocks = [
+      { id: "a", name: "Night", resource: "r1", start: "2026-11-16", end: "2026-11-18" },
+      { id: "b", name: "Cover", resource: "r1", start: "2026-11-17", end: "2026-11-19" },
+    ];
+    const el = await mount(
+      h(
+        ResourceSchedule<(typeof blocks)[number]>,
+        { resources: [{ id: "r1", name: "Léa" }], blocks, today: "2026-11-18" },
+        h(ResourceScheduleToolbar),
+        h(ResourceScheduleBody),
+        h(ResourceScheduleConflicts),
+      ),
+    );
+    expect(el.querySelector('[data-slot="resource-schedule"]')).not.toBeNull();
+    expect(el.querySelectorAll("[data-bar]")).toHaveLength(2);
+    const clashes = el.querySelectorAll(".fg-rs-conflict");
+    expect(clashes).toHaveLength(2);
+    expect(clashes[0]!.textContent).toContain("Night clashes with Cover");
   });
 });

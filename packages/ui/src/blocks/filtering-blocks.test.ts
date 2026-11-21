@@ -6,9 +6,29 @@ import { renderToStaticMarkup as html } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DisplayMenu,
+  FieldList,
+  FieldListEmpty,
+  FieldListInput,
+  FieldListItems,
   FilterBar,
+  FilterBarAdd,
+  FilterBarChips,
+  FilterBarClear,
+  FilterChip,
+  FilterChipField,
+  FilterChipRemove,
   FilterMenu,
+  FilterMenuContent,
+  FilterMenuTrigger,
+  ValueList,
   ViewHeader,
+  ViewHeaderActions,
+  ViewHeaderBar,
+  ViewHeaderCount,
+  ViewHeaderName,
+  ViewHeaderTab,
+  ViewHeaderTabs,
+  ViewHeaderTitle,
   matchesFilters,
   operatorText,
   setFilterValues,
@@ -277,5 +297,118 @@ describe("ViewHeader", () => {
     await mount(h(ViewHeader, { tabs, tab: "all", onTabChange }));
     await click(byText("Active", "button"));
     expect(onTabChange).toHaveBeenCalledWith("active");
+  });
+});
+
+describe("filtering parts", () => {
+  const set: Filter[] = [{ field: "status", operator: "is", values: ["todo", "done"] }];
+  it("composes a ViewHeader and forwards className, rest and data-slot", () => {
+    const out = html(
+      h(
+        ViewHeader,
+        { className: "mine", id: "head" },
+        h(
+          ViewHeaderBar,
+          null,
+          h(ViewHeaderTitle, null, h(ViewHeaderName, null, "Issues")),
+          h(
+            ViewHeaderTabs,
+            null,
+            h(ViewHeaderTab, { current: true }, "All", h(ViewHeaderCount, null, "4")),
+            h(ViewHeaderTab, { href: "#b" }, "Backlog"),
+          ),
+          h(ViewHeaderActions, { className: "end" }, "x"),
+        ),
+      ),
+    );
+    expect(out).toContain('<header data-slot="view-header" id="head" class="fg-vhead mine">');
+    expect(out).toContain('data-slot="view-header-name"');
+    expect(out).toMatch(/aria-pressed="true"[^>]*>All/);
+    expect(out).toContain('data-slot="view-header-count"');
+    expect(out).toContain('href="#b"');
+    expect(out).toContain('class="fg-vhead-actions end"');
+  });
+  it("gives a ViewHeader tab to its child with asChild", () => {
+    const out = html(
+      h(
+        ViewHeader,
+        null,
+        h(
+          ViewHeaderTabs,
+          null,
+          h(ViewHeaderTab, { asChild: true, current: true }, h("a", { href: "#x" }, "X")),
+        ),
+      ),
+    );
+    expect(out).toContain('<a href="#x" data-slot="view-header-tab" aria-current="page"');
+  });
+  it("places the parts of a FilterBar and clears from its own button", async () => {
+    const onChange = vi.fn<(value: Filter[]) => void>();
+    await mount(
+      h(
+        FilterBar,
+        { fields, value: set, onChange, className: "bar" },
+        h(FilterBarClear, null, "Reset"),
+        h(FilterBarChips),
+        h(FilterBarAdd),
+      ),
+    );
+    const bar = document.querySelector("[data-slot=filter-bar]")!;
+    expect(bar.className).toContain("bar");
+    // Reset comes first, as placed.
+    expect(bar.firstElementChild?.textContent).toBe("Reset");
+    await click(byText("Reset", "button"));
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+  it("draws one chip from its parts", () => {
+    const out = html(
+      h(
+        FilterChip,
+        { field: fields[0]!, filter: set[0]!, filters: set, onChange: () => {}, className: "c" },
+        h(FilterChipField),
+        h(FilterChipRemove, { "aria-label": "Drop" }),
+      ),
+    );
+    expect(out).toContain('data-slot="filter-chip"');
+    expect(out).toContain("fg-filter c");
+    expect(out).toContain('data-slot="filter-chip-field"');
+    expect(out).toContain('aria-label="Drop"');
+    expect(out).not.toContain("fg-filter-op");
+  });
+  it("opens a FilterMenu made of its parts", async () => {
+    await mount(
+      h(
+        FilterMenu,
+        { fields, value: [], onChange: () => {} },
+        h(FilterMenuTrigger, { variant: "icon" }),
+        h(FilterMenuContent),
+      ),
+    );
+    const trigger = document.querySelector<HTMLElement>("[data-slot=filter-menu-trigger]")!;
+    expect(trigger.getAttribute("aria-label")).toBe("Add filter");
+    await click(trigger);
+    expect(document.querySelector("[data-slot=filter-menu-content]")).toBeTruthy();
+    expect(document.querySelector("[data-slot=field-list-input]")).toBeTruthy();
+  });
+  it("lists the fields and the values with their own parts", async () => {
+    await mount(
+      h(
+        "div",
+        null,
+        h(
+          FieldList,
+          { fields, filters: set, onPick: () => {} },
+          h(FieldListInput, { placeholder: "Find a field" }),
+          h(FieldListEmpty),
+          h(FieldListItems),
+        ),
+        h(ValueList, { field: fields[0]!, values: ["todo"], onChange: () => {} }),
+      ),
+    );
+    expect(
+      document.querySelector<HTMLInputElement>("[data-slot=field-list-input]")?.placeholder,
+    ).toBe("Find a field");
+    expect(document.querySelectorAll("[data-slot=field-list-items] [role=option]")).toHaveLength(2);
+    expect(document.querySelector("[data-slot=value-list-input]")).toBeTruthy();
   });
 });

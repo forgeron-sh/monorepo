@@ -3,8 +3,8 @@
 // each question, a review step, and typed answers handed to `onSubmit`. FormQuestionField is the
 // control of one question, usable on its own.
 
-import type { FormEvent, HTMLAttributes, ReactNode } from "react";
-import { createElement, useEffect, useId, useRef, useState } from "react";
+import type { ComponentProps, FormEvent, HTMLAttributes, ReactNode } from "react";
+import { createElement, useEffect, useId, useRef, useState, type RefObject } from "react";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { Checkbox, Input, Textarea } from "../form";
@@ -18,6 +18,7 @@ import { TimePicker } from "../time";
 import { SignaturePad, type SignatureValue } from "../signature-pad";
 import { AddressField, type AddressPart } from "../address-field";
 import { MatrixField, RankingField } from "./forms-fields";
+import { partContext } from "../part";
 import {
   cleanFormAnswers,
   formAnswerText,
@@ -29,13 +30,17 @@ import {
   type FormAnswers,
   type FormFileAnswer,
   type FormMatrixAnswer,
+  type FormPage,
   type FormQuestion,
   type FormSchema,
 } from "./forms-model";
 
 /* ---------------------------------------------------------------- One question */
 
-export interface FormQuestionFieldProps {
+export interface FormQuestionFieldProps extends Omit<
+  ComponentProps<"div">,
+  "ref" | "onChange" | "defaultValue" | "children" | "onBlur"
+> {
   question: FormQuestion;
   /** The answer. Controlled or not. */
   value?: FormAnswer | undefined;
@@ -46,12 +51,31 @@ export interface FormQuestionFieldProps {
   /** Countries to choose from for an address; absent, the country is typed. */
   countries?: ReadonlyArray<{ value: string; label: string }>;
   disabled?: boolean;
-  /** Hides the title, help and error: the control alone. */
+  /** Hides the title, help and error of the default composition: the control alone. */
   bare?: boolean;
   /** Called when focus leaves the question: the moment to show its error. */
   onBlur?: () => void;
-  className?: string;
+  /** The parts: `FormQuestionFieldTitle`, `FormQuestionFieldHelp`, `FormQuestionFieldControl`, `FormQuestionFieldError`. */
+  children?: ReactNode;
 }
+
+interface FormQuestionContext {
+  q: FormQuestion;
+  titleId: string;
+  helpId: string;
+  errorId: string;
+  controlId: string;
+  error: string | null | undefined;
+  /** The control is an input the title labels with `for`. */
+  textual: boolean;
+  control: () => ReactNode;
+}
+
+const [FormQuestionCtx, useFormQuestionField] =
+  partContext<FormQuestionContext>("FormQuestionField");
+
+/** The state of the enclosing `FormQuestionField`: its question, its ids and its error. */
+export { useFormQuestionField };
 
 const INPUT_TYPES = new Set(["shortText", "longText"]);
 
@@ -66,7 +90,9 @@ export function FormQuestionField({
   disabled,
   bare,
   onBlur,
+  children,
   className,
+  ...rest
 }: FormQuestionFieldProps) {
   const [answer, setAnswer] = useControllableState<FormAnswer | undefined>({
     value,
@@ -338,52 +364,127 @@ export function FormQuestionField({
   };
 
   return (
-    <div
-      className={cx("fg-fm-q", error && "fg-fm-q-bad", className)}
-      data-question={q.id}
-      onBlur={
-        onBlur
-          ? (event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onBlur();
-            }
-          : undefined
-      }
+    <FormQuestionCtx.Provider
+      value={{
+        q,
+        titleId,
+        helpId,
+        errorId,
+        controlId,
+        error,
+        textual: INPUT_TYPES.has(q.type) || q.type === "time",
+        control,
+      }}
     >
-      {bare ? null : INPUT_TYPES.has(q.type) || q.type === "time" ? (
-        <label id={titleId} className="fg-fm-q-title" htmlFor={controlId}>
-          {title}
-          {q.required ? (
-            <span className="fg-fm-req" aria-hidden="true">
-              {" "}
-              *
-            </span>
-          ) : null}
-          {q.required ? <span className="fg-sr"> (required)</span> : null}
-        </label>
-      ) : (
-        <div id={titleId} className="fg-fm-q-title">
-          {title}
-          {q.required ? (
-            <span className="fg-fm-req" aria-hidden="true">
-              {" "}
-              *
-            </span>
-          ) : null}
-          {q.required ? <span className="fg-sr"> (required)</span> : null}
-        </div>
-      )}
-      {!bare && q.help ? (
-        <p id={helpId} className="fg-fm-q-help">
-          {q.help}
-        </p>
+      <div
+        data-slot="form-question"
+        {...rest}
+        data-question={q.id}
+        className={cx("fg-fm-q", error && "fg-fm-q-bad", className)}
+        onBlur={(event) => {
+          if (onBlur && !event.currentTarget.contains(event.relatedTarget as Node | null)) onBlur();
+        }}
+      >
+        {children ?? (
+          <>
+            {bare ? null : <FormQuestionFieldTitle />}
+            {bare ? null : <FormQuestionFieldHelp />}
+            <FormQuestionFieldControl />
+            {bare ? null : <FormQuestionFieldError />}
+          </>
+        )}
+      </div>
+    </FormQuestionCtx.Provider>
+  );
+}
+
+/** The title of the question, a label for the control of a text answer. */
+export function FormQuestionFieldTitle({
+  className,
+  children,
+  ...rest
+}: Omit<ComponentProps<"div">, "ref">) {
+  const { q, titleId, controlId, textual } = useFormQuestionField();
+  const title = q.title.trim() || "Untitled question";
+  const content = (
+    <>
+      {children ?? title}
+      {q.required ? (
+        <span className="fg-fm-req" aria-hidden="true">
+          {" "}
+          *
+        </span>
       ) : null}
-      {control()}
-      {!bare && error ? (
-        <p id={errorId} className="fg-field-error fg-fm-q-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {q.required ? <span className="fg-sr"> (required)</span> : null}
+    </>
+  );
+  return textual ? (
+    <label
+      id={titleId}
+      data-slot="form-question-title"
+      htmlFor={controlId}
+      {...(rest as ComponentProps<"label">)}
+      className={cx("fg-fm-q-title", className)}
+    >
+      {content}
+    </label>
+  ) : (
+    <div
+      id={titleId}
+      data-slot="form-question-title"
+      {...rest}
+      className={cx("fg-fm-q-title", className)}
+    >
+      {content}
     </div>
+  );
+}
+
+/** The help text of the question; nothing when it has none. */
+export function FormQuestionFieldHelp({
+  className,
+  children,
+  ...rest
+}: Omit<ComponentProps<"p">, "ref">) {
+  const { q, helpId } = useFormQuestionField();
+  const text = children ?? q.help;
+  if (!text) return null;
+  return (
+    <p
+      id={helpId}
+      data-slot="form-question-help"
+      {...rest}
+      className={cx("fg-fm-q-help", className)}
+    >
+      {text}
+    </p>
+  );
+}
+
+/** The control of the question: the one its type calls for. */
+export function FormQuestionFieldControl() {
+  return <>{useFormQuestionField().control()}</>;
+}
+
+/** What is wrong with the answer; nothing when there is no error. */
+export function FormQuestionFieldError({
+  className,
+  children,
+  ...rest
+}: Omit<ComponentProps<"p">, "ref">) {
+  const { error, errorId } = useFormQuestionField();
+  const text = children ?? error;
+  if (!text) return null;
+  return (
+    <p
+      id={errorId}
+      data-slot="form-question-error"
+      role="alert"
+      {...rest}
+      className={cx("fg-field-error fg-fm-q-error", className)}
+    >
+      {text}
+    </p>
   );
 }
 
@@ -405,7 +506,10 @@ function addressErrors(
 
 /* ---------------------------------------------------------------- The form */
 
-export interface FormRendererProps {
+export interface FormRendererProps extends Omit<
+  ComponentProps<"form">,
+  "ref" | "onChange" | "defaultValue" | "onSubmit" | "children"
+> {
   schema: FormSchema;
   /** The answers by question id. Controlled or not. */
   value?: FormAnswers;
@@ -431,12 +535,298 @@ export interface FormRendererProps {
   submitted?: boolean;
   /** Shown after sending, in place of the form: `schema.thanks` by default. */
   thanks?: ReactNode;
-  className?: string;
+  /** The parts, in the order you choose. Without them: header, progress, notice, pages, actions. */
+  children?: ReactNode;
 }
+
+interface FormRendererContext {
+  schema: FormSchema;
+  answers: FormAnswers;
+  setAnswer: (id: string, next: FormAnswer) => void;
+  pages: ReturnType<typeof formPages>;
+  /** The step shown, from 0; the review step counts as one. */
+  page: number;
+  steps: number;
+  single: boolean;
+  onReview: boolean;
+  withReview: boolean;
+  last: boolean;
+  here: ReturnType<typeof formPages>;
+  errors: ReturnType<typeof validateFormAnswers>;
+  shown: ReadonlySet<string>;
+  reveal: (ids: Iterable<string>) => void;
+  notice: string;
+  busy: boolean;
+  disabled: boolean | undefined;
+  countries: ReadonlyArray<{ value: string; label: string }> | undefined;
+  showTitle: boolean;
+  headingLevel: number;
+  answered: number;
+  total: number;
+  uid: string;
+  top: RefObject<HTMLElement | null>;
+  goTo: (page: number) => void;
+}
+
+const [FormRendererCtx, useFormRenderer] = partContext<FormRendererContext>("FormRenderer");
+
+/** The state of the enclosing `FormRenderer`: the answers, the step, the errors. */
+export { useFormRenderer };
 
 /** A heading of the given level (1 to 6), declared once so its state survives a render. */
 function Heading({ level, ...rest }: { level: number } & HTMLAttributes<HTMLHeadingElement>) {
   return createElement(`h${Math.min(6, level)}`, rest);
+}
+
+/** The title and the description of the form, above its first page. */
+export function FormRendererHeader({
+  className,
+  children,
+  ...rest
+}: Omit<ComponentProps<"header">, "ref">) {
+  const { schema, showTitle, page, single, headingLevel } = useFormRenderer();
+  if (!showTitle || !(page === 0 || single)) return null;
+  return (
+    <header data-slot="form-renderer-header" {...rest} className={cx("fg-fm-head", className)}>
+      {children ?? (
+        <>
+          <Heading level={headingLevel} className="fg-fm-title">
+            {schema.title}
+          </Heading>
+          {schema.description ? <p className="fg-fm-desc">{schema.description}</p> : null}
+        </>
+      )}
+    </header>
+  );
+}
+
+/** How far along the respondent is: the page, or the answers given. */
+export function FormRendererProgress(props: { className?: string }) {
+  const { single, steps, onReview, page, pages, answered, total } = useFormRenderer();
+  if (single) {
+    return (
+      <Progress
+        data-slot="form-renderer-progress"
+        {...props}
+        label={`${answered} of ${total} answered`}
+        value={answered}
+        max={Math.max(1, total)}
+      />
+    );
+  }
+  if (steps <= 1) return null;
+  return (
+    <Progress
+      data-slot="form-renderer-progress"
+      {...props}
+      label={onReview ? "Review" : `Page ${page + 1} of ${pages.length}`}
+      value={page + 1}
+      max={steps}
+    />
+  );
+}
+
+/** What the respondent is told when a step cannot go on. */
+export function FormRendererNotice({ className, ...rest }: Omit<ComponentProps<"p">, "ref">) {
+  const { notice } = useFormRenderer();
+  if (!notice) return null;
+  return (
+    <p
+      data-slot="form-renderer-notice"
+      role="alert"
+      {...rest}
+      className={cx("fg-fm-notice", className)}
+    >
+      {notice}
+    </p>
+  );
+}
+
+export interface FormRendererQuestionProps extends Omit<
+  FormQuestionFieldProps,
+  "question" | "value" | "defaultValue" | "onChange" | "error"
+> {
+  question: FormQuestion;
+}
+
+/** One question of the form, wired to its answer and its error. */
+export function FormRendererQuestion({ question, ...rest }: FormRendererQuestionProps) {
+  const { answers, setAnswer, errors, shown, reveal, countries, disabled } = useFormRenderer();
+  return (
+    <FormQuestionField
+      question={question}
+      value={answers[question.id] ?? null}
+      onChange={(next) => setAnswer(question.id, next)}
+      error={shown.has(question.id) ? errors[question.id] : null}
+      {...(countries ? { countries } : {})}
+      {...(disabled ? { disabled } : {})}
+      onBlur={() => reveal([question.id])}
+      {...rest}
+    />
+  );
+}
+
+export interface FormRendererPageProps extends Omit<ComponentProps<"section">, "ref"> {
+  /** The page: a section of the schema and the questions shown in it. */
+  page: FormPage;
+  /** Gives the page the focus when the step changes. Set by `FormRendererPages` for the first. */
+  first?: boolean;
+}
+
+/** One page: its title, its description and its questions. Its children replace the questions. */
+export function FormRendererPage({
+  page,
+  first,
+  className,
+  children,
+  ...rest
+}: FormRendererPageProps) {
+  const { top, headingLevel } = useFormRenderer();
+  return (
+    <section
+      ref={first ? (top as RefObject<HTMLElement>) : undefined}
+      tabIndex={first ? -1 : undefined}
+      data-slot="form-renderer-page"
+      aria-label={page.section.title || undefined}
+      {...rest}
+      className={cx("fg-fm-page", className)}
+    >
+      {page.section.title ? (
+        <Heading level={headingLevel + 1} className="fg-fm-section">
+          {page.section.title}
+        </Heading>
+      ) : null}
+      {page.section.description ? <p className="fg-fm-desc">{page.section.description}</p> : null}
+      {children ?? page.questions.map((q) => <FormRendererQuestion key={q.id} question={q} />)}
+    </section>
+  );
+}
+
+/** The last step: every answer listed, each page with a button to go back to it. */
+export function FormRendererReview({
+  className,
+  children,
+  ...rest
+}: Omit<ComponentProps<"section">, "ref">) {
+  const { pages, answers, errors, uid, top, headingLevel, goTo } = useFormRenderer();
+  return (
+    <section
+      ref={top as RefObject<HTMLElement>}
+      tabIndex={-1}
+      data-slot="form-renderer-review"
+      aria-labelledby={`${uid}-review`}
+      {...rest}
+      className={cx("fg-fm-review", className)}
+    >
+      <Heading level={headingLevel + 1} id={`${uid}-review`} className="fg-fm-section">
+        Review your answers
+      </Heading>
+      {children ??
+        pages.map((p, i) => (
+          <div key={p.section.id} className="fg-fm-review-page">
+            <div className="fg-fm-review-head">
+              <span className="fg-fm-review-name">{p.section.title || `Page ${i + 1}`}</span>
+              <Button variant="ghost" size="sm" onClick={() => goTo(i)}>
+                Edit
+                <span className="fg-sr"> {p.section.title || `page ${i + 1}`}</span>
+              </Button>
+            </div>
+            <dl className="fg-fm-review-list">
+              {p.questions.map((q) => {
+                const line = formAnswerText(q, answers[q.id]);
+                return (
+                  <div key={q.id} className="fg-fm-review-row">
+                    <dt>{q.title}</dt>
+                    <dd className={cx(!line && "fg-fm-review-none")}>
+                      {line || (q.required ? "Not answered" : "Skipped")}
+                      {errors[q.id] ? (
+                        <span className="fg-fm-review-bad"> {errors[q.id]}</span>
+                      ) : null}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </div>
+        ))}
+    </section>
+  );
+}
+
+/** The step shown: the review, or the page (every page with `layout="single"`). */
+export function FormRendererPages() {
+  const { onReview, here } = useFormRenderer();
+  if (onReview) return <FormRendererReview />;
+  return (
+    <>
+      {here.map((p, i) => (
+        <FormRendererPage key={p.section.id} page={p} first={i === 0} />
+      ))}
+    </>
+  );
+}
+
+/** "Back": the previous page. Absent on the first page and with `layout="single"`. */
+export function FormRendererBack({
+  children,
+  ...rest
+}: Omit<ComponentProps<"button">, "ref" | "onClick">) {
+  const { single, page, goTo } = useFormRenderer();
+  if (single || page <= 0) return null;
+  return (
+    <Button
+      variant="secondary"
+      data-slot="form-renderer-back"
+      {...rest}
+      onClick={() => goTo(page - 1)}
+    >
+      {children ?? "Back"}
+    </Button>
+  );
+}
+
+/** The button that goes on: "Next", "Review" or the submit label of the last step. */
+export function FormRendererSubmit({
+  children,
+  ...rest
+}: Omit<ComponentProps<"button">, "ref" | "type" | "onClick">) {
+  const { schema, last, onReview, page, steps, withReview, disabled, busy } = useFormRenderer();
+  return (
+    <Button
+      type="submit"
+      variant="primary"
+      data-slot="form-renderer-submit"
+      disabled={disabled || busy}
+      {...rest}
+    >
+      {children ??
+        (last
+          ? (schema.submitLabel ?? "Submit")
+          : onReview
+            ? "Submit"
+            : page === steps - 2 && withReview
+              ? "Review"
+              : "Next")}
+    </Button>
+  );
+}
+
+/** Back and the button that goes on. Its children replace them. */
+export function FormRendererActions({
+  className,
+  children,
+  ...rest
+}: Omit<ComponentProps<"div">, "ref">) {
+  return (
+    <div data-slot="form-renderer-actions" {...rest} className={cx("fg-fm-actions", className)}>
+      {children ?? (
+        <>
+          <FormRendererBack />
+          <FormRendererSubmit />
+        </>
+      )}
+    </div>
+  );
 }
 
 /** A form schema as a form to fill in. */
@@ -457,7 +847,9 @@ export function FormRenderer({
   disabled,
   submitted: submittedProp,
   thanks,
+  children,
   className,
+  ...rest
 }: FormRendererProps) {
   const [answers, setAnswers] = useControllableState<FormAnswers>({
     value,
@@ -537,7 +929,7 @@ export function FormRenderer({
     }
   };
 
-  const submit = (event: FormEvent) => {
+  const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (disabled || busy) return;
     if (single || onReview || (last && !withReview)) {
@@ -563,6 +955,7 @@ export function FormRenderer({
       <section
         ref={top}
         tabIndex={-1}
+        data-slot="form-renderer"
         className={cx("fg-fm fg-fm-thanks", className)}
         aria-label={schema.title}
       >
@@ -578,7 +971,11 @@ export function FormRenderer({
 
   if (pages.length === 0)
     return (
-      <section className={cx("fg-fm", className)} aria-label={schema.title}>
+      <section
+        data-slot="form-renderer"
+        className={cx("fg-fm", className)}
+        aria-label={schema.title}
+      >
         <Heading level={headingLevel} className="fg-fm-title">
           {schema.title}
         </Heading>
@@ -586,124 +983,58 @@ export function FormRenderer({
       </section>
     );
 
-  const answered = pages
-    .flatMap((p) => p.questions)
-    .filter((q) => !isFormAnswerEmpty(q, answers[q.id])).length;
-  const total = pages.flatMap((p) => p.questions).length;
+  const all = pages.flatMap((p) => p.questions);
+  const answered = all.filter((q) => !isFormAnswerEmpty(q, answers[q.id])).length;
 
   return (
-    <form
-      ref={root}
-      noValidate
-      className={cx("fg-fm", className)}
-      aria-label={schema.title}
-      onSubmit={submit}
+    <FormRendererCtx.Provider
+      value={{
+        schema,
+        answers,
+        setAnswer: (id, next) => setAnswers((a) => ({ ...a, [id]: next })),
+        pages,
+        page,
+        steps,
+        single,
+        onReview,
+        withReview,
+        last,
+        here,
+        errors,
+        shown,
+        reveal,
+        notice,
+        busy,
+        disabled,
+        countries,
+        showTitle,
+        headingLevel,
+        answered,
+        total: all.length,
+        uid,
+        top,
+        goTo: setPage,
+      }}
     >
-      {showTitle && (page === 0 || single) ? (
-        <header className="fg-fm-head">
-          <Heading level={headingLevel} className="fg-fm-title">
-            {schema.title}
-          </Heading>
-          {schema.description ? <p className="fg-fm-desc">{schema.description}</p> : null}
-        </header>
-      ) : null}
-      {single ? (
-        <Progress
-          label={`${answered} of ${total} answered`}
-          value={answered}
-          max={Math.max(1, total)}
-        />
-      ) : steps > 1 ? (
-        <Progress
-          label={onReview ? "Review" : `Page ${page + 1} of ${pages.length}`}
-          value={page + 1}
-          max={steps}
-        />
-      ) : null}
-      {notice ? (
-        <p className="fg-fm-notice" role="alert">
-          {notice}
-        </p>
-      ) : null}
-      {onReview ? (
-        <section ref={top} tabIndex={-1} className="fg-fm-review" aria-labelledby={`${uid}-review`}>
-          <Heading level={headingLevel + 1} id={`${uid}-review`} className="fg-fm-section">
-            Review your answers
-          </Heading>
-          {pages.map((p, i) => (
-            <div key={p.section.id} className="fg-fm-review-page">
-              <div className="fg-fm-review-head">
-                <span className="fg-fm-review-name">{p.section.title || `Page ${i + 1}`}</span>
-                <Button variant="ghost" size="sm" onClick={() => setPage(i)}>
-                  Edit
-                  <span className="fg-sr"> {p.section.title || `page ${i + 1}`}</span>
-                </Button>
-              </div>
-              <dl className="fg-fm-review-list">
-                {p.questions.map((q) => {
-                  const line = formAnswerText(q, answers[q.id]);
-                  return (
-                    <div key={q.id} className="fg-fm-review-row">
-                      <dt>{q.title}</dt>
-                      <dd className={cx(!line && "fg-fm-review-none")}>
-                        {line || (q.required ? "Not answered" : "Skipped")}
-                        {errors[q.id] ? (
-                          <span className="fg-fm-review-bad"> {errors[q.id]}</span>
-                        ) : null}
-                      </dd>
-                    </div>
-                  );
-                })}
-              </dl>
-            </div>
-          ))}
-        </section>
-      ) : (
-        here.map((p, i) => (
-          <section
-            key={p.section.id}
-            ref={i === 0 ? top : undefined}
-            tabIndex={i === 0 ? -1 : undefined}
-            className="fg-fm-page"
-            aria-label={p.section.title || undefined}
-          >
-            {p.section.title ? (
-              <Heading level={headingLevel + 1} className="fg-fm-section">
-                {p.section.title}
-              </Heading>
-            ) : null}
-            {p.section.description ? <p className="fg-fm-desc">{p.section.description}</p> : null}
-            {p.questions.map((q) => (
-              <FormQuestionField
-                key={q.id}
-                question={q}
-                value={answers[q.id] ?? null}
-                onChange={(next) => setAnswers((a) => ({ ...a, [q.id]: next }))}
-                error={shown.has(q.id) ? errors[q.id] : null}
-                {...(countries ? { countries } : {})}
-                {...(disabled ? { disabled } : {})}
-                onBlur={() => reveal([q.id])}
-              />
-            ))}
-          </section>
-        ))
-      )}
-      <div className="fg-fm-actions">
-        {!single && page > 0 ? (
-          <Button variant="secondary" onClick={() => setPage(page - 1)}>
-            Back
-          </Button>
-        ) : null}
-        <Button type="submit" variant="primary" disabled={disabled || busy}>
-          {last
-            ? (schema.submitLabel ?? "Submit")
-            : onReview
-              ? "Submit"
-              : page === steps - 2 && withReview
-                ? "Review"
-                : "Next"}
-        </Button>
-      </div>
-    </form>
+      <form
+        ref={root}
+        noValidate
+        data-slot="form-renderer"
+        aria-label={schema.title}
+        {...rest}
+        className={cx("fg-fm", className)}
+        onSubmit={submit}
+      >
+        {children ?? (
+          <>
+            <FormRendererHeader />
+            <FormRendererProgress />
+            <FormRendererNotice />
+            <FormRendererPages />
+            <FormRendererActions />
+          </>
+        )}
+      </form>
+    </FormRendererCtx.Provider>
   );
 }

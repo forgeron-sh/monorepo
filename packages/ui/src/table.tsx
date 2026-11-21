@@ -18,7 +18,10 @@ export interface TableColumn<Row> {
   render?: (row: Row) => ReactNode;
 }
 
-export interface TableProps<Row> {
+export interface TableProps<Row> extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "className" | "children" | "onClick"
+> {
   columns: ReadonlyArray<TableColumn<Row>>;
   rows: ReadonlyArray<Row>;
   rowKey: (row: Row) => Key;
@@ -53,8 +56,8 @@ export function Table<Row>(props: TableProps<Row> | TableRootProps) {
 
 function TableRoot({ className, containerClassName, columns: _columns, ...rest }: TableRootProps) {
   return (
-    <div className={cx("fg-table-wrap", containerClassName)}>
-      <table {...rest} className={cx("fg-table", className)} />
+    <div data-slot="table-container" className={cx("fg-table-wrap", containerClassName)}>
+      <table data-slot="table" {...rest} className={cx("fg-table", className)} />
     </div>
   );
 }
@@ -63,25 +66,27 @@ type RowProps = HTMLAttributes<HTMLTableRowElement>;
 type SectionProps = HTMLAttributes<HTMLTableSectionElement>;
 
 export function TableHeader({ className, ...rest }: SectionProps) {
-  return <thead {...rest} className={cx("fg-table-header", className)} />;
+  return <thead data-slot="table-header" {...rest} className={cx("fg-table-header", className)} />;
 }
 export function TableBody({ className, ...rest }: SectionProps) {
-  return <tbody {...rest} className={cx("fg-table-body", className)} />;
+  return <tbody data-slot="table-body" {...rest} className={cx("fg-table-body", className)} />;
 }
 export function TableFooter({ className, ...rest }: SectionProps) {
-  return <tfoot {...rest} className={cx("fg-table-footer", className)} />;
+  return <tfoot data-slot="table-footer" {...rest} className={cx("fg-table-footer", className)} />;
 }
 export function TableRow({ className, ...rest }: RowProps) {
-  return <tr {...rest} className={cx("fg-table-row", className)} />;
+  return <tr data-slot="table-row" {...rest} className={cx("fg-table-row", className)} />;
 }
 export function TableHead({ className, ...rest }: ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th {...rest} className={cx("fg-table-head", className)} />;
+  return <th data-slot="table-head" {...rest} className={cx("fg-table-head", className)} />;
 }
 export function TableCell({ className, ...rest }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td {...rest} className={cx("fg-table-cell", className)} />;
+  return <td data-slot="table-cell" {...rest} className={cx("fg-table-cell", className)} />;
 }
 export function TableCaption({ className, ...rest }: HTMLAttributes<HTMLTableCaptionElement>) {
-  return <caption {...rest} className={cx("fg-table-caption", className)} />;
+  return (
+    <caption data-slot="table-caption" {...rest} className={cx("fg-table-caption", className)} />
+  );
 }
 
 function DataTable<Row>({
@@ -92,10 +97,11 @@ function DataTable<Row>({
   empty = "Nothing to show",
   label,
   className,
+  ...rest
 }: TableProps<Row>) {
   return (
-    <div className={cx("fg-table-wrap", className)}>
-      <table className="fg-table" aria-label={label}>
+    <div data-slot="table-container" {...rest} className={cx("fg-table-wrap", className)}>
+      <table data-slot="table" className="fg-table" aria-label={label}>
         <thead>
           <tr>
             {columns.map((c) => (

@@ -10,10 +10,13 @@ import {
 import { cx } from "./cx";
 import { Dialog as Base } from "@base-ui/react/dialog";
 import { Cancel01Icon } from "@forgeron/icons";
-import { asChildProps } from "./as-child";
+import { asChildProps } from "./part";
 import { Icon } from "./icon";
 
-export interface DialogProps {
+export interface DialogProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "title" | "className" | "children" | "onKeyDown"
+> {
   title: ReactNode;
   description?: ReactNode;
   /** Called on Escape, on a click outside and on the close button. */
@@ -40,7 +43,15 @@ export function Dialog(props: DialogProps | DialogRootProps) {
   );
 }
 
-function DialogBox({ title, description, onClose, footer, className, children }: DialogProps) {
+function DialogBox({
+  title,
+  description,
+  onClose,
+  footer,
+  className,
+  children,
+  ...rest
+}: DialogProps) {
   const id = useId();
   const box = useRef<HTMLDivElement>(null);
 
@@ -80,6 +91,8 @@ function DialogBox({ title, description, onClose, footer, className, children }:
         aria-labelledby={`${id}-title`}
         aria-describedby={description ? `${id}-desc` : undefined}
         tabIndex={-1}
+        data-slot="dialog"
+        {...rest}
         className={cx("fg-dialog", className)}
         onKeyDown={onKeyDown}
       >
@@ -116,14 +129,28 @@ export type DialogTriggerProps = Part<ComponentProps<typeof Base.Trigger>> & { a
 
 /** Opens the dialog. `asChild` (or `render`) draws your own element. */
 export function DialogTrigger({ asChild, children, className, ...rest }: DialogTriggerProps) {
-  return <Base.Trigger {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Trigger
+      data-slot="dialog-trigger"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export type DialogCloseProps = Part<ComponentProps<typeof Base.Close>> & { asChild?: boolean };
 
 /** Closes the dialog. */
 export function DialogClose({ asChild, children, className, ...rest }: DialogCloseProps) {
-  return <Base.Close {...rest} className={className} {...asChildProps(asChild, children)} />;
+  return (
+    <Base.Close
+      data-slot="dialog-close"
+      {...rest}
+      className={className}
+      {...asChildProps(asChild, children)}
+    />
+  );
 }
 
 export function DialogPortal(props: ComponentProps<typeof Base.Portal>) {
@@ -132,17 +159,23 @@ export function DialogPortal(props: ComponentProps<typeof Base.Portal>) {
 
 /** The scrim behind the dialog. */
 export function DialogOverlay({ className, ...rest }: Part<ComponentProps<typeof Base.Backdrop>>) {
-  return <Base.Backdrop {...rest} className={cx("fg-dialog-backdrop", className)} />;
+  return (
+    <Base.Backdrop
+      data-slot="dialog-overlay"
+      {...rest}
+      className={cx("fg-dialog-backdrop", className)}
+    />
+  );
 }
 
 /** The bare box of a dialog, without the `fg-dialog` frame: `DialogContent` and `Modal` dress it. */
 export function DialogPopup({ className, ...rest }: Part<ComponentProps<typeof Base.Popup>>) {
-  return <Base.Popup {...rest} className={className} />;
+  return <Base.Popup data-slot="dialog-popup" {...rest} className={className} />;
 }
 
 /** A scrolling layer between the scrim and the box, for a box that sits in the flow. */
 export function DialogViewport({ className, ...rest }: Part<ComponentProps<typeof Base.Viewport>>) {
-  return <Base.Viewport {...rest} className={className} />;
+  return <Base.Viewport data-slot="dialog-viewport" {...rest} className={className} />;
 }
 
 export type DialogContentProps = Part<ComponentProps<typeof Base.Popup>> & {
@@ -160,7 +193,11 @@ export function DialogContent({
   return (
     <Base.Portal>
       <Base.Backdrop className="fg-dialog-backdrop" />
-      <DialogPopup {...rest} className={cx("fg-dialog fg-dialog-popup", className)}>
+      <DialogPopup
+        data-slot="dialog-content"
+        {...rest}
+        className={cx("fg-dialog fg-dialog-popup", className)}
+      >
         {children}
         {showCloseButton ? (
           <Base.Close className="fg-dialog-x" aria-label="Close">
@@ -173,23 +210,31 @@ export function DialogContent({
 }
 
 const box =
-  (base: string) =>
+  (slot: string, base: string) =>
   ({ className, ...rest }: HTMLAttributes<HTMLDivElement> & { children?: ReactNode }) => (
-    <div {...rest} className={cx(base, className)} />
+    <div data-slot={slot} {...rest} className={cx(base, className)} />
   );
 
 /** The title and description, at the top. */
-export const DialogHeader = box("fg-dialog-header");
+export const DialogHeader = box("dialog-header", "fg-dialog-header");
 /** The buttons, at the bottom right; last one the main one. */
-export const DialogFooter = box("fg-dialog-foot");
+export const DialogFooter = box("dialog-footer", "fg-dialog-foot");
 
 export function DialogTitle({ className, ...rest }: Part<ComponentProps<typeof Base.Title>>) {
-  return <Base.Title {...rest} className={cx("fg-dialog-title", className)} />;
+  return (
+    <Base.Title data-slot="dialog-title" {...rest} className={cx("fg-dialog-title", className)} />
+  );
 }
 
 export function DialogDescription({
   className,
   ...rest
 }: Part<ComponentProps<typeof Base.Description>>) {
-  return <Base.Description {...rest} className={cx("fg-dialog-desc", className)} />;
+  return (
+    <Base.Description
+      data-slot="dialog-description"
+      {...rest}
+      className={cx("fg-dialog-desc", className)}
+    />
+  );
 }

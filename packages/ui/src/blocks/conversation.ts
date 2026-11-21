@@ -50,31 +50,123 @@ export type {
   ParsedRecipient,
   TextEdit,
 } from "./conversation-model";
-export { PresenceDot, TypingIndicator } from "./conversation-presence";
+export {
+  PresenceDot,
+  PresenceDotLabel,
+  PresenceDotMark,
+  TypingIndicator,
+  TypingIndicatorDots,
+  TypingIndicatorText,
+} from "./conversation-presence";
 export type {
   PresenceDotProps,
   PresenceStatus,
   TypingIndicatorProps,
 } from "./conversation-presence";
-export { AttachmentList } from "./conversation-attachments";
-export type { AttachmentListProps } from "./conversation-attachments";
-export { ReactionBar } from "./conversation-emoji";
-export type { ReactionBarProps } from "./conversation-emoji";
-export { ConversationText, MessageItem } from "./conversation-message";
+export {
+  AttachmentList,
+  AttachmentListActions,
+  AttachmentListBody,
+  AttachmentListDownload,
+  AttachmentListItem,
+  AttachmentListMeta,
+  AttachmentListName,
+  AttachmentListProgress,
+  AttachmentListRemove,
+  AttachmentListRetry,
+  AttachmentListThumb,
+} from "./conversation-attachments";
+export type { AttachmentListItemProps, AttachmentListProps } from "./conversation-attachments";
+export {
+  ReactionBar,
+  ReactionBarAdd,
+  ReactionBarChip,
+  ReactionBarChips,
+} from "./conversation-emoji";
+export type { ReactionBarChipProps, ReactionBarProps } from "./conversation-emoji";
+export {
+  ConversationText,
+  MessageItem,
+  MessageItemActions,
+  MessageItemAttachments,
+  MessageItemBody,
+  MessageItemHeader,
+  MessageItemMain,
+  MessageItemQuote,
+  MessageItemReactions,
+  MessageItemReplies,
+  MessageItemSide,
+  MessageItemState,
+  useMessageItem,
+} from "./conversation-message";
 export type { MessageHandlers, MessageItemProps } from "./conversation-message";
-export { MessageList } from "./conversation-message-list";
+export {
+  MessageList,
+  MessageListDay,
+  MessageListJump,
+  MessageListOlder,
+  MessageListRows,
+  MessageListScroll,
+  MessageListStatus,
+  MessageListSystem,
+  MessageListUnread,
+} from "./conversation-message-list";
 export type { MessageListProps } from "./conversation-message-list";
-export { ThreadPanel } from "./conversation-thread-panel";
+export {
+  ThreadPanel,
+  ThreadPanelClose,
+  ThreadPanelComposer,
+  ThreadPanelCount,
+  ThreadPanelHeader,
+  ThreadPanelMessage,
+  ThreadPanelReplies,
+  ThreadPanelTitle,
+  ThreadPanelTyping,
+} from "./conversation-thread-panel";
 export type { ThreadPanelProps } from "./conversation-thread-panel";
-export { ConversationList } from "./conversation-list";
+export {
+  ConversationList,
+  ConversationListCount,
+  ConversationListGroups,
+  ConversationListPreview,
+  ConversationListRow,
+  ConversationListSection,
+  ConversationListTime,
+  ConversationListTitle,
+  ConversationListWho,
+} from "./conversation-list";
 export type { ConversationListItem, ConversationListProps } from "./conversation-list";
-export { RecipientFields, RecipientInput } from "./conversation-recipients";
+export {
+  RecipientFields,
+  RecipientFieldsInput,
+  RecipientFieldsRow,
+  RecipientFieldsToggles,
+  RecipientInput,
+  RecipientInputBox,
+  RecipientInputField,
+  RecipientInputLabel,
+  RecipientInputStatus,
+  RecipientInputSuggestions,
+} from "./conversation-recipients";
 export type {
   RecipientFieldsProps,
   RecipientFieldsValue,
   RecipientInputProps,
 } from "./conversation-recipients";
-export { InlineComments, inlineCommentAnchorTop } from "./conversation-comments";
+export {
+  InlineComments,
+  InlineCommentsActions,
+  InlineCommentsBar,
+  InlineCommentsComposer,
+  InlineCommentsDraft,
+  InlineCommentsEmpty,
+  InlineCommentsEntries,
+  InlineCommentsLane,
+  InlineCommentsQuote,
+  InlineCommentsThread,
+  InlineCommentsThreads,
+  inlineCommentAnchorTop,
+} from "./conversation-comments";
 export type {
   InlineComment,
   InlineCommentsProps,

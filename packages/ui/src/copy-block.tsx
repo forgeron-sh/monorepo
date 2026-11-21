@@ -29,7 +29,7 @@ export function CopyBlock({ value, label, prefix, className, ...rest }: CopyBloc
   };
 
   return (
-    <div {...rest} data-slot="copy-block" className={cx("fg-copy", className)}>
+    <div data-slot="copy-block" {...rest} className={cx("fg-copy", className)}>
       <div className="fg-copy-head">
         <span>{label}</span>
         <button type="button" className="fg-copy-btn" onClick={copy}>

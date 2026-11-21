@@ -2,6 +2,17 @@
 // 300 %, page navigation and keyboard, an optional text search through a callback, and an overlay
 // drawn over each page (the fields of a signature, the stamps of an approval). It knows nothing of
 // what the pages show, so Drive previews and invoices use it as well.
+//
+// With `pages` alone it is the usual viewer. With children it is a frame, and the parts compose it:
+//
+//   <DocumentViewer label="Contract" pages={pages} overlay={stamps} onSearch={search}>
+//     <DocumentViewerToolbar>
+//       <DocumentViewerThumbsToggle /><DocumentViewerSeparator />
+//       <DocumentViewerPager /><DocumentViewerSeparator />
+//       <DocumentViewerZoom /><DocumentViewerSearch />
+//     </DocumentViewerToolbar>
+//     <DocumentViewerMain><DocumentViewerThumbs /><DocumentViewerPages /></DocumentViewerMain>
+//   </DocumentViewer>
 
 import {
   ArrowLeft01Icon,
@@ -12,12 +23,12 @@ import {
   ZoomOutIcon,
 } from "@forgeron/icons";
 import type { KeyboardEvent, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
-import { cx } from "../cx";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Input } from "../form";
 import { useControllableState } from "../hooks/use-controllable";
 import { IconButton } from "../identity";
 import { Select } from "../select";
+import { part, type PartProps } from "../part";
 
 export interface DocumentPage {
   /** A key; the page number by default. */
@@ -81,7 +92,7 @@ export function stepZoom(current: number, direction: 1 | -1): number {
 export const clampPage = (page: number, total: number): number =>
   Math.min(Math.max(Math.round(page) || 1, 1), Math.max(total, 1));
 
-export interface DocumentViewerProps {
+export interface DocumentViewerProps extends Omit<PartProps<"section">, "children"> {
   /** Names the viewer: "Contract 2026-114". */
   label: string;
   pages: ReadonlyArray<DocumentPage>;
@@ -102,10 +113,352 @@ export interface DocumentViewerProps {
   toolbar?: ReactNode;
   /** The height of the viewer: a number of px or any CSS length. 560 by default. */
   height?: number | string;
-  className?: string;
+  /** The parts (`DocumentViewerToolbar`, `DocumentViewerMain`). Without them, the viewer is built from the props. */
+  children?: ReactNode;
 }
 
 const THUMB = 76;
+
+interface ViewerContext {
+  label: string;
+  pages: ReadonlyArray<DocumentPage>;
+  total: number;
+  current: number;
+  goTo: (page: number) => void;
+  zoom: ZoomValue;
+  setZoom: (zoom: ZoomValue) => void;
+  zoomBy: (direction: 1 | -1) => void;
+  percent: number;
+  scale: number;
+  showThumbs: boolean;
+  setShowThumbs: (show: boolean | ((show: boolean) => boolean)) => void;
+  onSearch: DocumentViewerProps["onSearch"];
+  query: string;
+  setQuery: (query: string) => void;
+  hits: ReadonlyArray<SearchHit>;
+  hit: number;
+  searched: boolean;
+  search: (event?: { preventDefault: () => void }) => void;
+  stepHit: (direction: 1 | -1) => void;
+  clearSearch: () => void;
+  scroller: { current: HTMLDivElement | null };
+  onScroll: () => void;
+  onKey: (event: KeyboardEvent<HTMLDivElement>) => void;
+  overlay: DocumentViewerProps["overlay"];
+  toolbar: ReactNode;
+  info: (page: DocumentPage, index: number, scale: number) => PageInfo;
+}
+const ViewerCtx = createContext<ViewerContext | null>(null);
+
+function useViewer(name: string): ViewerContext {
+  const ctx = useContext(ViewerCtx);
+  if (!ctx) throw new Error(`<${name}> goes inside a <DocumentViewer>.`);
+  return ctx;
+}
+
+/* ---------------------------------------------------------------- parts */
+
+/** The toolbar: thumbnails, pages, zoom, search, and your `toolbar`. */
+export function DocumentViewerToolbar({ children, ...rest }: PartProps<"div">) {
+  const { label, onSearch, toolbar } = useViewer("DocumentViewerToolbar");
+  return part(
+    "div",
+    "document-viewer-toolbar",
+    "fg-doc-bar",
+    {
+      ...rest,
+      children: children ?? (
+        <>
+          <DocumentViewerThumbsToggle />
+          <DocumentViewerSeparator />
+          <DocumentViewerPager />
+          <DocumentViewerSeparator />
+          <DocumentViewerZoom />
+          {onSearch ? (
+            <>
+              <DocumentViewerSeparator />
+              <DocumentViewerSearch />
+            </>
+          ) : null}
+          {toolbar ? <span className="fg-doc-extra">{toolbar}</span> : null}
+        </>
+      ),
+    },
+    { role: "toolbar", "aria-label": `${label}: view` },
+  );
+}
+
+/** A thin line between groups of the toolbar. */
+export function DocumentViewerSeparator(props: PartProps<"span">) {
+  return part("span", "document-viewer-separator", "fg-doc-sep", props, { "aria-hidden": "true" });
+}
+
+/** Shows and hides the column of thumbnails. */
+export function DocumentViewerThumbsToggle() {
+  const { showThumbs, setShowThumbs } = useViewer("DocumentViewerThumbsToggle");
+  return (
+    <IconButton
+      data-slot="document-viewer-thumbs-toggle"
+      icon={SidebarLeft01Icon}
+      size="sm"
+      label={showThumbs ? "Hide thumbnails" : "Show thumbnails"}
+      aria-pressed={showThumbs}
+      onClick={() => setShowThumbs((v) => !v)}
+    />
+  );
+}
+
+/** Previous page, the page number to type in, next page. */
+export function DocumentViewerPager({ children, ...rest }: PartProps<"span">) {
+  const { current, total, goTo } = useViewer("DocumentViewerPager");
+  return part("span", "document-viewer-pager", "fg-doc-pager", {
+    ...rest,
+    children: children ?? (
+      <>
+        <IconButton
+          icon={ArrowLeft01Icon}
+          size="sm"
+          label="Previous page"
+          disabled={current <= 1}
+          onClick={() => goTo(current - 1)}
+        />
+        <label className="fg-doc-page">
+          <span className="fg-sr">Page</span>
+          <input
+            className="fg-doc-pageinput"
+            inputMode="numeric"
+            aria-label="Page"
+            value={String(current)}
+            onChange={(e) => {
+              const n = Number(e.target.value.replace(/\D/g, ""));
+              if (n) goTo(n);
+            }}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <span aria-hidden="true">/ {total}</span>
+          <span className="fg-sr">of {total}</span>
+        </label>
+        <IconButton
+          icon={ArrowRight01Icon}
+          size="sm"
+          label="Next page"
+          disabled={current >= total}
+          onClick={() => goTo(current + 1)}
+        />
+      </>
+    ),
+  });
+}
+
+/** Zoom out, the zoom to choose, zoom in. */
+export function DocumentViewerZoom({ children, ...rest }: PartProps<"span">) {
+  const { zoom, setZoom, zoomBy, percent } = useViewer("DocumentViewerZoom");
+  return part("span", "document-viewer-zoom", "fg-doc-zoombar", {
+    ...rest,
+    children: children ?? (
+      <>
+        <IconButton
+          icon={ZoomOutIcon}
+          size="sm"
+          label="Zoom out"
+          disabled={percent <= ZOOM_MIN}
+          onClick={() => zoomBy(-1)}
+        />
+        <Select
+          className="fg-doc-zoom"
+          aria-label="Zoom"
+          value={zoom === "fit" ? "fit" : String(clampZoom(zoom))}
+          onChange={(e) => setZoom(e.target.value === "fit" ? "fit" : Number(e.target.value))}
+          options={[
+            { value: "fit", label: zoom === "fit" ? `Fit width · ${percent}%` : "Fit width" },
+            ...ZOOM_STEPS.map((z) => ({ value: String(z), label: `${z}%` })),
+            ...(zoom !== "fit" && !ZOOM_STEPS.includes(clampZoom(zoom))
+              ? [{ value: String(clampZoom(zoom)), label: `${clampZoom(zoom)}%` }]
+              : []),
+          ]}
+        />
+        <IconButton
+          icon={ZoomInIcon}
+          size="sm"
+          label="Zoom in"
+          disabled={percent >= ZOOM_MAX}
+          onClick={() => zoomBy(1)}
+        />
+      </>
+    ),
+  });
+}
+
+/** The search box, the count of matches, and previous and next match; only with `onSearch`. */
+export function DocumentViewerSearch({ children, ...rest }: PartProps<"form">) {
+  const { onSearch, query, setQuery, hits, hit, searched, search, stepHit, clearSearch } =
+    useViewer("DocumentViewerSearch");
+  if (!onSearch) return null;
+  return part(
+    "form",
+    "document-viewer-search",
+    "fg-doc-search",
+    {
+      ...rest,
+      children: children ?? (
+        <>
+          <Input
+            aria-label="Search the document"
+            placeholder="Search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              if (!e.target.value) clearSearch();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.shiftKey) {
+                e.preventDefault();
+                stepHit(-1);
+              }
+            }}
+          />
+          <IconButton icon={Search01Icon} size="sm" label="Search" type="submit" />
+          {searched ? (
+            <span className="fg-doc-hits" role="status">
+              {hits.length === 0 ? "No match" : `${hit + 1} of ${hits.length}`}
+            </span>
+          ) : null}
+          {hits.length > 1 ? (
+            <>
+              <IconButton
+                icon={ArrowLeft01Icon}
+                size="sm"
+                label="Previous match"
+                onClick={() => stepHit(-1)}
+              />
+              <IconButton
+                icon={ArrowRight01Icon}
+                size="sm"
+                label="Next match"
+                onClick={() => stepHit(1)}
+              />
+            </>
+          ) : null}
+        </>
+      ),
+    },
+    { role: "search", onSubmit: search },
+  );
+}
+
+/** The area under the toolbar: thumbnails and pages. */
+export function DocumentViewerMain({ children, ...rest }: PartProps<"div">) {
+  return part("div", "document-viewer-main", "fg-doc-main", {
+    ...rest,
+    children: children ?? (
+      <>
+        <DocumentViewerThumbs />
+        <DocumentViewerPages />
+      </>
+    ),
+  });
+}
+
+/** The column of thumbnails; not shown when hidden. */
+export function DocumentViewerThumbs({ children, ...rest }: PartProps<"nav">) {
+  const { label, pages, current, goTo, showThumbs, info } = useViewer("DocumentViewerThumbs");
+  if (!showThumbs) return null;
+  return part(
+    "nav",
+    "document-viewer-thumbs",
+    "fg-doc-thumbs",
+    {
+      ...rest,
+      children:
+        children ??
+        pages.map((p, i) => {
+          const box = info(p, i, THUMB / p.width);
+          return (
+            <button
+              key={p.id ?? i}
+              type="button"
+              className="fg-doc-thumb"
+              data-slot="document-viewer-thumb"
+              aria-label={`Page ${i + 1}`}
+              aria-current={i + 1 === current ? "page" : undefined}
+              onClick={() => goTo(i + 1)}
+            >
+              <span className="fg-doc-thumbpage" style={{ width: box.width, height: box.height }}>
+                {p.src ? (
+                  <img src={p.src} alt="" loading="lazy" width={box.width} height={box.height} />
+                ) : (
+                  p.render?.(box)
+                )}
+              </span>
+              <span className="fg-doc-thumbno">{i + 1}</span>
+            </button>
+          );
+        }),
+    },
+    { "aria-label": `${label}: pages` },
+  );
+}
+
+/** One page, with the viewer's overlay over it. */
+export function DocumentViewerPage({
+  page,
+  index,
+  ...rest
+}: Omit<PartProps<"div">, "children"> & { page: DocumentPage; index: number }) {
+  const { total, scale, overlay, info } = useViewer("DocumentViewerPage");
+  const box = info(page, index, scale);
+  return part(
+    "div",
+    "document-viewer-page",
+    "fg-doc-pagewrap",
+    {
+      ...rest,
+      children: (
+        <div className="fg-doc-page-sheet" style={{ width: box.width, height: box.height }}>
+          {page.src ? (
+            <img
+              src={page.src}
+              alt={page.alt ?? ""}
+              loading={index < 2 ? "eager" : "lazy"}
+              draggable={false}
+              width={box.width}
+              height={box.height}
+            />
+          ) : (
+            page.render?.(box)
+          )}
+          {overlay ? <div className="fg-doc-overlay">{overlay(box)}</div> : null}
+        </div>
+      ),
+    },
+    { "data-page": index + 1, role: "group", "aria-label": `Page ${index + 1} of ${total}` },
+  );
+}
+
+/** The scrolling region with every page; the keys change page and zoom. */
+export function DocumentViewerPages({ children, ...rest }: Omit<PartProps<"div">, "onScroll">) {
+  const { label, pages, scroller, onScroll, onKey } = useViewer("DocumentViewerPages");
+  return part(
+    "div",
+    "document-viewer-pages",
+    "fg-doc-scroll",
+    {
+      ...rest,
+      children:
+        children ?? pages.map((p, i) => <DocumentViewerPage key={p.id ?? i} page={p} index={i} />),
+    },
+    {
+      ref: scroller,
+      tabIndex: 0,
+      role: "region",
+      "aria-label": `${label}: pages. Page keys change page, plus and minus zoom, 0 fits the width.`,
+      onScroll,
+      onKeyDown: onKey,
+    },
+  );
+}
+
+/* ---------------------------------------------------------------- the viewer */
 
 /** Pages with thumbnails, zoom, navigation, keyboard, search and an overlay per page. */
 export function DocumentViewer({
@@ -122,7 +475,11 @@ export function DocumentViewer({
   onSearch,
   toolbar,
   height = 560,
+  children,
   className,
+  asChild,
+  style,
+  ...rest
 }: DocumentViewerProps) {
   const total = pages.length;
   const [page, setPage] = useControllableState<number>({
@@ -141,7 +498,7 @@ export function DocumentViewer({
   const [hits, setHits] = useState<ReadonlyArray<SearchHit>>([]);
   const [hit, setHit] = useState(-1);
   const [searched, setSearched] = useState(false);
-  const scroller = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement | null>(null);
   const scrolledTo = useRef<number>(0);
   const ticket = useRef(0);
   const current = clampPage(page, total);
@@ -225,15 +582,18 @@ export function DocumentViewer({
     }
   };
 
+  const clearSearch = () => {
+    setHits([]);
+    setHit(-1);
+    setSearched(false);
+  };
   const search = async (event?: { preventDefault: () => void }) => {
     event?.preventDefault();
     if (!onSearch) return;
     const q = query.trim();
     const mine = ++ticket.current;
     if (!q) {
-      setHits([]);
-      setHit(-1);
-      setSearched(false);
+      clearSearch();
       return;
     }
     const found = await onSearch(q);
@@ -258,207 +618,56 @@ export function DocumentViewer({
     height: Math.round(p.height * s),
   });
 
+  const ctx: ViewerContext = {
+    label,
+    pages,
+    total,
+    current,
+    goTo,
+    zoom,
+    setZoom,
+    zoomBy,
+    percent,
+    scale,
+    showThumbs,
+    setShowThumbs,
+    onSearch,
+    query,
+    setQuery,
+    hits,
+    hit,
+    searched,
+    search,
+    stepHit,
+    clearSearch,
+    scroller,
+    onScroll,
+    onKey,
+    overlay,
+    toolbar,
+    info,
+  };
+
   return (
-    <section
-      className={cx("fg-doc", className)}
-      aria-label={label}
-      style={{ height: typeof height === "number" ? `${height}px` : height }}
-    >
-      <div className="fg-doc-bar" role="toolbar" aria-label={`${label}: view`}>
-        <IconButton
-          icon={SidebarLeft01Icon}
-          size="sm"
-          label={showThumbs ? "Hide thumbnails" : "Show thumbnails"}
-          aria-pressed={showThumbs}
-          onClick={() => setShowThumbs((v) => !v)}
-        />
-        <span className="fg-doc-sep" aria-hidden="true" />
-        <IconButton
-          icon={ArrowLeft01Icon}
-          size="sm"
-          label="Previous page"
-          disabled={current <= 1}
-          onClick={() => goTo(current - 1)}
-        />
-        <label className="fg-doc-page">
-          <span className="fg-sr">Page</span>
-          <input
-            className="fg-doc-pageinput"
-            inputMode="numeric"
-            aria-label="Page"
-            value={String(current)}
-            onChange={(e) => {
-              const n = Number(e.target.value.replace(/\D/g, ""));
-              if (n) goTo(n);
-            }}
-            onFocus={(e) => e.currentTarget.select()}
-          />
-          <span aria-hidden="true">/ {total}</span>
-          <span className="fg-sr">of {total}</span>
-        </label>
-        <IconButton
-          icon={ArrowRight01Icon}
-          size="sm"
-          label="Next page"
-          disabled={current >= total}
-          onClick={() => goTo(current + 1)}
-        />
-        <span className="fg-doc-sep" aria-hidden="true" />
-        <IconButton
-          icon={ZoomOutIcon}
-          size="sm"
-          label="Zoom out"
-          disabled={percent <= ZOOM_MIN}
-          onClick={() => zoomBy(-1)}
-        />
-        <Select
-          className="fg-doc-zoom"
-          aria-label="Zoom"
-          value={zoom === "fit" ? "fit" : String(clampZoom(zoom))}
-          onChange={(e) => setZoom(e.target.value === "fit" ? "fit" : Number(e.target.value))}
-          options={[
-            { value: "fit", label: zoom === "fit" ? `Fit width · ${percent}%` : "Fit width" },
-            ...ZOOM_STEPS.map((z) => ({ value: String(z), label: `${z}%` })),
-            ...(zoom !== "fit" && !ZOOM_STEPS.includes(clampZoom(zoom))
-              ? [{ value: String(clampZoom(zoom)), label: `${clampZoom(zoom)}%` }]
-              : []),
-          ]}
-        />
-        <IconButton
-          icon={ZoomInIcon}
-          size="sm"
-          label="Zoom in"
-          disabled={percent >= ZOOM_MAX}
-          onClick={() => zoomBy(1)}
-        />
-        {onSearch ? (
-          <>
-            <span className="fg-doc-sep" aria-hidden="true" />
-            <form className="fg-doc-search" role="search" onSubmit={search}>
-              <Input
-                aria-label="Search the document"
-                placeholder="Search"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  if (!e.target.value) {
-                    setHits([]);
-                    setHit(-1);
-                    setSearched(false);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && e.shiftKey) {
-                    e.preventDefault();
-                    stepHit(-1);
-                  }
-                }}
-              />
-              <IconButton icon={Search01Icon} size="sm" label="Search" type="submit" />
-              {searched ? (
-                <span className="fg-doc-hits" role="status">
-                  {hits.length === 0 ? "No match" : `${hit + 1} of ${hits.length}`}
-                </span>
-              ) : null}
-              {hits.length > 1 ? (
-                <>
-                  <IconButton
-                    icon={ArrowLeft01Icon}
-                    size="sm"
-                    label="Previous match"
-                    onClick={() => stepHit(-1)}
-                  />
-                  <IconButton
-                    icon={ArrowRight01Icon}
-                    size="sm"
-                    label="Next match"
-                    onClick={() => stepHit(1)}
-                  />
-                </>
-              ) : null}
-            </form>
-          </>
-        ) : null}
-        {toolbar ? <span className="fg-doc-extra">{toolbar}</span> : null}
-      </div>
-
-      <div className="fg-doc-main">
-        {showThumbs ? (
-          <nav className="fg-doc-thumbs" aria-label={`${label}: pages`}>
-            {pages.map((p, i) => {
-              const s = THUMB / p.width;
-              const box = info(p, i, s);
-              return (
-                <button
-                  key={p.id ?? i}
-                  type="button"
-                  className="fg-doc-thumb"
-                  aria-label={`Page ${i + 1}`}
-                  aria-current={i + 1 === current ? "page" : undefined}
-                  onClick={() => goTo(i + 1)}
-                >
-                  <span
-                    className="fg-doc-thumbpage"
-                    style={{ width: box.width, height: box.height }}
-                  >
-                    {p.src ? (
-                      <img
-                        src={p.src}
-                        alt=""
-                        loading="lazy"
-                        width={box.width}
-                        height={box.height}
-                      />
-                    ) : (
-                      p.render?.(box)
-                    )}
-                  </span>
-                  <span className="fg-doc-thumbno">{i + 1}</span>
-                </button>
-              );
-            })}
-          </nav>
-        ) : null}
-
-        <div
-          ref={scroller}
-          className="fg-doc-scroll"
-          tabIndex={0}
-          role="region"
-          aria-label={`${label}: pages. Page keys change page, plus and minus zoom, 0 fits the width.`}
-          onScroll={onScroll}
-          onKeyDown={onKey}
-        >
-          {pages.map((p, i) => {
-            const box = info(p, i, scale);
-            return (
-              <div
-                key={p.id ?? i}
-                className="fg-doc-pagewrap"
-                data-page={i + 1}
-                role="group"
-                aria-label={`Page ${i + 1} of ${total}`}
-              >
-                <div className="fg-doc-page-sheet" style={{ width: box.width, height: box.height }}>
-                  {p.src ? (
-                    <img
-                      src={p.src}
-                      alt={p.alt ?? ""}
-                      loading={i < 2 ? "eager" : "lazy"}
-                      draggable={false}
-                      width={box.width}
-                      height={box.height}
-                    />
-                  ) : (
-                    p.render?.(box)
-                  )}
-                  {overlay ? <div className="fg-doc-overlay">{overlay(box)}</div> : null}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
+    <ViewerCtx.Provider value={ctx}>
+      {part(
+        "section",
+        "document-viewer",
+        "fg-doc",
+        {
+          className,
+          asChild,
+          ...rest,
+          style: { height: typeof height === "number" ? `${height}px` : height, ...style },
+          children: children ?? (
+            <>
+              <DocumentViewerToolbar />
+              <DocumentViewerMain />
+            </>
+          ),
+        },
+        { "aria-label": label },
+      )}
+    </ViewerCtx.Provider>
   );
 }

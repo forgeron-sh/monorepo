@@ -3,21 +3,95 @@
 // file next to this one; this barrel re-exports them. None of them knows an app: records are read
 // through accessors and values are plain strings (`YYYY-MM-DD`, `HH:mm`).
 
-export { TimeGrid } from "./time-grid";
+export {
+  TimeGrid,
+  TimeGridBody,
+  TimeGridNext,
+  TimeGridPrevious,
+  TimeGridTitle,
+  TimeGridToday,
+  TimeGridToolbar,
+  TimeGridViews,
+  TimeGridWeekNumber,
+  useTimeGrid,
+} from "./time-grid";
 export type {
   TimeGridChange,
   TimeGridEventInfo,
   TimeGridProps,
   TimeGridResource,
+  TimeGridRootProps,
 } from "./time-grid";
-export { AvailabilityEditor } from "./time-availability";
-export type { AvailabilityEditorProps } from "./time-availability";
-export { SlotPicker } from "./time-slots";
-export type { SlotChoice, SlotPickerProps } from "./time-slots";
-export { RecurrenceEditor } from "./time-recurrence";
-export type { RecurrenceEditorProps } from "./time-recurrence";
-export { ResourceSchedule, scheduleConflicts } from "./time-resources";
-export type { ResourceScheduleProps, ScheduleResource } from "./time-resources";
+export {
+  AvailabilityEditor,
+  AvailabilityEditorCopy,
+  AvailabilityEditorDay,
+  AvailabilityEditorDayBody,
+  AvailabilityEditorDayHead,
+  AvailabilityEditorException,
+  AvailabilityEditorExceptionAdd,
+  AvailabilityEditorExceptionList,
+  AvailabilityEditorExceptions,
+  AvailabilityEditorRanges,
+  AvailabilityEditorWeek,
+  AvailabilityEditorZone,
+  useAvailabilityEditor,
+} from "./time-availability";
+export type {
+  AvailabilityEditorDayProps,
+  AvailabilityEditorExceptionProps,
+  AvailabilityEditorProps,
+  AvailabilityEditorRangesProps,
+  AvailabilityEditorRootProps,
+} from "./time-availability";
+export {
+  SlotPicker,
+  SlotPickerBody,
+  SlotPickerCalendar,
+  SlotPickerConfirm,
+  SlotPickerDay,
+  SlotPickerDays,
+  SlotPickerDuration,
+  SlotPickerHeader,
+  SlotPickerList,
+  SlotPickerStrip,
+  SlotPickerSummary,
+  SlotPickerTimes,
+  SlotPickerTitle,
+  SlotPickerZone,
+  useSlotPicker,
+} from "./time-slots";
+export type {
+  SlotChoice,
+  SlotPickerDayProps,
+  SlotPickerProps,
+  SlotPickerRootProps,
+} from "./time-slots";
+export {
+  RecurrenceEditor,
+  RecurrenceEditorDays,
+  RecurrenceEditorEnd,
+  RecurrenceEditorEvery,
+  RecurrenceEditorNext,
+  RecurrenceEditorStatus,
+  RecurrenceEditorSummary,
+  RecurrenceEditorToggle,
+  useRecurrenceEditor,
+} from "./time-recurrence";
+export type { RecurrenceEditorProps, RecurrenceEditorRootProps } from "./time-recurrence";
+export {
+  ResourceSchedule,
+  ResourceScheduleBody,
+  ResourceScheduleConflicts,
+  ResourceScheduleToolbar,
+  scheduleConflicts,
+  useResourceSchedule,
+} from "./time-resources";
+export type {
+  ResourceScheduleProps,
+  ResourceScheduleRootProps,
+  ScheduleResource,
+} from "./time-resources";
 export {
   clockIn,
   convertTime,

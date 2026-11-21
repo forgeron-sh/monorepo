@@ -21,7 +21,10 @@ import {
 } from "./dialog";
 import { Icon } from "./icon";
 
-export interface ModalProps {
+export interface ModalProps extends Omit<
+  ComponentProps<"div">,
+  "title" | "children" | "className" | "onChange"
+> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** What the modal is: "New issue", "Rename view". Its accessible name. */
@@ -64,6 +67,7 @@ export function ModalContent({ size = "md", className, ...rest }: ModalContentPr
       <DialogOverlay className="fg-modal-backdrop" />
       <DialogViewport className="fg-modal-viewport">
         <DialogPopup
+          data-slot="modal-content"
           {...rest}
           className={cx("fg-modal", size === "sm" && "fg-modal-sm", className)}
         />
@@ -74,7 +78,7 @@ export function ModalContent({ size = "md", className, ...rest }: ModalContentPr
 
 /** The top row: context, title, then the close button at the end. */
 export function ModalHeader({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...rest} className={cx("fg-modal-head", className)} />;
+  return <div data-slot="modal-header" {...rest} className={cx("fg-modal-head", className)} />;
 }
 
 /** Where it happens, before the title: a team chip, a project; followed by a ›. */
@@ -91,7 +95,9 @@ export function ModalContext({ children }: { children?: ReactNode }) {
 
 /** The modal's accessible name. */
 export function ModalTitle({ className, ...rest }: ComponentProps<typeof DialogTitle>) {
-  return <DialogTitle {...rest} className={cx("fg-modal-title", className)} />;
+  return (
+    <DialogTitle data-slot="modal-title" {...rest} className={cx("fg-modal-title", className)} />
+  );
 }
 
 /** The close button; a pixel cross unless given children. */
@@ -99,6 +105,7 @@ export function ModalClose({ className, children, ...rest }: DialogCloseProps) {
   return (
     <DialogClose
       aria-label="Close"
+      data-slot="modal-close"
       {...rest}
       className={cx("fg-iconbtn fg-iconbtn-sm fg-modal-close", className)}
     >
@@ -117,11 +124,13 @@ function ModalPreset({
   size = "md",
   children,
   className,
+  ...rest
 }: ModalProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => onOpenChange(next)}>
       {trigger ? <DialogTrigger render={trigger} /> : null}
       <ModalContent
+        {...(rest as object)}
         size={size}
         {...(className ? { className } : {})}
         {...(initialFocus ? { initialFocus } : {})}

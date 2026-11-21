@@ -14,7 +14,10 @@ export interface SliderMark {
   label?: string;
 }
 
-export interface SliderProps {
+export interface SliderProps extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "defaultValue" | "children" | "className" | "id"
+> {
   /** Names the slider (and its two thumbs, "from" and "to", for a range). */
   label: string;
   /** A number for one thumb, `[from, to]` for a range. */
@@ -76,6 +79,7 @@ function SliderRoot({
   const count = Array.isArray(shown) ? shown.length : 1;
   return (
     <Base.Root
+      data-slot="slider"
       {...rest}
       min={min}
       {...(value !== undefined ? { value } : {})}
@@ -113,6 +117,7 @@ function LabelledSlider({
   name,
   id,
   className,
+  ...rest
 }: SliderProps) {
   const [current, setCurrent] = useControllableState<SliderValue>({
     value,
@@ -127,7 +132,11 @@ function LabelledSlider({
   const done = (next: unknown) => onChangeEnd?.(next as SliderValue);
 
   return (
-    <div className={cx("fg-slider", disabled && "fg-slider-disabled", className)}>
+    <div
+      data-slot="slider"
+      {...rest}
+      className={cx("fg-slider", disabled && "fg-slider-disabled", className)}
+    >
       <div className="fg-slider-head">
         <span className="fg-field-label" id={id ? `${id}-label` : undefined}>
           {label}

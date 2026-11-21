@@ -2,7 +2,7 @@ import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 import { Progress as BaseProgress } from "@base-ui/react/progress";
 import { cx } from "./cx";
 
-export interface KbdProps {
+export interface KbdProps extends Omit<HTMLAttributes<HTMLSpanElement>, "className" | "children"> {
   /** One key per entry: `["⌘", "K"]` draws two keys. A string is a single key. */
   keys: string | ReadonlyArray<string>;
   className?: string;
@@ -24,18 +24,18 @@ export function Kbd(props: KbdProps | KbdCapProps) {
 export type KbdCapProps = HTMLAttributes<HTMLElement> & { keys?: undefined };
 
 function KbdCap({ keys: _keys, className, ...rest }: KbdCapProps) {
-  return <kbd {...rest} className={cx("fg-kbd", className)} />;
+  return <kbd data-slot="kbd" {...rest} className={cx("fg-kbd", className)} />;
 }
 
 /** Several caps side by side (shadcn's `KbdGroup`). */
 export function KbdGroup({ className, ...rest }: HTMLAttributes<HTMLElement>) {
-  return <span {...rest} className={cx("fg-kbds", className)} />;
+  return <span data-slot="kbd-group" {...rest} className={cx("fg-kbds", className)} />;
 }
 
-function KbdKeys({ keys, className }: KbdProps) {
+function KbdKeys({ keys, className, ...rest }: KbdProps) {
   const list = typeof keys === "string" ? [keys] : keys;
   return (
-    <span className={cx("fg-kbds", className)}>
+    <span data-slot="kbd" {...rest} className={cx("fg-kbds", className)}>
       {list.map((key, i) => (
         <kbd key={`${key}-${i}`} className="fg-kbd">
           {key}
@@ -45,7 +45,10 @@ function KbdKeys({ keys, className }: KbdProps) {
   );
 }
 
-export interface ProgressProps {
+export interface ProgressProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "className" | "children" | "role"
+> {
   /** Names the bar for assistive technology, and is written above it. */
   label: string;
   /** Between 0 and `max`. Absent: the work has no known end, a block runs along the track. */
@@ -80,7 +83,11 @@ export type ProgressRootProps = Omit<ComponentProps<typeof BaseProgress.Root>, "
 
 function ProgressRoot({ className, label: _label, children, ...rest }: ProgressRootProps) {
   return (
-    <BaseProgress.Root {...rest} className={cx("fg-progress fg-progress-accent", className)}>
+    <BaseProgress.Root
+      data-slot="progress"
+      {...rest}
+      className={cx("fg-progress fg-progress-accent", className)}
+    >
       {children}
       <BaseProgress.Track className="fg-progress-track">
         <BaseProgress.Indicator className="fg-progress-fill" />
@@ -97,13 +104,18 @@ function LabelledProgress({
   tone = "accent",
   segments,
   className,
+  ...rest
 }: ProgressProps) {
   const known = value !== undefined;
   const ratio = known ? Math.min(Math.max(value / max, 0), 1) : 0;
   const percent = Math.round(ratio * 100);
   const blocks = known && segments !== undefined && segments > 0 ? segments : 0;
   return (
-    <div className={cx("fg-progress", `fg-progress-${tone}`, className)}>
+    <div
+      data-slot="progress"
+      {...rest}
+      className={cx("fg-progress", `fg-progress-${tone}`, className)}
+    >
       <div className="fg-progress-head">
         <span>{label}</span>
         {showValue && known ? <span className="fg-progress-value">{percent}%</span> : null}
@@ -135,7 +147,10 @@ function LabelledProgress({
   );
 }
 
-export interface SeparatorProps {
+export interface SeparatorProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "className" | "children" | "role"
+> {
   /** `vertical` between items of a row. */
   orientation?: "horizontal" | "vertical";
   /** `hatch`: the hatched band of the lab language, closed by a line above and below. */
@@ -154,16 +169,24 @@ export function Separator({
   children,
   decorative,
   className,
+  ...rest
 }: SeparatorProps) {
   if (variant === "hatch") {
     return (
-      <div className={cx("fg-sep-hatch", className)} role="separator">
+      <div
+        data-slot="separator"
+        {...rest}
+        className={cx("fg-sep-hatch", className)}
+        role="separator"
+      >
         {children ? <span>{children}</span> : null}
       </div>
     );
   }
   return (
     <div
+      data-slot="separator"
+      {...rest}
       className={cx("fg-sep", orientation === "vertical" && "fg-sep-vertical", className)}
       {...(decorative ? { role: "none" } : { role: "separator", "aria-orientation": orientation })}
     />

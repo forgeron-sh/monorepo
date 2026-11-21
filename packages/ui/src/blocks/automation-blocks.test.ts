@@ -5,6 +5,13 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup as html } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  AutomationList,
+  AutomationListBody,
+  AutomationListHeader,
+  AutomationListName,
+  AutomationListRow,
+  ChangeList,
+  ChangeListItem,
   ConditionBuilder,
   cronToSpec,
   describeCondition,
@@ -22,16 +29,47 @@ import {
   moveStep,
   nextRuns,
   PublishBar,
+  PublishBarPublish,
+  PublishBarState,
   PublishDialog,
+  PublishDialogChanges,
+  PublishDialogContent,
+  PublishDialogFooter,
+  PublishDialogMessage,
   removeStep,
   resolveTemplate,
-  RunDetail,
+  RunBars,
   RunList,
+  RunListDays,
+  RunListFilter,
   ScheduleEditor,
+  ScheduleEditorModes,
+  ScheduleEditorNext,
+  ScheduleEditorSummary,
   specToCron,
   StepCard,
+  StepCardError,
+  StepCardMain,
+  StepCardState,
+  StepCardText,
+  StepCardTitle,
+  StepCardTrigger,
+  StepFields,
+  StepField,
+  StepInspector,
+  StepInspectorHeader,
+  StepInspectorTabs,
   StepList,
+  StepListEmpty,
+  StepListSteps,
   StepPicker,
+  StepPickerList,
+  StepPickerSearch,
+  StepSettings,
+  StepSettingsOnError,
+  VersionHistory,
+  VersionHistoryDetail,
+  VersionHistoryList,
   tokenQueryAt,
   variablesFromSample,
   type AutomationStep,
@@ -278,6 +316,26 @@ describe("StepList", () => {
   });
 });
 
+describe("StepList keyboard", () => {
+  it("moves the focus between the step buttons with the arrows", async () => {
+    const root = await mount(
+      h(StepList, { defaultSteps: tree, onSelect: vi.fn<(id: string) => void>() }),
+    );
+    const mains = [...root.querySelectorAll<HTMLElement>("[data-collection-item]")];
+    expect(mains.filter((m) => m.tabIndex === 0)).toHaveLength(1);
+    await act(async () => mains[0]!.focus());
+    await key(mains[0]!, "ArrowDown");
+    await act(async () => new Promise<void>((r) => requestAnimationFrame(() => r())));
+    expect(document.activeElement).toBe(mains[1]);
+    await key(mains[1]!, "End");
+    await act(async () => new Promise<void>((r) => requestAnimationFrame(() => r())));
+    expect(document.activeElement).toBe(mains.at(-1));
+    await key(mains.at(-1)!, "ArrowUp");
+    await act(async () => new Promise<void>((r) => requestAnimationFrame(() => r())));
+    expect(document.activeElement).toBe(mains.at(-2));
+  });
+});
+
 describe("StepPicker", () => {
   it("filters as it is typed and adds with Enter", async () => {
     const onPick = vi.fn<(id: string) => void>();
@@ -364,47 +422,30 @@ describe("runs", () => {
     expect(out).toContain("Send: 503");
     expect(out).toContain("1.4 s");
   });
-  it("opens on the failed step and retries from it", async () => {
-    const onRetry = vi.fn<(id: string) => void>();
+  it("moves between the runs with the arrows, Home and End", async () => {
     const root = await mount(
-      h(RunDetail, {
-        run: { id: "1204", status: "error", at: "2026-11-18 09:15", durationMs: 900 },
-        onRetry,
-        steps: [
-          {
-            id: "a",
-            name: "Deal won",
-            icon: BoltIcon,
-            status: "success",
-            startMs: 0,
-            durationMs: 10,
-            output: { id: 4 },
-          },
-          {
-            id: "b",
-            name: "Send invoice",
-            icon: Mail01Icon,
-            status: "error",
-            startMs: 10,
-            durationMs: 800,
-            error: {
-              code: "UPSTREAM_503",
-              message: "Mail relay answered 503",
-              log: ["try 1: 503"],
-            },
-          },
-          { id: "c", name: "Post", icon: Message01Icon, status: "skipped" },
+      h(RunList, {
+        onSelect: vi.fn<(id: string) => void>(),
+        runs: [
+          { id: "3", status: "success", at: "2026-11-18 09:00:00" },
+          { id: "2", status: "error", at: "2026-11-18 08:00:00" },
+          { id: "1", status: "success", at: "2026-11-17 08:00:00" },
         ],
       }),
     );
-    expect(root.querySelector('[aria-current="true"]')?.textContent).toContain("Send invoice");
-    expect(root.textContent).toContain("Mail relay answered 503");
-    await click(
-      [...root.querySelectorAll("button")].find((b) => b.textContent?.includes("Retry from here")),
-    );
-    expect(onRetry).toHaveBeenCalledWith("b");
-    await click(root.querySelector(".fg-rund-step"));
-    expect(root.querySelector(".fg-json-pre")?.textContent).toContain('"id": 4');
+    const rows = [...root.querySelectorAll<HTMLElement>(".fg-runs-row")];
+    expect(rows.filter((r) => r.tabIndex === 0)).toHaveLength(1);
+    await act(async () => rows[0]!.focus());
+    await key(rows[0]!, "ArrowDown");
+    expect(document.activeElement).toBe(rows[1]);
+    await key(rows[1]!, "ArrowDown");
+    expect(document.activeElement).toBe(rows[2]);
+    await key(rows[2]!, "ArrowUp");
+    expect(document.activeElement).toBe(rows[1]);
+    await key(rows[1]!, "End");
+    expect(document.activeElement).toBe(rows[2]);
+    await key(rows[2]!, "Home");
+    expect(document.activeElement).toBe(rows[0]);
   });
   it("writes durations", () => {
     expect(formatDuration(120)).toBe("120 ms");
@@ -420,7 +461,7 @@ describe("publishing", () => {
     expect(html(h(PublishBar, { version: 3, changes: 2 }))).toContain("Draft · 2 changes");
   });
   it("keeps Publish off while a check blocks", async () => {
-    const root = await mount(
+    await mount(
       h(PublishDialog, {
         version: 4,
         changes: [{ kind: "add", text: "Step “Mail the CFO”" }],
@@ -429,11 +470,12 @@ describe("publishing", () => {
         onClose: vi.fn<() => void>(),
       }),
     );
-    const publish = [...root.querySelectorAll("button")].find((b) =>
+    // The dialog is in a portal.
+    const publish = [...document.querySelectorAll("button")].find((b) =>
       b.textContent?.includes("Publish v4"),
     );
     expect(publish?.disabled).toBe(true);
-    expect(root.textContent).toContain("1 change since v3");
+    expect(document.body.textContent).toContain("1 change since v3");
   });
 });
 
@@ -446,5 +488,270 @@ describe("JsonView", () => {
     expect(out).toContain('fg-json-b">true');
     expect(out).toContain('fg-json-z">null');
     expect(highlightJson('"k": "v"')).toHaveLength(4);
+  });
+});
+
+describe("parts of the automation blocks", () => {
+  it("StepCard: parts build any card, and the rest goes on the card", () => {
+    const out = html(
+      h(
+        StepCard,
+        { kind: "trigger", status: "error", className: "mine", "data-x": "1", id: "card" } as never,
+        h(StepCardTrigger),
+        h(StepCardMain, { icon: BoltIcon }, h(StepCardText, null, h(StepCardTitle, null, "Start"))),
+        h(StepCardState),
+        h(StepCardError, null, "503 from the relay"),
+      ),
+    );
+    expect(out).toContain('data-slot="step-card"');
+    expect(out).toContain("fg-step-trigger");
+    expect(out).toContain("mine");
+    expect(out).toContain('data-x="1"');
+    expect(out).toContain('id="card"');
+    expect(out).toContain("Trigger");
+    expect(out).toContain("Failed");
+    expect(out).toContain("503 from the relay");
+    // The props form takes the rest too, and asChild.
+    const short = html(h(StepCard, { title: "Post", icon: Message01Icon, "data-x": "2" } as never));
+    expect(short).toContain('data-x="2"');
+    const child = html(
+      h(StepCard, { asChild: true, kind: "action" }, h("li", { className: "own" })),
+    );
+    expect(child).toContain("<li");
+    expect(child).toContain("fg-step");
+    expect(child).toContain("own");
+  });
+
+  it("StepList: one tab stop, Enter opens, parts and read-only", async () => {
+    const onSelect = vi.fn<(id: string) => void>();
+    const root = await mount(
+      h(
+        StepList,
+        { defaultSteps: tree, onSelect, readOnly: true, "data-x": "1" } as never,
+        h(StepListEmpty),
+        h(StepListSteps),
+      ),
+    );
+    expect(root.querySelector('[data-slot="step-list"]')?.getAttribute("data-x")).toBe("1");
+    const cards = [...root.querySelectorAll<HTMLElement>("[data-collection-item]")];
+    expect(cards.map((c) => c.getAttribute("data-collection-item"))).toEqual([
+      "t",
+      "if",
+      "mail",
+      "chat",
+    ]);
+    expect(cards.filter((c) => c.tabIndex === 0)).toHaveLength(1);
+    // Buttons inside the cards are not tab stops of their own.
+    expect(
+      [...root.querySelectorAll<HTMLElement>(".fg-step-main")].every((b) => b.tabIndex === -1),
+    ).toBe(true);
+    expect(root.querySelector(".fg-steps-add")).toBeNull();
+    expect(root.querySelector('[aria-label="Remove Post in Chat"]')).toBeNull();
+    await act(async () => cards[0]!.focus());
+    await key(cards[0]!, "Enter");
+    expect(onSelect).toHaveBeenCalledWith("t");
+    await key(cards[0]!, "ArrowDown");
+    expect(document.activeElement).toBe(cards[1]);
+  });
+
+  it("StepList: shows the empty message through its part", () => {
+    const out = html(h(StepList, { steps: [], empty: "Start with a trigger" }));
+    expect(out).toContain("Start with a trigger");
+  });
+
+  it("RunList: parts, the Failed filter and rest on RunBars", async () => {
+    const root = await mount(
+      h(
+        RunList,
+        {
+          filter: true,
+          today: "2026-11-18",
+          runs: [
+            { id: "2", status: "error", at: "2026-11-18 08:00:00" },
+            { id: "1", status: "success", at: "2026-11-18 07:00:00" },
+          ],
+        },
+        h(RunListFilter),
+        h(RunListDays),
+      ),
+    );
+    expect(root.querySelectorAll(".fg-runs-row")).toHaveLength(2);
+    const failed = [...root.querySelectorAll("button")].find((b) => b.textContent === "Failed")!;
+    await click(failed);
+    expect(root.querySelectorAll(".fg-runs-row")).toHaveLength(1);
+    const bars = html(h(RunBars, { values: [1, 2], className: "x", "data-y": "1" } as never));
+    expect(bars).toContain("fg-runbars x");
+    expect(bars).toContain('data-y="1"');
+  });
+
+  it("ScheduleEditor: the parts alone, and the shorthand's rest", () => {
+    const out = html(
+      h(
+        ScheduleEditor,
+        { defaultValue: "0 8 * * 1-5", from: "2026-11-20T09:00", "data-x": "1" } as never,
+        h(ScheduleEditorModes),
+        h(ScheduleEditorSummary),
+        h(ScheduleEditorNext),
+      ),
+    );
+    expect(out).toContain("Weekdays at 08:00");
+    expect(out).toContain("Mon 2026-11-23 08:00");
+    expect(out).not.toContain("fg-sched-row");
+    expect(out).toContain('data-x="1"');
+  });
+
+  it("StepPicker: the search and the list as parts", async () => {
+    const onPick = vi.fn<(id: string) => void>();
+    const root = await mount(
+      h(
+        StepPicker,
+        {
+          onPick,
+          options: [
+            { id: "mail", label: "Send mail", icon: Mail01Icon, group: "apps" },
+            { id: "chat", label: "Post message", icon: Message01Icon, group: "apps" },
+          ],
+        },
+        h(StepPickerSearch),
+        h(StepPickerList),
+      ),
+    );
+    expect(root.querySelector('[role="combobox"]')).not.toBeNull();
+    expect(root.querySelector(".fg-spick-head")).toBeNull();
+    expect(root.querySelectorAll('[role="option"]')).toHaveLength(2);
+  });
+
+  it("StepFields, StepSettings and StepInspector: parts", async () => {
+    const fields = [
+      { key: "to", label: "To", type: "text" as const },
+      { key: "urgent", label: "Urgent", type: "boolean" as const },
+    ];
+    const one = html(
+      h(
+        StepFields,
+        { fields, defaultValues: { to: "a@b.c" } },
+        h(StepField, { field: fields[0]! }),
+      ),
+    );
+    expect(one).toContain("a@b.c");
+    expect(one).not.toContain("Urgent");
+    const settings = html(h(StepSettings, null, h(StepSettingsOnError)));
+    expect(settings).toContain("Stop the run");
+    expect(settings).not.toContain("Retry on failure");
+    const root = await mount(
+      h(
+        StepInspector,
+        {
+          icon: BoltIcon,
+          title: "Send invoice",
+          subtitle: "Mail · send()",
+          fields,
+          "data-x": "1",
+        } as never,
+        h(StepInspectorHeader),
+        h(StepInspectorTabs),
+      ),
+    );
+    expect(root.querySelector('[data-slot="step-inspector"]')?.getAttribute("data-x")).toBe("1");
+    expect(root.textContent).toContain("Send invoice");
+    expect(root.textContent).toContain("Parameters");
+    expect(root.querySelector(".fg-insp-foot")).toBeNull();
+  });
+
+  it("PublishBar, ChangeList, PublishDialog and VersionHistory: parts", async () => {
+    const bar = html(
+      h(
+        PublishBar,
+        { version: 3, changes: 2, onPublish: vi.fn<() => void>() },
+        h(PublishBarState),
+        h(PublishBarPublish),
+      ),
+    );
+    expect(bar).toContain("Draft · 2 changes");
+    expect(bar).toContain("Publish");
+    expect(bar).not.toContain('role="switch"');
+    const list = html(h(ChangeList, null, h(ChangeListItem, { kind: "add" }, "A step")));
+    expect(list).toContain("fg-changes-add");
+    expect(list).toContain("A step");
+
+    const onPublish = vi.fn<(message: string) => void>();
+    await mount(
+      h(
+        PublishDialog,
+        {
+          version: 2,
+          changes: [{ kind: "add", text: "Step X" }],
+          onPublish,
+          onClose: vi.fn<() => void>(),
+        },
+        h(
+          PublishDialogContent,
+          null,
+          h(PublishDialogMessage),
+          h(PublishDialogChanges),
+          h(PublishDialogFooter),
+        ),
+      ),
+    );
+    expect(document.body.textContent).toContain("Publish v2");
+    expect(document.body.textContent).toContain("1 change since v1");
+    const go = [...document.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Publish v2"),
+    )!;
+    await click(go);
+    expect(onPublish).toHaveBeenCalledWith("Step X");
+  });
+
+  it("VersionHistory: the list is one stop and its arrows choose", async () => {
+    const onSelect = vi.fn<(v: number | "draft") => void>();
+    const root = await mount(
+      h(
+        VersionHistory,
+        {
+          live: 2,
+          onSelect,
+          versions: [
+            { version: 2, message: "Two", at: "2026-11-18 09:00", by: "Léa" },
+            { version: 1, message: "One", at: "2026-11-17 09:00", by: "Léa" },
+          ],
+        },
+        h(VersionHistoryList),
+        h(VersionHistoryDetail),
+      ),
+    );
+    const rows = [...root.querySelectorAll<HTMLElement>(".fg-versions-row")];
+    expect(rows.filter((r) => r.tabIndex === 0)).toHaveLength(1);
+    expect(rows[0]!.getAttribute("aria-current")).toBe("true");
+    await act(async () => rows[0]!.focus());
+    await key(rows[0]!, "ArrowDown");
+    expect(onSelect).toHaveBeenLastCalledWith(1);
+    expect(root.textContent).toContain("v1 · One");
+  });
+
+  it("AutomationList: parts on the table, and the open on Enter", async () => {
+    const a = {
+      id: "a",
+      name: "Welcome",
+      trigger: { label: "Deal won", icon: BoltIcon },
+      state: "active" as const,
+    };
+    const onOpen = vi.fn<(automation: { id: string }) => void>();
+    const root = await mount(
+      h(
+        AutomationList,
+        { onOpen, label: "Mine" },
+        h(AutomationListHeader),
+        h(AutomationListBody, null, h(AutomationListRow, { automation: a }, h(AutomationListName))),
+      ),
+    );
+    expect(root.querySelector("table")?.getAttribute("aria-label")).toBe("Mine");
+    expect(root.querySelectorAll("tbody td")).toHaveLength(1);
+    const row = root.querySelector<HTMLElement>("tbody tr")!;
+    expect(row.tabIndex).toBe(0);
+    await key(row, "Enter");
+    expect(onOpen).toHaveBeenCalledWith(a);
+    const short = html(h(AutomationList, { automations: [a], className: "mine" }));
+    expect(short).toContain("Welcome");
+    expect(short).toContain("fg-autolist mine");
   });
 });

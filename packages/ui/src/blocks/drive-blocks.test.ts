@@ -8,22 +8,51 @@ import {
   DRIVE_DRAG_TYPE,
   DropZone,
   FileBrowser,
+  FileBrowserHeader,
+  FileBrowserRow,
+  FileBrowserTiles,
   FileDetails,
+  FileDetailsAccess,
+  FileDetailsBody,
+  FileDetailsHeader,
   fileKindOf,
   FilePreview,
+  FilePreviewBody,
+  FilePreviewHeader,
+  FilePreviewStage,
   FileTypeMark,
   folderLabel,
   FolderTree,
+  FolderTreeItem,
   formatBytes,
   formatWhen,
+  MoveDialog,
+  MoveDialogHeader,
+  MoveDialogPanel,
   MovePanel,
+  MovePanelConfirm,
+  MovePanelTo,
   SelectionBar,
   selectionAfterClick,
+  ShareDialog,
+  ShareDialogFooter,
+  ShareDialogHeader,
+  ShareDialogPanel,
   SharePanel,
+  SharePanelAdd,
+  SharePanelPeople,
   sortDriveItems,
   StorageMeter,
+  StorageMeterBar,
+  StorageMeterTotal,
   UploadQueue,
+  UploadQueueHeader,
+  UploadQueueList,
+  UploadQueueRow,
   uploadSummary,
+  VersionList,
+  VersionListItems,
+  VersionListNote,
   type DriveItem,
   type FolderNode,
   type ShareSettings,
@@ -225,7 +254,7 @@ describe("FileBrowser", () => {
       );
     });
     expect(onSelectedChange).toHaveBeenLastCalledWith(["b"]);
-    expect(menu).toHaveBeenLastCalledWith(["b"]);
+    expect(menu).toHaveBeenCalledWith(["b"]);
   });
   it("moves dragged items onto a folder and uploads files dropped on it", async () => {
     const onMove = vi.fn<(...args: unknown[]) => void>();
@@ -547,5 +576,183 @@ describe("SharePanel", () => {
     await click(sw);
     expect((onChange.mock.lastCall![0] as ShareSettings).link.password).toBe(true);
     expect(el.querySelector('[aria-label="Link password"]')).not.toBeNull();
+  });
+});
+
+describe("drive block parts", () => {
+  const raw = html;
+  // The dialogs of the parts form sit in a portal: unmount them between cases.
+  let unmount: (() => Promise<void>) | undefined;
+  afterEach(async () => {
+    await unmount?.();
+    unmount = undefined;
+  });
+  const mountP = async (element: Parameters<ReturnType<typeof createRoot>["render"]>[0]) => {
+    const target = document.createElement("div");
+    document.body.append(target);
+    const root = createRoot(target);
+    unmount = async () => {
+      await act(async () => root.unmount());
+      target.remove();
+    };
+    await act(async () => root.render(element));
+    return target;
+  };
+
+  it("lays out a FileBrowser from its parts and forwards className and rest", async () => {
+    const el = await mountP(
+      h(
+        FileBrowser,
+        { items: ITEMS, className: "mine", onSelectedChange: () => {} },
+        h(FileBrowserHeader, { className: "head" }),
+        ...ITEMS.slice(0, 2).map((item) =>
+          h(FileBrowserRow, { key: item.id, item, className: "r" }),
+        ),
+      ),
+    );
+    expect(el.querySelector("[data-slot=file-browser]")?.className).toContain("mine");
+    expect(el.querySelector("[data-slot=file-browser-header]")?.className).toContain("head");
+    const rows = el.querySelectorAll("[data-slot=file-browser-row]");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.className).toContain("fg-fbr-item r");
+    expect(rows[0]!.getAttribute("data-fb-item")).toBe(ITEMS[0]!.id);
+  });
+  it("draws the tiles of a grid on their own", async () => {
+    const el = await mountP(h(FileBrowser, { items: ITEMS, layout: "grid" }, h(FileBrowserTiles)));
+    expect(el.querySelector("[data-slot=file-browser-tiles]")).toBeTruthy();
+    expect(el.querySelector("[data-slot=file-browser-cards]")).toBeNull();
+  });
+  it("draws the items of a FolderTree itself", async () => {
+    const el = await mountP(
+      h(
+        FolderTree,
+        { folders: TREE, defaultExpanded: [] },
+        TREE.map((node) => h(FolderTreeItem, { key: node.id, node, className: "n" })),
+      ),
+    );
+    expect(el.querySelector("[data-slot=folder-tree]")).toBeTruthy();
+    expect(el.querySelector("[data-slot=folder-tree-item]")).toBeTruthy();
+  });
+  it("places the parts of a StorageMeter and an UploadQueue", () => {
+    const meter = raw(
+      h(
+        StorageMeter,
+        { quota: 100e9, parts: [{ label: "All", bytes: 1e9 }], className: "mine" },
+        h(StorageMeterTotal, { className: "t" }),
+        h(StorageMeterBar),
+      ),
+    );
+    expect(meter.indexOf("fg-storage-total t")).toBeLessThan(meter.indexOf('role="meter"'));
+    expect(meter).not.toContain("fg-storage-head");
+    const item = {
+      id: "u",
+      name: "plan.pdf",
+      size: 1000,
+      progress: 0.5,
+      status: "uploading" as const,
+    };
+    const queue = raw(
+      h(
+        UploadQueue,
+        { items: [item] },
+        h(UploadQueueHeader),
+        h(UploadQueueList, null, h(UploadQueueRow, { item, className: "r" })),
+      ),
+    );
+    expect(queue).toContain('data-slot="upload-queue-row"');
+    expect(queue).toContain("fg-upq-row fg-upq-uploading r");
+    expect(queue).not.toContain("fg-upq-foot");
+  });
+  it("composes FilePreview and FileDetails, and VersionList", () => {
+    const preview = raw(
+      h(
+        FilePreview,
+        { name: "notes.txt", text: "Hello", className: "mine" },
+        h(FilePreviewHeader),
+        h(FilePreviewBody, null, h(FilePreviewStage, { className: "s" })),
+      ),
+    );
+    expect(preview).toContain('data-slot="file-preview"');
+    expect(preview).toContain("fg-fpv-stage s");
+    expect(preview).toContain("Hello");
+    const details = raw(
+      h(
+        FileDetails,
+        { name: "plan.pdf", access: { people: ["Ada"] }, size: 1000 },
+        h(FileDetailsHeader),
+        h(FileDetailsBody, null, h(FileDetailsAccess)),
+      ),
+    );
+    expect(details).toContain('data-slot="file-details-access"');
+    expect(details).not.toContain("file-details-properties");
+    const versions = raw(
+      h(
+        VersionList,
+        { versions: [{ id: "v2", label: "v2", at: "today", by: "Ada" }], retention: "30 days" },
+        h(VersionListNote),
+        h(VersionListItems),
+      ),
+    );
+    expect(versions).toContain('data-slot="version-list-note"');
+    expect(versions).toContain("Current version");
+  });
+  it("composes a SharePanel and says what is missing", () => {
+    const out = raw(
+      h(
+        SharePanel,
+        { directory: [], className: "mine" },
+        h(SharePanelPeople),
+        h(SharePanelAdd, { className: "a" }),
+      ),
+    );
+    expect(out).toContain('data-slot="share-panel-people"');
+    expect(out).toContain("fg-share-add a");
+    expect(out.indexOf("People with access")).toBeLessThan(out.indexOf("fg-share-add"));
+    expect(out).not.toContain("General access");
+  });
+  it("opens the ShareDialog parts, with their own footer", async () => {
+    const onDone = vi.fn<(...args: unknown[]) => void>();
+    const onClose = vi.fn<(...args: unknown[]) => void>();
+    await mountP(
+      h(
+        ShareDialog,
+        { itemName: "Plan", directory: [], onDone, onClose },
+        h(ShareDialogHeader),
+        h(ShareDialogPanel),
+        h(ShareDialogFooter),
+      ),
+    );
+    const dialog = document.querySelector("[role=dialog]")!;
+    expect(dialog.textContent).toContain("Share “Plan”");
+    expect(dialog.querySelector("[data-slot=share-panel]")).toBeTruthy();
+    await click([...dialog.querySelectorAll("button")].find((b) => b.textContent === "Done")!);
+    expect(onDone).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+  it("composes MovePanel and opens the MoveDialog parts", async () => {
+    const out = raw(
+      h(
+        MovePanel,
+        { folders: TREE, onConfirm: () => {} },
+        h(MovePanelTo),
+        h(MovePanelConfirm, null, "Go"),
+      ),
+    );
+    expect(out).toContain("Pick a folder");
+    expect(out).toContain('data-slot="move-panel-confirm"');
+    expect(out).not.toContain("fg-move-tree");
+    const onConfirm = vi.fn<(...args: unknown[]) => void>();
+    await mountP(
+      h(
+        MoveDialog,
+        { itemLabel: "3 items", folders: TREE, onConfirm, onClose: () => {}, defaultValue: "my" },
+        h(MoveDialogHeader),
+        h(MoveDialogPanel),
+      ),
+    );
+    const dialog = document.querySelector("[role=dialog]")!;
+    expect(dialog.textContent).toContain("Move 3 items");
+    await click([...dialog.querySelectorAll("button")].find((b) => b.textContent === "Move here")!);
+    expect(onConfirm).toHaveBeenCalledWith("my");
   });
 });

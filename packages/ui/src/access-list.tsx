@@ -31,7 +31,7 @@ type Part<T> = Omit<T, "className"> & { className?: string };
 
 /** The list of people: give it an `aria-label`. */
 export function AccessList({ className, ...rest }: HTMLAttributes<HTMLUListElement>) {
-  return <ul {...rest} className={cx("fg-access", className)} />;
+  return <ul data-slot="access-list" {...rest} className={cx("fg-access", className)} />;
 }
 
 export interface AccessListItemProps extends Omit<LiHTMLAttributes<HTMLLIElement>, "children"> {
@@ -57,7 +57,7 @@ export function AccessListItem({
   ...rest
 }: AccessListItemProps) {
   return (
-    <li {...rest} className={cx("fg-access-item", className)}>
+    <li data-slot="access-list-item" {...rest} className={cx("fg-access-item", className)}>
       <Avatar name={name} size={size} {...(src ? { src } : {})} />
       <div className="fg-access-who">
         <b>{name}</b>
@@ -70,12 +70,16 @@ export function AccessListItem({
 
 /** A role that cannot be changed here (inherited, the owner): mono text at the end of a row. */
 export function AccessListFixed({ className, ...rest }: HTMLAttributes<HTMLSpanElement>) {
-  return <span {...rest} className={cx("fg-access-fixed", className)} />;
+  return (
+    <span data-slot="access-list-fixed" {...rest} className={cx("fg-access-fixed", className)} />
+  );
 }
 
 /** Says so when nobody is listed. */
 export function AccessListEmpty({ className, ...rest }: LiHTMLAttributes<HTMLLIElement>) {
-  return <li {...rest} className={cx("fg-access-empty", className)} />;
+  return (
+    <li data-slot="access-list-empty" {...rest} className={cx("fg-access-empty", className)} />
+  );
 }
 
 export interface AccessRole {
@@ -165,13 +169,14 @@ export function AccessListRemove({ asChild, className, children, ...rest }: Acce
   if (asChild && isValidElement(children)) {
     const child = children as ReactElement<{ className?: string }>;
     return cloneElement(child, {
+      "data-slot": "access-list-remove",
       ...rest,
       ...child.props,
       className: cx(classes, child.props.className),
     } as Record<string, unknown>);
   }
   return (
-    <button type="button" {...rest} className={classes}>
+    <button type="button" data-slot="access-list-remove" {...rest} className={classes}>
       {children ?? <Icon icon={Cancel01Icon} size={12} variant="mono" />}
     </button>
   );

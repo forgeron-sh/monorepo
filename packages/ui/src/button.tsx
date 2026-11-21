@@ -84,6 +84,7 @@ export function Button({
   if (asChild && isValidElement(children)) {
     const child = children as ReactElement<{ className?: string; children?: ReactNode }>;
     return cloneElement(child, {
+      "data-slot": "button",
       ...rest,
       ...child.props,
       className: cx(classes, child.props.className),
@@ -93,13 +94,13 @@ export function Button({
   const content = wrap(children);
   if (rest.href !== undefined) {
     return (
-      <a {...rest} className={classes}>
+      <a data-slot="button" {...rest} className={classes}>
         {content}
       </a>
     );
   }
   return (
-    <button type="button" {...rest} className={classes}>
+    <button type="button" data-slot="button" {...rest} className={classes}>
       {content}
     </button>
   );

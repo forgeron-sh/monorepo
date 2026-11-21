@@ -66,6 +66,7 @@ export function SelectionBar({
     props: {
       role: "toolbar",
       "aria-label": "Selection",
+      "data-slot": "selection-bar",
       ...rest,
       className: cx("fg-selbar", className),
       onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
@@ -103,6 +104,7 @@ export function SelectionBarClear({
   };
   if (asChild && isValidElement<{ onClick?: (event: MouseEvent<HTMLElement>) => void }>(children)) {
     return cloneElement(children, {
+      "data-slot": "selection-bar-clear",
       ...rest,
       onClick: (event: MouseEvent<HTMLElement>) => {
         children.props.onClick?.(event);
@@ -110,7 +112,16 @@ export function SelectionBarClear({
       },
     } as never);
   }
-  return <IconButton {...rest} icon={Cancel01Icon} label={label} size="sm" onClick={click} />;
+  return (
+    <IconButton
+      data-slot="selection-bar-clear"
+      {...rest}
+      icon={Cancel01Icon}
+      label={label}
+      size="sm"
+      onClick={click}
+    />
+  );
 }
 
 export interface SelectionBarCountProps extends Omit<ComponentProps<"b">, "ref"> {
@@ -134,6 +145,7 @@ export function SelectionBarCount({
     ref,
     props: {
       "aria-live": "polite",
+      "data-slot": "selection-bar-count",
       ...rest,
       className: cx("fg-selbar-count", className),
       children: children ?? `${count} selected`,
@@ -143,7 +155,14 @@ export function SelectionBarCount({
 
 /** The thin rule between the count and the actions. */
 export function SelectionBarSeparator({ className, ...rest }: ComponentProps<"span">) {
-  return <span aria-hidden="true" {...rest} className={cx("fg-selbar-rule", className)} />;
+  return (
+    <span
+      aria-hidden="true"
+      data-slot="selection-bar-separator"
+      {...rest}
+      className={cx("fg-selbar-rule", className)}
+    />
+  );
 }
 
 export interface SelectionBarActionsProps {

@@ -1,10 +1,21 @@
 // Boxes placed on the pages of a DocumentViewer: signature, initials, date, text, checkbox. Each is
 // given to a person (their colour and number), dragged, resized, nudged with the arrows and deleted.
 // A panel lists them. From the keyboard, "Place on page" puts the chosen type on the page in view.
+//
+// With `pages` and `participants` it is the usual placer. With children it is a frame, and the
+// parts compose it:
+//
+//   <FieldPlacer label="Contract" pages={pages} participants={people} value={fields} onChange={set}>
+//     <FieldPlacerStage />
+//     <FieldPlacerPanel>
+//       <FieldPlacerTools><FieldPlacerTypes /><FieldPlacerAssignee /><FieldPlacerHint /><FieldPlacerPlace /></FieldPlacerTools>
+//       <FieldPlacerList /><FieldPlacerLive />
+//     </FieldPlacerPanel>
+//   </FieldPlacer>
 
 import { Cancel01Icon } from "@forgeron/icons";
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
-import { useRef, useState } from "react";
+import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import { createContext, Fragment, useContext, useRef, useState } from "react";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
@@ -24,6 +35,7 @@ import {
   type PlacedFieldType,
   type PlacedField,
 } from "./approval-model";
+import { part, type PartProps } from "../part";
 import {
   DocumentViewer,
   type DocumentPage,
@@ -31,7 +43,10 @@ import {
   type PageInfo,
 } from "./approval-document-viewer";
 
-export interface FieldPlacerProps {
+export interface FieldPlacerProps extends Omit<
+  PartProps<"div">,
+  "children" | "onChange" | "defaultValue"
+> {
   /** Names the placer: "Fields of the contract". */
   label: string;
   pages: ReadonlyArray<DocumentPage>;
@@ -51,7 +66,8 @@ export interface FieldPlacerProps {
   viewer?: Partial<
     Omit<DocumentViewerProps, "label" | "pages" | "overlay" | "page" | "onPageChange">
   >;
-  className?: string;
+  /** The parts (`FieldPlacerStage`, `FieldPlacerPanel`). Without them, the placer is built from the props. */
+  children?: ReactNode;
 }
 
 interface Gesture {
@@ -65,6 +81,377 @@ interface Gesture {
 
 const STEP = 0.005;
 const BIG = 0.02;
+
+interface PlacerContext {
+  label: string;
+  pages: ReadonlyArray<DocumentPage>;
+  participants: ReadonlyArray<ApprovalParticipant>;
+  fields: ReadonlyArray<PlacedField>;
+  selected: string | null;
+  setSelected: (id: string | null) => void;
+  types: ReadonlyArray<PlacedFieldType>;
+  readOnly: boolean;
+  viewer: FieldPlacerProps["viewer"];
+  page: number;
+  setPage: (page: number) => void;
+  armed: PlacedFieldType | null;
+  setArmed: (type: PlacedFieldType | null) => void;
+  type: PlacedFieldType;
+  setType: (type: PlacedFieldType) => void;
+  assignee: string;
+  setWho: (id: string) => void;
+  said: string;
+  indexOf: (id: string) => number;
+  nameOf: (id: string) => string;
+  place: (type: PlacedFieldType, page: number, x: number, y: number) => void;
+  update: (id: string, fn: (f: PlacedField) => PlacedField) => void;
+  remove: (id: string) => void;
+  onKey: (event: KeyboardEvent<HTMLDivElement>, f: PlacedField) => void;
+  begin: (event: ReactPointerEvent<HTMLElement>, f: PlacedField, mode: "move" | "resize") => void;
+  drag: (event: ReactPointerEvent<HTMLElement>) => void;
+  end: () => void;
+}
+const PlacerCtx = createContext<PlacerContext | null>(null);
+
+function usePlacer(name: string): PlacerContext {
+  const ctx = useContext(PlacerCtx);
+  if (!ctx) throw new Error(`<${name}> goes inside a <FieldPlacer>.`);
+  return ctx;
+}
+
+/* ---------------------------------------------------------------- parts */
+
+/** One box on a page: moved, resized and deleted with the pointer or the keys. */
+export function FieldPlacerBox({
+  field: f,
+  ...rest
+}: Omit<PartProps<"div">, "children"> & { field: PlacedField }) {
+  const { selected, setSelected, readOnly, indexOf, nameOf, onKey, begin, drag, end } =
+    usePlacer("FieldPlacerBox");
+  const kind = FIELD_KINDS[f.type];
+  const idx = indexOf(f.participantId);
+  const on = selected === f.id;
+  return part(
+    "div",
+    "field-placer-box",
+    cx("fg-fp-box", on && "fg-fp-on", f.required && "fg-fp-req"),
+    {
+      ...rest,
+      children: (
+        <>
+          <span className="fg-fp-tag">
+            <Icon icon={kind.icon} size={12} variant="mono" />
+            <b>{idx + 1}</b>
+            <span className="fg-fp-tagtext">{f.label ?? kind.label}</span>
+          </span>
+          {on && !readOnly ? (
+            <span
+              className="fg-fp-handle"
+              aria-hidden="true"
+              onPointerDown={(e) => begin(e, f, "resize")}
+              onPointerMove={drag}
+              onPointerUp={end}
+              onPointerCancel={end}
+            />
+          ) : null}
+        </>
+      ),
+    },
+    {
+      "data-field": f.id,
+      style: {
+        left: `${f.x * 100}%`,
+        top: `${f.y * 100}%`,
+        width: `${f.w * 100}%`,
+        height: `${f.h * 100}%`,
+        ["--fg-fp-tone" as string]: participantTone(idx),
+      },
+      role: "group",
+      tabIndex: 0,
+      "aria-label": `${kind.label} for ${nameOf(f.participantId)}${f.label ? `, ${f.label}` : ""}, page ${f.page}`,
+      "aria-description": readOnly
+        ? undefined
+        : "Arrow keys move it, Alt and arrows resize it, Delete removes it.",
+      "aria-current": on ? "true" : undefined,
+      onFocus: (e: { target: unknown; currentTarget: unknown }) => {
+        if (e.target === e.currentTarget) setSelected(f.id);
+      },
+      onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => onKey(e, f),
+      onPointerDown: (e: ReactPointerEvent<HTMLElement>) => begin(e, f, "move"),
+      onPointerMove: drag,
+      onPointerUp: end,
+      onPointerCancel: end,
+    },
+  );
+}
+
+/** What is drawn over one page: its boxes; a click places the armed type, or clears the selection. */
+export function FieldPlacerLayer({
+  info,
+  children,
+  ...rest
+}: Omit<PartProps<"div">, "children"> & { info: PageInfo; children?: ReactNode }) {
+  const { armed, setArmed, readOnly, place, setSelected, fields } = usePlacer("FieldPlacerLayer");
+  return part(
+    "div",
+    "field-placer-layer",
+    cx("fg-fp-layer", armed && "fg-fp-armed"),
+    {
+      ...rest,
+      children:
+        children ??
+        fieldsOfPage(fields, info.number).map((f) => <FieldPlacerBox key={f.id} field={f} />),
+    },
+    {
+      onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (e.target !== e.currentTarget) return;
+        if (armed && !readOnly) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          place(
+            armed,
+            info.number,
+            (e.clientX - rect.left) / (rect.width || 1),
+            (e.clientY - rect.top) / (rect.height || 1),
+          );
+          if (!e.shiftKey) setArmed(null);
+        } else setSelected(null);
+      },
+    },
+  );
+}
+
+/** The document, with the layer of boxes over each page. */
+export function FieldPlacerStage({ children, ...rest }: PartProps<"div">) {
+  const { label, pages, page, setPage, viewer } = usePlacer("FieldPlacerStage");
+  return part("div", "field-placer-stage", "fg-fp-stage", {
+    ...rest,
+    children: children ?? (
+      <DocumentViewer
+        {...viewer}
+        label={label}
+        pages={pages}
+        page={page}
+        onPageChange={setPage}
+        overlay={(info) => <FieldPlacerLayer info={info} />}
+      />
+    ),
+  });
+}
+
+/** The types of box, to press and then click the page. */
+export function FieldPlacerTypes(props: PartProps<"div">) {
+  const { types, armed, setArmed, type, setType } = usePlacer("FieldPlacerTypes");
+  return part(
+    "div",
+    "field-placer-types",
+    "fg-fp-types",
+    {
+      ...props,
+      children:
+        props.children ??
+        types.map((t) => (
+          <button
+            key={t}
+            type="button"
+            className="fg-fp-type"
+            data-slot="field-placer-type"
+            aria-pressed={armed === t}
+            data-chosen={type === t ? "" : undefined}
+            onClick={() => {
+              setType(t);
+              setArmed(armed === t ? null : t);
+            }}
+          >
+            <Icon icon={FIELD_KINDS[t].icon} size={12} variant="mono" />
+            {FIELD_KINDS[t].label}
+          </button>
+        )),
+    },
+    { role: "group", "aria-label": "Type of box" },
+  );
+}
+
+/** Who new boxes are given to. */
+export function FieldPlacerAssignee() {
+  const { participants, assignee, setWho } = usePlacer("FieldPlacerAssignee");
+  return (
+    <Select
+      data-slot="field-placer-assignee"
+      aria-label="Give new boxes to"
+      value={assignee}
+      onChange={(e) => setWho(e.target.value)}
+      options={participants.map((p, i) => ({ value: p.id, label: `${i + 1}. ${p.name}` }))}
+    />
+  );
+}
+
+/** What to do next. */
+export function FieldPlacerHint({ children, ...rest }: PartProps<"p">) {
+  const { armed } = usePlacer("FieldPlacerHint");
+  return part("p", "field-placer-hint", "fg-fp-hint", {
+    ...rest,
+    children:
+      children ??
+      (armed
+        ? `Click the page to place a ${FIELD_KINDS[armed].label.toLowerCase()}. Shift keeps the tool.`
+        : "Choose a type, then click the page."),
+  });
+}
+
+/** "Place on page 2": puts the chosen type in the middle of the page in view, for the keyboard. */
+export function FieldPlacerPlace({ children }: { children?: ReactNode }) {
+  const { place, armed, type, page } = usePlacer("FieldPlacerPlace");
+  return (
+    <Button
+      data-slot="field-placer-place"
+      size="sm"
+      onClick={() => place(armed ?? type, page, 0.5, 0.5)}
+    >
+      {children ?? `Place on page ${page}`}
+    </Button>
+  );
+}
+
+/** The tools: types, assignee, hint and the place button; not shown when read only. */
+export function FieldPlacerTools({ children, ...rest }: PartProps<"div">) {
+  const { readOnly } = usePlacer("FieldPlacerTools");
+  if (readOnly) return null;
+  return part("div", "field-placer-tools", "fg-fp-tools", {
+    ...rest,
+    children: children ?? (
+      <>
+        <FieldPlacerTypes />
+        <FieldPlacerAssignee />
+        <FieldPlacerHint />
+        <FieldPlacerPlace />
+      </>
+    ),
+  });
+}
+
+/** One box in the list: press it to select it and go to its page. */
+export function FieldPlacerItem({
+  field: f,
+  ...rest
+}: Omit<PartProps<"li">, "children"> & { field: PlacedField }) {
+  const {
+    selected,
+    setSelected,
+    setPage,
+    readOnly,
+    indexOf,
+    nameOf,
+    participants,
+    update,
+    remove,
+  } = usePlacer("FieldPlacerItem");
+  const kind = FIELD_KINDS[f.type];
+  const idx = indexOf(f.participantId);
+  return part(
+    "li",
+    "field-placer-item",
+    cx("fg-fp-item", selected === f.id && "fg-fp-itemon"),
+    {
+      ...rest,
+      children: (
+        <>
+          <button
+            type="button"
+            className="fg-fp-pick"
+            aria-pressed={selected === f.id}
+            onClick={() => {
+              setSelected(f.id);
+              setPage(f.page);
+            }}
+          >
+            <i className="fg-fp-swatch" aria-hidden="true" />
+            <Icon icon={kind.icon} size={12} variant="mono" />
+            <span className="fg-fp-iname">{f.label ?? kind.label}</span>
+            <span className="fg-fp-imeta">
+              {nameOf(f.participantId)} · p. {f.page}
+            </span>
+          </button>
+          {readOnly ? null : (
+            <>
+              <Select
+                aria-label={`Give ${kind.label} to`}
+                value={f.participantId}
+                onChange={(e) => update(f.id, (x) => ({ ...x, participantId: e.target.value }))}
+                options={participants.map((p, i) => ({
+                  value: p.id,
+                  label: `${i + 1}. ${p.name}`,
+                }))}
+              />
+              <IconButton
+                icon={Cancel01Icon}
+                size="sm"
+                label={`Delete ${kind.label} on page ${f.page}`}
+                onClick={() => remove(f.id)}
+              />
+            </>
+          )}
+        </>
+      ),
+    },
+    { style: { ["--fg-fp-tone" as string]: participantTone(idx) } },
+  );
+}
+
+/** The list of boxes, or "No box yet."; `renderItem` draws an entry your way. */
+export function FieldPlacerList({
+  renderItem,
+  ...rest
+}: Omit<PartProps<"ul">, "children"> & { renderItem?: (field: PlacedField) => ReactNode }) {
+  const { fields } = usePlacer("FieldPlacerList");
+  if (fields.length === 0) return <p className="fg-fp-empty">No box yet.</p>;
+  return part(
+    "ul",
+    "field-placer-list",
+    "fg-fp-list",
+    {
+      ...rest,
+      children: fields.map((f) => (
+        <Fragment key={f.id}>{renderItem ? renderItem(f) : <FieldPlacerItem field={f} />}</Fragment>
+      )),
+    },
+    { "aria-label": "Boxes" },
+  );
+}
+
+/** The polite line that says every change. */
+export function FieldPlacerLive(props: PartProps<"p">) {
+  const { said } = usePlacer("FieldPlacerLive");
+  return part(
+    "p",
+    "field-placer-live",
+    "fg-sr",
+    { ...props, children: props.children ?? said },
+    { role: "status", "aria-live": "polite" },
+  );
+}
+
+/** The panel beside the document: the tools, the list of boxes. */
+export function FieldPlacerPanel({ children, ...rest }: PartProps<"aside">) {
+  const { label } = usePlacer("FieldPlacerPanel");
+  return part(
+    "aside",
+    "field-placer-panel",
+    "fg-fp-panel",
+    {
+      ...rest,
+      children: children ?? (
+        <>
+          <FieldPlacerTools />
+          <FieldPlacerList />
+          <FieldPlacerLive />
+        </>
+      ),
+    },
+    { "aria-label": `${label}: fields` },
+  );
+}
+
+/* ---------------------------------------------------------------- the placer */
 
 /** Place, drag, resize and delete typed boxes on a document's pages, each for a participant. */
 export function FieldPlacer({
@@ -80,7 +467,10 @@ export function FieldPlacer({
   types = PLACED_FIELD_TYPES,
   readOnly = false,
   viewer,
+  children,
   className,
+  asChild,
+  ...rest
 }: FieldPlacerProps) {
   const [fields, setFields] = useControllableState<ReadonlyArray<PlacedField>>({
     value,
@@ -187,185 +577,49 @@ export function FieldPlacer({
     gesture.current = null;
   };
 
-  const layer = (info: PageInfo) => (
-    <div
-      className={cx("fg-fp-layer", armed && "fg-fp-armed")}
-      onPointerDown={(e) => {
-        if (e.target !== e.currentTarget) return;
-        if (armed && !readOnly) {
-          const rect = e.currentTarget.getBoundingClientRect();
-          place(
-            armed,
-            info.number,
-            (e.clientX - rect.left) / (rect.width || 1),
-            (e.clientY - rect.top) / (rect.height || 1),
-          );
-          if (!e.shiftKey) setArmed(null);
-        } else setSelected(null);
+  return (
+    <PlacerCtx.Provider
+      value={{
+        label,
+        pages,
+        participants,
+        fields,
+        selected,
+        setSelected,
+        types,
+        readOnly,
+        viewer,
+        page,
+        setPage,
+        armed,
+        setArmed,
+        type,
+        setType,
+        assignee,
+        setWho,
+        said,
+        indexOf,
+        nameOf,
+        place,
+        update,
+        remove,
+        onKey,
+        begin,
+        drag,
+        end,
       }}
     >
-      {fieldsOfPage(fields, info.number).map((f) => {
-        const kind = FIELD_KINDS[f.type];
-        const idx = indexOf(f.participantId);
-        const on = selected === f.id;
-        return (
-          <div
-            key={f.id}
-            className={cx("fg-fp-box", on && "fg-fp-on", f.required && "fg-fp-req")}
-            style={{
-              left: `${f.x * 100}%`,
-              top: `${f.y * 100}%`,
-              width: `${f.w * 100}%`,
-              height: `${f.h * 100}%`,
-              ["--fg-fp-tone" as string]: participantTone(idx),
-            }}
-            role="group"
-            tabIndex={0}
-            aria-label={`${kind.label} for ${nameOf(f.participantId)}${f.label ? `, ${f.label}` : ""}, page ${f.page}`}
-            aria-description={
-              readOnly
-                ? undefined
-                : "Arrow keys move it, Alt and arrows resize it, Delete removes it."
-            }
-            aria-current={on ? "true" : undefined}
-            onFocus={(e) => {
-              if (e.target === e.currentTarget) setSelected(f.id);
-            }}
-            onKeyDown={(e) => onKey(e, f)}
-            onPointerDown={(e) => begin(e, f, "move")}
-            onPointerMove={drag}
-            onPointerUp={end}
-            onPointerCancel={end}
-          >
-            <span className="fg-fp-tag">
-              <Icon icon={kind.icon} size={12} variant="mono" />
-              <b>{idx + 1}</b>
-              <span className="fg-fp-tagtext">{f.label ?? kind.label}</span>
-            </span>
-            {on && !readOnly ? (
-              <span
-                className="fg-fp-handle"
-                aria-hidden="true"
-                onPointerDown={(e) => begin(e, f, "resize")}
-                onPointerMove={drag}
-                onPointerUp={end}
-                onPointerCancel={end}
-              />
-            ) : null}
-          </div>
-        );
+      {part("div", "field-placer", "fg-fp", {
+        className,
+        asChild,
+        ...rest,
+        children: children ?? (
+          <>
+            <FieldPlacerStage />
+            <FieldPlacerPanel />
+          </>
+        ),
       })}
-    </div>
-  );
-
-  return (
-    <div className={cx("fg-fp", className)}>
-      <div className="fg-fp-stage">
-        <DocumentViewer
-          {...viewer}
-          label={label}
-          pages={pages}
-          page={page}
-          onPageChange={setPage}
-          overlay={layer}
-        />
-      </div>
-      <aside className="fg-fp-panel" aria-label={`${label}: fields`}>
-        {readOnly ? null : (
-          <div className="fg-fp-tools">
-            <div className="fg-fp-types" role="group" aria-label="Type of box">
-              {types.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  className="fg-fp-type"
-                  aria-pressed={armed === t}
-                  data-chosen={type === t ? "" : undefined}
-                  onClick={() => {
-                    setType(t);
-                    setArmed(armed === t ? null : t);
-                  }}
-                >
-                  <Icon icon={FIELD_KINDS[t].icon} size={12} variant="mono" />
-                  {FIELD_KINDS[t].label}
-                </button>
-              ))}
-            </div>
-            <Select
-              aria-label="Give new boxes to"
-              value={assignee}
-              onChange={(e) => setWho(e.target.value)}
-              options={participants.map((p, i) => ({ value: p.id, label: `${i + 1}. ${p.name}` }))}
-            />
-            <p className="fg-fp-hint">
-              {armed
-                ? `Click the page to place a ${FIELD_KINDS[armed].label.toLowerCase()}. Shift keeps the tool.`
-                : "Choose a type, then click the page."}
-            </p>
-            <Button size="sm" onClick={() => place(armed ?? type, page, 0.5, 0.5)}>
-              Place on page {page}
-            </Button>
-          </div>
-        )}
-        {fields.length === 0 ? (
-          <p className="fg-fp-empty">No box yet.</p>
-        ) : (
-          <ul className="fg-fp-list" aria-label="Boxes">
-            {fields.map((f) => {
-              const kind = FIELD_KINDS[f.type];
-              const idx = indexOf(f.participantId);
-              return (
-                <li
-                  key={f.id}
-                  className={cx("fg-fp-item", selected === f.id && "fg-fp-itemon")}
-                  style={{ ["--fg-fp-tone" as string]: participantTone(idx) }}
-                >
-                  <button
-                    type="button"
-                    className="fg-fp-pick"
-                    aria-pressed={selected === f.id}
-                    onClick={() => {
-                      setSelected(f.id);
-                      setPage(f.page);
-                    }}
-                  >
-                    <i className="fg-fp-swatch" aria-hidden="true" />
-                    <Icon icon={kind.icon} size={12} variant="mono" />
-                    <span className="fg-fp-iname">{f.label ?? kind.label}</span>
-                    <span className="fg-fp-imeta">
-                      {nameOf(f.participantId)} · p. {f.page}
-                    </span>
-                  </button>
-                  {readOnly ? null : (
-                    <>
-                      <Select
-                        aria-label={`Give ${kind.label} to`}
-                        value={f.participantId}
-                        onChange={(e) =>
-                          update(f.id, (x) => ({ ...x, participantId: e.target.value }))
-                        }
-                        options={participants.map((p, i) => ({
-                          value: p.id,
-                          label: `${i + 1}. ${p.name}`,
-                        }))}
-                      />
-                      <IconButton
-                        icon={Cancel01Icon}
-                        size="sm"
-                        label={`Delete ${kind.label} on page ${f.page}`}
-                        onClick={() => remove(f.id)}
-                      />
-                    </>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <p className="fg-sr" role="status" aria-live="polite">
-          {said}
-        </p>
-      </aside>
-    </div>
+    </PlacerCtx.Provider>
   );
 }

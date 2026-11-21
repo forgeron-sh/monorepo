@@ -179,7 +179,7 @@ function buildComponents(images: Readonly<Record<string, string>>): Components {
 /** A README as markdown: headings with anchors, lists, task lists, tables, code with a copy button, links, images of the bundle. */
 export function Markdown({ source, images, className, ...rest }: MarkdownProps) {
   return (
-    <div {...rest} data-slot="markdown" className={cx("fg-md", className)}>
+    <div data-slot="markdown" {...rest} className={cx("fg-md", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={buildComponents(images)}

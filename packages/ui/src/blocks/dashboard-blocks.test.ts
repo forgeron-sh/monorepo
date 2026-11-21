@@ -6,15 +6,32 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DASHBOARD_COLUMNS,
   DateRangeCompare,
+  DateRangeComparePeriod,
+  DateRangeCompareSummary,
   DeltaBadge,
   Donut,
   Funnel,
   Gauge,
   Heatmap,
   MetricPicker,
+  MetricPickerMeasure,
+  MetricPickerSteps,
+  MetricPickerSummary,
   StackedBar,
   WidgetFrame,
+  WidgetFrameBody,
+  WidgetFrameContent,
+  WidgetFrameHeader,
+  WidgetFrameTitles,
+  WidgetFrameTools,
+  WidgetFrameExpand,
   WidgetGrid,
+  WidgetGridCanvas,
+  WidgetGridContent,
+  WidgetGridEditBar,
+  WidgetGridGrab,
+  WidgetGridItem,
+  WidgetGridStatus,
   dashboardBucketUnit,
   dashboardBuckets,
   dashboardCalendarCells,
@@ -751,5 +768,115 @@ describe("MetricPicker", () => {
     );
     expect(el.querySelector(".fg-dash-mp-sum")!.textContent).toBe("Pick a measure");
     expect(el.querySelector("select")).toBeNull();
+  });
+});
+
+describe("parts of the dashboard blocks", () => {
+  it("WidgetFrame: a layout of parts, with the rest and the states of the root", async () => {
+    const el = await mount(
+      h(
+        WidgetFrame,
+        {
+          title: "Revenue",
+          subtitle: "30 days",
+          error: "Timed out",
+          className: "mine",
+          "data-x": "1",
+        } as never,
+        h(
+          WidgetFrameHeader,
+          null,
+          h(WidgetFrameTitles),
+          h(WidgetFrameTools, null, h(WidgetFrameExpand)),
+        ),
+        h(WidgetFrameContent, null, h(WidgetFrameBody, { className: "body" }, "chart")),
+      ),
+    );
+    const frame = el.querySelector<HTMLElement>('[data-slot="widget-frame"]')!;
+    expect(frame.className).toContain("mine");
+    expect(frame.getAttribute("data-x")).toBe("1");
+    expect(el.querySelector("h3")!.textContent).toBe("Revenue");
+    expect(el.querySelector(".fg-dash-frame-sub")!.textContent).toBe("30 days");
+    expect(el.querySelector(".body")!.textContent).toContain("Timed out");
+    expect(el.textContent).not.toContain("chart");
+    expect(el.querySelector(".fg-dash-frame-tools")!.children).toHaveLength(0);
+  });
+
+  it("WidgetGrid: the parts alone, an item and its grab", async () => {
+    const widgets = [
+      { id: "a", label: "Revenue", content: h("p", {}, "A") },
+      { id: "b", label: "Leads", content: h("p", {}, "B") },
+    ];
+    const el = await mount(
+      h(
+        WidgetGrid,
+        {
+          widgets,
+          defaultLayout: [at("a", 0, 0, 4, 2), at("b", 4, 0, 4, 2)],
+          editing: true,
+          className: "mine",
+          "data-x": "1",
+        } as never,
+        h(WidgetGridEditBar),
+        h(WidgetGridCanvas, null, ((widget: { id: string }) =>
+          h(
+            WidgetGridItem,
+            { id: widget.id, className: "cell-" + widget.id },
+            h(WidgetGridContent),
+            h(WidgetGridGrab),
+          )) as never),
+        h(WidgetGridStatus),
+      ),
+    );
+    const grid = el.querySelector<HTMLElement>('[data-slot="widget-grid"]')!;
+    expect(grid.className).toContain("mine");
+    expect(grid.getAttribute("data-x")).toBe("1");
+    expect(el.querySelector(".cell-a")).not.toBeNull();
+    expect(el.querySelectorAll(".fg-dash-grab")).toHaveLength(2);
+    expect(el.querySelector(".fg-dash-size")).toBeNull();
+    expect(el.querySelector(".fg-dash-edithint")).not.toBeNull();
+    const grab = el.querySelector<HTMLElement>(".fg-dash-grab")!;
+    await key(grab, "ArrowRight");
+    expect(el.querySelector('[role="status"]')!.textContent).toContain("Revenue");
+  });
+
+  it("DateRangeCompare: the period and its summary as parts", async () => {
+    const el = await mount(
+      h(
+        DateRangeCompare,
+        {
+          today: "2026-11-20",
+          defaultValue: {
+            range: { from: "2026-11-01", to: "2026-11-30" },
+            compare: "previous-period",
+          },
+          "data-x": "1",
+        } as never,
+        h(DateRangeComparePeriod),
+        h(DateRangeCompareSummary),
+      ),
+    );
+    expect(el.querySelector('[data-slot="date-range-compare"]')!.getAttribute("data-x")).toBe("1");
+    expect(el.querySelector(".fg-dash-compare-vs")).toBeNull();
+    expect(el.querySelector(".fg-dash-compare-sum")!.textContent).toContain("vs");
+  });
+
+  it("MetricPicker: parts and the sentence", async () => {
+    const el = await mount(
+      h(
+        MetricPicker,
+        {
+          measures: [{ id: "deals", label: "Deals" }],
+          groupings: [{ id: "owner", label: "Owner" }],
+          defaultValue: { ...dashboardEmptyQuery, measure: "deals" },
+          "data-x": "1",
+        } as never,
+        h(MetricPickerSteps, null, h(MetricPickerMeasure)),
+        h(MetricPickerSummary),
+      ),
+    );
+    expect(el.querySelector('[data-slot="metric-picker"]')!.getAttribute("data-x")).toBe("1");
+    expect(el.querySelectorAll(".fg-dash-mp-step")).toHaveLength(1);
+    expect(el.querySelector(".fg-dash-mp-sum")!.textContent).toContain("Deals");
   });
 });

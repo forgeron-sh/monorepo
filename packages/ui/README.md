@@ -194,9 +194,9 @@ The state the components share, for your screens and your own components (`src/h
 
 `DisplayMenu` takes its props for the usual menu, or children to compose any menu from its parts (`DisplayLayouts`, `DisplaySelect`, `DisplayToggle`, `DisplayProperties`, `DisplaySection`, `DisplayWhen`, `DisplayReset`): a layout is added with one entry (`MORE_LAYOUTS.timeline`, `.calendar` or your own) and its own options behind `DisplayWhen`. The reference screen that puts it all together is the gallery's `list-view` block.
 
-## Shaders
+## Pixel text
 
-The pixel effects of the Forgeron sites, in `src/shaders/`: the dither field (canvas), the WebGL field modes (ember, field, globe, dissolve), the dithered image, the hearth, the pixel reveal. Each one is a framework-free `mount…` function and a React component (`DitherField`, `FieldShader`, `DitheredImage`, `Hearth`, `PixelReveal`) that draws a still frame under reduced motion. They take the shader source and the Bayer matrix from `@forgeron/shaders`, and the bitmap face from `@forgeron/font`.
+`PixelText` and `PixelTitle` set words in the bitmap face of `@forgeron/font`; `textRows` gives the rows of a title for the reveal of `@forgeron/shaders` (`mountReveal`). The pixel effects themselves (dither field, WebGL fields, dithered image, hearth, reveal) are not in `ui`: the sites mount them from `@forgeron/shaders/dom` (D-163). `ui` takes only the Bayer matrix from `@forgeron/shaders`, for the logo's dither.
 
 Every atom and block, with live examples, its code and its props: `apps/ui-gallery` (`ui.forgeron.sh`, `bun run --cwd apps/ui-gallery dev`, port 5181).
 

@@ -11,8 +11,10 @@ import {
   type ReactNode,
 } from "react";
 import { Avatar } from "./avatar";
+import { Button, type ButtonProps } from "./button";
 import { cx } from "./cx";
 import { Icon } from "./icon";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group";
 import { Kbd } from "./marks";
 
 interface IconButtonBase {
@@ -32,7 +34,7 @@ export type IconButtonProps = IconButtonBase &
     | ({ href: string } & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "children">)
   );
 
-/** A square button that holds one pixel icon: the toolbars of every app. */
+/** A square button that holds one pixel icon: the toolbars of every app. A `Button` (`size="icon"`). */
 export function IconButton({
   icon,
   label,
@@ -41,28 +43,26 @@ export function IconButton({
   className,
   ...rest
 }: IconButtonProps) {
-  const classes = cx(
-    "fg-iconbtn",
-    variant === "boxed" && "fg-iconbtn-boxed",
-    size === "sm" && "fg-iconbtn-sm",
-    className,
-  );
-  const glyph = <Icon icon={icon} size={12} variant="mono" />;
-  if (rest.href !== undefined) {
-    return (
-      <a {...rest} aria-label={label} className={classes}>
-        {glyph}
-      </a>
-    );
-  }
   return (
-    <button type="button" {...rest} aria-label={label} className={classes}>
-      {glyph}
-    </button>
+    <Button
+      data-slot="icon-button"
+      {...(rest as ButtonProps)}
+      aria-label={label}
+      variant="ghost"
+      size="icon"
+      className={cx(
+        "fg-iconbtn",
+        variant === "boxed" && "fg-iconbtn-boxed",
+        size === "sm" && "fg-iconbtn-sm",
+        className,
+      )}
+    >
+      <Icon icon={icon} size={12} variant="mono" />
+    </Button>
   );
 }
 
-export interface AppTileProps {
+export interface AppTileProps extends Omit<ComponentProps<"span">, "className" | "children"> {
   icon: IconDefinition;
   /** In px: 20 in a switcher, 32 in a list, 48 on a card. */
   size?: 20 | 32 | 48;
@@ -74,11 +74,21 @@ export interface AppTileProps {
 }
 
 /** The square mark of an app: its icon on a flat tile. */
-export function AppTile({ icon, size = 32, tone = "accent", label, className }: AppTileProps) {
+export function AppTile({
+  icon,
+  size = 32,
+  tone = "accent",
+  label,
+  className,
+  style,
+  ...rest
+}: AppTileProps) {
   return (
     <span
+      data-slot="app-tile"
+      {...rest}
       className={cx("fg-tile", tone !== "accent" && `fg-tile-${tone}`, className)}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, ...style }}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
     >
       <Icon icon={icon} size={size >= 48 ? 24 : 12} variant="mono" />
@@ -86,7 +96,7 @@ export function AppTile({ icon, size = 32, tone = "accent", label, className }: 
   );
 }
 
-export interface SwatchProps {
+export interface SwatchProps extends Omit<ComponentProps<"span">, "className" | "color"> {
   /** Any CSS colour: a project's, a label's. */
   color: string;
   /** Written next to the square; without it the swatch is decorative. */
@@ -95,20 +105,19 @@ export interface SwatchProps {
 }
 
 /** A small square of colour that tells a project or a label apart, next to its name. */
-export function Swatch({ color, children, className }: SwatchProps) {
+export function Swatch({ color, children, className, ...rest }: SwatchProps) {
   const square = (
     <span className="fg-swatch-mark" style={{ background: color }} aria-hidden="true" />
   );
-  if (children === undefined) return <span className={cx("fg-swatch", className)}>{square}</span>;
   return (
-    <span className={cx("fg-swatch", className)}>
+    <span data-slot="swatch" {...rest} className={cx("fg-swatch", className)}>
       {square}
-      <span>{children}</span>
+      {children === undefined ? null : <span>{children}</span>}
     </span>
   );
 }
 
-export interface AvatarGroupProps {
+export interface AvatarGroupProps extends Omit<ComponentProps<"span">, "className" | "children"> {
   /** Names or emails, in order. */
   names: ReadonlyArray<string>;
   /** How many avatars before the `+n` square. */
@@ -119,25 +128,74 @@ export interface AvatarGroupProps {
   className?: string;
 }
 
-/** The people on a record, overlapping, the rest counted in a last square. */
-export function AvatarGroup({ names, max = 4, size = 24, label, className }: AvatarGroupProps) {
-  const shown = names.slice(0, max);
-  const rest = names.length - shown.length;
+/** `names` stays undefined: with names, `AvatarGroup` is the props-driven one. */
+export type AvatarGroupRootProps = Omit<ComponentProps<"span">, "className"> & {
+  names?: undefined;
+  className?: string;
+};
+
+/**
+ * With `names`: the people on a record, overlapping, the rest counted in a last square. Without: the
+ * root of the parts, `Avatar`s as children and `AvatarGroupCount` for the "+3".
+ */
+export function AvatarGroup(props: AvatarGroupProps | AvatarGroupRootProps) {
+  return props.names !== undefined ? (
+    <AvatarGroupNames {...(props as AvatarGroupProps)} />
+  ) : (
+    <AvatarGroupRoot {...(props as AvatarGroupRootProps)} />
+  );
+}
+
+function AvatarGroupRoot({ names: _names, className, ...rest }: AvatarGroupRootProps) {
   return (
-    <span className={cx("fg-avatars", className)} role="img" aria-label={label ?? names.join(", ")}>
+    <span data-slot="avatar-group" role="group" {...rest} className={cx("fg-avatars", className)} />
+  );
+}
+
+export interface AvatarGroupCountProps extends Omit<ComponentProps<"span">, "className"> {
+  /** In px, as the avatars next to it. */
+  size?: number;
+  className?: string;
+}
+
+/** The square that counts the people not shown: `+3`. */
+export function AvatarGroupCount({ size = 24, className, style, ...rest }: AvatarGroupCountProps) {
+  return (
+    <span
+      data-slot="avatar-group-count"
+      {...rest}
+      className={cx("fg-avatars-more", className)}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.4), ...style }}
+    />
+  );
+}
+
+function AvatarGroupNames({
+  names,
+  max = 4,
+  size = 24,
+  label,
+  className,
+  ...rest
+}: AvatarGroupProps) {
+  const shown = names.slice(0, max);
+  const left = names.length - shown.length;
+  return (
+    <AvatarGroupRoot
+      role="img"
+      aria-label={label ?? names.join(", ")}
+      {...rest}
+      {...(className !== undefined ? { className } : {})}
+    >
       {shown.map((name) => (
-        <Avatar key={name} name={name} size={size} />
+        <Avatar key={name} name={name} size={size} data-slot="avatar" />
       ))}
-      {rest > 0 ? (
-        <span
-          className="fg-avatars-more"
-          aria-hidden="true"
-          style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
-        >
-          +{rest}
-        </span>
+      {left > 0 ? (
+        <AvatarGroupCount aria-hidden="true" size={size}>
+          +{left}
+        </AvatarGroupCount>
       ) : null}
-    </span>
+    </AvatarGroupRoot>
   );
 }
 
@@ -146,7 +204,10 @@ export interface SearchBoxProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   shortcut?: string | ReadonlyArray<string>;
 }
 
-/** A search field: the magnifier, the query, the shortcut that reaches it. */
+/**
+ * A search field: the magnifier, the query, the shortcut that reaches it. A preset over
+ * `InputGroup`; `className` goes on the frame, the rest on the input.
+ */
 export function SearchBox({
   shortcut,
   className,
@@ -154,11 +215,17 @@ export function SearchBox({
   ...rest
 }: SearchBoxProps) {
   return (
-    <span className={cx("fg-search", className)}>
-      <Icon icon={Search01Icon} size={12} variant="mono" className="fg-search-icon" />
-      <input {...rest} type="search" aria-label={ariaLabel} className="fg-search-input" />
-      {shortcut ? <Kbd keys={shortcut} /> : null}
-    </span>
+    <InputGroup data-slot="search-box" className={cx("fg-search", className)}>
+      <InputGroupAddon align="inline-start">
+        <Icon icon={Search01Icon} size={12} variant="mono" className="fg-search-icon" />
+      </InputGroupAddon>
+      <InputGroupInput {...rest} type="search" aria-label={ariaLabel} className="fg-search-input" />
+      {shortcut ? (
+        <InputGroupAddon align="inline-end">
+          <Kbd keys={shortcut} />
+        </InputGroupAddon>
+      ) : null}
+    </InputGroup>
   );
 }
 

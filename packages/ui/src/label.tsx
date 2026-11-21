@@ -8,5 +8,5 @@ export type LabelProps = LabelHTMLAttributes<HTMLLabelElement>;
  * control. The eyebrow of a section is `Eyebrow`.
  */
 export function Label({ className, ...rest }: LabelProps) {
-  return <label {...rest} className={cx("fg-field-label", className)} />;
+  return <label data-slot="label" {...rest} className={cx("fg-field-label", className)} />;
 }

@@ -2,7 +2,7 @@
 // nothing leaves the page. The composed form is `AddressField` with `AddressFieldPart` (one per
 // part, any order); with `label`, the props-driven one built from them (D-157).
 
-import { createContext, useContext, type ComponentProps } from "react";
+import { createContext, useContext, type ComponentProps, type HTMLAttributes } from "react";
 import { Combobox } from "./combobox";
 import { cx } from "./cx";
 import { Field, Input } from "./form";
@@ -141,14 +141,22 @@ function AddressFieldRoot({
   };
   return (
     <AddressContext.Provider value={state}>
-      <div role="group" {...rest} className={cx("fg-fm-address", className)}>
+      <div
+        role="group"
+        data-slot="address-field"
+        {...rest}
+        className={cx("fg-fm-address", className)}
+      >
         {children}
       </div>
     </AddressContext.Provider>
   );
 }
 
-export interface AddressFieldPartProps {
+export interface AddressFieldPartProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "children" | "className"
+> {
   /** Which part of the address. */
   name: AddressPart;
   /** The words above the field. Default: the usual name of the part. */
@@ -157,7 +165,7 @@ export interface AddressFieldPartProps {
 }
 
 /** One field of the address (line 1, line 2, postcode, city, country), with its label and error. */
-export function AddressFieldPart({ name, label, className }: AddressFieldPartProps) {
+export function AddressFieldPart({ name, label, className, ...rest }: AddressFieldPartProps) {
   const ctx = useContext(AddressContext);
   if (!ctx) throw new Error("AddressFieldPart goes inside <AddressField>.");
   const p = PARTS.find((x) => x.key === name)!;
@@ -165,6 +173,8 @@ export function AddressFieldPart({ name, label, className }: AddressFieldPartPro
   const optional = p.key === "line2" || !ctx.required;
   return (
     <Field
+      data-slot="address-field-part"
+      {...rest}
       label={optional && ctx.required ? `${words} (optional)` : words}
       error={ctx.errors?.[p.key]}
       className={cx("fg-fm-address-part", `fg-fm-address-${p.span}`, className)}

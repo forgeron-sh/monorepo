@@ -709,3 +709,9 @@
     scroll-behavior: auto;
   }
 }
+
+/* Groups of the viewer's toolbar (`DocumentViewerPager`, `DocumentViewerZoom`) lay out as their parent. */
+.fg-doc-pager,
+.fg-doc-zoombar {
+  display: contents;
+}

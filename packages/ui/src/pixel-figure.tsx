@@ -24,8 +24,8 @@ export function PixelFigure({
 }: PixelFigureProps) {
   return (
     <span
-      {...rest}
       data-slot="pixel-figure"
+      {...rest}
       className={cx("fg-pfig", `fg-pfig-${size}`, `fg-pfig-${tone}`, className)}
     >
       <PixelText text={text} label={label ?? text} />

@@ -5,13 +5,70 @@
 
 export { Tree } from "../tree";
 export type { TreeMove, TreeNode, TreeProps, TreeRowState } from "../tree";
-export { Outline } from "./structure-outline";
-export type { OutlineHeading, OutlineProps, OutlineTarget } from "./structure-outline";
-export { OrgCardBody, OrgChart } from "./structure-org-chart";
-export type { OrgCardState, OrgChartProps, OrgPerson } from "./structure-org-chart";
-export { TemplateGallery } from "./structure-template-gallery";
-export type { TemplateGalleryProps, TemplateItem } from "./structure-template-gallery";
-export { CoverArt, CoverPicker } from "./structure-cover-picker";
+export {
+  Outline,
+  OutlineContent,
+  OutlineItem,
+  OutlineItems,
+  OutlineLink,
+  OutlineList,
+  OutlineTitle,
+  useOutline,
+} from "./structure-outline";
+export type {
+  OutlineContentProps,
+  OutlineHeading,
+  OutlineItemProps,
+  OutlineLinkProps,
+  OutlineListProps,
+  OutlineProps,
+  OutlineTarget,
+  OutlineTitleProps,
+} from "./structure-outline";
+export {
+  OrgCardBody,
+  OrgChart,
+  OrgChartCanvas,
+  OrgChartCard,
+  OrgChartCards,
+  OrgChartFold,
+  OrgChartLinks,
+  useOrgChart,
+} from "./structure-org-chart";
+export type {
+  OrgCardState,
+  OrgChartCardProps,
+  OrgChartProps,
+  OrgPerson,
+} from "./structure-org-chart";
+export {
+  TemplateGallery,
+  TemplateGalleryBar,
+  TemplateGalleryCard,
+  TemplateGalleryCategories,
+  TemplateGalleryEmpty,
+  TemplateGalleryGrid,
+  TemplateGalleryMain,
+  TemplateGalleryPane,
+  TemplateGallerySearch,
+  useTemplateGallery,
+} from "./structure-template-gallery";
+export type {
+  TemplateGalleryCardProps,
+  TemplateGalleryProps,
+  TemplateItem,
+} from "./structure-template-gallery";
+export {
+  CoverArt,
+  CoverPicker,
+  CoverPickerError,
+  CoverPickerGallery,
+  CoverPickerLink,
+  CoverPickerSource,
+  CoverPickerStage,
+  CoverPickerUpload,
+  useCoverPicker,
+} from "./structure-cover-picker";
 export type {
   CoverArtProps,
   CoverPickerProps,

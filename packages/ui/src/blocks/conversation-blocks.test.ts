@@ -6,8 +6,39 @@ import {
   addRecipients,
   applyConversationFormat,
   AttachmentList,
+  AttachmentListItem,
+  AttachmentListName,
+  AttachmentListMeta,
+  AttachmentListRemove,
+  AttachmentListThumb,
   buildConversationRows,
   ConversationList,
+  ConversationListGroups,
+  ConversationListRow,
+  ConversationListTitle,
+  InlineComments,
+  InlineCommentsBar,
+  InlineCommentsLane,
+  InlineCommentsThreads,
+  MessageItem,
+  MessageItemBody,
+  MessageItemMain,
+  MessageItemSide,
+  MessageListRows,
+  MessageListScroll,
+  PresenceDotLabel,
+  PresenceDotMark,
+  ReactionBarAdd,
+  ReactionBarChips,
+  RecipientFields,
+  RecipientFieldsInput,
+  RecipientFieldsRow,
+  RecipientInputBox,
+  RecipientInputField,
+  RecipientInputLabel,
+  ThreadPanelClose,
+  ThreadPanelTitle,
+  TypingIndicatorText,
   conversationDayLabel,
   conversationFirstUnread,
   conversationListTime,
@@ -337,6 +368,16 @@ describe("MessageList", () => {
     expect((document.activeElement as HTMLElement).dataset.mid).toBe("1");
   });
 
+  it("moves with j and k, skipping the system line", async () => {
+    const el = await render();
+    const last = el.querySelector<HTMLElement>('article[data-mid="6"]')!;
+    await act(async () => last.focus());
+    await key(last, "k");
+    expect((document.activeElement as HTMLElement).dataset.mid).toBe("4");
+    await key(document.activeElement!, "j");
+    expect((document.activeElement as HTMLElement).dataset.mid).toBe("6");
+  });
+
   it("calls reply on r, and retry from the failed bar", async () => {
     const onReply = vi.fn<(...args: unknown[]) => void>();
     const onRetry = vi.fn<(...args: unknown[]) => void>();
@@ -658,5 +699,174 @@ describe("ThreadPanel", () => {
     expect(el.querySelector("textarea")).not.toBeNull();
     await key(el.querySelector("aside")!, "Escape");
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe("parts form", () => {
+  it("PresenceDot and TypingIndicator take their parts", async () => {
+    const el = await mount(
+      h(
+        "div",
+        null,
+        h(
+          PresenceDot,
+          { status: "busy" },
+          h(PresenceDotMark, { decorative: true }),
+          h(PresenceDotLabel),
+        ),
+        h(TypingIndicator, { names: ["Léa"] }, h(TypingIndicatorText)),
+      ),
+    );
+    expect(el.querySelector('[data-slot="presence-dot"]')?.textContent).toBe("Busy");
+    expect(el.querySelector('[data-slot="presence-dot-mark"]')?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
+    expect(el.querySelector('[data-slot="typing-indicator"]')?.getAttribute("role")).toBe("status");
+    expect(el.querySelector('[data-slot="typing-indicator-text"]')?.textContent).toBe(
+      "Léa is typing…",
+    );
+  });
+
+  it("AttachmentList composes its rows from the parts, and asChild hands the class on", async () => {
+    const remove = vi.fn<(...args: unknown[]) => void>();
+    const item = { id: "a", name: "plan.pdf", size: 2048 };
+    const el = await mount(
+      h(
+        AttachmentList,
+        { onRemove: remove, className: "mine" },
+        h(
+          AttachmentListItem,
+          { item },
+          h(AttachmentListThumb),
+          h(AttachmentListName),
+          h(AttachmentListMeta),
+          h(AttachmentListRemove),
+        ),
+      ),
+    );
+    expect(el.querySelector("ul")?.classList.contains("mine")).toBe(true);
+    expect(el.querySelector('[data-slot="attachment-list-name"]')?.textContent).toBe("plan.pdf");
+    await click(el.querySelector('[data-slot="attachment-list-remove"]')!);
+    expect(remove).toHaveBeenCalledWith(item);
+  });
+
+  it("MessageItem takes parts and rest, and the list puts the collection's item props on it", async () => {
+    const m = msg("1", "2026-11-19T09:00:00Z");
+    const el = await mount(
+      h(
+        MessageItem,
+        { message: m, currentUserId: "lea", id: "mine", "data-x": "y" } as never,
+        h(MessageItemSide),
+        h(MessageItemMain, null, h(MessageItemBody)),
+      ),
+    );
+    const article = el.querySelector("article")!;
+    expect(article.id).toBe("mine");
+    expect(article.getAttribute("data-x")).toBe("y");
+    expect(article.querySelector('[data-slot="message-item-body"]')?.textContent).toBe("text 1");
+    const list = await mount(
+      h(MessageList, {
+        messages: [m, msg("2", "2026-11-19T09:01:00Z")],
+        currentUserId: "lea",
+        ...UTC,
+      }),
+    );
+    const items = [...list.querySelectorAll("article")];
+    expect(items.every((a) => a.hasAttribute("data-collection-item"))).toBe(true);
+    expect(items.filter((a) => a.tabIndex === 0)).toHaveLength(1);
+  });
+
+  it("MessageList composes from its parts", async () => {
+    const el = await mount(
+      h(
+        MessageList,
+        { messages: [msg("1", "2026-11-19T09:00:00Z")], currentUserId: "lea", ...UTC },
+        h(MessageListScroll, null, h(MessageListRows)),
+      ),
+    );
+    expect(el.querySelector('[data-slot="message-list-scroll"]')?.getAttribute("role")).toBe("log");
+    expect(el.querySelectorAll("article")).toHaveLength(1);
+  });
+
+  it("ConversationList and ReactionBar compose from parts", async () => {
+    const onSelect = vi.fn<(...args: unknown[]) => void>();
+    const el = await mount(
+      h(
+        "div",
+        null,
+        h(
+          ConversationList,
+          { items: [{ id: "a", title: "Ops", preview: "hi" }], onSelect },
+          h(ConversationListGroups, {
+            renderRow: (item: { id: string; title: string }) =>
+              h(ConversationListRow, { item: item as never }, h(ConversationListTitle)),
+          }),
+        ),
+        h(
+          ReactionBar,
+          {
+            reactions: [{ emoji: "👍", users: [lea] }],
+            currentUserId: "lea",
+            onToggle: vi.fn<(...args: unknown[]) => void>(),
+          },
+          h(ReactionBarChips),
+          h(ReactionBarAdd),
+        ),
+      ),
+    );
+    expect(el.querySelector('[data-slot="conversation-list-row"]')?.getAttribute("role")).toBe(
+      "option",
+    );
+    expect(el.querySelector('[data-slot="conversation-list-title"]')?.textContent).toBe("Ops");
+    expect(el.querySelector('[data-slot="reaction-bar-chip"]')?.getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    expect(el.querySelector('[data-slot="popover-trigger"]')).not.toBeNull();
+  });
+
+  it("RecipientInput, RecipientFields, ThreadPanel and InlineComments take parts", async () => {
+    const close = vi.fn<(...args: unknown[]) => void>();
+    const el = await mount(
+      h(
+        "div",
+        null,
+        h(
+          RecipientInput,
+          { label: "To" },
+          h(RecipientInputLabel),
+          h(RecipientInputField, null, h(RecipientInputBox)),
+        ),
+        h(
+          RecipientFields,
+          null,
+          h(RecipientFieldsRow, null, h(RecipientFieldsInput, { name: "to" })),
+        ),
+        h(
+          ThreadPanel,
+          {
+            root: msg("1", "2026-11-19T09:00:00Z"),
+            replies: [],
+            onClose: close,
+            onSend: vi.fn<(...args: unknown[]) => void>(),
+            currentUserId: "lea",
+          },
+          h(ThreadPanelTitle),
+          h(ThreadPanelClose),
+        ),
+        h(
+          InlineComments,
+          { threads: [], layout: "stack" },
+          h(InlineCommentsBar),
+          h(InlineCommentsLane, null, h(InlineCommentsThreads)),
+        ),
+      ),
+    );
+    expect(el.querySelector('[data-slot="recipient-input-label"]')?.textContent).toBe("To");
+    expect(el.querySelector('[data-slot="recipient-input-box"]')).not.toBeNull();
+    expect(el.querySelectorAll('[data-slot="recipient-input"]')).toHaveLength(2);
+    expect(el.querySelector('[data-slot="thread-panel-title"]')?.textContent).toBe("Thread");
+    await click(el.querySelector('[data-slot="thread-panel-close"]')!);
+    expect(close).toHaveBeenCalled();
+    expect(el.querySelector('[data-slot="inline-comments-lane"]')).not.toBeNull();
   });
 });

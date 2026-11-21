@@ -1,5 +1,6 @@
 // Blocks of the "automation" group: automations: triggers, steps, runs, schedules.
-// Each block lives in its own file next to this one; this barrel re-exports them.
+// Each block lives in its own file next to this one; this barrel re-exports them, with their parts
+// (shadcn's shape: a root and named parts, D-156).
 
 export {
   cronToSpec,
@@ -48,25 +49,128 @@ export type {
   VariableSource,
   VersionChange,
 } from "./automation-model";
-export { StepCard } from "./automation-step-card";
-export type { StepCardProps } from "./automation-step-card";
-export { StepPicker } from "./automation-step-picker";
-export type { StepGroup, StepOption, StepPickerProps } from "./automation-step-picker";
-export { StepList } from "./automation-step-list";
-export type { StepListProps } from "./automation-step-list";
-export { ScheduleEditor } from "./automation-schedule-editor";
-export type { ScheduleEditorProps } from "./automation-schedule-editor";
-export { RunBars, RunList } from "./automation-runs";
-export type { RunBarsProps, RunListProps, RunSummary } from "./automation-runs";
-export { RunDetail } from "./automation-run-detail";
-export type { RunDetailProps, RunStep } from "./automation-run-detail";
+export {
+  StepCard,
+  StepCardActions,
+  StepCardError,
+  StepCardMain,
+  StepCardMeta,
+  StepCardState,
+  StepCardSubtitle,
+  StepCardText,
+  StepCardTitle,
+  StepCardTrigger,
+  useStepCard,
+} from "./automation-step-card";
+export type {
+  StepCardProps,
+  StepCardRootProps,
+  StepCardMainProps,
+  StepCardStateProps,
+  StepCardTriggerProps,
+} from "./automation-step-card";
+export {
+  StepPicker,
+  StepPickerCategories,
+  StepPickerEmpty,
+  StepPickerFooter,
+  StepPickerGroup,
+  StepPickerHeader,
+  StepPickerItem,
+  StepPickerList,
+  StepPickerSearch,
+  useStepPicker,
+} from "./automation-step-picker";
+export type {
+  StepGroup,
+  StepOption,
+  StepPickerHeaderProps,
+  StepPickerProps,
+  StepPickerShown,
+} from "./automation-step-picker";
+export {
+  StepList,
+  StepListBand,
+  StepListBranch,
+  StepListBranches,
+  StepListEmpty,
+  StepListInsert,
+  StepListItem,
+  StepListSteps,
+  useStepList,
+} from "./automation-step-list";
+export type {
+  StepListBranchesProps,
+  StepListBranchProps,
+  StepListInsertProps,
+  StepListItemProps,
+  StepListProps,
+  StepListStepsProps,
+} from "./automation-step-list";
+export {
+  ScheduleEditor,
+  ScheduleEditorControls,
+  ScheduleEditorCron,
+  ScheduleEditorDays,
+  ScheduleEditorModes,
+  ScheduleEditorNext,
+  ScheduleEditorNumber,
+  ScheduleEditorSummary,
+  ScheduleEditorTime,
+  useScheduleEditor,
+} from "./automation-schedule-editor";
+export type {
+  ScheduleEditorNumberProps,
+  ScheduleEditorProps,
+  ScheduleEditorTimeProps,
+} from "./automation-schedule-editor";
+export {
+  RunBars,
+  RunList,
+  RunListDays,
+  RunListDuration,
+  RunListEmpty,
+  RunListFilter,
+  RunListGroup,
+  RunListId,
+  RunListItem,
+  RunListRow,
+  RunListState,
+  RunListTime,
+  RunListWhat,
+  useRunList,
+} from "./automation-runs";
+export type {
+  RunBarsProps,
+  RunListGroupProps,
+  RunListItemProps,
+  RunListProps,
+  RunSummary,
+} from "./automation-runs";
 export {
   DEFAULT_STEP_SETTINGS,
+  StepField,
   StepFields,
   StepInspector,
+  StepInspectorFooter,
+  StepInspectorHeader,
+  StepInspectorParams,
+  StepInspectorTabs,
+  StepInspectorTest,
+  StepInspectorTip,
   StepSettings,
+  StepSettingsDisabled,
+  StepSettingsNotes,
+  StepSettingsOnError,
+  StepSettingsOutput,
+  StepSettingsRetry,
+  StepSettingsTimeout,
+  useStepFields,
+  useStepInspector,
+  useStepSettings,
 } from "./automation-inspector";
 export type {
+  StepFieldProps,
   StepFieldSpec,
   StepFieldsProps,
   StepFieldType,
@@ -76,14 +180,56 @@ export type {
   StepTestResult,
   StepValues,
 } from "./automation-inspector";
-export { ChangeList, PublishBar, PublishDialog, VersionHistory } from "./automation-publish";
+export {
+  ChangeList,
+  ChangeListItem,
+  PublishBar,
+  PublishBarPublish,
+  PublishBarState,
+  PublishBarSwitch,
+  PublishDialog,
+  PublishDialogChanges,
+  PublishDialogChecks,
+  PublishDialogContent,
+  PublishDialogFooter,
+  PublishDialogMessage,
+  PublishDialogNote,
+  usePublishDialog,
+  useVersionHistory,
+  VersionHistory,
+  VersionHistoryDetail,
+  VersionHistoryList,
+  VersionHistoryRow,
+} from "./automation-publish";
 export type {
   AutomationVersion,
+  ChangeListItemProps,
   ChangeListProps,
+  ChangeListRootProps,
   PublishBarProps,
   PublishCheck,
   PublishDialogProps,
   VersionHistoryProps,
+  VersionHistoryRowProps,
 } from "./automation-publish";
-export { AutomationList } from "./automation-list";
-export type { AutomationColumn, AutomationListProps, AutomationSummary } from "./automation-list";
+export {
+  AutomationList,
+  AutomationListActions,
+  AutomationListBody,
+  AutomationListEmpty,
+  AutomationListHeader,
+  AutomationListLast,
+  AutomationListName,
+  AutomationListOwner,
+  AutomationListRow,
+  AutomationListRuns,
+  AutomationListState,
+  AutomationListTrigger,
+} from "./automation-list";
+export type {
+  AutomationColumn,
+  AutomationListProps,
+  AutomationListRootProps,
+  AutomationListRowProps,
+  AutomationSummary,
+} from "./automation-list";

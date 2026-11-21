@@ -3,15 +3,53 @@ import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  ArtCard,
+  ArtCardText,
+  ArtCardTitle,
+  Bento,
+  BentoCell,
+  BentoCellArt,
+  BentoCellCopy,
+  BentoCellTitle,
   CompareTable,
+  CompareTableCell,
+  CompareTableGroup,
+  CompareTableHead,
+  CompareTableName,
+  CompareTableRow,
+  CtaBand,
+  CtaBandActions,
+  CtaBandCopy,
+  CtaBandInner,
   Faq,
+  FaqAnswer,
+  FaqItem,
+  FaqQuestion,
+  FigureGrid,
+  FigureGridItem,
   Hero,
+  HeroCta,
+  HeroLead,
+  HeroLeft,
+  HeroRight,
+  PlanCardGroup,
+  PlanCardHead,
+  PlanCardWhere,
+  SiteFooter,
+  SiteFooterBrand,
+  SiteFooterCell,
+  SiteFooterIndex,
+  SiteNav,
+  SiteNavBar,
+  SiteNavLinks,
+  StoryStep,
+  StoryStepCopy,
+  StoryStepTitle,
   LogoStrip,
   PixelFigure,
   PlanCard,
   SectionBand,
   SectionHead,
-  SiteFooter,
   SoonTag,
 } from "../index";
 
@@ -131,5 +169,132 @@ describe("marketing blocks", () => {
     expect(out).toContain('data-hearth=""');
     expect(out).toContain('data-hearth-word=""');
     expect(out).toContain('class="fg-foot-icon-link"');
+  });
+});
+
+describe("marketing parts", () => {
+  // These pin the `data-slot` names and the forwarding that `html` strips in the cases above.
+  const raw = renderToStaticMarkup;
+  it("forwards className and rest on a Bento and its cell, and builds the cell from its parts", () => {
+    const out = raw(
+      h(
+        Bento,
+        { id: "b", className: "mine" } as never,
+        h(
+          BentoCell,
+          { span: 3, "data-x": "1" } as never,
+          h(BentoCellArt, null, "art"),
+          h(BentoCellCopy, null, h(BentoCellTitle, null, "Title")),
+        ),
+        h(BentoCell, { title: "Short", text: "Copy", className: "c" }),
+      ),
+    );
+    expect(out).toContain('data-slot="bento" id="b" class="fg-bento mine"');
+    expect(out).toContain('data-slot="bento-cell"');
+    expect(out).toContain('data-x="1"');
+    expect(out).toContain('data-slot="bento-cell-art"');
+    expect(out).toContain('<h3 data-slot="bento-cell-title" class="text-title-3">Title</h3>');
+    expect(out).toContain("fg-cell fg-ticks c");
+  });
+  it("lets an ArtCard and a FigureGrid take parts or shorthand", () => {
+    const parts = raw(h(ArtCard, null, h(ArtCardTitle, null, "T"), h(ArtCardText, null, "X")));
+    expect(parts).toContain('data-slot="art-card"');
+    expect(parts).toContain('data-slot="art-card-title"');
+    expect(parts).not.toContain("fg-artcard-copy");
+    expect(raw(h(ArtCard, { title: "T", text: "X" }))).toContain('data-slot="art-card-copy"');
+    const figures = raw(h(FigureGrid, null, h(FigureGridItem, { n: "7", label: "Tools" })));
+    expect(figures).toContain('data-slot="figure-grid-item"');
+    expect(figures).toContain("Tools");
+  });
+  it("composes a CompareTable, a Faq and a CtaBand from parts", () => {
+    const table = raw(
+      h(
+        CompareTable,
+        { label: "Plans" },
+        h(CompareTableHead),
+        h(CompareTableGroup, null, "Core"),
+        h(
+          CompareTableRow,
+          null,
+          h(CompareTableName, null, "Hosting"),
+          h(CompareTableCell, { value: true }),
+          h(CompareTableCell, { value: "Soon" }),
+        ),
+      ),
+    );
+    expect(table).toContain('role="table" aria-label="Plans"');
+    expect(table).toContain('data-slot="compare-table-cell"');
+    expect(table).toContain("fg-cmp-soon");
+    const faq = raw(
+      h(
+        Faq,
+        null,
+        h(
+          FaqItem,
+          { open: true },
+          h(FaqQuestion, { n: 3 }, "Why?"),
+          h(FaqAnswer, null, "Because."),
+        ),
+      ),
+    );
+    expect(faq).toContain('<details data-slot="faq-item" open="">');
+    expect(faq).toContain("Q.03");
+    const cta = raw(
+      h(
+        CtaBand,
+        { id: "start" },
+        h(CtaBandInner, null, h(CtaBandCopy, null, "Copy"), h(CtaBandActions, null, "Go")),
+      ),
+    );
+    expect(cta).toContain('<section data-slot="cta-band" id="start" class="fg-rail fg-cta">');
+    expect(cta).toContain('data-slot="cta-band-inner"');
+    expect(cta).not.toContain("fg-cta-art");
+  });
+  it("composes Hero, SiteNav, SiteFooter, PlanCard and StoryStep from parts", () => {
+    expect(
+      raw(
+        h(
+          Hero,
+          { className: "h" },
+          h(HeroLeft, null, "L"),
+          h(HeroRight, null, h(HeroLead, null, "Lead"), h(HeroCta, null, "Go")),
+        ),
+      ),
+    ).toContain('<div data-slot="hero" class="fg-hero h">');
+    const nav = raw(h(SiteNav, null, h(SiteNavBar, null, h(SiteNavLinks, null, "links"))));
+    expect(nav).toContain('aria-label="Main navigation"');
+    expect(nav).toContain('data-slot="site-nav-links"');
+    const foot = raw(
+      h(
+        SiteFooter,
+        null,
+        h(
+          SiteFooterIndex,
+          null,
+          h(SiteFooterBrand, null, "logo"),
+          h(SiteFooterCell, { title: "Docs" }, "x"),
+        ),
+      ),
+    );
+    expect(foot).toContain('data-slot="site-footer-cell"');
+    expect(foot).toContain("fg-foot-title");
+    const plan = raw(
+      h(
+        PlanCard,
+        { featured: true },
+        h(PlanCardHead, null, "Head"),
+        h(PlanCardWhere, null, "Where"),
+        h(PlanCardGroup, null, "g"),
+      ),
+    );
+    expect(plan).toContain("fg-plan fg-ticks fg-plan-featured");
+    expect(plan).toContain('data-slot="plan-card-where"');
+    const step = raw(h(StoryStep, null, h(StoryStepCopy, null, h(StoryStepTitle, null, "Pick"))));
+    expect(step).toContain('<li data-slot="story-step" class="fg-story-step fg-ticks">');
+    expect(step).toContain('<h3 data-slot="story-step-title" class="text-title-1">Pick</h3>');
+  });
+  it("hands a part to its child with asChild", () => {
+    const out = raw(h(BentoCellTitle, { asChild: true }, h("h4", { className: "k" }, "T")));
+    expect(out).toContain('<h4 class="text-title-3 k" data-slot="bento-cell-title">T</h4>');
   });
 });

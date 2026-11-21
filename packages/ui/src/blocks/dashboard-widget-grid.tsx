@@ -2,23 +2,45 @@
 // saved). In edit mode a widget is dragged by its body, resized by its corner, or moved with the
 // arrows (Shift resizes); a widget it lands on is pushed down and the rest fall back up. Under a
 // narrow width the grid is one column, in reading order.
+//
+// Without children it draws the edit bar, the grid and the live region. With them they are the
+// parts; the widgets and the layout stay in the root, which owns the drag:
+//
+//   <WidgetGrid widgets={widgets} layout={layout} onLayoutChange={save} editing={editing}>
+//     <WidgetGridEditBar />
+//     <WidgetGridCanvas>
+//       {(widget) => (
+//         <WidgetGridItem id={widget.id}>
+//           <WidgetGridContent />
+//           <WidgetGridGrab /><WidgetGridResize /><WidgetGridRemove />
+//         </WidgetGridItem>
+//       )}
+//     </WidgetGridCanvas>
+//     <WidgetGridStatus />
+//   </WidgetGrid>
 
 import { Cancel01Icon, CursorMove02Icon, PlusSignIcon } from "@forgeron/icons";
 import {
+  createContext,
+  useContext,
   useEffect,
   useId,
   useMemo,
   useRef,
   useState,
+  type ComponentProps,
   type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
+  type RefObject,
 } from "react";
+import { useWidth } from "../charts/scale";
 import { Button } from "../button";
 import { cx } from "../cx";
 import { useControllableState } from "../hooks/use-controllable";
 import { Icon } from "../icon";
+import { renderPart } from "../part";
 import {
   DASHBOARD_COLUMNS,
   dashboardBoxText,
@@ -32,7 +54,6 @@ import {
   type WidgetLayout,
   type WidgetLimits,
 } from "./dashboard-model";
-import { useWidth } from "../charts/scale";
 
 export type { WidgetLayout } from "./dashboard-model";
 
@@ -47,7 +68,7 @@ export interface DashboardWidget extends WidgetLimits {
   locked?: boolean;
 }
 
-export interface WidgetGridProps {
+export interface WidgetGridProps extends Omit<ComponentProps<"div">, "className"> {
   widgets: ReadonlyArray<DashboardWidget>;
   /** Where each widget sits; widgets without a place take the first free slot. */
   layout?: ReadonlyArray<WidgetLayout>;
@@ -76,6 +97,9 @@ export interface WidgetGridProps {
   /** Shown when there is no widget. */
   empty?: ReactNode;
   className?: string;
+  asChild?: boolean;
+  /** The parts. Without them: the edit bar, the grid and the live region. */
+  children?: ReactNode;
 }
 
 interface Drag {
@@ -85,6 +109,62 @@ interface Drag {
   x: number;
   y: number;
   colW: number;
+}
+
+interface WidgetGridContext {
+  widgets: ReadonlyArray<DashboardWidget>;
+  byId: ReadonlyMap<string, DashboardWidget>;
+  /** Where each widget is drawn now: the layout, or the preview of a drag. */
+  placeOf: ReadonlyMap<string, WidgetLayout>;
+  /** The ids in reading order, the order of a stacked grid. */
+  order: ReadonlyArray<string>;
+  /** The rows the layout takes. */
+  rows: number;
+  editing: boolean;
+  stacked: boolean;
+  columns: number;
+  rowHeight: number;
+  gap: number;
+  box: RefObject<HTMLDivElement | null>;
+  hintId: string;
+  said: string;
+  addLabel: string;
+  empty: ReactNode;
+  onAddWidget: (() => void) | undefined;
+  onRemoveWidget: ((id: string) => void) | undefined;
+  /** Whether this widget is being dragged now. */
+  isDragging: (id: string) => boolean;
+  begin: (event: PointerEvent<HTMLElement>, id: string, mode: Drag["mode"]) => void;
+  move: (event: PointerEvent<HTMLElement>) => void;
+  end: (event: PointerEvent<HTMLElement>) => void;
+  cancel: () => void;
+  keys: (event: KeyboardEvent<HTMLElement>, id: string) => void;
+  remove: (id: string) => void;
+}
+
+const Ctx = createContext<WidgetGridContext | null>(null);
+
+/** The grid a part is in: the widgets, where they are, and the drag. */
+export function useWidgetGrid(part = "useWidgetGrid"): WidgetGridContext {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <WidgetGrid>.`);
+  return ctx;
+}
+
+interface ItemContext {
+  widget: DashboardWidget;
+  place: WidgetLayout;
+  /** In edit mode and not locked. */
+  editable: boolean;
+  dragging: boolean;
+}
+
+const ItemCtx = createContext<ItemContext | null>(null);
+
+function useItem(part: string): ItemContext {
+  const ctx = useContext(ItemCtx);
+  if (!ctx) throw new Error(`<${part}> goes inside a <WidgetGridItem>.`);
+  return ctx;
 }
 
 /**
@@ -109,8 +189,11 @@ export function WidgetGrid({
   label = "Dashboard",
   empty,
   className,
+  asChild,
+  children,
+  ...rest
 }: WidgetGridProps) {
-  const hint = useId();
+  const hintId = useId();
   const root = useRef<HTMLDivElement>(null);
   const [box, width] = useWidth<HTMLDivElement>(1200);
   const [stored, setStored] = useControllableState<ReadonlyArray<WidgetLayout>>({
@@ -148,9 +231,7 @@ export function WidgetGrid({
 
   const display = preview ?? fitted;
   const stacked = width < collapseBelow;
-  const order = dashboardStackOrder(display);
   const byId = new Map(widgets.map((w) => [w.id, w]));
-  const placeOf = new Map(display.map((p) => [p.id, p]));
 
   const commit = (next: WidgetLayout[]) => {
     setStored(next);
@@ -203,18 +284,24 @@ export function WidgetGrid({
       commit(preview);
     } else setPreview(null);
   };
+  const cancel = () => {
+    drag.current = null;
+    setPreview(null);
+  };
+  const remove = (id: string) => {
+    onRemoveWidget?.(id);
+    root.current?.focus();
+  };
 
   const keys = (event: KeyboardEvent<HTMLElement>, id: string) => {
     if (event.key === "Escape" && drag.current) {
-      drag.current = null;
-      setPreview(null);
+      cancel();
       event.preventDefault();
       return;
     }
     if (event.key === "Delete" && onRemoveWidget) {
       event.preventDefault();
-      onRemoveWidget(id);
-      root.current?.focus();
+      remove(id);
       return;
     }
     const at = fitted.find((p) => p.id === id);
@@ -227,17 +314,65 @@ export function WidgetGrid({
     announce(id, placed);
   };
 
+  const ctx: WidgetGridContext = {
+    widgets,
+    byId,
+    placeOf: new Map(display.map((p) => [p.id, p])),
+    order: dashboardStackOrder(display),
+    rows: Math.max(1, dashboardRows(display)),
+    editing,
+    stacked,
+    columns,
+    rowHeight,
+    gap,
+    box,
+    hintId,
+    said,
+    addLabel,
+    empty,
+    onAddWidget,
+    onRemoveWidget,
+    isDragging: (id) => preview !== null && drag.current?.id === id,
+    begin,
+    move,
+    end,
+    cancel,
+    keys,
+    remove,
+  };
   return (
-    <div
-      ref={root}
-      tabIndex={-1}
-      role="region"
-      aria-label={label}
-      className={cx("fg-dash-gridwrap", editing && "fg-dash-editing", className)}
-    >
-      {editing && (onAddWidget || widgets.length > 0) ? (
-        <div className="fg-dash-editbar">
-          <span id={hint} className="fg-dash-edithint">
+    <Ctx.Provider value={ctx}>
+      {renderPart("div", cx("fg-dash-gridwrap", editing && "fg-dash-editing", className), asChild, {
+        "data-slot": "widget-grid",
+        ref: root,
+        tabIndex: -1,
+        role: "region",
+        "aria-label": label,
+        ...rest,
+        children: children ?? (
+          <>
+            <WidgetGridEditBar />
+            <WidgetGridCanvas />
+            <WidgetGridStatus />
+          </>
+        ),
+      })}
+    </Ctx.Provider>
+  );
+}
+
+/* ---------------------------------------------------------------- parts */
+
+/** In edit mode: what the pointer and the keys do, and the add button. */
+export function WidgetGridEditBar({ className, children, ...rest }: ComponentProps<"div">) {
+  const { editing, widgets, onAddWidget, stacked, hintId, addLabel } =
+    useWidgetGrid("WidgetGridEditBar");
+  if (!editing || !(onAddWidget || widgets.length > 0)) return null;
+  return (
+    <div data-slot="widget-grid-edit-bar" {...rest} className={cx("fg-dash-editbar", className)}>
+      {children ?? (
+        <>
+          <span id={hintId} className="fg-dash-edithint">
             {stacked
               ? "Arrow keys move a widget, Delete removes it."
               : "Drag a widget to move it, its corner to resize it. Arrows move, Shift and arrows resize."}
@@ -248,107 +383,200 @@ export function WidgetGrid({
               {addLabel}
             </Button>
           ) : null}
-        </div>
-      ) : null}
-      {widgets.length === 0 ? (
-        <div className="fg-dash-gridempty">{empty ?? "No widgets yet"}</div>
-      ) : (
-        <div
-          ref={box}
-          className={cx("fg-dash-grid", stacked && "fg-dash-grid-stack")}
-          style={
-            {
-              "--fg-dash-cols": columns,
-              "--fg-dash-row": `${rowHeight}px`,
-              "--fg-dash-gap": `${gap}px`,
-              "--fg-dash-rows": Math.max(1, dashboardRows(display)),
-            } as CSSProperties
-          }
-        >
-          {order.map((id) => {
-            const widget = byId.get(id);
-            const place = placeOf.get(id);
-            if (!widget || !place) return null;
-            const editable = editing && !widget.locked;
-            const dragging = preview !== null && drag.current?.id === id;
-            return (
-              <div
-                key={id}
-                className={cx(
-                  "fg-dash-cell",
-                  editable && "fg-dash-cell-edit",
-                  dragging && "fg-dash-dragging",
-                )}
-                style={
-                  {
-                    "--x": place.x,
-                    "--y": place.y,
-                    "--w": place.w,
-                    "--h": place.h,
-                  } as CSSProperties
-                }
-              >
-                <div className="fg-dash-content" inert={editable || undefined}>
-                  {widget.content}
-                </div>
-                {editable ? (
-                  <>
-                    <button
-                      type="button"
-                      className="fg-dash-grab"
-                      aria-label={`Move or resize ${widget.label}`}
-                      aria-describedby={hint}
-                      aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowUp Shift+ArrowDown Shift+ArrowLeft Shift+ArrowRight"
-                      onPointerDown={(e) => begin(e, id, "move")}
-                      onPointerMove={move}
-                      onPointerUp={end}
-                      onPointerCancel={() => {
-                        drag.current = null;
-                        setPreview(null);
-                      }}
-                      onKeyDown={(e) => keys(e, id)}
-                    >
-                      <span className="fg-dash-grab-tag">
-                        <Icon icon={CursorMove02Icon} size={12} variant="mono" />
-                        {widget.label}
-                      </span>
-                    </button>
-                    {stacked ? null : (
-                      <span
-                        className="fg-dash-size"
-                        aria-hidden="true"
-                        onPointerDown={(e) => begin(e, id, "resize")}
-                        onPointerMove={move}
-                        onPointerUp={end}
-                        onPointerCancel={() => {
-                          drag.current = null;
-                          setPreview(null);
-                        }}
-                      />
-                    )}
-                    {onRemoveWidget ? (
-                      <button
-                        type="button"
-                        className="fg-dash-remove"
-                        aria-label={`Remove ${widget.label}`}
-                        onClick={() => {
-                          onRemoveWidget(id);
-                          root.current?.focus();
-                        }}
-                      >
-                        <Icon icon={Cancel01Icon} size={12} variant="mono" />
-                      </button>
-                    ) : null}
-                  </>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+        </>
       )}
-      <div className="fg-visually-hidden" aria-live="polite" role="status">
-        {said}
-      </div>
+    </div>
+  );
+}
+
+export interface WidgetGridCanvasProps extends Omit<ComponentProps<"div">, "children"> {
+  /** Draws one widget, as a `WidgetGridItem`. Default: every widget with its content and edit controls. */
+  children?: (widget: DashboardWidget, place: WidgetLayout) => ReactNode;
+}
+
+/** The 12-column grid itself, or the `empty` note when there is no widget. */
+export function WidgetGridCanvas({ className, style, children, ...rest }: WidgetGridCanvasProps) {
+  const { widgets, byId, placeOf, order, rows, columns, rowHeight, gap, stacked, box, empty } =
+    useWidgetGrid("WidgetGridCanvas");
+  if (widgets.length === 0)
+    return <div className="fg-dash-gridempty">{empty ?? "No widgets yet"}</div>;
+  return (
+    <div
+      ref={box}
+      data-slot="widget-grid-canvas"
+      {...rest}
+      className={cx("fg-dash-grid", stacked && "fg-dash-grid-stack", className)}
+      style={
+        {
+          "--fg-dash-cols": columns,
+          "--fg-dash-row": `${rowHeight}px`,
+          "--fg-dash-gap": `${gap}px`,
+          "--fg-dash-rows": rows,
+          ...style,
+        } as CSSProperties
+      }
+    >
+      {order.map((id) => {
+        const widget = byId.get(id);
+        const place = placeOf.get(id);
+        if (!widget || !place) return null;
+        return children ? (
+          <WidgetGridItem key={id} id={id}>
+            {children(widget, place)}
+          </WidgetGridItem>
+        ) : (
+          <WidgetGridItem key={id} id={id} />
+        );
+      })}
+    </div>
+  );
+}
+
+export interface WidgetGridItemProps extends Omit<ComponentProps<"div">, "id"> {
+  /** The id of the widget. */
+  id: string;
+  asChild?: boolean;
+}
+
+/** The cell of one widget: its place in the grid. Children are its parts; default: content and controls. */
+export function WidgetGridItem({
+  id,
+  className,
+  style,
+  asChild,
+  children,
+  ...rest
+}: WidgetGridItemProps) {
+  const { byId, placeOf, editing, isDragging, onRemoveWidget } = useWidgetGrid("WidgetGridItem");
+  const widget = byId.get(id);
+  const place = placeOf.get(id);
+  if (!widget || !place) return null;
+  const editable = editing && !widget.locked;
+  const dragging = isDragging(id);
+  return (
+    <ItemCtx.Provider value={{ widget, place, editable, dragging }}>
+      {renderPart(
+        "div",
+        cx(
+          "fg-dash-cell",
+          editable && "fg-dash-cell-edit",
+          dragging && "fg-dash-dragging",
+          className,
+        ),
+        asChild,
+        {
+          "data-slot": "widget-grid-item",
+          ...rest,
+          style: { "--x": place.x, "--y": place.y, "--w": place.w, "--h": place.h, ...style },
+          children: children ?? (
+            <>
+              <WidgetGridContent />
+              <WidgetGridGrab />
+              <WidgetGridResize />
+              {onRemoveWidget ? <WidgetGridRemove /> : null}
+            </>
+          ),
+        },
+      )}
+    </ItemCtx.Provider>
+  );
+}
+
+/** What the widget shows. Not reachable by keyboard or pointer while it is being edited. */
+export function WidgetGridContent({ className, children, ...rest }: ComponentProps<"div">) {
+  const { widget, editable } = useItem("WidgetGridContent");
+  return (
+    <div
+      data-slot="widget-grid-content"
+      {...rest}
+      className={cx("fg-dash-content", className)}
+      inert={editable || undefined}
+    >
+      {children ?? widget.content}
+    </div>
+  );
+}
+
+/** The handle that moves the widget: drag it, or press the arrows (Shift resizes). Edit mode only. */
+export function WidgetGridGrab({ className, children, ...rest }: ComponentProps<"button">) {
+  const { widget, editable } = useItem("WidgetGridGrab");
+  const { begin, move, end, cancel, keys, hintId } = useWidgetGrid("WidgetGridGrab");
+  if (!editable) return null;
+  return (
+    <button
+      type="button"
+      data-slot="widget-grid-grab"
+      aria-label={`Move or resize ${widget.label}`}
+      aria-describedby={hintId}
+      aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowUp Shift+ArrowDown Shift+ArrowLeft Shift+ArrowRight"
+      {...rest}
+      className={cx("fg-dash-grab", className)}
+      onPointerDown={(e) => begin(e, widget.id, "move")}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={cancel}
+      onKeyDown={(e) => keys(e, widget.id)}
+    >
+      {children ?? (
+        <span className="fg-dash-grab-tag">
+          <Icon icon={CursorMove02Icon} size={12} variant="mono" />
+          {widget.label}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** The corner that resizes the widget. Edit mode only, and not in a one-column grid. */
+export function WidgetGridResize({ className, ...rest }: ComponentProps<"span">) {
+  const { widget, editable } = useItem("WidgetGridResize");
+  const { begin, move, end, cancel, stacked } = useWidgetGrid("WidgetGridResize");
+  if (!editable || stacked) return null;
+  return (
+    <span
+      data-slot="widget-grid-resize"
+      aria-hidden="true"
+      {...rest}
+      className={cx("fg-dash-size", className)}
+      onPointerDown={(e) => begin(e, widget.id, "resize")}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={cancel}
+    />
+  );
+}
+
+/** The button that removes the widget. Edit mode only; the root's `onRemoveWidget` hears it. */
+export function WidgetGridRemove({ className, children, ...rest }: ComponentProps<"button">) {
+  const { widget, editable } = useItem("WidgetGridRemove");
+  const { remove } = useWidgetGrid("WidgetGridRemove");
+  if (!editable) return null;
+  return (
+    <button
+      type="button"
+      data-slot="widget-grid-remove"
+      aria-label={`Remove ${widget.label}`}
+      {...rest}
+      className={cx("fg-dash-remove", className)}
+      onClick={() => remove(widget.id)}
+    >
+      {children ?? <Icon icon={Cancel01Icon} size={12} variant="mono" />}
+    </button>
+  );
+}
+
+/** The live region that says where a widget landed. */
+export function WidgetGridStatus({ className, children, ...rest }: ComponentProps<"div">) {
+  const { said } = useWidgetGrid("WidgetGridStatus");
+  return (
+    <div
+      data-slot="widget-grid-status"
+      aria-live="polite"
+      role="status"
+      {...rest}
+      className={cx("fg-visually-hidden", className)}
+    >
+      {children ?? said}
     </div>
   );
 }

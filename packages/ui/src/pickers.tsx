@@ -13,7 +13,7 @@ import {
   type SizeLevel,
   type StatusKind,
 } from "./glyphs";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { SelectMenu, type SelectMenuOption } from "./overlays";
 import {
   Select,
@@ -24,7 +24,10 @@ import {
   SelectValue,
 } from "./select";
 
-interface PickerBase<T> {
+interface PickerBase<T> extends Omit<
+  ComponentProps<"div">,
+  "onChange" | "defaultValue" | "children" | "className" | "value"
+> {
   value?: T;
   defaultValue?: T;
   onChange?: (value: T) => void;
@@ -41,19 +44,31 @@ interface PickerBase<T> {
 }
 
 const pass = <T,>(
-  props: PickerBase<T>,
+  {
+    value,
+    defaultValue,
+    onChange,
+    variant,
+    markOnly,
+    open,
+    onOpenChange,
+    children,
+    className,
+    ...rest
+  }: PickerBase<T>,
   parse: (v: string | null) => T,
   show: (v: T) => string,
 ) => ({
-  variant: props.variant ?? "chip",
-  ...(props.markOnly ? { markOnly: true } : {}),
-  ...(props.className ? { className: props.className } : {}),
-  ...(props.value !== undefined ? { value: show(props.value) } : {}),
-  ...(props.defaultValue !== undefined ? { defaultValue: show(props.defaultValue) } : {}),
-  ...(props.open !== undefined ? { open: props.open } : {}),
-  ...(props.onOpenChange ? { onOpenChange: props.onOpenChange } : {}),
-  ...(props.children !== undefined ? { children: props.children } : {}),
-  onChange: (v: string | null) => props.onChange?.(parse(v)),
+  ...rest,
+  variant: variant ?? "chip",
+  ...(markOnly ? { markOnly: true } : {}),
+  ...(className ? { className: className } : {}),
+  ...(value !== undefined ? { value: show(value) } : {}),
+  ...(defaultValue !== undefined ? { defaultValue: show(defaultValue) } : {}),
+  ...(open !== undefined ? { open: open } : {}),
+  ...(onOpenChange ? { onOpenChange: onOpenChange } : {}),
+  ...(children !== undefined ? { children: children } : {}),
+  onChange: (v: string | null) => onChange?.(parse(v)),
 });
 
 /* ---------------------------------------------------------------- status */
@@ -100,6 +115,7 @@ export function StatusPicker({ statuses = ALL_STATUSES, names, ...props }: Statu
         ...statusOptions[ALL_STATUSES.indexOf(s)]!,
         ...(names?.[s] ? { label: names[s] } : {}),
       }))}
+      data-slot="status-picker"
       {...pass(
         props,
         (v) => (v ?? "todo") as StatusKind,
@@ -132,6 +148,7 @@ export function PriorityPicker(props: PriorityPickerProps) {
     <SelectMenu
       label="Priority"
       options={priorityOptions}
+      data-slot="priority-picker"
       {...pass(
         props,
         (v) => Number(v ?? 0) as PriorityLevel,
@@ -175,6 +192,7 @@ export function SizePicker({ points, ...props }: SizePickerProps) {
     <SelectMenu
       label="Size"
       options={sizeOptions(points)}
+      data-slot="size-picker"
       {...pass(
         props,
         (v) => Number(v ?? 0) as SizeLevel,
@@ -214,6 +232,7 @@ export function QuarterPicker({ years, clearable, ...props }: QuarterPickerProps
       label="Quarter"
       placeholder="Quarter"
       options={clearable ? [{ value: "_", label: "No quarter" }, ...options] : options}
+      data-slot="quarter-picker"
       {...pass(
         props,
         (v) => (v === "_" ? null : v),
@@ -273,6 +292,7 @@ export function PersonPicker({
           ? [{ value: "_", label: noneLabel, glyph: <span className="fg-av-none" /> }, ...options]
           : options
       }
+      data-slot="person-picker"
       {...pass(
         props,
         (v) => (v === "_" ? null : v),
@@ -291,7 +311,10 @@ export interface LabelOption {
   color: string;
 }
 
-export interface LabelPickerProps {
+export interface LabelPickerProps extends Omit<
+  ComponentProps<"button">,
+  "onChange" | "defaultValue" | "children" | "className" | "value"
+> {
   labels: ReadonlyArray<LabelOption>;
   value?: ReadonlyArray<string>;
   defaultValue?: ReadonlyArray<string>;
@@ -317,6 +340,7 @@ export function LabelPicker({
   onOpenChange,
   children,
   className,
+  ...rest
 }: LabelPickerProps) {
   const byValue = new Map(labels.map((l) => [l.value, l]));
   const swatch = (l: LabelOption) => (
@@ -333,7 +357,7 @@ export function LabelPicker({
       {...(onOpenChange ? { onOpenChange: (next: boolean) => onOpenChange(next) } : {})}
     >
       <SelectFieldLabel className="fg-sr">Labels</SelectFieldLabel>
-      <SelectTrigger variant={variant} className={className}>
+      <SelectTrigger data-slot="label-picker" {...rest} variant={variant} className={className}>
         {children ?? (
           <SelectValue>
             {(chosen: string[]) =>
