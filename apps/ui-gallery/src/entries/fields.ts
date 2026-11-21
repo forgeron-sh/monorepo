@@ -169,7 +169,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "rating",
     name: "Rating",
     summary: "Pixel stars, one tab stop that works as a slider. Read-only mode, optional halves.",
-    imports: ["Rating", "Star"],
+    imports: ["Rating", "RatingItem", "Star"],
     props: [
       label("the rating"),
       value("number | null", "0 to max."),
@@ -293,7 +293,13 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "number-input",
     name: "Number input",
     summary: "A number with minus and plus buttons, read and written in the locale.",
-    imports: ["NumberInput"],
+    imports: [
+      "NumberInput",
+      "NumberInputField",
+      "NumberInputDecrement",
+      "NumberInputIncrement",
+      "NumberInputAffix",
+    ],
     props: [
       label("the field"),
       value("number | null"),
@@ -338,7 +344,7 @@ export const entries: ReadonlyArray<Atom> = [
     name: "Money input",
     summary:
       "An amount in a currency, in minor units: 1250 is 12.50. The symbol sits where the locale puts it.",
-    imports: ["MoneyInput", "formatMoney"],
+    imports: ["MoneyInput", "MoneyInputField", "MoneyInputSymbol", "formatMoney"],
     props: [
       label("the field"),
       value("number | null", "Minor units, an integer."),
@@ -369,7 +375,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "currency-picker",
     name: "Currency picker",
     summary: "A currency in a short list: code, name and symbol.",
-    imports: ["CurrencyPicker"],
+    imports: ["CurrencyPicker", "CurrencyPickerItem"],
     props: [
       { name: "label", type: "string", default: '"Currency"', description: "Names the control." },
       value("string", "An ISO 4217 code."),
@@ -395,7 +401,16 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "color-picker",
     name: "Color picker",
     summary: "A swatch palette from the tokens and a hex field: no gradients, no sliders.",
-    imports: ["ColorPicker", "COLOR_PALETTE"],
+    imports: [
+      "ColorPicker",
+      "ColorPickerRoot",
+      "ColorPickerTrigger",
+      "ColorPickerContent",
+      "ColorPickerSwatches",
+      "ColorPickerSwatch",
+      "ColorPickerInput",
+      "COLOR_PALETTE",
+    ],
     props: [
       label("the control"),
       value("string | null", "#RRGGBB."),
@@ -434,7 +449,7 @@ export const entries: ReadonlyArray<Atom> = [
     name: "OTP input",
     summary:
       "A one-time code in cells: typing moves on, a paste fills them all, Backspace goes back.",
-    imports: ["OtpInput"],
+    imports: ["OtpInput", "InputOTP", "InputOTPGroup", "InputOTPSlot", "InputOTPSeparator"],
     props: [
       label("the group; each cell reads “character 3 of 6”"),
       { name: "length", type: "number", default: "6", description: "How many characters." },
@@ -463,7 +478,7 @@ export const entries: ReadonlyArray<Atom> = [
     name: "File input",
     summary:
       "A button and a drop target, the list of chosen files with a remove button each, and the limits.",
-    imports: ["FileInput", "formatFileSize"],
+    imports: ["FileInput", "FileInputDrop", "FileInputTrigger", "FileInputList", "formatFileSize"],
     props: [
       label("the field"),
       value("File[]"),
@@ -611,8 +626,14 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "split-pane",
     name: "Split pane",
     summary: "Two panes and a divider to drag or move with the arrows. Size controlled or not.",
-    imports: ["SplitPane"],
+    imports: ["SplitPane", "SplitPanePanel", "SplitPaneHandle"],
     props: [
+      {
+        name: "Parts",
+        type: "SplitPanePanel / SplitPaneHandle",
+        description:
+          "Without first and second, SplitPane takes its parts (D-156): two SplitPanePanel (the second `secondary`) around a SplitPaneHandle with the label; className and rest on each.",
+      },
       { name: "label", type: "string", description: "Names the divider: “Resize the sidebar”." },
       { name: "first / second", type: "ReactNode", description: "The two panes." },
       {

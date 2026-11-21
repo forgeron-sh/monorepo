@@ -20,6 +20,11 @@ import {
   filterCommands,
   type CommandPaletteGroup,
 } from "./index";
+import { CommandPalette as PaletteRoot } from "./command-palette";
+import { CommandInput, CommandItem, CommandList } from "./command";
+import { DialogTrigger } from "./dialog";
+import { Menu } from "./menu";
+import { ModalClose, ModalContent, ModalContext, ModalHeader, ModalTitle } from "./modal";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -227,5 +232,92 @@ describe("Modal", () => {
     expect(document.querySelector(".fg-modal-head")?.textContent).toContain("OPS");
     await act(async () => document.querySelector<HTMLElement>(".fg-modal-close")!.click());
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});
+
+const settle = (ms = 50) => act(async () => new Promise((r) => setTimeout(r, ms)));
+
+describe("the parts form, under the same names", () => {
+  it("Menu without entries is the DropdownMenu root", async () => {
+    const run = vi.fn<() => void>();
+    await mount(
+      h(
+        Menu,
+        { open: true },
+        h(DropdownMenuTrigger, null, "Open"),
+        h(
+          DropdownMenuContent,
+          { "aria-label": "Mine" },
+          h(DropdownMenuItem, { onClick: run }, "Copy"),
+        ),
+      ),
+    );
+    expect(document.querySelector("[role=menu]")?.getAttribute("aria-label")).toBe("Mine");
+    await act(async () => document.querySelector<HTMLElement>("[role=menuitem]")!.click());
+    expect(run).toHaveBeenCalled();
+  });
+
+  it("ActionMenu without items is the DropdownMenu root", async () => {
+    await mount(
+      h(
+        ActionMenu,
+        { open: true },
+        h(DropdownMenuTrigger, null, "Open"),
+        h(DropdownMenuContent, null, h(DropdownMenuItem, null, "Rename")),
+      ),
+    );
+    expect([...document.querySelectorAll("[role=menuitem]")].map((r) => r.textContent)).toEqual([
+      "Rename",
+    ]);
+  });
+
+  it("Modal without a title composes its own parts, opened by a DialogTrigger", async () => {
+    await mount(
+      h(
+        Modal,
+        null,
+        h(DialogTrigger, null, "Open"),
+        h(
+          ModalContent,
+          { size: "sm" },
+          h(
+            ModalHeader,
+            null,
+            h(ModalContext, null, "OPS"),
+            h(ModalTitle, null, "Rename view"),
+            h(ModalClose),
+          ),
+          "Body",
+        ),
+      ),
+    );
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    await act(async () => document.querySelector("button")!.click());
+    await settle();
+    const dialog = document.querySelector("[role=dialog]")!;
+    expect(dialog.className).toContain("fg-modal-sm");
+    expect(dialog.getAttribute("aria-labelledby")).toBe(
+      document.querySelector(".fg-modal-title")!.id,
+    );
+    expect(document.querySelector(".fg-modal-head")?.textContent).toContain("OPS›Rename view");
+    await act(async () => document.querySelector<HTMLElement>(".fg-modal-close")!.click());
+    await settle();
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+  });
+
+  it("CommandPalette without groups is a dialog around the Command parts", async () => {
+    const run = vi.fn<(v: string) => void>();
+    await mount(
+      h(
+        PaletteRoot,
+        { open: true },
+        h(CommandInput, { placeholder: "Go to…" }),
+        h(CommandList, null, h(CommandItem, { value: "inbox", onSelect: run }, "Inbox")),
+      ),
+    );
+    const input = document.querySelector<HTMLInputElement>("[role=combobox]")!;
+    expect(input.placeholder).toBe("Go to…");
+    await key(input, "Enter");
+    expect(run).toHaveBeenCalledWith("inbox");
   });
 });

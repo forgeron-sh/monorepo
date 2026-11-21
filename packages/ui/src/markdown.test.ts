@@ -176,7 +176,7 @@ describe("ToolCard", () => {
 describe("DetailList", () => {
   it("pairs labels with values", () => {
     const out = html(h(DetailList, { items: [{ label: "Version", value: "1.4.0" }] }));
-    expect(out).toContain("<dt>Version</dt>");
-    expect(out).toContain("<dd>1.4.0</dd>");
+    expect(out).toMatch(/<dt[^>]*>Version<\/dt>/);
+    expect(out).toMatch(/<dd[^>]*>1\.4\.0<\/dd>/);
   });
 });

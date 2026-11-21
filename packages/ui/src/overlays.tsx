@@ -1,18 +1,18 @@
 // The parts that open over the page. Focus, dismissal, positioning and announcements come from
 // Base UI (unstyled, accessible primitives); the look is the lab language's, in atoms.css.
 
-import { Popover } from "@base-ui/react/popover";
-import { Toast } from "@base-ui/react/toast";
+import { Toast as Base } from "@base-ui/react/toast";
 import type { IconDefinition } from "@forgeron/icons";
 import { Calendar03Icon, Cancel01Icon } from "@forgeron/icons";
-import type { KeyboardEvent, ReactNode } from "react";
-import { useState } from "react";
+import type { ComponentProps, KeyboardEvent, ReactNode } from "react";
+import { createContext, Fragment, useContext, useState } from "react";
 import { useControllableState } from "./hooks/use-controllable";
 import { useDisclosure } from "./hooks/use-disclosure";
-import { Calendar } from "./calendar";
+import { Calendar, type CalendarProps } from "./calendar";
 import { cx } from "./cx";
 import { addDays, formatShort, toIso, weekday } from "./dates";
 import { Icon } from "./icon";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import {
   Select,
   SelectContent,
@@ -156,46 +156,112 @@ export function SelectMenu({
 
 /* ---------------------------------------------------------------- Toast */
 
-function ToastList() {
-  const { toasts } = Toast.useToastManager();
-  return toasts.map((toast) => (
-    <Toast.Root
-      key={toast.id}
+// The toast parts, as shadcn splits them. A toast is drawn from its `toast` (an object of the
+// manager); each part reads it from the one around it. `Toaster` draws the default toast of each.
+
+type Part<T> = Omit<T, "className"> & { className?: string };
+
+export type ToastObject = ReturnType<typeof Base.useToastManager>["toasts"][number];
+
+export type ToastProps = Part<Omit<ComponentProps<typeof Base.Root>, "toast">> & {
+  /** The toast to draw, as `useToast().toasts` lists them. */
+  toast: ToastObject;
+};
+
+/**
+ * One toast: the frame. Its children are `ToastTitle`, `ToastDescription`, `ToastAction`,
+ * `ToastClose`; without children it draws all four from the toast itself.
+ */
+export function Toast({ toast, className, children, ...rest }: ToastProps) {
+  return (
+    <Base.Root
+      {...rest}
       toast={toast}
-      className={cx("fg-toast", toast.type && `fg-toast-${toast.type}`)}
+      className={cx("fg-toast", toast.type && `fg-toast-${toast.type}`, className)}
     >
-      <Toast.Content className="fg-toast-content">
-        <Toast.Title className="fg-toast-title" />
-        <Toast.Description className="fg-toast-text" />
-      </Toast.Content>
-      {toast.actionProps ? <Toast.Action className="fg-toast-action" /> : null}
-      <Toast.Close className="fg-toast-close" aria-label="Dismiss">
-        <Icon icon={Cancel01Icon} size={12} variant="mono" />
-      </Toast.Close>
-    </Toast.Root>
-  ));
+      {children ?? (
+        <>
+          <ToastContent>
+            <ToastTitle />
+            <ToastDescription />
+          </ToastContent>
+          {toast.actionProps ? <ToastAction /> : null}
+          <ToastClose />
+        </>
+      )}
+    </Base.Root>
+  );
+}
+
+/** Groups the title and the description. */
+export function ToastContent({ className, ...rest }: Part<ComponentProps<typeof Base.Content>>) {
+  return <Base.Content {...rest} className={cx("fg-toast-content", className)} />;
+}
+
+export function ToastTitle({ className, ...rest }: Part<ComponentProps<typeof Base.Title>>) {
+  return <Base.Title {...rest} className={cx("fg-toast-title", className)} />;
+}
+
+export function ToastDescription({
+  className,
+  ...rest
+}: Part<ComponentProps<typeof Base.Description>>) {
+  return <Base.Description {...rest} className={cx("fg-toast-text", className)} />;
+}
+
+/** The button of the toast's `actionProps`; give it children to draw your own. */
+export function ToastAction({ className, ...rest }: Part<ComponentProps<typeof Base.Action>>) {
+  return <Base.Action {...rest} className={cx("fg-toast-action", className)} />;
+}
+
+/** Dismisses the toast. Without children, a cross. */
+export function ToastClose({
+  className,
+  children,
+  ...rest
+}: Part<ComponentProps<typeof Base.Close>>) {
+  return (
+    <Base.Close aria-label="Dismiss" {...rest} className={cx("fg-toast-close", className)}>
+      {children ?? <Icon icon={Cancel01Icon} size={12} variant="mono" />}
+    </Base.Close>
+  );
+}
+
+function ToastList({ render }: { render?: ((toast: ToastObject) => ReactNode) | undefined }) {
+  const { toasts } = Base.useToastManager();
+  return toasts.map((toast) =>
+    render ? (
+      <Fragment key={toast.id}>{render(toast)}</Fragment>
+    ) : (
+      <Toast key={toast.id} toast={toast} />
+    ),
+  );
 }
 
 export interface ToasterProps {
   children?: ReactNode;
   /** How many toasts show at once; older ones wait. */
   limit?: number;
+  /** Draws each toast yourself, from the parts: `(toast) => <Toast toast={toast}>…</Toast>`. */
+  renderToast?: (toast: ToastObject) => ReactNode;
+  /** Class of the viewport that holds the toasts. */
+  viewportClassName?: string;
 }
 
 /**
  * Wrap the app once: toasts added with `useToast().add({ title })` show at the bottom right,
  * are announced, pause on hover, and F6 reaches them from the keyboard.
  */
-export function Toaster({ children, limit = 3 }: ToasterProps) {
+export function Toaster({ children, limit = 3, renderToast, viewportClassName }: ToasterProps) {
   return (
-    <Toast.Provider limit={limit}>
+    <Base.Provider limit={limit}>
       {children}
-      <Toast.Portal>
-        <Toast.Viewport className="fg-toasts">
-          <ToastList />
-        </Toast.Viewport>
-      </Toast.Portal>
-    </Toast.Provider>
+      <Base.Portal>
+        <Base.Viewport className={cx("fg-toasts", viewportClassName)}>
+          <ToastList render={renderToast} />
+        </Base.Viewport>
+      </Base.Portal>
+    </Base.Provider>
   );
 }
 
@@ -203,7 +269,7 @@ export function Toaster({ children, limit = 3 }: ToasterProps) {
  * `add({ title, description, type: "success" | "danger", actionProps: { children: "Undo",
  * onClick } })`, and `close(id)`.
  */
-export const useToast = Toast.useToastManager;
+export const useToast = Base.useToastManager;
 
 /* ---------------------------------------------------------------- DatePicker */
 
@@ -249,22 +315,50 @@ export interface DatePickerProps {
   className?: string;
 }
 
-/** A date behind a chip: quick picks first, then the month. */
-export function DatePicker({
-  label,
+/** The root of the composed date picker: no `label`, the parts as children. */
+export interface DatePickerRootProps {
+  label?: undefined;
+  value?: string | null;
+  defaultValue?: string | null;
+  onChange?: (value: string | null) => void;
+  today?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  children?: ReactNode;
+}
+
+interface DatePickerState {
+  value: string | null;
+  choose: (next: string | null) => void;
+  today: string;
+}
+
+const DatePickerContext = createContext<DatePickerState | null>(null);
+
+function useDatePicker(part: string): DatePickerState {
+  const state = useContext(DatePickerContext);
+  if (!state) throw new Error(`${part} goes inside a DatePicker.`);
+  return state;
+}
+
+/**
+ * With `label`: a date behind a chip, quick picks first, then the month. Without: the root of the
+ * parts (`DatePickerTrigger`, `DatePickerContent`, `DatePickerPresets`, `DatePickerCalendar`),
+ * built on `Popover` and `Calendar` parts.
+ */
+export function DatePicker(props: DatePickerProps | DatePickerRootProps) {
+  return props.label !== undefined ? <DatePickerField {...props} /> : <DatePickerRoot {...props} />;
+}
+
+function DatePickerRoot({
   value: valueProp,
   defaultValue = null,
   onChange,
-  placeholder = "Set date",
-  presets,
-  clearable = true,
   today: todayProp,
-  variant = "chip",
   open: openProp,
   onOpenChange,
   children,
-  className,
-}: DatePickerProps) {
+}: DatePickerRootProps) {
   const [deviceToday] = useState(() => toIso(new Date()));
   const today = todayProp ?? deviceToday;
   const [value, setValue] = useControllableState<string | null>({
@@ -273,64 +367,176 @@ export function DatePicker({
     onChange,
   });
   const { open, setOpen } = useDisclosure({ open: openProp, onOpenChange });
-  const picks = presets ?? duePresets(today);
-  const year = Number(today.slice(0, 4));
   const choose = (next: string | null) => {
     setValue(next);
     setOpen(false);
   };
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger
-        className={cx(
-          "fg-selm-trigger",
-          variant === "chip" && "fg-selm-chip",
-          !value && "fg-selm-empty",
-          className,
-        )}
-        aria-label={value ? `${label}: ${formatShort(value, year)}` : label}
+    <DatePickerContext.Provider value={{ value, choose, today }}>
+      <Popover open={open} onOpenChange={setOpen}>
+        {children}
+      </Popover>
+    </DatePickerContext.Provider>
+  );
+}
+
+export interface DatePickerTriggerProps {
+  /** Names the control, e.g. "Due date". */
+  label: string;
+  placeholder?: string;
+  /** `chip` (default): a property of a record. `field`: a form control. */
+  variant?: "chip" | "field";
+  /** Drawn in place of the date. */
+  children?: ReactNode;
+  className?: string;
+}
+
+/** The chip or field that shows the date and opens the picker. */
+export function DatePickerTrigger({
+  label,
+  placeholder = "Set date",
+  variant = "chip",
+  children,
+  className,
+}: DatePickerTriggerProps) {
+  const { value, today } = useDatePicker("DatePickerTrigger");
+  const year = Number(today.slice(0, 4));
+  return (
+    <PopoverTrigger
+      className={cx(
+        "fg-selm-trigger",
+        variant === "chip" && "fg-selm-chip",
+        !value && "fg-selm-empty",
+        className,
+      )}
+      aria-label={value ? `${label}: ${formatShort(value, year)}` : label}
+    >
+      {children ?? (
+        <>
+          <Icon icon={Calendar03Icon} size={12} variant="mono" />
+          <span>{value ? formatShort(value, year) : placeholder}</span>
+        </>
+      )}
+    </PopoverTrigger>
+  );
+}
+
+export interface DatePickerContentProps {
+  /** Names the panel, e.g. "Due date". */
+  label: string;
+  children?: ReactNode;
+  className?: string;
+}
+
+/** The panel under the trigger: presets, then the calendar. */
+export function DatePickerContent({ label, children, className }: DatePickerContentProps) {
+  return (
+    <PopoverContent
+      side="bottom"
+      align="start"
+      sideOffset={4}
+      aria-label={label}
+      className={cx("fg-datepop", className)}
+    >
+      {children}
+    </PopoverContent>
+  );
+}
+
+export interface DatePickerPresetsProps {
+  /** `duePresets(today)` by default, `[]` for none. */
+  presets?: ReadonlyArray<DatePreset>;
+  /** Offers to remove the date. Default `true`. */
+  clearable?: boolean;
+  /** Names the date in "Remove …", e.g. "Due date". */
+  label?: string;
+  className?: string;
+}
+
+/** The quick picks, and the row that removes the date. */
+export function DatePickerPresets({
+  presets,
+  clearable = true,
+  label = "date",
+  className,
+}: DatePickerPresetsProps) {
+  const { value, choose, today } = useDatePicker("DatePickerPresets");
+  const picks = presets ?? duePresets(today);
+  const year = Number(today.slice(0, 4));
+  if (picks.length === 0 && !(clearable && value)) return null;
+  return (
+    <div className={cx("fg-pop-list", className)}>
+      {picks.map((p) => (
+        <button key={p.label} type="button" className="fg-pop-row" onClick={() => choose(p.value)}>
+          <Icon icon={Calendar03Icon} size={12} variant="mono" />
+          <span className="fg-pop-label">{p.label}</span>
+          <span className="fg-pop-hint">{formatShort(p.value, year)}</span>
+        </button>
+      ))}
+      {clearable && value ? (
+        <button type="button" className="fg-pop-row" onClick={() => choose(null)}>
+          <Icon icon={Cancel01Icon} size={12} variant="mono" />
+          <span className="fg-pop-label">Remove {label.toLowerCase()}</span>
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+export type DatePickerCalendarProps = Omit<
+  CalendarProps,
+  "value" | "onChange" | "today" | "range" | "children"
+>;
+
+/** The month: choosing a day sets the date and closes the panel. */
+export function DatePickerCalendar(props: DatePickerCalendarProps) {
+  const { value, choose, today } = useDatePicker("DatePickerCalendar");
+  return (
+    <Calendar
+      {...props}
+      today={today}
+      {...(value ? { value } : {})}
+      onChange={(next) => choose(next)}
+    />
+  );
+}
+
+function DatePickerField({
+  label,
+  value,
+  defaultValue,
+  onChange,
+  placeholder,
+  presets,
+  clearable = true,
+  today,
+  variant,
+  open,
+  onOpenChange,
+  children,
+  className,
+}: DatePickerProps) {
+  return (
+    <DatePickerRoot
+      {...(value !== undefined ? { value } : {})}
+      {...(defaultValue !== undefined ? { defaultValue } : {})}
+      {...(onChange ? { onChange } : {})}
+      {...(today ? { today } : {})}
+      {...(open !== undefined ? { open } : {})}
+      {...(onOpenChange ? { onOpenChange } : {})}
+    >
+      <DatePickerTrigger
+        label={label}
+        {...(placeholder !== undefined ? { placeholder } : {})}
+        {...(variant ? { variant } : {})}
+        {...(className ? { className } : {})}
       >
-        {children ?? (
-          <>
-            <Icon icon={Calendar03Icon} size={12} variant="mono" />
-            <span>{value ? formatShort(value, year) : placeholder}</span>
-          </>
-        )}
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner className="fg-pop-positioner" sideOffset={4} align="start">
-          <Popover.Popup className="fg-pop fg-datepop" aria-label={label}>
-            {picks.length > 0 || (clearable && value) ? (
-              <div className="fg-pop-list">
-                {picks.map((p) => (
-                  <button
-                    key={p.label}
-                    type="button"
-                    className="fg-pop-row"
-                    onClick={() => choose(p.value)}
-                  >
-                    <Icon icon={Calendar03Icon} size={12} variant="mono" />
-                    <span className="fg-pop-label">{p.label}</span>
-                    <span className="fg-pop-hint">{formatShort(p.value, year)}</span>
-                  </button>
-                ))}
-                {clearable && value ? (
-                  <button type="button" className="fg-pop-row" onClick={() => choose(null)}>
-                    <Icon icon={Cancel01Icon} size={12} variant="mono" />
-                    <span className="fg-pop-label">Remove {label.toLowerCase()}</span>
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-            <Calendar
-              label={label}
-              today={today}
-              {...(value ? { value } : {})}
-              onChange={(next) => choose(next)}
-            />
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+        {children}
+      </DatePickerTrigger>
+      <DatePickerContent label={label}>
+        <DatePickerPresets {...(presets ? { presets } : {})} clearable={clearable} label={label} />
+        <DatePickerCalendar label={label} />
+      </DatePickerContent>
+    </DatePickerRoot>
   );
 }

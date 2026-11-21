@@ -368,9 +368,12 @@
   color: var(--ink);
   background: var(--bg-raised);
 }
-.fg-time-pop {
+.fg-time-pop,
+.fg-pop.fg-popover.fg-time-pop {
+  width: auto;
   min-width: 140px;
   max-width: 200px;
+  padding: 0;
 }
 .fg-time-pop .fg-pop-row[data-selected] {
   border-color: var(--accent);
@@ -378,7 +381,8 @@
 }
 
 /* DateRangePicker: the quick picks, a month with a band, the state. */
-.fg-range-pop {
+.fg-range-pop,
+.fg-pop.fg-popover.fg-datepop.fg-range-pop {
   width: 262px;
 }
 .fg-range-presets {
@@ -470,6 +474,9 @@
 .fg-num-bare .fg-num-input {
   padding: 0 var(--space-3);
 }
+.fg-num:not(:has(.fg-num-btn)) .fg-num-input {
+  padding: 0 var(--space-3);
+}
 .fg-num-btn {
   display: inline-grid;
   place-items: center;
@@ -519,6 +526,10 @@
 .fg-color-pop {
   min-width: 0;
   width: max-content;
+}
+.fg-pop.fg-color-pop {
+  min-width: 0;
+  padding: 0;
 }
 .fg-color-grid {
   display: grid;
@@ -603,6 +614,20 @@
 }
 .fg-otp-gap {
   margin-left: 10px;
+}
+.fg-otp-group {
+  display: inline-flex;
+  gap: 6px;
+}
+.fg-otp-sep {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-dim);
+}
+.fg-otp-dash {
+  width: 8px;
+  height: 2px;
+  background: currentColor;
 }
 
 /* FileInput */

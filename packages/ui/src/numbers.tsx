@@ -1,14 +1,25 @@
 // Numbers typed by people: a stepper field (NumberInput), an amount in a currency (MoneyInput,
 // in minor units: 1250 is 12.50) and the list of currencies (CurrencyPicker). Text is read and
-// written in the locale of the person, `1 234,50` or `1,234.50`.
+// written in the locale of the person, `1 234,50` or `1,234.50`. Each is its props form, built
+// from parts (D-156): `NumberInputField`, `NumberInputDecrement`, `NumberInputIncrement`,
+// `NumberInputAffix`; `MoneyInputField`, `MoneyInputSymbol`; `CurrencyPickerItem` over the Select.
 
 import { MinusSignIcon, PlusSignIcon } from "@forgeron/icons";
-import type { KeyboardEvent, ReactNode } from "react";
-import { useState } from "react";
+import type { ComponentProps, KeyboardEvent, ReactNode } from "react";
+import { createContext, useContext, useState } from "react";
 import { cx } from "./cx";
 import { useControllableState } from "./hooks/use-controllable";
 import { Icon } from "./icon";
-import { SelectMenu } from "./overlays";
+import {
+  Select,
+  SelectContent,
+  SelectFieldLabel,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  type SelectItemProps,
+  type SelectRootProps,
+} from "./select";
 
 /* ---------------------------------------------------------------- locale */
 
@@ -71,13 +82,70 @@ export interface NumberInputProps {
   "aria-describedby"?: string | undefined;
   "aria-invalid"?: boolean | undefined;
   className?: string;
+  /** Stays undefined: with children, `NumberInput` is the root of the parts. */
+  children?: undefined;
+}
+
+/**
+ * The root of the parts: the same props but `prefix`, `suffix` and `buttons` (the parts are the
+ * children: `NumberInputDecrement`, `NumberInputAffix`, `NumberInputField`, `NumberInputIncrement`).
+ */
+export type NumberInputRootProps = Omit<
+  NumberInputProps,
+  "prefix" | "suffix" | "buttons" | "children"
+> & { children: ReactNode };
+
+interface NumberState {
+  label: string;
+  current: number | null;
+  text: string;
+  step: number;
+  min: number | undefined;
+  max: number | undefined;
+  digits: number;
+  atMin: boolean;
+  atMax: boolean;
+  disabled: boolean | undefined;
+  readOnly: boolean | undefined;
+  id: string | undefined;
+  placeholder: string | undefined;
+  aria: { "aria-describedby"?: string | undefined; "aria-invalid"?: boolean | undefined };
+  bump: (by: number) => void;
+  setDraft: (text: string) => void;
+  focus: () => void;
+  blur: (text: string) => void;
+  keyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  describe: (n: number) => string;
+}
+
+const NumberContext = createContext<NumberState | null>(null);
+
+function useNumber(): NumberState {
+  const state = useContext(NumberContext);
+  if (!state) throw new Error("NumberInput parts go inside <NumberInput>.");
+  return state;
 }
 
 /**
  * A number with minus and plus buttons. Arrows add one step, Page keys ten, Home and End go to
- * the limits; the number is written in the locale and read back from it.
+ * the limits; the number is written in the locale and read back from it. With children it is the
+ * root of the parts; without, it draws the buttons, the affixes and the field itself.
  */
-export function NumberInput({
+export function NumberInput(props: NumberInputProps | NumberInputRootProps) {
+  if (props.children !== undefined) return <NumberInputRoot {...(props as NumberInputRootProps)} />;
+  const { prefix, suffix, buttons = true, children: _none, ...rest } = props as NumberInputProps;
+  return (
+    <NumberInputRoot {...rest} bare={!buttons}>
+      {buttons ? <NumberInputDecrement /> : null}
+      {prefix ? <NumberInputAffix>{prefix}</NumberInputAffix> : null}
+      <NumberInputField />
+      {suffix ? <NumberInputAffix>{suffix}</NumberInputAffix> : null}
+      {buttons ? <NumberInputIncrement /> : null}
+    </NumberInputRoot>
+  );
+}
+
+function NumberInputRoot({
   label,
   value,
   defaultValue = null,
@@ -88,16 +156,15 @@ export function NumberInput({
   largeStep = step * 10,
   locale,
   format,
-  prefix,
-  suffix,
-  buttons = true,
   placeholder,
   disabled,
   readOnly,
   id,
   className,
+  bare,
+  children,
   ...aria
-}: NumberInputProps) {
+}: NumberInputRootProps & { bare?: boolean }) {
   const [current, setCurrent] = useControllableState<number | null>({
     value,
     defaultValue,
@@ -126,7 +193,7 @@ export function NumberInput({
     setDraft(null);
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (readOnly) return;
     const big = event.shiftKey ? largeStep : step;
     if (event.key === "ArrowUp") bump(big);
@@ -140,70 +207,149 @@ export function NumberInput({
     if (event.key !== "Enter" || draft !== null) event.preventDefault();
   };
 
-  const atMin = min !== undefined && current !== null && current <= min;
-  const atMax = max !== undefined && current !== null && current >= max;
-  const text = draft ?? (current === null ? "" : shown.format(current));
+  const state: NumberState = {
+    label,
+    current,
+    text: draft ?? (current === null ? "" : shown.format(current)),
+    step,
+    min,
+    max,
+    digits,
+    atMin: min !== undefined && current !== null && current <= min,
+    atMax: max !== undefined && current !== null && current >= max,
+    disabled,
+    readOnly,
+    id,
+    placeholder,
+    aria,
+    bump,
+    setDraft,
+    focus: () => !readOnly && setDraft(current === null ? "" : plain.format(current)),
+    blur: (text) => {
+      if (draft !== null) commit(text);
+    },
+    keyDown,
+    describe: (n) => shown.format(n),
+  };
+  // `draft` is read by `blur` and `keyDown`, which close over it above.
 
   return (
-    <div
-      className={cx(
-        "fg-num",
-        !buttons && "fg-num-bare",
-        disabled && "fg-combo-disabled",
-        aria["aria-invalid"] && "fg-num-invalid",
-        className,
-      )}
+    <NumberContext.Provider value={state}>
+      <div
+        className={cx(
+          "fg-num",
+          bare && "fg-num-bare",
+          disabled && "fg-combo-disabled",
+          aria["aria-invalid"] && "fg-num-invalid",
+          className,
+        )}
+      >
+        {children}
+      </div>
+    </NumberContext.Provider>
+  );
+}
+
+export type NumberInputButtonProps = Omit<ComponentProps<"button">, "type">;
+
+/** The minus button; it steps down by `step` and rests at `min`. */
+export function NumberInputDecrement({
+  className,
+  children,
+  onClick,
+  ...rest
+}: NumberInputButtonProps) {
+  const n = useNumber();
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      disabled={n.disabled || n.readOnly || n.atMin}
+      aria-label={`Decrease ${n.label}`}
+      {...rest}
+      className={cx("fg-num-btn", className)}
+      onClick={(event) => {
+        onClick?.(event);
+        if (!event.defaultPrevented) n.bump(-n.step);
+      }}
     >
-      {buttons ? (
-        <button
-          type="button"
-          className="fg-num-btn"
-          tabIndex={-1}
-          disabled={disabled || readOnly || atMin}
-          aria-label={`Decrease ${label}`}
-          onClick={() => bump(-step)}
-        >
-          <Icon icon={MinusSignIcon} size={12} variant="mono" />
-        </button>
-      ) : null}
-      {prefix ? <span className="fg-num-affix">{prefix}</span> : null}
-      <input
-        {...aria}
-        id={id}
-        type="text"
-        inputMode={digits > 0 ? "decimal" : "numeric"}
-        role="spinbutton"
-        aria-label={label}
-        aria-valuenow={current ?? undefined}
-        aria-valuemin={min}
-        aria-valuemax={max}
-        aria-valuetext={current === null ? "Empty" : shown.format(current)}
-        className="fg-num-input"
-        value={text}
-        placeholder={placeholder}
-        disabled={disabled}
-        readOnly={readOnly}
-        onFocus={() => !readOnly && setDraft(current === null ? "" : plain.format(current))}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={(event) => {
-          if (draft !== null) commit(event.target.value);
-        }}
-        onKeyDown={onKeyDown}
-      />
-      {suffix ? <span className="fg-num-affix">{suffix}</span> : null}
-      {buttons ? (
-        <button
-          type="button"
-          className="fg-num-btn"
-          tabIndex={-1}
-          disabled={disabled || readOnly || atMax}
-          aria-label={`Increase ${label}`}
-          onClick={() => bump(step)}
-        >
-          <Icon icon={PlusSignIcon} size={12} variant="mono" />
-        </button>
-      ) : null}
-    </div>
+      {children ?? <Icon icon={MinusSignIcon} size={12} variant="mono" />}
+    </button>
+  );
+}
+
+/** The plus button; it steps up by `step` and rests at `max`. */
+export function NumberInputIncrement({
+  className,
+  children,
+  onClick,
+  ...rest
+}: NumberInputButtonProps) {
+  const n = useNumber();
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      disabled={n.disabled || n.readOnly || n.atMax}
+      aria-label={`Increase ${n.label}`}
+      {...rest}
+      className={cx("fg-num-btn", className)}
+      onClick={(event) => {
+        onClick?.(event);
+        if (!event.defaultPrevented) n.bump(n.step);
+      }}
+    >
+      {children ?? <Icon icon={PlusSignIcon} size={12} variant="mono" />}
+    </button>
+  );
+}
+
+/** Text beside the number, inside the frame: a unit, a symbol. Put it before or after the field. */
+export function NumberInputAffix({ className, ...rest }: ComponentProps<"span">) {
+  return <span {...rest} className={cx("fg-num-affix", className)} />;
+}
+
+/** The field: a spin button that reads and writes the number in the locale. */
+export function NumberInputField({
+  className,
+  ...rest
+}: Omit<
+  ComponentProps<"input">,
+  "value" | "defaultValue" | "onChange" | "type" | "role" | "className"
+> & { className?: string }) {
+  const n = useNumber();
+  return (
+    <input
+      {...n.aria}
+      id={n.id}
+      type="text"
+      inputMode={n.digits > 0 ? "decimal" : "numeric"}
+      role="spinbutton"
+      aria-label={n.label}
+      aria-valuenow={n.current ?? undefined}
+      aria-valuemin={n.min}
+      aria-valuemax={n.max}
+      aria-valuetext={n.current === null ? "Empty" : n.describe(n.current)}
+      placeholder={n.placeholder}
+      disabled={n.disabled}
+      readOnly={n.readOnly}
+      {...rest}
+      className={cx("fg-num-input", className)}
+      value={n.text}
+      onFocus={(event) => {
+        rest.onFocus?.(event);
+        n.focus();
+      }}
+      onChange={(event) => n.setDraft(event.target.value)}
+      onBlur={(event) => {
+        rest.onBlur?.(event);
+        n.blur(event.target.value);
+      }}
+      onKeyDown={(event) => {
+        rest.onKeyDown?.(event);
+        if (!event.defaultPrevented) n.keyDown(event);
+      }}
+    />
   );
 }
 
@@ -250,9 +396,24 @@ export interface MoneyInputProps {
   "aria-describedby"?: string | undefined;
   "aria-invalid"?: boolean | undefined;
   className?: string;
+  /** Stays undefined: with children, `MoneyInput` is the root of the parts. */
+  children?: undefined;
 }
 
-/** An amount of money: the symbol of the currency on the side the locale puts it, minor units out. */
+/** The root of the parts: the same props, with `MoneyInputSymbol` and `MoneyInputField` inside. */
+export type MoneyInputRootProps = Omit<MoneyInputProps, "children"> & {
+  children: ReactNode;
+};
+
+const MoneyContext = createContext<{ symbol: string; currency: string; before: boolean } | null>(
+  null,
+);
+
+/**
+ * An amount of money: the symbol of the currency on the side the locale puts it, minor units out.
+ * With children it is the root of the parts (`MoneyInputSymbol`, `MoneyInputField`, and the
+ * `NumberInput` buttons); without, it draws the symbol and the field.
+ */
 export function MoneyInput({
   label,
   value,
@@ -263,8 +424,9 @@ export function MoneyInput({
   min,
   max,
   step,
+  children,
   ...rest
-}: MoneyInputProps) {
+}: MoneyInputProps | MoneyInputRootProps) {
   const [minor, setMinor] = useControllableState<number | null>({ value, defaultValue, onChange });
   const digits = minorDigits(currency);
   const unit = 10 ** digits;
@@ -276,26 +438,55 @@ export function MoneyInput({
   const symbol = parts.find((p) => p.type === "currency")?.value ?? currency;
   const before =
     parts.findIndex((p) => p.type === "currency") < parts.findIndex((p) => p.type === "integer");
-  const affix = (
-    <span title={currency}>
-      {symbol}
-      <span className="fg-sr"> ({currency})</span>
-    </span>
-  );
+  const field = <MoneyInputField />;
+  const mark = <MoneyInputSymbol />;
   return (
-    <NumberInput
-      {...rest}
-      label={label}
-      locale={locale}
-      value={minor === null ? null : minor / unit}
-      onChange={(major) => setMinor(major === null ? null : Math.round(major * unit))}
-      min={min === undefined ? undefined : min / unit}
-      max={max === undefined ? undefined : max / unit}
-      step={(step ?? unit) / unit}
-      format={{ minimumFractionDigits: digits, maximumFractionDigits: digits }}
-      buttons={false}
-      {...(before ? { prefix: affix } : { suffix: affix })}
-    />
+    <MoneyContext.Provider value={{ symbol, currency, before }}>
+      <NumberInputRoot
+        {...rest}
+        label={label}
+        locale={locale}
+        value={minor === null ? null : minor / unit}
+        onChange={(major) => setMinor(major === null ? null : Math.round(major * unit))}
+        min={min === undefined ? undefined : min / unit}
+        max={max === undefined ? undefined : max / unit}
+        step={(step ?? unit) / unit}
+        format={{ minimumFractionDigits: digits, maximumFractionDigits: digits }}
+        bare={children === undefined}
+      >
+        {children ??
+          (before ? (
+            <>
+              {mark}
+              {field}
+            </>
+          ) : (
+            <>
+              {field}
+              {mark}
+            </>
+          ))}
+      </NumberInputRoot>
+    </MoneyContext.Provider>
+  );
+}
+
+/** The amount field of a `MoneyInput`: the number, in the locale, in major units. */
+export function MoneyInputField(props: ComponentProps<typeof NumberInputField>) {
+  return <NumberInputField {...props} />;
+}
+
+/** The symbol of the currency (`€`, `$`), with its code for assistive technology. */
+export function MoneyInputSymbol({ className, ...rest }: ComponentProps<"span">) {
+  const money = useContext(MoneyContext);
+  if (!money) throw new Error("MoneyInputSymbol goes inside <MoneyInput>.");
+  return (
+    <NumberInputAffix {...rest} {...(className ? { className } : {})}>
+      <span title={money.currency}>
+        {money.symbol}
+        <span className="fg-sr"> ({money.currency})</span>
+      </span>
+    </NumberInputAffix>
   );
 }
 
@@ -332,44 +523,80 @@ export interface CurrencyPickerProps {
   variant?: "field" | "chip";
   disabled?: boolean;
   className?: string;
+  /** Stays undefined: with children, `CurrencyPicker` is the root of the Select parts. */
+  children?: undefined;
 }
 
-/** A currency among a short list: the code, its name and its symbol. */
-export function CurrencyPicker({
-  label = "Currency",
-  value,
-  defaultValue = "EUR",
-  onChange,
-  currencies = COMMON_CURRENCIES,
-  locale,
-  size = "md",
-  variant = "field",
-  disabled,
-  className,
-}: CurrencyPickerProps) {
+/** A currency's symbol in a locale: `€`, `$`, `CHF`. */
+const symbolOf = (code: string, locale?: string) =>
+  new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: code,
+    currencyDisplay: "narrowSymbol",
+  })
+    .formatToParts(0)
+    .find((p) => p.type === "currency")?.value ?? code;
+
+/** `EUR · Euro`: the code and its name in a locale. */
+const currencyLabel = (code: string, locale?: string) => {
   const names = new Intl.DisplayNames(locale ? [locale] : undefined, { type: "currency" });
-  const symbolOf = (code: string) =>
-    new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: code,
-      currencyDisplay: "narrowSymbol",
-    })
-      .formatToParts(0)
-      .find((p) => p.type === "currency")?.value ?? code;
+  return `${code} · ${names.of(code) ?? code}`;
+};
+
+/**
+ * A currency among a short list: the code, its name and its symbol. With children, the root of
+ * the `Select` parts (`SelectTrigger`, `SelectValue`, `SelectContent`, `CurrencyPickerItem`).
+ */
+export function CurrencyPicker(props: CurrencyPickerProps | SelectRootProps) {
+  if (props.children !== undefined) return <Select {...(props as SelectRootProps)} />;
+  const {
+    label = "Currency",
+    value,
+    defaultValue = "EUR",
+    onChange,
+    currencies = COMMON_CURRENCIES,
+    locale,
+    size = "md",
+    variant = "field",
+    disabled,
+    className,
+  } = props as CurrencyPickerProps;
+  const items = currencies.map((code) => ({ value: code, label: currencyLabel(code, locale) }));
   return (
-    <SelectMenu
-      label={label}
-      options={currencies.map((code) => ({
-        value: code,
-        label: `${code} · ${names.of(code) ?? code}`,
-        hint: symbolOf(code),
-      }))}
+    <Select
+      items={items}
       {...(value !== undefined ? { value } : { defaultValue })}
-      onChange={(next) => next && onChange?.(next)}
-      size={size}
-      variant={variant}
+      onValueChange={(next) => next && onChange?.(next as string)}
       {...(disabled !== undefined ? { disabled } : {})}
-      {...(className ? { className } : {})}
-    />
+    >
+      <div className={cx("fg-selm", className)}>
+        <SelectFieldLabel className="fg-sr">{label}</SelectFieldLabel>
+        <SelectTrigger variant={variant} size={size === "sm" ? "sm" : "default"}>
+          <SelectValue placeholder="Choose…">
+            {(current: string | null) => (current ? currencyLabel(current, locale) : "Choose…")}
+          </SelectValue>
+        </SelectTrigger>
+      </div>
+      <SelectContent>
+        {currencies.map((code) => (
+          <CurrencyPickerItem key={code} code={code} {...(locale ? { locale } : {})} />
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+export type CurrencyPickerItemProps = Omit<SelectItemProps, "value" | "children" | "hint"> & {
+  /** An ISO 4217 code. */
+  code: string;
+  locale?: string;
+};
+
+/** One currency of the list: `EUR · Euro`, its symbol at the end of the row. */
+export function CurrencyPickerItem({ code, locale, ...rest }: CurrencyPickerItemProps) {
+  return (
+    <SelectItem {...rest} value={code} hint={symbolOf(code, locale)}>
+      {currencyLabel(code, locale)}
+    </SelectItem>
   );
 }

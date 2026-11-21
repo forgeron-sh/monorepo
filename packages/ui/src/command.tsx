@@ -295,14 +295,17 @@ export type CommandDialogProps = Omit<DialogRootProps, "title" | "children"> & {
   className?: string;
   /** Default `false`, as the palette closes on Escape. */
   showCloseButton?: boolean;
+  /** Passed to the `Command` that wraps the children: `false` to filter yourself. */
+  shouldFilter?: boolean;
 };
 
-/** A `Command` in a dialog (on the Dialog parts): `open`, `onOpenChange`, Escape and focus trap. */
+/** A `Command` in a dialog (on the Dialog parts): `open`, `onOpenChange`, Escape and focus trap. It wraps its children in a `Command`, as shadcn's does. */
 export function CommandDialog({
   title = "Command palette",
   description = "Search for a command to run.",
   className,
   showCloseButton = false,
+  shouldFilter,
   children,
   ...props
 }: CommandDialogProps) {
@@ -313,7 +316,7 @@ export function CommandDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        {children}
+        <Command {...(shouldFilter === undefined ? {} : { shouldFilter })}>{children}</Command>
       </DialogContent>
     </Dialog>
   );

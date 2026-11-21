@@ -14,6 +14,12 @@ export const entries: ReadonlyArray<Atom> = [
         description:
           "CommandPalette is built from them: compose your own as shadcn's docs do (D-157).",
       },
+      {
+        name: "no groups",
+        type: "CommandDialogProps",
+        description:
+          "Without groups, CommandPalette is the root of the Command parts, in a dialog (D-157).",
+      },
       { name: "open / onOpenChange", type: "boolean / (open) => void", description: "Controlled." },
       {
         name: "groups",
@@ -90,6 +96,74 @@ export const entries: ReadonlyArray<Atom> = [
       },
       { name: "open / onOpenChange", type: "boolean / (open) => void", description: "Optional." },
       { name: "label", type: "string", description: "Names the menu, e.g. Actions on OPS-40." },
+      {
+        name: "no items",
+        type: "open / defaultOpen / onOpenChange",
+        description:
+          "Without items, ActionMenu is the root of the DropdownMenu parts: DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub… (D-156).",
+      },
+    ],
+  },
+  {
+    slug: "menu",
+    name: "Menu",
+    summary: "A button that opens links, actions and one-of-many choices.",
+    imports: [
+      "Menu",
+      "DropdownMenuTrigger",
+      "DropdownMenuContent",
+      "DropdownMenuItem",
+      "DropdownMenuLabel",
+      "DropdownMenuSeparator",
+    ],
+    props: [
+      {
+        name: "no entries",
+        type: "open / defaultOpen / onOpenChange",
+        description: "Without entries, Menu is the root of the DropdownMenu parts (D-156).",
+      },
+      {
+        name: "entries",
+        type: "MenuEntry[]",
+        description:
+          "{ kind: link | action | radio | heading | text | separator, label, … }; consecutive radios form one choice.",
+      },
+      { name: "trigger", type: "ReactNode", description: "What the button shows." },
+      { name: "label", type: "string", description: "Names the button and the menu." },
+      {
+        name: "placement / align",
+        type: "below | above / start | center | end",
+        default: "below / start",
+        description: "Where it opens against the button.",
+      },
+    ],
+  },
+  {
+    slug: "modal",
+    name: "Modal",
+    summary: "A modal over the page with its context, title and close button.",
+    imports: [
+      "Modal",
+      "ModalContent",
+      "ModalHeader",
+      "ModalContext",
+      "ModalTitle",
+      "ModalClose",
+      "DialogTrigger",
+    ],
+    props: [
+      {
+        name: "no title",
+        type: "open / defaultOpen / onOpenChange",
+        description:
+          "Without title, Modal is the root of its parts: ModalContent (size), ModalHeader, ModalContext, ModalTitle, ModalClose; DialogTrigger opens it.",
+      },
+      { name: "open / onOpenChange", type: "boolean / (open) => void", description: "Controlled." },
+      { name: "title", type: "ReactNode", description: "Its accessible name." },
+      { name: "context", type: "ReactNode", description: "Before the title: a team chip." },
+      { name: "trigger", type: "ReactElement", description: "A button that opens it." },
+      { name: "size", type: "sm | md", default: "md", description: "480px or 750px." },
+      { name: "initialFocus", type: "RefObject", description: "Takes focus on open." },
     ],
   },
 ];

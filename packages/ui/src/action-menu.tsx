@@ -6,7 +6,7 @@
 
 import type { IconDefinition } from "@forgeron/icons";
 import { Tick02Icon } from "@forgeron/icons";
-import type { ComponentType, ReactElement, ReactNode } from "react";
+import type { ComponentProps, ComponentType, ReactElement, ReactNode } from "react";
 import { cx } from "./cx";
 import {
   DropdownMenu,
@@ -168,8 +168,21 @@ export interface ActionMenuProps extends MenuBase {
   align?: "start" | "center" | "end";
 }
 
-/** The actions on a record, behind a "…" button: icons, shortcuts, submenus, a danger row. */
-export function ActionMenu({
+/** `items` stays undefined: with items, `ActionMenu` is the props-driven one. */
+export type ActionMenuRootProps = ComponentProps<typeof DropdownMenu> & { items?: undefined };
+
+/**
+ * With `items`: the actions on a record, behind a "…" button: icons, shortcuts, submenus, a danger
+ * row. Without `items`: the root of the DropdownMenu parts (`DropdownMenuTrigger`,
+ * `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuSub`…), D-156.
+ */
+export function ActionMenu(props: ActionMenuProps | ActionMenuRootProps) {
+  if (props.items !== undefined) return <ActionMenuPreset {...(props as ActionMenuProps)} />;
+  const { items: _items, ...root } = props as ActionMenuRootProps;
+  return <DropdownMenu {...root} />;
+}
+
+function ActionMenuPreset({
   items,
   onSelect,
   label,

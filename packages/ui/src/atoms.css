@@ -1375,6 +1375,13 @@ a.fg-crumb:focus-visible {
   width: 250px;
   max-width: none;
 }
+/* Built on PopoverContent: the picker's panel has no padding of its own. */
+.fg-pop.fg-popover.fg-datepop {
+  width: 250px;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+}
 .fg-datepop .fg-pop-list {
   border-bottom: var(--border-width) solid var(--line);
 }

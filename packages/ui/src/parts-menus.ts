@@ -24,3 +24,8 @@ export type {
 } from "./context-menu";
 export { DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "./dropdown-menu";
 export { DialogPopup, DialogViewport } from "./dialog";
+export { ModalClose, ModalContent, ModalContext, ModalHeader, ModalTitle } from "./modal";
+export type { ModalContentProps, ModalRootProps } from "./modal";
+export type { MenuRootProps } from "./menu";
+export type { ActionMenuRootProps } from "./action-menu";
+export type { CommandPaletteRootProps } from "./command-palette";

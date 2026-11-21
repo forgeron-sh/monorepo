@@ -7,7 +7,6 @@ import type { IconDefinition } from "@forgeron/icons";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
-  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -15,6 +14,7 @@ import {
   CommandItem,
   CommandList,
 } from "./command";
+import type { CommandDialogProps } from "./command";
 import { Icon } from "./icon";
 import { Kbd } from "./marks";
 
@@ -79,8 +79,21 @@ export interface CommandPaletteProps {
   className?: string;
 }
 
-/** Search and run anything: pages, records, actions. Controlled: the caller opens it on ⌘K. */
-export function CommandPalette({
+/** `groups` stays undefined: with groups, `CommandPalette` is the props-driven one. */
+export type CommandPaletteRootProps = CommandDialogProps & { groups?: undefined };
+
+/**
+ * With `groups`: search and run anything, pages, records, actions; controlled, the caller opens it
+ * on ⌘K. Without `groups`: the root of the Command parts in a dialog (`CommandInput`,
+ * `CommandList`, `CommandGroup`, `CommandItem`…), as shadcn composes it (D-156).
+ */
+export function CommandPalette(props: CommandPaletteProps | CommandPaletteRootProps) {
+  if (props.groups !== undefined) return <PalettePreset {...(props as CommandPaletteProps)} />;
+  const { groups: _groups, ...root } = props as CommandPaletteRootProps;
+  return <CommandDialog {...root} />;
+}
+
+function PalettePreset({
   open,
   onOpenChange,
   groups,
@@ -96,6 +109,7 @@ export function CommandPalette({
       open={open}
       onOpenChange={(next) => onOpenChange(next)}
       title={label}
+      shouldFilter={false}
       {...(className ? { className } : {})}
     >
       <PaletteBody
@@ -125,7 +139,7 @@ function PaletteBody({ groups, placeholder, shortcut, run, emptyText }: BodyProp
   const [query, setQuery] = useState("");
   const shown = filterCommands(groups, query);
   return (
-    <Command shouldFilter={false}>
+    <>
       <CommandInput
         placeholder={placeholder}
         value={query}
@@ -150,6 +164,6 @@ function PaletteBody({ groups, placeholder, shortcut, run, emptyText }: BodyProp
           </CommandGroup>
         ))}
       </CommandList>
-    </Command>
+    </>
   );
 }

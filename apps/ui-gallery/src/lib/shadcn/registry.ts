@@ -1,7 +1,7 @@
 // The registry served under `/r/` (D-156): the package sources read at build time by Vite, the gallery
 // entries, the icon catalog. Only the `/r/` endpoints import this module, so none of it reaches a page.
 // Vitest caches this module with its globs expanded: a new file of packages/ui may be missing from the
-// registry test until the cache is reset, by editing this file (touched after the structure moves).
+// registry test until the cache is reset, by editing this file (touched after wave 1 of the parts).
 import * as icons from "@forgeron/icons";
 import { entries as marketing } from "../../entries/marketing";
 import { atoms, blocks, charts, groupOf, hooks } from "../../registry";

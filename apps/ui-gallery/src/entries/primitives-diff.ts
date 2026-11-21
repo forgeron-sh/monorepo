@@ -12,6 +12,15 @@ export const entries: ReadonlyArray<Atom> = [
     imports: [
       "DiffView",
       "FieldDiff",
+      "DiffBar",
+      "DiffTable",
+      "DiffHunk",
+      "DiffLine",
+      "DiffSplitLine",
+      "DiffFold",
+      "DiffSame",
+      "FieldDiffTable",
+      "FieldDiffRow",
       "structureDiffRows",
       "structureDiffSeq",
       "structureDiffFields",
@@ -67,7 +76,7 @@ export const entries: ReadonlyArray<Atom> = [
     slug: "version-compare",
     name: "Version compare",
     summary: "The versions of a document or record in a list: pick two and see what changed.",
-    imports: ["VersionCompare"],
+    imports: ["VersionCompare", "VersionCompareList", "VersionCompareItem", "VersionCompareView"],
     props: [
       {
         name: "versions",

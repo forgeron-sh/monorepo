@@ -560,6 +560,7 @@ function baseStylesheet(input: BuildInput, tokens: ReadonlyMap<string, string>):
       "access",
       "collection",
       "sortable",
+      "shell",
     ].map((g) => `ui/src/parts-${g}.css`),
   ];
   const names = [...tokens.keys()];
