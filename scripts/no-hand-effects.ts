@@ -17,10 +17,6 @@ const ALLOWED: Record<string, string> = {
   "apps/font/src/components/Hero.astro":
     "Debt: the specimen draws @forgeron/shaders' reveal (`revealFrame`) on one canvas per line of the title, which `mountReveal` cannot. Goes when `mountReveal` takes one canvas per line.",
   "apps/icon-gallery/src/lib/export.ts": "Not an effect: exports an icon to a PNG.",
-  "apps/ui-gallery/src/shaders/picture.ts":
-    "Not an effect: draws the picture the image demo dithers.",
-  "apps/ui-gallery/src/components/shaders/MountDemo.tsx":
-    "Not an effect: the raw-picture side of the image demo, shown beside its dithered twin.",
 };
 
 function* files(dir: string): Generator<string> {

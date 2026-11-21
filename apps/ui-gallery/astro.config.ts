@@ -8,13 +8,7 @@ export default defineConfig({
   // The workspace packages ship as TypeScript sources: Vite compiles them.
   vite: {
     ssr: {
-      noExternal: [
-        "@forgeron/ui",
-        "@forgeron/icons",
-        "@forgeron/blueprint",
-        "@forgeron/libraries",
-        "@forgeron/canvas",
-      ],
+      noExternal: ["@forgeron/ui", "@forgeron/icons"],
     },
   },
 });

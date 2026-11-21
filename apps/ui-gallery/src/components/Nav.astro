@@ -3,7 +3,7 @@ import { ForgeronIcon, toSvg } from "@forgeron/icons";
 import { atoms } from "../registry";
 
 interface Props {
-  page: "home" | "identity" | "shaders" | "docs" | "blocks" | "marketing" | "editors" | "pages" | "charts";
+  page: "home" | "identity" | "docs" | "blocks" | "charts";
 }
 const { page } = Astro.props;
 const mark = toSvg(ForgeronIcon, { size: 22 }) ?? "";
@@ -17,13 +17,9 @@ const mark = toSvg(ForgeronIcon, { size: 22 }) ?? "";
     </a>
     <div class="nav-links t-mono">
       <a href="/identity/logo" aria-current={page === "identity" ? "page" : undefined}>/0.1 Identity</a>
-      <a href="/shaders" aria-current={page === "shaders" ? "page" : undefined}>/0.2 Shaders</a>
-      <a href={`/docs/${atoms[0]!.slug}`} aria-current={page === "docs" ? "page" : undefined}>/0.3 Atoms</a>
-      <a href="/charts" aria-current={page === "charts" ? "page" : undefined}>/0.4 Charts</a>
-      <a href="/blocks" aria-current={page === "blocks" ? "page" : undefined}>/0.5 Blocks</a>
-      <a href="/marketing" aria-current={page === "marketing" ? "page" : undefined}>/0.6 Marketing</a>
-      <a href="/editors" aria-current={page === "editors" ? "page" : undefined}>/0.7 Editors</a>
-      <a href="/pages" aria-current={page === "pages" ? "page" : undefined}>/0.8 Pages</a>
+      <a href={`/docs/${atoms[0]!.slug}`} aria-current={page === "docs" ? "page" : undefined}>/0.2 Atoms</a>
+      <a href="/charts" aria-current={page === "charts" ? "page" : undefined}>/0.3 Charts</a>
+      <a href="/blocks" aria-current={page === "blocks" ? "page" : undefined}>/0.4 Blocks</a>
     </div>
     <a class="btn btn-primary btn-sm nav-cta" href="/docs/installation">Install</a>
   </div>

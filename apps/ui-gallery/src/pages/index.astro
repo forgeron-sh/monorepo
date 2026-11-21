@@ -2,23 +2,17 @@
 import { Logo } from "@forgeron/ui";
 import EntryGrid from "../components/EntryGrid.astro";
 import Layout from "../components/Layout.astro";
-import Planned from "../components/Planned.astro";
-import ShaderGrid from "../components/shaders/ShaderGrid.astro";
 import { highlight } from "../lib/highlight";
 import { colors, identity } from "../lib/identity";
-import { marketing } from "../lib/marketing";
-import { shaders } from "../lib/shaders";
-import { atoms, blocks, charts, pages } from "../registry";
-import "../styles/shaders.css";
+import { atoms, blocks, charts } from "../registry";
 
 const install = "bun add @forgeron/ui";
 const swatches = colors.filter((c) => !c.value.dark.startsWith("var")).slice(0, 10);
-const homeShaders = ["dither-field", "ember", "globe", "hearth"].flatMap((slug) => shaders.filter((s) => s.slug === slug));
 ---
 
 <Layout
   title="Forgeron UI — components"
-  description="The React components of Forgeron apps, in the lab design language: identity, atoms, blocks and pages."
+  description="The React components of Forgeron apps, in the lab design language: identity, atoms, charts and blocks."
   page="home"
 >
   <section class="rail hero">
@@ -73,53 +67,21 @@ const homeShaders = ["dither-field", "ember", "globe", "hearth"].flatMap((slug) 
     </ul>
   </section>
 
-  <div class="rail spacer t-mono dim"><span>/0.2 → Shaders</span><span>[ Live ]</span></div>
-  <section class="rail" aria-label="Shaders">
-    <ShaderGrid items={homeShaders} index="/0.2" />
-    <a class="rail-more t-mono" href="/shaders">Every shader →</a>
-  </section>
-
-  <div class="rail spacer t-mono dim"><span>/0.3 → Atoms</span><span>[ Ready ]</span></div>
+  <div class="rail spacer t-mono dim"><span>/0.2 → Atoms</span><span>[ Ready ]</span></div>
   <section class="rail" aria-label="Atoms">
-    <EntryGrid entries={atoms} index="/0.3" />
+    <EntryGrid entries={atoms} index="/0.2" />
   </section>
 
-  <div class="rail spacer t-mono dim"><span>/0.4 → Charts</span><span>[ Ready ]</span></div>
+  <div class="rail spacer t-mono dim"><span>/0.3 → Charts</span><span>[ Ready ]</span></div>
   <section class="rail" aria-label="Charts">
-    <EntryGrid entries={charts} index="/0.4" />
+    <EntryGrid entries={charts} index="/0.3" />
     <a class="rail-more t-mono" href="/charts">Every chart →</a>
   </section>
 
-  <div class="rail spacer t-mono dim"><span>/0.5 → Blocks</span><span>[ Ready ]</span></div>
+  <div class="rail spacer t-mono dim"><span>/0.4 → Blocks</span><span>[ Ready ]</span></div>
   <section class="rail" aria-label="Blocks">
-    <EntryGrid entries={blocks} index="/0.5" />
+    <EntryGrid entries={blocks} index="/0.4" />
     <a class="rail-more t-mono" href="/blocks">Every block →</a>
-  </section>
-
-  <div class="rail spacer t-mono dim"><span>/0.6 → Marketing</span><span>[ Ready ]</span></div>
-  <section class="rail" aria-label="Marketing">
-    <ul class="grid">
-      {
-        marketing.map((g, i) => (
-          <li class="card">
-            <div class="card-copy">
-              <span class="t-mono dim">/0.6.{String(i + 1).padStart(2, "0")}</span>
-              <a class="card-name card-link" href={`/marketing/${g.slug}`}>
-                {g.name}
-              </a>
-              <span class="t-small">{g.summary}</span>
-            </div>
-          </li>
-        ))
-      }
-    </ul>
-    <a class="rail-more t-mono" href="/marketing">The landing page, put together →</a>
-  </section>
-
-  <div class="rail spacer t-mono dim"><span>/0.8 → Pages</span><span>[ Soon ]</span></div>
-  <section class="rail" aria-label="Pages, planned">
-    <Planned items={pages.slice(0, 8)} index="/0.8" />
-    <a class="rail-more t-mono" href="/pages">Every planned page →</a>
   </section>
 </Layout>
 

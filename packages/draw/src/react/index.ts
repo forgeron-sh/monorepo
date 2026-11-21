@@ -40,3 +40,4 @@ export { DrawItemView, FAR_ZOOM, frameClip, toReact, UnknownItem } from "./rende
 export { createSignal, useSignal } from "./signal";
 export type { Signal } from "./signal";
 export { useDrawStore } from "./use-draw-store";
+export type { UseDrawStoreOptions } from "./use-draw-store";

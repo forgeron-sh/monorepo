@@ -2,6 +2,7 @@
 import { Logo, anvilPath } from "@forgeron/ui";
 import DocsLayout from "../../components/DocsLayout.astro";
 import { colors, families, identity, scales, typeGroups } from "../../lib/identity";
+import { atoms } from "../../registry";
 
 export function getStaticPaths() {
   return identity.map((page, i) => ({
@@ -162,6 +163,6 @@ const logos = [
 
   <nav class="pager-nav t-mono" aria-label="Previous and next page">
     {prev ? <a href={`/identity/${prev.slug}`}>← {prev.name}</a> : <a href="/docs/installation">← Installation</a>}
-    {next ? <a href={`/identity/${next.slug}`}>{next.name} →</a> : <a href="/shaders">Shaders →</a>}
+    {next ? <a href={`/identity/${next.slug}`}>{next.name} →</a> : <a href={`/docs/${atoms[0]!.slug}`}>Atoms →</a>}
   </nav>
 </DocsLayout>

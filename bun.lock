@@ -216,13 +216,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@astrojs/react": "7.1.2",
-        "@forgeron/blueprint": "workspace:*",
-        "@forgeron/canvas": "workspace:*",
-        "@forgeron/draw": "workspace:*",
-        "@forgeron/flow": "workspace:*",
         "@forgeron/icons": "workspace:*",
-        "@forgeron/libraries": "workspace:*",
-        "@forgeron/richtext": "workspace:*",
         "@forgeron/shaders": "workspace:*",
         "@forgeron/ui": "workspace:*",
         "astro": "7.4.5",
