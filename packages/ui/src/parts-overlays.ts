@@ -39,3 +39,18 @@ export {
   AlertDialogTrigger,
 } from "./alert-dialog";
 export type { AlertDialogButtonProps, AlertDialogTriggerProps } from "./alert-dialog";
+export {
+  PopoverClose,
+  PopoverContent,
+  PopoverDescription,
+  PopoverTitle,
+  PopoverTrigger,
+} from "./popover";
+export type {
+  PopoverCloseProps,
+  PopoverContentProps,
+  PopoverRootProps,
+  PopoverTriggerProps,
+} from "./popover";
+export { TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
+export type { TooltipContentProps, TooltipRootProps, TooltipTriggerProps } from "./tooltip";

@@ -1,8 +1,12 @@
 import type { IconDefinition } from "@forgeron/icons";
 import { Icon as PixelIcon } from "@forgeron/icons/react";
+import type { ComponentProps } from "react";
 import { cx } from "./cx";
 
-export interface IconProps {
+export interface IconProps extends Omit<
+  ComponentProps<"span">,
+  "className" | "children" | "title"
+> {
   /** An icon of `@forgeron/icons`, e.g. `CloudIcon`. A stub (not drawn yet) renders nothing. */
   icon: IconDefinition;
   /** In px; a multiple of 12 keeps every pixel whole. */
@@ -18,9 +22,22 @@ export interface IconProps {
  * A pixel icon in the text color, its secondary pixels in `accent`, in a square box that never
  * shrinks.
  */
-export function Icon({ icon, size = 24, variant = "duo", title, className }: IconProps) {
+export function Icon({
+  icon,
+  size = 24,
+  variant = "duo",
+  title,
+  className,
+  style,
+  ...rest
+}: IconProps) {
   return (
-    <span className={cx("fg-icon", className)} style={{ width: size, height: size }}>
+    <span
+      data-slot="icon"
+      {...rest}
+      className={cx("fg-icon", className)}
+      style={{ ...style, width: size, height: size }}
+    >
       <PixelIcon
         icon={icon}
         size={size}

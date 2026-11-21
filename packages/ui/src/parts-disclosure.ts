@@ -36,3 +36,5 @@ export { ScrollArea, ScrollBar } from "./scroll-area";
 export type { ScrollAreaProps, ScrollBarProps } from "./scroll-area";
 export { HoverCard, HoverCardContent, HoverCardTrigger } from "./hover-card";
 export type { HoverCardContentProps, HoverCardProps, HoverCardTriggerProps } from "./hover-card";
+export { TabsContent, TabsList, TabsTrigger } from "./tabs";
+export type { TabsRootProps } from "./tabs";

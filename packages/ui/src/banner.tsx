@@ -2,12 +2,15 @@
 // that ends, a failed payment. With an action, and a way to dismiss it.
 
 import { Cancel01Icon } from "@forgeron/icons";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cx } from "./cx";
 import { useDisclosure } from "./hooks/use-disclosure";
 import { Icon } from "./icon";
 
-export interface BannerProps {
+export interface BannerProps extends Omit<
+  ComponentProps<"div">,
+  "className" | "title" | "children"
+> {
   tone?: "info" | "success" | "warning" | "danger";
   title?: ReactNode;
   /** A button or link at the end: the thing to do next. */
@@ -41,13 +44,16 @@ export function Banner({
   onDismiss,
   className,
   children,
+  ...rest
 }: BannerProps) {
   const { open: shown, setOpen } = useDisclosure({ open, defaultOpen, onOpenChange });
   if (!shown) return null;
   return (
     <div
-      className={cx("fg-banner", `fg-banner-${tone}`, className)}
+      data-slot="banner"
       role={tone === "danger" || tone === "warning" ? "alert" : "status"}
+      {...rest}
+      className={cx("fg-banner", `fg-banner-${tone}`, className)}
     >
       <span className="fg-banner-mark">{WORD[tone]}</span>
       <div className="fg-banner-body">

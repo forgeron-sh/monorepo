@@ -1,4 +1,5 @@
 import { bayer } from "@forgeron/shaders";
+import type { ComponentProps } from "react";
 import { cx } from "./cx";
 import { PixelText } from "./pixel-text";
 
@@ -58,7 +59,7 @@ export function anvilPath(n: number, mode: AnvilMode = "solid"): string {
   return d;
 }
 
-export interface LogoProps {
+export interface LogoProps extends Omit<ComponentProps<"span">, "className" | "children"> {
   /** `symbol`: the anvil alone; `horizontal`: the anvil and the "forgeron" wordmark. */
   variant?: "symbol" | "horizontal";
   /** Height of the anvil in px; the wordmark is half as tall. */
@@ -67,10 +68,16 @@ export interface LogoProps {
 }
 
 /** The pixel logo, in `currentColor` (`ink` by default): the anvil on a 12-pixel grid and the pixel wordmark. */
-export function Logo({ variant = "horizontal", size = 22, className }: LogoProps) {
+export function Logo({ variant = "horizontal", size = 22, className, ...rest }: LogoProps) {
   const word = Math.round(size * 0.5);
   return (
-    <span className={cx("fg-logo", className)} role="img" aria-label="Forgeron">
+    <span
+      data-slot="logo"
+      className={cx("fg-logo", className)}
+      role="img"
+      aria-label="Forgeron"
+      {...rest}
+    >
       <span className="fg-logo-mark" style={{ width: size, height: size }}>
         <svg viewBox="0 0 12 12" fill="currentColor" shapeRendering="crispEdges" aria-hidden="true">
           <path d={anvilPath(12)} />

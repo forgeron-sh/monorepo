@@ -90,7 +90,7 @@ export const entries: ReadonlyArray<Atom> = [
         name: "Tree",
         type: "ul",
         description:
-          "The root: `Tree` without `items` (also exported as `TreeRoot`, deprecated). With `items`, `Tree` is the props-driven tree (the Tree page). `render={<div />}` draws another element.",
+          "The root: `Tree` without `items`. With `items`, `Tree` is the props-driven tree (the Tree page). `render={<div />}` draws another element.",
       },
       {
         name: "expanded / defaultExpanded / onExpandedChange",

@@ -139,8 +139,6 @@ export { CopyBlock } from "./copy-block";
 export type { CopyBlockProps } from "./copy-block";
 export { Tabs } from "./tabs";
 export type { TabItem, TabsProps } from "./tabs";
-export { TabsContent, TabsList, TabsTrigger } from "./tabs";
-export type { TabsRootProps } from "./tabs";
 export { Markdown, safeHref, safeImage } from "./markdown";
 export type { MarkdownProps } from "./markdown";
 export { DetailList, ToolCard, ToolIcon } from "./tool-card";
@@ -257,21 +255,6 @@ export type { FileInputProps, FileRejection } from "./file-input";
 export { Popover } from "./popover";
 export type { PopoverProps } from "./popover";
 export {
-  PopoverClose,
-  PopoverContent,
-  PopoverDescription,
-  PopoverTitle,
-  PopoverTrigger,
-} from "./popover";
-export type {
-  PopoverCloseProps,
-  PopoverContentProps,
-  PopoverRootProps,
-  PopoverTriggerProps,
-} from "./popover";
-export { TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
-export type { TooltipContentProps, TooltipRootProps, TooltipTriggerProps } from "./tooltip";
-export {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -306,6 +289,7 @@ export * from "./parts-forms";
 export * from "./parts-display";
 export * from "./parts-disclosure";
 export * from "./parts-overlays";
+export * from "./parts-atoms";
 export * from "./parts-data";
 export * from "./parts-grid";
 export * from "./parts-views";

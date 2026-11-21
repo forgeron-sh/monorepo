@@ -1,13 +1,13 @@
 import { textSvg } from "@forgeron/font";
+import type { ComponentProps } from "react";
 
-export interface PixelTextProps {
+export interface PixelTextProps extends Omit<ComponentProps<"svg">, "children"> {
   /** Written in the pixel face (Forge Sans), capitals unless `keepCase`. */
   text: string;
   /** Said to assistive technology; without it the drawing is decorative (`aria-hidden`). */
   label?: string;
   bold?: boolean;
   keepCase?: boolean;
-  className?: string;
 }
 
 /** The viewBox and path of `textSvg`, the pixel face's own output, so both never drift apart. */
@@ -26,13 +26,15 @@ export function pixelShape(
  * Text drawn in the pixel face as an inline SVG, square pixels in `currentColor`: indices, figures,
  * the wordmark. It scales with its box (set a height); no font is loaded.
  */
-export function PixelText({ text, label, bold, keepCase, className }: PixelTextProps) {
+export function PixelText({ text, label, bold, keepCase, className, ...rest }: PixelTextProps) {
   const { viewBox, d } = pixelShape(text, { bold, keepCase });
   return (
     <svg
       viewBox={viewBox}
       fill="currentColor"
       shapeRendering="crispEdges"
+      {...rest}
+      data-slot="pixel-text"
       className={className}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
     >

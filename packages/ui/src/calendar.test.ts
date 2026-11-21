@@ -2,7 +2,7 @@
 import { CloudIcon, Folder01Icon } from "@forgeron/icons";
 import { act, createElement as h } from "react";
 import { createRoot } from "react-dom/client";
-import { renderToStaticMarkup as html } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { addDays, addMonths, formatLong, formatShort, monthGrid, weekday } from "./dates";
 import {
@@ -17,6 +17,10 @@ import {
   Swatch,
   duePresets,
 } from "./index";
+
+// The markup these cases pin, without the shadcn `data-slot` names (the forwarding tests check them).
+const html = (...args: Parameters<typeof renderToStaticMarkup>) =>
+  renderToStaticMarkup(...args).replace(/ data-slot="[^"]*"/g, "");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

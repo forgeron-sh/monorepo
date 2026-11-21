@@ -191,7 +191,7 @@ function positioned(children: ReactNode): ReactNode {
  * walk the rows, Right and Left open, close and climb, Home and End jump, `*` opens the siblings,
  * a typed word finds a row, Enter and Space pick. Keys typed in an input inside a row are left alone.
  */
-export function TreeRoot({
+function TreeRoot({
   items: _items,
   expanded,
   defaultExpanded = [],

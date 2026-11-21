@@ -1,7 +1,7 @@
 import { textSvg } from "@forgeron/font";
 import { CloudIcon, LockIcon } from "@forgeron/icons";
 import { createElement as h } from "react";
-import { renderToStaticMarkup as html } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   Badge,
@@ -20,6 +20,10 @@ import {
   Tag,
   Title,
 } from "./index";
+
+// The markup these cases pin, without the shadcn `data-slot` names (the forwarding tests check them).
+const html = (...args: Parameters<typeof renderToStaticMarkup>) =>
+  renderToStaticMarkup(...args).replace(/ data-slot="[^"]*"/g, "");
 
 describe("Button", () => {
   it("is a button by default and a link with href", () => {

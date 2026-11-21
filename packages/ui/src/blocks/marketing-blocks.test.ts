@@ -1,6 +1,6 @@
 import { CloudIcon, GithubIcon } from "@forgeron/icons";
 import { createElement as h } from "react";
-import { renderToStaticMarkup as html } from "react-dom/server";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   CompareTable,
@@ -14,6 +14,10 @@ import {
   SiteFooter,
   SoonTag,
 } from "../index";
+
+// The markup these cases pin, without the shadcn `data-slot` names (the forwarding tests check them).
+const html = (...args: Parameters<typeof renderToStaticMarkup>) =>
+  renderToStaticMarkup(...args).replace(/ data-slot="[^"]*"/g, "");
 
 describe("marketing atoms", () => {
   it("draws the section head's coordinate and joins the title's lines with a break", () => {

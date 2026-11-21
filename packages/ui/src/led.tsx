@@ -1,6 +1,7 @@
+import type { ComponentProps } from "react";
 import { cx } from "./cx";
 
-export interface LedProps {
+export interface LedProps extends Omit<ComponentProps<"span">, "className" | "children"> {
   /**
    * `neutral` (`ink-dim`), a state (`success`, `warning`, `danger`), `accent` (ember: what is
    * active or hot), or `current`: the text color, the square marker of a button or a pin.
@@ -12,9 +13,11 @@ export interface LedProps {
 }
 
 /** A 6px square: a status LED next to its word, or the square marker of the lab language. */
-export function Led({ tone = "neutral", label, className }: LedProps) {
+export function Led({ tone = "neutral", label, className, ...rest }: LedProps) {
   return (
     <span
+      data-slot="led"
+      {...rest}
       className={cx("fg-led", tone !== "neutral" && `fg-led-${tone}`, className)}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
     />

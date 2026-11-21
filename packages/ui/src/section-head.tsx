@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cx } from "./cx";
 import { PixelText } from "./pixel-text";
 import { Title } from "./title";
@@ -18,7 +18,10 @@ export function titleLines(title: TitleLines): ReactNode {
   ));
 }
 
-export interface SectionHeadProps {
+export interface SectionHeadProps extends Omit<
+  ComponentProps<"header">,
+  "className" | "title" | "children"
+> {
   /** The section's coordinate, `/0.1`, drawn in the pixel face in ember. */
   index: string;
   /** The title in the pixel face, one string per line. */
@@ -43,9 +46,10 @@ export function SectionHead({
   lead,
   meta,
   className,
+  ...rest
 }: SectionHeadProps) {
   return (
-    <header className={cx("fg-sec-head", className)}>
+    <header data-slot="section-head" {...rest} className={cx("fg-sec-head", className)}>
       <div className="fg-sec-head-top">
         <span className="fg-sec-head-index">
           <PixelText text={index} label={index} />
@@ -62,7 +66,7 @@ export function SectionHead({
   );
 }
 
-export interface SectionBandProps {
+export interface SectionBandProps extends Omit<ComponentProps<"div">, "className" | "children"> {
   /** The coordinate of the section above, `/0.1`. */
   from: string;
   /** The coordinate of the section below, `/0.2`. */
@@ -76,9 +80,9 @@ export interface SectionBandProps {
  * The hatched band between two sections, with their coordinates on the left and the next one's
  * name on the right. It takes over the bottom rule of the block above it.
  */
-export function SectionBand({ from, to, label, className }: SectionBandProps) {
+export function SectionBand({ from, to, label, className, ...rest }: SectionBandProps) {
   return (
-    <div className={cx("fg-band text-eyebrow", className)}>
+    <div data-slot="section-band" {...rest} className={cx("fg-band text-eyebrow", className)}>
       <span>{`${from} → ${to}`}</span>
       <span>{`[ ${label} ]`}</span>
     </div>

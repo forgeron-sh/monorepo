@@ -1,13 +1,12 @@
-import type { ReactNode } from "react";
+import type { ComponentProps } from "react";
 import { cx } from "./cx";
 
-export interface CommandLineProps {
+export interface CommandLineProps extends ComponentProps<"code"> {
   /** Shown before the command in ember, not part of it; `$` by default. */
   prompt?: string;
   /** `false`: inline in running text, without the frame. */
   framed?: boolean;
-  className?: string;
-  children: ReactNode;
+  children: ComponentProps<"code">["children"];
 }
 
 /** A command to type, `$ npx forgeron init`: framed on `bg-sunk`, or inline. */
@@ -16,6 +15,7 @@ export function CommandLine({
   framed = true,
   className,
   children,
+  ...rest
 }: CommandLineProps) {
   const mark = (
     <span className="fg-cmd-prompt" aria-hidden="true">
@@ -24,13 +24,13 @@ export function CommandLine({
   );
   if (!framed) {
     return (
-      <code className={cx("fg-cmd-inline", className)}>
+      <code {...rest} data-slot="command-line" className={cx("fg-cmd-inline", className)}>
         {mark} {children}
       </code>
     );
   }
   return (
-    <code className={cx("fg-cmd", className)}>
+    <code {...rest} data-slot="command-line" className={cx("fg-cmd", className)}>
       {mark}
       {children}
     </code>
