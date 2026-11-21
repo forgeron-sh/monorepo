@@ -177,6 +177,27 @@ canvas {
     padding-top: 72px;
   }
 }
+/* The reveal of the hero title (`mountReveal` of @forgeron/shaders): the text waits under the
+   canvas while it runs. */
+.fg-reveal {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  color: var(--ink);
+}
+.fg-reveal > svg {
+  height: calc(7 * var(--fg-reveal-px, 8px));
+  width: auto;
+}
+.fg-reveal > canvas {
+  position: absolute;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+.fg-reveal:not([data-revealing]) > canvas,
+.fg-reveal[data-revealing] > svg {
+  visibility: hidden;
+}
 .lab-hero-title .fg-reveal {
   --fg-reveal-px: 20px;
 }

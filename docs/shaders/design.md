@@ -169,15 +169,15 @@ A preset is JSON, `version: 1`, schema `packages/shaders/schema/preset.v1.json` 
                            CPU pipeline, GLSL generation, presets and their schema
 @forgeron/shaders/dom      browser: WebGL2 helpers and pipeline, canvas glue (observers, loop,
                            reduced motion, tokens), mounts: field, dither field, image, hearth, reveal
-@forgeron/ui               React wrappers (<FieldShader>, <DitherField>, <DitheredImage>, <Hearth>,
-                           <PixelReveal>) and shaders.css; re-exports the functions it exported before
+@forgeron/ui               the Bayer matrix only, for the logo (its React wrappers were removed by
+                           D-163: the sites mount the effects from @forgeron/shaders/dom)
 @forgeron/blueprint        re-exports bayer, parseColor, the field GLSL, ditherImage from shaders;
                            dom/field.ts and dom/image.ts are thin wrappers; present-webgl2 uses
                            the GL helpers
 ```
 
 - Rules (`.dependency-cruiser.cjs`): `shaders-is-a-leaf` (shaders imports neither ui nor blueprint nor canvas), `shaders-core-is-framework-free` (`src/core` imports no DOM layer and no React), `shaders-core-stays-neutral` (no `node:*`). ui and blueprint may import it; moon's graph stays acyclic (`ui → blueprint → shaders`, `ui → shaders`).
-- **ui** keeps what is React (components, CSS). Its exports do not change: `mountDitherField`, `ditherFieldFrame`, `hearthFrame`, `revealFrame`… are re-exported from the package.
+- **ui** kept the React wrappers and re-exported the functions until D-163, which removed them: no app used them, and the gallery shows only ui.
 - **Blueprint** is the first client and stays in charge of its own pixels: its shading, dither and glow run in Rust on the slot buffer (D-150), and its `Filter` chain keeps its meaning. Its vocabulary is the package's (`pixelate`, `dither` = `ordered` with Bayer 4 centered, `palette`, `grid`; `glow` is Blueprint's own until S2 adds a general one). The WebGL2 presenter takes the package's program helper only; its shader is unchanged and its `readPixels` still equals the 2D presenter byte for byte. Later (S2), a scene preset may add post passes after the presenter (`scene` source → passes), never inside the raster.
 
 ## 5. Phases
