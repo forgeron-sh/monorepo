@@ -110,7 +110,7 @@ Settings › Operations › **Install information** gains an **Updates** panel:
 
 D-138 in `DECISIONS.md`; `docs/self-host.md` (Updating: from the console, what it does, the restore
 point, the first time still by the CLI, `SELF_UPDATE=off`, `UPDATE_REPOSITORY`); `docs/sdk.md` and
-`docs/console-ux.md` (the permission and the panel).
+`docs/archive/console-ux.md` (the permission and the panel).
 
 ## Not in scope
 

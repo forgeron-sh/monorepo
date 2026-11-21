@@ -12,12 +12,6 @@ This guide describes `forgeron platform install` as it is implemented today. Whe
   bun run --cwd apps/gateway build   # writes apps/gateway/dist/worker.js
   ```
 
-- The console's build, the files of the console that the gateway serves (Vite):
-
-  ```bash
-  bun run --cwd apps/console build   # writes apps/console/dist
-  ```
-
 - The account id of the Cloudflare account (the id shown in the dashboard).
 
 ## 1. Create the API token
@@ -52,7 +46,7 @@ What this does **not** change: that token is short-lived, so it is **not** store
 
 ```bash
 export CLOUDFLARE_API_TOKEN=...   # the token from step 1
-forgeron platform install --account <account-id> --domain <base-domain> --gateway apps/gateway/dist/worker.js --console apps/console/dist [--only <workspace>] [--name forgeron]
+forgeron platform install --account <account-id> --domain <base-domain> --gateway apps/gateway/dist/worker.js [--only <workspace>] [--name forgeron]
 ```
 
 - `--domain`: the base domain the gateway serves (`BASE_DOMAIN`), as in `forgeron.app` for the cloud. Required unless `--workers-dev` or `--host` is given; without it the base domain of the previous version is kept, and no zone, DNS record or route is touched.
@@ -60,7 +54,7 @@ forgeron platform install --account <account-id> --domain <base-domain> --gatewa
 - `--host <host>=<workspace>` (repeatable): an exact host that serves a workspace (`WORKSPACE_HOSTS`, D-126). A workspace's first host is its **primary origin** (see "Serving a workspace on any address"). `workers.dev` as the host stands for the gateway's own workers.dev address (with `--workers-dev`). `--host none` forgets the mapping. Kept from one install to the next when not given. The command does not route these hosts to the gateway: add a route or a custom domain yourself, except for workers.dev.
 - `--default-workspace <workspace>`: single-workspace mode (`DEFAULT_WORKSPACE`, D-126): any host that is neither mapped nor `<workspace>.<domain>` serves this workspace. `none` forgets it. Kept when not given.
 - `--workers-dev`: turns on the gateway Worker's address `https://<name>-gateway.<account subdomain>.workers.dev` (the account must have a workers.dev subdomain) and prints it. That address serves a workspace only when it is mapped (`--host workers.dev=<workspace>`) or a default workspace is set. The command turns it on and never off: turn it off in the dashboard.
-- `--console`: the console's build directory. Its files are uploaded as the static assets of the gateway Worker, served at `https://<workspace>.<domain>/`. Without it the gateway is deployed without the console, and the command says so.
+- `--console`: a directory of static assets uploaded with the gateway Worker. The gateway no longer serves them (the admin console was deleted, D2): the workspace origin answers a placeholder page that points to the admin MCP.
 - `--oidc-issuer`, `--oidc-client-id`, `--admin-email`, `--member-email-domains`: your identity provider (any OIDC provider, D-019) and who may sign in (D-027). Give the issuer and the client id together, and at least one of the admin email and the member domains: without one of them nobody could sign in. They are checked before anything is sent: the issuer is an `https` URL without query or fragment, the client id has no spaces, the email and the domains have the usual shape. Without any of them the gateway has no sign-in, and the command says so.
 - `OIDC_CLIENT_SECRET` (environment variable, never an argument): the client secret, for a confidential client. Leave it unset for a public client (PKCE alone). Like the API token it is sent as a secret binding and never printed.
 - `--sign-in email[,oidc]` and `--mail-from <address>`: sign-in by an emailed code, on its own or beside OIDC (see "Sign-in by email" below). The OIDC flags are then needed only if `oidc` is named. The flag is not `--auth`, which chooses the Cloudflare credential.
@@ -76,7 +70,7 @@ The command does, in order:
    - `BASE_DOMAIN` and `CLOUDFLARE_ACCOUNT_ID`: plain values; `GATEWAY_WORKER`: the gateway's own name, plain;
    - `WORKSPACE_HOSTS` and `DEFAULT_WORKSPACE`: plain values, when `--host` and `--default-workspace` are given; kept from the previous version otherwise, like `BASE_DOMAIN` without `--domain`. A first install needs at least one of `--domain`, `--host` and `--default-workspace`;
    - `CLOUDFLARE_API_TOKEN`: the token, as a secret;
-   - `ASSETS`: the console's files, when `--console` is given. They are uploaded first, through the Workers direct-upload API (a manifest of path, hash and size; only the files Cloudflare does not hold yet are sent), and the version carries the completion token. The gateway runs first for every request and falls back to the console's `index.html` for a path that is not a file (`run_worker_first`, `not_found_handling: single-page-application`). `.vite/` (Vite's own manifest) is not uploaded.
+   - `ASSETS`: the files of the `--console` directory, when it is given (not served by the gateway any more). They are uploaded first, through the Workers direct-upload API (a manifest of path, hash and size; only the files Cloudflare does not hold yet are sent), and the version carries the completion token. The gateway runs first for every request and falls back to the console's `index.html` for a path that is not a file (`run_worker_first`, `not_found_handling: single-page-application`). `.vite/` (Vite's own manifest) is not uploaded.
    - `AUTH_SECRET` and `SECRETS_KEY`: **generated by the command**, 32 random bytes each from the system's cryptographically secure generator, stored as secrets and never printed. A key that the gateway already has is **kept** (the new version asks Cloudflare to copy it; no value is sent), because replacing it would sign everyone out and make the stored secrets unreadable. Only a key that is missing is generated. Keep your own copy of neither: they cannot be read back, and rotation is not done yet;
    - `SIGN_IN_METHODS`, `MAIL_FROM` and the `send_email` binding `SEND_EMAIL`, when `--sign-in email` is given;
    - the identity settings above, when given. A re-run without any identity flag keeps those of the previous version; a re-run with flags replaces them, so give them all again (and `OIDC_CLIENT_SECRET`).
@@ -193,7 +187,7 @@ This is the exact list read from `apps/gateway/src/gateway.ts` (`GatewayEnv`). `
 | `UPDATE_REPOSITORY`     | var, optional        | `owner/name` of the public GitHub repository the platform's releases come from (D-138). Default `forgeron-sh/monorepo`.                                                                                                                                                                                                                                           |
 | `SELF_UPDATE`           | var, optional        | `off` turns the update from the console off (D-138). Always off on Forgeron Cloud.                                                                                                                                                                                                                                                                                |
 | `TOOL_<WORKER>`         | service binding      | Self-host: one per tool Worker (D-017).                                                                                                                                                                                                                                                                                                                           |
-| `ASSETS`                | assets               | The built console, when there is one.                                                                                                                                                                                                                                                                                                                             |
+| `ASSETS`                | assets               | Static assets, when `--console` is given (not served).                                                                                                                                                                                                                                                                                                            |
 
 Register this redirect URI at the identity provider, for each workspace: `<primary origin>/auth/callback`, that is `https://<workspace>.<BASE_DOMAIN>/auth/callback` unless a host is mapped to the workspace (D-126).
 

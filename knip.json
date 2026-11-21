@@ -42,14 +42,6 @@
       "entry": ["bench/layout.ts"]
     },
     "apps/*": {},
-    "apps/console": {
-      "entry": [
-        "src/index.ts",
-        "src/features/*/index.ts",
-        "src/features/*/routes.ts",
-        "src/preview/main.tsx"
-      ]
-    },
     "apps/site": {
       "ignore": ["src/explorations/**"],
       "ignoreDependencies": ["@astrojs/check"]

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
-// The database explorer of the console, read only (docs/console-ux.md, D-059), for admins and
+// The database explorer of the console, read only (docs/archive/console-ux.md, D-059), for admins and
 // developers. The environment is `?env=production` or `?env=preview&branch=<ref>` and must be one the
 // registry knows: `<ref>` is a channel's reference, a branch or `~<name>` for a permanent channel
 // other than production (D-125). Every access is written to the audit log before data is sent.

@@ -48,7 +48,7 @@ are indicative only; sizes are exact.
 - FOR-137 contract (read with `git show` on `claude/tool-docs-pipeline-71bbd9`, before it merged in
   #116; not re-read after the merge):
   `packages/manifest/src/catalog.ts` is zod 4.6.7 `strictObject` schemas (`CatalogToolSchema`,
-  `ToolCardSchema`, …) plus the "Catalog API" section of `docs/console-ux.md`. Same zod version as
+  `ToolCardSchema`, …) plus the "Catalog API" section of `docs/archive/console-ux.md`. Same zod version as
   the rest of the repository.
 
 **Owner's other products** (read only): `~/Developer/Personnal/linear/ARCHITECTURE.md` sections 3

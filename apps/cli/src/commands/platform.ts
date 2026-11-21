@@ -345,7 +345,7 @@ export async function platform(
   io.log(
     assets
       ? `Deployed the console (${assets.length} files) as assets of the gateway.`
-      : "The console is not deployed: pass --console <dir> (the build of apps/console) to deploy it.",
+      : "The console is not deployed: pass --console <dir> to deploy a directory of static assets.",
   );
   return 0;
 }

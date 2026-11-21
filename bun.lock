@@ -69,25 +69,6 @@
         "@types/node": "24.19.2",
       },
     },
-    "apps/console": {
-      "name": "@forgeron/console",
-      "version": "0.0.0",
-      "dependencies": {
-        "@forgeron/permissions": "workspace:*",
-        "@forgeron/platform-contract": "workspace:*",
-        "@forgeron/ui": "workspace:*",
-        "react": "19.3.1",
-      },
-      "devDependencies": {
-        "@forgeron/manifest": "workspace:*",
-        "@forgeron/tsconfig": "workspace:*",
-        "@types/react": "19.3.0",
-        "@types/react-dom": "19.3.0",
-        "jsdom": "30.1.3",
-        "react-dom": "19.3.1",
-        "vite": "8.3.5",
-      },
-    },
     "apps/font": {
       "name": "@forgeron/font-site",
       "version": "0.0.0",
@@ -845,8 +826,6 @@
     "@forgeron/connector-google-workspace": ["@forgeron/connector-google-workspace@workspace:packages/connector-google-workspace"],
 
     "@forgeron/connector-microsoft-365": ["@forgeron/connector-microsoft-365@workspace:packages/connector-microsoft-365"],
-
-    "@forgeron/console": ["@forgeron/console@workspace:apps/console"],
 
     "@forgeron/draw": ["@forgeron/draw@workspace:packages/draw"],
 

@@ -1,3 +1,5 @@
+> Archived: `apps/console` was deleted (D2, 21 Nov 2026); this document is kept for history only.
+
 # Console UX
 
 How the console and the member space are organised. `docs/design-system.md` stays authoritative for the

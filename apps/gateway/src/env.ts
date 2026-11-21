@@ -47,8 +47,8 @@ export interface GatewayEnv {
    */
   REALTIME?: DurableObjectNamespaceLike;
   /**
-   * The built console (`apps/console/dist`, `assets` in `wrangler.jsonc`). It is the only app code
-   * served at the workspace origin (sdk.md §7, "Isolation between tools on the same origin").
+   * Static assets of the gateway, bound by `platform install --console <dir>`. The gateway no longer
+   * serves them: the workspace origin answers a placeholder page while the admin console is rebuilt.
    */
   ASSETS?: { fetch(request: Request): Response | Promise<Response> };
   /**

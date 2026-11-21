@@ -44,7 +44,7 @@ const cases: Case[] = [
   {
     rule: "apps-do-not-import-each-other",
     files: {
-      [`apps/console/src/${F}.ts`]: `import "../../gateway/src/${F}_target.ts";\n`,
+      [`apps/site/src/${F}.ts`]: `import "../../gateway/src/${F}_target.ts";\n`,
       [`apps/gateway/src/${F}_target.ts`]: STUB,
     },
   },

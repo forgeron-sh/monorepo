@@ -12,7 +12,7 @@ import {
   type PlatformEnv,
 } from "./app";
 
-// The catalog API (docs/console-ux.md, "Catalog API", D-061) served from the contract. A README
+// The catalog API (docs/archive/console-ux.md, "Catalog API", D-061) served from the contract. A README
 // leaves as a JSON string of markdown and is never turned into HTML here. An image leaves with a
 // type from an allow list, `nosniff` and a CSP that lets an SVG do nothing (no script, no request).
 

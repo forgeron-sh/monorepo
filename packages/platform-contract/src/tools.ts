@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
-// The tools of a workspace and what a tool's page reads (docs/sdk.md §15 and §17, docs/console-ux.md,
+// The tools of a workspace and what a tool's page reads (docs/sdk.md §15 and §17, docs/archive/console-ux.md,
 // "Tool page"). The list is for any signed-in member; the rest is for admins and developers: the
 // commits, authors, audit lines and manifest of a tool are the team's, not the audience's.
 

@@ -1,4 +1,4 @@
-// The catalog of a workspace (docs/console-ux.md, "Catalog API", D-061): every tool that has a version,
+// The catalog of a workspace (docs/archive/console-ux.md, "Catalog API", D-061): every tool that has a version,
 // with whether the person may call it. A tool nobody may use is listed too: the card says which
 // teams open it (D-127, D-137). The version shown is the one production serves, else the latest published; for
 // a branch (D-120), the one its preview serves.

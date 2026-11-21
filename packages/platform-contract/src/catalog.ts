@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ErrorSchema } from "./error";
 import { defineRoute } from "./route";
 
-// The catalog API (docs/console-ux.md, "Catalog API", D-061): any signed-in member reads it. The
+// The catalog API (docs/archive/console-ux.md, "Catalog API", D-061): any signed-in member reads it. The
 // schemas are the manifest's; this file only says which route answers with which.
 
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
