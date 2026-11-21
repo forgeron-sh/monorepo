@@ -122,36 +122,37 @@ describe("App", () => {
     const page = await mount(<App api={api} now={() => NOW} />);
     await click(page.querySelector('button[aria-label="Workspace"]'));
     const items = [
-      ...page.querySelectorAll('[role="menu"] [role="menuitem"], [role="menuitemradio"]'),
+      ...document.querySelectorAll('[role="menu"] [role="menuitem"], [role="menuitemradio"]'),
     ];
     expect(items.map((i) => i.textContent)).toEqual([
-      "demo✓",
+      "demo",
       "Workspace settings",
       "Invite people",
     ]);
+    expect(items[0]?.getAttribute("aria-checked")).toBe("true");
     await cleanup();
     const member = fakeApi(routes(DEVELOPER));
     const other = await mount(<App api={member.api} now={() => NOW} />);
     await click(other.querySelector('button[aria-label="Workspace"]'));
     expect(
-      [...other.querySelectorAll('[role="menu"] [role^="menuitem"]')].map((i) => i.textContent),
-    ).toEqual(["demo✓"]);
+      [...document.querySelectorAll('[role="menu"] [role^="menuitem"]')].map((i) => i.textContent),
+    ).toEqual(["demo"]);
   });
 
   it("opens the person menu with the theme, documentation and sign out, and applies the theme", async () => {
     const { api } = fakeApi(routes());
     const page = await mount(<App api={api} now={() => NOW} />);
     await click(page.querySelector('button[aria-label="Your account"]'));
-    const menu = page.querySelector('[role="menu"]')!;
-    expect([...menu.querySelectorAll('[role="menuitemradio"]')].map((i) => i.textContent)).toEqual([
-      "System✓",
-      "Forge (dark)",
-      "Atelier (light)",
-    ]);
+    const menu = document.querySelector('[role="menu"]')!;
+    const radios = [...menu.querySelectorAll('[role="menuitemradio"]')];
+    expect(radios.map((i) => i.textContent)).toEqual(["System", "Forge (dark)", "Atelier (light)"]);
+    expect(radios[0]?.getAttribute("aria-checked")).toBe("true");
     expect(menu.querySelector('a[href="/auth/logout"]')?.textContent).toBe("Sign out");
     expect(menu.textContent).toContain("Documentation");
     await click(
-      [...menu.querySelectorAll("button")].find((b) => b.textContent === "Atelier (light)"),
+      [...menu.querySelectorAll('[role="menuitemradio"]')].find(
+        (b) => b.textContent === "Atelier (light)",
+      ),
     );
     expect(document.documentElement.dataset.theme).toBe("light");
     expect(window.localStorage.getItem("forgeron-theme")).toBe("atelier");
