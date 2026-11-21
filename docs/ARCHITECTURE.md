@@ -15,7 +15,6 @@ flowchart LR
 
   subgraph Platform["Platform (Forgeron account or customer account)"]
     GW["apps/gateway, the only public Worker<br/>dispatcher · identity · OAuth<br/>admin MCP · platform API"]
-    CON["apps/console<br/>served by the gateway"]
     REG[("Platform D1<br/>registry, access, audit log")]
     HOST["@forgeron/hosting<br/>cloud: Workers for Platforms<br/>self-host: classic Workers"]
     subgraph Tools["One private Worker per tool and per environment"]
@@ -31,17 +30,16 @@ flowchart LR
   HOST -- "Cloudflare API" --> Tools
   GW -- "dispatch or service binding" --> RT
   RT --- RES
-  GW -. assets .- CON
 ```
 
 Three families of code, three rhythms:
 
-| Family              | Where                                       | Published                                          | Runs on                                                    |
-| ------------------- | ------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------- |
-| What a tool imports | `packages/`                                 | npm (`@forgeron/*`)                                | neutral (SDK, hosting), Node (compiler), workerd (runtime) |
-| The CLI             | `apps/cli`                                  | npm (`forgeron` binary)                            | Node                                                       |
-| The platform        | `apps/gateway`, `apps/console`, `apps/site` | deployed (cloud); installed by the CLI (self-host) | Cloudflare Workers                                         |
-| Catalog templates   | `templates/`                                | npm (`@forgeron/template-*`)                       | like any other tool                                        |
+| Family              | Where                       | Published                                          | Runs on                                                    |
+| ------------------- | --------------------------- | -------------------------------------------------- | ---------------------------------------------------------- |
+| What a tool imports | `packages/`                 | npm (`@forgeron/*`)                                | neutral (SDK, hosting), Node (compiler), workerd (runtime) |
+| The CLI             | `apps/cli`                  | npm (`forgeron` binary)                            | Node                                                       |
+| The platform        | `apps/gateway`, `apps/site` | deployed (cloud); installed by the CLI (self-host) | Cloudflare Workers                                         |
+| Catalog templates   | `templates/`                | npm (`@forgeron/template-*`)                       | like any other tool                                        |
 
 ## Directory tree
 
@@ -50,7 +48,6 @@ forgeron/
 ├── apps/
 │   ├── cli/                # `forgeron` binary: init, dev, play, build, deploy, db, secrets, tool commands
 │   ├── gateway/            # Public Worker: dispatch, identity, registry, admin MCP, platform API
-│   ├── console/            # Workspace console (React + Vite), served as assets by the gateway
 │   └── site/               # forgeron.app marketing site (Astro, React islands)
 ├── packages/
 │   ├── sdk/                # @forgeron/sdk: defineConfig, action, on, schedule; subpaths db, react, testing
@@ -113,7 +110,6 @@ Design points:
 | --------- | -------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cli`     | Node, `@forgeron/sdk`, `compiler`, `hosting` | published on npm, run on a workstation or in CI                   | Tool lifecycle (`sdk.md` §5), platform installation in self-host, calling tool actions                                                                            |
 | `gateway` | Hono, `workers-oauth-provider`, Kysely on D1 | Worker, route `*.<domain>/*`, mapped hosts or workers.dev (D-126) | Dispatcher (workspace → tool → environment), identity (SSO, OAuth 2.1, audience-scoped tokens), registry, audit log, admin MCP, tool deployment through `hosting` |
-| `console` | React, Vite, `@forgeron/ui`                  | Gateway assets (same origin as the workspace)                     | Shell, first-run checklist, tools, members, teams and their permissions, access by team × action, secrets, resource approval, audit log, settings                 |
 | `site`    | Astro, React islands                         | Worker + static assets                                            | Marketing site, public documentation eventually                                                                                                                   |
 
 `apps/cli` is the only app published on npm: it runs on the developer's machine. It stays in `apps/` because it is a final executable that nothing imports.
@@ -135,7 +131,7 @@ apps/gateway/src/
 ├── platform-update/    # the platform updating itself from the console: the release, its artifact, the run (D-138)
 ├── sources/            # where a tool comes from: its update, putting it in production, copying a branch's data (D-121)
 ├── admin-mcp/          # admin MCP tools (sdk.md §17)
-├── console-api/        # API consumed by apps/console
+├── console-api/        # platform API under /console-api (the admin console was deleted, D2)
 └── audit/              # usage and deployment audit log
 ```
 
@@ -195,7 +191,7 @@ In self-host, the gateway is redeployed when a Worker is first bound to it or re
 
 ### Installing the platform in self-host
 
-`forgeron platform install` (CLI, step-by-step guide in [`self-host.md`](self-host.md)) takes a Cloudflare API token limited to Workers, D1, KV and R2 from `CLOUDFLARE_API_TOKEN`. It creates the platform D1 and migrates it, deploys the gateway Worker to the account and stores the token as the gateway's secret binding, never printing it. With `--console <dir>` (the build of `apps/console`) it uploads the console as the gateway's static assets. This token is the most sensitive secret of the installation. With `--auth wrangler` the installation instead calls Cloudflare with the token of the wrangler session (`wrangler auth token`); that short-lived token is never stored, so the gateway's secret binding is set from `GATEWAY_CLOUDFLARE_API_TOKEN` or skipped (D-026). `--auth oauth` is reserved and refused. Providers live in `apps/cli/src/commands/cloudflare-auth.ts`.
+`forgeron platform install` (CLI, step-by-step guide in [`self-host.md`](self-host.md)) takes a Cloudflare API token limited to Workers, D1, KV and R2 from `CLOUDFLARE_API_TOKEN`. It creates the platform D1 and migrates it, deploys the gateway Worker to the account and stores the token as the gateway's secret binding, never printing it. With `--console <dir>` it uploads a directory of static assets with the gateway (the gateway no longer serves them: it answers a placeholder page while the admin console is rebuilt). This token is the most sensitive secret of the installation. With `--auth wrangler` the installation instead calls Cloudflare with the token of the wrangler session (`wrangler auth token`); that short-lived token is never stored, so the gateway's secret binding is set from `GATEWAY_CLOUDFLARE_API_TOKEN` or skipped (D-026). `--auth oauth` is reserved and refused. Providers live in `apps/cli/src/commands/cloudflare-auth.ts`.
 
 ## Publishing a tool
 
@@ -279,7 +275,7 @@ In self-host, the domain is the customer's; the same single-subdomain-level rule
 | `sdk` (linked versions)  | `packages/sdk`, `runtime`, `compiler`, `manifest`, `permissions`, `hosting`, `apps/cli` | `sdk-v0.4.0`            |
 | `ui`                     | `packages/ui`                                                                           | `ui-v0.2.0`             |
 | one per connector        | `packages/connector-<name>`                                                             | `connector-odoo-v0.1.0` |
-| the root (no component)  | `apps/gateway`, `apps/console`, `apps/site`, the rest of the repository                 | `v0.7.0` (D-140)        |
+| the root (no component)  | `apps/gateway`, `apps/site`, the rest of the repository                                 | `v0.7.0` (D-140)        |
 
 Templates (`templates/`) do not go through release-please: they are tools, they use `forgeron release` (D-007) and their tags look like `crm@1.0.0`.
 
@@ -330,7 +326,7 @@ Decisions already made are in [`DECISIONS.md`](DECISIONS.md). Still open:
 | Uploading a user Worker with its D1 on Workers for Platforms                 | step 8                       | documented (doc of 16/09/2026), not tried; purchase of Workers for Platforms required                                                                                           |
 | Dynamic OAuth resources (one token per tool without redeploying the gateway) | step 5                       | decided, D-013: build the authorization server from the registry, cached by registry version; watch the cost above ~100 tools                                                   |
 | Staging domain (two-level certificate)                                       | first deployment             | decided, D-087: a separate registrable domain; to buy                                                                                                                           |
-| Open source license                                                          | npm publishing               | decided, D-085: Apache-2.0, and AGPL-3.0 for the gateway and the console; to confirm by the copyright holder                                                                    |
+| Open source license                                                          | npm publishing               | decided, D-085: Apache-2.0, and AGPL-3.0 for the gateway; to confirm by the copyright holder                                                                                    |
 | GitHub organization and repository name                                      | badges, links, `SECURITY.md` | the repository is `forgeron-sh/monorepo`; the public name is to decide (FOR-34)                                                                                                 |
 | Public npm name                                                              | publishing, `sdk.md` §18     | decided, D-086: `forgeron` (CLI) and `@forgeron/*`; not reserved yet                                                                                                            |
 

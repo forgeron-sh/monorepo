@@ -58,7 +58,7 @@ module.exports = {
       to: { path: "^packages/(?!manifest/|permissions/)" },
     },
     {
-      // The contract is data that a server, the console and the CLI all read: no other package of ours
+      // The contract is data that a server and the CLI all read: no other package of ours
       // but the schemas it reuses. Its npm dependencies are `zod` only: knip fails an import that
       // `package.json` does not list (`exclude` keeps node_modules out of this graph).
       name: "platform-contract-imports-schemas-only",

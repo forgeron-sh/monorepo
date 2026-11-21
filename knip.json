@@ -29,14 +29,6 @@
       "ignore": ["fixtures/**"]
     },
     "apps/*": {},
-    "apps/console": {
-      "entry": [
-        "src/index.ts",
-        "src/features/*/index.ts",
-        "src/features/*/routes.ts",
-        "src/preview/main.tsx"
-      ]
-    },
     "apps/site": {
       "ignoreDependencies": ["@astrojs/check"]
     },

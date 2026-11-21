@@ -1,7 +1,6 @@
 // Writes the platform artifact of a release (D-138): `dist/forgeron-platform.json` and its checksum
-// `dist/forgeron-platform.json.sha256`, after `bun run --cwd apps/gateway build` and
-// `bun run --cwd apps/console build`. The release workflow attaches both to the release `v<version>`;
-// a gateway reads them to update itself from the console. The shape is `docs/spikes/self-update.md`, 1.
+// `dist/forgeron-platform.json.sha256`, after `bun run --cwd apps/gateway build`. The release
+// workflow attaches both to the release `v<version>`; a gateway reads them to update itself. The shape is `docs/spikes/self-update.md`, 1.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -21,7 +20,7 @@ const root = new URL("..", import.meta.url).pathname;
 export interface PlatformArtifactOptions {
   /** The built gateway (`apps/gateway/dist/worker.js`). */
   worker?: string;
-  /** The built console (`apps/console/dist`). */
+  /** A directory of static assets to bundle (none by default: the gateway serves a placeholder). */
   console?: string;
   /** Where the two files are written. */
   out?: string;
@@ -46,7 +45,8 @@ export async function writePlatformArtifact(options: PlatformArtifactOptions = {
     options.version ??
     (JSON.parse(await readFile(join(root, "package.json"), "utf8")) as { version: string }).version;
   const worker = await readFile(options.worker ?? join(root, "apps/gateway/dist/worker.js"));
-  const assets = await readAssets(options.console ?? join(root, "apps/console/dist"));
+  // No console to bundle (D2): the artifact carries assets only when a directory is given.
+  const assets = options.console ? await readAssets(options.console) : [];
   const json = JSON.stringify({
     format: 1,
     version,

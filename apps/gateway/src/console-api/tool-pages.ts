@@ -9,7 +9,7 @@ import type {
   VersionRecord,
 } from "@forgeron/registry";
 
-// What a tool's page reads (docs/console-ux.md, "Tool page"), for who holds `tools:read`:
+// What a tool's page reads (docs/archive/console-ux.md, "Tool page"), for who holds `tools:read`:
 //   GET /api/tools/<name>/branches    the channels (D-125): production, the other permanent ones, and one
 //                                     temporary channel per branch with its commits, as Forgeron recorded them
 //   GET /api/tools/<name>/versions    the versions, newest first, each with its changelog and what changed

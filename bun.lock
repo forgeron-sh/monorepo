@@ -22,7 +22,7 @@
     },
     "apps/cli": {
       "name": "@forgeron/cli",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "bin": {
         "forgeron": "./src/index.ts",
       },
@@ -45,25 +45,6 @@
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
         "@types/node": "24.19.2",
-      },
-    },
-    "apps/console": {
-      "name": "@forgeron/console",
-      "version": "0.0.0",
-      "dependencies": {
-        "@forgeron/permissions": "workspace:*",
-        "@forgeron/platform-contract": "workspace:*",
-        "@forgeron/ui": "workspace:*",
-        "react": "19.3.1",
-      },
-      "devDependencies": {
-        "@forgeron/manifest": "workspace:*",
-        "@forgeron/tsconfig": "workspace:*",
-        "@types/react": "19.3.0",
-        "@types/react-dom": "19.3.0",
-        "jsdom": "30.1.3",
-        "react-dom": "19.3.1",
-        "vite": "8.3.5",
       },
     },
     "apps/gateway": {
@@ -164,7 +145,7 @@
     },
     "packages/manifest": {
       "name": "@forgeron/manifest",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@forgeron/permissions": "workspace:*",
         "zod": "4.6.7",
@@ -175,7 +156,7 @@
     },
     "packages/permissions": {
       "name": "@forgeron/permissions",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "devDependencies": {
         "@forgeron/tsconfig": "workspace:*",
       },
@@ -216,7 +197,7 @@
     },
     "packages/runtime": {
       "name": "@forgeron/runtime",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
         "kysely": "0.29.8",
@@ -235,7 +216,7 @@
     },
     "packages/sdk": {
       "name": "@forgeron/sdk",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@forgeron/manifest": "workspace:*",
         "@forgeron/permissions": "workspace:*",
@@ -492,8 +473,6 @@
     "@forgeron/connector-google-workspace": ["@forgeron/connector-google-workspace@workspace:packages/connector-google-workspace"],
 
     "@forgeron/connector-microsoft-365": ["@forgeron/connector-microsoft-365@workspace:packages/connector-microsoft-365"],
-
-    "@forgeron/console": ["@forgeron/console@workspace:apps/console"],
 
     "@forgeron/gateway": ["@forgeron/gateway@workspace:apps/gateway"],
 

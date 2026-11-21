@@ -39,7 +39,7 @@ fix(gateway): reject a token whose audience does not match the tool
 docs: clarify the expand / contract rule for migrations
 ```
 
-Usual scopes: `sdk`, `cli`, `runtime`, `compiler`, `manifest`, `ui`, `gateway`, `console`, `site`, `template-<name>`, `connector-<name>`, `ci`.
+Usual scopes: `sdk`, `cli`, `runtime`, `compiler`, `manifest`, `ui`, `gateway`, `site`, `template-<name>`, `connector-<name>`, `ci`.
 
 The type determines the next version (see [Versions and changelog](#versions-and-changelog)).
 

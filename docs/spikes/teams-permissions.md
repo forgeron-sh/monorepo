@@ -203,7 +203,7 @@ tool for who uses it (Access tab). No "Roles" anywhere.
 ## Docs
 
 D-137 in `DECISIONS.md` (Replaces D-127's roles, D-128 §5, D-132 §2; status lines of those updated
-"Replaced in part by D-137"). `sdk.md` (Access, `ctx.user`, testing, CLI), `console-ux.md`,
+"Replaced in part by D-137"). `sdk.md` (Access, `ctx.user`, testing, CLI), `archive/console-ux.md`,
 `self-host.md`, `lifecycle.md`, `ARCHITECTURE.md` (new package), READMEs, the CHANGELOG is left to
 release-please.
 

@@ -50,13 +50,29 @@ const BEARER_PATHS: ReadonlySet<string> = new Set([
   ...GITHUB_PATHS,
 ]);
 
-const CONSOLE_CSP =
+// The admin console is deleted (D2) and is being rebuilt: until then `GET /` answers this page and every other path is a 404.
+const PLACEHOLDER_PAGE = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Forgeron</title>
+    <style>body{font:16px/1.5 system-ui,sans-serif;max-width:36rem;margin:4rem auto;padding:0 1rem}</style>
+  </head>
+  <body>
+    <h1>The admin console is being rebuilt</h1>
+    <p>Administer this workspace through the admin MCP: connect an MCP client to <code>/mcp</code> on this origin.</p>
+  </body>
+</html>
+`;
+
+const PLACEHOLDER_CSP =
   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
 /**
  * The gateway's request handler. On a workspace origin: `/t/<tool>…` is dispatched to the tool,
  * `/auth/…`, `/whoami`, `/deploy`, `/rollback` and `/deploy-tokens` are the platform's, `/console-api/…` is the
- * console's API, and every other path is the console itself. One resolver (`createCaller`) turns a
+ * console API, and every other path is a 404, except `/`, a placeholder page (the admin console is being rebuilt). One resolver (`createCaller`) turns a
  * session cookie or an audience-bound token into the person for all of them. The pieces are built
  * in `compose.ts`; this file is the table of routes.
  */
@@ -144,16 +160,15 @@ export function createGateway(env: GatewayEnv, options: GatewayOptions = {}) {
         { status: 405, headers: { allow: "GET, HEAD" } },
       );
     }
-    if (!env.ASSETS) return notFound(request);
-    const asset = await env.ASSETS.fetch(request);
-    const headers = new Headers(asset.headers);
-    headers.set("content-security-policy", CONSOLE_CSP);
-    headers.set("x-content-type-options", "nosniff");
-    headers.set("referrer-policy", "same-origin");
-    return new Response(asset.body, {
-      status: asset.status,
-      statusText: asset.statusText,
-      headers,
+    if (url.pathname !== "/") return notFound(request);
+    return new Response(request.method === "HEAD" ? null : PLACEHOLDER_PAGE, {
+      status: 200,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "content-security-policy": PLACEHOLDER_CSP,
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "same-origin",
+      },
     });
   };
 }

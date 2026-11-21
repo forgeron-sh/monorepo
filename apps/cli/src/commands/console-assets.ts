@@ -4,7 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { extname, join, relative, sep } from "node:path";
 import { UsageError } from "../io";
 
-// The console's build (`apps/console/dist`) is read here; `uploadAssets` (@forgeron/hosting) sends it.
+// A directory of built static assets is read here; `uploadAssets` (@forgeron/hosting) sends it.
 
 const TYPES: Record<string, string> = {
   ".html": "text/html",
@@ -39,9 +39,7 @@ export async function readAssets(dir: string): Promise<Asset[]> {
   try {
     files = await list(dir);
   } catch {
-    throw new UsageError(
-      `Cannot read the console build ${dir}. Build it first (\`moon run console:build\`).`,
-    );
+    throw new UsageError(`Cannot read the console build ${dir}.`);
   }
   const assets: Asset[] = [];
   for (const file of files.sort()) {

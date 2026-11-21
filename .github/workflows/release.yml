@@ -85,7 +85,7 @@ jobs:
       - run: bun run packages:smoke
       - run: bun scripts/publish.ts
 
-  # The platform artifact (D-138): the built gateway, console and migrations, with their checksum,
+  # The platform artifact (D-138): the built gateway and migrations, with their checksum,
   # attached to the platform's release so that a self-hosted gateway can update itself from the console.
   platform-artifact:
     needs: release-please
@@ -100,7 +100,6 @@ jobs:
           ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: ./.github/actions/setup
       - run: bun run --cwd apps/gateway build
-      - run: bun run --cwd apps/console build
       - run: bun run platform:artifact
       - name: Attach to the release
         env:
