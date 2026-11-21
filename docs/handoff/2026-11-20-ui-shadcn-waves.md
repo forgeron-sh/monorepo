@@ -3,6 +3,9 @@
 The plan for closing the work started by D-156, D-157 and D-160. Each wave is a set of tasks given to
 separate agents with disjoint files; the orchestrating session wires the shared files and commits.
 
+**Status (21/11/2026)**: waves 1, 2, 3 and 5 done, recorded in D-161; wave 4 waits for the owner's
+decision. Left out of wave 3 on purpose: `dashboard-widget-grid` (a 2D layout).
+
 ## Conventions every task follows
 
 - **The shape.** A component with an inner structure is a set of compound parts, as in shadcn: a root
